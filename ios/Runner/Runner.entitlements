@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Start of APSEnvironment -->
+    <key>aps-environment</key>
+    <string>production</string>
+    <!-- End of APSEnvironment -->
+    <!-- Start of Associated Domains -->
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+      <string>applinks:coachsmart-deeplinks.netlify.app</string>
+    </array>
+    <!-- End of Associated Domains -->
+  </dict>
+</plist>
