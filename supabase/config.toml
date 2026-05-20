@@ -1,1 +1,4 @@
 project_id = "coach-smart-new-mpqa5l"
+
+[db]
+ignored_roles = ["fivetran_sync"]
