@@ -105,10 +105,77 @@
   .hero-bg {
     position: absolute;
     inset: 0;
-    background:
-      radial-gradient(ellipse 60% 50% at 70% 40%, rgba(135,194,50,0.08) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 40% at 20% 70%, rgba(135,194,50,0.04) 0%, transparent 60%);
     pointer-events: none;
+    overflow: hidden;
+  }
+
+  .hero-bg .orb {
+    position: absolute;
+    border-radius: 50%;
+  }
+
+  .hero-bg .orb-1 {
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(135,194,50,0.13) 0%, transparent 70%);
+    filter: blur(90px);
+    top: -20%;
+    right: -5%;
+    animation: orbFloat1 20s ease-in-out infinite;
+  }
+
+  .hero-bg .orb-2 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(135,194,50,0.08) 0%, transparent 70%);
+    filter: blur(80px);
+    bottom: -10%;
+    left: -5%;
+    animation: orbFloat2 24s ease-in-out infinite;
+  }
+
+  .hero-bg .orb-3 {
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(91,159,212,0.07) 0%, transparent 70%);
+    filter: blur(70px);
+    top: 40%;
+    left: 35%;
+    animation: orbFloat3 30s ease-in-out infinite;
+  }
+
+  @keyframes orbFloat1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(-30px, 40px) scale(1.06); }
+    66%      { transform: translate(20px, -25px) scale(0.94); }
+  }
+
+  @keyframes orbFloat2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(35px, -45px) scale(1.08); }
+    66%      { transform: translate(-25px, 30px) scale(0.93); }
+  }
+
+  @keyframes orbFloat3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(-35px, -35px) scale(1.1); }
+  }
+
+  /* HERO IMAGE */
+  .hero-image-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  .hero-app-image {
+    width: 100%;
+    max-width: 560px;
+    border-radius: 20px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative;
+    z-index: 1;
   }
 
   .hero-grid {
@@ -686,82 +753,19 @@
 
   .footer-links a:hover { color: var(--text); }
 
-  /* ANIMATED BACKGROUND */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(135,194,50,0.055) 1px, transparent 1px);
-    background-size: 44px 44px;
-    pointer-events: none;
-    z-index: -1;
-  }
-
-  .bg-orbs {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: -1;
-    overflow: hidden;
-  }
-
-  .orb {
-    position: absolute;
-    border-radius: 50%;
-  }
-
-  .orb-1 {
-    width: 700px;
-    height: 700px;
-    background: radial-gradient(circle, rgba(135,194,50,0.10) 0%, transparent 70%);
-    filter: blur(90px);
-    top: -15%;
-    right: -8%;
-    animation: orbFloat1 20s ease-in-out infinite;
-  }
-
-  .orb-2 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(135,194,50,0.07) 0%, transparent 70%);
-    filter: blur(80px);
-    bottom: 15%;
-    left: -8%;
-    animation: orbFloat2 24s ease-in-out infinite;
-  }
-
-  .orb-3 {
-    width: 350px;
-    height: 350px;
-    background: radial-gradient(circle, rgba(91,159,212,0.06) 0%, transparent 70%);
-    filter: blur(70px);
-    top: 45%;
-    left: 38%;
-    animation: orbFloat3 30s ease-in-out infinite;
-  }
-
-  @keyframes orbFloat1 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33%      { transform: translate(-30px, 40px) scale(1.06); }
-    66%      { transform: translate(20px, -25px) scale(0.94); }
-  }
-
-  @keyframes orbFloat2 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33%      { transform: translate(35px, -45px) scale(1.08); }
-    66%      { transform: translate(-25px, 30px) scale(0.93); }
-  }
-
-  @keyframes orbFloat3 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50%      { transform: translate(-35px, -35px) scale(1.1); }
-  }
-
   /* NAV LOGO IMAGE */
   .nav-logo-img {
     height: 36px;
     width: auto;
   }
+
+  .nav-logo-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+  }
+  .nav-logo-text .coach { color: var(--light); }
+  .nav-logo-text .smart { color: var(--green); }
 
   /* FOOTER LOGO IMAGE */
   .footer-logo-img {
@@ -773,7 +777,7 @@
   /* APP SCREENS SHOWCASE */
   .appscreens-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 28px;
   }
 
@@ -827,7 +831,7 @@
 
   @media (max-width: 900px) {
     .hero-grid { grid-template-columns: 1fr; }
-    .phone-wrap { display: none; }
+    .hero-image-wrap { display: none; }
     .features-grid { grid-template-columns: 1fr 1fr; }
     .appscreens-grid { grid-template-columns: 1fr 1fr; }
     .stats-row { grid-template-columns: 1fr 1fr; }
@@ -847,17 +851,11 @@
 </head>
 <body>
 
-<!-- ANIMATED BACKGROUND ORBS -->
-<div class="bg-orbs" aria-hidden="true">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
-</div>
-
 <!-- NAV -->
 <nav>
   <a href="#" class="nav-logo">
     <img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="nav-logo-img">
+    <span class="nav-logo-text"><span class="coach">COACH</span><span class="smart">SMART</span></span>
   </a>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
@@ -870,7 +868,11 @@
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-bg"></div>
+  <div class="hero-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
   <div class="hero-grid">
     <div>
       <div class="hero-badge">Now available for iOS &amp; Android</div>
@@ -892,12 +894,9 @@
       </div>
     </div>
 
-    <!-- PHONE SCREENSHOT -->
-    <div class="phone-wrap">
-      <div class="phone-glow"></div>
-      <div class="phone">
-        <img src="images/screenshot-home.png" alt="CoachSmart home screen showing upcoming events across multiple teams">
-      </div>
+    <!-- HERO IMAGE -->
+    <div class="hero-image-wrap">
+      <img src="images/Appscreens1.png" alt="CoachSmart app screens" class="hero-app-image">
     </div>
   </div>
 </section>
@@ -935,13 +934,6 @@
       <p class="section-sub">A clean, fast experience built for the sideline — not the boardroom.</p>
     </div>
     <div class="appscreens-grid">
-      <div class="appscreen-item fade-up">
-        <img src="images/Appscreens1.png" alt="CoachSmart home dashboard">
-        <div class="appscreen-caption">
-          <h3>Events at a Glance</h3>
-          <p>All your upcoming events across every team, with live attendance status front and centre.</p>
-        </div>
-      </div>
       <div class="appscreen-item fade-up">
         <img src="images/Appscreens2.png" alt="CoachSmart event detail">
         <div class="appscreen-caption">
