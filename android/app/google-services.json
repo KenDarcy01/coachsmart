@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1026672336817",
+    "project_id": "coach-smart-new-mpqa5l",
+    "storage_bucket": "coach-smart-new-mpqa5l.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1026672336817:android:0f604d15598335074ca790",
+        "android_client_info": {
+          "package_name": "my.coachsmartV2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzX094F8JqYiCr4PLNURJWSJSzISFj79g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
