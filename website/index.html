@@ -686,6 +686,134 @@
 
   .footer-links a:hover { color: var(--text); }
 
+  /* ANIMATED BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(135,194,50,0.055) 1px, transparent 1px);
+    background-size: 44px 44px;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .bg-orbs {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden;
+  }
+
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+  }
+
+  .orb-1 {
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(135,194,50,0.10) 0%, transparent 70%);
+    filter: blur(90px);
+    top: -15%;
+    right: -8%;
+    animation: orbFloat1 20s ease-in-out infinite;
+  }
+
+  .orb-2 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(135,194,50,0.07) 0%, transparent 70%);
+    filter: blur(80px);
+    bottom: 15%;
+    left: -8%;
+    animation: orbFloat2 24s ease-in-out infinite;
+  }
+
+  .orb-3 {
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(91,159,212,0.06) 0%, transparent 70%);
+    filter: blur(70px);
+    top: 45%;
+    left: 38%;
+    animation: orbFloat3 30s ease-in-out infinite;
+  }
+
+  @keyframes orbFloat1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(-30px, 40px) scale(1.06); }
+    66%      { transform: translate(20px, -25px) scale(0.94); }
+  }
+
+  @keyframes orbFloat2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(35px, -45px) scale(1.08); }
+    66%      { transform: translate(-25px, 30px) scale(0.93); }
+  }
+
+  @keyframes orbFloat3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(-35px, -35px) scale(1.1); }
+  }
+
+  /* NAV LOGO IMAGE */
+  .nav-logo-img {
+    height: 36px;
+    width: auto;
+  }
+
+  /* FOOTER LOGO IMAGE */
+  .footer-logo-img {
+    height: 28px;
+    width: auto;
+    opacity: 0.85;
+  }
+
+  /* APP SCREENS SHOWCASE */
+  .appscreens-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+
+  .appscreen-item {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: var(--dark);
+  }
+
+  .appscreen-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 36px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(135,194,50,0.15);
+  }
+
+  .appscreen-item img {
+    width: 100%;
+    display: block;
+  }
+
+  .appscreen-caption {
+    padding: 18px 22px;
+    border-top: 1px solid var(--border);
+  }
+
+  .appscreen-caption h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .appscreen-caption p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
   /* ANIMATIONS */
   .fade-up {
     opacity: 0;
@@ -701,7 +829,7 @@
     .hero-grid { grid-template-columns: 1fr; }
     .phone-wrap { display: none; }
     .features-grid { grid-template-columns: 1fr 1fr; }
-    .screenshots-grid { grid-template-columns: 1fr 1fr; }
+    .appscreens-grid { grid-template-columns: 1fr 1fr; }
     .stats-row { grid-template-columns: 1fr 1fr; }
     .testimonials-grid { grid-template-columns: 1fr; }
     .steps-grid { grid-template-columns: 1fr 1fr; }
@@ -711,7 +839,7 @@
 
   @media (max-width: 600px) {
     .features-grid { grid-template-columns: 1fr; }
-    .screenshots-grid { grid-template-columns: 1fr; }
+    .appscreens-grid { grid-template-columns: 1fr; }
     .stats-row { grid-template-columns: 1fr 1fr; }
     .steps-grid { grid-template-columns: 1fr; }
   }
@@ -719,16 +847,17 @@
 </head>
 <body>
 
+<!-- ANIMATED BACKGROUND ORBS -->
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
 <!-- NAV -->
 <nav>
   <a href="#" class="nav-logo">
-    <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="8,2 20,2 28,8 16,8" fill="#a3aab3"/>
-      <polygon points="2,13 14,13 22,19 10,19" fill="#a3aab3"/>
-      <polygon points="14,13 26,13 32,19 20,19" fill="#87C232"/>
-      <polygon points="4,22 16,22 24,28 12,28" fill="#87C232"/>
-    </svg>
-    <span class="coach">COACH</span><span class="smart">SMART</span>
+    <img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="nav-logo-img">
   </a>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
@@ -805,27 +934,34 @@
       <h2 class="section-title">See It In Action</h2>
       <p class="section-sub">A clean, fast experience built for the sideline — not the boardroom.</p>
     </div>
-    <div class="screenshots-grid">
-      <div class="screenshot-item fade-up">
-        <div class="screenshot-phone">
-          <img src="images/screenshot-home.png" alt="CoachSmart home screen">
+    <div class="appscreens-grid">
+      <div class="appscreen-item fade-up">
+        <img src="images/Appscreens1.png" alt="CoachSmart home dashboard">
+        <div class="appscreen-caption">
+          <h3>Events at a Glance</h3>
+          <p>All your upcoming events across every team, with live attendance status front and centre.</p>
         </div>
-        <h3>All Your Teams, One View</h3>
-        <p>See upcoming events across every team at a glance. Filter by club or team and check live attendance in seconds.</p>
       </div>
-      <div class="screenshot-item fade-up">
-        <div class="screenshot-phone">
-          <img src="images/screenshot-event.png" alt="CoachSmart event detail screen">
+      <div class="appscreen-item fade-up">
+        <img src="images/Appscreens2.png" alt="CoachSmart event detail">
+        <div class="appscreen-caption">
+          <h3>Full Event Detail</h3>
+          <p>Location, meeting time, opposition, and a live breakdown of who's in, out, or hasn't responded.</p>
         </div>
-        <h3>Full Event Detail</h3>
-        <p>Location, meeting time, opposition, event notes — and a live attendance breakdown showing who's in, out, or hasn't responded.</p>
       </div>
-      <div class="screenshot-item fade-up">
-        <div class="screenshot-phone">
-          <img src="images/screenshot-squad.png" alt="CoachSmart squad screen">
+      <div class="appscreen-item fade-up">
+        <img src="images/Appscreens3.png" alt="CoachSmart squad builder">
+        <div class="appscreen-caption">
+          <h3>Build Your Match Day Team</h3>
+          <p>Assign players to teams from your accepted list, publish the squad, and export — all in one screen.</p>
         </div>
-        <h3>Build Your Match Day Team</h3>
-        <p>Assign players to teams from your accepted list, publish the squad, and export it — all from one screen.</p>
+      </div>
+      <div class="appscreen-item fade-up">
+        <img src="images/Appscreens4.png" alt="CoachSmart squad management">
+        <div class="appscreen-caption">
+          <h3>Squad Management</h3>
+          <p>Track your full panel, their availability, and attendance history across the entire season.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -1002,7 +1138,7 @@
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-logo"><span class="c">COACH</span><span class="s">SMART</span></div>
+  <div class="footer-logo"><img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="footer-logo-img"></div>
   <div class="footer-copy">© 2026 CoachSmart. Coaching Made Simple.</div>
   <ul class="footer-links">
     <li><a href="#">Privacy</a></li>
