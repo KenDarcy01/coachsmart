@@ -411,6 +411,7 @@ const POS = {
 
 let players=[],assign={},subAssign={},fmt=15,drag=null,dirty=false;
 function markDirty(){ dirty=true; $('saveBtn').disabled=false; }
+function jwtUserId(token){ try{ return JSON.parse(atob(token.split('.')[1])).sub; }catch{ return null; } }
 let jc={p:'#cc0000',s:'#cc0000',g:'#ffffff'};
 let teamId=null,teamName='',eventId=null,eventLabel='',squadName='',squadId=null;
 
@@ -1358,7 +1359,7 @@ $('saveBtn').addEventListener('click', async () => {
     const lResp = await fetch(`${SB}/rest/v1/lineup`, {
       method: 'POST',
       headers: { ...getH(), 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-      body: JSON.stringify({ event_id: eventId, team_id: teamId, squad_id: squadId, format: fmt })
+      body: JSON.stringify({ event_id: eventId, team_id: teamId, squad_id: squadId, format: fmt, created_by: jwtUserId(userToken) })
     });
     if (!lResp.ok) throw new Error(await lResp.text());
     const [lineup] = await lResp.json();
