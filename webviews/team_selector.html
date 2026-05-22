@@ -1366,10 +1366,13 @@ $('saveBtn').addEventListener('click', async () => {
 
     // 2. Build and insert lineup_details
     const details = [];
-    Object.entries(assign).forEach(([pos, mid]) =>
-      details.push({ lineup_id: lineup.lineup_id, member_id: mid, position_num: parseInt(pos), is_sub: false }));
+    Object.entries(assign).forEach(([pos, mid]) => {
+      const posNum = parseInt(pos);
+      const label = POS[fmt].find(p => p.n === posNum)?.l || '';
+      details.push({ lineup_id: lineup.lineup_id, member_id: mid, position_num: posNum, position_label: label, is_sub: false });
+    });
     Object.entries(subAssign).forEach(([slot, mid]) =>
-      details.push({ lineup_id: lineup.lineup_id, member_id: mid, position_num: parseInt(slot), is_sub: true }));
+      details.push({ lineup_id: lineup.lineup_id, member_id: mid, position_num: parseInt(slot), position_label: 'SUB', is_sub: true }));
 
     if (details.length) {
       const dResp = await fetch(`${SB}/rest/v1/lineup_details`, {
