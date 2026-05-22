@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "production": "coach-smart-new-mpqa5l"
+  },
+  "targets": {
+    "coach-smart-new-mpqa5l": {
+      "hosting": {
+        "website-alt": [
+          "alternate-coachsmart"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

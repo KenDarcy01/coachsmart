@@ -1,10 +1,14 @@
 {
-  "hosting": {
-    "public": "website",
-    "ignore": [
-      "firebase.json",
-      ".github/**",
-      ".gitignore"
-    ]
-  }
+  "hosting": [
+    {
+      "target": "main",
+      "public": "website",
+      "ignore": ["firebase.json", "**/.*"]
+    },
+    {
+      "target": "website-alt",
+      "public": "website-alt",
+      "ignore": ["firebase.json", "**/.*"]
+    }
+  ]
 }
