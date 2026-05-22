@@ -48,17 +48,19 @@
     background: rgba(246, 242, 236, 0.92);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--rule);
-    padding: 0 max(32px, 5%);
+    padding: 0 max(20px, 5%);
     height: 72px;
     display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
   }
-  .alt-logo { display: flex; align-items: center; gap: 12px; }
+  .alt-logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
   .alt-logo img { height: 36px; width: auto; }
   .alt-logo-text {
     font-family: var(--font-display);
     font-size: 26px;
     letter-spacing: 2px;
     color: var(--ink-1);
+    white-space: nowrap;
   }
   .alt-logo-text .g { color: var(--green-dk); }
   .alt-nav-links { display: flex; gap: 32px; }
@@ -79,6 +81,8 @@
     font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.2px;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: background 0.18s, transform 0.12s;
   }
   .alt-nav-cta:hover { background: var(--green-dk); transform: translateY(-1px); }
@@ -528,23 +532,63 @@
   .fade-up.visible { opacity: 1; transform: translateY(0); }
 
   @media (max-width: 900px) {
-    .alt-hero { grid-template-columns: 1fr; gap: 64px; }
+    .alt-hero { grid-template-columns: 1fr; gap: 48px; padding: 64px max(20px, 5%) 72px; }
     .alt-stat-block { padding-top: 0; }
-    .alt-section-grid { grid-template-columns: 1fr; gap: 32px; }
+    .alt-stat-num { font-size: 56px; }
+    .alt-lede { font-size: 19px; margin-bottom: 32px; }
+    .alt-kicker { margin-bottom: 28px; }
+    .alt-band-dark { padding: 80px max(20px, 5%); }
+    .alt-section { padding: 80px max(20px, 5%); }
+    .alt-section-grid { grid-template-columns: 1fr; gap: 24px; }
     .alt-section-num { position: static; }
-    .alt-feature { grid-template-columns: 56px 1fr 40px; gap: 18px; }
-    .alt-feat-num, .alt-feat-h { font-size: 24px; }
+    .alt-section-sub { font-size: 17px; margin-bottom: 40px; }
+    .alt-feature { grid-template-columns: 48px 1fr 40px; gap: 16px; padding: 28px 0; }
+    .alt-feat-num, .alt-feat-h { font-size: 22px; }
+    .alt-feat-p { font-size: 15px; }
+    .alt-feature:hover { padding-left: 0; padding-right: 0; }
+    .alt-screens-band { padding: 80px 0 64px; }
+    .alt-screens-head { margin-bottom: 48px; }
+    .alt-screens-strip { padding: 0 max(20px, 5%) 16px; gap: 20px; }
+    .alt-screen-card { width: 260px; }
+    .alt-screen-card h4 { font-size: 22px; margin-top: 20px; }
+    .alt-pullquote-section { padding: 80px max(20px, 5%) 56px; }
+    .alt-pullquote-mark { font-size: 120px; }
+    .alt-pullquote-text { font-size: clamp(26px, 5.5vw, 36px); }
+    .alt-pullquote-avatar { width: 48px; height: 48px; font-size: 18px; }
+    .alt-quotes-row { grid-template-columns: 1fr; gap: 36px; margin-top: 64px; padding-top: 40px; }
+    .alt-quote-small p { font-size: 17px; }
     .alt-how-grid { grid-template-columns: 1fr 1fr; }
-    .alt-how-step { border-right: none; }
+    .alt-how-step { border-right: none; padding: 36px 24px; }
     .alt-how-step:nth-child(odd) { border-right: 1px solid var(--rule); }
     .alt-how-step:nth-child(-n+2) { border-bottom: 1px solid var(--rule); }
-    .alt-quotes-row { grid-template-columns: 1fr; gap: 48px; }
-    .alt-footer { grid-template-columns: 1fr 1fr; gap: 40px; }
+    .alt-how-num { font-size: 44px; }
+    .alt-how-h { font-size: 20px; }
+    .alt-cta-band { padding: 96px max(20px, 5%); }
+    .alt-footer-wrap { padding: 56px max(20px, 5%) 28px; }
+    .alt-footer { grid-template-columns: 1fr 1fr; gap: 36px; }
     .alt-nav-links { display: none; }
   }
   @media (max-width: 600px) {
+    .alt-h1 { font-size: clamp(48px, 14vw, 68px); }
+    .alt-stat-num { font-size: 44px; }
+    .alt-cta-row { gap: 18px; }
+    .alt-btn-primary, .alt-btn-ghost { font-size: 14px; }
+    .alt-btn-primary { padding: 14px 22px; }
+    .alt-feature { grid-template-columns: 36px 1fr; gap: 12px; }
+    .alt-feat-arrow { display: none; }
+    .alt-feat-num { font-size: 18px; }
+    .alt-feat-h { font-size: 19px; }
     .alt-footer { grid-template-columns: 1fr; }
     .alt-footer-base { flex-direction: column; gap: 16px; align-items: flex-start; }
+  }
+  @media (max-width: 480px) {
+    .alt-logo-text { display: none; }
+    .alt-nav { padding: 0 16px; }
+    .alt-nav-cta { padding: 10px 16px; font-size: 13px; }
+    .alt-band-dark { padding: 64px 20px; }
+    .alt-section { padding: 64px 20px; }
+    .alt-pullquote-section { padding: 64px 20px 48px; }
+    .alt-cta-band { padding: 80px 20px; }
   }
 </style>
 </head>
@@ -569,8 +613,8 @@
   <div>
     <div class="alt-kicker">For GAA coaches · iOS &amp; Android</div>
     <h1 class="alt-h1">
-      COACHING<br>
-      <span class="alt">made simple.</span>
+      <span class="h1-line-1">COACHING</span><br>
+      <span class="alt h1-line-2">made simple.</span>
     </h1>
     <p class="alt-lede">CoachSmart gives GAA coaches the tools to run their team with confidence. Schedule events, manage your squad, and keep everyone connected — all in one app.</p>
     <div class="alt-cta-row">
@@ -582,7 +626,7 @@
       </a>
     </div>
   </div>
-  <div class="alt-stat-block">
+  <div class="alt-stat-block js-stats">
     <div class="alt-stat-row">
       <div class="alt-stat-num">500+</div>
       <div class="alt-stat-label">Teams using CoachSmart</div>
@@ -599,7 +643,7 @@
 </section>
 
 <!-- MANIFESTO DARK BAND -->
-<section class="alt-band-dark" data-screen-label="Manifesto band">
+<section class="alt-band-dark js-manifesto" data-screen-label="Manifesto band">
   <div class="alt-band-inner">
     <div class="alt-band-kicker">Built for the sideline</div>
     <h2 class="alt-manifesto">
@@ -850,6 +894,8 @@
   }, { threshold: 0.12 });
   document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 </script>
+
+
 
 </body>
 </html>
