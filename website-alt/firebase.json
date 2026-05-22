@@ -1,0 +1,22 @@
+{
+  "hosting": [
+    {
+      "target": "main",
+      "public": "website-alt",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    },
+    {
+      "target": "alt",
+      "public": "website-alt",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    }
+  ]
+}
