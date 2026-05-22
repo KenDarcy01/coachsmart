@@ -474,7 +474,7 @@ document.querySelectorAll('.fb').forEach(b=>{
     document.querySelectorAll('.fb').forEach(x=>x.classList.toggle('on',parseInt(x.dataset.f)===f));
     const keep=new Set(POS[f].map(p=>p.n));
     Object.keys(assign).forEach(k=>{if(!keep.has(parseInt(k)))delete assign[k];});
-    renderPos();renderStrip();
+    markDirty();renderPos();renderStrip();
   });
 });
 
