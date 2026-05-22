@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#111418"/>
+  <!-- Early background — applied before any scripts or fonts load to prevent white flash -->
+  <style>html,body{background:#111418 !important;}</style>
+  <title>CoachSmart — Team Selector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --green:     #87C232;
+      --green-dim: rgba(135,194,50,0.12);
+      --dark:      #111418;
+      --card:      #1E222B;
+      --card2:     #252A35;
+      --border:    rgba(255,255,255,0.07);
+      --text:      #E7EBEE;
+      --muted:     #6B7280;
+      --red:       #EF4444;
+      --pitch-dk:  #2d6a2d;
+      --pitch-st:  #3a9a3a;
+      --pitch-ln:  rgba(255,255,255,0.88);
+    }
+    /* ── BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; -webkit-text-size-adjust: none; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); font-size: 13px; }
+    button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+
+    /* Two full-screen panels — only one shown at a time */
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100vh;
+      /* iOS safe fallback */
+      height: -webkit-fill-available;
+      overflow: hidden;
+    }
+    .screen.active { display: block; }
+
+    /* ── SHARED HEADER ── */
+    .top-bar {
+      background: var(--card); border-bottom: 3px solid var(--green);
+      padding: 0 16px; height: 54px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .wordmark { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; line-height: 1; }
+    .wordmark .g  { color: #9CA3AF; }
+    .wordmark .gr { color: var(--green); }
+    .bar-sub { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+    .bar-actions { display: flex; gap: 8px; align-items: center; }
+    .green-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 13px; height: 34px;
+      background: var(--green); color: #111418;
+      border-radius: 8px; font-size: 12px; font-weight: 700;
+      white-space: nowrap; transition: opacity 0.15s;
+    }
+    .green-btn:hover { opacity: 0.85; }
+    .green-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .hdr-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 0 10px; height: 32px;
+      background: var(--green); color: #111418;
+      border-radius: 8px; font-size: 11px; font-weight: 700;
+      white-space: nowrap; transition: opacity 0.15s; flex-shrink: 0;
+    }
+    .hdr-btn:hover { opacity: 0.85; }
+    .hdr-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .hdr-btn-outline {
+      background: transparent; color: var(--green);
+      border: 1.5px solid var(--green);
+    }
+    .hdr-btn-outline:hover { background: var(--green-dim); }
+
+    /* ── FILTER SCREEN ──
+       Simple scroll — no flex tricks, just let the page scroll naturally */
+    #filterScreen {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #filterScreen .fbody {
+      padding: 16px 16px 40px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .fc { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .fc-head { padding: 9px 14px; background: var(--card2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .fc-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+    .fc-badge { font-size: 10px; font-weight: 600; color: var(--green); background: var(--green-dim); padding: 2px 8px; border-radius: 10px; display: none; }
+    .fc-badge.on { display: inline-block; }
+    .fc-body { padding: 11px 14px; }
+    select.fsel {
+      width: 100%; background: var(--card2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 32px 10px 12px; font-size: 13px;
+      font-family: 'DM Sans', sans-serif; font-weight: 500;
+      outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      transition: border-color 0.15s;
+    }
+    select.fsel:focus { border-color: var(--green); }
+    select.fsel:disabled { opacity: 0.35; cursor: not-allowed; }
+    select.fsel option { background: #1E222B; }
+    .fc-hint { font-size: 11px; color: var(--muted); margin-top: 7px; line-height: 1.5; }
+    .fc-hint.warn { color: #FBBF24; }
+    .fc-hint.info { color: var(--green); }
+    .load-btn {
+      width: 100%; height: 50px; background: var(--green); color: #111418;
+      border-radius: 12px; font-size: 15px; font-weight: 700;
+      font-family: 'Bebas Neue', sans-serif; letter-spacing: 1.5px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.15s;
+    }
+    .load-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .load-btn:not(:disabled):hover { opacity: 0.88; }
+
+    /* ── PITCH SCREEN ──
+       Use JS-measured pixel heights — no flex magic needed */
+    #pitchScreen { overflow: hidden; }
+    .sub-bar { background: var(--card2); border-bottom: 1px solid var(--border); height: 38px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .event-lbl { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .event-lbl strong { color: var(--text); }
+    .back-btn { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--green); white-space: nowrap; flex-shrink: 0; }
+    .toolbar { background: var(--card); border-bottom: 1px solid var(--border); height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
+    .toolbar::-webkit-scrollbar { display: none; }
+    .tlbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; }
+    .fmts { display: flex; gap: 3px; }
+    .fb { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1.5px solid var(--border); color: var(--muted); background: transparent; transition: all 0.12s; white-space: nowrap; }
+    .fb.on { background: var(--green); border-color: var(--green); color: #111418; }
+    .fb:hover:not(.on) { border-color: var(--green); color: var(--green); }
+    .tsep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+    .cols { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .sw-w { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .sw-l { font-size: 7px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    input[type=color].sw { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; padding: 0; appearance: none; -webkit-appearance: none; overflow: hidden; }
+    input[type=color].sw::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type=color].sw::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+    /* Squad strip — taller for easier touch scrolling */
+    .squad-strip { background: var(--card); border-top: 1px solid var(--border); height: 80px; display: flex; align-items: center; gap: 8px; padding: 0 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; cursor: grab; }
+    .squad-strip:active { cursor: grabbing; }
+    .squad-strip::-webkit-scrollbar { display: none; }
+    .ss-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; flex-shrink: 0; margin-right: 4px; }
+    .ss-empty { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .chip { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; display: flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.12s; }
+    .chip.placed { opacity: 0.3; cursor: default; pointer-events: none; }
+    .chip:not(.placed):hover { border-color: var(--green); color: var(--green); }
+    .chip .cn { width: 20px; height: 20px; border-radius: 50%; background: var(--green); color: #111418; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* Subs zone — fixed height */
+    .subs-zone { background: var(--card); border-top: 1px solid var(--border); height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; }
+    .subs-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; }
+    .ss { width: 36px; height: 40px; border: 1.5px dashed var(--border); border-radius: 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card2); position: relative; flex-shrink: 0; transition: border-color 0.12s; }
+    .ss.over { border-color: var(--green); background: var(--green-dim); }
+    .ss.full { border-style: solid; border-color: var(--border); }
+    .ss .sn  { font-size: 9px; color: var(--muted); font-weight: 600; }
+    .ss .snm { position: absolute; bottom: -13px; font-size: 7px; color: var(--muted); text-align: center; width: 52px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ss .srm { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; background: var(--red); color: white; border-radius: 50%; font-size: 8px; line-height: 13px; text-align: center; cursor: pointer; display: none; }
+    .ss.full .srm { display: block; }
+
+    /* Pitch area — JS sets explicit px height */
+    .pitch-area { background: var(--dark); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+    /* Pitch wrap — JS sets explicit px width and height */
+    .pitch-wrap { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.55); flex-shrink: 0; }
+    .pitch-svg { width: 100%; height: 100%; display: block; }
+    .pos-ov { position: absolute; inset: 0; pointer-events: none; }
+    .ps { position: absolute; transform: translate(-50%,-50%); pointer-events: all; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .pc { width: 36px; height: 40px; position: relative; cursor: pointer; transition: transform 0.12s; }
+    .pc.over { transform: scale(1.2); }
+    .jsv { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .jb { fill: rgba(255,255,255,0.15); stroke: rgba(255,255,255,0.55); stroke-width: 1.5; stroke-dasharray: 3,2; }
+    .pc.has .jb { fill: var(--jc-p, #cc0000); stroke: rgba(255,255,255,0.85); stroke-dasharray: none; }
+    .pc.gk.has .jb { fill: var(--jc-g, #ffffff); }
+    .pc.over .jb { fill: rgba(255,255,255,0.28); stroke: white; stroke-dasharray: none; }
+    .pn { font-size: 9px; font-weight: 700; color: white; text-align: center; max-width: 68px; white-space: pre-line; word-break: break-word; line-height: 1.25; position: relative; z-index: 2; background: rgba(0,0,0,0.52); padding: 1px 4px; border-radius: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
+    .pl { font-size: 7px; font-weight: 600; color: rgba(255,255,255,0.65); text-shadow: 0 1px 2px rgba(0,0,0,0.6); white-space: nowrap; }
+    .rx { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: var(--red); color: white; font-size: 8px; display: none; align-items: center; justify-content: center; z-index: 10; cursor: pointer; line-height: 1; }
+    .pc.has:hover .rx { display: flex; }
+    .ptip { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.8); font-size: 9px; padding: 3px 9px; border-radius: 20px; white-space: nowrap; pointer-events: none; backdrop-filter: blur(4px); }
+
+    #dg { position: fixed; pointer-events: none; z-index: 9999; background: var(--green); color: #111418; padding: 4px 10px; border-radius: 7px; font-size: 11px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.5); transform: translate(-50%,-50%) scale(1.04); display: none; white-space: nowrap; }
+    #dg.show { display: block; }
+
+    .ppop { position: fixed; z-index: 800; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.65); max-height: 220px; overflow-y: auto; min-width: 170px; }
+    .pp-hdr { padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .pp-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 12px; font-size: 11px; text-align: left; color: var(--text); transition: background 0.1s; }
+    .pp-item:hover { background: var(--card2); }
+    .pp-av { width: 18px; height: 18px; border-radius: 50%; background: var(--green); color: #111418; font-size: 8px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    .lov { position: fixed; inset: 0; background: rgba(17,20,24,0.82); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 500; backdrop-filter: blur(4px); }
+    .lov.off { display: none; }
+    .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: sp 0.7s linear infinite; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+    .lov-t { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+    #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--text); color: var(--dark); padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 1000; opacity: 0; pointer-events: none; transition: all 0.22s; white-space: nowrap; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── LINEUP PREVIEW OVERLAY ── */
+    #lineupOverlay {
+      display: none; position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.92); flex-direction: column;
+      align-items: center; justify-content: flex-start;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 16px;
+    }
+    #lineupOverlay.show { display: flex; }
+    #lineupOverlay img {
+      max-width: 100%; border-radius: 10px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+      margin-top: 8px;
+    }
+    .lov-actions {
+      display: flex; gap: 10px; margin-bottom: 16px; flex-shrink: 0;
+      width: 100%; max-width: 500px;
+    }
+    .lov-actions button {
+      flex: 1; height: 44px; border-radius: 10px;
+      font-size: 13px; font-weight: 700; cursor: pointer; border: none;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .lov-share  { background: var(--green); color: #111418; }
+    .lov-close  { background: var(--card2); color: var(--text); border: 1px solid var(--border) !important; }
+
+    /* ── PDF PREVIEW OVERLAY ── */
+    #pdfOverlay {
+      display: none; position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.92); flex-direction: column;
+      align-items: center; justify-content: flex-start;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 0;
+    }
+    #pdfOverlay.show { display: flex; }
+    #pdfOverlay .lov-actions {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(0,0,0,0.92);
+      width: 100%; max-width: 100%;
+      padding: 12px 16px;
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 0;
+    }
+    #pdfOverlay .pdf-content {
+      padding: 16px;
+      width: 100%;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    #pdfOverlay canvas {
+      max-width: 100%; border-radius: 6px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- FILTER SCREEN -->
+<div class="screen active" id="filterScreen">
+  <div class="top-bar">
+    <div>
+      <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
+      <div class="bar-sub">Team Selector</div>
+    </div>
+  </div>
+  <div class="fbody">
+    <div class="fc">
+      <div class="fc-head"><span class="fc-title">Team</span><span class="fc-badge" id="b-team"></span></div>
+      <div class="fc-body"><select class="fsel" id="s-team"><option value="" disabled selected>Loading teams…</option></select></div>
+    </div>
+    <div class="fc">
+      <div class="fc-head"><span class="fc-title">Event Code</span><span class="fc-badge" id="b-code"></span></div>
+      <div class="fc-body"><select class="fsel" id="s-code" disabled><option value="" disabled selected>Select a team first</option></select></div>
+    </div>
+    <div class="fc">
+      <div class="fc-head"><span class="fc-title">Event Type</span><span class="fc-badge" id="b-type"></span></div>
+      <div class="fc-body"><select class="fsel" id="s-type" disabled><option value="" disabled selected>Select a code first</option></select></div>
+    </div>
+    <div class="fc">
+      <div class="fc-head"><span class="fc-title">Event</span><span class="fc-badge" id="b-event"></span></div>
+      <div class="fc-body">
+        <select class="fsel" id="s-event" disabled style="font-size:12px"><option value="" disabled selected>Select a type first</option></select>
+        <div class="fc-hint" id="h-event" style="display:none">Showing most recent events first</div>
+      </div>
+    </div>
+    <div class="fc">
+      <div class="fc-head"><span class="fc-title">Squad</span><span class="fc-badge" id="b-squad"></span></div>
+      <div class="fc-body">
+        <select class="fsel" id="s-squad" disabled><option value="" disabled selected>Select an event first</option></select>
+        <div class="fc-hint" id="h-squad" style="display:none"></div>
+      </div>
+    </div>
+    <button class="load-btn" id="loadBtn" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      LOAD SQUAD
+    </button>
+  </div>
+</div>
+
+<!-- PITCH SCREEN -->
+<div class="screen" id="pitchScreen">
+  <div class="top-bar">
+    <div>
+      <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
+      <div class="bar-sub">Team Selector</div>
+    </div>
+    <div class="bar-actions">
+      <button class="hdr-btn" id="dlBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Lineup
+      </button>
+      <button class="hdr-btn hdr-btn-outline" id="tsBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Teamsheet
+      </button>
+    </div>
+  </div>
+  <div class="sub-bar">
+    <div class="event-lbl" id="evtLbl">—</div>
+    <button class="back-btn" id="backBtn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Filters
+    </button>
+  </div>
+  <div class="toolbar">
+    <span class="tlbl">Format</span>
+    <div class="fmts">
+      <button class="fb" data-f="9">9</button>
+      <button class="fb" data-f="11">11</button>
+      <button class="fb" data-f="13">13</button>
+      <button class="fb on" data-f="15">15</button>
+    </div>
+    <div class="tsep"></div>
+    <div class="cols">
+      <div class="sw-w"><input type="color" class="sw" id="cp" value="#cc0000"/><span class="sw-l">Primary</span></div>
+      <div class="sw-w"><input type="color" class="sw" id="cs" value="#cc0000"/><span class="sw-l">Stripe</span></div>
+      <div class="sw-w"><input type="color" class="sw" id="cg" value="#ffffff"/><span class="sw-l">GK</span></div>
+    </div>
+  </div>
+  <div class="squad-strip" id="strip">
+    <span class="ss-lbl">Squad</span>
+    <span class="ss-empty">No players loaded</span>
+  </div>
+  <div class="pitch-area" id="pitchArea">
+      <div class="pitch-wrap" id="pitchWrap">
+        <svg class="pitch-svg" viewBox="0 0 300 484" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="ca-t"><rect x="-5" y="73" width="310" height="160"/></clipPath>
+            <clipPath id="ca-b"><rect x="-5" y="251" width="310" height="160"/></clipPath>
+            <clipPath id="cd-t"><rect x="-5" y="73" width="310" height="52"/></clipPath>
+            <clipPath id="cd-b"><rect x="-5" y="359" width="310" height="52"/></clipPath>
+          </defs>
+          <rect width="300" height="484" fill="var(--pitch-dk)"/>
+          <rect x="0" y="0"   width="300" height="48" fill="var(--pitch-st)"/>
+          <rect x="0" y="96"  width="300" height="48" fill="var(--pitch-st)"/>
+          <rect x="0" y="192" width="300" height="48" fill="var(--pitch-st)"/>
+          <rect x="0" y="288" width="300" height="48" fill="var(--pitch-st)"/>
+          <rect x="0" y="384" width="300" height="48" fill="var(--pitch-st)"/>
+          <rect x="4" y="4" width="292" height="476" fill="none" stroke="var(--pitch-ln)" stroke-width="1.8"/>
+          <line x1="4" y1="160" x2="296" y2="160" stroke="var(--pitch-ln)" stroke-width="1.5"/>
+          <line x1="4" y1="73"  x2="296" y2="73"  stroke="var(--pitch-ln)" stroke-width="1.5"/>
+          <rect x="118" y="4" width="64" height="45" fill="rgba(255,255,255,0.05)" stroke="var(--pitch-ln)" stroke-width="1.4"/>
+          <rect x="127" y="4" width="46" height="15" fill="rgba(255,255,255,0.07)" stroke="var(--pitch-ln)" stroke-width="1.1"/>
+          <line x1="4" y1="49" x2="296" y2="49" stroke="var(--pitch-ln)" stroke-width="1.1"/>
+          <path d="M 107 73 A 43 44 0 0 0 193 73" fill="none" stroke="var(--pitch-ln)" stroke-width="1.1" clip-path="url(#cd-t)"/>
+          <path d="M 33 73 A 132 137 0 0 0 267 73" fill="rgba(255,165,0,0.07)" stroke="rgba(255,165,0,0.85)" stroke-width="1.6" stroke-dasharray="4,3" clip-path="url(#ca-t)"/>
+          <rect x="139" y="4"  width="22" height="9"  fill="rgba(255,255,255,0.22)" stroke="white" stroke-width="1.8"/>
+          <line x1="139" y1="4"  x2="139" y2="-6"  stroke="white" stroke-width="2.2"/>
+          <line x1="161" y1="4"  x2="161" y2="-6"  stroke="white" stroke-width="2.2"/>
+          <line x1="118" y1="4"  x2="118" y2="-4"  stroke="white" stroke-width="1.3" opacity="0.6"/>
+          <line x1="182" y1="4"  x2="182" y2="-4"  stroke="white" stroke-width="1.3" opacity="0.6"/>
+          <circle cx="150" cy="43" r="2.2" fill="var(--pitch-ln)"/>
+          <line x1="4" y1="242" x2="296" y2="242" stroke="var(--pitch-ln)" stroke-width="1.4" stroke-dasharray="6,4" opacity="0.9"/>
+          <line x1="4" y1="229" x2="296" y2="229" stroke="var(--pitch-ln)" stroke-width="1.1"/>
+          <line x1="4" y1="255" x2="296" y2="255" stroke="var(--pitch-ln)" stroke-width="1.1"/>
+          <line x1="4" y1="324" x2="296" y2="324" stroke="var(--pitch-ln)" stroke-width="1.5"/>
+          <line x1="4" y1="411" x2="296" y2="411" stroke="var(--pitch-ln)" stroke-width="1.5"/>
+          <rect x="118" y="435" width="64" height="45" fill="rgba(255,255,255,0.05)" stroke="var(--pitch-ln)" stroke-width="1.4"/>
+          <rect x="127" y="465" width="46" height="15" fill="rgba(255,255,255,0.07)" stroke="var(--pitch-ln)" stroke-width="1.1"/>
+          <line x1="4" y1="435" x2="296" y2="435" stroke="var(--pitch-ln)" stroke-width="1.1"/>
+          <path d="M 107 411 A 43 44 0 0 1 193 411" fill="none" stroke="var(--pitch-ln)" stroke-width="1.1" clip-path="url(#cd-b)"/>
+          <path d="M 33 411 A 132 137 0 0 1 267 411" fill="rgba(255,165,0,0.07)" stroke="rgba(255,165,0,0.85)" stroke-width="1.6" stroke-dasharray="4,3" clip-path="url(#ca-b)"/>
+          <rect x="139" y="471" width="22" height="9"  fill="rgba(255,255,255,0.22)" stroke="white" stroke-width="1.8"/>
+          <line x1="139" y1="480" x2="139" y2="490" stroke="white" stroke-width="2.2"/>
+          <line x1="161" y1="480" x2="161" y2="490" stroke="white" stroke-width="2.2"/>
+          <line x1="118" y1="480" x2="118" y2="488" stroke="white" stroke-width="1.3" opacity="0.6"/>
+          <line x1="182" y1="480" x2="182" y2="488" stroke="white" stroke-width="1.3" opacity="0.6"/>
+          <circle cx="150" cy="441" r="2.2" fill="var(--pitch-ln)"/>
+        </svg>
+        <div class="pos-ov" id="posOv"></div>
+        <div class="ptip" id="ptip">Drag players onto positions · Tap a position to assign</div>
+      </div>
+  </div>
+  <div class="subs-zone">
+    <span class="subs-lbl">Subs</span>
+    <div class="ss" id="ss-1" data-sub="1"><span class="sn">1</span></div>
+    <div class="ss" id="ss-2" data-sub="2"><span class="sn">2</span></div>
+    <div class="ss" id="ss-3" data-sub="3"><span class="sn">3</span></div>
+    <div class="ss" id="ss-4" data-sub="4"><span class="sn">4</span></div>
+    <div class="ss" id="ss-5" data-sub="5"><span class="sn">5</span></div>
+  </div>
+</div>
+
+<div class="lov off" id="lov"><div class="spinner"></div><div class="lov-t" id="lovT">Loading…</div></div>
+<div id="dg"></div>
+<div id="toast"></div>
+
+<!-- Lineup image preview overlay -->
+<div id="lineupOverlay">
+  <div class="lov-actions">
+    <button class="lov-share" id="lineupShareBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Share / Save
+    </button>
+    <button class="lov-close" onclick="closeLineupOverlay()">✕ Close</button>
+  </div>
+  <img id="lineupImg" src="" alt="Lineup"/>
+</div>
+
+<!-- PDF preview overlay -->
+<div id="pdfOverlay">
+  <div class="lov-actions">
+    <button class="lov-share" id="pdfShareBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Share / Save
+    </button>
+    <button class="lov-close" onclick="closePdfOverlay()">✕ Close</button>
+  </div>
+  <div id="pdfPages" class="pdf-content"></div>
+</div>
+
+<script>
+const SB  = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const H   = { 'apikey': KEY, 'Authorization': `Bearer ${KEY}` };
+async function sb(path) {
+  const r = await fetch(`${SB}/rest/v1/${path}`, { headers: H });
+  if (!r.ok) throw new Error(`${r.status}: ${path}`);
+  return r.json();
+}
+
+const POS = {
+  15:[
+    {n:1, l:'GK',  x:50,y:92},
+    {n:2, l:'RFB', x:82,y:78},{n:3, l:'FB',  x:50,y:78},{n:4, l:'LFB', x:18,y:78},
+    {n:5, l:'RHB', x:82,y:63},{n:6, l:'CHB', x:50,y:63},{n:7, l:'LHB', x:18,y:63},
+    {n:8, l:'MF',  x:66,y:45},{n:9, l:'MF',  x:34,y:45},
+    {n:10,l:'RHF', x:82,y:27},{n:11,l:'CHF', x:50,y:27},{n:12,l:'LHF', x:18,y:27},
+    {n:13,l:'RFF', x:82,y:11},{n:14,l:'FF',  x:50,y:11},{n:15,l:'LFF', x:18,y:11},
+  ],
+  13:[
+    {n:1, l:'GK',  x:50,y:92},
+    {n:2, l:'RFB', x:68,y:78},{n:3, l:'LFB', x:32,y:78},
+    {n:4, l:'RHB', x:82,y:63},{n:5, l:'CHB', x:50,y:63},{n:6, l:'LHB', x:18,y:63},
+    {n:7, l:'MF',  x:66,y:45},{n:8, l:'MF',  x:34,y:45},
+    {n:9, l:'RHF', x:82,y:27},{n:10,l:'CHF', x:50,y:27},{n:11,l:'LHF', x:18,y:27},
+    {n:12,l:'RFF', x:68,y:11},{n:13,l:'LFF', x:32,y:11},
+  ],
+  11:[
+    {n:1, l:'GK',  x:50,y:92},
+    {n:2, l:'RFB', x:82,y:78},{n:3, l:'LFB', x:18,y:78},
+    {n:4, l:'RHB', x:82,y:63},{n:5, l:'LHB', x:18,y:63},
+    {n:6, l:'MF',  x:66,y:45},{n:7, l:'MF',  x:34,y:45},
+    {n:8, l:'RHF', x:82,y:27},{n:9, l:'LHF', x:18,y:27},
+    {n:10,l:'RFF', x:82,y:11},{n:11,l:'LFF', x:18,y:11},
+  ],
+  9:[
+    {n:1,l:'GK', x:50,y:92},
+    {n:2,l:'RB', x:82,y:74},{n:3,l:'FB',x:50,y:74},{n:4,l:'LB',x:18,y:74},
+    {n:5,l:'MF', x:66,y:45},{n:6,l:'MF',x:34,y:45},
+    {n:7,l:'RFF',x:82,y:13},{n:8,l:'FF',x:50,y:13},{n:9,l:'LFF',x:18,y:13},
+  ]
+};
+
+let players=[],assign={},subAssign={},fmt=15,drag=null;
+let jc={p:'#cc0000',s:'#cc0000',g:'#ffffff'};
+let teamId=null,teamName='',eventId=null,eventLabel='',squadName='',squadId=null;
+
+const $=id=>document.getElementById(id);
+
+// ── PITCH SIZER ──
+// iOS Safari can't reliably size a pitch with CSS alone.
+// We measure actual pixel space and set explicit px dimensions.
+const PITCH_RATIO = 90 / 145; // width / height (portrait GAA pitch)
+
+function sizePitch() {
+  const screen = $('pitchScreen');
+  if (!screen.classList.contains('active')) return;
+
+  const totalH  = window.innerHeight;
+  const topBarH = $('pitchScreen').querySelector('.top-bar').offsetHeight;
+  const subBarH = $('pitchScreen').querySelector('.sub-bar').offsetHeight;
+  const toolbarH= $('pitchScreen').querySelector('.toolbar').offsetHeight;
+  const stripH  = $('strip').offsetHeight;
+  const subsH   = $('pitchScreen').querySelector('.subs-zone').offsetHeight;
+
+  const availH = totalH - topBarH - subBarH - toolbarH - stripH - subsH - 16; // 16px padding
+  const availW = window.innerWidth - 16;
+
+  // Fit within both constraints maintaining ratio
+  let pitchH = availH;
+  let pitchW = availH * PITCH_RATIO;
+  if (pitchW > availW) {
+    pitchW = availW;
+    pitchH = availW / PITCH_RATIO;
+  }
+
+  const area = $('pitchArea');
+  const wrap = $('pitchWrap');
+  area.style.height = availH + 'px';
+  wrap.style.width  = Math.floor(pitchW) + 'px';
+  wrap.style.height = Math.floor(pitchH) + 'px';
+}
+
+window.addEventListener('resize', sizePitch);
+window.addEventListener('orientationchange', () => setTimeout(sizePitch, 200));
+function screen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  if(id==='pitchScreen') requestAnimationFrame(()=>requestAnimationFrame(sizePitch));
+}
+function load(on,t='Loading…'){$('lov').classList.toggle('off',!on);$('lovT').textContent=t;}
+function toast(m,d=2500){const e=$('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),d);}
+function badge(id,val){const el=$(id);el.textContent=val;el.classList.toggle('on',!!val);}
+function applyJC(){document.documentElement.style.setProperty('--jc-p',jc.p);document.documentElement.style.setProperty('--jc-s',jc.s);document.documentElement.style.setProperty('--jc-g',jc.g);}
+function numCol(hex){try{const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return(0.299*r+0.587*g+0.114*b)/255<0.38?'#ffffff':'#000000';}catch{return'#000000';}}
+function fmtName(name){const p=name.trim().split(/\s+/);if(p.length===1)return p[0];const full=p.join(' ');if(full.length<=11)return full;return p[0]+'\n'+p.slice(1).join(' ');}
+function nameFz(name){const mx=Math.max(...name.trim().split(/\s+/).map(x=>x.length));return mx<=6?9:mx<=9?8:7;}
+function onPitch(id){return Object.values(assign).includes(id)||Object.values(subAssign).includes(id);}
+
+// ── FILTERS ──
+async function initTeams(){
+  try{
+    const rows=await sb('teams?select=team_id,team_name&order=team_name');
+    const sel=$('s-team');
+    sel.innerHTML='<option value="" disabled selected>— Select a team —</option>';
+    rows.forEach(t=>{const o=document.createElement('option');o.value=t.team_id;o.textContent=t.team_name;sel.appendChild(o);});
+  }catch(e){toast('Failed to load teams');}
+}
+
+$('s-team').addEventListener('change',async function(){
+  teamId=this.value;teamName=this.options[this.selectedIndex].textContent;
+  badge('b-team',teamName);
+  ['s-code','s-type','s-event','s-squad'].forEach(id=>{$(id).disabled=true;});
+  $('s-code').innerHTML='<option value="" disabled selected>Loading…</option>';
+  $('s-type').innerHTML='<option value="" disabled selected>Select a code first</option>';
+  $('s-event').innerHTML='<option value="" disabled selected>Select a type first</option>';
+  $('s-squad').innerHTML='<option value="" disabled selected>Select an event first</option>';
+  ['b-code','b-type','b-event','b-squad'].forEach(id=>badge(id,''));
+  $('h-event').style.display='none';$('h-squad').style.display='none';
+  $('loadBtn').disabled=true;
+  try{
+    const rows=await sb(`events?select=event_code_id,event_codes(code_id,event_code)&team_id=eq.${teamId}&event_code_id=not.is.null`);
+    const seen=new Set(),codes=[];
+    rows.forEach(r=>{if(r.event_codes&&!seen.has(r.event_codes.code_id)){seen.add(r.event_codes.code_id);codes.push(r.event_codes);}});
+    codes.sort((a,b)=>a.event_code.localeCompare(b.event_code));
+    const sc=$('s-code');
+    sc.innerHTML='<option value="" disabled selected>— Select a code —</option>';
+    codes.forEach(c=>{const o=document.createElement('option');o.value=c.code_id;o.textContent=c.event_code;sc.appendChild(o);});
+    sc.disabled=false;
+  }catch(e){$('s-code').innerHTML='<option value="" disabled selected>Error loading</option>';}
+});
+
+$('s-code').addEventListener('change',async function(){
+  const codeId=this.value;badge('b-code',this.options[this.selectedIndex].textContent);
+  ['s-type','s-event','s-squad'].forEach(id=>$(id).disabled=true);
+  $('s-type').innerHTML='<option value="" disabled selected>Loading…</option>';
+  $('s-event').innerHTML='<option value="" disabled selected>Select a type first</option>';
+  $('s-squad').innerHTML='<option value="" disabled selected>Select an event first</option>';
+  ['b-type','b-event','b-squad'].forEach(id=>badge(id,''));
+  $('h-event').style.display='none';$('h-squad').style.display='none';
+  $('loadBtn').disabled=true;
+  try{
+    const rows=await sb(`events?select=event_type_id,event_types(event_type_id,event_type)&team_id=eq.${teamId}&event_code_id=eq.${codeId}&event_type_id=not.is.null`);
+    const seen=new Set(),types=[];
+    rows.forEach(r=>{if(r.event_types&&!seen.has(r.event_types.event_type_id)){seen.add(r.event_types.event_type_id);types.push(r.event_types);}});
+    types.sort((a,b)=>a.event_type.localeCompare(b.event_type));
+    const st=$('s-type');
+    st.innerHTML='<option value="" disabled selected>— Select a type —</option>';
+    types.forEach(t=>{const o=document.createElement('option');o.value=t.event_type_id;o.textContent=t.event_type;st.appendChild(o);});
+    st.disabled=false;
+  }catch(e){$('s-type').innerHTML='<option value="" disabled selected>Error loading</option>';}
+});
+
+$('s-type').addEventListener('change',async function(){
+  const codeId=$('s-code').value,typeId=this.value;
+  badge('b-type',this.options[this.selectedIndex].textContent);
+  ['s-event','s-squad'].forEach(id=>$(id).disabled=true);
+  $('s-event').innerHTML='<option value="" disabled selected>Loading…</option>';
+  $('s-squad').innerHTML='<option value="" disabled selected>Select an event first</option>';
+  ['b-event','b-squad'].forEach(id=>badge(id,''));
+  $('h-event').style.display='none';$('h-squad').style.display='none';
+  $('loadBtn').disabled=true;
+  try{
+    const events=await sb(`events?select=event_id,event_date_time,opposition,event_codes(event_code),event_types(event_type)&team_id=eq.${teamId}&event_code_id=eq.${codeId}&event_type_id=eq.${typeId}&order=event_date_time.desc`);
+    const se=$('s-event');
+    se.innerHTML='<option value="" disabled selected>— Select an event —</option>';
+    events.forEach(e=>{
+      const o=document.createElement('option');o.value=e.event_id;
+      const d=new Date(e.event_date_time);
+      const ds=d.toLocaleDateString('en-IE',{day:'2-digit',month:'short',year:'numeric'});
+      const opp=e.opposition?` vs ${e.opposition.trim()}`:'';
+      o.textContent=`${ds} · ${e.event_codes?.event_code||''} ${e.event_types?.event_type||''}${opp}`;
+      o.dataset.label=o.textContent;o.dataset.date=ds;
+      se.appendChild(o);
+    });
+    se.disabled=false;$('h-event').style.display='';
+  }catch(e){$('s-event').innerHTML='<option value="" disabled selected>Error loading</option>';}
+});
+
+$('s-event').addEventListener('change',async function(){
+  eventId=this.value;
+  const opt=this.options[this.selectedIndex];
+  eventLabel=opt.dataset.label||opt.textContent;
+  badge('b-event',opt.dataset.date||eventLabel);
+  const ss=$('s-squad');
+  ss.disabled=true;ss.innerHTML='<option value="" disabled selected>Loading squads…</option>';
+  badge('b-squad','');$('h-squad').style.display='none';$('loadBtn').disabled=true;
+
+  try{
+    // Get match_squads for this event — order desc, take the single latest one
+    const msRows=await sb(`match_squads?select=match_squad_id&event_id=eq.${eventId}&order=match_squad_id.desc&limit=1`);
+    if(!msRows.length){
+      ss.innerHTML='<option value="" disabled selected>No match squad set up for this event</option>';
+      $('h-squad').textContent='A match squad needs to be created in CoachSmart for this event first.';
+      $('h-squad').className='fc-hint warn';$('h-squad').style.display='';
+      return;
+    }
+
+    // Use only the latest match_squad_id
+    const latestMsId = msRows[0].match_squad_id;
+    const detRows=await sb(`match_squad_details?select=match_squad_id,squad_id,squads(squad_id,squad_name,squad_list_seq)&match_squad_id=eq.${latestMsId}`);
+
+    const seen=new Set(),squads=[];
+    detRows.forEach(r=>{
+      if(r.squads&&!seen.has(r.squad_id)){
+        seen.add(r.squad_id);
+        squads.push({squad_id:r.squad_id,squad_name:r.squads.squad_name,seq:r.squads.squad_list_seq||99,match_squad_id:latestMsId});
+      }
+    });
+    squads.sort((a,b)=>a.seq-b.seq||a.squad_name.localeCompare(b.squad_name));
+
+    ss.innerHTML='<option value="" disabled selected>— Select a squad —</option>';
+    const allO=document.createElement('option');
+    allO.value='all';allO.textContent='All Squads';allO.dataset.msid=latestMsId;
+    ss.appendChild(allO);
+    squads.forEach(sq=>{
+      const o=document.createElement('option');
+      o.value=sq.squad_id;o.textContent=sq.squad_name;
+      o.dataset.msid=latestMsId;
+      ss.appendChild(o);
+    });
+    ss.disabled=false;
+  }catch(e){
+    console.error(e);
+    ss.innerHTML='<option value="" disabled selected>Error loading squads</option>';
+  }
+});
+
+$('s-squad').addEventListener('change',function(){
+  badge('b-squad',this.options[this.selectedIndex].textContent);
+  $('loadBtn').disabled=false;
+});
+
+// ── LOAD PLAYERS ──
+$('loadBtn').addEventListener('click',async()=>{
+  load(true,'Loading squad…');
+  try{
+    const squadSel=$('s-squad');
+    const selOpt=squadSel.options[squadSel.selectedIndex];
+    const isAll=squadSel.value==='all';
+
+    // Step 1: member_ids from match_squad_details — latest match_squad_id only
+    // Deduplicate by member_id keeping only the latest entry (highest id) per member
+    let detQ;
+    if(isAll){
+      detQ=`match_squad_details?select=id,member_id,squad_id&match_squad_id=eq.${selOpt.dataset.msid}&order=id.desc`;
+    }else{
+      detQ=`match_squad_details?select=id,member_id,squad_id&match_squad_id=eq.${selOpt.dataset.msid}&squad_id=eq.${squadSel.value}&order=id.desc`;
+    }
+    const detRows=await sb(detQ);
+    // Deduplicate — keep only the latest row (highest id) per member_id
+    const latestByMember={};
+    detRows.forEach(r=>{ if(!latestByMember[r.member_id]) latestByMember[r.member_id]=r; });
+    const squadMemberIds=Object.keys(latestByMember).map(Number);
+    if(!squadMemberIds.length){load(false);toast('No players found in match squad details');return;}
+
+    // Step 2: latest attendance — keep response_id=3 (Attending)
+    const attRows=await sb(`event_attendance?select=member_id,response_id,created_at&event_id=eq.${eventId}&member_id=in.(${squadMemberIds.join(',')})&order=member_id,created_at.desc`);
+    const latestAtt={};
+    attRows.forEach(r=>{if(!latestAtt[r.member_id])latestAtt[r.member_id]=r;});
+    const attendingIds=Object.values(latestAtt).filter(r=>r.response_id===3).map(r=>r.member_id);
+    if(!attendingIds.length){load(false);toast('No players in this squad have accepted for this event yet');return;}
+
+    // Step 3: filter to role_level=10
+    const roleRows=await sb(`member_team_link?select=member_id,member_team_role_link(roles(role_level))&team_id=eq.${teamId}&member_id=in.(${attendingIds.join(',')})`);
+    const playerIds=new Set();
+    roleRows.forEach(r=>{if((r.member_team_role_link||[]).some(x=>x.roles?.role_level===10))playerIds.add(r.member_id);});
+    const eligibleIds=attendingIds.filter(id=>playerIds.has(id));
+    if(!eligibleIds.length){load(false);toast('No eligible players (role level 10) found');return;}
+
+    // Step 4: fetch names
+    const memRows=await sb(`members?select=member_id,first_name,last_name&member_id=in.(${eligibleIds.join(',')})&order=last_name,first_name`);
+    players=memRows.map(m=>({id:m.member_id,name:`${m.first_name} ${m.last_name}`.trim()}));
+    players.sort((a,b)=>a.name.localeCompare(b.name));
+
+    assign={};subAssign={};
+    squadName = $('s-squad').options[$('s-squad').selectedIndex].textContent;
+    squadId   = $('s-squad').value === 'all' ? null : parseInt($('s-squad').value);
+    $('evtLbl').innerHTML=`<strong>${teamName}</strong> · ${eventLabel}`;
+    load(false);
+    renderStrip();renderPos();renderSubs();
+    screen('pitchScreen');
+    toast(`${players.length} player${players.length!==1?'s':''} loaded`);
+  }catch(e){
+    console.error(e);load(false);toast('Error loading players');
+  }
+});
+
+$('backBtn').addEventListener('click',()=>screen('filterScreen'));
+
+// ── FORMAT ──
+document.querySelectorAll('.fb').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const f=parseInt(b.dataset.f);if(f===fmt)return;fmt=f;
+    document.querySelectorAll('.fb').forEach(x=>x.classList.toggle('on',parseInt(x.dataset.f)===f));
+    const keep=new Set(POS[f].map(p=>p.n));
+    Object.keys(assign).forEach(k=>{if(!keep.has(parseInt(k)))delete assign[k];});
+    renderPos();renderStrip();
+  });
+});
+
+// ── COLOURS ──
+applyJC();
+$('cp').addEventListener('input',e=>{jc.p=e.target.value;applyJC();renderPos();});
+$('cs').addEventListener('input',e=>{jc.s=e.target.value;applyJC();renderPos();});
+$('cg').addEventListener('input',e=>{jc.g=e.target.value;applyJC();renderPos();});
+
+// ── RENDER STRIP ──
+function renderStrip(){
+  const strip=$('strip');
+  strip.innerHTML='<span class="ss-lbl">Squad</span>';
+  if(!players.length){strip.innerHTML+='<span class="ss-empty">No players loaded</span>';return;}
+  players.forEach((p,i)=>{
+    const placed=onPitch(p.id);
+    const chip=document.createElement('div');
+    chip.className=`chip${placed?' placed':''}`;
+    chip.dataset.pid=p.id;chip.style.touchAction='none';
+    chip.innerHTML=`<div class="cn">${i+1}</div>${p.name}`;
+    if(!placed)attachChip(chip);
+    strip.appendChild(chip);
+  });
+}
+
+// ── RENDER POSITIONS ──
+function jSVG(num,isGK,filled){
+  const fc=filled?(isGK?jc.g:jc.p):'rgba(255,255,255,0.15)';
+  const sc=filled?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.55)';
+  const dsh=filled?'':'stroke-dasharray="3,2"';
+  const nc=filled?numCol(isGK?jc.g:jc.p):'rgba(255,255,255,0.9)';
+  const fs=filled?14:11,yn=filled&&!isGK?21:26;
+  const stripe=filled&&!isGK?`<rect x="0" y="18" width="40" height="7" fill="${jc.s}" opacity="0.85" clip-path="url(#jcp${num})"/>`:'';
+  return`<svg class="jsv" viewBox="0 0 40 44" xmlns="http://www.w3.org/2000/svg">
+    <defs><clipPath id="jcp${num}"><path d="M14 3 Q11 3 6 7 L1 14 L6 18 L8 40 L32 40 L34 18 L39 14 L34 7 Q29 3 26 3 Q23 6 20 6 Q17 6 14 3 Z"/></clipPath></defs>
+    <path class="jb" d="M14 3 Q11 3 6 7 L1 14 L6 18 L8 40 L32 40 L34 18 L39 14 L34 7 Q29 3 26 3 Q23 6 20 6 Q17 6 14 3 Z" fill="${fc}" stroke="${sc}" stroke-width="1.5" ${dsh}/>
+    <path d="M14 3 Q20 8 26 3" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.1"/>
+    ${stripe}
+    <text x="20" y="${yn}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-weight="800" font-family="sans-serif" fill="${nc}" paint-order="stroke fill" stroke="black" stroke-width="4" stroke-linejoin="round">${num}</text>
+  </svg>`;
+}
+
+function renderPos(){
+  const ov=$('posOv');
+  ov.innerHTML=POS[fmt].map(pos=>{
+    const pid=assign[pos.n],pl=pid?players.find(p=>p.id===pid):null,gk=pos.n===1;
+    return`<div class="ps" style="left:${pos.x}%;top:${pos.y}%" data-p="${pos.n}">
+      <div class="pc${pl?' has':''}${gk?' gk':''}" data-p="${pos.n}">
+        ${jSVG(pos.n,gk,!!pl)}
+        ${pl?`<div class="rx" data-rp="${pos.n}">×</div>`:''}
+      </div>
+    <div class="pn" style="font-size:${pl?nameFz(pl.name):9}px;max-width:72px">${pl?fmtName(pl.name):''}</div>
+      <div class="pl">${pl?'':pos.l}</div>
+    </div>`;
+  }).join('');
+  ov.querySelectorAll('.rx').forEach(b=>{
+    b.addEventListener('click',e=>{e.stopPropagation();delete assign[parseInt(b.dataset.rp)];refresh();});
+    b.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();delete assign[parseInt(b.dataset.rp)];refresh();});
+  });
+  ov.querySelectorAll('.pc').forEach(c=>{
+    if(c.classList.contains('has'))attachPos(c);
+    c.addEventListener('click',e=>{if(drag||e.target.closest('.rx'))return;const pn=parseInt(c.dataset.p);if(!assign[pn])showPicker(pn,c);});
+  });
+  $('ptip').style.display=Object.keys(assign).length?'none':'';
+}
+
+// ── RENDER SUBS ──
+function renderSubs(){
+  for(let i=1;i<=5;i++){
+    const slot=$(`ss-${i}`),pid=subAssign[i],pl=pid?players.find(p=>p.id===pid):null;
+    if(pl){
+      slot.classList.add('full');
+      slot.innerHTML=`${sJSVG(pid,i)}<span class="snm">${pl.name}</span><span class="srm" data-sub="${i}">×</span>`;
+      slot.style.cursor='grab';
+      attachSub(slot);
+    }else{
+      slot.classList.remove('full');
+      slot.innerHTML=`<span class="sn">${i}</span>`;
+      slot.style.cursor='default';
+      slot.onmousedown=null;slot.ontouchstart=null;
+    }
+  }
+  document.querySelectorAll('.srm').forEach(b=>{
+    b.addEventListener('click',e=>{e.stopPropagation();delete subAssign[parseInt(b.dataset.sub)];refresh();});
+    b.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();delete subAssign[parseInt(b.dataset.sub)];refresh();});
+  });
+}
+function sJSVG(pid,sn){
+  const nc=numCol(jc.p),num=POS[fmt].length+sn;
+  return`<svg viewBox="0 0 40 44" style="width:28px;height:31px" xmlns="http://www.w3.org/2000/svg">
+    <defs><clipPath id="sjcp${pid}"><path d="M14 3 Q11 3 6 7 L1 14 L6 18 L8 40 L32 40 L34 18 L39 14 L34 7 Q29 3 26 3 Q23 6 20 6 Q17 6 14 3 Z"/></clipPath></defs>
+    <path d="M14 3 Q11 3 6 7 L1 14 L6 18 L8 40 L32 40 L34 18 L39 14 L34 7 Q29 3 26 3 Q23 6 20 6 Q17 6 14 3 Z" fill="${jc.p}" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+    <rect x="0" y="18" width="40" height="7" fill="${jc.s}" opacity="0.85" clip-path="url(#sjcp${pid})"/>
+    <text x="20" y="21" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="800" font-family="sans-serif" fill="${nc}" paint-order="stroke fill" stroke="black" stroke-width="3">${num}</text>
+  </svg>`;
+}
+function refresh(){renderPos();renderStrip();renderSubs();}
+
+// ── PICKER ──
+function showPicker(posNum,el){
+  const avail=players.filter(p=>!onPitch(p.id));
+  if(!avail.length){toast('All players are on the pitch');return;}
+  document.getElementById('__pp')?.remove();
+  const pop=document.createElement('div');pop.id='__pp';pop.className='ppop';
+  const hdr=document.createElement('div');hdr.className='pp-hdr';
+  const pos=POS[fmt].find(p=>p.n===posNum);
+  hdr.textContent=`Position ${posNum} · ${pos?.l||''}`;pop.appendChild(hdr);
+  avail.forEach(p=>{
+    const item=document.createElement('button');item.className='pp-item';
+    const init=p.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+    item.innerHTML=`<div class="pp-av">${init}</div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>`;
+    item.onclick=()=>{assign[posNum]=p.id;pop.remove();refresh();};
+    pop.appendChild(item);
+  });
+  const r=el.getBoundingClientRect();
+  let l=r.left+r.width/2-85,t=r.bottom+6;
+  if(l<6)l=6;if(l+170>window.innerWidth-6)l=window.innerWidth-176;
+  if(t+220>window.innerHeight)t=r.top-226;
+  pop.style.left=l+'px';pop.style.top=t+'px';
+  document.body.appendChild(pop);
+  setTimeout(()=>{document.addEventListener('click',function cls(e){if(!pop.contains(e.target)){pop.remove();document.removeEventListener('click',cls);}});},80);
+}
+
+// ── DRAG & DROP ──
+const ghost=$('dg');
+function startDrag(x,y,pid,src,srcKey){
+  const p=players.find(pl=>pl.id===pid);if(!p)return;
+  drag={pid,src,srcKey};ghost.textContent=p.name;ghost.classList.add('show');mv(x,y);
+  document.addEventListener('mousemove',onMM);document.addEventListener('mouseup',onMU);
+  document.addEventListener('touchmove',onTM,{passive:false});document.addEventListener('touchend',onTE);
+}
+function mv(x,y){ghost.style.left=x+'px';ghost.style.top=y+'px';}
+function onMM(e){mv(e.clientX,e.clientY);hl(e.clientX,e.clientY);}
+function onTM(e){e.preventDefault();const t=e.touches[0];mv(t.clientX,t.clientY);hl(t.clientX,t.clientY);}
+function onMU(e){endDrag(e.clientX,e.clientY);}
+function onTE(e){const t=e.changedTouches[0];endDrag(t.clientX,t.clientY);}
+function hl(x,y){
+  document.querySelectorAll('.pc').forEach(c=>{c.classList.remove('over');const r=c.getBoundingClientRect();if(Math.hypot(x-(r.left+r.width/2),y-(r.top+r.height/2))<36)c.classList.add('over');});
+  document.querySelectorAll('.ss').forEach(s=>{const r=s.getBoundingClientRect();s.classList.toggle('over',x>=r.left-8&&x<=r.right+8&&y>=r.top-8&&y<=r.bottom+8);});
+}
+function endDrag(x,y){
+  if(!drag)return;
+  ghost.classList.remove('show');
+  document.querySelectorAll('.over').forEach(c=>c.classList.remove('over'));
+  document.removeEventListener('mousemove',onMM);document.removeEventListener('mouseup',onMU);
+  document.removeEventListener('touchmove',onTM);document.removeEventListener('touchend',onTE);
+  const{pid,src,srcKey}=drag;drag=null;
+
+  // Find pitch target
+  let tPos=null;
+  document.querySelectorAll('.pc').forEach(c=>{
+    const r=c.getBoundingClientRect();
+    if(Math.hypot(x-(r.left+r.width/2),y-(r.top+r.height/2))<36) tPos=parseInt(c.dataset.p);
+  });
+  // Find sub target
+  let tSub=null;
+  document.querySelectorAll('.ss').forEach(s=>{
+    const r=s.getBoundingClientRect();
+    if(x>=r.left-8&&x<=r.right+8&&y>=r.top-8&&y<=r.bottom+8) tSub=parseInt(s.dataset.sub);
+  });
+
+  if(tPos!==null){
+    const displaced=assign[tPos];
+    if(displaced){
+      // Someone already in that pitch slot — send them back to source
+      if(src==='pos')  assign[srcKey]=displaced;
+      else if(src==='sub') subAssign[srcKey]=displaced;
+      // If dragged from strip, displaced goes to first empty sub slot
+      else if(src==='strip'){
+        const emptySub=[1,2,3,4,5].find(n=>!subAssign[n]);
+        if(emptySub) subAssign[emptySub]=displaced;
+      }
+    } else {
+      // Empty pitch slot — just vacate source
+      if(src==='pos')  delete assign[srcKey];
+      else if(src==='sub') delete subAssign[srcKey];
+    }
+    // Remove dragged player from any sub slot they were in
+    Object.keys(subAssign).forEach(k=>{ if(subAssign[k]===pid) delete subAssign[k]; });
+    assign[tPos]=pid;
+
+  } else if(tSub!==null){
+    const displaced=subAssign[tSub];
+    if(displaced){
+      // Sub slot occupied — send displaced player back to source
+      if(src==='pos')       assign[srcKey]=displaced;    // swap: pitch player ↔ sub
+      else if(src==='sub')  subAssign[srcKey]=displaced; // swap between sub slots
+      else if(src==='strip'){
+        const emptySub=[1,2,3,4,5].find(n=>n!==tSub&&!subAssign[n]);
+        if(emptySub) subAssign[emptySub]=displaced;
+      }
+    } else {
+      // Empty sub slot — vacate source
+      if(src==='pos')  delete assign[srcKey];
+      else if(src==='sub') delete subAssign[srcKey];
+    }
+    // Clean up dragged player from any other slot
+    Object.keys(subAssign).forEach(k=>{ if(parseInt(k)!==tSub&&subAssign[k]===pid) delete subAssign[k]; });
+    Object.keys(assign).forEach(k=>{ if(assign[k]===pid) delete assign[k]; });
+    subAssign[tSub]=pid;
+
+  } else {
+    // Dropped outside — remove from position if dragged from pitch
+    if(src==='pos'){
+      const pw=$('pitchWrap').getBoundingClientRect();
+      if(!(x>=pw.left&&x<=pw.right&&y>=pw.top&&y<=pw.bottom)) delete assign[srcKey];
+    }
+  }
+  refresh();
+}
+function attachChip(el){
+  const pid=parseFloat(el.dataset.pid);
+  el.onmousedown=e=>{if(e.button!==0)return;e.preventDefault();startDrag(e.clientX,e.clientY,pid,'strip',null);};
+  el.ontouchstart=e=>{e.preventDefault();const t=e.touches[0];startDrag(t.clientX,t.clientY,pid,'strip',null);};
+}
+function attachPos(el){
+  const pn=parseInt(el.dataset.p);
+  el.onmousedown=e=>{if(e.button!==0)return;e.preventDefault();const pid=assign[pn];if(pid)startDrag(e.clientX,e.clientY,pid,'pos',pn);};
+  el.ontouchstart=e=>{e.preventDefault();const t=e.touches[0];const pid=assign[pn];if(pid)startDrag(t.clientX,t.clientY,pid,'pos',pn);};
+}
+function attachSub(el){
+  const sn=parseInt(el.dataset.sub);
+  el.onmousedown=e=>{if(e.button!==0)return;e.preventDefault();const pid=subAssign[sn];if(pid)startDrag(e.clientX,e.clientY,pid,'sub',sn);};
+  el.ontouchstart=e=>{e.preventDefault();const t=e.touches[0];const pid=subAssign[sn];if(pid)startDrag(t.clientX,t.clientY,pid,'sub',sn);};
+}
+
+// ── LINEUP (preview then share/save) ──
+let _lineupCanvas = null;
+let _lineupFname  = null;
+
+$('dlBtn').addEventListener('click',async()=>{
+  const btn=$('dlBtn');
+  btn.innerHTML='Generating…';btn.disabled=true;
+  try{
+    const wrap=$('pitchWrap');
+    const EXPORT_SCALE = 4;
+    const canvas=await html2canvas(wrap,{backgroundColor:null,scale:EXPORT_SCALE,useCORS:true,logging:false});
+    // Watermark — scale font and position to match export resolution
+    const ctx=canvas.getContext('2d');
+    ctx.font=`bold ${13*EXPORT_SCALE}px "Bebas Neue",sans-serif`;
+    ctx.fillStyle='rgba(135,194,50,0.7)';
+    ctx.textAlign='right';
+    ctx.fillText('COACHSMART',canvas.width-10*EXPORT_SCALE,canvas.height-10*EXPORT_SCALE);
+
+    _lineupCanvas = canvas;
+    _lineupFname  = `CoachSmart_${teamName.replace(/\s+/g,'_')}_lineup.png`;
+
+    // Show preview overlay
+    $('lineupImg').src = canvas.toDataURL('image/png');
+    $('lineupOverlay').classList.add('show');
+
+  }catch(e){ console.error(e); toast('Could not generate — try again'); }
+  finally{
+    btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Lineup`;
+    btn.disabled=false;
+  }
+});
+
+$('lineupShareBtn').addEventListener('click',async()=>{
+  if(!_lineupCanvas) return;
+  _lineupCanvas.toBlob(async blob=>{
+    const file = new File([blob],_lineupFname,{type:'image/png'});
+    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)&&navigator.maxTouchPoints>0;
+    if(isMobile && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file],title:'CoachSmart Lineup'}); }
+      catch(e){ if(e.name!=='AbortError') fallbackDownload(_lineupCanvas,_lineupFname); }
+    } else {
+      fallbackDownload(_lineupCanvas,_lineupFname);
+    }
+  },'image/png');
+});
+
+function closeLineupOverlay(){
+  $('lineupOverlay').classList.remove('show');
+  $('lineupImg').src='';
+  _lineupCanvas=null; _lineupFname=null;
+}
+
+function fallbackDownload(canvas,fname){
+  const link=document.createElement('a');
+  link.download=fname||'CoachSmart_lineup.png';
+  link.href=canvas.toDataURL('image/png');link.click();
+  toast('Image saved!');
+}
+
+// ── TEAMSHEET ──
+$('tsBtn').addEventListener('click', async()=>{
+  const btn=$('tsBtn');
+  btn.innerHTML='Loading…';btn.disabled=true;
+  try{
+    await generateTeamsheet();
+  }catch(e){
+    console.error(e);
+    toast('Could not generate teamsheet');
+  }finally{
+    btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Teamsheet`;
+    btn.disabled=false;
+  }
+});
+
+async function generateTeamsheet(){
+  load(true,'Fetching data…');
+  try{
+    // ── 1. Club + team details ──
+    const teamRow = await sb(`teams?select=team_name,clubs(club_name_translated,club_name,crest,chairperson,secretary,sport_id)&team_id=eq.${teamId}`);
+    const club        = teamRow[0]?.clubs || {};
+    const clubIrish   = club.club_name_translated || club.club_name || teamName;
+    const crestUrl    = club.crest || '';
+    const chairperson = club.chairperson || '';
+    const secretary   = club.secretary  || '';
+
+    // Fetch GAA logo from sports table
+    let gaaLogoUrl = '';
+    try{
+      const sportRows = await sb(`sport?select=sport_crest&sport_name=eq.GAA`);
+      gaaLogoUrl = sportRows[0]?.sport_crest || '';
+    }catch(e){ console.warn('GAA logo fetch failed',e); }
+
+    // Pre-fetch both images as base64 in JS (Pyodide can't fetch external URLs)
+    async function toBase64(url){
+      if(!url) return '';
+      try{
+        const r = await fetch(url);
+        if(!r.ok) return '';
+        const blob = await r.blob();
+        return await new Promise(res=>{
+          const fr = new FileReader();
+          fr.onload = ()=> res(fr.result.split(',')[1]); // strip data:...;base64,
+          fr.readAsDataURL(blob);
+        });
+      }catch(e){ return ''; }
+    }
+
+    load(true,'Loading images…');
+    const [crestB64, gaaB64] = await Promise.all([
+      toBase64(crestUrl),
+      toBase64(gaaLogoUrl)
+    ]);
+
+    // ── 2. Player member details — include name_translated ──
+    const playerIds = players.map(p=>p.id);
+    const memRows   = playerIds.length
+      ? await sb(`members?select=member_id,first_name,last_name,date_of_birth,membership_num,name_translated&member_id=in.(${playerIds.join(',')})`)
+      : [];
+    const memMap = {};
+    memRows.forEach(m=>{ memMap[m.member_id]=m; });
+
+    // ── 3. Managers — use latest match_squad_details for this event (same as players) ──
+    // Get the latest match_squad_id for this event
+    const msRows = await sb(`match_squads?select=match_squad_id&event_id=eq.${eventId}&order=match_squad_id.desc&limit=1`);
+    let mgrList = [];
+
+    if(msRows.length){
+      const latestMsId = msRows[0].match_squad_id;
+
+      // Get members from match_squad_details for this squad (or all squads)
+      let coachDetQ;
+      if(squadId){
+        coachDetQ = `match_squad_details?select=id,member_id&match_squad_id=eq.${latestMsId}&squad_id=eq.${squadId}&order=id.desc`;
+      } else {
+        coachDetQ = `match_squad_details?select=id,member_id&match_squad_id=eq.${latestMsId}&order=id.desc`;
+      }
+      const coachDetRows = await sb(coachDetQ);
+
+      // Deduplicate — latest entry per member (same as player logic)
+      const latestByMember = {};
+      coachDetRows.forEach(r=>{ if(!latestByMember[r.member_id]) latestByMember[r.member_id]=r; });
+      const squadMemberIds = Object.keys(latestByMember).map(Number);
+
+      if(squadMemberIds.length){
+        // Filter to role_level 25 or 30
+        const roleRows = await sb(
+          `member_team_link?select=member_id,member_team_role_link(roles(role_level))&team_id=eq.${teamId}&member_id=in.(${squadMemberIds.join(',')})`
+        );
+        const coachIds = new Set();
+        roleRows.forEach(r=>{
+          if((r.member_team_role_link||[]).some(x=>x.roles?.role_level===25||x.roles?.role_level===30))
+            coachIds.add(r.member_id);
+        });
+
+        if(coachIds.size){
+          // Apply attendance filter — latest response=3 for this event
+          const coachArr = [...coachIds];
+          const attRows = await sb(
+            `event_attendance?select=member_id,response_id,created_at&event_id=eq.${eventId}&member_id=in.(${coachArr.join(',')})&order=member_id,created_at.desc`
+          );
+          const latestAtt = {};
+          attRows.forEach(r=>{ if(!latestAtt[r.member_id]) latestAtt[r.member_id]=r; });
+          const attendingCoachIds = Object.values(latestAtt)
+            .filter(r=>r.response_id===3).map(r=>r.member_id);
+
+          if(attendingCoachIds.length){
+            const coachMemRows = await sb(
+              `members?select=member_id,first_name,last_name,membership_num,name_translated&member_id=in.(${attendingCoachIds.join(',')})&order=last_name,first_name`
+            );
+            mgrList = coachMemRows.map(m=>({
+              id:              m.member_id,
+              name:            `${m.first_name} ${m.last_name}`.trim(),
+              mem:             m.membership_num || 'blank',
+              name_translated: m.name_translated || ''
+            }));
+          }
+        }
+      }
+    }
+
+    // ── 4. Translation — use stored name_translated; Gemini for any missing ──
+    // Collect all members missing a translation
+    const missing = [];
+    playerIds.forEach(id=>{
+      const m = memMap[id];
+      if(m && !m.name_translated){
+        missing.push({ id: m.member_id, name: `${m.first_name} ${m.last_name}`.trim() });
+      }
+    });
+    mgrList.forEach(m=>{
+      if(!m.name_translated) missing.push({ id: m.id, name: m.name });
+    });
+
+    // Deduplicate by id
+    const missingUniq = [...new Map(missing.map(x=>[x.id,x])).values()];
+
+    let geminiMap = {};
+    if(missingUniq.length){
+      load(true,'Translating names…');
+      geminiMap = await translateWithGemini(missingUniq.map(x=>x.name));
+
+      // Write translations back to Supabase in parallel (fire and forget)
+      missingUniq.forEach(({id, name})=>{
+        const translated = geminiMap[name];
+        if(translated && translated !== name){
+          fetch(`${SB}/rest/v1/members?member_id=eq.${id}`,{
+            method:'PATCH',
+            headers:{ ...H, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+            body: JSON.stringify({ name_translated: translated })
+          }).catch(e=>console.warn('Write-back failed for',name,e));
+        }
+      });
+    }
+
+    // Build final irish name map — DB value takes priority, Gemini as fallback
+    function irishName(engName, storedTranslation){
+      return storedTranslation || geminiMap[engName] || engName;
+    }
+
+    // ── 5. Build structured data ──
+    const playerData = players.map(p=>{
+      const m   = memMap[p.id] || {};
+      const dob = m.date_of_birth
+        ? new Date(m.date_of_birth).toLocaleDateString('en-IE',{day:'2-digit',month:'2-digit',year:'numeric'})
+        : 'blank';
+      return {
+        irish:   irishName(p.name, m.name_translated),
+        english: p.name,
+        dob,
+        mem:     m.membership_num || 'blank'
+      };
+    });
+
+    const mgrData = mgrList.map(m=>({
+      irish:   irishName(m.name, m.name_translated),
+      english: m.name,
+      mem:     m.mem
+    }));
+
+    // ── 6. Generate PDF via Pyodide + ReportLab ──
+    load(true,'Generating PDF…');
+    await generatePDF({
+      clubIrish, crestB64, gaaB64, chairperson, secretary,
+      teamName, players: playerData, managers: mgrData
+    });
+
+  }catch(e){
+    load(false);
+    throw e;
+  }
+}
+
+// ── TRANSLATION via Claude API ──
+async function translateWithGemini(names){
+  if(!names.length) return {};
+  // Skip if running as local file — CORS blocks direct API calls
+  if(window.location.protocol==='file:'){
+    const fb={};names.forEach(n=>fb[n]=n);return fb;
+  }
+  try{
+    const prompt = `You are an expert in GAA Irish language name translations. Translate each of the following English names to their Irish (Gaeilge) equivalents as used in official GAA documents and Foireann teamsheets. Always attempt a translation — use your best guess for names you are less certain about. Common Irish equivalents: John=Seán, James=Séamus, Patrick=Pádraig, Michael=Micheál, William=Liam, Thomas=Tomás, Brian=Brian, Kevin=Caoimhín, Conor=Conchubhar, Luke=Lúcás, Rory=Ruairí, Fred=Feardorcha, Shay=Sé, Dan=Dónall, Hugh=Aodh, Mark=Marcas, Ben=Beircheart, Darragh=Darragh, Alex=Alastair. For surnames use standard Irish mutation rules where applicable. Return ONLY a valid JSON object mapping each English name to its Irish translation. No explanation, no markdown, no extra text.
+
+Names:
+${JSON.stringify(names)}`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':'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',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:2048,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+
+    if(!resp.ok){
+      const errText = await resp.text();
+      console.error('Translation API error:', resp.status, errText);
+      const fb={};names.forEach(n=>fb[n]=n);return fb;
+    }
+
+    const data = await resp.json();
+    const text = data.content?.find(c=>c.type==='text')?.text||'{}';
+    console.log('Translation response:', text);
+    return JSON.parse(text.replace(/```json|```/g,'').trim());
+  }catch(e){
+    console.error('Translation failed:',e);
+    const fb={};names.forEach(n=>fb[n]=n);return fb;
+  }
+}
+
+// ── PYODIDE PDF GENERATOR ──
+let _pyodide = null;
+
+async function getPyodide(){
+  if(_pyodide) return _pyodide;
+  load(true,'Loading PDF engine…');
+  if(!window.loadPyodide){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
+      s.onload=res; s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+  _pyodide = await loadPyodide({ indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
+  await _pyodide.loadPackage('micropip');
+  await _pyodide.runPythonAsync(`
+import micropip
+await micropip.install(['reportlab', 'pillow'])
+`);
+  return _pyodide;
+}
+
+async function generatePDF(data){
+  const py = await getPyodide();
+  load(true,'Building PDF…');
+
+  // Pass data as JSON string — more reliable than toPy for nested objects
+  py.globals.set('ts_json', JSON.stringify({
+    club_name_irish: data.clubIrish,
+    chairperson:     data.chairperson,
+    secretary:       data.secretary,
+    team_name:       data.teamName,
+    crest_b64:       data.crestB64  || '',
+    gaa_b64:         data.gaaB64    || '',
+    players:         data.players,
+    managers:        data.managers
+  }));
+
+  const pdfBytes = await py.runPythonAsync(`
+import io, base64, json
+from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.pdfgen import canvas as rl_canvas
+from reportlab.lib.colors import HexColor, black
+from reportlab.lib.utils import ImageReader
+from PIL import Image as PILImage
+
+d        = json.loads(ts_json)
+players  = d['players']
+managers = d['managers']
+
+W, H         = A4
+ML,MR,MT,MB  = 14*mm,14*mm,10*mm,10*mm
+GAP          = 8*mm
+COLW         = (W-ML-MR-GAP)/2
+LX,RX        = ML, ML+COLW+GAP
+
+TEAL   = HexColor("#004A67")
+DETAIL = HexColor("#7E8291")
+LGREY  = HexColor("#cccccc")
+DGREY  = HexColor("#333333")
+B,N    = "Helvetica-Bold","Helvetica"
+TB,TN  = "Times-Bold","Times-Roman"
+
+def b64img(b64str):
+    """Decode base64 to ImageReader, removing white/light background for transparency."""
+    if not b64str:
+        return None
+    try:
+        raw = base64.b64decode(b64str)
+        img = PILImage.open(io.BytesIO(raw)).convert("RGBA")
+
+        # Remove near-white background pixels
+        data = img.getdata()
+        new_data = []
+        for r, g, b, a in data:
+            # If pixel is near-white (light background), make transparent
+            if r > 230 and g > 230 and b > 230:
+                new_data.append((r, g, b, 0))
+            else:
+                new_data.append((r, g, b, a))
+        img.putdata(new_data)
+
+        # Save back to buffer as PNG with transparency
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        return ImageReader(buf)
+    except Exception as e:
+        # Fall back to plain decode without transparency removal
+        try:
+            return ImageReader(io.BytesIO(base64.b64decode(b64str)))
+        except:
+            return None
+
+def rounded_rect(c, x, y, w, h, r):
+    p = c.beginPath()
+    p.moveTo(x+r, y)
+    p.lineTo(x+w-r, y)
+    p.curveTo(x+w,y, x+w,y, x+w,y+r)
+    p.lineTo(x+w, y+h-r)
+    p.curveTo(x+w,y+h, x+w,y+h, x+w-r,y+h)
+    p.lineTo(x+r, y+h)
+    p.curveTo(x,y+h, x,y+h, x,y+h-r)
+    p.lineTo(x, y+r)
+    p.curveTo(x,y, x,y, x+r,y)
+    p.close()
+    c.drawPath(p, stroke=1, fill=0)
+
+def fetch_img(url):
+    pass  # unused — keeping for safety
+
+buf = io.BytesIO()
+c   = rl_canvas.Canvas(buf, pagesize=A4)
+c.setTitle("Teamsheet")
+y = H - MT
+
+# Logos — both vertically centred within logo_sz height
+logo_sz = 28*mm
+mid_y   = y - logo_sz/2   # vertical centre of logo row
+
+# Club crest — centred vertically
+crest = b64img(d.get('crest_b64',''))
+if crest:
+    c.drawImage(crest, LX, y-logo_sz, logo_sz, logo_sz, preserveAspectRatio=True, mask='auto')
+else:
+    c.setStrokeColor(LGREY); c.setLineWidth(0.5)
+    c.rect(LX, y-logo_sz, logo_sz, logo_sz)
+
+# GAA logo — larger, vertically centred
+gw,gh = 26*mm,18*mm
+gaa = b64img(d.get('gaa_b64',''))
+if gaa:
+    c.drawImage(gaa, W-MR-gw, mid_y-gh/2, gw, gh, preserveAspectRatio=True, mask='auto')
+else:
+    c.setStrokeColor(LGREY); c.setLineWidth(0.5)
+    c.rect(W-MR-gw, mid_y-gh/2, gw, gh)
+
+# Club name — vertically centred in logo row
+c.setFont(B,25); c.setFillColor(TEAL)
+c.drawCentredString(W/2, mid_y, d['club_name_irish'])
+y -= logo_sz + 4*mm
+
+# ── No header rule — matches original template ──
+
+# ── Meta ──
+ROW_H = 11*mm
+def meta_field(x, ytop, value, label, blank=False):
+    if not blank and value:
+        c.setFont(B,11); c.setFillColor(TEAL)
+        c.drawString(x, ytop-4*mm, value)
+    c.setStrokeColor(TEAL); c.setLineWidth(0.5)
+    c.line(x, ytop-6*mm, x+COLW, ytop-6*mm)
+    c.setFont(N,7); c.setFillColor(DETAIL)
+    c.drawString(x, ytop-8.5*mm, label)
+
+meta_field(LX, y, d['chairperson'], '(Cathaoirleach)')
+meta_field(RX, y, d['secretary'],   '(Rúnaí)')
+y -= ROW_H
+meta_field(LX, y, d['team_name'],   '(Foireann)')
+meta_field(RX, y, '',               '(Freasúra)', blank=True)
+y -= ROW_H
+meta_field(LX, y, '', '(Comórtas)', blank=True)
+meta_field(RX, y, '', '(Dáta)',     blank=True)
+y -= ROW_H + 2*mm
+
+# ── Imreoirí ──
+c.setFont(B,16); c.setFillColor(TEAL)
+c.drawCentredString(W/2, y-5*mm, "Imreoirí")
+y -= 9*mm
+
+CB, r = 3.8*mm, 0.8*mm
+c.setStrokeColor(DGREY); c.setFillColor(black); c.setLineWidth(0.9)
+rounded_rect(c, LX, y-CB, CB, CB, r)
+c.setFont(B,11); c.setFillColor(black)
+c.drawString(LX+0.2*mm, y-CB+0.3*mm, "✓")
+c.setFont(N,8.5); c.setFillColor(DGREY)
+c.drawString(LX+CB+2.5*mm, y-2.8*mm, "= ag tosú (Starting)")
+y -= 7*mm
+
+# ── Players — with page break support ──
+ROW_P  = 8.5*mm
+CB_S   = 3.8*mm
+LINE_W = 7*mm
+G2     = 2*mm
+NAME_Y = 4*mm
+DTL_Y  = 7.2*mm
+tx_offset = CB_S + G2 + LINE_W + G2
+
+def new_page():
+    """Start a new page, return y reset to top."""
+    c.showPage()
+    return H - MT
+
+def draw_player(c, cx, cy, p, r, tx_offset):
+    c.setStrokeColor(DGREY); c.setFillColor(black); c.setLineWidth(0.9)
+    rounded_rect(c, cx, cy-CB_S-1.2*mm, CB_S, CB_S, r)
+    jx = cx+CB_S+G2
+    c.setStrokeColor(TEAL); c.setLineWidth(0.6)
+    c.line(jx, cy-CB_S-0.7*mm, jx+LINE_W, cy-CB_S-0.7*mm)
+    tx = cx+tx_offset
+    c.setFont(N,10.5); c.setFillColor(TEAL)
+    c.drawString(tx, cy-NAME_Y, p['irish'])
+    c.setFont(N,8); c.setFillColor(DETAIL)
+    c.drawString(tx, cy-DTL_Y, f"{p['dob']}   {p['mem']}   {p['english']}")
+
+# Split players into two columns, row by row
+# Each "row" is one player from left column paired with one from right column
+half = (len(players)+1)//2
+left_players  = players[:half]
+right_players = players[half:]
+max_rows = max(len(left_players), len(right_players))
+
+# How many player rows fit on current page vs a fresh page
+PAGE_BOT = MB + 20*mm  # bottom margin + space for signatures/footer
+
+row_idx = 0
+while row_idx < max_rows:
+    # Check if at least one more row fits on current page
+    if y - ROW_P < PAGE_BOT:
+        y = new_page()
+
+    # Draw as many rows as fit on this page
+    while row_idx < max_rows and y - ROW_P >= PAGE_BOT:
+        lp = left_players[row_idx]  if row_idx < len(left_players)  else None
+        rp = right_players[row_idx] if row_idx < len(right_players) else None
+        if lp: draw_player(c, LX, y, lp, r, tx_offset)
+        if rp: draw_player(c, RX, y, rp, r, tx_offset)
+        y -= ROW_P
+        row_idx += 1
+
+y -= 5*mm
+
+# ── Bainisteoirí — with page break support ──
+# Check if section title + at least one row fits
+if y - 8*mm - 8*mm < PAGE_BOT:
+    y = new_page()
+
+c.setFont(B,16); c.setFillColor(TEAL)
+c.drawCentredString(W/2, y-4*mm, "Bainisteoirí")
+y -= 8*mm
+
+ROW_M = 8*mm
+mhalf = (len(managers)+1)//2
+left_mgrs  = managers[:mhalf]
+right_mgrs = managers[mhalf:]
+max_mgr_rows = max(len(left_mgrs), len(right_mgrs)) if managers else 0
+
+mgr_idx = 0
+while mgr_idx < max_mgr_rows:
+    if y - ROW_M < PAGE_BOT:
+        y = new_page()
+    while mgr_idx < max_mgr_rows and y - ROW_M >= PAGE_BOT:
+        lm = left_mgrs[mgr_idx]  if mgr_idx < len(left_mgrs)  else None
+        rm = right_mgrs[mgr_idx] if mgr_idx < len(right_mgrs) else None
+        for m, cx in [(lm, LX), (rm, RX)]:
+            if m:
+                tx = cx + tx_offset
+                c.setFont(N,10.5); c.setFillColor(TEAL)
+                c.drawString(tx, y-3.5*mm, m['irish'])
+                c.setFont(N,8); c.setFillColor(DETAIL)
+                c.drawString(tx, y-6.8*mm, f"{m['mem']}   {m['english']}")
+        y -= ROW_M
+        mgr_idx += 1
+
+y -= 8*mm
+
+# ── Signatures ──
+c.setStrokeColor(TEAL); c.setLineWidth(0.6)
+c.line(LX, y, LX+COLW, y)
+c.line(RX, y, RX+COLW, y)
+c.setFont(N,7.5); c.setFillColor(DETAIL)
+c.drawString(LX, y-4.5*mm, "(Sínithe ag an Rúnaí)")
+c.drawString(RX, y-4.5*mm, "(Sínithe ag an Réiteoir)")
+
+# ── Footer ──
+now = datetime.now().strftime("%d-%m-%Y %H:%M")
+c.setFont(N,6.5); c.setFillColor(LGREY)
+c.drawString(LX, MB+2*mm, "= neamhchláraithe")
+c.drawRightString(W-MR, MB+2*mm, f"Cruthaithe i gCoachSmart ag {now} (1/1)")
+
+c.save()
+base64.b64encode(buf.getvalue()).decode()
+`);
+
+  // Convert base64 PDF to blob and show in overlay
+  const binary = atob(pdfBytes);
+  const bytes  = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+  const blob = new Blob([bytes],{type:'application/pdf'});
+  _pdfBlob  = blob;
+  _pdfFname = `CoachSmart_${teamName.replace(/\s+/g,'_')}_teamsheet.pdf`;
+  load(false);
+
+  // Render PDF pages to canvas using PDF.js then show overlay
+  await renderPdfOverlay(bytes);
+}
+
+// ── PDF OVERLAY ──
+let _pdfBlob  = null;
+let _pdfFname = null;
+
+async function renderPdfOverlay(pdfBytes){
+  // Load PDF.js on demand
+  if(!window.pdfjsLib){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload=()=>{
+        pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        res();
+      };
+      s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  load(true,'Rendering preview…');
+  const pagesEl = $('pdfPages');
+  pagesEl.innerHTML = '';
+
+  const pdf = await pdfjsLib.getDocument({data: pdfBytes}).promise;
+  const scale = Math.min(window.innerWidth - 32, 600) / 595; // A4 width in pts = 595
+
+  for(let i=1; i<=pdf.numPages; i++){
+    const page     = await pdf.getPage(i);
+    const viewport = page.getViewport({scale});
+    const canvas   = document.createElement('canvas');
+    canvas.width   = viewport.width;
+    canvas.height  = viewport.height;
+    canvas.style.marginBottom = '12px';
+    pagesEl.appendChild(canvas);
+    await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+  }
+
+  load(false);
+  $('pdfOverlay').classList.add('show');
+}
+
+$('pdfShareBtn').addEventListener('click', async()=>{
+  if(!_pdfBlob) return;
+  const file = new File([_pdfBlob], _pdfFname, {type:'application/pdf'});
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)&&navigator.maxTouchPoints>0;
+  if(isMobile && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:'CoachSmart Teamsheet'}); }
+    catch(e){ if(e.name!=='AbortError') fallbackPdfDownload(); }
+  } else {
+    fallbackPdfDownload();
+  }
+});
+
+function fallbackPdfDownload(){
+  const url  = URL.createObjectURL(_pdfBlob);
+  const link = document.createElement('a');
+  link.href=url; link.download=_pdfFname;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+}
+
+function closePdfOverlay(){
+  $('pdfOverlay').classList.remove('show');
+  $('pdfPages').innerHTML='';
+  _pdfBlob=null; _pdfFname=null;
+}
+
+document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
+
+applyJC();renderPos();renderSubs();
+
+// ── URL PARAMETER MODE (embedded from FlutterFlow) ──
+async function initFromParams(){
+  const params = new URLSearchParams(window.location.search);
+  const pTeamId  = params.get('teamId');
+  const pEventId = params.get('eventId');
+  const pSquadId = params.get('squadId'); // optional — omit for all squads
+
+  if(!pTeamId || !pEventId){
+    // No params — show filter screen as normal
+    initTeams();
+    return;
+  }
+
+  // ── Embedded mode — hide back button, load directly ──
+  $('backBtn').style.display = 'none';
+  load(true,'Loading squad…');
+
+  try{
+    // Set IDs
+    teamId  = parseInt(pTeamId);
+    eventId = parseInt(pEventId);
+    squadId = (pSquadId && pSquadId !== 'all') ? parseInt(pSquadId) : null;
+
+    // Fetch teamName
+    const teamRow = await sb(`teams?select=team_name&team_id=eq.${teamId}`);
+    teamName = teamRow[0]?.team_name || '';
+
+    // Fetch eventLabel
+    const evtRow = await sb(`events?select=event_date_time,opposition,event_codes(event_code),event_types(event_type)&event_id=eq.${eventId}`);
+    if(evtRow.length){
+      const e = evtRow[0];
+      const ds = new Date(e.event_date_time).toLocaleDateString('en-IE',{day:'2-digit',month:'short',year:'numeric'});
+      const opp = e.opposition ? ` vs ${e.opposition.trim()}` : '';
+      eventLabel = `${ds} · ${e.event_codes?.event_code||''} ${e.event_types?.event_type||''}${opp}`.trim();
+    }
+
+    // Fetch squadName
+    if(squadId){
+      const sqRow = await sb(`squads?select=squad_name&squad_id=eq.${squadId}`);
+      squadName = sqRow[0]?.squad_name || '';
+    } else {
+      squadName = 'All Squads';
+    }
+
+    // Get latest match_squad_id for this event
+    const msRows = await sb(`match_squads?select=match_squad_id&event_id=eq.${eventId}&order=match_squad_id.desc&limit=1`);
+    if(!msRows.length){ load(false); toast('No match squad set up for this event'); return; }
+    const msId = msRows[0].match_squad_id;
+
+    // Get players from match_squad_details
+    const detQ = squadId
+      ? `match_squad_details?select=id,member_id&match_squad_id=eq.${msId}&squad_id=eq.${squadId}&order=id.desc`
+      : `match_squad_details?select=id,member_id&match_squad_id=eq.${msId}&order=id.desc`;
+    const detRows = await sb(detQ);
+    const latestByMember = {};
+    detRows.forEach(r=>{ if(!latestByMember[r.member_id]) latestByMember[r.member_id]=r; });
+    const squadMemberIds = Object.keys(latestByMember).map(Number);
+    if(!squadMemberIds.length){ load(false); toast('No players found in match squad'); return; }
+
+    // Attendance filter
+    const attRows = await sb(`event_attendance?select=member_id,response_id,created_at&event_id=eq.${eventId}&member_id=in.(${squadMemberIds.join(',')})&order=member_id,created_at.desc`);
+    const latestAtt = {};
+    attRows.forEach(r=>{ if(!latestAtt[r.member_id]) latestAtt[r.member_id]=r; });
+    const attendingIds = Object.values(latestAtt).filter(r=>r.response_id===3).map(r=>r.member_id);
+    if(!attendingIds.length){ load(false); toast('No players have accepted for this event'); return; }
+
+    // Role filter — players only (role_level=10)
+    const roleRows = await sb(`member_team_link?select=member_id,member_team_role_link(roles(role_level))&team_id=eq.${teamId}&member_id=in.(${attendingIds.join(',')})`);
+    const playerIdSet = new Set();
+    roleRows.forEach(r=>{ if((r.member_team_role_link||[]).some(x=>x.roles?.role_level===10)) playerIdSet.add(r.member_id); });
+    const eligibleIds = attendingIds.filter(id=>playerIdSet.has(id));
+    if(!eligibleIds.length){ load(false); toast('No eligible players found'); return; }
+
+    // Fetch names
+    const memRows = await sb(`members?select=member_id,first_name,last_name&member_id=in.(${eligibleIds.join(',')})&order=last_name,first_name`);
+    players = memRows.map(m=>({id:m.member_id, name:`${m.first_name} ${m.last_name}`.trim()}));
+    players.sort((a,b)=>a.name.localeCompare(b.name));
+
+    assign={};subAssign={};
+    $('evtLbl').innerHTML=`<strong>${teamName}</strong> · ${eventLabel}`;
+    load(false);
+    renderStrip();renderPos();renderSubs();
+    screen('pitchScreen');
+    toast(`${players.length} player${players.length!==1?'s':''} loaded`);
+
+  }catch(e){
+    console.error(e);
+    load(false);
+    toast('Error loading squad');
+  }
+}
+
+initFromParams();
+</script>
+</body>
+</html>
