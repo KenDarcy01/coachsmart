@@ -241,6 +241,10 @@
       <div class="bar-sub">Team Selector</div>
     </div>
     <div class="bar-actions">
+      <button class="hdr-btn hdr-btn-outline" id="saveBtn" disabled>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save
+      </button>
       <button class="hdr-btn" id="dlBtn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Lineup
@@ -405,7 +409,8 @@ const POS = {
   ]
 };
 
-let players=[],assign={},subAssign={},fmt=15,drag=null;
+let players=[],assign={},subAssign={},fmt=15,drag=null,dirty=false;
+function markDirty(){ dirty=true; $('saveBtn').disabled=false; }
 let jc={p:'#cc0000',s:'#cc0000',g:'#ffffff'};
 let teamId=null,teamName='',eventId=null,eventLabel='',squadName='',squadId=null;
 
@@ -525,8 +530,8 @@ function renderPos(){
     </div>`;
   }).join('');
   ov.querySelectorAll('.rx').forEach(b=>{
-    b.addEventListener('click',e=>{e.stopPropagation();delete assign[parseInt(b.dataset.rp)];refresh();});
-    b.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();delete assign[parseInt(b.dataset.rp)];refresh();});
+    b.addEventListener('click',e=>{e.stopPropagation();delete assign[parseInt(b.dataset.rp)];markDirty();refresh();});
+    b.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();delete assign[parseInt(b.dataset.rp)];markDirty();refresh();});
   });
   ov.querySelectorAll('.pc').forEach(c=>{
     if(c.classList.contains('has'))attachPos(c);
@@ -552,8 +557,8 @@ function renderSubs(){
     }
   }
   document.querySelectorAll('.srm').forEach(b=>{
-    b.addEventListener('click',e=>{e.stopPropagation();delete subAssign[parseInt(b.dataset.sub)];refresh();});
-    b.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();delete subAssign[parseInt(b.dataset.sub)];refresh();});
+    b.addEventListener('click',e=>{e.stopPropagation();delete subAssign[parseInt(b.dataset.sub)];markDirty();refresh();});
+    b.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();delete subAssign[parseInt(b.dataset.sub)];markDirty();refresh();});
   });
 }
 function sJSVG(pid,sn){
@@ -580,7 +585,7 @@ function showPicker(posNum,el){
     const item=document.createElement('button');item.className='pp-item';
     const init=p.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
     item.innerHTML=`<div class="pp-av">${init}</div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>`;
-    item.onclick=()=>{assign[posNum]=p.id;pop.remove();refresh();};
+    item.onclick=()=>{assign[posNum]=p.id;pop.remove();markDirty();refresh();};
     pop.appendChild(item);
   });
   const r=el.getBoundingClientRect();
@@ -677,6 +682,7 @@ function endDrag(x,y){
       if(!(x>=pw.left&&x<=pw.right&&y>=pw.top&&y<=pw.bottom)) delete assign[srcKey];
     }
   }
+  markDirty();
   refresh();
 }
 function attachChip(el){
@@ -1342,6 +1348,81 @@ document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:
 
 applyJC();renderPos();renderSubs();
 
+// ── SAVE LINEUP ──
+$('saveBtn').addEventListener('click', async () => {
+  const btn = $('saveBtn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = 'Saving…'; btn.disabled = true;
+  try {
+    // 1. Insert lineup header
+    const lResp = await fetch(`${SB}/rest/v1/lineup`, {
+      method: 'POST',
+      headers: { ...getH(), 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify({ event_id: eventId, team_id: teamId, squad_id: squadId, format: fmt })
+    });
+    if (!lResp.ok) throw new Error(await lResp.text());
+    const [lineup] = await lResp.json();
+
+    // 2. Build and insert lineup_details
+    const details = [];
+    Object.entries(assign).forEach(([pos, mid]) =>
+      details.push({ lineup_id: lineup.lineup_id, member_id: mid, position_num: parseInt(pos), is_sub: false }));
+    Object.entries(subAssign).forEach(([slot, mid]) =>
+      details.push({ lineup_id: lineup.lineup_id, member_id: mid, position_num: parseInt(slot), is_sub: true }));
+
+    if (details.length) {
+      const dResp = await fetch(`${SB}/rest/v1/lineup_details`, {
+        method: 'POST',
+        headers: { ...getH(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(details)
+      });
+      if (!dResp.ok) throw new Error(await dResp.text());
+    }
+
+    dirty = false;
+    toast('Lineup saved!');
+  } catch(e) {
+    console.error('Save failed:', e);
+    toast('Save failed — try again');
+    btn.disabled = false;
+  } finally {
+    btn.innerHTML = orig;
+    if (!dirty) btn.disabled = true;
+  }
+});
+
+// ── LOAD MOST RECENT LINEUP ──
+async function loadExistingLineup() {
+  try {
+    const rows = await sb(`lineup?event_id=eq.${eventId}&team_id=eq.${teamId}&order=lineup_id.desc&limit=1`);
+    if (!rows.length) return;
+
+    const saved = rows[0];
+    const details = await sb(`lineup_details?lineup_id=eq.${saved.lineup_id}`);
+    if (!details.length) return;
+
+    // Restore format
+    const savedFmt = saved.format || 15;
+    if (savedFmt !== fmt) {
+      fmt = savedFmt;
+      document.querySelectorAll('.fb').forEach(b => b.classList.toggle('on', parseInt(b.dataset.f) === fmt));
+    }
+
+    // Restore positions
+    assign = {}; subAssign = {};
+    details.forEach(d => {
+      if (d.is_sub) subAssign[d.position_num] = d.member_id;
+      else          assign[d.position_num]     = d.member_id;
+    });
+
+    dirty = false;
+    refresh();
+    toast('Previous lineup loaded');
+  } catch(e) {
+    console.error('Failed to load existing lineup:', e);
+  }
+}
+
 // ── INIT FROM URL PARAMS (always required — embedded from FlutterFlow) ──
 async function initFromParams(){
   const params = new URLSearchParams(window.location.search);
@@ -1420,12 +1501,13 @@ async function initFromParams(){
     players = memRows.map(m=>({id:m.member_id, name:`${m.first_name} ${m.last_name}`.trim()}));
     players.sort((a,b)=>a.name.localeCompare(b.name));
 
-    assign={};subAssign={};
+    assign={};subAssign={};dirty=false;
     $('evtLbl').innerHTML=`<strong>${teamName}</strong> · ${eventLabel}`;
     load(false);
-    renderStrip();renderPos();renderSubs();
     screen('pitchScreen');
-    toast(`${players.length} player${players.length!==1?'s':''} loaded`);
+    await loadExistingLineup();
+    renderStrip();renderPos();renderSubs();
+    if(!dirty) toast(`${players.length} player${players.length!==1?'s':''} loaded`);
 
   }catch(e){
     console.error(e);
