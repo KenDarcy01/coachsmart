@@ -5,6 +5,9 @@
   "targets": {
     "coach-smart-new-mpqa5l": {
       "hosting": {
+        "main": [
+          "coach-smart-new-mpqa5l"
+        ],
         "website-alt": [
           "alternate-coachsmart"
         ]
