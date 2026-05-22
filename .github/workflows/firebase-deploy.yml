@@ -11,9 +11,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Deploy main website
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: coach-smart-new-mpqa5l
+          target: main
+
+      - name: Deploy website-alt
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: coach-smart-new-mpqa5l
+          target: website-alt
