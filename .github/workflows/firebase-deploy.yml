@@ -11,6 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Copy webviews into main website
+        run: cp -r webviews website/webviews
+
       - name: Deploy main website
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
