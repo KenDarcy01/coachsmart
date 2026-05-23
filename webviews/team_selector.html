@@ -243,7 +243,7 @@
     <div class="bar-actions">
       <button class="hdr-btn" id="dlBtn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Lineup
+        Save / Share
       </button>
       <button class="hdr-btn hdr-btn-outline" id="tsBtn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -253,10 +253,6 @@
   </div>
   <div class="sub-bar">
     <div class="event-lbl" id="evtLbl">—</div>
-    <button class="hdr-btn hdr-btn-outline" id="saveBtn" disabled style="flex-shrink:0">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-      Save Lineup
-    </button>
   </div>
   <div class="toolbar">
     <span class="tlbl">Format</span>
@@ -410,7 +406,7 @@ const POS = {
 };
 
 let players=[],assign={},subAssign={},fmt=15,drag=null,dirty=false;
-function markDirty(){ dirty=true; $('saveBtn').disabled=false; }
+function markDirty(){ dirty=true; }
 function jwtUserId(token){ try{ return JSON.parse(atob(token.split('.')[1])).sub; }catch{ return null; } }
 let jc={p:'#cc0000',s:'#cc0000',g:'#ffffff'};
 let teamId=null,teamName='',eventId=null,eventLabel='',squadName='',squadId=null;
@@ -702,34 +698,68 @@ function attachSub(el){
   el.ontouchstart=e=>{e.preventDefault();const t=e.touches[0];const pid=subAssign[sn];if(pid)startDrag(t.clientX,t.clientY,pid,'sub',sn);};
 }
 
-// ── LINEUP (preview then share/save) ──
+// ── SAVE / SHARE LINEUP ──
 let _lineupCanvas = null;
 let _lineupFname  = null;
 
+async function persistLineup(){
+  const hasPlayers = Object.keys(assign).length > 0 || Object.keys(subAssign).length > 0;
+  if(!hasPlayers || !dirty) return; // nothing assigned, or no changes since last save
+  try{
+    const lResp = await fetch(`${SB}/rest/v1/lineup`,{
+      method:'POST',
+      headers:{ ...getH(),'Content-Type':'application/json','Prefer':'return=representation' },
+      body: JSON.stringify({ event_id:eventId, team_id:teamId, squad_id:squadId, format:fmt, created_by:jwtUserId(userToken) })
+    });
+    if(!lResp.ok) throw new Error(await lResp.text());
+    const [lineup] = await lResp.json();
+
+    const details=[];
+    Object.entries(assign).forEach(([pos,mid])=>{
+      const posNum=parseInt(pos);
+      const label=POS[fmt].find(p=>p.n===posNum)?.l||'';
+      details.push({lineup_id:lineup.lineup_id,member_id:mid,position_num:posNum,position_label:label,is_sub:false});
+    });
+    Object.entries(subAssign).forEach(([slot,mid])=>
+      details.push({lineup_id:lineup.lineup_id,member_id:mid,position_num:parseInt(slot),position_label:'SUB',is_sub:true}));
+
+    if(details.length){
+      const dResp = await fetch(`${SB}/rest/v1/lineup_details`,{
+        method:'POST',
+        headers:{ ...getH(),'Content-Type':'application/json','Prefer':'return=minimal' },
+        body: JSON.stringify(details)
+      });
+      if(!dResp.ok) throw new Error(await dResp.text());
+    }
+    dirty=false;
+    toast('Lineup saved!');
+  }catch(e){
+    console.error('Save failed:',e);
+    toast('Save failed — lineup image still generated');
+  }
+}
+
 $('dlBtn').addEventListener('click',async()=>{
   const btn=$('dlBtn');
-  btn.innerHTML='Generating…';btn.disabled=true;
+  btn.innerHTML='Saving…';btn.disabled=true;
   try{
+    await persistLineup();
+    btn.innerHTML='Generating…';
     const wrap=$('pitchWrap');
     const EXPORT_SCALE = 4;
     const canvas=await html2canvas(wrap,{backgroundColor:null,scale:EXPORT_SCALE,useCORS:true,logging:false});
-    // Watermark — scale font and position to match export resolution
     const ctx=canvas.getContext('2d');
     ctx.font=`bold ${13*EXPORT_SCALE}px "Bebas Neue",sans-serif`;
     ctx.fillStyle='rgba(135,194,50,0.7)';
     ctx.textAlign='right';
     ctx.fillText('COACHSMART',canvas.width-10*EXPORT_SCALE,canvas.height-10*EXPORT_SCALE);
-
     _lineupCanvas = canvas;
     _lineupFname  = `CoachSmart_${teamName.replace(/\s+/g,'_')}_lineup.png`;
-
-    // Show preview overlay
     $('lineupImg').src = canvas.toDataURL('image/png');
     $('lineupOverlay').classList.add('show');
-
   }catch(e){ console.error(e); toast('Could not generate — try again'); }
   finally{
-    btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Lineup`;
+    btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save / Share`;
     btn.disabled=false;
   }
 });
@@ -1348,52 +1378,6 @@ function closePdfOverlay(){
 document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
 
 applyJC();renderPos();renderSubs();
-
-// ── SAVE LINEUP ──
-$('saveBtn').addEventListener('click', async () => {
-  const btn = $('saveBtn');
-  const orig = btn.innerHTML;
-  btn.innerHTML = 'Saving…'; btn.disabled = true;
-  try {
-    // 1. Insert lineup header
-    const lResp = await fetch(`${SB}/rest/v1/lineup`, {
-      method: 'POST',
-      headers: { ...getH(), 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-      body: JSON.stringify({ event_id: eventId, team_id: teamId, squad_id: squadId, format: fmt, created_by: jwtUserId(userToken) })
-    });
-    if (!lResp.ok) throw new Error(await lResp.text());
-    const [lineup] = await lResp.json();
-
-    // 2. Build and insert lineup_details
-    const details = [];
-    Object.entries(assign).forEach(([pos, mid]) => {
-      const posNum = parseInt(pos);
-      const label = POS[fmt].find(p => p.n === posNum)?.l || '';
-      details.push({ lineup_id: lineup.lineup_id, member_id: mid, position_num: posNum, position_label: label, is_sub: false });
-    });
-    Object.entries(subAssign).forEach(([slot, mid]) =>
-      details.push({ lineup_id: lineup.lineup_id, member_id: mid, position_num: parseInt(slot), position_label: 'SUB', is_sub: true }));
-
-    if (details.length) {
-      const dResp = await fetch(`${SB}/rest/v1/lineup_details`, {
-        method: 'POST',
-        headers: { ...getH(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-        body: JSON.stringify(details)
-      });
-      if (!dResp.ok) throw new Error(await dResp.text());
-    }
-
-    dirty = false;
-    toast('Lineup saved!');
-  } catch(e) {
-    console.error('Save failed:', e);
-    toast('Save failed — try again');
-    btn.disabled = false;
-  } finally {
-    btn.innerHTML = orig;
-    if (!dirty) btn.disabled = true;
-  }
-});
 
 // ── LOAD MOST RECENT LINEUP ──
 async function loadExistingLineup() {
