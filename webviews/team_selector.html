@@ -168,32 +168,6 @@
     #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--text); color: var(--dark); padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 1000; opacity: 0; pointer-events: none; transition: all 0.22s; white-space: nowrap; }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* ── LINEUP PREVIEW OVERLAY ── */
-    #lineupOverlay {
-      display: none; position: fixed; inset: 0; z-index: 2000;
-      background: rgba(0,0,0,0.92); flex-direction: column;
-      align-items: center; justify-content: flex-start;
-      overflow-y: auto; -webkit-overflow-scrolling: touch;
-      padding: 16px;
-    }
-    #lineupOverlay.show { display: flex; }
-    #lineupOverlay img {
-      max-width: 100%; border-radius: 10px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.8);
-      margin-top: 8px;
-    }
-    .lov-actions {
-      display: flex; gap: 10px; margin-bottom: 16px; flex-shrink: 0;
-      width: 100%; max-width: 500px;
-    }
-    .lov-actions button {
-      flex: 1; height: 44px; border-radius: 10px;
-      font-size: 13px; font-weight: 700; cursor: pointer; border: none;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-    }
-    .lov-share  { background: var(--green); color: #111418; }
-    .lov-close  { background: var(--card2); color: var(--text); border: 1px solid var(--border) !important; }
-
     /* ── PDF PREVIEW OVERLAY ── */
     #pdfOverlay {
       display: none; position: fixed; inset: 0; z-index: 2000;
@@ -241,7 +215,7 @@
       <div class="bar-sub">Team Selector</div>
     </div>
     <div class="bar-actions">
-      <button class="hdr-btn" id="dlBtn">
+      <button class="hdr-btn" id="dlBtn" disabled>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Save / Share
       </button>
@@ -337,18 +311,6 @@
 <div id="dg"></div>
 <div id="toast"></div>
 
-<!-- Lineup image preview overlay -->
-<div id="lineupOverlay">
-  <div class="lov-actions">
-    <button class="lov-share" id="lineupShareBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-      Share / Save
-    </button>
-    <button class="lov-close" onclick="closeLineupOverlay()">✕ Close</button>
-  </div>
-  <img id="lineupImg" src="" alt="Lineup"/>
-</div>
-
 <!-- PDF preview overlay -->
 <div id="pdfOverlay">
   <div class="lov-actions">
@@ -406,7 +368,9 @@ const POS = {
 };
 
 let players=[],assign={},subAssign={},fmt=15,drag=null,dirty=false;
-function markDirty(){ dirty=true; }
+function hasAnyPlayers(){ return Object.keys(assign).length>0||Object.keys(subAssign).length>0; }
+function updateShareBtn(){ $('dlBtn').disabled=!hasAnyPlayers(); }
+function markDirty(){ dirty=true; updateShareBtn(); }
 function jwtUserId(token){ try{ return JSON.parse(atob(token.split('.')[1])).sub; }catch{ return null; } }
 let jc={p:'#cc0000',s:'#cc0000',g:'#ffffff'};
 let teamId=null,teamName='',eventId=null,eventLabel='',squadName='',squadId=null;
@@ -699,9 +663,6 @@ function attachSub(el){
 }
 
 // ── SAVE / SHARE LINEUP ──
-let _lineupCanvas = null;
-let _lineupFname  = null;
-
 async function persistLineup(){
   const hasPlayers = Object.keys(assign).length > 0 || Object.keys(subAssign).length > 0;
   if(!hasPlayers || !dirty) return; // nothing assigned, or no changes since last save
@@ -741,48 +702,36 @@ async function persistLineup(){
 
 $('dlBtn').addEventListener('click',async()=>{
   const btn=$('dlBtn');
+  const orig=btn.innerHTML;
   btn.innerHTML='Saving…';btn.disabled=true;
   try{
     await persistLineup();
     btn.innerHTML='Generating…';
     const wrap=$('pitchWrap');
-    const EXPORT_SCALE = 4;
+    const EXPORT_SCALE=4;
     const canvas=await html2canvas(wrap,{backgroundColor:null,scale:EXPORT_SCALE,useCORS:true,logging:false});
     const ctx=canvas.getContext('2d');
     ctx.font=`bold ${13*EXPORT_SCALE}px "Bebas Neue",sans-serif`;
     ctx.fillStyle='rgba(135,194,50,0.7)';
     ctx.textAlign='right';
     ctx.fillText('COACHSMART',canvas.width-10*EXPORT_SCALE,canvas.height-10*EXPORT_SCALE);
-    _lineupCanvas = canvas;
-    _lineupFname  = `CoachSmart_${teamName.replace(/\s+/g,'_')}_lineup.png`;
-    $('lineupImg').src = canvas.toDataURL('image/png');
-    $('lineupOverlay').classList.add('show');
+    const fname=`CoachSmart_${teamName.replace(/\s+/g,'_')}_lineup.png`;
+    canvas.toBlob(async blob=>{
+      const file=new File([blob],fname,{type:'image/png'});
+      const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)&&navigator.maxTouchPoints>0;
+      if(isMobile&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        try{ await navigator.share({files:[file],title:'CoachSmart Lineup'}); }
+        catch(e){ if(e.name!=='AbortError') fallbackDownload(canvas,fname); }
+      } else {
+        fallbackDownload(canvas,fname);
+      }
+    },'image/png');
   }catch(e){ console.error(e); toast('Could not generate — try again'); }
   finally{
-    btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save / Share`;
-    btn.disabled=false;
+    btn.innerHTML=orig;
+    updateShareBtn();
   }
 });
-
-$('lineupShareBtn').addEventListener('click',async()=>{
-  if(!_lineupCanvas) return;
-  _lineupCanvas.toBlob(async blob=>{
-    const file = new File([blob],_lineupFname,{type:'image/png'});
-    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)&&navigator.maxTouchPoints>0;
-    if(isMobile && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      try{ await navigator.share({files:[file],title:'CoachSmart Lineup'}); }
-      catch(e){ if(e.name!=='AbortError') fallbackDownload(_lineupCanvas,_lineupFname); }
-    } else {
-      fallbackDownload(_lineupCanvas,_lineupFname);
-    }
-  },'image/png');
-});
-
-function closeLineupOverlay(){
-  $('lineupOverlay').classList.remove('show');
-  $('lineupImg').src='';
-  _lineupCanvas=null; _lineupFname=null;
-}
 
 function fallbackDownload(canvas,fname){
   const link=document.createElement('a');
@@ -1377,7 +1326,7 @@ function closePdfOverlay(){
 
 document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
 
-applyJC();renderPos();renderSubs();
+applyJC();renderPos();renderSubs();updateShareBtn();
 
 // ── LOAD MOST RECENT LINEUP ──
 async function loadExistingLineup() {
@@ -1405,6 +1354,7 @@ async function loadExistingLineup() {
 
     dirty = false;
     refresh();
+    updateShareBtn();
     toast('Previous lineup loaded');
   } catch(e) {
     console.error('Failed to load existing lineup:', e);
