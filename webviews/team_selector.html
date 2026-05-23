@@ -8,7 +8,6 @@
   <style>html,body{background:#111418 !important;}</style>
   <title>CoachSmart — Team Selector</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root {
       --green:     #87C232;
@@ -707,14 +706,7 @@ $('dlBtn').addEventListener('click',async()=>{
   try{
     await persistLineup();
     btn.innerHTML='Generating…';
-    const wrap=$('pitchWrap');
-    const EXPORT_SCALE=4;
-    const canvas=await html2canvas(wrap,{backgroundColor:null,scale:EXPORT_SCALE,useCORS:true,logging:false});
-    const ctx=canvas.getContext('2d');
-    ctx.font=`bold ${13*EXPORT_SCALE}px "Bebas Neue",sans-serif`;
-    ctx.fillStyle='rgba(135,194,50,0.7)';
-    ctx.textAlign='right';
-    ctx.fillText('COACHSMART',canvas.width-10*EXPORT_SCALE,canvas.height-10*EXPORT_SCALE);
+    const canvas=generateLineupCanvas();
     const fname=`CoachSmart_${teamName.replace(/\s+/g,'_')}_lineup.png`;
     canvas.toBlob(async blob=>{
       const file=new File([blob],fname,{type:'image/png'});
@@ -738,6 +730,114 @@ function fallbackDownload(canvas,fname){
   link.download=fname||'CoachSmart_lineup.png';
   link.href=canvas.toDataURL('image/png');link.click();
   toast('Image saved!');
+}
+
+// ── CANVAS LINEUP IMAGE ──
+function abbrevName(n){
+  const p=n.trim().split(/\s+/);
+  if(p.length<2)return p[0];
+  return p[0]+' '+p[p.length-1][0].toUpperCase();
+}
+function rr(ctx,x,y,w,h,r){
+  r=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+function drawCanvasJersey(ctx,cx,cy,num,isGK,filled){
+  const JW=36,JH=JW*44/40;
+  ctx.save();
+  ctx.translate(cx-JW/2,cy-JH/2);
+  const sc=JW/40;ctx.scale(sc,sc);
+  const path=new Path2D('M14 3 Q11 3 6 7 L1 14 L6 18 L8 40 L32 40 L34 18 L39 14 L34 7 Q29 3 26 3 Q23 6 20 6 Q17 6 14 3 Z');
+  if(filled){
+    ctx.fillStyle=isGK?jc.g:jc.p;ctx.fill(path);
+    if(!isGK){ctx.save();ctx.clip(path);ctx.fillStyle=jc.s;ctx.globalAlpha=0.85;ctx.fillRect(0,18,40,7);ctx.restore();}
+  }else{ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fill(path);}
+  ctx.strokeStyle=filled?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.55)';
+  ctx.lineWidth=1.5/sc;
+  if(!filled)ctx.setLineDash([3/sc,2/sc]);
+  ctx.stroke(path);ctx.setLineDash([]);
+  const nc=filled?numCol(isGK?jc.g:jc.p):'rgba(255,255,255,0.9)';
+  const fs=filled?14:11,yn=filled&&!isGK?21:26;
+  ctx.lineWidth=4/sc;ctx.strokeStyle='rgba(0,0,0,0.8)';
+  ctx.font=`800 ${fs}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.strokeText(String(num),20,yn);
+  ctx.fillStyle=nc;ctx.fillText(String(num),20,yn);
+  ctx.restore();
+}
+function generateLineupCanvas(){
+  const SC=3,PW=350,PH=Math.round(PW*145/90),PAD=18;
+  const subEntries=Object.entries(subAssign).filter(([,m])=>m).sort((a,b)=>+a[0]-+b[0]);
+  const SUB_H=subEntries.length?(30+subEntries.length*22+8):0;
+  const TW=PW+PAD*2,TH=PH+PAD*2+SUB_H+28;
+  const canvas=document.createElement('canvas');
+  canvas.width=TW*SC;canvas.height=TH*SC;
+  const ctx=canvas.getContext('2d');ctx.scale(SC,SC);
+  // Background
+  ctx.fillStyle='#111418';ctx.fillRect(0,0,TW,TH);
+  // Pitch stripes
+  const SW=PW/10;
+  for(let i=0;i<10;i++){ctx.fillStyle=i%2?'#3a9a3a':'#2d6a2d';ctx.fillRect(PAD+i*SW,PAD,SW,PH);}
+  // Pitch border
+  ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=1.5;
+  ctx.strokeRect(PAD,PAD,PW,PH);
+  // Goals (top + bottom)
+  const GW=PW*0.167,GX=PAD+(PW-GW)/2,GD=PH*0.025;
+  ctx.strokeRect(GX,PAD-GD,GW,GD);
+  ctx.strokeRect(GX,PAD+PH,GW,GD);
+  // Goalkeeper small square
+  const SQW=PW*0.45,SQX=PAD+(PW-SQW)/2,SQH=PH*0.05;
+  ctx.strokeRect(SQX,PAD,SQW,SQH);
+  ctx.strokeRect(SQX,PAD+PH-SQH,SQW,SQH);
+  // Horizontal field lines (21m, 45m, halfway, 45m, 21m)
+  [0.14,0.31,0.50,0.69,0.86].forEach(yp=>{
+    ctx.beginPath();ctx.moveTo(PAD,PAD+yp*PH);ctx.lineTo(PAD+PW,PAD+yp*PH);ctx.stroke();
+  });
+  // Centre circle + dot
+  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH/2,PW*0.1,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH/2,2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fill();
+  // Players
+  const JH=36*44/40;
+  POS[fmt].forEach(pos=>{
+    const pid=assign[pos.n],pl=pid?players.find(p=>p.id===pid):null;
+    const cx=PAD+pos.x/100*PW,cy=PAD+pos.y/100*PH;
+    drawCanvasJersey(ctx,cx,cy,pos.n,pos.n===1,!!pl);
+    if(pl){
+      const nm=abbrevName(pl.name);
+      ctx.font='700 10px "DM Sans",sans-serif';
+      const tw=Math.min(ctx.measureText(nm).width,PW*0.28);
+      const lx=cx-tw/2-4,ly=cy+JH/2+3;
+      ctx.fillStyle='rgba(0,0,0,0.65)';rr(ctx,lx,ly,tw+8,15,3);ctx.fill();
+      ctx.save();ctx.beginPath();ctx.rect(lx,ly,tw+8,15);ctx.clip();
+      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(nm,cx,ly+7.5);
+      ctx.restore();
+    }
+  });
+  // Subs section
+  if(subEntries.length){
+    const sy0=PAD+PH+8;
+    ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='700 8px "DM Sans",sans-serif';
+    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('SUBSTITUTES',PAD,sy0+7);
+    ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(PAD,sy0+14,PW,1);
+    subEntries.forEach(([slot,mid],i)=>{
+      const pl=players.find(p=>p.id===mid);if(!pl)return;
+      const num=POS[fmt].length+parseInt(slot),iy=sy0+22+i*22;
+      ctx.fillStyle=jc.p;rr(ctx,PAD,iy-8,22,16,3);ctx.fill();
+      ctx.fillStyle=numCol(jc.p);ctx.font='800 9px sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(num),PAD+11,iy);
+      ctx.fillStyle='rgba(255,255,255,0.88)';ctx.font='500 12px "DM Sans",sans-serif';
+      ctx.textAlign='left';ctx.fillText(abbrevName(pl.name),PAD+28,iy);
+    });
+  }
+  // Watermark
+  ctx.font='bold 10px "Bebas Neue",sans-serif';ctx.fillStyle='rgba(135,194,50,0.55)';
+  ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText('COACHSMART',PAD+PW,TH-6);
+  return canvas;
 }
 
 // ── TEAMSHEET ──
