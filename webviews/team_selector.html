@@ -782,9 +782,9 @@ function generateLineupCanvas(){
   let SUB_H=0;
   if(subEntries.length){
     const tmp=document.createElement('canvas').getContext('2d');
-    tmp.font='500 11px "DM Sans",sans-serif';
+    tmp.font='500 13px "DM Sans",sans-serif';
     const subsStr='Subs: '+subEntries.map(([,m])=>players.find(p=>p.id===m)?.name||'').filter(Boolean).join(', ');
-    SUB_H=wrapText(tmp,subsStr,PW).length*16+14;
+    SUB_H=wrapText(tmp,subsStr,PW).length*18+14;
   }
   const TW=PW+PAD*2,TH=PH+PAD*2+SUB_H+24;
   const canvas=document.createElement('canvas');
@@ -798,16 +798,13 @@ function generateLineupCanvas(){
   // Pitch border
   ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=1.5;
   ctx.strokeRect(PAD,PAD,PW,PH);
-  // GAA goals — frame + uprights extending beyond end lines
-  const GW=PW*0.167,GX=PAD+(PW-GW)/2,GD=PH*0.022,UH=PH*0.028;
-  ctx.strokeRect(GX,PAD-GD,GW,GD);
-  ctx.beginPath();ctx.moveTo(GX,PAD-GD);ctx.lineTo(GX,PAD-GD-UH);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(GX+GW,PAD-GD);ctx.lineTo(GX+GW,PAD-GD-UH);ctx.stroke();
-  ctx.strokeRect(GX,PAD+PH,GW,GD);
-  ctx.beginPath();ctx.moveTo(GX,PAD+PH+GD);ctx.lineTo(GX,PAD+PH+GD+UH);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(GX+GW,PAD+PH+GD);ctx.lineTo(GX+GW,PAD+PH+GD+UH);ctx.stroke();
+  // GAA pitch markings — no goalposts
+  // Large rectangle (14m area) at each end
+  const LRW=PW*0.6,LRX=PAD+(PW-LRW)/2,LRH=PH*0.09;
+  ctx.strokeRect(LRX,PAD,LRW,LRH);
+  ctx.strokeRect(LRX,PAD+PH-LRH,LRW,LRH);
   // Goalkeeper small square
-  const SQW=PW*0.45,SQX=PAD+(PW-SQW)/2,SQH=PH*0.05;
+  const SQW=PW*0.28,SQX=PAD+(PW-SQW)/2,SQH=PH*0.04;
   ctx.strokeRect(SQX,PAD,SQW,SQH);
   ctx.strokeRect(SQX,PAD+PH-SQH,SQW,SQH);
   // Field lines: 21m, 45m, halfway, 45m, 21m
@@ -815,7 +812,7 @@ function generateLineupCanvas(){
     ctx.beginPath();ctx.moveTo(PAD,PAD+yp*PH);ctx.lineTo(PAD+PW,PAD+yp*PH);ctx.stroke();
   });
   // Centre circle + dot
-  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH/2,PW*0.1,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH/2,PW*0.07,0,Math.PI*2);ctx.stroke();
   ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH/2,2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fill();
   // Players
   POS[fmt].forEach(pos=>{
@@ -837,10 +834,10 @@ function generateLineupCanvas(){
   // Subs — comma-separated, wraps if needed
   if(subEntries.length){
     const subsStr='Subs: '+subEntries.map(([,m])=>players.find(p=>p.id===m)?.name||'').filter(Boolean).join(', ');
-    ctx.font='500 11px "DM Sans",sans-serif';
+    ctx.font='500 13px "DM Sans",sans-serif';
     ctx.textAlign='left';ctx.textBaseline='top';
     ctx.fillStyle='rgba(255,255,255,0.85)';
-    wrapText(ctx,subsStr,PW).forEach((l,i)=>ctx.fillText(l,PAD,PAD+PH+8+i*16));
+    wrapText(ctx,subsStr,PW).forEach((l,i)=>ctx.fillText(l,PAD,PAD+PH+8+i*18));
   }
   // Watermark
   ctx.font='bold 10px "Bebas Neue",sans-serif';ctx.fillStyle='rgba(135,194,50,0.55)';
