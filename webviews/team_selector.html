@@ -733,10 +733,15 @@ function fallbackDownload(canvas,fname){
 }
 
 // ── CANVAS LINEUP IMAGE ──
-function abbrevName(n){
-  const p=n.trim().split(/\s+/);
-  if(p.length<2)return p[0];
-  return p[0]+' '+p[p.length-1][0].toUpperCase();
+function wrapText(ctx,text,maxW){
+  const words=text.split(' '),lines=[];let line='';
+  for(const w of words){
+    const t=line?line+' '+w:w;
+    if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;}
+    else line=t;
+  }
+  if(line)lines.push(line);
+  return lines;
 }
 function rr(ctx,x,y,w,h,r){
   r=Math.min(r,w/2,h/2);
@@ -748,7 +753,7 @@ function rr(ctx,x,y,w,h,r){
   ctx.closePath();
 }
 function drawCanvasJersey(ctx,cx,cy,num,isGK,filled){
-  const JW=36,JH=JW*44/40;
+  const JW=46,JH=JW*44/40;
   ctx.save();
   ctx.translate(cx-JW/2,cy-JH/2);
   const sc=JW/40;ctx.scale(sc,sc);
@@ -770,30 +775,42 @@ function drawCanvasJersey(ctx,cx,cy,num,isGK,filled){
   ctx.restore();
 }
 function generateLineupCanvas(){
-  const SC=3,PW=350,PH=Math.round(PW*145/90),PAD=18;
+  const SC=3,PW=380,PH=Math.round(PW*145/90),PAD=12;
+  const JW=46,JH=JW*44/40;
   const subEntries=Object.entries(subAssign).filter(([,m])=>m).sort((a,b)=>+a[0]-+b[0]);
-  const SUB_H=subEntries.length?(30+subEntries.length*22+8):0;
-  const TW=PW+PAD*2,TH=PH+PAD*2+SUB_H+28;
+  // Pre-measure subs text to get correct canvas height
+  let SUB_H=0;
+  if(subEntries.length){
+    const tmp=document.createElement('canvas').getContext('2d');
+    tmp.font='500 11px "DM Sans",sans-serif';
+    const subsStr='Subs: '+subEntries.map(([,m])=>players.find(p=>p.id===m)?.name||'').filter(Boolean).join(', ');
+    SUB_H=wrapText(tmp,subsStr,PW).length*16+14;
+  }
+  const TW=PW+PAD*2,TH=PH+PAD*2+SUB_H+24;
   const canvas=document.createElement('canvas');
   canvas.width=TW*SC;canvas.height=TH*SC;
   const ctx=canvas.getContext('2d');ctx.scale(SC,SC);
   // Background
   ctx.fillStyle='#111418';ctx.fillRect(0,0,TW,TH);
-  // Pitch stripes
-  const SW=PW/10;
-  for(let i=0;i<10;i++){ctx.fillStyle=i%2?'#3a9a3a':'#2d6a2d';ctx.fillRect(PAD+i*SW,PAD,SW,PH);}
+  // Pitch — horizontal stripes (GAA mowing pattern)
+  const NS=12,SH=PH/NS;
+  for(let i=0;i<NS;i++){ctx.fillStyle=i%2?'#3a9a3a':'#2d6a2d';ctx.fillRect(PAD,PAD+i*SH,PW,SH);}
   // Pitch border
   ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=1.5;
   ctx.strokeRect(PAD,PAD,PW,PH);
-  // Goals (top + bottom)
-  const GW=PW*0.167,GX=PAD+(PW-GW)/2,GD=PH*0.025;
+  // GAA goals — frame + uprights extending beyond end lines
+  const GW=PW*0.167,GX=PAD+(PW-GW)/2,GD=PH*0.022,UH=PH*0.028;
   ctx.strokeRect(GX,PAD-GD,GW,GD);
+  ctx.beginPath();ctx.moveTo(GX,PAD-GD);ctx.lineTo(GX,PAD-GD-UH);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(GX+GW,PAD-GD);ctx.lineTo(GX+GW,PAD-GD-UH);ctx.stroke();
   ctx.strokeRect(GX,PAD+PH,GW,GD);
+  ctx.beginPath();ctx.moveTo(GX,PAD+PH+GD);ctx.lineTo(GX,PAD+PH+GD+UH);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(GX+GW,PAD+PH+GD);ctx.lineTo(GX+GW,PAD+PH+GD+UH);ctx.stroke();
   // Goalkeeper small square
   const SQW=PW*0.45,SQX=PAD+(PW-SQW)/2,SQH=PH*0.05;
   ctx.strokeRect(SQX,PAD,SQW,SQH);
   ctx.strokeRect(SQX,PAD+PH-SQH,SQW,SQH);
-  // Horizontal field lines (21m, 45m, halfway, 45m, 21m)
+  // Field lines: 21m, 45m, halfway, 45m, 21m
   [0.14,0.31,0.50,0.69,0.86].forEach(yp=>{
     ctx.beginPath();ctx.moveTo(PAD,PAD+yp*PH);ctx.lineTo(PAD+PW,PAD+yp*PH);ctx.stroke();
   });
@@ -801,42 +818,33 @@ function generateLineupCanvas(){
   ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH/2,PW*0.1,0,Math.PI*2);ctx.stroke();
   ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH/2,2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fill();
   // Players
-  const JH=36*44/40;
   POS[fmt].forEach(pos=>{
     const pid=assign[pos.n],pl=pid?players.find(p=>p.id===pid):null;
     const cx=PAD+pos.x/100*PW,cy=PAD+pos.y/100*PH;
     drawCanvasJersey(ctx,cx,cy,pos.n,pos.n===1,!!pl);
     if(pl){
-      const nm=abbrevName(pl.name);
       ctx.font='700 10px "DM Sans",sans-serif';
-      const tw=Math.min(ctx.measureText(nm).width,PW*0.28);
-      const lx=cx-tw/2-4,ly=cy+JH/2+3;
-      ctx.fillStyle='rgba(0,0,0,0.65)';rr(ctx,lx,ly,tw+8,15,3);ctx.fill();
-      ctx.save();ctx.beginPath();ctx.rect(lx,ly,tw+8,15);ctx.clip();
-      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(nm,cx,ly+7.5);
-      ctx.restore();
+      const maxNW=PW*0.28;
+      const lines=wrapText(ctx,pl.name,maxNW);
+      const lineH=12,pillH=lines.length*lineH+4;
+      const pillW=Math.min(Math.max(...lines.map(l=>ctx.measureText(l).width))+8,maxNW+8);
+      const lx=cx-pillW/2,ly=cy+JH/2+3;
+      ctx.fillStyle='rgba(0,0,0,0.65)';rr(ctx,lx,ly,pillW,pillH,3);ctx.fill();
+      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';
+      lines.forEach((l,i)=>ctx.fillText(l,cx,ly+2+i*lineH));
     }
   });
-  // Subs section
+  // Subs — comma-separated, wraps if needed
   if(subEntries.length){
-    const sy0=PAD+PH+8;
-    ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='700 8px "DM Sans",sans-serif';
-    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('SUBSTITUTES',PAD,sy0+7);
-    ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(PAD,sy0+14,PW,1);
-    subEntries.forEach(([slot,mid],i)=>{
-      const pl=players.find(p=>p.id===mid);if(!pl)return;
-      const num=POS[fmt].length+parseInt(slot),iy=sy0+22+i*22;
-      ctx.fillStyle=jc.p;rr(ctx,PAD,iy-8,22,16,3);ctx.fill();
-      ctx.fillStyle=numCol(jc.p);ctx.font='800 9px sans-serif';
-      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(num),PAD+11,iy);
-      ctx.fillStyle='rgba(255,255,255,0.88)';ctx.font='500 12px "DM Sans",sans-serif';
-      ctx.textAlign='left';ctx.fillText(abbrevName(pl.name),PAD+28,iy);
-    });
+    const subsStr='Subs: '+subEntries.map(([,m])=>players.find(p=>p.id===m)?.name||'').filter(Boolean).join(', ');
+    ctx.font='500 11px "DM Sans",sans-serif';
+    ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    wrapText(ctx,subsStr,PW).forEach((l,i)=>ctx.fillText(l,PAD,PAD+PH+8+i*16));
   }
   // Watermark
   ctx.font='bold 10px "Bebas Neue",sans-serif';ctx.fillStyle='rgba(135,194,50,0.55)';
-  ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText('COACHSMART',PAD+PW,TH-6);
+  ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText('COACHSMART',PAD+PW,TH-4);
   return canvas;
 }
 
