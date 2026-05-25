@@ -798,19 +798,21 @@ function generateLineupCanvas(){
   // Pitch border
   ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=1.5;
   ctx.strokeRect(PAD,PAD,PW,PH);
-  // GAA pitch markings
-  // Small parallelogram at each end (4.57m deep ≈ 3.2% of 145m, ~17% wide)
-  const SQW=PW*0.17,SQX=PAD+(PW-SQW)/2,SQH=PH*0.032;
+  // GAA pitch markings (correct dimensions based on official pitch)
+  // Small parallelogram: 4.5m deep (3.3% of 137m avg), 13.5m wide (15.9% of 85m avg)
+  const SQW=PW*0.159,SQX=PAD+(PW-SQW)/2,SQH=PH*0.033;
   ctx.strokeRect(SQX,PAD,SQW,SQH);
   ctx.strokeRect(SQX,PAD+PH-SQH,SQW,SQH);
-  // Large parallelogram at each end (14m deep ≈ 9.7% of 145m, ~50% wide)
-  const LRW=PW*0.50,LRX=PAD+(PW-LRW)/2,LRH=PH*0.097;
+  // Large parallelogram: 13m deep (9.5% of 137m), 19m wide (22.4% of 85m)
+  const LRW=PW*0.224,LRX=PAD+(PW-LRW)/2,LRH=PH*0.095;
   ctx.strokeRect(LRX,PAD,LRW,LRH);
   ctx.strokeRect(LRX,PAD+PH-LRH,LRW,LRH);
-  // Full-width lines: 14m, 21m, 45m, 65m from each end
-  [0.097,0.145,0.310,0.448,0.552,0.690,0.855,0.903].forEach(yp=>{
+  // Full-width lines: 13m, 20m, 45m, 65m from each end
+  [0.095,0.146,0.328,0.474,0.526,0.672,0.854,0.905].forEach(yp=>{
     ctx.beginPath();ctx.moveTo(PAD,PAD+yp*PH);ctx.lineTo(PAD+PW,PAD+yp*PH);ctx.stroke();
   });
+  // Centre circle (13m radius = 15.3% of 85m pitch width)
+  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH/2,PW*0.153,0,Math.PI*2);ctx.stroke();
   // Centre line — dotted
   ctx.setLineDash([6,4]);
   ctx.beginPath();ctx.moveTo(PAD,PAD+PH*0.5);ctx.lineTo(PAD+PW,PAD+PH*0.5);ctx.stroke();
