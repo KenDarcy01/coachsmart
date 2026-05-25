@@ -811,9 +811,9 @@ function generateLineupCanvas(){
   [0.095,0.146,0.328,0.474,0.526,0.672,0.854,0.905].forEach(yp=>{
     ctx.beginPath();ctx.moveTo(PAD,PAD+yp*PH);ctx.lineTo(PAD+PW,PAD+yp*PH);ctx.stroke();
   });
-  // D-arcs at 20m lines: flat side on 20m line, arc curves toward nearest goal
-  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH*0.146,PW*0.149,Math.PI,2*Math.PI);ctx.stroke();
-  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH*0.854,PW*0.149,0,Math.PI);ctx.stroke();
+  // D-arcs at 20m lines: flat side on 20m line, arc curves away from nearest goal
+  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH*0.146,PW*0.149,0,Math.PI);ctx.stroke();
+  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH*0.854,PW*0.149,Math.PI,2*Math.PI);ctx.stroke();
   // Centre line — dotted
   ctx.setLineDash([6,4]);
   ctx.beginPath();ctx.moveTo(PAD,PAD+PH*0.5);ctx.lineTo(PAD+PW,PAD+PH*0.5);ctx.stroke();
