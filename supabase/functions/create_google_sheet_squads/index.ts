@@ -33,26 +33,24 @@ const handler = async (request)=>{
     console.log("[STEP 1/4] Querying Database...");
     const rows = await sql`
       SELECT
-        vms.squad_name,
-        vms.role_name_plural,
-        vms.full_member_name,
-        vms.role_list_seq,
-        vms.team_name,
-        vms.event_title,
-        vms.formatted_event_date_time,
-        vms.squad_list_seq,
-        ec.event_code,
-        et.event_type,
-        e.opposition,
-        t.team_female
-      FROM public.view_match_squads AS vms
-      INNER JOIN public.events e ON vms.event_id = e.event_id
-      INNER JOIN public.teams t ON e.team_id = t.team_id
+        s.squad_name, r.role_name_plural,
+        (m.first_name || ' ' || m.last_name) AS full_member_name,
+        r.role_list_seq, sq_team.team_name, e.event_title,
+        to_char(e.event_date_time, 'Month DD, YYYY HH:MI AM') AS formatted_event_date_time,
+        s.squad_list_seq, ec.event_code, et.event_type, e.opposition, ev_team.team_female
+      FROM public.match_squad_details msd
+      JOIN public.match_squads ms ON msd.match_squad_id = ms.match_squad_id
+      JOIN public.members m ON msd.member_id = m.member_id
+      JOIN public.roles r ON msd.role_id = r.role_id
+      JOIN public.events e ON ms.event_id = e.event_id
+      LEFT JOIN public.squads s ON msd.squad_id = s.squad_id
+      LEFT JOIN public.teams sq_team ON s.team_id = sq_team.team_id
+      INNER JOIN public.teams ev_team ON e.team_id = ev_team.team_id
       LEFT JOIN public.event_codes ec ON e.event_code_id = ec.code_id
       LEFT JOIN public.event_types et ON e.event_type_id = et.event_type_id
-      WHERE vms.event_id = ${event_id}
-        AND vms.match_squad_id = ${match_squad_id}
-      ORDER BY vms.squad_list_seq ASC, vms.full_member_name ASC
+      WHERE ms.event_id = ${event_id}
+        AND ms.match_squad_id = ${match_squad_id}
+      ORDER BY s.squad_list_seq ASC, (m.first_name || ' ' || m.last_name) ASC
     `;
     if (rows.length === 0) {
       console.error("[ERROR] No database rows returned.");
