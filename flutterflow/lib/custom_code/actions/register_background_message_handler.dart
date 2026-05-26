@@ -87,36 +87,48 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
 }
 
 // ---------------------------------------------------------------------------
-// NAVIGATOR STATE
+// NAVIGATOR CONTEXT + STATE
 //
-// We store NavigatorState (not BuildContext) so we can call .overlay directly.
-// Overlay.of(navigatorElement) looks UP the tree for an ancestor Overlay —
-// for the root navigator there is nothing above it, so that call always fails.
-// NavigatorState.overlay is the overlay the navigator itself manages.
+// _navigatorContext (BuildContext): the Navigator widget's element.
+//   Used for GoRouter navigation — context.pushNamed(queryParameters:...)
+//   is a GoRouter extension on BuildContext that works from this element.
+//
+// _navigatorState (NavigatorState): derived from the same element.
+//   Used for overlay resolution — navigatorState.overlay is the overlay
+//   the navigator itself manages. Overlay.of(navigatorElement) looks UP
+//   the tree for an ancestor Overlay; for the root navigator nothing is
+//   above it, so that call always throws/returns null. Using .overlay
+//   directly is the correct approach.
 // ---------------------------------------------------------------------------
 
+BuildContext? _navigatorContext;
 NavigatorState? _navigatorState;
 
 void _refreshNavigatorContext() {
   try {
     final Element? root = WidgetsBinding.instance.rootElement;
     if (root != null) {
-      NavigatorState? found;
+      Element? found;
       void visitor(Element element) {
         if (found != null) return;
-        if (element is StatefulElement && element.state is NavigatorState) {
-          found = element.state as NavigatorState;
+        if (element.widget is Navigator) {
+          found = element;
         }
         element.visitChildren(visitor);
       }
 
       root.visitChildren(visitor);
       if (found != null) {
-        _navigatorState = found;
-        _logStep('NavContext',
-            'NavigatorState refreshed ✓ | mounted=${found.mounted}');
+        _navigatorContext = found;
+        if (found is StatefulElement && found.state is NavigatorState) {
+          _navigatorState = found.state as NavigatorState;
+        }
+        _logStep(
+            'NavContext',
+            'Navigator refreshed ✓ | '
+                'navigatorStateMounted=${_navigatorState?.mounted}');
       } else {
-        _logWarn('NavContext — NavigatorState not found during refresh');
+        _logWarn('NavContext — Navigator not found during refresh');
       }
     }
   } catch (e) {
@@ -227,11 +239,11 @@ Future<void> _navigateFromPushLink(String linkPage) async {
       return;
     }
     _refreshNavigatorContext();
-    if (_navigatorState == null || !_navigatorState!.mounted) {
-      _logError('NavigatorState not available for push navigation');
+    if (_navigatorContext == null || !_navigatorContext!.mounted) {
+      _logError('Navigator context not available for push navigation');
       return;
     }
-    _navigatorState!.pushNamed(
+    _navigatorContext!.pushNamed(
       'EventDetails',
       queryParameters: {
         'eventID': eventId.toString(),
@@ -283,11 +295,11 @@ Future<void> _navigateFromBannerLink(String linkPage) async {
       return;
     }
     _refreshNavigatorContext();
-    if (_navigatorState == null || !_navigatorState!.mounted) {
-      _logError('NavigatorState not available for banner navigation');
+    if (_navigatorContext == null || !_navigatorContext!.mounted) {
+      _logError('Navigator context not available for banner navigation');
       return;
     }
-    _navigatorState!.pushNamed(
+    _navigatorContext!.pushNamed(
       'EventDetails',
       queryParameters: {
         'eventID': eventId.toString(),
