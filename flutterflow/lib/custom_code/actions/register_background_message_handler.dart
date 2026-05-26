@@ -119,9 +119,11 @@ void _refreshNavigatorContext() {
 
       root.visitChildren(visitor);
       if (found != null) {
-        _navigatorContext = found;
-        if (found is StatefulElement && found.state is NavigatorState) {
-          _navigatorState = found.state as NavigatorState;
+        // Assign to non-closure-captured locals so Dart can smart-cast them.
+        final el = found!;
+        _navigatorContext = el;
+        if (el is StatefulElement && el.state is NavigatorState) {
+          _navigatorState = el.state as NavigatorState;
         }
         _logStep(
             'NavContext',
