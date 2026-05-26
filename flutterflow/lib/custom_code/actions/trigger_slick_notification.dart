@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 
 import '/backend/api_requests/api_calls.dart';
 import 'index.dart';
-import '/flutter_flow/nav/nav.dart';
 
 import 'dart:async';
 import 'dart:ui';
@@ -502,26 +501,7 @@ Future<void> triggerSlickNotification(
   _sLogStep('triggerSlickNotification',
       'Resolved | title="$resolvedTitle" | body="$resolvedBody"');
 
-  // Resolve overlay via the root navigator key — always valid regardless of
-  // which page is active or whether the calling context is mid-rebuild.
-  final OverlayState? overlay = appNavigatorKey.currentState?.overlay;
-
-  if (overlay == null) {
-    _sLogError('appNavigatorKey overlay is null — banner cannot show');
-    return;
-  }
-
-  _sLog('OverlayState resolved via appNavigatorKey ✓');
-
-  // Remove any existing banner
-  if (_activeBannerEntry != null) {
-    _sLogStep('Overlay', 'Replacing existing banner');
-    _activeDismissTimer?.cancel();
-    _activeBannerEntry?.remove();
-    _activeBannerEntry = null;
-  }
-
-  // Haptic feedback
+  // Fire haptics immediately for responsiveness.
   try {
     await HapticFeedback.mediumImpact();
     _sLogStep('Haptics', 'mediumImpact fired ✓');
@@ -529,29 +509,85 @@ Future<void> triggerSlickNotification(
     _sLogWarn('Haptic feedback failed: $e');
   }
 
-  final int instanceId = ++_sBannerInstanceCount;
-  _sLogStep(
-      'Overlay',
-      'Creating _SlickBanner instance #$instanceId | '
-          'title="$resolvedTitle" | body="$resolvedBody"');
+  // Defer overlay work to post-frame. FlutterFlow's realtime callbacks can
+  // fire mid-build-cycle, which causes Overlay.of() / insert() to fail
+  // silently. addPostFrameCallback guarantees we're outside any build cycle.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    OverlayState? overlay;
+    String overlaySource = 'none';
 
-  _activeBannerEntry = OverlayEntry(
-    builder: (_) => _SlickBanner(
-      title: resolvedTitle,
-      body: resolvedBody,
-      instanceId: instanceId,
-      onDismiss: _removeBanner,
-      onDragStart: _pauseDismissTimer,
-    ),
-  );
+    // Strategy 1 — context provided by FlutterFlow (home page context).
+    // Remains valid as long as the home page is in the nav stack.
+    if (context.mounted) {
+      try {
+        overlay = Overlay.of(context);
+        overlaySource = 'provided context';
+        _sLogStep('Overlay', 'Resolved via provided context ✓');
+      } catch (e) {
+        _sLogError('Strategy 1 (provided context) threw', e);
+      }
+    } else {
+      _sLogWarn('Provided context is not mounted — trying fallback');
+    }
 
-  overlay.insert(_activeBannerEntry!);
-  _sLog('Banner #$instanceId inserted into overlay ✓');
+    // Strategy 2 — primary focus context.
+    if (overlay == null) {
+      try {
+        final BuildContext? fc =
+            WidgetsBinding.instance.focusManager.primaryFocus?.context;
+        if (fc != null && fc.mounted) {
+          overlay = Overlay.of(fc);
+          overlaySource = 'focusManager.primaryFocus';
+          _sLogStep('Overlay', 'Resolved via focusManager.primaryFocus ✓');
+        }
+      } catch (e) {
+        _sLogError('Strategy 2 (focusManager) threw', e);
+      }
+    }
 
-  _activeDismissTimer = Timer(const Duration(seconds: 4), () {
-    _sLogStep('AutoDismiss', '4s elapsed — dismissing banner #$instanceId');
-    _removeBanner();
+    if (overlay == null) {
+      _sLogError('All overlay strategies failed — banner cannot show');
+      return;
+    }
+
+    _sLog('OverlayState resolved via $overlaySource ✓');
+
+    // Remove any existing banner.
+    if (_activeBannerEntry != null) {
+      _sLogStep('Overlay', 'Replacing existing banner');
+      _activeDismissTimer?.cancel();
+      _activeBannerEntry?.remove();
+      _activeBannerEntry = null;
+    }
+
+    final int instanceId = ++_sBannerInstanceCount;
+    _sLogStep(
+        'Overlay',
+        'Creating _SlickBanner instance #$instanceId | '
+            'title="$resolvedTitle" | body="$resolvedBody"');
+
+    _activeBannerEntry = OverlayEntry(
+      builder: (_) => _SlickBanner(
+        title: resolvedTitle,
+        body: resolvedBody,
+        instanceId: instanceId,
+        onDismiss: _removeBanner,
+        onDragStart: _pauseDismissTimer,
+      ),
+    );
+
+    overlay.insert(_activeBannerEntry!);
+    _sLog('Banner #$instanceId inserted into overlay ✓');
+
+    _activeDismissTimer = Timer(const Duration(seconds: 4), () {
+      _sLogStep('AutoDismiss', '4s elapsed — dismissing banner #$instanceId');
+      _removeBanner();
+    });
+
+    _sLog('Auto-dismiss timer started (4s) for banner #$instanceId ✓');
   });
 
-  _sLog('Auto-dismiss timer started (4s) for banner #$instanceId ✓');
+  // Ensure a frame is scheduled so the postFrameCallback fires even if
+  // the app is idle (no ongoing animations or user interaction).
+  WidgetsBinding.instance.scheduleFrame();
 }
