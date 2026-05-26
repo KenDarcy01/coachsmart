@@ -87,7 +87,11 @@ void _removeBanner() {
           'timer=${_activeDismissTimer != null ? "exists" : "null"}');
   _activeDismissTimer?.cancel();
   _activeDismissTimer = null;
-  _activeBannerEntry?.remove();
+  try {
+    _activeBannerEntry?.remove();
+  } catch (e) {
+    _sLogError('_removeBanner: entry.remove() threw (already detached?)', e);
+  }
   _activeBannerEntry = null;
   _sLog('Banner removed from overlay ✓');
 }
@@ -510,38 +514,62 @@ Future<void> triggerSlickNotification(
   }
 
   // Defer overlay work to post-frame. FlutterFlow's realtime callbacks can
-  // fire mid-build-cycle, which causes Overlay.of() / insert() to fail
-  // silently. addPostFrameCallback guarantees we're outside any build cycle.
+  // fire mid-build-cycle, which causes overlay insertion to fail silently.
+  // addPostFrameCallback guarantees we're outside any build cycle.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     OverlayState? overlay;
     String overlaySource = 'none';
 
-    // Strategy 1 — context provided by FlutterFlow (home page context).
-    // Remains valid as long as the home page is in the nav stack.
+    // Strategy 1 — root navigator overlay.
+    // rootNavigator:true walks to the root Navigator which always has an
+    // overlay, bypassing any nested GoRouter navigators in FlutterFlow.
     if (context.mounted) {
       try {
-        overlay = Overlay.of(context);
-        overlaySource = 'provided context';
-        _sLogStep('Overlay', 'Resolved via provided context ✓');
+        final NavigatorState? nav =
+            Navigator.maybeOf(context, rootNavigator: true);
+        if (nav != null && nav.overlay != null) {
+          overlay = nav.overlay;
+          overlaySource = 'rootNavigator.overlay';
+          _sLogStep('Overlay', 'Resolved via rootNavigator.overlay ✓');
+        }
       } catch (e) {
-        _sLogError('Strategy 1 (provided context) threw', e);
+        _sLogError('Strategy 1 (rootNavigator) threw', e);
       }
-    } else {
+    }
+
+    // Strategy 2 — Overlay.maybeOf on provided context.
+    if (overlay == null && context.mounted) {
+      try {
+        final OverlayState? o = Overlay.maybeOf(context);
+        if (o != null) {
+          overlay = o;
+          overlaySource = 'Overlay.maybeOf(context)';
+          _sLogStep('Overlay', 'Resolved via Overlay.maybeOf ✓');
+        }
+      } catch (e) {
+        _sLogError('Strategy 2 (Overlay.maybeOf) threw', e);
+      }
+    } else if (overlay == null) {
       _sLogWarn('Provided context is not mounted — trying fallback');
     }
 
-    // Strategy 2 — primary focus context.
+    // Strategy 3 — primary focus context.
     if (overlay == null) {
       try {
         final BuildContext? fc =
             WidgetsBinding.instance.focusManager.primaryFocus?.context;
         if (fc != null && fc.mounted) {
-          overlay = Overlay.of(fc);
-          overlaySource = 'focusManager.primaryFocus';
-          _sLogStep('Overlay', 'Resolved via focusManager.primaryFocus ✓');
+          final NavigatorState? nav =
+              Navigator.maybeOf(fc, rootNavigator: true);
+          if (nav != null && nav.overlay != null) {
+            overlay = nav.overlay;
+            overlaySource = 'focusManager+rootNavigator';
+            _sLogStep(
+                'Overlay', 'Resolved via focusManager+rootNavigator ✓');
+          }
         }
       } catch (e) {
-        _sLogError('Strategy 2 (focusManager) threw', e);
+        _sLogError('Strategy 3 (focusManager) threw', e);
       }
     }
 
@@ -552,11 +580,15 @@ Future<void> triggerSlickNotification(
 
     _sLog('OverlayState resolved via $overlaySource ✓');
 
-    // Remove any existing banner.
+    // Remove any existing banner before inserting a new one.
     if (_activeBannerEntry != null) {
       _sLogStep('Overlay', 'Replacing existing banner');
       _activeDismissTimer?.cancel();
-      _activeBannerEntry?.remove();
+      try {
+        _activeBannerEntry?.remove();
+      } catch (e) {
+        _sLogError('Failed to remove existing banner entry', e);
+      }
       _activeBannerEntry = null;
     }
 
@@ -576,8 +608,14 @@ Future<void> triggerSlickNotification(
       ),
     );
 
-    overlay.insert(_activeBannerEntry!);
-    _sLog('Banner #$instanceId inserted into overlay ✓');
+    try {
+      overlay!.insert(_activeBannerEntry!);
+      _sLog('Banner #$instanceId inserted into overlay ✓');
+    } catch (e) {
+      _sLogError('overlay.insert() threw — banner not shown', e);
+      _activeBannerEntry = null;
+      return;
+    }
 
     _activeDismissTimer = Timer(const Duration(seconds: 4), () {
       _sLogStep('AutoDismiss', '4s elapsed — dismissing banner #$instanceId');
