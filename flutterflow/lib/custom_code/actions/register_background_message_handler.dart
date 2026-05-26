@@ -87,33 +87,36 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
 }
 
 // ---------------------------------------------------------------------------
-// NAVIGATOR CONTEXT
+// NAVIGATOR STATE
+//
+// We store NavigatorState (not BuildContext) so we can call .overlay directly.
+// Overlay.of(navigatorElement) looks UP the tree for an ancestor Overlay —
+// for the root navigator there is nothing above it, so that call always fails.
+// NavigatorState.overlay is the overlay the navigator itself manages.
 // ---------------------------------------------------------------------------
 
-BuildContext? _navigatorContext;
+NavigatorState? _navigatorState;
 
 void _refreshNavigatorContext() {
   try {
     final Element? root = WidgetsBinding.instance.rootElement;
     if (root != null) {
-      BuildContext? found;
+      NavigatorState? found;
       void visitor(Element element) {
         if (found != null) return;
-        if (element.widget is Navigator) {
-          found = element;
+        if (element is StatefulElement && element.state is NavigatorState) {
+          found = element.state as NavigatorState;
         }
         element.visitChildren(visitor);
       }
 
       root.visitChildren(visitor);
       if (found != null) {
-        _navigatorContext = found;
-        _logStep(
-            'NavContext',
-            'Navigator context refreshed ✓ | '
-                'widget: ${(found as Element).widget.runtimeType}');
+        _navigatorState = found;
+        _logStep('NavContext',
+            'NavigatorState refreshed ✓ | mounted=${found.mounted}');
       } else {
-        _logWarn('NavContext — Navigator not found during refresh');
+        _logWarn('NavContext — NavigatorState not found during refresh');
       }
     }
   } catch (e) {
@@ -224,11 +227,11 @@ Future<void> _navigateFromPushLink(String linkPage) async {
       return;
     }
     _refreshNavigatorContext();
-    if (_navigatorContext == null || !_navigatorContext!.mounted) {
-      _logError('Navigator context not available for push navigation');
+    if (_navigatorState == null || !_navigatorState!.mounted) {
+      _logError('NavigatorState not available for push navigation');
       return;
     }
-    _navigatorContext!.pushNamed(
+    _navigatorState!.pushNamed(
       'EventDetails',
       queryParameters: {
         'eventID': eventId.toString(),
@@ -280,11 +283,11 @@ Future<void> _navigateFromBannerLink(String linkPage) async {
       return;
     }
     _refreshNavigatorContext();
-    if (_navigatorContext == null || !_navigatorContext!.mounted) {
-      _logError('Navigator context not available for banner navigation');
+    if (_navigatorState == null || !_navigatorState!.mounted) {
+      _logError('NavigatorState not available for banner navigation');
       return;
     }
-    _navigatorContext!.pushNamed(
+    _navigatorState!.pushNamed(
       'EventDetails',
       queryParameters: {
         'eventID': eventId.toString(),
@@ -561,21 +564,29 @@ Future<void> _showPopup(
   OverlayState? overlay;
   String overlaySource = 'none';
 
+  // Strategy 1 — NavigatorState.overlay (the navigator's own overlay).
+  // This is the correct approach: Overlay.of(navigatorElement) looks UP the
+  // tree for an ancestor Overlay, which doesn't exist above the root navigator.
+  // NavigatorState.overlay IS the overlay the navigator manages.
   try {
-    if (_navigatorContext != null && _navigatorContext!.mounted) {
-      overlay = Overlay.of(_navigatorContext!);
-      overlaySource = 'stored navigatorContext';
-      _logStep('Popup', 'Overlay resolved via stored navigatorContext ✓');
+    if (_navigatorState != null && _navigatorState!.mounted) {
+      final OverlayState? o = _navigatorState!.overlay;
+      if (o != null) {
+        overlay = o;
+        overlaySource = 'navigatorState.overlay';
+        _logStep('Popup', 'Overlay resolved via navigatorState.overlay ✓');
+      } else {
+        _logWarn('navigatorState.overlay is null');
+      }
     } else {
-      _logStep(
-          'Popup',
-          'Stored navigatorContext: '
-              '${_navigatorContext == null ? "null" : "not mounted"}');
+      _logWarn('Stored navigatorState: '
+          '${_navigatorState == null ? "null" : "not mounted"}');
     }
   } catch (e) {
-    _logError('Strategy 1 (stored navigatorContext) threw', e);
+    _logError('Strategy 1 (navigatorState.overlay) threw', e);
   }
 
+  // Strategy 2 — root navigator via focusManager context.
   if (overlay == null) {
     try {
       final BuildContext? fc =
@@ -585,24 +596,33 @@ Future<void> _showPopup(
           'focusManager context: ${fc != null ? "found" : "null"} | '
               'mounted: ${fc?.mounted}');
       if (fc != null && fc.mounted) {
-        overlay = Overlay.of(fc);
-        overlaySource = 'focusManager.primaryFocus';
-        _logStep('Popup', 'Overlay resolved via focusManager.primaryFocus ✓');
+        final NavigatorState? nav =
+            Navigator.maybeOf(fc, rootNavigator: true);
+        final OverlayState? o = nav?.overlay;
+        if (o != null) {
+          overlay = o;
+          overlaySource = 'focusManager+rootNavigator';
+          _logStep('Popup',
+              'Overlay resolved via focusManager+rootNavigator ✓');
+        }
       }
     } catch (e) {
-      _logError('Strategy 2 (focusManager) threw', e);
+      _logError('Strategy 2 (focusManager+rootNavigator) threw', e);
     }
   }
 
+  // Strategy 3 — fresh tree walk to re-acquire NavigatorState.
   if (overlay == null) {
     try {
-      _logStep(
-          'Popup', 'Strategy 3 — refreshing navigator context from tree...');
+      _logStep('Popup', 'Strategy 3 — refreshing NavigatorState from tree...');
       _refreshNavigatorContext();
-      if (_navigatorContext != null && _navigatorContext!.mounted) {
-        overlay = Overlay.of(_navigatorContext!);
-        overlaySource = 'fresh navigatorContext walk';
-        _logStep('Popup', 'Overlay resolved via fresh tree walk ✓');
+      if (_navigatorState != null && _navigatorState!.mounted) {
+        final OverlayState? o = _navigatorState!.overlay;
+        if (o != null) {
+          overlay = o;
+          overlaySource = 'fresh navigatorState walk';
+          _logStep('Popup', 'Overlay resolved via fresh tree walk ✓');
+        }
       }
     } catch (e) {
       _logError('Strategy 3 (fresh tree walk) threw', e);
@@ -611,8 +631,8 @@ Future<void> _showPopup(
 
   if (overlay == null) {
     _logError('All overlay strategies failed — banner cannot show. '
-        'navigatorContext='
-        '${_navigatorContext == null ? "null" : "not mounted"}');
+        'navigatorState='
+        '${_navigatorState == null ? "null" : "not mounted"}');
     return;
   }
 
@@ -650,7 +670,11 @@ void _dismissBanner() {
           'timer=${_autoDismissTimer != null ? "exists" : "null"}');
   _autoDismissTimer?.cancel();
   _autoDismissTimer = null;
-  _activeBannerEntry?.remove();
+  try {
+    _activeBannerEntry?.remove();
+  } catch (e) {
+    _logError('_dismissBanner: entry.remove() threw (already detached?)', e);
+  }
   _activeBannerEntry = null;
   _log('Banner dismissed and removed from overlay ✓');
 }
@@ -685,7 +709,11 @@ void _insertBanner(
     _logStep(
         'BannerManager', 'Removing existing banner before inserting new one');
     _autoDismissTimer?.cancel();
-    _activeBannerEntry?.remove();
+    try {
+      _activeBannerEntry?.remove();
+    } catch (e) {
+      _logError('insertBanner: existing entry.remove() threw', e);
+    }
     _activeBannerEntry = null;
   }
 
@@ -705,8 +733,14 @@ void _insertBanner(
     ),
   );
 
-  overlay.insert(_activeBannerEntry!);
-  _log('Banner #$instanceId inserted into overlay ✓');
+  try {
+    overlay.insert(_activeBannerEntry!);
+    _log('Banner #$instanceId inserted into overlay ✓');
+  } catch (e) {
+    _logError('overlay.insert() threw — banner not shown', e);
+    _activeBannerEntry = null;
+    return;
+  }
 
   _autoDismissTimer = Timer(const Duration(seconds: 4), () {
     _logStep(
