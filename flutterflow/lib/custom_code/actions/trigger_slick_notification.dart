@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import '/backend/api_requests/api_calls.dart';
 import 'index.dart';
+import '/flutter_flow/nav/nav.dart';
 
 import 'dart:async';
 import 'dart:ui';
@@ -501,66 +502,16 @@ Future<void> triggerSlickNotification(
   _sLogStep('triggerSlickNotification',
       'Resolved | title="$resolvedTitle" | body="$resolvedBody"');
 
-  OverlayState? overlay;
-  String overlaySource = 'none';
-
-  // Strategy 1 — context provided by caller
-  try {
-    if (context.mounted) {
-      overlay = Overlay.of(context);
-      overlaySource = 'provided context';
-      _sLogStep('Overlay', 'Resolved via provided context ✓');
-    } else {
-      _sLogWarn('Provided context is not mounted — trying fallbacks');
-    }
-  } catch (e) {
-    _sLogError('Strategy 1 (provided context) threw', e);
-  }
-
-  // Strategy 2 — primary focus context
-  if (overlay == null) {
-    try {
-      final BuildContext? fc =
-          WidgetsBinding.instance.focusManager.primaryFocus?.context;
-      _sLogStep(
-          'Overlay',
-          'focusManager context: ${fc != null ? "found" : "null"} | '
-              'mounted: ${fc?.mounted}');
-      if (fc != null && fc.mounted) {
-        overlay = Overlay.of(fc);
-        overlaySource = 'focusManager.primaryFocus';
-        _sLogStep('Overlay', 'Resolved via focusManager.primaryFocus ✓');
-      }
-    } catch (e) {
-      _sLogError('Strategy 2 (focusManager) threw', e);
-    }
-  }
-
-  // Strategy 3 — root element
-  if (overlay == null) {
-    try {
-      final Element? root = WidgetsBinding.instance.rootElement;
-      _sLogStep(
-          'Overlay',
-          'rootElement: ${root != null ? "found" : "null"} | '
-              'mounted: ${root?.mounted}');
-      if (root != null && root.mounted) {
-        overlay = Overlay.of(root);
-        overlaySource = 'rootElement';
-        _sLogStep('Overlay', 'Resolved via rootElement ✓');
-      }
-    } catch (e) {
-      _sLogError('Strategy 3 (rootElement) threw', e);
-    }
-  }
+  // Resolve overlay via the root navigator key — always valid regardless of
+  // which page is active or whether the calling context is mid-rebuild.
+  final OverlayState? overlay = appNavigatorKey.currentState?.overlay;
 
   if (overlay == null) {
-    _sLogError('All overlay strategies failed — '
-        'banner cannot show | overlaySource=$overlaySource');
+    _sLogError('appNavigatorKey overlay is null — banner cannot show');
     return;
   }
 
-  _sLog('OverlayState resolved via $overlaySource ✓');
+  _sLog('OverlayState resolved via appNavigatorKey ✓');
 
   // Remove any existing banner
   if (_activeBannerEntry != null) {
