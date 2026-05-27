@@ -7,25 +7,25 @@ CoachSmart is a **GAA (Gaelic Athletic Association) coaching management app** fo
 | Surface | Tech | Status |
 |---|---|---|
 | Native iOS | FlutterFlow → TestFlight | Active dev / latest build |
-| PWA | FlutterFlow web build → Firebase Hosting | Months behind; being updated |
+| PWA | FlutterFlow web build → deployed directly from FlutterFlow | Months behind; being updated |
 
-The PWA is deployed automatically when code is pushed to `main` via `.github/workflows/firebase-deploy.yml` (Firebase project: `coach-smart-new-mpqa5l`).
+The **website** (not PWA) is deployed automatically when code is pushed to `main` via `.github/workflows/firebase-deploy.yml` — it deploys `website/` and `webviews/` to Firebase Hosting (project: `coach-smart-new-mpqa5l`). The PWA is deployed separately and directly from FlutterFlow.
 
 ## Git Workflow
 - **Develop on**: `claude/review-coachsmart-repo-HHk5i`
-- **Deploy via**: `main` (Firebase auto-deploys on push to main; Supabase migrations applied manually via `supabase db push`)
+- **Deploy via**: `main` (Firebase auto-deploys website on push to main; Supabase migrations applied manually via `supabase db push`)
 - Always merge working branch → main after commits
 
 ## Branch Structure — IMPORTANT
 | Branch | Owner | Contents |
 |---|---|---|
-| `main` | Us | `supabase/`, edge functions, migrations, `flutterflow/` subfolder (PWA build source, may lag) |
+| `main` | Us | `supabase/`, edge functions, migrations, `website/`, `webviews/` |
 | `flutterflow` | FlutterFlow | Flutter project at **root** — `lib/`, `ios/`, `pubspec.yaml` etc. This is the authoritative Flutter source |
 
 **Rules:**
 - FlutterFlow pushes to `flutterflow` branch — never delete this branch
-- Custom Dart code lives at `lib/custom_code/` on the `flutterflow` branch (NOT `flutterflow/lib/` on `main`)
-- Never commit directly to the `flutterflow/` subfolder on `main` — it only drives the PWA Firebase build and will lag behind
+- Custom Dart code lives at `lib/custom_code/` on the `flutterflow` branch
+- The `flutterflow/` subfolder on `main` is unused — not part of any deploy pipeline
 - Supabase migrations and edge functions are committed to `main` only
 
 ## Stack
