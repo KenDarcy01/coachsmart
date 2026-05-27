@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service — CoachSmart</title>
+<meta name="description" content="CoachSmart Terms of Service — the terms governing your use of the CoachSmart platform.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --dark: #1E222B;
+    --darker: #15181f;
+    --card: #252a35;
+    --border: #2e3441;
+    --green: #87C232;
+    --green-dim: rgba(135,194,50,0.12);
+    --text: #E7EBEE;
+    --muted: #8a93a0;
+    --light: #c2cad4;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--darker);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(21,24,31,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo-img { height: 36px; width: auto; }
+  .nav-logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; }
+  .nav-logo-text .coach { color: var(--light); }
+  .nav-logo-text .smart { color: var(--green); }
+
+  .nav-cta {
+    background: var(--green);
+    color: var(--darker);
+    border: none;
+    padding: 9px 22px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+    display: inline-block;
+  }
+  .nav-cta:hover { opacity: 0.88; }
+
+  .page-header {
+    padding: 120px 5% 64px;
+    border-bottom: 1px solid var(--border);
+    background: var(--dark);
+  }
+
+  .page-header-inner { max-width: 800px; margin: 0 auto; }
+
+  .page-tag {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 12px;
+  }
+
+  .page-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 6vw, 64px);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .page-header .meta { font-size: 14px; color: var(--muted); }
+
+  .content-wrap { padding: 64px 5% 100px; }
+  .content-inner { max-width: 800px; margin: 0 auto; }
+
+  .policy-section {
+    margin-bottom: 48px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .policy-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .policy-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .policy-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 10px;
+  }
+
+  .policy-section p {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 14px;
+  }
+
+  .policy-section p:last-child { margin-bottom: 0; }
+
+  .policy-section ul, .policy-section ol {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.8;
+    padding-left: 20px;
+    margin-bottom: 14px;
+  }
+
+  .policy-section li { margin-bottom: 6px; }
+
+  .highlight-box {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .highlight-box p { color: var(--light); margin-bottom: 0; }
+
+  .warning-box {
+    background: rgba(135,194,50,0.06);
+    border: 1px solid rgba(135,194,50,0.25);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .warning-box p { color: var(--light); margin-bottom: 0; font-size: 14px; }
+
+  .contact-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-top: 16px;
+  }
+
+  .contact-card p { margin-bottom: 6px; }
+  .contact-card a { color: var(--green); text-decoration: none; }
+  .contact-card a:hover { text-decoration: underline; }
+
+  a { color: var(--green); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .footer-logo-img { height: 28px; width: auto; opacity: 0.85; }
+  .footer-copy { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 24px; list-style: none; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .page-header { padding: 100px 5% 48px; }
+    .content-wrap { padding: 48px 5% 80px; }
+    .contact-card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="nav-logo-img">
+    <span class="nav-logo-text"><span class="coach">COACH</span><span class="smart">SMART</span></span>
+  </a>
+  <a href="/#download" class="nav-cta">Get the App</a>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-tag">Legal</div>
+    <h1>TERMS OF SERVICE</h1>
+    <p class="meta">Last updated: 27 May 2026</p>
+  </div>
+</div>
+
+<div class="content-wrap">
+  <div class="content-inner">
+
+    <div class="policy-section">
+      <div class="highlight-box">
+        <p>Please read these Terms of Service carefully before using the CoachSmart application or website. By creating an account or using any part of the CoachSmart platform, you agree to be bound by these Terms. If you do not agree, do not use CoachSmart.</p>
+      </div>
+    </div>
+
+    <div class="policy-section">
+      <h2>1. About CoachSmart</h2>
+      <p>CoachSmart is a sports team management platform operated by CoachSmart (Ireland) ("CoachSmart", "we", "us", or "our"). The platform enables sports clubs and coaches to manage teams, schedule events, track attendance, organise squads, and communicate with players.</p>
+      <p>CoachSmart is a management tool. It is not affiliated with, endorsed by, or acting on behalf of the Gaelic Athletic Association (GAA) or any county board, club, or sporting body. Any decisions made using CoachSmart — including squad selection, event scheduling, and team communications — are made solely by the club administrators and coaches using the platform.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>2. Eligibility and Account Registration</h2>
+      <p>To use CoachSmart, you must be at least 13 years of age. If you are under 18, your account must be created by a parent, guardian, or authorised club administrator.</p>
+      <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately at <a href="mailto:hello@coachsmart.app">hello@coachsmart.app</a> if you suspect any unauthorised use of your account. We are not liable for any loss or damage arising from your failure to protect your account credentials.</p>
+      <p>You agree to provide accurate information when registering and to keep that information up to date. We reserve the right to suspend or terminate accounts where inaccurate or fraudulent information has been provided.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>3. Use of the Service</h2>
+      <h3>Permitted Use</h3>
+      <p>CoachSmart is licensed to you for lawful use in connection with managing sports teams and clubs. You may use the platform to schedule events, manage attendance, communicate with your panel, and organise payments for club activities.</p>
+
+      <h3>Prohibited Use</h3>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Use CoachSmart for any unlawful purpose or in a way that violates any applicable law or regulation</li>
+        <li>Harass, abuse, threaten, or harm other users through the platform</li>
+        <li>Upload or transmit offensive, defamatory, or inappropriate content</li>
+        <li>Attempt to gain unauthorised access to any part of the platform or another user's account</li>
+        <li>Reverse engineer, decompile, or copy any part of the CoachSmart application</li>
+        <li>Use the platform to send spam or unsolicited communications</li>
+        <li>Misrepresent your identity, role, or affiliation within a club</li>
+        <li>Use CoachSmart in any way that could damage, disable, or impair the service</li>
+      </ul>
+
+      <h3>Club Administrators</h3>
+      <p>Users with administrative roles within a club are responsible for the appropriate management of their team's data, including the accuracy of member records, the suitability of content shared through the platform, and compliance with applicable data protection obligations in respect of their club members. CoachSmart provides the tools — the club administrator is responsible for how they are used.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>4. Payments</h2>
+      <p>CoachSmart enables clubs to collect payments from members for events and activities. All payment processing is handled by Stripe, Inc., a third-party payment processor. By making or receiving a payment through CoachSmart, you agree to Stripe's Terms of Service in addition to these Terms.</p>
+      <p>CoachSmart is not a party to any payment transaction between a club and its members. We do not hold funds on behalf of clubs or members and are not responsible for any payment disputes, failed transactions, chargebacks, or refund requests. All such matters are between the club and the member, with Stripe's dispute resolution process applying where applicable.</p>
+      <p>CoachSmart does not guarantee the availability of the payment feature at all times. We are not liable for any loss arising from a payment feature being temporarily unavailable.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>5. Availability and Service Changes</h2>
+      <p>We aim to keep CoachSmart available and reliable, but we do not guarantee uninterrupted access to the platform. The service may be temporarily unavailable due to maintenance, upgrades, technical issues, or circumstances outside our control.</p>
+      <p>We reserve the right to modify, suspend, or discontinue any part of the CoachSmart service at any time, with or without notice. We may also update these Terms, the features of the platform, or our pricing at any time. Continued use of the platform after any such changes constitutes acceptance of the updated Terms.</p>
+      <p>We will endeavour to provide reasonable notice of significant changes that affect your use of the service, but we are not obligated to do so in all circumstances.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>6. Intellectual Property</h2>
+      <p>All content, design, code, trademarks, and materials that form part of the CoachSmart platform are owned by or licensed to CoachSmart. Nothing in these Terms grants you any right to use CoachSmart's name, logos, or branding without our prior written consent.</p>
+      <p>Content you create or enter into CoachSmart — such as event details, match reports, and attendance records — remains your content. By entering content into the platform you grant CoachSmart a limited licence to store, display, and process that content solely for the purpose of providing the service to you.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>7. Disclaimer of Warranties</h2>
+      <div class="warning-box">
+        <p>CoachSmart is provided "as is" and "as available" without warranty of any kind, express or implied. We make no warranty that the platform will be error-free, uninterrupted, secure, or free from viruses or other harmful components. We make no warranty that any information provided through the platform is accurate, complete, or up to date.</p>
+      </div>
+      <p>CoachSmart is a communication and management tool. We are not responsible for any decisions made by coaches, administrators, or club officials on the basis of information displayed in the app, including squad selections, attendance records, or match statistics. The accuracy and completeness of that information is the responsibility of the users who enter and manage it.</p>
+      <p>Push notifications and email reminders are provided as a convenience feature. We do not guarantee delivery of any notification and are not liable for any consequence arising from a notification not being received.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>8. Limitation of Liability</h2>
+      <p>To the fullest extent permitted by applicable law, CoachSmart, its directors, employees, and affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:</p>
+      <ul>
+        <li>Loss of data or loss of access to your data</li>
+        <li>Loss of revenue, profit, or business opportunity</li>
+        <li>Any decision made by a coach, administrator, or club official using information from the platform</li>
+        <li>Any failure or delay in push notification delivery</li>
+        <li>Any payment dispute between a club and its members</li>
+        <li>Any disruption to club operations arising from platform downtime or feature changes</li>
+        <li>Any unauthorised access to your account arising from your failure to secure your credentials</li>
+      </ul>
+      <p>Where liability cannot be fully excluded under Irish or EU consumer law, our total aggregate liability to you for any claim arising from these Terms or your use of CoachSmart shall not exceed the amount you paid to CoachSmart in the twelve months preceding the event giving rise to the claim, or €100, whichever is greater.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>9. Indemnification</h2>
+      <p>You agree to indemnify and hold harmless CoachSmart and its directors, employees, and affiliates from and against any claims, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or relating to:</p>
+      <ul>
+        <li>Your use of the CoachSmart platform</li>
+        <li>Your breach of these Terms</li>
+        <li>Any content you submit, post, or transmit through the platform</li>
+        <li>Any misuse of club member data for which you are responsible as a club administrator</li>
+        <li>Any violation of applicable law in connection with your use of the platform</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>10. Termination</h2>
+      <p>You may stop using CoachSmart at any time. If you wish to delete your account and associated data, contact us at <a href="mailto:hello@coachsmart.app">hello@coachsmart.app</a>.</p>
+      <p>We reserve the right to suspend or permanently terminate your access to CoachSmart at any time, without prior notice, if we determine that you have breached these Terms, engaged in fraudulent or harmful behaviour, or if we are required to do so by law. Upon termination, your right to use the platform ceases immediately.</p>
+      <p>Sections 6, 7, 8, and 9 of these Terms survive termination.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>11. Third-Party Services</h2>
+      <p>CoachSmart integrates with third-party services including Supabase, Google Firebase, Stripe, and Google. Your use of those services is subject to their respective terms and privacy policies. CoachSmart is not responsible for the practices or content of any third-party service.</p>
+      <p>Links to third-party websites or services from within CoachSmart do not constitute an endorsement by CoachSmart. We have no control over and accept no responsibility for the content or availability of external sites.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>12. Governing Law and Disputes</h2>
+      <p>These Terms are governed by the laws of Ireland. Any dispute arising from or relating to these Terms or your use of CoachSmart shall be subject to the exclusive jurisdiction of the Irish courts, without prejudice to any mandatory consumer rights you may have under EU law.</p>
+      <p>Before initiating any formal legal proceedings, we encourage you to contact us directly at <a href="mailto:hello@coachsmart.app">hello@coachsmart.app</a> so that we can attempt to resolve any dispute informally.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>13. Changes to These Terms</h2>
+      <p>We may update these Terms from time to time. When we make material changes, we will notify you via the app or by email and update the "Last updated" date above. Your continued use of CoachSmart after the effective date of any updated Terms constitutes your acceptance of those changes. If you do not agree to the updated Terms, you should stop using the platform and contact us to close your account.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>14. Contact</h2>
+      <p>If you have any questions about these Terms or need to raise a concern, please contact us:</p>
+      <div class="contact-card">
+        <p><strong>CoachSmart</strong></p>
+        <p>Email: <a href="mailto:hello@coachsmart.app">hello@coachsmart.app</a></p>
+        <p>Privacy queries: <a href="mailto:privacy@coachsmart.app">privacy@coachsmart.app</a></p>
+        <p>Website: <a href="https://www.coachsmart.app">www.coachsmart.app</a></p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div><img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="footer-logo-img"></div>
+  <div class="footer-copy">© 2026 CoachSmart. Coaching Made Simple.</div>
+  <ul class="footer-links">
+    <li><a href="privacy.html">Privacy</a></li>
+    <li><a href="terms.html">Terms</a></li>
+    <li><a href="mailto:hello@coachsmart.app">Contact</a></li>
+  </ul>
+</footer>
+
+</body>
+</html>
