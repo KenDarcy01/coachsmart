@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — CoachSmart</title>
+<meta name="description" content="CoachSmart Privacy Policy — how we collect, use, and protect your personal data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --dark: #1E222B;
+    --darker: #15181f;
+    --card: #252a35;
+    --border: #2e3441;
+    --green: #87C232;
+    --green-dim: rgba(135,194,50,0.12);
+    --text: #E7EBEE;
+    --muted: #8a93a0;
+    --light: #c2cad4;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--darker);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(21,24,31,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo-img { height: 36px; width: auto; }
+  .nav-logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; }
+  .nav-logo-text .coach { color: var(--light); }
+  .nav-logo-text .smart { color: var(--green); }
+
+  .nav-cta {
+    background: var(--green);
+    color: var(--darker);
+    border: none;
+    padding: 9px 22px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+    display: inline-block;
+  }
+  .nav-cta:hover { opacity: 0.88; }
+
+  /* PAGE HEADER */
+  .page-header {
+    padding: 120px 5% 64px;
+    border-bottom: 1px solid var(--border);
+    background: var(--dark);
+  }
+
+  .page-header-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .page-tag {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 12px;
+  }
+
+  .page-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 6vw, 64px);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .page-header .meta {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* CONTENT */
+  .content-wrap {
+    padding: 64px 5% 100px;
+  }
+
+  .content-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .policy-section {
+    margin-bottom: 48px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .policy-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .policy-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .policy-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 10px;
+  }
+
+  .policy-section p {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 14px;
+  }
+
+  .policy-section p:last-child { margin-bottom: 0; }
+
+  .policy-section ul, .policy-section ol {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.8;
+    padding-left: 20px;
+    margin-bottom: 14px;
+  }
+
+  .policy-section li { margin-bottom: 6px; }
+
+  .highlight-box {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .highlight-box p {
+    color: var(--light);
+    margin-bottom: 0;
+  }
+
+  .contact-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-top: 16px;
+  }
+
+  .contact-card p {
+    margin-bottom: 6px;
+  }
+
+  .contact-card a {
+    color: var(--green);
+    text-decoration: none;
+  }
+  .contact-card a:hover { text-decoration: underline; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .footer-logo-img { height: 28px; width: auto; opacity: 0.85; }
+
+  .footer-copy { font-size: 13px; color: var(--muted); }
+
+  .footer-links { display: flex; gap: 24px; list-style: none; }
+  .footer-links a {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .page-header { padding: 100px 5% 48px; }
+    .content-wrap { padding: 48px 5% 80px; }
+    .contact-card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="nav-logo-img">
+    <span class="nav-logo-text"><span class="coach">COACH</span><span class="smart">SMART</span></span>
+  </a>
+  <a href="/#download" class="nav-cta">Get the App</a>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-tag">Legal</div>
+    <h1>PRIVACY POLICY</h1>
+    <p class="meta">Last updated: 27 May 2026</p>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+  <div class="content-inner">
+
+    <div class="policy-section">
+      <div class="highlight-box">
+        <p>This Privacy Policy explains how CoachSmart collects, uses, and protects your personal data when you use our mobile app and website. We are committed to protecting your privacy in accordance with the General Data Protection Regulation (GDPR) and applicable Irish data protection law.</p>
+      </div>
+    </div>
+
+    <div class="policy-section">
+      <h2>1. Who We Are</h2>
+      <p>CoachSmart is a sports team management platform operated by CoachSmart (Ireland).</p>
+      <p><strong>Data Controller:</strong> CoachSmart<br>
+      <strong>Contact:</strong> <a href="mailto:privacy@coachsmart.app" style="color:var(--green); text-decoration:none;">privacy@coachsmart.app</a></p>
+      <p>If you have any questions about how we handle your personal data, please contact us at the address above.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>2. What Data We Collect</h2>
+      <p>We collect only the information necessary to provide CoachSmart's features to you and your club.</p>
+
+      <h3>Account and Profile Information</h3>
+      <ul>
+        <li>Full name</li>
+        <li>Email address</li>
+        <li>Phone number</li>
+        <li>Profile photo (optional)</li>
+        <li>Date of birth (used for age-grade team grouping)</li>
+      </ul>
+
+      <h3>Team and Club Data</h3>
+      <ul>
+        <li>Club name and team membership</li>
+        <li>Role within the club (coach, player, manager, etc.)</li>
+        <li>Event attendance responses (attending, not attending, no response)</li>
+        <li>Squad availability and selection history</li>
+        <li>Match reports and scores</li>
+      </ul>
+
+      <h3>Car Pool Information</h3>
+      <ul>
+        <li>Car pool offers and requests linked to events (including approximate pick-up locations where provided)</li>
+      </ul>
+
+      <h3>Payment Information</h3>
+      <ul>
+        <li>Payment transactions for club events are processed by Stripe. CoachSmart does not store your full card details. We retain a record of payment status and amount for event management purposes.</li>
+      </ul>
+
+      <h3>Device and Usage Data</h3>
+      <ul>
+        <li>Device type and operating system (for push notification delivery)</li>
+        <li>Push notification tokens (FCM)</li>
+        <li>App usage logs (for debugging and service improvement)</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>3. How We Use Your Data</h2>
+      <p>We use your personal data for the following purposes:</p>
+      <ul>
+        <li><strong>Providing the service:</strong> Managing your account, team membership, event scheduling, attendance tracking, squad selection, and car pools.</li>
+        <li><strong>Communications:</strong> Sending push notifications and emails about events, reminders, squad selections, and attendance changes relevant to you.</li>
+        <li><strong>Payments:</strong> Processing event payments through Stripe on behalf of your club.</li>
+        <li><strong>Security:</strong> Authenticating your identity and protecting your account.</li>
+        <li><strong>Service improvement:</strong> Analysing usage patterns to improve app performance and features.</li>
+      </ul>
+
+      <h3>Legal Basis (GDPR)</h3>
+      <ul>
+        <li><strong>Contract performance:</strong> Processing necessary to provide the CoachSmart service you have signed up for.</li>
+        <li><strong>Legitimate interests:</strong> Security monitoring, service improvement, and communicating relevant team updates.</li>
+        <li><strong>Consent:</strong> Push notifications (you can withdraw consent at any time via your device settings).</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>4. Who We Share Your Data With</h2>
+      <p>We do not sell your personal data. We share it only with the service providers necessary to operate CoachSmart:</p>
+
+      <ul>
+        <li><strong>Supabase (supabase.com)</strong> — Our database and authentication provider. Your account data and team data are stored on Supabase infrastructure hosted in the EU.</li>
+        <li><strong>Google Firebase (firebase.google.com)</strong> — Used for push notification delivery (FCM) and app hosting.</li>
+        <li><strong>Stripe (stripe.com)</strong> — Payment processing for club event fees. Stripe is a certified PCI DSS Level 1 provider.</li>
+        <li><strong>Google (google.com)</strong> — Squad export to Google Sheets (only when you explicitly trigger this feature as a coach).</li>
+      </ul>
+
+      <p>Your data may also be shared with other members of your club team (e.g. your name and attendance status are visible to your coaches and fellow team members within CoachSmart).</p>
+
+      <p>We may disclose data if required by law or to protect the rights, property, or safety of CoachSmart, our users, or others.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>5. Data Retention</h2>
+      <p>We retain your personal data for as long as your account is active or as needed to provide the service. Specifically:</p>
+      <ul>
+        <li><strong>Account data:</strong> Retained while your account is active. You may request deletion at any time.</li>
+        <li><strong>Event and attendance records:</strong> Retained for the duration of the club season and up to 12 months thereafter for historical reporting.</li>
+        <li><strong>Payment records:</strong> Retained for 7 years to comply with Irish financial record-keeping obligations.</li>
+        <li><strong>Push notification tokens:</strong> Removed when you log out or uninstall the app.</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>6. Your Rights Under GDPR</h2>
+      <p>As a data subject under GDPR, you have the following rights:</p>
+      <ul>
+        <li><strong>Right of access:</strong> You can request a copy of the personal data we hold about you.</li>
+        <li><strong>Right to rectification:</strong> You can correct inaccurate or incomplete data via the app or by contacting us.</li>
+        <li><strong>Right to erasure:</strong> You can request deletion of your account and associated personal data.</li>
+        <li><strong>Right to restriction:</strong> You can request that we restrict processing of your data in certain circumstances.</li>
+        <li><strong>Right to data portability:</strong> You can request your data in a structured, machine-readable format.</li>
+        <li><strong>Right to object:</strong> You can object to processing based on legitimate interests.</li>
+        <li><strong>Right to withdraw consent:</strong> Where processing is based on consent (e.g. push notifications), you can withdraw consent at any time via your device settings.</li>
+      </ul>
+      <p>To exercise any of these rights, contact us at <a href="mailto:privacy@coachsmart.app" style="color:var(--green); text-decoration:none;">privacy@coachsmart.app</a>. We will respond within 30 days. You also have the right to lodge a complaint with the Data Protection Commission (Ireland) at <a href="https://www.dataprotection.ie" style="color:var(--green); text-decoration:none;">dataprotection.ie</a>.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>7. Data Security</h2>
+      <p>We implement appropriate technical and organisational measures to protect your personal data against unauthorised access, loss, or misuse. These include:</p>
+      <ul>
+        <li>Encrypted data transmission (TLS/HTTPS)</li>
+        <li>Row-level security on our database — you can only access data belonging to your club and teams</li>
+        <li>Secure authentication via Supabase Auth</li>
+        <li>Payment processing handled entirely by Stripe (PCI DSS compliant)</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>8. Children's Privacy</h2>
+      <p>CoachSmart manages GAA teams that may include under-18 players. Where a team member is under 18, their account is set up by a club administrator or coach. We do not knowingly allow children under 13 to create their own accounts. If you believe we hold data about a child without appropriate consent, please contact us immediately.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>9. Cookies and Tracking</h2>
+      <p>The CoachSmart website uses minimal cookies for functionality. The CoachSmart app does not use advertising cookies or cross-app tracking. Firebase may collect anonymised usage analytics to help us improve the app.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>10. Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. When we make significant changes, we will notify you via the app or by email. The "Last updated" date at the top of this page will always reflect the current version.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>11. Contact Us</h2>
+      <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please get in touch:</p>
+      <div class="contact-card">
+        <p><strong>CoachSmart</strong></p>
+        <p>Email: <a href="mailto:privacy@coachsmart.app">privacy@coachsmart.app</a></p>
+        <p>Website: <a href="https://www.coachsmart.app">www.coachsmart.app</a></p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div><img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="footer-logo-img"></div>
+  <div class="footer-copy">© 2026 CoachSmart. Coaching Made Simple.</div>
+  <ul class="footer-links">
+    <li><a href="privacy.html">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="mailto:hello@coachsmart.app">Contact</a></li>
+  </ul>
+</footer>
+
+</body>
+</html>
