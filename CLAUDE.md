@@ -16,6 +16,18 @@ The PWA is deployed automatically when code is pushed to `main` via `.github/wor
 - **Deploy via**: `main` (Firebase auto-deploys on push to main; Supabase migrations applied manually via `supabase db push`)
 - Always merge working branch → main after commits
 
+## Branch Structure — IMPORTANT
+| Branch | Owner | Contents |
+|---|---|---|
+| `main` | Us | `supabase/`, edge functions, migrations, `flutterflow/` subfolder (PWA build source, may lag) |
+| `flutterflow` | FlutterFlow | Flutter project at **root** — `lib/`, `ios/`, `pubspec.yaml` etc. This is the authoritative Flutter source |
+
+**Rules:**
+- FlutterFlow pushes to `flutterflow` branch — never delete this branch
+- Custom Dart code lives at `lib/custom_code/` on the `flutterflow` branch (NOT `flutterflow/lib/` on `main`)
+- Never commit directly to the `flutterflow/` subfolder on `main` — it only drives the PWA Firebase build and will lag behind
+- Supabase migrations and edge functions are committed to `main` only
+
 ## Stack
 - **Frontend**: FlutterFlow (Dart/Flutter) — source in `flutterflow/`
 - **Backend**: Supabase (PostgreSQL + Auth + Storage)
