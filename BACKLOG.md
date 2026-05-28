@@ -27,7 +27,7 @@ Legend: `[ ]` todo · `[x]` done · `[~]` blocked
 | # | Item | Notes |
 |---|---|---|
 | [ ] | Pre-aggregate attendance summary table | Replace `eligible_attendees` → `latest_attendance_records` → `attendance_summary` CTE chain in `get_user_home_events` with a trigger-maintained `event_attendance_summary` table. Currently 50% of all DB compute. See design note below. |
-| [ ] | Add composite index on `event_user_member_payment` | `CREATE INDEX ON event_user_member_payment(event_id, user_id) WHERE payment_status = 'confirmed'` — removes per-event correlated subquery scan in `get_user_home_events` |
+| [x] | Add composite index on `event_user_member_payment` | `CREATE INDEX ON event_user_member_payment(event_id, user_id) WHERE payment_status = 'confirmed'` — removes per-event correlated subquery scan in `get_user_home_events` |
 | [ ] | Identify what is calling `get_member_match_stats_detail` | 605ms average, 2.2s max, called as `anon` (no JWT). In the "candidate for removal" list. Stop the caller then drop the function. |
 | [ ] | Review realtime subscription volume | Realtime `list_changes` is 35% of DB compute across 2.5M calls. Review whether all active subscriptions are necessary. |
 
