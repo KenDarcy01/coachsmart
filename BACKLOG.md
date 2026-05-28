@@ -57,7 +57,7 @@ Populate via trigger on `event_attendance` INSERT/UPDATE/DELETE and on `member_t
 
 | # | Item | Notes |
 |---|---|---|
-| [ ] | Drop `date_of_birth` from `members` | No function or view references it — safe to drop immediately |
+| [ ] | Resolve `date_of_birth` conflict | Column is used by a webview team sheet printer. Privacy policy currently says "month and year only" — these are inconsistent. Decide: (A) keep full DoB and update privacy policy + App Store nutrition label, or (B) truncate to month/year and update the webview. DO NOT drop the column until resolved. |
 | [ ] | Drop `phone_number` from `users` | Referenced in active RPCs (`get_user_event_create_detail`, `get_user_event_edit_detail`, `get_user_team_summary`) and views. Must update RPC RETURNS TABLE + FlutterFlow data types first. |
 | [ ] | Drop `profile_pic` from `members` and `teams` | Referenced in 5 RPC RETURNS TABLE signatures and multiple views. Coordinate with FlutterFlow data type removal first. |
 | [ ] | Delete `main-push` branch on GitHub | Redundant — all commits already in `main` |
