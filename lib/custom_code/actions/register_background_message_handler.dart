@@ -392,6 +392,12 @@ Future<void> _startNotificationStream(
           //  return;
           // }
 
+          if (alert['is_delivered'] == true) {
+            _logWarn(
+                'Skipping — notification $alertId already delivered via another channel');
+            return;
+          }
+
           if (createdAtStr == null) {
             _logError('Skipping — notification $alertId has null created_at');
             return;
@@ -514,13 +520,6 @@ Future<void> _handleNewNotification(
   _logStep('Handler', 'Proceeding to badge update...');
   await _updateBadge(supabase, userId);
 
-  if (_CooldownManager.isActive) {
-    _logWarn('Cooldown still active — popup suppressed for $alertId');
-  } else {
-    _log('Cooldown clear — triggering popup for $alertId');
-    await _showPopup(alert, teamName, supabase);
-  }
-
   try {
     await supabase
         .from('notifications')
@@ -528,6 +527,13 @@ Future<void> _handleNewNotification(
     _log('Notification $alertId marked is_delivered=true ✓');
   } catch (e) {
     _logError('Failed to mark $alertId as is_delivered=true', e);
+  }
+
+  if (_CooldownManager.isActive) {
+    _logWarn('Cooldown still active — popup suppressed for $alertId');
+  } else {
+    _log('Cooldown clear — triggering popup for $alertId');
+    await _showPopup(alert, teamName, supabase);
   }
 
   _log('Handler fully complete for $alertId ✓');
