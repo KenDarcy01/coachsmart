@@ -326,8 +326,12 @@ Future<void> _navigateFromBannerLink(String linkPage) async {
 //
 // Stream skips if:
 //   - ID is in _processedNotificationIds (already handled this session)
-//   - is_read = true (user already actioned it)
 //   - created_at > 60s ago (stale notification)
+//
+// NOTE: is_read is intentionally NOT checked here. EventDetails marks
+// notifications as read on load, which would cause the banner to be
+// silently skipped for notifications opened directly from a push tap.
+// The _processedNotificationIds set is sufficient to prevent duplicates.
 // ---------------------------------------------------------------------------
 
 final Set<String> _processedNotificationIds = {};
@@ -368,13 +372,12 @@ Future<void> _startNotificationStream(
 
           final alert = data.first;
           final String alertId = alert['id']?.toString() ?? 'unknown';
-          final bool isRead = alert['is_read'] ?? false;
           final String? createdAtStr = alert['created_at'];
 
           _logStep(
               'Stream',
               'id=$alertId | '
-                  'is_read=$isRead | '
+                  'is_read=${alert['is_read']} | '
                   'is_delivered=${alert['is_delivered']} | '
                   'created_at=$createdAtStr | '
                   'app_title=${alert['app_title']} | '
@@ -384,11 +387,6 @@ Future<void> _startNotificationStream(
           if (_processedNotificationIds.contains(alertId)) {
             _logWarn('Skipping — notification $alertId already '
                 'processed this session');
-            return;
-          }
-
-          if (isRead) {
-            _logWarn('Skipping — notification $alertId already read');
             return;
           }
 
@@ -548,7 +546,8 @@ Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
         .from('notifications')
         .select('id')
         .eq('recipient_user_id', userId)
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .eq('is_delivered', true);
 
     final int unreadCount = (unreadResponse as List).length;
     _logStep('Badge', 'Unread count = $unreadCount');
