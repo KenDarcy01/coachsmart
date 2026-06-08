@@ -387,10 +387,10 @@ Future<void> _startNotificationStream(
             return;
           }
 
-          if (isRead) {
-            _logWarn('Skipping — notification $alertId already read');
-            return;
-          }
+          // if (isRead) {
+          //  _logWarn('Skipping — notification $alertId already read');
+          //  return;
+          // }
 
           if (createdAtStr == null) {
             _logError('Skipping — notification $alertId has null created_at');
@@ -548,7 +548,8 @@ Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
         .from('notifications')
         .select('id')
         .eq('recipient_user_id', userId)
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .eq('is_delivered', true);
 
     final int unreadCount = (unreadResponse as List).length;
     _logStep('Badge', 'Unread count = $unreadCount');
