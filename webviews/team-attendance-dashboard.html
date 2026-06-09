@@ -128,18 +128,10 @@
         .filter-bar select.on    { border-color: var(--amber); color: var(--amber); }
         .filter-bar select:disabled { opacity: 0.35; }
 
-        .attendee-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 6px;
-        }
         .filter-label {
             font-size: 10px; font-weight: 500; color: var(--muted);
             text-transform: uppercase; letter-spacing: 1px;
         }
-        .attendee-val {
-            font-size: 11px; font-weight: 600; color: var(--text);
-        }
-        .attendee-val span { color: var(--green); }
 
         /* ── Scrollable view body ─────────────────────────────────────── */
         .view-content {
@@ -150,10 +142,9 @@
 
         /* ── Stat cards ───────────────────────────────────────────────── */
         .stats-row {
-            display: grid; grid-template-columns: repeat(3, 1fr);
+            display: grid; grid-template-columns: repeat(2, 1fr);
             gap: 10px; margin-bottom: 12px;
         }
-        .stats-row.two-col { grid-template-columns: repeat(2, 1fr); }
         .stat-card {
             background: var(--card); border: 1px solid var(--border);
             border-radius: 12px; padding: 14px 10px; text-align: center;
@@ -344,16 +335,6 @@
                     <option value="all">All Roles</option>
                 </select>
             </div>
-            <div class="attendee-header">
-                <span class="filter-label">Attendees per event</span>
-                <span class="attendee-val">Min <span id="attMinLabel">—</span> &ndash; Max <span id="attMaxLabel">—</span></span>
-            </div>
-            <div class="slider-wrap">
-                <div class="slider-track"></div>
-                <div class="slider-fill" id="attFill"></div>
-                <input type="range" id="attFrom" min="0" max="100" value="0"   oninput="onAttendeeSlider()" disabled>
-                <input type="range" id="attTo"   min="0" max="100" value="100" oninput="onAttendeeSlider()" disabled>
-            </div>
         </div>
 
         <div class="view-content" id="overviewContent">
@@ -402,7 +383,6 @@ let activeType          = 'all';
 let activeRole          = 'all';
 let lastFilteredPlayers = [];
 let dateSliderTimer     = null;
-let resetAttSlider      = true;   // reset attendee slider after each fresh fetch
 
 // ── Date slider ───────────────────────────────────────────────────────────
 function dayIndexToDate(i) {
@@ -437,51 +417,9 @@ function onDateSlider() {
     }
     updateDateSliderUI();
     clearTimeout(dateSliderTimer);
-    resetAttSlider = true;
     dateSliderTimer = setTimeout(loadOverview, 600);
 }
 
-// ── Attendee count slider ─────────────────────────────────────────────────
-function syncAttendeeSlider(eventCounts, forceReset) {
-    const vals   = Object.values(eventCounts);
-    const newMax = vals.length ? Math.max(...vals) : 0;
-
-    const fromEl = document.getElementById('attFrom');
-    const toEl   = document.getElementById('attTo');
-    fromEl.max = newMax;
-    toEl.max   = newMax;
-    fromEl.disabled = toEl.disabled = (newMax === 0);
-
-    if (forceReset) {
-        fromEl.value = 0;
-        toEl.value   = newMax;
-    } else {
-        if (parseInt(fromEl.value) > newMax) fromEl.value = newMax;
-        if (parseInt(toEl.value)   > newMax) toEl.value   = newMax;
-    }
-
-    updateAttSliderUI(parseInt(fromEl.value), parseInt(toEl.value), newMax);
-}
-
-function updateAttSliderUI(from, to, max) {
-    const safMax = max || 1;
-    document.getElementById('attFill').style.left  = (from / safMax * 100) + '%';
-    document.getElementById('attFill').style.width = ((to - from) / safMax * 100) + '%';
-    document.getElementById('attMinLabel').textContent = from;
-    document.getElementById('attMaxLabel').textContent = to;
-}
-
-function onAttendeeSlider() {
-    let from = parseInt(document.getElementById('attFrom').value, 10);
-    let to   = parseInt(document.getElementById('attTo').value,   10);
-    if (from > to) {
-        document.getElementById('attFrom').value = to;
-        document.getElementById('attTo').value   = from;
-        [from, to] = [to, from];
-    }
-    updateAttSliderUI(from, to, parseInt(document.getElementById('attTo').max, 10));
-    if (dashData) renderOverview(document.getElementById('overviewContent'));
-}
 
 // ── API ───────────────────────────────────────────────────────────────────
 async function fetchDashboard() {
@@ -544,24 +482,7 @@ function filterByCodeType(players) {
     });
 }
 
-function buildEventCounts(players) {
-    // count accepted responses per event_id from the given player set
-    const counts = {};
-    players.forEach(p => {
-        (p.events||[]).forEach(e => {
-            if (!(e.event_id in counts)) counts[e.event_id] = 0;
-            if (e.response === 'accepted') counts[e.event_id]++;
-        });
-    });
-    return counts;
-}
 
-function filterByAttendeeCount(players, validEventIds) {
-    return players.map(p => {
-        const evts = (p.events||[]).filter(e => validEventIds.has(e.event_id));
-        return recomputePlayer(p, evts);
-    });
-}
 
 function recomputePlayer(p, evts) {
     const accepted    = evts.filter(e => e.response === 'accepted').length;
@@ -576,7 +497,7 @@ function recomputePlayer(p, evts) {
 async function loadOverview() {
     const el = document.getElementById('overviewContent');
     el.innerHTML = `<div class="state-center"><div class="spinner"></div><div class="state-text">Loading…</div></div>`;
-    ['filterCode','filterType','filterRole','attFrom','attTo'].forEach(id =>
+    ['filterCode','filterType','filterRole'].forEach(id =>
         document.getElementById(id).disabled = true
     );
 
@@ -596,42 +517,21 @@ async function loadOverview() {
 }
 
 function renderOverview(el) {
-    // Stage 1: role filter
     const roleFiltered = filterByRole(dashData.players || []);
-    const totalPlayers = roleFiltered.length;
-
-    // Stage 2: code/type filter
-    const codeTypeFiltered = filterByCodeType(roleFiltered);
-
-    // Compute per-event accepted counts from this filtered pool
-    const eventCounts = buildEventCounts(codeTypeFiltered);
-    syncAttendeeSlider(eventCounts, resetAttSlider);
-    resetAttSlider = false;
-
-    // Stage 3: attendee count filter
-    const attMin = parseInt(document.getElementById('attFrom').value, 10) || 0;
-    const attMax = parseInt(document.getElementById('attTo').value,   10) || 0;
-    const validIds = new Set(
-        Object.entries(eventCounts)
-            .filter(([, c]) => c >= attMin && c <= attMax)
-            .map(([id]) => parseInt(id, 10))
-    );
-
-    const finalPlayers = filterByAttendeeCount(codeTypeFiltered, validIds);
+    const finalPlayers = filterByCodeType(roleFiltered);
     lastFilteredPlayers = finalPlayers;
 
     if (!finalPlayers.length) {
-        el.innerHTML = `<div class="state-center"><div class="state-text">No players match the current filters</div></div>`;
+        el.innerHTML = `<div class="state-center"><div class="state-text">No members match the current filters</div></div>`;
         return;
     }
 
-    // Aggregate stats
-    const filteredEventCount = validIds.size;
+    const eventIds      = new Set(finalPlayers.flatMap(p => (p.events||[]).map(e => e.event_id)));
+    const filteredEvents = eventIds.size;
     const totalAccepted = finalPlayers.reduce((s, p) => s + (p.accepted || 0), 0);
-    const avgAttendance = filteredEventCount > 0
-        ? (totalAccepted / filteredEventCount).toFixed(2)
+    const avgAttendance = filteredEvents > 0
+        ? (totalAccepted / filteredEvents).toFixed(2)
         : '0.00';
-
     const avgRate = Math.round(finalPlayers.reduce((s, p) => s + (p.attendance_rate||0), 0) / finalPlayers.length);
     const nGreen  = finalPlayers.filter(p => (p.attendance_rate||0) >= 75).length;
     const nAmber  = finalPlayers.filter(p => (p.attendance_rate||0) >= 50 && (p.attendance_rate||0) < 75).length;
@@ -643,16 +543,20 @@ function renderOverview(el) {
     el.innerHTML = `
         <div class="stats-row">
             <div class="stat-card">
-                <div class="stat-value">${filteredEventCount}</div>
+                <div class="stat-value">${filteredEvents}</div>
                 <div class="stat-label">Events</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value sm green">${avgAttendance}</div>
-                <div class="stat-label">Avg Players</div>
+                <div class="stat-value ${rateColor(avgRate)}">${avgRate}%</div>
+                <div class="stat-label">Avg Rate</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">${totalPlayers}</div>
-                <div class="stat-label">Total Players</div>
+                <div class="stat-value">${finalPlayers.length}</div>
+                <div class="stat-label">Members</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value sm green">${avgAttendance}</div>
+                <div class="stat-label">Avg Attend.</div>
             </div>
         </div>
 
@@ -748,7 +652,7 @@ function renderPlayerDetail(p) {
     const events = p.events || [];
 
     document.getElementById('playerContent').innerHTML = `
-        <div class="stats-row two-col" style="margin-top:4px;">
+        <div class="stats-row" style="margin-top:4px;">
             <div class="stat-card">
                 <div class="stat-value">${p.total_events || 0}</div>
                 <div class="stat-label">Events</div>
