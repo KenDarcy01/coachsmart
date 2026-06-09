@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoachSmart — Club Comparison</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+    --green:  #87C232;
+    --dark:   #111418;
+    --card:   #1E222B;
+    --card2:  #252A35;
+    --border: rgba(255,255,255,0.07);
+    --text:   #E7EBEE;
+    --muted:  #6B7280;
+    --red:    #e05252;
+    --amber:  #F5A623;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark); color: var(--text);
+    min-height: 100%;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────── */
+.topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 24px; display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 10;
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex-shrink: 0; }
+.logo span { color: var(--green); }
+.topbar-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.club-name { font-size: 15px; font-weight: 600; flex: 1; }
+
+/* ── Filter strip ─────────────────────────────────────────────────── */
+.filter-strip {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 10px 24px 14px; position: sticky; top: 52px; z-index: 9;
+}
+.slider-dates { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.slider-dates span {
+    font-size: 11px; font-weight: 500; background: var(--card2);
+    padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border);
+}
+.slider-wrap { position: relative; height: 26px; display: flex; align-items: center; margin-bottom: 12px; }
+.slider-track { position: absolute; width: 100%; height: 3px; background: var(--border); border-radius: 2px; }
+.slider-fill  { position: absolute; height: 3px; background: var(--green); border-radius: 2px; }
+input[type=range] {
+    position: absolute; width: 100%; height: 3px;
+    background: transparent; -webkit-appearance: none; pointer-events: none;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--green); border: 2px solid var(--dark);
+    cursor: pointer; pointer-events: all; box-shadow: 0 0 0 4px rgba(135,194,50,0.15);
+}
+input[type=range]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all;
+}
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filter-row select {
+    background: var(--card2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; outline: none;
+}
+.filter-row select:focus { border-color: var(--green); }
+.filter-row select.on { border-color: var(--amber); color: var(--amber); }
+.filter-row select:disabled { opacity: 0.35; }
+.team-filter-wrap { position: relative; }
+.team-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: 20;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    min-width: 200px; padding: 8px 0; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    display: none;
+}
+.team-dropdown.open { display: block; }
+.team-dropdown-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; cursor: pointer; font-size: 13px;
+}
+.team-dropdown-item:hover { background: var(--card2); }
+.team-dropdown-item input[type=checkbox] { accent-color: var(--green); width: 14px; height: 14px; cursor: pointer; }
+.team-filter-btn {
+    background: var(--card2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px;
+}
+.team-filter-btn.on { border-color: var(--amber); color: var(--amber); }
+.team-filter-btn svg { width: 12px; height: 12px; }
+
+/* ── Page body ────────────────────────────────────────────────────── */
+.page-body { max-width: 1200px; margin: 0 auto; padding: 20px 24px 40px; }
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
+.tab-btn {
+    padding: 10px 22px; font-size: 13px; font-weight: 600; cursor: pointer;
+    border: none; background: none; color: var(--muted);
+    border-bottom: 2px solid transparent; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+}
+.tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+/* ── Stat cards ───────────────────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+@media (max-width: 700px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+.stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 14px; text-align: center;
+}
+.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px; line-height: 1; }
+.stat-value.green { color: var(--green); }
+.stat-value.amber { color: var(--amber); }
+.stat-value.red   { color: var(--red); }
+.stat-value.sm    { font-size: 20px; }
+.stat-label { font-size: 9px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 5px; }
+
+/* ── Charts grid ──────────────────────────────────────────────────── */
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+@media (max-width: 800px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 16px;
+}
+.chart-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+.chart-wrap { position: relative; }
+
+/* ── League table ─────────────────────────────────────────────────── */
+.table-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; margin-bottom: 20px;
+}
+.table-header { padding: 14px 18px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.table-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+    padding: 10px 14px; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); text-align: left; border-bottom: 1px solid var(--border);
+    cursor: pointer; white-space: nowrap; user-select: none;
+}
+thead th:hover { color: var(--text); }
+thead th .sort-arrow { margin-left: 4px; opacity: 0.4; }
+thead th.sort-active { color: var(--text); }
+thead th.sort-active .sort-arrow { opacity: 1; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--card2); }
+tbody td { padding: 10px 14px; font-size: 13px; white-space: nowrap; }
+.rate-pill {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+}
+.rate-pill.green { background: rgba(135,194,50,0.12); color: var(--green); }
+.rate-pill.amber { background: rgba(245,166,35,0.12); color: var(--amber); }
+.rate-pill.red   { background: rgba(224,82,82,0.12);  color: var(--red); }
+.team-badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    background: var(--card2); color: var(--muted); display: inline-block;
+}
+
+/* ── Member list ──────────────────────────────────────────────────── */
+.sort-bar { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; flex-wrap: wrap; }
+.sort-label { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.sort-chip {
+    padding: 5px 11px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--card);
+    color: var(--muted); cursor: pointer; white-space: nowrap;
+}
+.sort-chip.active { background: var(--green); border-color: var(--green); color: #111418; }
+.member-list { display: flex; flex-direction: column; gap: 6px; }
+.member-row {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 16px;
+    display: flex; align-items: center; gap: 10px;
+}
+.member-name { font-size: 13px; font-weight: 500; min-width: 140px; }
+.member-teams { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+.member-stats { display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
+.member-stat { text-align: center; }
+.member-stat-val { font-size: 13px; font-weight: 600; }
+.member-stat-val.green { color: var(--green); }
+.member-stat-val.amber { color: var(--amber); }
+.member-stat-val.red   { color: var(--red); }
+.member-stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+
+/* ── Loading / error ──────────────────────────────────────────────── */
+.state-center {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 200px; gap: 14px;
+}
+.spinner {
+    width: 30px; height: 30px; border: 2px solid var(--border);
+    border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.state-text { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.error-box {
+    background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3);
+    border-radius: 10px; padding: 16px; color: #FCA5A5; font-size: 13px;
+}
+.empty-state { text-align: center; padding: 32px 0; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="logo">COACH<span>SMART</span></div>
+    <div class="topbar-divider"></div>
+    <div class="club-name" id="clubName">Loading…</div>
+</div>
+
+<div class="filter-strip">
+    <div class="slider-dates">
+        <span id="sliderDateFrom">—</span>
+        <span id="sliderDateTo">—</span>
+    </div>
+    <div class="slider-wrap">
+        <div class="slider-track"></div>
+        <div class="slider-fill" id="dateFill"></div>
+        <input type="range" id="sliderFrom" min="0" max="365" value="275" oninput="onDateSlider()">
+        <input type="range" id="sliderTo"   min="0" max="365" value="365" oninput="onDateSlider()">
+    </div>
+    <div class="filter-row">
+        <select id="filterCode" onchange="onFilterChange()" disabled><option value="all">All Codes</option></select>
+        <select id="filterType" onchange="onFilterChange()" disabled><option value="all">All Types</option></select>
+        <select id="filterRole" onchange="onFilterChange()" disabled><option value="all">All Roles</option></select>
+        <div class="team-filter-wrap">
+            <button class="team-filter-btn" id="teamFilterBtn" onclick="toggleTeamDropdown()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span id="teamFilterLabel">All Teams</span>
+            </button>
+            <div class="team-dropdown" id="teamDropdown"></div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('teams')">Teams</button>
+        <button class="tab-btn" onclick="switchTab('members')">Members</button>
+    </div>
+
+    <div id="tabTeams">
+        <div class="state-center"><div class="spinner"></div><div class="state-text">Loading…</div></div>
+    </div>
+    <div id="tabMembers" style="display:none">
+        <div class="state-center"><div class="spinner"></div><div class="state-text">Loading…</div></div>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const H = { 'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${SUPABASE_ANON_KEY}` };
+
+const MAX_DATE_DAYS = 365;
+const urlParams     = new URLSearchParams(window.location.search);
+const clubId        = parseInt(urlParams.get('club_id') || '0', 10);
+
+let dashData       = null;
+let activeCode     = 'all';
+let activeType     = 'all';
+let activeRole     = 'all';
+let activeTeams    = new Set();   // empty = all
+let activeTab      = 'teams';
+let teamSortCol    = 'rate';
+let teamSortDir    = -1;
+let memberSortMode = 'rate_desc';
+let dateTimer      = null;
+let chartRate      = null;
+let chartStack     = null;
+
+// ── Date slider ───────────────────────────────────────────────────
+function dayToDate(i) {
+    const d = new Date();
+    d.setDate(d.getDate() - (MAX_DATE_DAYS - i));
+    return d;
+}
+function getDateRange() {
+    const from = +document.getElementById('sliderFrom').value;
+    const to   = +document.getElementById('sliderTo').value;
+    const s = dayToDate(from); s.setHours(0,0,0,0);
+    const e = dayToDate(to);   e.setHours(23,59,59,999);
+    return { start: s.toISOString(), end: e.toISOString() };
+}
+function updateDateUI() {
+    const from = +document.getElementById('sliderFrom').value;
+    const to   = +document.getElementById('sliderTo').value;
+    document.getElementById('dateFill').style.left  = (from/MAX_DATE_DAYS*100)+'%';
+    document.getElementById('dateFill').style.width = ((to-from)/MAX_DATE_DAYS*100)+'%';
+    document.getElementById('sliderDateFrom').textContent = fmtShort(dayToDate(from));
+    document.getElementById('sliderDateTo').textContent   = fmtShort(dayToDate(to));
+}
+function onDateSlider() {
+    let f = +document.getElementById('sliderFrom').value;
+    let t = +document.getElementById('sliderTo').value;
+    if (f > t) { document.getElementById('sliderFrom').value=t; document.getElementById('sliderTo').value=f; }
+    updateDateUI();
+    clearTimeout(dateTimer);
+    dateTimer = setTimeout(loadData, 600);
+}
+
+// ── Team dropdown ─────────────────────────────────────────────────
+function toggleTeamDropdown() {
+    document.getElementById('teamDropdown').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+    if (!e.target.closest('.team-filter-wrap')) {
+        document.getElementById('teamDropdown').classList.remove('open');
+    }
+});
+function buildTeamDropdown(teams) {
+    const dd = document.getElementById('teamDropdown');
+    dd.innerHTML = teams.map(t => `
+        <label class="team-dropdown-item">
+            <input type="checkbox" value="${t.team_id}" checked onchange="onTeamFilterChange()">
+            ${esc(t.team_name)}
+        </label>`).join('');
+}
+function onTeamFilterChange() {
+    const checked = [...document.querySelectorAll('#teamDropdown input:checked')].map(el => +el.value);
+    const all     = [...document.querySelectorAll('#teamDropdown input')].map(el => +el.value);
+    activeTeams = checked.length === all.length ? new Set() : new Set(checked);
+    const btn = document.getElementById('teamFilterBtn');
+    const lbl = document.getElementById('teamFilterLabel');
+    if (activeTeams.size === 0) {
+        lbl.textContent = 'All Teams';
+        btn.classList.remove('on');
+    } else {
+        lbl.textContent = `${activeTeams.size} Team${activeTeams.size>1?'s':''}`;
+        btn.classList.add('on');
+    }
+    if (dashData) render();
+}
+
+// ── Filters ───────────────────────────────────────────────────────
+function populateSelect(id, opts, label) {
+    const sel  = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = `<option value="all">${label}</option>` +
+        opts.map(v => `<option value="${esc(v)}"${v===prev?' selected':''}>${esc(v)}</option>`).join('');
+    if (prev !== 'all' && !opts.includes(prev)) sel.value = 'all';
+    sel.disabled = false;
+    sel.classList.toggle('on', sel.value !== 'all');
+}
+function populateFilters(teams) {
+    const allEvents = teams.flatMap(t => t.events || []);
+    const codes = [...new Set(allEvents.map(e=>e.code).filter(Boolean))].sort();
+    const types = [...new Set(allEvents.map(e=>e.type).filter(Boolean))].sort();
+    const roles = [...new Set(allEvents.flatMap(e=>(e.members||[]).map(m=>m.role).filter(Boolean)))].sort();
+    populateSelect('filterCode', codes, 'All Codes');
+    populateSelect('filterType', types, 'All Types');
+    populateSelect('filterRole', roles, 'All Roles');
+    activeCode = document.getElementById('filterCode').value;
+    activeType = document.getElementById('filterType').value;
+    activeRole = document.getElementById('filterRole').value;
+}
+function onFilterChange() {
+    activeCode = document.getElementById('filterCode').value;
+    activeType = document.getElementById('filterType').value;
+    activeRole = document.getElementById('filterRole').value;
+    ['filterCode','filterType','filterRole'].forEach(id => {
+        document.getElementById(id).classList.toggle('on', document.getElementById(id).value !== 'all');
+    });
+    if (dashData) render();
+}
+
+// ── Filter pipeline ───────────────────────────────────────────────
+function filteredTeamStats() {
+    let teams = (dashData.teams || []);
+    if (activeTeams.size) teams = teams.filter(t => activeTeams.has(t.team_id));
+
+    return teams.map(t => {
+        let events = t.events || [];
+        if (activeCode !== 'all') events = events.filter(e => (e.code||'') === activeCode);
+        if (activeType !== 'all') events = events.filter(e => (e.type||'') === activeType);
+
+        const eventsWithMembers = events.map(e => {
+            let members = e.members || [];
+            if (activeRole !== 'all') members = members.filter(m => (m.role||'') === activeRole);
+            const accepted   = members.filter(m => m.response==='accepted').length;
+            const declined   = members.filter(m => m.response==='declined').length;
+            const no_response = members.filter(m => m.response==='no_response').length;
+            return { ...e, members, accepted, declined, no_response, total_members: members.length };
+        });
+
+        const totalAccepted   = eventsWithMembers.reduce((s,e)=>s+(e.accepted||0),0);
+        const totalDeclined   = eventsWithMembers.reduce((s,e)=>s+(e.declined||0),0);
+        const totalNoResponse = eventsWithMembers.reduce((s,e)=>s+(e.no_response||0),0);
+        const totalSlots      = eventsWithMembers.reduce((s,e)=>s+(e.total_members||0),0);
+        const uniqueMembers   = new Set(eventsWithMembers.flatMap(e=>(e.members||[]).map(m=>m.member_id)));
+        const rate = totalSlots > 0 ? Math.round(totalAccepted/totalSlots*100) : 0;
+
+        return {
+            team_id:       t.team_id,
+            team_name:     t.team_name,
+            total_events:  eventsWithMembers.length,
+            total_members: uniqueMembers.size,
+            accepted:      totalAccepted,
+            declined:      totalDeclined,
+            no_response:   totalNoResponse,
+            rate,
+        };
+    }).filter(t => t.total_events > 0 || (dashData.teams||[]).find(x=>x.team_id===t.team_id));
+}
+
+function filteredMemberStats() {
+    let teams = (dashData.teams || []);
+    if (activeTeams.size) teams = teams.filter(t => activeTeams.has(t.team_id));
+
+    const memberMap = new Map();
+
+    teams.forEach(t => {
+        let events = t.events || [];
+        if (activeCode !== 'all') events = events.filter(e => (e.code||'') === activeCode);
+        if (activeType !== 'all') events = events.filter(e => (e.type||'') === activeType);
+
+        events.forEach(e => {
+            let members = e.members || [];
+            if (activeRole !== 'all') members = members.filter(m => (m.role||'') === activeRole);
+            members.forEach(m => {
+                if (!memberMap.has(m.member_id)) {
+                    memberMap.set(m.member_id, {
+                        member_id: m.member_id, name: m.name,
+                        teams: new Set(), accepted: 0, declined: 0, no_response: 0, total: 0
+                    });
+                }
+                const rec = memberMap.get(m.member_id);
+                rec.teams.add(t.team_name);
+                rec.total++;
+                if (m.response === 'accepted')    rec.accepted++;
+                else if (m.response === 'declined') rec.declined++;
+                else rec.no_response++;
+            });
+        });
+    });
+
+    return [...memberMap.values()].map(m => ({
+        ...m,
+        teams: [...m.teams],
+        rate: m.total > 0 ? Math.round(m.accepted/m.total*100) : 0
+    }));
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function render() {
+    if (activeTab === 'teams') renderTeams();
+    else renderMembers();
+}
+
+function renderTeams() {
+    const stats = filteredTeamStats();
+    const el    = document.getElementById('tabTeams');
+
+    if (!stats.length) {
+        el.innerHTML = '<div class="empty-state">No data for the selected filters.</div>';
+        return;
+    }
+
+    const totalTeams   = stats.length;
+    const totalEvents  = stats.reduce((s,t)=>s+t.total_events,0);
+    const totalAcc     = stats.reduce((s,t)=>s+t.accepted,0);
+    const totalSlots   = stats.reduce((s,t)=>s+(t.accepted+t.declined+t.no_response),0);
+    const avgRate      = totalSlots > 0 ? Math.round(totalAcc/totalSlots*100) : 0;
+    const topTeam      = [...stats].sort((a,b)=>b.rate-a.rate)[0];
+    const bottomTeam   = [...stats].sort((a,b)=>a.rate-b.rate)[0];
+
+    const sorted = sortTeams([...stats]);
+
+    el.innerHTML = `
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value">${totalTeams}</div>
+            <div class="stat-label">Teams</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${totalEvents}</div>
+            <div class="stat-label">Total Events</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value ${rateColor(avgRate)}">${avgRate}%</div>
+            <div class="stat-label">Avg Rate</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value sm green">${esc(topTeam?.team_name||'—')}</div>
+            <div class="stat-label">Top Team (${topTeam?.rate||0}%)</div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">Attendance Rate by Team</div>
+            <div class="chart-wrap"><canvas id="chartRate"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Responses by Team</div>
+            <div class="chart-wrap"><canvas id="chartStack"></canvas></div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header">
+            <div class="table-title">League Table</div>
+        </div>
+        <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    ${thHtml('team_name','Team')}
+                    ${thHtml('total_members','Members')}
+                    ${thHtml('total_events','Events')}
+                    ${thHtml('accepted','✓ Accepted')}
+                    ${thHtml('declined','✗ Declined')}
+                    ${thHtml('no_response','? No Reply')}
+                    ${thHtml('rate','Rate %')}
+                </tr>
+            </thead>
+            <tbody>
+                ${sorted.map(t => `
+                <tr>
+                    <td><strong>${esc(t.team_name)}</strong></td>
+                    <td>${t.total_members}</td>
+                    <td>${t.total_events}</td>
+                    <td style="color:var(--green)">${t.accepted}</td>
+                    <td style="color:var(--red)">${t.declined}</td>
+                    <td style="color:var(--muted)">${t.no_response}</td>
+                    <td><span class="rate-pill ${rateColor(t.rate)}">${t.rate}%</span></td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+        </div>
+    </div>`;
+
+    drawCharts(stats);
+}
+
+function thHtml(col, label) {
+    const arrow = teamSortCol===col ? (teamSortDir===1?'↑':'↓') : '↕';
+    return `<th onclick="sortTeamTable('${col}')" class="${teamSortCol===col?'sort-active':''}">${label}<span class="sort-arrow">${arrow}</span></th>`;
+}
+
+function sortTeams(arr) {
+    return arr.sort((a,b) => {
+        const av = a[teamSortCol]; const bv = b[teamSortCol];
+        if (typeof av === 'string') return teamSortDir * av.localeCompare(bv);
+        return teamSortDir * ((bv||0)-(av||0));
+    });
+}
+
+function sortTeamTable(col) {
+    if (teamSortCol === col) teamSortDir *= -1;
+    else { teamSortCol = col; teamSortDir = -1; }
+    if (dashData) renderTeams();
+}
+
+function drawCharts(stats) {
+    const byRate  = [...stats].sort((a,b) => a.rate - b.rate);
+    const labels  = byRate.map(t => t.team_name);
+    const rates   = byRate.map(t => t.rate);
+    const colors  = rates.map(r => r>=75 ? '#87C232' : r>=50 ? '#F5A623' : '#e05252');
+
+    if (chartRate) chartRate.destroy();
+    if (chartStack) chartStack.destroy();
+
+    const chartDefaults = {
+        plugins: { legend: { labels: { color: '#6B7280', font: { family: 'DM Sans', size: 11 } } } },
+        scales: {
+            x: { ticks: { color: '#6B7280', font: { family:'DM Sans', size:10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: { ticks: { color: '#6B7280', font: { family:'DM Sans', size:10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+    };
+
+    chartRate = new Chart(document.getElementById('chartRate'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{ label: 'Rate %', data: rates, backgroundColor: colors, borderRadius: 4, borderSkipped: false }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { min:0, max:100, ticks: { color:'#6B7280', font:{family:'DM Sans',size:10}, callback: v=>v+'%' }, grid: { color:'rgba(255,255,255,0.04)' } },
+                y: { ticks: { color:'#E7EBEE', font:{family:'DM Sans',size:11} }, grid: { display:false } }
+            }
+        }
+    });
+
+    const byName = [...stats].sort((a,b) => a.team_name.localeCompare(b.team_name));
+    chartStack = new Chart(document.getElementById('chartStack'), {
+        type: 'bar',
+        data: {
+            labels: byName.map(t => t.team_name),
+            datasets: [
+                { label: 'Accepted',    data: byName.map(t=>t.accepted),    backgroundColor: 'rgba(135,194,50,0.7)',  borderRadius: 2 },
+                { label: 'Declined',    data: byName.map(t=>t.declined),    backgroundColor: 'rgba(224,82,82,0.7)',   borderRadius: 2 },
+                { label: 'No Response', data: byName.map(t=>t.no_response), backgroundColor: 'rgba(107,114,128,0.5)', borderRadius: 2 }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color:'#6B7280', font:{family:'DM Sans',size:11}, boxWidth:12, padding:14 } }
+            },
+            scales: {
+                x: { stacked:true, ticks:{color:'#E7EBEE',font:{family:'DM Sans',size:10}}, grid:{display:false} },
+                y: { stacked:true, ticks:{color:'#6B7280',font:{family:'DM Sans',size:10}}, grid:{color:'rgba(255,255,255,0.04)'} }
+            }
+        }
+    });
+}
+
+function renderMembers() {
+    const members = filteredMemberStats();
+    const el      = document.getElementById('tabMembers');
+
+    if (!members.length) {
+        el.innerHTML = '<div class="empty-state">No members found for the selected filters.</div>';
+        return;
+    }
+
+    const totalMembers = members.length;
+    const totalAcc     = members.reduce((s,m)=>s+m.accepted,0);
+    const totalAll     = members.reduce((s,m)=>s+m.total,0);
+    const avgRate      = totalAll > 0 ? Math.round(totalAcc/totalAll*100) : 0;
+    const top          = [...members].sort((a,b)=>b.rate-a.rate)[0];
+    const mostDec      = [...members].sort((a,b)=>b.declined-a.declined)[0];
+
+    const sorted = sortMembers([...members]);
+
+    el.innerHTML = `
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value">${totalMembers}</div>
+            <div class="stat-label">Members</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value ${rateColor(avgRate)}">${avgRate}%</div>
+            <div class="stat-label">Avg Rate</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value sm green">${esc(top?.name||'—')}</div>
+            <div class="stat-label">Top Attender (${top?.rate||0}%)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value sm red">${esc(mostDec?.name||'—')}</div>
+            <div class="stat-label">Most Declined (${mostDec?.declined||0})</div>
+        </div>
+    </div>
+
+    <div class="sort-bar">
+        <span class="sort-label">Sort</span>
+        <span class="sort-chip ${memberSortMode==='rate_desc'?'active':''}"   onclick="setMemberSort('rate_desc')">Rate ↓</span>
+        <span class="sort-chip ${memberSortMode==='rate_asc'?'active':''}"    onclick="setMemberSort('rate_asc')">Rate ↑</span>
+        <span class="sort-chip ${memberSortMode==='name'?'active':''}"        onclick="setMemberSort('name')">Name A–Z</span>
+        <span class="sort-chip ${memberSortMode==='most_dec'?'active':''}"    onclick="setMemberSort('most_dec')">Most Declined</span>
+        <span class="sort-chip ${memberSortMode==='no_resp'?'active':''}"     onclick="setMemberSort('no_resp')">No Response</span>
+    </div>
+
+    <div class="member-list">
+        ${sorted.map(m => memberRowHtml(m)).join('')}
+    </div>`;
+}
+
+function memberRowHtml(m) {
+    const rateCol = rateColor(m.rate);
+    return `
+    <div class="member-row">
+        <div class="member-name">${esc(m.name)}</div>
+        <div class="member-teams">
+            ${m.teams.map(tn => `<span class="team-badge">${esc(tn)}</span>`).join('')}
+        </div>
+        <div class="member-stats">
+            <div class="member-stat"><div class="member-stat-val" style="color:var(--green)">${m.accepted}</div><div class="member-stat-lbl">✓</div></div>
+            <div class="member-stat"><div class="member-stat-val" style="color:var(--red)">${m.declined}</div><div class="member-stat-lbl">✗</div></div>
+            <div class="member-stat"><div class="member-stat-val" style="color:var(--muted)">${m.no_response}</div><div class="member-stat-lbl">?</div></div>
+            <div class="member-stat"><div class="member-stat-val ${rateCol}">${m.rate}%</div><div class="member-stat-lbl">Rate</div></div>
+        </div>
+    </div>`;
+}
+
+function sortMembers(arr) {
+    switch (memberSortMode) {
+        case 'rate_asc':  return arr.sort((a,b) => a.rate - b.rate);
+        case 'rate_desc': return arr.sort((a,b) => b.rate - a.rate);
+        case 'name':      return arr.sort((a,b) => a.name.localeCompare(b.name));
+        case 'most_dec':  return arr.sort((a,b) => b.declined - a.declined);
+        case 'no_resp':   return arr.sort((a,b) => b.no_response - a.no_response);
+        default: return arr;
+    }
+}
+
+function setMemberSort(mode) {
+    memberSortMode = mode;
+    if (dashData) renderMembers();
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+        b.classList.toggle('active', (i===0 && tab==='teams') || (i===1 && tab==='members'));
+    });
+    document.getElementById('tabTeams').style.display   = tab==='teams'   ? '' : 'none';
+    document.getElementById('tabMembers').style.display = tab==='members' ? '' : 'none';
+    if (dashData) render();
+}
+
+// ── Load ──────────────────────────────────────────────────────────
+async function loadData() {
+    document.getElementById('tabTeams').innerHTML   = `<div class="state-center"><div class="spinner"></div><div class="state-text">Loading…</div></div>`;
+    document.getElementById('tabMembers').innerHTML = `<div class="state-center"><div class="spinner"></div><div class="state-text">Loading…</div></div>`;
+    ['filterCode','filterType','filterRole'].forEach(id => document.getElementById(id).disabled = true);
+
+    if (!clubId) {
+        document.getElementById('tabTeams').innerHTML = `<div class="error-box">No club_id supplied — add <code>?club_id=123</code> to the URL.</div>`;
+        return;
+    }
+    try {
+        const { start, end } = getDateRange();
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`, {
+            method:'POST', headers:H,
+            body: JSON.stringify({ p_club_id: clubId, p_start_date: start, p_end_date: end })
+        });
+        if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+        dashData = await r.json();
+        if (dashData.error) { document.getElementById('tabTeams').innerHTML=`<div class="error-box">${esc(dashData.error)}</div>`; return; }
+        document.getElementById('clubName').textContent = dashData.club_name || 'Club';
+        document.title = `CoachSmart — ${dashData.club_name||'Club'}`;
+        populateFilters(dashData.teams||[]);
+        buildTeamDropdown(dashData.teams||[]);
+        render();
+    } catch(e) {
+        document.getElementById('tabTeams').innerHTML = `<div class="error-box">Failed to load: ${esc(e.message)}</div>`;
+    }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function rateColor(r) { return r>=75?'green':r>=50?'amber':'red'; }
+function fmtShort(d) { return d.toLocaleDateString('en-IE',{day:'2-digit',month:'short',year:'2-digit'}); }
+function esc(s) {
+    return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+    const daysParam = urlParams.get('days');
+    if (daysParam !== null) {
+        let d = parseInt(daysParam,10);
+        if (d===0) { const t=new Date(); d=Math.floor((t-new Date(t.getFullYear(),0,1))/86400000); }
+        d = Math.max(7,Math.min(MAX_DATE_DAYS,d));
+        document.getElementById('sliderFrom').value = MAX_DATE_DAYS - d;
+    }
+    updateDateUI();
+    loadData();
+});
+</script>
+</body>
+</html>
