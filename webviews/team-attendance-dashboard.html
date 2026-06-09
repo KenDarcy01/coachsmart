@@ -58,62 +58,101 @@
         }
         .logo {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 21px;
-            letter-spacing: 3px;
-            line-height: 1;
-            flex-shrink: 0;
+            font-size: 21px; letter-spacing: 3px; line-height: 1; flex-shrink: 0;
         }
         .logo span { color: var(--green); }
         .header-divider { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
         .header-team {
-            font-size: 14px;
-            font-weight: 600;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            font-size: 14px; font-weight: 600; flex: 1;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .back-btn {
-            background: none; border: none;
-            color: var(--green); font-size: 14px; font-weight: 600;
+            background: none; border: none; color: var(--green);
+            font-size: 14px; font-weight: 600;
             font-family: 'DM Sans', sans-serif; cursor: pointer;
             display: flex; align-items: center; gap: 5px;
             padding: 0; flex-shrink: 0;
         }
         .back-btn svg { width: 15px; height: 15px; }
 
-        /* ── Date-range tabs ──────────────────────────────────────────── */
-        .range-tabs {
-            display: flex;
+        /* ── Date slider ──────────────────────────────────────────────── */
+        .slider-bar {
             background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 18px 14px;
+            flex-shrink: 0;
+        }
+        .slider-dates {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .slider-dates span {
+            font-size: 11px; font-weight: 500; color: var(--text);
+            background: var(--card2); padding: 3px 9px;
+            border-radius: 5px; border: 1px solid var(--border);
+        }
+        .slider-wrap {
+            position: relative; height: 28px; display: flex; align-items: center;
+        }
+        .slider-track {
+            position: absolute; width: 100%; height: 3px;
+            background: var(--border); border-radius: 2px;
+        }
+        .slider-fill {
+            position: absolute; height: 3px;
+            background: var(--green); border-radius: 2px;
+        }
+        input[type=range] {
+            position: absolute; width: 100%; height: 3px;
+            background: transparent; -webkit-appearance: none; pointer-events: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 22px; height: 22px;
+            border-radius: 50%; background: var(--green); border: 2px solid var(--dark);
+            cursor: pointer; pointer-events: all;
+            box-shadow: 0 0 0 4px rgba(135,194,50,0.18);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--green); border: 2px solid var(--dark);
+            cursor: pointer; pointer-events: all;
+        }
+
+        /* ── Filter bar ───────────────────────────────────────────────── */
+        .filter-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--dark);
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
-        .range-tab {
-            flex: 1; padding: 9px 4px;
-            font-size: 12px; font-weight: 600;
-            text-align: center; color: var(--muted); cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: color 0.15s, border-color 0.15s;
-            letter-spacing: 0.5px;
+        .filter-bar select {
+            width: 100%;
+            background: var(--card); color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 7px 6px; font-size: 11px; font-weight: 500;
+            font-family: 'DM Sans', sans-serif; cursor: pointer;
+            outline: none; transition: border-color 0.15s;
         }
-        .range-tab.active { color: var(--green); border-bottom-color: var(--green); }
+        .filter-bar select:focus  { border-color: var(--green); }
+        .filter-bar select.on     { border-color: var(--amber); color: var(--amber); }
+        .filter-bar select:disabled { opacity: 0.35; }
 
         /* ── Scrollable view body ─────────────────────────────────────── */
         .view-content {
             flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 16px;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding: 14px;
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
         }
 
         /* ── Stat cards ───────────────────────────────────────────────── */
         .stats-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 12px;
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 10px; margin-bottom: 12px;
         }
         .stats-row.two-col { grid-template-columns: repeat(2, 1fr); }
         .stat-card {
@@ -129,9 +168,8 @@
         .stat-value.red   { color: var(--red); }
         .stat-value.muted { color: var(--muted); }
         .stat-label {
-            font-size: 9px; font-weight: 500;
-            color: var(--muted); text-transform: uppercase;
-            letter-spacing: 1.2px; margin-top: 4px;
+            font-size: 9px; font-weight: 500; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1.2px; margin-top: 4px;
         }
 
         /* ── Squad health bar ─────────────────────────────────────────── */
@@ -183,7 +221,6 @@
             border-radius: 12px; padding: 12px 14px;
             display: flex; align-items: center; gap: 10px;
             cursor: pointer; transition: background 0.15s;
-            active: background var(--card2);
         }
         .player-row:active { background: var(--card2); }
         .player-row-left { flex: 1; min-width: 0; }
@@ -208,7 +245,10 @@
         .rate-badge.green { color: var(--green); }
         .rate-badge.amber { color: var(--amber); }
         .rate-badge.red   { color: var(--red); }
-        .rate-bar-mini { width: 48px; height: 3px; border-radius: 2px; background: var(--card2); margin-top: 4px; margin-left: auto; }
+        .rate-bar-mini {
+            width: 48px; height: 3px; border-radius: 2px;
+            background: var(--card2); margin-top: 4px; margin-left: auto;
+        }
         .rate-bar-fill { height: 3px; border-radius: 2px; }
         .chevron { color: var(--border); flex-shrink: 0; margin-left: 2px; }
 
@@ -249,8 +289,8 @@
             padding: 3px 10px; border-radius: 10px;
             flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px;
         }
-        .response-chip.accepted  { background: rgba(135,194,50,0.12); color: var(--green); }
-        .response-chip.declined  { background: rgba(224,82,82,0.12);  color: var(--red); }
+        .response-chip.accepted   { background: rgba(135,194,50,0.12); color: var(--green); }
+        .response-chip.declined   { background: rgba(224,82,82,0.12);  color: var(--red); }
         .response-chip.no-response { background: var(--card2); color: var(--muted); }
 
         /* ── Loading / Error states ───────────────────────────────────── */
@@ -288,11 +328,29 @@
             <div class="header-team" id="teamName">Attendance</div>
         </div>
 
-        <div class="range-tabs">
-            <div class="range-tab" id="tab30"     onclick="setRange(30)">30d</div>
-            <div class="range-tab" id="tab60"     onclick="setRange(60)">60d</div>
-            <div class="range-tab" id="tab90"     onclick="setRange(90)">90d</div>
-            <div class="range-tab" id="tabSeason" onclick="setRange(0)">Season</div>
+        <div class="slider-bar">
+            <div class="slider-dates">
+                <span id="sliderDateFrom">—</span>
+                <span id="sliderDateTo">—</span>
+            </div>
+            <div class="slider-wrap">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="sliderFill"></div>
+                <input type="range" id="sliderFrom" min="0" max="365" value="275" oninput="onSliderInput()">
+                <input type="range" id="sliderTo"   min="0" max="365" value="365" oninput="onSliderInput()">
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <select id="filterCode" onchange="onFilterChange()" disabled>
+                <option value="all">All Codes</option>
+            </select>
+            <select id="filterType" onchange="onFilterChange()" disabled>
+                <option value="all">All Types</option>
+            </select>
+            <select id="filterRole" onchange="onFilterChange()" disabled>
+                <option value="all">All Roles</option>
+            </select>
         </div>
 
         <div class="view-content" id="overviewContent">
@@ -316,7 +374,6 @@
             <div class="header-divider"></div>
             <div class="header-team" id="playerName"></div>
         </div>
-
         <div class="view-content" id="playerContent"></div>
     </div>
 
@@ -331,33 +388,64 @@ const H = {
     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
 };
 
-const params     = new URLSearchParams(window.location.search);
-const teamId     = parseInt(params.get('team_id') || '0', 10);
-const daysParam  = params.get('days');
-const initDays   = daysParam !== null ? parseInt(daysParam, 10) : 90;
+const MAX_DAYS = 365;
+const params   = new URLSearchParams(window.location.search);
+const teamId   = parseInt(params.get('team_id') || '0', 10);
 
-let dashData  = null;
-let sortMode  = 'rate_desc';
-let activeDays = 90;
+let dashData            = null;
+let sortMode            = 'rate_desc';
+let activeCode          = 'all';
+let activeType          = 'all';
+let activeRole          = 'all';
+let lastFilteredPlayers = [];
+let sliderTimer         = null;
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function getDateRange(days) {
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    const start = days === 0
-        ? new Date(end.getFullYear(), 0, 1)
-        : (() => { const d = new Date(end); d.setDate(d.getDate() - days); d.setHours(0,0,0,0); return d; })();
+// ── Date / slider helpers ────────────────────────────────────────────────
+function dayIndexToDate(i) {
+    const d = new Date();
+    d.setDate(d.getDate() - (MAX_DAYS - i));
+    return d;
+}
+
+function getDateRange() {
+    const from  = parseInt(document.getElementById('sliderFrom').value, 10);
+    const to    = parseInt(document.getElementById('sliderTo').value,   10);
+    const start = dayIndexToDate(from); start.setHours(0, 0, 0, 0);
+    const end   = dayIndexToDate(to);   end.setHours(23, 59, 59, 999);
     return { start: start.toISOString(), end: end.toISOString() };
+}
+
+function updateSliderUI() {
+    const from = parseInt(document.getElementById('sliderFrom').value, 10);
+    const to   = parseInt(document.getElementById('sliderTo').value,   10);
+    document.getElementById('sliderFill').style.left  = (from / MAX_DAYS * 100) + '%';
+    document.getElementById('sliderFill').style.width = ((to - from) / MAX_DAYS * 100) + '%';
+    document.getElementById('sliderDateFrom').textContent = fmtShort(dayIndexToDate(from));
+    document.getElementById('sliderDateTo').textContent   = fmtShort(dayIndexToDate(to));
+}
+
+function onSliderInput() {
+    let from = parseInt(document.getElementById('sliderFrom').value, 10);
+    let to   = parseInt(document.getElementById('sliderTo').value,   10);
+    if (from > to) {
+        document.getElementById('sliderFrom').value = to;
+        document.getElementById('sliderTo').value   = from;
+    }
+    updateSliderUI();
+    clearTimeout(sliderTimer);
+    sliderTimer = setTimeout(loadOverview, 600);
+}
+
+function fmtShort(d) {
+    return d.toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: '2-digit' });
 }
 
 function fmtDate(iso) {
     return new Date(iso).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function rateColor(rate) {
-    if (rate >= 75) return 'green';
-    if (rate >= 50) return 'amber';
-    return 'red';
+function rateColor(r) {
+    return r >= 75 ? 'green' : r >= 50 ? 'amber' : 'red';
 }
 
 function esc(s) {
@@ -365,9 +453,9 @@ function esc(s) {
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── API ────────────────────────────────────────────────────────────────────
-async function fetchDashboard(days) {
-    const { start, end } = getDateRange(days);
+// ── API ───────────────────────────────────────────────────────────────────
+async function fetchDashboard() {
+    const { start, end } = getDateRange();
     const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_team_attendance_dashboard`, {
         method: 'POST', headers: H,
         body: JSON.stringify({ p_team_id: teamId, p_start_date: start, p_end_date: end })
@@ -376,27 +464,75 @@ async function fetchDashboard(days) {
     return r.json();
 }
 
-// ── Tab selection ──────────────────────────────────────────────────────────
-function setRange(days) {
-    activeDays = days;
-    ['30','60','90','Season'].forEach(k => document.getElementById(`tab${k}`).classList.remove('active'));
-    document.getElementById(days === 0 ? 'tabSeason' : `tab${days}`).classList.add('active');
-    loadOverview();
+// ── Filters ───────────────────────────────────────────────────────────────
+function populateSelect(id, options, allLabel) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = `<option value="all">${allLabel}</option>` +
+        options.map(v => `<option value="${esc(v)}"${v === prev ? ' selected' : ''}>${esc(v)}</option>`).join('');
+    if (prev !== 'all' && !options.includes(prev)) sel.value = 'all';
+    sel.disabled = false;
+    sel.classList.toggle('on', sel.value !== 'all');
 }
 
-// ── Overview ───────────────────────────────────────────────────────────────
+function populateFilters(players) {
+    const codes = [...new Set(players.flatMap(p => (p.events||[]).map(e => e.code).filter(Boolean)))].sort();
+    const types = [...new Set(players.flatMap(p => (p.events||[]).map(e => e.type).filter(Boolean)))].sort();
+    const roles = [...new Set(players.map(p => p.role).filter(Boolean))].sort();
+    populateSelect('filterCode', codes, 'All Codes');
+    populateSelect('filterType', types, 'All Types');
+    populateSelect('filterRole', roles, 'All Roles');
+    activeCode = document.getElementById('filterCode').value;
+    activeType = document.getElementById('filterType').value;
+    activeRole = document.getElementById('filterRole').value;
+}
+
+function onFilterChange() {
+    activeCode = document.getElementById('filterCode').value;
+    activeType = document.getElementById('filterType').value;
+    activeRole = document.getElementById('filterRole').value;
+    ['filterCode','filterType','filterRole'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.classList.toggle('on', sel.value !== 'all');
+    });
+    const el = document.getElementById('overviewContent');
+    if (dashData) renderOverview(el);
+}
+
+function applyFilters(players) {
+    return players
+        .filter(p => activeRole === 'all' || (p.role || '') === activeRole)
+        .map(p => {
+            if (activeCode === 'all' && activeType === 'all') return p;
+            const evts = (p.events || []).filter(e =>
+                (activeCode === 'all' || (e.code || '') === activeCode) &&
+                (activeType === 'all' || (e.type || '') === activeType)
+            );
+            const accepted    = evts.filter(e => e.response === 'accepted').length;
+            const declined    = evts.filter(e => e.response === 'declined').length;
+            const no_response = evts.filter(e => e.response === 'no_response').length;
+            const total       = evts.length;
+            const rate        = total > 0 ? Math.round(accepted / total * 100) : 0;
+            return { ...p, events: evts, accepted, declined, no_response, total_events: total, attendance_rate: rate };
+        });
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────
 async function loadOverview() {
     const el = document.getElementById('overviewContent');
     el.innerHTML = `<div class="state-center"><div class="spinner"></div><div class="state-text">Loading…</div></div>`;
+    ['filterCode','filterType','filterRole'].forEach(id => document.getElementById(id).disabled = true);
 
     if (!teamId) {
-        el.innerHTML = `<div class="error-box">No team_id supplied. Add <code>?team_id=123</code> to the URL.</div>`;
+        el.innerHTML = `<div class="error-box">No team_id supplied — add <code>?team_id=123</code> to the URL.</div>`;
         return;
     }
     try {
-        dashData = await fetchDashboard(activeDays);
+        dashData = await fetchDashboard();
         if (dashData.error) { el.innerHTML = `<div class="error-box">${esc(dashData.error)}</div>`; return; }
         document.getElementById('teamName').textContent = dashData.team_name || 'Team';
+        populateFilters(dashData.players || []);
         renderOverview(el);
     } catch(e) {
         el.innerHTML = `<div class="error-box">Failed to load: ${esc(e.message)}</div>`;
@@ -404,26 +540,30 @@ async function loadOverview() {
 }
 
 function renderOverview(el) {
-    const players = dashData.players || [];
-    const total   = dashData.total_events || 0;
+    const filtered = applyFilters(dashData.players || []);
+    lastFilteredPlayers = filtered;
 
-    if (!players.length) {
-        el.innerHTML = `<div class="state-center"><div class="state-text">No players found for this range</div></div>`;
+    if (!filtered.length) {
+        el.innerHTML = `<div class="state-center"><div class="state-text">No players match the current filters</div></div>`;
         return;
     }
 
-    const avgRate = Math.round(players.reduce((s, p) => s + (p.attendance_rate || 0), 0) / players.length);
-    const nGreen  = players.filter(p => (p.attendance_rate || 0) >= 75).length;
-    const nAmber  = players.filter(p => (p.attendance_rate || 0) >= 50 && (p.attendance_rate || 0) < 75).length;
-    const nRed    = players.length - nGreen - nAmber;
-    const pct     = v => players.length ? Math.round(v / players.length * 100) : 0;
+    // Unique events across filtered players after code/type filter
+    const eventIds    = new Set(filtered.flatMap(p => (p.events||[]).map(e => e.event_id)));
+    const totalEvents = eventIds.size;
 
-    const sorted = sortPlayers([...players]);
+    const avgRate  = Math.round(filtered.reduce((s, p) => s + (p.attendance_rate || 0), 0) / filtered.length);
+    const nGreen   = filtered.filter(p => (p.attendance_rate||0) >= 75).length;
+    const nAmber   = filtered.filter(p => (p.attendance_rate||0) >= 50 && (p.attendance_rate||0) < 75).length;
+    const nRed     = filtered.length - nGreen - nAmber;
+    const pct      = v => filtered.length ? Math.round(v / filtered.length * 100) : 0;
+
+    const sorted = sortPlayers([...filtered]);
 
     el.innerHTML = `
         <div class="stats-row">
             <div class="stat-card">
-                <div class="stat-value">${total}</div>
+                <div class="stat-value">${totalEvents}</div>
                 <div class="stat-label">Events</div>
             </div>
             <div class="stat-card">
@@ -431,7 +571,7 @@ function renderOverview(el) {
                 <div class="stat-label">Avg Rate</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">${players.length}</div>
+                <div class="stat-value">${filtered.length}</div>
                 <div class="stat-label">Players</div>
             </div>
         </div>
@@ -452,11 +592,11 @@ function renderOverview(el) {
 
         <div class="sort-bar">
             <div class="sort-label">Sort</div>
-            <div class="sort-chip ${sortMode==='rate_desc'?'active':''}"    onclick="setSortMode('rate_desc')">Rate ↓</div>
-            <div class="sort-chip ${sortMode==='rate_asc'?'active':''}"     onclick="setSortMode('rate_asc')">Rate ↑</div>
-            <div class="sort-chip ${sortMode==='name'?'active':''}"          onclick="setSortMode('name')">Name A–Z</div>
-            <div class="sort-chip ${sortMode==='declined'?'active':''}"      onclick="setSortMode('declined')">Most Declined</div>
-            <div class="sort-chip ${sortMode==='no_response'?'active':''}"   onclick="setSortMode('no_response')">No Response</div>
+            <div class="sort-chip ${sortMode==='rate_desc'?'active':''}"     onclick="setSortMode('rate_desc')">Rate ↓</div>
+            <div class="sort-chip ${sortMode==='rate_asc'?'active':''}"      onclick="setSortMode('rate_asc')">Rate ↑</div>
+            <div class="sort-chip ${sortMode==='name'?'active':''}"           onclick="setSortMode('name')">Name A–Z</div>
+            <div class="sort-chip ${sortMode==='declined'?'active':''}"       onclick="setSortMode('declined')">Most Declined</div>
+            <div class="sort-chip ${sortMode==='no_response'?'active':''}"    onclick="setSortMode('no_response')">No Response</div>
         </div>
 
         <div class="player-list">
@@ -465,8 +605,8 @@ function renderOverview(el) {
 }
 
 function playerRowHtml(p) {
-    const rate  = p.attendance_rate || 0;
-    const col   = rateColor(rate);
+    const rate = p.attendance_rate || 0;
+    const col  = rateColor(rate);
     return `
         <div class="player-row" onclick="openPlayer(${p.member_id})">
             <div class="player-row-left">
@@ -505,14 +645,12 @@ function sortPlayers(arr) {
 
 function setSortMode(mode) {
     sortMode = mode;
-    const el = document.getElementById('overviewContent');
-    renderOverview(el);
+    if (dashData) renderOverview(document.getElementById('overviewContent'));
 }
 
-// ── Player detail ──────────────────────────────────────────────────────────
+// ── Player detail ─────────────────────────────────────────────────────────
 function openPlayer(memberId) {
-    if (!dashData) return;
-    const p = (dashData.players || []).find(x => x.member_id === memberId);
+    const p = lastFilteredPlayers.find(x => x.member_id === memberId);
     if (!p) return;
     document.getElementById('playerName').textContent = p.name;
     renderPlayerDetail(p);
@@ -582,11 +720,21 @@ function eventRowHtml(e) {
         </div>`;
 }
 
-// ── Boot ───────────────────────────────────────────────────────────────────
+// ── Boot ──────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
-    activeDays = [30, 60, 90, 0].includes(initDays) ? initDays : 90;
-    ['30','60','90','Season'].forEach(k => document.getElementById(`tab${k}`).classList.remove('active'));
-    document.getElementById(activeDays === 0 ? 'tabSeason' : `tab${activeDays}`).classList.add('active');
+    // Pre-position slider from ?days= param (0 = season = days since Jan 1)
+    const daysParam = params.get('days');
+    if (daysParam !== null) {
+        let d = parseInt(daysParam, 10);
+        if (d === 0) {
+            // Season: days from Jan 1 to today
+            const today = new Date();
+            d = Math.floor((today - new Date(today.getFullYear(), 0, 1)) / 86400000);
+        }
+        d = Math.max(7, Math.min(MAX_DAYS, d));
+        document.getElementById('sliderFrom').value = MAX_DAYS - d;
+    }
+    updateSliderUI();
     loadOverview();
 });
 </script>
