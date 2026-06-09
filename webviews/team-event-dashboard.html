@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CoachSmart — Events</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green:  #87C232;
+            --dark:   #111418;
+            --card:   #1E222B;
+            --card2:  #252A35;
+            --border: rgba(255,255,255,0.07);
+            --text:   #E7EBEE;
+            --muted:  #6B7280;
+            --red:    #e05252;
+            --amber:  #F5A623;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        html, body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--dark); color: var(--text);
+            height: 100%; overflow: hidden;
+        }
+
+        /* ── Slide container ──────────────────────────────────────────── */
+        .views-wrapper {
+            display: flex; width: 200%; height: 100vh;
+            transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .views-wrapper.show-detail { transform: translateX(-50%); }
+
+        .view {
+            width: 50%; height: 100vh;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* ── Header ───────────────────────────────────────────────────── */
+        .header {
+            background: var(--card); border-bottom: 1px solid var(--border);
+            padding: 14px 18px;
+            padding-top: calc(14px + env(safe-area-inset-top));
+            display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+        }
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 21px; letter-spacing: 3px; line-height: 1; flex-shrink: 0;
+        }
+        .logo span { color: var(--green); }
+        .header-divider { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+        .header-title {
+            font-size: 14px; font-weight: 600; flex: 1;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .back-btn {
+            background: none; border: none; color: var(--green);
+            font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
+            padding: 0; flex-shrink: 0;
+        }
+        .back-btn svg { width: 15px; height: 15px; }
+
+        /* ── Date range slider ────────────────────────────────────────── */
+        .slider-bar {
+            background: var(--card); border-bottom: 1px solid var(--border);
+            padding: 10px 18px 14px; flex-shrink: 0;
+        }
+        .slider-dates {
+            display: flex; justify-content: space-between; margin-bottom: 10px;
+        }
+        .slider-dates span {
+            font-size: 11px; font-weight: 500; color: var(--text);
+            background: var(--card2); padding: 3px 9px;
+            border-radius: 5px; border: 1px solid var(--border);
+        }
+        .slider-wrap {
+            position: relative; height: 28px; display: flex; align-items: center;
+        }
+        .slider-track { position: absolute; width: 100%; height: 3px; background: var(--border); border-radius: 2px; }
+        .slider-fill  { position: absolute; height: 3px; background: var(--green); border-radius: 2px; }
+        input[type=range] {
+            position: absolute; width: 100%; height: 3px;
+            background: transparent; -webkit-appearance: none; pointer-events: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 22px; height: 22px;
+            border-radius: 50%; background: var(--green); border: 2px solid var(--dark);
+            cursor: pointer; pointer-events: all;
+            box-shadow: 0 0 0 4px rgba(135,194,50,0.18);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--green); border: 2px solid var(--dark);
+            cursor: pointer; pointer-events: all;
+        }
+
+        /* ── Filter bar ───────────────────────────────────────────────── */
+        .filter-bar {
+            background: var(--dark); border-bottom: 1px solid var(--border);
+            padding: 10px 14px 12px; flex-shrink: 0;
+        }
+        .filter-selects {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 8px; margin-bottom: 12px;
+        }
+        .filter-bar select {
+            width: 100%; background: var(--card); color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 7px 6px; font-size: 11px; font-weight: 500;
+            font-family: 'DM Sans', sans-serif; cursor: pointer;
+            outline: none; transition: border-color 0.15s;
+        }
+        .filter-bar select:focus { border-color: var(--green); }
+        .filter-bar select.on    { border-color: var(--amber); color: var(--amber); }
+        .filter-bar select:disabled { opacity: 0.35; }
+
+        .att-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 6px;
+        }
+        .filter-label {
+            font-size: 10px; font-weight: 500; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .att-val { font-size: 11px; font-weight: 600; color: var(--text); }
+        .att-val span { color: var(--green); }
+
+        /* ── Scrollable content ───────────────────────────────────────── */
+        .view-content {
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding: 14px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        }
+
+        /* ── Stat cards (2×2) ─────────────────────────────────────────── */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 10px; margin-bottom: 12px;
+        }
+        .stat-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 10px; text-align: center;
+        }
+        .stat-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 30px; letter-spacing: 1px; color: var(--text); line-height: 1;
+        }
+        .stat-value.green { color: var(--green); }
+        .stat-value.amber { color: var(--amber); }
+        .stat-value.red   { color: var(--red); }
+        .stat-value.sm    { font-size: 22px; }
+        .stat-label {
+            font-size: 9px; font-weight: 500; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1.2px; margin-top: 4px;
+        }
+
+        /* ── Sort bar ─────────────────────────────────────────────────── */
+        .sort-bar {
+            display: flex; align-items: center; gap: 7px; margin-bottom: 10px;
+            overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+        }
+        .sort-bar::-webkit-scrollbar { display: none; }
+        .sort-label {
+            font-size: 10px; font-weight: 500; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0;
+        }
+        .sort-chip {
+            padding: 5px 11px; border-radius: 20px; font-size: 11px; font-weight: 600;
+            border: 1px solid var(--border); background: var(--card);
+            color: var(--muted); cursor: pointer; white-space: nowrap; transition: all 0.15s;
+        }
+        .sort-chip.active { background: var(--green); border-color: var(--green); color: #111418; }
+
+        /* ── Event cards ──────────────────────────────────────────────── */
+        .event-list { display: flex; flex-direction: column; gap: 8px; }
+        .event-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 12px 14px;
+            cursor: pointer; transition: background 0.15s;
+        }
+        .event-card:active { background: var(--card2); }
+        .event-card-top {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .event-type-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+        .code-chip {
+            font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+            background: rgba(135,194,50,0.12); color: var(--green);
+        }
+        .type-chip {
+            font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+            background: var(--card2); color: var(--muted);
+        }
+        .event-card-date {
+            font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0;
+        }
+        .event-opposition {
+            font-size: 14px; font-weight: 600; color: var(--text);
+            margin-bottom: 10px; margin-top: 2px;
+        }
+        .event-responses {
+            display: flex; gap: 6px; align-items: center;
+        }
+        .resp-chip {
+            padding: 5px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; cursor: pointer;
+            transition: opacity 0.15s; white-space: nowrap;
+        }
+        .resp-chip:active { opacity: 0.7; }
+        .resp-chip.accepted   { background: rgba(135,194,50,0.12); color: var(--green); }
+        .resp-chip.declined   { background: rgba(224,82,82,0.12);  color: var(--red); }
+        .resp-chip.no-response { background: var(--card2); color: var(--muted); }
+        .event-card-chevron {
+            color: var(--border); flex-shrink: 0; margin-left: auto; padding-left: 4px;
+        }
+
+        /* ── Detail view — response tabs ──────────────────────────────── */
+        .resp-tabs {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            background: var(--card); border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .resp-tab {
+            padding: 10px 4px; text-align: center; cursor: pointer;
+            font-size: 11px; font-weight: 600; color: var(--muted);
+            border-bottom: 2px solid transparent; transition: all 0.15s;
+        }
+        .resp-tab .tab-count { display: block; font-family: 'Bebas Neue', sans-serif; font-size: 18px; line-height: 1.1; }
+        .resp-tab.active-all      { color: var(--text);    border-bottom-color: var(--text); }
+        .resp-tab.active-accepted { color: var(--green);   border-bottom-color: var(--green); }
+        .resp-tab.active-declined { color: var(--red);     border-bottom-color: var(--red); }
+        .resp-tab.active-none     { color: var(--muted);   border-bottom-color: var(--muted); }
+
+        /* ── Detail event info card ───────────────────────────────────── */
+        .detail-info {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+        }
+        .detail-info-row {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .detail-opposition {
+            font-size: 16px; font-weight: 700; color: var(--text); margin-top: 6px;
+        }
+        .detail-date { font-size: 12px; color: var(--muted); }
+
+        /* ── Member list (detail) ─────────────────────────────────────── */
+        .member-list { display: flex; flex-direction: column; gap: 6px; }
+        .member-row {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 10px; padding: 11px 14px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .member-name {
+            flex: 1; font-size: 13px; font-weight: 500;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .role-badge {
+            font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px;
+            background: var(--card2); color: var(--muted); flex-shrink: 0;
+        }
+        .resp-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .resp-dot.accepted   { background: var(--green); }
+        .resp-dot.declined   { background: var(--red); }
+        .resp-dot.no_response { background: var(--muted); }
+
+        /* ── Loading / Error ──────────────────────────────────────────── */
+        .state-center {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; min-height: 50vh; gap: 14px;
+        }
+        .spinner {
+            width: 30px; height: 30px;
+            border: 2px solid var(--border); border-top-color: var(--green);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .state-text {
+            font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+        }
+        .error-box {
+            background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3);
+            border-radius: 10px; padding: 16px; color: #FCA5A5; font-size: 13px; margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="views-wrapper" id="viewsWrapper">
+
+    <!-- ═══════════════════ VIEW 1 · Event List ═══════════════════ -->
+    <div class="view">
+        <div class="header">
+            <div class="logo">COACH<span>SMART</span></div>
+            <div class="header-divider"></div>
+            <div class="header-title" id="teamName">Events</div>
+        </div>
+
+        <div class="slider-bar">
+            <div class="slider-dates">
+                <span id="sliderDateFrom">—</span>
+                <span id="sliderDateTo">—</span>
+            </div>
+            <div class="slider-wrap">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="dateFill"></div>
+                <input type="range" id="sliderFrom" min="0" max="365" value="275" oninput="onDateSlider()">
+                <input type="range" id="sliderTo"   min="0" max="365" value="365" oninput="onDateSlider()">
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-selects">
+                <select id="filterCode" onchange="onFilterChange()" disabled>
+                    <option value="all">All Codes</option>
+                </select>
+                <select id="filterType" onchange="onFilterChange()" disabled>
+                    <option value="all">All Types</option>
+                </select>
+                <select id="filterRole" onchange="onFilterChange()" disabled>
+                    <option value="all">All Roles</option>
+                </select>
+            </div>
+            <div class="att-header">
+                <span class="filter-label">Accepted per event</span>
+                <span class="att-val">Min <span id="attMinLabel">—</span> &ndash; Max <span id="attMaxLabel">—</span></span>
+            </div>
+            <div class="slider-wrap">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="attFill"></div>
+                <input type="range" id="attFrom" min="0" max="100" value="0"   oninput="onAttSlider()" disabled>
+                <input type="range" id="attTo"   min="0" max="100" value="100" oninput="onAttSlider()" disabled>
+            </div>
+        </div>
+
+        <div class="view-content" id="listContent">
+            <div class="state-center">
+                <div class="spinner"></div>
+                <div class="state-text">Loading…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ VIEW 2 · Event Detail ═══════════════════ -->
+    <div class="view">
+        <div class="header">
+            <button class="back-btn" onclick="goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Events
+            </button>
+            <div class="header-divider"></div>
+            <div class="header-title" id="detailTitle"></div>
+        </div>
+
+        <div class="resp-tabs" id="respTabs">
+            <div class="resp-tab" id="tabAll"        onclick="setDetailFilter('all')">All<span class="tab-count" id="cntAll">—</span></div>
+            <div class="resp-tab" id="tabAccepted"   onclick="setDetailFilter('accepted')">✓<span class="tab-count" id="cntAccepted">—</span></div>
+            <div class="resp-tab" id="tabDeclined"   onclick="setDetailFilter('declined')">✗<span class="tab-count" id="cntDeclined">—</span></div>
+            <div class="resp-tab" id="tabNone"       onclick="setDetailFilter('no_response')">?<span class="tab-count" id="cntNone">—</span></div>
+        </div>
+
+        <div class="view-content" id="detailContent"></div>
+    </div>
+
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const H = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+};
+
+const MAX_DATE_DAYS  = 365;
+const urlParams      = new URLSearchParams(window.location.search);
+const teamId         = parseInt(urlParams.get('team_id') || '0', 10);
+
+let dashData            = null;
+let sortMode            = 'date_desc';
+let activeCode          = 'all';
+let activeType          = 'all';
+let activeRole          = 'all';
+let lastFilteredEvents  = [];
+let currentDetailEvent  = null;
+let activeDetailFilter  = 'all';
+let dateSliderTimer     = null;
+let resetAttSlider      = true;
+
+// ── Date slider ───────────────────────────────────────────────────────────
+function dayIndexToDate(i) {
+    const d = new Date();
+    d.setDate(d.getDate() - (MAX_DATE_DAYS - i));
+    return d;
+}
+
+function getDateRange() {
+    const from  = parseInt(document.getElementById('sliderFrom').value, 10);
+    const to    = parseInt(document.getElementById('sliderTo').value,   10);
+    const start = dayIndexToDate(from); start.setHours(0, 0, 0, 0);
+    const end   = dayIndexToDate(to);   end.setHours(23, 59, 59, 999);
+    return { start: start.toISOString(), end: end.toISOString() };
+}
+
+function updateDateSliderUI() {
+    const from = parseInt(document.getElementById('sliderFrom').value, 10);
+    const to   = parseInt(document.getElementById('sliderTo').value,   10);
+    document.getElementById('dateFill').style.left  = (from / MAX_DATE_DAYS * 100) + '%';
+    document.getElementById('dateFill').style.width = ((to - from) / MAX_DATE_DAYS * 100) + '%';
+    document.getElementById('sliderDateFrom').textContent = fmtShort(dayIndexToDate(from));
+    document.getElementById('sliderDateTo').textContent   = fmtShort(dayIndexToDate(to));
+}
+
+function onDateSlider() {
+    let from = parseInt(document.getElementById('sliderFrom').value, 10);
+    let to   = parseInt(document.getElementById('sliderTo').value,   10);
+    if (from > to) {
+        document.getElementById('sliderFrom').value = to;
+        document.getElementById('sliderTo').value   = from;
+    }
+    updateDateSliderUI();
+    clearTimeout(dateSliderTimer);
+    resetAttSlider = true;
+    dateSliderTimer = setTimeout(loadData, 600);
+}
+
+// ── Attendee slider ───────────────────────────────────────────────────────
+function syncAttSlider(events, forceReset) {
+    const vals   = events.map(e => e.accepted || 0);
+    const newMax = vals.length ? Math.max(...vals) : 0;
+    const fromEl = document.getElementById('attFrom');
+    const toEl   = document.getElementById('attTo');
+
+    fromEl.max = newMax; toEl.max = newMax;
+    fromEl.disabled = toEl.disabled = (newMax === 0);
+
+    if (forceReset) {
+        fromEl.value = 0; toEl.value = newMax;
+    } else {
+        if (parseInt(fromEl.value) > newMax) fromEl.value = newMax;
+        if (parseInt(toEl.value)   > newMax) toEl.value   = newMax;
+    }
+    updateAttSliderUI(parseInt(fromEl.value), parseInt(toEl.value), newMax);
+}
+
+function updateAttSliderUI(from, to, max) {
+    const m = max || 1;
+    document.getElementById('attFill').style.left  = (from / m * 100) + '%';
+    document.getElementById('attFill').style.width = ((to - from) / m * 100) + '%';
+    document.getElementById('attMinLabel').textContent = from;
+    document.getElementById('attMaxLabel').textContent = to;
+}
+
+function onAttSlider() {
+    let from = parseInt(document.getElementById('attFrom').value, 10);
+    let to   = parseInt(document.getElementById('attTo').value,   10);
+    if (from > to) {
+        document.getElementById('attFrom').value = to;
+        document.getElementById('attTo').value   = from;
+        [from, to] = [to, from];
+    }
+    updateAttSliderUI(from, to, parseInt(document.getElementById('attTo').max, 10));
+    if (dashData) renderList(document.getElementById('listContent'));
+}
+
+// ── API ───────────────────────────────────────────────────────────────────
+async function fetchData() {
+    const { start, end } = getDateRange();
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_team_event_dashboard`, {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ p_team_id: teamId, p_start_date: start, p_end_date: end })
+    });
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    return r.json();
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────
+function populateSelect(id, options, allLabel) {
+    const sel  = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = `<option value="all">${allLabel}</option>` +
+        options.map(v => `<option value="${esc(v)}"${v === prev ? ' selected' : ''}>${esc(v)}</option>`).join('');
+    if (prev !== 'all' && !options.includes(prev)) sel.value = 'all';
+    sel.disabled = false;
+    sel.classList.toggle('on', sel.value !== 'all');
+}
+
+function populateFilters(events) {
+    const codes = [...new Set(events.map(e => e.code).filter(Boolean))].sort();
+    const types = [...new Set(events.map(e => e.type).filter(Boolean))].sort();
+    const roles = [...new Set(events.flatMap(e => (e.members||[]).map(m => m.role).filter(Boolean)))].sort();
+    populateSelect('filterCode', codes, 'All Codes');
+    populateSelect('filterType', types, 'All Types');
+    populateSelect('filterRole', roles, 'All Roles');
+    activeCode = document.getElementById('filterCode').value;
+    activeType = document.getElementById('filterType').value;
+    activeRole = document.getElementById('filterRole').value;
+}
+
+function onFilterChange() {
+    activeCode = document.getElementById('filterCode').value;
+    activeType = document.getElementById('filterType').value;
+    activeRole = document.getElementById('filterRole').value;
+    ['filterCode','filterType','filterRole'].forEach(id => {
+        document.getElementById(id).classList.toggle('on',
+            document.getElementById(id).value !== 'all');
+    });
+    if (dashData) renderList(document.getElementById('listContent'));
+}
+
+// ── Filter pipeline ───────────────────────────────────────────────────────
+function filterEvents(allEvents) {
+    let events = allEvents;
+    if (activeCode !== 'all') events = events.filter(e => (e.code || '') === activeCode);
+    if (activeType !== 'all') events = events.filter(e => (e.type || '') === activeType);
+    if (activeRole !== 'all') {
+        events = events.map(e => {
+            const members   = (e.members || []).filter(m => (m.role || '') === activeRole);
+            const accepted  = members.filter(m => m.response === 'accepted').length;
+            const declined  = members.filter(m => m.response === 'declined').length;
+            const no_response = members.filter(m => m.response === 'no_response').length;
+            return { ...e, members, accepted, declined, no_response, total_members: members.length };
+        });
+    }
+    return events;
+}
+
+function applyAttFilter(events) {
+    const min = parseInt(document.getElementById('attFrom').value, 10) || 0;
+    const max = parseInt(document.getElementById('attTo').value,   10);
+    if (isNaN(max)) return events;
+    return events.filter(e => (e.accepted || 0) >= min && (e.accepted || 0) <= max);
+}
+
+// ── Load & render ─────────────────────────────────────────────────────────
+async function loadData() {
+    const el = document.getElementById('listContent');
+    el.innerHTML = `<div class="state-center"><div class="spinner"></div><div class="state-text">Loading…</div></div>`;
+    ['filterCode','filterType','filterRole','attFrom','attTo'].forEach(id =>
+        document.getElementById(id).disabled = true);
+
+    if (!teamId) {
+        el.innerHTML = `<div class="error-box">No team_id supplied — add <code>?team_id=123</code> to the URL.</div>`;
+        return;
+    }
+    try {
+        dashData = await fetchData();
+        if (dashData.error) { el.innerHTML = `<div class="error-box">${esc(dashData.error)}</div>`; return; }
+        document.getElementById('teamName').textContent = dashData.team_name || 'Events';
+        populateFilters(dashData.events || []);
+        renderList(el);
+    } catch(e) {
+        el.innerHTML = `<div class="error-box">Failed to load: ${esc(e.message)}</div>`;
+    }
+}
+
+function renderList(el) {
+    const codeTypeFiltered = filterEvents(dashData.events || []);
+    syncAttSlider(codeTypeFiltered, resetAttSlider);
+    resetAttSlider = false;
+
+    const finalEvents = applyAttFilter(codeTypeFiltered);
+    lastFilteredEvents = finalEvents;
+
+    if (!finalEvents.length) {
+        el.innerHTML = `<div class="state-center"><div class="state-text">No events match the current filters</div></div>`;
+        return;
+    }
+
+    // Stats
+    const memberIds   = new Set(finalEvents.flatMap(e => (e.members||[]).map(m => m.member_id)));
+    const memberCount = memberIds.size;
+    const totalAccepted = finalEvents.reduce((s, e) => s + (e.accepted || 0), 0);
+    const totalSlots    = finalEvents.reduce((s, e) => s + (e.total_members || 0), 0);
+    const avgAccepted   = finalEvents.length > 0
+        ? (totalAccepted / finalEvents.length).toFixed(2) : '0.00';
+    const avgRate = totalSlots > 0 ? Math.round(totalAccepted / totalSlots * 100) : 0;
+
+    const sorted = sortEvents([...finalEvents]);
+
+    el.innerHTML = `
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value">${finalEvents.length}</div>
+                <div class="stat-label">Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value sm green">${avgAccepted}</div>
+                <div class="stat-label">Avg Accepted</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${memberCount}</div>
+                <div class="stat-label">Members</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value ${rateColor(avgRate)}">${avgRate}%</div>
+                <div class="stat-label">Avg Rate</div>
+            </div>
+        </div>
+
+        <div class="sort-bar">
+            <div class="sort-label">Sort</div>
+            <div class="sort-chip ${sortMode==='date_desc'?'active':''}"     onclick="setSortMode('date_desc')">Date ↓</div>
+            <div class="sort-chip ${sortMode==='date_asc'?'active':''}"      onclick="setSortMode('date_asc')">Date ↑</div>
+            <div class="sort-chip ${sortMode==='most_accepted'?'active':''}" onclick="setSortMode('most_accepted')">Most Accepted</div>
+            <div class="sort-chip ${sortMode==='most_declined'?'active':''}" onclick="setSortMode('most_declined')">Most Declined</div>
+            <div class="sort-chip ${sortMode==='least_resp'?'active':''}"    onclick="setSortMode('least_resp')">Least Responded</div>
+        </div>
+
+        <div class="event-list">
+            ${sorted.map(e => eventCardHtml(e)).join('')}
+        </div>`;
+}
+
+function eventCardHtml(e) {
+    const hasOpposition = e.opposition && e.opposition.trim() !== '';
+    return `
+        <div class="event-card" onclick="openEvent(${e.event_id}, 'all')">
+            <div class="event-card-top">
+                <div class="event-type-chips">
+                    ${e.code ? `<span class="code-chip">${esc(e.code)}</span>` : ''}
+                    ${e.type ? `<span class="type-chip">${esc(e.type)}</span>` : ''}
+                </div>
+                <span class="event-card-date">${fmtDate(e.date)}</span>
+            </div>
+            ${hasOpposition ? `<div class="event-opposition">v ${esc(e.opposition)}</div>` : ''}
+            <div class="event-responses" style="${hasOpposition ? '' : 'margin-top:8px;'}">
+                <span class="resp-chip accepted"
+                      onclick="event.stopPropagation(); openEvent(${e.event_id}, 'accepted')">
+                    ✓ ${e.accepted}
+                </span>
+                <span class="resp-chip declined"
+                      onclick="event.stopPropagation(); openEvent(${e.event_id}, 'declined')">
+                    ✗ ${e.declined}
+                </span>
+                <span class="resp-chip no-response"
+                      onclick="event.stopPropagation(); openEvent(${e.event_id}, 'no_response')">
+                    ? ${e.no_response}
+                </span>
+                <svg class="event-card-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </div>
+        </div>`;
+}
+
+function sortEvents(arr) {
+    return arr.sort((a, b) => {
+        switch (sortMode) {
+            case 'date_asc':      return new Date(a.date) - new Date(b.date);
+            case 'date_desc':     return new Date(b.date) - new Date(a.date);
+            case 'most_accepted': return (b.accepted||0) - (a.accepted||0);
+            case 'most_declined': return (b.declined||0) - (a.declined||0);
+            case 'least_resp':    return (b.no_response||0) - (a.no_response||0);
+            default: return 0;
+        }
+    });
+}
+
+function setSortMode(mode) {
+    sortMode = mode;
+    if (dashData) renderList(document.getElementById('listContent'));
+}
+
+// ── Event detail ──────────────────────────────────────────────────────────
+function openEvent(eventId, responseFilter) {
+    currentDetailEvent = lastFilteredEvents.find(e => e.event_id === eventId);
+    if (!currentDetailEvent) return;
+    activeDetailFilter = responseFilter;
+    document.getElementById('detailTitle').textContent = currentDetailEvent.title;
+    renderDetail(currentDetailEvent);
+    document.getElementById('viewsWrapper').classList.add('show-detail');
+    document.getElementById('detailContent').scrollTop = 0;
+}
+
+function goBack() {
+    document.getElementById('viewsWrapper').classList.remove('show-detail');
+}
+
+function setDetailFilter(filter) {
+    activeDetailFilter = filter;
+    if (currentDetailEvent) renderDetail(currentDetailEvent);
+}
+
+function renderDetail(e) {
+    const allMembers  = e.members || [];
+    const accepted    = allMembers.filter(m => m.response === 'accepted');
+    const declined    = allMembers.filter(m => m.response === 'declined');
+    const noResponse  = allMembers.filter(m => m.response === 'no_response');
+
+    // Update tab counts + active state
+    const tabs = {
+        all: { el: 'tabAll',      cnt: 'cntAll',      cls: 'active-all',      list: allMembers },
+        accepted:    { el: 'tabAccepted', cnt: 'cntAccepted', cls: 'active-accepted', list: accepted   },
+        declined:    { el: 'tabDeclined', cnt: 'cntDeclined', cls: 'active-declined', list: declined   },
+        no_response: { el: 'tabNone',     cnt: 'cntNone',     cls: 'active-none',     list: noResponse },
+    };
+    Object.entries(tabs).forEach(([key, t]) => {
+        const el = document.getElementById(t.el);
+        el.className = 'resp-tab' + (activeDetailFilter === key ? ' ' + t.cls : '');
+        document.getElementById(t.cnt).textContent = t.list.length;
+    });
+
+    const visibleMembers = tabs[activeDetailFilter]?.list || allMembers;
+    const showDot = activeDetailFilter === 'all';
+
+    // Event info card
+    const hasOpposition = e.opposition && e.opposition.trim() !== '';
+    document.getElementById('detailContent').innerHTML = `
+        <div class="detail-info">
+            <div class="detail-info-row">
+                <div class="event-type-chips">
+                    ${e.code ? `<span class="code-chip">${esc(e.code)}</span>` : ''}
+                    ${e.type ? `<span class="type-chip">${esc(e.type)}</span>` : ''}
+                </div>
+                <span class="detail-date">${fmtDate(e.date)}</span>
+            </div>
+            ${hasOpposition ? `<div class="detail-opposition">v ${esc(e.opposition)}</div>` : ''}
+        </div>
+
+        <div class="member-list">
+            ${visibleMembers.length
+                ? visibleMembers.map(m => memberRowHtml(m, showDot)).join('')
+                : `<div class="state-text" style="text-align:center;padding:24px 0">No members in this category</div>`}
+        </div>`;
+}
+
+function memberRowHtml(m, showDot) {
+    return `
+        <div class="member-row">
+            <div class="member-name">${esc(m.name)}</div>
+            ${m.role ? `<span class="role-badge">${esc(m.role)}</span>` : ''}
+            ${showDot ? `<div class="resp-dot ${m.response}"></div>` : ''}
+        </div>`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function rateColor(r) { return r >= 75 ? 'green' : r >= 50 ? 'amber' : 'red'; }
+
+function fmtShort(d) {
+    return d.toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: '2-digit' });
+}
+function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function esc(s) {
+    return String(s ?? '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+    const daysParam = urlParams.get('days');
+    if (daysParam !== null) {
+        let d = parseInt(daysParam, 10);
+        if (d === 0) {
+            const today = new Date();
+            d = Math.floor((today - new Date(today.getFullYear(), 0, 1)) / 86400000);
+        }
+        d = Math.max(7, Math.min(MAX_DATE_DAYS, d));
+        document.getElementById('sliderFrom').value = MAX_DATE_DAYS - d;
+    }
+    updateDateSliderUI();
+    loadData();
+});
+</script>
+</body>
+</html>
