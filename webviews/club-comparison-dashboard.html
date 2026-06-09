@@ -541,7 +541,7 @@ function renderTeams() {
 
 function thHtml(col, label) {
     const arrow = teamSortCol===col ? (teamSortDir===1?'↑':'↓') : '↕';
-    return `<th onclick="sortTeamTable('${col}')" class="${teamSortCol===col?'sort-active':''">${label}<span class="sort-arrow">${arrow}</span></th>`;
+    return `<th onclick="sortTeamTable('${col}')" class="${teamSortCol===col?'sort-active':''}">${label}<span class="sort-arrow">${arrow}</span></th>`;
 }
 
 function sortTeams(arr) {
