@@ -901,12 +901,46 @@ function renderDList(){
 }
 
 // ── PDF export ────────────────────────────────────────────────────
+function buildPDFHeader() {
+    const clubName = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || 'Overview';
+    const { start, end } = getDateRange();
+    const dateStr = fmtMonth(start) + ' – ' + fmtMonth(end);
+
+    const filterParts = [];
+    if (fTeams.size > 0) {
+        const names = (dashData.teams||[]).filter(t => fTeams.has(t.team_id)).map(t => t.team_name);
+        filterParts.push('Teams: ' + names.join(', '));
+    }
+    if (fCode) filterParts.push('Code: ' + fCode);
+    if (fType) filterParts.push('Type: ' + fType);
+    if (fRole) filterParts.push('Role: ' + fRole);
+    const filterStr = filterParts.length ? filterParts.join('  ·  ') : 'All events';
+    const genDate = new Date().toLocaleDateString('en-IE', { day:'numeric', month:'short', year:'numeric' });
+
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex;align-items:center;gap:16px;padding:0 0 16px;border-bottom:2px solid #87C232;margin-bottom:20px;';
+    el.innerHTML = `
+        <div style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;letter-spacing:3px;flex-shrink:0;color:#E7EBEE;">
+            Coach<span style="color:#87C232;">Smart</span>
+        </div>
+        <div style="width:1px;height:28px;background:rgba(255,255,255,0.07);flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:600;color:#E7EBEE;">Overview Dashboard — ${esc(clubName)}</div>
+            <div style="font-size:12px;color:#6B7280;margin-top:3px;">${esc(dateStr)}&nbsp;&nbsp;·&nbsp;&nbsp;${esc(filterStr)}</div>
+        </div>
+        <div style="font-size:11px;color:#6B7280;text-align:right;flex-shrink:0;">Generated ${esc(genDate)}</div>
+    `;
+    return el;
+}
+
 async function exportPDF() {
     const btn = document.getElementById('pdfBtn');
     btn.textContent = 'Generating…';
     btn.disabled = true;
+    const el = document.getElementById('dashContent');
+    const header = buildPDFHeader();
+    el.insertBefore(header, el.firstChild);
     try {
-        const el = document.getElementById('dashContent');
         const canvas = await html2canvas(el, {
             backgroundColor: '#111418',
             scale: 2,
@@ -927,6 +961,7 @@ async function exportPDF() {
     } catch(e) {
         alert('PDF export failed: ' + e.message);
     } finally {
+        el.removeChild(header);
         btn.textContent = '↓ Export PDF';
         btn.disabled = false;
     }
