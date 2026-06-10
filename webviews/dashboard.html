@@ -615,7 +615,17 @@ function onTeamToggle(id) {
     }
     renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
-function closeTeamCard(teamId) { onTeamToggle(teamId); }
+function closeTeamCard(teamId) {
+    const allIds=(dashData.teams||[]).map(t=>t.team_id);
+    if (fTeams.size===0) {
+        // All teams active — deselect this one specifically
+        fTeams=new Set(allIds.filter(x=>x!==teamId));
+    } else {
+        fTeams.delete(teamId);
+        if (fTeams.size===0) fTeams=new Set([allIds[0]]);
+    }
+    renderTeamDropdown(); resetSubFilters(); applyFilters();
+}
 
 // ── Multi-select chips ────────────────────────────────────────────
 function renderMultiChips(containerId, key, values, current) {
@@ -867,7 +877,7 @@ function renderTeamViewKPIs(evtsPerTeam) {
 }
 function openTeamInClubOverview(teamId) {
     fTeams=new Set([teamId]); renderTeamDropdown(); resetSubFilters();
-    switchTab('club-overview'); applyFilters();
+    switchTab('team-overview'); applyFilters();
 }
 function renderTeamCards(evtsPerTeam) {
     renderTeamViewKPIs(evtsPerTeam);
