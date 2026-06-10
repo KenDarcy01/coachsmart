@@ -150,7 +150,7 @@ BEGIN
                                     (SELECT jsonb_agg(
                                         jsonb_build_object(
                                             'member_id',        sa.member_id,
-                                            'name',             COALESCE(tmr.full_name, '—'),
+                                            'name',             COALESCE(tmr.full_name, ''),
                                             'role',             COALESCE(tmr.role_name, ''),
                                             'accepted',         COALESCE(ma.accepted, 0),
                                             'total_events',     COALESCE(ma.total_events, 0),

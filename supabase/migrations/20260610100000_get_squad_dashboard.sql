@@ -11,7 +11,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = 'public'
-AS $$
+AS $func$
 DECLARE
     v_club_name text;
     v_result    jsonb;
@@ -27,7 +27,7 @@ BEGIN
         SELECT t.team_id, t.team_name
         FROM public.teams t WHERE t.club_id = p_club_id
     ),
-    -- Primary role per (team, member) — players only (grade = 10)
+    -- Primary role per (team, member) - players only (grade = 10)
     team_member_roles AS (
         SELECT DISTINCT ON (mtl.team_id, m.member_id)
             mtl.team_id,
@@ -157,7 +157,7 @@ BEGIN
                                     (SELECT jsonb_agg(
                                         jsonb_build_object(
                                             'member_id',        sa.member_id,
-                                            'name',             COALESCE(tmr.full_name, '—'),
+                                            'name',             COALESCE(tmr.full_name, ''),
                                             'role',             COALESCE(tmr.role_name, ''),
                                             'accepted',         COALESCE(ma.accepted, 0),
                                             'total_events',     COALESCE(ma.total_events, 0),
@@ -197,7 +197,7 @@ BEGIN
 
     RETURN v_result;
 END;
-$$;
+$func$;
 
 GRANT EXECUTE ON FUNCTION public.get_squad_dashboard(integer, timestamptz, timestamptz)
     TO anon, authenticated, service_role;
