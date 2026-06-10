@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoachSmart — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<style>
+:root {
+    --green:  #87C232;
+    --dark:   #111418;
+    --card:   #1E222B;
+    --card2:  #252A35;
+    --border: rgba(255,255,255,0.07);
+    --text:   #E7EBEE;
+    --muted:  #6B7280;
+    --red:    #e05252;
+    --amber:  #F5A623;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); min-height: 100%; }
+
+/* ── Topbar ── */
+.topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 24px; display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 30; height: 53px;
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex-shrink: 0; }
+.logo span { color: var(--green); }
+.topbar-div { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+#ctxLabel { font-size: 13px; font-weight: 600; color: var(--muted); }
+.topbar select {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 10px; border-radius: 6px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; min-width: 200px; margin-left: auto;
+}
+.topbar select:focus { outline: none; border-color: var(--green); }
+.pdf-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: var(--green); color: #111; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; flex-shrink: 0;
+}
+.pdf-btn:hover { opacity: 0.85; }
+.pdf-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Tab bar ── */
+.tab-bar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 0 24px; display: flex; align-items: flex-end;
+    position: sticky; top: 53px; z-index: 29; height: 43px;
+}
+.cs-tab {
+    padding: 10px 18px 10px; font-size: 13px; font-weight: 500; color: var(--muted);
+    cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all 0.15s; user-select: none; white-space: nowrap;
+}
+.cs-tab:hover { color: var(--text); }
+.cs-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+/* ── Filter strip ── */
+.filter-strip {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 10px 24px 12px; position: sticky; top: 96px; z-index: 28;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.fs-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
+.period-row { display: flex; align-items: center; gap: 10px; }
+.slider-dates { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.slider-dates span { font-size: 11px; font-weight: 500; background: var(--card2); padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); }
+.slider-wrap { position: relative; height: 26px; display: flex; align-items: center; flex: 1; min-width: 160px; }
+.slider-track { position: absolute; width: 100%; height: 3px; background: var(--border); border-radius: 2px; }
+.slider-fill  { position: absolute; height: 3px; background: var(--green); border-radius: 2px; }
+input[type=range] { position: absolute; width: 100%; height: 3px; background: transparent; -webkit-appearance: none; pointer-events: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all; box-shadow: 0 0 0 4px rgba(135,194,50,0.15); }
+input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all; }
+.slider-range-label { font-size: 11px; font-weight: 500; background: var(--card2); padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); white-space: nowrap; flex-shrink: 0; }
+.filter-groups { display: flex; align-items: flex-start; gap: 0; flex-wrap: wrap; }
+.filter-group { display: flex; flex-direction: column; gap: 5px; padding: 0 14px; border-right: 1px solid var(--border); }
+.filter-group:first-child { padding-left: 0; }
+.filter-group:last-child  { border-right: none; }
+
+/* Team dropdown */
+.team-drop { position: relative; }
+.team-drop-btn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; gap: 6px; min-width: 130px;
+    justify-content: space-between; font-family: 'DM Sans', sans-serif; white-space: nowrap;
+}
+.team-drop-btn:hover { border-color: rgba(255,255,255,0.2); }
+.team-drop-btn.open  { border-color: var(--green); }
+.drop-arrow { font-size: 9px; color: var(--muted); transition: transform 0.15s; flex-shrink: 0; }
+.team-drop-btn.open .drop-arrow { transform: rotate(180deg); }
+.team-drop-menu {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 190px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5); z-index: 50; overflow: hidden;
+}
+.team-drop-menu.open { display: block; }
+.tdrop-item { display: flex; align-items: center; gap: 9px; padding: 9px 14px; font-size: 13px; cursor: pointer; transition: background 0.1s; user-select: none; }
+.tdrop-item + .tdrop-item { border-top: 1px solid var(--border); }
+.tdrop-item:hover { background: var(--card2); }
+.tdrop-item.all-item { color: var(--muted); font-size: 12px; font-weight: 500; }
+.tdrop-check { width: 15px; height: 15px; border-radius: 3px; border: 1.5px solid var(--muted); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+.tdrop-item.checked .tdrop-check { background: var(--green); border-color: var(--green); color: #111; font-weight: 700; }
+
+/* Chips */
+.chip-group { display: flex; gap: 5px; flex-wrap: wrap; }
+.s-chip { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--card2); cursor: pointer; transition: all 0.15s; user-select: none; white-space: nowrap; }
+.s-chip:hover { border-color: rgba(255,255,255,0.18); }
+.s-chip.active { background: rgba(135,194,50,0.18); color: var(--green); border-color: rgba(135,194,50,0.45); }
+
+/* ── Main ── */
+.main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+/* KPIs */
+.kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+.kpi-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.kpi-value { font-size: 28px; font-weight: 600; line-height: 1; }
+.kpi-value.green { color: var(--green); }
+.kpi-value.amber { color: var(--amber); }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+/* Chart */
+.chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+.chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+.chart-head h3 { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.tog-row { display: flex; gap: 8px; }
+.tog-group { display: flex; background: var(--card2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.tog { padding: 4px 11px; font-size: 11px; font-weight: 500; color: var(--muted); background: transparent; border: none; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+.tog.active { background: var(--green); color: #111; }
+.line-wrap { position: relative; height: 300px; }
+
+/* Table */
+.table-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+.table-head { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.table-head h3 { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.table-count { font-size: 12px; color: var(--muted); }
+.export-btn { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; background: var(--card2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap; }
+.export-btn:hover { border-color: var(--green); color: var(--green); }
+.tscroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th { padding: 9px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; background: var(--card2); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap; }
+thead th:hover { color: var(--text); }
+thead th.sa { color: var(--green); }
+tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+tbody tr:hover { background: var(--card2); }
+tbody tr:last-child { border-bottom: none; }
+tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
+.td-event { min-width: 280px; font-weight: 500; }
+.td-event small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; background: var(--card2); border: 1px solid var(--border); }
+.ac { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: opacity 0.15s; }
+.ac:hover { opacity: 0.7; }
+.ac.acc { background: rgba(135,194,50,0.12); color: var(--green); border-color: rgba(135,194,50,0.3); }
+.ac.dec { background: rgba(224,82,82,0.12); color: var(--red);   border-color: rgba(224,82,82,0.3); }
+.ac.nr  { background: rgba(107,114,128,0.18); color: var(--muted); border-color: rgba(107,114,128,0.3); }
+
+/* ── Detail panel ── */
+.d-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.d-overlay.open { opacity: 1; pointer-events: all; }
+.d-panel { position: fixed; top: 0; right: -460px; width: 440px; height: 100vh; background: var(--card); border-left: 1px solid var(--border); z-index: 41; display: flex; flex-direction: column; transition: right 0.25s ease; }
+.d-panel.open { right: 0; }
+.d-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0; }
+.d-head-info { flex: 1; min-width: 0; }
+.d-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.d-meta  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.d-close { width: 28px; height: 28px; border-radius: 6px; background: var(--card2); border: 1px solid var(--border); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.d-close:hover { background: rgba(255,255,255,0.07); }
+.d-tabs { display: flex; padding: 10px 20px; gap: 6px; border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap; }
+.d-tab { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.d-tab.active { background: var(--green); color: #111; border-color: var(--green); }
+.d-export { display: flex; gap: 6px; justify-content: flex-end; padding: 8px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.d-list { flex: 1; overflow-y: auto; padding: 10px 20px; }
+.d-member { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.d-member:last-child { border-bottom: none; }
+.d-av { width: 32px; height: 32px; border-radius: 50%; background: var(--card2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; color: var(--muted); }
+.d-nm { font-size: 13px; font-weight: 500; }
+.d-rl { font-size: 11px; color: var(--muted); }
+.d-bd { margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.d-bd.acc { background: rgba(135,194,50,0.12); color: var(--green); }
+.d-bd.dec { background: rgba(224,82,82,0.12); color: var(--red); }
+.d-bd.nr  { background: rgba(107,114,128,0.18); color: var(--muted); }
+
+/* ── Teams grid ── */
+.teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; }
+.team-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; }
+.team-card:hover { border-color: rgba(135,194,50,0.4); box-shadow: 0 4px 24px rgba(0,0,0,0.35); }
+.tc-head { padding: 16px 18px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.tc-name { font-size: 15px; font-weight: 600; flex: 1; }
+.tc-badge { font-size: 11px; font-weight: 500; color: var(--muted); background: var(--card2); padding: 3px 9px; border-radius: 10px; border: 1px solid var(--border); white-space: nowrap; }
+.tc-kpis { display: grid; grid-template-columns: repeat(4,1fr); padding: 14px 18px; gap: 4px; border-bottom: 1px solid var(--border); }
+.tc-kpi { text-align: center; }
+.tc-kv { font-size: 22px; font-weight: 600; line-height: 1; }
+.tc-kv.green { color: var(--green); }
+.tc-kv.amber { color: var(--amber); }
+.tc-kl { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 5px; }
+.tc-chart-wrap { padding: 14px 16px 10px; height: 190px; }
+.tc-empty { padding: 24px 18px; font-size: 12px; color: var(--muted); text-align: center; border-top: 1px solid var(--border); }
+.tc-footer { padding: 10px 18px; font-size: 12px; color: var(--muted); text-align: right; border-top: 1px solid var(--border); transition: color 0.15s; }
+.team-card:hover .tc-footer { color: var(--green); }
+
+/* ── Misc ── */
+.loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; gap: 14px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 900px) {
+    .kpi-row { grid-template-columns: repeat(2,1fr); }
+    .d-panel { width: 100vw; right: -100vw; }
+    .teams-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+    .main { padding: 14px; }
+    .topbar, .tab-bar, .filter-strip { padding-left: 14px; padding-right: 14px; }
+    .filter-group { padding: 0 8px; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="logo">Coach<span>Smart</span></div>
+    <div class="topbar-div"></div>
+    <span id="ctxLabel" style="display:none;"></span>
+    <div id="clubWrap">
+        <select id="clubSelect" onchange="onClubChange()"><option value="">Select Club…</option></select>
+    </div>
+    <button class="pdf-btn" id="pdfBtn" onclick="exportPDF()" disabled>↓ Export PDF</button>
+</div>
+
+<div class="tab-bar">
+    <div class="cs-tab active" data-tab="overview" onclick="switchTab('overview')">Overview</div>
+    <div class="cs-tab"        data-tab="teams"    onclick="switchTab('teams')">Teams</div>
+</div>
+
+<div class="filter-strip">
+    <div class="period-row">
+        <span class="fs-label" style="flex-shrink:0;">Period</span>
+        <div style="flex:1;">
+            <div class="slider-dates"><span id="dateFrom">—</span><span id="dateTo">—</span></div>
+            <div class="slider-wrap">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="dateFill"></div>
+                <input type="range" id="sliderFrom" min="0" max="12" value="3"  oninput="onDateSlider()">
+                <input type="range" id="sliderTo"   min="0" max="12" value="12" oninput="onDateSlider()">
+            </div>
+        </div>
+    </div>
+    <div class="filter-groups" id="filterGroups" style="display:none;">
+        <div class="filter-group" id="teamRow">
+            <span class="fs-label">Teams</span>
+            <div class="team-drop">
+                <button class="team-drop-btn" id="teamDropBtn" onclick="toggleTeamDrop(event)">
+                    <span id="teamDropLabel">—</span><span class="drop-arrow">▾</span>
+                </button>
+                <div class="team-drop-menu" id="teamDropMenu"></div>
+            </div>
+        </div>
+        <div class="filter-group" id="codeGroup"><span class="fs-label">Code</span><div class="chip-group" id="codeChips"></div></div>
+        <div class="filter-group" id="typeGroup"><span class="fs-label">Type</span><div class="chip-group" id="typeChips"></div></div>
+        <div class="filter-group" id="roleGroup"><span class="fs-label">Role</span><div class="chip-group" id="roleChips"></div></div>
+    </div>
+    <div class="period-row" id="attRow" style="display:none;">
+        <span class="fs-label" style="flex-shrink:0;">Attendees</span>
+        <div class="slider-wrap">
+            <div class="slider-track"></div>
+            <div class="slider-fill" id="attFill"></div>
+            <input type="range" id="attFrom" min="0" max="100" value="0"   oninput="onAttSlider()">
+            <input type="range" id="attTo"   min="0" max="100" value="100" oninput="onAttSlider()">
+        </div>
+        <span class="slider-range-label" id="attLabel">0 – 0</span>
+    </div>
+</div>
+
+<div class="main">
+    <div class="loading-wrap" id="loading" style="display:none;">
+        <div class="spinner"></div>
+        <div style="color:var(--muted);font-size:13px;">Loading dashboard…</div>
+    </div>
+
+    <!-- Overview tab -->
+    <div id="viewOverview" style="display:none;">
+        <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-label">Total Events</div><div class="kpi-value green" id="kpiEvents">—</div><div class="kpi-sub" id="kpiEventsSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Acceptance Rate</div><div class="kpi-value green" id="kpiAcc">—</div><div class="kpi-sub" id="kpiAccSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Accepted</div><div class="kpi-value" id="kpiAvg">—</div><div class="kpi-sub">per event</div></div>
+            <div class="kpi-card"><div class="kpi-label">Response Rate</div><div class="kpi-value amber" id="kpiResp">—</div><div class="kpi-sub" id="kpiRespSub"></div></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-head">
+                <h3>Accepted Attendees</h3>
+                <div class="tog-row">
+                    <div class="tog-group" id="grpTog">
+                        <button class="tog active" onclick="setGroupBy('code')">By Code</button>
+                        <button class="tog"        onclick="setGroupBy('team')">By Team</button>
+                        <button class="tog"        onclick="setGroupBy('month')">By Month</button>
+                    </div>
+                    <div class="tog-group" id="smthTog">
+                        <button class="tog active" onclick="setSmooth(false)">Linear</button>
+                        <button class="tog"        onclick="setSmooth(true)">Smooth</button>
+                    </div>
+                </div>
+            </div>
+            <div class="line-wrap"><canvas id="chartMain"></canvas></div>
+        </div>
+        <div class="table-card">
+            <div class="table-head">
+                <h3>Events</h3>
+                <span class="table-count" id="tableCount"></span>
+                <div style="display:flex;gap:6px;margin-left:auto;">
+                    <button class="export-btn" onclick="exportTableExcel()">↓ Excel</button>
+                    <button class="export-btn" onclick="exportTableCSV()">↓ CSV</button>
+                </div>
+            </div>
+            <div class="tscroll">
+                <table>
+                    <thead><tr>
+                        <th id="th-title"       onclick="setSort('title')">Event</th>
+                        <th id="th-date"        onclick="setSort('date')">Date ↓</th>
+                        <th id="th-code"        onclick="setSort('code')">Code</th>
+                        <th id="th-type"        onclick="setSort('type')">Type</th>
+                        <th id="th-opposition"  onclick="setSort('opposition')">Opposition</th>
+                        <th id="th-accepted"    onclick="setSort('accepted')">Accepted</th>
+                        <th id="th-declined"    onclick="setSort('declined')">Declined</th>
+                        <th id="th-no_response" onclick="setSort('no_response')">No Response</th>
+                    </tr></thead>
+                    <tbody id="eventsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teams tab -->
+    <div id="viewTeams" style="display:none;">
+        <div id="teamsGrid" class="teams-grid"></div>
+    </div>
+
+    <div class="empty-state" id="emptyState">Select a club above to load the dashboard.</div>
+</div>
+
+<div class="d-overlay" id="dOverlay" onclick="closeDetail()"></div>
+<div class="d-panel" id="dPanel">
+    <div class="d-head">
+        <div class="d-head-info"><div class="d-title" id="dTitle"></div><div class="d-meta" id="dMeta"></div></div>
+        <button class="d-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="d-tabs" id="dTabs"></div>
+    <div class="d-export">
+        <button class="export-btn" onclick="exportDrawerExcel()">↓ Excel</button>
+        <button class="export-btn" onclick="exportDrawerCSV()">↓ CSV</button>
+    </div>
+    <div class="d-list" id="dList"></div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const H = { 'Content-Type':'application/json', 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${SUPABASE_ANON_KEY}` };
+
+const MAX_MONTHS = 12;
+const PALETTE    = ['#87C232','#e05252','#F5A623','#60a5fa','#a78bfa','#34d399','#fb923c','#f472b6'];
+
+const QS        = new URLSearchParams(location.search);
+const paramClub = QS.get('club_id') ? parseInt(QS.get('club_id')) : null;
+const paramTeam = QS.get('team_id') ? parseInt(QS.get('team_id')) : null;
+const paramTab  = QS.get('tab') || (paramTeam ? 'overview' : 'overview');
+
+let dashData    = null;
+let mainChart   = null;
+let teamCharts  = {};
+let detailEvt   = null, detailFilt = 'all';
+let sortCol     = 'date', sortAsc = false;
+let eventsCache = [];
+let fTeams      = new Set();
+let fCode       = new Set();
+let fType       = new Set();
+let fRole       = new Set();
+let attMin      = 0, attMax = Infinity;
+let groupBy     = 'code';
+let smoothChart = false;
+let allCodes = [], allTypes = [], allRoles = [];
+let currentClubId = null;
+let activeTab   = 'overview';
+
+// ── Helpers ───────────────────────────────────────────────────────
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtMonth(d) { return d.toLocaleDateString('en-IE',{month:'short',year:'numeric'}); }
+function fmtDate(d)  { return new Date(d).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}); }
+function getMonthsInRange(start, end) {
+    const months = [], cur = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cur < end) {
+        months.push({ year: cur.getFullYear(), month: cur.getMonth(), label: fmtMonth(new Date(cur)) });
+        cur.setMonth(cur.getMonth() + 1);
+    }
+    return months;
+}
+function clubName() {
+    return paramClub ? dashData?.club_name : (document.getElementById('clubSelect').selectedOptions[0]?.text || '');
+}
+
+// ── Tab switching ─────────────────────────────────────────────────
+function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.cs-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.getElementById('viewOverview').style.display = tab === 'overview' ? '' : 'none';
+    document.getElementById('viewTeams').style.display    = tab === 'teams'    ? '' : 'none';
+    document.getElementById('teamRow').style.display      = tab === 'overview' ? '' : 'none';
+    document.getElementById('pdfBtn').disabled = !dashData;
+    if (dashData) applyFiltersNoReload();
+}
+
+// ── Date slider ───────────────────────────────────────────────────
+function monthToDate(i) {
+    const d = new Date(); d.setDate(1); d.setHours(0,0,0,0);
+    d.setMonth(d.getMonth() - (MAX_MONTHS - i)); return d;
+}
+function getDateRange() {
+    const f = parseInt(document.getElementById('sliderFrom').value);
+    const t = parseInt(document.getElementById('sliderTo').value);
+    const start = monthToDate(f), end = monthToDate(t);
+    end.setMonth(end.getMonth() + 1);
+    return { start, end };
+}
+function onDateSlider() {
+    let f = parseInt(document.getElementById('sliderFrom').value);
+    let t = parseInt(document.getElementById('sliderTo').value);
+    if (f >= t) {
+        if (document.activeElement === document.getElementById('sliderFrom')) f = t-1;
+        else t = f+1;
+        document.getElementById('sliderFrom').value = f;
+        document.getElementById('sliderTo').value   = t;
+    }
+    document.getElementById('dateFrom').textContent = fmtMonth(monthToDate(f));
+    document.getElementById('dateTo').textContent   = fmtMonth(monthToDate(t));
+    const p1 = f/MAX_MONTHS*100, p2 = t/MAX_MONTHS*100;
+    document.getElementById('dateFill').style.left  = p1+'%';
+    document.getElementById('dateFill').style.width = (p2-p1)+'%';
+    if (dashData) loadDashboard();
+}
+
+// ── Attendees slider ──────────────────────────────────────────────
+function initAttSlider(maxVal) {
+    attMin = 0; attMax = maxVal || 1;
+    const fromEl = document.getElementById('attFrom'), toEl = document.getElementById('attTo');
+    fromEl.max = attMax; fromEl.value = 0;
+    toEl.max   = attMax; toEl.value   = attMax;
+    updateAttFill();
+    document.getElementById('attRow').style.display = maxVal > 0 ? '' : 'none';
+}
+function onAttSlider() {
+    let f = parseInt(document.getElementById('attFrom').value);
+    let t = parseInt(document.getElementById('attTo').value);
+    if (f > t) {
+        if (document.activeElement === document.getElementById('attFrom')) f = t; else t = f;
+        document.getElementById('attFrom').value = f; document.getElementById('attTo').value = t;
+    }
+    attMin = f; attMax = t; updateAttFill(); applyFiltersNoReload();
+}
+function updateAttFill() {
+    const f = parseInt(document.getElementById('attFrom').value);
+    const t = parseInt(document.getElementById('attTo').value);
+    const max = parseInt(document.getElementById('attTo').max) || 1;
+    document.getElementById('attFill').style.left  = (f/max*100)+'%';
+    document.getElementById('attFill').style.width = ((t-f)/max*100)+'%';
+    document.getElementById('attLabel').textContent = `${f} – ${t}`;
+}
+
+// ── Club loading ──────────────────────────────────────────────────
+async function loadClubs() {
+    if (paramClub) { document.getElementById('clubWrap').style.display = 'none'; loadDashboard(); return; }
+    try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clubs?select=club_id,club_name&order=club_name`,{headers:H});
+        const clubs = await r.json();
+        if (!Array.isArray(clubs)) return;
+        const sel = document.getElementById('clubSelect');
+        clubs.forEach(c => { const o=document.createElement('option'); o.value=c.club_id; o.textContent=c.club_name; sel.appendChild(o); });
+        if (clubs.length === 1) { sel.value = clubs[0].club_id; onClubChange(); }
+    } catch(e) { console.error(e); }
+}
+function onClubChange() { if (document.getElementById('clubSelect').value) loadDashboard(); }
+
+// ── Dashboard fetch ───────────────────────────────────────────────
+async function loadDashboard() {
+    const clubId = paramClub || parseInt(document.getElementById('clubSelect').value);
+    if (!clubId) return;
+
+    document.getElementById('loading').style.display      = 'flex';
+    document.getElementById('viewOverview').style.display = 'none';
+    document.getElementById('viewTeams').style.display    = 'none';
+    document.getElementById('emptyState').style.display   = 'none';
+
+    const {start,end} = getDateRange();
+    try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`, {
+            method:'POST', headers:H,
+            body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
+        });
+        if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||`HTTP ${r.status}`); }
+        const data = await r.json();
+        if (data.error) throw new Error(data.error);
+        dashData = data;
+
+        if (paramClub && data.club_name) {
+            document.getElementById('ctxLabel').textContent = data.club_name;
+            document.getElementById('ctxLabel').style.display = '';
+        }
+
+        buildFilters(clubId);
+        document.getElementById('filterGroups').style.display = '';
+        document.getElementById('pdfBtn').disabled = false;
+        switchTab(activeTab); // re-renders current tab and applies filters
+    } catch(e) {
+        document.getElementById('emptyState').textContent = 'Error: ' + e.message;
+        document.getElementById('emptyState').style.display = 'block';
+        console.error(e);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+// ── Build filters ─────────────────────────────────────────────────
+function buildFilters(clubId) {
+    const codes = new Set(), types = new Set(), roles = new Set();
+    for (const team of dashData.teams||[]) {
+        for (const e of team.events||[]) {
+            if (e.code) codes.add(e.code);
+            if (e.type) types.add(e.type);
+            for (const m of e.members||[]) { if (m.role) roles.add(m.role); }
+        }
+    }
+    allCodes = [...codes].sort(); allTypes = [...types].sort(); allRoles = [...roles].sort();
+    const teams = dashData.teams||[];
+    const validIds = new Set(teams.map(t=>t.team_id));
+
+    if (clubId !== currentClubId) {
+        currentClubId = clubId;
+        fTeams = teams.length > 0 ? new Set([teams[0].team_id]) : new Set();
+        fCode = new Set(); fType = new Set(); fRole = new Set();
+    } else {
+        if (fTeams.size > 0) {
+            fTeams = new Set([...fTeams].filter(id=>validIds.has(id)));
+            if (fTeams.size === 0) fTeams = teams.length > 0 ? new Set([teams[0].team_id]) : new Set();
+        }
+        fCode = new Set([...fCode].filter(v=>allCodes.includes(v)));
+        fType = new Set([...fType].filter(v=>allTypes.includes(v)));
+        fRole = new Set([...fRole].filter(v=>allRoles.includes(v)));
+    }
+
+    if (paramTeam && currentClubId === clubId) fTeams = new Set([paramTeam]);
+
+    renderTeamDropdown();
+    renderMultiChips('codeChips','code',allCodes,fCode);
+    renderMultiChips('typeChips','type',allTypes,fType);
+    renderMultiChips('roleChips','role',allRoles,fRole);
+    document.getElementById('codeGroup').style.display = allCodes.length ? '' : 'none';
+    document.getElementById('typeGroup').style.display = allTypes.length ? '' : 'none';
+    document.getElementById('roleGroup').style.display = allRoles.length ? '' : 'none';
+}
+
+// ── Team dropdown ─────────────────────────────────────────────────
+function toggleTeamDrop(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('teamDropMenu'), btn = document.getElementById('teamDropBtn');
+    const open = menu.classList.toggle('open');
+    btn.classList.toggle('open', open);
+}
+document.addEventListener('click', () => {
+    document.getElementById('teamDropMenu')?.classList.remove('open');
+    document.getElementById('teamDropBtn')?.classList.remove('open');
+});
+function renderTeamDropdown() {
+    const teams = dashData?.teams||[];
+    const allActive = fTeams.size === 0;
+    let html = `<div class="tdrop-item all-item ${allActive?'checked':''}" onclick="onTeamAll()">
+        <span class="tdrop-check">${allActive?'✓':''}</span>All Teams</div>`;
+    html += teams.map(t => {
+        const chk = allActive || fTeams.has(t.team_id);
+        return `<div class="tdrop-item ${chk?'checked':''}" onclick="onTeamToggle(${t.team_id})">
+            <span class="tdrop-check">${chk?'✓':''}</span>${esc(t.team_name)}</div>`;
+    }).join('');
+    document.getElementById('teamDropMenu').innerHTML = html;
+    updateTeamDropLabel();
+}
+function updateTeamDropLabel() {
+    const teams = dashData?.teams||[];
+    let label;
+    if (fTeams.size === 0)      label = 'All Teams';
+    else if (fTeams.size === 1) { const t = teams.find(t=>fTeams.has(t.team_id)); label = t ? t.team_name : '1 Team'; }
+    else                         label = fTeams.size + ' Teams';
+    document.getElementById('teamDropLabel').textContent = label;
+}
+function resetSubFilters() {
+    fCode = new Set(); fType = new Set(); fRole = new Set();
+    renderMultiChips('codeChips','code',allCodes,fCode);
+    renderMultiChips('typeChips','type',allTypes,fType);
+    renderMultiChips('roleChips','role',allRoles,fRole);
+}
+function onTeamAll() {
+    fTeams = new Set(); renderTeamDropdown(); resetSubFilters(); applyFilters();
+}
+function onTeamToggle(id) {
+    const allIds = (dashData.teams||[]).map(t=>t.team_id);
+    if (fTeams.size === 0)       fTeams = new Set(allIds.filter(x=>x!==id));
+    else if (fTeams.has(id)) { fTeams.delete(id); if (fTeams.size===0) fTeams = new Set([allIds[0]]); }
+    else { fTeams.add(id); if (fTeams.size===allIds.length) fTeams = new Set(); }
+    renderTeamDropdown(); resetSubFilters(); applyFilters();
+}
+
+// ── Multi-select chips ────────────────────────────────────────────
+function renderMultiChips(containerId, key, values, current) {
+    const allActive = current.size === 0;
+    document.getElementById(containerId).innerHTML =
+        `<span class="s-chip ${allActive?'active':''}" data-key="${key}" data-val="" onclick="pickFilter(this)">All</span>` +
+        values.map(v=>`<span class="s-chip ${current.has(v)?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(v)}</span>`).join('');
+}
+function pickFilter(el) {
+    const key = el.dataset.key, val = el.dataset.val;
+    const map = {code:fCode,type:fType,role:fRole}, s = map[key]; if (!s) return;
+    if (val==='') s.clear(); else if (s.has(val)) s.delete(val); else s.add(val);
+    renderMultiChips('codeChips','code',allCodes,fCode);
+    renderMultiChips('typeChips','type',allTypes,fType);
+    renderMultiChips('roleChips','role',allRoles,fRole);
+    applyFiltersNoReload();
+}
+
+// ── Filter pipelines ──────────────────────────────────────────────
+function getBaseEvents() {
+    if (!dashData) return [];
+    const evts = [];
+    for (const team of dashData.teams||[]) {
+        if (fTeams.size > 0 && !fTeams.has(team.team_id)) continue;
+        for (const e of team.events||[]) {
+            if (fCode.size > 0 && !fCode.has(e.code)) continue;
+            if (fType.size > 0 && !fType.has(e.type)) continue;
+            const members = fRole.size > 0 ? (e.members||[]).filter(m=>fRole.has(m.role)) : (e.members||[]);
+            evts.push({ ...e, team_id:team.team_id, team_name:team.team_name, members,
+                accepted:    members.filter(m=>m.response==='accepted').length,
+                declined:    members.filter(m=>m.response==='declined').length,
+                no_response: members.filter(m=>m.response==='no_response').length,
+                total:       members.length });
+        }
+    }
+    return evts;
+}
+function getFilteredEventsPerTeam() {
+    const result = {};
+    for (const team of dashData.teams||[]) {
+        const evts = [];
+        for (const e of team.events||[]) {
+            if (fCode.size > 0 && !fCode.has(e.code)) continue;
+            if (fType.size > 0 && !fType.has(e.type)) continue;
+            const members = fRole.size > 0 ? (e.members||[]).filter(m=>fRole.has(m.role)) : (e.members||[]);
+            evts.push({ ...e, members,
+                accepted:    members.filter(m=>m.response==='accepted').length,
+                declined:    members.filter(m=>m.response==='declined').length,
+                no_response: members.filter(m=>m.response==='no_response').length,
+                total:       members.length });
+        }
+        result[team.team_id] = evts;
+    }
+    return result;
+}
+function applyFilters() {
+    if (activeTab === 'overview') {
+        const base = getBaseEvents();
+        initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
+        renderOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
+    } else {
+        const base = getFilteredEventsPerTeam();
+        initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));
+        const filtered = {};
+        for (const [id,evts] of Object.entries(base)) filtered[id] = evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);
+        renderTeamCards(filtered);
+    }
+}
+function applyFiltersNoReload() {
+    if (activeTab === 'overview') {
+        renderOverview(getBaseEvents().filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
+    } else {
+        const base = getFilteredEventsPerTeam();
+        const filtered = {};
+        for (const [id,evts] of Object.entries(base)) filtered[id] = evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);
+        renderTeamCards(filtered);
+    }
+}
+function renderOverview(evts) { renderKPIs(evts); drawChart(evts); renderTable(evts); }
+
+// ── KPIs ──────────────────────────────────────────────────────────
+function renderKPIs(evts) {
+    const totalAcc = evts.reduce((s,e)=>s+e.accepted,    0);
+    const totalDec = evts.reduce((s,e)=>s+e.declined,    0);
+    const totalNR  = evts.reduce((s,e)=>s+e.no_response, 0);
+    const totalAll = totalAcc+totalDec+totalNR;
+    const teams    = new Set(evts.map(e=>e.team_id)).size;
+    document.getElementById('kpiEvents').textContent    = evts.length;
+    document.getElementById('kpiEventsSub').textContent = `across ${teams} team${teams!==1?'s':''}`;
+    document.getElementById('kpiAcc').textContent       = totalAll>0 ? (totalAcc/totalAll*100).toFixed(1)+'%' : '—';
+    document.getElementById('kpiAccSub').textContent    = `${totalAcc.toLocaleString()} accepted of ${totalAll.toLocaleString()}`;
+    document.getElementById('kpiAvg').textContent       = evts.length>0 ? (totalAcc/evts.length).toFixed(1) : '—';
+    document.getElementById('kpiResp').textContent      = totalAll>0 ? ((totalAcc+totalDec)/totalAll*100).toFixed(1)+'%' : '—';
+    document.getElementById('kpiRespSub').textContent   = `${totalNR.toLocaleString()} no response`;
+}
+
+// ── Chart ─────────────────────────────────────────────────────────
+function setGroupBy(g) {
+    groupBy = g;
+    document.querySelectorAll('#grpTog .tog').forEach((b,i)=>b.classList.toggle('active',['code','team','month'][i]===g));
+    document.getElementById('smthTog').style.display = g==='month' ? 'none' : '';
+    if (dashData) applyFiltersNoReload();
+}
+function setSmooth(s) {
+    smoothChart = s;
+    document.querySelectorAll('#smthTog .tog').forEach((b,i)=>b.classList.toggle('active',[false,true][i]===s));
+    if (dashData) applyFiltersNoReload();
+}
+function drawChart(evts) {
+    if (groupBy === 'month') drawMonthBarChart(evts); else drawLineChart(evts);
+}
+function drawLineChart(evts) {
+    const sorted  = [...evts].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const keyFn   = groupBy==='team' ? e=>e.team_name : e=>e.code||'Unknown';
+    const groups  = [...new Set(sorted.map(keyFn))].sort();
+    const tension = smoothChart ? 0.4 : 0;
+    const datasets = groups.map((key,i) => ({
+        label: key,
+        data: sorted.filter(e=>keyFn(e)===key).map(e=>({x:new Date(e.date).getTime(),y:e.accepted,evt:e})),
+        borderColor: PALETTE[i%PALETTE.length], backgroundColor: PALETTE[i%PALETTE.length]+'22',
+        pointBackgroundColor: PALETTE[i%PALETTE.length],
+        borderWidth:2, pointRadius:5, pointHoverRadius:8,
+        tension, cubicInterpolationMode: smoothChart?'monotone':'default', fill:false,
+    }));
+    if (mainChart) mainChart.destroy();
+    mainChart = new Chart(document.getElementById('chartMain'), {
+        type:'line', data:{datasets},
+        options:{
+            responsive:true, maintainAspectRatio:false, parsing:false,
+            interaction:{mode:'nearest',intersect:false},
+            plugins:{
+                legend:{labels:{color:'#6B7280',font:{family:'DM Sans',size:11},boxWidth:12,padding:16}},
+                tooltip:{callbacks:{
+                    title:items=>fmtDate(items[0].raw.x),
+                    label:item=>{const e=item.raw.evt;return [`${e.title||'Event'} (${e.team_name})`,`Accepted: ${item.raw.y}`];}
+                }}
+            },
+            scales:{
+                x:{type:'time',time:{tooltipFormat:'dd MMM yyyy',displayFormats:{day:'dd MMM',week:'dd MMM',month:'MMM yy'}},
+                   ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}
+            },
+            onClick:(_,els)=>{ if(els.length>0){const raw=mainChart.data.datasets[els[0].datasetIndex].data[els[0].index];if(raw.evt)openDetail(raw.evt,'all');} }
+        }
+    });
+}
+function drawMonthBarChart(evts) {
+    const {start,end} = getDateRange();
+    const months = getMonthsInRange(start, end);
+    const barData = months.map(m => {
+        const me = evts.filter(e=>{ const d=new Date(e.date); return d.getFullYear()===m.year&&d.getMonth()===m.month; });
+        return me.length ? parseFloat((me.reduce((s,e)=>s+e.accepted,0)/me.length).toFixed(2)) : null;
+    });
+    if (mainChart) mainChart.destroy();
+    mainChart = new Chart(document.getElementById('chartMain'), {
+        type:'bar',
+        data:{ labels: months.map(m=>m.label), datasets:[{
+            label:'Avg Accepted',
+            data: barData,
+            backgroundColor:'rgba(135,194,50,0.25)', borderColor:'#87C232',
+            borderWidth:1, borderRadius:4, borderSkipped:false,
+        }]},
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{
+                legend:{labels:{color:'#6B7280',font:{family:'DM Sans',size:11},boxWidth:12,padding:16}},
+                tooltip:{callbacks:{label:item=>`Avg accepted: ${item.raw?.toFixed(2)??0}`}}
+            },
+            scales:{
+                x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},callback:v=>v.toFixed(2)},grid:{color:'rgba(255,255,255,0.04)'}}
+            }
+        }
+    });
+}
+
+// ── Table ─────────────────────────────────────────────────────────
+function setSort(col) {
+    sortAsc = sortCol===col ? !sortAsc : col!=='date';
+    sortCol = col;
+    document.querySelectorAll('thead th').forEach(th=>{
+        const k=th.id.replace('th-',''); th.classList.toggle('sa',k===col);
+        const base=th.textContent.replace(/ [↑↓]$/,'');
+        th.textContent = base+(k===col?(sortAsc?' ↑':' ↓'):'');
+    });
+    renderTable(getBaseEvents().filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
+}
+function renderTable(evts) {
+    const sorted=[...evts].sort((a,b)=>{
+        let va=a[sortCol],vb=b[sortCol];
+        if(sortCol==='date'){va=new Date(va);vb=new Date(vb);}
+        if(typeof va==='string'){va=va.toLowerCase();vb=(vb||'').toLowerCase();}
+        if(va<vb)return sortAsc?-1:1;if(va>vb)return sortAsc?1:-1;return 0;
+    });
+    eventsCache=sorted;
+    document.getElementById('tableCount').textContent=`${sorted.length} event${sorted.length!==1?'s':''}`;
+    const tbody=document.getElementById('eventsBody');
+    if(!sorted.length){tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state">No events match the current filters.</div></td></tr>`;return;}
+    tbody.innerHTML=sorted.map((e,i)=>`
+        <tr onclick="openDetail(eventsCache[${i}],'all')">
+            <td class="td-event">${esc(e.title||'—')}<small>${esc(e.team_name)}</small></td>
+            <td style="white-space:nowrap;color:var(--muted);">${fmtDate(e.date)}</td>
+            <td><span class="tag">${esc(e.code||'—')}</span></td>
+            <td><span class="tag">${esc(e.type||'—')}</span></td>
+            <td style="color:var(--muted);">${esc(e.opposition||'—')}</td>
+            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'accepted')"><span class="ac acc">✓ ${e.accepted}</span></td>
+            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'declined')"><span class="ac dec">✗ ${e.declined}</span></td>
+            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'no_response')"><span class="ac nr">? ${e.no_response}</span></td>
+        </tr>`).join('');
+}
+
+// ── Detail panel ──────────────────────────────────────────────────
+function openDetail(evt,filter) {
+    detailEvt=evt; detailFilt=filter;
+    document.getElementById('dTitle').textContent=evt.title||'Event';
+    document.getElementById('dMeta').textContent=[fmtDate(evt.date),evt.team_name,evt.code,evt.type,evt.opposition?'v '+evt.opposition:''].filter(Boolean).join(' · ');
+    renderDTabs(); renderDList();
+    document.getElementById('dOverlay').classList.add('open');
+    document.getElementById('dPanel').classList.add('open');
+}
+function closeDetail() {
+    document.getElementById('dOverlay').classList.remove('open');
+    document.getElementById('dPanel').classList.remove('open');
+}
+function setDF(f){detailFilt=f;renderDTabs();renderDList();}
+function renderDTabs(){
+    const e=detailEvt;
+    document.getElementById('dTabs').innerHTML=[
+        {k:'all',l:`All (${e.members.length})`},{k:'accepted',l:`Accepted (${e.accepted})`},
+        {k:'declined',l:`Declined (${e.declined})`},{k:'no_response',l:`No Response (${e.no_response})`},
+    ].map(t=>`<button class="d-tab ${detailFilt===t.k?'active':''}" onclick="setDF('${t.k}')">${t.l}</button>`).join('');
+}
+function renderDList(){
+    const members=detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);
+    const bc={accepted:'acc',declined:'dec',no_response:'nr'}, bl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
+    if(!members.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No members.</div>`;return;}
+    document.getElementById('dList').innerHTML=members.map(m=>{
+        const ini=m.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+        return `<div class="d-member"><div class="d-av">${ini}</div>
+            <div style="min-width:0;"><div class="d-nm">${esc(m.name)}</div><div class="d-rl">${esc(m.role||'')}</div></div>
+            <span class="d-bd ${bc[m.response]||'nr'}">${bl[m.response]||'No Response'}</span></div>`;
+    }).join('');
+}
+
+// ── Teams view ────────────────────────────────────────────────────
+function openTeamInOverview(teamId) {
+    fTeams = new Set([teamId]);
+    renderTeamDropdown();
+    resetSubFilters();
+    switchTab('overview');
+    applyFilters();
+}
+function renderTeamCards(evtsPerTeam) {
+    const grid   = document.getElementById('teamsGrid');
+    const {start,end} = getDateRange();
+    const months = getMonthsInRange(start, end);
+    Object.values(teamCharts).forEach(c=>c.destroy()); teamCharts={};
+    const teams  = dashData.teams||[];
+    if(!teams.length){grid.innerHTML='<div class="empty-state">No teams found.</div>';return;}
+    grid.innerHTML=teams.map(team=>{
+        const evts=evtsPerTeam[team.team_id]||[];
+        const totalAcc=evts.reduce((s,e)=>s+e.accepted,0), totalDec=evts.reduce((s,e)=>s+e.declined,0), totalNR=evts.reduce((s,e)=>s+e.no_response,0);
+        const totalAll=totalAcc+totalDec+totalNR;
+        const accRate  = totalAll>0?(totalAcc/totalAll*100).toFixed(1)+'%':'—';
+        const respRate = totalAll>0?((totalAcc+totalDec)/totalAll*100).toFixed(1)+'%':'—';
+        const avgAcc   = evts.length>0?(totalAcc/evts.length).toFixed(1):'—';
+        return `<div class="team-card" onclick="openTeamInOverview(${team.team_id})">
+            <div class="tc-head"><div class="tc-name">${esc(team.team_name)}</div><span class="tc-badge">${evts.length} event${evts.length!==1?'s':''}</span></div>
+            <div class="tc-kpis">
+                <div class="tc-kpi"><div class="tc-kv green">${accRate}</div><div class="tc-kl">Acceptance</div></div>
+                <div class="tc-kpi"><div class="tc-kv">${avgAcc}</div><div class="tc-kl">Avg Accepted</div></div>
+                <div class="tc-kpi"><div class="tc-kv">${evts.length}</div><div class="tc-kl">Events</div></div>
+                <div class="tc-kpi"><div class="tc-kv amber">${respRate}</div><div class="tc-kl">Response</div></div>
+            </div>
+            ${evts.length?`<div class="tc-chart-wrap"><canvas id="chart-${team.team_id}"></canvas></div>`:`<div class="tc-empty">No events in this period</div>`}
+            <div class="tc-footer">View in Overview →</div></div>`;
+    }).join('');
+    teams.forEach(team=>{
+        const evts=evtsPerTeam[team.team_id]||[];
+        if(!evts.length)return;
+        const ctx=document.getElementById(`chart-${team.team_id}`); if(!ctx)return;
+        const barData=months.map(m=>{
+            const me=evts.filter(e=>{const d=new Date(e.date);return d.getFullYear()===m.year&&d.getMonth()===m.month;});
+            return me.length?parseFloat((me.reduce((s,e)=>s+e.accepted,0)/me.length).toFixed(1)):null;
+        });
+        teamCharts[team.team_id]=new Chart(ctx,{
+            type:'bar',data:{labels:months.map(m=>m.label),datasets:[{data:barData,backgroundColor:'rgba(135,194,50,0.22)',borderColor:'#87C232',borderWidth:1,borderRadius:4,borderSkipped:false}]},
+            options:{responsive:true,maintainAspectRatio:false,
+                plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`Avg accepted: ${item.raw??0}`}}},
+                scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},maxRotation:45,maxTicksLimit:8},grid:{color:'rgba(255,255,255,0.04)'}},
+                         y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},precision:1},grid:{color:'rgba(255,255,255,0.04)'}}}}
+        });
+    });
+}
+
+// ── PDF export ────────────────────────────────────────────────────
+function buildPDFHeader() {
+    const name  = clubName() || 'Dashboard';
+    const title = activeTab === 'overview' ? 'Overview Dashboard' : 'Teams Dashboard';
+    const {start,end} = getDateRange();
+    const endD  = new Date(end); endD.setDate(0);
+    const dateStr = fmtMonth(start)+' – '+fmtMonth(endD);
+    const parts = [];
+    if (activeTab==='overview') {
+        if (fTeams.size>0) parts.push('Teams: '+(dashData.teams||[]).filter(t=>fTeams.has(t.team_id)).map(t=>t.team_name).join(', '));
+    }
+    if (fCode.size>0) parts.push('Code: '+[...fCode].join(', '));
+    if (fType.size>0) parts.push('Type: '+[...fType].join(', '));
+    if (fRole.size>0) parts.push('Role: '+[...fRole].join(', '));
+    const el = document.createElement('div');
+    el.style.cssText='display:flex;align-items:center;gap:16px;padding:0 0 16px;border-bottom:2px solid #87C232;margin-bottom:20px;';
+    el.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;flex-shrink:0;color:#E7EBEE;">Coach<span style="color:#87C232;">Smart</span></div>
+        <div style="width:1px;height:28px;background:rgba(255,255,255,0.07);flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:600;color:#E7EBEE;">${esc(title)} — ${esc(name)}</div>
+            <div style="font-size:12px;color:#6B7280;margin-top:3px;">${esc(dateStr)}&nbsp;·&nbsp;${esc(parts.length?parts.join('  ·  '):'All events')}</div>
+        </div>
+        <div style="font-size:11px;color:#6B7280;flex-shrink:0;">Generated ${new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}</div>`;
+    return el;
+}
+async function exportPDF() {
+    const btn = document.getElementById('pdfBtn');
+    btn.textContent='Generating…'; btn.disabled=true;
+    const el = activeTab==='overview' ? document.getElementById('viewOverview') : document.getElementById('viewTeams');
+    const header = buildPDFHeader();
+    el.insertBefore(header, el.firstChild);
+    try {
+        const scale=1.5, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
+        const {jsPDF}=window.jspdf, pad=20, w=canvas.width/scale, h=canvas.height/scale;
+        const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
+        pdf.setFillColor(17,20,24); pdf.rect(0,0,w+pad*2,h+pad*2,'F');
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',pad,pad,w,h);
+        pdf.save(`coachsmart-${(clubName()||'dashboard').replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`);
+    } catch(e) { alert('PDF export failed: '+e.message); }
+    finally { el.removeChild(header); btn.textContent='↓ Export PDF'; btn.disabled=false; }
+}
+
+// ── Table exports ─────────────────────────────────────────────────
+function tableFilename(ext) {
+    return `coachsmart-${(clubName()||'dashboard').replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.${ext}`;
+}
+function exportTableCSV() {
+    const cols=['Event','Team','Date','Code','Type','Opposition','Accepted','Declined','No Response','Total','Accept %'];
+    const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+    const rows=eventsCache.map(e=>[q(e.title||''),q(e.team_name),q(fmtDate(e.date)),q(e.code||''),q(e.type||''),q(e.opposition||''),e.accepted,e.declined,e.no_response,e.total,e.total>0?(e.accepted/e.total*100).toFixed(1)+'%':'0%'].join(','));
+    const blob=new Blob(['﻿'+[cols.join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:tableFilename('csv')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+async function exportTableExcel() {
+    const wb=new ExcelJS.Workbook(); wb.creator='CoachSmart';
+    const ws=wb.addWorksheet('Events');
+    const {start,end}=getDateRange(); const endD=new Date(end); endD.setDate(0);
+    const fp=[];
+    if(fTeams.size>0)fp.push('Teams: '+(dashData.teams||[]).filter(t=>fTeams.has(t.team_id)).map(t=>t.team_name).join(', '));
+    if(fCode.size>0)fp.push('Code: '+[...fCode].join(', '));
+    if(fType.size>0)fp.push('Type: '+[...fType].join(', '));
+    if(fRole.size>0)fp.push('Role: '+[...fRole].join(', '));
+    const addMeta=(l,v)=>{const r=ws.addRow([l,v]);r.getCell(1).font={bold:true,color:{argb:'FF595959'},size:10};r.getCell(2).font={color:{argb:'FF000000'},size:10};};
+    addMeta('Club',clubName()); addMeta('Period',fmtMonth(start)+' – '+fmtMonth(endD));
+    addMeta('Filters',fp.length?fp.join('  ·  '):'All events');
+    addMeta('Exported',new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})); ws.addRow([]);
+    ws.columns=[{key:'title',width:38},{key:'team',width:22},{key:'date',width:14},{key:'code',width:12},{key:'type',width:14},{key:'opposition',width:22},{key:'accepted',width:12},{key:'declined',width:12},{key:'no_response',width:14},{key:'total',width:10},{key:'accept_pct',width:12}];
+    const hRow=ws.addRow(['Event','Team','Date','Code','Type','Opposition','Accepted','Declined','No Response','Total','Accept %']);
+    hRow.height=20;
+    hRow.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'},size:11,name:'Calibri'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E75B6'}};c.border={bottom:{style:'medium',color:{argb:'FF1F4E79'}}};c.alignment={vertical:'middle',horizontal:'center'};});
+    ['title','team','code','type','opposition'].forEach(k=>hRow.getCell(k).alignment={vertical:'middle',horizontal:'left'});
+    eventsCache.forEach((e,i)=>{
+        const row=ws.addRow({title:e.title||'',team:e.team_name,date:new Date(e.date),code:e.code||'',type:e.type||'',opposition:e.opposition||'',accepted:e.accepted,declined:e.declined,no_response:e.no_response,total:e.total,accept_pct:e.total>0?e.accepted/e.total:0});
+        const bg=i%2===0?'FFFFFFFF':'FFF2F2F2';
+        row.eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};c.font={color:{argb:'FF000000'},size:11,name:'Calibri'};c.border={bottom:{style:'thin',color:{argb:'FFD9D9D9'}}};c.alignment={vertical:'middle'};});
+        row.getCell('date').numFmt='dd mmm yyyy'; row.getCell('accept_pct').numFmt='0%';
+        row.getCell('accepted').font={bold:true,color:{argb:'FF375623'},size:11,name:'Calibri'};
+        row.getCell('declined').font={bold:true,color:{argb:'FF9C0006'},size:11,name:'Calibri'};
+        row.getCell('no_response').font={color:{argb:'FF767676'},size:11,name:'Calibri'};
+        row.getCell('accept_pct').font={color:{argb:'FF375623'},size:11,name:'Calibri'};
+        ['accepted','declined','no_response','total','accept_pct'].forEach(k=>row.getCell(k).alignment={vertical:'middle',horizontal:'right'});
+    });
+    ws.views=[{state:'frozen',ySplit:ws.rowCount-eventsCache.length}];
+    ws.autoFilter={from:{row:6,column:1},to:{row:6,column:11}};
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:tableFilename('xlsx')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── Drawer exports ────────────────────────────────────────────────
+function drawerFilename(ext){const safe=s=>String(s||'').replace(/[^a-z0-9]+/gi,'-').toLowerCase();return `coachsmart-${safe(detailEvt?.title||'event')}-${safe(detailEvt?.team_name)}-${new Date().toISOString().slice(0,10)}.${ext}`;}
+function drawerMembers(){return detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);}
+function exportDrawerCSV(){
+    const cols=['Name','Role','Response'],q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+    const rows=drawerMembers().map(m=>[q(m.name),q(m.role||''),q({accepted:'Accepted',declined:'Declined',no_response:'No Response'}[m.response]||'No Response')].join(','));
+    const blob=new Blob(['﻿'+[cols.join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+async function exportDrawerExcel(){
+    const wb=new ExcelJS.Workbook(); wb.creator='CoachSmart'; const ws=wb.addWorksheet('Attendance');
+    const addMeta=(l,v)=>{const r=ws.addRow([l,v]);r.getCell(1).font={bold:true,color:{argb:'FF595959'},size:10};r.getCell(2).font={color:{argb:'FF000000'},size:10};};
+    addMeta('Event',detailEvt.title||''); addMeta('Team',detailEvt.team_name); addMeta('Date',fmtDate(detailEvt.date));
+    if(detailEvt.code)addMeta('Code',detailEvt.code); if(detailEvt.type)addMeta('Type',detailEvt.type);
+    if(detailEvt.opposition)addMeta('Opposition','v '+detailEvt.opposition);
+    addMeta('Filter',detailFilt==='all'?'All Members':{accepted:'Accepted',declined:'Declined',no_response:'No Response'}[detailFilt]); ws.addRow([]);
+    ws.columns=[{key:'name',width:28},{key:'role',width:18},{key:'response',width:16}];
+    const hRow=ws.addRow(['Name','Role','Response']); hRow.height=20;
+    hRow.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'},size:11,name:'Calibri'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E75B6'}};c.border={bottom:{style:'medium',color:{argb:'FF1F4E79'}}};c.alignment={vertical:'middle'};});
+    const rClr={accepted:'FF375623',declined:'FF9C0006',no_response:'FF767676'}, rLbl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
+    drawerMembers().forEach((m,i)=>{
+        const row=ws.addRow({name:m.name,role:m.role||'',response:rLbl[m.response]||'No Response'});
+        const bg=i%2===0?'FFFFFFFF':'FFF2F2F2';
+        row.eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};c.font={color:{argb:'FF000000'},size:11,name:'Calibri'};c.alignment={vertical:'middle'};});
+        row.getCell('response').font={color:{argb:rClr[m.response]||'FF767676'},size:11,name:'Calibri',bold:true};
+    });
+    ws.views=[{state:'frozen',ySplit:ws.rowCount-drawerMembers().length}];
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('xlsx')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+onDateSlider();
+switchTab(paramTab);
+loadClubs();
+</script>
+</body>
+</html>
