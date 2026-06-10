@@ -690,7 +690,7 @@ function onTeamAll() {
     fTeams = new Set();
     renderTeamDropdown();
     resetSubFilters();
-    applyFiltersNoReload();
+    applyFilters();
 }
 function onTeamToggle(id) {
     const allIds = (dashData.teams||[]).map(t=>t.team_id);
@@ -705,7 +705,7 @@ function onTeamToggle(id) {
     }
     renderTeamDropdown();
     resetSubFilters();
-    applyFiltersNoReload();
+    applyFilters();
 }
 
 // ── Multi-select chips ────────────────────────────────────────────
