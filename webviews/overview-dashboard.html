@@ -48,12 +48,13 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
     padding: 10px 24px 12px; position: sticky; top: 53px; z-index: 19;
     display: flex; flex-direction: column; gap: 10px;
 }
-.fs-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .fs-label {
     font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase;
-    letter-spacing: 0.6px; white-space: nowrap; flex-shrink: 0; min-width: 44px;
+    letter-spacing: 0.6px; white-space: nowrap;
 }
-/* Dual-handle slider shared styles */
+
+/* Period row */
+.period-row { display: flex; align-items: center; gap: 10px; }
 .slider-dates { display: flex; justify-content: space-between; margin-bottom: 2px; }
 .slider-dates span {
     font-size: 11px; font-weight: 500; background: var(--card2);
@@ -80,20 +81,54 @@ input[type=range]::-moz-range-thumb {
     padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border);
     white-space: nowrap; flex-shrink: 0;
 }
-/* Chips */
-.chip-group { display: flex; gap: 5px; flex-wrap: wrap; }
-.t-chip {
-    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
-    border: 1px solid var(--border); background: var(--card2);
-    cursor: pointer; transition: all 0.15s; user-select: none; white-space: nowrap;
+
+/* Filter groups row */
+.filter-groups { display: flex; align-items: flex-start; gap: 0; flex-wrap: wrap; }
+.filter-group { display: flex; flex-direction: column; gap: 5px; padding: 0 14px; border-right: 1px solid var(--border); }
+.filter-group:first-child { padding-left: 0; }
+.filter-group:last-child  { border-right: none; }
+
+/* Team dropdown */
+.team-drop { position: relative; }
+.team-drop-btn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; gap: 6px; min-width: 130px;
+    justify-content: space-between; font-family: 'DM Sans', sans-serif; white-space: nowrap;
 }
-.t-chip.active { background: var(--green); color: #111; border-color: var(--green); }
+.team-drop-btn:hover { border-color: rgba(255,255,255,0.2); }
+.team-drop-btn.open  { border-color: var(--green); }
+.drop-arrow { font-size: 9px; color: var(--muted); transition: transform 0.15s; flex-shrink: 0; }
+.team-drop-btn.open .drop-arrow { transform: rotate(180deg); }
+.team-drop-menu {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 190px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5); z-index: 50; overflow: hidden;
+}
+.team-drop-menu.open { display: block; }
+.tdrop-item {
+    display: flex; align-items: center; gap: 9px; padding: 9px 14px;
+    font-size: 13px; cursor: pointer; transition: background 0.1s; user-select: none;
+}
+.tdrop-item + .tdrop-item { border-top: 1px solid var(--border); }
+.tdrop-item:hover { background: var(--card2); }
+.tdrop-item.all-item { color: var(--muted); font-size: 12px; font-weight: 500; }
+.tdrop-check {
+    width: 15px; height: 15px; border-radius: 3px; border: 1.5px solid var(--muted);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px;
+}
+.tdrop-item.checked .tdrop-check { background: var(--green); border-color: var(--green); color: #111; font-weight: 700; }
+
+/* Multi-select chips */
+.chip-group { display: flex; gap: 5px; flex-wrap: wrap; }
 .s-chip {
     padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
     border: 1px solid var(--border); background: var(--card2);
     cursor: pointer; transition: all 0.15s; user-select: none; white-space: nowrap;
 }
+.s-chip:hover { border-color: rgba(255,255,255,0.18); }
 .s-chip.active { background: rgba(135,194,50,0.18); color: var(--green); border-color: rgba(135,194,50,0.45); }
+.s-chip.all-chip.active { background: var(--card2); color: var(--muted); border-color: var(--border); }
 
 /* Main */
 .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
@@ -120,8 +155,6 @@ input[type=range]::-moz-range-thumb {
 }
 .tog.active { background: var(--green); color: #111; }
 .line-wrap { position: relative; height: 300px; }
-.pie-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
-.pie-wrap { position: relative; height: 240px; }
 
 /* Table */
 .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
@@ -187,12 +220,12 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 
 @media (max-width: 900px) {
     .kpi-row { grid-template-columns: repeat(2,1fr); }
-    .pie-row  { grid-template-columns: 1fr; }
     .d-panel  { width: 100vw; right: -100vw; }
 }
 @media (max-width: 600px) {
     .main { padding: 14px; }
     .topbar, .filter-strip { padding-left: 14px; padding-right: 14px; }
+    .filter-group { padding: 0 8px; }
 }
 
 /* PDF export button */
@@ -205,42 +238,13 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 .pdf-btn:hover { opacity: 0.85; }
 .pdf-btn:disabled { opacity: 0.4; cursor: default; }
 
-/* Print-only header — hidden on screen */
-.print-header {
-    display: none;
-    align-items: center; gap: 16px;
-    padding: 0 0 16px;
-    border-bottom: 2px solid var(--green);
-    margin-bottom: 20px;
-}
-.print-header .logo { font-size: 26px; }
-.print-header .ph-title { font-size: 16px; font-weight: 600; flex: 1; }
-.print-header .ph-meta  { font-size: 12px; color: var(--muted); text-align: right; }
-
 @media print {
     @page { size: A4 landscape; margin: 12mm; }
-
-    /* Preserve colours */
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-
-    /* Hide interactive chrome */
-    .topbar, .filter-strip, .d-overlay, .d-panel,
-    .tog-row, .pdf-btn { display: none !important; }
-
-    /* Show print header */
-    .print-header { display: flex !important; }
-
-    /* Full-width content */
+    .topbar, .filter-strip, .d-overlay, .d-panel, .tog-row, .pdf-btn { display: none !important; }
     .main { max-width: none !important; padding: 0 !important; }
-
-    /* Avoid splitting cards across pages */
-    .kpi-row, .chart-card, .pie-row, .table-card { page-break-inside: avoid; break-inside: avoid; }
-
-    /* Un-scroll the table so all rows appear */
+    .kpi-row, .chart-card, .table-card { page-break-inside: avoid; break-inside: avoid; }
     .tscroll { overflow: visible !important; }
-
-    /* Remove sticky so headers don't double-print */
-    .topbar, .filter-strip { position: static !important; }
 }
 </style>
 </head>
@@ -258,39 +262,52 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 </div>
 
 <div class="filter-strip">
-    <!-- Date range -->
-    <div>
-        <div class="slider-dates">
-            <span id="dateFrom">—</span>
-            <span id="dateTo">—</span>
+    <!-- Period slider -->
+    <div class="period-row">
+        <span class="fs-label" style="flex-shrink:0;">Period</span>
+        <div style="flex:1;">
+            <div class="slider-dates">
+                <span id="dateFrom">—</span>
+                <span id="dateTo">—</span>
+            </div>
+            <div class="slider-wrap">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="dateFill"></div>
+                <input type="range" id="sliderFrom" min="0" max="12" value="3" oninput="onDateSlider()">
+                <input type="range" id="sliderTo"   min="0" max="12" value="12" oninput="onDateSlider()">
+            </div>
         </div>
-        <div class="slider-wrap">
-            <div class="slider-track"></div>
-            <div class="slider-fill" id="dateFill"></div>
-            <input type="range" id="sliderFrom" min="0" max="12" value="3" oninput="onDateSlider()">
-            <input type="range" id="sliderTo"   min="0" max="12" value="12" oninput="onDateSlider()">
+    </div>
+
+    <!-- Filter groups: Teams | Code | Type | Role -->
+    <div class="filter-groups" id="filterGroups" style="display:none;">
+        <div class="filter-group" id="teamRow">
+            <span class="fs-label">Teams</span>
+            <div class="team-drop" id="teamDrop">
+                <button class="team-drop-btn" id="teamDropBtn" onclick="toggleTeamDrop(event)">
+                    <span id="teamDropLabel">—</span>
+                    <span class="drop-arrow">▾</span>
+                </button>
+                <div class="team-drop-menu" id="teamDropMenu"></div>
+            </div>
+        </div>
+        <div class="filter-group" id="codeGroup">
+            <span class="fs-label">Code</span>
+            <div class="chip-group" id="codeChips"></div>
+        </div>
+        <div class="filter-group" id="typeGroup">
+            <span class="fs-label">Type</span>
+            <div class="chip-group" id="typeChips"></div>
+        </div>
+        <div class="filter-group" id="roleGroup">
+            <span class="fs-label">Role</span>
+            <div class="chip-group" id="roleChips"></div>
         </div>
     </div>
 
-    <!-- Team chips -->
-    <div class="fs-row" id="teamRow">
-        <span class="fs-label">Teams</span>
-        <div class="chip-group" id="teamChips"></div>
-    </div>
-
-    <!-- Code / Type / Role single-select chips -->
-    <div class="fs-row">
-        <span class="fs-label">Code</span>
-        <div class="chip-group" id="codeChips"></div>
-        <span class="fs-label" style="margin-left:8px;">Type</span>
-        <div class="chip-group" id="typeChips"></div>
-        <span class="fs-label" style="margin-left:8px;">Role</span>
-        <div class="chip-group" id="roleChips"></div>
-    </div>
-
-    <!-- Attendance range slider -->
-    <div class="fs-row" id="attRow" style="display:none;">
-        <span class="fs-label">Attendees</span>
+    <!-- Attendees slider -->
+    <div class="period-row" id="attRow" style="display:none;">
+        <span class="fs-label" style="flex-shrink:0;">Attendees</span>
         <div class="slider-wrap">
             <div class="slider-track"></div>
             <div class="slider-fill" id="attFill"></div>
@@ -302,13 +319,6 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 </div>
 
 <div class="main">
-    <!-- Print-only header -->
-    <div class="print-header" id="printHeader">
-        <div class="logo">Coach<span>Smart</span></div>
-        <div class="ph-title">Overview Dashboard</div>
-        <div class="ph-meta" id="printMeta"></div>
-    </div>
-
     <div class="loading-wrap" id="loading" style="display:none;">
         <div class="spinner"></div>
         <div style="color:var(--muted);font-size:13px;">Loading dashboard…</div>
@@ -354,18 +364,6 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
             </div>
             <div class="line-wrap"><canvas id="chartLine"></canvas></div>
         </div>
-
-        <div class="pie-row">
-            <div class="chart-card" style="margin-bottom:0;">
-                <div class="chart-head"><h3>Events by Code</h3></div>
-                <div class="pie-wrap"><canvas id="chartCode"></canvas></div>
-            </div>
-            <div class="chart-card" style="margin-bottom:0;">
-                <div class="chart-head"><h3>Events by Type</h3></div>
-                <div class="pie-wrap"><canvas id="chartType"></canvas></div>
-            </div>
-        </div>
-        <div style="margin-bottom:24px;"></div>
 
         <div class="table-card">
             <div class="table-head">
@@ -413,31 +411,28 @@ const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
 const H = { 'Content-Type':'application/json', 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${SUPABASE_ANON_KEY}` };
 
-const MAX_MONTHS   = 12;
-const PALETTE      = ['#87C232','#e05252','#F5A623','#60a5fa','#a78bfa','#34d399','#fb923c','#f472b6'];
+const MAX_MONTHS = 12;
+const PALETTE    = ['#87C232','#e05252','#F5A623','#60a5fa','#a78bfa','#34d399','#fb923c','#f472b6'];
 
-// URL params
-const QS          = new URLSearchParams(location.search);
-const paramClub   = QS.get('club_id')  ? parseInt(QS.get('club_id'))  : null;
-const paramTeam   = QS.get('team_id')  ? parseInt(QS.get('team_id'))  : null;
+const QS        = new URLSearchParams(location.search);
+const paramClub = QS.get('club_id') ? parseInt(QS.get('club_id')) : null;
+const paramTeam = QS.get('team_id') ? parseInt(QS.get('team_id')) : null;
 
 // State
-let dashData     = null;
-let chartLine    = null, chartPieCode = null, chartPieType = null;
-let detailEvt    = null, detailFilt = 'all';
-let sortCol      = 'date', sortAsc = false;
-let eventsCache  = [];
-let fTeams       = new Set();   // empty = all teams active
-let fCode        = '';
-let fType        = '';
-let fRole        = '';
-let attMin       = 0;
-let attMax       = Infinity;
-let attDataMax   = 0;
-let groupBy      = 'code';      // 'code' | 'team'
-let smoothChart  = false;
-// stored value sets for filter chips
+let dashData    = null;
+let chartLine   = null;
+let detailEvt   = null, detailFilt = 'all';
+let sortCol     = 'date', sortAsc = false;
+let eventsCache = [];
+let fTeams      = new Set(); // empty = all teams
+let fCode       = new Set(); // empty = all codes
+let fType       = new Set(); // empty = all types
+let fRole       = new Set(); // empty = all roles
+let attMin      = 0, attMax = Infinity, attDataMax = 0;
+let groupBy     = 'code';
+let smoothChart = false;
 let allCodes = [], allTypes = [], allRoles = [];
+let currentClubId = null; // tracks which club is loaded to know when to reset filters
 
 // ── Helpers ───────────────────────────────────────────────────────
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -447,8 +442,8 @@ function fmtDate(d)  { return new Date(d).toLocaleDateString('en-IE',{day:'numer
 // ── Date slider ───────────────────────────────────────────────────
 function monthToDate(i) {
     const d = new Date();
-    d.setDate(1);            // prevent overflow when setMonth crosses short months
-    d.setHours(0, 0, 0, 0); // normalise to midnight so boundaries are clean
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
     d.setMonth(d.getMonth() - (MAX_MONTHS - i));
     return d;
 }
@@ -457,7 +452,7 @@ function getDateRange() {
     const t = parseInt(document.getElementById('sliderTo').value);
     const start = monthToDate(f);
     const end   = monthToDate(t);
-    end.setMonth(end.getMonth() + 1); // exclusive upper bound: first of next month
+    end.setMonth(end.getMonth() + 1); // exclusive upper bound
     return { start, end };
 }
 function onDateSlider() {
@@ -480,8 +475,7 @@ function onDateSlider() {
 // ── Attendance slider ─────────────────────────────────────────────
 function initAttSlider(maxVal) {
     attDataMax = maxVal || 1;
-    attMin = 0;
-    attMax = attDataMax;
+    attMin = 0; attMax = attDataMax;
     const fromEl = document.getElementById('attFrom');
     const toEl   = document.getElementById('attTo');
     fromEl.max = attDataMax; fromEl.value = 0;
@@ -506,9 +500,8 @@ function updateAttFill() {
     const f = parseInt(document.getElementById('attFrom').value);
     const t = parseInt(document.getElementById('attTo').value);
     const max = parseInt(document.getElementById('attTo').max) || 1;
-    const p1 = f/max*100, p2 = t/max*100;
-    document.getElementById('attFill').style.left  = p1+'%';
-    document.getElementById('attFill').style.width = (p2-p1)+'%';
+    document.getElementById('attFill').style.left  = (f/max*100)+'%';
+    document.getElementById('attFill').style.width = ((t-f)/max*100)+'%';
     document.getElementById('attLabel').textContent = `${f} – ${t}`;
 }
 
@@ -516,7 +509,6 @@ function updateAttFill() {
 async function loadClubs() {
     if (paramClub) {
         document.getElementById('clubWrap').style.display = 'none';
-        document.getElementById('clubSelect').value = paramClub;
         loadDashboard();
         return;
     }
@@ -551,7 +543,6 @@ async function loadDashboard() {
         if (data.error) throw new Error(data.error);
         dashData = data;
 
-        // Update context label when params fix club/team
         if (paramClub || paramTeam) {
             const parts = [];
             if (data.club_name) parts.push(data.club_name);
@@ -565,9 +556,10 @@ async function loadDashboard() {
             }
         }
 
-        buildFilters();
+        buildFilters(clubId);
         applyFilters();
         document.getElementById('dashContent').style.display = 'block';
+        document.getElementById('filterGroups').style.display = '';
         document.getElementById('pdfBtn').disabled = false;
     } catch(e) {
         document.getElementById('emptyState').style.display = 'block';
@@ -579,7 +571,7 @@ async function loadDashboard() {
 }
 
 // ── Build filters ─────────────────────────────────────────────────
-function buildFilters() {
+function buildFilters(clubId) {
     const codes = new Set(), types = new Set(), roles = new Set();
     for (const team of dashData.teams||[]) {
         for (const e of team.events||[]) {
@@ -592,58 +584,129 @@ function buildFilters() {
     allTypes = [...types].sort();
     allRoles = [...roles].sort();
 
-    // Reset filter values
-    if (!allCodes.includes(fCode)) fCode = '';
-    if (!allTypes.includes(fType)) fType = '';
-    if (!allRoles.includes(fRole)) fRole = '';
+    const teams = dashData.teams||[];
+    const validTeamIds = new Set(teams.map(t=>t.team_id));
 
-    // Team chips
+    if (clubId !== currentClubId) {
+        // New club: reset all filters, select first team only
+        currentClubId = clubId;
+        fTeams = teams.length > 0 ? new Set([teams[0].team_id]) : new Set();
+        fCode = new Set();
+        fType = new Set();
+        fRole = new Set();
+    } else {
+        // Same club, date changed: preserve selections, drop any that no longer exist
+        if (fTeams.size > 0) {
+            fTeams = new Set([...fTeams].filter(id => validTeamIds.has(id)));
+            if (fTeams.size === 0) fTeams = teams.length > 0 ? new Set([teams[0].team_id]) : new Set();
+        }
+        fCode = new Set([...fCode].filter(v => allCodes.includes(v)));
+        fType = new Set([...fType].filter(v => allTypes.includes(v)));
+        fRole = new Set([...fRole].filter(v => allRoles.includes(v)));
+    }
+
     if (paramTeam) {
         document.getElementById('teamRow').style.display = 'none';
     } else {
-        const withData = new Set((dashData.teams||[]).filter(t=>(t.events||[]).length>0).map(t=>t.team_id));
-        fTeams = withData.size===(dashData.teams||[]).length ? new Set() : new Set([...withData]);
-        renderTeamChips();
+        renderTeamDropdown();
     }
 
-    renderSelectChips('codeChips','code',allCodes,fCode);
-    renderSelectChips('typeChips','type',allTypes,fType);
-    renderSelectChips('roleChips','role',allRoles,fRole);
+    renderMultiChips('codeChips', 'code', allCodes, fCode);
+    renderMultiChips('typeChips', 'type', allTypes, fType);
+    renderMultiChips('roleChips', 'role', allRoles, fRole);
+
+    // Hide empty groups
+    document.getElementById('codeGroup').style.display = allCodes.length ? '' : 'none';
+    document.getElementById('typeGroup').style.display = allTypes.length ? '' : 'none';
+    document.getElementById('roleGroup').style.display = allRoles.length ? '' : 'none';
 }
 
-function renderTeamChips() {
-    const allIds = (dashData.teams||[]).map(t=>t.team_id);
-    document.getElementById('teamChips').innerHTML = (dashData.teams||[]).map(t => {
-        const active = fTeams.size===0 || fTeams.has(t.team_id);
-        return `<span class="t-chip ${active?'active':''}" onclick="toggleTeam(${t.team_id})">${esc(t.team_name)}</span>`;
-    }).join('');
+// ── Team dropdown ─────────────────────────────────────────────────
+function toggleTeamDrop(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('teamDropMenu');
+    const btn  = document.getElementById('teamDropBtn');
+    const open = menu.classList.toggle('open');
+    btn.classList.toggle('open', open);
 }
-function toggleTeam(id) {
+document.addEventListener('click', () => {
+    document.getElementById('teamDropMenu')?.classList.remove('open');
+    document.getElementById('teamDropBtn')?.classList.remove('open');
+});
+
+function renderTeamDropdown() {
+    const teams = dashData?.teams||[];
+    const allActive = fTeams.size === 0;
+    let html = `<div class="tdrop-item all-item ${allActive?'checked':''}" onclick="onTeamAll()">
+        <span class="tdrop-check">${allActive?'✓':''}</span>All Teams
+    </div>`;
+    html += teams.map(t => {
+        const chk = allActive || fTeams.has(t.team_id);
+        return `<div class="tdrop-item ${chk?'checked':''}" onclick="onTeamToggle(${t.team_id})">
+            <span class="tdrop-check">${chk?'✓':''}</span>${esc(t.team_name)}
+        </div>`;
+    }).join('');
+    document.getElementById('teamDropMenu').innerHTML = html;
+    updateTeamDropLabel();
+}
+function updateTeamDropLabel() {
+    const teams = dashData?.teams||[];
+    let label;
+    if (fTeams.size === 0) {
+        label = 'All Teams';
+    } else if (fTeams.size === 1) {
+        const t = teams.find(t => fTeams.has(t.team_id));
+        label = t ? t.team_name : '1 Team';
+    } else {
+        label = fTeams.size + ' Teams';
+    }
+    document.getElementById('teamDropLabel').textContent = label;
+}
+function onTeamAll() {
+    fTeams = new Set();
+    renderTeamDropdown();
+    applyFiltersNoReload();
+}
+function onTeamToggle(id) {
     const allIds = (dashData.teams||[]).map(t=>t.team_id);
-    if (fTeams.size===0) fTeams = new Set(allIds.filter(x=>x!==id));
-    else if (fTeams.has(id)) { fTeams.delete(id); if (fTeams.size===0) fTeams = new Set(); }
-    else { fTeams.add(id); if (fTeams.size===allIds.length) fTeams = new Set(); }
-    renderTeamChips();
-    applyFilters();
+    if (fTeams.size === 0) {
+        // Transition from "all": deselect this one, keep all others
+        fTeams = new Set(allIds.filter(x => x !== id));
+    } else if (fTeams.has(id)) {
+        fTeams.delete(id);
+        // Don't allow zero selected — snap back to all
+        if (fTeams.size === 0) fTeams = new Set();
+    } else {
+        fTeams.add(id);
+        if (fTeams.size === allIds.length) fTeams = new Set(); // all selected = "all"
+    }
+    renderTeamDropdown();
+    applyFiltersNoReload();
 }
 
-function renderSelectChips(containerId, key, values, current) {
-    const items = ['', ...values];
-    document.getElementById(containerId).innerHTML = items.map(v => {
-        const active = current===v;
-        const label  = v==='' ? 'All' : v;
-        return `<span class="s-chip ${active?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(label)}</span>`;
-    }).join('');
+// ── Multi-select chips ────────────────────────────────────────────
+function renderMultiChips(containerId, key, values, current) {
+    const allActive = current.size === 0;
+    document.getElementById(containerId).innerHTML =
+        `<span class="s-chip all-chip ${allActive?'active':''}" data-key="${key}" data-val="" onclick="pickFilter(this)">All</span>` +
+        values.map(v =>
+            `<span class="s-chip ${current.has(v)?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(v)}</span>`
+        ).join('');
 }
 function pickFilter(el) {
     const key = el.dataset.key, val = el.dataset.val;
-    if (key==='code') fCode=val;
-    else if (key==='type') fType=val;
-    else if (key==='role') fRole=val;
-    renderSelectChips('codeChips','code',allCodes,fCode);
-    renderSelectChips('typeChips','type',allTypes,fType);
-    renderSelectChips('roleChips','role',allRoles,fRole);
-    applyFilters();
+    const map = { code: fCode, type: fType, role: fRole };
+    const s = map[key];
+    if (!s) return;
+    if (val === '') {
+        s.clear();
+    } else {
+        if (s.has(val)) s.delete(val); else s.add(val);
+    }
+    renderMultiChips('codeChips', 'code', allCodes, fCode);
+    renderMultiChips('typeChips', 'type', allTypes, fType);
+    renderMultiChips('roleChips', 'role', allRoles, fRole);
+    applyFiltersNoReload(); // preserve attendees slider
 }
 
 // ── Filter pipeline ───────────────────────────────────────────────
@@ -652,11 +715,11 @@ function getBaseEvents() {
     const evts = [];
     for (const team of dashData.teams||[]) {
         if (paramTeam && team.team_id !== paramTeam) continue;
-        if (fTeams.size>0 && !fTeams.has(team.team_id)) continue;
+        if (fTeams.size > 0 && !fTeams.has(team.team_id)) continue;
         for (const e of team.events||[]) {
-            if (fCode && e.code!==fCode) continue;
-            if (fType && e.type!==fType) continue;
-            const members = fRole ? (e.members||[]).filter(m=>m.role===fRole) : (e.members||[]);
+            if (fCode.size > 0 && !fCode.has(e.code)) continue;
+            if (fType.size > 0 && !fType.has(e.type)) continue;
+            const members = fRole.size > 0 ? (e.members||[]).filter(m=>fRole.has(m.role)) : (e.members||[]);
             evts.push({
                 ...e, team_id:team.team_id, team_name:team.team_name, members,
                 accepted:    members.filter(m=>m.response==='accepted').length,
@@ -672,20 +735,17 @@ function getBaseEvents() {
 function applyFilters() {
     const base = getBaseEvents();
     const maxAcc = base.reduce((mx,e)=>Math.max(mx,e.accepted),0);
-    initAttSlider(maxAcc);
+    initAttSlider(maxAcc); // only called after a data reload
     const evts = base.filter(e=>e.accepted>=attMin && e.accepted<=attMax);
     render(evts);
 }
-
 function applyFiltersNoReload() {
     const evts = getBaseEvents().filter(e=>e.accepted>=attMin && e.accepted<=attMax);
     render(evts);
 }
-
 function render(evts) {
     renderKPIs(evts);
     drawLineChart(evts);
-    drawPieCharts(evts);
     renderTable(evts);
 }
 
@@ -778,38 +838,6 @@ function drawLineChart(evts) {
     });
 }
 
-// ── Pie charts ────────────────────────────────────────────────────
-function drawPieCharts(evts) {
-    const byCode={}, byType={};
-    for (const e of evts) {
-        const c=e.code||'Unknown', t=e.type||'Unknown';
-        byCode[c]=(byCode[c]||0)+1;
-        byType[t]=(byType[t]||0)+1;
-    }
-    const pieOpts = {
-        responsive:true, maintainAspectRatio:false,
-        plugins:{
-            legend:{position:'right',labels:{color:'#6B7280',font:{family:'DM Sans',size:11},boxWidth:12,padding:12}},
-            tooltip:{callbacks:{label:i=>{
-                const total=i.dataset.data.reduce((a,b)=>a+b,0);
-                return ` ${i.label}: ${i.raw} (${(i.raw/total*100).toFixed(0)}%)`;
-            }}}
-        }
-    };
-    if (chartPieCode) chartPieCode.destroy();
-    chartPieCode = new Chart(document.getElementById('chartCode'),{
-        type:'doughnut',
-        data:{labels:Object.keys(byCode),datasets:[{data:Object.values(byCode),backgroundColor:PALETTE,borderColor:'#1E222B',borderWidth:2}]},
-        options:pieOpts
-    });
-    if (chartPieType) chartPieType.destroy();
-    chartPieType = new Chart(document.getElementById('chartType'),{
-        type:'doughnut',
-        data:{labels:Object.keys(byType),datasets:[{data:Object.values(byType),backgroundColor:[...PALETTE].reverse(),borderColor:'#1E222B',borderWidth:2}]},
-        options:pieOpts
-    });
-}
-
 // ── Events table ──────────────────────────────────────────────────
 function setSort(col) {
     sortAsc = sortCol===col ? !sortAsc : col!=='date';
@@ -822,15 +850,12 @@ function setSort(col) {
     });
     renderTable(getBaseEvents().filter(e=>e.accepted>=attMin && e.accepted<=attMax));
 }
-
 function renderTable(evts) {
     const sorted=[...evts].sort((a,b)=>{
         let va=a[sortCol], vb=b[sortCol];
         if (sortCol==='date'){va=new Date(va);vb=new Date(vb);}
         if (typeof va==='string'){va=va.toLowerCase();vb=(vb||'').toLowerCase();}
-        if (va<vb) return sortAsc?-1:1;
-        if (va>vb) return sortAsc?1:-1;
-        return 0;
+        if (va<vb) return sortAsc?-1:1; if (va>vb) return sortAsc?1:-1; return 0;
     });
     eventsCache=sorted;
     document.getElementById('tableCount').textContent=`${sorted.length} event${sorted.length!==1?'s':''}`;
@@ -838,23 +863,14 @@ function renderTable(evts) {
     if (!sorted.length){tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state">No events match the current filters.</div></td></tr>`;return;}
     tbody.innerHTML=sorted.map((e,i)=>`
         <tr onclick="openDetail(eventsCache[${i}],'all')">
-            <td class="td-event">
-                ${esc(e.title||'—')}
-                <small>${esc(e.team_name)}</small>
-            </td>
+            <td class="td-event">${esc(e.title||'—')}<small>${esc(e.team_name)}</small></td>
             <td style="white-space:nowrap;color:var(--muted);">${fmtDate(e.date)}</td>
             <td><span class="tag">${esc(e.code||'—')}</span></td>
             <td><span class="tag">${esc(e.type||'—')}</span></td>
             <td style="color:var(--muted);">${esc(e.opposition||'—')}</td>
-            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'accepted')">
-                <span class="ac acc">✓ ${e.accepted}</span>
-            </td>
-            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'declined')">
-                <span class="ac dec">✗ ${e.declined}</span>
-            </td>
-            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'no_response')">
-                <span class="ac nr">? ${e.no_response}</span>
-            </td>
+            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'accepted')"><span class="ac acc">✓ ${e.accepted}</span></td>
+            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'declined')"><span class="ac dec">✗ ${e.declined}</span></td>
+            <td onclick="event.stopPropagation();openDetail(eventsCache[${i}],'no_response')"><span class="ac nr">? ${e.no_response}</span></td>
         </tr>`).join('');
 }
 
@@ -906,23 +922,24 @@ function renderDList(){
 function buildPDFHeader() {
     const clubName = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || 'Overview';
     const { start, end } = getDateRange();
-    const dateStr = fmtMonth(start) + ' – ' + fmtMonth(end);
+    const endDisplay = new Date(end); endDisplay.setDate(0); // last day of selected month
+    const dateStr = fmtMonth(start) + ' – ' + fmtMonth(endDisplay);
 
     const filterParts = [];
     if (fTeams.size > 0) {
         const names = (dashData.teams||[]).filter(t => fTeams.has(t.team_id)).map(t => t.team_name);
         filterParts.push('Teams: ' + names.join(', '));
     }
-    if (fCode) filterParts.push('Code: ' + fCode);
-    if (fType) filterParts.push('Type: ' + fType);
-    if (fRole) filterParts.push('Role: ' + fRole);
+    if (fCode.size > 0) filterParts.push('Code: ' + [...fCode].join(', '));
+    if (fType.size > 0) filterParts.push('Type: ' + [...fType].join(', '));
+    if (fRole.size > 0) filterParts.push('Role: ' + [...fRole].join(', '));
     const filterStr = filterParts.length ? filterParts.join('  ·  ') : 'All events';
     const genDate = new Date().toLocaleDateString('en-IE', { day:'numeric', month:'short', year:'numeric' });
 
     const el = document.createElement('div');
     el.style.cssText = 'display:flex;align-items:center;gap:16px;padding:0 0 16px;border-bottom:2px solid #87C232;margin-bottom:20px;';
     el.innerHTML = `
-        <div style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;letter-spacing:3px;flex-shrink:0;color:#E7EBEE;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;flex-shrink:0;color:#E7EBEE;">
             Coach<span style="color:#87C232;">Smart</span>
         </div>
         <div style="width:1px;height:28px;background:rgba(255,255,255,0.07);flex-shrink:0;"></div>
@@ -944,22 +961,15 @@ async function exportPDF() {
     el.insertBefore(header, el.firstChild);
     try {
         const scale = 1.5;
-        const canvas = await html2canvas(el, {
-            backgroundColor: '#111418',
-            scale,
-            useCORS: true,
-            logging: false,
-        });
+        const canvas = await html2canvas(el, { backgroundColor:'#111418', scale, useCORS:true, logging:false });
         const { jsPDF } = window.jspdf;
-        const pad = 20;
-        const w = canvas.width / scale;
-        const h = canvas.height / scale;
-        const pdf = new jsPDF({ orientation: w > h ? 'l' : 'p', unit: 'px', format: [w + pad*2, h + pad*2] });
-        pdf.setFillColor(17, 20, 24);
-        pdf.rect(0, 0, w + pad*2, h + pad*2, 'F');
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', pad, pad, w, h);
+        const pad = 20, w = canvas.width/scale, h = canvas.height/scale;
+        const pdf = new jsPDF({ orientation: w>h?'l':'p', unit:'px', format:[w+pad*2, h+pad*2] });
+        pdf.setFillColor(17,20,24);
+        pdf.rect(0,0,w+pad*2,h+pad*2,'F');
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',pad,pad,w,h);
         const clubName = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || 'overview';
-        const date = new Date().toISOString().slice(0, 10);
+        const date = new Date().toISOString().slice(0,10);
         pdf.save(`coachsmart-${clubName.replace(/\s+/g,'-').toLowerCase()}-${date}.pdf`);
     } catch(e) {
         alert('PDF export failed: ' + e.message);
