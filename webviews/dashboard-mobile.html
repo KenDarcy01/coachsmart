@@ -155,14 +155,13 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 /* Members chart */
 .members-chart-wrap { height: 150px; position: relative; }
 
-/* Share button */
-.share-btn {
-    display: flex; align-items: center; justify-content: center; gap: 7px;
-    width: 100%; padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 600;
+/* Topbar share button */
+.share-topbar-btn {
+    flex-shrink: 0; padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 600;
     background: var(--green); color: #111; border: none; cursor: pointer;
-    font-family: 'DM Sans', sans-serif; margin-top: 14px;
+    font-family: 'DM Sans', sans-serif;
 }
-.share-btn:disabled { opacity: 0.45; cursor: default; }
+.share-topbar-btn:disabled { opacity: 0.4; cursor: default; }
 
 /* ── Bottom-sheet drawer ── */
 .d-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
@@ -213,6 +212,7 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
     <div class="logo">Coach<span>Smart</span></div>
     <span id="ctxLabel" style="display:none;"></span>
     <div id="clubWrap"><select id="clubSelect" onchange="onClubChange()"><option value="">Select Club…</option></select></div>
+    <button class="share-topbar-btn" id="shareBtn" onclick="sharePDF()" disabled>↑ PDF</button>
     <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()">⚙ Filters</button>
 </div>
 
@@ -292,7 +292,6 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
             <span class="section-count" id="tableCount"></span>
         </div>
         <div id="eventsList"></div>
-        <button class="share-btn" id="sharePdfBtn" onclick="sharePDF()" disabled>↑ Share as PDF</button>
     </div>
 
     <!-- Team Overview (activeTab === 'club-overview') -->
@@ -305,7 +304,6 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
         </div>
         <div class="section-head"><span class="section-title">Teams</span></div>
         <div id="teamsGrid"></div>
-        <button class="share-btn" id="sharePdfBtnTeam" onclick="sharePDF()" disabled>↑ Share as PDF</button>
     </div>
 
     <!-- Members Overview (activeTab === 'members-overview') -->
@@ -326,7 +324,6 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
             <span class="section-count" id="mTableCount"></span>
         </div>
         <div id="membersList"></div>
-        <button class="share-btn" id="sharePdfBtnMembers" onclick="sharePDF()" disabled>↑ Share as PDF</button>
     </div>
 </div>
 
@@ -572,7 +569,7 @@ function renderEventCards(evts){
     eventsCache=sorted;
     document.getElementById('tableCount').textContent=`${sorted.length} event${sorted.length!==1?'s':''}`;
     const container=document.getElementById('eventsList');
-    if(!sorted.length){container.innerHTML=`<div class="empty-state">No events match the current filters.</div>`;document.getElementById('sharePdfBtn').disabled=true;return;}
+    if(!sorted.length){container.innerHTML=`<div class="empty-state">No events match the current filters.</div>`;document.getElementById('shareBtn').disabled=true;return;}
     container.innerHTML=sorted.map((e,i)=>`
         <div class="event-card" onclick="openDetail(eventsCache[${i}],'all')">
             <div class="ev-title">${esc(e.title||'—')}</div>
@@ -589,7 +586,7 @@ function renderEventCards(evts){
                 <span class="ac nr"  onclick="event.stopPropagation();openDetail(eventsCache[${i}],'no_response')">? ${e.no_response}</span>
             </div>
         </div>`).join('');
-    document.getElementById('sharePdfBtn').disabled=false;
+    document.getElementById('shareBtn').disabled=false;
 }
 
 // ── Team Overview ─────────────────────────────────────────────────
@@ -609,7 +606,7 @@ function renderTeamCards(evtsPerTeam){
     renderTeamViewKPIs(evtsPerTeam);_rosterCache=[];
     const grid=document.getElementById('teamsGrid'),allTeams=dashData.teams||[];
     const visible=allTeams.filter(team=>{const evts=evtsPerTeam[team.team_id]||[];return evts.length>0||(fTeams!==null&&fTeams.has(team.team_id));});
-    if(!visible.length){grid.innerHTML=`<div class="empty-state">${fTeams!==null&&fTeams.size===0?'No teams selected.':'No teams have data in this period.'}</div>`;document.getElementById('sharePdfBtnTeam').disabled=true;return;}
+    if(!visible.length){grid.innerHTML=`<div class="empty-state">${fTeams!==null&&fTeams.size===0?'No teams selected.':'No teams have data in this period.'}</div>`;document.getElementById('shareBtn').disabled=true;return;}
     grid.innerHTML=visible.map(team=>{
         const evts=evtsPerTeam[team.team_id]||[];
         const totalAcc=evts.reduce((s,e)=>s+e.accepted,0),totalDec=evts.reduce((s,e)=>s+e.declined,0),totalNR=evts.reduce((s,e)=>s+e.no_response,0),totalAll=totalAcc+totalDec+totalNR;
@@ -628,7 +625,7 @@ function renderTeamCards(evtsPerTeam){
             <div class="tc-footer">View in Club Overview →</div>
         </div>`;
     }).join('');
-    document.getElementById('sharePdfBtnTeam').disabled=false;
+    document.getElementById('shareBtn').disabled=false;
 }
 function openTeamInClubOverview(teamId){fTeams=new Set([teamId]);renderTeamChips();switchTab('team-overview');applyFilters();}
 
@@ -720,7 +717,7 @@ function renderMembersCards(){
     const sorted=[...membersCache].filter(m=>!search||m.name.toLowerCase().includes(search)).sort((a,b)=>b.rate-a.rate);
     document.getElementById('mTableCount').textContent=`${sorted.length} member${sorted.length!==1?'s':''}`;
     const container=document.getElementById('membersList');
-    if(!sorted.length){container.innerHTML=`<div class="empty-state">No members match the current filters.</div>`;document.getElementById('sharePdfBtnMembers').disabled=true;return;}
+    if(!sorted.length){container.innerHTML=`<div class="empty-state">No members match the current filters.</div>`;document.getElementById('shareBtn').disabled=true;return;}
     container.innerHTML=sorted.map(m=>{
         const pct=(m.rate*100).toFixed(1),col=m.rate>=0.8?'var(--green)':m.rate>=0.5?'var(--amber)':'var(--red)';
         return`<div class="member-card" onclick="openMemberDetail(${m.member_id})">
@@ -735,16 +732,15 @@ function renderMembersCards(){
             </div>
         </div>`;
     }).join('');
-    document.getElementById('sharePdfBtnMembers').disabled=false;
+    document.getElementById('shareBtn').disabled=false;
 }
 
 // ── Share PDF ─────────────────────────────────────────────────────
 async function sharePDF(){
     const elMap={'team-overview':'viewClub','club-overview':'viewTeam','members-overview':'viewMembers'};
-    const btnMap={'team-overview':'sharePdfBtn','club-overview':'sharePdfBtnTeam','members-overview':'sharePdfBtnMembers'};
     const el=document.getElementById(elMap[activeTab]);
-    const btn=document.getElementById(btnMap[activeTab]);
-    btn.textContent='Generating…';btn.disabled=true;
+    const btn=document.getElementById('shareBtn');
+    btn.textContent='…';btn.disabled=true;
     const name=clubName()||'Dashboard';
     const titleMap={'club-overview':'Club Overview','team-overview':'Team Overview','members-overview':'Members Overview'};
     const title=titleMap[activeTab];
@@ -755,7 +751,11 @@ async function sharePDF(){
     header.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#E7EBEE;">Coach<span style="color:#87C232;">Smart</span></div><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:#E7EBEE;">${esc(title)} — ${esc(name)}</div><div style="font-size:10px;color:#6B7280;margin-top:2px;">${esc(dateStr)}</div></div>`;
     el.insertBefore(header,el.firstChild);
     try{
-        const scale=Math.min(window.devicePixelRatio||2,2);
+        // Clamp scale so canvas never exceeds iOS Safari's ~16.7 M pixel limit
+        const MAX_CANVAS_PX=16000000;
+        const naturalW=el.offsetWidth||390,naturalH=el.scrollHeight||el.offsetHeight||800;
+        const maxScale=Math.sqrt(MAX_CANVAS_PX/(naturalW*naturalH));
+        const scale=Math.min(window.devicePixelRatio||2,2,maxScale);
         const canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
         const{jsPDF}=window.jspdf,pad=8,w=canvas.width/scale,h=canvas.height/scale;
         const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
@@ -772,7 +772,7 @@ async function sharePDF(){
             URL.revokeObjectURL(url);
         }
     }catch(e){if(e.name!=='AbortError')alert('PDF failed: '+e.message);}
-    finally{el.removeChild(header);btn.textContent='↑ Share as PDF';btn.disabled=false;}
+    finally{el.removeChild(header);btn.textContent='↑ PDF';btn.disabled=false;}
 }
 
 async function shareDrawerPDF(){
