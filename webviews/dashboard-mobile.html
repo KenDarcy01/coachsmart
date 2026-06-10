@@ -751,16 +751,27 @@ async function sharePDF(){
     header.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#E7EBEE;">Coach<span style="color:#87C232;">Smart</span></div><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:#E7EBEE;">${esc(title)} — ${esc(name)}</div><div style="font-size:10px;color:#6B7280;margin-top:2px;">${esc(dateStr)}</div></div>`;
     el.insertBefore(header,el.firstChild);
     try{
-        // Clamp scale so canvas never exceeds iOS Safari's ~16.7 M pixel limit
-        const MAX_CANVAS_PX=16000000;
-        const naturalW=el.offsetWidth||390,naturalH=el.scrollHeight||el.offsetHeight||800;
-        const maxScale=Math.sqrt(MAX_CANVAS_PX/(naturalW*naturalH));
-        const scale=Math.min(window.devicePixelRatio||2,2,maxScale);
-        const canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
-        const{jsPDF}=window.jspdf,pad=8,w=canvas.width/scale,h=canvas.height/scale;
-        const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
-        pdf.setFillColor(17,20,24);pdf.rect(0,0,w+pad*2,h+pad*2,'F');
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',pad,pad,w,h);
+        const elW=el.offsetWidth||390;
+        const elH=el.scrollHeight||el.offsetHeight||800;
+        // Slice into pages of 1200px at scale 1 — each canvas is ~390×1200 = 468k px,
+        // well within iOS Safari's toDataURL limit regardless of total content height.
+        const PAGE_H=1200;
+        const pageCount=Math.ceil(elH/PAGE_H);
+        const{jsPDF}=window.jspdf;
+        let pdf=null;
+        for(let i=0;i<pageCount;i++){
+            const sliceY=i*PAGE_H;
+            const sliceH=Math.min(PAGE_H,elH-sliceY);
+            let canvas=await html2canvas(el,{backgroundColor:'#111418',scale:1,x:0,y:sliceY,width:elW,height:sliceH,useCORS:true,logging:false});
+            const imgData=canvas.toDataURL('image/jpeg',0.85);
+            canvas=null; // release before next iteration
+            if(imgData.length<500)throw new Error('Canvas render failed (page '+(i+1)+')');
+            if(!pdf){pdf=new jsPDF({orientation:'p',unit:'px',format:[elW,sliceH]});}
+            else{pdf.addPage([elW,sliceH]);}
+            pdf.setFillColor(17,20,24);pdf.rect(0,0,elW,sliceH,'F');
+            pdf.addImage(imgData,'JPEG',0,0,elW,sliceH);
+        }
+        if(!pdf)throw new Error('Nothing to render');
         const filename=`coachsmart-${name.replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`;
         const blob=pdf.output('blob');
         const file=new File([blob],filename,{type:'application/pdf'});
@@ -779,9 +790,8 @@ async function shareDrawerPDF(){
     const btn=document.getElementById('dShareBtn');btn.textContent='…';btn.disabled=true;
     const sheet=document.getElementById('dSheet');
     try{
-        const scale=Math.min(window.devicePixelRatio||2,2);
-        const canvas=await html2canvas(sheet,{backgroundColor:'#1E222B',scale,useCORS:true,logging:false});
-        const{jsPDF}=window.jspdf,w=canvas.width/scale,h=canvas.height/scale;
+        const canvas=await html2canvas(sheet,{backgroundColor:'#1E222B',scale:1,useCORS:true,logging:false});
+        const{jsPDF}=window.jspdf,w=canvas.width,h=canvas.height;
         const pdf=new jsPDF({orientation:'p',unit:'px',format:[w,h]});
         pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',0,0,w,h);
         const title=document.getElementById('dTitle').textContent;
