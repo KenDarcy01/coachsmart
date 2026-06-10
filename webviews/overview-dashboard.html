@@ -941,20 +941,21 @@ async function exportPDF() {
     const header = buildPDFHeader();
     el.insertBefore(header, el.firstChild);
     try {
+        const scale = 1.5;
         const canvas = await html2canvas(el, {
             backgroundColor: '#111418',
-            scale: 2,
+            scale,
             useCORS: true,
             logging: false,
         });
         const { jsPDF } = window.jspdf;
         const pad = 20;
-        const w = canvas.width / 2;
-        const h = canvas.height / 2;
+        const w = canvas.width / scale;
+        const h = canvas.height / scale;
         const pdf = new jsPDF({ orientation: w > h ? 'l' : 'p', unit: 'px', format: [w + pad*2, h + pad*2] });
         pdf.setFillColor(17, 20, 24);
         pdf.rect(0, 0, w + pad*2, h + pad*2, 'F');
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pad, pad, w, h);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', pad, pad, w, h);
         const clubName = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || 'overview';
         const date = new Date().toISOString().slice(0, 10);
         pdf.save(`coachsmart-${clubName.replace(/\s+/g,'-').toLowerCase()}-${date}.pdf`);
