@@ -291,11 +291,11 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
                 <h3>Accepted Attendees</h3>
                 <div class="tog-row">
                     <div class="tog-group" id="grpTog">
-                        <button class="tog active" onclick="setGroupBy('code')">By Code</button>
+                        <button class="tog active" onclick="setGroupBy('month')">By Month</button>
+                        <button class="tog"        onclick="setGroupBy('code')">By Code</button>
                         <button class="tog"        onclick="setGroupBy('team')">By Team</button>
-                        <button class="tog"        onclick="setGroupBy('month')">By Month</button>
                     </div>
-                    <div class="tog-group" id="smthTog">
+                    <div class="tog-group" id="smthTog" style="display:none;">
                         <button class="tog active" onclick="setSmooth(false)">Linear</button>
                         <button class="tog"        onclick="setSmooth(true)">Smooth</button>
                     </div>
@@ -332,6 +332,12 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 
     <!-- Team Overview tab -->
     <div id="viewTeam" style="display:none;">
+        <div class="kpi-row" style="margin-bottom:18px;">
+            <div class="kpi-card"><div class="kpi-label">Total Events</div><div class="kpi-value green" id="tkpiEvents">—</div><div class="kpi-sub" id="tkpiEventsSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Acceptance Rate</div><div class="kpi-value green" id="tkpiAcc">—</div><div class="kpi-sub" id="tkpiAccSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Accepted</div><div class="kpi-value" id="tkpiAvg">—</div><div class="kpi-sub">per event</div></div>
+            <div class="kpi-card"><div class="kpi-label">Response Rate</div><div class="kpi-value amber" id="tkpiResp">—</div><div class="kpi-sub" id="tkpiRespSub"></div></div>
+        </div>
         <div id="teamsGrid" class="teams-grid"></div>
     </div>
 
@@ -375,7 +381,7 @@ let fCode       = new Set();
 let fType       = new Set();
 let fRole       = new Set();
 let attMin      = 0, attMax = Infinity;
-let groupBy     = 'code';
+let groupBy     = 'month';
 let smoothChart = false;
 let allCodes = [], allTypes = [], allRoles = [];
 let currentClubId = null;
@@ -401,8 +407,8 @@ function clubName() {
 function switchTab(tab) {
     activeTab = tab;
     document.querySelectorAll('.cs-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    document.getElementById('viewClub').style.display  = tab === 'club-overview' ? '' : 'none';
-    document.getElementById('viewTeam').style.display  = tab === 'team-overview' ? '' : 'none';
+    document.getElementById('viewClub').style.display  = tab === 'team-overview' ? '' : 'none';
+    document.getElementById('viewTeam').style.display  = tab === 'club-overview' ? '' : 'none';
     document.getElementById('pdfBtn').disabled = !dashData;
     if (dashData) applyFiltersNoReload();
 }
@@ -649,7 +655,7 @@ function getFilteredEventsPerTeam() {
     return result;
 }
 function applyFilters() {
-    if (activeTab==='club-overview') {
+    if (activeTab==='team-overview') {
         const base=getBaseEvents();
         initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
         renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
@@ -662,7 +668,7 @@ function applyFilters() {
     }
 }
 function applyFiltersNoReload() {
-    if (activeTab==='club-overview') {
+    if (activeTab==='team-overview') {
         renderClubOverview(getBaseEvents().filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
     } else {
         const base=getFilteredEventsPerTeam();
@@ -689,7 +695,7 @@ function renderKPIs(evts) {
 // ── Chart ─────────────────────────────────────────────────────────
 function setGroupBy(g) {
     groupBy=g;
-    document.querySelectorAll('#grpTog .tog').forEach((b,i)=>b.classList.toggle('active',['code','team','month'][i]===g));
+    document.querySelectorAll('#grpTog .tog').forEach((b,i)=>b.classList.toggle('active',['month','code','team'][i]===g));
     document.getElementById('smthTog').style.display=g==='month'?'none':'';
     if (dashData) applyFiltersNoReload();
 }
@@ -812,11 +818,25 @@ function renderDList(){
 }
 
 // ── Team Overview rendering ───────────────────────────────────────
+function renderTeamViewKPIs(evtsPerTeam) {
+    const allEvts=Object.values(evtsPerTeam).flat();
+    const totalAcc=allEvts.reduce((s,e)=>s+e.accepted,0), totalDec=allEvts.reduce((s,e)=>s+e.declined,0), totalNR=allEvts.reduce((s,e)=>s+e.no_response,0);
+    const totalAll=totalAcc+totalDec+totalNR;
+    const teamCount=Object.values(evtsPerTeam).filter(v=>v.length>0).length;
+    document.getElementById('tkpiEvents').textContent    = allEvts.length;
+    document.getElementById('tkpiEventsSub').textContent = `across ${teamCount} team${teamCount!==1?'s':''}`;
+    document.getElementById('tkpiAcc').textContent       = totalAll>0?(totalAcc/totalAll*100).toFixed(1)+'%':'—';
+    document.getElementById('tkpiAccSub').textContent    = `${totalAcc.toLocaleString()} accepted of ${totalAll.toLocaleString()}`;
+    document.getElementById('tkpiAvg').textContent       = allEvts.length>0?(totalAcc/allEvts.length).toFixed(1):'—';
+    document.getElementById('tkpiResp').textContent      = totalAll>0?((totalAcc+totalDec)/totalAll*100).toFixed(1)+'%':'—';
+    document.getElementById('tkpiRespSub').textContent   = `${totalNR.toLocaleString()} no response`;
+}
 function openTeamInClubOverview(teamId) {
     fTeams=new Set([teamId]); renderTeamDropdown(); resetSubFilters();
     switchTab('club-overview'); applyFilters();
 }
 function renderTeamCards(evtsPerTeam) {
+    renderTeamViewKPIs(evtsPerTeam);
     const grid=document.getElementById('teamsGrid');
     const {start,end}=getDateRange(), months=getMonthsInRange(start,end);
     Object.values(teamCharts).forEach(c=>c.destroy()); teamCharts={};
@@ -898,7 +918,7 @@ function buildPDFHeader() {
 }
 async function exportPDF() {
     const btn=document.getElementById('pdfBtn'); btn.textContent='Generating…'; btn.disabled=true;
-    const el=activeTab==='club-overview'?document.getElementById('viewClub'):document.getElementById('viewTeam');
+    const el=activeTab==='club-overview'?document.getElementById('viewTeam'):document.getElementById('viewClub');
     const header=buildPDFHeader(); el.insertBefore(header,el.firstChild);
     try {
         const scale=1.5, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
