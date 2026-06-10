@@ -755,7 +755,7 @@ async function sharePDF(){
         const elH=el.scrollHeight||el.offsetHeight||800;
         // Slice into pages of 1200px at scale 1 — each canvas is ~390×1200 = 468k px,
         // well within iOS Safari's toDataURL limit regardless of total content height.
-        const PAGE_H=1200;
+        const PAGE_H=1200,pad=10;
         const pageCount=Math.ceil(elH/PAGE_H);
         const{jsPDF}=window.jspdf;
         let pdf=null;
@@ -764,12 +764,13 @@ async function sharePDF(){
             const sliceH=Math.min(PAGE_H,elH-sliceY);
             let canvas=await html2canvas(el,{backgroundColor:'#111418',scale:1,x:0,y:sliceY,width:elW,height:sliceH,useCORS:true,logging:false});
             const imgData=canvas.toDataURL('image/jpeg',0.85);
-            canvas=null; // release before next iteration
+            canvas=null;
             if(imgData.length<500)throw new Error('Canvas render failed (page '+(i+1)+')');
-            if(!pdf){pdf=new jsPDF({orientation:'p',unit:'px',format:[elW,sliceH]});}
-            else{pdf.addPage([elW,sliceH]);}
-            pdf.setFillColor(17,20,24);pdf.rect(0,0,elW,sliceH,'F');
-            pdf.addImage(imgData,'JPEG',0,0,elW,sliceH);
+            const pgW=elW+pad*2,pgH=sliceH+pad*2;
+            if(!pdf){pdf=new jsPDF({orientation:'p',unit:'px',format:[pgW,pgH]});}
+            else{pdf.addPage([pgW,pgH]);}
+            pdf.setFillColor(17,20,24);pdf.rect(0,0,pgW,pgH,'F');
+            pdf.addImage(imgData,'JPEG',pad,pad,elW,sliceH);
         }
         if(!pdf)throw new Error('Nothing to render');
         const filename=`coachsmart-${name.replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`;
@@ -791,9 +792,10 @@ async function shareDrawerPDF(){
     const sheet=document.getElementById('dSheet');
     try{
         const canvas=await html2canvas(sheet,{backgroundColor:'#1E222B',scale:1,useCORS:true,logging:false});
-        const{jsPDF}=window.jspdf,w=canvas.width,h=canvas.height;
-        const pdf=new jsPDF({orientation:'p',unit:'px',format:[w,h]});
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',0,0,w,h);
+        const{jsPDF}=window.jspdf,pad=10,w=canvas.width,h=canvas.height;
+        const pdf=new jsPDF({orientation:'p',unit:'px',format:[w+pad*2,h+pad*2]});
+        pdf.setFillColor(30,34,43);pdf.rect(0,0,w+pad*2,h+pad*2,'F');
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',pad,pad,w,h);
         const title=document.getElementById('dTitle').textContent;
         const filename=`coachsmart-${title.replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.pdf`;
         const blob=pdf.output('blob');
