@@ -381,7 +381,7 @@ let drawerMode  = 'event'; // 'event' | 'roster'
 let rosterData  = null;    // { team_name, role, members: [{member_id, name}] }
 let sortCol     = 'date', sortAsc = false;
 let eventsCache = [];
-let fTeams      = new Set();
+let fTeams      = null; // null=all teams; new Set()=none; new Set([...ids])=specific
 let fCode       = new Set();
 let fType       = new Set();
 let fRole       = new Set();
@@ -538,12 +538,11 @@ function buildFilters(clubId) {
 
     if (clubId !== currentClubId) {
         currentClubId = clubId;
-        fTeams = new Set(); // default: all teams
+        fTeams = null; // default: all teams
         fCode = new Set(); fType = new Set(); fRole = new Set();
     } else {
-        if (fTeams.size > 0) {
+        if (fTeams !== null && fTeams.size > 0) {
             fTeams = new Set([...fTeams].filter(id=>validIds.has(id)));
-            if (fTeams.size === 0) fTeams = new Set();
         }
         fCode = new Set([...fCode].filter(v=>allCodes.includes(v)));
         fType = new Set([...fType].filter(v=>allTypes.includes(v)));
@@ -571,10 +570,10 @@ document.addEventListener('click', () => {
     document.getElementById('teamDropBtn')?.classList.remove('open');
 });
 function renderTeamDropdown() {
-    const teams=dashData?.teams||[], allActive=fTeams.size===0;
+    const teams=dashData?.teams||[], allActive=fTeams===null;
     let html=`<div class="tdrop-item all-item ${allActive?'checked':''}" onclick="onTeamAll()"><span class="tdrop-check">${allActive?'✓':''}</span>All Teams</div>`;
     html+=teams.map(t=>{
-        const chk=allActive||fTeams.has(t.team_id);
+        const chk=fTeams===null||fTeams.has(t.team_id);
         return `<div class="tdrop-item ${chk?'checked':''}" onclick="onTeamToggle(${t.team_id})"><span class="tdrop-check">${chk?'✓':''}</span>${esc(t.team_name)}</div>`;
     }).join('');
     document.getElementById('teamDropMenu').innerHTML=html;
@@ -583,7 +582,8 @@ function renderTeamDropdown() {
 function updateTeamDropLabel() {
     const teams=dashData?.teams||[];
     let label;
-    if (fTeams.size===0) label='All Teams';
+    if (fTeams===null) label='All Teams';
+    else if (fTeams.size===0) label='No Teams';
     else if (fTeams.size===1) { const t=teams.find(t=>fTeams.has(t.team_id)); label=t?t.team_name:'1 Team'; }
     else label=fTeams.size+' Teams';
     document.getElementById('teamDropLabel').textContent=label;
@@ -595,34 +595,32 @@ function resetSubFilters() {
     renderMultiChips('roleChips','role',allRoles,fRole);
 }
 function onTeamAll() {
-    const allIds=(dashData.teams||[]).map(t=>t.team_id);
-    // Toggle: if all currently shown, collapse to first team; otherwise select all
-    fTeams = fTeams.size===0 ? new Set([allIds[0]]) : new Set();
+    // Toggle: all→none, anything else→all
+    fTeams = fTeams===null ? new Set() : null;
     renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
 function onTeamToggle(id) {
     const allIds=(dashData.teams||[]).map(t=>t.team_id);
-    if (fTeams.size===0) {
-        // All teams active — switch to only this team
-        fTeams=new Set([id]);
+    if (fTeams===null) {
+        // All active — deselect just this one
+        fTeams=new Set(allIds.filter(x=>x!==id));
     } else if (fTeams.has(id)) {
         fTeams.delete(id);
-        // Snap to first team rather than allowing empty
-        if (fTeams.size===0) fTeams=new Set([allIds[0]]);
+        // Allow empty — no snap to default
     } else {
         fTeams.add(id);
-        if (fTeams.size===allIds.length) fTeams=new Set();
+        if (fTeams.size===allIds.length) fTeams=null; // back to all
     }
     renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
 function closeTeamCard(teamId) {
     const allIds=(dashData.teams||[]).map(t=>t.team_id);
-    if (fTeams.size===0) {
-        // All teams active — deselect this one specifically
+    if (fTeams===null) {
+        // All active — deselect this one specifically
         fTeams=new Set(allIds.filter(x=>x!==teamId));
     } else {
         fTeams.delete(teamId);
-        if (fTeams.size===0) fTeams=new Set([allIds[0]]);
+        // Allow empty — nothing shown
     }
     renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
@@ -649,7 +647,7 @@ function getBaseEvents() {
     if (!dashData) return [];
     const evts=[];
     for (const team of dashData.teams||[]) {
-        if (fTeams.size>0 && !fTeams.has(team.team_id)) continue;
+        if (fTeams!==null && !fTeams.has(team.team_id)) continue;
         for (const e of team.events||[]) {
             if (fCode.size>0 && !fCode.has(e.code)) continue;
             if (fType.size>0 && !fType.has(e.type)) continue;
@@ -666,7 +664,7 @@ function getBaseEvents() {
 function getFilteredEventsPerTeam() {
     const result={};
     for (const team of dashData.teams||[]) {
-        if (fTeams.size>0 && !fTeams.has(team.team_id)) continue;
+        if (fTeams!==null && !fTeams.has(team.team_id)) continue;
         const evts=[];
         for (const e of team.events||[]) {
             if (fCode.size>0 && !fCode.has(e.code)) continue;
@@ -876,7 +874,7 @@ function renderTeamViewKPIs(evtsPerTeam) {
     document.getElementById('tkpiRespSub').textContent   = `${totalNR.toLocaleString()} no response`;
 }
 function openTeamInClubOverview(teamId) {
-    fTeams=new Set([teamId]); renderTeamDropdown(); resetSubFilters();
+    fTeams=new Set([teamId]); renderTeamDropdown();
     switchTab('team-overview'); applyFilters();
 }
 function renderTeamCards(evtsPerTeam) {
@@ -890,11 +888,12 @@ function renderTeamCards(evtsPerTeam) {
     const allTeams=dashData.teams||[];
     const visibleTeams=allTeams.filter(team=>{
         const evts=evtsPerTeam[team.team_id]||[];
-        return evts.length>0 || (fTeams.size>0 && fTeams.has(team.team_id));
+        // Empty team only visible if explicitly selected (fTeams is a non-null set containing it)
+        return evts.length>0 || (fTeams!==null && fTeams.has(team.team_id));
     });
 
     if (!visibleTeams.length) {
-        grid.innerHTML='<div class="empty-state">No teams have data in this period.</div>';
+        grid.innerHTML=`<div class="empty-state">${fTeams!==null&&fTeams.size===0?'No teams selected. Pick a team from the filter above.':'No teams have data in this period.'}</div>`;
         return;
     }
 
@@ -966,7 +965,7 @@ function buildPDFHeader() {
     const {start,end}=getDateRange(); const endD=new Date(end); endD.setDate(0);
     const dateStr=fmtMonth(start)+' – '+fmtMonth(endD);
     const parts=[];
-    if(fTeams.size>0)parts.push('Teams: '+(dashData.teams||[]).filter(t=>fTeams.has(t.team_id)).map(t=>t.team_name).join(', '));
+    if(fTeams!==null&&fTeams.size>0)parts.push('Teams: '+(dashData.teams||[]).filter(t=>fTeams.has(t.team_id)).map(t=>t.team_name).join(', '));
     if(fCode.size>0)parts.push('Code: '+[...fCode].join(', '));
     if(fType.size>0)parts.push('Type: '+[...fType].join(', '));
     if(fRole.size>0)parts.push('Role: '+[...fRole].join(', '));
