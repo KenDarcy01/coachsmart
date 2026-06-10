@@ -446,7 +446,9 @@ function fmtDate(d)  { return new Date(d).toLocaleDateString('en-IE',{day:'numer
 
 // ── Date slider ───────────────────────────────────────────────────
 function monthToDate(i) {
-    const d = new Date(); d.setDate(1);
+    const d = new Date();
+    d.setDate(1);            // prevent overflow when setMonth crosses short months
+    d.setHours(0, 0, 0, 0); // normalise to midnight so boundaries are clean
     d.setMonth(d.getMonth() - (MAX_MONTHS - i));
     return d;
 }
@@ -454,7 +456,8 @@ function getDateRange() {
     const f = parseInt(document.getElementById('sliderFrom').value);
     const t = parseInt(document.getElementById('sliderTo').value);
     const start = monthToDate(f);
-    const end   = monthToDate(t); end.setMonth(end.getMonth()+1); end.setDate(0);
+    const end   = monthToDate(t);
+    end.setMonth(end.getMonth() + 1); // exclusive upper bound: first of next month
     return { start, end };
 }
 function onDateSlider() {
@@ -466,9 +469,8 @@ function onDateSlider() {
         document.getElementById('sliderFrom').value = f;
         document.getElementById('sliderTo').value   = t;
     }
-    const {start,end} = getDateRange();
-    document.getElementById('dateFrom').textContent = fmtMonth(start);
-    document.getElementById('dateTo').textContent   = fmtMonth(end);
+    document.getElementById('dateFrom').textContent = fmtMonth(monthToDate(f));
+    document.getElementById('dateTo').textContent   = fmtMonth(monthToDate(t));
     const p1 = f/MAX_MONTHS*100, p2 = t/MAX_MONTHS*100;
     document.getElementById('dateFill').style.left  = p1+'%';
     document.getElementById('dateFill').style.width = (p2-p1)+'%';
