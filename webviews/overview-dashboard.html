@@ -914,10 +914,11 @@ async function exportPDF() {
             logging: false,
         });
         const { jsPDF } = window.jspdf;
+        const pad = 20;
         const w = canvas.width / 2;
         const h = canvas.height / 2;
-        const pdf = new jsPDF({ orientation: w > h ? 'l' : 'p', unit: 'px', format: [w, h] });
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, h);
+        const pdf = new jsPDF({ orientation: w > h ? 'l' : 'p', unit: 'px', format: [w + pad*2, h + pad*2] });
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pad, pad, w, h);
         const clubName = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || 'overview';
         const date = new Date().toISOString().slice(0, 10);
         pdf.save(`coachsmart-${clubName.replace(/\s+/g,'-').toLowerCase()}-${date}.pdf`);
