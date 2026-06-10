@@ -435,7 +435,7 @@ let fTeams      = null; // null=all teams; new Set()=none; new Set([...ids])=spe
 let fCode       = new Set();
 let fType       = new Set();
 let fRole       = new Set();
-let attMin      = 0, attMax = Infinity;
+let attMin      = 0, attMax = Infinity, _attSliderHasData = false;
 let groupBy     = 'month';
 let smoothChart = false;
 let allCodes = [], allTypes = [], allRoles = [];
@@ -465,7 +465,7 @@ function switchTab(tab) {
     document.getElementById('viewClub').style.display    = tab === 'team-overview'    ? '' : 'none';
     document.getElementById('viewTeam').style.display    = tab === 'club-overview'    ? '' : 'none';
     document.getElementById('viewMembers').style.display = tab === 'members-overview' ? '' : 'none';
-    if (tab === 'members-overview') document.getElementById('attRow').style.display = 'none';
+    document.getElementById('attRow').style.display = (tab === 'members-overview') ? 'none' : (_attSliderHasData ? '' : 'none');
     document.getElementById('pdfBtn').disabled = !dashData;
     if (dashData) applyFiltersNoReload();
 }
@@ -500,6 +500,7 @@ function onDateSlider() {
 
 // ── Attendees slider ──────────────────────────────────────────────
 function initAttSlider(maxVal) {
+    _attSliderHasData = maxVal > 0;
     attMin = 0; attMax = maxVal || 1;
     const fromEl = document.getElementById('attFrom'), toEl = document.getElementById('attTo');
     fromEl.max = attMax; fromEl.value = 0;
