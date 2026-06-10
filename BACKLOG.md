@@ -53,6 +53,38 @@ Populate via trigger on `event_attendance` INSERT/UPDATE/DELETE and on `member_t
 
 ---
 
+## Data Integrity — Soft Deletes
+
+Hard deletes currently cause permanent, unrecoverable data loss. The fix is to add a `status` column to top-level parent tables only — child records are naturally excluded when the parent is filtered, so no child tables need their own status column.
+
+**Tables requiring `status` column:**
+
+| Table | Current behaviour | Soft delete value |
+|---|---|---|
+| `members` | Hard deleted if removed from last team | `'removed'` |
+| `member_team_link` | Hard deleted on team removal | `'removed'` |
+| `events` | Hard deleted by admin | `'cancelled'` |
+
+**Delete paths to rewrite (all currently hard-delete):**
+
+| Location | Trigger | Change required |
+|---|---|---|
+| RPC `remove_member_from_team` | Admin removes member from team | Replace all DELETEs with `UPDATE members SET status='removed'` + `UPDATE member_team_link SET status='removed'` |
+| `user_member_details_widget.dart` | Member taps "Leave this Team" | Same soft delete + add confirmation dialog (currently no confirm shown) |
+| `edit_event_widget.dart` | Admin deletes event | `UPDATE events SET status='cancelled'` instead of deleting. Also currently leaves `car_pool`, `car_pool_detail`, `match_squads`, `match_squad_details`, `match_reports`, `notifications` orphaned. |
+| `member_details_widget.dart` | Admin removes a role | `member_team_role_link` only — lower risk, but should still soft-delete or audit |
+
+**RPCs to audit after adding status columns:**
+All RPCs that query `members`, `member_team_link`, or `events` will need `WHERE status = 'active'` (or `IS NULL`) added — or the column defaulted to `'active'` so existing queries keep working without change. The safer approach is `DEFAULT 'active'` so all existing queries are unaffected and only removal paths need updating.
+
+**Migration order:**
+1. Add `status text DEFAULT 'active'` to `members`, `member_team_link`, `events`
+2. Rewrite `remove_member_from_team` RPC
+3. Update `user_member_details_widget.dart` and `edit_event_widget.dart` in FlutterFlow
+4. Audit RPCs that list members/events to confirm `status = 'active'` filter is in place
+
+---
+
 ## Database Cleanup
 
 | # | Item | Notes |
@@ -89,4 +121,4 @@ Functions confirmed as never called from the app — safe to drop once PWA is re
 
 ---
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-06-10*
