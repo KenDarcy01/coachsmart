@@ -193,6 +193,9 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 .tc-kl { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 5px; }
 .tc-chart-wrap { padding: 14px 16px 10px; height: 190px; }
 .tc-empty { padding: 24px 18px; font-size: 12px; color: var(--muted); text-align: center; }
+.tc-roles { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+.tc-role-pill { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; background: var(--card2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all 0.15s; user-select: none; white-space: nowrap; }
+.tc-role-pill:hover { border-color: rgba(135,194,50,0.45); color: var(--green); background: rgba(135,194,50,0.08); }
 .tc-footer { padding: 10px 18px; font-size: 12px; color: var(--muted); text-align: right; border-top: 1px solid var(--border); transition: color 0.15s; }
 .team-card:hover .tc-footer { color: var(--green); }
 
@@ -374,6 +377,8 @@ let dashData    = null;
 let mainChart   = null;
 let teamCharts  = {};
 let detailEvt   = null, detailFilt = 'all';
+let drawerMode  = 'event'; // 'event' | 'roster'
+let rosterData  = null;    // { team_name, role, members: [{member_id, name}] }
 let sortCol     = 'date', sortAsc = false;
 let eventsCache = [];
 let fTeams      = new Set();
@@ -589,12 +594,25 @@ function resetSubFilters() {
     renderMultiChips('typeChips','type',allTypes,fType);
     renderMultiChips('roleChips','role',allRoles,fRole);
 }
-function onTeamAll() { fTeams=new Set(); renderTeamDropdown(); resetSubFilters(); applyFilters(); }
+function onTeamAll() {
+    const allIds=(dashData.teams||[]).map(t=>t.team_id);
+    // Toggle: if all currently shown, collapse to first team; otherwise select all
+    fTeams = fTeams.size===0 ? new Set([allIds[0]]) : new Set();
+    renderTeamDropdown(); resetSubFilters(); applyFilters();
+}
 function onTeamToggle(id) {
     const allIds=(dashData.teams||[]).map(t=>t.team_id);
-    if (fTeams.size===0)      fTeams=new Set(allIds.filter(x=>x!==id));
-    else if (fTeams.has(id)) { fTeams.delete(id); if (fTeams.size===0) fTeams=new Set(); }
-    else { fTeams.add(id); if (fTeams.size===allIds.length) fTeams=new Set(); }
+    if (fTeams.size===0) {
+        // All teams active — switch to only this team
+        fTeams=new Set([id]);
+    } else if (fTeams.has(id)) {
+        fTeams.delete(id);
+        // Snap to first team rather than allowing empty
+        if (fTeams.size===0) fTeams=new Set([allIds[0]]);
+    } else {
+        fTeams.add(id);
+        if (fTeams.size===allIds.length) fTeams=new Set();
+    }
     renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
 function closeTeamCard(teamId) { onTeamToggle(teamId); }
@@ -786,7 +804,7 @@ function renderTable(evts) {
 
 // ── Detail panel ──────────────────────────────────────────────────
 function openDetail(evt,filter) {
-    detailEvt=evt; detailFilt=filter;
+    drawerMode='event'; detailEvt=evt; detailFilt=filter;
     document.getElementById('dTitle').textContent=evt.title||'Event';
     document.getElementById('dMeta').textContent=[fmtDate(evt.date),evt.team_name,evt.code,evt.type,evt.opposition?'v '+evt.opposition:''].filter(Boolean).join(' · ');
     renderDTabs(); renderDList();
@@ -799,6 +817,11 @@ function closeDetail() {
 }
 function setDF(f){detailFilt=f;renderDTabs();renderDList();}
 function renderDTabs(){
+    if (drawerMode==='roster') {
+        document.getElementById('dTabs').innerHTML=
+            `<button class="d-tab active">All Members (${rosterData.members.length})</button>`;
+        return;
+    }
     const e=detailEvt;
     document.getElementById('dTabs').innerHTML=[
         {k:'all',l:`All (${e.members.length})`},{k:'accepted',l:`Accepted (${e.accepted})`},
@@ -806,6 +829,17 @@ function renderDTabs(){
     ].map(t=>`<button class="d-tab ${detailFilt===t.k?'active':''}" onclick="setDF('${t.k}')">${t.l}</button>`).join('');
 }
 function renderDList(){
+    if (drawerMode==='roster') {
+        const members=rosterData.members;
+        if(!members.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No members.</div>`;return;}
+        document.getElementById('dList').innerHTML=members.map(m=>{
+            const ini=m.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+            return `<div class="d-member"><div class="d-av">${ini}</div>
+                <div style="min-width:0;"><div class="d-nm">${esc(m.name)}</div><div class="d-rl">${esc(rosterData.role)}</div></div>
+            </div>`;
+        }).join('');
+        return;
+    }
     const members=detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);
     const bc={accepted:'acc',declined:'dec',no_response:'nr'}, bl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
     if(!members.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No members.</div>`;return;}
@@ -837,6 +871,7 @@ function openTeamInClubOverview(teamId) {
 }
 function renderTeamCards(evtsPerTeam) {
     renderTeamViewKPIs(evtsPerTeam);
+    _rosterCache = [];
     const grid=document.getElementById('teamsGrid');
     const {start,end}=getDateRange(), months=getMonthsInRange(start,end);
     Object.values(teamCharts).forEach(c=>c.destroy()); teamCharts={};
@@ -860,6 +895,12 @@ function renderTeamCards(evtsPerTeam) {
         const accRate  = totalAll>0?(totalAcc/totalAll*100).toFixed(1)+'%':'—';
         const respRate = totalAll>0?((totalAcc+totalDec)/totalAll*100).toFixed(1)+'%':'—';
         const avgAcc   = evts.length>0?(totalAcc/evts.length).toFixed(1):'—';
+        const memberRoles=team.member_roles||[];
+        const rolesHtml=memberRoles.length?`<div class="tc-roles">${memberRoles.map(mr=>{
+            const idx=_rosterCache.length;
+            _rosterCache.push({team_name:team.team_name,role:mr.role,members:mr.members||[]});
+            return `<span class="tc-role-pill" onclick="event.stopPropagation();openRosterByIdx(${idx})">${esc(mr.role)} (${mr.count})</span>`;
+        }).join('')}</div>`:'';
         return `<div class="team-card" onclick="openTeamInClubOverview(${team.team_id})">
             <div class="tc-head">
                 <div class="tc-name">${esc(team.team_name)}</div>
@@ -872,8 +913,9 @@ function renderTeamCards(evtsPerTeam) {
                 <div class="tc-kpi"><div class="tc-kv">${evts.length}</div><div class="tc-kl">Events</div></div>
                 <div class="tc-kpi"><div class="tc-kv amber">${respRate}</div><div class="tc-kl">Response</div></div>
             </div>
+            ${rolesHtml}
             ${evts.length?`<div class="tc-chart-wrap"><canvas id="chart-${team.team_id}"></canvas></div>`:`<div class="tc-empty">No events in this period</div>`}
-            <div class="tc-footer">View in Club Overview →</div>
+            <div class="tc-footer">View in Team Overview →</div>
         </div>`;
     }).join('');
 
@@ -893,6 +935,19 @@ function renderTeamCards(evtsPerTeam) {
                          y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},precision:1},grid:{color:'rgba(255,255,255,0.04)'}}}}
         });
     });
+}
+
+// ── Roster drawer ────────────────────────────────────────────────
+let _rosterCache = [];
+function openRosterByIdx(idx) {
+    const d = _rosterCache[idx];
+    if (!d) return;
+    rosterData = d; drawerMode = 'roster';
+    document.getElementById('dTitle').textContent = d.role;
+    document.getElementById('dMeta').textContent  = `${d.team_name} · ${d.members.length} member${d.members.length!==1?'s':''}`;
+    renderDTabs(); renderDList();
+    document.getElementById('dOverlay').classList.add('open');
+    document.getElementById('dPanel').classList.add('open');
 }
 
 // ── PDF export ────────────────────────────────────────────────────
@@ -977,17 +1032,52 @@ async function exportTableExcel() {
 }
 
 // ── Drawer exports ────────────────────────────────────────────────
-function drawerFilename(ext){const safe=s=>String(s||'').replace(/[^a-z0-9]+/gi,'-').toLowerCase();return `coachsmart-${safe(detailEvt?.title||'event')}-${safe(detailEvt?.team_name)}-${new Date().toISOString().slice(0,10)}.${ext}`;}
-function drawerMembers(){return detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);}
+function drawerFilename(ext){
+    const safe=s=>String(s||'').replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+    if (drawerMode==='roster') return `coachsmart-${safe(rosterData.team_name)}-${safe(rosterData.role)}-roster-${new Date().toISOString().slice(0,10)}.${ext}`;
+    return `coachsmart-${safe(detailEvt?.title||'event')}-${safe(detailEvt?.team_name)}-${new Date().toISOString().slice(0,10)}.${ext}`;
+}
+function drawerMembers(){
+    if (drawerMode==='roster') return rosterData.members;
+    return detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);
+}
 function exportDrawerCSV(){
-    const cols=['Name','Role','Response'],q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+    const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+    if (drawerMode==='roster') {
+        const rows=rosterData.members.map(m=>[q(m.name),q(rosterData.role)].join(','));
+        const blob=new Blob(['﻿'+['Name,Role',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+        const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')});
+        a.click(); URL.revokeObjectURL(a.href); return;
+    }
+    const cols=['Name','Role','Response'];
     const rows=drawerMembers().map(m=>[q(m.name),q(m.role||''),q({accepted:'Accepted',declined:'Declined',no_response:'No Response'}[m.response]||'No Response')].join(','));
     const blob=new Blob(['﻿'+[cols.join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
     const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')});
     a.click(); URL.revokeObjectURL(a.href);
 }
 async function exportDrawerExcel(){
-    const wb=new ExcelJS.Workbook(); wb.creator='CoachSmart'; const ws=wb.addWorksheet('Attendance');
+    const wb=new ExcelJS.Workbook(); wb.creator='CoachSmart';
+    if (drawerMode==='roster') {
+        const ws=wb.addWorksheet('Roster');
+        const addMeta=(l,v)=>{const r=ws.addRow([l,v]);r.getCell(1).font={bold:true,color:{argb:'FF595959'},size:10};r.getCell(2).font={color:{argb:'FF000000'},size:10};};
+        addMeta('Team',rosterData.team_name); addMeta('Role',rosterData.role);
+        addMeta('Members',rosterData.members.length); addMeta('Exported',new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}));
+        ws.addRow([]);
+        ws.columns=[{key:'name',width:28},{key:'role',width:18}];
+        const hRow=ws.addRow(['Name','Role']); hRow.height=20;
+        hRow.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'},size:11,name:'Calibri'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E75B6'}};c.border={bottom:{style:'medium',color:{argb:'FF1F4E79'}}};c.alignment={vertical:'middle'};});
+        rosterData.members.forEach((m,i)=>{
+            const row=ws.addRow({name:m.name,role:rosterData.role});
+            const bg=i%2===0?'FFFFFFFF':'FFF2F2F2';
+            row.eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};c.font={color:{argb:'FF000000'},size:11,name:'Calibri'};c.alignment={vertical:'middle'};});
+        });
+        ws.views=[{state:'frozen',ySplit:6}];
+        const buf=await wb.xlsx.writeBuffer();
+        const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('xlsx')});
+        a.click(); URL.revokeObjectURL(a.href); return;
+    }
+    const ws=wb.addWorksheet('Attendance');
     const addMeta=(l,v)=>{const r=ws.addRow([l,v]);r.getCell(1).font={bold:true,color:{argb:'FF595959'},size:10};r.getCell(2).font={color:{argb:'FF000000'},size:10};};
     addMeta('Event',detailEvt.title||''); addMeta('Team',detailEvt.team_name); addMeta('Date',fmtDate(detailEvt.date));
     if(detailEvt.code)addMeta('Code',detailEvt.code); if(detailEvt.type)addMeta('Type',detailEvt.type);
