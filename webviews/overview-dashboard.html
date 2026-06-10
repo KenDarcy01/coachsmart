@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 <style>
 :root {
     --green:  #87C232;
@@ -238,6 +239,14 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 .pdf-btn:hover { opacity: 0.85; }
 .pdf-btn:disabled { opacity: 0.4; cursor: default; }
 
+/* Table export buttons */
+.export-btn {
+    padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600;
+    background: var(--card2); border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap;
+}
+.export-btn:hover { border-color: var(--green); color: var(--green); }
+
 @media print {
     @page { size: A4 landscape; margin: 12mm; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -369,6 +378,10 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
             <div class="table-head">
                 <h3>Events</h3>
                 <span class="table-count" id="tableCount"></span>
+                <div style="display:flex;gap:6px;margin-left:auto;">
+                    <button class="export-btn" onclick="exportTableExcel()">↓ Excel</button>
+                    <button class="export-btn" onclick="exportTableCSV()">↓ CSV</button>
+                </div>
             </div>
             <div class="tscroll">
                 <table>
@@ -978,6 +991,124 @@ async function exportPDF() {
         btn.textContent = '↓ Export PDF';
         btn.disabled = false;
     }
+}
+
+// ── Table exports ────────────────────────────────────────────────
+function tableFilename(ext) {
+    const club = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || 'overview';
+    return `coachsmart-${club.replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.${ext}`;
+}
+
+function exportTableCSV() {
+    const cols = ['Event','Team','Date','Code','Type','Opposition','Accepted','Declined','No Response','Total','Accept %'];
+    const q = s => `"${String(s??'').replace(/"/g,'""')}"`;
+    const rows = eventsCache.map(e => [
+        q(e.title||''), q(e.team_name), q(fmtDate(e.date)),
+        q(e.code||''), q(e.type||''), q(e.opposition||''),
+        e.accepted, e.declined, e.no_response, e.total,
+        e.total > 0 ? (e.accepted/e.total*100).toFixed(1)+'%' : '0%',
+    ].join(','));
+    const blob = new Blob(['﻿'+[cols.join(','),...rows].join('\r\n')], {type:'text/csv;charset=utf-8'});
+    const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:tableFilename('csv')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+async function exportTableExcel() {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'CoachSmart';
+    const ws = wb.addWorksheet('Events');
+
+    // Header info block
+    const club = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || '';
+    const {start, end} = getDateRange();
+    const endDisplay = new Date(end); endDisplay.setDate(0);
+    const filterParts = [];
+    if (fTeams.size > 0) filterParts.push('Teams: '+[...(dashData.teams||[])].filter(t=>fTeams.has(t.team_id)).map(t=>t.team_name).join(', '));
+    if (fCode.size > 0) filterParts.push('Code: '+[...fCode].join(', '));
+    if (fType.size > 0) filterParts.push('Type: '+[...fType].join(', '));
+    if (fRole.size > 0) filterParts.push('Role: '+[...fRole].join(', '));
+
+    const addMeta = (label, value) => {
+        const row = ws.addRow([label, value]);
+        row.getCell(1).font = {bold:true, color:{argb:'FF6B7280'}, size:10};
+        row.getCell(2).font = {color:{argb:'FFE7EBEE'}, size:10};
+    };
+    addMeta('Club',    club);
+    addMeta('Period',  fmtMonth(start)+' – '+fmtMonth(endDisplay));
+    addMeta('Filters', filterParts.length ? filterParts.join('  ·  ') : 'All events');
+    addMeta('Exported',new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}));
+    ws.addRow([]);
+
+    // Column definitions
+    ws.columns = [
+        {key:'title',       width:36},
+        {key:'team',        width:22},
+        {key:'date',        width:14},
+        {key:'code',        width:12},
+        {key:'type',        width:14},
+        {key:'opposition',  width:22},
+        {key:'accepted',    width:11},
+        {key:'declined',    width:11},
+        {key:'no_response', width:13},
+        {key:'total',       width:9},
+        {key:'accept_pct',  width:11},
+    ];
+
+    // Header row
+    const hdrs = ['Event','Team','Date','Code','Type','Opposition','Accepted','Declined','No Response','Total','Accept %'];
+    const hRow = ws.addRow(hdrs);
+    hRow.height = 22;
+    hRow.eachCell(cell => {
+        cell.font   = {bold:true, color:{argb:'FFE7EBEE'}, size:11};
+        cell.fill   = {type:'pattern', pattern:'solid', fgColor:{argb:'FF1E222B'}};
+        cell.border = {bottom:{style:'thin', color:{argb:'FF87C232'}}};
+        cell.alignment = {vertical:'middle'};
+    });
+
+    // Data rows
+    eventsCache.forEach((e, i) => {
+        const row = ws.addRow({
+            title:       e.title||'',
+            team:        e.team_name,
+            date:        new Date(e.date),
+            code:        e.code||'',
+            type:        e.type||'',
+            opposition:  e.opposition||'',
+            accepted:    e.accepted,
+            declined:    e.declined,
+            no_response: e.no_response,
+            total:       e.total,
+            accept_pct:  e.total > 0 ? Math.round(e.accepted/e.total*100)/100 : 0,
+        });
+        const bg = i%2===0 ? 'FF1A1E26' : 'FF161A22';
+        row.eachCell(cell => {
+            cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:bg}};
+            cell.font = {color:{argb:'FFE7EBEE'}, size:11};
+            cell.alignment = {vertical:'middle'};
+        });
+        // Accepted — green tint
+        const ac = row.getCell('accepted');
+        ac.font = {bold:true, color:{argb:'FF87C232'}, size:11};
+        // Declined — red tint
+        const dc = row.getCell('declined');
+        dc.font = {bold:true, color:{argb:'FFe05252'}, size:11};
+        // No response — muted
+        row.getCell('no_response').font = {color:{argb:'FF6B7280'}, size:11};
+        // Accept % — formatted
+        const pct = row.getCell('accept_pct');
+        pct.numFmt = '0%';
+        pct.font   = {color:{argb:'FF87C232'}, size:11};
+        // Date format
+        row.getCell('date').numFmt = 'dd mmm yyyy';
+    });
+
+    // Freeze header rows
+    ws.views = [{state:'frozen', ySplit: ws.rowCount - eventsCache.length}];
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:tableFilename('xlsx')});
+    a.click(); URL.revokeObjectURL(a.href);
 }
 
 // ── Init ──────────────────────────────────────────────────────────
