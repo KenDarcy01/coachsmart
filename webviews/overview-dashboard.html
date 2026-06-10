@@ -213,6 +213,7 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 .d-bd.acc { background: rgba(135,194,50,0.12); color: var(--green); }
 .d-bd.dec { background: rgba(224,82,82,0.12); color: var(--red); }
 .d-bd.nr  { background: rgba(107,114,128,0.18); color: var(--muted); }
+.d-export { display: flex; gap: 6px; justify-content: flex-end; padding: 8px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 
 .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; gap: 14px; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -416,6 +417,10 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
         <button class="d-close" onclick="closeDetail()">×</button>
     </div>
     <div class="d-tabs" id="dTabs"></div>
+    <div class="d-export">
+        <button class="export-btn" onclick="exportDrawerExcel()">↓ Excel</button>
+        <button class="export-btn" onclick="exportDrawerCSV()">↓ CSV</button>
+    </div>
     <div class="d-list" id="dList"></div>
 </div>
 
@@ -675,25 +680,31 @@ function updateTeamDropLabel() {
     }
     document.getElementById('teamDropLabel').textContent = label;
 }
+function resetSubFilters() {
+    fCode = new Set(); fType = new Set(); fRole = new Set();
+    renderMultiChips('codeChips', 'code', allCodes, fCode);
+    renderMultiChips('typeChips', 'type', allTypes, fType);
+    renderMultiChips('roleChips', 'role', allRoles, fRole);
+}
 function onTeamAll() {
     fTeams = new Set();
     renderTeamDropdown();
+    resetSubFilters();
     applyFiltersNoReload();
 }
 function onTeamToggle(id) {
     const allIds = (dashData.teams||[]).map(t=>t.team_id);
     if (fTeams.size === 0) {
-        // Transition from "all": deselect this one, keep all others
         fTeams = new Set(allIds.filter(x => x !== id));
     } else if (fTeams.has(id)) {
         fTeams.delete(id);
-        // Don't allow zero selected — snap back to all
         if (fTeams.size === 0) fTeams = new Set();
     } else {
         fTeams.add(id);
-        if (fTeams.size === allIds.length) fTeams = new Set(); // all selected = "all"
+        if (fTeams.size === allIds.length) fTeams = new Set();
     }
     renderTeamDropdown();
+    resetSubFilters();
     applyFiltersNoReload();
 }
 
@@ -1018,7 +1029,6 @@ async function exportTableExcel() {
     wb.creator = 'CoachSmart';
     const ws = wb.addWorksheet('Events');
 
-    // Header info block
     const club = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || '';
     const {start, end} = getDateRange();
     const endDisplay = new Date(end); endDisplay.setDate(0);
@@ -1028,44 +1038,49 @@ async function exportTableExcel() {
     if (fType.size > 0) filterParts.push('Type: '+[...fType].join(', '));
     if (fRole.size > 0) filterParts.push('Role: '+[...fRole].join(', '));
 
+    // Meta block (no fill, standard black text)
     const addMeta = (label, value) => {
         const row = ws.addRow([label, value]);
-        row.getCell(1).font = {bold:true, color:{argb:'FF6B7280'}, size:10};
-        row.getCell(2).font = {color:{argb:'FFE7EBEE'}, size:10};
+        row.getCell(1).font = {bold:true, color:{argb:'FF595959'}, size:10};
+        row.getCell(2).font = {color:{argb:'FF000000'}, size:10};
     };
-    addMeta('Club',    club);
-    addMeta('Period',  fmtMonth(start)+' – '+fmtMonth(endDisplay));
-    addMeta('Filters', filterParts.length ? filterParts.join('  ·  ') : 'All events');
-    addMeta('Exported',new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}));
+    addMeta('Club',     club);
+    addMeta('Period',   fmtMonth(start)+' – '+fmtMonth(endDisplay));
+    addMeta('Filters',  filterParts.length ? filterParts.join('  ·  ') : 'All events');
+    addMeta('Exported', new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}));
     ws.addRow([]);
 
-    // Column definitions
     ws.columns = [
-        {key:'title',       width:36},
+        {key:'title',       width:38},
         {key:'team',        width:22},
         {key:'date',        width:14},
         {key:'code',        width:12},
         {key:'type',        width:14},
         {key:'opposition',  width:22},
-        {key:'accepted',    width:11},
-        {key:'declined',    width:11},
-        {key:'no_response', width:13},
-        {key:'total',       width:9},
-        {key:'accept_pct',  width:11},
+        {key:'accepted',    width:12},
+        {key:'declined',    width:12},
+        {key:'no_response', width:14},
+        {key:'total',       width:10},
+        {key:'accept_pct',  width:12},
     ];
 
-    // Header row
+    // Header row: blue fill, white bold text, bottom border
     const hdrs = ['Event','Team','Date','Code','Type','Opposition','Accepted','Declined','No Response','Total','Accept %'];
     const hRow = ws.addRow(hdrs);
-    hRow.height = 22;
+    hRow.height = 20;
     hRow.eachCell(cell => {
-        cell.font   = {bold:true, color:{argb:'FFE7EBEE'}, size:11};
-        cell.fill   = {type:'pattern', pattern:'solid', fgColor:{argb:'FF1E222B'}};
-        cell.border = {bottom:{style:'thin', color:{argb:'FF87C232'}}};
-        cell.alignment = {vertical:'middle'};
+        cell.font      = {bold:true, color:{argb:'FFFFFFFF'}, size:11, name:'Calibri'};
+        cell.fill      = {type:'pattern', pattern:'solid', fgColor:{argb:'FF2E75B6'}};
+        cell.border    = {bottom:{style:'medium', color:{argb:'FF1F4E79'}}};
+        cell.alignment = {vertical:'middle', horizontal:'center'};
+    });
+    // Left-align text columns
+    ['title','team','code','type','opposition'].forEach(k => {
+        hRow.getCell(k).alignment = {vertical:'middle', horizontal:'left'};
     });
 
-    // Data rows
+    // Data rows: white / very light grey alternating, black text
+    const borderStyle = {style:'thin', color:{argb:'FFD9D9D9'}};
     eventsCache.forEach((e, i) => {
         const row = ws.addRow({
             title:       e.title||'',
@@ -1078,36 +1093,104 @@ async function exportTableExcel() {
             declined:    e.declined,
             no_response: e.no_response,
             total:       e.total,
-            accept_pct:  e.total > 0 ? Math.round(e.accepted/e.total*100)/100 : 0,
+            accept_pct:  e.total > 0 ? e.accepted/e.total : 0,
         });
-        const bg = i%2===0 ? 'FF1A1E26' : 'FF161A22';
+        const bg = i%2===0 ? 'FFFFFFFF' : 'FFF2F2F2';
         row.eachCell(cell => {
-            cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:bg}};
-            cell.font = {color:{argb:'FFE7EBEE'}, size:11};
+            cell.fill      = {type:'pattern', pattern:'solid', fgColor:{argb:bg}};
+            cell.font      = {color:{argb:'FF000000'}, size:11, name:'Calibri'};
+            cell.border    = {bottom:{style:'thin', color:{argb:'FFD9D9D9'}}};
             cell.alignment = {vertical:'middle'};
         });
-        // Accepted — green tint
-        const ac = row.getCell('accepted');
-        ac.font = {bold:true, color:{argb:'FF87C232'}, size:11};
-        // Declined — red tint
-        const dc = row.getCell('declined');
-        dc.font = {bold:true, color:{argb:'FFe05252'}, size:11};
-        // No response — muted
-        row.getCell('no_response').font = {color:{argb:'FF6B7280'}, size:11};
-        // Accept % — formatted
-        const pct = row.getCell('accept_pct');
-        pct.numFmt = '0%';
-        pct.font   = {color:{argb:'FF87C232'}, size:11};
-        // Date format
         row.getCell('date').numFmt = 'dd mmm yyyy';
+        row.getCell('accept_pct').numFmt = '0%';
+        // Colour-code the count cells
+        row.getCell('accepted').font    = {bold:true, color:{argb:'FF375623'}, size:11, name:'Calibri'};
+        row.getCell('declined').font    = {bold:true, color:{argb:'FF9C0006'}, size:11, name:'Calibri'};
+        row.getCell('no_response').font = {color:{argb:'FF767676'}, size:11, name:'Calibri'};
+        row.getCell('accept_pct').font  = {color:{argb:'FF375623'}, size:11, name:'Calibri'};
+        // Right-align numbers
+        ['accepted','declined','no_response','total','accept_pct'].forEach(k => {
+            row.getCell(k).alignment = {vertical:'middle', horizontal:'right'};
+        });
     });
 
-    // Freeze header rows
+    // Freeze pane below meta + header
     ws.views = [{state:'frozen', ySplit: ws.rowCount - eventsCache.length}];
+    // Auto-filter on header row
+    ws.autoFilter = { from: {row: 6, column: 1}, to: {row: 6, column: 11} };
 
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:tableFilename('xlsx')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── Drawer exports ────────────────────────────────────────────────
+function drawerFilename(ext) {
+    const safe = s => String(s||'').replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+    return `coachsmart-${safe(detailEvt?.title||'event')}-${safe(detailEvt?.team_name)}-${new Date().toISOString().slice(0,10)}.${ext}`;
+}
+function drawerMembers() {
+    return detailFilt==='all' ? detailEvt.members : detailEvt.members.filter(m=>m.response===detailFilt);
+}
+function exportDrawerCSV() {
+    const cols = ['Name','Role','Response'];
+    const q = s => `"${String(s??'').replace(/"/g,'""')}"`;
+    const rows = drawerMembers().map(m => [q(m.name), q(m.role||''), q({accepted:'Accepted',declined:'Declined',no_response:'No Response'}[m.response]||'No Response')].join(','));
+    const blob = new Blob(['﻿'+[cols.join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+async function exportDrawerExcel() {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'CoachSmart';
+    const ws = wb.addWorksheet('Attendance');
+
+    // Event info block
+    const addMeta = (label, value) => {
+        const row = ws.addRow([label, value]);
+        row.getCell(1).font = {bold:true, color:{argb:'FF595959'}, size:10};
+        row.getCell(2).font = {color:{argb:'FF000000'}, size:10};
+    };
+    addMeta('Event',      detailEvt.title||'');
+    addMeta('Team',       detailEvt.team_name);
+    addMeta('Date',       fmtDate(detailEvt.date));
+    if (detailEvt.code)       addMeta('Code', detailEvt.code);
+    if (detailEvt.type)       addMeta('Type', detailEvt.type);
+    if (detailEvt.opposition) addMeta('Opposition', 'v '+detailEvt.opposition);
+    addMeta('Filter',     detailFilt==='all' ? 'All Members' : {accepted:'Accepted',declined:'Declined',no_response:'No Response'}[detailFilt]);
+    ws.addRow([]);
+
+    ws.columns = [{key:'name',width:28},{key:'role',width:18},{key:'response',width:16}];
+
+    const hRow = ws.addRow(['Name','Role','Response']);
+    hRow.height = 20;
+    hRow.eachCell(cell => {
+        cell.font      = {bold:true, color:{argb:'FFFFFFFF'}, size:11, name:'Calibri'};
+        cell.fill      = {type:'pattern', pattern:'solid', fgColor:{argb:'FF2E75B6'}};
+        cell.border    = {bottom:{style:'medium', color:{argb:'FF1F4E79'}}};
+        cell.alignment = {vertical:'middle'};
+    });
+
+    const responseColour = {accepted:'FF375623', declined:'FF9C0006', no_response:'FF767676'};
+    const responseLabel  = {accepted:'Accepted', declined:'Declined', no_response:'No Response'};
+    drawerMembers().forEach((m, i) => {
+        const row = ws.addRow({name:m.name, role:m.role||'', response:responseLabel[m.response]||'No Response'});
+        const bg = i%2===0 ? 'FFFFFFFF' : 'FFF2F2F2';
+        row.eachCell(cell => {
+            cell.fill  = {type:'pattern', pattern:'solid', fgColor:{argb:bg}};
+            cell.font  = {color:{argb:'FF000000'}, size:11, name:'Calibri'};
+            cell.alignment = {vertical:'middle'};
+        });
+        row.getCell('response').font = {color:{argb: responseColour[m.response]||'FF767676'}, size:11, name:'Calibri', bold:true};
+    });
+
+    ws.views = [{state:'frozen', ySplit: ws.rowCount - drawerMembers().length}];
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('xlsx')});
     a.click(); URL.revokeObjectURL(a.href);
 }
 
