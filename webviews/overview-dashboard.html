@@ -698,7 +698,7 @@ function onTeamToggle(id) {
         fTeams = new Set(allIds.filter(x => x !== id));
     } else if (fTeams.has(id)) {
         fTeams.delete(id);
-        if (fTeams.size === 0) fTeams = new Set();
+        if (fTeams.size === 0) fTeams = new Set([allIds[0]]); // can't be blank — default to first team
     } else {
         fTeams.add(id);
         if (fTeams.size === allIds.length) fTeams = new Set();
