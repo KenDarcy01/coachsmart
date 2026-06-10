@@ -750,12 +750,15 @@ function applyFilters() {
 }
 function applyFiltersNoReload() {
     if (activeTab==='team-overview') {
-        renderClubOverview(getBaseEvents().filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
+        const base=getBaseEvents();
+        if (!_attSliderHasData) initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
+        renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
     } else if (activeTab==='members-overview') {
         document.getElementById('attRow').style.display='none';
         renderMembersOverview(getBaseEvents());
     } else {
         const base=getFilteredEventsPerTeam();
+        if (!_attSliderHasData) initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));
         const filtered={};
         for (const [id,evts] of Object.entries(base)) filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);
         renderTeamCards(filtered);
