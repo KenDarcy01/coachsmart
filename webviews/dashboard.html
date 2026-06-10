@@ -357,7 +357,7 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
     <!-- Members Overview tab -->
     <div id="viewMembers" style="display:none;">
         <div class="kpi-row">
-            <div class="kpi-card"><div class="kpi-label">Members</div><div class="kpi-value green" id="mkpiMembers">—</div><div class="kpi-sub" id="mkpiMembersSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Members Accepted</div><div class="kpi-value green" id="mkpiMembers">—</div><div class="kpi-sub" id="mkpiMembersSub"></div></div>
             <div class="kpi-card"><div class="kpi-label">Avg Acceptance Rate</div><div class="kpi-value green" id="mkpiAvgRate">—</div><div class="kpi-sub" id="mkpiAvgRateSub"></div></div>
             <div class="kpi-card"><div class="kpi-label">Fully Engaged</div><div class="kpi-value" id="mkpiEngaged">—</div><div class="kpi-sub">≥ 80% acceptance</div></div>
             <div class="kpi-card"><div class="kpi-label">Not Responding</div><div class="kpi-value amber" id="mkpiNR">—</div><div class="kpi-sub" id="mkpiNRSub"></div></div>
@@ -1077,12 +1077,13 @@ function renderMembersOverview(evts) {
 
 function renderMembersKPIs(stats) {
     const n = stats.length;
+    const accepted = stats.filter(m=>m.accepted>0).length;
     const avgRate  = n>0 ? stats.reduce((s,m)=>s+m.rate,0)/n : 0;
     const engaged  = stats.filter(m=>m.rate>=0.8).length;
     const notResp  = stats.filter(m=>m.events>0&&m.no_response===m.events).length;
     const teamNames = new Set(stats.flatMap(m=>[...m.teams]));
-    document.getElementById('mkpiMembers').textContent    = n;
-    document.getElementById('mkpiMembersSub').textContent = `across ${teamNames.size} team${teamNames.size!==1?'s':''}`;
+    document.getElementById('mkpiMembers').textContent    = accepted;
+    document.getElementById('mkpiMembersSub').textContent = `of ${n} member${n!==1?'s':''}`;
     document.getElementById('mkpiAvgRate').textContent    = n>0?(avgRate*100).toFixed(1)+'%':'—';
     document.getElementById('mkpiAvgRateSub').textContent = `across ${n} member${n!==1?'s':''}`;
     document.getElementById('mkpiEngaged').textContent    = engaged;
