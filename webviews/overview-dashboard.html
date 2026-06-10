@@ -192,6 +192,54 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
     .main { padding: 14px; }
     .topbar, .filter-strip { padding-left: 14px; padding-right: 14px; }
 }
+
+/* PDF export button */
+.pdf-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: var(--green); color: #111; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; letter-spacing: 0.3px; flex-shrink: 0;
+    margin-left: auto;
+}
+.pdf-btn:hover { opacity: 0.85; }
+.pdf-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Print-only header — hidden on screen */
+.print-header {
+    display: none;
+    align-items: center; gap: 16px;
+    padding: 0 0 16px;
+    border-bottom: 2px solid var(--green);
+    margin-bottom: 20px;
+}
+.print-header .logo { font-size: 26px; }
+.print-header .ph-title { font-size: 16px; font-weight: 600; flex: 1; }
+.print-header .ph-meta  { font-size: 12px; color: var(--muted); text-align: right; }
+
+@media print {
+    @page { size: A4 landscape; margin: 12mm; }
+
+    /* Preserve colours */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    /* Hide interactive chrome */
+    .topbar, .filter-strip, .d-overlay, .d-panel,
+    .tog-row, .pdf-btn { display: none !important; }
+
+    /* Show print header */
+    .print-header { display: flex !important; }
+
+    /* Full-width content */
+    .main { max-width: none !important; padding: 0 !important; }
+
+    /* Avoid splitting cards across pages */
+    .kpi-row, .chart-card, .pie-row, .table-card { page-break-inside: avoid; break-inside: avoid; }
+
+    /* Un-scroll the table so all rows appear */
+    .tscroll { overflow: visible !important; }
+
+    /* Remove sticky so headers don't double-print */
+    .topbar, .filter-strip { position: static !important; }
+}
 </style>
 </head>
 <body>
@@ -204,6 +252,7 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
     <div id="clubWrap">
         <select id="clubSelect" onchange="onClubChange()"><option value="">Select Club…</option></select>
     </div>
+    <button class="pdf-btn" id="pdfBtn" onclick="exportPDF()" disabled title="Load a dashboard first">↓ Export PDF</button>
 </div>
 
 <div class="filter-strip">
@@ -251,6 +300,13 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 </div>
 
 <div class="main">
+    <!-- Print-only header -->
+    <div class="print-header" id="printHeader">
+        <div class="logo">Coach<span>Smart</span></div>
+        <div class="ph-title">Overview Dashboard</div>
+        <div class="ph-meta" id="printMeta"></div>
+    </div>
+
     <div class="loading-wrap" id="loading" style="display:none;">
         <div class="spinner"></div>
         <div style="color:var(--muted);font-size:13px;">Loading dashboard…</div>
@@ -507,6 +563,7 @@ async function loadDashboard() {
         buildFilters();
         applyFilters();
         document.getElementById('dashContent').style.display = 'block';
+        document.getElementById('pdfBtn').disabled = false;
     } catch(e) {
         document.getElementById('emptyState').style.display = 'block';
         document.getElementById('emptyState').textContent = 'Error: ' + e.message;
@@ -838,6 +895,22 @@ function renderDList(){
             <span class="d-bd ${bc[m.response]||'nr'}">${bl[m.response]||'No Response'}</span>
         </div>`;
     }).join('');
+}
+
+// ── PDF export ────────────────────────────────────────────────────
+function exportPDF() {
+    const clubName = paramClub
+        ? (dashData?.club_name || '')
+        : (document.getElementById('clubSelect').selectedOptions[0]?.text || '');
+    const {start, end} = getDateRange();
+    const filters = [fCode, fType, fRole].filter(Boolean);
+    document.getElementById('printMeta').textContent = [
+        clubName,
+        `${fmtMonth(start)} – ${fmtMonth(end)}`,
+        filters.length ? filters.join(' · ') : null,
+        `Generated ${new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`,
+    ].filter(Boolean).join('  ·  ');
+    window.print();
 }
 
 // ── Init ──────────────────────────────────────────────────────────
