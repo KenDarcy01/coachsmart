@@ -1233,7 +1233,7 @@ function buildPDFHeader() {
 }
 async function exportPDF() {
     const btn=document.getElementById('pdfBtn'); btn.textContent='Generating…'; btn.disabled=true;
-    const el=activeTab==='club-overview'?document.getElementById('viewTeam'):document.getElementById('viewClub');
+    const el=activeTab==='club-overview'?document.getElementById('viewTeam'):activeTab==='members-overview'?document.getElementById('viewMembers'):document.getElementById('viewClub');
     const header=buildPDFHeader(); el.insertBefore(header,el.firstChild);
     try {
         const scale=1.5, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
