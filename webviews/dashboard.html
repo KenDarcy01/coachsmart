@@ -614,13 +614,12 @@ function onTeamToggle(id) {
     renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
 function closeTeamCard(teamId) {
-    const allIds=(dashData.teams||[]).map(t=>t.team_id);
     if (fTeams===null) {
-        // All active — deselect this one specifically
-        fTeams=new Set(allIds.filter(x=>x!==teamId));
+        // Build new set from only teams that have data, minus the closed one
+        const base=getFilteredEventsPerTeam();
+        fTeams=new Set(Object.keys(base).map(Number).filter(id=>id!==teamId&&base[id].length>0));
     } else {
         fTeams.delete(teamId);
-        // Allow empty — nothing shown
     }
     renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
