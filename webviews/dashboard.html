@@ -150,6 +150,15 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 .ac.dec { background: rgba(224,82,82,0.12); color: var(--red);   border-color: rgba(224,82,82,0.3); }
 .ac.nr  { background: rgba(107,114,128,0.18); color: var(--muted); border-color: rgba(107,114,128,0.3); }
 
+/* ── Rate bar ── */
+.rate-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.rate-bar-bg   { flex: 1; min-width: 60px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.rate-bar-fill { height: 100%; border-radius: 2px; }
+.rate-bar-val  { font-size: 12px; font-weight: 600; min-width: 42px; text-align: right; white-space: nowrap; }
+.m-search { padding: 5px 10px; border-radius: 6px; background: var(--card2); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-family: 'DM Sans', sans-serif; width: 180px; }
+.m-search:focus { outline: none; border-color: var(--green); }
+.m-search::placeholder { color: var(--muted); }
+
 /* ── Detail panel ── */
 .d-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 .d-overlay.open { opacity: 1; pointer-events: all; }
@@ -270,8 +279,9 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
     </div>
 
     <div class="tab-bar">
-        <div class="cs-tab active" data-tab="club-overview"  onclick="switchTab('club-overview')">Club Overview</div>
-        <div class="cs-tab"        data-tab="team-overview"  onclick="switchTab('team-overview')">Team Overview</div>
+        <div class="cs-tab active" data-tab="club-overview"   onclick="switchTab('club-overview')">Club Overview</div>
+        <div class="cs-tab"        data-tab="team-overview"   onclick="switchTab('team-overview')">Team Overview</div>
+        <div class="cs-tab"        data-tab="members-overview" onclick="switchTab('members-overview')">Members Overview</div>
     </div>
 </div>
 
@@ -344,6 +354,46 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
         <div id="teamsGrid" class="teams-grid"></div>
     </div>
 
+    <!-- Members Overview tab -->
+    <div id="viewMembers" style="display:none;">
+        <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-label">Members</div><div class="kpi-value green" id="mkpiMembers">—</div><div class="kpi-sub" id="mkpiMembersSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Acceptance Rate</div><div class="kpi-value green" id="mkpiAvgRate">—</div><div class="kpi-sub" id="mkpiAvgRateSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Fully Engaged</div><div class="kpi-value" id="mkpiEngaged">—</div><div class="kpi-sub">≥ 80% acceptance</div></div>
+            <div class="kpi-card"><div class="kpi-label">Not Responding</div><div class="kpi-value amber" id="mkpiNR">—</div><div class="kpi-sub" id="mkpiNRSub"></div></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-head"><h3>Acceptance Rate Distribution</h3></div>
+            <div class="line-wrap"><canvas id="chartMembers"></canvas></div>
+        </div>
+        <div class="table-card">
+            <div class="table-head">
+                <h3>Members</h3>
+                <span class="table-count" id="mTableCount"></span>
+                <input class="m-search" id="mSearch" placeholder="Search name…" oninput="renderMembersTable()">
+                <div style="display:flex;gap:6px;margin-left:auto;">
+                    <button class="export-btn" onclick="exportMembersExcel()">↓ Excel</button>
+                    <button class="export-btn" onclick="exportMembersCSV()">↓ CSV</button>
+                </div>
+            </div>
+            <div class="tscroll">
+                <table>
+                    <thead><tr>
+                        <th id="mth-name"        onclick="setMSort('name')">Member</th>
+                        <th id="mth-team_name"   onclick="setMSort('team_name')">Team</th>
+                        <th id="mth-role"        onclick="setMSort('role')">Role</th>
+                        <th id="mth-events"      onclick="setMSort('events')">Events</th>
+                        <th id="mth-accepted"    onclick="setMSort('accepted')">Accepted</th>
+                        <th id="mth-declined"    onclick="setMSort('declined')">Declined</th>
+                        <th id="mth-no_response" onclick="setMSort('no_response')">No Response</th>
+                        <th id="mth-rate"        onclick="setMSort('rate')">Rate ↑</th>
+                    </tr></thead>
+                    <tbody id="membersBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="empty-state" id="emptyState">Select a club above to load the dashboard.</div>
 </div>
 
@@ -412,8 +462,10 @@ function clubName() {
 function switchTab(tab) {
     activeTab = tab;
     document.querySelectorAll('.cs-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    document.getElementById('viewClub').style.display  = tab === 'team-overview' ? '' : 'none';
-    document.getElementById('viewTeam').style.display  = tab === 'club-overview' ? '' : 'none';
+    document.getElementById('viewClub').style.display    = tab === 'team-overview'    ? '' : 'none';
+    document.getElementById('viewTeam').style.display    = tab === 'club-overview'    ? '' : 'none';
+    document.getElementById('viewMembers').style.display = tab === 'members-overview' ? '' : 'none';
+    if (tab === 'members-overview') document.getElementById('attRow').style.display = 'none';
     document.getElementById('pdfBtn').disabled = !dashData;
     if (dashData) applyFiltersNoReload();
 }
@@ -684,6 +736,9 @@ function applyFilters() {
         const base=getBaseEvents();
         initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
         renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
+    } else if (activeTab==='members-overview') {
+        document.getElementById('attRow').style.display='none';
+        renderMembersOverview(getBaseEvents());
     } else {
         const base=getFilteredEventsPerTeam();
         initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));
@@ -695,6 +750,9 @@ function applyFilters() {
 function applyFiltersNoReload() {
     if (activeTab==='team-overview') {
         renderClubOverview(getBaseEvents().filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
+    } else if (activeTab==='members-overview') {
+        document.getElementById('attRow').style.display='none';
+        renderMembersOverview(getBaseEvents());
     } else {
         const base=getFilteredEventsPerTeam();
         const filtered={};
@@ -829,6 +887,16 @@ function renderDTabs(){
             `<button class="d-tab active">All Members (${rosterData.members.length})</button>`;
         return;
     }
+    if (drawerMode==='member') {
+        const m=memberDetailData.member;
+        document.getElementById('dTabs').innerHTML=[
+            {k:'all',l:`All (${memberDetailData.events.length})`},
+            {k:'accepted',l:`Accepted (${m.accepted})`},
+            {k:'declined',l:`Declined (${m.declined})`},
+            {k:'no_response',l:`No Response (${m.no_response})`},
+        ].map(t=>`<button class="d-tab ${detailFilt===t.k?'active':''}" onclick="setDF('${t.k}')">${t.l}</button>`).join('');
+        return;
+    }
     const e=detailEvt;
     document.getElementById('dTabs').innerHTML=[
         {k:'all',l:`All (${e.members.length})`},{k:'accepted',l:`Accepted (${e.accepted})`},
@@ -845,6 +913,21 @@ function renderDList(){
                 <div style="min-width:0;"><div class="d-nm">${esc(m.name)}</div><div class="d-rl">${esc(rosterData.role)}</div></div>
             </div>`;
         }).join('');
+        return;
+    }
+    if (drawerMode==='member') {
+        const all=memberDetailData.events;
+        const shown=detailFilt==='all'?all:all.filter(e=>e.response===detailFilt);
+        const bc={accepted:'acc',declined:'dec',no_response:'nr'}, bl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
+        if(!shown.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No events.</div>`;return;}
+        document.getElementById('dList').innerHTML=shown.map(e=>`
+            <div class="d-member">
+                <div style="flex:1;min-width:0;">
+                    <div class="d-nm">${esc(e.title||'—')}</div>
+                    <div class="d-rl">${fmtDate(e.date)} · ${esc(e.team_name)}</div>
+                </div>
+                <span class="d-bd ${bc[e.response]||'nr'}">${bl[e.response]||'No Response'}</span>
+            </div>`).join('');
         return;
     }
     const members=detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);
@@ -958,9 +1041,174 @@ function openRosterByIdx(idx) {
     document.getElementById('dPanel').classList.add('open');
 }
 
+// ── Members Overview ─────────────────────────────────────────────
+let mSortCol = 'rate', mSortAsc = true;
+let membersCache = [], membersChart = null, memberDetailData = null, _membersEvts = [];
+
+function getMemberStats(evts) {
+    const map = new Map();
+    for (const evt of evts) {
+        for (const m of evt.members || []) {
+            if (!map.has(m.member_id)) {
+                map.set(m.member_id, { member_id:m.member_id, name:m.name, role:m.role||'', teams:new Set(), events:0, accepted:0, declined:0, no_response:0 });
+            }
+            const s = map.get(m.member_id);
+            s.teams.add(evt.team_name); s.events++;
+            if (m.response==='accepted') s.accepted++;
+            else if (m.response==='declined') s.declined++;
+            else s.no_response++;
+        }
+    }
+    return [...map.values()].map(s => ({ ...s, team_name:[...s.teams].sort().join(', '), rate:s.events>0?s.accepted/s.events:0 }));
+}
+
+function renderMembersOverview(evts) {
+    _membersEvts = evts;
+    const stats = getMemberStats(evts);
+    membersCache = stats;
+    renderMembersKPIs(stats);
+    drawMembersChart(stats);
+    renderMembersTable();
+}
+
+function renderMembersKPIs(stats) {
+    const n = stats.length;
+    const avgRate  = n>0 ? stats.reduce((s,m)=>s+m.rate,0)/n : 0;
+    const engaged  = stats.filter(m=>m.rate>=0.8).length;
+    const notResp  = stats.filter(m=>m.events>0&&m.no_response===m.events).length;
+    const teamNames = new Set(stats.flatMap(m=>[...m.teams]));
+    document.getElementById('mkpiMembers').textContent    = n;
+    document.getElementById('mkpiMembersSub').textContent = `across ${teamNames.size} team${teamNames.size!==1?'s':''}`;
+    document.getElementById('mkpiAvgRate').textContent    = n>0?(avgRate*100).toFixed(1)+'%':'—';
+    document.getElementById('mkpiAvgRateSub').textContent = `across ${n} member${n!==1?'s':''}`;
+    document.getElementById('mkpiEngaged').textContent    = engaged;
+    document.getElementById('mkpiNR').textContent         = notResp;
+    document.getElementById('mkpiNRSub').textContent      = notResp>0?'0 responses in period':'all responded';
+}
+
+function drawMembersChart(stats) {
+    const labels   = ['0–20%','21–40%','41–60%','61–80%','81–100%'];
+    const counts   = [0,0,0,0,0];
+    const bgColors = ['rgba(224,82,82,0.3)','rgba(245,166,35,0.28)','rgba(135,194,50,0.18)','rgba(135,194,50,0.24)','rgba(135,194,50,0.32)'];
+    const bdColors = ['#e05252','#F5A623','#87C232','#87C232','#87C232'];
+    for (const m of stats) counts[Math.min(Math.floor(m.rate*5),4)]++;
+    if (membersChart) membersChart.destroy();
+    membersChart = new Chart(document.getElementById('chartMembers'), {
+        type:'bar',
+        data:{ labels, datasets:[{ label:'Members', data:counts, backgroundColor:bgColors, borderColor:bdColors, borderWidth:1, borderRadius:4, borderSkipped:false }] },
+        options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false}, tooltip:{callbacks:{label:item=>`${item.raw} member${item.raw!==1?'s':''}`}} },
+            scales:{
+                x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:11},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}
+            }
+        }
+    });
+}
+
+function setMSort(col) {
+    mSortAsc = mSortCol===col ? !mSortAsc : col!=='rate';
+    mSortCol = col;
+    document.querySelectorAll('th[id^="mth-"]').forEach(th => {
+        const k=th.id.replace('mth-','');
+        th.classList.toggle('sa', k===col);
+        th.textContent = th.textContent.replace(/ [↑↓]$/,'') + (k===col?(mSortAsc?' ↑':' ↓'):'');
+    });
+    renderMembersTable();
+}
+
+function renderMembersTable() {
+    const search = (document.getElementById('mSearch')?.value||'').toLowerCase();
+    const filtered = membersCache.filter(m=>!search||m.name.toLowerCase().includes(search));
+    const sorted = [...filtered].sort((a,b)=>{
+        let va=a[mSortCol], vb=b[mSortCol];
+        if (typeof va==='string'){va=va.toLowerCase();vb=(vb||'').toLowerCase();}
+        if(va<vb)return mSortAsc?-1:1; if(va>vb)return mSortAsc?1:-1; return 0;
+    });
+    document.getElementById('mTableCount').textContent = `${sorted.length} member${sorted.length!==1?'s':''}`;
+    const tbody = document.getElementById('membersBody');
+    if (!sorted.length) { tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state">No members match the current filters.</div></td></tr>`; return; }
+    tbody.innerHTML = sorted.map(m=>{
+        const pct=(m.rate*100).toFixed(1);
+        const col=m.rate>=0.8?'var(--green)':m.rate>=0.5?'var(--amber)':'var(--red)';
+        return `<tr onclick="openMemberDetail(${m.member_id})">
+            <td style="font-weight:500;">${esc(m.name)}</td>
+            <td style="color:var(--muted);font-size:12px;">${esc(m.team_name)}</td>
+            <td><span class="tag">${esc(m.role||'—')}</span></td>
+            <td style="text-align:center;color:var(--muted);">${m.events}</td>
+            <td><span class="ac acc">✓ ${m.accepted}</span></td>
+            <td><span class="ac dec">✗ ${m.declined}</span></td>
+            <td><span class="ac nr">? ${m.no_response}</span></td>
+            <td><div class="rate-bar-wrap"><div class="rate-bar-bg"><div class="rate-bar-fill" style="width:${pct}%;background:${col};"></div></div><span class="rate-bar-val" style="color:${col};">${pct}%</span></div></td>
+        </tr>`;
+    }).join('');
+}
+
+function openMemberDetail(memberId) {
+    const m = membersCache.find(x=>x.member_id===memberId);
+    if (!m) return;
+    const evts = _membersEvts
+        .map(e=>{ const mb=(e.members||[]).find(x=>x.member_id===memberId); return mb?{...e,response:mb.response}:null; })
+        .filter(Boolean)
+        .sort((a,b)=>new Date(b.date)-new Date(a.date));
+    memberDetailData={member:m,events:evts};
+    drawerMode='member'; detailFilt='all';
+    document.getElementById('dTitle').textContent=m.name;
+    document.getElementById('dMeta').textContent=[m.team_name,m.role,`${m.events} event${m.events!==1?'s':''}`].filter(Boolean).join(' · ');
+    renderDTabs(); renderDList();
+    document.getElementById('dOverlay').classList.add('open');
+    document.getElementById('dPanel').classList.add('open');
+}
+
+// ── Members table exports ─────────────────────────────────────────
+function membersFilename(ext){ return `coachsmart-${(clubName()||'dashboard').replace(/\s+/g,'-').toLowerCase()}-members-${new Date().toISOString().slice(0,10)}.${ext}`; }
+
+function exportMembersCSV() {
+    const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+    const cols=['Member','Team','Role','Events','Accepted','Declined','No Response','Accept %'];
+    const rows=membersCache.map(m=>[q(m.name),q(m.team_name),q(m.role||''),m.events,m.accepted,m.declined,m.no_response,(m.rate*100).toFixed(1)+'%'].join(','));
+    const blob=new Blob(['﻿'+[cols.join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:membersFilename('csv')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+async function exportMembersExcel() {
+    const wb=new ExcelJS.Workbook(); wb.creator='CoachSmart'; const ws=wb.addWorksheet('Members');
+    const {start,end}=getDateRange(); const endD=new Date(end); endD.setDate(0);
+    const fp=[];
+    if(fTeams!==null&&fTeams.size>0)fp.push('Teams: '+(dashData.teams||[]).filter(t=>fTeams.has(t.team_id)).map(t=>t.team_name).join(', '));
+    if(fCode.size>0)fp.push('Code: '+[...fCode].join(', '));
+    if(fType.size>0)fp.push('Type: '+[...fType].join(', '));
+    if(fRole.size>0)fp.push('Role: '+[...fRole].join(', '));
+    const addMeta=(l,v)=>{const r=ws.addRow([l,v]);r.getCell(1).font={bold:true,color:{argb:'FF595959'},size:10};r.getCell(2).font={color:{argb:'FF000000'},size:10};};
+    addMeta('Club',clubName()); addMeta('Period',fmtMonth(start)+' – '+fmtMonth(endD));
+    addMeta('Filters',fp.length?fp.join('  ·  '):'All events');
+    addMeta('Exported',new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})); ws.addRow([]);
+    ws.columns=[{key:'name',width:28},{key:'team',width:22},{key:'role',width:18},{key:'events',width:10},{key:'accepted',width:12},{key:'declined',width:12},{key:'no_response',width:14},{key:'rate',width:12}];
+    const hRow=ws.addRow(['Member','Team','Role','Events','Accepted','Declined','No Response','Accept %']); hRow.height=20;
+    hRow.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'},size:11,name:'Calibri'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E75B6'}};c.border={bottom:{style:'medium',color:{argb:'FF1F4E79'}}};c.alignment={vertical:'middle',horizontal:'center'};});
+    ['name','team','role'].forEach(k=>hRow.getCell(k).alignment={vertical:'middle',horizontal:'left'});
+    membersCache.forEach((m,i)=>{
+        const row=ws.addRow({name:m.name,team:m.team_name,role:m.role||'',events:m.events,accepted:m.accepted,declined:m.declined,no_response:m.no_response,rate:m.rate});
+        const bg=i%2===0?'FFFFFFFF':'FFF2F2F2';
+        row.eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};c.font={color:{argb:'FF000000'},size:11,name:'Calibri'};c.border={bottom:{style:'thin',color:{argb:'FFD9D9D9'}}};c.alignment={vertical:'middle'};});
+        row.getCell('rate').numFmt='0%';
+        row.getCell('accepted').font={bold:true,color:{argb:'FF375623'},size:11,name:'Calibri'};
+        row.getCell('declined').font={bold:true,color:{argb:'FF9C0006'},size:11,name:'Calibri'};
+        row.getCell('no_response').font={color:{argb:'FF767676'},size:11,name:'Calibri'};
+        ['events','accepted','declined','no_response','rate'].forEach(k=>row.getCell(k).alignment={vertical:'middle',horizontal:'right'});
+    });
+    ws.views=[{state:'frozen',ySplit:ws.rowCount-membersCache.length}];
+    ws.autoFilter={from:{row:6,column:1},to:{row:6,column:8}};
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:membersFilename('xlsx')});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
 // ── PDF export ────────────────────────────────────────────────────
 function buildPDFHeader() {
-    const name=clubName()||'Dashboard', title=activeTab==='club-overview'?'Club Overview':'Team Overview';
+    const name=clubName()||'Dashboard', title=activeTab==='club-overview'?'Club Overview':activeTab==='team-overview'?'Team Overview':'Members Overview';
     const {start,end}=getDateRange(); const endD=new Date(end); endD.setDate(0);
     const dateStr=fmtMonth(start)+' – '+fmtMonth(endD);
     const parts=[];
@@ -1043,6 +1291,7 @@ async function exportTableExcel() {
 function drawerFilename(ext){
     const safe=s=>String(s||'').replace(/[^a-z0-9]+/gi,'-').toLowerCase();
     if (drawerMode==='roster') return `coachsmart-${safe(rosterData.team_name)}-${safe(rosterData.role)}-roster-${new Date().toISOString().slice(0,10)}.${ext}`;
+    if (drawerMode==='member') return `coachsmart-${safe(memberDetailData?.member?.name||'member')}-attendance-${new Date().toISOString().slice(0,10)}.${ext}`;
     return `coachsmart-${safe(detailEvt?.title||'event')}-${safe(detailEvt?.team_name)}-${new Date().toISOString().slice(0,10)}.${ext}`;
 }
 function drawerMembers(){
@@ -1057,6 +1306,14 @@ function exportDrawerCSV(){
         const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')});
         a.click(); URL.revokeObjectURL(a.href); return;
     }
+    if (drawerMode==='member') {
+        const all=memberDetailData.events, rLbl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
+        const shown=detailFilt==='all'?all:all.filter(e=>e.response===detailFilt);
+        const rows=shown.map(e=>[q(e.title||''),q(fmtDate(e.date)),q(e.team_name),q(rLbl[e.response]||'No Response')].join(','));
+        const blob=new Blob(['﻿'+['Event,Date,Team,Response',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+        const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')});
+        a.click(); URL.revokeObjectURL(a.href); return;
+    }
     const cols=['Name','Role','Response'];
     const rows=drawerMembers().map(m=>[q(m.name),q(m.role||''),q({accepted:'Accepted',declined:'Declined',no_response:'No Response'}[m.response]||'No Response')].join(','));
     const blob=new Blob(['﻿'+[cols.join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
@@ -1065,6 +1322,31 @@ function exportDrawerCSV(){
 }
 async function exportDrawerExcel(){
     const wb=new ExcelJS.Workbook(); wb.creator='CoachSmart';
+    if (drawerMode==='member') {
+        const ws=wb.addWorksheet('Attendance');
+        const m=memberDetailData.member;
+        const addMeta=(l,v)=>{const r=ws.addRow([l,v]);r.getCell(1).font={bold:true,color:{argb:'FF595959'},size:10};r.getCell(2).font={color:{argb:'FF000000'},size:10};};
+        addMeta('Member',m.name); addMeta('Team',m.team_name); addMeta('Role',m.role||'');
+        addMeta('Events',m.events); addMeta('Acceptance',(m.rate*100).toFixed(1)+'%');
+        addMeta('Exported',new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})); ws.addRow([]);
+        ws.columns=[{key:'title',width:36},{key:'date',width:14},{key:'team',width:22},{key:'response',width:14}];
+        const hRow=ws.addRow(['Event','Date','Team','Response']); hRow.height=20;
+        hRow.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'},size:11,name:'Calibri'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E75B6'}};c.border={bottom:{style:'medium',color:{argb:'FF1F4E79'}}};c.alignment={vertical:'middle'};});
+        const all=memberDetailData.events, shown=detailFilt==='all'?all:all.filter(e=>e.response===detailFilt);
+        const rClr={accepted:'FF375623',declined:'FF9C0006',no_response:'FF767676'}, rLbl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
+        shown.forEach((e,i)=>{
+            const row=ws.addRow({title:e.title||'',date:new Date(e.date),team:e.team_name,response:rLbl[e.response]||'No Response'});
+            const bg=i%2===0?'FFFFFFFF':'FFF2F2F2';
+            row.eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};c.font={color:{argb:'FF000000'},size:11,name:'Calibri'};c.alignment={vertical:'middle'};});
+            row.getCell('date').numFmt='dd mmm yyyy';
+            row.getCell('response').font={color:{argb:rClr[e.response]||'FF767676'},size:11,name:'Calibri',bold:true};
+        });
+        ws.views=[{state:'frozen',ySplit:8}];
+        const buf=await wb.xlsx.writeBuffer();
+        const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('xlsx')});
+        a.click(); URL.revokeObjectURL(a.href); return;
+    }
     if (drawerMode==='roster') {
         const ws=wb.addWorksheet('Roster');
         const addMeta=(l,v)=>{const r=ws.addRow([l,v]);r.getCell(1).font={bold:true,color:{argb:'FF595959'},size:10};r.getCell(2).font={color:{argb:'FF000000'},size:10};};
