@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 :root {
     --green:  #87C232;
@@ -542,6 +544,7 @@ async function loadDashboard() {
             method:'POST', headers:H,
             body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
         });
+        if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||`HTTP ${r.status}`); }
         const data = await r.json();
         if (data.error) throw new Error(data.error);
         dashData = data;
@@ -898,19 +901,32 @@ function renderDList(){
 }
 
 // ── PDF export ────────────────────────────────────────────────────
-function exportPDF() {
-    const clubName = paramClub
-        ? (dashData?.club_name || '')
-        : (document.getElementById('clubSelect').selectedOptions[0]?.text || '');
-    const {start, end} = getDateRange();
-    const filters = [fCode, fType, fRole].filter(Boolean);
-    document.getElementById('printMeta').textContent = [
-        clubName,
-        `${fmtMonth(start)} – ${fmtMonth(end)}`,
-        filters.length ? filters.join(' · ') : null,
-        `Generated ${new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})}`,
-    ].filter(Boolean).join('  ·  ');
-    window.print();
+async function exportPDF() {
+    const btn = document.getElementById('pdfBtn');
+    btn.textContent = 'Generating…';
+    btn.disabled = true;
+    try {
+        const el = document.getElementById('dashContent');
+        const canvas = await html2canvas(el, {
+            backgroundColor: '#111418',
+            scale: 2,
+            useCORS: true,
+            logging: false,
+        });
+        const { jsPDF } = window.jspdf;
+        const w = canvas.width / 2;
+        const h = canvas.height / 2;
+        const pdf = new jsPDF({ orientation: w > h ? 'l' : 'p', unit: 'px', format: [w, h] });
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, h);
+        const clubName = (paramClub ? dashData?.club_name : document.getElementById('clubSelect').selectedOptions[0]?.text) || 'overview';
+        const date = new Date().toISOString().slice(0, 10);
+        pdf.save(`coachsmart-${clubName.replace(/\s+/g,'-').toLowerCase()}-${date}.pdf`);
+    } catch(e) {
+        alert('PDF export failed: ' + e.message);
+    } finally {
+        btn.textContent = '↓ Export PDF';
+        btn.disabled = false;
+    }
 }
 
 // ── Init ──────────────────────────────────────────────────────────

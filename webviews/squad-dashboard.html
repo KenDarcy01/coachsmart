@@ -344,6 +344,7 @@ async function loadDashboard() {
             method:'POST', headers:H,
             body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
         });
+        if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||`HTTP ${r.status}`); }
         const data = await r.json();
         if (data.error) throw new Error(data.error);
         dashData = data;
