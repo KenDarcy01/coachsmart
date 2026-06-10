@@ -386,7 +386,7 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
                         <th id="mth-accepted"    onclick="setMSort('accepted')">Accepted</th>
                         <th id="mth-declined"    onclick="setMSort('declined')">Declined</th>
                         <th id="mth-no_response" onclick="setMSort('no_response')">No Response</th>
-                        <th id="mth-rate"        onclick="setMSort('rate')">Rate ↑</th>
+                        <th id="mth-rate"        onclick="setMSort('rate')">Rate ↓</th>
                     </tr></thead>
                     <tbody id="membersBody"></tbody>
                 </table>
@@ -1042,7 +1042,7 @@ function openRosterByIdx(idx) {
 }
 
 // ── Members Overview ─────────────────────────────────────────────
-let mSortCol = 'rate', mSortAsc = true;
+let mSortCol = 'rate', mSortAsc = false;
 let membersCache = [], membersChart = null, memberDetailData = null, _membersEvts = [];
 
 function getMemberStats(evts) {
