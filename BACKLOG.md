@@ -75,7 +75,7 @@ Hard deletes currently cause permanent, unrecoverable data loss. The fix is to a
 | `member_details_widget.dart` | Admin removes a role | `member_team_role_link` only — lower risk, but should still soft-delete or audit |
 
 **RPCs to audit after adding status columns:**
-All RPCs that query `members`, `member_team_link`, or `events` will need `WHERE status = 'active'` (or `IS NULL`) added — or the column defaulted to `'active'` so existing queries keep working without change. The safer approach is `DEFAULT 'active'` so all existing queries are unaffected and only removal paths need updating.
+Every RPC that queries `members`, `member_team_link`, or `events` must have `WHERE status = 'active'` added — otherwise soft-deleted records will appear in results. `DEFAULT 'active'` protects existing data but does not protect queries from future soft-deleted rows. This is a significant audit — all 31 RPCs need checking. Same applies to any direct FlutterFlow table queries (non-RPC) that read those tables.
 
 **Migration order:**
 1. Add `status text DEFAULT 'active'` to `members`, `member_team_link`, `events`
