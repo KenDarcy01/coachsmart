@@ -1,0 +1,25 @@
+{
+  "name": "CoachSmart Dashboard",
+  "short_name": "CoachSmart",
+  "description": "GAA coaching analytics dashboard for club admins",
+  "start_url": "/webviews/dashboard-app.html",
+  "scope": "/webviews/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111418",
+  "theme_color": "#111418",
+  "icons": [
+    {
+      "src": "/webviews/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/webviews/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

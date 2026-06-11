@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CoachSmart Dashboard</title>
+<meta name="theme-color" content="#111418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CoachSmart">
+<link rel="manifest" href="/webviews/dashboard-app.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+:root {
+    --green:  #87C232;
+    --dark:   #111418;
+    --card:   #1E222B;
+    --card2:  #252A35;
+    --border: rgba(255,255,255,0.07);
+    --text:   #E7EBEE;
+    --muted:  #6B7280;
+    --red:    #e05252;
+    --amber:  #F5A623;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); min-height: 100%; overscroll-behavior-y: none; }
+
+/* ── Login screen ── */
+#loginScreen {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--dark);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+}
+.login-card {
+    width: 100%; max-width: 360px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px 28px;
+}
+.login-logo { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 3px; text-align: center; margin-bottom: 4px; }
+.login-logo span { color: var(--green); }
+.login-sub { font-size: 12px; font-weight: 500; color: var(--muted); text-align: center; margin-bottom: 28px; }
+.login-field { margin-bottom: 12px; }
+.login-field input {
+    width: 100%; padding: 12px 14px; border-radius: 8px;
+    background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif;
+}
+.login-field input:focus { outline: none; border-color: var(--green); }
+.login-field input::placeholder { color: var(--muted); }
+.login-submit {
+    width: 100%; padding: 13px; border-radius: 8px; margin-top: 6px;
+    background: var(--green); border: none; color: #111;
+    font-size: 14px; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer;
+}
+.login-submit:disabled { opacity: 0.5; cursor: default; }
+.login-error { font-size: 12px; color: var(--red); margin-top: 10px; text-align: center; min-height: 16px; }
+.denied-box { text-align: center; padding: 12px 0 4px; }
+.denied-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; color: var(--red); }
+.denied-msg { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+.denied-sign-out { padding: 10px 24px; border-radius: 8px; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; }
+
+/* ── Topbar ── */
+.topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 10px 14px; display: flex; align-items: center; gap: 8px; height: 50px;
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; flex-shrink: 0; }
+.logo span { color: var(--green); }
+#clubContext { flex: 1; min-width: 0; overflow: hidden; }
+#ctxLabel { display: block; font-size: 12px; font-weight: 600; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#clubSelect {
+    width: 100%; background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); padding: 5px 8px; border-radius: 6px;
+    font-size: 12px; font-family: 'DM Sans', sans-serif;
+}
+.filter-toggle {
+    flex-shrink: 0; padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: var(--card2); border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 4px;
+}
+.filter-toggle.active { background: rgba(135,194,50,0.1); border-color: rgba(135,194,50,0.4); color: var(--green); }
+.logout-topbar-btn {
+    flex-shrink: 0; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 500;
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap;
+}
+
+/* ── Tab bar ── */
+.tab-bar {
+    position: sticky; top: 50px; z-index: 29;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    display: flex; overflow-x: auto;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.cs-tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; flex-shrink: 0; transition: all 0.15s; user-select: none; white-space: nowrap; }
+.cs-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+/* ── Filter panel ── */
+.filter-panel { background: var(--card); border-bottom: 1px solid var(--border); overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+.filter-panel.open { max-height: 700px; }
+.filter-inner { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+.fs-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 5px; }
+.filter-row { display: flex; flex-direction: column; }
+
+/* Sliders */
+.slider-dates { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.slider-dates span { font-size: 11px; font-weight: 500; background: var(--card2); padding: 2px 8px; border-radius: 5px; border: 1px solid var(--border); }
+.slider-wrap { position: relative; height: 32px; display: flex; align-items: center; }
+.slider-track { position: absolute; width: 100%; height: 4px; background: var(--border); border-radius: 2px; }
+.slider-fill  { position: absolute; height: 4px; background: var(--green); border-radius: 2px; }
+input[type=range] { position: absolute; width: 100%; height: 4px; background: transparent; -webkit-appearance: none; pointer-events: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all; box-shadow: 0 0 0 4px rgba(135,194,50,0.15); }
+input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all; }
+.slider-range-label { font-size: 11px; font-weight: 500; background: var(--card2); padding: 2px 8px; border-radius: 5px; border: 1px solid var(--border); text-align: center; margin-bottom: 4px; align-self: flex-start; }
+
+/* Chip strips */
+.chip-strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.chip-strip::-webkit-scrollbar { display: none; }
+.s-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--card2); cursor: pointer; user-select: none; white-space: nowrap; flex-shrink: 0; transition: all 0.15s; }
+.s-chip.active { background: rgba(135,194,50,0.18); color: var(--green); border-color: rgba(135,194,50,0.45); }
+
+/* ── Main ── */
+.main { padding: 14px; }
+
+/* KPIs */
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 14px; }
+.kpi-label { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+.kpi-value { font-size: 24px; font-weight: 600; line-height: 1; }
+.kpi-value.green { color: var(--green); }
+.kpi-value.amber { color: var(--amber); }
+.kpi-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* Chart */
+.chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+.chart-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.chart-wrap { height: 180px; position: relative; }
+
+/* Section header */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.section-count { font-size: 11px; color: var(--muted); }
+
+/* Tags / badges */
+.tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; background: var(--card2); border: 1px solid var(--border); }
+.ac { display: inline-flex; align-items: center; gap: 3px; padding: 4px 9px; border-radius: 12px; font-size: 12px; font-weight: 600; border: 1px solid transparent; }
+.ac.acc { background: rgba(135,194,50,0.12); color: var(--green); border-color: rgba(135,194,50,0.3); }
+.ac.dec { background: rgba(224,82,82,0.12); color: var(--red);   border-color: rgba(224,82,82,0.3); }
+.ac.nr  { background: rgba(107,114,128,0.18); color: var(--muted); border-color: rgba(107,114,128,0.3); }
+
+/* ── Event cards ── */
+.event-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+.event-card:active { border-color: rgba(135,194,50,0.4); background: var(--card2); }
+.ev-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.ev-team { font-size: 11px; color: var(--muted); margin-bottom: 7px; }
+.ev-meta { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 9px; }
+.ev-date { font-size: 11px; color: var(--muted); }
+.ev-stats { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ── Team cards ── */
+.team-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+.team-card:active { border-color: rgba(135,194,50,0.4); }
+.tc-head { padding: 12px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+.tc-name { font-size: 15px; font-weight: 600; flex: 1; }
+.tc-badge { font-size: 11px; font-weight: 500; color: var(--muted); background: var(--card2); padding: 2px 8px; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; }
+.tc-kpis { display: grid; grid-template-columns: repeat(4,1fr); padding: 10px 14px; gap: 2px; border-bottom: 1px solid var(--border); }
+.tc-kpi { text-align: center; }
+.tc-kv { font-size: 17px; font-weight: 600; line-height: 1; }
+.tc-kv.green { color: var(--green); }
+.tc-kv.amber { color: var(--amber); }
+.tc-kl { font-size: 9px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 3px; }
+.tc-roles { display: flex; flex-wrap: wrap; gap: 5px; padding: 9px 14px; border-bottom: 1px solid var(--border); }
+.tc-role-pill { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; background: var(--card2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.tc-footer { padding: 8px 14px; font-size: 11px; color: var(--muted); text-align: right; }
+
+/* ── Member cards ── */
+.member-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+.member-card:active { border-color: rgba(135,194,50,0.4); background: var(--card2); }
+.mc-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+.mc-name { font-size: 14px; font-weight: 600; }
+.mc-role { font-size: 11px; font-weight: 500; color: var(--muted); background: var(--card2); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; white-space: nowrap; }
+.mc-team { font-size: 11px; color: var(--muted); margin-bottom: 9px; }
+.rate-bar-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.rate-bar-bg   { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.rate-bar-fill { height: 100%; border-radius: 3px; }
+.rate-bar-val  { font-size: 12px; font-weight: 600; min-width: 38px; text-align: right; white-space: nowrap; }
+.mc-stats { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.mc-events { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+/* Member search */
+.m-search { width: 100%; padding: 9px 12px; border-radius: 8px; background: var(--card2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; margin-bottom: 10px; }
+.m-search:focus { outline: none; border-color: var(--green); }
+.m-search::placeholder { color: var(--muted); }
+
+/* Members chart */
+.members-chart-wrap { height: 150px; position: relative; }
+
+/* Topbar share button */
+.share-topbar-btn {
+    flex-shrink: 0; padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: var(--green); color: #111; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+}
+.share-topbar-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Bottom-sheet drawer ── */
+.d-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.d-overlay.open { opacity: 1; pointer-events: all; }
+.d-sheet {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 41;
+    background: var(--card); border-radius: 16px 16px 0 0; border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; height: 90dvh;
+    transform: translateY(100%); transition: transform 0.3s ease;
+}
+.d-sheet.open { transform: translateY(0); }
+.d-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 10px auto 0; flex-shrink: 0; }
+.d-head { padding: 10px 16px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: flex-start; gap: 10px; }
+.d-head-info { flex: 1; min-width: 0; }
+.d-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+.d-meta  { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.d-close { width: 28px; height: 28px; border-radius: 6px; background: var(--card2); border: 1px solid var(--border); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.d-tabs { display: flex; padding: 8px 16px; gap: 6px; border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto; }
+.d-tabs::-webkit-scrollbar { display: none; }
+.d-tab { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+.d-tab.active { background: var(--green); color: #111; border-color: var(--green); }
+.d-actions { padding: 8px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 6px; justify-content: flex-end; }
+.d-share-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--green); color: #111; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+.d-share-btn:disabled { opacity: 0.5; }
+.export-btn { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--card2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+.d-list { flex: 1; overflow-y: auto; padding: 8px 16px; -webkit-overflow-scrolling: touch; }
+.d-member { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.d-member:last-child { border-bottom: none; }
+.d-av { width: 34px; height: 34px; border-radius: 50%; background: var(--card2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; color: var(--muted); }
+.d-nm { font-size: 13px; font-weight: 500; }
+.d-rl { font-size: 11px; color: var(--muted); }
+.d-bd { margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+.d-bd.acc { background: rgba(135,194,50,0.12); color: var(--green); }
+.d-bd.dec { background: rgba(224,82,82,0.12); color: var(--red); }
+.d-bd.nr  { background: rgba(107,114,128,0.18); color: var(--muted); }
+
+/* ── Misc ── */
+.loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 12px; }
+.spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">Coach<span>Smart</span></div>
+    <div class="login-sub">Dashboard &middot; Admin Access</div>
+    <form id="loginForm" onsubmit="event.preventDefault();doLogin()">
+      <div class="login-field"><input type="email" id="loginEmail" placeholder="Email address" autocomplete="email" required></div>
+      <div class="login-field"><input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required></div>
+      <button type="submit" class="login-submit" id="loginBtn">Sign In</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
+    <div id="deniedBox" class="denied-box" style="display:none;">
+      <div class="denied-title">Access Denied</div>
+      <div class="denied-msg">No admin teams were found for this account.<br>Contact your club administrator.</div>
+      <button class="denied-sign-out" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- App (revealed after auth) -->
+<div id="app" style="display:none;">
+
+<!-- Topbar -->
+<div class="topbar">
+    <div class="logo">Coach<span>Smart</span></div>
+    <div id="clubContext">
+        <span id="ctxLabel"></span>
+        <select id="clubSelect" style="display:none;" onchange="onClubChange()"></select>
+    </div>
+    <button class="share-topbar-btn" id="shareBtn" onclick="sharePDF()" disabled>&#8593; PDF</button>
+    <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()">&#9881; Filters</button>
+    <button class="logout-topbar-btn" onclick="doLogout()">Sign out</button>
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+    <div class="cs-tab active" data-tab="club-overview"    onclick="switchTab('club-overview')">Club Overview</div>
+    <div class="cs-tab"        data-tab="team-overview"    onclick="switchTab('team-overview')">Team Overview</div>
+    <div class="cs-tab"        data-tab="members-overview" onclick="switchTab('members-overview')">Members Overview</div>
+</div>
+
+<!-- Filter panel -->
+<div class="filter-panel" id="filterPanel">
+    <div class="filter-inner">
+        <div class="filter-row">
+            <span class="fs-label">Period</span>
+            <div class="slider-dates"><span id="dateFrom">—</span><span id="dateTo">—</span></div>
+            <div class="slider-wrap">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="dateFill"></div>
+                <input type="range" id="sliderFrom" min="0" max="12" value="3"  oninput="onDateSlider()">
+                <input type="range" id="sliderTo"   min="0" max="12" value="12" oninput="onDateSlider()">
+            </div>
+        </div>
+        <div class="filter-row" id="attRow" style="display:none;">
+            <span class="fs-label">Attendees</span>
+            <div class="slider-range-label" id="attLabel">0 – 0</div>
+            <div class="slider-wrap">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="attFill"></div>
+                <input type="range" id="attFrom" min="0" value="0" oninput="onAttSlider()">
+                <input type="range" id="attTo"   min="0" value="0" oninput="onAttSlider()">
+            </div>
+        </div>
+        <div id="filterGroups" style="display:none;">
+            <div class="filter-row" style="margin-bottom:10px;">
+                <span class="fs-label">Teams</span>
+                <div class="chip-strip" id="teamChips"></div>
+            </div>
+            <div class="filter-row" id="codeGroup" style="display:none;margin-bottom:10px;">
+                <span class="fs-label">Code</span>
+                <div class="chip-strip" id="codeChips"></div>
+            </div>
+            <div class="filter-row" id="typeGroup" style="display:none;margin-bottom:10px;">
+                <span class="fs-label">Type</span>
+                <div class="chip-strip" id="typeChips"></div>
+            </div>
+            <div class="filter-row" id="roleGroup" style="display:none;">
+                <span class="fs-label">Role</span>
+                <div class="chip-strip" id="roleChips"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main content -->
+<div class="main">
+    <div class="loading-wrap" id="loading" style="display:none;">
+        <div class="spinner"></div>
+        <div style="font-size:13px;color:var(--muted);">Loading…</div>
+    </div>
+    <div class="empty-state" id="emptyState" style="display:none;"></div>
+
+    <!-- Club Overview -->
+    <div id="viewClub" style="display:none;">
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-label">Events</div><div class="kpi-value green" id="kpiEvents">—</div><div class="kpi-sub" id="kpiEventsSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Acceptance</div><div class="kpi-value green" id="kpiAcc">—</div><div class="kpi-sub" id="kpiAccSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Accepted</div><div class="kpi-value" id="kpiAvg">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Response Rate</div><div class="kpi-value" id="kpiResp">—</div><div class="kpi-sub" id="kpiRespSub"></div></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-label">Avg Accepted per Month</div>
+            <div class="chart-wrap"><canvas id="chartMain"></canvas></div>
+        </div>
+        <div class="section-head">
+            <span class="section-title">Events</span>
+            <span class="section-count" id="tableCount"></span>
+        </div>
+        <div id="eventsList"></div>
+    </div>
+
+    <!-- Team Overview -->
+    <div id="viewTeam" style="display:none;">
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-label">Events</div><div class="kpi-value green" id="tkpiEvents">—</div><div class="kpi-sub" id="tkpiEventsSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Acceptance</div><div class="kpi-value green" id="tkpiAcc">—</div><div class="kpi-sub" id="tkpiAccSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Accepted</div><div class="kpi-value" id="tkpiAvg">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Response Rate</div><div class="kpi-value amber" id="tkpiResp">—</div><div class="kpi-sub" id="tkpiRespSub"></div></div>
+        </div>
+        <div class="section-head"><span class="section-title">Teams</span></div>
+        <div id="teamsGrid"></div>
+    </div>
+
+    <!-- Members Overview -->
+    <div id="viewMembers" style="display:none;">
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-label">Members Accepted</div><div class="kpi-value green" id="mkpiMembers">—</div><div class="kpi-sub" id="mkpiMembersSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Accept Rate</div><div class="kpi-value green" id="mkpiAvgRate">—</div><div class="kpi-sub" id="mkpiAvgRateSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Fully Engaged</div><div class="kpi-value" id="mkpiEngaged">—</div><div class="kpi-sub">&ge; 80%</div></div>
+            <div class="kpi-card"><div class="kpi-label">Not Responding</div><div class="kpi-value amber" id="mkpiNR">—</div><div class="kpi-sub" id="mkpiNRSub"></div></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-label">Acceptance Rate Distribution</div>
+            <div class="members-chart-wrap"><canvas id="chartMembers"></canvas></div>
+        </div>
+        <input class="m-search" id="mSearch" placeholder="Search name…" oninput="renderMembersCards()">
+        <div class="section-head">
+            <span class="section-title">Members</span>
+            <span class="section-count" id="mTableCount"></span>
+        </div>
+        <div id="membersList"></div>
+    </div>
+</div>
+
+<!-- Bottom-sheet drawer -->
+<div class="d-overlay" id="dOverlay" onclick="closeDetail()"></div>
+<div class="d-sheet" id="dSheet">
+    <div class="d-handle"></div>
+    <div class="d-head">
+        <div class="d-head-info">
+            <div class="d-title" id="dTitle"></div>
+            <div class="d-meta"  id="dMeta"></div>
+        </div>
+        <button class="d-close" onclick="closeDetail()">&times;</button>
+    </div>
+    <div class="d-tabs" id="dTabs"></div>
+    <div class="d-actions">
+        <button class="d-share-btn" id="dShareBtn" onclick="shareDrawerPDF()">&#8593; Share PDF</button>
+        <button class="export-btn"  onclick="exportDrawerCSV()">&#8595; CSV</button>
+    </div>
+    <div class="d-list" id="dList"></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const H  = {'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${SUPABASE_ANON_KEY}`};
+const MAX_MONTHS = 12;
+
+// ── Auth state ────────────────────────────────────────────────────
+let currentUser = null, currentSession = null;
+let adminTeams = [], adminTeamIds = new Set(), userClubs = [];
+
+// ── Dashboard state ───────────────────────────────────────────────
+let dashData = null, mainChart = null, membersChart = null;
+let detailEvt = null, detailFilt = 'all', drawerMode = 'event', rosterData = null;
+let eventsCache = [], membersCache = [], memberDetailData = null, _membersEvts = [], _rosterCache = [];
+let fTeams = null, fCode = new Set(), fType = new Set(), fRole = new Set();
+let attMin = 0, attMax = Infinity, _attSliderHasData = false;
+let allCodes = [], allTypes = [], allRoles = [], currentClubId = null, activeTab = 'club-overview';
+
+// ── Helpers ───────────────────────────────────────────────────────
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtMonth(d) { return d.toLocaleDateString('en-IE',{month:'short',year:'numeric'}); }
+function fmtDate(d)  { return new Date(d).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}); }
+function clubName() {
+    if(userClubs.length===1) return userClubs[0].club_name;
+    return document.getElementById('clubSelect').selectedOptions[0]?.text||dashData?.club_name||'';
+}
+function getMonthsInRange(start,end) {
+    const months=[],cur=new Date(start.getFullYear(),start.getMonth(),1);
+    while(cur<end){months.push({year:cur.getFullYear(),month:cur.getMonth(),label:fmtMonth(new Date(cur))});cur.setMonth(cur.getMonth()+1);}
+    return months;
+}
+
+// ── Auth functions ────────────────────────────────────────────────
+async function checkAuth() {
+    const{data:{session}}=await sb.auth.getSession();
+    if(session) await handleSession(session);
+    else showLoginScreen();
+
+    sb.auth.onAuthStateChange((event,session)=>{
+        if(event==='SIGNED_OUT'){currentUser=null;currentSession=null;showLoginScreen();}
+        else if(event==='TOKEN_REFRESHED'&&session){
+            currentSession=session;
+            H['Authorization']=`Bearer ${session.access_token}`;
+        }
+    });
+}
+
+async function handleSession(session) {
+    currentSession=session;
+    currentUser=session.user;
+    H['Authorization']=`Bearer ${session.access_token}`;
+
+    document.getElementById('loginBtn').textContent='Checking access…';
+    document.getElementById('loginBtn').disabled=true;
+    document.getElementById('loginError').textContent='';
+
+    const teams=await fetchAdminTeams();
+    if(!teams.length){showAccessDenied();return;}
+
+    adminTeams=teams;
+    adminTeamIds=new Set(teams.map(t=>t.team_id));
+    userClubs=[...new Map(teams.map(t=>[t.club_id,{club_id:t.club_id,club_name:t.club_name}])).values()];
+
+    setupClubContext();
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').style.display='';
+    initDateSlider();
+    switchTab('club-overview');
+    loadDashboard();
+}
+
+async function fetchAdminTeams() {
+    try{
+        const{data:uml,error:e1}=await sb.from('user_member_link').select('member_id').eq('user_id',currentUser.id);
+        if(e1||!uml?.length)return[];
+        const memberIds=uml.map(r=>r.member_id);
+
+        const{data:mtl,error:e2}=await sb.from('member_team_link').select('member_team_id,team_id').in('member_id',memberIds);
+        if(e2||!mtl?.length)return[];
+        const memberTeamIds=mtl.map(r=>r.member_team_id);
+        const mtlMap=Object.fromEntries(mtl.map(r=>[r.member_team_id,r.team_id]));
+
+        const{data:mtrl,error:e3}=await sb.from('member_team_role_link').select('member_team_id,role_id').in('member_team_id',memberTeamIds);
+        if(e3||!mtrl?.length)return[];
+        const roleIds=[...new Set(mtrl.map(r=>r.role_id))];
+
+        const{data:roles,error:e4}=await sb.from('roles').select('role_id').in('role_id',roleIds).eq('role_grade',100);
+        if(e4||!roles?.length)return[];
+        const adminRoleIds=new Set(roles.map(r=>r.role_id));
+
+        const adminTeamIdArr=[...new Set(
+            mtrl.filter(r=>adminRoleIds.has(r.role_id)).map(r=>mtlMap[r.member_team_id]).filter(Boolean)
+        )];
+        if(!adminTeamIdArr.length)return[];
+
+        const{data:teams,error:e5}=await sb.from('teams').select('team_id,team_name,club_id').in('team_id',adminTeamIdArr);
+        if(e5||!teams?.length)return[];
+        const clubIds=[...new Set(teams.map(t=>t.club_id))];
+        const{data:clubs}=await sb.from('clubs').select('club_id,club_name').in('club_id',clubIds);
+        const clubMap=Object.fromEntries((clubs||[]).map(c=>[c.club_id,c.club_name]));
+        return teams.map(t=>({team_id:t.team_id,team_name:t.team_name,club_id:t.club_id,club_name:clubMap[t.club_id]||''}));
+    }catch(e){console.error(e);return[];}
+}
+
+async function doLogin() {
+    const email=document.getElementById('loginEmail').value.trim();
+    const password=document.getElementById('loginPassword').value;
+    document.getElementById('loginError').textContent='';
+    document.getElementById('loginBtn').textContent='Signing in…';
+    document.getElementById('loginBtn').disabled=true;
+    const{data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error){
+        document.getElementById('loginError').textContent=error.message;
+        document.getElementById('loginBtn').textContent='Sign In';
+        document.getElementById('loginBtn').disabled=false;
+        return;
+    }
+    await handleSession(data.session);
+}
+
+async function doLogout() {
+    await sb.auth.signOut();
+}
+
+function showLoginScreen() {
+    dashData=null;currentClubId=null;adminTeams=[];adminTeamIds=new Set();userClubs=[];
+    document.getElementById('app').style.display='none';
+    document.getElementById('loginForm').style.display='';
+    document.getElementById('deniedBox').style.display='none';
+    document.getElementById('loginError').textContent='';
+    document.getElementById('loginBtn').textContent='Sign In';
+    document.getElementById('loginBtn').disabled=false;
+    document.getElementById('loginScreen').style.display='flex';
+}
+
+function showAccessDenied() {
+    document.getElementById('loginForm').style.display='none';
+    document.getElementById('deniedBox').style.display='';
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('app').style.display='none';
+}
+
+// ── Club context ──────────────────────────────────────────────────
+function setupClubContext() {
+    const ctxLabel=document.getElementById('ctxLabel');
+    const clubSelect=document.getElementById('clubSelect');
+    if(userClubs.length===1){
+        ctxLabel.textContent=userClubs[0].club_name;
+        ctxLabel.style.display='block';
+        clubSelect.style.display='none';
+    } else {
+        ctxLabel.style.display='none';
+        clubSelect.innerHTML=userClubs.map(c=>`<option value="${c.club_id}">${esc(c.club_name)}</option>`).join('');
+        clubSelect.style.display='';
+    }
+}
+
+function getSelectedClubId() {
+    if(userClubs.length===1)return userClubs[0].club_id;
+    const v=document.getElementById('clubSelect').value;
+    return v?parseInt(v):(userClubs[0]?.club_id||null);
+}
+
+function onClubChange(){loadDashboard();}
+
+// ── Filter panel toggle ───────────────────────────────────────────
+function toggleFilters() {
+    const open=document.getElementById('filterPanel').classList.toggle('open');
+    document.getElementById('filterToggle').classList.toggle('active',open);
+}
+
+// ── Tab switching ─────────────────────────────────────────────────
+function switchTab(tab) {
+    activeTab=tab;
+    document.querySelectorAll('.cs-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+    document.getElementById('viewClub').style.display    =tab==='team-overview'    ?'':'none';
+    document.getElementById('viewTeam').style.display    =tab==='club-overview'    ?'':'none';
+    document.getElementById('viewMembers').style.display =tab==='members-overview' ?'':'none';
+    document.getElementById('attRow').style.display=tab==='members-overview'?'none':(_attSliderHasData?'':'none');
+    if(dashData)applyFiltersNoReload();
+}
+
+// ── Date slider ───────────────────────────────────────────────────
+function initDateSlider() {
+    const f=parseInt(document.getElementById('sliderFrom').value),t=parseInt(document.getElementById('sliderTo').value);
+    document.getElementById('dateFrom').textContent=fmtMonth(monthToDate(f));
+    document.getElementById('dateTo').textContent=fmtMonth(monthToDate(t));
+    const p1=f/MAX_MONTHS*100,p2=t/MAX_MONTHS*100;
+    document.getElementById('dateFill').style.left=p1+'%';document.getElementById('dateFill').style.width=(p2-p1)+'%';
+}
+function monthToDate(i){const d=new Date();d.setDate(1);d.setHours(0,0,0,0);d.setMonth(d.getMonth()-(MAX_MONTHS-i));return d;}
+function getDateRange(){
+    const f=parseInt(document.getElementById('sliderFrom').value),t=parseInt(document.getElementById('sliderTo').value);
+    const start=monthToDate(f),end=monthToDate(t);end.setMonth(end.getMonth()+1);return{start,end};
+}
+function onDateSlider(){
+    let f=parseInt(document.getElementById('sliderFrom').value),t=parseInt(document.getElementById('sliderTo').value);
+    if(f>=t){if(document.activeElement===document.getElementById('sliderFrom'))f=t-1;else t=f+1;document.getElementById('sliderFrom').value=f;document.getElementById('sliderTo').value=t;}
+    document.getElementById('dateFrom').textContent=fmtMonth(monthToDate(f));
+    document.getElementById('dateTo').textContent=fmtMonth(monthToDate(t));
+    const p1=f/MAX_MONTHS*100,p2=t/MAX_MONTHS*100;
+    document.getElementById('dateFill').style.left=p1+'%';document.getElementById('dateFill').style.width=(p2-p1)+'%';
+    if(dashData)loadDashboard();
+}
+
+// ── Attendees slider ──────────────────────────────────────────────
+function initAttSlider(maxVal){
+    _attSliderHasData=maxVal>0;attMin=0;attMax=maxVal||1;
+    const fromEl=document.getElementById('attFrom'),toEl=document.getElementById('attTo');
+    fromEl.max=attMax;fromEl.value=0;toEl.max=attMax;toEl.value=attMax;
+    updateAttFill();
+    document.getElementById('attRow').style.display=maxVal>0?'':'none';
+}
+function onAttSlider(){
+    let f=parseInt(document.getElementById('attFrom').value),t=parseInt(document.getElementById('attTo').value);
+    if(f>t){if(document.activeElement===document.getElementById('attFrom'))f=t;else t=f;document.getElementById('attFrom').value=f;document.getElementById('attTo').value=t;}
+    attMin=f;attMax=t;updateAttFill();applyFiltersNoReload();
+}
+function updateAttFill(){
+    const f=parseInt(document.getElementById('attFrom').value),t=parseInt(document.getElementById('attTo').value),max=parseInt(document.getElementById('attTo').max)||1;
+    document.getElementById('attFill').style.left=(f/max*100)+'%';document.getElementById('attFill').style.width=((t-f)/max*100)+'%';
+    document.getElementById('attLabel').textContent=`${f} – ${t}`;
+}
+
+// ── Dashboard fetch ───────────────────────────────────────────────
+async function loadDashboard(){
+    const clubId=getSelectedClubId();if(!clubId)return;
+    document.getElementById('loading').style.display='flex';
+    document.getElementById('viewClub').style.display='none';
+    document.getElementById('viewTeam').style.display='none';
+    document.getElementById('viewMembers').style.display='none';
+    document.getElementById('emptyState').style.display='none';
+    const{start,end}=getDateRange();
+    try{
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`,{method:'POST',headers:H,body:JSON.stringify({p_club_id:clubId,p_start_date:start.toISOString(),p_end_date:end.toISOString()})});
+        if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||e.error||`HTTP ${r.status}`);}
+        const data=await r.json();if(data.error)throw new Error(data.error);
+        dashData=data;
+        // Restrict to only the teams this user administers
+        dashData.teams=(dashData.teams||[]).filter(t=>adminTeamIds.has(t.team_id));
+        _attSliderHasData=false;
+        buildFilters(clubId);
+        document.getElementById('filterGroups').style.display='';
+        switchTab(activeTab);
+    }catch(e){
+        document.getElementById('emptyState').textContent='Error: '+e.message;
+        document.getElementById('emptyState').style.display='block';
+        console.error(e);
+    }
+    finally{document.getElementById('loading').style.display='none';}
+}
+
+// ── Build filters ─────────────────────────────────────────────────
+function buildFilters(clubId){
+    const codes=new Set(),types=new Set(),roles=new Set();
+    for(const team of dashData.teams||[])for(const e of team.events||[]){if(e.code)codes.add(e.code);if(e.type)types.add(e.type);for(const m of e.members||[])if(m.role)roles.add(m.role);}
+    allCodes=[...codes].sort();allTypes=[...types].sort();allRoles=[...roles].sort();
+    const teams=dashData.teams||[],validIds=new Set(teams.map(t=>t.team_id));
+    if(clubId!==currentClubId){currentClubId=clubId;fTeams=null;fCode=new Set();fType=new Set();fRole=new Set();}
+    else{if(fTeams!==null&&fTeams.size>0)fTeams=new Set([...fTeams].filter(id=>validIds.has(id)));fCode=new Set([...fCode].filter(v=>allCodes.includes(v)));fType=new Set([...fType].filter(v=>allTypes.includes(v)));fRole=new Set([...fRole].filter(v=>allRoles.includes(v)));}
+    renderTeamChips();
+    renderMultiChips('codeChips','code',allCodes,fCode);
+    renderMultiChips('typeChips','type',allTypes,fType);
+    renderMultiChips('roleChips','role',allRoles,fRole);
+    document.getElementById('codeGroup').style.display=allCodes.length?'':'none';
+    document.getElementById('typeGroup').style.display=allTypes.length?'':'none';
+    document.getElementById('roleGroup').style.display=allRoles.length?'':'none';
+}
+
+// ── Team chips ────────────────────────────────────────────────────
+function renderTeamChips(){
+    const teams=dashData?.teams||[],allActive=fTeams===null;
+    let html=`<span class="s-chip ${allActive?'active':''}" onclick="onTeamChipAll()">All</span>`;
+    html+=teams.map(t=>{const chk=fTeams===null||fTeams.has(t.team_id);return`<span class="s-chip ${chk?'active':''}" onclick="onTeamChipToggle(${t.team_id})">${esc(t.team_name)}</span>`;}).join('');
+    document.getElementById('teamChips').innerHTML=html;
+}
+function onTeamChipAll(){fTeams=fTeams===null?new Set():null;renderTeamChips();resetSubFilters();applyFilters();}
+function onTeamChipToggle(id){
+    const allIds=(dashData.teams||[]).map(t=>t.team_id);
+    if(fTeams===null)fTeams=new Set(allIds.filter(x=>x!==id));
+    else if(fTeams.has(id))fTeams.delete(id);
+    else{fTeams.add(id);if(fTeams.size===allIds.length)fTeams=null;}
+    renderTeamChips();resetSubFilters();applyFilters();
+}
+function resetSubFilters(){fCode=new Set();fType=new Set();fRole=new Set();renderMultiChips('codeChips','code',allCodes,fCode);renderMultiChips('typeChips','type',allTypes,fType);renderMultiChips('roleChips','role',allRoles,fRole);}
+
+// ── Multi-select chips ────────────────────────────────────────────
+function renderMultiChips(cId,key,values,current){
+    const allActive=current.size===0;
+    document.getElementById(cId).innerHTML=`<span class="s-chip ${allActive?'active':''}" data-key="${key}" data-val="" onclick="pickFilter(this)">All</span>`+values.map(v=>`<span class="s-chip ${current.has(v)?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(v)}</span>`).join('');
+}
+function pickFilter(el){
+    const key=el.dataset.key,val=el.dataset.val,map={code:fCode,type:fType,role:fRole},s=map[key];if(!s)return;
+    if(val==='')s.clear();else if(s.has(val))s.delete(val);else s.add(val);
+    renderMultiChips('codeChips','code',allCodes,fCode);renderMultiChips('typeChips','type',allTypes,fType);renderMultiChips('roleChips','role',allRoles,fRole);
+    applyFiltersNoReload();
+}
+
+// ── Filter pipelines ──────────────────────────────────────────────
+function getBaseEvents(){
+    if(!dashData)return[];const evts=[];
+    for(const team of dashData.teams||[]){
+        if(fTeams!==null&&!fTeams.has(team.team_id))continue;
+        for(const e of team.events||[]){
+            if(fCode.size>0&&!fCode.has(e.code))continue;if(fType.size>0&&!fType.has(e.type))continue;
+            const members=fRole.size>0?(e.members||[]).filter(m=>fRole.has(m.role)):(e.members||[]);
+            evts.push({...e,team_id:team.team_id,team_name:team.team_name,members,accepted:members.filter(m=>m.response==='accepted').length,declined:members.filter(m=>m.response==='declined').length,no_response:members.filter(m=>m.response==='no_response').length,total:members.length});
+        }
+    }
+    return evts;
+}
+function getFilteredEventsPerTeam(){
+    const result={};
+    for(const team of dashData.teams||[]){
+        if(fTeams!==null&&!fTeams.has(team.team_id))continue;const evts=[];
+        for(const e of team.events||[]){
+            if(fCode.size>0&&!fCode.has(e.code))continue;if(fType.size>0&&!fType.has(e.type))continue;
+            const members=fRole.size>0?(e.members||[]).filter(m=>fRole.has(m.role)):(e.members||[]);
+            evts.push({...e,members,accepted:members.filter(m=>m.response==='accepted').length,declined:members.filter(m=>m.response==='declined').length,no_response:members.filter(m=>m.response==='no_response').length,total:members.length});
+        }
+        result[team.team_id]=evts;
+    }
+    return result;
+}
+function applyFilters(){
+    if(activeTab==='team-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
+    else if(activeTab==='members-overview'){document.getElementById('attRow').style.display='none';renderMembersOverview(getBaseEvents());}
+    else{const base=getFilteredEventsPerTeam();initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
+}
+function applyFiltersNoReload(){
+    if(activeTab==='team-overview'){const base=getBaseEvents();if(!_attSliderHasData)initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
+    else if(activeTab==='members-overview'){document.getElementById('attRow').style.display='none';renderMembersOverview(getBaseEvents());}
+    else{const base=getFilteredEventsPerTeam();if(!_attSliderHasData)initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
+}
+
+// ── Club Overview ─────────────────────────────────────────────────
+function renderClubOverview(evts){renderKPIs(evts);drawChart(evts);renderEventCards(evts);}
+function renderKPIs(evts){
+    const totalAcc=evts.reduce((s,e)=>s+e.accepted,0),totalDec=evts.reduce((s,e)=>s+e.declined,0),totalNR=evts.reduce((s,e)=>s+e.no_response,0);
+    const totalAll=totalAcc+totalDec+totalNR,teams=new Set(evts.map(e=>e.team_id)).size;
+    document.getElementById('kpiEvents').textContent=evts.length;
+    document.getElementById('kpiEventsSub').textContent=`across ${teams} team${teams!==1?'s':''}`;
+    document.getElementById('kpiAcc').textContent=totalAll>0?(totalAcc/totalAll*100).toFixed(1)+'%':'—';
+    document.getElementById('kpiAccSub').textContent=`${totalAcc} of ${totalAll}`;
+    document.getElementById('kpiAvg').textContent=evts.length>0?(totalAcc/evts.length).toFixed(1):'—';
+    document.getElementById('kpiResp').textContent=totalAll>0?((totalAcc+totalDec)/totalAll*100).toFixed(1)+'%':'—';
+    document.getElementById('kpiRespSub').textContent=`${totalNR} no response`;
+}
+function drawChart(evts){
+    const{start,end}=getDateRange(),months=getMonthsInRange(start,end);
+    const barData=months.map(m=>{const me=evts.filter(e=>{const d=new Date(e.date);return d.getFullYear()===m.year&&d.getMonth()===m.month;});return me.length?parseFloat((me.reduce((s,e)=>s+e.accepted,0)/me.length).toFixed(2)):null;});
+    if(mainChart)mainChart.destroy();
+    mainChart=new Chart(document.getElementById('chartMain'),{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Avg Accepted',data:barData,backgroundColor:'rgba(135,194,50,0.25)',borderColor:'#87C232',borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`Avg accepted: ${item.raw?.toFixed(2)??0}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:45,maxTicksLimit:8},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+function renderEventCards(evts){
+    const sorted=[...evts].sort((a,b)=>new Date(b.date)-new Date(a.date));
+    eventsCache=sorted;
+    document.getElementById('tableCount').textContent=`${sorted.length} event${sorted.length!==1?'s':''}`;
+    const container=document.getElementById('eventsList');
+    if(!sorted.length){container.innerHTML=`<div class="empty-state">No events match the current filters.</div>`;document.getElementById('shareBtn').disabled=true;return;}
+    container.innerHTML=sorted.map((e,i)=>`
+        <div class="event-card" onclick="openDetail(eventsCache[${i}],'all')">
+            <div class="ev-title">${esc(e.title||'—')}</div>
+            <div class="ev-team">${esc(e.team_name)}</div>
+            <div class="ev-meta">
+                <span class="ev-date">${fmtDate(e.date)}</span>
+                ${e.code?`<span class="tag">${esc(e.code)}</span>`:''}
+                ${e.type?`<span class="tag">${esc(e.type)}</span>`:''}
+                ${e.opposition?`<span class="ev-date">v ${esc(e.opposition)}</span>`:''}
+            </div>
+            <div class="ev-stats">
+                <span class="ac acc" onclick="event.stopPropagation();openDetail(eventsCache[${i}],'accepted')">&#10003; ${e.accepted}</span>
+                <span class="ac dec" onclick="event.stopPropagation();openDetail(eventsCache[${i}],'declined')">&#10007; ${e.declined}</span>
+                <span class="ac nr"  onclick="event.stopPropagation();openDetail(eventsCache[${i}],'no_response')">? ${e.no_response}</span>
+            </div>
+        </div>`).join('');
+    document.getElementById('shareBtn').disabled=false;
+}
+
+// ── Team Overview ─────────────────────────────────────────────────
+function renderTeamViewKPIs(evtsPerTeam){
+    const allEvts=Object.values(evtsPerTeam).flat();
+    const totalAcc=allEvts.reduce((s,e)=>s+e.accepted,0),totalDec=allEvts.reduce((s,e)=>s+e.declined,0),totalNR=allEvts.reduce((s,e)=>s+e.no_response,0),totalAll=totalAcc+totalDec+totalNR;
+    const teamCount=Object.values(evtsPerTeam).filter(v=>v.length>0).length;
+    document.getElementById('tkpiEvents').textContent=allEvts.length;
+    document.getElementById('tkpiEventsSub').textContent=`across ${teamCount} team${teamCount!==1?'s':''}`;
+    document.getElementById('tkpiAcc').textContent=totalAll>0?(totalAcc/totalAll*100).toFixed(1)+'%':'—';
+    document.getElementById('tkpiAccSub').textContent=`${totalAcc} of ${totalAll}`;
+    document.getElementById('tkpiAvg').textContent=allEvts.length>0?(totalAcc/allEvts.length).toFixed(1):'—';
+    document.getElementById('tkpiResp').textContent=totalAll>0?((totalAcc+totalDec)/totalAll*100).toFixed(1)+'%':'—';
+    document.getElementById('tkpiRespSub').textContent=`${totalNR} no response`;
+}
+function renderTeamCards(evtsPerTeam){
+    renderTeamViewKPIs(evtsPerTeam);_rosterCache=[];
+    const grid=document.getElementById('teamsGrid'),allTeams=dashData.teams||[];
+    const visible=allTeams.filter(team=>{const evts=evtsPerTeam[team.team_id]||[];return evts.length>0||(fTeams!==null&&fTeams.has(team.team_id));});
+    if(!visible.length){grid.innerHTML=`<div class="empty-state">${fTeams!==null&&fTeams.size===0?'No teams selected.':'No teams have data in this period.'}</div>`;document.getElementById('shareBtn').disabled=true;return;}
+    grid.innerHTML=visible.map(team=>{
+        const evts=evtsPerTeam[team.team_id]||[];
+        const totalAcc=evts.reduce((s,e)=>s+e.accepted,0),totalDec=evts.reduce((s,e)=>s+e.declined,0),totalNR=evts.reduce((s,e)=>s+e.no_response,0),totalAll=totalAcc+totalDec+totalNR;
+        const accRate=totalAll>0?(totalAcc/totalAll*100).toFixed(1)+'%':'—',respRate=totalAll>0?((totalAcc+totalDec)/totalAll*100).toFixed(1)+'%':'—',avgAcc=evts.length>0?(totalAcc/evts.length).toFixed(1):'—';
+        const memberRoles=team.member_roles||[];
+        const rolesHtml=memberRoles.length?`<div class="tc-roles">${memberRoles.map(mr=>{const idx=_rosterCache.length;_rosterCache.push({team_name:team.team_name,role:mr.role,members:mr.members||[]});return`<span class="tc-role-pill" onclick="event.stopPropagation();openRosterByIdx(${idx})">${esc(mr.role)} (${mr.count})</span>`;}).join('')}</div>`:'';
+        return`<div class="team-card" onclick="openTeamInClubOverview(${team.team_id})">
+            <div class="tc-head"><div class="tc-name">${esc(team.team_name)}</div><span class="tc-badge">${evts.length} event${evts.length!==1?'s':''}</span></div>
+            <div class="tc-kpis">
+                <div class="tc-kpi"><div class="tc-kv green">${accRate}</div><div class="tc-kl">Accept</div></div>
+                <div class="tc-kpi"><div class="tc-kv">${avgAcc}</div><div class="tc-kl">Avg Acc</div></div>
+                <div class="tc-kpi"><div class="tc-kv">${evts.length}</div><div class="tc-kl">Events</div></div>
+                <div class="tc-kpi"><div class="tc-kv amber">${respRate}</div><div class="tc-kl">Response</div></div>
+            </div>
+            ${rolesHtml}
+            <div class="tc-footer">View in Club Overview &rarr;</div>
+        </div>`;
+    }).join('');
+    document.getElementById('shareBtn').disabled=false;
+}
+function openTeamInClubOverview(teamId){fTeams=new Set([teamId]);renderTeamChips();switchTab('team-overview');applyFilters();}
+
+// ── Detail drawer ─────────────────────────────────────────────────
+function openDetail(evt,filter){
+    drawerMode='event';detailEvt=evt;detailFilt=filter;
+    document.getElementById('dTitle').textContent=evt.title||'Event';
+    document.getElementById('dMeta').textContent=[fmtDate(evt.date),evt.team_name,evt.code,evt.type,evt.opposition?'v '+evt.opposition:''].filter(Boolean).join(' · ');
+    renderDTabs();renderDList();openSheet();
+}
+function openRosterByIdx(idx){
+    const d=_rosterCache[idx];if(!d)return;
+    rosterData=d;drawerMode='roster';
+    document.getElementById('dTitle').textContent=d.role;
+    document.getElementById('dMeta').textContent=`${d.team_name} · ${d.members.length} member${d.members.length!==1?'s':''}`;
+    renderDTabs();renderDList();openSheet();
+}
+function openMemberDetail(memberId){
+    const m=membersCache.find(x=>x.member_id===memberId);if(!m)return;
+    const evts=_membersEvts.map(e=>{const mb=(e.members||[]).find(x=>x.member_id===memberId);return mb?{...e,response:mb.response}:null;}).filter(Boolean).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    memberDetailData={member:m,events:evts};drawerMode='member';detailFilt='all';
+    document.getElementById('dTitle').textContent=m.name;
+    document.getElementById('dMeta').textContent=[m.team_name,m.role,`${m.events} event${m.events!==1?'s':''}`].filter(Boolean).join(' · ');
+    renderDTabs();renderDList();openSheet();
+}
+function openSheet(){document.getElementById('dOverlay').classList.add('open');document.getElementById('dSheet').classList.add('open');}
+function closeDetail(){document.getElementById('dOverlay').classList.remove('open');document.getElementById('dSheet').classList.remove('open');}
+function setDF(f){detailFilt=f;renderDTabs();renderDList();}
+function renderDTabs(){
+    if(drawerMode==='roster'){document.getElementById('dTabs').innerHTML=`<button class="d-tab active">All Members (${rosterData.members.length})</button>`;return;}
+    if(drawerMode==='member'){
+        const m=memberDetailData.member;
+        document.getElementById('dTabs').innerHTML=[{k:'all',l:`All (${memberDetailData.events.length})`},{k:'accepted',l:`Accepted (${m.accepted})`},{k:'declined',l:`Declined (${m.declined})`},{k:'no_response',l:`No Response (${m.no_response})`}].map(t=>`<button class="d-tab ${detailFilt===t.k?'active':''}" onclick="setDF('${t.k}')">${t.l}</button>`).join('');
+        return;
+    }
+    const e=detailEvt;
+    document.getElementById('dTabs').innerHTML=[{k:'all',l:`All (${e.members.length})`},{k:'accepted',l:`Accepted (${e.accepted})`},{k:'declined',l:`Declined (${e.declined})`},{k:'no_response',l:`No Response (${e.no_response})`}].map(t=>`<button class="d-tab ${detailFilt===t.k?'active':''}" onclick="setDF('${t.k}')">${t.l}</button>`).join('');
+}
+function renderDList(){
+    const bc={accepted:'acc',declined:'dec',no_response:'nr'},bl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
+    if(drawerMode==='roster'){
+        const members=rosterData.members;
+        if(!members.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No members.</div>`;return;}
+        document.getElementById('dList').innerHTML=members.map(m=>{const ini=m.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();return`<div class="d-member"><div class="d-av">${ini}</div><div style="min-width:0"><div class="d-nm">${esc(m.name)}</div><div class="d-rl">${esc(rosterData.role)}</div></div></div>`;}).join('');
+        return;
+    }
+    if(drawerMode==='member'){
+        const shown=detailFilt==='all'?memberDetailData.events:memberDetailData.events.filter(e=>e.response===detailFilt);
+        if(!shown.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No events.</div>`;return;}
+        document.getElementById('dList').innerHTML=shown.map(e=>`<div class="d-member"><div style="flex:1;min-width:0"><div class="d-nm">${esc(e.title||'—')}</div><div class="d-rl">${fmtDate(e.date)} · ${esc(e.team_name)}</div></div><span class="d-bd ${bc[e.response]||'nr'}">${bl[e.response]||'No Response'}</span></div>`).join('');
+        return;
+    }
+    const members=detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);
+    if(!members.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No members.</div>`;return;}
+    document.getElementById('dList').innerHTML=members.map(m=>{const ini=m.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();return`<div class="d-member"><div class="d-av">${ini}</div><div style="min-width:0"><div class="d-nm">${esc(m.name)}</div><div class="d-rl">${esc(m.role||'')}</div></div><span class="d-bd ${bc[m.response]||'nr'}">${bl[m.response]||'No Response'}</span></div>`;}).join('');
+}
+
+// ── Members Overview ──────────────────────────────────────────────
+function getMemberStats(evts){
+    const map=new Map();
+    for(const evt of evts)for(const m of evt.members||[]){
+        if(!map.has(m.member_id))map.set(m.member_id,{member_id:m.member_id,name:m.name,role:m.role||'',teams:new Set(),events:0,accepted:0,declined:0,no_response:0});
+        const s=map.get(m.member_id);s.teams.add(evt.team_name);s.events++;
+        if(m.response==='accepted')s.accepted++;else if(m.response==='declined')s.declined++;else s.no_response++;
+    }
+    return[...map.values()].map(s=>({...s,team_name:[...s.teams].sort().join(', '),rate:s.events>0?s.accepted/s.events:0}));
+}
+function renderMembersOverview(evts){_membersEvts=evts;const stats=getMemberStats(evts);membersCache=stats;renderMembersKPIs(stats);drawMembersChart(stats);renderMembersCards();}
+function renderMembersKPIs(stats){
+    const n=stats.length,accepted=stats.filter(m=>m.accepted>0).length,avgRate=n>0?stats.reduce((s,m)=>s+m.rate,0)/n:0;
+    const engaged=stats.filter(m=>m.rate>=0.8).length,notResp=stats.filter(m=>m.events>0&&m.no_response===m.events).length;
+    document.getElementById('mkpiMembers').textContent=accepted;
+    document.getElementById('mkpiMembersSub').textContent=`of ${n} member${n!==1?'s':''}`;
+    document.getElementById('mkpiAvgRate').textContent=n>0?(avgRate*100).toFixed(1)+'%':'—';
+    document.getElementById('mkpiAvgRateSub').textContent=`across ${n} member${n!==1?'s':''}`;
+    document.getElementById('mkpiEngaged').textContent=engaged;
+    document.getElementById('mkpiNR').textContent=notResp;
+    document.getElementById('mkpiNRSub').textContent=notResp>0?'0 responses in period':'all responded';
+}
+function drawMembersChart(stats){
+    const labels=['0–20%','21–40%','41–60%','61–80%','81–100%'],counts=[0,0,0,0,0];
+    const bgColors=['rgba(224,82,82,0.3)','rgba(245,166,35,0.28)','rgba(135,194,50,0.18)','rgba(135,194,50,0.24)','rgba(135,194,50,0.32)'],bdColors=['#e05252','#F5A623','#87C232','#87C232','#87C232'];
+    for(const m of stats)counts[Math.min(Math.floor(m.rate*5),4)]++;
+    if(membersChart)membersChart.destroy();
+    membersChart=new Chart(document.getElementById('chartMembers'),{type:'bar',data:{labels,datasets:[{data:counts,backgroundColor:bgColors,borderColor:bdColors,borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} member${item.raw!==1?'s':''}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9}},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+function renderMembersCards(){
+    const search=(document.getElementById('mSearch')?.value||'').toLowerCase();
+    const sorted=[...membersCache].filter(m=>!search||m.name.toLowerCase().includes(search)).sort((a,b)=>b.rate-a.rate);
+    document.getElementById('mTableCount').textContent=`${sorted.length} member${sorted.length!==1?'s':''}`;
+    const container=document.getElementById('membersList');
+    if(!sorted.length){container.innerHTML=`<div class="empty-state">No members match the current filters.</div>`;document.getElementById('shareBtn').disabled=true;return;}
+    container.innerHTML=sorted.map(m=>{
+        const pct=(m.rate*100).toFixed(1),col=m.rate>=0.8?'var(--green)':m.rate>=0.5?'var(--amber)':'var(--red)';
+        return`<div class="member-card" onclick="openMemberDetail(${m.member_id})">
+            <div class="mc-row"><div class="mc-name">${esc(m.name)}</div>${m.role?`<span class="mc-role">${esc(m.role)}</span>`:''}</div>
+            <div class="mc-team">${esc(m.team_name)}</div>
+            <div class="rate-bar-wrap"><div class="rate-bar-bg"><div class="rate-bar-fill" style="width:${pct}%;background:${col};"></div></div><span class="rate-bar-val" style="color:${col};">${pct}%</span></div>
+            <div class="mc-stats">
+                <span class="ac acc">&#10003; ${m.accepted}</span>
+                <span class="ac dec">&#10007; ${m.declined}</span>
+                <span class="ac nr">? ${m.no_response}</span>
+                <span class="mc-events">${m.events} event${m.events!==1?'s':''}</span>
+            </div>
+        </div>`;
+    }).join('');
+    document.getElementById('shareBtn').disabled=false;
+}
+
+// ── Share PDF ─────────────────────────────────────────────────────
+async function sharePDF(){
+    const elMap={'team-overview':'viewClub','club-overview':'viewTeam','members-overview':'viewMembers'};
+    const el=document.getElementById(elMap[activeTab]);
+    const btn=document.getElementById('shareBtn');
+    btn.textContent='…';btn.disabled=true;
+    const name=clubName()||'Dashboard';
+    const titleMap={'club-overview':'Club Overview','team-overview':'Team Overview','members-overview':'Members Overview'};
+    const title=titleMap[activeTab];
+    const{start,end}=getDateRange();const endD=new Date(end);endD.setDate(0);
+    const dateStr=fmtMonth(start)+' – '+fmtMonth(endD);
+    const header=document.createElement('div');
+    header.style.cssText='padding:0 0 12px;border-bottom:2px solid #87C232;margin-bottom:14px;display:flex;align-items:center;gap:10px;';
+    header.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#E7EBEE;">Coach<span style="color:#87C232;">Smart</span></div><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:#E7EBEE;">${esc(title)} — ${esc(name)}</div><div style="font-size:10px;color:#6B7280;margin-top:2px;">${esc(dateStr)}</div></div>`;
+    el.insertBefore(header,el.firstChild);
+    try{
+        const elW=el.offsetWidth||390,elH=el.scrollHeight||el.offsetHeight||800;
+        const PAGE_H=1200,pad=10,pageCount=Math.ceil(elH/PAGE_H);
+        const{jsPDF}=window.jspdf;let pdf=null;
+        for(let i=0;i<pageCount;i++){
+            const sliceY=i*PAGE_H,sliceH=Math.min(PAGE_H,elH-sliceY);
+            let canvas=await html2canvas(el,{backgroundColor:'#111418',scale:1,x:0,y:sliceY,width:elW,height:sliceH,useCORS:true,logging:false});
+            const imgData=canvas.toDataURL('image/jpeg',0.85);canvas=null;
+            if(imgData.length<500)throw new Error('Canvas render failed (page '+(i+1)+')');
+            const pgW=elW+pad*2,pgH=sliceH+pad*2;
+            if(!pdf){pdf=new jsPDF({orientation:'p',unit:'px',format:[pgW,pgH]});}
+            else{pdf.addPage([pgW,pgH]);}
+            pdf.setFillColor(17,20,24);pdf.rect(0,0,pgW,pgH,'F');
+            pdf.addImage(imgData,'JPEG',pad,pad,elW,sliceH);
+        }
+        if(!pdf)throw new Error('Nothing to render');
+        const filename=`coachsmart-${name.replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`;
+        const blob=pdf.output('blob');
+        const file=new File([blob],filename,{type:'application/pdf'});
+        if(navigator.canShare&&navigator.canShare({files:[file]})){
+            await navigator.share({title:`CoachSmart — ${title}`,text:`${name} · ${dateStr}`,files:[file]});
+        } else {
+            const url=URL.createObjectURL(blob);
+            Object.assign(document.createElement('a'),{href:url,download:filename}).click();
+            URL.revokeObjectURL(url);
+        }
+    }catch(e){if(e.name!=='AbortError')alert('PDF failed: '+e.message);}
+    finally{el.removeChild(header);btn.textContent='↑ PDF';btn.disabled=false;}
+}
+
+async function shareDrawerPDF(){
+    const btn=document.getElementById('dShareBtn');btn.textContent='…';btn.disabled=true;
+    const sheet=document.getElementById('dSheet');
+    try{
+        const canvas=await html2canvas(sheet,{backgroundColor:'#1E222B',scale:1,useCORS:true,logging:false});
+        const{jsPDF}=window.jspdf,pad=10,w=canvas.width,h=canvas.height;
+        const pdf=new jsPDF({orientation:'p',unit:'px',format:[w+pad*2,h+pad*2]});
+        pdf.setFillColor(30,34,43);pdf.rect(0,0,w+pad*2,h+pad*2,'F');
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',pad,pad,w,h);
+        const title=document.getElementById('dTitle').textContent;
+        const filename=`coachsmart-${title.replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.pdf`;
+        const blob=pdf.output('blob');
+        const file=new File([blob],filename,{type:'application/pdf'});
+        if(navigator.canShare&&navigator.canShare({files:[file]})){
+            await navigator.share({title:`CoachSmart — ${title}`,files:[file]});
+        } else {
+            const url=URL.createObjectURL(blob);
+            Object.assign(document.createElement('a'),{href:url,download:filename}).click();
+            URL.revokeObjectURL(url);
+        }
+    }catch(e){if(e.name!=='AbortError')alert('Share failed: '+e.message);}
+    finally{btn.textContent='↑ Share PDF';btn.disabled=false;}
+}
+
+// ── Drawer CSV ────────────────────────────────────────────────────
+function drawerFilename(ext){
+    const safe=s=>String(s||'').replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+    if(drawerMode==='roster')return`coachsmart-${safe(rosterData.team_name)}-${safe(rosterData.role)}-roster-${new Date().toISOString().slice(0,10)}.${ext}`;
+    if(drawerMode==='member')return`coachsmart-${safe(memberDetailData?.member?.name||'member')}-attendance-${new Date().toISOString().slice(0,10)}.${ext}`;
+    return`coachsmart-${safe(detailEvt?.title||'event')}-${safe(detailEvt?.team_name)}-${new Date().toISOString().slice(0,10)}.${ext}`;
+}
+function exportDrawerCSV(){
+    const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+    if(drawerMode==='roster'){
+        const rows=rosterData.members.map(m=>[q(m.name),q(rosterData.role)].join(','));
+        const blob=new Blob(['﻿'+['Name,Role',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+        Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')}).click();return;
+    }
+    if(drawerMode==='member'){
+        const all=memberDetailData.events,rLbl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
+        const shown=detailFilt==='all'?all:all.filter(e=>e.response===detailFilt);
+        const rows=shown.map(e=>[q(e.title||''),q(fmtDate(e.date)),q(e.team_name),q(rLbl[e.response]||'')].join(','));
+        const blob=new Blob(['﻿'+['Event,Date,Team,Response',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+        Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')}).click();return;
+    }
+    const shown=detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);
+    const rLbl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
+    const rows=shown.map(m=>[q(m.name),q(m.role||''),q(rLbl[m.response]||'')].join(','));
+    const blob=new Blob(['﻿'+['Name,Role,Response',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+    Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')}).click();
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+    if('serviceWorker' in navigator){
+        navigator.serviceWorker.register('/webviews/sw.js').catch(()=>{});
+    }
+    checkAuth();
+});
+</script>
+</body>
+</html>
