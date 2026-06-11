@@ -1100,8 +1100,37 @@ let _deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredInstallPrompt = e;
-    // Only show after the user is logged in (maybeShowInstallBanner is called from handleSession)
+    // If the user is already logged in and the banner hasn't shown yet, show it now.
+    // beforeinstallprompt can fire late (after our 2.5s timeout has already run).
+    if (document.getElementById('app').style.display !== 'none' &&
+        !localStorage.getItem('cs_install_dismissed') &&
+        !document.getElementById('installBanner').classList.contains('show')) {
+        _setInstallContent('native');
+        showInstallBanner();
+    }
 });
+
+function _setInstallContent(mode) {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS || mode === 'ios') {
+        document.getElementById('installMsg').innerHTML =
+            'Tap the <strong>Share</strong> button &#x2197; in Safari, then choose <strong>Add to Home Screen</strong>.';
+        document.getElementById('installActions').innerHTML =
+            `<button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
+    } else if (mode === 'native') {
+        document.getElementById('installMsg').innerHTML =
+            'Install for the full-screen experience — works offline too.';
+        document.getElementById('installActions').innerHTML =
+            `<button class="install-btn" onclick="doInstall()">Install App</button>
+             <button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
+    } else {
+        // Android Chrome fallback — beforeinstallprompt never fired (first visit / criteria not met)
+        document.getElementById('installMsg').innerHTML =
+            'Tap <strong>&#8942;</strong> in the Chrome menu, then choose <strong>Add to Home Screen</strong>.';
+        document.getElementById('installActions').innerHTML =
+            `<button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
+    }
+}
 
 function maybeShowInstallBanner() {
     // Already running as installed PWA — don't prompt
@@ -1109,22 +1138,22 @@ function maybeShowInstallBanner() {
     // User has already dismissed this prompt
     if (localStorage.getItem('cs_install_dismissed')) return;
 
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const ua = navigator.userAgent;
+    const isIOS    = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+    const isAndroid = /Android/.test(ua);
+    const isChrome  = /Chrome/.test(ua) && !/Chromium|EdgA|OPR/.test(ua);
 
     if (isIOS) {
-        // iOS Safari: show manual instructions
-        document.getElementById('installMsg').innerHTML =
-            'Tap the <strong>Share</strong> button in Safari, then choose <strong>Add to Home Screen</strong> for a full-screen app.';
-        document.getElementById('installActions').innerHTML =
-            `<button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
+        _setInstallContent('ios');
         showInstallBanner();
     } else if (_deferredInstallPrompt) {
-        // Android / Chrome: native install available
-        document.getElementById('installMsg').innerHTML =
-            'Get the full-screen experience — works offline too.';
-        document.getElementById('installActions').innerHTML =
-            `<button class="install-btn" onclick="doInstall()">Install App</button>
-             <button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
+        // Chrome fired the native prompt — show Install button
+        _setInstallContent('native');
+        showInstallBanner();
+    } else if (isAndroid && isChrome) {
+        // Chrome on Android but beforeinstallprompt hasn't fired yet (first visit / not enough engagement)
+        // Fall back to manual menu instructions so the user still sees guidance
+        _setInstallContent('manual');
         showInstallBanner();
     }
 }
