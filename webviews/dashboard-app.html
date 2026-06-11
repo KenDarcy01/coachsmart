@@ -249,6 +249,42 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 13px; }
+
+/* ── Install banner ── */
+.install-banner {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
+    background: var(--card); border-top: 1px solid rgba(135,194,50,0.3);
+    padding: 14px 16px 20px; display: flex; align-items: flex-start; gap: 12px;
+    transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+}
+.install-banner.show { transform: translateY(0); }
+.install-icon {
+    width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(135,194,50,0.12); border: 1px solid rgba(135,194,50,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 1px; color: var(--green);
+}
+.install-body { flex: 1; min-width: 0; }
+.install-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.install-msg { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.install-msg strong { color: var(--text); font-weight: 600; }
+.install-actions { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.install-btn {
+    padding: 7px 16px; border-radius: 6px; font-size: 12px; font-weight: 700;
+    background: var(--green); color: #111; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+}
+.install-dismiss {
+    padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+}
+.install-close {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px;
+    background: var(--card2); border: 1px solid var(--border); color: var(--muted);
+    font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
 </style>
 </head>
 <body>
@@ -417,6 +453,17 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
     <div class="d-list" id="dList"></div>
 </div>
 
+<!-- Install / Add to Home Screen banner -->
+<div class="install-banner" id="installBanner">
+    <div class="install-icon">CS</div>
+    <div class="install-body">
+        <div class="install-title">Add to Home Screen</div>
+        <div class="install-msg" id="installMsg"></div>
+        <div class="install-actions" id="installActions"></div>
+    </div>
+    <button class="install-close" onclick="dismissInstallBanner()">&times;</button>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -489,6 +536,8 @@ async function handleSession(session) {
     initDateSlider();
     switchTab('club-overview');
     loadDashboard();
+    // Delay slightly so the dashboard renders first, then slide the banner up
+    setTimeout(maybeShowInstallBanner, 2500);
 }
 
 async function fetchAdminTeams() {
@@ -537,6 +586,9 @@ async function doLogin() {
         document.getElementById('loginBtn').disabled=false;
         return;
     }
+    // Clear credentials immediately so they don't sit in the DOM
+    document.getElementById('loginEmail').value='';
+    document.getElementById('loginPassword').value='';
     await handleSession(data.session);
 }
 
@@ -1040,6 +1092,63 @@ function exportDrawerCSV(){
     const rows=shown.map(m=>[q(m.name),q(m.role||''),q(rLbl[m.response]||'')].join(','));
     const blob=new Blob(['﻿'+['Name,Role,Response',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
     Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')}).click();
+}
+
+// ── Install / Add to Home Screen prompt ──────────────────────────
+let _deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredInstallPrompt = e;
+    // Only show after the user is logged in (maybeShowInstallBanner is called from handleSession)
+});
+
+function maybeShowInstallBanner() {
+    // Already running as installed PWA — don't prompt
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return;
+    // User has already dismissed this prompt
+    if (localStorage.getItem('cs_install_dismissed')) return;
+
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isIOS) {
+        // iOS Safari: show manual instructions
+        document.getElementById('installMsg').innerHTML =
+            'Tap the <strong>Share</strong> button in Safari, then choose <strong>Add to Home Screen</strong> for a full-screen app.';
+        document.getElementById('installActions').innerHTML =
+            `<button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
+        showInstallBanner();
+    } else if (_deferredInstallPrompt) {
+        // Android / Chrome: native install available
+        document.getElementById('installMsg').innerHTML =
+            'Get the full-screen experience — works offline too.';
+        document.getElementById('installActions').innerHTML =
+            `<button class="install-btn" onclick="doInstall()">Install App</button>
+             <button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
+        showInstallBanner();
+    }
+}
+
+function showInstallBanner() {
+    const banner = document.getElementById('installBanner');
+    banner.style.display = '';
+    // Trigger the slide-up animation on next frame
+    requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('show')));
+}
+
+async function doInstall() {
+    if (!_deferredInstallPrompt) return;
+    _deferredInstallPrompt.prompt();
+    const { outcome } = await _deferredInstallPrompt.userChoice;
+    _deferredInstallPrompt = null;
+    if (outcome === 'accepted') dismissInstallBanner();
+}
+
+function dismissInstallBanner() {
+    localStorage.setItem('cs_install_dismissed', '1');
+    const banner = document.getElementById('installBanner');
+    banner.classList.remove('show');
+    setTimeout(() => { banner.style.display = 'none'; }, 350);
 }
 
 // ── Init ──────────────────────────────────────────────────────────
