@@ -279,9 +279,10 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
     </div>
 
     <div class="tab-bar">
-        <div class="cs-tab active" data-tab="club-overview"   onclick="switchTab('club-overview')">Club Overview</div>
-        <div class="cs-tab"        data-tab="team-overview"   onclick="switchTab('team-overview')">Team Overview</div>
+        <div class="cs-tab active" data-tab="club-overview"    onclick="switchTab('club-overview')">Club Overview</div>
+        <div class="cs-tab"        data-tab="team-overview"    onclick="switchTab('team-overview')">Team Overview</div>
         <div class="cs-tab"        data-tab="members-overview" onclick="switchTab('members-overview')">Members Overview</div>
+        <div class="cs-tab"        data-tab="squads-overview"  onclick="switchTab('squads-overview')">Squads</div>
     </div>
 </div>
 
@@ -394,6 +395,35 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
         </div>
     </div>
 
+    <!-- Squads Overview tab -->
+    <div id="viewSquads" style="display:none;">
+        <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-label">Squads Active</div><div class="kpi-value green" id="sqkpiSquads">—</div><div class="kpi-sub" id="sqkpiSquadsSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Players Used</div><div class="kpi-value green" id="sqkpiPlayers">—</div><div class="kpi-sub" id="sqkpiPlayersSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Cross-Squad</div><div class="kpi-value" id="sqkpiCross">—</div><div class="kpi-sub">played for 2+ squads</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total Selections</div><div class="kpi-value amber" id="sqkpiTotal">—</div><div class="kpi-sub" id="sqkpiTotalSub"></div></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-head"><h3>Players Used per Squad</h3></div>
+            <div class="line-wrap"><canvas id="chartSquads"></canvas></div>
+        </div>
+        <div class="table-card">
+            <div class="table-head">
+                <h3>Player Selections by Squad</h3>
+                <span class="table-count" id="sqTableCount"></span>
+                <div style="display:flex;gap:6px;margin-left:auto;">
+                    <button class="export-btn" onclick="exportSquadsCSV()">↓ CSV</button>
+                </div>
+            </div>
+            <div class="tscroll">
+                <table>
+                    <thead id="squadsHead"></thead>
+                    <tbody id="squadsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="empty-state" id="emptyState">Select a club above to load the dashboard.</div>
 </div>
 
@@ -424,7 +454,9 @@ const paramTeam  = QS.get('team_id') ? parseInt(QS.get('team_id')) : null;
 const paramTab   = QS.get('tab') || 'club-overview';
 
 let dashData    = null;
+let squadData   = null;
 let mainChart   = null;
+let squadChart  = null;
 let teamCharts  = {};
 let detailEvt   = null, detailFilt = 'all';
 let drawerMode  = 'event'; // 'event' | 'roster'
@@ -465,7 +497,9 @@ function switchTab(tab) {
     document.getElementById('viewClub').style.display    = tab === 'team-overview'    ? '' : 'none';
     document.getElementById('viewTeam').style.display    = tab === 'club-overview'    ? '' : 'none';
     document.getElementById('viewMembers').style.display = tab === 'members-overview' ? '' : 'none';
-    document.getElementById('attRow').style.display = (tab === 'members-overview') ? 'none' : (_attSliderHasData ? '' : 'none');
+    document.getElementById('viewSquads').style.display  = tab === 'squads-overview'  ? '' : 'none';
+    const hideAtt = tab === 'members-overview' || tab === 'squads-overview';
+    document.getElementById('attRow').style.display = hideAtt ? 'none' : (_attSliderHasData ? '' : 'none');
     document.getElementById('pdfBtn').disabled = !dashData;
     if (dashData) applyFiltersNoReload();
 }
@@ -547,17 +581,26 @@ async function loadDashboard() {
     document.getElementById('loading').style.display   = 'flex';
     document.getElementById('viewClub').style.display  = 'none';
     document.getElementById('viewTeam').style.display  = 'none';
+    document.getElementById('viewSquads').style.display = 'none';
     document.getElementById('emptyState').style.display = 'none';
     const {start,end} = getDateRange();
     try {
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`, {
-            method:'POST', headers:H,
-            body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
-        });
+        const [r, rs] = await Promise.all([
+            fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`, {
+                method:'POST', headers:H,
+                body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
+            }),
+            fetch(`${SUPABASE_URL}/rest/v1/rpc/get_squad_dashboard`, {
+                method:'POST', headers:H,
+                body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
+            })
+        ]);
         if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||`HTTP ${r.status}`); }
         const data = await r.json();
         if (data.error) throw new Error(data.error);
         dashData = data;
+        squadData = rs.ok ? await rs.json().catch(()=>null) : null;
+        if (squadData?.error) squadData = null;
         if (paramClub && data.club_name) {
             document.getElementById('ctxLabel').textContent = data.club_name;
             document.getElementById('ctxLabel').style.display = '';
@@ -740,6 +783,9 @@ function applyFilters() {
     } else if (activeTab==='members-overview') {
         document.getElementById('attRow').style.display='none';
         renderMembersOverview(getBaseEvents());
+    } else if (activeTab==='squads-overview') {
+        document.getElementById('attRow').style.display='none';
+        renderSquadsOverview();
     } else {
         const base=getFilteredEventsPerTeam();
         initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));
@@ -756,6 +802,9 @@ function applyFiltersNoReload() {
     } else if (activeTab==='members-overview') {
         document.getElementById('attRow').style.display='none';
         renderMembersOverview(getBaseEvents());
+    } else if (activeTab==='squads-overview') {
+        document.getElementById('attRow').style.display='none';
+        renderSquadsOverview();
     } else {
         const base=getFilteredEventsPerTeam();
         if (!_attSliderHasData) initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));
@@ -1211,9 +1260,137 @@ async function exportMembersExcel() {
     a.click(); URL.revokeObjectURL(a.href);
 }
 
+// ── Squads Overview ───────────────────────────────────────────────
+function getFilteredSquadTeams() {
+    if (!squadData) return [];
+    const teams = squadData.teams || [];
+    return fTeams === null ? teams : teams.filter(t => fTeams.has(t.team_id));
+}
+
+function renderSquadsOverview() {
+    if (!squadData) {
+        document.getElementById('viewSquads').innerHTML = '<div class="empty-state">No squad data available for this period.</div>';
+        return;
+    }
+    const teams = getFilteredSquadTeams();
+
+    // Build flat squad list and per-member cross-squad map
+    const squadMap = new Map(); // squad_id -> {squad_name, squad_list_seq, players_used, total_sels}
+    const memberSquads = new Map(); // member_id -> {name, squads: Map<squad_id, count>}
+
+    for (const team of teams) {
+        for (const sq of team.squads || []) {
+            if (!squadMap.has(sq.squad_id)) {
+                squadMap.set(sq.squad_id, {squad_id:sq.squad_id, squad_name:sq.squad_name, squad_list_seq:sq.squad_list_seq??999, players_used:0, total_sels:0});
+            }
+            const sqEntry = squadMap.get(sq.squad_id);
+            for (const m of sq.members || []) {
+                if (!m.match_selections) continue;
+                sqEntry.players_used++;
+                sqEntry.total_sels += m.match_selections;
+                if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id, {member_id:m.member_id, name:m.name, squads:new Map()});
+                const ms = memberSquads.get(m.member_id);
+                ms.squads.set(sq.squad_id, (ms.squads.get(sq.squad_id)||0) + m.match_selections);
+            }
+        }
+    }
+
+    const squads = [...squadMap.values()].sort((a,b)=>a.squad_list_seq-b.squad_list_seq||a.squad_name.localeCompare(b.squad_name));
+    const members = [...memberSquads.values()];
+    const squadsActive = squads.filter(s=>s.players_used>0).length;
+    const playersUsed = members.length;
+    const crossSquad = members.filter(m=>m.squads.size>=2).length;
+    const totalSels = squads.reduce((s,sq)=>s+sq.total_sels,0);
+
+    // KPIs
+    document.getElementById('sqkpiSquads').textContent = squadsActive;
+    document.getElementById('sqkpiSquadsSub').textContent = `of ${squads.length} squad${squads.length!==1?'s':''}`;
+    document.getElementById('sqkpiPlayers').textContent = playersUsed;
+    document.getElementById('sqkpiPlayersSub').textContent = `across all squads`;
+    document.getElementById('sqkpiCross').textContent = crossSquad;
+    document.getElementById('sqkpiTotal').textContent = totalSels;
+    document.getElementById('sqkpiTotalSub').textContent = totalSels>0?`avg ${(totalSels/Math.max(playersUsed,1)).toFixed(1)} per player`:'';
+
+    // Chart
+    if (squadChart) { squadChart.destroy(); squadChart=null; }
+    const activeSquads = squads.filter(s=>s.players_used>0);
+    squadChart = new Chart(document.getElementById('chartSquads'), {
+        type: 'bar',
+        data: {
+            labels: activeSquads.map(s=>s.squad_name),
+            datasets: [{
+                label: 'Players Used',
+                data: activeSquads.map(s=>s.players_used),
+                backgroundColor: 'rgba(135,194,50,0.25)',
+                borderColor: '#87C232',
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} player${item.raw!==1?'s':''} used`}}},
+            scales:{
+                x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:11},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}
+            }
+        }
+    });
+
+    // Table header
+    document.getElementById('squadsHead').innerHTML = `<tr>
+        <th style="text-align:left;">Player</th>
+        ${squads.map(s=>`<th>${esc(s.squad_name)}</th>`).join('')}
+        <th>Total</th>
+        <th>Squads</th>
+    </tr>`;
+
+    // Table body — sorted by total desc
+    const rows = members.map(m=>{
+        const total=[...m.squads.values()].reduce((s,v)=>s+v,0);
+        return {...m, total, squadCount:m.squads.size};
+    }).sort((a,b)=>b.total-a.total);
+
+    document.getElementById('sqTableCount').textContent = `${rows.length} player${rows.length!==1?'s':''}`;
+    document.getElementById('squadsBody').innerHTML = rows.map(m=>`<tr>
+        <td style="font-weight:500;">${esc(m.name)}</td>
+        ${squads.map(s=>{const v=m.squads.get(s.squad_id)||0;return`<td style="text-align:right;">${v||'—'}</td>`;}).join('')}
+        <td style="text-align:right;font-weight:600;">${m.total}</td>
+        <td style="text-align:right;"><span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;${m.squadCount>=2?'background:rgba(135,194,50,0.15);color:var(--green);border:1px solid rgba(135,194,50,0.35);':'color:var(--muted);'}">${m.squadCount}</span></td>
+    </tr>`).join('');
+}
+
+function exportSquadsCSV() {
+    const teams = getFilteredSquadTeams();
+    if (!teams.length) return;
+    const squadMap = new Map();
+    const memberSquads = new Map();
+    for (const team of teams) {
+        for (const sq of team.squads||[]) {
+            if (!squadMap.has(sq.squad_id)) squadMap.set(sq.squad_id,{squad_id:sq.squad_id,squad_name:sq.squad_name,squad_list_seq:sq.squad_list_seq??999});
+            for (const m of sq.members||[]) {
+                if (!m.match_selections) continue;
+                if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id,{name:m.name,squads:new Map()});
+                const ms=memberSquads.get(m.member_id);
+                ms.squads.set(sq.squad_id,(ms.squads.get(sq.squad_id)||0)+m.match_selections);
+            }
+        }
+    }
+    const squads=[...squadMap.values()].sort((a,b)=>a.squad_list_seq-b.squad_list_seq||a.squad_name.localeCompare(b.squad_name));
+    const members=[...memberSquads.values()].map(m=>({...m,total:[...m.squads.values()].reduce((s,v)=>s+v,0),squadCount:m.squads.size})).sort((a,b)=>b.total-a.total);
+    const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+    const header=[q('Player'),...squads.map(s=>q(s.squad_name)),q('Total'),q('Squads')].join(',');
+    const rows=members.map(m=>[q(m.name),...squads.map(s=>m.squads.get(s.squad_id)||0),m.total,m.squadCount].join(','));
+    const blob=new Blob(['﻿'+[header,...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`coachsmart-squads-${new Date().toISOString().slice(0,10)}.csv`});
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
 // ── PDF export ────────────────────────────────────────────────────
 function buildPDFHeader() {
-    const name=clubName()||'Dashboard', title=activeTab==='club-overview'?'Club Overview':activeTab==='team-overview'?'Team Overview':'Members Overview';
+    const titleMap={'club-overview':'Club Overview','team-overview':'Team Overview','members-overview':'Members Overview','squads-overview':'Squads Overview'};
+    const name=clubName()||'Dashboard', title=titleMap[activeTab]||activeTab;
     const {start,end}=getDateRange(); const endD=new Date(end); endD.setDate(0);
     const dateStr=fmtMonth(start)+' – '+fmtMonth(endD);
     const parts=[];
@@ -1234,7 +1411,8 @@ function buildPDFHeader() {
 }
 async function exportPDF() {
     const btn=document.getElementById('pdfBtn'); btn.textContent='Generating…'; btn.disabled=true;
-    const el=activeTab==='club-overview'?document.getElementById('viewTeam'):activeTab==='members-overview'?document.getElementById('viewMembers'):document.getElementById('viewClub');
+    const elMap={'club-overview':'viewTeam','team-overview':'viewClub','members-overview':'viewMembers','squads-overview':'viewSquads'};
+    const el=document.getElementById(elMap[activeTab]||'viewClub');
     const header=buildPDFHeader(); el.insertBefore(header,el.firstChild);
     try {
         const scale=1.5, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
