@@ -598,7 +598,7 @@ function switchTab(tab) {
     document.getElementById('viewClub').style.display    =tab==='team-overview'    ?'':'none';
     document.getElementById('viewTeam').style.display    =tab==='club-overview'    ?'':'none';
     document.getElementById('viewMembers').style.display =tab==='members-overview' ?'':'none';
-    document.getElementById('attRow').style.display=tab==='members-overview'?'none':(_attSliderHasData?'':'none');
+    document.getElementById('attRow').style.display=_attSliderHasData?'':'none';
     if(dashData)applyFiltersNoReload();
 }
 
@@ -746,12 +746,12 @@ function getFilteredEventsPerTeam(){
 }
 function applyFilters(){
     if(activeTab==='team-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
-    else if(activeTab==='members-overview'){document.getElementById('attRow').style.display='none';renderMembersOverview(getBaseEvents());}
+    else if(activeTab==='members-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
     else{const base=getFilteredEventsPerTeam();initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
 }
 function applyFiltersNoReload(){
     if(activeTab==='team-overview'){const base=getBaseEvents();if(!_attSliderHasData)initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
-    else if(activeTab==='members-overview'){document.getElementById('attRow').style.display='none';renderMembersOverview(getBaseEvents());}
+    else if(activeTab==='members-overview'){const base=getBaseEvents();if(!_attSliderHasData)initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
     else{const base=getFilteredEventsPerTeam();if(!_attSliderHasData)initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
 }
 
