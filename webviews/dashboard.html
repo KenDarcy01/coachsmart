@@ -1030,14 +1030,18 @@ function renderDList(){
             ? squadPlayerData.appearances
             : squadPlayerData.appearances.filter(a => Number(a.squad_id) === squadPlayerFilter);
         if (!ap.length) { document.getElementById('dList').innerHTML=`<div class="empty-state">No match squad appearances in this period.</div>`; return; }
-        document.getElementById('dList').innerHTML = ap.map(a=>`
-            <div class="d-member">
+        document.getElementById('dList').innerHTML = ap.map(a=>{
+            const opp = a.events?.opposition;
+            const squad = a.squads?.squad_name || '—';
+            return `<div class="d-member">
                 <div style="flex:1;min-width:0;">
                     <div class="d-nm">${esc(a.events?.event_title||'Match')}</div>
-                    <div class="d-rl">${fmtDate(a.events?.event_date_time)} · ${esc(a.squads?.squad_name||'—')}</div>
+                    ${opp ? `<div class="d-rl">v ${esc(opp)}</div>` : ''}
+                    <div class="d-rl">${fmtDate(a.events?.event_date_time)} · ${esc(squad)}</div>
                 </div>
-                <span class="tag">${esc(a.squads?.squad_name||'—')}</span>
-            </div>`).join('');
+                <span class="tag">${esc(squad)}</span>
+            </div>`;
+        }).join('');
         return;
     }
     if (drawerMode==='roster') {
@@ -1056,14 +1060,17 @@ function renderDList(){
         const shown=detailFilt==='all'?all:all.filter(e=>e.response===detailFilt);
         const bc={accepted:'acc',declined:'dec',no_response:'nr'}, bl={accepted:'Accepted',declined:'Declined',no_response:'No Response'};
         if(!shown.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No events.</div>`;return;}
-        document.getElementById('dList').innerHTML=shown.map(e=>`
-            <div class="d-member">
+        document.getElementById('dList').innerHTML=shown.map(e=>{
+            const opp = e.opposition;
+            return `<div class="d-member">
                 <div style="flex:1;min-width:0;">
                     <div class="d-nm">${esc(e.title||'—')}</div>
+                    ${opp ? `<div class="d-rl">v ${esc(opp)}</div>` : ''}
                     <div class="d-rl">${fmtDate(e.date)} · ${esc(e.team_name)}</div>
                 </div>
                 <span class="d-bd ${bc[e.response]||'nr'}">${bl[e.response]||'No Response'}</span>
-            </div>`).join('');
+            </div>`;
+        }).join('');
         return;
     }
     const members=detailFilt==='all'?detailEvt.members:detailEvt.members.filter(m=>m.response===detailFilt);
@@ -1369,10 +1376,8 @@ function renderSquadsOverview() {
     const squadMap = new Map();      // squad_id -> {squad_name, squad_list_seq, players_used, total_sels}
     const squadSeen = new Map();     // squad_id -> Set<member_id> — dedup guard
     const memberSquads = new Map();  // member_id -> {name, squads: Map<squad_id, count>}
-    const teamPlayerSets = new Map(); // team_id -> Set<member_id> — distinct per-team count
 
     for (const team of teams) {
-        teamPlayerSets.set(team.team_id, new Set());
         for (const sq of team.squads || []) {
             if (!squadMap.has(sq.squad_id)) {
                 squadMap.set(sq.squad_id, {squad_id:sq.squad_id, squad_name:sq.squad_name, squad_list_seq:sq.squad_list_seq??999, players_used:0, total_sels:0});
@@ -1380,17 +1385,15 @@ function renderSquadsOverview() {
             }
             const sqEntry = squadMap.get(sq.squad_id);
             const seen   = squadSeen.get(sq.squad_id);
-            const teamSet = teamPlayerSets.get(team.team_id);
             for (const m of sq.members || []) {
-                if (!m.accepted) continue;
+                if (!m.match_selections) continue;
                 if (fRole.size > 0 && !fRole.has(m.role)) continue;
-                teamSet.add(m.member_id);
                 if (seen.has(m.member_id)) continue; // duplicate code-entry for same squad — skip
                 seen.add(m.member_id);
                 sqEntry.players_used++;
-                sqEntry.total_sels += m.accepted;
+                sqEntry.total_sels += m.match_selections;
                 if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id, {member_id:m.member_id, name:m.name, squads:new Map()});
-                memberSquads.get(m.member_id).squads.set(sq.squad_id, m.accepted);
+                memberSquads.get(m.member_id).squads.set(sq.squad_id, m.match_selections);
             }
         }
     }
@@ -1398,8 +1401,7 @@ function renderSquadsOverview() {
     const squads = [...squadMap.values()].sort((a,b)=>a.squad_list_seq-b.squad_list_seq||a.squad_name.localeCompare(b.squad_name));
     const members = [...memberSquads.values()];
     const squadsActive = squads.filter(s=>s.players_used>0).length;
-    // Players Used: distinct per team (a player on 2 teams counts once per team)
-    const playersUsed = [...teamPlayerSets.values()].reduce((s,set)=>s+set.size, 0);
+    const playersUsed = members.length; // distinct across all squads/teams
     const crossSquad = members.filter(m=>m.squads.size>=2).length;
     const totalSels = squads.reduce((s,sq)=>s+sq.total_sels,0);
 
@@ -1407,7 +1409,7 @@ function renderSquadsOverview() {
     document.getElementById('sqkpiSquads').textContent = squadsActive;
     document.getElementById('sqkpiSquadsSub').textContent = `of ${squads.length} squad${squads.length!==1?'s':''}`;
     document.getElementById('sqkpiPlayers').textContent = playersUsed;
-    document.getElementById('sqkpiPlayersSub').textContent = `across all teams`;
+    document.getElementById('sqkpiPlayersSub').textContent = `distinct across all squads`;
     document.getElementById('sqkpiCross').textContent = crossSquad;
     document.getElementById('sqkpiTotal').textContent = totalSels;
     document.getElementById('sqkpiTotalSub').textContent = totalSels>0?`avg ${(totalSels/Math.max(playersUsed,1)).toFixed(1)} per player`:'';
@@ -1504,7 +1506,7 @@ async function openPlayerSquads(cacheIdx) {
     document.getElementById('dPanel').classList.add('open');
     try {
         const teamFilter = cached.teamIds.length ? `&team_id=in.(${cached.teamIds.join(',')})` : '';
-        const url = `${SUPABASE_URL}/rest/v1/match_squad_details?select=match_squad_id,event_id,squad_id,events!match_squad_event_id_fkey(event_title,event_date_time,event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)),squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}${teamFilter}&order=match_squad_id.desc`;
+        const url = `${SUPABASE_URL}/rest/v1/match_squad_details?select=match_squad_id,event_id,squad_id,events!match_squad_event_id_fkey(event_title,event_date_time,opposition,event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)),squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}${teamFilter}&order=match_squad_id.desc`;
         const r = await fetch(url, {headers:H});
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const rows = await r.json();
@@ -1546,11 +1548,11 @@ function exportSquadsCSV() {
             if (!squadMap.has(sq.squad_id)) { squadMap.set(sq.squad_id,{squad_id:sq.squad_id,squad_name:sq.squad_name,squad_list_seq:sq.squad_list_seq??999}); squadSeen.set(sq.squad_id,new Set()); }
             const seen=squadSeen.get(sq.squad_id);
             for (const m of sq.members||[]) {
-                if (!m.accepted||seen.has(m.member_id)) continue;
+                if (!m.match_selections||seen.has(m.member_id)) continue;
                 if (fRole.size > 0 && !fRole.has(m.role)) continue;
                 seen.add(m.member_id);
                 if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id,{name:m.name,squads:new Map()});
-                memberSquads.get(m.member_id).squads.set(sq.squad_id,m.accepted);
+                memberSquads.get(m.member_id).squads.set(sq.squad_id,m.match_selections);
             }
         }
     }
@@ -1664,8 +1666,8 @@ function exportDrawerCSV(){
         const ap = squadPlayerFilter === null
             ? squadPlayerData.appearances
             : squadPlayerData.appearances.filter(a => Number(a.squad_id) === squadPlayerFilter);
-        const rows=ap.map(a=>[q(a.events?.event_title||'Match'),q(fmtDate(a.events?.event_date_time)),q(a.squads?.squad_name||'')].join(','));
-        const blob=new Blob(['﻿'+['Event,Date,Squad',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+        const rows=ap.map(a=>[q(a.events?.event_title||'Match'),q(a.events?.opposition||''),q(fmtDate(a.events?.event_date_time)),q(a.squads?.squad_name||'')].join(','));
+        const blob=new Blob(['﻿'+['Event,Opposition,Date,Squad',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
         const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`coachsmart-${(squadPlayerData.name||'player').replace(/\s+/g,'-').toLowerCase()}-squads-${new Date().toISOString().slice(0,10)}.csv`});
         a.click(); URL.revokeObjectURL(a.href); return;
     }
