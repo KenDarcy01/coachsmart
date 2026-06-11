@@ -299,12 +299,29 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
     background: transparent; border: 1px solid var(--border); color: var(--muted);
     font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer;
 }
+/* ── Splash screen ── */
+#splashScreen {
+    position: fixed; inset: 0; z-index: 300;
+    background: var(--dark);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 22px; transition: opacity 0.25s ease;
+}
+#splashScreen.hiding { opacity: 0; pointer-events: none; }
+.splash-logo { font-family: 'Bebas Neue', sans-serif; font-size: 46px; letter-spacing: 5px; }
+.splash-logo span { color: var(--green); }
+.splash-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
 </style>
 </head>
 <body>
 
-<!-- Login screen -->
-<div id="loginScreen">
+<!-- Splash screen — visible by default, hidden once auth state is known -->
+<div id="splashScreen">
+  <div class="splash-logo">Coach<span>Smart</span></div>
+  <div class="splash-spinner"></div>
+</div>
+
+<!-- Login screen — hidden until auth check confirms no session -->
+<div id="loginScreen" style="display:none;">
   <div class="login-card">
     <div class="login-logo">Coach<span>Smart</span></div>
     <div class="login-sub">Dashboard &middot; Admin Access</div>
@@ -552,6 +569,7 @@ async function handleSession(session) {
     userClubs=[...new Map(teams.map(t=>[t.club_id,{club_id:t.club_id,club_name:t.club_name}])).values()];
 
     setupClubContext();
+    hideSplash();
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='';
     initDateSlider();
@@ -615,8 +633,16 @@ async function doLogout() {
     await sb.auth.signOut();
 }
 
+function hideSplash() {
+    const s=document.getElementById('splashScreen');
+    if(!s||s.style.display==='none')return;
+    s.classList.add('hiding');
+    setTimeout(()=>{s.style.display='none';},260);
+}
+
 function showLoginScreen() {
     dashData=null;currentClubId=null;adminTeams=[];adminTeamIds=new Set();userClubs=[];
+    hideSplash();
     document.getElementById('app').style.display='none';
     document.getElementById('loginForm').style.display='';
     document.getElementById('deniedBox').style.display='none';
@@ -627,6 +653,7 @@ function showLoginScreen() {
 }
 
 function showAccessDenied() {
+    hideSplash();
     document.getElementById('loginForm').style.display='none';
     document.getElementById('deniedBox').style.display='';
     document.getElementById('loginScreen').style.display='flex';
