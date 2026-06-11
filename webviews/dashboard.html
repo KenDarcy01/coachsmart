@@ -208,6 +208,12 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 .tc-footer { padding: 10px 18px; font-size: 12px; color: var(--muted); text-align: right; border-top: 1px solid var(--border); transition: color 0.15s; }
 .team-card:hover .tc-footer { color: var(--green); }
 
+/* ── Squads table interactive rows ── */
+#viewSquads tbody tr { cursor: pointer; transition: background 0.1s; }
+#viewSquads tbody tr:hover { background: rgba(255,255,255,0.04); }
+#viewSquads tbody tr:active { background: rgba(135,194,50,0.06); }
+.sq-hint { font-size: 11px; color: var(--muted); margin-bottom: 12px; padding: 8px 12px; background: var(--card2); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; gap: 6px; }
+
 /* ── Misc ── */
 .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; gap: 14px; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -459,8 +465,10 @@ let mainChart   = null;
 let squadChart  = null;
 let teamCharts  = {};
 let detailEvt   = null, detailFilt = 'all';
-let drawerMode  = 'event'; // 'event' | 'roster'
-let rosterData  = null;    // { team_name, role, members: [{member_id, name}] }
+let drawerMode  = 'event'; // 'event' | 'roster' | 'member' | 'squadPlayer'
+let rosterData  = null;
+let squadPlayerData = null;   // { name, appearances: [{event_title, event_date_time, squad_name}] }
+let _squadPlayerCache = [];   // [{member_id, name, teamIds}]
 let sortCol     = 'date', sortAsc = false;
 let eventsCache = [];
 let fTeams      = null; // null=all teams; new Set()=none; new Set([...ids])=specific
@@ -935,6 +943,11 @@ function closeDetail() {
 }
 function setDF(f){detailFilt=f;renderDTabs();renderDList();}
 function renderDTabs(){
+    if (drawerMode==='squadPlayer') {
+        const n = squadPlayerData?.appearances?.length ?? 0;
+        document.getElementById('dTabs').innerHTML = `<button class="d-tab active">Matches (${n})</button>`;
+        return;
+    }
     if (drawerMode==='roster') {
         document.getElementById('dTabs').innerHTML=
             `<button class="d-tab active">All Members (${rosterData.members.length})</button>`;
@@ -957,6 +970,20 @@ function renderDTabs(){
     ].map(t=>`<button class="d-tab ${detailFilt===t.k?'active':''}" onclick="setDF('${t.k}')">${t.l}</button>`).join('');
 }
 function renderDList(){
+    if (drawerMode==='squadPlayer') {
+        if (!squadPlayerData) return;
+        const ap = squadPlayerData.appearances;
+        if (!ap.length) { document.getElementById('dList').innerHTML=`<div class="empty-state">No match squad appearances in this period.</div>`; return; }
+        document.getElementById('dList').innerHTML = ap.map(a=>`
+            <div class="d-member">
+                <div style="flex:1;min-width:0;">
+                    <div class="d-nm">${esc(a.events.event_title||'Match')}</div>
+                    <div class="d-rl">${fmtDate(a.events.event_date_time)} · ${esc(a.squads?.squad_name||'—')}</div>
+                </div>
+                <span class="tag">${esc(a.squads?.squad_name||'—')}</span>
+            </div>`).join('');
+        return;
+    }
     if (drawerMode==='roster') {
         const members=rosterData.members;
         if(!members.length){document.getElementById('dList').innerHTML=`<div class="empty-state">No members.</div>`;return;}
@@ -1269,9 +1296,15 @@ function getFilteredSquadTeams() {
 
 function renderSquadsOverview() {
     if (!squadData) {
-        document.getElementById('viewSquads').innerHTML = '<div class="empty-state">No squad data available for this period.</div>';
+        document.getElementById('squadsBody').innerHTML = '';
+        document.getElementById('squadsHead').innerHTML = '';
+        document.getElementById('sqTableCount').textContent = '';
+        ['sqkpiSquads','sqkpiPlayers','sqkpiCross','sqkpiTotal'].forEach(id=>document.getElementById(id).textContent='—');
+        ['sqkpiSquadsSub','sqkpiPlayersSub','sqkpiTotalSub'].forEach(id=>document.getElementById(id).textContent='');
+        if (squadChart){squadChart.destroy();squadChart=null;}
         return;
     }
+    _squadPlayerCache = [];
     const teams = getFilteredSquadTeams();
 
     // Build flat squad list and per-member cross-squad map
@@ -1339,11 +1372,13 @@ function renderSquadsOverview() {
     });
 
     // Table header
+    const teamIds = teams.map(t=>t.team_id);
     document.getElementById('squadsHead').innerHTML = `<tr>
         <th style="text-align:left;">Player</th>
         ${squads.map(s=>`<th>${esc(s.squad_name)}</th>`).join('')}
         <th>Total</th>
         <th>Squads</th>
+        <th style="width:28px;"></th>
     </tr>`;
 
     // Table body — sorted by total desc
@@ -1353,12 +1388,52 @@ function renderSquadsOverview() {
     }).sort((a,b)=>b.total-a.total);
 
     document.getElementById('sqTableCount').textContent = `${rows.length} player${rows.length!==1?'s':''}`;
-    document.getElementById('squadsBody').innerHTML = rows.map(m=>`<tr>
-        <td style="font-weight:500;">${esc(m.name)}</td>
-        ${squads.map(s=>{const v=m.squads.get(s.squad_id)||0;return`<td style="text-align:right;">${v||'—'}</td>`;}).join('')}
-        <td style="text-align:right;font-weight:600;">${m.total}</td>
-        <td style="text-align:right;"><span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;${m.squadCount>=2?'background:rgba(135,194,50,0.15);color:var(--green);border:1px solid rgba(135,194,50,0.35);':'color:var(--muted);'}">${m.squadCount}</span></td>
-    </tr>`).join('');
+    document.getElementById('squadsBody').innerHTML = rows.map(m=>{
+        const pi = _squadPlayerCache.length;
+        _squadPlayerCache.push({member_id:m.member_id, name:m.name, teamIds});
+        return `<tr onclick="openPlayerSquads(${pi})">
+            <td style="font-weight:500;">${esc(m.name)}</td>
+            ${squads.map(s=>{const v=m.squads.get(s.squad_id)||0;return`<td style="text-align:right;">${v||'<span style="color:var(--muted)">—</span>'}</td>`;}).join('')}
+            <td style="text-align:right;font-weight:600;">${m.total}</td>
+            <td style="text-align:right;"><span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;${m.squadCount>=2?'background:rgba(135,194,50,0.15);color:var(--green);border:1px solid rgba(135,194,50,0.35);':'color:var(--muted);'}">${m.squadCount}</span></td>
+            <td style="text-align:right;color:var(--muted);font-size:12px;">›</td>
+        </tr>`;
+    }).join('');
+}
+
+async function openPlayerSquads(cacheIdx) {
+    const cached = _squadPlayerCache[cacheIdx];
+    if (!cached) return;
+    drawerMode = 'squadPlayer';
+    squadPlayerData = null;
+    document.getElementById('dTitle').textContent = cached.name;
+    document.getElementById('dMeta').textContent = 'Loading squad history…';
+    document.getElementById('dTabs').innerHTML = '';
+    document.getElementById('dList').innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
+    document.getElementById('dOverlay').classList.add('open');
+    document.getElementById('dPanel').classList.add('open');
+    try {
+        const teamFilter = cached.teamIds.length ? `&team_id=in.(${cached.teamIds.join(',')})` : '';
+        const url = `${SUPABASE_URL}/rest/v1/match_squad_details?select=match_squad_id,event_id,squad_id,events!match_squad_event_id_fkey(event_title,event_date_time),squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}${teamFilter}&order=match_squad_id.desc`;
+        const r = await fetch(url, {headers:H});
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const rows = await r.json();
+        // Deduplicate: keep most recent match_squad_id per event
+        const byEvent = new Map();
+        for (const row of rows) {
+            const ex = byEvent.get(row.event_id);
+            if (!ex || row.match_squad_id > ex.match_squad_id) byEvent.set(row.event_id, row);
+        }
+        const appearances = [...byEvent.values()]
+            .sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
+        squadPlayerData = {name:cached.name, appearances};
+        document.getElementById('dMeta').textContent = `${appearances.length} match appearance${appearances.length!==1?'s':''}`;
+        document.getElementById('dTabs').innerHTML = `<button class="d-tab active">Matches (${appearances.length})</button>`;
+        renderDList();
+    } catch(e) {
+        document.getElementById('dMeta').textContent = 'Failed to load';
+        document.getElementById('dList').innerHTML = `<div class="empty-state">Error: ${esc(e.message)}</div>`;
+    }
 }
 
 function exportSquadsCSV() {
@@ -1483,6 +1558,12 @@ function drawerMembers(){
 }
 function exportDrawerCSV(){
     const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+    if (drawerMode==='squadPlayer' && squadPlayerData) {
+        const rows=squadPlayerData.appearances.map(a=>[q(a.events.event_title||'Match'),q(fmtDate(a.events.event_date_time)),q(a.squads?.squad_name||'')].join(','));
+        const blob=new Blob(['﻿'+['Event,Date,Squad',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+        const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`coachsmart-${(squadPlayerData.name||'player').replace(/\s+/g,'-').toLowerCase()}-squads-${new Date().toISOString().slice(0,10)}.csv`});
+        a.click(); URL.revokeObjectURL(a.href); return;
+    }
     if (drawerMode==='roster') {
         const rows=rosterData.members.map(m=>[q(m.name),q(rosterData.role)].join(','));
         const blob=new Blob(['﻿'+['Name,Role',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
