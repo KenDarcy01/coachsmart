@@ -509,6 +509,11 @@ function switchTab(tab) {
     document.getElementById('viewSquads').style.display  = tab === 'squads-overview'  ? '' : 'none';
     const hideAtt = tab === 'members-overview' || tab === 'squads-overview';
     document.getElementById('attRow').style.display = hideAtt ? 'none' : (_attSliderHasData ? '' : 'none');
+    // Code/Type/Role chips don't apply to the Squads tab — hide them to prevent confusion
+    const hideSubFilters = tab === 'squads-overview';
+    document.getElementById('codeGroup').style.display = hideSubFilters ? 'none' : (allCodes.length ? '' : 'none');
+    document.getElementById('typeGroup').style.display = hideSubFilters ? 'none' : (allTypes.length ? '' : 'none');
+    document.getElementById('roleGroup').style.display = hideSubFilters ? 'none' : (allRoles.length ? '' : 'none');
     document.getElementById('pdfBtn').disabled = !dashData;
     if (dashData) applyFiltersNoReload();
 }
@@ -943,15 +948,24 @@ function closeDetail() {
     document.getElementById('dPanel').classList.remove('open');
 }
 function setDF(f){detailFilt=f;renderDTabs();renderDList();}
-function setSquadFilter(squadId){squadPlayerFilter=squadId;renderDTabs();renderDList();}
+function setSquadFilter(squadId){squadPlayerFilter=squadId===null?null:Number(squadId);renderDTabs();renderDList();updateSquadDrawerMeta();}
+function updateSquadDrawerMeta() {
+    if (drawerMode!=='squadPlayer'||!squadPlayerData) return;
+    const total = squadPlayerData.appearances.length;
+    const shown = squadPlayerFilter===null ? total
+        : squadPlayerData.appearances.filter(a=>Number(a.squad_id)===squadPlayerFilter).length;
+    document.getElementById('dMeta').textContent = squadPlayerFilter===null
+        ? `${total} match appearance${total!==1?'s':''}`
+        : `${shown} of ${total} appearance${total!==1?'s':''}`;
+}
 function renderDTabs(){
     if (drawerMode==='squadPlayer') {
         if (!squadPlayerData) { document.getElementById('dTabs').innerHTML=''; return; }
         const ap = squadPlayerData.appearances;
-        // Build per-squad counts
-        const squadCounts = new Map(); // squad_id -> {name, count}
+        // Build per-squad counts — use Number() on squad_id for type safety
+        const squadCounts = new Map(); // squad_id (number) -> {name, count}
         for (const a of ap) {
-            const sid = a.squad_id;
+            const sid = Number(a.squad_id);
             if (!squadCounts.has(sid)) squadCounts.set(sid, {name: a.squads?.squad_name||'—', count:0});
             squadCounts.get(sid).count++;
         }
@@ -989,7 +1003,7 @@ function renderDList(){
         if (!squadPlayerData) return;
         const ap = squadPlayerFilter === null
             ? squadPlayerData.appearances
-            : squadPlayerData.appearances.filter(a => a.squad_id === squadPlayerFilter);
+            : squadPlayerData.appearances.filter(a => Number(a.squad_id) === squadPlayerFilter);
         if (!ap.length) { document.getElementById('dList').innerHTML=`<div class="empty-state">No match squad appearances in this period.</div>`; return; }
         document.getElementById('dList').innerHTML = ap.map(a=>`
             <div class="d-member">
@@ -1411,6 +1425,10 @@ function renderSquadsOverview() {
     }).sort((a,b)=>b.total-a.total);
 
     document.getElementById('sqTableCount').textContent = `${rows.length} player${rows.length!==1?'s':''}`;
+    if (!rows.length) {
+        document.getElementById('squadsBody').innerHTML = `<tr><td colspan="${squads.length+3}" style="text-align:center;color:var(--muted);padding:28px;font-size:13px;">No match squad selections recorded in this period</td></tr>`;
+        return;
+    }
     document.getElementById('squadsBody').innerHTML = rows.map(m=>{
         const pi = _squadPlayerCache.length;
         _squadPlayerCache.push({member_id:m.member_id, name:m.name, teamIds});
@@ -1457,9 +1475,9 @@ async function openPlayerSquads(cacheIdx) {
         const appearances = [...byEvent.values()]
             .sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
         squadPlayerData = {name:cached.name, appearances};
-        document.getElementById('dMeta').textContent = `${appearances.length} match appearance${appearances.length!==1?'s':''}`;
         renderDTabs();
         renderDList();
+        updateSquadDrawerMeta();
     } catch(e) {
         document.getElementById('dMeta').textContent = 'Failed to load';
         document.getElementById('dList').innerHTML = `<div class="empty-state">Error: ${esc(e.message)}</div>`;
@@ -1593,7 +1611,7 @@ function exportDrawerCSV(){
     if (drawerMode==='squadPlayer' && squadPlayerData) {
         const ap = squadPlayerFilter === null
             ? squadPlayerData.appearances
-            : squadPlayerData.appearances.filter(a => a.squad_id === squadPlayerFilter);
+            : squadPlayerData.appearances.filter(a => Number(a.squad_id) === squadPlayerFilter);
         const rows=ap.map(a=>[q(a.events?.event_title||'Match'),q(fmtDate(a.events?.event_date_time)),q(a.squads?.squad_name||'')].join(','));
         const blob=new Blob(['﻿'+['Event,Date,Squad',...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
         const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`coachsmart-${(squadPlayerData.name||'player').replace(/\s+/g,'-').toLowerCase()}-squads-${new Date().toISOString().slice(0,10)}.csv`});
