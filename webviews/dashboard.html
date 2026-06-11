@@ -509,11 +509,6 @@ function switchTab(tab) {
     document.getElementById('viewSquads').style.display  = tab === 'squads-overview'  ? '' : 'none';
     const hideAtt = tab === 'members-overview' || tab === 'squads-overview';
     document.getElementById('attRow').style.display = hideAtt ? 'none' : (_attSliderHasData ? '' : 'none');
-    // Code/Type/Role chips don't apply to the Squads tab — hide them to prevent confusion
-    const hideSubFilters = tab === 'squads-overview';
-    document.getElementById('codeGroup').style.display = hideSubFilters ? 'none' : (allCodes.length ? '' : 'none');
-    document.getElementById('typeGroup').style.display = hideSubFilters ? 'none' : (allTypes.length ? '' : 'none');
-    document.getElementById('roleGroup').style.display = hideSubFilters ? 'none' : (allRoles.length ? '' : 'none');
     document.getElementById('pdfBtn').disabled = !dashData;
     if (dashData) applyFiltersNoReload();
 }
@@ -589,6 +584,13 @@ async function loadClubs() {
 function onClubChange() { if (document.getElementById('clubSelect').value) loadDashboard(); }
 
 // ── Dashboard fetch ───────────────────────────────────────────────
+function squadRpcBody(clubId, start, end) {
+    const body = {p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()};
+    if (fCode.size > 0) body.p_codes = [...fCode];
+    if (fType.size > 0) body.p_types = [...fType];
+    return JSON.stringify(body);
+}
+
 async function loadDashboard() {
     const clubId = paramClub || parseInt(document.getElementById('clubSelect').value);
     if (!clubId) return;
@@ -606,7 +608,7 @@ async function loadDashboard() {
             }),
             fetch(`${SUPABASE_URL}/rest/v1/rpc/get_squad_dashboard`, {
                 method:'POST', headers:H,
-                body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
+                body: squadRpcBody(clubId, start, end)
             })
         ]);
         if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||`HTTP ${r.status}`); }
@@ -630,6 +632,22 @@ async function loadDashboard() {
     } finally {
         document.getElementById('loading').style.display = 'none';
     }
+}
+
+// Re-fetches only the squad RPC — used when code/type filter changes on the squads tab
+async function loadSquadDashboard() {
+    const clubId = paramClub || parseInt(document.getElementById('clubSelect').value);
+    if (!clubId || !dashData) return;
+    const {start,end} = getDateRange();
+    try {
+        const rs = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_squad_dashboard`, {
+            method:'POST', headers:H,
+            body: squadRpcBody(clubId, start, end)
+        });
+        squadData = rs.ok ? await rs.json().catch(()=>null) : null;
+        if (squadData?.error) squadData = null;
+    } catch(e) { console.error('Squad dashboard reload failed:', e); }
+    renderSquadsOverview();
 }
 
 // ── Build filters ─────────────────────────────────────────────────
@@ -748,7 +766,13 @@ function pickFilter(el) {
     renderMultiChips('codeChips','code',allCodes,fCode);
     renderMultiChips('typeChips','type',allTypes,fType);
     renderMultiChips('roleChips','role',allRoles,fRole);
-    applyFiltersNoReload();
+    // Code and Type changes on the squads tab need a server-side re-query (match_selections
+    // are computed in SQL and must be re-filtered at DB level). Role is client-side only.
+    if (activeTab==='squads-overview' && (key==='code' || key==='type')) {
+        loadSquadDashboard();
+    } else {
+        applyFiltersNoReload();
+    }
 }
 
 // ── Filter pipelines ──────────────────────────────────────────────
@@ -1355,6 +1379,8 @@ function renderSquadsOverview() {
             const seen   = squadSeen.get(sq.squad_id);
             for (const m of sq.members || []) {
                 if (!m.match_selections) continue;
+                // Role filter is client-side — squad member data includes role
+                if (fRole.size > 0 && !fRole.has(m.role)) continue;
                 if (seen.has(m.member_id)) continue; // duplicate code-entry for same squad — skip
                 seen.add(m.member_id);
                 sqEntry.players_used++;
@@ -1456,15 +1482,18 @@ async function openPlayerSquads(cacheIdx) {
     document.getElementById('dPanel').classList.add('open');
     try {
         const teamFilter = cached.teamIds.length ? `&team_id=in.(${cached.teamIds.join(',')})` : '';
-        const url = `${SUPABASE_URL}/rest/v1/match_squad_details?select=match_squad_id,event_id,squad_id,events!match_squad_event_id_fkey(event_title,event_date_time),squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}${teamFilter}&order=match_squad_id.desc`;
+        const url = `${SUPABASE_URL}/rest/v1/match_squad_details?select=match_squad_id,event_id,squad_id,events!match_squad_event_id_fkey(event_title,event_date_time,event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)),squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}${teamFilter}&order=match_squad_id.desc`;
         const r = await fetch(url, {headers:H});
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const rows = await r.json();
-        // Apply the current date range filter (REST query fetches all history)
+        // Apply current date/code/type filters (REST query fetches full history)
         const {start,end} = getDateRange();
         const inRange = rows.filter(row => {
             const dt = row.events?.event_date_time ? new Date(row.events.event_date_time) : null;
-            return dt && dt >= start && dt < end;
+            if (!dt || dt < start || dt >= end) return false;
+            if (fCode.size > 0 && !fCode.has(row.events?.event_codes?.event_code)) return false;
+            if (fType.size > 0 && !fType.has(row.events?.event_types?.event_type)) return false;
+            return true;
         });
         // Deduplicate: keep most recent match_squad_id per event
         const byEvent = new Map();
@@ -1496,6 +1525,7 @@ function exportSquadsCSV() {
             const seen=squadSeen.get(sq.squad_id);
             for (const m of sq.members||[]) {
                 if (!m.match_selections||seen.has(m.member_id)) continue;
+                if (fRole.size > 0 && !fRole.has(m.role)) continue;
                 seen.add(m.member_id);
                 if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id,{name:m.name,squads:new Map()});
                 memberSquads.get(m.member_id).squads.set(sq.squad_id,m.match_selections);
