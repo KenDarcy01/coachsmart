@@ -1,6 +1,6 @@
 {
-  "name": "CoachSmart Dashboard",
-  "short_name": "CoachSmart",
+  "name": "CS Analytics",
+  "short_name": "CS Analytics",
   "description": "GAA coaching analytics dashboard for club admins",
   "start_url": "/webviews/dashboard-app.html",
   "scope": "/webviews/",
