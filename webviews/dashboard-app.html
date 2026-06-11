@@ -1174,7 +1174,10 @@ async function doInstall() {
 }
 
 function _installRecentlyDismissed() {
-    const t = parseInt(localStorage.getItem('cs_install_dismissed') || '0');
+    const val = localStorage.getItem('cs_install_dismissed');
+    // Migrate old permanent flag ('1') — clear it so the banner reappears
+    if (val === '1') { localStorage.removeItem('cs_install_dismissed'); return false; }
+    const t = parseInt(val || '0');
     return t > 0 && (Date.now() - t) < 7 * 24 * 60 * 60 * 1000;
 }
 
