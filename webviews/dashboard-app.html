@@ -250,40 +250,54 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 13px; }
 
-/* ── Install banner ── */
-.install-banner {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
-    background: var(--card); border-top: 1px solid rgba(135,194,50,0.3);
-    padding: 14px 16px 20px; display: flex; align-items: flex-start; gap: 12px;
-    transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-    box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+/* ── Install modal ── */
+.install-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.75);
+    display: flex; align-items: flex-end;
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
 }
-.install-banner.show { transform: translateY(0); }
-.install-icon {
-    width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
-    background: rgba(135,194,50,0.12); border: 1px solid rgba(135,194,50,0.25);
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 1px; color: var(--green);
+.install-sheet {
+    width: 100%; background: var(--card);
+    border-radius: 22px 22px 0 0; border-top: 1px solid var(--border);
+    padding: 6px 22px 48px;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 -12px 48px rgba(0,0,0,0.5);
 }
-.install-body { flex: 1; min-width: 0; }
-.install-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-.install-msg { font-size: 12px; color: var(--muted); line-height: 1.5; }
-.install-msg strong { color: var(--text); font-weight: 600; }
-.install-actions { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
-.install-btn {
-    padding: 7px 16px; border-radius: 6px; font-size: 12px; font-weight: 700;
-    background: var(--green); color: #111; border: none; cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+.install-overlay.show .install-sheet { transform: translateY(0); }
+.install-drag { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 10px auto 18px; }
+.install-top-row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.install-app-icon { width: 54px; height: 54px; border-radius: 13px; flex-shrink: 0; overflow: hidden; }
+.install-app-icon img { width: 100%; height: 100%; display: block; }
+.install-heading { font-size: 19px; font-weight: 700; margin-bottom: 3px; }
+.install-tagline { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.install-divider { height: 1px; background: var(--border); margin: 18px 0; }
+.install-steps { display: flex; flex-direction: column; gap: 16px; margin-bottom: 26px; }
+.install-step { display: flex; align-items: flex-start; gap: 13px; }
+.step-num {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(135,194,50,0.15); border: 1px solid rgba(135,194,50,0.35);
+    color: var(--green); font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
 }
-.install-dismiss {
-    padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
+.step-text { font-size: 15px; line-height: 1.5; color: var(--muted); }
+.step-text strong { color: var(--text); font-weight: 600; }
+.step-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 6px; vertical-align: middle; margin: 0 1px; font-size: 14px;
+    background: var(--card2); color: var(--text);
+}
+.install-primary-btn {
+    width: 100%; padding: 16px; border-radius: 12px; margin-bottom: 10px;
+    background: var(--green); border: none; color: #111;
+    font-size: 16px; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer;
+}
+.install-later-btn {
+    width: 100%; padding: 14px; border-radius: 12px;
     background: transparent; border: 1px solid var(--border); color: var(--muted);
-    cursor: pointer; font-family: 'DM Sans', sans-serif;
-}
-.install-close {
-    flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px;
-    background: var(--card2); border: 1px solid var(--border); color: var(--muted);
-    font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer;
 }
 </style>
 </head>
@@ -453,18 +467,25 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
     <div class="d-list" id="dList"></div>
 </div>
 
-<!-- Install / Add to Home Screen banner -->
-<div class="install-banner" id="installBanner">
-    <div class="install-icon">CS</div>
-    <div class="install-body">
-        <div class="install-title">Add to Home Screen</div>
-        <div class="install-msg" id="installMsg"></div>
-        <div class="install-actions" id="installActions"></div>
-    </div>
-    <button class="install-close" onclick="dismissInstallBanner()">&times;</button>
-</div>
-
 </div><!-- /app -->
+
+<!-- Install modal — outside #app so it shows even over the login screen -->
+<div class="install-overlay" id="installOverlay" style="display:none;">
+  <div class="install-sheet">
+    <div class="install-drag"></div>
+    <div class="install-top-row">
+      <div class="install-app-icon"><img src="/webviews/icons/icon-192.png" alt="CoachSmart"></div>
+      <div>
+        <div class="install-heading">Install CoachSmart</div>
+        <div class="install-tagline">Add to your home screen for<br>the full app experience</div>
+      </div>
+    </div>
+    <div class="install-divider"></div>
+    <div class="install-steps" id="installSteps"></div>
+    <button class="install-primary-btn" id="installNativeBtn" style="display:none;" onclick="doInstall()">Install App</button>
+    <button class="install-later-btn" onclick="dismissInstall()">Maybe Later</button>
+  </div>
+</div>
 
 <script>
 const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
@@ -536,8 +557,6 @@ async function handleSession(session) {
     initDateSlider();
     switchTab('club-overview');
     loadDashboard();
-    // Delay slightly so the dashboard renders first, then slide the banner up
-    setTimeout(maybeShowInstallBanner, 2500);
 }
 
 async function fetchAdminTeams() {
@@ -1094,75 +1113,68 @@ function exportDrawerCSV(){
     Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:drawerFilename('csv')}).click();
 }
 
-// ── Install / Add to Home Screen prompt ──────────────────────────
+// ── Install / Add to Home Screen ─────────────────────────────────
 let _deferredInstallPrompt = null;
 
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredInstallPrompt = e;
-    // If the user is already logged in and the banner hasn't shown yet, show it now.
-    // beforeinstallprompt can fire late (after our 2.5s timeout has already run).
-    if (document.getElementById('app').style.display !== 'none' &&
-        !_installRecentlyDismissed() &&
-        !document.getElementById('installBanner').classList.contains('show')) {
-        _setInstallContent('native');
-        showInstallBanner();
+    // Upgrade the modal if it's already open — swap in the native Install button
+    if (document.getElementById('installOverlay').classList.contains('show')) {
+        _renderInstallSteps('native');
     }
 });
 
-function _setInstallContent(mode) {
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
-    if (isIOS || mode === 'ios') {
-        document.getElementById('installMsg').innerHTML =
-            'Tap the <strong>Share</strong> button &#x2197; in Safari, then choose <strong>Add to Home Screen</strong>.';
-        document.getElementById('installActions').innerHTML =
-            `<button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
-    } else if (mode === 'native') {
-        document.getElementById('installMsg').innerHTML =
-            'Install for the full-screen experience — works offline too.';
-        document.getElementById('installActions').innerHTML =
-            `<button class="install-btn" onclick="doInstall()">Install App</button>
-             <button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
-    } else {
-        // Android Chrome fallback — beforeinstallprompt never fired (first visit / criteria not met)
-        document.getElementById('installMsg').innerHTML =
-            'Tap <strong>&#8942;</strong> in the Chrome menu, then choose <strong>Add to Home Screen</strong>.';
-        document.getElementById('installActions').innerHTML =
-            `<button class="install-dismiss" onclick="dismissInstallBanner()">Not now</button>`;
-    }
+function _shouldShowInstall() {
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return false;
+    if (localStorage.getItem('cs_install_done')) return false;        // user actually installed
+    if (sessionStorage.getItem('cs_install_dismissed')) return false; // dismissed this session
+    return true;
 }
 
-function maybeShowInstallBanner() {
-    // Already running as installed PWA — don't prompt
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return;
-    // User dismissed the prompt recently (within 7 days)
-    if (_installRecentlyDismissed()) return;
-
+function maybeShowInstallModal() {
+    if (!_shouldShowInstall()) return;
     const ua = navigator.userAgent;
-    const isIOS    = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+    const isIOS     = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
     const isAndroid = /Android/.test(ua);
     const isChrome  = /Chrome/.test(ua) && !/Chromium|EdgA|OPR/.test(ua);
-
     if (isIOS) {
-        _setInstallContent('ios');
-        showInstallBanner();
+        _renderInstallSteps('ios');
+        _showInstallModal();
     } else if (_deferredInstallPrompt) {
-        // Chrome fired the native prompt — show Install button
-        _setInstallContent('native');
-        showInstallBanner();
+        _renderInstallSteps('native');
+        _showInstallModal();
     } else if (isAndroid && isChrome) {
-        // Chrome on Android but beforeinstallprompt hasn't fired yet (first visit / not enough engagement)
-        // Fall back to manual menu instructions so the user still sees guidance
-        _setInstallContent('manual');
-        showInstallBanner();
+        _renderInstallSteps('android-manual');
+        _showInstallModal();
     }
 }
 
-function showInstallBanner() {
-    const banner = document.getElementById('installBanner');
-    banner.style.display = '';
-    // Trigger the slide-up animation on next frame
-    requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('show')));
+function _renderInstallSteps(mode) {
+    const steps = document.getElementById('installSteps');
+    const nativeBtn = document.getElementById('installNativeBtn');
+    nativeBtn.style.display = 'none';
+    if (mode === 'ios') {
+        steps.innerHTML =
+            `<div class="install-step"><div class="step-num">1</div><div class="step-text">Tap the <span class="step-icon">&#x2191;</span> <strong>Share</strong> button at the bottom of Safari</div></div>
+             <div class="install-step"><div class="step-num">2</div><div class="step-text">Scroll down and tap <strong>"Add to Home Screen"</strong></div></div>
+             <div class="install-step"><div class="step-num">3</div><div class="step-text">Tap <strong>"Add"</strong> in the top right to confirm</div></div>`;
+    } else if (mode === 'native') {
+        steps.innerHTML =
+            `<div class="install-step"><div class="step-num">1</div><div class="step-text">Tap <strong>Install App</strong> below — CoachSmart will be added directly to your home screen.</div></div>`;
+        nativeBtn.style.display = '';
+    } else {
+        steps.innerHTML =
+            `<div class="install-step"><div class="step-num">1</div><div class="step-text">Tap the <strong>&#8942;</strong> menu button in the top-right of Chrome</div></div>
+             <div class="install-step"><div class="step-num">2</div><div class="step-text">Tap <strong>"Add to Home Screen"</strong></div></div>
+             <div class="install-step"><div class="step-num">3</div><div class="step-text">Tap <strong>"Add"</strong> to confirm</div></div>`;
+    }
+}
+
+function _showInstallModal() {
+    const overlay = document.getElementById('installOverlay');
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('show')));
 }
 
 async function doInstall() {
@@ -1170,22 +1182,23 @@ async function doInstall() {
     _deferredInstallPrompt.prompt();
     const { outcome } = await _deferredInstallPrompt.userChoice;
     _deferredInstallPrompt = null;
-    if (outcome === 'accepted') dismissInstallBanner();
+    if (outcome === 'accepted') {
+        localStorage.setItem('cs_install_done', '1');
+        _hideInstallModal();
+    } else {
+        dismissInstall();
+    }
 }
 
-function _installRecentlyDismissed() {
-    const val = localStorage.getItem('cs_install_dismissed');
-    // Migrate old permanent flag ('1') — clear it so the banner reappears
-    if (val === '1') { localStorage.removeItem('cs_install_dismissed'); return false; }
-    const t = parseInt(val || '0');
-    return t > 0 && (Date.now() - t) < 7 * 24 * 60 * 60 * 1000;
+function dismissInstall() {
+    sessionStorage.setItem('cs_install_dismissed', '1');
+    _hideInstallModal();
 }
 
-function dismissInstallBanner() {
-    localStorage.setItem('cs_install_dismissed', Date.now().toString());
-    const banner = document.getElementById('installBanner');
-    banner.classList.remove('show');
-    setTimeout(() => { banner.style.display = 'none'; }, 350);
+function _hideInstallModal() {
+    const overlay = document.getElementById('installOverlay');
+    overlay.classList.remove('show');
+    setTimeout(() => { overlay.style.display = 'none'; }, 400);
 }
 
 // ── Init ──────────────────────────────────────────────────────────
@@ -1193,6 +1206,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     if('serviceWorker' in navigator){
         navigator.serviceWorker.register('/webviews/sw.js').catch(()=>{});
     }
+    // Show install modal immediately on page load (over the login screen).
+    // Uses sessionStorage so it reappears every time the URL is opened in a browser.
+    setTimeout(maybeShowInstallModal, 700);
     checkAuth();
 });
 </script>
