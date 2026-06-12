@@ -363,6 +363,17 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 }
 .ins-nr-chip:hover { border-color: rgba(107,114,128,0.4); color: var(--text); }
 
+/* Key signals */
+.ins-signals {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 20px; margin-bottom: 28px; display: flex; flex-direction: column; gap: 9px;
+}
+.ins-signal-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.45; }
+.ins-signal-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+/* Trend chart */
+.ins-trend-wrap { height: 220px; position: relative; }
+
 @media (max-width: 900px) {
     .ins-hero { grid-template-columns: repeat(2,1fr); }
     .ins-2col { grid-template-columns: 1fr; }
@@ -2111,7 +2122,59 @@ function renderInsights() {
     document.getElementById('insHdrSub').textContent =
         fmtMonth(start) + ' – ' + fmtMonth(endD) + (fp.length ? '  ·  ' + fp.join('  ·  ') : '  ·  All events');
 
-    // Squad member aggregation (member_id → {total_sels, squads:[{squad_id,squad_name,count}]})
+    // ── Analytical computations ────────────────────────────────────
+
+    // 1. Monthly acceptance rate trend
+    const monthBuckets = new Map();
+    for (const e of filteredEvts) {
+        const d = new Date(e.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        if (!monthBuckets.has(key)) monthBuckets.set(key, { accepted:0, total:0, count:0, label:'' });
+        const b = monthBuckets.get(key);
+        b.accepted += e.accepted; b.total += e.total; b.count++;
+        b.label = fmtMonth(d);
+    }
+    const trendMonths = [...monthBuckets.entries()]
+        .sort((a,b) => a[0].localeCompare(b[0]))
+        .map(([,v]) => ({ rate: v.total>0 ? parseFloat((v.accepted/v.total*100).toFixed(1)) : null, label: v.label, count: v.count }));
+
+    // 2. Period trend: second half of events vs first half
+    const sortedEvts = [...filteredEvts].sort((a,b) => new Date(a.date)-new Date(b.date));
+    const mid = Math.floor(sortedEvts.length / 2);
+    const fHalf = sortedEvts.slice(0, mid), sHalf = sortedEvts.slice(mid);
+    const fA = fHalf.reduce((s,e)=>s+e.accepted,0), fT = fHalf.reduce((s,e)=>s+e.total,0);
+    const sA = sHalf.reduce((s,e)=>s+e.accepted,0), sT = sHalf.reduce((s,e)=>s+e.total,0);
+    const periodTrend = (fT>0 && sT>0 && filteredEvts.length>=6) ? (sA/sT)-(fA/fT) : null;
+
+    // 3. Event type breakdown
+    const typeMap = new Map();
+    for (const e of filteredEvts) {
+        const t = e.type || 'Unknown';
+        if (!typeMap.has(t)) typeMap.set(t, { accepted:0, total:0, count:0 });
+        const b = typeMap.get(t); b.accepted += e.accepted; b.total += e.total; b.count++;
+    }
+    const typeData = [...typeMap.entries()]
+        .map(([type,v]) => ({ type, rate: v.total>0?v.accepted/v.total:0, count: v.count }))
+        .sort((a,b) => b.rate-a.rate);
+
+    // 4. Form movers: per-member first-half vs second-half (min 2 events in each)
+    const fStats = getMemberStats(fHalf), sStats = getMemberStats(sHalf);
+    const fMap = new Map(fStats.map(m => [m.member_id, m]));
+    const movers = sStats
+        .map(s2 => { const s1=fMap.get(s2.member_id); return (s1&&s1.events>=2&&s2.events>=2)?{...s2,delta:s2.rate-s1.rate,prevRate:s1.rate}:null; })
+        .filter(Boolean).filter(m => Math.abs(m.delta)>=0.12);
+    const rising  = movers.filter(m=>m.delta>0).sort((a,b)=>b.delta-a.delta).slice(0,6);
+    const falling = movers.filter(m=>m.delta<0).sort((a,b)=>a.delta-b.delta).slice(0,6);
+
+    // 5. Response discipline: members who rarely respond (ghost rate ≥ 50%, 3+ events)
+    const disciplineStats = stats.filter(m=>m.events>=2)
+        .map(m => ({...m, ghostRate: m.no_response/m.events}));
+    const ghosters = disciplineStats.filter(m=>m.events>=3&&m.ghostRate>=0.5)
+        .sort((a,b)=>b.ghostRate-a.ghostRate).slice(0,8);
+
+    // ── Shared aggregations ────────────────────────────────────────
+
+    // Squad member map
     const squadMemberMap = new Map();
     if (squadData) {
         const memberAgg = new Map();
@@ -2140,30 +2203,28 @@ function renderInsights() {
     const accNum   = totalAll > 0 ? totalAcc / totalAll : 0;
     const accRate  = totalAll > 0 ? (accNum*100).toFixed(1)+'%' : '—';
     const accColor = insRateColor(accNum);
-    const activeMembers = stats.filter(m=>m.accepted>0).length;
+    const teamSet  = new Set(filteredEvts.map(e=>e.team_id));
     const totalSels = [...squadMemberMap.values()].reduce((s,v)=>s+v.total_sels, 0);
-    const teamSet = new Set(filteredEvts.map(e=>e.team_id));
+    const totalResponded = stats.reduce((s,m) => s+m.accepted+m.declined, 0);
+    const totalEvtCount  = stats.reduce((s,m) => s+m.events, 0);
+    const overallRespRate = totalEvtCount > 0 ? totalResponded / totalEvtCount : 0;
 
-    // Per-team acceptance for horizontal bars
+    // Per-team acceptance
     const teamAccData = [];
     for (const team of dashData.teams||[]) {
         if (fTeams !== null && !fTeams.has(team.team_id)) continue;
         const tevts = (team.events||[])
             .filter(e => !(fCode.size>0 && !fCode.has(e.code)) && !(fType.size>0 && !fType.has(e.type)))
-            .map(e => {
-                const members = fRole.size>0?(e.members||[]).filter(m=>fRole.has(m.role)):(e.members||[]);
-                const accepted = members.filter(m=>m.response==='accepted').length;
-                return { ...e, accepted, total: members.length };
-            })
-            .filter(e => e.accepted >= attMin && e.accepted <= attMax);
-        const tacc = tevts.reduce((s,e)=>s+e.accepted, 0);
-        const ttot = tevts.reduce((s,e)=>s+e.total, 0);
-        if (tevts.length > 0)
-            teamAccData.push({ team_name: team.team_name, rate: ttot>0?tacc/ttot:0, events: tevts.length });
+            .map(e => { const members=fRole.size>0?(e.members||[]).filter(m=>fRole.has(m.role)):(e.members||[]);
+                const accepted=members.filter(m=>m.response==='accepted').length;
+                return {...e, accepted, total:members.length}; })
+            .filter(e => e.accepted>=attMin && e.accepted<=attMax);
+        const tacc=tevts.reduce((s,e)=>s+e.accepted,0), ttot=tevts.reduce((s,e)=>s+e.total,0);
+        if (tevts.length>0) teamAccData.push({team_name:team.team_name,rate:ttot>0?tacc/ttot:0,events:tevts.length});
     }
-    teamAccData.sort((a,b) => b.rate - a.rate);
+    teamAccData.sort((a,b) => b.rate-a.rate);
 
-    // Stars / watch list (min 3 events)
+    // Reliable / watch
     const qualified = stats.filter(m => m.events >= 3);
     const stars     = [...qualified].sort((a,b)=>b.rate-a.rate).filter(m=>m.rate>=0.75).slice(0,8);
     const watchList = [...qualified].sort((a,b)=>a.rate-b.rate).filter(m=>m.rate<0.5).slice(0,8);
@@ -2172,21 +2233,37 @@ function renderInsights() {
     const crossSquad = [...squadMemberMap.entries()]
         .filter(([,v])=>v.squads.length>=2)
         .map(([mid,v])=>{ const s=stats.find(x=>x.member_id===mid); return s?{...s,...v}:null; })
-        .filter(Boolean)
-        .sort((a,b)=>b.total_sels-a.total_sels);
+        .filter(Boolean).sort((a,b)=>b.total_sels-a.total_sels);
 
     // Never responded
     const neverResp = stats.filter(m=>m.no_response===m.events&&m.events>0);
 
-    // Scatter data (members in both attendance + squad sets)
+    // Scatter: acceptance rate vs squad selections
     const scatterData = stats
         .map(m=>{ const sqd=squadMemberMap.get(m.member_id); return sqd?{x:parseFloat((m.rate*100).toFixed(1)),y:sqd.total_sels,name:m.name,member_id:m.member_id}:null; })
         .filter(Boolean);
 
-    // ── Build HTML ──────────────────────────────────────────────
+    // ── Key Signals ───────────────────────────────────────────────
+    const signals = [];
+    if (periodTrend!==null && Math.abs(periodTrend)>=0.03) {
+        const dir=periodTrend>0?'improved':'dropped', col=periodTrend>0?'#87C232':'#e05252', icon=periodTrend>0?'↑':'↓';
+        signals.push({col, icon, text:`Acceptance rate ${dir} by ${Math.abs(periodTrend*100).toFixed(1)}pp in the second half of this period`});
+    }
+    if (typeData.length>=2) {
+        const best=typeData[0], worst=typeData[typeData.length-1], gap=(best.rate-worst.rate)*100;
+        if (gap>=10) signals.push({col:'#F5A623',icon:'📊',text:`${esc(best.type)} events attract ${(best.rate*100).toFixed(0)}% acceptance vs ${(worst.rate*100).toFixed(0)}% for ${esc(worst.type)} — a ${gap.toFixed(0)}pp gap`});
+    }
+    if (ghosters.length>0) signals.push({col:'#F5A623',icon:'💬',text:`${ghosters.length} member${ghosters.length!==1?'s':''} rarely respond to event notifications — impacting squad planning`});
+    if (neverResp.length>0) signals.push({col:'#e05252',icon:'🔕',text:`${neverResp.length} member${neverResp.length!==1?'s':''} ha${neverResp.length!==1?'ve':'s'} not responded to any event in this period`});
+    if (rising.length>0) signals.push({col:'#87C232',icon:'📈',text:`${rising.length} player${rising.length!==1?'s':''} ha${rising.length!==1?'ve':'s'} significantly improved availability in the recent half of this period`});
+
+    // ── Build HTML ────────────────────────────────────────────────
     let html = '';
 
-    // Hero KPIs
+    // [1] Hero KPIs
+    const trendSpan = periodTrend!==null
+        ? `<span style="font-size:11px;font-weight:600;color:${periodTrend>=0?'#87C232':'#e05252'}">${periodTrend>=0?'↑':'↓'} ${Math.abs(periodTrend*100).toFixed(1)}pp</span>`
+        : '';
     html += `<div class="ins-hero">
         <div class="ins-kpi" style="--accent:#87C232">
             <div class="ins-kpi-icon">📅</div>
@@ -2198,13 +2275,13 @@ function renderInsights() {
             <div class="ins-kpi-icon">✅</div>
             <div class="ins-kpi-val" style="color:${accColor}">${accRate}</div>
             <div class="ins-kpi-label">Acceptance Rate</div>
-            <div class="ins-kpi-sub">${totalAcc.toLocaleString()} accepted of ${totalAll.toLocaleString()}</div>
+            <div class="ins-kpi-sub">${totalAcc.toLocaleString()} of ${totalAll.toLocaleString()} accepted${trendSpan?' · '+trendSpan:''}</div>
         </div>
-        <div class="ins-kpi" style="--accent:#60a5fa">
-            <div class="ins-kpi-icon">👥</div>
-            <div class="ins-kpi-val" style="color:#60a5fa">${stats.length}</div>
-            <div class="ins-kpi-label">Members</div>
-            <div class="ins-kpi-sub">${activeMembers} with accepted events</div>
+        <div class="ins-kpi" style="--accent:#a78bfa">
+            <div class="ins-kpi-icon">💬</div>
+            <div class="ins-kpi-val" style="color:#a78bfa">${totalEvtCount>0?(overallRespRate*100).toFixed(1)+'%':'—'}</div>
+            <div class="ins-kpi-label">Response Rate</div>
+            <div class="ins-kpi-sub">${ghosters.length>0?`${ghosters.length} member${ghosters.length!==1?'s':''} rarely respond`:'how often members respond'}</div>
         </div>
         <div class="ins-kpi" style="--accent:#F5A623">
             <div class="ins-kpi-icon">🏟️</div>
@@ -2214,21 +2291,44 @@ function renderInsights() {
         </div>
     </div>`;
 
-    // Team acceptance bars (2+ teams)
-    if (teamAccData.length >= 2) {
+    // [2] Key Signals
+    if (signals.length>0) {
+        html += `<div class="ins-signals">${signals.map(s=>`<div class="ins-signal-item"><span class="ins-signal-icon" style="color:${s.col}">${s.icon}</span><span>${s.text}</span></div>`).join('')}</div>`;
+    }
+
+    // [3] Acceptance rate trend chart (2+ months)
+    if (trendMonths.length>=2) {
         html += `<div class="ins-section">
-            <div class="ins-section-title">Team Acceptance Rates</div>
+            <div class="ins-section-title">Acceptance rate trend — monthly</div>
+            <div class="ins-card"><div class="ins-trend-wrap"><canvas id="insTrendChart"></canvas></div></div>
+        </div>`;
+    }
+
+    // [4] Event type breakdown (2+ types)
+    if (typeData.length>=2) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Acceptance by event type</div>
+            <div class="ins-card">${typeData.map(t=>{
+                const pct=(t.rate*100).toFixed(1), col=insRateColor(t.rate), labelIn=parseFloat(pct)>=15;
+                return `<div class="ins-team-bar-row">
+                    <div class="ins-team-name" title="${esc(t.type)}">${esc(t.type.length>24?t.type.slice(0,24)+'…':t.type)}</div>
+                    <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:${col};opacity:0.85;">${labelIn?`<span class="ins-bar-pct">${pct}%</span>`:''}</div></div>
+                    ${!labelIn?`<span style="font-size:12px;font-weight:700;color:${col};margin-left:8px;flex-shrink:0;">${pct}%</span>`:''}
+                    <div class="ins-team-events">${t.count} evt${t.count!==1?'s':''}</div>
+                </div>`;
+            }).join('')}</div>
+        </div>`;
+    }
+
+    // [5] Team acceptance (3+ teams)
+    if (teamAccData.length>=3) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Acceptance by team</div>
             <div class="ins-card">${teamAccData.map(t=>{
-                const pct=(t.rate*100).toFixed(1);
-                const col=insRateColor(t.rate);
-                const labelIn = parseFloat(pct)>=15;
+                const pct=(t.rate*100).toFixed(1), col=insRateColor(t.rate), labelIn=parseFloat(pct)>=15;
                 return `<div class="ins-team-bar-row">
                     <div class="ins-team-name" title="${esc(t.team_name)}">${esc(t.team_name.length>24?t.team_name.slice(0,24)+'…':t.team_name)}</div>
-                    <div class="ins-bar-track">
-                        <div class="ins-bar-fill" style="width:${pct}%;background:${col};opacity:0.85;">
-                            ${labelIn?`<span class="ins-bar-pct">${pct}%</span>`:''}
-                        </div>
-                    </div>
+                    <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:${col};opacity:0.85;">${labelIn?`<span class="ins-bar-pct">${pct}%</span>`:''}</div></div>
                     ${!labelIn?`<span style="font-size:12px;font-weight:700;color:${col};margin-left:8px;flex-shrink:0;">${pct}%</span>`:''}
                     <div class="ins-team-events">${t.events} evt${t.events!==1?'s':''}</div>
                 </div>`;
@@ -2236,32 +2336,35 @@ function renderInsights() {
         </div>`;
     }
 
-    // Player availability bubbles
-    if (stats.length > 0) {
-        const sorted = [...stats].sort((a,b)=>b.rate-a.rate);
-        const showN  = Math.min(sorted.length, 64);
-        html += `<div class="ins-section">
-            <div class="ins-section-title">Player Availability${showN<stats.length?` — top ${showN} of ${stats.length}`:` — ${stats.length} player${stats.length!==1?'s':''}`}</div>
-            <div class="pb-grid">${sorted.slice(0,showN).map(m=>{
-                const ini = m.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
-                const pct = Math.round(m.rate*100);
-                const col = insRateColor(m.rate);
-                const bg  = `conic-gradient(${col} ${pct}%, rgba(255,255,255,0.06) 0%)`;
-                return `<div class="pb-item" onclick="openMemberFromInsights(${m.member_id})" title="${esc(m.name)} — ${pct}%">
-                    <div class="pb-ring" style="background:${bg}">
-                        <div class="pb-inner"><span class="pb-initials">${esc(ini)}</span></div>
+    // [6] Form movers: who's improving / declining
+    if (rising.length>0 || falling.length>0) {
+        const moverList = (list, col) => !list.length
+            ? `<div style="color:var(--muted);font-size:12px;padding:20px 0;text-align:center;">No significant movers</div>`
+            : list.map(m => {
+                const ini=m.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+                const delta=Math.abs(m.delta*100).toFixed(0), sign=m.delta>0?'+':'−';
+                return `<div class="ins-player-row" onclick="openMemberFromInsights(${m.member_id})">
+                    <div class="ins-player-av" style="border-color:${col}33;color:${col}">${esc(ini)}</div>
+                    <div style="flex:1;min-width:0;overflow:hidden;">
+                        <div class="ins-player-name">${esc(m.name)}</div>
+                        <div class="ins-player-meta">${(m.prevRate*100).toFixed(0)}% → ${(m.rate*100).toFixed(0)}% · ${esc(m.team_name)}</div>
                     </div>
-                    <div class="pb-name">${esc(m.name.split(' ')[0])}</div>
-                    <div class="pb-pct" style="color:${col};">${pct}%</div>
+                    <div class="ins-player-badge" style="color:${col}">${sign}${delta}pp</div>
                 </div>`;
-            }).join('')}</div>
+            }).join('');
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Form — second half vs first half of period</div>
+            <div class="ins-2col" style="margin-bottom:0;">
+                <div class="ins-card"><div class="ins-card-title"><span class="ins-card-icon">📈</span> Improving</div>${moverList(rising,'#87C232')}</div>
+                <div class="ins-card"><div class="ins-card-title"><span class="ins-card-icon">📉</span> Declining</div>${moverList(falling,'#e05252')}</div>
+            </div>
         </div>`;
     }
 
-    // Selection vs Availability scatter (needs squad data + overlap)
-    if (scatterData.length >= 3) {
+    // [7] Selection vs Availability scatter
+    if (scatterData.length>=3) {
         html += `<div class="ins-section">
-            <div class="ins-section-title">Selection vs Availability — ${scatterData.length} players</div>
+            <div class="ins-section-title">Selection vs availability — ${scatterData.length} players</div>
             <div class="ins-card">
                 <div class="ins-scatter-sub">Click a dot to open the player drawer. Colour: green ≥80% · amber 50–79% · red &lt;50%</div>
                 <div class="ins-scatter-wrap"><canvas id="insScatterChart"></canvas></div>
@@ -2269,8 +2372,30 @@ function renderInsights() {
         </div>`;
     }
 
-    // Reliable players + Needs attention (side by side)
-    html += `<div class="ins-2col">
+    // [8] Response discipline — ghosters
+    if (ghosters.length>0) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Response discipline — members who rarely respond</div>
+            <div class="ins-card">${ghosters.map(m=>{
+                const ini=m.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+                const pct=(m.ghostRate*100).toFixed(0), labelIn=parseFloat(pct)>=20;
+                return `<div class="ins-team-bar-row">
+                    <div style="display:flex;align-items:center;gap:9px;width:190px;flex-shrink:0;cursor:pointer;" onclick="openMemberFromInsights(${m.member_id})">
+                        <div class="ins-player-av" style="border-color:rgba(107,114,128,0.3);color:#9CA3AF;flex-shrink:0;">${esc(ini)}</div>
+                        <div style="min-width:0;overflow:hidden;">
+                            <div class="ins-player-name">${esc(m.name)}</div>
+                            <div class="ins-player-meta">${m.events} events · ${m.no_response} no response</div>
+                        </div>
+                    </div>
+                    <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:rgba(107,114,128,0.45);">${labelIn?`<span class="ins-bar-pct" style="color:var(--text)">${pct}% no response</span>`:''}</div></div>
+                    ${!labelIn?`<span style="font-size:12px;font-weight:700;color:var(--muted);margin-left:8px;flex-shrink:0;">${pct}%</span>`:''}
+                </div>`;
+            }).join('')}</div>
+        </div>`;
+    }
+
+    // [9] Reliable / Needs Attention
+    html += `<div class="ins-2col" style="margin-bottom:28px;">
         <div class="ins-card">
             <div class="ins-card-title"><span class="ins-card-icon">⭐</span> Reliable Players</div>
             ${stars.length ? stars.map(m=>{
@@ -2301,8 +2426,8 @@ function renderInsights() {
         </div>
     </div>`;
 
-    // Cross-squad players
-    if (crossSquad.length > 0) {
+    // [10] Cross-squad players
+    if (crossSquad.length>0) {
         html += `<div class="ins-section">
             <div class="ins-section-title">Cross-Squad Players — ${crossSquad.length} player${crossSquad.length!==1?'s':''} in 2+ squads</div>
             <div class="ins-xsq-grid">${crossSquad.slice(0,24).map(m=>`
@@ -2314,8 +2439,8 @@ function renderInsights() {
         </div>`;
     }
 
-    // Never responded
-    if (neverResp.length > 0) {
+    // [11] Never responded (only if ghosters section not shown)
+    if (neverResp.length>0 && ghosters.length===0) {
         html += `<div class="ins-section">
             <div class="ins-section-title">Never Responded — ${neverResp.length} member${neverResp.length!==1?'s':''}</div>
             <div class="ins-nr-grid">${neverResp.map(m=>`<span class="ins-nr-chip" onclick="openMemberFromInsights(${m.member_id},'no_response')" title="${m.events} event${m.events!==1?'s':''}">${esc(m.name)}</span>`).join('')}</div>
@@ -2324,41 +2449,68 @@ function renderInsights() {
 
     document.getElementById('insContent').innerHTML = html;
 
-    // Scatter chart (post-inject)
-    if (scatterData.length >= 3) {
-        const ctx = document.getElementById('insScatterChart');
-        if (ctx) {
-            const sc = new Chart(ctx, {
-                type: 'scatter',
+    // ── Post-inject chart creation ─────────────────────────────────
+
+    // Trend line chart
+    if (trendMonths.length>=2) {
+        const tctx = document.getElementById('insTrendChart');
+        if (tctx) {
+            const tc = new Chart(tctx, {
+                type: 'line',
                 data: {
+                    labels: trendMonths.map(m=>m.label),
                     datasets: [{
-                        data: scatterData,
-                        backgroundColor: scatterData.map(d=>d.x>=80?'rgba(135,194,50,0.55)':d.x>=50?'rgba(245,166,35,0.55)':'rgba(224,82,82,0.55)'),
-                        borderColor:     scatterData.map(d=>d.x>=80?'#87C232':d.x>=50?'#F5A623':'#e05252'),
-                        pointRadius: 7, pointHoverRadius: 10, borderWidth: 1.5,
+                        data: trendMonths.map(m=>m.rate),
+                        borderColor: '#87C232',
+                        backgroundColor: 'rgba(135,194,50,0.07)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: trendMonths.map(m=>m.rate!==null?insRateColor(m.rate/100):'#6B7280'),
+                        pointBorderColor: '#1E222B',
+                        pointRadius: 6, pointHoverRadius: 8,
+                        tension: 0.35, fill: true, spanGaps: true,
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
-                        tooltip: { callbacks: { label: item => { const d=scatterData[item.dataIndex]; return [`${d.name}`, `Acceptance: ${d.x}%`, `Selections: ${d.y}`]; } } }
+                        tooltip: { callbacks: { label: item => { const m=trendMonths[item.dataIndex]; return [`Acceptance: ${item.raw}%`,`${m.count} event${m.count!==1?'s':''}`]; } } }
                     },
-                    onClick: (evt, els) => { if (els.length>0) { const d=scatterData[els[0].index]; openMemberFromInsights(d.member_id); } },
-                    onHover: (e, els) => { e.native.target.style.cursor = els.length?'pointer':'default'; },
                     scales: {
-                        x: {
-                            title: { display:true, text:'Acceptance Rate (%)', color:'#6B7280', font:{family:'DM Sans',size:11} },
-                            min:0, max:100,
-                            ticks: { color:'#6B7280', font:{family:'DM Sans',size:10}, callback: v=>v+'%' },
-                            grid: { color:'rgba(255,255,255,0.04)' }
-                        },
-                        y: {
-                            title: { display:true, text:'Squad Selections', color:'#6B7280', font:{family:'DM Sans',size:11} },
-                            beginAtZero: true,
-                            ticks: { color:'#6B7280', font:{family:'DM Sans',size:10}, precision:0 },
-                            grid: { color:'rgba(255,255,255,0.04)' }
-                        }
+                        x: { ticks:{color:'#6B7280',font:{family:'DM Sans',size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
+                        y: { min:0, max:100, ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},callback:v=>v+'%'}, grid:{color:'rgba(255,255,255,0.04)'} }
+                    }
+                }
+            });
+            insightCharts.push(tc);
+        }
+    }
+
+    // Scatter chart
+    if (scatterData.length>=3) {
+        const sctx = document.getElementById('insScatterChart');
+        if (sctx) {
+            const sc = new Chart(sctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        data: scatterData,
+                        backgroundColor: scatterData.map(d=>d.x>=80?'rgba(135,194,50,0.55)':d.x>=50?'rgba(245,166,35,0.55)':'rgba(224,82,82,0.55)'),
+                        borderColor:     scatterData.map(d=>d.x>=80?'#87C232':d.x>=50?'#F5A623':'#e05252'),
+                        pointRadius:7, pointHoverRadius:10, borderWidth:1.5,
+                    }]
+                },
+                options: {
+                    responsive:true, maintainAspectRatio:false,
+                    plugins: {
+                        legend:{display:false},
+                        tooltip:{callbacks:{label:item=>{const d=scatterData[item.dataIndex];return[`${d.name}`,`Acceptance: ${d.x}%`,`Selections: ${d.y}`];}}}
+                    },
+                    onClick:(evt,els)=>{if(els.length>0){const d=scatterData[els[0].index];openMemberFromInsights(d.member_id);}},
+                    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
+                    scales:{
+                        x:{title:{display:true,text:'Acceptance Rate (%)',color:'#6B7280',font:{family:'DM Sans',size:11}},min:0,max:100,ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'}},
+                        y:{title:{display:true,text:'Squad Selections',color:'#6B7280',font:{family:'DM Sans',size:11}},beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}
                     }
                 }
             });
