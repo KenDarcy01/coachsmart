@@ -1817,16 +1817,19 @@ async function openPlayerSquads(cacheIdx, initialSquadId=null) {
     document.getElementById('dOverlay').classList.add('open');
     document.getElementById('dPanel').classList.add('open');
     try {
-        const teamFilter = cached.teamIds.length ? `&team_id=in.(${cached.teamIds.join(',')})` : '';
-        const url = `${SUPABASE_URL}/rest/v1/match_squad_details?select=match_squad_id,event_id,squad_id,events!match_squad_event_id_fkey(event_title,event_date_time,opposition,event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)),squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}${teamFilter}&order=match_squad_id.desc`;
+        // Fetch full member history — team/date/code/type applied client-side below.
+        // (match_squad_details doesn't have team_id as a direct column; team is through
+        // the events join, so &team_id=in.() on the REST endpoint is unreliable.)
+        const url = `${SUPABASE_URL}/rest/v1/match_squad_details?select=match_squad_id,event_id,squad_id,events!match_squad_event_id_fkey(team_id,event_title,event_date_time,opposition,event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)),squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}&order=match_squad_id.desc`;
         const r = await fetch(url, {headers:H});
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const rows = await r.json();
-        // Apply current date/code/type filters (REST query fetches full history)
+        // Apply all active filters: team, date range, event code, event type
         const {start,end} = getDateRange();
         const inRange = rows.filter(row => {
             const dt = row.events?.event_date_time ? new Date(row.events.event_date_time) : null;
             if (!dt || dt < start || dt >= end) return false;
+            if (cached.teamIds.length > 0 && !cached.teamIds.includes(Number(row.events?.team_id))) return false;
             if (fCode.size > 0 && !fCode.has(row.events?.event_codes?.event_code)) return false;
             if (fType.size > 0 && !fType.has(row.events?.event_types?.event_type)) return false;
             return true;
