@@ -593,13 +593,14 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
 </div>
 
 <div class="ins-overlay" id="insOverlay" onclick="closeInsights()">
-    <div class="ins-modal" onclick="event.stopPropagation()">
+    <div class="ins-modal" id="insModal" onclick="event.stopPropagation()">
         <div class="ins-hdr">
             <div class="ins-hdr-left">
                 <div class="ins-hdr-logo">Coach<span>Smart</span></div>
                 <div class="ins-hdr-title">Club Insights</div>
                 <div class="ins-hdr-sub" id="insHdrSub"></div>
             </div>
+            <button class="pdf-btn" id="insPdfBtn" onclick="exportInsightsPDF()" style="font-size:12px;padding:6px 14px;height:36px;">↓ PDF</button>
             <button class="ins-close-btn" onclick="closeInsights()">×</button>
         </div>
         <div id="insContent"></div>
@@ -1830,6 +1831,7 @@ async function openPlayerSquads(cacheIdx, initialSquadId=null) {
         const inRange = rows.filter(row => {
             const dt = row.events?.event_date_time ? new Date(row.events.event_date_time) : null;
             if (!dt || dt < start || dt >= end) return false;
+            if (dt >= new Date()) return false; // exclude future events not yet played
             if (cached.teamIds.length > 0 && !cached.teamIds.includes(Number(row.events?.team_id))) return false;
             if (fCode.size > 0 && !fCode.has(row.events?.event_codes?.event_code)) return false;
             if (fType.size > 0 && !fType.has(row.events?.event_types?.event_type)) return false;
@@ -1911,14 +1913,27 @@ async function exportPDF() {
     const el=document.getElementById(elMap[activeTab]||'viewClub');
     const header=buildPDFHeader(); el.insertBefore(header,el.firstChild);
     try {
-        const scale=1.5, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
+        const scale=3, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
         const {jsPDF}=window.jspdf, pad=20, w=canvas.width/scale, h=canvas.height/scale;
         const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
         pdf.setFillColor(17,20,24); pdf.rect(0,0,w+pad*2,h+pad*2,'F');
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',pad,pad,w,h);
+        pdf.addImage(canvas.toDataURL('image/png'),'PNG',pad,pad,w,h);
         pdf.save(`coachsmart-${(clubName()||'dashboard').replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`);
     } catch(e) { alert('PDF export failed: '+e.message); }
     finally { el.removeChild(header); btn.textContent='↓ Export PDF'; btn.disabled=false; }
+}
+async function exportInsightsPDF() {
+    const btn=document.getElementById('insPdfBtn'); btn.textContent='Generating…'; btn.disabled=true;
+    const el=document.getElementById('insModal');
+    try {
+        const scale=3, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
+        const {jsPDF}=window.jspdf, pad=20, w=canvas.width/scale, h=canvas.height/scale;
+        const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
+        pdf.setFillColor(17,20,24); pdf.rect(0,0,w+pad*2,h+pad*2,'F');
+        pdf.addImage(canvas.toDataURL('image/png'),'PNG',pad,pad,w,h);
+        pdf.save(`coachsmart-${(clubName()||'dashboard').replace(/\s+/g,'-').toLowerCase()}-insights-${new Date().toISOString().slice(0,10)}.pdf`);
+    } catch(e) { alert('PDF export failed: '+e.message); }
+    finally { btn.textContent='↓ PDF'; btn.disabled=false; }
 }
 
 // ── Table exports ─────────────────────────────────────────────────
