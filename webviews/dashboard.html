@@ -1362,15 +1362,15 @@ function renderMembersTable() {
             <td style="color:var(--muted);font-size:12px;">${esc(m.team_name)}</td>
             <td><span class="tag">${esc(m.role||'—')}</span></td>
             <td style="text-align:center;color:var(--muted);">${m.events}</td>
-            <td><span class="ac acc">✓ ${m.accepted}</span></td>
-            <td><span class="ac dec">✗ ${m.declined}</span></td>
-            <td><span class="ac nr">? ${m.no_response}</span></td>
+            <td onclick="event.stopPropagation();openMemberDetail(${m.member_id},'accepted')"><span class="ac acc">✓ ${m.accepted}</span></td>
+            <td onclick="event.stopPropagation();openMemberDetail(${m.member_id},'declined')"><span class="ac dec">✗ ${m.declined}</span></td>
+            <td onclick="event.stopPropagation();openMemberDetail(${m.member_id},'no_response')"><span class="ac nr">? ${m.no_response}</span></td>
             <td><div class="rate-bar-wrap"><div class="rate-bar-bg"><div class="rate-bar-fill" style="width:${pct}%;background:${col};"></div></div><span class="rate-bar-val" style="color:${col};">${pct}%</span></div></td>
         </tr>`;
     }).join('');
 }
 
-function openMemberDetail(memberId) {
+function openMemberDetail(memberId, filter='all') {
     const m = membersCache.find(x=>x.member_id===memberId);
     if (!m) return;
     const evts = _membersEvts
@@ -1378,7 +1378,7 @@ function openMemberDetail(memberId) {
         .filter(Boolean)
         .sort((a,b)=>new Date(b.date)-new Date(a.date));
     memberDetailData={member:m,events:evts};
-    drawerMode='member'; detailFilt='all';
+    drawerMode='member'; detailFilt=filter;
     document.getElementById('dTitle').textContent=m.name;
     document.getElementById('dMeta').textContent=[m.team_name,m.role,`${m.events} event${m.events!==1?'s':''}`].filter(Boolean).join(' · ');
     renderDTabs(); renderDList();
