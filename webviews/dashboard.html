@@ -835,6 +835,7 @@ async function loadDashboard() {
             document.getElementById('ctxLabel').style.display = '';
         }
         buildFilters(clubId);
+        squadData = null; // discard prefetch; filters are now set — switchTab reloads correctly
         document.getElementById('filterGroups').style.display = '';
         document.getElementById('pdfBtn').disabled = false;
         switchTab(activeTab);
