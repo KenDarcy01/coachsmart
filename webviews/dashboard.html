@@ -521,7 +521,7 @@ function switchTab(tab) {
     document.getElementById('viewTeam').style.display    = tab === 'club-overview'    ? '' : 'none';
     document.getElementById('viewMembers').style.display = tab === 'members-overview' ? '' : 'none';
     document.getElementById('viewSquads').style.display  = tab === 'squads-overview'  ? '' : 'none';
-    const hideAtt = tab === 'members-overview';
+    const hideAtt = false; // att slider shown on all tabs
     document.getElementById('attRow').style.display = hideAtt ? 'none' : (_attSliderHasData ? '' : 'none');
     document.getElementById('pdfBtn').disabled = !dashData;
     if (dashData) {
@@ -855,8 +855,9 @@ function applyFilters() {
         initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
         renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
     } else if (activeTab==='members-overview') {
-        document.getElementById('attRow').style.display='none';
-        renderMembersOverview(getBaseEvents());
+        const base=getBaseEvents();
+        initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
+        renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
     } else if (activeTab==='squads-overview') {
         if (!_attSliderHasData) {
             const mx = getBaseEvents().reduce((m,e)=>Math.max(m,e.accepted),0);
@@ -879,8 +880,10 @@ function applyFiltersNoReload() {
         if (!_attSliderHasData) initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
         renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
     } else if (activeTab==='members-overview') {
-        document.getElementById('attRow').style.display='none';
-        renderMembersOverview(getBaseEvents());
+        const base=getBaseEvents();
+        if (!_attSliderHasData) initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
+        document.getElementById('attRow').style.display = _attSliderHasData ? '' : 'none';
+        renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
     } else if (activeTab==='squads-overview') {
         document.getElementById('attRow').style.display = _attSliderHasData ? '' : 'none';
         renderSquadsOverview();
