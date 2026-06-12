@@ -735,7 +735,7 @@ document.addEventListener('click', () => {
 });
 function renderTeamDropdown() {
     const teams=dashData?.teams||[], allActive=fTeams===null;
-    let html=`<div class="tdrop-item all-item ${allActive?'checked':''}" onclick="onTeamAll()"><span class="tdrop-check">${allActive?'✓':''}</span>All Teams</div>`;
+    let html=`<div class="tdrop-item all-item ${allActive?'checked':''}" onclick="onTeamAll()"><span class="tdrop-check">${allActive?'✓':''}</span>${allActive?'Clear All':'All Teams'}</div>`;
     html+=teams.map(t=>{
         const chk=fTeams===null||fTeams.has(t.team_id);
         return `<div class="tdrop-item ${chk?'checked':''}" onclick="onTeamToggle(${t.team_id})"><span class="tdrop-check">${chk?'✓':''}</span>${esc(t.team_name)}</div>`;
