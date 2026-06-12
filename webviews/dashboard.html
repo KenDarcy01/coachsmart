@@ -425,6 +425,7 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
                 <table>
                     <thead id="squadsHead"></thead>
                     <tbody id="squadsBody"></tbody>
+                    <tfoot id="squadsFoot"></tfoot>
                 </table>
             </div>
         </div>
@@ -508,7 +509,7 @@ function switchTab(tab) {
     document.getElementById('viewTeam').style.display    = tab === 'club-overview'    ? '' : 'none';
     document.getElementById('viewMembers').style.display = tab === 'members-overview' ? '' : 'none';
     document.getElementById('viewSquads').style.display  = tab === 'squads-overview'  ? '' : 'none';
-    const hideAtt = tab === 'members-overview' || tab === 'squads-overview';
+    const hideAtt = tab === 'members-overview';
     document.getElementById('attRow').style.display = hideAtt ? 'none' : (_attSliderHasData ? '' : 'none');
     document.getElementById('pdfBtn').disabled = !dashData;
     if (dashData) applyFiltersNoReload();
@@ -559,7 +560,8 @@ function onAttSlider() {
         if (document.activeElement === document.getElementById('attFrom')) f = t; else t = f;
         document.getElementById('attFrom').value = f; document.getElementById('attTo').value = t;
     }
-    attMin = f; attMax = t; updateAttFill(); applyFiltersNoReload();
+    attMin = f; attMax = t; updateAttFill();
+    if (activeTab === 'squads-overview') { loadSquadDashboard(); } else { applyFiltersNoReload(); }
 }
 function updateAttFill() {
     const f = parseInt(document.getElementById('attFrom').value);
@@ -589,6 +591,8 @@ function squadRpcBody(clubId, start, end) {
     const body = {p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()};
     if (fCode.size > 0) body.p_codes = [...fCode];
     if (fType.size > 0) body.p_types = [...fType];
+    if (attMin > 0) body.p_att_min = attMin;
+    if (isFinite(attMax)) body.p_att_max = attMax;
     return JSON.stringify(body);
 }
 
@@ -823,7 +827,12 @@ function applyFilters() {
         document.getElementById('attRow').style.display='none';
         renderMembersOverview(getBaseEvents());
     } else if (activeTab==='squads-overview') {
-        document.getElementById('attRow').style.display='none';
+        if (!_attSliderHasData) {
+            const mx = getBaseEvents().reduce((m,e)=>Math.max(m,e.accepted),0);
+            if (mx > 0) initAttSlider(mx); else document.getElementById('attRow').style.display='none';
+        } else {
+            document.getElementById('attRow').style.display = '';
+        }
         renderSquadsOverview();
     } else {
         const base=getFilteredEventsPerTeam();
@@ -842,7 +851,7 @@ function applyFiltersNoReload() {
         document.getElementById('attRow').style.display='none';
         renderMembersOverview(getBaseEvents());
     } else if (activeTab==='squads-overview') {
-        document.getElementById('attRow').style.display='none';
+        document.getElementById('attRow').style.display = _attSliderHasData ? '' : 'none';
         renderSquadsOverview();
     } else {
         const base=getFilteredEventsPerTeam();
@@ -1037,7 +1046,7 @@ function renderDList(){
                 <div style="flex:1;min-width:0;">
                     <div class="d-nm">${esc(a.events?.event_title||'Match')}</div>
                     ${opp ? `<div class="d-rl">v ${esc(opp)}</div>` : ''}
-                    <div class="d-rl">${fmtDate(a.events?.event_date_time)} · ${esc(squad)}</div>
+                    <div class="d-rl">${fmtDate(a.events?.event_date_time)}</div>
                 </div>
                 <span class="tag">${esc(squad)}</span>
             </div>`;
@@ -1477,12 +1486,26 @@ function renderSquadsOverview() {
         _squadPlayerCache.push({member_id:m.member_id, name:m.name, teamIds});
         return `<tr onclick="openPlayerSquads(${pi})">
             <td style="font-weight:500;">${esc(m.name)}</td>
-            ${squads.map(s=>{const v=m.squads.get(s.squad_id)||0;return`<td style="text-align:center;">${v||'<span style="color:var(--muted)">—</span>'}</td>`;}).join('')}
+            ${squads.map(s=>{
+                const v=m.squads.get(s.squad_id)||0;
+                if (!v) return `<td style="text-align:center;"><span style="color:var(--muted)">—</span></td>`;
+                return `<td style="text-align:center;padding:4px 6px;" onclick="event.stopPropagation()"><button onclick="openPlayerSquads(${pi},${s.squad_id})" style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;background:rgba(135,194,50,0.15);color:var(--green);border:1px solid rgba(135,194,50,0.35);cursor:pointer;line-height:1.6;">${v}</button></td>`;
+            }).join('')}
             <td style="text-align:center;font-weight:600;">${m.total}</td>
             <td style="text-align:center;"><span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;${m.squadCount>=2?'background:rgba(135,194,50,0.15);color:var(--green);border:1px solid rgba(135,194,50,0.35);':'color:var(--muted);'}">${m.squadCount}</span></td>
             <td style="text-align:right;color:var(--muted);font-size:12px;">›</td>
         </tr>`;
     }).join('');
+
+    // Totals row
+    const sqTotals = squads.map(s=>rows.reduce((sum,m)=>sum+(m.squads.get(s.squad_id)||0),0));
+    const grandTotal = rows.reduce((sum,m)=>sum+m.total,0);
+    document.getElementById('squadsFoot').innerHTML = grandTotal ? `<tr style="border-top:2px solid rgba(255,255,255,0.08);">
+        <td style="font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px;">Totals</td>
+        ${sqTotals.map(t=>`<td style="text-align:center;font-weight:700;">${t||'—'}</td>`).join('')}
+        <td style="text-align:center;font-weight:700;">${grandTotal}</td>
+        <td></td><td></td>
+    </tr>` : '';
 }
 
 function sortSquads(col) {
@@ -1492,12 +1515,12 @@ function sortSquads(col) {
     renderSquadsOverview();
 }
 
-async function openPlayerSquads(cacheIdx) {
+async function openPlayerSquads(cacheIdx, initialSquadId=null) {
     const cached = _squadPlayerCache[cacheIdx];
     if (!cached) return;
     drawerMode = 'squadPlayer';
     squadPlayerData = null;
-    squadPlayerFilter = null;
+    squadPlayerFilter = initialSquadId !== null ? Number(initialSquadId) : null;
     document.getElementById('dTitle').textContent = cached.name;
     document.getElementById('dMeta').textContent = 'Loading squad history…';
     document.getElementById('dTabs').innerHTML = '';
