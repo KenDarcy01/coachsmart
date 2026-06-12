@@ -1831,7 +1831,6 @@ async function openPlayerSquads(cacheIdx, initialSquadId=null) {
         const inRange = rows.filter(row => {
             const dt = row.events?.event_date_time ? new Date(row.events.event_date_time) : null;
             if (!dt || dt < start || dt >= end) return false;
-            if (dt >= new Date()) return false; // exclude future events not yet played
             if (cached.teamIds.length > 0 && !cached.teamIds.includes(Number(row.events?.team_id))) return false;
             if (fCode.size > 0 && !fCode.has(row.events?.event_codes?.event_code)) return false;
             if (fType.size > 0 && !fType.has(row.events?.event_types?.event_type)) return false;
