@@ -455,7 +455,7 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
             <div class="kpi-card"><div class="kpi-label">Response Rate</div><div class="kpi-value" id="kpiResp">—</div><div class="kpi-sub" id="kpiRespSub"></div></div>
         </div>
         <div class="chart-card">
-            <div class="chart-label">Avg Accepted per Month</div>
+            <div class="chart-label">Avg Accepted per Month — tap to filter</div>
             <div class="chart-wrap"><canvas id="chartMain"></canvas></div>
         </div>
         <div class="section-head">
@@ -486,7 +486,7 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
             <div class="kpi-card"><div class="kpi-label">Not Responding</div><div class="kpi-value amber" id="mkpiNR">—</div><div class="kpi-sub" id="mkpiNRSub"></div></div>
         </div>
         <div class="chart-card">
-            <div class="chart-label">Acceptance Rate Distribution</div>
+            <div class="chart-label">Acceptance Rate Distribution — tap to filter</div>
             <div class="members-chart-wrap"><canvas id="chartMembers"></canvas></div>
         </div>
         <input class="m-search" id="mSearch" placeholder="Search name…" oninput="renderMembersCards()">
@@ -504,6 +504,10 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
             <div class="kpi-card"><div class="kpi-label">Players</div><div class="kpi-value" id="sqkpiPlayers">—</div></div>
             <div class="kpi-card"><div class="kpi-label">Appearances</div><div class="kpi-value green" id="sqkpiApps">—</div></div>
             <div class="kpi-card"><div class="kpi-label">Avg Accept</div><div class="kpi-value" id="sqkpiRate">—</div></div>
+        </div>
+        <div class="chart-card" id="sqChartCard" style="display:none;">
+            <div class="chart-label">Players Used per Squad — tap to filter</div>
+            <div class="chart-wrap"><canvas id="sqChart"></canvas></div>
         </div>
         <div class="loading-wrap" id="sqLoading" style="display:none;">
             <div class="spinner"></div>
@@ -569,6 +573,9 @@ let detailEvt = null, detailFilt = 'all', drawerMode = 'event', rosterData = nul
 let eventsCache = [], membersCache = [], memberDetailData = null, _membersEvts = [], _rosterCache = [];
 let fTeams = null, fCode = new Set(), fType = new Set(), fRole = new Set();
 let squadData = null, _squadPlayersCache = [];
+let sqChart = null, sqChartFilter = null, _sqChartSquads = [];
+let _mainEvtsCache = [], _mainMonthFilter = null;
+let _membersRateFilter = null;
 let attMin = 0, attMax = Infinity, _attSliderHasData = false;
 let allCodes = [], allTypes = [], allRoles = [], currentClubId = null, activeTab = 'club-overview';
 
@@ -924,10 +931,13 @@ function renderKPIs(evts){
     document.getElementById('kpiRespSub').textContent=`${totalNR} no response`;
 }
 function drawChart(evts){
+    _mainEvtsCache=evts;_mainMonthFilter=null;
     const{start,end}=getDateRange(),months=getMonthsInRange(start,end);
     const barData=months.map(m=>{const me=evts.filter(e=>{const d=new Date(e.date);return d.getFullYear()===m.year&&d.getMonth()===m.month;});return me.length?parseFloat((me.reduce((s,e)=>s+e.accepted,0)/me.length).toFixed(2)):null;});
+    const mkBg=()=>months.map((_,i)=>_mainMonthFilter===null||_mainMonthFilter===i?'rgba(135,194,50,0.25)':'rgba(135,194,50,0.07)');
+    const mkBd=()=>months.map((_,i)=>_mainMonthFilter===null||_mainMonthFilter===i?'#87C232':'rgba(135,194,50,0.2)');
     if(mainChart)mainChart.destroy();
-    mainChart=new Chart(document.getElementById('chartMain'),{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Avg Accepted',data:barData,backgroundColor:'rgba(135,194,50,0.25)',borderColor:'#87C232',borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`Avg accepted: ${item.raw?.toFixed(2)??0}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:45,maxTicksLimit:8},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+    mainChart=new Chart(document.getElementById('chartMain'),{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Avg Accepted',data:barData,backgroundColor:mkBg(),borderColor:mkBd(),borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,els)=>{if(!els.length){_mainMonthFilter=null;}else{const idx=els[0].index;_mainMonthFilter=(_mainMonthFilter===idx)?null:idx;}mainChart.data.datasets[0].backgroundColor=mkBg();mainChart.data.datasets[0].borderColor=mkBd();mainChart.update();if(_mainMonthFilter===null){renderEventCards(_mainEvtsCache);}else{const m=months[_mainMonthFilter];renderEventCards(_mainEvtsCache.filter(e=>{const d=new Date(e.date);return d.getFullYear()===m.year&&d.getMonth()===m.month;}));}},plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`Avg accepted: ${item.raw?.toFixed(2)??0}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:45,maxTicksLimit:8},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
 }
 function renderEventCards(evts){
     const sorted=[...evts].sort((a,b)=>new Date(b.date)-new Date(a.date));
@@ -1072,15 +1082,21 @@ function renderMembersKPIs(stats){
     document.getElementById('mkpiNRSub').textContent=notResp>0?'0 responses in period':'all responded';
 }
 function drawMembersChart(stats){
+    _membersRateFilter=null;
     const labels=['0–20%','21–40%','41–60%','61–80%','81–100%'],counts=[0,0,0,0,0];
-    const bgColors=['rgba(224,82,82,0.3)','rgba(245,166,35,0.28)','rgba(135,194,50,0.18)','rgba(135,194,50,0.24)','rgba(135,194,50,0.32)'],bdColors=['#e05252','#F5A623','#87C232','#87C232','#87C232'];
+    const baseBg=['rgba(224,82,82,0.3)','rgba(245,166,35,0.28)','rgba(135,194,50,0.18)','rgba(135,194,50,0.24)','rgba(135,194,50,0.32)'];
+    const baseBd=['#e05252','#F5A623','#87C232','#87C232','#87C232'];
     for(const m of stats)counts[Math.min(Math.floor(m.rate*5),4)]++;
+    const mkBg=()=>baseBg.map((c,i)=>_membersRateFilter===null||_membersRateFilter===i?c:'rgba(255,255,255,0.05)');
+    const mkBd=()=>baseBd.map((c,i)=>_membersRateFilter===null||_membersRateFilter===i?c:'rgba(255,255,255,0.12)');
     if(membersChart)membersChart.destroy();
-    membersChart=new Chart(document.getElementById('chartMembers'),{type:'bar',data:{labels,datasets:[{data:counts,backgroundColor:bgColors,borderColor:bdColors,borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} member${item.raw!==1?'s':''}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9}},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+    membersChart=new Chart(document.getElementById('chartMembers'),{type:'bar',data:{labels,datasets:[{data:counts,backgroundColor:mkBg(),borderColor:mkBd(),borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,els)=>{if(!els.length){_membersRateFilter=null;}else{const idx=els[0].index;_membersRateFilter=(_membersRateFilter===idx)?null:idx;}membersChart.data.datasets[0].backgroundColor=mkBg();membersChart.data.datasets[0].borderColor=mkBd();membersChart.update();renderMembersCards();},plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} member${item.raw!==1?'s':''}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9}},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}});
 }
 function renderMembersCards(){
     const search=(document.getElementById('mSearch')?.value||'').toLowerCase();
-    const sorted=[...membersCache].filter(m=>!search||m.name.toLowerCase().includes(search)).sort((a,b)=>b.rate-a.rate);
+    let shown=[...membersCache].filter(m=>!search||m.name.toLowerCase().includes(search));
+    if(_membersRateFilter!==null)shown=shown.filter(m=>Math.min(Math.floor(m.rate*5),4)===_membersRateFilter);
+    const sorted=shown.sort((a,b)=>b.rate-a.rate);
     document.getElementById('mTableCount').textContent=`${sorted.length} member${sorted.length!==1?'s':''}`;
     const container=document.getElementById('membersList');
     if(!sorted.length){container.innerHTML=`<div class="empty-state">No members match the current filters.</div>`;document.getElementById('shareBtn').disabled=true;return;}
@@ -1243,6 +1259,7 @@ function getFilteredSquads(){
     return out;
 }
 function renderSquads(){
+    sqChartFilter=null;
     const squads=getFilteredSquads();
     // Aggregate into 1 record per player across all squads
     const playerMap=new Map();
@@ -1251,7 +1268,7 @@ function renderSquads(){
             if(!m.name||!m.name.trim())continue;
             if(!playerMap.has(m.member_id))playerMap.set(m.member_id,{member_id:m.member_id,name:m.name,role:m.role||'',squads:[],total:0});
             const p=playerMap.get(m.member_id);
-            p.squads.push({squad_name:sq.squad_name,count:m.match_selections||0});
+            p.squads.push({squad_id:sq.squad_id,squad_name:sq.squad_name,count:m.match_selections||0});
             p.total+=m.match_selections||0;
         }
     }
@@ -1264,7 +1281,7 @@ function renderSquads(){
     document.getElementById('sqkpiApps').textContent=totalApps||'—';
     document.getElementById('sqkpiRate').textContent=squads.length>0?avgRate:'—';
     document.getElementById('shareBtn').disabled=!_squadPlayersCache.length;
-    if(!_squadPlayersCache.length){document.getElementById('sqContent').innerHTML='<div class="empty-state">No squad data for the current filters.</div>';return;}
+    if(!_squadPlayersCache.length){document.getElementById('sqContent').innerHTML='<div class="empty-state">No squad data for the current filters.</div>';drawSquadChart([]);return;}
     // Squad summary strip
     const stripHtml=squads.map(sq=>{
         const rc=Number(sq.acceptance_rate)>=75?'var(--green)':Number(sq.acceptance_rate)>=50?'var(--amber)':'var(--red)';
@@ -1274,12 +1291,32 @@ function renderSquads(){
             <div class="sq-chip-meta">${tags}<strong>${sq.match_appearances}</strong> apps&nbsp;·&nbsp;<strong style="color:${rc}">${sq.acceptance_rate}%</strong></div>
         </div>`;
     }).join('');
-    // Player cards
+    document.getElementById('sqContent').innerHTML=`<div class="sq-squad-strip">${stripHtml}</div><div id="sqCardsWrap"></div>`;
+    drawSquadChart(squads);
+    renderSquadCards();
+}
+function drawSquadChart(squads){
+    _sqChartSquads=squads;
+    const card=document.getElementById('sqChartCard');
+    if(!squads.length){card.style.display='none';if(sqChart){sqChart.destroy();sqChart=null;}return;}
+    card.style.display='';
+    const mkBg=()=>squads.map(sq=>sqChartFilter===null||sqChartFilter===sq.squad_id?'rgba(135,194,50,0.25)':'rgba(135,194,50,0.06)');
+    const mkBd=()=>squads.map(sq=>sqChartFilter===null||sqChartFilter===sq.squad_id?'#87C232':'rgba(135,194,50,0.2)');
+    if(sqChart)sqChart.destroy();
+    sqChart=new Chart(document.getElementById('sqChart'),{type:'bar',data:{labels:squads.map(sq=>sq.squad_name),datasets:[{data:squads.map(sq=>sq.member_count),backgroundColor:mkBg(),borderColor:mkBd(),borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,els)=>{if(!els.length){sqChartFilter=null;}else{const sid=_sqChartSquads[els[0].index]?.squad_id;sqChartFilter=(sqChartFilter===sid)?null:sid;}sqChart.data.datasets[0].backgroundColor=mkBg();sqChart.data.datasets[0].borderColor=mkBd();sqChart.update();renderSquadCards();},plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} player${item.raw!==1?'s':''}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:30,maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+function renderSquadCards(){
+    const el=document.getElementById('sqCardsWrap');if(!el)return;
+    const filtered=sqChartFilter===null?_squadPlayersCache:_squadPlayersCache.filter(p=>p.squads.some(sq=>sq.squad_id===sqChartFilter));
+    const filterLabel=sqChartFilter!==null?(_sqChartSquads.find(s=>s.squad_id===sqChartFilter)?.squad_name||''):null;
+    const countTxt=sqChartFilter!==null?`${filtered.length} of ${_squadPlayersCache.length}`:`${_squadPlayersCache.length} player${_squadPlayersCache.length!==1?'s':''}`;
+    const headHtml=`<div class="section-head"><span class="section-title">Players${filterLabel?` <span style="color:var(--green);font-size:10px;font-weight:500;">${esc(filterLabel)}</span>`:''}</span><span class="section-count">${countTxt}</span></div>`;
+    if(!filtered.length){el.innerHTML=headHtml+`<div class="empty-state">No players in selected squad.</div>`;return;}
     const maxTotal=Math.max(1,..._squadPlayersCache.map(p=>p.total));
-    const cardsHtml=_squadPlayersCache.map((p,i)=>{
+    const cardsHtml=filtered.map(p=>{
         const pct=Math.round(p.total/maxTotal*100);
         const tags=p.squads.map(sq=>`<span class="sqp-squad-tag">${esc(sq.squad_name)}: ${sq.count}</span>`).join('');
-        return`<div class="sqp-card" onclick="openSquadMemberDrawer(${i})">
+        return`<div class="sqp-card" onclick="openSquadMemberDrawer(${p.member_id})">
             <div class="sqp-top">
                 <div class="sqp-info">
                     <div class="sqp-name">${esc(p.name)}</div>
@@ -1294,10 +1331,10 @@ function renderSquads(){
             <div class="sqp-bar"><div class="sqp-fill" style="width:${pct}%"></div></div>
         </div>`;
     }).join('');
-    document.getElementById('sqContent').innerHTML=`<div class="sq-squad-strip">${stripHtml}</div><div class="section-head"><span class="section-title">Players</span><span class="section-count">${_squadPlayersCache.length} player${_squadPlayersCache.length!==1?'s':''}</span></div>${cardsHtml}`;
+    el.innerHTML=headHtml+cardsHtml;
 }
-async function openSquadMemberDrawer(idx){
-    const p=_squadPlayersCache[idx]; if(!p)return;
+async function openSquadMemberDrawer(memberId){
+    const p=_squadPlayersCache.find(x=>x.member_id===memberId); if(!p)return;
     drawerMode='squad-player';
     const squadSummary=p.squads.map(sq=>`${sq.squad_name}: ${sq.count}`).join(' · ');
     document.getElementById('dTitle').textContent=p.name;
