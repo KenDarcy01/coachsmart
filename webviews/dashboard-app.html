@@ -874,7 +874,8 @@ function pickFilter(el){
     const key=el.dataset.key,val=el.dataset.val,map={code:fCode,type:fType,role:fRole},s=map[key];if(!s)return;
     if(val==='')s.clear();else if(s.has(val))s.delete(val);else s.add(val);
     renderMultiChips('codeChips','code',allCodes,fCode);renderMultiChips('typeChips','type',allTypes,fType);renderMultiChips('roleChips','role',allRoles,fRole);
-    if(activeTab==='squads'&&(key==='code'||key==='type')){squadData=null;loadSquadData();}
+    if(key==='code'||key==='type')squadData=null; // invalidate squad data so next visit to squads tab re-fetches
+    if(activeTab==='squads'&&(key==='code'||key==='type')){loadSquadData();}
     else applyFiltersNoReload();
 }
 
