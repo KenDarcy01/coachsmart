@@ -288,7 +288,7 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
         <div class="cs-tab active" data-tab="club-overview"    onclick="switchTab('club-overview')">Club Overview</div>
         <div class="cs-tab"        data-tab="team-overview"    onclick="switchTab('team-overview')">Team Overview</div>
         <div class="cs-tab"        data-tab="members-overview" onclick="switchTab('members-overview')">Members Overview</div>
-        <div class="cs-tab"        data-tab="squads-overview"  onclick="switchTab('squads-overview')">Squads</div>
+        <div class="cs-tab"        data-tab="squads-overview"  onclick="switchTab('squads-overview')">Squad Overview</div>
     </div>
 </div>
 
@@ -481,6 +481,9 @@ let _squadChartSquads = [];        // activeSquads array from last chart render
 let _sqRenderState    = null;      // {squads, allRows, teamIds} from last full render
 let _dateDebounce     = null;
 let _attDebounce      = null;
+let _teamBaseEvts     = [];    // events cache for month-bar chart filter re-renders
+let _monthChartFilter = null;  // null | {year, month, label} — Team Overview bar click filter
+let _memberRateFilter = null;  // null | 0–4 — Members Overview rate bucket click filter
 let sortCol     = 'date', sortAsc = false;
 let eventsCache = [];
 let fTeams      = null; // null=all teams; new Set()=none; new Set([...ids])=specific
@@ -521,7 +524,10 @@ function switchTab(tab) {
     const hideAtt = tab === 'members-overview';
     document.getElementById('attRow').style.display = hideAtt ? 'none' : (_attSliderHasData ? '' : 'none');
     document.getElementById('pdfBtn').disabled = !dashData;
-    if (dashData) applyFiltersNoReload();
+    if (dashData) {
+        if (tab === 'squads-overview' && !squadData) loadSquadDashboard();
+        else applyFiltersNoReload();
+    }
 }
 
 // ── Date slider ───────────────────────────────────────────────────
@@ -551,6 +557,18 @@ function onDateSlider() {
     document.getElementById('dateFill').style.width = (p2-p1)+'%';
     clearTimeout(_dateDebounce);
     _dateDebounce = setTimeout(() => { if (dashData) loadDashboard(); }, 500);
+}
+
+function initDateSlider() {
+    const now = new Date();
+    const fromVal = MAX_MONTHS - now.getMonth(); // monthToDate(fromVal) = Jan 1 of current year
+    document.getElementById('sliderFrom').value = fromVal;
+    document.getElementById('sliderTo').value   = MAX_MONTHS;
+    document.getElementById('dateFrom').textContent = fmtMonth(monthToDate(fromVal));
+    document.getElementById('dateTo').textContent   = fmtMonth(monthToDate(MAX_MONTHS));
+    const p1 = fromVal/MAX_MONTHS*100;
+    document.getElementById('dateFill').style.left  = p1+'%';
+    document.getElementById('dateFill').style.width = (100-p1)+'%';
 }
 
 // ── Attendees slider ──────────────────────────────────────────────
@@ -874,7 +892,7 @@ function applyFiltersNoReload() {
         renderTeamCards(filtered);
     }
 }
-function renderClubOverview(evts) { renderKPIs(evts); drawChart(evts); renderTable(evts); }
+function renderClubOverview(evts) { _teamBaseEvts=evts; renderKPIs(evts); drawChart(evts); renderTable(evts); }
 
 // ── KPIs ──────────────────────────────────────────────────────────
 function renderKPIs(evts) {
@@ -892,6 +910,7 @@ function renderKPIs(evts) {
 // ── Chart ─────────────────────────────────────────────────────────
 function setGroupBy(g) {
     groupBy=g;
+    if (g !== 'month') _monthChartFilter = null;
     document.querySelectorAll('#grpTog .tog').forEach((b,i)=>b.classList.toggle('active',['month','code','team'][i]===g));
     document.getElementById('smthTog').style.display=g==='month'?'none':'';
     if (dashData) applyFiltersNoReload();
@@ -933,6 +952,7 @@ function drawLineChart(evts) {
     });
 }
 function drawMonthBarChart(evts) {
+    _monthChartFilter = null; // reset on chart rebuild (new data/date range)
     const {start,end}=getDateRange(), months=getMonthsInRange(start,end);
     const barData=months.map(m=>{
         const me=evts.filter(e=>{const d=new Date(e.date);return d.getFullYear()===m.year&&d.getMonth()===m.month;});
@@ -940,8 +960,24 @@ function drawMonthBarChart(evts) {
     });
     if (mainChart) mainChart.destroy();
     mainChart=new Chart(document.getElementById('chartMain'),{
-        type:'bar', data:{labels:months.map(m=>m.label),datasets:[{label:'Avg Accepted',data:barData,backgroundColor:'rgba(135,194,50,0.25)',borderColor:'#87C232',borderWidth:1,borderRadius:4,borderSkipped:false}]},
+        type:'bar',
+        data:{labels:months.map(m=>m.label),datasets:[{label:'Avg Accepted',data:barData,
+            backgroundColor:months.map(()=>'rgba(135,194,50,0.25)'),
+            borderColor:months.map(()=>'#87C232'),
+            borderWidth:1,borderRadius:4,borderSkipped:false}]},
         options:{responsive:true,maintainAspectRatio:false,
+            onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
+            onClick:(evt,els)=>{
+                if (!els.length) { _monthChartFilter=null; }
+                else {
+                    const m=months[els[0].index];
+                    _monthChartFilter=(_monthChartFilter&&_monthChartFilter.year===m.year&&_monthChartFilter.month===m.month)?null:m;
+                }
+                mainChart.data.datasets[0].backgroundColor=months.map(m=>_monthChartFilter===null||(_monthChartFilter.year===m.year&&_monthChartFilter.month===m.month)?'rgba(135,194,50,0.25)':'rgba(135,194,50,0.07)');
+                mainChart.data.datasets[0].borderColor=months.map(m=>_monthChartFilter===null||(_monthChartFilter.year===m.year&&_monthChartFilter.month===m.month)?'#87C232':'rgba(135,194,50,0.25)');
+                mainChart.update('none');
+                renderTable(_teamBaseEvts);
+            },
             plugins:{legend:{labels:{color:'#6B7280',font:{family:'DM Sans',size:11},boxWidth:12,padding:16}},tooltip:{callbacks:{label:item=>`Avg accepted: ${item.raw?.toFixed(2)??0}`}}},
             scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:10},callback:v=>v.toFixed(2)},grid:{color:'rgba(255,255,255,0.04)'}}}
         }
@@ -958,14 +994,18 @@ function setSort(col) {
     renderTable(getBaseEvents().filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
 }
 function renderTable(evts) {
-    const sorted=[...evts].sort((a,b)=>{
+    _teamBaseEvts = evts; // keep cache in sync (setSort also calls this)
+    const display = _monthChartFilter
+        ? evts.filter(e=>{const d=new Date(e.date);return d.getFullYear()===_monthChartFilter.year&&d.getMonth()===_monthChartFilter.month;})
+        : evts;
+    const sorted=[...display].sort((a,b)=>{
         let va=a[sortCol],vb=b[sortCol];
         if(sortCol==='date'){va=new Date(va);vb=new Date(vb);}
         if(typeof va==='string'){va=va.toLowerCase();vb=(vb||'').toLowerCase();}
         if(va<vb)return sortAsc?-1:1;if(va>vb)return sortAsc?1:-1;return 0;
     });
     eventsCache=sorted;
-    document.getElementById('tableCount').textContent=`${sorted.length} event${sorted.length!==1?'s':''}`;
+    document.getElementById('tableCount').textContent=`${sorted.length} event${sorted.length!==1?'s':''}${_monthChartFilter?' — '+_monthChartFilter.label:''}`;
     const tbody=document.getElementById('eventsBody');
     if(!sorted.length){tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state">No events match the current filters.</div></td></tr>`;return;}
     tbody.innerHTML=sorted.map((e,i)=>`
@@ -1253,16 +1293,28 @@ function renderMembersKPIs(stats) {
 }
 
 function drawMembersChart(stats) {
-    const labels   = ['0–20%','21–40%','41–60%','61–80%','81–100%'];
-    const counts   = [0,0,0,0,0];
-    const bgColors = ['rgba(224,82,82,0.3)','rgba(245,166,35,0.28)','rgba(135,194,50,0.18)','rgba(135,194,50,0.24)','rgba(135,194,50,0.32)'];
-    const bdColors = ['#e05252','#F5A623','#87C232','#87C232','#87C232'];
+    _memberRateFilter = null; // reset on chart rebuild (new data)
+    const labels  = ['0–20%','21–40%','41–60%','61–80%','81–100%'];
+    const counts  = [0,0,0,0,0];
+    const baseBg  = ['rgba(224,82,82,0.3)','rgba(245,166,35,0.28)','rgba(135,194,50,0.18)','rgba(135,194,50,0.24)','rgba(135,194,50,0.32)'];
+    const baseBd  = ['#e05252','#F5A623','#87C232','#87C232','#87C232'];
+    const dimBg   = ['rgba(224,82,82,0.08)','rgba(245,166,35,0.08)','rgba(135,194,50,0.07)','rgba(135,194,50,0.07)','rgba(135,194,50,0.07)'];
+    const dimBd   = ['rgba(224,82,82,0.25)','rgba(245,166,35,0.25)','rgba(135,194,50,0.2)','rgba(135,194,50,0.2)','rgba(135,194,50,0.2)'];
     for (const m of stats) counts[Math.min(Math.floor(m.rate*5),4)]++;
     if (membersChart) membersChart.destroy();
     membersChart = new Chart(document.getElementById('chartMembers'), {
         type:'bar',
-        data:{ labels, datasets:[{ label:'Members', data:counts, backgroundColor:bgColors, borderColor:bdColors, borderWidth:1, borderRadius:4, borderSkipped:false }] },
+        data:{ labels, datasets:[{ label:'Members', data:counts, backgroundColor:[...baseBg], borderColor:[...baseBd], borderWidth:1, borderRadius:4, borderSkipped:false }] },
         options:{ responsive:true, maintainAspectRatio:false,
+            onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
+            onClick:(evt,els)=>{
+                if (!els.length) { _memberRateFilter=null; }
+                else { const i=els[0].index; _memberRateFilter=(_memberRateFilter===i)?null:i; }
+                membersChart.data.datasets[0].backgroundColor=_memberRateFilter===null?[...baseBg]:baseBg.map((c,i)=>i===_memberRateFilter?c:dimBg[i]);
+                membersChart.data.datasets[0].borderColor=_memberRateFilter===null?[...baseBd]:baseBd.map((c,i)=>i===_memberRateFilter?c:dimBd[i]);
+                membersChart.update('none');
+                renderMembersTable();
+            },
             plugins:{ legend:{display:false}, tooltip:{callbacks:{label:item=>`${item.raw} member${item.raw!==1?'s':''}`}} },
             scales:{
                 x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
@@ -1285,13 +1337,18 @@ function setMSort(col) {
 
 function renderMembersTable() {
     const search = (document.getElementById('mSearch')?.value||'').toLowerCase();
-    const filtered = membersCache.filter(m=>!search||m.name.toLowerCase().includes(search));
+    const base = membersCache.filter(m=>!search||m.name.toLowerCase().includes(search));
+    const filtered = _memberRateFilter !== null
+        ? base.filter(m => Math.min(Math.floor(m.rate*5),4) === _memberRateFilter)
+        : base;
     const sorted = [...filtered].sort((a,b)=>{
         let va=a[mSortCol], vb=b[mSortCol];
         if (typeof va==='string'){va=va.toLowerCase();vb=(vb||'').toLowerCase();}
         if(va<vb)return mSortAsc?-1:1; if(va>vb)return mSortAsc?1:-1; return 0;
     });
-    document.getElementById('mTableCount').textContent = `${sorted.length} member${sorted.length!==1?'s':''}`;
+    const rateLabels = ['0–20%','21–40%','41–60%','61–80%','81–100%'];
+    const rateLabel  = _memberRateFilter !== null ? ` — ${rateLabels[_memberRateFilter]}` : '';
+    document.getElementById('mTableCount').textContent = `${sorted.length} member${sorted.length!==1?'s':''}${rateLabel}`;
     const tbody = document.getElementById('membersBody');
     if (!sorted.length) { tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state">No members match the current filters.</div></td></tr>`; return; }
     tbody.innerHTML = sorted.map(m=>{
@@ -1833,7 +1890,7 @@ async function exportDrawerExcel(){
 }
 
 // ── Init ──────────────────────────────────────────────────────────
-onDateSlider();
+initDateSlider();
 switchTab(paramTab);
 loadClubs();
 </script>
