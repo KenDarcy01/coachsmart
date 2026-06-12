@@ -421,6 +421,10 @@ tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
                     <button class="export-btn" onclick="exportSquadsCSV()">↓ CSV</button>
                 </div>
             </div>
+            <div style="padding:0 16px 10px;">
+                <input id="sqSearch" type="text" placeholder="Search player name…" oninput="renderSquadsTable()"
+                       style="width:100%;box-sizing:border-box;padding:7px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#F9FAFB;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+            </div>
             <div class="tscroll">
                 <table>
                     <thead id="squadsHead"></thead>
@@ -472,6 +476,11 @@ let squadPlayerData  = null;  // { name, appearances: [{event_title, event_date_
 let squadPlayerFilter = null; // null = all squads, or squad_id (number) to filter
 let _squadPlayerCache = [];   // [{member_id, name, teamIds}]
 let sqSort      = {col:'total', dir:-1}; // col: 'name'|'total'|'squads'|String(squad_id)
+let sqChartFilter     = null;      // null=all, squad_id filtered by bar-chart click
+let _squadChartSquads = [];        // activeSquads array from last chart render
+let _sqRenderState    = null;      // {squads, allRows, teamIds} from last full render
+let _dateDebounce     = null;
+let _attDebounce      = null;
 let sortCol     = 'date', sortAsc = false;
 let eventsCache = [];
 let fTeams      = null; // null=all teams; new Set()=none; new Set([...ids])=specific
@@ -540,7 +549,8 @@ function onDateSlider() {
     const p1 = f/MAX_MONTHS*100, p2 = t/MAX_MONTHS*100;
     document.getElementById('dateFill').style.left  = p1+'%';
     document.getElementById('dateFill').style.width = (p2-p1)+'%';
-    if (dashData) loadDashboard();
+    clearTimeout(_dateDebounce);
+    _dateDebounce = setTimeout(() => { if (dashData) loadDashboard(); }, 500);
 }
 
 // ── Attendees slider ──────────────────────────────────────────────
@@ -561,7 +571,10 @@ function onAttSlider() {
         document.getElementById('attFrom').value = f; document.getElementById('attTo').value = t;
     }
     attMin = f; attMax = t; updateAttFill();
-    if (activeTab === 'squads-overview') { loadSquadDashboard(); } else { applyFiltersNoReload(); }
+    clearTimeout(_attDebounce);
+    _attDebounce = setTimeout(() => {
+        if (activeTab === 'squads-overview') { loadSquadDashboard(); } else { applyFiltersNoReload(); }
+    }, 500);
 }
 function updateAttFill() {
     const f = parseInt(document.getElementById('attFrom').value);
@@ -1374,9 +1387,9 @@ function renderSquadsOverview() {
         ['sqkpiSquads','sqkpiPlayers','sqkpiCross','sqkpiTotal'].forEach(id=>document.getElementById(id).textContent='—');
         ['sqkpiSquadsSub','sqkpiPlayersSub','sqkpiTotalSub'].forEach(id=>document.getElementById(id).textContent='');
         if (squadChart){squadChart.destroy();squadChart=null;}
+        _sqRenderState = null;
         return;
     }
-    _squadPlayerCache = [];
     const teams = getFilteredSquadTeams();
 
     // Build flat squad list and per-member cross-squad map.
@@ -1396,6 +1409,7 @@ function renderSquadsOverview() {
             const seen   = squadSeen.get(sq.squad_id);
             for (const m of sq.members || []) {
                 if (!m.match_selections) continue;
+                if (!m.name || !m.name.trim()) continue; // exclude blank-named members
                 if (fRole.size > 0 && !fRole.has(m.role)) continue;
                 if (seen.has(m.member_id)) continue; // duplicate code-entry for same squad — skip
                 seen.add(m.member_id);
@@ -1423,9 +1437,10 @@ function renderSquadsOverview() {
     document.getElementById('sqkpiTotal').textContent = totalSels;
     document.getElementById('sqkpiTotalSub').textContent = totalSels>0?`avg ${(totalSels/Math.max(playersUsed,1)).toFixed(1)} per player`:'';
 
-    // Chart
-    if (squadChart) { squadChart.destroy(); squadChart=null; }
+    // Chart — bars dim when a filter is active
     const activeSquads = squads.filter(s=>s.players_used>0);
+    _squadChartSquads = activeSquads;
+    if (squadChart) { squadChart.destroy(); squadChart=null; }
     squadChart = new Chart(document.getElementById('chartSquads'), {
         type: 'bar',
         data: {
@@ -1433,8 +1448,8 @@ function renderSquadsOverview() {
             datasets: [{
                 label: 'Players Used',
                 data: activeSquads.map(s=>s.players_used),
-                backgroundColor: 'rgba(135,194,50,0.25)',
-                borderColor: '#87C232',
+                backgroundColor: activeSquads.map(s=>sqChartFilter===null||sqChartFilter===s.squad_id?'rgba(135,194,50,0.25)':'rgba(135,194,50,0.07)'),
+                borderColor:     activeSquads.map(s=>sqChartFilter===null||sqChartFilter===s.squad_id?'#87C232':'rgba(135,194,50,0.25)'),
                 borderWidth: 1,
                 borderRadius: 4,
                 borderSkipped: false
@@ -1442,6 +1457,18 @@ function renderSquadsOverview() {
         },
         options: {
             responsive:true, maintainAspectRatio:false,
+            onClick: (evt, els) => {
+                if (!els.length) { sqChartFilter = null; }
+                else {
+                    const sid = _squadChartSquads[els[0].index]?.squad_id;
+                    sqChartFilter = (sqChartFilter === sid) ? null : sid;
+                }
+                // Update bar colours in-place (no chart destroy/recreate)
+                squadChart.data.datasets[0].backgroundColor = _squadChartSquads.map(s=>sqChartFilter===null||sqChartFilter===s.squad_id?'rgba(135,194,50,0.25)':'rgba(135,194,50,0.07)');
+                squadChart.data.datasets[0].borderColor     = _squadChartSquads.map(s=>sqChartFilter===null||sqChartFilter===s.squad_id?'#87C232':'rgba(135,194,50,0.25)');
+                squadChart.update('none');
+                renderSquadsTable();
+            },
             plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} player${item.raw!==1?'s':''} used`}}},
             scales:{
                 x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
@@ -1450,24 +1477,28 @@ function renderSquadsOverview() {
         }
     });
 
-    // Table header — sortable columns, squad cells centre-aligned
+    // Cache processed data for table-only re-renders (search, chart filter, sort)
     const teamIds = teams.map(t=>t.team_id);
-    const _arrow = col => sqSort.col === String(col) ? (sqSort.dir === -1 ? ' ↓' : ' ↑') : '';
-    const _thC = 'text-align:center;cursor:pointer;user-select:none;white-space:nowrap;';
-    const _thL = 'text-align:left;cursor:pointer;user-select:none;white-space:nowrap;';
-    document.getElementById('squadsHead').innerHTML = `<tr>
-        <th style="${_thL}" onclick="sortSquads('name')">Player${_arrow('name')}</th>
-        ${squads.map(s=>`<th style="${_thC}" onclick="sortSquads(${s.squad_id})">${esc(s.squad_name)}${_arrow(s.squad_id)}</th>`).join('')}
-        <th style="${_thC}" onclick="sortSquads('total')">Total${_arrow('total')}</th>
-        <th style="${_thC}" onclick="sortSquads('squads')">Squads${_arrow('squads')}</th>
-        <th style="width:28px;"></th>
-    </tr>`;
-
-    // Table body — sorted by sqSort state
-    const rows = members.map(m=>{
+    const allRows = members.map(m=>{
         const total=[...m.squads.values()].reduce((s,v)=>s+v,0);
         return {...m, total, squadCount:m.squads.size};
-    }).sort((a,b)=>{
+    });
+    _sqRenderState = {squads, allRows, teamIds};
+    renderSquadsTable();
+}
+
+function renderSquadsTable() {
+    if (!_sqRenderState) return;
+    const {squads, allRows, teamIds} = _sqRenderState;
+    _squadPlayerCache = [];
+
+    // Apply search and chart-filter on top of pre-computed allRows
+    const searchTerm = (document.getElementById('sqSearch')?.value || '').toLowerCase().trim();
+    const rows = allRows.filter(m => {
+        if (searchTerm && !m.name.toLowerCase().includes(searchTerm)) return false;
+        if (sqChartFilter !== null && !m.squads.has(sqChartFilter)) return false;
+        return true;
+    }).sort((a,b) => {
         const col = sqSort.col, d = sqSort.dir;
         if (col === 'name')   return d * a.name.localeCompare(b.name);
         if (col === 'total')  return d * (a.total - b.total);
@@ -1476,11 +1507,27 @@ function renderSquadsOverview() {
         return d * ((a.squads.get(sid)||0) - (b.squads.get(sid)||0));
     });
 
-    document.getElementById('sqTableCount').textContent = `${rows.length} player${rows.length!==1?'s':''}`;
+    // Table header — highlight active chart-filter column
+    const _arrow = col => sqSort.col === String(col) ? (sqSort.dir === -1 ? ' ↓' : ' ↑') : '';
+    const _thC = 'text-align:center;cursor:pointer;user-select:none;white-space:nowrap;';
+    const _thL = 'text-align:left;cursor:pointer;user-select:none;white-space:nowrap;';
+    document.getElementById('squadsHead').innerHTML = `<tr>
+        <th style="${_thL}" onclick="sortSquads('name')">Player${_arrow('name')}</th>
+        ${squads.map(s=>`<th style="${_thC}${sqChartFilter===s.squad_id?'color:var(--green);':''}" onclick="sortSquads(${s.squad_id})">${esc(s.squad_name)}${_arrow(s.squad_id)}</th>`).join('')}
+        <th style="${_thC}" onclick="sortSquads('total')">Total${_arrow('total')}</th>
+        <th style="${_thC}" onclick="sortSquads('squads')">Squads${_arrow('squads')}</th>
+        <th style="width:28px;"></th>
+    </tr>`;
+
+    const filterLabel = sqChartFilter !== null ? ' (filtered)' : '';
+    document.getElementById('sqTableCount').textContent = `${rows.length} player${rows.length!==1?'s':''}${filterLabel}`;
+
     if (!rows.length) {
-        document.getElementById('squadsBody').innerHTML = `<tr><td colspan="${squads.length+3}" style="text-align:center;color:var(--muted);padding:28px;font-size:13px;">No match squad selections recorded in this period</td></tr>`;
+        document.getElementById('squadsBody').innerHTML = `<tr><td colspan="${squads.length+4}" style="text-align:center;color:var(--muted);padding:28px;font-size:13px;">No match squad selections recorded in this period</td></tr>`;
+        document.getElementById('squadsFoot').innerHTML = '';
         return;
     }
+
     document.getElementById('squadsBody').innerHTML = rows.map(m=>{
         const pi = _squadPlayerCache.length;
         _squadPlayerCache.push({member_id:m.member_id, name:m.name, teamIds});
@@ -1492,27 +1539,27 @@ function renderSquadsOverview() {
                 return `<td style="text-align:center;padding:4px 6px;" onclick="event.stopPropagation()"><button onclick="openPlayerSquads(${pi},${s.squad_id})" style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;background:rgba(135,194,50,0.15);color:var(--green);border:1px solid rgba(135,194,50,0.35);cursor:pointer;line-height:1.6;">${v}</button></td>`;
             }).join('')}
             <td style="text-align:center;font-weight:600;">${m.total}</td>
-            <td style="text-align:center;"><span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;${m.squadCount>=2?'background:rgba(135,194,50,0.15);color:var(--green);border:1px solid rgba(135,194,50,0.35);':'color:var(--muted);'}">${m.squadCount}</span></td>
+            <td style="text-align:center;${m.squadCount>=2?'font-weight:600;color:var(--green);':'color:var(--muted);'}">${m.squadCount}</td>
             <td style="text-align:right;color:var(--muted);font-size:12px;">›</td>
         </tr>`;
     }).join('');
 
-    // Totals row
-    const sqTotals = squads.map(s=>rows.reduce((sum,m)=>sum+(m.squads.get(s.squad_id)||0),0));
-    const grandTotal = rows.reduce((sum,m)=>sum+m.total,0);
-    document.getElementById('squadsFoot').innerHTML = grandTotal ? `<tr style="border-top:2px solid rgba(255,255,255,0.08);">
-        <td style="font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px;">Totals</td>
-        ${sqTotals.map(t=>`<td style="text-align:center;font-weight:700;">${t||'—'}</td>`).join('')}
-        <td style="text-align:center;font-weight:700;">${grandTotal}</td>
+    // Footer: count of distinct players per squad (not sum of selections)
+    const sqCounts = squads.map(s => rows.filter(m => m.squads.has(s.squad_id)).length);
+    const grandCount = rows.length;
+    document.getElementById('squadsFoot').innerHTML = `<tr style="border-top:2px solid rgba(255,255,255,0.08);">
+        <td style="font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px;">Players</td>
+        ${sqCounts.map(c=>`<td style="text-align:center;font-weight:700;">${c||'—'}</td>`).join('')}
+        <td style="text-align:center;font-weight:700;">${grandCount}</td>
         <td></td><td></td>
-    </tr>` : '';
+    </tr>`;
 }
 
 function sortSquads(col) {
     const key = String(col);
     sqSort.dir = sqSort.col === key ? -sqSort.dir : -1;
     sqSort.col = key;
-    renderSquadsOverview();
+    renderSquadsTable();
 }
 
 async function openPlayerSquads(cacheIdx, initialSquadId=null) {
@@ -1572,6 +1619,7 @@ function exportSquadsCSV() {
             const seen=squadSeen.get(sq.squad_id);
             for (const m of sq.members||[]) {
                 if (!m.match_selections||seen.has(m.member_id)) continue;
+                if (!m.name || !m.name.trim()) continue;
                 if (fRole.size > 0 && !fRole.has(m.role)) continue;
                 seen.add(m.member_id);
                 if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id,{name:m.name,squads:new Map()});
