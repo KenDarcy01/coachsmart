@@ -778,11 +778,18 @@ function onClubChange() { if (document.getElementById('clubSelect').value) loadD
 
 // ── Dashboard fetch ───────────────────────────────────────────────
 function squadRpcBody(clubId, start, end) {
-    const body = {p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()};
-    if (fCode.size > 0) body.p_codes = [...fCode];
-    if (fType.size > 0) body.p_types = [...fType];
-    if (attMin > 0) body.p_att_min = attMin;
-    if (isFinite(attMax)) body.p_att_max = attMax;
+    // Always include ALL 7 params so PostgREST unambiguously resolves to the
+    // 7-parameter signature (v5). Sending fewer params triggers PGRST203
+    // overloading ambiguity because older 3- and 5-param versions still exist.
+    const body = {
+        p_club_id:    clubId,
+        p_start_date: start.toISOString(),
+        p_end_date:   end.toISOString(),
+        p_codes:      fCode.size > 0 ? [...fCode] : null,
+        p_types:      fType.size > 0 ? [...fType] : null,
+        p_att_min:    attMin > 0 ? attMin : 0,
+        p_att_max:    isFinite(attMax) ? attMax : null,
+    };
     return JSON.stringify(body);
 }
 
@@ -811,7 +818,7 @@ async function loadDashboard() {
         if (data.error) throw new Error(data.error);
         dashData = data;
         squadData = rs.ok ? await rs.json().catch(()=>null) : null;
-        if (squadData?.error) squadData = null;
+        if (squadData?.error || squadData?.code) squadData = null;
         if (paramClub && data.club_name) {
             document.getElementById('ctxLabel').textContent = data.club_name;
             document.getElementById('ctxLabel').style.display = '';
@@ -840,7 +847,7 @@ async function loadSquadDashboard() {
             body: squadRpcBody(clubId, start, end)
         });
         squadData = rs.ok ? await rs.json().catch(()=>null) : null;
-        if (squadData?.error) squadData = null;
+        if (squadData?.error || squadData?.code) squadData = null;
     } catch(e) { console.error('Squad dashboard reload failed:', e); }
     renderSquadsOverview();
 }
