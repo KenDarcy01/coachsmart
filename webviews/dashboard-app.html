@@ -194,25 +194,24 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 .mc-events { font-size: 11px; color: var(--muted); margin-left: auto; }
 
 /* ── Squad tab ── */
-.sq-squad-strip { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.sq-squad-chip { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; flex: 1; min-width: 130px; }
-.sq-chip-name { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
-.sq-chip-meta { font-size: 10px; color: var(--muted); display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
-.sq-chip-meta strong { color: var(--green); }
 /* player cards — 1 per player, full width, clickable */
 .sqp-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
 .sqp-card:active { border-color: rgba(135,194,50,0.4); background: var(--card2); }
-.sqp-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.sqp-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .sqp-info { flex: 1; min-width: 0; }
 .sqp-name { font-size: 14px; font-weight: 600; }
 .sqp-role { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .sqp-right { text-align: right; flex-shrink: 0; }
-.sqp-num { font-size: 26px; font-weight: 700; color: var(--green); line-height: 1; }
+.sqp-num { font-size: 26px; font-weight: 700; line-height: 1; }
 .sqp-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
-.sqp-squads { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 7px; }
-.sqp-squad-tag { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; background: rgba(135,194,50,0.1); border: 1px solid rgba(135,194,50,0.25); color: var(--green); }
-.sqp-bar { height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
-.sqp-fill { height: 100%; background: var(--green); border-radius: 2px; opacity: 0.65; }
+/* mini bar chart inside player card */
+.sqp-chart { display: flex; flex-direction: column; gap: 5px; }
+.sqp-bar-row { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 2px 0; border-radius: 4px; }
+.sqp-bar-row:active { opacity: 0.7; }
+.sqp-bar-label { font-size: 10px; color: var(--muted); width: 72px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sqp-bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
+.sqp-bar-fill-inner { height: 100%; border-radius: 4px; }
+.sqp-bar-count { font-size: 11px; font-weight: 600; width: 22px; text-align: right; flex-shrink: 0; }
 /* squad member drawer rows */
 .sq-ev-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .sq-ev-row:last-child { border-bottom: none; }
@@ -223,6 +222,8 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 .sq-ev-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
 .sq-ev-sub { font-size: 11px; color: var(--muted); }
 .sq-ev-squad { flex-shrink: 0; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; background: rgba(135,194,50,0.1); border: 1px solid rgba(135,194,50,0.25); color: var(--green); align-self: center; }
+/* team card mini chart */
+.tc-chart { height: 80px; padding: 4px 14px 8px; position: relative; }
 
 /* Member search */
 .m-search { width: 100%; padding: 9px 12px; border-radius: 8px; background: var(--card2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; margin-bottom: 10px; }
@@ -573,6 +574,7 @@ let adminTeams = [], adminTeamIds = new Set(), userClubs = [];
 
 // ── Dashboard state ───────────────────────────────────────────────
 let dashData = null, mainChart = null, membersChart = null, teamChart = null;
+let _teamMiniCharts = [];
 let detailEvt = null, detailFilt = 'all', drawerMode = 'event', rosterData = null;
 let eventsCache = [], membersCache = [], memberDetailData = null, _membersEvts = [], _rosterCache = [];
 let fTeams = null, fCode = new Set(), fType = new Set(), fRole = new Set();
@@ -766,7 +768,12 @@ function switchTab(tab) {
 
 // ── Date slider ───────────────────────────────────────────────────
 function initDateSlider() {
-    const f=parseInt(document.getElementById('sliderFrom').value),t=parseInt(document.getElementById('sliderTo').value);
+    // Default: Jan 1 of current calendar year → current month
+    const monthsFromJan=new Date().getMonth(); // 0=Jan, 5=Jun, …
+    const fromVal=Math.max(0,Math.min(MAX_MONTHS-1,MAX_MONTHS-monthsFromJan));
+    document.getElementById('sliderFrom').value=fromVal;
+    document.getElementById('sliderTo').value=MAX_MONTHS;
+    const f=fromVal,t=MAX_MONTHS;
     document.getElementById('dateFrom').textContent=fmtMonth(monthToDate(f));
     document.getElementById('dateTo').textContent=fmtMonth(monthToDate(t));
     const p1=f/MAX_MONTHS*100,p2=t/MAX_MONTHS*100;
@@ -1004,10 +1011,25 @@ function renderTeamCards(evtsPerTeam){
                 <div class="tc-kpi"><div class="tc-kv amber">${respRate}</div><div class="tc-kl">Response</div></div>
             </div>
             ${rolesHtml}
-            <div class="tc-footer">View in Club Overview &rarr;</div>
+            <div class="tc-chart"><canvas id="tchart_${team.team_id}" onclick="event.stopPropagation()"></canvas></div>
+            <div class="tc-footer">View events &rarr;</div>
         </div>`;
     }).join('');
     document.getElementById('shareBtn').disabled=false;
+    drawTeamMiniCharts(visible,evtsPerTeam);
+}
+function drawTeamMiniCharts(teams,evtsPerTeam){
+    _teamMiniCharts.forEach(c=>c.destroy());_teamMiniCharts=[];
+    const{start,end}=getDateRange(),months=getMonthsInRange(start,end);
+    for(const team of teams){
+        const canvas=document.getElementById(`tchart_${team.team_id}`);if(!canvas)continue;
+        const evts=evtsPerTeam[team.team_id]||[];
+        const data=months.map(m=>{const me=evts.filter(e=>{const d=new Date(e.date);return d.getFullYear()===m.year&&d.getMonth()===m.month;});const tA=me.reduce((s,e)=>s+e.accepted,0),tAll=me.reduce((s,e)=>s+e.total,0);return tAll>0?parseFloat((tA/tAll*100).toFixed(1)):null;});
+        const bgC=v=>v===null?'rgba(255,255,255,0.04)':v>=75?'rgba(135,194,50,0.28)':v>=50?'rgba(245,166,35,0.28)':'rgba(224,82,82,0.28)';
+        const bdC=v=>v===null?'rgba(255,255,255,0.08)':v>=75?'#87C232':v>=50?'#F5A623':'#e05252';
+        const c=new Chart(canvas,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{data,backgroundColor:data.map(bgC),borderColor:data.map(bdC),borderWidth:1,borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw?.toFixed(1)??'—'}%`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:8},maxRotation:30,maxTicksLimit:6},grid:{display:false}},y:{beginAtZero:true,max:100,display:false}}}});
+        _teamMiniCharts.push(c);
+    }
 }
 function drawTeamChart(teams,evtsPerTeam){
     const data=teams.map(team=>{const evts=evtsPerTeam[team.team_id]||[];const totalAcc=evts.reduce((s,e)=>s+e.accepted,0),totalAll=evts.reduce((s,e)=>s+e.total,0);return totalAll>0?parseFloat((totalAcc/totalAll*100).toFixed(1)):null;});
@@ -1300,16 +1322,7 @@ function renderSquads(){
     document.getElementById('sqkpiRate').textContent=squads.length>0?avgRate:'—';
     document.getElementById('shareBtn').disabled=!_squadPlayersCache.length;
     if(!_squadPlayersCache.length){document.getElementById('sqContent').innerHTML='<div class="empty-state">No squad data for the current filters.</div>';drawSquadChart([]);return;}
-    // Squad summary strip
-    const stripHtml=squads.map(sq=>{
-        const rc=Number(sq.acceptance_rate)>=75?'var(--green)':Number(sq.acceptance_rate)>=50?'var(--amber)':'var(--red)';
-        const tags=[sq.code,sq.grade].filter(Boolean).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
-        return`<div class="sq-squad-chip">
-            <div class="sq-chip-name">${esc(sq.squad_name)}</div>
-            <div class="sq-chip-meta">${tags}<strong>${sq.match_appearances}</strong> apps&nbsp;·&nbsp;<strong style="color:${rc}">${sq.acceptance_rate}%</strong></div>
-        </div>`;
-    }).join('');
-    document.getElementById('sqContent').innerHTML=`<div class="sq-squad-strip">${stripHtml}</div><div id="sqCardsWrap"></div>`;
+    document.getElementById('sqContent').innerHTML=`<div id="sqCardsWrap"></div>`;
     drawSquadChart(squads);
     renderSquadCards();
 }
@@ -1325,40 +1338,51 @@ function drawSquadChart(squads){
 }
 function renderSquadCards(){
     const el=document.getElementById('sqCardsWrap');if(!el)return;
-    const filtered=sqChartFilter===null?_squadPlayersCache:_squadPlayersCache.filter(p=>p.squads.some(sq=>sq.squad_id===sqChartFilter));
+    let filtered=sqChartFilter===null?_squadPlayersCache:_squadPlayersCache.filter(p=>p.squads.some(sq=>sq.squad_id===sqChartFilter));
+    if(fRole.size>0)filtered=filtered.filter(p=>fRole.has(p.role));
     const filterLabel=sqChartFilter!==null?(_sqChartSquads.find(s=>s.squad_id===sqChartFilter)?.squad_name||''):null;
-    const countTxt=sqChartFilter!==null?`${filtered.length} of ${_squadPlayersCache.length}`:`${_squadPlayersCache.length} player${_squadPlayersCache.length!==1?'s':''}`;
+    const countTxt=filtered.length!==_squadPlayersCache.length?`${filtered.length} of ${_squadPlayersCache.length}`:`${_squadPlayersCache.length} player${_squadPlayersCache.length!==1?'s':''}`;
     const headHtml=`<div class="section-head"><span class="section-title">Players${filterLabel?` <span style="color:var(--green);font-size:10px;font-weight:500;">${esc(filterLabel)}</span>`:''}</span><span class="section-count">${countTxt}</span></div>`;
-    if(!filtered.length){el.innerHTML=headHtml+`<div class="empty-state">No players in selected squad.</div>`;return;}
+    if(!filtered.length){el.innerHTML=headHtml+`<div class="empty-state">No players match the current filters.</div>`;return;}
     const maxTotal=Math.max(1,..._squadPlayersCache.map(p=>p.total));
     const cardsHtml=filtered.map(p=>{
         const pct=Math.round(p.total/maxTotal*100);
-        const col=pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
-        const tags=p.squads.map(sq=>`<span class="sqp-squad-tag">${esc(sq.squad_name)}: ${sq.count}</span>`).join('');
-        return`<div class="sqp-card" onclick="openSquadMemberDrawer(${p.member_id})">
+        const totalCol=pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
+        const maxCount=p.squads.length>0?Math.max(1,...p.squads.map(sq=>sq.count)):1;
+        const barsHtml=p.squads.map(sq=>{
+            const bp=Math.round(sq.count/maxCount*100);
+            const bc=bp>=70?'var(--green)':bp>=40?'var(--amber)':'var(--red)';
+            return`<div class="sqp-bar-row" onclick="event.stopPropagation();openSquadMemberDrawer(${p.member_id},${sq.squad_id})">
+                <div class="sqp-bar-label">${esc(sq.squad_name)}</div>
+                <div class="sqp-bar-track"><div class="sqp-bar-fill-inner" style="width:${bp}%;background:${bc};"></div></div>
+                <span class="sqp-bar-count" style="color:${bc}">${sq.count}</span>
+            </div>`;
+        }).join('');
+        return`<div class="sqp-card" onclick="openSquadMemberDrawer(${p.member_id},null)">
             <div class="sqp-top">
                 <div class="sqp-info">
                     <div class="sqp-name">${esc(p.name)}</div>
                     ${p.role?`<div class="sqp-role">${esc(p.role)}</div>`:''}
                 </div>
                 <div class="sqp-right">
-                    <div class="sqp-num" style="color:${col}">${p.total}</div>
-                    <div class="sqp-lbl">selections</div>
+                    <div class="sqp-num" style="color:${totalCol}">${p.total}</div>
+                    <div class="sqp-lbl">total</div>
                 </div>
             </div>
-            <div class="sqp-squads">${tags}</div>
-            <div class="sqp-bar"><div class="sqp-fill" style="width:${pct}%;background:${col};opacity:0.8;"></div></div>
+            <div class="sqp-chart">${barsHtml}</div>
         </div>`;
     }).join('');
     el.innerHTML=headHtml+cardsHtml;
 }
-async function openSquadMemberDrawer(memberId){
+async function openSquadMemberDrawer(memberId,squadId){
     const p=_squadPlayersCache.find(x=>x.member_id===memberId); if(!p)return;
     drawerMode='squad-player';
-    const squadSummary=p.squads.map(sq=>`${sq.squad_name}: ${sq.count}`).join(' · ');
+    const squadInfo=squadId!=null?p.squads.find(sq=>sq.squad_id===squadId):null;
+    const titleSuffix=squadInfo?squadInfo.squad_name:p.squads.map(sq=>`${sq.squad_name}: ${sq.count}`).join(' · ');
+    const selCount=squadInfo?squadInfo.count:p.total;
     document.getElementById('dTitle').textContent=p.name;
-    document.getElementById('dMeta').textContent=`${p.total} selection${p.total!==1?'s':''} · ${squadSummary}`;
-    document.getElementById('dTabs').innerHTML=`<button class="d-tab active">Selections (${p.total})</button>`;
+    document.getElementById('dMeta').textContent=`${selCount} selection${selCount!==1?'s':''} · ${titleSuffix}`;
+    document.getElementById('dTabs').innerHTML=`<button class="d-tab active">${squadInfo?squadInfo.squad_name+' ('+squadInfo.count+')':'All Selections ('+p.total+')'}</button>`;
     document.getElementById('dList').innerHTML=`<div class="loading-wrap"><div class="spinner"></div></div>`;
     document.getElementById('dShareBtn').disabled=true;
     openSheet();
@@ -1368,20 +1392,21 @@ async function openSquadMemberDrawer(memberId){
         const r=await fetch(url,{headers:H});
         if(!r.ok)throw new Error(`HTTP ${r.status}`);
         const rows=await r.json();
-        // Client-side filter: date range, team, code, type
+        // Client-side filter: date range, team, code, type, optional squad
         const inRange=rows.filter(row=>{
             const dt=row.events?.event_date_time?new Date(row.events.event_date_time):null;
             if(!dt||dt<start||dt>=end)return false;
             if(fTeams!==null&&!fTeams.has(Number(row.events?.team_id)))return false;
             if(fCode.size>0&&!fCode.has(row.events?.event_codes?.event_code))return false;
             if(fType.size>0&&!fType.has(row.events?.event_types?.event_type))return false;
+            if(squadId!=null&&row.squad_id!==squadId)return false;
             return true;
         });
-        // Deduplicate: keep highest match_squad_id per event where member appears
+        // Deduplicate: keep highest match_squad_id per event (per squad if filtered)
         const byEvent=new Map();
-        for(const row of inRange){const ex=byEvent.get(row.event_id);if(!ex||row.match_squad_id>ex.match_squad_id)byEvent.set(row.event_id,row);}
+        for(const row of inRange){const key=squadId!=null?`${row.event_id}_${row.squad_id}`:row.event_id;const ex=byEvent.get(key);if(!ex||row.match_squad_id>ex.match_squad_id)byEvent.set(key,row);}
         const appearances=[...byEvent.values()].sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
-        document.getElementById('dTabs').innerHTML=`<button class="d-tab active">Selections (${appearances.length})</button>`;
+        document.getElementById('dTabs').innerHTML=`<button class="d-tab active">${squadInfo?squadInfo.squad_name+' ('+appearances.length+')':'All Selections ('+appearances.length+')'}</button>`;
         document.getElementById('dShareBtn').disabled=false;
         if(!appearances.length){document.getElementById('dList').innerHTML='<div class="empty-state">No selections in this period.</div>';return;}
         document.getElementById('dList').innerHTML=appearances.map(row=>{
@@ -1395,7 +1420,7 @@ async function openSquadMemberDrawer(memberId){
                     <div class="sq-ev-title">${esc(row.events.event_title||'Match')}</div>
                     <div class="sq-ev-sub">${[opp,code].filter(Boolean).join(' · ')}</div>
                 </div>
-                ${row.squads?.squad_name?`<span class="sq-ev-squad">${esc(row.squads.squad_name)}</span>`:''}
+                ${row.squads?.squad_name&&!squadId?`<span class="sq-ev-squad">${esc(row.squads.squad_name)}</span>`:''}
             </div>`;
         }).join('');
     }catch(e){document.getElementById('dList').innerHTML=`<div class="empty-state">Error: ${esc(e.message)}</div>`;}
