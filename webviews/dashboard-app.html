@@ -223,7 +223,8 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 .sq-ev-sub { font-size: 11px; color: var(--muted); }
 .sq-ev-squad { flex-shrink: 0; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; background: rgba(135,194,50,0.1); border: 1px solid rgba(135,194,50,0.25); color: var(--green); align-self: center; }
 /* team card mini chart */
-.tc-chart { height: 80px; padding: 4px 14px 8px; position: relative; }
+.tc-chart-label { font-size: 10px; color: var(--muted); padding: 8px 14px 0; }
+.tc-chart { height: 130px; padding: 4px 14px 10px; position: relative; }
 
 /* Member search */
 .m-search { width: 100%; padding: 9px 12px; border-radius: 8px; background: var(--card2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; margin-bottom: 10px; }
@@ -473,10 +474,6 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
             <div class="kpi-card"><div class="kpi-label">Acceptance</div><div class="kpi-value green" id="tkpiAcc">—</div><div class="kpi-sub" id="tkpiAccSub"></div></div>
             <div class="kpi-card"><div class="kpi-label">Avg Accepted</div><div class="kpi-value" id="tkpiAvg">—</div></div>
             <div class="kpi-card"><div class="kpi-label">Response Rate</div><div class="kpi-value amber" id="tkpiResp">—</div><div class="kpi-sub" id="tkpiRespSub"></div></div>
-        </div>
-        <div class="chart-card" id="teamChartCard" style="display:none;">
-            <div class="chart-label">Acceptance Rate by Team — tap to drill in</div>
-            <div class="chart-wrap"><canvas id="chartTeams"></canvas></div>
         </div>
         <div class="section-head"><span class="section-title">Teams</span></div>
         <div id="teamsGrid"></div>
@@ -994,8 +991,7 @@ function renderTeamCards(evtsPerTeam){
     renderTeamViewKPIs(evtsPerTeam);_rosterCache=[];
     const grid=document.getElementById('teamsGrid'),allTeams=dashData.teams||[];
     const visible=allTeams.filter(team=>{const evts=evtsPerTeam[team.team_id]||[];return evts.length>0||(fTeams!==null&&fTeams.has(team.team_id));});
-    if(!visible.length){grid.innerHTML=`<div class="empty-state">${fTeams!==null&&fTeams.size===0?'No teams selected.':'No teams have data in this period.'}</div>`;document.getElementById('shareBtn').disabled=true;document.getElementById('teamChartCard').style.display='none';return;}
-    drawTeamChart(visible,evtsPerTeam);
+    if(!visible.length){grid.innerHTML=`<div class="empty-state">${fTeams!==null&&fTeams.size===0?'No teams selected.':'No teams have data in this period.'}</div>`;document.getElementById('shareBtn').disabled=true;return;}
     grid.innerHTML=visible.map(team=>{
         const evts=evtsPerTeam[team.team_id]||[];
         const totalAcc=evts.reduce((s,e)=>s+e.accepted,0),totalDec=evts.reduce((s,e)=>s+e.declined,0),totalNR=evts.reduce((s,e)=>s+e.no_response,0),totalAll=totalAcc+totalDec+totalNR;
@@ -1011,6 +1007,7 @@ function renderTeamCards(evtsPerTeam){
                 <div class="tc-kpi"><div class="tc-kv amber">${respRate}</div><div class="tc-kl">Response</div></div>
             </div>
             ${rolesHtml}
+            <div class="tc-chart-label">Avg attendance per month</div>
             <div class="tc-chart"><canvas id="tchart_${team.team_id}" onclick="event.stopPropagation()"></canvas></div>
             <div class="tc-footer">View events &rarr;</div>
         </div>`;
@@ -1024,10 +1021,10 @@ function drawTeamMiniCharts(teams,evtsPerTeam){
     for(const team of teams){
         const canvas=document.getElementById(`tchart_${team.team_id}`);if(!canvas)continue;
         const evts=evtsPerTeam[team.team_id]||[];
-        const data=months.map(m=>{const me=evts.filter(e=>{const d=new Date(e.date);return d.getFullYear()===m.year&&d.getMonth()===m.month;});const tA=me.reduce((s,e)=>s+e.accepted,0),tAll=me.reduce((s,e)=>s+e.total,0);return tAll>0?parseFloat((tA/tAll*100).toFixed(1)):null;});
-        const bgC=v=>v===null?'rgba(255,255,255,0.04)':v>=75?'rgba(135,194,50,0.28)':v>=50?'rgba(245,166,35,0.28)':'rgba(224,82,82,0.28)';
-        const bdC=v=>v===null?'rgba(255,255,255,0.08)':v>=75?'#87C232':v>=50?'#F5A623':'#e05252';
-        const c=new Chart(canvas,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{data,backgroundColor:data.map(bgC),borderColor:data.map(bdC),borderWidth:1,borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw?.toFixed(1)??'—'}%`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:8},maxRotation:30,maxTicksLimit:6},grid:{display:false}},y:{beginAtZero:true,max:100,display:false}}}});
+        const data=months.map(m=>{const me=evts.filter(e=>{const d=new Date(e.date);return d.getFullYear()===m.year&&d.getMonth()===m.month;});const tA=me.reduce((s,e)=>s+e.accepted,0);return me.length>0?parseFloat((tA/me.length).toFixed(1)):null;});
+        const bgC=v=>v===null?'rgba(255,255,255,0.04)':'rgba(135,194,50,0.22)';
+        const bdC=v=>v===null?'rgba(255,255,255,0.08)':'#87C232';
+        const c=new Chart(canvas,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{data,backgroundColor:data.map(bgC),borderColor:data.map(bdC),borderWidth:1,borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`Avg accepted: ${item.raw?.toFixed(1)??'—'}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:8},maxRotation:30,maxTicksLimit:6},grid:{display:false}},y:{beginAtZero:true,display:false}}}});
         _teamMiniCharts.push(c);
     }
 }
