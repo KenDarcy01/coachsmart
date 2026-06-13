@@ -391,7 +391,7 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
     <div class="cs-tab active" data-tab="club-overview"    onclick="switchTab('club-overview')">Club Overview</div>
     <div class="cs-tab"        data-tab="team-overview"    onclick="switchTab('team-overview')">Team Overview</div>
     <div class="cs-tab"        data-tab="members-overview" onclick="switchTab('members-overview')">Members Overview</div>
-    <div class="cs-tab"        data-tab="squads"           onclick="switchTab('squads')">Squads</div>
+    <div class="cs-tab"        data-tab="squads"           onclick="switchTab('squads')">Squad Overview</div>
 </div>
 
 <!-- Filter panel -->
@@ -472,6 +472,10 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
             <div class="kpi-card"><div class="kpi-label">Acceptance</div><div class="kpi-value green" id="tkpiAcc">—</div><div class="kpi-sub" id="tkpiAccSub"></div></div>
             <div class="kpi-card"><div class="kpi-label">Avg Accepted</div><div class="kpi-value" id="tkpiAvg">—</div></div>
             <div class="kpi-card"><div class="kpi-label">Response Rate</div><div class="kpi-value amber" id="tkpiResp">—</div><div class="kpi-sub" id="tkpiRespSub"></div></div>
+        </div>
+        <div class="chart-card" id="teamChartCard" style="display:none;">
+            <div class="chart-label">Acceptance Rate by Team — tap to drill in</div>
+            <div class="chart-wrap"><canvas id="chartTeams"></canvas></div>
         </div>
         <div class="section-head"><span class="section-title">Teams</span></div>
         <div id="teamsGrid"></div>
@@ -568,7 +572,7 @@ let currentUser = null, currentSession = null;
 let adminTeams = [], adminTeamIds = new Set(), userClubs = [];
 
 // ── Dashboard state ───────────────────────────────────────────────
-let dashData = null, mainChart = null, membersChart = null;
+let dashData = null, mainChart = null, membersChart = null, teamChart = null;
 let detailEvt = null, detailFilt = 'all', drawerMode = 'event', rosterData = null;
 let eventsCache = [], membersCache = [], memberDetailData = null, _membersEvts = [], _rosterCache = [];
 let fTeams = null, fCode = new Set(), fType = new Set(), fRole = new Set();
@@ -907,6 +911,7 @@ function getFilteredEventsPerTeam(){
 }
 function applyFilters(){
     if(activeTab==='squads'){squadData=null;loadSquadData();return;}
+    squadData=null; // invalidate so squad tab re-fetches on next visit
     if(activeTab==='team-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
     else if(activeTab==='members-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
     else{const base=getFilteredEventsPerTeam();initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
@@ -982,7 +987,8 @@ function renderTeamCards(evtsPerTeam){
     renderTeamViewKPIs(evtsPerTeam);_rosterCache=[];
     const grid=document.getElementById('teamsGrid'),allTeams=dashData.teams||[];
     const visible=allTeams.filter(team=>{const evts=evtsPerTeam[team.team_id]||[];return evts.length>0||(fTeams!==null&&fTeams.has(team.team_id));});
-    if(!visible.length){grid.innerHTML=`<div class="empty-state">${fTeams!==null&&fTeams.size===0?'No teams selected.':'No teams have data in this period.'}</div>`;document.getElementById('shareBtn').disabled=true;return;}
+    if(!visible.length){grid.innerHTML=`<div class="empty-state">${fTeams!==null&&fTeams.size===0?'No teams selected.':'No teams have data in this period.'}</div>`;document.getElementById('shareBtn').disabled=true;document.getElementById('teamChartCard').style.display='none';return;}
+    drawTeamChart(visible,evtsPerTeam);
     grid.innerHTML=visible.map(team=>{
         const evts=evtsPerTeam[team.team_id]||[];
         const totalAcc=evts.reduce((s,e)=>s+e.accepted,0),totalDec=evts.reduce((s,e)=>s+e.declined,0),totalNR=evts.reduce((s,e)=>s+e.no_response,0),totalAll=totalAcc+totalDec+totalNR;
@@ -1003,7 +1009,16 @@ function renderTeamCards(evtsPerTeam){
     }).join('');
     document.getElementById('shareBtn').disabled=false;
 }
-function openTeamInClubOverview(teamId){fTeams=new Set([teamId]);renderTeamChips();switchTab('team-overview');applyFilters();}
+function drawTeamChart(teams,evtsPerTeam){
+    const data=teams.map(team=>{const evts=evtsPerTeam[team.team_id]||[];const totalAcc=evts.reduce((s,e)=>s+e.accepted,0),totalAll=evts.reduce((s,e)=>s+e.total,0);return totalAll>0?parseFloat((totalAcc/totalAll*100).toFixed(1)):null;});
+    const bgCol=v=>v===null?'rgba(255,255,255,0.05)':v>=75?'rgba(135,194,50,0.28)':v>=50?'rgba(245,166,35,0.28)':'rgba(224,82,82,0.28)';
+    const bdCol=v=>v===null?'rgba(255,255,255,0.1)':v>=75?'#87C232':v>=50?'#F5A623':'#e05252';
+    const card=document.getElementById('teamChartCard');
+    card.style.display='';
+    if(teamChart)teamChart.destroy();
+    teamChart=new Chart(document.getElementById('chartTeams'),{type:'bar',data:{labels:teams.map(t=>t.team_name),datasets:[{data,backgroundColor:data.map(bgCol),borderColor:data.map(bdCol),borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,els)=>{if(!els.length)return;openTeamInClubOverview(teams[els[0].index]?.team_id);},plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`Acceptance: ${item.raw?.toFixed(1)??'—'}%`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:30},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,max:100,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+function openTeamInClubOverview(teamId){if(!teamId)return;fTeams=new Set([teamId]);renderTeamChips();switchTab('team-overview');applyFilters();}
 
 // ── Detail drawer ─────────────────────────────────────────────────
 function openDetail(evt,filter){
@@ -1235,6 +1250,8 @@ async function loadSquadData() {
     const clubId=getSelectedClubId(); if(!clubId)return;
     document.getElementById('sqLoading').style.display='flex';
     document.getElementById('sqContent').innerHTML='';
+    document.getElementById('sqChartCard').style.display='none';
+    if(sqChart){sqChart.destroy();sqChart=null;}
     ['sqkpiSquads','sqkpiPlayers','sqkpiApps','sqkpiRate'].forEach(id=>document.getElementById(id).textContent='—');
     const{start,end}=getDateRange();
     const body={p_club_id:clubId,p_start_date:start.toISOString(),p_end_date:end.toISOString(),p_codes:fCode.size>0?[...fCode]:null,p_types:fType.size>0?[...fType]:null,p_att_min:0,p_att_max:null};
@@ -1316,6 +1333,7 @@ function renderSquadCards(){
     const maxTotal=Math.max(1,..._squadPlayersCache.map(p=>p.total));
     const cardsHtml=filtered.map(p=>{
         const pct=Math.round(p.total/maxTotal*100);
+        const col=pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
         const tags=p.squads.map(sq=>`<span class="sqp-squad-tag">${esc(sq.squad_name)}: ${sq.count}</span>`).join('');
         return`<div class="sqp-card" onclick="openSquadMemberDrawer(${p.member_id})">
             <div class="sqp-top">
@@ -1324,12 +1342,12 @@ function renderSquadCards(){
                     ${p.role?`<div class="sqp-role">${esc(p.role)}</div>`:''}
                 </div>
                 <div class="sqp-right">
-                    <div class="sqp-num">${p.total}</div>
+                    <div class="sqp-num" style="color:${col}">${p.total}</div>
                     <div class="sqp-lbl">selections</div>
                 </div>
             </div>
             <div class="sqp-squads">${tags}</div>
-            <div class="sqp-bar"><div class="sqp-fill" style="width:${pct}%"></div></div>
+            <div class="sqp-bar"><div class="sqp-fill" style="width:${pct}%;background:${col};opacity:0.8;"></div></div>
         </div>`;
     }).join('');
     el.innerHTML=headHtml+cardsHtml;
