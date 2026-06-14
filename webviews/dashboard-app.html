@@ -242,6 +242,112 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 }
 .share-topbar-btn:disabled { opacity: 0.4; cursor: default; }
 
+/* ── Insights button ── */
+.ins-topbtn {
+    flex-shrink: 0; padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: transparent; color: var(--green);
+    border: 1.5px solid rgba(135,194,50,0.45); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.ins-topbtn:hover:not(:disabled) { background: rgba(135,194,50,0.12); border-color: var(--green); }
+.ins-topbtn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Insights overlay ── */
+.ins-overlay {
+    position: fixed; inset: 0; background: rgba(8,10,14,0.96);
+    z-index: 60; opacity: 0; pointer-events: none;
+    transition: opacity 0.22s; overflow-y: auto;
+}
+.ins-overlay.open { opacity: 1; pointer-events: all; }
+.ins-modal { max-width: 900px; margin: 0 auto; padding: 18px 14px 60px; }
+.ins-hdr {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 18px;
+}
+.ins-hdr-left { flex: 1; min-width: 0; }
+.ins-hdr-logo { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 3px; }
+.ins-hdr-logo span { color: var(--green); }
+.ins-hdr-title { font-size: 16px; font-weight: 700; margin-top: 2px; }
+.ins-hdr-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.ins-close-btn {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--card2);
+    border: 1px solid var(--border); color: var(--text); font-size: 20px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ins-close-btn:hover { background: rgba(224,82,82,0.15); color: var(--red); border-color: rgba(224,82,82,0.35); }
+.ins-pdf-btn {
+    flex-shrink: 0; padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    background: var(--green); color: #111; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; height: 32px;
+}
+.ins-pdf-btn:disabled { opacity: 0.4; cursor: default; }
+.ins-hero { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 18px; }
+.ins-kpi {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; position: relative; overflow: hidden;
+}
+.ins-kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--accent, var(--green)); border-radius: 10px 10px 0 0;
+}
+.ins-kpi-icon { font-size: 18px; margin-bottom: 5px; }
+.ins-kpi-val { font-size: 24px; font-weight: 700; line-height: 1; color: var(--accent, var(--green)); }
+.ins-kpi-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; }
+.ins-kpi-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.ins-section { margin-bottom: 18px; }
+.ins-section-title {
+    font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
+}
+.ins-section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.ins-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.ins-team-bar-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.ins-team-bar-row:last-child { border-bottom: none; }
+.ins-team-name { font-size: 12px; font-weight: 500; width: 120px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ins-bar-track { flex: 1; height: 20px; background: rgba(255,255,255,0.04); border-radius: 5px; overflow: hidden; position: relative; }
+.ins-bar-fill { height: 100%; border-radius: 5px; display: flex; align-items: center; padding: 0 7px; min-width: 0; }
+.ins-bar-pct { font-size: 11px; font-weight: 700; color: #111; white-space: nowrap; }
+.ins-team-events { font-size: 10px; color: var(--muted); width: 40px; text-align: right; flex-shrink: 0; }
+.ins-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.ins-card-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+.ins-card-icon { font-size: 13px; }
+.ins-player-row {
+    display: flex; align-items: center; gap: 7px; padding: 6px 0;
+    border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.ins-player-row:last-child { border-bottom: none; }
+.ins-player-av {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--card2);
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; flex-shrink: 0;
+}
+.ins-player-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ins-player-meta { font-size: 10px; color: var(--muted); }
+.ins-player-badge { font-size: 12px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.ins-scatter-wrap { height: 220px; position: relative; }
+.ins-scatter-sub { font-size: 10px; color: var(--muted); margin-bottom: 8px; }
+.ins-xsq-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.ins-xsq-card {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 11px; display: flex; flex-direction: column; gap: 5px; min-width: 120px; cursor: pointer;
+}
+.ins-xsq-name { font-size: 12px; font-weight: 600; }
+.ins-xsq-squads { display: flex; flex-wrap: wrap; gap: 3px; }
+.ins-xsq-chip { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 8px; background: rgba(135,194,50,0.12); color: var(--green); border: 1px solid rgba(135,194,50,0.25); white-space: nowrap; }
+.ins-nr-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.ins-nr-chip { padding: 4px 10px; border-radius: 14px; font-size: 11px; font-weight: 500; background: rgba(107,114,128,0.1); border: 1px solid rgba(107,114,128,0.2); color: var(--muted); cursor: pointer; }
+.ins-signals {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 18px; display: flex; flex-direction: column; gap: 7px;
+}
+.ins-signal-item { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; line-height: 1.45; }
+.ins-signal-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.ins-trend-wrap { height: 170px; position: relative; }
+@media (max-width: 480px) {
+    .ins-2col { grid-template-columns: 1fr; }
+    .ins-team-name { width: 90px; }
+}
+
 /* ── Bottom-sheet drawer ── */
 .d-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
 .d-overlay.open { opacity: 1; pointer-events: all; }
@@ -384,6 +490,7 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
         <select id="clubSelect" style="display:none;" onchange="onClubChange()"></select>
     </div>
     <button class="share-topbar-btn" id="shareBtn" onclick="sharePDF()" disabled>&#8593; PDF</button>
+    <button class="ins-topbtn" id="insightsBtn" onclick="openInsights()" disabled>&#9889; Insights</button>
     <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()">&#9881; Filters</button>
     <button class="logout-topbar-btn" onclick="doLogout()">Sign out</button>
 </div>
@@ -519,6 +626,22 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
     </div>
 </div>
 
+<!-- Insights overlay -->
+<div class="ins-overlay" id="insOverlay" onclick="closeInsights()">
+    <div class="ins-modal" id="insModal" onclick="event.stopPropagation()">
+        <div class="ins-hdr">
+            <div class="ins-hdr-left">
+                <div class="ins-hdr-logo">Coach<span>Smart</span></div>
+                <div class="ins-hdr-title">Club Insights</div>
+                <div class="ins-hdr-sub" id="insHdrSub"></div>
+            </div>
+            <button class="ins-pdf-btn" id="insPdfBtn" onclick="exportInsightsPDF()">&#8595; PDF</button>
+            <button class="ins-close-btn" onclick="closeInsights()">&#215;</button>
+        </div>
+        <div id="insContent"></div>
+    </div>
+</div>
+
 <!-- Bottom-sheet drawer -->
 <div class="d-overlay" id="dOverlay" onclick="closeDetail()"></div>
 <div class="d-sheet" id="dSheet">
@@ -582,6 +705,7 @@ let _membersRateFilter = null;
 let attMin = 0, attMax = Infinity, _attSliderHasData = false;
 let allCodes = [], allTypes = [], allRoles = [], currentClubId = null, activeTab = 'club-overview';
 let _dateDebounce = null;
+let insightCharts = [];
 
 // ── Helpers ───────────────────────────────────────────────────────
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -815,6 +939,7 @@ function updateAttFill(){
 async function loadDashboard(){
     const clubId=getSelectedClubId();if(!clubId)return;
     // Clear all views immediately so stale data never lingers
+    document.getElementById('insightsBtn').disabled=true;
     squadData=null;
     document.getElementById('loading').style.display='flex';
     document.getElementById('viewClub').style.display='none';
@@ -833,6 +958,7 @@ async function loadDashboard(){
         const data=await r.json();if(data.error)throw new Error(data.error);
         dashData=data;
         dashData.teams=(dashData.teams||[]).filter(t=>adminTeamIds.has(t.team_id));
+        document.getElementById('insightsBtn').disabled=false;
         _attSliderHasData=false;
         buildFilters(clubId);
         document.getElementById('filterGroups').style.display='';
@@ -1352,7 +1478,7 @@ function drawSquadChart(squads){
     const mkBg=()=>squads.map(sq=>sqChartFilter===null||sqChartFilter===sq.squad_id?'rgba(135,194,50,0.25)':'rgba(135,194,50,0.06)');
     const mkBd=()=>squads.map(sq=>sqChartFilter===null||sqChartFilter===sq.squad_id?'#87C232':'rgba(135,194,50,0.2)');
     if(sqChart)sqChart.destroy();
-    sqChart=new Chart(document.getElementById('sqChart'),{type:'bar',data:{labels:squads.map(sq=>sq.squad_name),datasets:[{data:squads.map(sq=>sq.member_count),backgroundColor:mkBg(),borderColor:mkBd(),borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,els)=>{if(!els.length){sqChartFilter=null;}else{const sid=_sqChartSquads[els[0].index]?.squad_id;sqChartFilter=(sqChartFilter===sid)?null:sid;}sqChart.data.datasets[0].backgroundColor=mkBg();sqChart.data.datasets[0].borderColor=mkBd();sqChart.update();renderSquadCards();},plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} player${item.raw!==1?'s':''}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:30,maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+    sqChart=new Chart(document.getElementById('sqChart'),{type:'bar',data:{labels:squads.map(sq=>sq.squad_name),datasets:[{data:squads.map(sq=>sq.members?.length||0),backgroundColor:mkBg(),borderColor:mkBd(),borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,els)=>{if(!els.length){sqChartFilter=null;}else{const sid=_sqChartSquads[els[0].index]?.squad_id;sqChartFilter=(sqChartFilter===sid)?null:sid;}sqChart.data.datasets[0].backgroundColor=mkBg();sqChart.data.datasets[0].borderColor=mkBd();sqChart.update();renderSquadCards();},plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} player${item.raw!==1?'s':''}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:30,maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}});
 }
 function renderSquadCards(){
     const el=document.getElementById('sqCardsWrap');if(!el)return;
@@ -1530,6 +1656,450 @@ function _hideInstallModal() {
     const overlay = document.getElementById('installOverlay');
     overlay.classList.remove('show');
     setTimeout(() => { overlay.style.display = 'none'; }, 400);
+}
+
+// ── Insights ──────────────────────────────────────────────────────
+function openInsights() {
+    if (!dashData) return;
+    const o = document.getElementById('insOverlay');
+    o.scrollTop = 0;
+    o.classList.add('open');
+    renderInsights();
+}
+function closeInsights() {
+    document.getElementById('insOverlay').classList.remove('open');
+    insightCharts.forEach(c => c.destroy());
+    insightCharts = [];
+    document.getElementById('insContent').innerHTML = '';
+}
+function openMemberFromInsights(memberId) {
+    const o = document.getElementById('insOverlay');
+    o.style.transition = 'none';
+    o.classList.remove('open');
+    requestAnimationFrame(() => { o.style.transition = ''; });
+    insightCharts.forEach(c => c.destroy());
+    insightCharts = [];
+    openMemberDetail(memberId);
+}
+function insRateColor(r) {
+    return r >= 0.8 ? '#87C232' : r >= 0.5 ? '#F5A623' : '#e05252';
+}
+async function exportInsightsPDF() {
+    const btn = document.getElementById('insPdfBtn'); btn.textContent = '…'; btn.disabled = true;
+    const el = document.getElementById('insModal');
+    try {
+        const scale = 2, canvas = await html2canvas(el, { backgroundColor: '#111418', scale, useCORS: true, logging: false });
+        const { jsPDF } = window.jspdf, pad = 16, w = canvas.width / scale, h = canvas.height / scale;
+        const pdf = new jsPDF({ orientation: w > h ? 'l' : 'p', unit: 'px', format: [w + pad * 2, h + pad * 2] });
+        pdf.setFillColor(17, 20, 24); pdf.rect(0, 0, w + pad * 2, h + pad * 2, 'F');
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pad, pad, w, h);
+        pdf.save(`coachsmart-${(clubName() || 'dashboard').replace(/\s+/g, '-').toLowerCase()}-insights-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e) { alert('PDF export failed: ' + e.message); }
+    finally { btn.textContent = '↓ PDF'; btn.disabled = false; }
+}
+function renderInsights() {
+    const filteredEvts = getBaseEvents().filter(e => e.accepted >= attMin && e.accepted <= attMax);
+    const stats = getMemberStats(filteredEvts);
+    membersCache = stats;
+    _membersEvts = filteredEvts;
+
+    const { start, end } = getDateRange();
+    const endD = new Date(end); endD.setDate(0);
+
+    const fp = [];
+    if (fTeams !== null && fTeams.size > 0)
+        fp.push((dashData.teams || []).filter(t => fTeams.has(t.team_id)).map(t => t.team_name).join(', '));
+    if (fCode.size > 0) fp.push([...fCode].join(', '));
+    if (fType.size > 0) fp.push([...fType].join(', '));
+    document.getElementById('insHdrSub').textContent =
+        fmtMonth(start) + ' – ' + fmtMonth(endD) + (fp.length ? '  ·  ' + fp.join('  ·  ') : '  ·  All events');
+
+    // 1. Monthly acceptance rate trend
+    const monthBuckets = new Map();
+    for (const e of filteredEvts) {
+        const d = new Date(e.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthBuckets.has(key)) monthBuckets.set(key, { accepted: 0, total: 0, count: 0, label: '' });
+        const b = monthBuckets.get(key);
+        b.accepted += e.accepted; b.total += e.total; b.count++;
+        b.label = fmtMonth(d);
+    }
+    const trendMonths = [...monthBuckets.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([, v]) => ({ rate: v.total > 0 ? parseFloat((v.accepted / v.total * 100).toFixed(1)) : null, label: v.label, count: v.count }));
+
+    // 2. Period trend: second half vs first half
+    const sortedEvts = [...filteredEvts].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const mid = Math.floor(sortedEvts.length / 2);
+    const fHalf = sortedEvts.slice(0, mid), sHalf = sortedEvts.slice(mid);
+    const fA = fHalf.reduce((s, e) => s + e.accepted, 0), fT = fHalf.reduce((s, e) => s + e.total, 0);
+    const sA = sHalf.reduce((s, e) => s + e.accepted, 0), sT = sHalf.reduce((s, e) => s + e.total, 0);
+    const periodTrend = (fT > 0 && sT > 0 && filteredEvts.length >= 6) ? (sA / sT) - (fA / fT) : null;
+
+    // 3. Event type breakdown
+    const typeMap = new Map();
+    for (const e of filteredEvts) {
+        const t = e.type || 'Unknown';
+        if (!typeMap.has(t)) typeMap.set(t, { accepted: 0, total: 0, count: 0 });
+        const b = typeMap.get(t); b.accepted += e.accepted; b.total += e.total; b.count++;
+    }
+    const typeData = [...typeMap.entries()]
+        .map(([type, v]) => ({ type, rate: v.total > 0 ? v.accepted / v.total : 0, count: v.count }))
+        .sort((a, b) => b.rate - a.rate);
+
+    // 4. Form movers
+    const fStats = getMemberStats(fHalf), sStats = getMemberStats(sHalf);
+    const fMap = new Map(fStats.map(m => [m.member_id, m]));
+    const movers = sStats
+        .map(s2 => { const s1 = fMap.get(s2.member_id); return (s1 && s1.events >= 2 && s2.events >= 2) ? { ...s2, delta: s2.rate - s1.rate, prevRate: s1.rate } : null; })
+        .filter(Boolean).filter(m => Math.abs(m.delta) >= 0.12);
+    const rising = movers.filter(m => m.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, 6);
+    const falling = movers.filter(m => m.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 6);
+
+    // 5. Response discipline (ghosters ≥50% no-response, 3+ events)
+    const ghosters = stats.filter(m => m.events >= 3 && m.no_response / m.events >= 0.5)
+        .map(m => ({ ...m, ghostRate: m.no_response / m.events }))
+        .sort((a, b) => b.ghostRate - a.ghostRate).slice(0, 8);
+
+    // Squad member map (from getFilteredSquads flat list)
+    const squadMemberMap = new Map();
+    if (squadData) {
+        const memberAgg = new Map();
+        for (const sq of getFilteredSquads()) {
+            for (const m of sq.members || []) {
+                if (!m.match_selections || !m.name?.trim()) continue;
+                if (fRole.size > 0 && !fRole.has(m.role)) continue;
+                if (!memberAgg.has(m.member_id)) memberAgg.set(m.member_id, new Map());
+                const sqm = memberAgg.get(m.member_id);
+                const prev = sqm.get(sq.squad_id);
+                sqm.set(sq.squad_id, { name: sq.squad_name, count: (prev?.count || 0) + m.match_selections });
+            }
+        }
+        for (const [mid, sqm] of memberAgg.entries()) {
+            const total_sels = [...sqm.values()].reduce((s, v) => s + v.count, 0);
+            const squads = [...sqm.entries()].map(([sid, v]) => ({ squad_id: sid, squad_name: v.name, count: v.count }));
+            squadMemberMap.set(mid, { total_sels, squads });
+        }
+    }
+
+    // Hero stats
+    const totalAcc = filteredEvts.reduce((s, e) => s + e.accepted, 0);
+    const totalAll = filteredEvts.reduce((s, e) => s + e.total, 0);
+    const accNum = totalAll > 0 ? totalAcc / totalAll : 0;
+    const accRate = totalAll > 0 ? (accNum * 100).toFixed(1) + '%' : '—';
+    const accColor = insRateColor(accNum);
+    const teamSet = new Set(filteredEvts.map(e => e.team_id));
+    const totalSels = [...squadMemberMap.values()].reduce((s, v) => s + v.total_sels, 0);
+    const totalResponded = stats.reduce((s, m) => s + m.accepted + m.declined, 0);
+    const totalEvtCount = stats.reduce((s, m) => s + m.events, 0);
+    const overallRespRate = totalEvtCount > 0 ? totalResponded / totalEvtCount : 0;
+
+    // Per-team acceptance
+    const teamAccData = [];
+    for (const team of dashData.teams || []) {
+        if (fTeams !== null && !fTeams.has(team.team_id)) continue;
+        const tevts = (team.events || [])
+            .filter(e => !(fCode.size > 0 && !fCode.has(e.code)) && !(fType.size > 0 && !fType.has(e.type)))
+            .map(e => { const members = fRole.size > 0 ? (e.members || []).filter(m => fRole.has(m.role)) : (e.members || []);
+                const accepted = members.filter(m => m.response === 'accepted').length;
+                return { ...e, accepted, total: members.length }; })
+            .filter(e => e.accepted >= attMin && e.accepted <= attMax);
+        const tacc = tevts.reduce((s, e) => s + e.accepted, 0), ttot = tevts.reduce((s, e) => s + e.total, 0);
+        if (tevts.length > 0) teamAccData.push({ team_name: team.team_name, rate: ttot > 0 ? tacc / ttot : 0, events: tevts.length });
+    }
+    teamAccData.sort((a, b) => b.rate - a.rate);
+
+    // Reliable / watch list
+    const qualified = stats.filter(m => m.events >= 3);
+    const stars = [...qualified].sort((a, b) => b.rate - a.rate).filter(m => m.rate >= 0.75).slice(0, 8);
+    const watchList = [...qualified].sort((a, b) => a.rate - b.rate).filter(m => m.rate < 0.5).slice(0, 8);
+
+    // Cross-squad players
+    const crossSquad = [...squadMemberMap.entries()]
+        .filter(([, v]) => v.squads.length >= 2)
+        .map(([mid, v]) => { const s = stats.find(x => x.member_id === mid); return s ? { ...s, ...v } : null; })
+        .filter(Boolean).sort((a, b) => b.total_sels - a.total_sels);
+
+    // Never responded
+    const neverResp = stats.filter(m => m.no_response === m.events && m.events > 0);
+
+    // Scatter: acceptance rate vs squad selections
+    const scatterData = stats
+        .map(m => { const sqd = squadMemberMap.get(m.member_id); return sqd ? { x: parseFloat((m.rate * 100).toFixed(1)), y: sqd.total_sels, name: m.name, member_id: m.member_id } : null; })
+        .filter(Boolean);
+
+    // Key signals
+    const signals = [];
+    if (periodTrend !== null && Math.abs(periodTrend) >= 0.03) {
+        const dir = periodTrend > 0 ? 'improved' : 'dropped', col = periodTrend > 0 ? '#87C232' : '#e05252', icon = periodTrend > 0 ? '↑' : '↓';
+        signals.push({ col, icon, text: `Acceptance rate ${dir} by ${Math.abs(periodTrend * 100).toFixed(1)}pp in the second half of this period` });
+    }
+    if (typeData.length >= 2) {
+        const best = typeData[0], worst = typeData[typeData.length - 1], gap = (best.rate - worst.rate) * 100;
+        if (gap >= 10) signals.push({ col: '#F5A623', icon: '📊', text: `${esc(best.type)} events attract ${(best.rate * 100).toFixed(0)}% acceptance vs ${(worst.rate * 100).toFixed(0)}% for ${esc(worst.type)} — a ${gap.toFixed(0)}pp gap` });
+    }
+    if (ghosters.length > 0) signals.push({ col: '#F5A623', icon: '💬', text: `${ghosters.length} member${ghosters.length !== 1 ? 's' : ''} rarely respond to event notifications` });
+    if (neverResp.length > 0) signals.push({ col: '#e05252', icon: '🔕', text: `${neverResp.length} member${neverResp.length !== 1 ? 's' : ''} ha${neverResp.length !== 1 ? 've' : 's'} not responded to any event in this period` });
+    if (rising.length > 0) signals.push({ col: '#87C232', icon: '📈', text: `${rising.length} player${rising.length !== 1 ? 's' : ''} ha${rising.length !== 1 ? 've' : 's'} significantly improved availability recently` });
+
+    // Build HTML
+    let html = '';
+
+    // Hero KPIs
+    const trendSpan = periodTrend !== null
+        ? `<span style="font-size:10px;font-weight:600;color:${periodTrend >= 0 ? '#87C232' : '#e05252'}">${periodTrend >= 0 ? '↑' : '↓'} ${Math.abs(periodTrend * 100).toFixed(1)}pp</span>`
+        : '';
+    html += `<div class="ins-hero">
+        <div class="ins-kpi" style="--accent:#87C232">
+            <div class="ins-kpi-icon">📅</div>
+            <div class="ins-kpi-val">${filteredEvts.length}</div>
+            <div class="ins-kpi-label">Total Events</div>
+            <div class="ins-kpi-sub">${teamSet.size} team${teamSet.size !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="ins-kpi" style="--accent:${accColor}">
+            <div class="ins-kpi-icon">✅</div>
+            <div class="ins-kpi-val" style="color:${accColor}">${accRate}</div>
+            <div class="ins-kpi-label">Acceptance Rate</div>
+            <div class="ins-kpi-sub">${totalAcc} of ${totalAll} accepted${trendSpan ? ' · ' + trendSpan : ''}</div>
+        </div>
+        <div class="ins-kpi" style="--accent:#a78bfa">
+            <div class="ins-kpi-icon">💬</div>
+            <div class="ins-kpi-val" style="color:#a78bfa">${totalEvtCount > 0 ? (overallRespRate * 100).toFixed(1) + '%' : '—'}</div>
+            <div class="ins-kpi-label">Response Rate</div>
+            <div class="ins-kpi-sub">${ghosters.length > 0 ? `${ghosters.length} rarely respond` : 'how often members respond'}</div>
+        </div>
+        <div class="ins-kpi" style="--accent:#F5A623">
+            <div class="ins-kpi-icon">🏟️</div>
+            <div class="ins-kpi-val" style="color:#F5A623">${squadData ? totalSels : '—'}</div>
+            <div class="ins-kpi-label">Squad Selections</div>
+            <div class="ins-kpi-sub">${squadData ? `${squadMemberMap.size} players selected` : 'No squad data loaded'}</div>
+        </div>
+    </div>`;
+
+    // Key signals
+    if (signals.length > 0) {
+        html += `<div class="ins-signals">${signals.map(s => `<div class="ins-signal-item"><span class="ins-signal-icon" style="color:${s.col}">${s.icon}</span><span>${s.text}</span></div>`).join('')}</div>`;
+    }
+
+    // Trend chart
+    if (trendMonths.length >= 2) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Acceptance rate trend — monthly</div>
+            <div class="ins-card"><div class="ins-trend-wrap"><canvas id="insTrendChart"></canvas></div></div>
+        </div>`;
+    }
+
+    // Event type breakdown
+    if (typeData.length >= 2) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Acceptance by event type</div>
+            <div class="ins-card">${typeData.map(t => {
+                const pct = (t.rate * 100).toFixed(1), col = insRateColor(t.rate), labelIn = parseFloat(pct) >= 15;
+                return `<div class="ins-team-bar-row">
+                    <div class="ins-team-name" title="${esc(t.type)}">${esc(t.type.length > 20 ? t.type.slice(0, 20) + '…' : t.type)}</div>
+                    <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:${col};opacity:0.85;">${labelIn ? `<span class="ins-bar-pct">${pct}%</span>` : ''}</div></div>
+                    ${!labelIn ? `<span style="font-size:11px;font-weight:700;color:${col};margin-left:6px;flex-shrink:0;">${pct}%</span>` : ''}
+                    <div class="ins-team-events">${t.count} evt${t.count !== 1 ? 's' : ''}</div>
+                </div>`;
+            }).join('')}</div>
+        </div>`;
+    }
+
+    // Team acceptance (3+ teams)
+    if (teamAccData.length >= 3) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Acceptance by team</div>
+            <div class="ins-card">${teamAccData.map(t => {
+                const pct = (t.rate * 100).toFixed(1), col = insRateColor(t.rate), labelIn = parseFloat(pct) >= 15;
+                return `<div class="ins-team-bar-row">
+                    <div class="ins-team-name" title="${esc(t.team_name)}">${esc(t.team_name.length > 20 ? t.team_name.slice(0, 20) + '…' : t.team_name)}</div>
+                    <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:${col};opacity:0.85;">${labelIn ? `<span class="ins-bar-pct">${pct}%</span>` : ''}</div></div>
+                    ${!labelIn ? `<span style="font-size:11px;font-weight:700;color:${col};margin-left:6px;flex-shrink:0;">${pct}%</span>` : ''}
+                    <div class="ins-team-events">${t.events} evt${t.events !== 1 ? 's' : ''}</div>
+                </div>`;
+            }).join('')}</div>
+        </div>`;
+    }
+
+    // Form movers
+    if (rising.length > 0 || falling.length > 0) {
+        const moverList = (list, col) => !list.length
+            ? `<div style="color:var(--muted);font-size:11px;padding:16px 0;text-align:center;">No significant movers</div>`
+            : list.map(m => {
+                const ini = m.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+                const delta = Math.abs(m.delta * 100).toFixed(0), sign = m.delta > 0 ? '+' : '−';
+                return `<div class="ins-player-row" onclick="openMemberFromInsights(${m.member_id})">
+                    <div class="ins-player-av" style="border-color:${col}33;color:${col}">${esc(ini)}</div>
+                    <div style="flex:1;min-width:0;overflow:hidden;">
+                        <div class="ins-player-name">${esc(m.name)}</div>
+                        <div class="ins-player-meta">${(m.prevRate * 100).toFixed(0)}% → ${(m.rate * 100).toFixed(0)}% · ${esc(m.team_name)}</div>
+                    </div>
+                    <div class="ins-player-badge" style="color:${col}">${sign}${delta}pp</div>
+                </div>`;
+            }).join('');
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Form — second half vs first half of period</div>
+            <div class="ins-2col" style="margin-bottom:0;">
+                <div class="ins-card"><div class="ins-card-title"><span class="ins-card-icon">📈</span> Improving</div>${moverList(rising, '#87C232')}</div>
+                <div class="ins-card"><div class="ins-card-title"><span class="ins-card-icon">📉</span> Declining</div>${moverList(falling, '#e05252')}</div>
+            </div>
+        </div>`;
+    }
+
+    // Selection vs availability scatter
+    if (scatterData.length >= 3) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Selection vs availability — ${scatterData.length} players</div>
+            <div class="ins-card">
+                <div class="ins-scatter-sub">Tap a dot to open the player. Colour: green ≥80% · amber 50–79% · red &lt;50%</div>
+                <div class="ins-scatter-wrap"><canvas id="insScatterChart"></canvas></div>
+            </div>
+        </div>`;
+    }
+
+    // Response discipline
+    if (ghosters.length > 0) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Response discipline — members who rarely respond</div>
+            <div class="ins-card">${ghosters.map(m => {
+                const ini = m.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+                const pct = (m.ghostRate * 100).toFixed(0), labelIn = parseFloat(pct) >= 20;
+                return `<div class="ins-team-bar-row">
+                    <div style="display:flex;align-items:center;gap:7px;width:160px;flex-shrink:0;cursor:pointer;" onclick="openMemberFromInsights(${m.member_id})">
+                        <div class="ins-player-av" style="border-color:rgba(107,114,128,0.3);color:#9CA3AF;flex-shrink:0;">${esc(ini)}</div>
+                        <div style="min-width:0;overflow:hidden;">
+                            <div class="ins-player-name">${esc(m.name)}</div>
+                            <div class="ins-player-meta">${m.events} events · ${m.no_response} no resp</div>
+                        </div>
+                    </div>
+                    <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${pct}%;background:rgba(107,114,128,0.45);">${labelIn ? `<span class="ins-bar-pct" style="color:var(--text)">${pct}% no resp</span>` : ''}</div></div>
+                    ${!labelIn ? `<span style="font-size:11px;font-weight:700;color:var(--muted);margin-left:6px;flex-shrink:0;">${pct}%</span>` : ''}
+                </div>`;
+            }).join('')}</div>
+        </div>`;
+    }
+
+    // Reliable / Needs Attention
+    html += `<div class="ins-2col" style="margin-bottom:18px;">
+        <div class="ins-card">
+            <div class="ins-card-title"><span class="ins-card-icon">⭐</span> Reliable Players</div>
+            ${stars.length ? stars.map(m => {
+                const ini = m.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+                return `<div class="ins-player-row" onclick="openMemberFromInsights(${m.member_id})">
+                    <div class="ins-player-av" style="border-color:rgba(135,194,50,0.45);color:#87C232;">${esc(ini)}</div>
+                    <div style="flex:1;min-width:0;overflow:hidden;">
+                        <div class="ins-player-name">${esc(m.name)}</div>
+                        <div class="ins-player-meta">${m.events} events · ${esc(m.team_name)}</div>
+                    </div>
+                    <div class="ins-player-badge" style="color:#87C232;">${(m.rate * 100).toFixed(0)}%</div>
+                </div>`;
+            }).join('') : `<div style="color:var(--muted);font-size:11px;text-align:center;padding:16px 0;">No players with ≥75% &amp; 3+ events</div>`}
+        </div>
+        <div class="ins-card">
+            <div class="ins-card-title"><span class="ins-card-icon">⚠️</span> Needs Attention</div>
+            ${watchList.length ? watchList.map(m => {
+                const ini = m.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+                return `<div class="ins-player-row" onclick="openMemberFromInsights(${m.member_id})">
+                    <div class="ins-player-av" style="border-color:rgba(224,82,82,0.45);color:#e05252;">${esc(ini)}</div>
+                    <div style="flex:1;min-width:0;overflow:hidden;">
+                        <div class="ins-player-name">${esc(m.name)}</div>
+                        <div class="ins-player-meta">${m.events} events · ${esc(m.team_name)}</div>
+                    </div>
+                    <div class="ins-player-badge" style="color:#e05252;">${(m.rate * 100).toFixed(0)}%</div>
+                </div>`;
+            }).join('') : `<div style="color:var(--muted);font-size:11px;text-align:center;padding:16px 0;">No low-engagement players (3+ events, &lt;50%)</div>`}
+        </div>
+    </div>`;
+
+    // Cross-squad players
+    if (crossSquad.length > 0) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Cross-Squad Players — ${crossSquad.length} player${crossSquad.length !== 1 ? 's' : ''} in 2+ squads</div>
+            <div class="ins-xsq-grid">${crossSquad.slice(0, 24).map(m => `
+                <div class="ins-xsq-card" onclick="openMemberFromInsights(${m.member_id})">
+                    <div class="ins-xsq-name">${esc(m.name)}</div>
+                    <div class="ins-xsq-squads">${m.squads.map(sq => `<span class="ins-xsq-chip">${esc(sq.squad_name)} ×${sq.count}</span>`).join('')}</div>
+                </div>`).join('')}
+            </div>
+        </div>`;
+    }
+
+    // Never responded
+    if (neverResp.length > 0 && ghosters.length === 0) {
+        html += `<div class="ins-section">
+            <div class="ins-section-title">Never Responded — ${neverResp.length} member${neverResp.length !== 1 ? 's' : ''}</div>
+            <div class="ins-nr-grid">${neverResp.map(m => `<span class="ins-nr-chip" onclick="openMemberFromInsights(${m.member_id})" title="${m.events} event${m.events !== 1 ? 's' : ''}">${esc(m.name)}</span>`).join('')}</div>
+        </div>`;
+    }
+
+    document.getElementById('insContent').innerHTML = html;
+
+    // Trend line chart
+    if (trendMonths.length >= 2) {
+        const tctx = document.getElementById('insTrendChart');
+        if (tctx) {
+            const tc = new Chart(tctx, {
+                type: 'line',
+                data: {
+                    labels: trendMonths.map(m => m.label),
+                    datasets: [{
+                        data: trendMonths.map(m => m.rate),
+                        borderColor: '#87C232',
+                        backgroundColor: 'rgba(135,194,50,0.07)',
+                        borderWidth: 2,
+                        pointBackgroundColor: trendMonths.map(m => m.rate !== null ? insRateColor(m.rate / 100) : '#6B7280'),
+                        pointBorderColor: '#1E222B',
+                        pointRadius: 5, pointHoverRadius: 7,
+                        tension: 0.35, fill: true, spanGaps: true,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: item => { const m = trendMonths[item.dataIndex]; return [`Acceptance: ${item.raw}%`, `${m.count} event${m.count !== 1 ? 's' : ''}`]; } } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#6B7280', font: { family: 'DM Sans', size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                        y: { min: 0, max: 100, ticks: { color: '#6B7280', font: { family: 'DM Sans', size: 10 }, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+                    }
+                }
+            });
+            insightCharts.push(tc);
+        }
+    }
+
+    // Scatter chart
+    if (scatterData.length >= 3) {
+        const sctx = document.getElementById('insScatterChart');
+        if (sctx) {
+            const sc = new Chart(sctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        data: scatterData,
+                        backgroundColor: scatterData.map(d => d.x >= 80 ? 'rgba(135,194,50,0.55)' : d.x >= 50 ? 'rgba(245,166,35,0.55)' : 'rgba(224,82,82,0.55)'),
+                        borderColor: scatterData.map(d => d.x >= 80 ? '#87C232' : d.x >= 50 ? '#F5A623' : '#e05252'),
+                        pointRadius: 6, pointHoverRadius: 9, borderWidth: 1.5,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: item => { const d = scatterData[item.dataIndex]; return [`${d.name}`, `Acceptance: ${d.x}%`, `Selections: ${d.y}`]; } } }
+                    },
+                    onClick: (evt, els) => { if (els.length > 0) { const d = scatterData[els[0].index]; openMemberFromInsights(d.member_id); } },
+                    onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+                    scales: {
+                        x: { title: { display: true, text: 'Acceptance Rate (%)', color: '#6B7280', font: { family: 'DM Sans', size: 10 } }, min: 0, max: 100, ticks: { color: '#6B7280', font: { family: 'DM Sans', size: 9 }, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                        y: { title: { display: true, text: 'Squad Selections', color: '#6B7280', font: { family: 'DM Sans', size: 10 } }, beginAtZero: true, ticks: { color: '#6B7280', font: { family: 'DM Sans', size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.04)' } }
+                    }
+                }
+            });
+            insightCharts.push(sc);
+        }
+    }
 }
 
 // ── Init ──────────────────────────────────────────────────────────
