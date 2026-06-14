@@ -1399,9 +1399,9 @@ async function openSquadMemberDrawer(memberId,squadId){
             if(squadId!=null&&row.squad_id!==squadId)return false;
             return true;
         });
-        // Deduplicate: keep highest match_squad_id per event (per squad if filtered)
+        // Deduplicate: keep highest match_squad_id per (event, squad) — matches SQL COUNT(DISTINCT event_id) per squad
         const byEvent=new Map();
-        for(const row of inRange){const key=squadId!=null?`${row.event_id}_${row.squad_id}`:row.event_id;const ex=byEvent.get(key);if(!ex||row.match_squad_id>ex.match_squad_id)byEvent.set(key,row);}
+        for(const row of inRange){const key=`${row.event_id}_${row.squad_id}`;const ex=byEvent.get(key);if(!ex||row.match_squad_id>ex.match_squad_id)byEvent.set(key,row);}
         const appearances=[...byEvent.values()].sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
         document.getElementById('dTabs').innerHTML=`<button class="d-tab active">${squadInfo?squadInfo.squad_name+' ('+appearances.length+')':'All Selections ('+appearances.length+')'}</button>`;
         document.getElementById('dShareBtn').disabled=false;
