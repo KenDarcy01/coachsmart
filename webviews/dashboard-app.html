@@ -581,6 +581,7 @@ let _mainEvtsCache = [], _mainMonthFilter = null;
 let _membersRateFilter = null;
 let attMin = 0, attMax = Infinity, _attSliderHasData = false;
 let allCodes = [], allTypes = [], allRoles = [], currentClubId = null, activeTab = 'club-overview';
+let _dateDebounce = null;
 
 // ── Helpers ───────────────────────────────────────────────────────
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -788,7 +789,7 @@ function onDateSlider(){
     document.getElementById('dateTo').textContent=fmtMonth(monthToDate(t));
     const p1=f/MAX_MONTHS*100,p2=t/MAX_MONTHS*100;
     document.getElementById('dateFill').style.left=p1+'%';document.getElementById('dateFill').style.width=(p2-p1)+'%';
-    if(dashData)loadDashboard();
+    if(dashData){clearTimeout(_dateDebounce);_dateDebounce=setTimeout(loadDashboard,350);}
 }
 
 // ── Attendees slider ──────────────────────────────────────────────
@@ -813,21 +814,26 @@ function updateAttFill(){
 // ── Dashboard fetch ───────────────────────────────────────────────
 async function loadDashboard(){
     const clubId=getSelectedClubId();if(!clubId)return;
+    // Clear all views immediately so stale data never lingers
+    squadData=null;
     document.getElementById('loading').style.display='flex';
     document.getElementById('viewClub').style.display='none';
     document.getElementById('viewTeam').style.display='none';
     document.getElementById('viewMembers').style.display='none';
+    document.getElementById('viewSquads').style.display='none';
     document.getElementById('emptyState').style.display='none';
+    document.getElementById('sqContent').innerHTML='';
+    document.getElementById('sqChartCard').style.display='none';
+    if(sqChart){sqChart.destroy();sqChart=null;}
+    ['sqkpiSquads','sqkpiPlayers','sqkpiApps','sqkpiRate'].forEach(id=>document.getElementById(id).textContent='—');
     const{start,end}=getDateRange();
     try{
         const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`,{method:'POST',headers:H,body:JSON.stringify({p_club_id:clubId,p_start_date:start.toISOString(),p_end_date:end.toISOString()})});
         if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||e.error||`HTTP ${r.status}`);}
         const data=await r.json();if(data.error)throw new Error(data.error);
         dashData=data;
-        // Restrict to only the teams this user administers
         dashData.teams=(dashData.teams||[]).filter(t=>adminTeamIds.has(t.team_id));
         _attSliderHasData=false;
-        squadData=null; // force squad reload on next tab switch
         buildFilters(clubId);
         document.getElementById('filterGroups').style.display='';
         switchTab(activeTab);
@@ -913,18 +919,33 @@ function getFilteredEventsPerTeam(){
     }
     return result;
 }
+function _getMaxAcc(base){return base.reduce((mx,e)=>Math.max(mx,e.accepted),0);}
+// applyFilters: called by team chips — reinitialises att slider (team change affects max)
 function applyFilters(){
-    // Squad tab: team/role filters are client-side — just re-render; code/type already nulled squadData in pickFilter
     if(activeTab==='squads'){if(squadData)renderSquads();else loadSquadData();return;}
-    if(activeTab==='team-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
-    else if(activeTab==='members-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
-    else{const base=getFilteredEventsPerTeam();initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
+    _applyNonSquad(true);
 }
+// applyFiltersNoReload: called by role/code/type chips and att slider — preserves att position
 function applyFiltersNoReload(){
     if(activeTab==='squads'){if(squadData)renderSquads();else loadSquadData();return;}
-    if(activeTab==='team-overview'){const base=getBaseEvents();if(!_attSliderHasData)initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
-    else if(activeTab==='members-overview'){const base=getBaseEvents();if(!_attSliderHasData)initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
-    else{const base=getFilteredEventsPerTeam();if(!_attSliderHasData)initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
+    _applyNonSquad(false);
+}
+function _applyNonSquad(resetAtt){
+    if(activeTab==='team-overview'){
+        const base=getBaseEvents();
+        if(resetAtt||!_attSliderHasData)initAttSlider(_getMaxAcc(base));
+        renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
+    } else if(activeTab==='members-overview'){
+        const base=getBaseEvents();
+        if(resetAtt||!_attSliderHasData)initAttSlider(_getMaxAcc(base));
+        renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
+    } else {
+        const base=getFilteredEventsPerTeam();
+        const flat=Object.values(base).flat();
+        if(resetAtt||!_attSliderHasData)initAttSlider(_getMaxAcc(flat));
+        const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);
+        renderTeamCards(filtered);
+    }
 }
 
 // ── Club Overview ─────────────────────────────────────────────────
