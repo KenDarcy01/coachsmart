@@ -863,13 +863,13 @@ function renderTeamChips(){
     html+=teams.map(t=>{const chk=fTeams===null||fTeams.has(t.team_id);return`<span class="s-chip ${chk?'active':''}" onclick="onTeamChipToggle(${t.team_id})">${esc(t.team_name)}</span>`;}).join('');
     document.getElementById('teamChips').innerHTML=html;
 }
-function onTeamChipAll(){fTeams=fTeams===null?new Set():null;renderTeamChips();resetSubFilters();applyFilters();}
+function onTeamChipAll(){fTeams=fTeams===null?new Set():null;renderTeamChips();applyFilters();}
 function onTeamChipToggle(id){
     const allIds=(dashData.teams||[]).map(t=>t.team_id);
     if(fTeams===null)fTeams=new Set(allIds.filter(x=>x!==id));
     else if(fTeams.has(id))fTeams.delete(id);
     else{fTeams.add(id);if(fTeams.size===allIds.length)fTeams=null;}
-    renderTeamChips();resetSubFilters();applyFilters();
+    renderTeamChips();applyFilters();
 }
 function resetSubFilters(){fCode=new Set();fType=new Set();fRole=new Set();renderMultiChips('codeChips','code',allCodes,fCode);renderMultiChips('typeChips','type',allTypes,fType);renderMultiChips('roleChips','role',allRoles,fRole);}
 
@@ -914,14 +914,14 @@ function getFilteredEventsPerTeam(){
     return result;
 }
 function applyFilters(){
-    if(activeTab==='squads'){squadData=null;loadSquadData();return;}
-    squadData=null; // invalidate so squad tab re-fetches on next visit
+    // Squad tab: team/role filters are client-side — just re-render; code/type already nulled squadData in pickFilter
+    if(activeTab==='squads'){if(squadData)renderSquads();else loadSquadData();return;}
     if(activeTab==='team-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
     else if(activeTab==='members-overview'){const base=getBaseEvents();initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
     else{const base=getFilteredEventsPerTeam();initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
 }
 function applyFiltersNoReload(){
-    if(activeTab==='squads'){if(squadData)renderSquads();return;}
+    if(activeTab==='squads'){if(squadData)renderSquads();else loadSquadData();return;}
     if(activeTab==='team-overview'){const base=getBaseEvents();if(!_attSliderHasData)initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderClubOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
     else if(activeTab==='members-overview'){const base=getBaseEvents();if(!_attSliderHasData)initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));}
     else{const base=getFilteredEventsPerTeam();if(!_attSliderHasData)initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));const filtered={};for(const[id,evts]of Object.entries(base))filtered[id]=evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);renderTeamCards(filtered);}
