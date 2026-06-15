@@ -884,7 +884,7 @@ function switchTab(tab) {
     document.getElementById('viewTeam').style.display    =tab==='club-overview'    ?'':'none';
     document.getElementById('viewMembers').style.display =tab==='members-overview' ?'':'none';
     document.getElementById('viewSquads').style.display  =tab==='squads'           ?'':'none';
-    document.getElementById('attRow').style.display=_attSliderHasData&&tab!=='squads'?'':'none';
+    document.getElementById('attRow').style.display=_attSliderHasData?'':'none';
     if(dashData){
         if(tab==='squads'){ if(!squadData) loadSquadData(); else renderSquads(); }
         else applyFiltersNoReload();
@@ -930,7 +930,9 @@ function initAttSlider(maxVal){
 function onAttSlider(){
     let f=parseInt(document.getElementById('attFrom').value),t=parseInt(document.getElementById('attTo').value);
     if(f>t){if(document.activeElement===document.getElementById('attFrom'))f=t;else t=f;document.getElementById('attFrom').value=f;document.getElementById('attTo').value=t;}
-    attMin=f;attMax=t;updateAttFill();applyFiltersNoReload();
+    attMin=f;attMax=t;updateAttFill();
+    if(activeTab==='squads'){clearTimeout(_dateDebounce);_dateDebounce=setTimeout(()=>{squadData=null;loadSquadData();},350);}
+    else applyFiltersNoReload();
 }
 function updateAttFill(){
     const f=parseInt(document.getElementById('attFrom').value),t=parseInt(document.getElementById('attTo').value),max=parseInt(document.getElementById('attTo').max)||1;
@@ -964,6 +966,8 @@ async function loadDashboard(){
         document.getElementById('insightsBtn').disabled=false;
         _attSliderHasData=false;
         buildFilters(clubId);
+        // Always init att slider here so squads tab has a valid range even if visited first
+        initAttSlider(_getMaxAcc(getBaseEvents()));
         document.getElementById('filterGroups').style.display='';
         switchTab(activeTab);
     }catch(e){
@@ -1423,7 +1427,8 @@ async function loadSquadData() {
     if(sqChart){sqChart.destroy();sqChart=null;}
     ['sqkpiSquads','sqkpiPlayers','sqkpiApps','sqkpiRate'].forEach(id=>document.getElementById(id).textContent='—');
     const{start,end}=getDateRange();
-    const body={p_club_id:clubId,p_start_date:start.toISOString(),p_end_date:end.toISOString(),p_codes:fCode.size>0?[...fCode]:null,p_types:fType.size>0?[...fType]:null,p_att_min:0,p_att_max:null};
+    const attToEl=document.getElementById('attTo');
+    const body={p_club_id:clubId,p_start_date:start.toISOString(),p_end_date:end.toISOString(),p_codes:fCode.size>0?[...fCode]:null,p_types:fType.size>0?[...fType]:null,p_att_min:attMin>0?attMin:0,p_att_max:(Number.isFinite(attMax)&&attToEl&&parseInt(attToEl.value)<parseInt(attToEl.max))?attMax:null};
     try{
         const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_squad_dashboard`,{method:'POST',headers:H,body:JSON.stringify(body)});
         if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||`HTTP ${r.status}`);}
@@ -1481,7 +1486,7 @@ function drawSquadChart(squads){
     const mkBg=()=>squads.map(sq=>sqChartFilter===null||sqChartFilter===sq.squad_id?'rgba(135,194,50,0.25)':'rgba(135,194,50,0.06)');
     const mkBd=()=>squads.map(sq=>sqChartFilter===null||sqChartFilter===sq.squad_id?'#87C232':'rgba(135,194,50,0.2)');
     if(sqChart)sqChart.destroy();
-    sqChart=new Chart(document.getElementById('sqChart'),{type:'bar',data:{labels:squads.map(sq=>sq.squad_name),datasets:[{data:squads.map(sq=>sq.members?.length||0),backgroundColor:mkBg(),borderColor:mkBd(),borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,els)=>{if(!els.length){sqChartFilter=null;}else{const sid=_sqChartSquads[els[0].index]?.squad_id;sqChartFilter=(sqChartFilter===sid)?null:sid;}sqChart.data.datasets[0].backgroundColor=mkBg();sqChart.data.datasets[0].borderColor=mkBd();sqChart.update();renderSquadCards();},plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} player${item.raw!==1?'s':''}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:30,maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+    sqChart=new Chart(document.getElementById('sqChart'),{type:'bar',data:{labels:squads.map(sq=>sq.squad_name),datasets:[{data:squads.map(sq=>{const ms=sq.members||[];return fRole.size>0?ms.filter(m=>fRole.has(m.role)).length:ms.length;}),backgroundColor:mkBg(),borderColor:mkBd(),borderWidth:1,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,els)=>{if(!els.length){sqChartFilter=null;}else{const sid=_sqChartSquads[els[0].index]?.squad_id;sqChartFilter=(sqChartFilter===sid)?null:sid;}sqChart.data.datasets[0].backgroundColor=mkBg();sqChart.data.datasets[0].borderColor=mkBd();sqChart.update();renderSquadCards();},plugins:{legend:{display:false},tooltip:{callbacks:{label:item=>`${item.raw} player${item.raw!==1?'s':''}`}}},scales:{x:{ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},maxRotation:30,maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#6B7280',font:{family:'DM Sans',size:9},precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}});
 }
 function renderSquadCards(){
     const el=document.getElementById('sqCardsWrap');if(!el)return;
