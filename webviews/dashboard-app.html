@@ -1591,33 +1591,25 @@ async function openSquadMemberDrawer(memberId,squadId){
             if(fType.size>0&&!fType.has(row.events?.event_types?.event_type))return false;
             return true;
         });
-        // Fetch the true latest match_squad_id per event across ALL members from match_squads
-        const eventIds=[...new Set(inRange.map(r=>r.event_id))];
-        const latestByEvent=new Map();
-        if(eventIds.length>0){
-            const lr=await fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${eventIds.join(',')})&order=match_squad_id.desc`,{headers:H});
-            if(lr.ok){for(const row of await lr.json()){if(!latestByEvent.has(row.event_id))latestByEvent.set(row.event_id,row.match_squad_id);}}
-            // Apply attendance filter when active — matches SQL p_att_min/p_att_max
-            if(attMin>0||Number.isFinite(attMax)){
+        // Keep highest match_squad_id from this member's own rows per event (mirrors dashboard.html drawer)
+        const byEvent=new Map();
+        for(const row of inRange){const ex=byEvent.get(row.event_id);if(!ex||row.match_squad_id>ex.match_squad_id)byEvent.set(row.event_id,row);}
+        // Apply attendance filter when active — matches SQL p_att_min/p_att_max
+        if(attMin>0||Number.isFinite(attMax)){
+            const eventIds=[...byEvent.keys()];
+            if(eventIds.length>0){
                 const ar=await fetch(`${SUPABASE_URL}/rest/v1/event_attendance?select=event_id&response_id=eq.3&event_id=in.(${eventIds.join(',')})`,{headers:H});
                 if(ar.ok){
                     const attCounts=new Map();
                     for(const row of await ar.json())attCounts.set(row.event_id,(attCounts.get(row.event_id)||0)+1);
-                    for(const evId of [...latestByEvent.keys()]){
+                    for(const evId of [...byEvent.keys()]){
                         const cnt=attCounts.get(evId)||0;
-                        if((attMin>0&&cnt<attMin)||(Number.isFinite(attMax)&&cnt>attMax))latestByEvent.delete(evId);
+                        if((attMin>0&&cnt<attMin)||(Number.isFinite(attMax)&&cnt>attMax))byEvent.delete(evId);
                     }
                 }
             }
         }
-        // All appearances from the latest save per event (no squad filter yet)
-        // Deduplicate by (event_id, squad_id) — match_squad_details can have duplicate rows
-        // for the same player/save/event/squad; mirrors SQL COUNT(DISTINCT event_id) per squad
-        const _seenEq=new Set();
-        _drawerAllAppearances=inRange
-            .filter(row=>row.match_squad_id===latestByEvent.get(row.event_id))
-            .sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time))
-            .filter(row=>{const k=`${row.event_id}_${row.squad_id}`;if(_seenEq.has(k))return false;_seenEq.add(k);return true;});
+        _drawerAllAppearances=[...byEvent.values()].sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
         // Build squad chips
         const squadCounts=new Map();
         for(const row of _drawerAllAppearances){

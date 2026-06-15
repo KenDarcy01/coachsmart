@@ -1649,30 +1649,30 @@ function renderSquadsOverview() {
     const teams = getFilteredSquadTeams();
 
     // Build flat squad list and per-member cross-squad map.
-    // The RPC emits one squad entry per (squad_id, code_id) — the same squad_id can appear
-    // multiple times. Track seen (squad_id + member_id) pairs to avoid double-counting.
+    // v16 SQL emits one squad entry per (team_id, squad_id) — the same squad_id can appear
+    // under multiple teams. Accumulate counts across all occurrences; track distinct players
+    // per squad separately for KPI purposes.
     const squadMap = new Map();      // squad_id -> {squad_name, squad_list_seq, players_used, total_sels}
-    const squadSeen = new Map();     // squad_id -> Set<member_id> — dedup guard
+    const squadPlayers = new Map();  // squad_id -> Set<member_id> for players_used distinct count
     const memberSquads = new Map();  // member_id -> {name, squads: Map<squad_id, count>}
 
     for (const team of teams) {
         for (const sq of team.squads || []) {
             if (!squadMap.has(sq.squad_id)) {
                 squadMap.set(sq.squad_id, {squad_id:sq.squad_id, squad_name:sq.squad_name, squad_list_seq:sq.squad_list_seq??999, players_used:0, total_sels:0});
-                squadSeen.set(sq.squad_id, new Set());
+                squadPlayers.set(sq.squad_id, new Set());
             }
             const sqEntry = squadMap.get(sq.squad_id);
-            const seen   = squadSeen.get(sq.squad_id);
+            const pSet   = squadPlayers.get(sq.squad_id);
             for (const m of sq.members || []) {
                 if (!m.match_selections) continue;
-                if (!m.name || !m.name.trim()) continue; // exclude blank-named members
+                if (!m.name || !m.name.trim()) continue;
                 if (fRole.size > 0 && !fRole.has(m.role)) continue;
-                if (seen.has(m.member_id)) continue; // duplicate code-entry for same squad — skip
-                seen.add(m.member_id);
-                sqEntry.players_used++;
+                if (!pSet.has(m.member_id)) { pSet.add(m.member_id); sqEntry.players_used++; }
                 sqEntry.total_sels += m.match_selections;
                 if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id, {member_id:m.member_id, name:m.name, squads:new Map()});
-                memberSquads.get(m.member_id).squads.set(sq.squad_id, m.match_selections);
+                const prev = memberSquads.get(m.member_id).squads.get(sq.squad_id) || 0;
+                memberSquads.get(m.member_id).squads.set(sq.squad_id, prev + m.match_selections);
             }
         }
     }
@@ -1870,19 +1870,17 @@ function exportSquadsCSV() {
     const teams = getFilteredSquadTeams();
     if (!teams.length) return;
     const squadMap = new Map();
-    const squadSeen = new Map();
     const memberSquads = new Map();
     for (const team of teams) {
         for (const sq of team.squads||[]) {
-            if (!squadMap.has(sq.squad_id)) { squadMap.set(sq.squad_id,{squad_id:sq.squad_id,squad_name:sq.squad_name,squad_list_seq:sq.squad_list_seq??999}); squadSeen.set(sq.squad_id,new Set()); }
-            const seen=squadSeen.get(sq.squad_id);
+            if (!squadMap.has(sq.squad_id)) { squadMap.set(sq.squad_id,{squad_id:sq.squad_id,squad_name:sq.squad_name,squad_list_seq:sq.squad_list_seq??999}); }
             for (const m of sq.members||[]) {
-                if (!m.match_selections||seen.has(m.member_id)) continue;
+                if (!m.match_selections) continue;
                 if (!m.name || !m.name.trim()) continue;
                 if (fRole.size > 0 && !fRole.has(m.role)) continue;
-                seen.add(m.member_id);
                 if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id,{name:m.name,squads:new Map()});
-                memberSquads.get(m.member_id).squads.set(sq.squad_id,m.match_selections);
+                const prev=memberSquads.get(m.member_id).squads.get(sq.squad_id)||0;
+                memberSquads.get(m.member_id).squads.set(sq.squad_id,prev+m.match_selections);
             }
         }
     }
