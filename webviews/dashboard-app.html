@@ -852,8 +852,7 @@ function setupClubContext() {
     const ctxLabel=document.getElementById('ctxLabel');
     const clubSelect=document.getElementById('clubSelect');
     if(userClubs.length===1){
-        ctxLabel.textContent=userClubs[0].club_name;
-        ctxLabel.style.display='block';
+        ctxLabel.style.display='none';
         clubSelect.style.display='none';
     } else {
         ctxLabel.style.display='none';
