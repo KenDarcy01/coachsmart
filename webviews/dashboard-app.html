@@ -1319,6 +1319,37 @@ function renderMembersCards(){
     document.getElementById('shareBtn').disabled=false;
 }
 
+// ── PDF helpers ───────────────────────────────────────────────────
+async function _buildMultiPagePDF(element,bgHex,bgRgb,pageH,pad){
+    pageH=pageH||1200;pad=pad||10;
+    const elW=element.offsetWidth||390,elH=element.scrollHeight||element.offsetHeight||800;
+    const{jsPDF}=window.jspdf;let pdf=null;
+    for(let i=0,n=Math.ceil(elH/pageH);i<n;i++){
+        const sliceY=i*pageH,sliceH=Math.min(pageH,elH-sliceY);
+        let canvas=await html2canvas(element,{backgroundColor:bgHex,scale:1,x:0,y:sliceY,width:elW,height:sliceH,useCORS:true,logging:false});
+        const imgData=canvas.toDataURL('image/jpeg',0.85);canvas=null;
+        if(imgData.length<500)throw new Error('Canvas render failed (page '+(i+1)+')');
+        const pgW=elW+pad*2,pgH=sliceH+pad*2;
+        if(!pdf)pdf=new jsPDF({orientation:'p',unit:'px',format:[pgW,pgH]});
+        else pdf.addPage([pgW,pgH]);
+        pdf.setFillColor(...bgRgb);pdf.rect(0,0,pgW,pgH,'F');
+        pdf.addImage(imgData,'JPEG',pad,pad,elW,sliceH);
+    }
+    if(!pdf)throw new Error('Nothing to render');
+    return pdf;
+}
+async function _sharePdfFile(pdf,filename,shareTitle,shareText){
+    const blob=pdf.output('blob');
+    const file=new File([blob],filename,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+        await navigator.share({title:shareTitle,text:shareText||'',files:[file]});
+    }else{
+        const url=URL.createObjectURL(blob);
+        Object.assign(document.createElement('a'),{href:url,download:filename}).click();
+        URL.revokeObjectURL(url);
+    }
+}
+
 // ── Share PDF ─────────────────────────────────────────────────────
 async function sharePDF(){
     const elMap={'team-overview':'viewClub','club-overview':'viewTeam','members-overview':'viewMembers'};
@@ -1367,31 +1398,18 @@ async function sharePDF(){
 async function shareDrawerPDF(){
     const btn=document.getElementById('dShareBtn');btn.textContent='…';btn.disabled=true;
     const sheet=document.getElementById('dSheet');
-    // Clone the sheet offscreen at full height so the scrollable list is fully captured
     const clone=sheet.cloneNode(true);
-    clone.style.cssText=`position:absolute;left:-9999px;top:0;width:${sheet.offsetWidth}px;height:auto;max-height:none;transform:none;border-radius:0;`;
+    clone.style.cssText=`position:absolute;left:-9999px;top:0;width:${sheet.offsetWidth}px;height:auto;max-height:none;transform:none;border-radius:0;overflow:visible;`;
     const cloneList=clone.querySelector('.d-list');
     if(cloneList){cloneList.style.overflow='visible';cloneList.style.flex='none';cloneList.style.height='auto';}
     document.body.appendChild(clone);
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     try{
-        const canvas=await html2canvas(clone,{backgroundColor:'#1E222B',scale:2,useCORS:true,logging:false});
-        document.body.removeChild(clone);
-        const{jsPDF}=window.jspdf,pad=10,w=canvas.width/2,h=canvas.height/2;
-        const pdf=new jsPDF({orientation:'p',unit:'px',format:[w+pad*2,h+pad*2]});
-        pdf.setFillColor(30,34,43);pdf.rect(0,0,w+pad*2,h+pad*2,'F');
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',pad,pad,w,h);
         const title=document.getElementById('dTitle').textContent;
         const filename=`coachsmart-${title.replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.pdf`;
-        const blob=pdf.output('blob');
-        const file=new File([blob],filename,{type:'application/pdf'});
-        if(navigator.canShare&&navigator.canShare({files:[file]})){
-            await navigator.share({title:`CoachSmart — ${title}`,files:[file]});
-        } else {
-            const url=URL.createObjectURL(blob);
-            Object.assign(document.createElement('a'),{href:url,download:filename}).click();
-            URL.revokeObjectURL(url);
-        }
+        const pdf=await _buildMultiPagePDF(clone,'#1E222B',[30,34,43],1200,10);
+        document.body.removeChild(clone);
+        await _sharePdfFile(pdf,filename,`CoachSmart — ${title}`,title);
     }catch(e){if(document.body.contains(clone))document.body.removeChild(clone);if(e.name!=='AbortError')alert('Share failed: '+e.message);}
     finally{btn.textContent='↑ Share PDF';btn.disabled=false;}
 }
@@ -1755,15 +1773,21 @@ function insRateColor(r) {
 async function exportInsightsPDF() {
     const btn = document.getElementById('insPdfBtn'); btn.textContent = '…'; btn.disabled = true;
     const el = document.getElementById('insModal');
+    // Clone offscreen at full height so scrollable content is fully captured
+    const clone = el.cloneNode(true);
+    clone.style.cssText = `position:absolute;left:-9999px;top:0;width:${el.offsetWidth}px;height:auto;max-height:none;overflow:visible;`;
+    document.body.appendChild(clone);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
-        const scale = 2, canvas = await html2canvas(el, { backgroundColor: '#111418', scale, useCORS: true, logging: false });
-        const { jsPDF } = window.jspdf, pad = 16, w = canvas.width / scale, h = canvas.height / scale;
-        const pdf = new jsPDF({ orientation: w > h ? 'l' : 'p', unit: 'px', format: [w + pad * 2, h + pad * 2] });
-        pdf.setFillColor(17, 20, 24); pdf.rect(0, 0, w + pad * 2, h + pad * 2, 'F');
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pad, pad, w, h);
-        pdf.save(`coachsmart-${(clubName() || 'dashboard').replace(/\s+/g, '-').toLowerCase()}-insights-${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (e) { alert('PDF export failed: ' + e.message); }
-    finally { btn.textContent = '↓ PDF'; btn.disabled = false; }
+        const name = clubName() || 'dashboard';
+        const filename = `coachsmart-${name.replace(/\s+/g, '-').toLowerCase()}-insights-${new Date().toISOString().slice(0, 10)}.pdf`;
+        const pdf = await _buildMultiPagePDF(clone, '#111418', [17, 20, 24], 1200, 10);
+        document.body.removeChild(clone);
+        await _sharePdfFile(pdf, filename, `CoachSmart Insights — ${name}`, name);
+    } catch (e) {
+        if (document.body.contains(clone)) document.body.removeChild(clone);
+        if (e.name !== 'AbortError') alert('PDF export failed: ' + e.message);
+    } finally { btn.textContent = '↓ PDF'; btn.disabled = false; }
 }
 function renderInsights() {
     const filteredEvts = getBaseEvents().filter(e => e.accepted >= attMin && e.accepted <= attMax);
