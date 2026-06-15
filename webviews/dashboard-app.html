@@ -1600,9 +1600,20 @@ async function openSquadMemberDrawer(memberId,squadId){
             if(fType.size>0&&!fType.has(row.events?.event_types?.event_type))return false;
             return true;
         });
-        // Keep highest match_squad_id from this member's own rows per event (mirrors dashboard.html drawer)
+        // Keep highest match_squad_id from this member's own rows per event
         const byEvent=new Map();
         for(const row of inRange){const ex=byEvent.get(row.event_id);if(!ex||row.match_squad_id>ex.match_squad_id)byEvent.set(row.event_id,row);}
+        // Mirror v16 SQL latest_saves: keep only events where member's save IS the globally-latest save
+        // (removes events where coach re-saved and dropped this player from the latest squad)
+        if(byEvent.size>0){
+            const evIds=[...byEvent.keys()];
+            const glr=await fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${evIds.join(',')})`,{headers:H});
+            if(glr.ok){
+                const glMax=new Map();
+                for(const s of await glr.json()){const c=glMax.get(s.event_id);if(!c||s.match_squad_id>c)glMax.set(s.event_id,s.match_squad_id);}
+                for(const[evId,row]of[...byEvent.entries()]){const g=glMax.get(evId);if(g&&row.match_squad_id!==g)byEvent.delete(evId);}
+            }
+        }
         // Apply attendance filter when active — matches SQL p_att_min/p_att_max
         if(attMin>0||Number.isFinite(attMax)){
             const eventIds=[...byEvent.keys()];
