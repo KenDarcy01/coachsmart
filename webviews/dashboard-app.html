@@ -612,10 +612,10 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
     <!-- Squads Overview -->
     <div id="viewSquads" style="display:none;">
         <div class="kpi-grid">
-            <div class="kpi-card"><div class="kpi-label">Squads</div><div class="kpi-value green" id="sqkpiSquads">—</div></div>
-            <div class="kpi-card"><div class="kpi-label">Players</div><div class="kpi-value" id="sqkpiPlayers">—</div></div>
-            <div class="kpi-card"><div class="kpi-label">Appearances</div><div class="kpi-value green" id="sqkpiApps">—</div></div>
-            <div class="kpi-card"><div class="kpi-label">Avg Accept</div><div class="kpi-value" id="sqkpiRate">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Squads Active</div><div class="kpi-value green" id="sqkpiSquads">—</div><div class="kpi-sub" id="sqkpiSquadsSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Players Used</div><div class="kpi-value green" id="sqkpiPlayers">—</div><div class="kpi-sub" id="sqkpiPlayersSub"></div></div>
+            <div class="kpi-card"><div class="kpi-label">Cross-Squad</div><div class="kpi-value" id="sqkpiCross">—</div><div class="kpi-sub">played for 2+ squads</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total Selections</div><div class="kpi-value amber" id="sqkpiTotal">—</div><div class="kpi-sub" id="sqkpiTotalSub"></div></div>
         </div>
         <div class="chart-card" id="sqChartCard" style="display:none;">
             <div class="chart-label">Players Used per Squad — tap to filter</div>
@@ -962,7 +962,8 @@ async function loadDashboard(){
     document.getElementById('sqContent').innerHTML='';
     document.getElementById('sqChartCard').style.display='none';
     if(sqChart){sqChart.destroy();sqChart=null;}
-    ['sqkpiSquads','sqkpiPlayers','sqkpiApps','sqkpiRate'].forEach(id=>document.getElementById(id).textContent='—');
+    ['sqkpiSquads','sqkpiPlayers','sqkpiCross','sqkpiTotal'].forEach(id=>document.getElementById(id).textContent='—');
+    ['sqkpiSquadsSub','sqkpiPlayersSub','sqkpiTotalSub'].forEach(id=>document.getElementById(id).textContent='');
     const{start,end}=getDateRange();
     try{
         const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`,{method:'POST',headers:H,body:JSON.stringify({p_club_id:clubId,p_start_date:start.toISOString(),p_end_date:end.toISOString()})});
@@ -1464,7 +1465,8 @@ async function loadSquadData() {
     document.getElementById('sqContent').innerHTML='';
     document.getElementById('sqChartCard').style.display='none';
     if(sqChart){sqChart.destroy();sqChart=null;}
-    ['sqkpiSquads','sqkpiPlayers','sqkpiApps','sqkpiRate'].forEach(id=>document.getElementById(id).textContent='—');
+    ['sqkpiSquads','sqkpiPlayers','sqkpiCross','sqkpiTotal'].forEach(id=>document.getElementById(id).textContent='—');
+    ['sqkpiSquadsSub','sqkpiPlayersSub','sqkpiTotalSub'].forEach(id=>document.getElementById(id).textContent='');
     const{start,end}=getDateRange();
     const attToEl=document.getElementById('attTo');
     const body={p_club_id:clubId,p_start_date:start.toISOString(),p_end_date:end.toISOString(),p_codes:fCode.size>0?[...fCode]:null,p_types:fType.size>0?[...fType]:null,p_att_min:attMin>0?attMin:0,p_att_max:(Number.isFinite(attMax)&&attToEl&&parseInt(attToEl.value)<parseInt(attToEl.max))?attMax:null};
@@ -1491,26 +1493,34 @@ function getFilteredSquads(){
 }
 function renderSquads(){
     sqChartFilter=null;
-    const squads=getFilteredSquads();
-    // Aggregate into 1 record per player across all squads
+    const allSquads=getFilteredSquads();
+    // Build player map with role filter applied
     const playerMap=new Map();
-    for(const sq of squads){
+    for(const sq of allSquads){
         for(const m of sq.members||[]){
-            if(!m.name||!m.name.trim())continue;
+            if(!m.match_selections||!m.name||!m.name.trim())continue;
+            if(fRole.size>0&&!fRole.has(m.role))continue;
             if(!playerMap.has(m.member_id))playerMap.set(m.member_id,{member_id:m.member_id,name:m.name,role:m.role||'',squads:[],total:0});
             const p=playerMap.get(m.member_id);
-            p.squads.push({squad_id:sq.squad_id,squad_name:sq.squad_name,count:m.match_selections||0});
-            p.total+=m.match_selections||0;
+            p.squads.push({squad_id:sq.squad_id,squad_name:sq.squad_name,count:m.match_selections});
+            p.total+=m.match_selections;
         }
     }
     _squadPlayersCache=[...playerMap.values()].sort((a,b)=>b.total-a.total);
-    // KPIs
-    const totalApps=squads.reduce((s,sq)=>s+sq.match_appearances,0);
-    const avgRate=squads.length>0?(squads.reduce((s,sq)=>s+Number(sq.acceptance_rate),0)/squads.length).toFixed(1)+'%':'—';
+    // Only show squads that have at least one player with selections (respecting role filter)
+    const activeSquadIds=new Set(_squadPlayersCache.flatMap(p=>p.squads.map(s=>s.squad_id)));
+    const squads=allSquads.filter(sq=>activeSquadIds.has(sq.squad_id));
+    // KPIs — matching dashboard.html
+    const playersUsed=_squadPlayersCache.length;
+    const crossSquad=_squadPlayersCache.filter(p=>new Set(p.squads.map(s=>s.squad_id)).size>=2).length;
+    const totalSels=_squadPlayersCache.reduce((s,p)=>s+p.total,0);
     document.getElementById('sqkpiSquads').textContent=squads.length||'—';
-    document.getElementById('sqkpiPlayers').textContent=_squadPlayersCache.length||'—';
-    document.getElementById('sqkpiApps').textContent=totalApps||'—';
-    document.getElementById('sqkpiRate').textContent=squads.length>0?avgRate:'—';
+    document.getElementById('sqkpiSquadsSub').textContent=`of ${allSquads.length} squad${allSquads.length!==1?'s':''}`;
+    document.getElementById('sqkpiPlayers').textContent=playersUsed||'—';
+    document.getElementById('sqkpiPlayersSub').textContent='distinct across all squads';
+    document.getElementById('sqkpiCross').textContent=crossSquad||'—';
+    document.getElementById('sqkpiTotal').textContent=totalSels||'—';
+    document.getElementById('sqkpiTotalSub').textContent=totalSels>0?`avg ${(totalSels/Math.max(playersUsed,1)).toFixed(1)} per player`:'';
     document.getElementById('shareBtn').disabled=!_squadPlayersCache.length;
     if(!_squadPlayersCache.length){document.getElementById('sqContent').innerHTML='<div class="empty-state">No squad data for the current filters.</div>';drawSquadChart([]);return;}
     document.getElementById('sqContent').innerHTML=`<div id="sqCardsWrap"></div>`;
@@ -1530,7 +1540,6 @@ function drawSquadChart(squads){
 function renderSquadCards(){
     const el=document.getElementById('sqCardsWrap');if(!el)return;
     let filtered=sqChartFilter===null?_squadPlayersCache:_squadPlayersCache.filter(p=>p.squads.some(sq=>sq.squad_id===sqChartFilter));
-    if(fRole.size>0)filtered=filtered.filter(p=>fRole.has(p.role));
     const filterLabel=sqChartFilter!==null?(_sqChartSquads.find(s=>s.squad_id===sqChartFilter)?.squad_name||''):null;
     const countTxt=filtered.length!==_squadPlayersCache.length?`${filtered.length} of ${_squadPlayersCache.length}`:`${_squadPlayersCache.length} player${_squadPlayersCache.length!==1?'s':''}`;
     const headHtml=`<div class="section-head"><span class="section-title">Players${filterLabel?` <span style="color:var(--green);font-size:10px;font-weight:500;">${esc(filterLabel)}</span>`:''}</span><span class="section-count">${countTxt}</span></div>`;
