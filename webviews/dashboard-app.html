@@ -703,6 +703,7 @@ let eventsCache = [], membersCache = [], memberDetailData = null, _membersEvts =
 let fTeams = null, fCode = new Set(), fType = new Set(), fRole = new Set();
 let squadData = null, _squadPlayersCache = [];
 let sqChart = null, sqChartFilter = null, _sqChartSquads = [];
+let _drawerAllAppearances = [];
 let _mainEvtsCache = [], _mainMonthFilter = null;
 let _membersRateFilter = null;
 let attMin = 0, attMax = Infinity, _attSliderHasData = false;
@@ -1528,12 +1529,9 @@ function renderSquadCards(){
 async function openSquadMemberDrawer(memberId,squadId){
     const p=_squadPlayersCache.find(x=>x.member_id===memberId); if(!p)return;
     drawerMode='squad-player';
-    const squadInfo=squadId!=null?p.squads.find(sq=>sq.squad_id===squadId):null;
-    const titleSuffix=squadInfo?squadInfo.squad_name:p.squads.map(sq=>`${sq.squad_name}: ${sq.count}`).join(' · ');
-    const selCount=squadInfo?squadInfo.count:p.total;
     document.getElementById('dTitle').textContent=p.name;
-    document.getElementById('dMeta').textContent=`${selCount} selection${selCount!==1?'s':''} · ${titleSuffix}`;
-    document.getElementById('dTabs').innerHTML=`<button class="d-tab active">${squadInfo?squadInfo.squad_name+' ('+squadInfo.count+')':'All Selections ('+p.total+')'}</button>`;
+    document.getElementById('dMeta').textContent=`${p.total} selection${p.total!==1?'s':''} · ${p.squads.map(sq=>`${sq.squad_name}: ${sq.count}`).join(' · ')}`;
+    document.getElementById('dTabs').innerHTML=`<button class="d-tab active">Loading…</button>`;
     document.getElementById('dList').innerHTML=`<div class="loading-wrap"><div class="spinner"></div></div>`;
     document.getElementById('dShareBtn').disabled=true;
     openSheet();
@@ -1543,44 +1541,76 @@ async function openSquadMemberDrawer(memberId,squadId){
         const r=await fetch(url,{headers:H});
         if(!r.ok)throw new Error(`HTTP ${r.status}`);
         const rows=await r.json();
-        // Client-side filter: date range, team, code, type (squad filter applied after dedup)
+        // Filter: date range, restrict to current club's teams, code, type
+        const clubTeamIds=new Set((dashData?.teams||[]).map(t=>t.team_id));
         const inRange=rows.filter(row=>{
             const dt=row.events?.event_date_time?new Date(row.events.event_date_time):null;
             if(!dt||dt<start||dt>=end)return false;
+            if(!clubTeamIds.has(Number(row.events?.team_id)))return false;
             if(fTeams!==null&&!fTeams.has(Number(row.events?.team_id)))return false;
             if(fCode.size>0&&!fCode.has(row.events?.event_codes?.event_code))return false;
             if(fType.size>0&&!fType.has(row.events?.event_types?.event_type))return false;
             return true;
         });
-        // Deduplicate: find the true latest match_squad_id per event across ALL members,
-        // not just this player's rows. We query match_squads (one row per save action)
-        // for the event_ids in range — the highest match_squad_id per event is the
-        // canonical final squad. If this player isn't in that save, they're excluded.
+        // Fetch the true latest match_squad_id per event across ALL members from match_squads
         const eventIds=[...new Set(inRange.map(r=>r.event_id))];
         const latestByEvent=new Map();
         if(eventIds.length>0){
             const lr=await fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${eventIds.join(',')})&order=match_squad_id.desc`,{headers:H});
             if(lr.ok){for(const row of await lr.json()){if(!latestByEvent.has(row.event_id))latestByEvent.set(row.event_id,row.match_squad_id);}}
+            // Apply attendance filter when active — matches SQL p_att_min/p_att_max
+            if(attMin>0||Number.isFinite(attMax)){
+                const ar=await fetch(`${SUPABASE_URL}/rest/v1/event_attendance?select=event_id&response_id=eq.3&event_id=in.(${eventIds.join(',')})`,{headers:H});
+                if(ar.ok){
+                    const attCounts=new Map();
+                    for(const row of await ar.json())attCounts.set(row.event_id,(attCounts.get(row.event_id)||0)+1);
+                    for(const evId of [...latestByEvent.keys()]){
+                        const cnt=attCounts.get(evId)||0;
+                        if((attMin>0&&cnt<attMin)||(Number.isFinite(attMax)&&cnt>attMax))latestByEvent.delete(evId);
+                    }
+                }
+            }
         }
-        const appearances=inRange.filter(row=>row.match_squad_id===latestByEvent.get(row.event_id)&&(squadId==null||row.squad_id===squadId)).sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
-        document.getElementById('dTabs').innerHTML=`<button class="d-tab active">${squadInfo?squadInfo.squad_name+' ('+appearances.length+')':'All Selections ('+appearances.length+')'}</button>`;
+        // All appearances from the latest save per event (no squad filter yet)
+        _drawerAllAppearances=inRange
+            .filter(row=>row.match_squad_id===latestByEvent.get(row.event_id))
+            .sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
+        // Build squad chips
+        const squadCounts=new Map();
+        for(const row of _drawerAllAppearances){
+            if(!squadCounts.has(row.squad_id))squadCounts.set(row.squad_id,{name:row.squads?.squad_name||'Unknown',count:0});
+            squadCounts.get(row.squad_id).count++;
+        }
+        const initSq=squadId!=null&&squadCounts.has(squadId)?squadId:null;
+        let chipsHtml=`<button class="d-tab${initSq===null?' active':''}" data-sq="all" onclick="filterDrawerBySquad(null)">All (${_drawerAllAppearances.length})</button>`;
+        for(const[sqId,{name,count}]of squadCounts)chipsHtml+=`<button class="d-tab${initSq===sqId?' active':''}" data-sq="${sqId}" onclick="filterDrawerBySquad(${sqId})">${esc(name)} (${count})</button>`;
+        document.getElementById('dTabs').innerHTML=chipsHtml;
         document.getElementById('dShareBtn').disabled=false;
-        if(!appearances.length){document.getElementById('dList').innerHTML='<div class="empty-state">No selections in this period.</div>';return;}
-        document.getElementById('dList').innerHTML=appearances.map(row=>{
-            const dt=new Date(row.events.event_date_time);
-            const day=dt.toLocaleDateString('en-IE',{day:'numeric'}),mon=dt.toLocaleDateString('en-IE',{month:'short'});
-            const opp=row.events.opposition?`v ${row.events.opposition}`:'';
-            const code=row.events?.event_codes?.event_code||'';
-            return`<div class="sq-ev-row">
-                <div class="sq-ev-date"><div class="sq-ev-day">${day}</div><div class="sq-ev-mon">${mon}</div></div>
-                <div class="sq-ev-body">
-                    <div class="sq-ev-title">${esc(row.events.event_title||'Match')}</div>
-                    <div class="sq-ev-sub">${[opp,code].filter(Boolean).join(' · ')}</div>
-                </div>
-                ${row.squads?.squad_name&&!squadId?`<span class="sq-ev-squad">${esc(row.squads.squad_name)}</span>`:''}
-            </div>`;
-        }).join('');
+        _renderDrawerList(initSq);
     }catch(e){document.getElementById('dList').innerHTML=`<div class="empty-state">Error: ${esc(e.message)}</div>`;}
+}
+function filterDrawerBySquad(squadId){
+    document.querySelectorAll('#dTabs .d-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.sq==(squadId??'all')));
+    _renderDrawerList(squadId);
+}
+function _renderDrawerList(squadFilter){
+    const list=_drawerAllAppearances.filter(row=>squadFilter==null||row.squad_id===squadFilter);
+    if(!list.length){document.getElementById('dList').innerHTML='<div class="empty-state">No selections in this period.</div>';return;}
+    const multiSquad=[...new Set(_drawerAllAppearances.map(r=>r.squad_id))].length>1&&squadFilter==null;
+    document.getElementById('dList').innerHTML=list.map(row=>{
+        const dt=new Date(row.events.event_date_time);
+        const day=dt.toLocaleDateString('en-IE',{day:'numeric'}),mon=dt.toLocaleDateString('en-IE',{month:'short'});
+        const opp=row.events.opposition?`v ${row.events.opposition}`:'';
+        const code=row.events?.event_codes?.event_code||'';
+        return`<div class="sq-ev-row">
+            <div class="sq-ev-date"><div class="sq-ev-day">${day}</div><div class="sq-ev-mon">${mon}</div></div>
+            <div class="sq-ev-body">
+                <div class="sq-ev-title">${esc(row.events.event_title||'Match')}</div>
+                <div class="sq-ev-sub">${[opp,code].filter(Boolean).join(' · ')}</div>
+            </div>
+            ${multiSquad&&row.squads?.squad_name?`<span class="sq-ev-squad">${esc(row.squads.squad_name)}</span>`:''}
+        </div>`;
+    }).join('');
 }
 
 // ── Install / Add to Home Screen ─────────────────────────────────
