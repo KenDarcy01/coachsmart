@@ -664,6 +664,7 @@ let attMin      = 0, attMax = Infinity, _attSliderHasData = false;
 let groupBy     = 'month';
 let smoothChart = false;
 let allCodes = [], allTypes = [], allRoles = [];
+let _codeDisplayNames = {};
 let currentClubId = null;
 let activeTab     = 'club-overview';
 
@@ -868,14 +869,18 @@ async function loadSquadDashboard() {
 // ── Build filters ─────────────────────────────────────────────────
 function buildFilters(clubId) {
     const codes = new Set(), types = new Set(), roles = new Set();
+    let femaleHurling = false;
     for (const team of dashData.teams||[]) {
+        const female = !!team.team_female;
         for (const e of team.events||[]) {
             if (e.code) codes.add(e.code);
             if (e.type) types.add(e.type);
             for (const m of e.members||[]) { if (m.role) roles.add(m.role); }
+            if (female && e.code === 'Hurling') femaleHurling = true;
         }
     }
     allCodes = [...codes].sort(); allTypes = [...types].sort(); allRoles = [...roles].sort();
+    _codeDisplayNames = femaleHurling && allCodes.includes('Hurling') ? {'Hurling': 'Camogie'} : {};
     const teams = dashData.teams||[];
     const validIds = new Set(teams.map(t=>t.team_id));
 
@@ -975,9 +980,10 @@ function closeTeamCard(teamId) {
 // ── Multi-select chips ────────────────────────────────────────────
 function renderMultiChips(containerId, key, values, current) {
     const allActive=current.size===0;
+    const dmap=key==='code'?_codeDisplayNames:{};
     document.getElementById(containerId).innerHTML=
         `<span class="s-chip ${allActive?'active':''}" data-key="${key}" data-val="" onclick="pickFilter(this)">All</span>`+
-        values.map(v=>`<span class="s-chip ${current.has(v)?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(v)}</span>`).join('');
+        values.map(v=>`<span class="s-chip ${current.has(v)?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(dmap[v]||v)}</span>`).join('');
 }
 function pickFilter(el) {
     const key=el.dataset.key, val=el.dataset.val;

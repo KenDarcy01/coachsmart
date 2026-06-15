@@ -708,6 +708,7 @@ let _mainEvtsCache = [], _mainMonthFilter = null;
 let _membersRateFilter = null;
 let attMin = 0, attMax = Infinity, _attSliderHasData = false;
 let allCodes = [], allTypes = [], allRoles = [], currentClubId = null, activeTab = 'club-overview';
+let _codeDisplayNames = {};
 let _dateDebounce = null;
 let insightCharts = [];
 
@@ -981,8 +982,13 @@ async function loadDashboard(){
 // ── Build filters ─────────────────────────────────────────────────
 function buildFilters(clubId){
     const codes=new Set(),types=new Set(),roles=new Set();
-    for(const team of dashData.teams||[])for(const e of team.events||[]){if(e.code)codes.add(e.code);if(e.type)types.add(e.type);for(const m of e.members||[])if(m.role)roles.add(m.role);}
+    let femaleHurling=false;
+    for(const team of dashData.teams||[]){
+        const female=!!team.team_female;
+        for(const e of team.events||[]){if(e.code)codes.add(e.code);if(e.type)types.add(e.type);for(const m of e.members||[])if(m.role)roles.add(m.role);if(female&&e.code==='Hurling')femaleHurling=true;}
+    }
     allCodes=[...codes].sort();allTypes=[...types].sort();allRoles=[...roles].sort();
+    _codeDisplayNames=femaleHurling&&allCodes.includes('Hurling')?{'Hurling':'Camogie'}:{};
     const teams=dashData.teams||[],validIds=new Set(teams.map(t=>t.team_id));
     if(clubId!==currentClubId){currentClubId=clubId;fTeams=null;fCode=new Set();fType=new Set();fRole=new Set();}
     else{if(fTeams!==null&&fTeams.size>0)fTeams=new Set([...fTeams].filter(id=>validIds.has(id)));fCode=new Set([...fCode].filter(v=>allCodes.includes(v)));fType=new Set([...fType].filter(v=>allTypes.includes(v)));fRole=new Set([...fRole].filter(v=>allRoles.includes(v)));}
@@ -1015,7 +1021,8 @@ function resetSubFilters(){fCode=new Set();fType=new Set();fRole=new Set();rende
 // ── Multi-select chips ────────────────────────────────────────────
 function renderMultiChips(cId,key,values,current){
     const allActive=current.size===0;
-    document.getElementById(cId).innerHTML=`<span class="s-chip ${allActive?'active':''}" data-key="${key}" data-val="" onclick="pickFilter(this)">All</span>`+values.map(v=>`<span class="s-chip ${current.has(v)?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(v)}</span>`).join('');
+    const dmap=key==='code'?_codeDisplayNames:{};
+    document.getElementById(cId).innerHTML=`<span class="s-chip ${allActive?'active':''}" data-key="${key}" data-val="" onclick="pickFilter(this)">All</span>`+values.map(v=>`<span class="s-chip ${current.has(v)?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(dmap[v]||v)}</span>`).join('');
 }
 function pickFilter(el){
     const key=el.dataset.key,val=el.dataset.val,map={code:fCode,type:fType,role:fRole},s=map[key];if(!s)return;
@@ -1613,7 +1620,7 @@ function _renderDrawerList(squadFilter){
         const dt=new Date(row.events.event_date_time);
         const day=dt.toLocaleDateString('en-IE',{day:'numeric'}),mon=dt.toLocaleDateString('en-IE',{month:'short'});
         const opp=row.events.opposition?`v ${row.events.opposition}`:'';
-        const code=row.events?.event_codes?.event_code||'';
+        const _rc=row.events?.event_codes?.event_code||'';const code=_codeDisplayNames[_rc]||_rc;
         return`<div class="sq-ev-row">
             <div class="sq-ev-date"><div class="sq-ev-day">${day}</div><div class="sq-ev-mon">${mon}</div></div>
             <div class="sq-ev-body">
