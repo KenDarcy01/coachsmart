@@ -1552,11 +1552,16 @@ async function openSquadMemberDrawer(memberId,squadId){
             if(fType.size>0&&!fType.has(row.events?.event_types?.event_type))return false;
             return true;
         });
-        // Deduplicate: keep highest match_squad_id per event — matches v14 SQL logic.
-        // A save always commits all squad colours at once, so the highest match_squad_id
-        // IS the canonical final squad. Squad colours absent from it were intentionally removed.
+        // Deduplicate: find the true latest match_squad_id per event across ALL members,
+        // not just this player's rows. We query match_squads (one row per save action)
+        // for the event_ids in range — the highest match_squad_id per event is the
+        // canonical final squad. If this player isn't in that save, they're excluded.
+        const eventIds=[...new Set(inRange.map(r=>r.event_id))];
         const latestByEvent=new Map();
-        for(const row of inRange){const ex=latestByEvent.get(row.event_id);if(!ex||row.match_squad_id>ex)latestByEvent.set(row.event_id,row.match_squad_id);}
+        if(eventIds.length>0){
+            const lr=await fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${eventIds.join(',')})&order=match_squad_id.desc`,{headers:H});
+            if(lr.ok){for(const row of await lr.json()){if(!latestByEvent.has(row.event_id))latestByEvent.set(row.event_id,row.match_squad_id);}}
+        }
         const appearances=inRange.filter(row=>row.match_squad_id===latestByEvent.get(row.event_id)&&(squadId==null||row.squad_id===squadId)).sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
         document.getElementById('dTabs').innerHTML=`<button class="d-tab active">${squadInfo?squadInfo.squad_name+' ('+appearances.length+')':'All Selections ('+appearances.length+')'}</button>`;
         document.getElementById('dShareBtn').disabled=false;
