@@ -1354,9 +1354,17 @@ async function sharePDF(){
 async function shareDrawerPDF(){
     const btn=document.getElementById('dShareBtn');btn.textContent='…';btn.disabled=true;
     const sheet=document.getElementById('dSheet');
+    // Clone the sheet offscreen at full height so the scrollable list is fully captured
+    const clone=sheet.cloneNode(true);
+    clone.style.cssText=`position:absolute;left:-9999px;top:0;width:${sheet.offsetWidth}px;height:auto;max-height:none;transform:none;border-radius:0;`;
+    const cloneList=clone.querySelector('.d-list');
+    if(cloneList){cloneList.style.overflow='visible';cloneList.style.flex='none';cloneList.style.height='auto';}
+    document.body.appendChild(clone);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     try{
-        const canvas=await html2canvas(sheet,{backgroundColor:'#1E222B',scale:1,useCORS:true,logging:false});
-        const{jsPDF}=window.jspdf,pad=10,w=canvas.width,h=canvas.height;
+        const canvas=await html2canvas(clone,{backgroundColor:'#1E222B',scale:2,useCORS:true,logging:false});
+        document.body.removeChild(clone);
+        const{jsPDF}=window.jspdf,pad=10,w=canvas.width/2,h=canvas.height/2;
         const pdf=new jsPDF({orientation:'p',unit:'px',format:[w+pad*2,h+pad*2]});
         pdf.setFillColor(30,34,43);pdf.rect(0,0,w+pad*2,h+pad*2,'F');
         pdf.addImage(canvas.toDataURL('image/jpeg',0.85),'JPEG',pad,pad,w,h);
@@ -1371,7 +1379,7 @@ async function shareDrawerPDF(){
             Object.assign(document.createElement('a'),{href:url,download:filename}).click();
             URL.revokeObjectURL(url);
         }
-    }catch(e){if(e.name!=='AbortError')alert('Share failed: '+e.message);}
+    }catch(e){if(document.body.contains(clone))document.body.removeChild(clone);if(e.name!=='AbortError')alert('Share failed: '+e.message);}
     finally{btn.textContent='↑ Share PDF';btn.disabled=false;}
 }
 
@@ -1572,9 +1580,13 @@ async function openSquadMemberDrawer(memberId,squadId){
             }
         }
         // All appearances from the latest save per event (no squad filter yet)
+        // Deduplicate by (event_id, squad_id) — match_squad_details can have duplicate rows
+        // for the same player/save/event/squad; mirrors SQL COUNT(DISTINCT event_id) per squad
+        const _seenEq=new Set();
         _drawerAllAppearances=inRange
             .filter(row=>row.match_squad_id===latestByEvent.get(row.event_id))
-            .sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
+            .sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time))
+            .filter(row=>{const k=`${row.event_id}_${row.squad_id}`;if(_seenEq.has(k))return false;_seenEq.add(k);return true;});
         // Build squad chips
         const squadCounts=new Map();
         for(const row of _drawerAllAppearances){
