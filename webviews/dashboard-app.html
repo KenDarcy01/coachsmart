@@ -1585,51 +1585,53 @@ async function openSquadMemberDrawer(memberId,squadId){
     openSheet();
     try{
         const{start,end}=getDateRange();
-        const url=`${SUPABASE_URL}/rest/v1/match_squad_details?select=match_squad_id,event_id,squad_id,events!match_squad_event_id_fkey(team_id,event_title,event_date_time,opposition,event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)),squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${p.member_id}&order=match_squad_id.desc`;
-        const r=await fetch(url,{headers:H});
-        if(!r.ok)throw new Error(`HTTP ${r.status}`);
-        const rows=await r.json();
-        // Filter: date range, restrict to current club's teams, code, type
-        const clubTeamIds=new Set((dashData?.teams||[]).map(t=>t.team_id));
-        const inRange=rows.filter(row=>{
-            const dt=row.events?.event_date_time?new Date(row.events.event_date_time):null;
-            if(!dt||dt<start||dt>=end)return false;
-            if(!clubTeamIds.has(Number(row.events?.team_id)))return false;
-            if(fTeams!==null&&!fTeams.has(Number(row.events?.team_id)))return false;
-            if(fCode.size>0&&!fCode.has(row.events?.event_codes?.event_code))return false;
-            if(fType.size>0&&!fType.has(row.events?.event_types?.event_type))return false;
-            return true;
-        });
-        // Keep highest match_squad_id from this member's own rows per event
-        const byEvent=new Map();
-        for(const row of inRange){const ex=byEvent.get(row.event_id);if(!ex||row.match_squad_id>ex.match_squad_id)byEvent.set(row.event_id,row);}
-        // Mirror v16 SQL latest_saves: keep only events where member's save IS the globally-latest save
-        // (removes events where coach re-saved and dropped this player from the latest squad)
-        if(byEvent.size>0){
-            const evIds=[...byEvent.keys()];
-            const glr=await fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${evIds.join(',')})`,{headers:H});
-            if(glr.ok){
-                const glMax=new Map();
-                for(const s of await glr.json()){const c=glMax.get(s.event_id);if(!c||s.match_squad_id>c)glMax.set(s.event_id,s.match_squad_id);}
-                for(const[evId,row]of[...byEvent.entries()]){const g=glMax.get(evId);if(g&&row.match_squad_id!==g)byEvent.delete(evId);}
+        // Step 1 — events in range for this club's teams (same filters as SQL)
+        const teamIds=(squadData?.teams||[]).map(t=>t.team_id).filter(id=>fTeams===null||fTeams.has(id));
+        let evRows=[];
+        if(teamIds.length){
+            const er=await fetch(`${SUPABASE_URL}/rest/v1/events?select=event_id,team_id,event_title,event_date_time,opposition,event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)&team_id=in.(${teamIds.join(',')})&event_date_time=gte.${start.toISOString()}&event_date_time=lt.${end.toISOString()}&limit=10000`,{headers:H});
+            if(!er.ok)throw new Error(`HTTP ${er.status}`);
+            evRows=(await er.json()).filter(e=>{
+                if(fCode.size>0&&!fCode.has(e.event_codes?.event_code))return false;
+                if(fType.size>0&&!fType.has(e.event_types?.event_type))return false;
+                return true;
+            });
+        }
+        // Step 1b — attendance filter
+        if(attMin>0||Number.isFinite(attMax)){
+            const eIds=evRows.map(e=>e.event_id);
+            if(eIds.length){
+                const ar=await fetch(`${SUPABASE_URL}/rest/v1/event_attendance?select=event_id&response_id=eq.3&event_id=in.(${eIds.join(',')})&limit=100000`,{headers:H});
+                if(ar.ok){
+                    const ac=new Map();
+                    for(const r of await ar.json())ac.set(r.event_id,(ac.get(r.event_id)||0)+1);
+                    evRows=evRows.filter(e=>{const c=ac.get(e.event_id)||0;return!(attMin>0&&c<attMin)&&!(Number.isFinite(attMax)&&c>attMax);});
+                }
             }
         }
-        // Apply attendance filter when active — matches SQL p_att_min/p_att_max
-        if(attMin>0||Number.isFinite(attMax)){
-            const eventIds=[...byEvent.keys()];
-            if(eventIds.length>0){
-                const ar=await fetch(`${SUPABASE_URL}/rest/v1/event_attendance?select=event_id&response_id=eq.3&event_id=in.(${eventIds.join(',')})`,{headers:H});
-                if(ar.ok){
-                    const attCounts=new Map();
-                    for(const row of await ar.json())attCounts.set(row.event_id,(attCounts.get(row.event_id)||0)+1);
-                    for(const evId of [...byEvent.keys()]){
-                        const cnt=attCounts.get(evId)||0;
-                        if((attMin>0&&cnt<attMin)||(Number.isFinite(attMax)&&cnt>attMax))byEvent.delete(evId);
+        const evMap=new Map(evRows.map(e=>[e.event_id,e]));
+        const filteredIds=evRows.map(e=>e.event_id);
+        // Step 2 — latest match_squad (save) per filtered event
+        const latestSave=new Map();
+        if(filteredIds.length){
+            const mr=await fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${filteredIds.join(',')})&limit=100000`,{headers:H});
+            if(mr.ok){for(const s of await mr.json()){const c=latestSave.get(s.event_id);if(!c||s.match_squad_id>c)latestSave.set(s.event_id,s.match_squad_id);}}
+        }
+        // Step 3 — member's details where match_squad_id = latest save for that event
+        _drawerAllAppearances=[];
+        const savedIds=[...latestSave.keys()];
+        if(savedIds.length){
+            const dr=await fetch(`${SUPABASE_URL}/rest/v1/match_squad_details?select=event_id,match_squad_id,squad_id,squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${p.member_id}&event_id=in.(${savedIds.join(',')})&limit=5000`,{headers:H});
+            if(dr.ok){
+                for(const row of await dr.json()){
+                    if(row.match_squad_id===latestSave.get(row.event_id)){
+                        const ev=evMap.get(row.event_id);
+                        if(ev)_drawerAllAppearances.push({event_id:row.event_id,match_squad_id:row.match_squad_id,squad_id:row.squad_id,squads:row.squads,events:ev});
                     }
                 }
             }
         }
-        _drawerAllAppearances=[...byEvent.values()].sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
+        _drawerAllAppearances.sort((a,b)=>new Date(b.events.event_date_time)-new Date(a.events.event_date_time));
         // Build squad chips
         const squadCounts=new Map();
         for(const row of _drawerAllAppearances){
