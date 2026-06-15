@@ -665,6 +665,12 @@ let groupBy     = 'month';
 let smoothChart = false;
 let allCodes = [], allTypes = [], allRoles = [];
 let _codeDisplayNames = {};
+function _updateCodeDisplayNames(){
+    if(!allCodes.includes('Hurling')){_codeDisplayNames={};return;}
+    if(fTeams===null){_codeDisplayNames={};return;}
+    const sel=(dashData?.teams||[]).filter(t=>fTeams.has(t.team_id));
+    _codeDisplayNames=(sel.length>0&&sel.every(t=>!!t.team_female))?{'Hurling':'Camogie'}:{};
+}
 let currentClubId = null;
 let activeTab     = 'club-overview';
 
@@ -880,7 +886,7 @@ function buildFilters(clubId) {
         }
     }
     allCodes = [...codes].sort(); allTypes = [...types].sort(); allRoles = [...roles].sort();
-    _codeDisplayNames = femaleHurling && allCodes.includes('Hurling') ? {'Hurling': 'Camogie'} : {};
+    _updateCodeDisplayNames();
     const teams = dashData.teams||[];
     const validIds = new Set(teams.map(t=>t.team_id));
 
@@ -950,7 +956,7 @@ function resetSubFilters() {
 function onTeamAll() {
     // Toggle: all→none, anything else→all
     fTeams = fTeams===null ? new Set() : null;
-    renderTeamDropdown(); resetSubFilters(); applyFilters();
+    _updateCodeDisplayNames(); renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
 function onTeamToggle(id) {
     const allIds=(dashData.teams||[]).map(t=>t.team_id);
@@ -964,7 +970,7 @@ function onTeamToggle(id) {
         fTeams.add(id);
         if (fTeams.size===allIds.length) fTeams=null; // back to all
     }
-    renderTeamDropdown(); resetSubFilters(); applyFilters();
+    _updateCodeDisplayNames(); renderTeamDropdown(); resetSubFilters(); applyFilters();
 }
 function closeTeamCard(teamId) {
     if (fTeams===null) {

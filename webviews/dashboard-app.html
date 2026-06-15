@@ -709,6 +709,12 @@ let _membersRateFilter = null;
 let attMin = 0, attMax = Infinity, _attSliderHasData = false;
 let allCodes = [], allTypes = [], allRoles = [], currentClubId = null, activeTab = 'club-overview';
 let _codeDisplayNames = {};
+function _updateCodeDisplayNames(){
+    if(!allCodes.includes('Hurling')){_codeDisplayNames={};return;}
+    if(fTeams===null){_codeDisplayNames={};return;}
+    const sel=(dashData?.teams||[]).filter(t=>fTeams.has(t.team_id));
+    _codeDisplayNames=(sel.length>0&&sel.every(t=>!!t.team_female))?{'Hurling':'Camogie'}:{};
+}
 let _dateDebounce = null;
 let insightCharts = [];
 
@@ -988,7 +994,7 @@ function buildFilters(clubId){
         for(const e of team.events||[]){if(e.code)codes.add(e.code);if(e.type)types.add(e.type);for(const m of e.members||[])if(m.role)roles.add(m.role);if(female&&e.code==='Hurling')femaleHurling=true;}
     }
     allCodes=[...codes].sort();allTypes=[...types].sort();allRoles=[...roles].sort();
-    _codeDisplayNames=femaleHurling&&allCodes.includes('Hurling')?{'Hurling':'Camogie'}:{};
+    _updateCodeDisplayNames();
     const teams=dashData.teams||[],validIds=new Set(teams.map(t=>t.team_id));
     if(clubId!==currentClubId){currentClubId=clubId;fTeams=null;fCode=new Set();fType=new Set();fRole=new Set();}
     else{if(fTeams!==null&&fTeams.size>0)fTeams=new Set([...fTeams].filter(id=>validIds.has(id)));fCode=new Set([...fCode].filter(v=>allCodes.includes(v)));fType=new Set([...fType].filter(v=>allTypes.includes(v)));fRole=new Set([...fRole].filter(v=>allRoles.includes(v)));}
@@ -1008,13 +1014,13 @@ function renderTeamChips(){
     html+=teams.map(t=>{const chk=fTeams===null||fTeams.has(t.team_id);return`<span class="s-chip ${chk?'active':''}" onclick="onTeamChipToggle(${t.team_id})">${esc(t.team_name)}</span>`;}).join('');
     document.getElementById('teamChips').innerHTML=html;
 }
-function onTeamChipAll(){fTeams=fTeams===null?new Set():null;renderTeamChips();applyFilters();}
+function onTeamChipAll(){fTeams=fTeams===null?new Set():null;_updateCodeDisplayNames();renderTeamChips();renderMultiChips('codeChips','code',allCodes,fCode);applyFilters();}
 function onTeamChipToggle(id){
     const allIds=(dashData.teams||[]).map(t=>t.team_id);
     if(fTeams===null)fTeams=new Set(allIds.filter(x=>x!==id));
     else if(fTeams.has(id))fTeams.delete(id);
     else{fTeams.add(id);if(fTeams.size===allIds.length)fTeams=null;}
-    renderTeamChips();applyFilters();
+    renderTeamChips();_updateCodeDisplayNames();renderMultiChips('codeChips','code',allCodes,fCode);applyFilters();
 }
 function resetSubFilters(){fCode=new Set();fType=new Set();fRole=new Set();renderMultiChips('codeChips','code',allCodes,fCode);renderMultiChips('typeChips','type',allTypes,fType);renderMultiChips('roleChips','role',allRoles,fRole);}
 
