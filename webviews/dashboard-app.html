@@ -1531,7 +1531,7 @@ async function _fetchSquadData(clubId) {
     const latestSaveIds = [...new Set(latestSave.values())];
 
     // Wave 3: match_squad_details + member_squad_link (parallel)
-    // match_squad_details: ~30 rows/save avg → 25 saves/chunk ≈ 750 rows max per chunk
+    // match_squad_details: up to ~80 rows/save (2 squads × 40 players) → 10 saves/chunk ≈ 800 rows max
     const [msdRows, mslRows] = await Promise.all([
         Promise.all(chunk(latestSaveIds, 10).map(ids =>
             fetch(`${SUPABASE_URL}/rest/v1/match_squad_details?select=event_id,member_id,squad_id,team_id,match_squad_id&match_squad_id=in.(${ids})&limit=2000`, {headers: H})
