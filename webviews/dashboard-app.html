@@ -1498,11 +1498,11 @@ async function _fetchSquadData(clubId) {
     // event_attendance: ~20 rows/event avg → 40 events/chunk ≈ 800 rows max
     // match_squads:     ~2 rows/event avg  → single fetch fine for most clubs
     const [attRows, msRows] = await Promise.all([
-        Promise.all(chunk(allEvIds, 40).map(ids =>
+        Promise.all(chunk(allEvIds, 15).map(ids =>
             fetch(`${SUPABASE_URL}/rest/v1/event_attendance?select=event_id,response_id&event_id=in.(${ids})&limit=2000`, {headers: H})
             .then(r => r.ok ? r.json() : [])
         )).then(a => a.flat()),
-        Promise.all(chunk(allEvIds, 200).map(ids =>
+        Promise.all(chunk(allEvIds, 50).map(ids =>
             fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${ids})&limit=2000`, {headers: H})
             .then(r => r.ok ? r.json() : [])
         )).then(a => a.flat())
@@ -1533,7 +1533,7 @@ async function _fetchSquadData(clubId) {
     // Wave 3: match_squad_details + member_squad_link (parallel)
     // match_squad_details: ~30 rows/save avg → 25 saves/chunk ≈ 750 rows max per chunk
     const [msdRows, mslRows] = await Promise.all([
-        Promise.all(chunk(latestSaveIds, 25).map(ids =>
+        Promise.all(chunk(latestSaveIds, 10).map(ids =>
             fetch(`${SUPABASE_URL}/rest/v1/match_squad_details?select=event_id,member_id,squad_id,team_id,match_squad_id&match_squad_id=in.(${ids})&limit=2000`, {headers: H})
             .then(r => r.ok ? r.json() : [])
         )).then(a => a.flat()),
