@@ -1345,7 +1345,9 @@ async function _sharePdfFile(pdf,filename,shareTitle,shareText,preOpenedWin=null
     const blob=pdf.output('blob');
     const url=URL.createObjectURL(blob);
     const file=new File([blob],filename,{type:'application/pdf'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){
+    let canShareFiles=false;
+    try{canShareFiles=!!(navigator.canShare&&navigator.canShare({files:[file]}));}catch(_){}
+    if(canShareFiles){
         try{
             await navigator.share({title:shareTitle,text:shareText||'',files:[file]});
             URL.revokeObjectURL(url);
@@ -1394,6 +1396,7 @@ async function sharePDF(){
     document.body.appendChild(clone);
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
+    let errMsg=null;
     try{
         const filename=`coachsmart-${name.replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`;
         const pdf=await _buildMultiPagePDF(clone,'#111418',[17,20,24],1200,10);
@@ -1402,8 +1405,16 @@ async function sharePDF(){
     }catch(e){
         if(document.body.contains(clone))document.body.removeChild(clone);
         if(preWin)try{preWin.close();}catch(_){}
-        if(e.name!=='AbortError')alert('PDF failed: '+e.message);
-    }finally{btn.textContent='↑ PDF';btn.disabled=false;}
+        if(e.name!=='AbortError')errMsg=(e.message||'Error').slice(0,22);
+    }finally{
+        if(errMsg){
+            // alert() is blocked in WebView — show the error in the button for 4s
+            btn.textContent=errMsg;
+            setTimeout(()=>{btn.textContent='↑ PDF';btn.disabled=false;},4000);
+        }else{
+            btn.textContent='↑ PDF';btn.disabled=false;
+        }
+    }
 }
 
 async function shareDrawerPDF(){
