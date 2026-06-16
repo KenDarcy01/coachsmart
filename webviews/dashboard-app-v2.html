@@ -1339,26 +1339,33 @@ async function _buildMultiPagePDF(element,bgHex,bgRgb,pageH,pad){
     if(!pdf)throw new Error('Nothing to render');
     return pdf;
 }
-async function _sharePdfFile(pdf,filename,shareTitle,shareText){
+// preOpenedWin: a window opened synchronously in the button handler before any
+// awaits — the only way to bypass iOS Safari's popup blocker after async work.
+async function _sharePdfFile(pdf,filename,shareTitle,shareText,preOpenedWin=null){
     const blob=pdf.output('blob');
     const url=URL.createObjectURL(blob);
     const file=new File([blob],filename,{type:'application/pdf'});
-    // Try native file share (iOS 15+, Android Chrome) — catches the case where
-    // canShare returns false or share() throws something other than AbortError
     if(navigator.canShare&&navigator.canShare({files:[file]})){
         try{
             await navigator.share({title:shareTitle,text:shareText||'',files:[file]});
             URL.revokeObjectURL(url);
+            if(preOpenedWin)try{preOpenedWin.close();}catch(_){}
             return;
         }catch(e){
-            if(e.name==='AbortError'){URL.revokeObjectURL(url);return;}
-            // Share failed — fall through to open
+            if(e.name==='AbortError'){
+                URL.revokeObjectURL(url);
+                if(preOpenedWin)try{preOpenedWin.close();}catch(_){}
+                return;
+            }
+            // share() threw for other reason — fall through to window fallback
         }
     }
-    // Fallback: open blob URL in a new tab. On iOS Safari this opens the PDF
-    // in the built-in viewer which has its own share/save button. Programmatic
-    // <a>.click() downloads are silently blocked on mobile Safari.
-    window.open(url,'_blank');
+    // Navigate the pre-opened window (bypasses iOS popup blocker) or open fresh
+    if(preOpenedWin){
+        preOpenedWin.location.href=url;
+    }else{
+        window.open(url,'_blank');
+    }
     setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
@@ -1369,15 +1376,15 @@ async function sharePDF(){
     if(!el){return;}
     const btn=document.getElementById('shareBtn');
     btn.textContent='…';btn.disabled=true;
+    // Open the fallback window NOW — synchronously in the user-gesture handler.
+    // After any await, iOS Safari popup blocker silently discards window.open().
+    const preWin=window.open('about:blank','_blank');
     const name=clubName()||'Dashboard';
     const titleMap={'club-overview':'Club Overview','team-overview':'Team Overview','members-overview':'Members Overview','squads':'Squad Overview'};
     const title=titleMap[activeTab]||activeTab;
     const{start,end}=getDateRange();const endD=new Date(end);endD.setDate(0);
     const dateStr=fmtMonth(start)+' – '+fmtMonth(endD);
 
-    // Clone the element so we can unconstrain its height without affecting the live UI.
-    // The sliced-y approach on the live element fails because overflow-clipped containers
-    // prevent the browser rendering content outside the viewport.
     const clone=el.cloneNode(true);
     clone.style.cssText=`position:absolute;left:-9999px;top:0;width:${el.offsetWidth||390}px;height:auto;max-height:none;overflow:visible;`;
     const header=document.createElement('div');
@@ -1391,15 +1398,17 @@ async function sharePDF(){
         const filename=`coachsmart-${name.replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`;
         const pdf=await _buildMultiPagePDF(clone,'#111418',[17,20,24],1200,10);
         document.body.removeChild(clone);
-        await _sharePdfFile(pdf,filename,`CoachSmart — ${title}`,`${name} · ${dateStr}`);
+        await _sharePdfFile(pdf,filename,`CoachSmart — ${title}`,`${name} · ${dateStr}`,preWin);
     }catch(e){
         if(document.body.contains(clone))document.body.removeChild(clone);
+        if(preWin)try{preWin.close();}catch(_){}
         if(e.name!=='AbortError')alert('PDF failed: '+e.message);
     }finally{btn.textContent='↑ PDF';btn.disabled=false;}
 }
 
 async function shareDrawerPDF(){
     const btn=document.getElementById('dShareBtn');btn.textContent='…';btn.disabled=true;
+    const preWin=window.open('about:blank','_blank');
     const sheet=document.getElementById('dSheet');
     const clone=sheet.cloneNode(true);
     clone.style.cssText=`position:absolute;left:-9999px;top:0;width:${sheet.offsetWidth}px;height:auto;max-height:none;transform:none;border-radius:0;overflow:visible;`;
@@ -1412,9 +1421,12 @@ async function shareDrawerPDF(){
         const filename=`coachsmart-${title.replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.pdf`;
         const pdf=await _buildMultiPagePDF(clone,'#1E222B',[30,34,43],1200,10);
         document.body.removeChild(clone);
-        await _sharePdfFile(pdf,filename,`CoachSmart — ${title}`,title);
-    }catch(e){if(document.body.contains(clone))document.body.removeChild(clone);if(e.name!=='AbortError')alert('Share failed: '+e.message);}
-    finally{btn.textContent='↑ Share PDF';btn.disabled=false;}
+        await _sharePdfFile(pdf,filename,`CoachSmart — ${title}`,title,preWin);
+    }catch(e){
+        if(document.body.contains(clone))document.body.removeChild(clone);
+        if(preWin)try{preWin.close();}catch(_){}
+        if(e.name!=='AbortError')alert('Share failed: '+e.message);
+    }finally{btn.textContent='↑ Share PDF';btn.disabled=false;}
 }
 
 // ── Drawer CSV ────────────────────────────────────────────────────
@@ -1805,8 +1817,8 @@ function insRateColor(r) {
 }
 async function exportInsightsPDF() {
     const btn = document.getElementById('insPdfBtn'); btn.textContent = '…'; btn.disabled = true;
+    const preWin = window.open('about:blank', '_blank');
     const el = document.getElementById('insModal');
-    // Clone offscreen at full height so scrollable content is fully captured
     const clone = el.cloneNode(true);
     clone.style.cssText = `position:absolute;left:-9999px;top:0;width:${el.offsetWidth}px;height:auto;max-height:none;overflow:visible;`;
     document.body.appendChild(clone);
@@ -1816,9 +1828,10 @@ async function exportInsightsPDF() {
         const filename = `coachsmart-${name.replace(/\s+/g, '-').toLowerCase()}-insights-${new Date().toISOString().slice(0, 10)}.pdf`;
         const pdf = await _buildMultiPagePDF(clone, '#111418', [17, 20, 24], 1200, 10);
         document.body.removeChild(clone);
-        await _sharePdfFile(pdf, filename, `CoachSmart Insights — ${name}`, name);
+        await _sharePdfFile(pdf, filename, `CoachSmart Insights — ${name}`, name, preWin);
     } catch (e) {
         if (document.body.contains(clone)) document.body.removeChild(clone);
+        if (preWin) try { preWin.close(); } catch (_) {}
         if (e.name !== 'AbortError') alert('PDF export failed: ' + e.message);
     } finally { btn.textContent = '↓ PDF'; btn.disabled = false; }
 }
