@@ -703,7 +703,7 @@ function switchTab(tab) {
     document.getElementById('pdfBtn').disabled = !dashData;
     document.getElementById('insightsBtn').disabled = !dashData;
     if (dashData) {
-        if (tab === 'squads-overview' && !squadData) loadSquadDashboard();
+        if (tab === 'squads-overview') loadSquadDashboard();
         else applyFiltersNoReload();
     }
 }
@@ -1064,13 +1064,7 @@ function applyFilters() {
         initAttSlider(base.reduce((mx,e)=>Math.max(mx,e.accepted),0));
         renderMembersOverview(base.filter(e=>e.accepted>=attMin&&e.accepted<=attMax));
     } else if (activeTab==='squads-overview') {
-        if (!_attSliderHasData) {
-            const mx = getBaseEvents().reduce((m,e)=>Math.max(m,e.accepted),0);
-            if (mx > 0) initAttSlider(mx); else document.getElementById('attRow').style.display='none';
-        } else {
-            document.getElementById('attRow').style.display = '';
-        }
-        renderSquadsOverview();
+        loadSquadDashboard();
     } else {
         const base=getFilteredEventsPerTeam();
         initAttSlider(Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0));
