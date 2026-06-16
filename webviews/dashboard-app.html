@@ -1488,6 +1488,7 @@ async function _fetchSquadData(clubId) {
     const empty = t => ({teams: t, _events: new Map(), _details: [], _squadNames: new Map()});
     if (!evRows.length) return empty(allTeams.map(t => ({...t, squads: [], total_squad_members: 0})));
     const allEvIds = evRows.map(e => e.event_id);
+    console.log('[SQ] Wave1: evRows after code/type filter:', evRows.length, '| allEvIds sample:', allEvIds.slice(0,3), '| types:', typeof allEvIds[0]);
 
     // Wave 2: attendance counts + match_squads (parallel)
     const [attRes, msRes] = await Promise.all([
@@ -1496,6 +1497,7 @@ async function _fetchSquadData(clubId) {
     ]);
     const attRows = attRes.ok ? await attRes.json() : [];
     const msRows  = msRes.ok  ? await msRes.json()  : [];
+    console.log('[SQ] Wave2: attRows:', attRows.length, '| msRows:', msRows.length, '| msRows sample:', msRows.slice(0,3));
 
     const acceptedPerEvent = new Map();
     for (const r of attRows) {
@@ -1509,6 +1511,7 @@ async function _fetchSquadData(clubId) {
     });
     const filteredEvIds = new Set(evRows.map(e => e.event_id));
     const _events = new Map(evRows.map(e => [e.event_id, e]));
+    console.log('[SQ] After att filter: filteredEvIds.size:', filteredEvIds.size, '| attMin:', attMin, '| applyAttMax:', applyAttMax, '| attMax:', attMax);
 
     const latestSave = new Map();
     for (const s of msRows) {
@@ -1516,8 +1519,10 @@ async function _fetchSquadData(clubId) {
         const c = latestSave.get(s.event_id);
         if (!c || s.match_squad_id > c) latestSave.set(s.event_id, s.match_squad_id);
     }
+    console.log('[SQ] latestSave.size:', latestSave.size, '| sample entry:', [...latestSave.entries()].slice(0,2), '| key type:', typeof [...latestSave.keys()][0], '| val type:', typeof [...latestSave.values()][0]);
     if (!latestSave.size) return empty(allTeams.map(t => ({...t, squads: [], total_squad_members: 0})));
     const latestSaveIds = [...new Set(latestSave.values())];
+    console.log('[SQ] latestSaveIds:', latestSaveIds);
 
     // Wave 3: match_squad_details + member_squad_link (parallel)
     const [msdRes, mslRes] = await Promise.all([
@@ -1526,9 +1531,11 @@ async function _fetchSquadData(clubId) {
     ]);
     const msdRows = msdRes.ok ? await msdRes.json() : [];
     const mslRows = mslRes.ok ? await mslRes.json() : [];
+    console.log('[SQ] Wave3: msdRows:', msdRows.length, '| sample:', msdRows.slice(0,2), '| msd event_id type:', typeof msdRows[0]?.event_id, '| msd match_squad_id type:', typeof msdRows[0]?.match_squad_id);
 
     // Only rows from the latest save for a filtered event
     const activeMsd = msdRows.filter(r => filteredEvIds.has(r.event_id) && latestSave.get(r.event_id) === r.match_squad_id);
+    console.log('[SQ] activeMsd:', activeMsd.length, '| distinct events:', new Set(activeMsd.map(r=>r.event_id)).size, '| filteredEvIds check sample:', msdRows[0] ? filteredEvIds.has(msdRows[0].event_id) : 'n/a', '| latestSave match sample:', msdRows[0] ? `${latestSave.get(msdRows[0].event_id)} === ${msdRows[0].match_squad_id} → ${latestSave.get(msdRows[0].event_id) === msdRows[0].match_squad_id}` : 'n/a');
     // Deduplicate member_squad_link on (member_id, squad_id, team_id)
     const mslSeen = new Set(), mslDeduped = [];
     for (const r of mslRows) {
