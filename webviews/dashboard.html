@@ -643,11 +643,11 @@ let drawerMode  = 'event'; // 'event' | 'roster' | 'member' | 'squadPlayer'
 let rosterData  = null;
 let squadPlayerData  = null;  // { name, appearances: [{event_title, event_date_time, squad_name}] }
 let squadPlayerFilter = null; // null = all squads, or squad_id (number) to filter
-let _squadPlayerCache = [];   // [{member_id, name, teamIds}]
+let _squadPlayerCache = [];   // [{member_id, name}]
 let sqSort      = {col:'total', dir:-1}; // col: 'name'|'total'|'squads'|String(squad_id)
 let sqChartFilter     = null;      // null=all, squad_id filtered by bar-chart click
 let _squadChartSquads = [];        // activeSquads array from last chart render
-let _sqRenderState    = null;      // {squads, allRows, teamIds} from last full render
+let _sqRenderState    = null;      // {squads, allRows} from last full render
 let _dateDebounce     = null;
 let _attDebounce      = null;
 let _teamBaseEvts     = [];    // events cache for month-bar chart filter re-renders
@@ -796,22 +796,6 @@ async function loadClubs() {
 function onClubChange() { if (document.getElementById('clubSelect').value) loadDashboard(); }
 
 // ── Dashboard fetch ───────────────────────────────────────────────
-function squadRpcBody(clubId, start, end) {
-    // Always include ALL 7 params so PostgREST unambiguously resolves to the
-    // 7-parameter signature (v5). Sending fewer params triggers PGRST203
-    // overloading ambiguity because older 3- and 5-param versions still exist.
-    const body = {
-        p_club_id:    clubId,
-        p_start_date: start.toISOString(),
-        p_end_date:   end.toISOString(),
-        p_codes:      fCode.size > 0 ? [...fCode] : null,
-        p_types:      fType.size > 0 ? [...fType] : null,
-        p_att_min:    attMin > 0 ? attMin : 0,
-        p_att_max:    isFinite(attMax) ? attMax : null,
-    };
-    return JSON.stringify(body);
-}
-
 async function loadDashboard() {
     const clubId = paramClub || parseInt(document.getElementById('clubSelect').value);
     if (!clubId) return;
@@ -822,28 +806,20 @@ async function loadDashboard() {
     document.getElementById('emptyState').style.display = 'none';
     const {start,end} = getDateRange();
     try {
-        const [r, rs] = await Promise.all([
-            fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`, {
-                method:'POST', headers:H,
-                body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
-            }),
-            fetch(`${SUPABASE_URL}/rest/v1/rpc/get_squad_dashboard`, {
-                method:'POST', headers:H,
-                body: squadRpcBody(clubId, start, end)
-            })
-        ]);
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`, {
+            method:'POST', headers:H,
+            body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
+        });
         if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||`HTTP ${r.status}`); }
         const data = await r.json();
         if (data.error) throw new Error(data.error);
         dashData = data;
-        squadData = rs.ok ? await rs.json().catch(()=>null) : null;
-        if (squadData?.error || squadData?.code) squadData = null;
+        squadData = null;
         if (paramClub && data.club_name) {
             document.getElementById('ctxLabel').textContent = data.club_name;
             document.getElementById('ctxLabel').style.display = '';
         }
         buildFilters(clubId);
-        squadData = null; // discard prefetch; filters are now set — switchTab reloads correctly
         document.getElementById('filterGroups').style.display = '';
         document.getElementById('pdfBtn').disabled = false;
         switchTab(activeTab);
@@ -856,19 +832,209 @@ async function loadDashboard() {
     }
 }
 
-// Re-fetches only the squad RPC — used when code/type filter changes on the squads tab
+// ── Squad data loader (REST, no SQL RPC) ──────────────────────────
+// Fetches all squad selection data in 4 waves of REST calls.
+// Both the table and drawer read from the returned _details cache,
+// guaranteeing they always show the same underlying dataset.
+async function _fetchSquadData(clubId) {
+    const {start, end} = getDateRange();
+    const attToEl = document.getElementById('attTo');
+    const applyAttMax = Number.isFinite(attMax) && attToEl && parseInt(attToEl.value) < parseInt(attToEl.max);
+    const allTeams = dashData?.teams || [];
+    if (!allTeams.length) return {teams: [], _events: new Map(), _details: [], _squadNames: new Map()};
+    const teamIds = allTeams.map(t => t.team_id);
+
+    // Wave 1: events for all club teams, client-side code/type filter
+    const evRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/events` +
+        `?select=event_id,team_id,event_title,event_date_time,opposition,` +
+        `event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)` +
+        `&team_id=in.(${teamIds})&event_date_time=gte.${start.toISOString()}&event_date_time=lt.${end.toISOString()}&limit=10000`,
+        {headers: H}
+    );
+    if (!evRes.ok) throw new Error(`HTTP ${evRes.status}`);
+    let evRows = (await evRes.json()).filter(e => {
+        if (fCode.size > 0 && !fCode.has(e.event_codes?.event_code)) return false;
+        if (fType.size > 0 && !fType.has(e.event_types?.event_type)) return false;
+        return true;
+    });
+    const empty = t => ({teams: t, _events: new Map(), _details: [], _squadNames: new Map()});
+    if (!evRows.length) return empty(allTeams.map(t => ({...t, squads: [], total_squad_members: 0})));
+    const allEvIds = evRows.map(e => e.event_id);
+
+    // Wave 2: attendance counts + match_squads (parallel)
+    const [attRes, msRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/event_attendance?select=event_id,response_id&event_id=in.(${allEvIds})&limit=500000`, {headers: H}),
+        fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${allEvIds})&limit=100000`, {headers: H})
+    ]);
+    const attRows = attRes.ok ? await attRes.json() : [];
+    const msRows  = msRes.ok  ? await msRes.json()  : [];
+
+    const acceptedPerEvent = new Map();
+    for (const r of attRows) {
+        if (r.response_id === 3) acceptedPerEvent.set(r.event_id, (acceptedPerEvent.get(r.event_id)||0)+1);
+    }
+    evRows = evRows.filter(e => {
+        const c = acceptedPerEvent.get(e.event_id)||0;
+        if (attMin > 0 && c < attMin) return false;
+        if (applyAttMax && c > attMax) return false;
+        return true;
+    });
+    const filteredEvIds = new Set(evRows.map(e => e.event_id));
+    const _events = new Map(evRows.map(e => [e.event_id, e]));
+
+    const latestSave = new Map();
+    for (const s of msRows) {
+        if (!filteredEvIds.has(s.event_id)) continue;
+        const c = latestSave.get(s.event_id);
+        if (!c || s.match_squad_id > c) latestSave.set(s.event_id, s.match_squad_id);
+    }
+    if (!latestSave.size) return empty(allTeams.map(t => ({...t, squads: [], total_squad_members: 0})));
+    const latestSaveIds = [...new Set(latestSave.values())];
+
+    // Wave 3: match_squad_details + member_squad_link (parallel)
+    const [msdRes, mslRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/match_squad_details?select=event_id,member_id,squad_id,team_id,match_squad_id&match_squad_id=in.(${latestSaveIds})&limit=500000`, {headers: H}),
+        fetch(`${SUPABASE_URL}/rest/v1/member_squad_link?select=member_id,squad_id,team_id&team_id=in.(${teamIds})&limit=50000`, {headers: H})
+    ]);
+    const msdRows = msdRes.ok ? await msdRes.json() : [];
+    const mslRows = mslRes.ok ? await mslRes.json() : [];
+
+    // Only rows from the latest save for a filtered event
+    const activeMsd = msdRows.filter(r => filteredEvIds.has(r.event_id) && latestSave.get(r.event_id) === r.match_squad_id);
+    // Deduplicate member_squad_link on (member_id, squad_id, team_id)
+    const mslSeen = new Set(), mslDeduped = [];
+    for (const r of mslRows) {
+        const k = `${r.member_id}:${r.squad_id}:${r.team_id}`;
+        if (!mslSeen.has(k)) { mslSeen.add(k); mslDeduped.push(r); }
+    }
+    if (!activeMsd.length) return empty(allTeams.map(t => ({...t, squads: [], total_squad_members: 0})));
+
+    const memberIdSet = new Set(activeMsd.map(r => r.member_id));
+    const squadIdSet  = new Set(activeMsd.map(r => r.squad_id));
+    const memberIds   = [...memberIdSet];
+    const squadIds    = [...squadIdSet];
+
+    // Wave 4: member names + squad info + grade-10 roles (parallel)
+    const [membRes, sqRes, mtlRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/members?select=member_id,first_name,last_name&member_id=in.(${memberIds})&limit=10000`, {headers: H}),
+        fetch(`${SUPABASE_URL}/rest/v1/squads?select=squad_id,squad_name,squad_list_seq&squad_id=in.(${squadIds})&limit=1000`, {headers: H}),
+        fetch(`${SUPABASE_URL}/rest/v1/member_team_link?select=member_id,team_id,member_team_role_link(roles(role_name,role_grade,role_list_seq))&member_id=in.(${memberIds})&team_id=in.(${teamIds})&limit=50000`, {headers: H})
+    ]);
+    const membRows = membRes.ok ? await membRes.json() : [];
+    const sqRows   = sqRes.ok   ? await sqRes.json()   : [];
+    const mtlRows  = mtlRes.ok  ? await mtlRes.json()  : [];
+
+    const memberNames = new Map(membRows.map(m => [m.member_id, `${m.first_name||''} ${m.last_name||''}`.trim()]));
+    const _squadNames = new Map(sqRows.map(s => [s.squad_id, {squad_name: s.squad_name, squad_list_seq: s.squad_list_seq}]));
+
+    // Grade-10 role per (member_id, team_id) — pick lowest role_list_seq
+    const memberRoles = new Map();
+    for (const mtl of mtlRows) {
+        const key = `${mtl.member_id}:${mtl.team_id}`;
+        if (memberRoles.has(key)) continue;
+        const r10 = (mtl.member_team_role_link||[])
+            .filter(r => r.roles?.role_grade === 10)
+            .sort((a,b) => (a.roles.role_list_seq||999)-(b.roles.role_list_seq||999));
+        if (r10.length) memberRoles.set(key, r10[0].roles.role_name);
+    }
+
+    // match_selections per (member_id, squad_id) — team_id-agnostic to avoid save/assignment mismatch
+    // total_event_count per member — globally distinct events across all squads
+    const selEvSeen = new Map(), memEvSeen = new Map();
+    for (const r of activeMsd) {
+        const sk = `${r.member_id}:${r.squad_id}`;
+        if (!selEvSeen.has(sk)) selEvSeen.set(sk, new Set());
+        selEvSeen.get(sk).add(r.event_id);
+        if (!memEvSeen.has(r.member_id)) memEvSeen.set(r.member_id, new Set());
+        memEvSeen.get(r.member_id).add(r.event_id);
+    }
+
+    // _details: one row per (member_id, event_id, squad_id) with event + squad info joined
+    // Sorted by date desc so drawer dedup (keep first per event_id) picks the most recent row
+    const _details = [];
+    const detailSeen = new Set();
+    for (const r of activeMsd) {
+        const dk = `${r.member_id}:${r.event_id}:${r.squad_id}`;
+        if (detailSeen.has(dk)) continue;
+        detailSeen.add(dk);
+        const ev = _events.get(r.event_id);
+        if (!ev) continue;
+        const sqInfo = _squadNames.get(r.squad_id);
+        _details.push({
+            event_id: r.event_id, member_id: r.member_id,
+            match_squad_id: r.match_squad_id, squad_id: r.squad_id,
+            squads: sqInfo ? {squad_name: sqInfo.squad_name} : null,
+            events: ev
+        });
+    }
+    _details.sort((a,b) => new Date(b.events.event_date_time) - new Date(a.events.event_date_time));
+
+    // Assign squads to teams via member_squad_link; fall back to msd.team_id
+    const squadTeamMap = new Map();
+    for (const r of mslDeduped) {
+        if (!squadIdSet.has(r.squad_id)) continue;
+        if (!squadTeamMap.has(r.squad_id)) squadTeamMap.set(r.squad_id, new Set());
+        squadTeamMap.get(r.squad_id).add(r.team_id);
+    }
+    for (const r of activeMsd) {
+        if (!squadTeamMap.has(r.squad_id)) squadTeamMap.set(r.squad_id, new Set([r.team_id]));
+    }
+
+    // Build per-squad member lists (unique per member_id, sorted by name)
+    const squadMembersMap = new Map();
+    for (const squadId of squadIdSet) {
+        const teamIdSet = squadTeamMap.get(squadId) || new Set();
+        const seen = new Set(), members = [];
+        for (const r of activeMsd) {
+            if (r.squad_id !== squadId || seen.has(r.member_id)) continue;
+            seen.add(r.member_id);
+            const name = memberNames.get(r.member_id) || '';
+            if (!name.trim()) continue;
+            const match_selections = selEvSeen.get(`${r.member_id}:${squadId}`)?.size || 0;
+            if (!match_selections) continue;
+            const total_event_count = memEvSeen.get(r.member_id)?.size || 0;
+            let role = memberRoles.get(`${r.member_id}:${r.team_id}`) || '';
+            if (!role) for (const tid of teamIdSet) { role = memberRoles.get(`${r.member_id}:${tid}`) || ''; if (role) break; }
+            members.push({member_id: r.member_id, name, role, match_selections, total_event_count});
+        }
+        members.sort((a,b) => a.name.localeCompare(b.name));
+        squadMembersMap.set(squadId, members);
+    }
+
+    // Assemble teams structure (same shape as old SQL RPC response)
+    const teamSquadsMap = new Map();
+    for (const [squadId, teamIdSet] of squadTeamMap) {
+        const sqInfo = _squadNames.get(squadId);
+        if (!sqInfo) continue;
+        const obj = {squad_id: squadId, squad_name: sqInfo.squad_name, squad_list_seq: sqInfo.squad_list_seq??999, members: squadMembersMap.get(squadId)||[]};
+        for (const tid of teamIdSet) {
+            if (!teamSquadsMap.has(tid)) teamSquadsMap.set(tid, new Map());
+            teamSquadsMap.get(tid).set(squadId, obj);
+        }
+    }
+    const teams = allTeams.map(t => {
+        const sqMap = teamSquadsMap.get(t.team_id) || new Map();
+        const squads = [...sqMap.values()].sort((a,b) => (a.squad_list_seq??999)-(b.squad_list_seq??999)||a.squad_name.localeCompare(b.squad_name));
+        const mset = new Set(squads.flatMap(sq => sq.members.map(m => m.member_id)));
+        return {team_id: t.team_id, team_name: t.team_name, team_female: t.team_female, total_squad_members: mset.size, squads};
+    });
+    return {teams, _events, _details, _squadNames};
+}
+
+// Reloads squad data when filters change on the squads tab
 async function loadSquadDashboard() {
     const clubId = paramClub || parseInt(document.getElementById('clubSelect').value);
     if (!clubId || !dashData) return;
-    const {start,end} = getDateRange();
+    document.getElementById('loading').style.display = 'flex';
     try {
-        const rs = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_squad_dashboard`, {
-            method:'POST', headers:H,
-            body: squadRpcBody(clubId, start, end)
-        });
-        squadData = rs.ok ? await rs.json().catch(()=>null) : null;
-        if (squadData?.error || squadData?.code) squadData = null;
-    } catch(e) { console.error('Squad dashboard reload failed:', e); }
+        squadData = await _fetchSquadData(clubId);
+    } catch(e) {
+        console.error('Squad data reload failed:', e);
+        squadData = null;
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
     renderSquadsOverview();
 }
 
@@ -998,8 +1164,8 @@ function pickFilter(el) {
     renderMultiChips('codeChips','code',allCodes,fCode);
     renderMultiChips('typeChips','type',allTypes,fType);
     renderMultiChips('roleChips','role',allRoles,fRole);
-    // Code and Type changes on the squads tab need a server-side re-query (match_selections
-    // are computed in SQL and must be re-filtered at DB level). Role is client-side only.
+    // Code and Type changes on the squads tab need a full data reload (events re-fetched).
+    // Role filter is client-side only.
     if (activeTab==='squads-overview' && (key==='code' || key==='type')) {
         loadSquadDashboard();
     } else {
@@ -1734,18 +1900,17 @@ function renderSquadsOverview() {
     });
 
     // Cache processed data for table-only re-renders (search, chart filter, sort)
-    const teamIds = teams.map(t=>t.team_id);
     const allRows = members.map(m=>{
         const total=m.total_event_count||[...m.squads.values()].reduce((s,v)=>s+v,0);
         return {...m, total, squadCount:m.squads.size};
     });
-    _sqRenderState = {squads, allRows, teamIds};
+    _sqRenderState = {squads, allRows};
     renderSquadsTable();
 }
 
 function renderSquadsTable() {
     if (!_sqRenderState) return;
-    const {squads, allRows, teamIds} = _sqRenderState;
+    const {squads, allRows} = _sqRenderState;
     _squadPlayerCache = [];
 
     // Apply search and chart-filter on top of pre-computed allRows
@@ -1786,7 +1951,7 @@ function renderSquadsTable() {
 
     document.getElementById('squadsBody').innerHTML = rows.map(m=>{
         const pi = _squadPlayerCache.length;
-        _squadPlayerCache.push({member_id:m.member_id, name:m.name, teamIds});
+        _squadPlayerCache.push({member_id:m.member_id, name:m.name});
         return `<tr onclick="openPlayerSquads(${pi})">
             <td style="font-weight:500;">${esc(m.name)}</td>
             ${squads.map(s=>{
@@ -1818,78 +1983,37 @@ function sortSquads(col) {
     renderSquadsTable();
 }
 
-async function openPlayerSquads(cacheIdx, initialSquadId=null) {
+function openPlayerSquads(cacheIdx, initialSquadId=null) {
     const cached = _squadPlayerCache[cacheIdx];
     if (!cached) return;
     drawerMode = 'squadPlayer';
     squadPlayerData = null;
     squadPlayerFilter = initialSquadId !== null ? Number(initialSquadId) : null;
     document.getElementById('dTitle').textContent = cached.name;
-    document.getElementById('dMeta').textContent = 'Loading squad history…';
     document.getElementById('dTabs').innerHTML = '';
     document.getElementById('dList').innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
     document.getElementById('dOverlay').classList.add('open');
     document.getElementById('dPanel').classList.add('open');
-    try {
-        const {start, end} = getDateRange();
-        // Step 1 — events in range for these teams (same filters as SQL)
-        let evRows = [];
-        if (cached.teamIds.length) {
-            const er = await fetch(`${SUPABASE_URL}/rest/v1/events?select=event_id,team_id,event_title,event_date_time,opposition,event_codes!events_event_code_id_fkey(event_code),event_types!events_event_type_id_fkey(event_type)&team_id=in.(${cached.teamIds.join(',')})&event_date_time=gte.${start.toISOString()}&event_date_time=lt.${end.toISOString()}&limit=10000`, {headers:H});
-            if (!er.ok) throw new Error(`HTTP ${er.status}`);
-            evRows = (await er.json()).filter(e => {
-                if (fCode.size > 0 && !fCode.has(e.event_codes?.event_code)) return false;
-                if (fType.size > 0 && !fType.has(e.event_types?.event_type)) return false;
-                return true;
-            });
-        }
-        // Step 1b — attendance filter (mirrors SQL p_att_min / p_att_max)
-        if (attMin > 0 || Number.isFinite(attMax)) {
-            const eIds = evRows.map(e => e.event_id);
-            if (eIds.length) {
-                const ar = await fetch(`${SUPABASE_URL}/rest/v1/event_attendance?select=event_id&response_id=eq.3&event_id=in.(${eIds.join(',')})&limit=100000`, {headers:H});
-                if (ar.ok) {
-                    const ac = new Map();
-                    for (const r of await ar.json()) ac.set(r.event_id, (ac.get(r.event_id)||0)+1);
-                    evRows = evRows.filter(e => { const c = ac.get(e.event_id)||0; return !(attMin>0&&c<attMin) && !(Number.isFinite(attMax)&&c>attMax); });
-                }
-            }
-        }
-        const evMap = new Map(evRows.map(e => [e.event_id, e]));
-        const filteredIds = evRows.map(e => e.event_id);
-        // Step 2 — latest match_squad (save) per filtered event
-        const latestSave = new Map();
-        if (filteredIds.length) {
-            const mr = await fetch(`${SUPABASE_URL}/rest/v1/match_squads?select=event_id,match_squad_id&event_id=in.(${filteredIds.join(',')})&limit=100000`, {headers:H});
-            if (mr.ok) { for (const s of await mr.json()) { const c = latestSave.get(s.event_id); if (!c || s.match_squad_id > c) latestSave.set(s.event_id, s.match_squad_id); } }
-        }
-        // Step 3 — member's details where match_squad_id = latest save for that event
-        // Deduplicate by event_id: a member can appear in multiple squads within one save;
-        // keep only the first row per event (same as the old byEvent map behaviour).
-        const appearances = [];
-        const savedIds = [...latestSave.keys()];
-        if (savedIds.length) {
-            const seenEvIds = new Set();
-            const dr = await fetch(`${SUPABASE_URL}/rest/v1/match_squad_details?select=event_id,match_squad_id,squad_id,squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}&event_id=in.(${savedIds.join(',')})&limit=5000`, {headers:H});
-            if (dr.ok) {
-                for (const row of await dr.json()) {
-                    if (row.match_squad_id === latestSave.get(row.event_id) && !seenEvIds.has(row.event_id)) {
-                        seenEvIds.add(row.event_id);
-                        const ev = evMap.get(row.event_id);
-                        if (ev) appearances.push({event_id:row.event_id, match_squad_id:row.match_squad_id, squad_id:row.squad_id, squads:row.squads, events:ev});
-                    }
-                }
-            }
-        }
-        appearances.sort((a,b) => new Date(b.events.event_date_time) - new Date(a.events.event_date_time));
-        squadPlayerData = {name: cached.name, appearances};
-        renderDTabs();
-        renderDList();
-        updateSquadDrawerMeta();
-    } catch(e) {
-        document.getElementById('dMeta').textContent = 'Failed to load';
-        document.getElementById('dList').innerHTML = `<div class="empty-state">Error: ${esc(e.message)}</div>`;
+
+    // Filter _details from the pre-loaded cache — no new API calls needed.
+    // Apply team filter (fTeams) so the drawer matches the table view.
+    // Deduplicate by event_id: a player in two squads for the same event counts as one appearance.
+    const allRows = (squadData?._details || []).filter(d => {
+        if (d.member_id !== cached.member_id) return false;
+        if (fTeams !== null && !fTeams.has(d.events?.team_id)) return false;
+        return true;
+    });
+    const seenEvIds = new Set();
+    const appearances = [];
+    for (const d of allRows) {
+        if (!seenEvIds.has(d.event_id)) { seenEvIds.add(d.event_id); appearances.push(d); }
     }
+    // allRows already sorted by date desc from _fetchSquadData
+    squadPlayerData = {name: cached.name, appearances};
+    document.getElementById('dMeta').textContent = '';
+    renderDTabs();
+    renderDList();
+    updateSquadDrawerMeta();
 }
 
 function exportSquadsCSV() {
