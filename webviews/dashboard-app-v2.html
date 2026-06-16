@@ -1363,38 +1363,28 @@ async function sharePDF(){
     const title=titleMap[activeTab]||activeTab;
     const{start,end}=getDateRange();const endD=new Date(end);endD.setDate(0);
     const dateStr=fmtMonth(start)+' – '+fmtMonth(endD);
+
+    // Clone the element so we can unconstrain its height without affecting the live UI.
+    // The sliced-y approach on the live element fails because overflow-clipped containers
+    // prevent the browser rendering content outside the viewport.
+    const clone=el.cloneNode(true);
+    clone.style.cssText=`position:absolute;left:-9999px;top:0;width:${el.offsetWidth||390}px;height:auto;max-height:none;overflow:visible;`;
     const header=document.createElement('div');
     header.style.cssText='padding:0 0 12px;border-bottom:2px solid #87C232;margin-bottom:14px;display:flex;align-items:center;gap:10px;';
     header.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#E7EBEE;">Coach<span style="color:#87C232;">Smart</span></div><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:#E7EBEE;">${esc(title)} — ${esc(name)}</div><div style="font-size:10px;color:#6B7280;margin-top:2px;">${esc(dateStr)}</div></div>`;
-    el.insertBefore(header,el.firstChild);
+    clone.insertBefore(header,clone.firstChild);
+    document.body.appendChild(clone);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
     try{
-        const elW=el.offsetWidth||390,elH=el.scrollHeight||el.offsetHeight||800;
-        const PAGE_H=1200,pad=10,pageCount=Math.ceil(elH/PAGE_H);
-        const{jsPDF}=window.jspdf;let pdf=null;
-        for(let i=0;i<pageCount;i++){
-            const sliceY=i*PAGE_H,sliceH=Math.min(PAGE_H,elH-sliceY);
-            let canvas=await html2canvas(el,{backgroundColor:'#111418',scale:1,x:0,y:sliceY,width:elW,height:sliceH,useCORS:true,logging:false});
-            const imgData=canvas.toDataURL('image/jpeg',0.85);canvas=null;
-            if(imgData.length<500)throw new Error('Canvas render failed (page '+(i+1)+')');
-            const pgW=elW+pad*2,pgH=sliceH+pad*2;
-            if(!pdf){pdf=new jsPDF({orientation:'p',unit:'px',format:[pgW,pgH]});}
-            else{pdf.addPage([pgW,pgH]);}
-            pdf.setFillColor(17,20,24);pdf.rect(0,0,pgW,pgH,'F');
-            pdf.addImage(imgData,'JPEG',pad,pad,elW,sliceH);
-        }
-        if(!pdf)throw new Error('Nothing to render');
         const filename=`coachsmart-${name.replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`;
-        const blob=pdf.output('blob');
-        const file=new File([blob],filename,{type:'application/pdf'});
-        if(navigator.canShare&&navigator.canShare({files:[file]})){
-            await navigator.share({title:`CoachSmart — ${title}`,text:`${name} · ${dateStr}`,files:[file]});
-        } else {
-            const url=URL.createObjectURL(blob);
-            Object.assign(document.createElement('a'),{href:url,download:filename}).click();
-            URL.revokeObjectURL(url);
-        }
-    }catch(e){if(e.name!=='AbortError')alert('PDF failed: '+e.message);}
-    finally{el.removeChild(header);btn.textContent='↑ PDF';btn.disabled=false;}
+        const pdf=await _buildMultiPagePDF(clone,'#111418',[17,20,24],1200,10);
+        document.body.removeChild(clone);
+        await _sharePdfFile(pdf,filename,`CoachSmart — ${title}`,`${name} · ${dateStr}`);
+    }catch(e){
+        if(document.body.contains(clone))document.body.removeChild(clone);
+        if(e.name!=='AbortError')alert('PDF failed: '+e.message);
+    }finally{btn.textContent='↑ PDF';btn.disabled=false;}
 }
 
 async function shareDrawerPDF(){
