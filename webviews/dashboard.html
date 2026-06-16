@@ -2086,11 +2086,11 @@ async function exportPDF() {
     const el=document.getElementById(elMap[activeTab]||'viewClub');
     const header=buildPDFHeader(); el.insertBefore(header,el.firstChild);
     try {
-        const scale=3, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
+        const scale=2, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
         const {jsPDF}=window.jspdf, pad=20, w=canvas.width/scale, h=canvas.height/scale;
         const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
         pdf.setFillColor(17,20,24); pdf.rect(0,0,w+pad*2,h+pad*2,'F');
-        pdf.addImage(canvas.toDataURL('image/png'),'PNG',pad,pad,w,h);
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.82),'JPEG',pad,pad,w,h);
         pdf.save(`coachsmart-${(clubName()||'dashboard').replace(/\s+/g,'-').toLowerCase()}-${activeTab}-${new Date().toISOString().slice(0,10)}.pdf`);
     } catch(e) { alert('PDF export failed: '+e.message); }
     finally { el.removeChild(header); btn.textContent='↓ Export PDF'; btn.disabled=false; }
@@ -2099,11 +2099,11 @@ async function exportInsightsPDF() {
     const btn=document.getElementById('insPdfBtn'); btn.textContent='Generating…'; btn.disabled=true;
     const el=document.getElementById('insModal');
     try {
-        const scale=3, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
+        const scale=2, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
         const {jsPDF}=window.jspdf, pad=20, w=canvas.width/scale, h=canvas.height/scale;
         const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
         pdf.setFillColor(17,20,24); pdf.rect(0,0,w+pad*2,h+pad*2,'F');
-        pdf.addImage(canvas.toDataURL('image/png'),'PNG',pad,pad,w,h);
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.82),'JPEG',pad,pad,w,h);
         pdf.save(`coachsmart-${(clubName()||'dashboard').replace(/\s+/g,'-').toLowerCase()}-insights-${new Date().toISOString().slice(0,10)}.pdf`);
     } catch(e) { alert('PDF export failed: '+e.message); }
     finally { btn.textContent='↓ PDF'; btn.disabled=false; }
