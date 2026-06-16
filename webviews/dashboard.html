@@ -1864,13 +1864,17 @@ async function openPlayerSquads(cacheIdx, initialSquadId=null) {
             if (mr.ok) { for (const s of await mr.json()) { const c = latestSave.get(s.event_id); if (!c || s.match_squad_id > c) latestSave.set(s.event_id, s.match_squad_id); } }
         }
         // Step 3 — member's details where match_squad_id = latest save for that event
+        // Deduplicate by event_id: a member can appear in multiple squads within one save;
+        // keep only the first row per event (same as the old byEvent map behaviour).
         const appearances = [];
         const savedIds = [...latestSave.keys()];
         if (savedIds.length) {
+            const seenEvIds = new Set();
             const dr = await fetch(`${SUPABASE_URL}/rest/v1/match_squad_details?select=event_id,match_squad_id,squad_id,squads!match_squad_squad_id_fkey(squad_name)&member_id=eq.${cached.member_id}&event_id=in.(${savedIds.join(',')})&limit=5000`, {headers:H});
             if (dr.ok) {
                 for (const row of await dr.json()) {
-                    if (row.match_squad_id === latestSave.get(row.event_id)) {
+                    if (row.match_squad_id === latestSave.get(row.event_id) && !seenEvIds.has(row.event_id)) {
+                        seenEvIds.add(row.event_id);
                         const ev = evMap.get(row.event_id);
                         if (ev) appearances.push({event_id:row.event_id, match_squad_id:row.match_squad_id, squad_id:row.squad_id, squads:row.squads, events:ev});
                     }
