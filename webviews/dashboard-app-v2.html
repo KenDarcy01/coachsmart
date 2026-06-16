@@ -1341,14 +1341,25 @@ async function _buildMultiPagePDF(element,bgHex,bgRgb,pageH,pad){
 }
 async function _sharePdfFile(pdf,filename,shareTitle,shareText){
     const blob=pdf.output('blob');
+    const url=URL.createObjectURL(blob);
     const file=new File([blob],filename,{type:'application/pdf'});
+    // Try native file share (iOS 15+, Android Chrome) — catches the case where
+    // canShare returns false or share() throws something other than AbortError
     if(navigator.canShare&&navigator.canShare({files:[file]})){
-        await navigator.share({title:shareTitle,text:shareText||'',files:[file]});
-    }else{
-        const url=URL.createObjectURL(blob);
-        Object.assign(document.createElement('a'),{href:url,download:filename}).click();
-        URL.revokeObjectURL(url);
+        try{
+            await navigator.share({title:shareTitle,text:shareText||'',files:[file]});
+            URL.revokeObjectURL(url);
+            return;
+        }catch(e){
+            if(e.name==='AbortError'){URL.revokeObjectURL(url);return;}
+            // Share failed — fall through to open
+        }
     }
+    // Fallback: open blob URL in a new tab. On iOS Safari this opens the PDF
+    // in the built-in viewer which has its own share/save button. Programmatic
+    // <a>.click() downloads are silently blocked on mobile Safari.
+    window.open(url,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
 // ── Share PDF ─────────────────────────────────────────────────────
