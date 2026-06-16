@@ -1670,7 +1670,7 @@ function renderSquadsOverview() {
                 if (fRole.size > 0 && !fRole.has(m.role)) continue;
                 if (!pSet.has(m.member_id)) { pSet.add(m.member_id); sqEntry.players_used++; }
                 sqEntry.total_sels += m.match_selections;
-                if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id, {member_id:m.member_id, name:m.name, squads:new Map()});
+                if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id, {member_id:m.member_id, name:m.name, total_event_count:m.total_event_count||0, squads:new Map()});
                 const prev = memberSquads.get(m.member_id).squads.get(sq.squad_id) || 0;
                 memberSquads.get(m.member_id).squads.set(sq.squad_id, prev + m.match_selections);
             }
@@ -1682,7 +1682,7 @@ function renderSquadsOverview() {
     const squadsActive = squads.filter(s=>s.players_used>0).length;
     const playersUsed = members.length; // distinct across all squads/teams
     const crossSquad = members.filter(m=>m.squads.size>=2).length;
-    const totalSels = squads.reduce((s,sq)=>s+sq.total_sels,0);
+    const totalSels = members.reduce((s,m)=>s+(m.total_event_count||[...m.squads.values()].reduce((a,v)=>a+v,0)),0);
 
     // KPIs
     document.getElementById('sqkpiSquads').textContent = squadsActive;
@@ -1736,7 +1736,7 @@ function renderSquadsOverview() {
     // Cache processed data for table-only re-renders (search, chart filter, sort)
     const teamIds = teams.map(t=>t.team_id);
     const allRows = members.map(m=>{
-        const total=[...m.squads.values()].reduce((s,v)=>s+v,0);
+        const total=m.total_event_count||[...m.squads.values()].reduce((s,v)=>s+v,0);
         return {...m, total, squadCount:m.squads.size};
     });
     _sqRenderState = {squads, allRows, teamIds};
@@ -1904,14 +1904,14 @@ function exportSquadsCSV() {
                 if (!m.match_selections) continue;
                 if (!m.name || !m.name.trim()) continue;
                 if (fRole.size > 0 && !fRole.has(m.role)) continue;
-                if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id,{name:m.name,squads:new Map()});
+                if (!memberSquads.has(m.member_id)) memberSquads.set(m.member_id,{name:m.name,total_event_count:m.total_event_count||0,squads:new Map()});
                 const prev=memberSquads.get(m.member_id).squads.get(sq.squad_id)||0;
                 memberSquads.get(m.member_id).squads.set(sq.squad_id,prev+m.match_selections);
             }
         }
     }
     const squads=[...squadMap.values()].sort((a,b)=>a.squad_list_seq-b.squad_list_seq||a.squad_name.localeCompare(b.squad_name));
-    const members=[...memberSquads.values()].map(m=>({...m,total:[...m.squads.values()].reduce((s,v)=>s+v,0),squadCount:m.squads.size})).sort((a,b)=>b.total-a.total);
+    const members=[...memberSquads.values()].map(m=>({...m,total:m.total_event_count||[...m.squads.values()].reduce((s,v)=>s+v,0),squadCount:m.squads.size})).sort((a,b)=>b.total-a.total);
     const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
     const header=[q('Player'),...squads.map(s=>q(s.squad_name)),q('Total'),q('Squads')].join(',');
     const rows=members.map(m=>[q(m.name),...squads.map(s=>m.squads.get(s.squad_id)||0),m.total,m.squadCount].join(','));

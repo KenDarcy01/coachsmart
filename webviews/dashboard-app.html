@@ -1500,10 +1500,9 @@ function renderSquads(){
         for(const m of sq.members||[]){
             if(!m.match_selections||!m.name||!m.name.trim())continue;
             if(fRole.size>0&&!fRole.has(m.role))continue;
-            if(!playerMap.has(m.member_id))playerMap.set(m.member_id,{member_id:m.member_id,name:m.name,role:m.role||'',squads:[],total:0});
+            if(!playerMap.has(m.member_id))playerMap.set(m.member_id,{member_id:m.member_id,name:m.name,role:m.role||'',squads:[],total:m.total_event_count||0});
             const p=playerMap.get(m.member_id);
             p.squads.push({squad_id:sq.squad_id,squad_name:sq.squad_name,count:m.match_selections});
-            p.total+=m.match_selections;
         }
     }
     _squadPlayersCache=[...playerMap.values()].sort((a,b)=>b.total-a.total);
