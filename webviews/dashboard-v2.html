@@ -1936,7 +1936,7 @@ async function exportPDF() {
     const el=document.getElementById(elMap[activeTab]||'viewClub');
     const header=buildPDFHeader(); el.insertBefore(header,el.firstChild);
     try {
-        const scale=3, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
+        const scale=2, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
         const {jsPDF}=window.jspdf, pad=20, w=canvas.width/scale, h=canvas.height/scale;
         const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
         pdf.setFillColor(17,20,24); pdf.rect(0,0,w+pad*2,h+pad*2,'F');
@@ -1949,7 +1949,7 @@ async function exportInsightsPDF() {
     const btn=document.getElementById('insPdfBtn'); btn.textContent='Generating…'; btn.disabled=true;
     const el=document.getElementById('insModal');
     try {
-        const scale=3, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
+        const scale=2, canvas=await html2canvas(el,{backgroundColor:'#111418',scale,useCORS:true,logging:false});
         const {jsPDF}=window.jspdf, pad=20, w=canvas.width/scale, h=canvas.height/scale;
         const pdf=new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w+pad*2,h+pad*2]});
         pdf.setFillColor(17,20,24); pdf.rect(0,0,w+pad*2,h+pad*2,'F');
@@ -2048,6 +2048,28 @@ function exportDrawerCSV(){
 }
 async function exportDrawerExcel(){
     const wb=new ExcelJS.Workbook(); wb.creator='CoachSmart';
+    if (drawerMode==='squadPlayer' && squadPlayerData) {
+        const ws=wb.addWorksheet('Squad Selections');
+        const addMeta=(l,v)=>{const r=ws.addRow([l,v]);r.getCell(1).font={bold:true,color:{argb:'FF595959'},size:10};r.getCell(2).font={color:{argb:'FF000000'},size:10};};
+        addMeta('Player',squadPlayerData.name||'');
+        addMeta('Exported',new Date().toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}));
+        ws.addRow([]);
+        ws.columns=[{key:'title',width:36},{key:'opposition',width:24},{key:'date',width:14},{key:'squad',width:18}];
+        const hRow=ws.addRow(['Event','Opposition','Date','Squad']); hRow.height=20;
+        hRow.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'},size:11,name:'Calibri'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E75B6'}};c.border={bottom:{style:'medium',color:{argb:'FF1F4E79'}}};c.alignment={vertical:'middle'};});
+        const ap=squadPlayerFilter===null?squadPlayerData.appearances:squadPlayerData.appearances.filter(a=>Number(a.squad_id)===squadPlayerFilter);
+        ap.forEach((a,i)=>{
+            const row=ws.addRow({title:a.events?.event_title||'Match',opposition:a.events?.opposition||'',date:new Date(a.events?.event_date_time),squad:a.squads?.squad_name||''});
+            const bg=i%2===0?'FFFFFFFF':'FFF2F2F2';
+            row.eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};c.font={color:{argb:'FF000000'},size:11,name:'Calibri'};c.alignment={vertical:'middle'};});
+            row.getCell('date').numFmt='dd mmm yyyy';
+        });
+        ws.views=[{state:'frozen',ySplit:3}];
+        const buf=await wb.xlsx.writeBuffer();
+        const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`coachsmart-${(squadPlayerData.name||'player').replace(/\s+/g,'-').toLowerCase()}-squads-${new Date().toISOString().slice(0,10)}.xlsx`});
+        a.click(); URL.revokeObjectURL(a.href); return;
+    }
     if (drawerMode==='member') {
         const ws=wb.addWorksheet('Attendance');
         const m=memberDetailData.member;

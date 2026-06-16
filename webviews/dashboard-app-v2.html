@@ -1353,13 +1353,14 @@ async function _sharePdfFile(pdf,filename,shareTitle,shareText){
 
 // ── Share PDF ─────────────────────────────────────────────────────
 async function sharePDF(){
-    const elMap={'team-overview':'viewClub','club-overview':'viewTeam','members-overview':'viewMembers'};
+    const elMap={'team-overview':'viewClub','club-overview':'viewTeam','members-overview':'viewMembers','squads':'viewSquads'};
     const el=document.getElementById(elMap[activeTab]);
+    if(!el){return;}
     const btn=document.getElementById('shareBtn');
     btn.textContent='…';btn.disabled=true;
     const name=clubName()||'Dashboard';
-    const titleMap={'club-overview':'Club Overview','team-overview':'Team Overview','members-overview':'Members Overview'};
-    const title=titleMap[activeTab];
+    const titleMap={'club-overview':'Club Overview','team-overview':'Team Overview','members-overview':'Members Overview','squads':'Squad Overview'};
+    const title=titleMap[activeTab]||activeTab;
     const{start,end}=getDateRange();const endD=new Date(end);endD.setDate(0);
     const dateStr=fmtMonth(start)+' – '+fmtMonth(endD);
     const header=document.createElement('div');
