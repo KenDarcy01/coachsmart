@@ -1327,7 +1327,11 @@ async function _buildMultiPagePDF(element,bgHex,bgRgb,pageH,pad){
     const{jsPDF}=window.jspdf;let pdf=null;
     for(let i=0,n=Math.ceil(elH/pageH);i<n;i++){
         const sliceY=i*pageH,sliceH=Math.min(pageH,elH-sliceY);
-        let canvas=await html2canvas(element,{backgroundColor:bgHex,scale:1,x:0,y:sliceY,width:elW,height:sliceH,useCORS:true,logging:false});
+        // imageTimeout:5000 caps any stalled resource (font/image) at 5s instead
+        // of the html2canvas default 15s, preventing an indefinite hang.
+        const canvasPromise=html2canvas(element,{backgroundColor:bgHex,scale:1,x:0,y:sliceY,width:elW,height:sliceH,useCORS:true,logging:false,imageTimeout:5000});
+        const timeoutPromise=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Canvas timeout p'+(i+1))),20000));
+        let canvas=await Promise.race([canvasPromise,timeoutPromise]);
         const imgData=canvas.toDataURL('image/jpeg',0.85);canvas=null;
         if(imgData.length<500)throw new Error('Canvas render failed (page '+(i+1)+')');
         const pgW=elW+pad*2,pgH=sliceH+pad*2;
@@ -1349,7 +1353,12 @@ async function _sharePdfFile(pdf,filename,shareTitle,shareText,preOpenedWin=null
     try{canShareFiles=!!(navigator.canShare&&navigator.canShare({files:[file]}));}catch(_){}
     if(canShareFiles){
         try{
-            await navigator.share({title:shareTitle,text:shareText||'',files:[file]});
+            // 10s timeout: navigator.share can hang indefinitely in some WKWebView configs
+            const shareTimeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('ShareTimeout')),10000));
+            await Promise.race([
+                navigator.share({title:shareTitle,text:shareText||'',files:[file]}),
+                shareTimeout
+            ]);
             URL.revokeObjectURL(url);
             if(preOpenedWin)try{preOpenedWin.close();}catch(_){}
             return;
@@ -1359,7 +1368,7 @@ async function _sharePdfFile(pdf,filename,shareTitle,shareText,preOpenedWin=null
                 if(preOpenedWin)try{preOpenedWin.close();}catch(_){}
                 return;
             }
-            // share() threw for other reason — fall through to window fallback
+            // Timeout or other error — fall through to window fallback
         }
     }
     // Navigate the pre-opened window (bypasses iOS popup blocker) or open fresh
