@@ -1402,6 +1402,13 @@ async function sharePDF(){
     header.style.cssText='padding:0 0 12px;border-bottom:2px solid #87C232;margin-bottom:14px;display:flex;align-items:center;gap:10px;';
     header.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#E7EBEE;">Coach<span style="color:#87C232;">Smart</span></div><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:#E7EBEE;">${esc(title)} — ${esc(name)}</div><div style="font-size:10px;color:#6B7280;margin-top:2px;">${esc(dateStr)}</div></div>`;
     clone.insertBefore(header,clone.firstChild);
+    // Strip canvas elements — WKWebView can stall indefinitely when html2canvas
+    // tries to read pixel data from a cross-context canvas (e.g. Chart.js).
+    clone.querySelectorAll('canvas').forEach(c=>{
+        const ph=document.createElement('div');
+        ph.style.cssText=`width:${c.offsetWidth||c.width||300}px;height:${c.offsetHeight||c.height||180}px;background:rgba(255,255,255,0.03);border-radius:6px;`;
+        c.parentNode.replaceChild(ph,c);
+    });
     document.body.appendChild(clone);
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
