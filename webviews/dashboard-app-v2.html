@@ -1410,7 +1410,7 @@ async function sharePDF(){
         c.parentNode.replaceChild(ph,c);
     });
     document.body.appendChild(clone);
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    await new Promise(r=>setTimeout(r,120));
 
     let errMsg=null;
     try{
@@ -1442,7 +1442,7 @@ async function shareDrawerPDF(){
     const cloneList=clone.querySelector('.d-list');
     if(cloneList){cloneList.style.overflow='visible';cloneList.style.flex='none';cloneList.style.height='auto';}
     document.body.appendChild(clone);
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    await new Promise(r=>setTimeout(r,120));
     try{
         const title=document.getElementById('dTitle').textContent;
         const filename=`coachsmart-${title.replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.pdf`;
@@ -1849,7 +1849,7 @@ async function exportInsightsPDF() {
     const clone = el.cloneNode(true);
     clone.style.cssText = `position:absolute;left:-9999px;top:0;width:${el.offsetWidth}px;height:auto;max-height:none;overflow:visible;`;
     document.body.appendChild(clone);
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise(r=>setTimeout(r,120));
     try {
         const name = clubName() || 'dashboard';
         const filename = `coachsmart-${name.replace(/\s+/g, '-').toLowerCase()}-insights-${new Date().toISOString().slice(0, 10)}.pdf`;
