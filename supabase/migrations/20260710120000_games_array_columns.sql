@@ -9,39 +9,28 @@ DROP INDEX IF EXISTS "public"."idx_games_game_age";
 DROP INDEX IF EXISTS "public"."idx_games_game_type";
 
 -- Convert game_age, game_type, game_skill to text[]
--- Trims whitespace around each value; preserves NULL for null/empty input.
+-- regexp_split_to_array splits on comma with optional surrounding whitespace.
+-- Subqueries are not permitted in USING clauses; regexp functions are.
 ALTER TABLE "public"."games"
   ALTER COLUMN "game_age" TYPE text[]
     USING (
       CASE
         WHEN game_age IS NULL OR trim(game_age) = '' THEN NULL
-        ELSE ARRAY(
-          SELECT trim(item)
-          FROM unnest(string_to_array(game_age, ',')) AS item
-          WHERE trim(item) != ''
-        )
+        ELSE regexp_split_to_array(trim(game_age), '\s*,\s*')
       END
     ),
   ALTER COLUMN "game_type" TYPE text[]
     USING (
       CASE
         WHEN game_type IS NULL OR trim(game_type) = '' THEN NULL
-        ELSE ARRAY(
-          SELECT trim(item)
-          FROM unnest(string_to_array(game_type, ',')) AS item
-          WHERE trim(item) != ''
-        )
+        ELSE regexp_split_to_array(trim(game_type), '\s*,\s*')
       END
     ),
   ALTER COLUMN "game_skill" TYPE text[]
     USING (
       CASE
         WHEN game_skill IS NULL OR trim(game_skill) = '' THEN NULL
-        ELSE ARRAY(
-          SELECT trim(item)
-          FROM unnest(string_to_array(game_skill, ',')) AS item
-          WHERE trim(item) != ''
-        )
+        ELSE regexp_split_to_array(trim(game_skill), '\s*,\s*')
       END
     );
 
