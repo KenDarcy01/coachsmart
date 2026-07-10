@@ -4,6 +4,9 @@
 --   game_age cs {Under 14}
 -- No RPC wrapper needed.
 
+-- Drop view that depended on game_age as text (unused workaround for comma-delimited values)
+DROP VIEW IF EXISTS "public"."view_game_age_expansion";
+
 -- Drop existing btree indexes on the columns being converted
 DROP INDEX IF EXISTS "public"."idx_games_game_age";
 DROP INDEX IF EXISTS "public"."idx_games_game_type";
