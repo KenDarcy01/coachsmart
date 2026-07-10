@@ -258,9 +258,9 @@ pw.Page _gamePage({
               spacing: 8,
               runSpacing: 4,
               children: [
-                if (_notEmpty(game.gameAge)) _tag(game.gameAge!, primary),
-                if (_notEmpty(game.gameType)) _tag(game.gameType!, primary),
-                if (_notEmpty(game.gameSkill)) _tag(game.gameSkill!, primary),
+                ...?game.gameAge?.map((v) => _tag(v, primary)).toList(),
+                ...?game.gameType?.map((v) => _tag(v, primary)).toList(),
+                ...?game.gameSkill?.map((v) => _tag(v, primary)).toList(),
               ],
             ),
           ),
@@ -425,9 +425,10 @@ pw.Widget _tag(String label, PdfColor primary) {
 // Utility functions
 // ════════════════════════════════════════════════════════════════════════════
 
-bool _notEmpty(String? s) => s != null && s.isNotEmpty;
 bool _hasAnyTag(GamesRow g) =>
-    _notEmpty(g.gameAge) || _notEmpty(g.gameType) || _notEmpty(g.gameSkill);
+    (g.gameAge?.isNotEmpty ?? false) ||
+    (g.gameType?.isNotEmpty ?? false) ||
+    (g.gameSkill?.isNotEmpty ?? false);
 
 Future<pw.ImageProvider?> _fetchImage(String? url) async {
   if (url == null || url.isEmpty) return null;
