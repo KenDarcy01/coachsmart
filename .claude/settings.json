@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__7141aa65-b283-46d2-bf50-4c0c7a322541__download_file_content",
+      "mcp__7141aa65-b283-46d2-bf50-4c0c7a322541__read_file_content",
+      "mcp__7141aa65-b283-46d2-bf50-4c0c7a322541__get_file_metadata",
+      "mcp__7141aa65-b283-46d2-bf50-4c0c7a322541__search_files",
+      "mcp__7141aa65-b283-46d2-bf50-4c0c7a322541__list_recent_files",
+      "mcp__7141aa65-b283-46d2-bf50-4c0c7a322541__copy_file",
+      "mcp__7141aa65-b283-46d2-bf50-4c0c7a322541__create_file",
+      "mcp__7141aa65-b283-46d2-bf50-4c0c7a322541__get_file_permissions"
+    ]
+  }
+}
