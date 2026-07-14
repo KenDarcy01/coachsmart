@@ -93,17 +93,13 @@ class _GamesAgesWidgetState extends State<GamesAgesWidget> {
         ),
         body: SafeArea(
           top: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).coachSmartMidBlack,
-                  ),
-                  child: FutureBuilder<List<GameAgesRow>>(
+          child: Padding(
+            padding: EdgeInsetsDirectional.fromSTEB(0.0, 20.0, 0.0, 20.0),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FutureBuilder<List<GameAgesRow>>(
                     future: GameAgesTable().queryRows(
                       queryFn: (q) => q,
                     ),
@@ -125,10 +121,12 @@ class _GamesAgesWidgetState extends State<GamesAgesWidget> {
                       List<GameAgesRow> listViewGameAgesRowList =
                           snapshot.data!;
 
-                      return ListView.builder(
+                      return ListView.separated(
                         padding: EdgeInsets.zero,
+                        shrinkWrap: true,
                         scrollDirection: Axis.vertical,
                         itemCount: listViewGameAgesRowList.length,
+                        separatorBuilder: (_, __) => SizedBox(height: 10.0),
                         itemBuilder: (context, listViewIndex) {
                           final listViewGameAgesRow =
                               listViewGameAgesRowList[listViewIndex];
@@ -139,82 +137,120 @@ class _GamesAgesWidgetState extends State<GamesAgesWidget> {
                               mainAxisSize: MainAxisSize.max,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Padding(
-                                  padding: EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 5.0, 0.0, 0.0),
-                                  child: InkWell(
-                                    splashColor: Colors.transparent,
-                                    focusColor: Colors.transparent,
-                                    hoverColor: Colors.transparent,
-                                    highlightColor: Colors.transparent,
-                                    onTap: () async {
-                                      logFirebaseEvent(
-                                          'GAMES_AGES_PAGE_Row_lf6zpul2_ON_TAP');
-                                      logFirebaseEvent('Row_navigate_to');
+                                InkWell(
+                                  splashColor: Colors.transparent,
+                                  focusColor: Colors.transparent,
+                                  hoverColor: Colors.transparent,
+                                  highlightColor: Colors.transparent,
+                                  onTap: () async {
+                                    logFirebaseEvent(
+                                        'GAMES_AGES_Container_lcvfehgv_ON_TAP');
+                                    logFirebaseEvent('Container_navigate_to');
 
-                                      context.pushNamed(
-                                        GamesWidget.routeName,
-                                        queryParameters: {
-                                          'gameAge': serializeParam(
-                                            listViewGameAgesRow.age,
-                                            ParamType.String,
-                                          ),
-                                        }.withoutNulls,
-                                      );
-                                    },
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          valueOrDefault<String>(
-                                            listViewGameAgesRow.description,
-                                            'game_age_default',
-                                          ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .bodyMedium
-                                              .override(
-                                                font: GoogleFonts.roboto(
-                                                  fontWeight:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontWeight,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMedium
-                                                          .fontStyle,
+                                    context.pushNamed(
+                                      GamesWidget.routeName,
+                                      queryParameters: {
+                                        'gameAge': serializeParam(
+                                          listViewGameAgesRow.age,
+                                          ParamType.String,
+                                        ),
+                                        'gameAgeDescription': serializeParam(
+                                          listViewGameAgesRow.description,
+                                          ParamType.String,
+                                        ),
+                                      }.withoutNulls,
+                                    );
+                                  },
+                                  child: Container(
+                                    width: double.infinity,
+                                    height: 50.0,
+                                    decoration: BoxDecoration(
+                                      color: FlutterFlowTheme.of(context)
+                                          .coachSmartLightBlack,
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                    alignment: AlignmentDirectional(0.0, 0.0),
+                                    child: Padding(
+                                      padding: EdgeInsetsDirectional.fromSTEB(
+                                          10.0, 0.0, 5.0, 0.0),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.max,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            children: [
+                                              Container(
+                                                width: 10.0,
+                                                height: 25.0,
+                                                decoration: BoxDecoration(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .coachSmartGreen,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          24.0),
                                                 ),
+                                              ),
+                                              Text(
+                                                valueOrDefault<String>(
+                                                  listViewGameAgesRow
+                                                      .description,
+                                                  'game_age_default',
+                                                ),
+                                                style: FlutterFlowTheme.of(
+                                                        context)
+                                                    .bodyMedium
+                                                    .override(
+                                                      font: GoogleFonts.roboto(
+                                                        fontWeight:
+                                                            FlutterFlowTheme.of(
+                                                                    context)
+                                                                .bodyMedium
+                                                                .fontWeight,
+                                                        fontStyle:
+                                                            FlutterFlowTheme.of(
+                                                                    context)
+                                                                .bodyMedium
+                                                                .fontStyle,
+                                                      ),
+                                                      color:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .coachSmartWhite,
+                                                      fontSize: 15.0,
+                                                      letterSpacing: 0.0,
+                                                      fontWeight:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .bodyMedium
+                                                              .fontWeight,
+                                                      fontStyle:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .bodyMedium
+                                                              .fontStyle,
+                                                    ),
+                                              ),
+                                            ].divide(SizedBox(width: 10.0)),
+                                          ),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            children: [
+                                              Icon(
+                                                Icons.chevron_right,
                                                 color:
                                                     FlutterFlowTheme.of(context)
-                                                        .coachSmartWhite,
-                                                fontSize: 15.0,
-                                                letterSpacing: 0.0,
-                                                fontWeight:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontWeight,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontStyle,
+                                                        .coachSmartGrey,
+                                                size: 24.0,
                                               ),
-                                        ),
-                                        Icon(
-                                          Icons.chevron_right,
-                                          color: FlutterFlowTheme.of(context)
-                                              .coachSmartGrey,
-                                          size: 24.0,
-                                        ),
-                                      ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Divider(
-                                  thickness: 1.0,
-                                  color: Color(0xFF585757),
                                 ),
                               ],
                             ),
@@ -223,9 +259,9 @@ class _GamesAgesWidgetState extends State<GamesAgesWidget> {
                       );
                     },
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

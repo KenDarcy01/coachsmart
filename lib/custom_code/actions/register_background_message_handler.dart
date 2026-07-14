@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
+import 'index.dart'; // Imports other custom actions
+
 import '/backend/api_requests/api_calls.dart';
 import 'index.dart';
 
@@ -61,6 +63,21 @@ void _logBannerState(
 }
 
 // ---------------------------------------------------------------------------
+// MODULE-LEVEL STATE
+//
+// _activeSupabase / _activeUserId: set whenever the handler initialises for
+//   a user. Used by the lifecycle watcher to refresh the badge on resume
+//   without needing the entry-point context.
+//
+// _lifecycleRegistered: prevents adding a duplicate WidgetsBindingObserver
+//   when registerBackgroundMessageHandler is called again on re-login.
+// ---------------------------------------------------------------------------
+
+SupabaseClient? _activeSupabase;
+String? _activeUserId;
+bool _lifecycleRegistered = false;
+
+// ---------------------------------------------------------------------------
 // 1. LIFECYCLE
 // ---------------------------------------------------------------------------
 
@@ -84,6 +101,11 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _CooldownManager.activate();
       _refreshNavigatorContext();
+      // Refresh badge for the current user on every app resume so the count
+      // stays accurate after switching users or backgrounding the app.
+      if (_activeSupabase != null && _activeUserId != null) {
+        _updateBadge(_activeSupabase!, _activeUserId!);
+      }
     }
   }
 }
@@ -121,7 +143,6 @@ void _refreshNavigatorContext() {
 
       root.visitChildren(visitor);
       if (found != null) {
-        // Assign to non-closure-captured locals so Dart can smart-cast them.
         final el = found!;
         _navigatorContext = el;
         if (el is StatefulElement && el.state is NavigatorState) {
@@ -141,6 +162,11 @@ void _refreshNavigatorContext() {
 }
 
 void _initLifecycle() {
+  if (_lifecycleRegistered) {
+    _logStep('Lifecycle', 'Already registered — skipping duplicate observer');
+    return;
+  }
+  _lifecycleRegistered = true;
   _logStep('Lifecycle', 'Registering watcher');
   _CooldownManager.activate();
   WidgetsBinding.instance.addObserver(_LifecycleWatcher());
@@ -326,7 +352,7 @@ Future<void> _navigateFromBannerLink(String linkPage) async {
 //
 // Stream skips if:
 //   - ID is in _processedNotificationIds (already handled this session)
-//   - is_read = true (user already actioned it)
+//   - is_delivered = true (already sent via another channel e.g. email/cron)
 //   - created_at > 60s ago (stale notification)
 // ---------------------------------------------------------------------------
 
@@ -386,11 +412,6 @@ Future<void> _startNotificationStream(
                 'processed this session');
             return;
           }
-
-          // if (isRead) {
-          //  _logWarn('Skipping — notification $alertId already read');
-          //  return;
-          // }
 
           if (alert['is_delivered'] == true) {
             _logWarn(
@@ -588,9 +609,6 @@ Future<void> _showPopup(
   String overlaySource = 'none';
 
   // Strategy 1 — NavigatorState.overlay (the navigator's own overlay).
-  // This is the correct approach: Overlay.of(navigatorElement) looks UP the
-  // tree for an ancestor Overlay, which doesn't exist above the root navigator.
-  // NavigatorState.overlay IS the overlay the navigator manages.
   try {
     if (_navigatorState != null && _navigatorState!.mounted) {
       final OverlayState? o = _navigatorState!.overlay;
@@ -1211,6 +1229,11 @@ Future<void> registerBackgroundMessageHandler() async {
 
     _log('Authenticated user: ${currentUser.id}');
 
+    // Store active user references so the lifecycle watcher can refresh the
+    // badge on resume without needing a new entry-point call.
+    _activeSupabase = supabase;
+    _activeUserId = currentUser.id;
+
     if (!kIsWeb) {
       FirebaseMessaging.onMessageOpenedApp
           .listen((RemoteMessage message) async {
@@ -1260,6 +1283,11 @@ Future<void> registerBackgroundMessageHandler() async {
     _refreshNavigatorContext();
 
     await _startNotificationStream(supabase, currentUser.id);
+
+    // Immediately sync the badge for the newly logged-in user so the count
+    // is correct before the next notification arrives.
+    await _updateBadge(supabase, currentUser.id);
+
     _log('registerBackgroundMessageHandler COMPLETE ✓');
   });
 }

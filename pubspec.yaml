@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.0.0+147
+version: 1.0.0+156
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -67,6 +67,7 @@ dependencies:
   gotrue: 2.12.0
   hive: 2.2.3
   http: 1.4.0
+  image:
   intl: 0.20.2
   json_path: 0.7.2
   map_launcher: 3.5.0
@@ -89,6 +90,8 @@ dependencies:
   provider: 6.1.5
   realtime_client: 2.5.0
   rxdart: 0.27.7
+  screenshot:
+  share_plus:
   shared_preferences: 2.5.3
   shared_preferences_android: 2.4.10
   shared_preferences_foundation: 2.5.4
@@ -106,6 +109,7 @@ dependencies:
   supabase: 2.7.0
   supabase_flutter: 2.9.0
   timeago: 3.7.1
+  universal_html:
   url_launcher: 6.3.1
   url_launcher_android: 6.3.16
   url_launcher_ios: 6.3.3
@@ -123,6 +127,7 @@ dependencies:
     git:
       url: https://github.com/FlutterFlow/webviewx_plus.git
       ref: 4f84ece5e06d52643c5d844f41880baf8440c584
+  youtube_player_iframe: 5.2.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -136,7 +141,6 @@ dependency_overrides:
 dev_dependencies:
   flutter_launcher_icons: 0.13.1
   flutter_lints: 4.0.0
-  image: 4.2.0
   lints: 4.0.0
   flutter_test:
     sdk: flutter

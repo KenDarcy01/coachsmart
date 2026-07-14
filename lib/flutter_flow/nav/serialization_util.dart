@@ -294,6 +294,8 @@ dynamic deserializeParam<T>(
             return EventResponseTypeRow(data);
           case SportRow:
             return SportRow(data);
+          case LineupRow:
+            return LineupRow(data);
           case MemberSquadLinkRow:
             return MemberSquadLinkRow(data);
           case ViewMemberEventCountRow:
@@ -312,6 +314,8 @@ dynamic deserializeParam<T>(
             return ViewEventAttendanceDetailsRow(data);
           case CarPoolDetailRow:
             return CarPoolDetailRow(data);
+          case LineupDetailsRow:
+            return LineupDetailsRow(data);
           case MatchScoresDetailsRow:
             return MatchScoresDetailsRow(data);
           case ViewTeamDetailsRow:
@@ -408,8 +412,6 @@ dynamic deserializeParam<T>(
             return MemberTeamRoleLinkRow(data);
           case NotificationsRow:
             return NotificationsRow(data);
-          case ViewGameAgeExpansionRow:
-            return ViewGameAgeExpansionRow(data);
           case MatchSquadsRow:
             return MatchSquadsRow(data);
           case EventUserMemberPaymentRow:

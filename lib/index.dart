@@ -47,3 +47,5 @@ export '/pages/home_page/home_page_widget.dart' show HomePageWidget;
 export '/pages/attendee_list_admins/attendee_list_admins_widget.dart'
     show AttendeeListAdminsWidget;
 export '/pages/team_selector/team_selector_widget.dart' show TeamSelectorWidget;
+export '/pages/analytics/analytics_widget.dart' show AnalyticsWidget;
+export '/pages/game_details/game_details_widget.dart' show GameDetailsWidget;

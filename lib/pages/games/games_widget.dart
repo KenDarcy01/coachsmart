@@ -1,6 +1,8 @@
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'games_model.dart';
@@ -10,9 +12,11 @@ class GamesWidget extends StatefulWidget {
   const GamesWidget({
     super.key,
     required this.gameAge,
+    required this.gameAgeDescription,
   });
 
   final String? gameAge;
+  final String? gameAgeDescription;
 
   static String routeName = 'Games';
   static String routePath = 'games';
@@ -72,7 +76,10 @@ class _GamesWidgetState extends State<GamesWidget> {
             },
           ),
           title: Text(
-            'Games',
+            valueOrDefault<String>(
+              widget.gameAgeDescription,
+              'game_age',
+            ),
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:
@@ -95,81 +102,182 @@ class _GamesWidgetState extends State<GamesWidget> {
         ),
         body: SafeArea(
           top: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Flexible(
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).coachSmartMidBlack,
-                    border: Border.all(
-                      color: FlutterFlowTheme.of(context).coachSmartMidBlack,
+          child: Padding(
+            padding: EdgeInsetsDirectional.fromSTEB(0.0, 20.0, 0.0, 20.0),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  FutureBuilder<List<GamesRow>>(
+                    future: GamesTable().queryRows(
+                      queryFn: (q) => q
+                          .containsOrNull(
+                            'game_age',
+                            '{${widget.gameAge}}',
+                          )
+                          .neqOrNull(
+                            'game_how_to_play',
+                            '',
+                          )
+                          .neqOrNull(
+                            'game_image',
+                            '',
+                          )
+                          .order('game_name', ascending: true),
                     ),
-                  ),
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    scrollDirection: Axis.vertical,
-                    children: [
-                      Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(
-                            15.0, 0.0, 15.0, 0.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.max,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                    builder: (context, snapshot) {
+                      // Customize what your widget looks like when it's loading.
+                      if (!snapshot.hasData) {
+                        return Center(
+                          child: SizedBox(
+                            width: 50.0,
+                            height: 50.0,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                FlutterFlowTheme.of(context).coachSmartGreen,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      List<GamesRow> listViewGamesRowList = snapshot.data!;
+
+                      return ListView.separated(
+                        padding: EdgeInsets.zero,
+                        primary: false,
+                        shrinkWrap: true,
+                        scrollDirection: Axis.vertical,
+                        itemCount: listViewGamesRowList.length,
+                        separatorBuilder: (_, __) => SizedBox(height: 10.0),
+                        itemBuilder: (context, listViewIndex) {
+                          final listViewGamesRow =
+                              listViewGamesRowList[listViewIndex];
+                          return Padding(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                15.0, 0.0, 15.0, 0.0),
+                            child: Column(
                               mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  '',
-                                  style: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .override(
-                                        font: GoogleFonts.roboto(
-                                          fontWeight:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontWeight,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontStyle,
-                                        ),
-                                        color: FlutterFlowTheme.of(context)
-                                            .coachSmartWhite,
-                                        fontSize: 16.0,
-                                        letterSpacing: 0.0,
-                                        fontWeight: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .fontWeight,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .fontStyle,
+                                Container(
+                                  width: double.infinity,
+                                  height: 50.0,
+                                  decoration: BoxDecoration(
+                                    color: FlutterFlowTheme.of(context)
+                                        .coachSmartLightBlack,
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsetsDirectional.fromSTEB(
+                                        10.0, 0.0, 0.0, 0.0),
+                                    child: InkWell(
+                                      splashColor: Colors.transparent,
+                                      focusColor: Colors.transparent,
+                                      hoverColor: Colors.transparent,
+                                      highlightColor: Colors.transparent,
+                                      onTap: () async {
+                                        logFirebaseEvent(
+                                            'GAMES_PAGE_Row_xoty4bl6_ON_TAP');
+                                        logFirebaseEvent('Row_navigate_to');
+
+                                        context.pushNamed(
+                                          GameDetailsWidget.routeName,
+                                          queryParameters: {
+                                            'gameRow': serializeParam(
+                                              listViewGamesRow,
+                                              ParamType.SupabaseRow,
+                                            ),
+                                          }.withoutNulls,
+                                        );
+                                      },
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.max,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            children: [
+                                              Container(
+                                                width: 10.0,
+                                                height: 25.0,
+                                                decoration: BoxDecoration(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .coachSmartGreen,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          24.0),
+                                                ),
+                                              ),
+                                              Text(
+                                                valueOrDefault<String>(
+                                                  listViewGamesRow.gameName,
+                                                  'game_name',
+                                                ),
+                                                style: FlutterFlowTheme.of(
+                                                        context)
+                                                    .bodyMedium
+                                                    .override(
+                                                      font: GoogleFonts.roboto(
+                                                        fontWeight:
+                                                            FlutterFlowTheme.of(
+                                                                    context)
+                                                                .bodyMedium
+                                                                .fontWeight,
+                                                        fontStyle:
+                                                            FlutterFlowTheme.of(
+                                                                    context)
+                                                                .bodyMedium
+                                                                .fontStyle,
+                                                      ),
+                                                      color:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .coachSmartWhite,
+                                                      fontSize: 16.0,
+                                                      letterSpacing: 0.0,
+                                                      fontWeight:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .bodyMedium
+                                                              .fontWeight,
+                                                      fontStyle:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .bodyMedium
+                                                              .fontStyle,
+                                                    ),
+                                              ),
+                                            ].divide(SizedBox(width: 10.0)),
+                                          ),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            children: [
+                                              Icon(
+                                                Icons.chevron_right,
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .coachSmartGrey,
+                                                size: 24.0,
+                                              ),
+                                            ],
+                                          ),
+                                        ].divide(SizedBox(width: 10.0)),
                                       ),
-                                ),
-                                Icon(
-                                  Icons.chevron_right,
-                                  color: FlutterFlowTheme.of(context)
-                                      .coachSmartGrey,
-                                  size: 24.0,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            Divider(
-                              thickness: 1.0,
-                              color: Color(0xFF585757),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                          );
+                        },
+                      );
+                    },
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -15,3 +15,4 @@ export 'return_to_home_with_updated_event.dart'
     show returnToHomeWithUpdatedEvent;
 export 'update_home_event_list.dart' show updateHomeEventList;
 export 'trigger_slick_notification.dart' show triggerSlickNotification;
+export 'export_game_card.dart' show exportGameCard;

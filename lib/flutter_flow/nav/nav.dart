@@ -120,6 +120,10 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   'gameAge',
                   ParamType.String,
                 ),
+                gameAgeDescription: params.getParam(
+                  'gameAgeDescription',
+                  ParamType.String,
+                ),
               ),
             ),
             FFRoute(
@@ -461,10 +465,31 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   ParamType.String,
                 ),
               ),
+            ),
+            FFRoute(
+              name: AnalyticsWidget.routeName,
+              path: AnalyticsWidget.routePath,
+              builder: (context, params) => AnalyticsWidget(
+                currentAuthToken: params.getParam(
+                  'currentAuthToken',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: GameDetailsWidget.routeName,
+              path: GameDetailsWidget.routePath,
+              builder: (context, params) => GameDetailsWidget(
+                gameRow: params.getParam<GamesRow>(
+                  'gameRow',
+                  ParamType.SupabaseRow,
+                ),
+              ),
             )
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),
       ].map((r) => r.toRoute(appStateNotifier)).toList(),
+      observers: [routeObserver],
     );
 
 extension NavParamExtensions on Map<String, String?> {

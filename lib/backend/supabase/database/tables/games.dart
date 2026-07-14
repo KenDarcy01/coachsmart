@@ -26,17 +26,18 @@ class GamesRow extends SupabaseDataRow {
   String? get gameImage => getField<String>('game_image');
   set gameImage(String? value) => setField<String>('game_image', value);
 
-  String? get gameAge => getField<String>('game_age');
-  set gameAge(String? value) => setField<String>('game_age', value);
+  List<String> get gameAge => getListField<String>('game_age');
+  set gameAge(List<String>? value) => setListField<String>('game_age', value);
 
-  String? get gameCode => getField<String>('game_code');
-  set gameCode(String? value) => setField<String>('game_code', value);
+  List<String> get gameCode => getListField<String>('game_code');
+  set gameCode(List<String>? value) => setListField<String>('game_code', value);
 
-  String? get gameSkill => getField<String>('game_skill');
-  set gameSkill(String? value) => setField<String>('game_skill', value);
+  List<String> get gameSkill => getListField<String>('game_skill');
+  set gameSkill(List<String>? value) =>
+      setListField<String>('game_skill', value);
 
-  String? get gameType => getField<String>('game_type');
-  set gameType(String? value) => setField<String>('game_type', value);
+  List<String> get gameType => getListField<String>('game_type');
+  set gameType(List<String>? value) => setListField<String>('game_type', value);
 
   String? get gameSetup => getField<String>('game_setup');
   set gameSetup(String? value) => setField<String>('game_setup', value);
