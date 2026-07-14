@@ -55,7 +55,10 @@ Future<void> exportGameCardPdf(
         if (gameImage != null)
           pw.Padding(
             padding: const pw.EdgeInsets.fromLTRB(0, 8, 0, 8),
-            child: pw.Image(gameImage, fit: pw.BoxFit.fitWidth),
+            child: pw.SizedBox(
+              height: 280,
+              child: pw.Image(gameImage, fit: pw.BoxFit.contain),
+            ),
           ),
         pw.SizedBox(height: 8),
         if ((gameHowToPlay ?? '').isNotEmpty)
@@ -86,8 +89,8 @@ Future<Uint8List?> _fetchBytes(String? url) async {
 }
 
 // Always re-encode through the image package to produce a clean 8-bit PNG
-// that the pdf package's internal decoder can reliably handle. Raw bytes from
-// Supabase may have PNG features (interlacing, 16-bit depth) that cause
+// that the pdf package's internal decoder can reliably handle. Raw Supabase
+// bytes may have PNG features (interlacing, 16-bit depth) that cause
 // PdfImage's internal PngDecoder to throw a null error.
 pw.MemoryImage? _pdfImage(Uint8List? bytes) {
   if (bytes == null || bytes.isEmpty) return null;
