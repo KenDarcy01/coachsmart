@@ -88,17 +88,16 @@ Future<Uint8List?> _fetchBytes(String? url) async {
   return null;
 }
 
-// Always re-encode through the image package to produce a clean 8-bit PNG
-// that the pdf package's internal decoder can reliably handle. Raw Supabase
-// bytes may have PNG features (interlacing, 16-bit depth) that cause
-// PdfImage's internal PngDecoder to throw a null error.
+// Decode then re-encode as JPEG (quality 90).
+// The pdf package's internal PngDecoder crashes on web with a null error
+// regardless of PNG format. Its JPEG decoder is reliable on all platforms.
 pw.MemoryImage? _pdfImage(Uint8List? bytes) {
   if (bytes == null || bytes.isEmpty) return null;
   try {
     final decoded = img.decodeImage(bytes);
     if (decoded == null) return null;
-    final png = Uint8List.fromList(img.encodePng(decoded));
-    return pw.MemoryImage(png);
+    final jpeg = Uint8List.fromList(img.encodeJpg(decoded, quality: 90));
+    return pw.MemoryImage(jpeg);
   } catch (_) {
     return null;
   }
