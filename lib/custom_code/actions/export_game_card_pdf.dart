@@ -4,13 +4,12 @@
 // Add these packages in FlutterFlow → Custom Code → Dependencies:
 //   pdf: ^3.10.8
 //   printing: ^5.12.0
-//   image: ^4.2.0
 
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' as paint;
 import 'package:http/http.dart' as http;
-import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -32,10 +31,12 @@ Future<void> exportGameCardPdf(
   final PdfColor secondary = _pdfColor(secondaryColour ?? '#FFC107');
   final PdfColor third = _pdfColor(thirdColour ?? '#1565C0');
 
-  final pw.MemoryImage? crestImage = _pdfImage(await _fetchBytes(clubCrest));
-  final pw.MemoryImage? gameImage = _pdfImage(await _fetchBytes(gameImageUrl));
+  final pw.ImageProvider? crestImage =
+      await _pdfImage(await _fetchBytes(clubCrest));
+  final pw.ImageProvider? gameImage =
+      await _pdfImage(await _fetchBytes(gameImageUrl));
 
-  final resolvedName = gameName ?? '';
+  final resolvedName = _sanitise(gameName ?? '');
   final safeName = resolvedName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
 
   final pdf = pw.Document(compress: !kIsWeb);
@@ -44,30 +45,35 @@ Future<void> exportGameCardPdf(
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: pw.EdgeInsets.zero,
+      footer: (context) => _pdfFooter(_sanitise(clubName), primary, third),
       build: (context) => [
-        _pdfHeader(resolvedName, clubName, crestImage, primary, secondary),
+        _pdfHeader(
+            resolvedName, _sanitise(clubName), crestImage, primary, secondary),
         _pdfAccentStripe(secondary, third),
-        if ((gameSetup ?? '').isNotEmpty)
+        if (_sanitise(gameSetup ?? '').isNotEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 16),
-            child: _pdfSection('HOW TO SET UP', gameSetup!, primary, secondary),
+            child: _pdfSection(
+                'HOW TO SET UP', _sanitise(gameSetup!), primary, secondary),
           ),
         if (gameImage != null)
           pw.Padding(
-            padding: const pw.EdgeInsets.fromLTRB(0, 8, 0, 8),
+            padding: const pw.EdgeInsets.fromLTRB(28, 8, 28, 8),
             child: pw.SizedBox(
-              height: 280,
+              height: 260,
               child: pw.Image(gameImage, fit: pw.BoxFit.contain),
             ),
           ),
         pw.SizedBox(height: 8),
-        if ((gameHowToPlay ?? '').isNotEmpty)
-          _pdfSection('HOW TO PLAY', gameHowToPlay!, primary, secondary),
-        if ((gameVariations ?? '').isNotEmpty)
-          _pdfSection('VARIATIONS', gameVariations!, primary, secondary),
-        if ((gameTeachingPoints ?? '').isNotEmpty)
-          _pdfSection('TEACHING POINTS', gameTeachingPoints!, primary, secondary),
-        _pdfFooter(clubName, primary, third),
+        if (_sanitise(gameHowToPlay ?? '').isNotEmpty)
+          _pdfSection(
+              'HOW TO PLAY', _sanitise(gameHowToPlay!), primary, secondary),
+        if (_sanitise(gameVariations ?? '').isNotEmpty)
+          _pdfSection(
+              'VARIATIONS', _sanitise(gameVariations!), primary, secondary),
+        if (_sanitise(gameTeachingPoints ?? '').isNotEmpty)
+          _pdfSection('TEACHING POINTS', _sanitise(gameTeachingPoints!),
+              primary, secondary),
       ],
     ),
   );
@@ -77,6 +83,29 @@ Future<void> exportGameCardPdf(
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Uses Flutter's native image decoder (browser-native on web) then feeds raw
+// pixels to the pdf package — bypasses the pdf package's broken PngDecoder.
+Future<pw.ImageProvider?> _pdfImage(Uint8List? bytes) async {
+  if (bytes == null || bytes.isEmpty) return null;
+  try {
+    return await flutterImageProvider(paint.MemoryImage(bytes));
+  } catch (_) {
+    return null;
+  }
+}
+
+// Replace smart quotes and non-Latin1 punctuation so Helvetica renders them.
+String _sanitise(String text) {
+  return text
+      .replaceAll('‘', "'")
+      .replaceAll('’', "'")
+      .replaceAll('“', '"')
+      .replaceAll('”', '"')
+      .replaceAll('–', '-')
+      .replaceAll('—', '-')
+      .replaceAll('…', '...');
+}
 
 Future<Uint8List?> _fetchBytes(String? url) async {
   if (url == null || url.isEmpty) return null;
@@ -88,24 +117,9 @@ Future<Uint8List?> _fetchBytes(String? url) async {
   return null;
 }
 
-// Decode then re-encode as JPEG (quality 90).
-// The pdf package's internal PngDecoder crashes on web with a null error
-// regardless of PNG format. Its JPEG decoder is reliable on all platforms.
-pw.MemoryImage? _pdfImage(Uint8List? bytes) {
-  if (bytes == null || bytes.isEmpty) return null;
-  try {
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) return null;
-    final jpeg = Uint8List.fromList(img.encodeJpg(decoded, quality: 90));
-    return pw.MemoryImage(jpeg);
-  } catch (_) {
-    return null;
-  }
-}
-
 PdfColor _pdfColor(String hex) {
   final c = hex.replaceAll('#', '');
-  final value = int.parse(c.length == 6 ? 'FF$c' : c, radix: 16);
+  final value = int.parse(c.length == 6 ? 'FF\$c' : c, radix: 16);
   final r = ((value >> 16) & 0xFF) / 255.0;
   final g = ((value >> 8) & 0xFF) / 255.0;
   final b = (value & 0xFF) / 255.0;
@@ -117,7 +131,7 @@ PdfColor _pdfColor(String hex) {
 pw.Widget _pdfHeader(
   String gameName,
   String clubName,
-  pw.MemoryImage? crestImage,
+  pw.ImageProvider? crestImage,
   PdfColor primary,
   PdfColor secondary,
 ) {
@@ -130,8 +144,8 @@ pw.Widget _pdfHeader(
         if (crestImage != null) ...
           [
             pw.Container(
-              width: 64,
-              height: 64,
+              width: 84,
+              height: 84,
               child: pw.Image(crestImage, fit: pw.BoxFit.contain),
             ),
             pw.SizedBox(width: 16),
@@ -144,21 +158,18 @@ pw.Widget _pdfHeader(
                 clubName,
                 style: pw.TextStyle(
                   color: PdfColors.white,
-                  fontSize: 14,
+                  fontSize: 18,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
-              pw.SizedBox(height: 4),
-              pw.Container(
-                height: 1,
-                color: secondary,
-              ),
-              pw.SizedBox(height: 4),
+              pw.SizedBox(height: 5),
+              pw.Container(height: 1, color: PdfColors.white),
+              pw.SizedBox(height: 5),
               pw.Text(
                 gameName,
                 style: pw.TextStyle(
                   color: PdfColors.white,
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
@@ -173,14 +184,8 @@ pw.Widget _pdfHeader(
 pw.Widget _pdfAccentStripe(PdfColor secondary, PdfColor third) {
   return pw.Row(
     children: [
-      pw.Expanded(
-        flex: 6,
-        child: pw.Container(height: 4, color: secondary),
-      ),
-      pw.Expanded(
-        flex: 2,
-        child: pw.Container(height: 4, color: third),
-      ),
+      pw.Expanded(flex: 6, child: pw.Container(height: 4, color: secondary)),
+      pw.Expanded(flex: 2, child: pw.Container(height: 4, color: third)),
     ],
   );
 }
@@ -252,7 +257,7 @@ pw.Widget _pdfSection(
 
 pw.Widget _pdfFooter(String clubName, PdfColor primary, PdfColor third) {
   return pw.Padding(
-    padding: const pw.EdgeInsets.fromLTRB(28, 8, 28, 20),
+    padding: const pw.EdgeInsets.fromLTRB(28, 8, 28, 16),
     child: pw.Column(
       children: [
         pw.Container(height: 1.5, color: third),
