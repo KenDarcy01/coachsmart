@@ -49,3 +49,4 @@ export '/pages/attendee_list_admins/attendee_list_admins_widget.dart'
 export '/pages/team_selector/team_selector_widget.dart' show TeamSelectorWidget;
 export '/pages/analytics/analytics_widget.dart' show AnalyticsWidget;
 export '/pages/game_details/game_details_widget.dart' show GameDetailsWidget;
+export '/pages/favourites/favourites_widget.dart' show FavouritesWidget;

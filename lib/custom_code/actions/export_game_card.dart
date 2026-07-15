@@ -44,20 +44,26 @@ Future<void> exportGameCard(
   final controller = ScreenshotController();
   final resolvedName = gameName ?? '';
 
-  // Use a tall targetSize so content is never clipped, then trim whitespace
   final Uint8List rawBytes = await controller.captureFromWidget(
-    _GameCard(
-      gameName: resolvedName,
-      gameSetup: gameSetup ?? '',
-      gameHowToPlay: gameHowToPlay ?? '',
-      gameVariations: gameVariations ?? '',
-      gameTeachingPoints: gameTeachingPoints ?? '',
-      gameImageBytes: gameImageBytes,
-      clubName: clubName,
-      crestBytes: crestBytes,
-      primaryColor: primary,
-      secondaryColor: secondary,
-      thirdColor: third,
+    MediaQuery(
+      data: const MediaQueryData(
+        padding: EdgeInsets.zero,
+        viewPadding: EdgeInsets.zero,
+        viewInsets: EdgeInsets.zero,
+      ),
+      child: _GameCard(
+        gameName: resolvedName,
+        gameSetup: gameSetup ?? '',
+        gameHowToPlay: gameHowToPlay ?? '',
+        gameVariations: gameVariations ?? '',
+        gameTeachingPoints: gameTeachingPoints ?? '',
+        gameImageBytes: gameImageBytes,
+        clubName: clubName,
+        crestBytes: crestBytes,
+        primaryColor: primary,
+        secondaryColor: secondary,
+        thirdColor: third,
+      ),
     ),
     pixelRatio: 2.0,
     targetSize: const Size(400, 5000),
@@ -84,35 +90,41 @@ Future<void> exportGameCard(
   }
 }
 
-// Scans from the bottom and trims fully-white rows
 Uint8List _trimWhiteBottom(Uint8List pngBytes) {
-  final decoded = img.decodeImage(pngBytes);
-  if (decoded == null) return pngBytes;
+  // Skip trimming on web — download handles whitespace fine
+  if (kIsWeb) return pngBytes;
 
-  int lastContentRow = 0;
-  for (int y = decoded.height - 1; y >= 0; y--) {
-    bool hasContent = false;
-    for (int x = 0; x < decoded.width; x++) {
-      final p = decoded.getPixel(x, y);
-      if (p.r < 250 || p.g < 250 || p.b < 250) {
-        hasContent = true;
+  try {
+    final decoded = img.decodeImage(pngBytes);
+    if (decoded == null) return pngBytes;
+
+    int lastContentRow = 0;
+    for (int y = decoded.height - 1; y >= 0; y--) {
+      bool hasContent = false;
+      for (int x = 0; x < decoded.width; x++) {
+        final p = decoded.getPixel(x, y);
+        if (p.r < 250 || p.g < 250 || p.b < 250) {
+          hasContent = true;
+          break;
+        }
+      }
+      if (hasContent) {
+        lastContentRow = y;
         break;
       }
     }
-    if (hasContent) {
-      lastContentRow = y;
-      break;
-    }
-  }
 
-  final cropped = img.copyCrop(
-    decoded,
-    x: 0,
-    y: 0,
-    width: decoded.width,
-    height: lastContentRow + 30, // 30px breathing room below last content
-  );
-  return Uint8List.fromList(img.encodePng(cropped));
+    final cropped = img.copyCrop(
+      decoded,
+      x: 0,
+      y: 0,
+      width: decoded.width,
+      height: lastContentRow + 30,
+    );
+    return Uint8List.fromList(img.encodePng(cropped));
+  } catch (_) {
+    return pngBytes; // If trimming fails, return the original — better than crashing
+  }
 }
 
 Future<Uint8List?> _fetchBytes(String? url) async {

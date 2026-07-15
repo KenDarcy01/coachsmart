@@ -47,4 +47,14 @@ class ClubsRow extends SupabaseDataRow {
   String? get clubNameTranslated => getField<String>('club_name_translated');
   set clubNameTranslated(String? value) =>
       setField<String>('club_name_translated', value);
+
+  String? get primaryColour => getField<String>('primary_colour');
+  set primaryColour(String? value) => setField<String>('primary_colour', value);
+
+  String? get secondaryColour => getField<String>('secondary_colour');
+  set secondaryColour(String? value) =>
+      setField<String>('secondary_colour', value);
+
+  String? get thirdColour => getField<String>('third_colour');
+  set thirdColour(String? value) => setField<String>('third_colour', value);
 }

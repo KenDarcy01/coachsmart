@@ -29,6 +29,7 @@ export 'tables/view_unique_user_team_members.dart';
 export 'tables/match_squad_details.dart';
 export 'tables/squads.dart';
 export 'tables/view_user_team_members.dart';
+export 'tables/user_game_link.dart';
 export 'tables/view_user_teams_grade.dart';
 export 'tables/view_user_team_member_squad.dart';
 export 'tables/view_attendee_details.dart';

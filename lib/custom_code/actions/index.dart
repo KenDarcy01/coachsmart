@@ -16,3 +16,5 @@ export 'return_to_home_with_updated_event.dart'
 export 'update_home_event_list.dart' show updateHomeEventList;
 export 'trigger_slick_notification.dart' show triggerSlickNotification;
 export 'export_game_card.dart' show exportGameCard;
+export 'export_game_card_pdf.dart' show exportGameCardPdf;
+export 'export_multi_game_card_pdf.dart' show exportMultiGameCardPdf;

@@ -1620,6 +1620,38 @@ class GetEventAdminDetailsCall {
   }
 }
 
+class GetUserFavouritesCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    String? supabaseJWTtoken = '',
+  }) async {
+    final ffApiRequestBody = '''
+{
+  
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'getUserFavourites',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/get_user_favourites',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
 class CreateMatchDaySquadFromAttendanceCall {
   static Future<ApiCallResponse> call({
     String? supabaseAccessToken =

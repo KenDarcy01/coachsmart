@@ -219,7 +219,9 @@ class _GamesAgesWidgetState extends State<GamesAgesWidget> {
                                                           FlutterFlowTheme.of(
                                                                   context)
                                                               .coachSmartWhite,
-                                                      fontSize: 15.0,
+                                                      fontSize: isWeb == true
+                                                          ? 14.0
+                                                          : 16.0,
                                                       letterSpacing: 0.0,
                                                       fontWeight:
                                                           FlutterFlowTheme.of(

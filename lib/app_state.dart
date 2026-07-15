@@ -132,4 +132,33 @@ class FFAppState extends ChangeNotifier {
   void updateListTeamMembersStruct(Function(ListTeamMembersStruct) updateFn) {
     updateFn(_listTeamMembers);
   }
+
+  List<UserFavouritesStruct> _userFavourites = [];
+  List<UserFavouritesStruct> get userFavourites => _userFavourites;
+  set userFavourites(List<UserFavouritesStruct> value) {
+    _userFavourites = value;
+  }
+
+  void addToUserFavourites(UserFavouritesStruct value) {
+    userFavourites.add(value);
+  }
+
+  void removeFromUserFavourites(UserFavouritesStruct value) {
+    userFavourites.remove(value);
+  }
+
+  void removeAtIndexFromUserFavourites(int index) {
+    userFavourites.removeAt(index);
+  }
+
+  void updateUserFavouritesAtIndex(
+    int index,
+    UserFavouritesStruct Function(UserFavouritesStruct) updateFn,
+  ) {
+    userFavourites[index] = updateFn(_userFavourites[index]);
+  }
+
+  void insertAtIndexInUserFavourites(int index, UserFavouritesStruct value) {
+    userFavourites.insert(index, value);
+  }
 }

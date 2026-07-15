@@ -485,6 +485,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   ParamType.SupabaseRow,
                 ),
               ),
+            ),
+            FFRoute(
+              name: FavouritesWidget.routeName,
+              path: FavouritesWidget.routePath,
+              builder: (context, params) => FavouritesWidget(),
             )
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),

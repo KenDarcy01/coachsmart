@@ -334,6 +334,8 @@ dynamic deserializeParam<T>(
             return SquadsRow(data);
           case ViewUserTeamMembersRow:
             return ViewUserTeamMembersRow(data);
+          case UserGameLinkRow:
+            return UserGameLinkRow(data);
           case ViewUserTeamsGradeRow:
             return ViewUserTeamsGradeRow(data);
           case ViewUserTeamMemberSquadRow:

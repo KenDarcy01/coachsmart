@@ -48,6 +48,7 @@ export 'user_associated_members_struct.dart';
 export 'user_clubs_struct.dart';
 export 'user_event_details_struct.dart';
 export 'user_events_home_struct.dart';
+export 'user_favourites_struct.dart';
 export 'user_notifications_struct.dart';
 export 'user_team_summary_struct.dart';
 export 'user_teams_struct.dart';

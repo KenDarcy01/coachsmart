@@ -1,11 +1,16 @@
+import '/auth/supabase_auth/auth_util.dart';
+import '/backend/api_requests/api_calls.dart';
+import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
+import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_youtube_player.dart';
 import '/custom_code/actions/index.dart' as actions;
-import '/index.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'game_details_model.dart';
@@ -26,10 +31,13 @@ class GameDetailsWidget extends StatefulWidget {
   State<GameDetailsWidget> createState() => _GameDetailsWidgetState();
 }
 
-class _GameDetailsWidgetState extends State<GameDetailsWidget> {
+class _GameDetailsWidgetState extends State<GameDetailsWidget>
+    with TickerProviderStateMixin {
   late GameDetailsModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  var hasContainerTriggered = false;
+  final animationsMap = <String, AnimationInfo>{};
 
   @override
   void initState() {
@@ -37,6 +45,54 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
     _model = createModel(context, () => GameDetailsModel());
 
     logFirebaseEvent('screen_view', parameters: {'screen_name': 'GameDetails'});
+    // On page load action.
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      logFirebaseEvent('GAME_DETAILS_GameDetails_ON_INIT_STATE');
+      logFirebaseEvent('GameDetails_backend_call');
+      _model.queryGame = await UserGameLinkTable().queryRows(
+        queryFn: (q) => q
+            .eqOrNull(
+              'user_id',
+              currentUserUid,
+            )
+            .eqOrNull(
+              'game_id',
+              widget.gameRow?.gameId,
+            ),
+      );
+      if (_model.queryGame != null && (_model.queryGame)!.isNotEmpty) {
+        logFirebaseEvent('GameDetails_update_page_state');
+        _model.varFavourite = true;
+        safeSetState(() {});
+      } else {
+        logFirebaseEvent('GameDetails_update_page_state');
+        _model.varFavourite = false;
+        safeSetState(() {});
+      }
+    });
+
+    animationsMap.addAll({
+      'containerOnActionTriggerAnimation': AnimationInfo(
+        trigger: AnimationTrigger.onActionTrigger,
+        applyInitialState: false,
+        effectsBuilder: () => [
+          RotateEffect(
+            curve: Curves.linear,
+            delay: 0.0.ms,
+            duration: 1090.0.ms,
+            begin: 0.0,
+            end: 1.0,
+          ),
+        ],
+      ),
+    });
+    setupAnimations(
+      animationsMap.values.where((anim) =>
+          anim.trigger == AnimationTrigger.onActionTrigger ||
+          !anim.applyInitialState),
+      this,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
@@ -74,8 +130,25 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
             ),
             onPressed: () async {
               logFirebaseEvent('GAME_DETAILS_arrow_back_rounded_ICN_ON_T');
+              logFirebaseEvent('IconButton_backend_call');
+              _model.apiUserFavourites = await GetUserFavouritesCall.call(
+                supabaseJWTtoken: currentJwtToken,
+              );
+
+              logFirebaseEvent('IconButton_update_app_state');
+              FFAppState().userFavourites =
+                  ((_model.apiUserFavourites?.jsonBody ?? '')
+                          .toList()
+                          .map<UserFavouritesStruct?>(
+                              UserFavouritesStruct.maybeFromMap)
+                          .toList() as Iterable<UserFavouritesStruct?>)
+                      .withoutNulls
+                      .toList()
+                      .cast<UserFavouritesStruct>();
               logFirebaseEvent('IconButton_navigate_back');
               context.pop();
+
+              safeSetState(() {});
             },
           ),
           actions: [],
@@ -306,7 +379,7 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                                                     .bodyMedium
                                                     .fontStyle,
                                           ),
-                                          fontSize: 16.0,
+                                          fontSize: isWeb == true ? 14.0 : 16.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.w600,
                                           fontStyle:
@@ -350,6 +423,8 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                                                           .bodyMedium
                                                           .fontStyle,
                                                 ),
+                                                fontSize:
+                                                    isWeb == true ? 12.0 : 14.0,
                                                 letterSpacing: 0.0,
                                                 fontWeight:
                                                     FlutterFlowTheme.of(context)
@@ -403,7 +478,7 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                                                     .bodyMedium
                                                     .fontStyle,
                                           ),
-                                          fontSize: 16.0,
+                                          fontSize: isWeb == true ? 14.0 : 16.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.w600,
                                           fontStyle:
@@ -447,6 +522,186 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                                                           .bodyMedium
                                                           .fontStyle,
                                                 ),
+                                                fontSize:
+                                                    isWeb == true ? 12.0 : 14.0,
+                                                letterSpacing: 0.0,
+                                                fontWeight:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontWeight,
+                                                fontStyle:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontStyle,
+                                                lineHeight: 1.6,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ].divide(SizedBox(height: 10.0)),
+                          ),
+                        ),
+                      if (widget.gameRow?.gameTeachingPoints != null &&
+                          widget.gameRow?.gameTeachingPoints != '')
+                        Padding(
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                              0.0, 0.0, 0.0, 20.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  Text(
+                                    'Teaching Points:',
+                                    style: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .override(
+                                          font: GoogleFonts.inter(
+                                            fontWeight: FontWeight.w600,
+                                            fontStyle:
+                                                FlutterFlowTheme.of(context)
+                                                    .bodyMedium
+                                                    .fontStyle,
+                                          ),
+                                          fontSize: isWeb == true ? 14.0 : 16.0,
+                                          letterSpacing: 0.0,
+                                          fontWeight: FontWeight.w600,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .bodyMedium
+                                                  .fontStyle,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: EdgeInsetsDirectional.fromSTEB(
+                                    10.0, 0.0, 0.0, 0.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: FlutterFlowTheme.of(context)
+                                              .coachSmartMidBlack,
+                                        ),
+                                        child: Text(
+                                          valueOrDefault<String>(
+                                            widget.gameRow?.gameTeachingPoints,
+                                            'teaching_points',
+                                          ),
+                                          style: FlutterFlowTheme.of(context)
+                                              .bodyMedium
+                                              .override(
+                                                font: GoogleFonts.inter(
+                                                  fontWeight:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontWeight,
+                                                  fontStyle:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontStyle,
+                                                ),
+                                                fontSize:
+                                                    isWeb == true ? 12.0 : 14.0,
+                                                letterSpacing: 0.0,
+                                                fontWeight:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontWeight,
+                                                fontStyle:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontStyle,
+                                                lineHeight: 1.6,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ].divide(SizedBox(height: 10.0)),
+                          ),
+                        ),
+                      if (widget.gameRow?.gameVariations != null &&
+                          widget.gameRow?.gameVariations != '')
+                        Padding(
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                              0.0, 0.0, 0.0, 20.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  Text(
+                                    'Variations:',
+                                    style: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .override(
+                                          font: GoogleFonts.inter(
+                                            fontWeight: FontWeight.w600,
+                                            fontStyle:
+                                                FlutterFlowTheme.of(context)
+                                                    .bodyMedium
+                                                    .fontStyle,
+                                          ),
+                                          fontSize: isWeb == true ? 14.0 : 16.0,
+                                          letterSpacing: 0.0,
+                                          fontWeight: FontWeight.w600,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .bodyMedium
+                                                  .fontStyle,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: EdgeInsetsDirectional.fromSTEB(
+                                    10.0, 0.0, 0.0, 0.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: FlutterFlowTheme.of(context)
+                                              .coachSmartMidBlack,
+                                        ),
+                                        child: Text(
+                                          valueOrDefault<String>(
+                                            widget.gameRow?.gameVariations,
+                                            'variations',
+                                          ),
+                                          style: FlutterFlowTheme.of(context)
+                                              .bodyMedium
+                                              .override(
+                                                font: GoogleFonts.inter(
+                                                  fontWeight:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontWeight,
+                                                  fontStyle:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontStyle,
+                                                ),
+                                                fontSize:
+                                                    isWeb == true ? 12.0 : 14.0,
                                                 letterSpacing: 0.0,
                                                 fontWeight:
                                                     FlutterFlowTheme.of(context)
@@ -487,7 +742,7 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                                                   .bodyMedium
                                                   .fontStyle,
                                         ),
-                                        fontSize: 16.0,
+                                        fontSize: isWeb == true ? 14.0 : 16.0,
                                         letterSpacing: 0.0,
                                         fontWeight: FontWeight.w600,
                                         fontStyle: FlutterFlowTheme.of(context)
@@ -540,15 +795,43 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                               onTap: () async {
                                 logFirebaseEvent(
                                     'GAME_DETAILS_Container_sir5x7hr_ON_TAP');
-                                logFirebaseEvent('Container_navigate_to');
-
-                                context.pushNamed(GamesAgesWidget.routeName);
+                                if (_model.varFavourite == true) {
+                                  logFirebaseEvent(
+                                      'Container_update_page_state');
+                                  _model.varFavourite = false;
+                                  safeSetState(() {});
+                                  logFirebaseEvent('Container_backend_call');
+                                  await UserGameLinkTable().delete(
+                                    matchingRows: (rows) => rows
+                                        .eqOrNull(
+                                          'user_id',
+                                          currentUserUid,
+                                        )
+                                        .eqOrNull(
+                                          'game_id',
+                                          widget.gameRow?.gameId,
+                                        ),
+                                  );
+                                } else {
+                                  logFirebaseEvent(
+                                      'Container_update_page_state');
+                                  _model.varFavourite = true;
+                                  safeSetState(() {});
+                                  logFirebaseEvent('Container_backend_call');
+                                  await UserGameLinkTable().insert({
+                                    'user_id': currentUserUid,
+                                    'game_id': widget.gameRow?.gameId,
+                                  });
+                                }
                               },
                               child: Container(
                                 width: 90.0,
                                 height: 50.0,
                                 decoration: BoxDecoration(
-                                  color: Color(0x8A1E222B),
+                                  color: _model.varFavourite == true
+                                      ? Color(0xFF870000)
+                                      : FlutterFlowTheme.of(context)
+                                          .coachSmartLightBlack,
                                   borderRadius: BorderRadius.circular(24.0),
                                 ),
                                 child: Column(
@@ -556,13 +839,12 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.favorite_border,
-                                      color: FlutterFlowTheme.of(context)
-                                          .alternate,
+                                      Icons.favorite_sharp,
+                                      color: Color(0xFFFFFCFC),
                                       size: 20.0,
                                     ),
                                     Text(
-                                      'Add to Plan',
+                                      'Add',
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
@@ -600,8 +882,27 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                               onTap: () async {
                                 logFirebaseEvent(
                                     'GAME_DETAILS_Container_f03esfs9_ON_TAP');
+                                logFirebaseEvent('Container_widget_animation');
+                                if (animationsMap[
+                                        'containerOnActionTriggerAnimation'] !=
+                                    null) {
+                                  safeSetState(
+                                      () => hasContainerTriggered = true);
+                                  SchedulerBinding.instance.addPostFrameCallback(
+                                      (_) async => await animationsMap[
+                                              'containerOnActionTriggerAnimation']!
+                                          .controller
+                                        ..reset()
+                                        ..repeat());
+                                }
+                                logFirebaseEvent('Container_wait__delay');
+                                await Future.delayed(
+                                  Duration(
+                                    milliseconds: 20,
+                                  ),
+                                );
                                 logFirebaseEvent('Container_custom_action');
-                                await actions.exportGameCard(
+                                await actions.exportGameCardPdf(
                                   widget.gameRow?.gameName,
                                   widget.gameRow?.gameSetup,
                                   widget.gameRow?.gameHowToPlay,
@@ -610,10 +911,29 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                                   widget.gameRow?.gameImage,
                                   'Clontarf GAA',
                                   'https://storage.googleapis.com/flutterflow-io-6f20.appspot.com/projects/coach-smart-new-mpqa5l/assets/w3te2vgwbyk5/Clontarf_GAA_Crest.png',
-                                  '#e91f24',
+                                  '#b91a1e',
                                   '#0060af',
                                   '#ffffff',
+                                  widget.gameRow?.gameVideo,
                                 );
+                                logFirebaseEvent('Container_widget_animation');
+                                if (animationsMap[
+                                        'containerOnActionTriggerAnimation'] !=
+                                    null) {
+                                  animationsMap[
+                                          'containerOnActionTriggerAnimation']!
+                                      .controller
+                                      .stop();
+                                }
+                                logFirebaseEvent('Container_widget_animation');
+                                if (animationsMap[
+                                        'containerOnActionTriggerAnimation'] !=
+                                    null) {
+                                  animationsMap[
+                                          'containerOnActionTriggerAnimation']!
+                                      .controller
+                                      .reset();
+                                }
                               },
                               child: Container(
                                 width: 90.0,
@@ -662,7 +982,10 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget> {
                                   ],
                                 ),
                               ),
-                            ),
+                            ).animateOnActionTrigger(
+                                animationsMap[
+                                    'containerOnActionTriggerAnimation']!,
+                                hasBeenTriggered: hasContainerTriggered),
                           ],
                         ),
                       ),

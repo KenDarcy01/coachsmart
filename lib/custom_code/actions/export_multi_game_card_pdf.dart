@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 // FlutterFlow Custom Action
-// Name: exportGameCardPdf
+// Name: exportMultiGameCardPdf
 //
 // Add these packages in FlutterFlow → Custom Code → Dependencies:
 //   pdf: ^3.10.8
@@ -25,96 +25,148 @@ import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-Future<void> exportGameCardPdf(
-  String? gameName,
-  String? gameSetup,
-  String? gameHowToPlay,
-  String? gameVariations,
-  String? gameTeachingPoints,
-  String? gameImageUrl,
+Future<String?> exportMultiGameCardPdf(
+  List<int> gameIds,
   String clubName,
   String? clubCrest,
   String? primaryColour,
   String? secondaryColour,
   String? thirdColour,
-  String? gameVideoUrl,
 ) async {
-  final PdfColor primary = _pdfColor(primaryColour, 0.18, 0.49, 0.20);
-  final PdfColor secondary = _pdfColor(secondaryColour, 1.0, 0.76, 0.03);
-  final PdfColor third = _pdfColor(thirdColour, 0.08, 0.40, 0.75);
-  final bool hasThird = thirdColour != null && thirdColour.trim().isNotEmpty;
+  if (gameIds.isEmpty) return null;
 
-  final pw.ImageProvider? crestImage =
-      await _pdfImage(await _fetchBytes(clubCrest));
-  final pw.ImageProvider? gameImage =
-      await _pdfImage(await _fetchBytes(gameImageUrl));
+  if (gameIds.length > 10) {
+    return 'Please select a maximum of 10 games to export at once.';
+  }
 
-  final pw.Font clubFont = await PdfGoogleFonts.montserratBold();
+  try {
+    final PdfColor primary = _mgPdfColor(primaryColour, 0.18, 0.49, 0.20);
+    final PdfColor secondary = _mgPdfColor(secondaryColour, 1.0, 0.76, 0.03);
+    final PdfColor third = _mgPdfColor(thirdColour, 0.08, 0.40, 0.75);
+    final bool hasThird = thirdColour != null && thirdColour.trim().isNotEmpty;
 
-  final resolvedName = _sanitise(gameName ?? '');
-  final safeName = resolvedName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+    final pw.Font clubFont = await PdfGoogleFonts.montserratBold();
 
-  final PdfPageFormat pageFormat =
-      kIsWeb ? PdfPageFormat.a4 : const PdfPageFormat(380, 820);
-  final double hPad = kIsWeb ? 28.0 : 16.0;
-  final double crestSize = kIsWeb ? 84.0 : 68.0;
-  final double imageHeight = kIsWeb ? 260.0 : 200.0;
+    final supabase = Supabase.instance.client;
+    final List<dynamic> rows = await supabase
+        .from('games')
+        .select(
+            'game_id, game_name, game_setup, game_how_to_play, game_variations, game_teaching_points, game_image, game_video')
+        .inFilter('game_id', gameIds);
 
-  final pdf = pw.Document(compress: !kIsWeb);
+    if (rows.isEmpty) return null;
 
-  pdf.addPage(
-    pw.MultiPage(
-      pageFormat: pageFormat,
-      margin: pw.EdgeInsets.zero,
-      header: (context) => pw.SizedBox(
-        height: context.pageNumber > 1 ? 24 : 0,
+    final rowMap = <int, Map<String, dynamic>>{
+      for (final r in rows) (r['game_id'] as int): r as Map<String, dynamic>,
+    };
+    final ordered = gameIds
+        .where((id) => rowMap.containsKey(id))
+        .map((id) => rowMap[id]!)
+        .toList();
+
+    final pw.ImageProvider? crestImage =
+        await _mgPdfImage(await _mgFetchBytes(clubCrest));
+
+    final List<pw.ImageProvider?> gameImages = await Future.wait(
+      ordered.map((row) async {
+        final bytes = await _mgFetchBytes(row['game_image'] as String?);
+        return _mgPdfImage(bytes);
+      }),
+    );
+
+    final PdfPageFormat pageFormat =
+        kIsWeb ? PdfPageFormat.a4 : const PdfPageFormat(380, 820);
+    final double hPad = kIsWeb ? 28.0 : 16.0;
+    final double crestSize = kIsWeb ? 84.0 : 68.0;
+    final double imageHeight = kIsWeb ? 260.0 : 200.0;
+
+    final pdf = pw.Document(compress: !kIsWeb);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: pageFormat,
+        margin: pw.EdgeInsets.zero,
+        header: (context) => pw.SizedBox(
+          height: context.pageNumber > 1 ? 24 : 0,
+        ),
+        footer: (context) => _mgPdfFooter(
+            _mgSanitise(clubName), primary, secondary, third, hPad, hasThird),
+        build: (context) {
+          final widgets = <pw.Widget>[];
+
+          for (int i = 0; i < ordered.length; i++) {
+            if (i > 0) widgets.add(pw.NewPage());
+
+            final row = ordered[i];
+            final gameName = _mgSanitise(row['game_name'] as String? ?? '');
+            final gameSetup = _mgSanitise(row['game_setup'] as String? ?? '');
+            final gameHowToPlay =
+                _mgSanitise(row['game_how_to_play'] as String? ?? '');
+            final gameVariations =
+                _mgSanitise(row['game_variations'] as String? ?? '');
+            final gameTeachingPoints =
+                _mgSanitise(row['game_teaching_points'] as String? ?? '');
+            final gameVideo = _mgSanitise(row['game_video'] as String? ?? '');
+            final gameImage = gameImages[i];
+
+            widgets.addAll([
+              _mgPdfHeader(gameName, _mgSanitise(clubName), crestImage, primary,
+                  secondary, clubFont, hPad, crestSize),
+              _mgPdfAccentStripe(secondary, third, hasThird),
+              if (gameSetup.isNotEmpty)
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(top: 16),
+                  child: _mgPdfSection(
+                      'HOW TO SET UP', gameSetup, primary, secondary, hPad),
+                ),
+              if (gameImage != null)
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 8),
+                  child: pw.Center(
+                    child: pw.SizedBox(
+                      height: imageHeight,
+                      child: pw.Image(gameImage, fit: pw.BoxFit.contain),
+                    ),
+                  ),
+                ),
+              pw.SizedBox(height: 8),
+              if (gameHowToPlay.isNotEmpty)
+                _mgPdfSection(
+                    'HOW TO PLAY', gameHowToPlay, primary, secondary, hPad),
+              if (gameVariations.isNotEmpty)
+                _mgPdfSection(
+                    'VARIATIONS', gameVariations, primary, secondary, hPad),
+              if (gameTeachingPoints.isNotEmpty)
+                _mgPdfSection('TEACHING POINTS', gameTeachingPoints, primary,
+                    secondary, hPad),
+              if (gameVideo.isNotEmpty)
+                _mgPdfVideoLink(gameVideo, secondary, primary, hPad),
+            ]);
+          }
+
+          return widgets;
+        },
       ),
-      footer: (context) => _pdfFooter(
-          _sanitise(clubName), primary, secondary, third, hPad, hasThird),
-      build: (context) => [
-        _pdfHeader(resolvedName, _sanitise(clubName), crestImage, primary,
-            secondary, clubFont, hPad, crestSize),
-        _pdfAccentStripe(secondary, third, hasThird),
-        if (_sanitise(gameSetup ?? '').isNotEmpty)
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(top: 16),
-            child: _pdfSection('HOW TO SET UP', _sanitise(gameSetup!), primary,
-                secondary, hPad),
-          ),
-        if (gameImage != null)
-          pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(vertical: 8),
-            child: pw.Center(
-              child: pw.SizedBox(
-                height: imageHeight,
-                child: pw.Image(gameImage, fit: pw.BoxFit.contain),
-              ),
-            ),
-          ),
-        pw.SizedBox(height: 8),
-        if (_sanitise(gameHowToPlay ?? '').isNotEmpty)
-          _pdfSection('HOW TO PLAY', _sanitise(gameHowToPlay!), primary,
-              secondary, hPad),
-        if (_sanitise(gameVariations ?? '').isNotEmpty)
-          _pdfSection('VARIATIONS', _sanitise(gameVariations!), primary,
-              secondary, hPad),
-        if (_sanitise(gameTeachingPoints ?? '').isNotEmpty)
-          _pdfSection('TEACHING POINTS', _sanitise(gameTeachingPoints!),
-              primary, secondary, hPad),
-        if ((gameVideoUrl ?? '').isNotEmpty)
-          _pdfVideoLink(_sanitise(gameVideoUrl!), secondary, primary, hPad),
-      ],
-    ),
-  );
+    );
 
-  final bytes = await pdf.save();
-  await Printing.sharePdf(bytes: bytes, filename: '$safeName.pdf');
+    final safeClub = clubName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+    final bytes = await pdf.save();
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: '${safeClub}_${ordered.length}_games.pdf',
+    );
+
+    return null;
+  } catch (e) {
+    return 'Something went wrong generating the PDF. Please try again.';
+  }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-Future<pw.ImageProvider?> _pdfImage(Uint8List? bytes) async {
+Future<pw.ImageProvider?> _mgPdfImage(Uint8List? bytes) async {
   if (bytes == null || bytes.isEmpty) return null;
   try {
     return await flutterImageProvider(paint.MemoryImage(bytes));
@@ -123,7 +175,7 @@ Future<pw.ImageProvider?> _pdfImage(Uint8List? bytes) async {
   }
 }
 
-String _sanitise(String text) {
+String _mgSanitise(String text) {
   return text
       .replaceAll('\u2018', "'")
       .replaceAll('\u2019', "'")
@@ -134,7 +186,7 @@ String _sanitise(String text) {
       .replaceAll('\u2026', '...');
 }
 
-Future<Uint8List?> _fetchBytes(String? url) async {
+Future<Uint8List?> _mgFetchBytes(String? url) async {
   if (url == null || url.isEmpty) return null;
   try {
     final res =
@@ -144,7 +196,7 @@ Future<Uint8List?> _fetchBytes(String? url) async {
   return null;
 }
 
-PdfColor _pdfColor(
+PdfColor _mgPdfColor(
     String? hex, double fallbackR, double fallbackG, double fallbackB) {
   if (hex == null || hex.trim().isEmpty) {
     return PdfColor(fallbackR, fallbackG, fallbackB);
@@ -167,7 +219,7 @@ PdfColor _pdfColor(
 
 // ─── PDF Widgets ─────────────────────────────────────────────────────────────
 
-pw.Widget _pdfHeader(
+pw.Widget _mgPdfHeader(
   String gameName,
   String clubName,
   pw.ImageProvider? crestImage,
@@ -222,7 +274,8 @@ pw.Widget _pdfHeader(
   );
 }
 
-pw.Widget _pdfAccentStripe(PdfColor secondary, PdfColor third, bool hasThird) {
+pw.Widget _mgPdfAccentStripe(
+    PdfColor secondary, PdfColor third, bool hasThird) {
   return pw.Column(
     children: [
       pw.Container(height: 2, color: PdfColors.white),
@@ -232,7 +285,7 @@ pw.Widget _pdfAccentStripe(PdfColor secondary, PdfColor third, bool hasThird) {
   );
 }
 
-pw.Widget _pdfSection(
+pw.Widget _mgPdfSection(
   String title,
   String body,
   PdfColor primary,
@@ -298,7 +351,7 @@ pw.Widget _pdfSection(
   );
 }
 
-pw.Widget _pdfVideoLink(
+pw.Widget _mgPdfVideoLink(
     String url, PdfColor secondary, PdfColor primary, double hPad) {
   return pw.Padding(
     padding: pw.EdgeInsets.fromLTRB(hPad, 0, hPad, 16),
@@ -340,7 +393,7 @@ pw.Widget _pdfVideoLink(
   );
 }
 
-pw.Widget _pdfFooter(
+pw.Widget _mgPdfFooter(
   String clubName,
   PdfColor primary,
   PdfColor secondary,
