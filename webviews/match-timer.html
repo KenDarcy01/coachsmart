@@ -242,27 +242,43 @@
     .score-team { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
     .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 3px; color: var(--text); line-height: 1; }
     .score-total { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
-    .score-rows { display: flex; flex-direction: column; gap: 5px; width: 100%; }
-    .score-row { display: flex; align-items: center; gap: 5px; }
+    .score-rows { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+    .score-row {
+      display: flex; align-items: stretch; border-radius: 10px;
+      overflow: hidden; border: 1px solid var(--border); height: 54px;
+    }
+    /* Left = big tap to add */
+    .score-add {
+      flex: 1; display: flex; align-items: center; padding: 0 10px; gap: 8px;
+      background: var(--card2); cursor: pointer; transition: background 0.12s; user-select: none;
+      -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .score-add:hover  { background: rgba(135,194,50,0.10); }
+    .score-add:active { background: rgba(135,194,50,0.22); }
+    .score-add.two-pt:hover  { background: rgba(245,158,11,0.10); }
+    .score-add.two-pt:active { background: rgba(245,158,11,0.22); }
     .score-type {
-      font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-      color: var(--muted); width: 18px; text-align: left; flex-shrink: 0;
+      font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--muted); flex-shrink: 0;
     }
     .score-type.two-pt { color: var(--amber); }
     .score-count {
-      font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px;
-      color: var(--text); min-width: 22px; text-align: center; flex: 1;
+      font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px;
+      color: var(--text); flex: 1; text-align: right; line-height: 1;
     }
-    .adj-btn {
-      width: 32px; height: 32px; border-radius: 7px; font-size: 16px; font-weight: 700;
-      border: 1.5px solid var(--border); color: var(--text); background: var(--card2);
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.12s; flex-shrink: 0; line-height: 1;
+    .score-add-icon {
+      font-size: 20px; font-weight: 300; color: var(--muted); flex-shrink: 0; line-height: 1;
     }
-    .adj-btn.plus:hover  { background: var(--green); border-color: var(--green); color: #111418; }
-    .adj-btn.minus:hover { background: rgba(239,68,68,0.15); border-color: var(--red); color: var(--red); }
-    .adj-btn:active { transform: scale(0.88); }
-    .adj-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+    /* Right = narrow strip to subtract */
+    .score-sub {
+      width: 42px; display: flex; align-items: center; justify-content: center;
+      background: var(--card); border-left: 1px solid var(--border);
+      cursor: pointer; font-size: 20px; font-weight: 300; color: var(--muted);
+      transition: all 0.12s; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .score-sub:hover  { background: rgba(239,68,68,0.12); color: var(--red); }
+    .score-sub:active { background: rgba(239,68,68,0.25); }
 
     /* Flash animation for full time */
     @keyframes flashRed {
@@ -457,22 +473,28 @@
         <div class="score-total" id="homeTotal">(0)</div>
         <div class="score-rows">
           <div class="score-row">
-            <span class="score-type">G</span>
-            <button class="adj-btn minus" onclick="adjustScore('home','goals',-1)">−</button>
-            <span class="score-count" id="homeGoals">0</span>
-            <button class="adj-btn plus"  onclick="adjustScore('home','goals',1)">+</button>
+            <div class="score-add" onclick="adjustScore('home','goals',1)">
+              <span class="score-type">G</span>
+              <span class="score-count" id="homeGoals">0</span>
+              <span class="score-add-icon">+</span>
+            </div>
+            <div class="score-sub" onclick="adjustScore('home','goals',-1)">−</div>
           </div>
           <div class="score-row">
-            <span class="score-type">P</span>
-            <button class="adj-btn minus" onclick="adjustScore('home','points',-1)">−</button>
-            <span class="score-count" id="homePoints">0</span>
-            <button class="adj-btn plus"  onclick="adjustScore('home','points',1)">+</button>
+            <div class="score-add" onclick="adjustScore('home','points',1)">
+              <span class="score-type">P</span>
+              <span class="score-count" id="homePoints">0</span>
+              <span class="score-add-icon">+</span>
+            </div>
+            <div class="score-sub" onclick="adjustScore('home','points',-1)">−</div>
           </div>
           <div class="score-row">
-            <span class="score-type two-pt">2P</span>
-            <button class="adj-btn minus" onclick="adjustScore('home','two_ptrs',-1)">−</button>
-            <span class="score-count" id="homeTwoPtrs">0</span>
-            <button class="adj-btn plus"  onclick="adjustScore('home','two_ptrs',1)">+</button>
+            <div class="score-add two-pt" onclick="adjustScore('home','two_ptrs',1)">
+              <span class="score-type two-pt">2P</span>
+              <span class="score-count" id="homeTwoPtrs">0</span>
+              <span class="score-add-icon">+</span>
+            </div>
+            <div class="score-sub" onclick="adjustScore('home','two_ptrs',-1)">−</div>
           </div>
         </div>
       </div>
@@ -483,22 +505,28 @@
         <div class="score-total" id="awayTotal">(0)</div>
         <div class="score-rows">
           <div class="score-row">
-            <span class="score-type">G</span>
-            <button class="adj-btn minus" onclick="adjustScore('away','goals',-1)">−</button>
-            <span class="score-count" id="awayGoals">0</span>
-            <button class="adj-btn plus"  onclick="adjustScore('away','goals',1)">+</button>
+            <div class="score-add" onclick="adjustScore('away','goals',1)">
+              <span class="score-type">G</span>
+              <span class="score-count" id="awayGoals">0</span>
+              <span class="score-add-icon">+</span>
+            </div>
+            <div class="score-sub" onclick="adjustScore('away','goals',-1)">−</div>
           </div>
           <div class="score-row">
-            <span class="score-type">P</span>
-            <button class="adj-btn minus" onclick="adjustScore('away','points',-1)">−</button>
-            <span class="score-count" id="awayPoints">0</span>
-            <button class="adj-btn plus"  onclick="adjustScore('away','points',1)">+</button>
+            <div class="score-add" onclick="adjustScore('away','points',1)">
+              <span class="score-type">P</span>
+              <span class="score-count" id="awayPoints">0</span>
+              <span class="score-add-icon">+</span>
+            </div>
+            <div class="score-sub" onclick="adjustScore('away','points',-1)">−</div>
           </div>
           <div class="score-row">
-            <span class="score-type two-pt">2P</span>
-            <button class="adj-btn minus" onclick="adjustScore('away','two_ptrs',-1)">−</button>
-            <span class="score-count" id="awayTwoPtrs">0</span>
-            <button class="adj-btn plus"  onclick="adjustScore('away','two_ptrs',1)">+</button>
+            <div class="score-add two-pt" onclick="adjustScore('away','two_ptrs',1)">
+              <span class="score-type two-pt">2P</span>
+              <span class="score-count" id="awayTwoPtrs">0</span>
+              <span class="score-add-icon">+</span>
+            </div>
+            <div class="score-sub" onclick="adjustScore('away','two_ptrs',-1)">−</div>
           </div>
         </div>
       </div>
