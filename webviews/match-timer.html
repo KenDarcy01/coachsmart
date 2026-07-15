@@ -128,6 +128,44 @@
     }
     .dur-pill.active { background: var(--green); border-color: var(--green); color: #111418; }
     .dur-pill:hover:not(.active) { border-color: var(--green); color: var(--green); }
+
+    /* ── CUSTOM WHEEL PICKER ── */
+    .custom-picker {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1), margin-top 0.32s ease;
+      margin-top: 0; border-radius: 12px;
+    }
+    .custom-picker.show { max-height: 180px; margin-top: 12px; }
+    .picker-inner {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      height: 132px; display: flex; align-items: center; padding: 0 20px; gap: 14px;
+    }
+    .picker-wrap { flex: 1; position: relative; height: 132px; overflow: hidden; }
+    .picker-drum {
+      height: 132px; overflow-y: scroll; scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .picker-drum::-webkit-scrollbar { display: none; }
+    .picker-item {
+      height: 44px; display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', sans-serif; font-size: 34px; letter-spacing: 2px;
+      scroll-snap-align: center; color: var(--text); user-select: none;
+    }
+    .picker-item.spacer { opacity: 0; pointer-events: none; }
+    .picker-fade {
+      position: absolute; left: 0; right: 0; height: 50px; z-index: 2; pointer-events: none;
+    }
+    .picker-fade.top    { top: 0;    background: linear-gradient(to bottom, var(--card), transparent); }
+    .picker-fade.bottom { bottom: 0; background: linear-gradient(to top,   var(--card), transparent); }
+    .picker-sel-lines {
+      position: absolute; top: 44px; left: 0; right: 0; height: 44px;
+      border-top: 1px solid rgba(255,255,255,0.14); border-bottom: 1px solid rgba(255,255,255,0.14);
+      z-index: 1; pointer-events: none;
+    }
+    .picker-unit {
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      flex-shrink: 0; letter-spacing: 0.5px;
+    }
     .setup-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0 24px; }
     .setup-open-btn {
       width: 100%; background: var(--green); color: #111418;
@@ -358,7 +396,18 @@
         <button class="dur-pill" data-mins="25" onclick="selectDuration(25)">25 mins</button>
         <button class="dur-pill active" data-mins="30" onclick="selectDuration(30)">30 mins</button>
         <button class="dur-pill" data-mins="35" onclick="selectDuration(35)">35 mins</button>
-        <button class="dur-pill" data-mins="40" onclick="selectDuration(40)">40 mins</button>
+        <button class="dur-pill" id="customPill" onclick="toggleCustomPicker()">Custom</button>
+      </div>
+      <div class="custom-picker" id="customPicker">
+        <div class="picker-inner">
+          <div class="picker-wrap">
+            <div class="picker-fade top"></div>
+            <div class="picker-sel-lines"></div>
+            <div class="picker-drum" id="pickerDrum"></div>
+            <div class="picker-fade bottom"></div>
+          </div>
+          <div class="picker-unit">mins</div>
+        </div>
       </div>
     </div>
     <button class="setup-open-btn" onclick="openTimer()">Open Timer</button>
@@ -671,6 +720,7 @@ async function goToSetup(eventId, label, defaultOpposition) {
   }
 
   $('setupEventLabel').innerHTML = `<strong>${currentEventLabel}</strong>`;
+  if (!$('pickerDrum').hasChildNodes()) buildPickerDrum();
   showLoading('Loading setup…');
 
   try {
@@ -720,13 +770,63 @@ async function goToSetup(eventId, label, defaultOpposition) {
 
 function selectDuration(mins) {
   selectedDurationMins = mins;
+  // Hide the wheel when a preset is chosen
+  $('customPicker').classList.remove('show');
   updateDurationPills();
 }
 
 function updateDurationPills() {
-  document.querySelectorAll('.dur-pill').forEach(p => {
+  const presets = [25, 30, 35];
+  const isPreset = presets.includes(selectedDurationMins);
+  document.querySelectorAll('.dur-pill[data-mins]').forEach(p => {
     p.classList.toggle('active', parseInt(p.dataset.mins) === selectedDurationMins);
   });
+  const customPill = $('customPill');
+  if (isPreset) {
+    customPill.textContent = 'Custom';
+    customPill.classList.remove('active');
+  } else {
+    customPill.textContent = `${selectedDurationMins} mins`;
+    customPill.classList.add('active');
+  }
+}
+
+// ── Wheel picker ──────────────────────────────────────────────────────────────
+function buildPickerDrum() {
+  const drum = $('pickerDrum');
+  let html = '<div class="picker-item spacer"></div>';
+  for (let i = 1; i <= 90; i++) {
+    html += `<div class="picker-item">${i}</div>`;
+  }
+  html += '<div class="picker-item spacer"></div>';
+  drum.innerHTML = html;
+
+  let scrollTimer = null;
+  drum.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      const val = Math.round(drum.scrollTop / 44) + 1;
+      selectedDurationMins = Math.min(90, Math.max(1, val));
+      updateDurationPills();
+    }, 80);
+  });
+}
+
+function scrollPickerTo(mins) {
+  $('pickerDrum').scrollTop = (mins - 1) * 44;
+}
+
+function toggleCustomPicker() {
+  const picker = $('customPicker');
+  const isOpen = picker.classList.contains('show');
+  if (isOpen) {
+    picker.classList.remove('show');
+  } else {
+    picker.classList.add('show');
+    // Scroll to current value (clamp to 1-90)
+    const target = [25,30,35].includes(selectedDurationMins) ? 30 : selectedDurationMins;
+    setTimeout(() => scrollPickerTo(Math.min(90, Math.max(1, target))), 50);
+  }
 }
 
 async function openTimer() {
