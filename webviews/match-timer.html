@@ -50,21 +50,16 @@
     .sign-out-btn:hover { color: var(--red); border-color: var(--red); }
 
     /* ── LOGIN SCREEN ── */
-    #loginScreen {
-      align-items: center; justify-content: center;
-      padding: 24px 20px;
-    }
+    #loginScreen { align-items: center; justify-content: center; padding: 24px 20px; }
     .login-card {
-      width: 100%; max-width: 360px;
-      background: var(--card); border-radius: 16px;
-      border: 1px solid var(--border); padding: 32px 24px;
+      width: 100%; max-width: 360px; background: var(--card);
+      border-radius: 16px; border: 1px solid var(--border); padding: 32px 24px;
     }
-    .login-logo {
-      font-family: 'Bebas Neue', sans-serif; font-size: 30px;
-      letter-spacing: 3px; text-align: center; margin-bottom: 4px;
-    }
+    .login-logo { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 3px; text-align: center; margin-bottom: 4px; }
     .login-logo span { color: var(--green); }
     .login-sub { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 28px; letter-spacing: 1px; text-transform: uppercase; }
+    .login-icon { text-align: center; margin-bottom: 20px; }
+    .login-icon svg { width: 48px; height: 48px; color: var(--green); }
     .login-field { margin-bottom: 12px; }
     .login-field input {
       width: 100%; background: var(--card2); border: 1px solid var(--border);
@@ -81,28 +76,21 @@
     .login-submit:hover { opacity: 0.88; }
     .login-submit:disabled { opacity: 0.4; cursor: not-allowed; }
     .login-error { font-size: 12px; color: var(--red); margin-top: 10px; text-align: center; min-height: 18px; }
-    .login-icon { text-align: center; margin-bottom: 20px; }
-    .login-icon svg { width: 48px; height: 48px; color: var(--green); }
 
     /* ── SELECTOR SCREEN ── */
     #selectorScreen { background: var(--dark); }
     .selector-body { flex: 1; overflow-y: auto; padding: 20px 16px 32px; -webkit-overflow-scrolling: touch; }
     .sel-section { margin-bottom: 20px; }
-    .sel-label {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px;
-    }
+    .sel-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; }
     .sel-select {
       width: 100%; background: var(--card); border: 1px solid var(--border);
       border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--text);
       font-family: 'DM Sans', sans-serif; appearance: none; -webkit-appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 14px center;
-      cursor: pointer;
+      background-repeat: no-repeat; background-position: right 14px center; cursor: pointer;
     }
     .sel-select:focus { outline: none; border-color: var(--green); }
     .sel-select:disabled { opacity: 0.4; cursor: not-allowed; }
-
     .events-list { display: flex; flex-direction: column; gap: 8px; }
     .event-card {
       background: var(--card); border: 1px solid var(--border);
@@ -120,55 +108,99 @@
     .no-events { font-size: 13px; color: var(--muted); text-align: center; padding: 32px 0; }
     .sel-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 20px; }
 
+    /* ── SETUP SCREEN ── */
+    #setupScreen { background: var(--dark); }
+    .setup-body { flex: 1; overflow-y: auto; padding: 24px 20px 40px; -webkit-overflow-scrolling: touch; }
+    .setup-field { margin-bottom: 24px; }
+    .setup-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 10px; }
+    .setup-input {
+      width: 100%; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 13px 14px; font-size: 15px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; transition: border-color 0.15s;
+    }
+    .setup-input:focus { outline: none; border-color: var(--green); }
+    .setup-input::placeholder { color: var(--muted); }
+    .duration-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .dur-pill {
+      padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 700;
+      border: 1.5px solid var(--border); color: var(--muted); background: var(--card);
+      transition: all 0.15s; cursor: pointer;
+    }
+    .dur-pill.active { background: var(--green); border-color: var(--green); color: #111418; }
+    .dur-pill:hover:not(.active) { border-color: var(--green); color: var(--green); }
+    .setup-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0 24px; }
+    .setup-open-btn {
+      width: 100%; background: var(--green); color: #111418;
+      border-radius: 12px; padding: 16px; font-size: 15px; font-weight: 700;
+      letter-spacing: 0.5px; transition: opacity 0.15s;
+    }
+    .setup-open-btn:hover { opacity: 0.88; }
+
+    /* Sub-bar for back nav */
+    .sub-bar {
+      background: var(--card2); border-bottom: 1px solid var(--border);
+      padding: 0 16px; height: 40px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .back-btn { font-size: 12px; color: var(--muted); transition: color 0.15s; }
+    .back-btn:hover { color: var(--green); }
+    .sub-bar-label { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sub-bar-label strong { color: var(--text); }
+
     /* ── TIMER SCREEN ── */
     #timerScreen { background: var(--dark); }
-    .timer-event-bar {
-      background: var(--card2); border-bottom: 1px solid var(--border);
-      padding: 10px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-    }
-    .timer-event-bar button {
-      font-size: 11px; color: var(--muted); flex-shrink: 0; padding: 0;
-    }
-    .timer-event-bar button:hover { color: var(--green); }
-    .timer-event-text { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .timer-event-text strong { color: var(--text); }
 
     .timer-body {
       flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; padding: 24px 20px 40px;
-      gap: 0;
+      align-items: center; justify-content: center;
+      padding: 24px 20px 40px; gap: 0;
     }
 
     .timer-status {
       font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
-      text-transform: uppercase; padding: 4px 14px; border-radius: 20px;
-      margin-bottom: 16px; transition: all 0.25s;
+      text-transform: uppercase; padding: 4px 16px; border-radius: 20px;
+      margin-bottom: 16px; transition: all 0.3s;
     }
-    .timer-status.running { background: rgba(135,194,50,0.15); color: var(--green); }
-    .timer-status.paused  { background: rgba(107,114,128,0.15); color: var(--muted); }
+    .timer-status.running      { background: rgba(135,194,50,0.15); color: var(--green); }
+    .timer-status.paused       { background: rgba(107,114,128,0.15); color: var(--muted); }
+    .timer-status.injury       { background: rgba(239,68,68,0.15);   color: var(--red); }
+    .timer-status.injury-pause { background: rgba(245,158,11,0.15);  color: var(--amber); }
 
     .timer-display {
       font-family: 'Bebas Neue', sans-serif;
       font-size: clamp(96px, 26vw, 148px);
       letter-spacing: 6px; line-height: 1;
-      color: var(--text);
-      transition: color 0.25s;
+      color: var(--text); transition: color 0.3s;
       user-select: none; -webkit-user-select: none;
     }
-    .timer-display.running { color: #fff; }
+    .timer-display.running  { color: #fff; }
+    .timer-display.zeroed   { color: var(--red); }
 
-    .timer-buttons { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; margin-top: 40px; }
+    /* Injury time secondary display */
+    .injury-wrap {
+      display: none; flex-direction: column; align-items: center;
+      margin-top: 12px; gap: 2px;
+    }
+    .injury-wrap.show { display: flex; }
+    .injury-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--red); }
+    .injury-display {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(36px, 10vw, 52px);
+      letter-spacing: 4px; line-height: 1;
+      color: var(--red);
+      user-select: none; -webkit-user-select: none;
+    }
 
+    .timer-buttons { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; margin-top: 36px; }
     .btn-primary {
       width: 100%; padding: 18px; border-radius: 14px;
       font-size: 16px; font-weight: 700; letter-spacing: 1px;
       transition: all 0.15s; text-transform: uppercase;
     }
-    .btn-start  { background: var(--green); color: #111418; }
-    .btn-start:hover  { opacity: 0.88; }
-    .btn-pause  { background: var(--amber); color: #111418; }
-    .btn-pause:hover  { opacity: 0.88; }
-
+    .btn-start { background: var(--green); color: #111418; }
+    .btn-start:hover { opacity: 0.88; }
+    .btn-pause { background: var(--amber); color: #111418; }
+    .btn-pause:hover { opacity: 0.88; }
     .btn-secondary {
       width: 100%; padding: 14px; border-radius: 14px;
       font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
@@ -177,10 +209,17 @@
     }
     .btn-secondary:hover { border-color: var(--red); color: var(--red); }
 
+    /* Flash animation for full time */
+    @keyframes flashRed {
+      0%,100% { background: var(--dark); }
+      50%      { background: rgba(239,68,68,0.25); }
+    }
+    .flashing { animation: flashRed 0.45s ease-in-out 6; }
+
     /* ── RESET CONFIRM MODAL ── */
     #resetModal {
       display: none; position: fixed; inset: 0; z-index: 900;
-      background: rgba(17,20,24,0.85); backdrop-filter: blur(4px);
+      background: rgba(17,20,24,0.88); backdrop-filter: blur(4px);
       align-items: center; justify-content: center; padding: 24px;
     }
     #resetModal.show { display: flex; }
@@ -207,15 +246,11 @@
     /* ── LOADING OVERLAY ── */
     #loadingOverlay {
       display: none; position: fixed; inset: 0; z-index: 800;
-      background: rgba(17,20,24,0.75); backdrop-filter: blur(3px);
+      background: rgba(17,20,24,0.78); backdrop-filter: blur(3px);
       align-items: center; justify-content: center; flex-direction: column; gap: 14px;
     }
     #loadingOverlay.show { display: flex; }
-    .spinner {
-      width: 32px; height: 32px;
-      border: 3px solid var(--border); border-top-color: var(--green);
-      border-radius: 50%; animation: spin 0.7s linear infinite;
-    }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 
@@ -233,7 +268,7 @@
 </head>
 <body>
 
-<!-- ── LOGIN SCREEN ── -->
+<!-- ── LOGIN ── -->
 <div id="loginScreen" class="screen">
   <div class="login-card">
     <div class="login-icon">
@@ -256,7 +291,7 @@
   </div>
 </div>
 
-<!-- ── SELECTOR SCREEN ── -->
+<!-- ── SELECTOR ── -->
 <div id="selectorScreen" class="screen">
   <div class="top-bar">
     <div>
@@ -290,7 +325,47 @@
   </div>
 </div>
 
-<!-- ── TIMER SCREEN ── -->
+<!-- ── SETUP ── -->
+<div id="setupScreen" class="screen">
+  <div class="top-bar">
+    <div>
+      <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
+      <div class="bar-sub">Match Timer</div>
+    </div>
+    <div class="bar-right">
+      <button class="sign-out-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+  <div class="sub-bar">
+    <button class="back-btn" onclick="showScreen('selectorScreen')">&#8592; Events</button>
+    <div class="sub-bar-label" id="setupEventLabel"></div>
+  </div>
+  <div class="setup-body">
+    <div class="setup-field" id="squadField" style="display:none">
+      <div class="setup-label">Squad</div>
+      <select class="sel-select" id="squadSelect">
+        <option value="">All squads</option>
+      </select>
+    </div>
+    <div class="setup-field">
+      <div class="setup-label">Opposition <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+      <input type="text" class="setup-input" id="oppositionInput" placeholder="e.g. St Brigids" autocomplete="off"/>
+    </div>
+    <hr class="setup-divider"/>
+    <div class="setup-field">
+      <div class="setup-label">Half Duration</div>
+      <div class="duration-pills">
+        <button class="dur-pill" data-mins="25" onclick="selectDuration(25)">25 mins</button>
+        <button class="dur-pill active" data-mins="30" onclick="selectDuration(30)">30 mins</button>
+        <button class="dur-pill" data-mins="35" onclick="selectDuration(35)">35 mins</button>
+        <button class="dur-pill" data-mins="40" onclick="selectDuration(40)">40 mins</button>
+      </div>
+    </div>
+    <button class="setup-open-btn" onclick="openTimer()">Open Timer</button>
+  </div>
+</div>
+
+<!-- ── TIMER ── -->
 <div id="timerScreen" class="screen">
   <div class="top-bar">
     <div>
@@ -301,13 +376,17 @@
       <button class="sign-out-btn" onclick="doLogout()">Sign out</button>
     </div>
   </div>
-  <div class="timer-event-bar">
-    <button onclick="goToSelector()">&#8592; Events</button>
-    <div class="timer-event-text" id="timerEventLabel">—</div>
+  <div class="sub-bar">
+    <button class="back-btn" onclick="goToSetup()">&#8592; Setup</button>
+    <div class="sub-bar-label" id="timerEventLabel"></div>
   </div>
-  <div class="timer-body">
+  <div class="timer-body" id="timerBody">
     <div class="timer-status paused" id="timerStatus">Paused</div>
-    <div class="timer-display" id="timerDisplay">00:00</div>
+    <div class="timer-display" id="timerDisplay">30:00</div>
+    <div class="injury-wrap" id="injuryWrap">
+      <div class="injury-label">Injury Time</div>
+      <div class="injury-display" id="injuryDisplay">+00:00</div>
+    </div>
     <div class="timer-buttons">
       <button class="btn-primary btn-start" id="toggleBtn" onclick="toggleTimer()">Start</button>
       <button class="btn-secondary" onclick="showResetModal()">Reset Timer</button>
@@ -315,11 +394,11 @@
   </div>
 </div>
 
-<!-- ── RESET CONFIRM MODAL ── -->
+<!-- ── RESET MODAL ── -->
 <div id="resetModal">
   <div class="modal-card">
     <div class="modal-title">Reset Timer?</div>
-    <div class="modal-body">This will clear the timer back to 00:00. This cannot be undone.</div>
+    <div class="modal-body">This will clear the timer back to the start. This cannot be undone.</div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="hideResetModal()">Cancel</button>
       <button class="modal-confirm" onclick="doReset()">Reset</button>
@@ -327,13 +406,12 @@
   </div>
 </div>
 
-<!-- ── LOADING OVERLAY ── -->
+<!-- ── LOADING ── -->
 <div id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-text" id="loadingText">Loading…</div>
 </div>
 
-<!-- ── TOAST ── -->
 <div id="toast"></div>
 
 <script>
@@ -342,13 +420,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let currentUser  = null;
-let userTeams    = [];     // [{team_id, team_name, club_id, club_name}]
-let userClubs    = [];     // [{club_id, club_name}]
+let currentUser    = null;
+let userTeams      = [];
+let userClubs      = [];
 let currentTeamId  = null;
 let currentEventId = null;
-let timerRow     = null;   // the match_timer DB row
-let timerInterval = null;
+let currentEventLabel = '';
+let timerRow       = null;
+let timerInterval  = null;
+let selectedDurationMins = 30;
+let wasInInjuryTime = false;   // tracks transition so alarm fires once per crossing
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -358,10 +439,7 @@ function showScreen(id) {
   $(id).classList.add('active');
 }
 
-function showLoading(msg = 'Loading…') {
-  $('loadingText').textContent = msg;
-  $('loadingOverlay').classList.add('show');
-}
+function showLoading(msg = 'Loading…') { $('loadingText').textContent = msg; $('loadingOverlay').classList.add('show'); }
 function hideLoading() { $('loadingOverlay').classList.remove('show'); }
 
 let toastTimer = null;
@@ -373,38 +451,79 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 function fmtDate(dt) {
   return new Date(dt).toLocaleDateString('en-IE', { weekday: 'short', day: '2-digit', month: 'short' });
 }
-
 function formatMmSs(totalSeconds) {
   const s = Math.max(0, Math.floor(totalSeconds));
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function computeSeconds(row) {
+// elapsed seconds since timer last started (not total — just current run)
+function computeElapsed(row) {
   if (!row) return 0;
   let elapsed = row.elapsed_seconds || 0;
   if (row.status === 'running' && row.started_at) {
     elapsed += (Date.now() - new Date(row.started_at).getTime()) / 1000;
   }
-  return elapsed;
+  return Math.max(0, elapsed);
+}
+
+function getDuration(row) {
+  return (row?.duration_seconds) || (selectedDurationMins * 60);
+}
+
+function computeRemaining(row) {
+  return Math.max(0, getDuration(row) - computeElapsed(row));
+}
+
+function computeInjury(row) {
+  return Math.max(0, computeElapsed(row) - getDuration(row));
+}
+
+function isInInjuryTime(row) {
+  return computeElapsed(row) >= getDuration(row);
+}
+
+// ── Audio alarm ───────────────────────────────────────────────────────────────
+function playAlarm() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.45, 0.9].forEach(delay => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.6, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.35);
+    });
+  } catch (_) {}
+}
+
+function triggerFullTime() {
+  playAlarm();
+  const body = $('timerBody');
+  body.classList.remove('flashing');
+  void body.offsetWidth; // reflow to restart animation
+  body.classList.add('flashing');
+  body.addEventListener('animationend', () => body.classList.remove('flashing'), { once: true });
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 async function checkAuth() {
   const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    await handleSession(session);
-  } else {
-    showScreen('loginScreen');
-  }
-  sb.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
-      currentUser = null;
-      stopInterval();
-      showScreen('loginScreen');
-    }
+  if (session) await handleSession(session);
+  else showScreen('loginScreen');
+
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') { currentUser = null; stopInterval(); showScreen('loginScreen'); }
   });
 }
 
@@ -425,7 +544,7 @@ async function handleSession(session) {
     showScreen('selectorScreen');
   } catch (e) {
     hideLoading();
-    showToast('Error loading teams — please try again');
+    showToast('Error loading teams');
     console.error(e);
   }
 }
@@ -443,7 +562,7 @@ async function doLogin() {
     $('loginBtn').disabled      = false;
     return;
   }
-  $('loginEmail').value   = '';
+  $('loginEmail').value    = '';
   $('loginPassword').value = '';
   $('loginBtn').textContent = 'Sign In';
   $('loginBtn').disabled    = false;
@@ -455,42 +574,29 @@ async function doLogout() {
   await sb.auth.signOut();
 }
 
-// ── Team / Club fetching ──────────────────────────────────────────────────────
+// ── Teams ─────────────────────────────────────────────────────────────────────
 async function fetchUserTeams() {
   const { data: uml } = await sb.from('user_member_link').select('member_id').eq('user_id', currentUser.id);
   if (!uml?.length) return [];
-  const memberIds = uml.map(r => r.member_id);
-
-  const { data: mtl } = await sb.from('member_team_link').select('team_id').in('member_id', memberIds);
+  const { data: mtl } = await sb.from('member_team_link').select('team_id').in('member_id', uml.map(r => r.member_id));
   if (!mtl?.length) return [];
   const teamIds = [...new Set(mtl.map(r => r.team_id))];
-
   const { data: teams } = await sb.from('teams').select('team_id,team_name,club_id').in('team_id', teamIds);
   if (!teams?.length) return [];
-
   const clubIds = [...new Set(teams.map(t => t.club_id))];
   const { data: clubs } = await sb.from('clubs').select('club_id,club_name').in('club_id', clubIds);
   const clubMap = Object.fromEntries((clubs || []).map(c => [c.club_id, c.club_name]));
-
-  return teams.map(t => ({
-    team_id:   t.team_id,
-    team_name: t.team_name,
-    club_id:   t.club_id,
-    club_name: clubMap[t.club_id] || '',
-  }));
+  return teams.map(t => ({ team_id: t.team_id, team_name: t.team_name, club_id: t.club_id, club_name: clubMap[t.club_id] || '' }));
 }
 
 // ── Selector ─────────────────────────────────────────────────────────────────
 function setupSelector() {
-  const clubSel  = $('clubSelect');
-  const teamSel  = $('teamSelect');
-
   if (userClubs.length > 1) {
     $('clubSection').style.display = '';
-    clubSel.innerHTML = '<option value="">Select club…</option>' +
+    $('clubSelect').innerHTML = '<option value="">Select club…</option>' +
       userClubs.map(c => `<option value="${c.club_id}">${esc(c.club_name)}</option>`).join('');
-    teamSel.disabled = true;
-    teamSel.innerHTML = '<option value="">Select club first…</option>';
+    $('teamSelect').disabled = true;
+    $('teamSelect').innerHTML = '<option value="">Select club first…</option>';
   } else {
     $('clubSection').style.display = 'none';
     populateTeams(userClubs[0].club_id);
@@ -501,28 +607,20 @@ function setupSelector() {
 function onClubChange() {
   const clubId = parseInt($('clubSelect').value);
   $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>';
-  if (!clubId) {
-    $('teamSelect').disabled = true;
-    $('teamSelect').innerHTML = '<option value="">Select club first…</option>';
-    return;
-  }
+  if (!clubId) { $('teamSelect').disabled = true; $('teamSelect').innerHTML = '<option value="">Select club first…</option>'; return; }
   populateTeams(clubId);
 }
 
 function populateTeams(clubId) {
-  const teamSel = $('teamSelect');
   const filtered = userTeams.filter(t => t.club_id === clubId);
-  teamSel.innerHTML = '<option value="">Select team…</option>' +
+  $('teamSelect').innerHTML = '<option value="">Select team…</option>' +
     filtered.map(t => `<option value="${t.team_id}">${esc(t.team_name)}</option>`).join('');
-  teamSel.disabled = false;
+  $('teamSelect').disabled = false;
 }
 
 async function onTeamChange() {
   const teamId = parseInt($('teamSelect').value);
-  if (!teamId) {
-    $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>';
-    return;
-  }
+  if (!teamId) { $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>'; return; }
   currentTeamId = teamId;
   await loadEvents(teamId);
 }
@@ -530,9 +628,8 @@ async function onTeamChange() {
 async function loadEvents(teamId) {
   $('eventsList').innerHTML = '<div class="no-events">Loading events…</div>';
   try {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+    const sevenDaysAgo  = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
     const sixtyDaysAhead = new Date(Date.now() + 60 * 86400 * 1000).toISOString();
-
     const { data: events, error } = await sb
       .from('events')
       .select('event_id, event_date_time, opposition, event_codes(event_code), event_types(event_type)')
@@ -541,30 +638,23 @@ async function loadEvents(teamId) {
       .lte('event_date_time', sixtyDaysAhead)
       .order('event_date_time', { ascending: true })
       .limit(30);
-
     if (error) throw error;
-
-    if (!events?.length) {
-      $('eventsList').innerHTML = '<div class="no-events">No events found in the next 60 days</div>';
-      return;
-    }
-
+    if (!events?.length) { $('eventsList').innerHTML = '<div class="no-events">No events in the next 60 days</div>'; return; }
     const now = Date.now();
     $('eventsList').innerHTML = events.map(e => {
-      const isPast = new Date(e.event_date_time).getTime() < now;
-      const dateStr  = fmtDate(e.event_date_time);
-      const typeStr  = [e.event_codes?.event_code, e.event_types?.event_type].filter(Boolean).join(' · ');
-      const oppStr   = e.opposition ? ` vs ${esc(e.opposition)}` : '';
-      const label    = `${typeStr}${oppStr}` || 'Event';
-      return `
-        <div class="event-card" onclick="selectEvent(${e.event_id}, '${esc(dateStr)} · ${esc(label)}')">
-          <div class="event-dot ${isPast ? 'past' : ''}"></div>
-          <div class="event-info">
-            <div class="event-name">${esc(label)}</div>
-            <div class="event-meta">${esc(dateStr)}</div>
-          </div>
-          <div class="event-arrow">›</div>
-        </div>`;
+      const isPast  = new Date(e.event_date_time).getTime() < now;
+      const dateStr = fmtDate(e.event_date_time);
+      const typeStr = [e.event_codes?.event_code, e.event_types?.event_type].filter(Boolean).join(' · ');
+      const oppStr  = e.opposition ? ` vs ${esc(e.opposition)}` : '';
+      const label   = `${typeStr}${oppStr}` || 'Event';
+      return `<div class="event-card" onclick="goToSetup(${e.event_id}, '${esc(dateStr)} · ${esc(label)}', '${esc(e.opposition || '')}')">
+        <div class="event-dot ${isPast ? 'past' : ''}"></div>
+        <div class="event-info">
+          <div class="event-name">${esc(label)}</div>
+          <div class="event-meta">${esc(dateStr)}</div>
+        </div>
+        <div class="event-arrow">›</div>
+      </div>`;
     }).join('');
   } catch (e) {
     $('eventsList').innerHTML = '<div class="no-events">Error loading events</div>';
@@ -572,64 +662,134 @@ async function loadEvents(teamId) {
   }
 }
 
-function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+// ── Setup screen ──────────────────────────────────────────────────────────────
+async function goToSetup(eventId, label, defaultOpposition) {
+  // Called from event card (new event) or back button from timer (no args = just show screen)
+  if (eventId !== undefined) {
+    currentEventId    = eventId;
+    currentEventLabel = label;
+  }
 
-// ── Timer screen ──────────────────────────────────────────────────────────────
-async function selectEvent(eventId, label) {
-  currentEventId = eventId;
-  $('timerEventLabel').innerHTML = `<strong>${label}</strong>`;
-  showLoading('Loading timer…');
+  $('setupEventLabel').innerHTML = `<strong>${currentEventLabel}</strong>`;
+  showLoading('Loading setup…');
+
   try {
-    await loadOrCreateTimer();
+    // Load squads for team
+    const { data: squads } = await sb
+      .from('squads')
+      .select('squad_id, squad_name')
+      .eq('team_id', currentTeamId)
+      .order('squad_name');
+
+    const squadField  = $('squadField');
+    const squadSelect = $('squadSelect');
+    if (squads && squads.length > 1) {
+      squadSelect.innerHTML = '<option value="">All squads</option>' +
+        squads.map(s => `<option value="${s.squad_id}">${esc(s.squad_name)}</option>`).join('');
+      squadField.style.display = '';
+    } else {
+      squadField.style.display = 'none';
+    }
+
+    // Load existing timer row if present (to pre-fill)
+    const { data: existing } = await sb
+      .from('match_timer')
+      .select('opposition, squad_id, duration_seconds')
+      .eq('event_id', currentEventId)
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    if (existing) {
+      $('oppositionInput').value = existing.opposition || '';
+      selectedDurationMins = Math.round((existing.duration_seconds || 1800) / 60);
+      if (existing.squad_id) squadSelect.value = existing.squad_id;
+    } else {
+      $('oppositionInput').value = defaultOpposition || '';
+      selectedDurationMins = 30;
+    }
+    updateDurationPills();
+
     hideLoading();
-    showScreen('timerScreen');
-    updateTimerUI();
-    if (timerRow?.status === 'running') startInterval();
+    showScreen('setupScreen');
   } catch (e) {
     hideLoading();
-    showToast('Error loading timer');
+    showToast('Error loading setup');
     console.error(e);
   }
 }
 
-async function loadOrCreateTimer() {
-  const { data, error } = await sb
+function selectDuration(mins) {
+  selectedDurationMins = mins;
+  updateDurationPills();
+}
+
+function updateDurationPills() {
+  document.querySelectorAll('.dur-pill').forEach(p => {
+    p.classList.toggle('active', parseInt(p.dataset.mins) === selectedDurationMins);
+  });
+}
+
+async function openTimer() {
+  const opposition = $('oppositionInput').value.trim();
+  const squadId    = parseInt($('squadSelect').value) || null;
+  const duration   = selectedDurationMins * 60;
+
+  showLoading('Opening timer…');
+  try {
+    await loadOrCreateTimer(opposition, squadId, duration);
+    hideLoading();
+
+    // Build timer label
+    const oppPart = opposition ? ` vs ${opposition}` : '';
+    $('timerEventLabel').innerHTML = `<strong>${currentEventLabel}${esc(oppPart)}</strong>`;
+
+    // Set wasInInjuryTime correctly so alarm doesn't re-fire on load
+    wasInInjuryTime = isInInjuryTime(timerRow);
+
+    showScreen('timerScreen');
+    updateTimerUI();
+    if (timerRow.status === 'running') startInterval();
+  } catch (e) {
+    hideLoading();
+    showToast('Error opening timer');
+    console.error(e);
+  }
+}
+
+async function loadOrCreateTimer(opposition, squadId, duration) {
+  // Try update first (upsert keeps it simple)
+  const { data: existing } = await sb
     .from('match_timer')
     .select('*')
     .eq('event_id', currentEventId)
     .eq('user_id', currentUser.id)
     .maybeSingle();
 
-  if (error) throw error;
-
-  if (data) {
-    timerRow = data;
-  } else {
-    const { data: newRow, error: insertErr } = await sb
+  if (existing) {
+    // Update setup fields without touching elapsed/status
+    const { error } = await sb
       .from('match_timer')
-      .insert({ event_id: currentEventId, user_id: currentUser.id })
+      .update({ opposition, squad_id: squadId, duration_seconds: duration })
+      .eq('event_id', currentEventId)
+      .eq('user_id', currentUser.id);
+    if (error) throw error;
+    timerRow = { ...existing, opposition, squad_id: squadId, duration_seconds: duration };
+  } else {
+    const { data, error } = await sb
+      .from('match_timer')
+      .insert({ event_id: currentEventId, user_id: currentUser.id, opposition, squad_id: squadId, duration_seconds: duration })
       .select()
       .single();
-    if (insertErr) throw insertErr;
-    timerRow = newRow;
+    if (error) throw error;
+    timerRow = data;
   }
-}
-
-function goToSelector() {
-  stopInterval();
-  showScreen('selectorScreen');
 }
 
 // ── Timer controls ────────────────────────────────────────────────────────────
 async function toggleTimer() {
   if (!timerRow) return;
-  if (timerRow.status === 'running') {
-    await doPause();
-  } else {
-    await doStart();
-  }
+  if (timerRow.status === 'running') await doPause();
+  else await doStart();
 }
 
 async function doStart() {
@@ -647,7 +807,7 @@ async function doStart() {
 }
 
 async function doPause() {
-  const banked = Math.floor(computeSeconds(timerRow));
+  const banked = Math.floor(computeElapsed(timerRow));
   const { error } = await sb
     .from('match_timer')
     .update({ elapsed_seconds: banked, started_at: null, status: 'paused' })
@@ -675,6 +835,7 @@ async function doReset() {
   timerRow.elapsed_seconds = 0;
   timerRow.started_at      = null;
   timerRow.status          = 'paused';
+  wasInInjuryTime = false;
   stopInterval();
   updateTimerUI();
 }
@@ -682,30 +843,55 @@ async function doReset() {
 // ── Interval & display ────────────────────────────────────────────────────────
 function startInterval() {
   stopInterval();
-  timerInterval = setInterval(() => {
-    $('timerDisplay').textContent = formatMmSs(computeSeconds(timerRow));
-  }, 1000);
+  timerInterval = setInterval(tick, 1000);
 }
 
 function stopInterval() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
+function tick() {
+  const inInjury = isInInjuryTime(timerRow);
+  if (inInjury && !wasInInjuryTime) triggerFullTime();
+  wasInInjuryTime = inInjury;
+  updateTimerUI();
+}
+
 function updateTimerUI() {
   if (!timerRow) return;
+
   const isRunning = timerRow.status === 'running';
-  const secs = computeSeconds(timerRow);
+  const elapsed   = computeElapsed(timerRow);
+  const dur       = getDuration(timerRow);
+  const inInjury  = elapsed >= dur;
+  const remaining = Math.max(0, dur - elapsed);
+  const injury    = Math.max(0, elapsed - dur);
 
-  $('timerDisplay').textContent = formatMmSs(secs);
-  $('timerDisplay').className   = `timer-display ${isRunning ? 'running' : ''}`;
+  // Main countdown display
+  const display = $('timerDisplay');
+  display.textContent = formatMmSs(remaining);
+  display.className   = `timer-display${isRunning && !inInjury ? ' running' : ''}${inInjury ? ' zeroed' : ''}`;
 
+  // Injury time secondary display
+  const wrap = $('injuryWrap');
+  if (inInjury) {
+    wrap.classList.add('show');
+    $('injuryDisplay').textContent = `+${formatMmSs(injury)}`;
+  } else {
+    wrap.classList.remove('show');
+  }
+
+  // Status pill
   const statusEl = $('timerStatus');
-  statusEl.textContent  = isRunning ? 'Running' : 'Paused';
-  statusEl.className    = `timer-status ${isRunning ? 'running' : 'paused'}`;
+  if (inInjury && isRunning)  { statusEl.textContent = 'Injury Time'; statusEl.className = 'timer-status injury'; }
+  else if (inInjury)          { statusEl.textContent = 'Injury Time — Paused'; statusEl.className = 'timer-status injury-pause'; }
+  else if (isRunning)         { statusEl.textContent = 'Running'; statusEl.className = 'timer-status running'; }
+  else                        { statusEl.textContent = 'Paused'; statusEl.className = 'timer-status paused'; }
 
+  // Toggle button
   const btn = $('toggleBtn');
-  btn.textContent  = isRunning ? 'Pause' : 'Start';
-  btn.className    = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
+  btn.textContent = isRunning ? 'Pause' : 'Start';
+  btn.className   = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
