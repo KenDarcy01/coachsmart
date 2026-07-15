@@ -242,23 +242,27 @@
     .score-team { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
     .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 3px; color: var(--text); line-height: 1; }
     .score-total { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
-    .score-btns { display: flex; gap: 5px; }
-    .score-btn {
-      padding: 9px 8px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    .score-rows { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+    .score-row { display: flex; align-items: center; gap: 5px; }
+    .score-type {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--muted); width: 18px; text-align: left; flex-shrink: 0;
+    }
+    .score-type.two-pt { color: var(--amber); }
+    .score-count {
+      font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px;
+      color: var(--text); min-width: 22px; text-align: center; flex: 1;
+    }
+    .adj-btn {
+      width: 32px; height: 32px; border-radius: 7px; font-size: 16px; font-weight: 700;
       border: 1.5px solid var(--border); color: var(--text); background: var(--card2);
-      transition: all 0.12s; min-width: 38px; text-align: center;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.12s; flex-shrink: 0; line-height: 1;
     }
-    .score-btn:hover  { background: var(--green); border-color: var(--green); color: #111418; }
-    .score-btn:active { transform: scale(0.90); }
-    .score-btn-2pt { color: var(--amber); border-color: rgba(245,158,11,0.25); }
-    .score-btn-2pt:hover { background: var(--amber); border-color: var(--amber); color: #111418; }
-    .score-undo {
-      font-size: 10px; color: var(--muted); padding: 3px 8px;
-      border-radius: 6px; border: 1px solid transparent;
-      transition: all 0.15s; visibility: hidden; margin-top: 1px;
-    }
-    .score-undo.visible { visibility: visible; }
-    .score-undo:hover { border-color: var(--border); color: var(--text); }
+    .adj-btn.plus:hover  { background: var(--green); border-color: var(--green); color: #111418; }
+    .adj-btn.minus:hover { background: rgba(239,68,68,0.15); border-color: var(--red); color: var(--red); }
+    .adj-btn:active { transform: scale(0.88); }
+    .adj-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 
     /* Flash animation for full time */
     @keyframes flashRed {
@@ -451,24 +455,52 @@
         <div class="score-team">Us</div>
         <div class="score-value" id="homeScore">0-00</div>
         <div class="score-total" id="homeTotal">(0)</div>
-        <div class="score-btns">
-          <button class="score-btn" onclick="addScore('home','goals')">+G</button>
-          <button class="score-btn" onclick="addScore('home','points')">+P</button>
-          <button class="score-btn score-btn-2pt" onclick="addScore('home','two_ptrs')">+2</button>
+        <div class="score-rows">
+          <div class="score-row">
+            <span class="score-type">G</span>
+            <button class="adj-btn minus" onclick="adjustScore('home','goals',-1)">−</button>
+            <span class="score-count" id="homeGoals">0</span>
+            <button class="adj-btn plus"  onclick="adjustScore('home','goals',1)">+</button>
+          </div>
+          <div class="score-row">
+            <span class="score-type">P</span>
+            <button class="adj-btn minus" onclick="adjustScore('home','points',-1)">−</button>
+            <span class="score-count" id="homePoints">0</span>
+            <button class="adj-btn plus"  onclick="adjustScore('home','points',1)">+</button>
+          </div>
+          <div class="score-row">
+            <span class="score-type two-pt">2P</span>
+            <button class="adj-btn minus" onclick="adjustScore('home','two_ptrs',-1)">−</button>
+            <span class="score-count" id="homeTwoPtrs">0</span>
+            <button class="adj-btn plus"  onclick="adjustScore('home','two_ptrs',1)">+</button>
+          </div>
         </div>
-        <button class="score-undo" id="homeUndo" onclick="undoScore('home')">&#x21A9; Undo</button>
       </div>
       <div class="score-divider"></div>
       <div class="score-col">
         <div class="score-team" id="awayLabel">Opp</div>
         <div class="score-value" id="awayScore">0-00</div>
         <div class="score-total" id="awayTotal">(0)</div>
-        <div class="score-btns">
-          <button class="score-btn" onclick="addScore('away','goals')">+G</button>
-          <button class="score-btn" onclick="addScore('away','points')">+P</button>
-          <button class="score-btn score-btn-2pt" onclick="addScore('away','two_ptrs')">+2</button>
+        <div class="score-rows">
+          <div class="score-row">
+            <span class="score-type">G</span>
+            <button class="adj-btn minus" onclick="adjustScore('away','goals',-1)">−</button>
+            <span class="score-count" id="awayGoals">0</span>
+            <button class="adj-btn plus"  onclick="adjustScore('away','goals',1)">+</button>
+          </div>
+          <div class="score-row">
+            <span class="score-type">P</span>
+            <button class="adj-btn minus" onclick="adjustScore('away','points',-1)">−</button>
+            <span class="score-count" id="awayPoints">0</span>
+            <button class="adj-btn plus"  onclick="adjustScore('away','points',1)">+</button>
+          </div>
+          <div class="score-row">
+            <span class="score-type two-pt">2P</span>
+            <button class="adj-btn minus" onclick="adjustScore('away','two_ptrs',-1)">−</button>
+            <span class="score-count" id="awayTwoPtrs">0</span>
+            <button class="adj-btn plus"  onclick="adjustScore('away','two_ptrs',1)">+</button>
+          </div>
         </div>
-        <button class="score-undo" id="awayUndo" onclick="undoScore('away')">&#x21A9; Undo</button>
       </div>
     </div>
     <div class="timer-buttons">
@@ -514,7 +546,6 @@ let timerRow       = null;
 let timerInterval  = null;
 let selectedDurationMins = 30;
 let wasInInjuryTime = false;   // tracks transition so alarm fires once per crossing
-let scoreUndoStack  = [];      // [{side:'home'|'away', type:'goals'|'points'|'two_ptrs'}]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -869,8 +900,6 @@ async function openTimer() {
     // Set away label to opposition name if provided
     $('awayLabel').textContent = timerRow.opposition || 'Opp';
 
-    // Reset undo stack (can't reconstruct history from DB) and render scores
-    scoreUndoStack = [];
     updateScoreDisplay();
 
     showScreen('timerScreen');
@@ -1027,7 +1056,8 @@ function totalPts(goals, points, twoPtrs) {
 }
 
 function fmtGAA(goals, points, twoPtrs) {
-  return `${goals}-${String(points + twoPtrs).padStart(2, '0')}`;
+  // 2-pointers count as 2 in the points column of the GAA score display
+  return `${goals}-${String(points + twoPtrs * 2).padStart(2, '0')}`;
 }
 
 function updateScoreDisplay() {
@@ -1044,25 +1074,18 @@ function updateScoreDisplay() {
   $('awayScore').textContent = fmtGAA(ag, ap, at);
   $('awayTotal').textContent = `(${totalPts(ag, ap, at)})`;
 
-  $('homeUndo').classList.toggle('visible', scoreUndoStack.some(s => s.side === 'home'));
-  $('awayUndo').classList.toggle('visible', scoreUndoStack.some(s => s.side === 'away'));
+  $('homeGoals').textContent   = hg;
+  $('homePoints').textContent  = hp;
+  $('homeTwoPtrs').textContent = ht;
+  $('awayGoals').textContent   = ag;
+  $('awayPoints').textContent  = ap;
+  $('awayTwoPtrs').textContent = at;
 }
 
-async function addScore(side, type) {
+async function adjustScore(side, type, delta) {
   if (!timerRow) return;
   const key = `${side}_${type}`;
-  timerRow[key] = (timerRow[key] || 0) + 1;
-  scoreUndoStack.push({ side, type });
-  updateScoreDisplay();
-  await saveScores();
-}
-
-async function undoScore(side) {
-  const idx = scoreUndoStack.map(s => s.side).lastIndexOf(side);
-  if (idx === -1) return;
-  const { type } = scoreUndoStack.splice(idx, 1)[0];
-  const key = `${side}_${type}`;
-  timerRow[key] = Math.max(0, (timerRow[key] || 0) - 1);
+  timerRow[key] = Math.max(0, (timerRow[key] || 0) + delta);
   updateScoreDisplay();
   await saveScores();
 }
