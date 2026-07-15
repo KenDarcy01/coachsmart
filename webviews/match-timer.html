@@ -231,6 +231,35 @@
     }
     .btn-secondary:hover { border-color: var(--red); color: var(--red); }
 
+    /* ── SCORE PANEL ── */
+    .score-panel {
+      width: 100%; max-width: 380px; margin-top: 20px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; display: flex; overflow: hidden;
+    }
+    .score-col { flex: 1; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .score-divider { width: 1px; background: var(--border); flex-shrink: 0; margin: 12px 0; }
+    .score-team { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+    .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 3px; color: var(--text); line-height: 1; }
+    .score-total { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+    .score-btns { display: flex; gap: 5px; }
+    .score-btn {
+      padding: 9px 8px; border-radius: 8px; font-size: 12px; font-weight: 700;
+      border: 1.5px solid var(--border); color: var(--text); background: var(--card2);
+      transition: all 0.12s; min-width: 38px; text-align: center;
+    }
+    .score-btn:hover  { background: var(--green); border-color: var(--green); color: #111418; }
+    .score-btn:active { transform: scale(0.90); }
+    .score-btn-2pt { color: var(--amber); border-color: rgba(245,158,11,0.25); }
+    .score-btn-2pt:hover { background: var(--amber); border-color: var(--amber); color: #111418; }
+    .score-undo {
+      font-size: 10px; color: var(--muted); padding: 3px 8px;
+      border-radius: 6px; border: 1px solid transparent;
+      transition: all 0.15s; visibility: hidden; margin-top: 1px;
+    }
+    .score-undo.visible { visibility: visible; }
+    .score-undo:hover { border-color: var(--border); color: var(--text); }
+
     /* Flash animation for full time */
     @keyframes flashRed {
       0%,100% { background: var(--dark); }
@@ -385,7 +414,7 @@
       <div class="custom-picker" id="customPicker">
         <div class="picker-inner">
           <input type="number" class="picker-input" id="customMinsInput"
-            min="1" max="120" placeholder="45"
+            min="1" max="120" placeholder="30"
             oninput="onCustomMinsInput(this.value)"/>
           <div class="picker-unit">mins</div>
         </div>
@@ -416,6 +445,31 @@
     <div class="injury-wrap" id="injuryWrap">
       <div class="injury-label">Injury Time</div>
       <div class="injury-display" id="injuryDisplay">+00:00</div>
+    </div>
+    <div class="score-panel">
+      <div class="score-col">
+        <div class="score-team">Us</div>
+        <div class="score-value" id="homeScore">0-00</div>
+        <div class="score-total" id="homeTotal">(0)</div>
+        <div class="score-btns">
+          <button class="score-btn" onclick="addScore('home','goals')">+G</button>
+          <button class="score-btn" onclick="addScore('home','points')">+P</button>
+          <button class="score-btn score-btn-2pt" onclick="addScore('home','two_ptrs')">+2</button>
+        </div>
+        <button class="score-undo" id="homeUndo" onclick="undoScore('home')">&#x21A9; Undo</button>
+      </div>
+      <div class="score-divider"></div>
+      <div class="score-col">
+        <div class="score-team" id="awayLabel">Opp</div>
+        <div class="score-value" id="awayScore">0-00</div>
+        <div class="score-total" id="awayTotal">(0)</div>
+        <div class="score-btns">
+          <button class="score-btn" onclick="addScore('away','goals')">+G</button>
+          <button class="score-btn" onclick="addScore('away','points')">+P</button>
+          <button class="score-btn score-btn-2pt" onclick="addScore('away','two_ptrs')">+2</button>
+        </div>
+        <button class="score-undo" id="awayUndo" onclick="undoScore('away')">&#x21A9; Undo</button>
+      </div>
     </div>
     <div class="timer-buttons">
       <button class="btn-primary btn-start" id="toggleBtn" onclick="toggleTimer()">Start</button>
@@ -460,6 +514,7 @@ let timerRow       = null;
 let timerInterval  = null;
 let selectedDurationMins = 30;
 let wasInInjuryTime = false;   // tracks transition so alarm fires once per crossing
+let scoreUndoStack  = [];      // [{side:'home'|'away', type:'goals'|'points'|'two_ptrs'}]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -811,6 +866,13 @@ async function openTimer() {
     // Set wasInInjuryTime correctly so alarm doesn't re-fire on load
     wasInInjuryTime = isInInjuryTime(timerRow);
 
+    // Set away label to opposition name if provided
+    $('awayLabel').textContent = timerRow.opposition || 'Opp';
+
+    // Reset undo stack (can't reconstruct history from DB) and render scores
+    scoreUndoStack = [];
+    updateScoreDisplay();
+
     showScreen('timerScreen');
     updateTimerUI();
     if (timerRow.status === 'running') startInterval();
@@ -957,6 +1019,64 @@ function updateTimerUI() {
   const btn = $('toggleBtn');
   btn.textContent = isRunning ? 'Pause' : 'Start';
   btn.className   = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
+}
+
+// ── Scoring ───────────────────────────────────────────────────────────────────
+function totalPts(goals, points, twoPtrs) {
+  return goals * 3 + points + twoPtrs * 2;
+}
+
+function fmtGAA(goals, points, twoPtrs) {
+  return `${goals}-${String(points + twoPtrs).padStart(2, '0')}`;
+}
+
+function updateScoreDisplay() {
+  if (!timerRow) return;
+  const hg = timerRow.home_goals    || 0;
+  const hp = timerRow.home_points   || 0;
+  const ht = timerRow.home_two_ptrs || 0;
+  const ag = timerRow.away_goals    || 0;
+  const ap = timerRow.away_points   || 0;
+  const at = timerRow.away_two_ptrs || 0;
+
+  $('homeScore').textContent = fmtGAA(hg, hp, ht);
+  $('homeTotal').textContent = `(${totalPts(hg, hp, ht)})`;
+  $('awayScore').textContent = fmtGAA(ag, ap, at);
+  $('awayTotal').textContent = `(${totalPts(ag, ap, at)})`;
+
+  $('homeUndo').classList.toggle('visible', scoreUndoStack.some(s => s.side === 'home'));
+  $('awayUndo').classList.toggle('visible', scoreUndoStack.some(s => s.side === 'away'));
+}
+
+async function addScore(side, type) {
+  if (!timerRow) return;
+  const key = `${side}_${type}`;
+  timerRow[key] = (timerRow[key] || 0) + 1;
+  scoreUndoStack.push({ side, type });
+  updateScoreDisplay();
+  await saveScores();
+}
+
+async function undoScore(side) {
+  const idx = scoreUndoStack.map(s => s.side).lastIndexOf(side);
+  if (idx === -1) return;
+  const { type } = scoreUndoStack.splice(idx, 1)[0];
+  const key = `${side}_${type}`;
+  timerRow[key] = Math.max(0, (timerRow[key] || 0) - 1);
+  updateScoreDisplay();
+  await saveScores();
+}
+
+async function saveScores() {
+  const { error } = await sb.from('match_timer').update({
+    home_goals:    timerRow.home_goals    || 0,
+    home_points:   timerRow.home_points   || 0,
+    home_two_ptrs: timerRow.home_two_ptrs || 0,
+    away_goals:    timerRow.away_goals    || 0,
+    away_points:   timerRow.away_points   || 0,
+    away_two_ptrs: timerRow.away_two_ptrs || 0,
+  }).eq('event_id', currentEventId).eq('user_id', currentUser.id);
+  if (error) console.error('Score save error:', error);
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
