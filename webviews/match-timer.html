@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#111418"/>
+  <style>html,body{background:#111418 !important;}</style>
+  <title>CoachSmart — Match Timer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --green:     #87C232;
+      --green-dim: rgba(135,194,50,0.12);
+      --dark:      #111418;
+      --card:      #1E222B;
+      --card2:     #252A35;
+      --border:    rgba(255,255,255,0.07);
+      --text:      #E7EBEE;
+      --muted:     #6B7280;
+      --red:       #EF4444;
+      --amber:     #F59E0B;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; -webkit-text-size-adjust: none; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); font-size: 14px; }
+    button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+
+    /* ── SCREENS ── */
+    .screen { display: none; width: 100%; min-height: 100vh; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ── TOP BAR ── */
+    .top-bar {
+      background: var(--card); border-bottom: 3px solid var(--green);
+      padding: 0 16px; height: 54px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .wordmark { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; line-height: 1; }
+    .wordmark .g  { color: #9CA3AF; }
+    .wordmark .gr { color: var(--green); }
+    .bar-sub { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+    .bar-right { display: flex; align-items: center; gap: 10px; }
+    .sign-out-btn {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+      transition: all 0.15s;
+    }
+    .sign-out-btn:hover { color: var(--red); border-color: var(--red); }
+
+    /* ── LOGIN SCREEN ── */
+    #loginScreen {
+      align-items: center; justify-content: center;
+      padding: 24px 20px;
+    }
+    .login-card {
+      width: 100%; max-width: 360px;
+      background: var(--card); border-radius: 16px;
+      border: 1px solid var(--border); padding: 32px 24px;
+    }
+    .login-logo {
+      font-family: 'Bebas Neue', sans-serif; font-size: 30px;
+      letter-spacing: 3px; text-align: center; margin-bottom: 4px;
+    }
+    .login-logo span { color: var(--green); }
+    .login-sub { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 28px; letter-spacing: 1px; text-transform: uppercase; }
+    .login-field { margin-bottom: 12px; }
+    .login-field input {
+      width: 100%; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 11px 14px; font-size: 14px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; transition: border-color 0.15s;
+    }
+    .login-field input:focus { outline: none; border-color: var(--green); }
+    .login-field input::placeholder { color: var(--muted); }
+    .login-submit {
+      width: 100%; background: var(--green); color: #111418;
+      border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700;
+      margin-top: 4px; transition: opacity 0.15s;
+    }
+    .login-submit:hover { opacity: 0.88; }
+    .login-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+    .login-error { font-size: 12px; color: var(--red); margin-top: 10px; text-align: center; min-height: 18px; }
+    .login-icon { text-align: center; margin-bottom: 20px; }
+    .login-icon svg { width: 48px; height: 48px; color: var(--green); }
+
+    /* ── SELECTOR SCREEN ── */
+    #selectorScreen { background: var(--dark); }
+    .selector-body { flex: 1; overflow-y: auto; padding: 20px 16px 32px; -webkit-overflow-scrolling: touch; }
+    .sel-section { margin-bottom: 20px; }
+    .sel-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px;
+    }
+    .sel-select {
+      width: 100%; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      cursor: pointer;
+    }
+    .sel-select:focus { outline: none; border-color: var(--green); }
+    .sel-select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .events-list { display: flex; flex-direction: column; gap: 8px; }
+    .event-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px; cursor: pointer;
+      transition: all 0.15s; display: flex; align-items: center; gap: 12px;
+    }
+    .event-card:hover { border-color: var(--green); background: var(--card2); }
+    .event-card:active { transform: scale(0.985); }
+    .event-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .event-dot.past { background: var(--muted); }
+    .event-info { flex: 1; min-width: 0; }
+    .event-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .event-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .event-arrow { color: var(--muted); font-size: 16px; }
+    .no-events { font-size: 13px; color: var(--muted); text-align: center; padding: 32px 0; }
+    .sel-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 20px; }
+
+    /* ── TIMER SCREEN ── */
+    #timerScreen { background: var(--dark); }
+    .timer-event-bar {
+      background: var(--card2); border-bottom: 1px solid var(--border);
+      padding: 10px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .timer-event-bar button {
+      font-size: 11px; color: var(--muted); flex-shrink: 0; padding: 0;
+    }
+    .timer-event-bar button:hover { color: var(--green); }
+    .timer-event-text { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .timer-event-text strong { color: var(--text); }
+
+    .timer-body {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 24px 20px 40px;
+      gap: 0;
+    }
+
+    .timer-status {
+      font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 20px;
+      margin-bottom: 16px; transition: all 0.25s;
+    }
+    .timer-status.running { background: rgba(135,194,50,0.15); color: var(--green); }
+    .timer-status.paused  { background: rgba(107,114,128,0.15); color: var(--muted); }
+
+    .timer-display {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(96px, 26vw, 148px);
+      letter-spacing: 6px; line-height: 1;
+      color: var(--text);
+      transition: color 0.25s;
+      user-select: none; -webkit-user-select: none;
+    }
+    .timer-display.running { color: #fff; }
+
+    .timer-buttons { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; margin-top: 40px; }
+
+    .btn-primary {
+      width: 100%; padding: 18px; border-radius: 14px;
+      font-size: 16px; font-weight: 700; letter-spacing: 1px;
+      transition: all 0.15s; text-transform: uppercase;
+    }
+    .btn-start  { background: var(--green); color: #111418; }
+    .btn-start:hover  { opacity: 0.88; }
+    .btn-pause  { background: var(--amber); color: #111418; }
+    .btn-pause:hover  { opacity: 0.88; }
+
+    .btn-secondary {
+      width: 100%; padding: 14px; border-radius: 14px;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+      border: 1.5px solid var(--border); color: var(--muted);
+      text-transform: uppercase; transition: all 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── RESET CONFIRM MODAL ── */
+    #resetModal {
+      display: none; position: fixed; inset: 0; z-index: 900;
+      background: rgba(17,20,24,0.85); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 24px;
+    }
+    #resetModal.show { display: flex; }
+    .modal-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 320px; text-align: center;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .modal-body  { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+    .modal-btns  { display: flex; gap: 10px; }
+    .modal-cancel {
+      flex: 1; padding: 12px; border-radius: 10px;
+      border: 1.5px solid var(--border); color: var(--muted);
+      font-size: 14px; font-weight: 600; transition: all 0.15s;
+    }
+    .modal-cancel:hover { border-color: var(--text); color: var(--text); }
+    .modal-confirm {
+      flex: 1; padding: 12px; border-radius: 10px;
+      background: var(--red); color: #fff;
+      font-size: 14px; font-weight: 700; transition: opacity 0.15s;
+    }
+    .modal-confirm:hover { opacity: 0.85; }
+
+    /* ── LOADING OVERLAY ── */
+    #loadingOverlay {
+      display: none; position: fixed; inset: 0; z-index: 800;
+      background: rgba(17,20,24,0.75); backdrop-filter: blur(3px);
+      align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+    }
+    #loadingOverlay.show { display: flex; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border); border-top-color: var(--green);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 32px; left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--text); color: var(--dark);
+      padding: 8px 18px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; z-index: 1000;
+      opacity: 0; pointer-events: none; transition: all 0.22s; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN SCREEN ── -->
+<div id="loginScreen" class="screen">
+  <div class="login-card">
+    <div class="login-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </div>
+    <div class="login-logo">Coach<span>Smart</span></div>
+    <div class="login-sub">Match Timer</div>
+    <form id="loginForm" onsubmit="event.preventDefault(); doLogin()">
+      <div class="login-field">
+        <input type="email" id="loginEmail" placeholder="Email address" autocomplete="email" required/>
+      </div>
+      <div class="login-field">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required/>
+      </div>
+      <button type="submit" class="login-submit" id="loginBtn">Sign In</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ── SELECTOR SCREEN ── -->
+<div id="selectorScreen" class="screen">
+  <div class="top-bar">
+    <div>
+      <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
+      <div class="bar-sub">Match Timer</div>
+    </div>
+    <div class="bar-right">
+      <button class="sign-out-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+  <div class="selector-body">
+    <div class="sel-section" id="clubSection" style="display:none">
+      <div class="sel-label">Club</div>
+      <select class="sel-select" id="clubSelect" onchange="onClubChange()">
+        <option value="">Select club…</option>
+      </select>
+    </div>
+    <div class="sel-section">
+      <div class="sel-label">Team</div>
+      <select class="sel-select" id="teamSelect" onchange="onTeamChange()" disabled>
+        <option value="">Select team…</option>
+      </select>
+    </div>
+    <hr class="sel-divider"/>
+    <div class="sel-section">
+      <div class="sel-label">Event</div>
+      <div class="events-list" id="eventsList">
+        <div class="no-events">Select a team to see events</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TIMER SCREEN ── -->
+<div id="timerScreen" class="screen">
+  <div class="top-bar">
+    <div>
+      <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
+      <div class="bar-sub">Match Timer</div>
+    </div>
+    <div class="bar-right">
+      <button class="sign-out-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+  <div class="timer-event-bar">
+    <button onclick="goToSelector()">&#8592; Events</button>
+    <div class="timer-event-text" id="timerEventLabel">—</div>
+  </div>
+  <div class="timer-body">
+    <div class="timer-status paused" id="timerStatus">Paused</div>
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <div class="timer-buttons">
+      <button class="btn-primary btn-start" id="toggleBtn" onclick="toggleTimer()">Start</button>
+      <button class="btn-secondary" onclick="showResetModal()">Reset Timer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── RESET CONFIRM MODAL ── -->
+<div id="resetModal">
+  <div class="modal-card">
+    <div class="modal-title">Reset Timer?</div>
+    <div class="modal-body">This will clear the timer back to 00:00. This cannot be undone.</div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="hideResetModal()">Cancel</button>
+      <button class="modal-confirm" onclick="doReset()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOADING OVERLAY ── -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Loading…</div>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentUser  = null;
+let userTeams    = [];     // [{team_id, team_name, club_id, club_name}]
+let userClubs    = [];     // [{club_id, club_name}]
+let currentTeamId  = null;
+let currentEventId = null;
+let timerRow     = null;   // the match_timer DB row
+let timerInterval = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+function showLoading(msg = 'Loading…') {
+  $('loadingText').textContent = msg;
+  $('loadingOverlay').classList.add('show');
+}
+function hideLoading() { $('loadingOverlay').classList.remove('show'); }
+
+let toastTimer = null;
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function fmtDate(dt) {
+  return new Date(dt).toLocaleDateString('en-IE', { weekday: 'short', day: '2-digit', month: 'short' });
+}
+
+function formatMmSs(totalSeconds) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function computeSeconds(row) {
+  if (!row) return 0;
+  let elapsed = row.elapsed_seconds || 0;
+  if (row.status === 'running' && row.started_at) {
+    elapsed += (Date.now() - new Date(row.started_at).getTime()) / 1000;
+  }
+  return elapsed;
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await handleSession(session);
+  } else {
+    showScreen('loginScreen');
+  }
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      stopInterval();
+      showScreen('loginScreen');
+    }
+  });
+}
+
+async function handleSession(session) {
+  currentUser = session.user;
+  showLoading('Loading your teams…');
+  try {
+    userTeams = await fetchUserTeams();
+    if (!userTeams.length) {
+      hideLoading();
+      showToast('No teams found for this account');
+      showScreen('loginScreen');
+      return;
+    }
+    userClubs = [...new Map(userTeams.map(t => [t.club_id, { club_id: t.club_id, club_name: t.club_name }])).values()];
+    setupSelector();
+    hideLoading();
+    showScreen('selectorScreen');
+  } catch (e) {
+    hideLoading();
+    showToast('Error loading teams — please try again');
+    console.error(e);
+  }
+}
+
+async function doLogin() {
+  const email    = $('loginEmail').value.trim();
+  const password = $('loginPassword').value;
+  $('loginError').textContent = '';
+  $('loginBtn').textContent   = 'Signing in…';
+  $('loginBtn').disabled      = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    $('loginError').textContent = error.message;
+    $('loginBtn').textContent   = 'Sign In';
+    $('loginBtn').disabled      = false;
+    return;
+  }
+  $('loginEmail').value   = '';
+  $('loginPassword').value = '';
+  $('loginBtn').textContent = 'Sign In';
+  $('loginBtn').disabled    = false;
+  await handleSession(data.session);
+}
+
+async function doLogout() {
+  stopInterval();
+  await sb.auth.signOut();
+}
+
+// ── Team / Club fetching ──────────────────────────────────────────────────────
+async function fetchUserTeams() {
+  const { data: uml } = await sb.from('user_member_link').select('member_id').eq('user_id', currentUser.id);
+  if (!uml?.length) return [];
+  const memberIds = uml.map(r => r.member_id);
+
+  const { data: mtl } = await sb.from('member_team_link').select('team_id').in('member_id', memberIds);
+  if (!mtl?.length) return [];
+  const teamIds = [...new Set(mtl.map(r => r.team_id))];
+
+  const { data: teams } = await sb.from('teams').select('team_id,team_name,club_id').in('team_id', teamIds);
+  if (!teams?.length) return [];
+
+  const clubIds = [...new Set(teams.map(t => t.club_id))];
+  const { data: clubs } = await sb.from('clubs').select('club_id,club_name').in('club_id', clubIds);
+  const clubMap = Object.fromEntries((clubs || []).map(c => [c.club_id, c.club_name]));
+
+  return teams.map(t => ({
+    team_id:   t.team_id,
+    team_name: t.team_name,
+    club_id:   t.club_id,
+    club_name: clubMap[t.club_id] || '',
+  }));
+}
+
+// ── Selector ─────────────────────────────────────────────────────────────────
+function setupSelector() {
+  const clubSel  = $('clubSelect');
+  const teamSel  = $('teamSelect');
+
+  if (userClubs.length > 1) {
+    $('clubSection').style.display = '';
+    clubSel.innerHTML = '<option value="">Select club…</option>' +
+      userClubs.map(c => `<option value="${c.club_id}">${esc(c.club_name)}</option>`).join('');
+    teamSel.disabled = true;
+    teamSel.innerHTML = '<option value="">Select club first…</option>';
+  } else {
+    $('clubSection').style.display = 'none';
+    populateTeams(userClubs[0].club_id);
+  }
+  $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>';
+}
+
+function onClubChange() {
+  const clubId = parseInt($('clubSelect').value);
+  $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>';
+  if (!clubId) {
+    $('teamSelect').disabled = true;
+    $('teamSelect').innerHTML = '<option value="">Select club first…</option>';
+    return;
+  }
+  populateTeams(clubId);
+}
+
+function populateTeams(clubId) {
+  const teamSel = $('teamSelect');
+  const filtered = userTeams.filter(t => t.club_id === clubId);
+  teamSel.innerHTML = '<option value="">Select team…</option>' +
+    filtered.map(t => `<option value="${t.team_id}">${esc(t.team_name)}</option>`).join('');
+  teamSel.disabled = false;
+}
+
+async function onTeamChange() {
+  const teamId = parseInt($('teamSelect').value);
+  if (!teamId) {
+    $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>';
+    return;
+  }
+  currentTeamId = teamId;
+  await loadEvents(teamId);
+}
+
+async function loadEvents(teamId) {
+  $('eventsList').innerHTML = '<div class="no-events">Loading events…</div>';
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+    const sixtyDaysAhead = new Date(Date.now() + 60 * 86400 * 1000).toISOString();
+
+    const { data: events, error } = await sb
+      .from('events')
+      .select('event_id, event_date_time, opposition, event_codes(event_code), event_types(event_type)')
+      .eq('team_id', teamId)
+      .gte('event_date_time', sevenDaysAgo)
+      .lte('event_date_time', sixtyDaysAhead)
+      .order('event_date_time', { ascending: true })
+      .limit(30);
+
+    if (error) throw error;
+
+    if (!events?.length) {
+      $('eventsList').innerHTML = '<div class="no-events">No events found in the next 60 days</div>';
+      return;
+    }
+
+    const now = Date.now();
+    $('eventsList').innerHTML = events.map(e => {
+      const isPast = new Date(e.event_date_time).getTime() < now;
+      const dateStr  = fmtDate(e.event_date_time);
+      const typeStr  = [e.event_codes?.event_code, e.event_types?.event_type].filter(Boolean).join(' · ');
+      const oppStr   = e.opposition ? ` vs ${esc(e.opposition)}` : '';
+      const label    = `${typeStr}${oppStr}` || 'Event';
+      return `
+        <div class="event-card" onclick="selectEvent(${e.event_id}, '${esc(dateStr)} · ${esc(label)}')">
+          <div class="event-dot ${isPast ? 'past' : ''}"></div>
+          <div class="event-info">
+            <div class="event-name">${esc(label)}</div>
+            <div class="event-meta">${esc(dateStr)}</div>
+          </div>
+          <div class="event-arrow">›</div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    $('eventsList').innerHTML = '<div class="no-events">Error loading events</div>';
+    console.error(e);
+  }
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── Timer screen ──────────────────────────────────────────────────────────────
+async function selectEvent(eventId, label) {
+  currentEventId = eventId;
+  $('timerEventLabel').innerHTML = `<strong>${label}</strong>`;
+  showLoading('Loading timer…');
+  try {
+    await loadOrCreateTimer();
+    hideLoading();
+    showScreen('timerScreen');
+    updateTimerUI();
+    if (timerRow?.status === 'running') startInterval();
+  } catch (e) {
+    hideLoading();
+    showToast('Error loading timer');
+    console.error(e);
+  }
+}
+
+async function loadOrCreateTimer() {
+  const { data, error } = await sb
+    .from('match_timer')
+    .select('*')
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (data) {
+    timerRow = data;
+  } else {
+    const { data: newRow, error: insertErr } = await sb
+      .from('match_timer')
+      .insert({ event_id: currentEventId, user_id: currentUser.id })
+      .select()
+      .single();
+    if (insertErr) throw insertErr;
+    timerRow = newRow;
+  }
+}
+
+function goToSelector() {
+  stopInterval();
+  showScreen('selectorScreen');
+}
+
+// ── Timer controls ────────────────────────────────────────────────────────────
+async function toggleTimer() {
+  if (!timerRow) return;
+  if (timerRow.status === 'running') {
+    await doPause();
+  } else {
+    await doStart();
+  }
+}
+
+async function doStart() {
+  const now = new Date().toISOString();
+  const { error } = await sb
+    .from('match_timer')
+    .update({ started_at: now, status: 'running' })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Error starting timer'); return; }
+  timerRow.started_at = now;
+  timerRow.status     = 'running';
+  startInterval();
+  updateTimerUI();
+}
+
+async function doPause() {
+  const banked = Math.floor(computeSeconds(timerRow));
+  const { error } = await sb
+    .from('match_timer')
+    .update({ elapsed_seconds: banked, started_at: null, status: 'paused' })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Error pausing timer'); return; }
+  timerRow.elapsed_seconds = banked;
+  timerRow.started_at      = null;
+  timerRow.status          = 'paused';
+  stopInterval();
+  updateTimerUI();
+}
+
+function showResetModal()  { $('resetModal').classList.add('show'); }
+function hideResetModal()  { $('resetModal').classList.remove('show'); }
+
+async function doReset() {
+  hideResetModal();
+  const { error } = await sb
+    .from('match_timer')
+    .update({ elapsed_seconds: 0, started_at: null, status: 'paused' })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Error resetting timer'); return; }
+  timerRow.elapsed_seconds = 0;
+  timerRow.started_at      = null;
+  timerRow.status          = 'paused';
+  stopInterval();
+  updateTimerUI();
+}
+
+// ── Interval & display ────────────────────────────────────────────────────────
+function startInterval() {
+  stopInterval();
+  timerInterval = setInterval(() => {
+    $('timerDisplay').textContent = formatMmSs(computeSeconds(timerRow));
+  }, 1000);
+}
+
+function stopInterval() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function updateTimerUI() {
+  if (!timerRow) return;
+  const isRunning = timerRow.status === 'running';
+  const secs = computeSeconds(timerRow);
+
+  $('timerDisplay').textContent = formatMmSs(secs);
+  $('timerDisplay').className   = `timer-display ${isRunning ? 'running' : ''}`;
+
+  const statusEl = $('timerStatus');
+  statusEl.textContent  = isRunning ? 'Running' : 'Paused';
+  statusEl.className    = `timer-status ${isRunning ? 'running' : 'paused'}`;
+
+  const btn = $('toggleBtn');
+  btn.textContent  = isRunning ? 'Pause' : 'Start';
+  btn.className    = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+checkAuth();
+</script>
+</body>
+</html>
