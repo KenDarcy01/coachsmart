@@ -1012,16 +1012,23 @@ async function doReset() {
   hideResetModal();
   const { error } = await sb
     .from('match_timer')
-    .update({ elapsed_seconds: 0, started_at: null, status: 'paused' })
+    .update({
+      elapsed_seconds: 0, started_at: null, status: 'paused',
+      home_goals: 0, home_points: 0, home_two_ptrs: 0,
+      away_goals: 0, away_points: 0, away_two_ptrs: 0,
+    })
     .eq('event_id', currentEventId)
     .eq('user_id', currentUser.id);
   if (error) { showToast('Error resetting timer'); return; }
   timerRow.elapsed_seconds = 0;
   timerRow.started_at      = null;
   timerRow.status          = 'paused';
+  timerRow.home_goals      = 0; timerRow.home_points   = 0; timerRow.home_two_ptrs = 0;
+  timerRow.away_goals      = 0; timerRow.away_points   = 0; timerRow.away_two_ptrs = 0;
   wasInInjuryTime = false;
   stopInterval();
   updateTimerUI();
+  updateScoreDisplay();
 }
 
 // ── Interval & display ────────────────────────────────────────────────────────
