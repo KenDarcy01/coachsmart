@@ -360,6 +360,56 @@
     .webview .top-bar { display: none !important; }
     .webview #setupScreen .back-btn { display: none; }
 
+    /* ── INSTALL PROMPT ── */
+    .install-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.75);
+      display: flex; align-items: flex-end;
+      backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    }
+    .install-sheet {
+      width: 100%; background: var(--card);
+      border-radius: 22px 22px 0 0; border-top: 1px solid var(--border);
+      padding: 6px 22px 48px;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 -12px 48px rgba(0,0,0,0.5);
+    }
+    .install-overlay.show .install-sheet { transform: translateY(0); }
+    .install-drag { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 10px auto 18px; }
+    .install-top-row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+    .install-app-icon { width: 54px; height: 54px; border-radius: 13px; flex-shrink: 0; overflow: hidden; }
+    .install-app-icon img { width: 100%; height: 100%; display: block; }
+    .install-heading { font-size: 19px; font-weight: 700; margin-bottom: 3px; }
+    .install-tagline { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .install-divider { height: 1px; background: var(--border); margin: 18px 0; }
+    .install-steps { display: flex; flex-direction: column; gap: 16px; margin-bottom: 26px; }
+    .install-step { display: flex; align-items: flex-start; gap: 13px; }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(135,194,50,0.15); border: 1px solid rgba(135,194,50,0.35);
+      color: var(--green); font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; margin-top: 1px;
+    }
+    .step-text { font-size: 15px; line-height: 1.5; color: var(--muted); }
+    .step-text strong { color: var(--text); font-weight: 600; }
+    .step-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 6px; vertical-align: middle; margin: 0 1px; font-size: 14px;
+      background: var(--card2); color: var(--text);
+    }
+    .install-primary-btn {
+      width: 100%; padding: 16px; border-radius: 12px; margin-bottom: 10px;
+      background: var(--green); border: none; color: #111;
+      font-size: 16px; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer;
+    }
+    .install-later-btn {
+      width: 100%; padding: 14px; border-radius: 12px;
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer;
+    }
+
     /* ── TOAST ── */
     #toast {
       position: fixed; bottom: 32px; left: 50%;
@@ -549,6 +599,24 @@
 <div id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-text" id="loadingText">Loading…</div>
+</div>
+
+<!-- ── INSTALL PROMPT ── -->
+<div class="install-overlay" id="installOverlay" style="display:none;">
+  <div class="install-sheet">
+    <div class="install-drag"></div>
+    <div class="install-top-row">
+      <div class="install-app-icon"><img src="/webviews/icons/match-timer-192.png" alt="CS Timer"></div>
+      <div>
+        <div class="install-heading">Install CS Timer</div>
+        <div class="install-tagline">Add to your home screen for<br>the full app experience</div>
+      </div>
+    </div>
+    <div class="install-divider"></div>
+    <div class="install-steps" id="installSteps"></div>
+    <button class="install-primary-btn" id="installNativeBtn" style="display:none;" onclick="doInstall()">Install App</button>
+    <button class="install-later-btn" onclick="dismissInstall()">Maybe Later</button>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -751,6 +819,7 @@ async function handleSession(session) {
     setupSelector();
     hideLoading();
     showScreen('selectorScreen');
+    if (!IS_WEBVIEW) maybeShowInstallModal();
   } catch (e) {
     hideLoading();
     showToast('Error loading teams');
@@ -1376,6 +1445,86 @@ async function adjustScore(typeId, side, delta) {
     }
   }
   updateScoreDisplay();
+}
+
+// ── Install / Add to Home Screen ─────────────────────────────────────────────
+let _deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  if (document.getElementById('installOverlay').classList.contains('show')) {
+    _renderInstallSteps('native');
+  }
+});
+
+function _shouldShowInstall() {
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return false;
+  if (localStorage.getItem('cs_timer_install_done')) return false;
+  if (sessionStorage.getItem('cs_timer_install_dismissed')) return false;
+  return true;
+}
+
+function maybeShowInstallModal() {
+  if (!_shouldShowInstall()) return;
+  const ua = navigator.userAgent;
+  const isIOS     = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/.test(ua);
+  const isChrome  = /Chrome/.test(ua) && !/Chromium|EdgA|OPR/.test(ua);
+  if (isIOS)                              { _renderInstallSteps('ios');            _showInstallModal(); }
+  else if (_deferredInstallPrompt)        { _renderInstallSteps('native');         _showInstallModal(); }
+  else if (isAndroid && isChrome)         { _renderInstallSteps('android-manual'); _showInstallModal(); }
+}
+
+function _renderInstallSteps(mode) {
+  const steps     = document.getElementById('installSteps');
+  const nativeBtn = document.getElementById('installNativeBtn');
+  nativeBtn.style.display = 'none';
+  if (mode === 'ios') {
+    steps.innerHTML =
+      `<div class="install-step"><div class="step-num">1</div><div class="step-text">Tap the <span class="step-icon">&#x2191;</span> <strong>Share</strong> button at the bottom of Safari</div></div>
+       <div class="install-step"><div class="step-num">2</div><div class="step-text">Scroll down and tap <strong>"Add to Home Screen"</strong></div></div>
+       <div class="install-step"><div class="step-num">3</div><div class="step-text">Tap <strong>"Add"</strong> in the top right to confirm</div></div>`;
+  } else if (mode === 'native') {
+    steps.innerHTML =
+      `<div class="install-step"><div class="step-num">1</div><div class="step-text">Tap <strong>Install App</strong> below — CS Timer will be added directly to your home screen.</div></div>`;
+    nativeBtn.style.display = '';
+  } else {
+    steps.innerHTML =
+      `<div class="install-step"><div class="step-num">1</div><div class="step-text">Tap the <strong>&#8942;</strong> menu button in the top-right of Chrome</div></div>
+       <div class="install-step"><div class="step-num">2</div><div class="step-text">Tap <strong>"Add to Home Screen"</strong></div></div>
+       <div class="install-step"><div class="step-num">3</div><div class="step-text">Tap <strong>"Add"</strong> to confirm</div></div>`;
+  }
+}
+
+function _showInstallModal() {
+  const overlay = document.getElementById('installOverlay');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('show')));
+}
+
+async function doInstall() {
+  if (!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt = null;
+  if (outcome === 'accepted') {
+    localStorage.setItem('cs_timer_install_done', '1');
+    _hideInstallModal();
+  } else {
+    dismissInstall();
+  }
+}
+
+function dismissInstall() {
+  sessionStorage.setItem('cs_timer_install_dismissed', '1');
+  _hideInstallModal();
+}
+
+function _hideInstallModal() {
+  const overlay = document.getElementById('installOverlay');
+  overlay.classList.remove('show');
+  setTimeout(() => { overlay.style.display = 'none'; }, 400);
 }
 
 // ── Finalise stats ────────────────────────────────────────────────────────────
