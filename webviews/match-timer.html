@@ -175,13 +175,13 @@
     .timer-body {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      padding: 24px 20px 40px; gap: 0;
+      padding: 12px 20px 16px; gap: 0;
     }
 
     .timer-status {
       font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
       text-transform: uppercase; padding: 4px 16px; border-radius: 20px;
-      margin-bottom: 16px; transition: all 0.3s;
+      margin-bottom: 8px; transition: all 0.3s;
     }
     .timer-status.running      { background: rgba(135,194,50,0.15); color: var(--green); }
     .timer-status.paused       { background: rgba(107,114,128,0.15); color: var(--muted); }
@@ -190,7 +190,7 @@
 
     .timer-display {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(96px, 26vw, 148px);
+      font-size: clamp(78px, 21vw, 116px);
       letter-spacing: 6px; line-height: 1;
       color: var(--text); transition: color 0.3s;
       user-select: none; -webkit-user-select: none;
@@ -213,7 +213,7 @@
       user-select: none; -webkit-user-select: none;
     }
 
-    .timer-buttons { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; margin-top: 36px; }
+    .timer-buttons { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin-top: 16px; }
     .btn-primary {
       width: 100%; padding: 18px; border-radius: 14px;
       font-size: 16px; font-weight: 700; letter-spacing: 1px;
@@ -233,20 +233,29 @@
 
     /* ── SCORE PANEL ── */
     .score-panel {
-      width: 100%; max-width: 380px; margin-top: 20px;
+      width: 100%; max-width: 380px; margin-top: 8px;
       background: var(--card); border: 1px solid var(--border);
       border-radius: 16px; display: flex; overflow: hidden;
     }
-    .score-col { flex: 1; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-    .score-divider { width: 1px; background: var(--border); flex-shrink: 0; margin: 12px 0; }
+    .score-col { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .score-divider { width: 1px; background: var(--border); flex-shrink: 0; margin: 10px 0; }
     .score-team { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
-    .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 3px; color: var(--text); line-height: 1; }
+    .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px; color: var(--text); line-height: 1; }
     .score-total { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
-    .score-rows { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+    .score-rows { display: flex; flex-direction: column; gap: 5px; width: 100%; }
     .score-row {
       display: flex; align-items: stretch; border-radius: 10px;
-      overflow: hidden; border: 1px solid var(--border); height: 54px;
+      overflow: hidden; border: 1px solid var(--border); height: 48px;
     }
+
+    /* Score margin summary */
+    .score-summary {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 4px 14px; border-radius: 20px; margin-top: 6px;
+    }
+    .score-summary.leading  { background: rgba(135,194,50,0.12); color: var(--green); }
+    .score-summary.trailing { background: rgba(239,68,68,0.12);  color: var(--red); }
+    .score-summary.level    { background: rgba(107,114,128,0.12); color: var(--muted); }
     /* Left = big tap to add */
     .score-add {
       flex: 1; display: flex; align-items: center; padding: 0 10px; gap: 8px;
@@ -389,9 +398,9 @@
     <hr class="sel-divider"/>
     <div class="sel-section">
       <div class="sel-label">Event</div>
-      <div class="events-list" id="eventsList">
-        <div class="no-events">Select a team to see events</div>
-      </div>
+      <select class="sel-select" id="eventSelect" onchange="onEventChange()" disabled>
+        <option value="">Select team first…</option>
+      </select>
     </div>
   </div>
 </div>
@@ -466,6 +475,7 @@
       <div class="injury-label">Injury Time</div>
       <div class="injury-display" id="injuryDisplay">+00:00</div>
     </div>
+    <div class="score-summary" id="scoreSummary" style="display:none"></div>
     <div class="score-panel">
       <div class="score-col">
         <div class="score-team">Us</div>
@@ -567,6 +577,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser    = null;
 let userTeams      = [];
 let userClubs      = [];
+let eventList      = [];
 let currentTeamId  = null;
 let currentEventId = null;
 let currentEventLabel = '';
@@ -735,6 +746,8 @@ async function fetchUserTeams() {
 
 // ── Selector ─────────────────────────────────────────────────────────────────
 function setupSelector() {
+  $('eventSelect').innerHTML = '<option value="">Select team first…</option>';
+  $('eventSelect').disabled = true;
   if (userClubs.length > 1) {
     $('clubSection').style.display = '';
     $('clubSelect').innerHTML = '<option value="">Select club…</option>' +
@@ -745,12 +758,12 @@ function setupSelector() {
     $('clubSection').style.display = 'none';
     populateTeams(userClubs[0].club_id);
   }
-  $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>';
 }
 
 function onClubChange() {
   const clubId = parseInt($('clubSelect').value);
-  $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>';
+  $('eventSelect').innerHTML = '<option value="">Select team first…</option>';
+  $('eventSelect').disabled = true;
   if (!clubId) { $('teamSelect').disabled = true; $('teamSelect').innerHTML = '<option value="">Select club first…</option>'; return; }
   populateTeams(clubId);
 }
@@ -764,46 +777,62 @@ function populateTeams(clubId) {
 
 async function onTeamChange() {
   const teamId = parseInt($('teamSelect').value);
-  if (!teamId) { $('eventsList').innerHTML = '<div class="no-events">Select a team to see events</div>'; return; }
+  const sel = $('eventSelect');
+  if (!teamId) {
+    sel.innerHTML = '<option value="">Select team first…</option>';
+    sel.disabled = true;
+    return;
+  }
   currentTeamId = teamId;
   await loadEvents(teamId);
 }
 
 async function loadEvents(teamId) {
-  $('eventsList').innerHTML = '<div class="no-events">Loading events…</div>';
+  const sel = $('eventSelect');
+  sel.innerHTML = '<option value="">Loading events…</option>';
+  sel.disabled = true;
   try {
-    const sevenDaysAgo  = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
-    const sixtyDaysAhead = new Date(Date.now() + 60 * 86400 * 1000).toISOString();
+    const sevenDaysAgo   = new Date(Date.now() - 7  * 86400 * 1000).toISOString();
+    const thirtyDaysAhead = new Date(Date.now() + 30 * 86400 * 1000).toISOString();
     const { data: events, error } = await sb
       .from('events')
       .select('event_id, event_date_time, opposition, event_codes(event_code), event_types(event_type)')
       .eq('team_id', teamId)
       .gte('event_date_time', sevenDaysAgo)
-      .lte('event_date_time', sixtyDaysAhead)
+      .lte('event_date_time', thirtyDaysAhead)
       .order('event_date_time', { ascending: true })
-      .limit(30);
+      .limit(10);
     if (error) throw error;
-    if (!events?.length) { $('eventsList').innerHTML = '<div class="no-events">No events in the next 60 days</div>'; return; }
-    const now = Date.now();
-    $('eventsList').innerHTML = events.map(e => {
-      const isPast  = new Date(e.event_date_time).getTime() < now;
-      const dateStr = fmtDate(e.event_date_time);
-      const typeStr = [e.event_codes?.event_code, e.event_types?.event_type].filter(Boolean).join(' · ');
-      const oppStr  = e.opposition ? ` vs ${esc(e.opposition)}` : '';
-      const label   = `${typeStr}${oppStr}` || 'Event';
-      return `<div class="event-card" onclick="goToSetup(${e.event_id}, '${esc(dateStr)} · ${esc(label)}', '${esc(e.opposition || '')}')">
-        <div class="event-dot ${isPast ? 'past' : ''}"></div>
-        <div class="event-info">
-          <div class="event-name">${esc(label)}</div>
-          <div class="event-meta">${esc(dateStr)}</div>
-        </div>
-        <div class="event-arrow">›</div>
-      </div>`;
-    }).join('');
+    eventList = events || [];
+    if (!eventList.length) {
+      sel.innerHTML = '<option value="">No events found</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">Select event…</option>' +
+      eventList.map(e => {
+        const dateStr = fmtDate(e.event_date_time);
+        const typeStr = [e.event_codes?.event_code, e.event_types?.event_type].filter(Boolean).join(' · ');
+        const oppStr  = e.opposition ? ` vs ${e.opposition}` : '';
+        const label   = `${typeStr}${oppStr}` || 'Event';
+        return `<option value="${e.event_id}">${dateStr} · ${label}</option>`;
+      }).join('');
+    sel.disabled = false;
   } catch (e) {
-    $('eventsList').innerHTML = '<div class="no-events">Error loading events</div>';
+    sel.innerHTML = '<option value="">Error loading events</option>';
     console.error(e);
   }
+}
+
+function onEventChange() {
+  const eventId = parseInt($('eventSelect').value);
+  if (!eventId) return;
+  const event = eventList.find(e => e.event_id === eventId);
+  if (!event) return;
+  const dateStr = fmtDate(event.event_date_time);
+  const typeStr = [event.event_codes?.event_code, event.event_types?.event_type].filter(Boolean).join(' · ');
+  const oppStr  = event.opposition ? ` vs ${event.opposition}` : '';
+  const label   = `${typeStr}${oppStr}` || 'Event';
+  goToSetup(eventId, `${dateStr} · ${label}`, event.opposition || '');
 }
 
 // ── Setup screen ──────────────────────────────────────────────────────────────
@@ -845,12 +874,11 @@ async function goToSetup(eventId, label, defaultOpposition) {
 
     if (existing) {
       $('oppositionInput').value = existing.opposition || '';
-      selectedDurationMins = Math.round((existing.duration_seconds || 1800) / 60);
       if (existing.squad_id) squadSelect.value = existing.squad_id;
     } else {
       $('oppositionInput').value = defaultOpposition || '';
-      selectedDurationMins = 30;
     }
+    selectedDurationMins = 30;
     updateDurationPills();
 
     hideLoading();
@@ -876,13 +904,8 @@ function updateDurationPills() {
     p.classList.toggle('active', parseInt(p.dataset.mins) === selectedDurationMins);
   });
   const customPill = $('customPill');
-  if (isPreset) {
-    customPill.textContent = 'Custom';
-    customPill.classList.remove('active');
-  } else {
-    customPill.textContent = `${selectedDurationMins} mins`;
-    customPill.classList.add('active');
-  }
+  customPill.textContent = 'Custom';
+  customPill.classList.toggle('active', !isPreset);
 }
 
 // ── Custom minutes input ──────────────────────────────────────────────────────
@@ -1077,6 +1100,7 @@ function updateTimerUI() {
   if (inInjury && isRunning)  { statusEl.textContent = 'Injury Time'; statusEl.className = 'timer-status injury'; }
   else if (inInjury)          { statusEl.textContent = 'Injury Time — Paused'; statusEl.className = 'timer-status injury-pause'; }
   else if (isRunning)         { statusEl.textContent = 'Running'; statusEl.className = 'timer-status running'; }
+  else if (elapsed === 0)     { statusEl.textContent = 'Ready'; statusEl.className = 'timer-status paused'; }
   else                        { statusEl.textContent = 'Paused'; statusEl.className = 'timer-status paused'; }
 
   // Toggle button
@@ -1115,6 +1139,28 @@ function updateScoreDisplay() {
   $('awayGoals').textContent   = ag;
   $('awayPoints').textContent  = ap;
   $('awayTwoPtrs').textContent = at;
+
+  updateScoreSummary(hg, hp, ht, ag, ap, at);
+}
+
+function updateScoreSummary(hg, hp, ht, ag, ap, at) {
+  const el = $('scoreSummary');
+  if (!el) return;
+  const hTotal = totalPts(hg, hp, ht);
+  const aTotal = totalPts(ag, ap, at);
+  if (hTotal === 0 && aTotal === 0) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  const diff = hTotal - aTotal;
+  if (diff > 0) {
+    el.textContent = `▲ Us leading by ${diff} pt${diff !== 1 ? 's' : ''}`;
+    el.className = 'score-summary leading';
+  } else if (diff < 0) {
+    el.textContent = `▼ Us trailing by ${Math.abs(diff)} pt${Math.abs(diff) !== 1 ? 's' : ''}`;
+    el.className = 'score-summary trailing';
+  } else {
+    el.textContent = '= Level';
+    el.className = 'score-summary level';
+  }
 }
 
 async function adjustScore(side, type, delta) {
