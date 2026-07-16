@@ -1087,14 +1087,19 @@ function totalPts(side) {
   return scoringTypes().reduce((s, t) => s + (scoreCounts[t.id]?.[side] || 0) * t.score_value, 0);
 }
 
+// Known category ids — used as fallback if match_stat_categories hasn't been renamed yet
+const CAT_FALLBACK = { 1: 'scores', 2: 'errors', 3: 'set plays' };
+
 // Fetch active score types for team; fall back to all active types if no team link rows
 async function fetchScoreTypes(teamId) {
   const typeSelect = 'id, score_type, abbreviated_name, score_value, score_category';
 
-  // Fetch category labels separately — more reliable than PostgREST FK join
+  // Try to load category names from DB; fall back to hardcoded map if table not yet renamed
   let catMap = {};
   const { data: cats } = await sb.from('match_stat_categories').select('id, score_category');
-  catMap = Object.fromEntries((cats || []).map(c => [c.id, c.score_category]));
+  if (cats?.length) {
+    catMap = Object.fromEntries(cats.map(c => [c.id, c.score_category.replace(/_/g, ' ')]));
+  }
 
   let types = [];
   const { data: linked } = await sb
@@ -1114,7 +1119,10 @@ async function fetchScoreTypes(teamId) {
     types = data || [];
   }
 
-  return types.map(t => ({ ...t, category_name: catMap[t.score_category] || 'other' }));
+  return types.map(t => ({
+    ...t,
+    category_name: catMap[t.score_category] ?? CAT_FALLBACK[t.score_category] ?? 'other'
+  }));
 }
 
 // Upsert a match_stats row for this event/user session
