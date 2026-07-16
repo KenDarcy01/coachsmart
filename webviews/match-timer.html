@@ -1288,6 +1288,10 @@ function updateTimerUI() {
   const btn = $('toggleBtn');
   btn.textContent = isRunning ? 'Pause' : 'Start';
   btn.className   = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
+
+  // Save button label
+  const saveBtn = document.querySelector('.btn-save');
+  if (saveBtn) saveBtn.textContent = expired ? 'Finish & Save' : 'Save Stats';
 }
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
@@ -1575,7 +1579,8 @@ async function finaliseStats() {
     .eq('id', matchStatsRow.id);
   if (error) { showToast('Error saving stats'); return; }
   matchStatsRow.finalised_at = now;
-  showToast('Stats saved');
+  showToast('Stats saved — timer reset');
+  await doReset();
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
