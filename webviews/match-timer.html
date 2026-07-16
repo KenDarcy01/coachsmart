@@ -187,6 +187,7 @@
     .timer-status.paused       { background: rgba(107,114,128,0.15); color: var(--muted); }
     .timer-status.injury       { background: rgba(239,68,68,0.15);   color: var(--red); }
     .timer-status.injury-pause { background: rgba(245,158,11,0.15);  color: var(--amber); }
+    .timer-status.full-time    { background: rgba(239,68,68,0.15);   color: var(--red); }
 
     .timer-display {
       font-family: 'Bebas Neue', sans-serif;
@@ -230,6 +231,13 @@
       text-transform: uppercase; transition: all 0.15s;
     }
     .btn-secondary:hover { border-color: var(--red); color: var(--red); }
+    .btn-save {
+      width: 100%; padding: 14px; border-radius: 14px;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+      border: 1.5px solid var(--green); color: var(--green);
+      text-transform: uppercase; transition: all 0.15s; background: transparent;
+    }
+    .btn-save:hover { background: var(--green-dim); }
 
     /* ── SCORE PANEL ── */
     .score-panel {
@@ -457,6 +465,14 @@
         </div>
       </div>
     </div>
+    <div class="setup-field">
+      <div class="setup-label">Max Injury Time</div>
+      <div class="duration-pills">
+        <button class="dur-pill" data-injury="5"  onclick="selectInjury(5)">5 mins</button>
+        <button class="dur-pill active" data-injury="10" onclick="selectInjury(10)">10 mins</button>
+        <button class="dur-pill" data-injury="15" onclick="selectInjury(15)">15 mins</button>
+      </div>
+    </div>
     <button class="setup-open-btn" onclick="openTimer()">Open Timer</button>
   </div>
 </div>
@@ -501,6 +517,7 @@
     </div>
     <div class="timer-buttons">
       <button class="btn-primary btn-start" id="toggleBtn" onclick="toggleTimer()">Start</button>
+      <button class="btn-save" onclick="finaliseStats()">Save Stats</button>
       <button class="btn-secondary" onclick="showResetModal()">Reset Timer</button>
     </div>
   </div>
@@ -542,6 +559,7 @@ let currentEventLabel = '';
 let timerRow       = null;
 let timerInterval  = null;
 let selectedDurationMins = 30;
+let selectedInjuryMins   = 10;
 let wasInInjuryTime = false;   // tracks transition so alarm fires once per crossing
 let matchStatsRow  = null;     // row in match_stats for this session
 let scoreTypes     = [];       // [{id, score_type, abbreviated_name, score_value}]
@@ -592,6 +610,10 @@ function getDuration(row) {
   return (row?.duration_seconds) || (selectedDurationMins * 60);
 }
 
+function getInjuryDuration(row) {
+  return (row?.injury_seconds) || (selectedInjuryMins * 60);
+}
+
 function computeRemaining(row) {
   return Math.max(0, getDuration(row) - computeElapsed(row));
 }
@@ -602,6 +624,10 @@ function computeInjury(row) {
 
 function isInInjuryTime(row) {
   return computeElapsed(row) >= getDuration(row);
+}
+
+function isInjuryTimeExpired(row) {
+  return computeElapsed(row) >= getDuration(row) + getInjuryDuration(row);
 }
 
 // ── Audio alarm ───────────────────────────────────────────────────────────────
@@ -627,9 +653,25 @@ function triggerFullTime() {
   playAlarm();
   const body = $('timerBody');
   body.classList.remove('flashing');
-  void body.offsetWidth; // reflow to restart animation
+  void body.offsetWidth;
   body.classList.add('flashing');
   body.addEventListener('animationend', () => body.classList.remove('flashing'), { once: true });
+}
+
+function triggerFinalWhistle() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.28, 0.56, 0.84, 1.12].forEach(delay => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = 660;
+      gain.gain.setValueAtTime(0.7, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.22);
+      osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.22);
+    });
+  } catch (_) {}
+  showToast('Full time — timer stopped');
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -836,11 +878,15 @@ async function goToSetup(eventId, label, defaultOpposition) {
     if (existing) {
       $('oppositionInput').value = existing.opposition || '';
       if (existing.squad_id) squadSelect.value = existing.squad_id;
+      const injMins = Math.round((existing.injury_seconds || 600) / 60);
+      selectedInjuryMins = [5, 10, 15].includes(injMins) ? injMins : 10;
     } else {
       $('oppositionInput').value = defaultOpposition || '';
+      selectedInjuryMins = 10;
     }
     selectedDurationMins = 30;
     updateDurationPills();
+    updateInjuryPills();
 
     hideLoading();
     showScreen('setupScreen');
@@ -867,6 +913,17 @@ function updateDurationPills() {
   const customPill = $('customPill');
   customPill.textContent = 'Custom';
   customPill.classList.toggle('active', !isPreset);
+}
+
+function selectInjury(mins) {
+  selectedInjuryMins = mins;
+  updateInjuryPills();
+}
+
+function updateInjuryPills() {
+  document.querySelectorAll('.dur-pill[data-injury]').forEach(p => {
+    p.classList.toggle('active', parseInt(p.dataset.injury) === selectedInjuryMins);
+  });
 }
 
 // ── Custom minutes input ──────────────────────────────────────────────────────
@@ -896,10 +953,11 @@ async function openTimer() {
   const opposition = $('oppositionInput').value.trim();
   const squadId    = parseInt($('squadSelect').value) || null;
   const duration   = selectedDurationMins * 60;
+  const injury     = selectedInjuryMins * 60;
 
   showLoading('Opening timer…');
   try {
-    await loadOrCreateTimer(opposition, squadId, duration);
+    await loadOrCreateTimer(opposition, squadId, duration, injury);
     scoreTypes = await fetchScoreTypes(currentTeamId);
     await upsertMatchStats(opposition, squadId);
     await loadScoreCounts();
@@ -922,8 +980,7 @@ async function openTimer() {
   }
 }
 
-async function loadOrCreateTimer(opposition, squadId, duration) {
-  // Try update first (upsert keeps it simple)
+async function loadOrCreateTimer(opposition, squadId, duration, injury) {
   const { data: existing } = await sb
     .from('match_timer')
     .select('*')
@@ -932,18 +989,17 @@ async function loadOrCreateTimer(opposition, squadId, duration) {
     .maybeSingle();
 
   if (existing) {
-    // Update setup fields without touching elapsed/status
     const { error } = await sb
       .from('match_timer')
-      .update({ opposition, squad_id: squadId, duration_seconds: duration })
+      .update({ opposition, squad_id: squadId, duration_seconds: duration, injury_seconds: injury })
       .eq('event_id', currentEventId)
       .eq('user_id', currentUser.id);
     if (error) throw error;
-    timerRow = { ...existing, opposition, squad_id: squadId, duration_seconds: duration };
+    timerRow = { ...existing, opposition, squad_id: squadId, duration_seconds: duration, injury_seconds: injury };
   } else {
     const { data, error } = await sb
       .from('match_timer')
-      .insert({ event_id: currentEventId, user_id: currentUser.id, opposition, squad_id: squadId, duration_seconds: duration })
+      .insert({ event_id: currentEventId, user_id: currentUser.id, opposition, squad_id: squadId, duration_seconds: duration, injury_seconds: injury })
       .select()
       .single();
     if (error) throw error;
@@ -1021,10 +1077,17 @@ function stopInterval() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
-function tick() {
+async function tick() {
+  if (timerRow.status !== 'running') return;
   const inInjury = isInInjuryTime(timerRow);
   if (inInjury && !wasInInjuryTime) triggerFullTime();
   wasInInjuryTime = inInjury;
+  if (isInjuryTimeExpired(timerRow)) {
+    stopInterval();
+    triggerFinalWhistle();
+    await doPause();
+    return;
+  }
   updateTimerUI();
 }
 
@@ -1053,8 +1116,10 @@ function updateTimerUI() {
   }
 
   // Status pill
-  const statusEl = $('timerStatus');
+  const statusEl  = $('timerStatus');
+  const expired   = isInjuryTimeExpired(timerRow);
   if (inInjury && isRunning)  { statusEl.textContent = 'Injury Time'; statusEl.className = 'timer-status injury'; }
+  else if (expired)           { statusEl.textContent = 'Full Time'; statusEl.className = 'timer-status full-time'; }
   else if (inInjury)          { statusEl.textContent = 'Injury Time — Paused'; statusEl.className = 'timer-status injury-pause'; }
   else if (isRunning)         { statusEl.textContent = 'Running'; statusEl.className = 'timer-status running'; }
   else if (elapsed === 0)     { statusEl.textContent = 'Ready'; statusEl.className = 'timer-status paused'; }
@@ -1229,18 +1294,16 @@ function updateScoreSummary() {
 // Insert one event row (+ tap) or delete most recent row (− tap)
 async function adjustScore(typeId, side, delta) {
   if (!matchStatsRow) return;
-  if (!timerRow || timerRow.status !== 'running') {
-    showToast('Start the timer first');
-    return;
-  }
   if (delta > 0) {
-    const eventMinute = Math.floor(computeElapsed(timerRow) / 60);
+    const eventMinute  = Math.floor(computeElapsed(timerRow) / 60);
+    const timerStatus  = timerRow?.status || 'stopped';
     const { error } = await sb.from('match_stats_details').insert({
       match_stats_id: matchStatsRow.id,
       score_type:     typeId,
       side,
       count:          1,
       event_minute:   eventMinute,
+      timer_status:   timerStatus,
     });
     if (error) { console.error(error); return; }
     if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
@@ -1261,6 +1324,19 @@ async function adjustScore(typeId, side, delta) {
     }
   }
   updateScoreDisplay();
+}
+
+// ── Finalise stats ────────────────────────────────────────────────────────────
+async function finaliseStats() {
+  if (!matchStatsRow) { showToast('No stats to save'); return; }
+  const now = new Date().toISOString();
+  const { error } = await sb
+    .from('match_stats')
+    .update({ finalised_at: now })
+    .eq('id', matchStatsRow.id);
+  if (error) { showToast('Error saving stats'); return; }
+  matchStatsRow.finalised_at = now;
+  showToast('Stats saved');
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
