@@ -1089,22 +1089,32 @@ function totalPts(side) {
 
 // Fetch active score types for team; fall back to all active types if no team link rows
 async function fetchScoreTypes(teamId) {
-  const typeSelect = 'id, score_type, abbreviated_name, score_value, score_category, match_stat_categories(score_category)';
+  const typeSelect = 'id, score_type, abbreviated_name, score_value, score_category';
+
+  // Fetch category labels separately — more reliable than PostgREST FK join
+  let catMap = {};
+  const { data: cats } = await sb.from('match_stat_categories').select('id, score_category');
+  catMap = Object.fromEntries((cats || []).map(c => [c.id, c.score_category]));
+
+  let types = [];
   const { data: linked } = await sb
     .from('match_stat_type_team_link')
     .select(`match_stat_types(${typeSelect})`)
     .eq('team_id', teamId)
     .eq('status', true);
   if (linked?.length) {
-    const types = linked.map(l => l.match_stat_types).filter(Boolean);
-    if (types.length) return types;
+    types = linked.map(l => l.match_stat_types).filter(Boolean);
   }
-  const { data } = await sb
-    .from('match_stat_types')
-    .select(typeSelect)
-    .eq('status', true)
-    .order('id');
-  return data || [];
+  if (!types.length) {
+    const { data } = await sb
+      .from('match_stat_types')
+      .select(typeSelect)
+      .eq('status', true)
+      .order('id');
+    types = data || [];
+  }
+
+  return types.map(t => ({ ...t, category_name: catMap[t.score_category] || 'other' }));
 }
 
 // Upsert a match_stats row for this event/user session
@@ -1148,7 +1158,7 @@ function renderScorePanel() {
   const grouped = {};
   const catOrder = [];
   scoreTypes.forEach(t => {
-    const cat = t.match_stat_categories?.score_category || 'other';
+    const cat = t.category_name || 'other';
     if (!grouped[cat]) { grouped[cat] = []; catOrder.push(cat); }
     grouped[cat].push(t);
   });
