@@ -504,8 +504,8 @@
       </select>
     </div>
     <div class="setup-field">
-      <div class="setup-label">Opposition <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
-      <input type="text" class="setup-input" id="oppositionInput" placeholder="e.g. St Brigids" autocomplete="off"/>
+      <div class="setup-label">Opposition</div>
+      <input type="text" class="setup-input" id="oppositionInput" placeholder="e.g. St Brigids" autocomplete="off" required/>
     </div>
     <hr class="setup-divider"/>
     <div class="setup-field">
@@ -531,6 +531,15 @@
         <button class="dur-pill" data-injury="5"  onclick="selectInjury(5)">5 mins</button>
         <button class="dur-pill active" data-injury="10" onclick="selectInjury(10)">10 mins</button>
         <button class="dur-pill" data-injury="15" onclick="selectInjury(15)">15 mins</button>
+        <button class="dur-pill" id="customInjuryPill" onclick="toggleCustomInjuryPicker()">Custom</button>
+      </div>
+      <div class="custom-picker" id="customInjuryPicker">
+        <div class="picker-inner">
+          <input type="number" class="picker-input" id="customInjuryInput"
+            min="1" max="30" placeholder="10"
+            oninput="onCustomInjuryInput(this.value)"/>
+          <div class="picker-unit">mins</div>
+        </div>
       </div>
     </div>
     <button class="setup-open-btn" onclick="openTimer()">Open Timer</button>
@@ -1000,7 +1009,7 @@ async function goToSetup(eventId, label, defaultOpposition) {
       $('oppositionInput').value = existing.opposition || '';
       if (existing.squad_id) squadSelect.value = existing.squad_id;
       const injMins = Math.round((existing.injury_seconds || 600) / 60);
-      selectedInjuryMins = [5, 10, 15].includes(injMins) ? injMins : 10;
+      selectedInjuryMins = (injMins >= 1 && injMins <= 120) ? injMins : 10;
     } else {
       $('oppositionInput').value = defaultOpposition || '';
       selectedInjuryMins = 10;
@@ -1038,13 +1047,37 @@ function updateDurationPills() {
 
 function selectInjury(mins) {
   selectedInjuryMins = mins;
+  $('customInjuryPicker').classList.remove('show');
   updateInjuryPills();
 }
 
 function updateInjuryPills() {
+  const presets  = [5, 10, 15];
+  const isPreset = presets.includes(selectedInjuryMins);
   document.querySelectorAll('.dur-pill[data-injury]').forEach(p => {
     p.classList.toggle('active', parseInt(p.dataset.injury) === selectedInjuryMins);
   });
+  const cp = $('customInjuryPill');
+  if (cp) { cp.textContent = 'Custom'; cp.classList.toggle('active', !isPreset); }
+}
+
+function toggleCustomInjuryPicker() {
+  const picker = $('customInjuryPicker');
+  if (picker.classList.contains('show')) {
+    picker.classList.remove('show');
+  } else {
+    $('customInjuryInput').value = [5, 10, 15].includes(selectedInjuryMins) ? '' : selectedInjuryMins;
+    picker.classList.add('show');
+    setTimeout(() => $('customInjuryInput').focus(), 50);
+  }
+}
+
+function onCustomInjuryInput(val) {
+  const n = parseInt(val);
+  if (!isNaN(n) && n >= 1 && n <= 120) {
+    selectedInjuryMins = n;
+    updateInjuryPills();
+  }
 }
 
 // ── Custom minutes input ──────────────────────────────────────────────────────
@@ -1072,9 +1105,14 @@ function onCustomMinsInput(val) {
 
 async function openTimer() {
   const opposition = $('oppositionInput').value.trim();
-  const squadId    = parseInt($('squadSelect').value) || null;
-  const duration   = selectedDurationMins * 60;
-  const injury     = selectedInjuryMins * 60;
+  if (!opposition) {
+    showToast('Enter the opposition team name');
+    $('oppositionInput').focus();
+    return;
+  }
+  const squadId = parseInt($('squadSelect').value) || null;
+  const duration = selectedDurationMins * 60;
+  const injury   = selectedInjuryMins * 60;
 
   showLoading('Opening timer…');
   try {
