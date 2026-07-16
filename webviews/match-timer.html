@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <meta name="theme-color" content="#111418"/>
   <style>html,body{background:#111418 !important;}</style>
-  <title>CoachSmart — Match Timer</title>
+  <title>CS Timer</title>
+  <link rel="manifest" href="match-timer.webmanifest"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="CS Timer"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <link rel="apple-touch-icon" href="/webviews/icons/match-timer-192.png"/>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
@@ -350,6 +356,10 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 
+    /* ── WEBVIEW MODE — hide header bar and orphaned back button ── */
+    .webview .top-bar { display: none !important; }
+    .webview #setupScreen .back-btn { display: none; }
+
     /* ── TOAST ── */
     #toast {
       position: fixed; bottom: 32px; left: 50%;
@@ -546,7 +556,23 @@
 <script>
 const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── Webview parameter detection ───────────────────────────────────────────────
+const _p         = new URLSearchParams(window.location.search);
+const WV_USER    = _p.get('user_id');
+const WV_EVENT   = _p.get('event_id');
+const WV_TOKEN   = _p.get('token');
+const IS_WEBVIEW = !!(WV_USER && WV_EVENT && WV_TOKEN);
+
+const sb = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  IS_WEBVIEW
+    ? { global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } }, auth: { persistSession: false } }
+    : {}
+);
+
+if (IS_WEBVIEW) document.body.classList.add('webview');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentUser    = null;
@@ -676,13 +702,38 @@ function triggerFinalWhistle() {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 async function checkAuth() {
+  if (IS_WEBVIEW) { await bootWebview(); return; }
   const { data: { session } } = await sb.auth.getSession();
   if (session) await handleSession(session);
   else showScreen('loginScreen');
-
   sb.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') { currentUser = null; stopInterval(); showScreen('loginScreen'); }
   });
+}
+
+async function bootWebview() {
+  currentUser    = { id: WV_USER };
+  currentEventId = parseInt(WV_EVENT);
+  showLoading('Loading match…');
+  try {
+    const { data: event, error } = await sb
+      .from('events')
+      .select('event_id, event_date_time, opposition, team_id, event_codes(event_code), event_types(event_type)')
+      .eq('event_id', currentEventId)
+      .single();
+    if (error || !event) throw error || new Error('Event not found');
+    currentTeamId = event.team_id;
+    const dateStr = fmtDate(event.event_date_time);
+    const typeStr = [event.event_codes?.event_code, event.event_types?.event_type].filter(Boolean).join(' · ');
+    const oppStr  = event.opposition ? ` vs ${event.opposition}` : '';
+    currentEventLabel = `${dateStr} · ${typeStr}${oppStr}`.trim();
+    hideLoading();
+    await goToSetup(currentEventId, currentEventLabel, event.opposition || '');
+  } catch (e) {
+    hideLoading();
+    showToast('Error loading match');
+    console.error(e);
+  }
 }
 
 async function handleSession(session) {
@@ -728,6 +779,7 @@ async function doLogin() {
 }
 
 async function doLogout() {
+  if (IS_WEBVIEW) return;
   stopInterval();
   await sb.auth.signOut();
 }
