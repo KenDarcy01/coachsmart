@@ -289,6 +289,14 @@
     .score-sub:hover  { background: rgba(239,68,68,0.12); color: var(--red); }
     .score-sub:active { background: rgba(239,68,68,0.25); }
 
+    /* Category label dividers inside score panels */
+    .score-cat-label {
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--muted);
+      padding: 7px 4px 2px; border-top: 1px solid var(--border); margin-top: 4px;
+    }
+    .score-cat-label:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
+
     /* Flash animation for full time */
     @keyframes flashRed {
       0%,100% { background: var(--dark); }
@@ -1081,18 +1089,19 @@ function totalPts(side) {
 
 // Fetch active score types for team; fall back to all active types if no team link rows
 async function fetchScoreTypes(teamId) {
+  const typeSelect = 'id, score_type, abbreviated_name, score_value, score_category, match_stat_categories(score_category)';
   const { data: linked } = await sb
-    .from('match_score_type_team_link')
-    .select('match_score_types(id, score_type, abbreviated_name, score_value, score_category)')
+    .from('match_stat_type_team_link')
+    .select(`match_stat_types(${typeSelect})`)
     .eq('team_id', teamId)
     .eq('status', true);
   if (linked?.length) {
-    const types = linked.map(l => l.match_score_types).filter(Boolean);
+    const types = linked.map(l => l.match_stat_types).filter(Boolean);
     if (types.length) return types;
   }
   const { data } = await sb
-    .from('match_score_types')
-    .select('id, score_type, abbreviated_name, score_value, score_category')
+    .from('match_stat_types')
+    .select(typeSelect)
     .eq('status', true)
     .order('id');
   return data || [];
@@ -1133,21 +1142,34 @@ async function loadScoreCounts() {
   }
 }
 
-// Build score rows dynamically from scoreTypes
+// Build score rows dynamically from scoreTypes, grouped by category
 function renderScorePanel() {
+  // Build ordered category groups
+  const grouped = {};
+  const catOrder = [];
+  scoreTypes.forEach(t => {
+    const cat = t.match_stat_categories?.score_category || 'other';
+    if (!grouped[cat]) { grouped[cat] = []; catOrder.push(cat); }
+    grouped[cat].push(t);
+  });
+
   ['us', 'opp'].forEach(side => {
     const el = $(side === 'us' ? 'usScoreRows' : 'oppScoreRows');
     if (!el) return;
-    el.innerHTML = scoreTypes.map(t => {
-      const accent = t.score_value === 2 ? ' two-pt' : '';
-      return `<div class="score-row">
-        <div class="score-add${accent}" onclick="adjustScore(${t.id},'${side}',1)">
-          <span class="score-type${accent}">${t.abbreviated_name}</span>
-          <span class="score-count" id="cnt_${t.id}_${side}">0</span>
-          <span class="score-add-icon">+</span>
-        </div>
-        <div class="score-sub" onclick="adjustScore(${t.id},'${side}',-1)">−</div>
-      </div>`;
+    el.innerHTML = catOrder.map(cat => {
+      const label = cat.replace(/_/g, ' ');
+      const rows = grouped[cat].map(t => {
+        const accent = t.score_value === 2 ? ' two-pt' : '';
+        return `<div class="score-row">
+          <div class="score-add${accent}" onclick="adjustScore(${t.id},'${side}',1)">
+            <span class="score-type${accent}">${t.abbreviated_name}</span>
+            <span class="score-count" id="cnt_${t.id}_${side}">0</span>
+            <span class="score-add-icon">+</span>
+          </div>
+          <div class="score-sub" onclick="adjustScore(${t.id},'${side}',-1)">−</div>
+        </div>`;
+      }).join('');
+      return `<div class="score-cat-label">${label}</div>${rows}`;
     }).join('');
   });
 }
@@ -1189,6 +1211,10 @@ function updateScoreSummary() {
 // Insert one event row (+ tap) or delete most recent row (− tap)
 async function adjustScore(typeId, side, delta) {
   if (!matchStatsRow) return;
+  if (!timerRow || timerRow.status !== 'running') {
+    showToast('Start the timer first');
+    return;
+  }
   if (delta > 0) {
     const eventMinute = Math.floor(computeElapsed(timerRow) / 60);
     const { error } = await sb.from('match_stats_details').insert({
