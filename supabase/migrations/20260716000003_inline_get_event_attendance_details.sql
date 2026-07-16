@@ -2,7 +2,10 @@
 -- view_event_attendance_details CTE logic, then drop the view.
 -- Filters pushed into CTEs early for performance.
 
-CREATE OR REPLACE FUNCTION public.get_event_attendance_details(
+-- Must drop first because return type changes (SETOF view → RETURNS TABLE).
+DROP FUNCTION IF EXISTS public.get_event_attendance_details(uuid, bigint, integer);
+
+CREATE FUNCTION public.get_event_attendance_details(
     p_user_id    uuid,
     p_event_id   bigint,
     p_role_level integer
