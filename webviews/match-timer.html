@@ -635,11 +635,11 @@ const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
 
 // ── Webview parameter detection ───────────────────────────────────────────────
+// Accepts both snake_case (event_id, token) and camelCase (eventId, currentAuthToken)
 const _p         = new URLSearchParams(window.location.search);
-const WV_USER    = _p.get('user_id');
-const WV_EVENT   = _p.get('event_id');
-const WV_TOKEN   = _p.get('token');
-const IS_WEBVIEW = !!(WV_USER && WV_EVENT && WV_TOKEN);
+const WV_EVENT   = _p.get('event_id')  || _p.get('eventId');
+const WV_TOKEN   = _p.get('token')     || _p.get('currentAuthToken');
+const IS_WEBVIEW = !!(WV_EVENT && WV_TOKEN);
 
 const sb = window.supabase.createClient(
   SUPABASE_URL,
@@ -789,10 +789,12 @@ async function checkAuth() {
 }
 
 async function bootWebview() {
-  currentUser    = { id: WV_USER };
-  currentEventId = parseInt(WV_EVENT);
   showLoading('Loading match…');
   try {
+    const { data: { user }, error: authError } = await sb.auth.getUser();
+    if (authError || !user) throw new Error('Invalid auth token');
+    currentUser    = user;
+    currentEventId = parseInt(WV_EVENT);
     const { data: event, error } = await sb
       .from('events')
       .select('event_id, event_date_time, opposition, team_id, event_codes(event_code), event_types(event_type)')
