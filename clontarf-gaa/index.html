@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clontarf GAA Coaching Pathway</title>
 <meta name="description" content="Clontarf GAA Club Mentor Handbook — the 5-stage player development pathway from age 4 to 18.">
 <style>
@@ -38,6 +43,8 @@
     padding: .5rem 1rem;
     overflow-x: auto;
     scrollbar-width: thin;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
   }
   .topnav img.crest { height: 36px; flex: 0 0 auto; }
   .topnav a {
@@ -83,6 +90,11 @@
     filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
   }
   .logos-strip { display: block; width: 100%; }
+  @media (max-width: 480px) {
+    .hero-band { padding: 1.5rem 1rem 1.25rem; }
+    .hero-photo-wrap img.hero-photo { max-height: 300px; }
+    .hero-crest { height: 64px; bottom: -24px; }
+  }
 
   /* ---------- Sections ---------- */
   .wrap { max-width: 900px; margin: 0 auto; padding: 0 1.25rem; }
@@ -146,7 +158,7 @@
 
   /* ---------- Tables ---------- */
   .table-scroll { overflow-x: auto; margin: 1rem 0 1.5rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
-  table { border-collapse: collapse; width: 100%; min-width: 480px; background: var(--paper); }
+  table { border-collapse: collapse; width: 100%; background: var(--paper); }
   table caption {
     background: var(--navy);
     color: #fff;
@@ -180,14 +192,19 @@
   .skill-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 0;
+    gap: 1px;
+    background: #d8dcec;
     border: 1px solid #d8dcec;
     border-radius: 8px;
     overflow: hidden;
     margin: 1rem 0 1.5rem;
     box-shadow: 0 1px 4px rgba(0,0,0,.12);
   }
-  .skill-grid > .col-head {
+  .skill-grid .skill-col {
+    display: flex;
+    flex-direction: column;
+  }
+  .skill-grid .col-head {
     background: var(--navy);
     color: #fff;
     font-weight: 700;
@@ -195,25 +212,25 @@
     text-transform: uppercase;
     padding: .55rem .7rem;
   }
-  .skill-grid > .col-body {
+  .skill-grid .col-body {
     background: var(--lavender-alt);
     padding: .8rem .9rem;
     font-size: .85rem;
+    flex: 1;
   }
-  .skill-grid > .col-body h4 {
+  .skill-grid .col-body h4 {
     margin: .6rem 0 .2rem;
     color: var(--red-dark);
     font-size: .82rem;
     font-weight: 700;
   }
-  .skill-grid > .col-body h4:first-child { margin-top: 0; }
-  .skill-grid > .col-body ul { margin: 0 0 .4rem; padding-left: 1.1rem; }
-  .skill-grid > .col-body ul li { margin-bottom: .2rem; }
+  .skill-grid .col-body h4:first-child { margin-top: 0; }
+  .skill-grid .col-body ul { margin: 0 0 .4rem; padding-left: 1.1rem; }
+  .skill-grid .col-body ul li { margin-bottom: .2rem; }
   .skill-grid .full-row {
     grid-column: 1 / -1;
     background: var(--lavender);
     padding: .7rem .9rem;
-    border-top: 1px solid #d8dcec;
     font-size: .85rem;
   }
   .skill-grid .full-row strong { color: var(--navy); }
@@ -270,10 +287,11 @@
   details.assessment summary::before { content: "+ "; }
   details.assessment[open] summary::before { content: "\2212 "; }
   details.assessment .table-scroll { margin: 0; border-radius: 0; box-shadow: none; }
+  details.assessment .table-scroll + .table-scroll { border-top: 4px solid var(--red); }
 
   /* ---------- Overview tables (5 stages / games / session duration) ---------- */
-  table.overview td:first-child { white-space: nowrap; font-weight: 600; color: var(--navy); }
-  table.overview th:first-child { white-space: nowrap; }
+  table.overview td:first-child { font-weight: 600; color: var(--navy); }
+  td.nowrap, th.nowrap { white-space: nowrap; }
 
   /* ---------- Footer ---------- */
   footer {
@@ -288,6 +306,8 @@
 
   strong.hurl { color: var(--navy); }
 </style>
+</head>
+<body>
 
 <nav class="topnav">
   <div class="topnav-inner">
@@ -369,13 +389,13 @@
     <hr class="rule">
     <div class="table-scroll">
       <table class="overview">
-        <thead><tr><th>Stage</th><th>Age</th><th>Emphasis</th></tr></thead>
+        <thead><tr><th>Stage</th><th class="nowrap">Age</th><th>Emphasis</th></tr></thead>
         <tbody>
-          <tr><td>Learn to Master the Ball</td><td>4-6</td><td>Should be about fun and participation with key emphasis on physical literacy and fundamental movement skills with the ball.</td></tr>
-          <tr><td>Learn to Use the Ball Well</td><td>7-9</td><td>Major skills learning phase where all the basic skills in football &amp; hurling are learned. Emphasis on using both sides of the body.</td></tr>
-          <tr><td>Learn to Play Together</td><td>10-12</td><td>Emphasis on understanding how to play and work together as a team.</td></tr>
-          <tr><td>Learn about Positions and Decisions</td><td>13-15</td><td>The principles of play and applying good decisions increase Game Sense.</td></tr>
-          <tr><td>Learn to Perform</td><td>15-18</td><td>Combining all aspects of performance including decision making, higher physical demands of the game and coping with competition.</td></tr>
+          <tr><td>Learn to Master the Ball</td><td class="nowrap">4-6</td><td>Should be about fun and participation with key emphasis on physical literacy and fundamental movement skills with the ball.</td></tr>
+          <tr><td>Learn to Use the Ball Well</td><td class="nowrap">7-9</td><td>Major skills learning phase where all the basic skills in football &amp; hurling are learned. Emphasis on using both sides of the body.</td></tr>
+          <tr><td>Learn to Play Together</td><td class="nowrap">10-12</td><td>Emphasis on understanding how to play and work together as a team.</td></tr>
+          <tr><td>Learn about Positions and Decisions</td><td class="nowrap">13-15</td><td>The principles of play and applying good decisions increase Game Sense.</td></tr>
+          <tr><td>Learn to Perform</td><td class="nowrap">15-18</td><td>Combining all aspects of performance including decision making, higher physical demands of the game and coping with competition.</td></tr>
         </tbody>
       </table>
     </div>
@@ -451,10 +471,9 @@
       </div>
 
       <div class="skill-grid">
-        <div class="col-head">Hurling/Camogie</div>
-        <div class="col-head">Football</div>
-        <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
-        <div class="col-body">
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
           <h4>Handling</h4>
           <ul><li>Correct Hurley Size.</li><li>Correct Grip.</li><li>Establish Dominant Hand.</li><li>Ready, Lock, Swing.</li></ul>
           <h4>Catching</h4>
@@ -464,7 +483,10 @@
           <h4>Ball Control</h4>
           <ul><li>Stopping.</li><li>Flick to space.</li><li>Bean Bag solo.</li><li>Bean Bag flick.</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
           <h4>Handling</h4>
           <ul><li>Bowling a ball.</li><li>2 Handed Bounce.</li><li>One Hand Bounce.</li><li>Body Catch.</li><li>Pick Up Stationary and Moving.</li><li>Throw and Catch.</li></ul>
           <h4>Kicking</h4>
@@ -472,7 +494,10 @@
           <h4>Travelling</h4>
           <ul><li>Knee Tap Solo.</li><li>Ground Dribble with Ball.</li><li>Move and Bounce.</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
+          <div class="col-body">
           <h4>Agility</h4>
           <ul><li>Chasing Games.</li><li>Dodging.</li></ul>
           <h4>Balance</h4>
@@ -486,6 +511,7 @@
           <h4>Throwing</h4>
           <ul><li>Target Roll.</li><li>Skittles.</li><li>Bowling.</li></ul>
         </div>
+        </div>
         <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Piggy In The Middle (2v1, 3v1); Target Games</div>
         <div class="full-row"><strong>Team Play:</strong> Zones used in games to stop bunching.</div>
         <div class="full-row"><strong>Psychological Focus:</strong> Develop listening skills.</div>
@@ -495,20 +521,41 @@
         <summary>Learning To Master The Ball &mdash; Skills Assessment</summary>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Hurling/Camogie Skills Checklist</th><th>Pass</th><th>Football Skills Checklist</th><th>Pass</th></tr></thead>
+            <caption>Hurling/Camogie Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
             <tbody>
-              <tr><td>Correct <strong>Hurley Size</strong>.</td><td>Yes/No</td><td>2 Handed <strong>Bounce and Catch</strong> - 10 times in a row.</td><td>Yes/No</td></tr>
-              <tr><td><strong>Dominant Hand</strong> Established.</td><td>Yes/No</td><td>2 Handed <strong>Bounce and Catch</strong> Jogging/Running 20m.</td><td>Yes/No</td></tr>
-              <tr><td>Correct <strong>Grip</strong> (Ready, Lock, Swing).</td><td>Yes/No</td><td>One Hand <strong>Bounce and Catch</strong> Dominant Hand 10 times in row.</td><td>Yes/No</td></tr>
-              <tr><td><strong>Swinging Hurley</strong> Dominant Side Hitting a Stationary Ball 5 Times in a Row without missing.</td><td>Yes/No</td><td>One Hand <strong>Bounce and Catch</strong> Non Dominant Hand 10 Times in Row.</td><td>Yes/No</td></tr>
-              <tr><td><strong>Swinging Hurley</strong> Non Dominant Side Hitting a Stationary Ball 5 Times in a Row without missing.</td><td>Yes/No</td><td><strong>Throw and Catch</strong> to Yourself in a Stationary Position 10 Times in a Row.</td><td>Yes/No</td></tr>
-              <tr><td>Good <strong>Fluid</strong> Movement in Swing.</td><td>Yes/No</td><td><strong>Throw and Catch</strong> to Yourself Jogging/Running 10 Times in a Row.</td><td>Yes/No</td></tr>
-              <tr><td><strong>Ground Striking</strong> Ball a Distance of 10m Dominant Side.</td><td>Yes/No</td><td><strong>Pick up</strong> a Ball as Many Times as Possible in 60 secs (Average is 15).</td><td>Yes/No</td></tr>
-              <tr><td><strong>Ground Striking</strong> Ball a Distance of 20m Dominant Side.</td><td>Yes/No</td><td><strong>Pick up</strong> a moving ball 10 times in a row (coach or partner rolls ball).</td><td>Yes/No</td></tr>
-              <tr><td><strong>Ground Striking</strong> Ball a Distance of 10m Non Dominant Side.</td><td>Yes/No</td><td><strong>Ground Kick</strong> at a target dominant foot.</td><td>Yes/No</td></tr>
-              <tr><td><strong>Ground Striking</strong> Ball a Distance of 20m Non Dominant Side.</td><td>Yes/No</td><td><strong>Ground Kick</strong> at a target non dominant foot.</td><td>Yes/No</td></tr>
-              <tr><td><strong>Ground Stop:</strong> Stopping a Moving Ball (coach rolls to child) 10m away 5 times in a row without missing.</td><td>Yes/No</td><td><strong>Kick from 2 Hands</strong> at a target (partner) dominant foot 10 times.</td><td>Yes/No</td></tr>
-              <tr><td><strong>Dribble</strong> Ball on Ground 20m while Jogging/Running.</td><td>Yes/No</td><td><strong>Kick from 2 Hands</strong> at a target (partner) non dominant foot 10 times.</td><td>Yes/No</td></tr>
+              <tr><td>Correct <strong>Hurley Size</strong>.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Dominant Hand</strong> Established.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>Correct <strong>Grip</strong> (Ready, Lock, Swing).</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Swinging Hurley</strong> Dominant Side Hitting a Stationary Ball 5 Times in a Row without missing.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Swinging Hurley</strong> Non Dominant Side Hitting a Stationary Ball 5 Times in a Row without missing.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>Good <strong>Fluid</strong> Movement in Swing.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Striking</strong> Ball a Distance of 10m Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Striking</strong> Ball a Distance of 20m Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Striking</strong> Ball a Distance of 10m Non Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Striking</strong> Ball a Distance of 20m Non Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Stop:</strong> Stopping a Moving Ball (coach rolls to child) 10m away 5 times in a row without missing.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Dribble</strong> Ball on Ground 20m while Jogging/Running.</td><td class="nowrap">Yes/No</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>Football Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td>2 Handed <strong>Bounce and Catch</strong> - 10 times in a row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>2 Handed <strong>Bounce and Catch</strong> Jogging/Running 20m.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>One Hand <strong>Bounce and Catch</strong> Dominant Hand 10 times in row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>One Hand <strong>Bounce and Catch</strong> Non Dominant Hand 10 Times in Row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Throw and Catch</strong> to Yourself in a Stationary Position 10 Times in a Row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Throw and Catch</strong> to Yourself Jogging/Running 10 Times in a Row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Pick up</strong> a Ball as Many Times as Possible in 60 secs (Average is 15).</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Pick up</strong> a moving ball 10 times in a row (coach or partner rolls ball).</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Kick</strong> at a target dominant foot.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Kick</strong> at a target non dominant foot.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Kick from 2 Hands</strong> at a target (partner) dominant foot 10 times.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Kick from 2 Hands</strong> at a target (partner) non dominant foot 10 times.</td><td class="nowrap">Yes/No</td></tr>
             </tbody>
           </table>
         </div>
@@ -567,10 +614,9 @@
       </div>
 
       <div class="skill-grid">
-        <div class="col-head">Hurling/Camogie</div>
-        <div class="col-head">Football</div>
-        <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
-        <div class="col-body">
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
           <h4>Handling</h4>
           <ul><li>Correct hurley size.</li><li>Identification of the &lsquo;strong&rsquo; hand.</li><li>Grip &amp; Swing.</li><li>Ready &amp; Lock.</li><li>Claw catch.</li><li>Cupped catch.</li></ul>
           <h4>Striking</h4>
@@ -582,7 +628,10 @@
           <h4>Tackling/Contesting</h4>
           <ul><li>Ground Flick (backhand).</li><li>Ground clash.</li><li>Hooking Frontal Stationary.</li><li>Ground block Stationary (Hurl to Hurl).</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
           <h4>Handling</h4>
           <ul><li>Body Catch.</li><li>Low Catch.</li><li>High Catch.</li><li>Hand Pass.</li><li>Crouch Lift (Stationary Ball).</li></ul>
           <h4>Kicking</h4>
@@ -592,7 +641,10 @@
           <h4>Tackle</h4>
           <ul><li>Near Hand Tackle.</li><li>Shadowing.</li><li>Frontal Tackle.</li><li>Block Down.</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
+          <div class="col-body">
           <h4>Agility</h4>
           <ul><li>Zig Zag.</li></ul>
           <h4>Balance</h4>
@@ -608,6 +660,7 @@
           <h4>Conditioning</h4>
           <ul><li>Partner Resistance.</li><li>Tug Of War.</li><li>Whole Body Exercises.</li></ul>
         </div>
+        </div>
         <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Players encouraged to move into space; Devise games which encourage players to look up.</div>
         <div class="full-row"><strong>Team Play:</strong> Use zones for basic positional understanding; Players play all positions to experience attack &amp; defence; Small sided games crucial for individual learning; Call for the ball.</div>
         <div class="full-row"><strong>Psychological Focus:</strong> Ask players to imagine themselves as role models to improve skills; Use trigger words to develop communication.</div>
@@ -617,17 +670,34 @@
         <summary>Learning To Use The Ball Well &mdash; Skills Assessment</summary>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Hurling/Camogie Skills Checklist</th><th>Pass</th><th>Football Skills Checklist</th><th>Pass</th></tr></thead>
+            <caption>Hurling/Camogie Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
             <tbody>
-              <tr><td><strong>Ground Strike</strong> From a standing position and from the dominant side take a full swing and strike the ball on the ground a minimum distance of 13 metres between two posts that are three metres apart.</td><td>4 out of 6 = Pass</td><td><strong>Chest Catch</strong> Coach throws ball to child&rsquo;s chest. Child catches ball using body. Distance from coach 5m.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Ground Strike</strong> From a standing position and from the non dominant side take a full swing and strike the ball on the ground a minimum distance of 13 metres between two posts that are three metres apart.</td><td>4 out of 6 = Pass</td><td><strong>Low Catch</strong> Coach throws a bouncing ball to child&rsquo;s feet. Child catches ball using hands. Distance from coach 5m.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Jab Lift</strong> Sliotar as Many Times as Possible in 60 secs (Average is 15).</td><td>15</td><td><strong>High Catch</strong> Coach throws a High ball to child. Child catches ball above head using hands. Distance from coach 5m.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Striking From Hand</strong> a Distance of 10m Dominant Side.</td><td>Yes/No</td><td><strong>Kick from Hands</strong> From a standing position and from the dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Striking From Hand</strong> a Distance of 10m Non Dominant Side.</td><td>Yes/No</td><td><strong>Kick from Hands</strong> From a standing position and from the non dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Bouncing Ball</strong> On Hurley in Succession in 60 secs (Average is 25).</td><td>Yes/No</td><td><strong>Hook Kick</strong> From a standing position and from the dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Chest Catch</strong> Coach throws ball/bean bag to child&rsquo;s chest. Child catches ball with hand. Distance from coach 3m.</td><td>4 out of 6 = Pass</td><td><strong>Hook Kick</strong> From a standing position and from the non dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>High Catch</strong> Coach throws a ball over child&rsquo;s head and child attempts to catch the ball. Distance from coach is 3m.</td><td>4 out of 6 = Pass</td><td><strong>Solo</strong> Player Toe Tap Solo&rsquo;s the ball as many times as possible in 60 secs (Average is 25).</td><td>20</td></tr>
-              <tr><td>Coach rolls ball to alternate sides. Child must pull on ball without turning to dominant side. Both sides.</td><td>4 out of 6 = Pass</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td><strong>Ground Strike</strong> From a standing position and from the dominant side take a full swing and strike the ball on the ground a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Ground Strike</strong> From a standing position and from the non dominant side take a full swing and strike the ball on the ground a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Jab Lift</strong> Sliotar as Many Times as Possible in 60 secs (Average is 15).</td><td class="nowrap">15</td></tr>
+              <tr><td><strong>Striking From Hand</strong> a Distance of 10m Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Striking From Hand</strong> a Distance of 10m Non Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Bouncing Ball</strong> On Hurley in Succession in 60 secs (Average is 25).</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Chest Catch</strong> Coach throws ball/bean bag to child’s chest. Child catches ball with hand. Distance from coach 3m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>High Catch</strong> Coach throws a ball over child’s head and child attempts to catch the ball. Distance from coach is 3m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Coach rolls ball to alternate sides. Child must pull on ball without turning to dominant side. Both sides.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>Football Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Chest Catch</strong> Coach throws ball to child’s chest. Child catches ball using body. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Low Catch</strong> Coach throws a bouncing ball to child’s feet. Child catches ball using hands. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>High Catch</strong> Coach throws a High ball to child. Child catches ball above head using hands. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Kick from Hands</strong> From a standing position and from the dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Kick from Hands</strong> From a standing position and from the non dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Hook Kick</strong> From a standing position and from the dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Hook Kick</strong> From a standing position and from the non dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Solo</strong> Player Toe Tap Solo’s the ball as many times as possible in 60 secs (Average is 25).</td><td class="nowrap">20</td></tr>
             </tbody>
           </table>
         </div>
@@ -682,10 +752,9 @@
       </div>
 
       <div class="skill-grid">
-        <div class="col-head">Hurling/Camogie</div>
-        <div class="col-head">Football</div>
-        <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
-        <div class="col-body">
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
           <h4>Handling</h4>
           <ul><li>Overhead catch (hurl to protect).</li><li>Hand passing (using both hands).</li><li>Low catch.</li></ul>
           <h4>Striking</h4>
@@ -697,7 +766,10 @@
           <h4>Tackle/Contesting</h4>
           <ul><li>Shouldering.</li><li>Hooking on the move.</li><li>Blocking (ground &amp; air).</li><li>Batting high ball.</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
           <h4>Handling</h4>
           <ul><li>High Catch.</li><li>Hand Pass Both Sides.</li><li>Crouch Lift Moving Ball.</li></ul>
           <h4>Kicking</h4>
@@ -707,7 +779,10 @@
           <h4>Tackle</h4>
           <ul><li>Near Hand Tackle.</li><li>Shadowing.</li><li>Frontal Tackle.</li><li>Block Down.</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
+          <div class="col-body">
           <h4>Speed</h4>
           <ul><li>Further development of speed in warm ups (Efforts less than 6 secs) e.g. quickness and change of direction and reaction sprints.</li></ul>
           <h4>Strength</h4>
@@ -719,6 +794,7 @@
           <h4>Jumping</h4>
           <ul><li>Leapfrog.</li><li>Jumping Jacks.</li><li>Star Jumps.</li><li>Jump from 2 Feet Land on one Foot.</li></ul>
         </div>
+        </div>
         <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Play conditioned games to create pressure on players decision making; Activities to focus on gaining &amp; maintaining possession of the ball; Individual decisions now have more impact on team outcome.</div>
         <div class="full-row"><strong>Team Play:</strong> Encourage and support team mates vocally; Work on creating space when in possession; Work on denying space when not in possession.</div>
         <div class="full-row"><strong>Psychological Focus:</strong> Look for feedback from players to question how to improve skills and activities.</div>
@@ -728,21 +804,38 @@
         <summary>Learning To Play Together &mdash; Skills Assessment</summary>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Hurling/Camogie Skills Checklist</th><th>Pass</th><th>Football Skills Checklist</th><th>Pass</th></tr></thead>
+            <caption>Hurling/Camogie Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
             <tbody>
-              <tr><td><strong>Frontal Block:</strong> Coach strikes 6 sliotars and player attempts to block the ball in each case. Emphasis on proper technique.</td><td>4 out of 6 = Pass</td><td>Coach throws ball to child&rsquo;s chest. Child catches ball using body. Distance from coach 5m.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td>Coach throws a ball over the players head and the player <strong>bats</strong> the ball back in the direction of the coach. Distance from coach to player = 3 metres.</td><td>4 out of 6 = Pass</td><td>Coach throws a bouncing ball to child&rsquo;s feet. Child catches ball using hands. Distance from coach 5m.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td>Players <strong>strike</strong> ball from the hand on dominant side. Under/over crossbar 15m/20m/25m = 6 attempts (2 at each distance).</td><td>4 out of 6 = Pass</td><td>Coach throws a High ball to child. Child catches ball above head using hands. Distance from coach 5m.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td>Players <strong>strike</strong> ball from the hand on non dominant side. Under/over crossbar 15m/20m/25m = 6 attempts (2 at each distance).</td><td>4 out of 6 = Pass</td><td>From a standing position and from the dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td>Player <strong>solos</strong> with ball on hurley at near top speed for a distance of 30m without allowing ball to fall.</td><td>4 out of 6 = Pass</td><td>From a standing position and from the non dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Striking</strong> sliotar on the run from hand off dominant side over the bar from in front of goals 15m/20m/25m.</td><td>4 out of 6 = Pass</td><td>From a standing position and from the dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Striking</strong> sliotar on the run from hand off non dominant side over the bar from in front of goals 15m/20m/25m.</td><td>4 out of 6 = Pass</td><td>From a standing position and from the non dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td>Player <strong>handpasses</strong> with dominant hand across the body to a receiver 3 metres away.</td><td>4 out of 6 = Pass</td><td>Player Toe Tap Solo&rsquo;s the ball as many times as possible in 60 secs (Average is 25).</td><td>20</td></tr>
-              <tr><td>Player <strong>handpasses</strong> with non dominant hand across the body to a receiver 3 metres away.</td><td>4 out of 6 = Pass</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-              <tr><td><strong>Striking from the hand</strong> dominant side. Ball cannot touch ground and cannot go over the crossbar. Must hit back of net cleanly from 21m line.</td><td>5 out of 6 = Pass</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-              <tr><td><strong>Striking from the hand</strong> non dominant side. Ball cannot touch ground and cannot go over the crossbar. Must hit back of net cleanly from 21m line.</td><td>5 out of 6 = Pass</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-              <tr><td><strong>Long Strike</strong> a ball from the hand, from the &lsquo;dominant&rsquo; side. A minimum distance before touching the ground of 32 metres i.e. from the 13 metre line over the 45 metre line.</td><td>5 out of 6 = Pass</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-              <tr><td><strong>Long Strike</strong> a ball from the hand, from the &lsquo;Non dominant&rsquo; side. A minimum distance before touching the ground of 32 metres i.e. from the 13 metre line over the 45 metre line.</td><td>5 out of 6 = Pass</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td><strong>Frontal Block:</strong> Coach strikes 6 sliotars and player attempts to block the ball in each case. Emphasis on proper technique.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Coach throws a ball over the players head and the player <strong>bats</strong> the ball back in the direction of the coach. Distance from coach to player = 3 metres.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Players <strong>strike</strong> ball from the hand on dominant side. Under/over crossbar 15m/20m/25m = 6 attempts (2 at each distance).</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Players <strong>strike</strong> ball from the hand on non dominant side. Under/over crossbar 15m/20m/25m = 6 attempts (2 at each distance).</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Player <strong>solos</strong> with ball on hurley at near top speed for a distance of 30m without allowing ball to fall.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Striking</strong> sliotar on the run from hand off dominant side over the bar from in front of goals 15m/20m/25m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Striking</strong> sliotar on the run from hand off non dominant side over the bar from in front of goals 15m/20m/25m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Player <strong>handpasses</strong> with dominant hand across the body to a receiver 3 metres away.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Player <strong>handpasses</strong> with non dominant hand across the body to a receiver 3 metres away.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Striking from the hand</strong> dominant side. Ball cannot touch ground and cannot go over the crossbar. Must hit back of net cleanly from 21m line.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Striking from the hand</strong> non dominant side. Ball cannot touch ground and cannot go over the crossbar. Must hit back of net cleanly from 21m line.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Long Strike</strong> a ball from the hand, from the ‘dominant’ side. A minimum distance before touching the ground of 32 metres i.e. from the 13 metre line over the 45 metre line.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Long Strike</strong> a ball from the hand, from the ‘Non dominant’ side. A minimum distance before touching the ground of 32 metres i.e. from the 13 metre line over the 45 metre line.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>Football Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td>Coach throws ball to child’s chest. Child catches ball using body. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Coach throws a bouncing ball to child’s feet. Child catches ball using hands. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Coach throws a High ball to child. Child catches ball above head using hands. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>From a standing position and from the dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>From a standing position and from the non dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>From a standing position and from the dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>From a standing position and from the non dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Player Toe Tap Solo’s the ball as many times as possible in 60 secs (Average is 25).</td><td class="nowrap">20</td></tr>
             </tbody>
           </table>
         </div>
@@ -797,10 +890,9 @@
       </div>
 
       <div class="skill-grid">
-        <div class="col-head">Hurling/Camogie</div>
-        <div class="col-head">Football</div>
-        <div class="col-head">Physical Development &mdash; ABC &amp; RJT's</div>
-        <div class="col-body">
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
           <h4>Handling</h4>
           <ul><li>High catch (protect from front &amp; behind).</li><li>Hand pass off the hurley (Both Hands).</li><li>Chest catch.</li></ul>
           <h4>Striking</h4>
@@ -812,7 +904,10 @@
           <h4>Tackle</h4>
           <ul><li>Frontal block (Hurl to ball).</li><li>Low block.</li><li>Ground tussle.</li><li>Flick off the Hurley.</li><li>Hooking (Still &amp; Moving).</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
           <h4>Handling</h4>
           <ul><li>Ball Feint.</li><li>Fist Pass for Distance.</li><li>Overhead Tap on or Down.</li><li>Catching At Speed.</li></ul>
           <h4>Kicking</h4>
@@ -822,7 +917,10 @@
           <h4>Tackle</h4>
           <ul><li>Near Hand Tackle.</li><li>Delay Opponent.</li><li>Frontal Tackle.</li><li>Dive Block.</li><li>Hand Off.</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Physical Development &mdash; ABC &amp; RJT's</div>
+          <div class="col-body">
           <h4>Speed</h4>
           <ul><li>Multi directional (Efforts less than 20 secs).</li><li>Quick footwork and agility.</li><li>Acceleration and deceleration e.g. go go stop.</li><li>Game related reaction exercises e.g. relay racing e.g. crazy ball drills.</li></ul>
           <h4>Strength</h4>
@@ -831,6 +929,7 @@
           <ul><li>3 v 1 Games.</li><li>Activities incorporating the ball.</li></ul>
           <h4>Flexibility &amp; Co-Ordination</h4>
           <ul><li>Maintain Stretching and Mobility.</li><li>Dynamic Warmup.</li></ul>
+        </div>
         </div>
         <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Understand the specific responsibilities of the various position through playing experience and minimal direction from coach; Small sided games are crucial.</div>
         <div class="full-row"><strong>Team Play:</strong> Moving the ball as a team; Implement principles of play.</div>
@@ -841,15 +940,31 @@
         <summary>Learning About Positions and Decisions &mdash; Skills Assessment</summary>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Hurling/Camogie Skills Checklist</th><th>Pass</th><th>Football Skills Checklist</th><th>Pass</th></tr></thead>
+            <caption>Hurling/Camogie Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
             <tbody>
-              <tr><td><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the dominant side, to pass under the crossbar without touching the ground.</td><td>5 out of 6 = Pass</td><td><strong>Ball Feint</strong> Players carry the ball 10m, ball feint a defender and shoot for goal 20m away.</td><td>6 out of 6 = Pass</td></tr>
-              <tr><td><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the non dominant side, to pass under the crossbar without touching the ground.</td><td>4 out of 6 = Pass</td><td><strong>Fist Pass</strong> From a standing position and from the dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td>4 out of 6 = Pass</td><td><strong>Fist Pass</strong> From a standing position and from the non dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td>4 out of 6 = Pass</td><td><strong>Receiving ball at pace</strong> Player stands 30m away from coach or partner. Ball is delivered with the foot for a one bounce catch. Receiver sprints to the ball and attempts to catch and control.</td><td>5 out of 6 = Pass</td></tr>
-              <tr><td><strong>Long Strike</strong> a ball from the hand, on the dominant side, a minimum distance of 50 metres before touching the ground.</td><td>5 out of 6 = Pass</td><td><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Long Strike</strong> a ball from the hand, on the non dominant side, a minimum distance of 50 metres before touching the ground.</td><td>5 out of 6 = Pass</td><td><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td>4 out of 6 = Pass</td></tr>
-              <tr><td><strong>Lift, Solo, Strike</strong> Run at least 4 metres to a ball on the 65 metre line. Lift the ball. On the run using the two handed jab lift, solo run with the ball (hopping or stationary) on the hurley to a marker (flag) 45 metres away; without stopping, either strike the ball with the hurley or hand pass the ball (without dropping the hurley) a distance of at least 2 metres to pass between two posts set two metres apart without touching the ground.</td><td>4 out of 6 = Pass</td><td><strong>1 v 1 Near Hand Tackle</strong> Players pair off on the 45m line one going for goal and other the tackler. The tackler attempts to make a good technique attempt at a near hand tackle. Look at the tackler for good technique. 3 dispossessions equal a pass.</td><td>3 out of 6 = Pass</td></tr>
+              <tr><td><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the dominant side, to pass under the crossbar without touching the ground.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the non dominant side, to pass under the crossbar without touching the ground.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Long Strike</strong> a ball from the hand, on the dominant side, a minimum distance of 50 metres before touching the ground.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Long Strike</strong> a ball from the hand, on the non dominant side, a minimum distance of 50 metres before touching the ground.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Lift, Solo, Strike</strong> Run at least 4 metres to a ball on the 65 metre line. Lift the ball. On the run using the two handed jab lift, solo run with the ball (hopping or stationary) on the hurley to a marker (flag) 45 metres away; without stopping, either strike the ball with the hurley or hand pass the ball (without dropping the hurley) a distance of at least 2 metres to pass between two posts set two metres apart without touching the ground.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>Football Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Ball Feint</strong> Players carry the ball 10m, ball feint a defender and shoot for goal 20m away.</td><td class="nowrap">6 out of 6 = Pass</td></tr>
+              <tr><td><strong>Fist Pass</strong> From a standing position and from the dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Fist Pass</strong> From a standing position and from the non dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Receiving ball at pace</strong> Player stands 30m away from coach or partner. Ball is delivered with the foot for a one bounce catch. Receiver sprints to the ball and attempts to catch and control.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>1 v 1 Near Hand Tackle</strong> Players pair off on the 45m line one going for goal and other the tackler. The tackler attempts to make a good technique attempt at a near hand tackle. Look at the tackler for good technique. 3 dispossessions equal a pass.</td><td class="nowrap">3 out of 6 = Pass</td></tr>
             </tbody>
           </table>
         </div>
@@ -908,10 +1023,9 @@
       </div>
 
       <div class="skill-grid">
-        <div class="col-head">Hurling/Camogie</div>
-        <div class="col-head">Football</div>
-        <div class="col-head">Physical Development &mdash; ABC &amp; RJT's</div>
-        <div class="col-body">
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
           <h4>Game Plays</h4>
           <ul><li>How To use a Sweeper.</li><li>How to Deal with a Sweeper.</li><li>Man Marking.</li><li>Zone Marking.</li><li>Creating space.</li></ul>
           <h4>Winning The Ball</h4>
@@ -923,7 +1037,10 @@
           <h4>Tackle</h4>
           <ul><li>Shouldering.</li><li>Recovering the ball.</li><li>Flick.</li><li>Hook.</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
           <h4>Game Plays</h4>
           <ul><li>How To use a Sweeper.</li><li>How to Deal with a Sweeper.</li><li>Man Marking.</li><li>Zone Marking.</li><li>Creating space.</li></ul>
           <h4>Kicking</h4>
@@ -933,7 +1050,10 @@
           <h4>Tackle</h4>
           <ul><li>Group Tackling.</li><li>Near Hand Tackle.</li><li>Delay.</li><li>Deny.</li><li>Dispossess.</li><li>Develop.</li></ul>
         </div>
-        <div class="col-body">
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Physical Development &mdash; ABC &amp; RJT's</div>
+          <div class="col-body">
           <h4>Speed</h4>
           <ul><li>Multi directional (Efforts less than 20 secs).</li><li>Quick footwork and agility.</li><li>Acceleration and deceleration e.g. go go stop.</li><li>Running Mechanics and Technique.</li><li>Strength Work To Improve Speed.</li></ul>
           <h4>Strength</h4>
@@ -942,6 +1062,7 @@
           <ul><li>Small Sided Games.</li><li>Activities incorporating the ball.</li></ul>
           <h4>Flexibility &amp; Co-Ordination</h4>
           <ul><li>Maintain Stretching and Mobility.</li><li>Dynamic Warmup.</li></ul>
+        </div>
         </div>
         <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Questioning; Guided Discovery; Trial &amp; Error; Observation &amp; Feedback.</div>
         <div class="full-row"><strong>Team Play:</strong> Players to adapt to a number of team playing styles; Lots of questions to encourage problem solving in a game; Reflection on game scenarios.</div>
@@ -966,15 +1087,15 @@
     <h3 class="sub-title">Session Duration</h3>
     <div class="table-scroll">
       <table class="overview">
-        <thead><tr><th>Age Group</th><th>Coach/Player Ratio</th><th>Duration</th></tr></thead>
+        <thead><tr><th>Age Group</th><th class="nowrap">Coach/Player Ratio</th><th class="nowrap">Duration</th></tr></thead>
         <tbody>
-          <tr><td>Nursery</td><td>1:4</td><td>45 Minutes</td></tr>
-          <tr><td>Under 7, 8</td><td>1:6</td><td>45 minutes</td></tr>
-          <tr><td>Under 9, 10</td><td>1:8</td><td>45/50 Minutes</td></tr>
-          <tr><td>Under 11, 12</td><td>1:8</td><td>50/60 Minutes</td></tr>
-          <tr><td>Under 13, 14</td><td>1:8</td><td>60/70 Minutes</td></tr>
-          <tr><td>Under 15, 16</td><td>1:10</td><td>70/80 Minutes</td></tr>
-          <tr><td>Under 17, 18</td><td>1:12</td><td>70/90 Minutes</td></tr>
+          <tr><td>Nursery</td><td class="nowrap">1:4</td><td class="nowrap">45 Minutes</td></tr>
+          <tr><td>Under 7, 8</td><td class="nowrap">1:6</td><td class="nowrap">45 minutes</td></tr>
+          <tr><td>Under 9, 10</td><td class="nowrap">1:8</td><td class="nowrap">45/50 Minutes</td></tr>
+          <tr><td>Under 11, 12</td><td class="nowrap">1:8</td><td class="nowrap">50/60 Minutes</td></tr>
+          <tr><td>Under 13, 14</td><td class="nowrap">1:8</td><td class="nowrap">60/70 Minutes</td></tr>
+          <tr><td>Under 15, 16</td><td class="nowrap">1:10</td><td class="nowrap">70/80 Minutes</td></tr>
+          <tr><td>Under 17, 18</td><td class="nowrap">1:12</td><td class="nowrap">70/90 Minutes</td></tr>
         </tbody>
       </table>
     </div>
@@ -1006,3 +1127,5 @@
   <p><strong>Clontarf GAA Club &middot; CLG Chluain Tarbh</strong></p>
   <p>Coaching Pathway &amp; Mentor Handbook</p>
 </footer>
+</body>
+</html>
