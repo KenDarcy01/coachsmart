@@ -481,64 +481,14 @@
         <div class="score-team">Us</div>
         <div class="score-value" id="homeScore">0-00</div>
         <div class="score-total" id="homeTotal">(0)</div>
-        <div class="score-rows">
-          <div class="score-row">
-            <div class="score-add" onclick="adjustScore('home','goals',1)">
-              <span class="score-type">G</span>
-              <span class="score-count" id="homeGoals">0</span>
-              <span class="score-add-icon">+</span>
-            </div>
-            <div class="score-sub" onclick="adjustScore('home','goals',-1)">−</div>
-          </div>
-          <div class="score-row">
-            <div class="score-add" onclick="adjustScore('home','points',1)">
-              <span class="score-type">P</span>
-              <span class="score-count" id="homePoints">0</span>
-              <span class="score-add-icon">+</span>
-            </div>
-            <div class="score-sub" onclick="adjustScore('home','points',-1)">−</div>
-          </div>
-          <div class="score-row">
-            <div class="score-add two-pt" onclick="adjustScore('home','two_ptrs',1)">
-              <span class="score-type two-pt">2P</span>
-              <span class="score-count" id="homeTwoPtrs">0</span>
-              <span class="score-add-icon">+</span>
-            </div>
-            <div class="score-sub" onclick="adjustScore('home','two_ptrs',-1)">−</div>
-          </div>
-        </div>
+        <div class="score-rows" id="usScoreRows"></div>
       </div>
       <div class="score-divider"></div>
       <div class="score-col">
         <div class="score-team" id="awayLabel">Opp</div>
         <div class="score-value" id="awayScore">0-00</div>
         <div class="score-total" id="awayTotal">(0)</div>
-        <div class="score-rows">
-          <div class="score-row">
-            <div class="score-add" onclick="adjustScore('away','goals',1)">
-              <span class="score-type">G</span>
-              <span class="score-count" id="awayGoals">0</span>
-              <span class="score-add-icon">+</span>
-            </div>
-            <div class="score-sub" onclick="adjustScore('away','goals',-1)">−</div>
-          </div>
-          <div class="score-row">
-            <div class="score-add" onclick="adjustScore('away','points',1)">
-              <span class="score-type">P</span>
-              <span class="score-count" id="awayPoints">0</span>
-              <span class="score-add-icon">+</span>
-            </div>
-            <div class="score-sub" onclick="adjustScore('away','points',-1)">−</div>
-          </div>
-          <div class="score-row">
-            <div class="score-add two-pt" onclick="adjustScore('away','two_ptrs',1)">
-              <span class="score-type two-pt">2P</span>
-              <span class="score-count" id="awayTwoPtrs">0</span>
-              <span class="score-add-icon">+</span>
-            </div>
-            <div class="score-sub" onclick="adjustScore('away','two_ptrs',-1)">−</div>
-          </div>
-        </div>
+        <div class="score-rows" id="oppScoreRows"></div>
       </div>
     </div>
     <div class="timer-buttons">
@@ -585,6 +535,9 @@ let timerRow       = null;
 let timerInterval  = null;
 let selectedDurationMins = 30;
 let wasInInjuryTime = false;   // tracks transition so alarm fires once per crossing
+let matchStatsRow  = null;     // row in match_stats for this session
+let scoreTypes     = [];       // [{id, score_type, abbreviated_name, score_value}]
+let scoreCounts    = {};       // {typeId: {us: N, opp: N}}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -939,20 +892,18 @@ async function openTimer() {
   showLoading('Opening timer…');
   try {
     await loadOrCreateTimer(opposition, squadId, duration);
+    scoreTypes = await fetchScoreTypes(currentTeamId);
+    await upsertMatchStats(opposition, squadId);
+    await loadScoreCounts();
     hideLoading();
 
-    // Build timer label
     const oppPart = opposition ? ` vs ${opposition}` : '';
     $('timerEventLabel').innerHTML = `<strong>${currentEventLabel}${esc(oppPart)}</strong>`;
-
-    // Set wasInInjuryTime correctly so alarm doesn't re-fire on load
     wasInInjuryTime = isInInjuryTime(timerRow);
-
-    // Set away label to opposition name if provided
     $('awayLabel').textContent = timerRow.opposition || 'Opp';
 
+    renderScorePanel();
     updateScoreDisplay();
-
     showScreen('timerScreen');
     updateTimerUI();
     if (timerRow.status === 'running') startInterval();
@@ -1035,23 +986,21 @@ async function doReset() {
   hideResetModal();
   const { error } = await sb
     .from('match_timer')
-    .update({
-      elapsed_seconds: 0, started_at: null, status: 'paused',
-      home_goals: 0, home_points: 0, home_two_ptrs: 0,
-      away_goals: 0, away_points: 0, away_two_ptrs: 0,
-    })
+    .update({ elapsed_seconds: 0, started_at: null, status: 'paused' })
     .eq('event_id', currentEventId)
     .eq('user_id', currentUser.id);
   if (error) { showToast('Error resetting timer'); return; }
   timerRow.elapsed_seconds = 0;
   timerRow.started_at      = null;
   timerRow.status          = 'paused';
-  timerRow.home_goals      = 0; timerRow.home_points   = 0; timerRow.home_two_ptrs = 0;
-  timerRow.away_goals      = 0; timerRow.away_points   = 0; timerRow.away_two_ptrs = 0;
   wasInInjuryTime = false;
   stopInterval();
   updateTimerUI();
-  updateScoreDisplay();
+  if (matchStatsRow) {
+    await sb.from('match_stats_details').delete().eq('match_stats_id', matchStatsRow.id);
+    scoreCounts = {};
+    updateScoreDisplay();
+  }
 }
 
 // ── Interval & display ────────────────────────────────────────────────────────
@@ -1110,47 +1059,121 @@ function updateTimerUI() {
 }
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
-function totalPts(goals, points, twoPtrs) {
-  return goals * 3 + points + twoPtrs * 2;
+
+// Types that contribute to the running score (have a point value)
+function scoringTypes() { return scoreTypes.filter(t => t.score_value != null); }
+
+// GAA display format: goals-points (e.g. 1-04)
+// Goals = types with score_value 3; points suffix = sum of everything else × value
+function fmtGAA(side) {
+  const goals = scoringTypes()
+    .filter(t => t.score_value === 3)
+    .reduce((s, t) => s + (scoreCounts[t.id]?.[side] || 0), 0);
+  const pts = scoringTypes()
+    .filter(t => t.score_value !== 3)
+    .reduce((s, t) => s + (scoreCounts[t.id]?.[side] || 0) * t.score_value, 0);
+  return `${goals}-${String(pts).padStart(2, '0')}`;
 }
 
-function fmtGAA(goals, points, twoPtrs) {
-  // 2-pointers count as 2 in the points column of the GAA score display
-  return `${goals}-${String(points + twoPtrs * 2).padStart(2, '0')}`;
+function totalPts(side) {
+  return scoringTypes().reduce((s, t) => s + (scoreCounts[t.id]?.[side] || 0) * t.score_value, 0);
+}
+
+// Fetch active score types for team; fall back to all active types if no team link rows
+async function fetchScoreTypes(teamId) {
+  const { data: linked } = await sb
+    .from('match_score_type_team_link')
+    .select('match_score_types(id, score_type, abbreviated_name, score_value, score_category)')
+    .eq('team_id', teamId)
+    .eq('status', true);
+  if (linked?.length) {
+    const types = linked.map(l => l.match_score_types).filter(Boolean);
+    if (types.length) return types;
+  }
+  const { data } = await sb
+    .from('match_score_types')
+    .select('id, score_type, abbreviated_name, score_value, score_category')
+    .eq('status', true)
+    .order('id');
+  return data || [];
+}
+
+// Upsert a match_stats row for this event/user session
+async function upsertMatchStats(opposition, squadId) {
+  const { data: existing } = await sb
+    .from('match_stats')
+    .select('id')
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+  if (existing) {
+    await sb.from('match_stats').update({ opposition, squad_id: squadId }).eq('id', existing.id);
+    matchStatsRow = { ...existing, opposition, squad_id: squadId };
+  } else {
+    const { data, error } = await sb
+      .from('match_stats')
+      .insert({ event_id: currentEventId, user_id: currentUser.id, opposition, squad_id: squadId })
+      .select().single();
+    if (error) throw error;
+    matchStatsRow = data;
+  }
+}
+
+// Read all match_stats_details rows and aggregate into scoreCounts
+async function loadScoreCounts() {
+  if (!matchStatsRow) return;
+  const { data } = await sb
+    .from('match_stats_details')
+    .select('score_type, side')
+    .eq('match_stats_id', matchStatsRow.id);
+  scoreCounts = {};
+  for (const row of (data || [])) {
+    if (!scoreCounts[row.score_type]) scoreCounts[row.score_type] = { us: 0, opp: 0 };
+    scoreCounts[row.score_type][row.side]++;
+  }
+}
+
+// Build score rows dynamically from scoreTypes
+function renderScorePanel() {
+  ['us', 'opp'].forEach(side => {
+    const el = $(side === 'us' ? 'usScoreRows' : 'oppScoreRows');
+    if (!el) return;
+    el.innerHTML = scoreTypes.map(t => {
+      const accent = t.score_value === 2 ? ' two-pt' : '';
+      return `<div class="score-row">
+        <div class="score-add${accent}" onclick="adjustScore(${t.id},'${side}',1)">
+          <span class="score-type${accent}">${t.abbreviated_name}</span>
+          <span class="score-count" id="cnt_${t.id}_${side}">0</span>
+          <span class="score-add-icon">+</span>
+        </div>
+        <div class="score-sub" onclick="adjustScore(${t.id},'${side}',-1)">−</div>
+      </div>`;
+    }).join('');
+  });
 }
 
 function updateScoreDisplay() {
-  if (!timerRow) return;
-  const hg = timerRow.home_goals    || 0;
-  const hp = timerRow.home_points   || 0;
-  const ht = timerRow.home_two_ptrs || 0;
-  const ag = timerRow.away_goals    || 0;
-  const ap = timerRow.away_points   || 0;
-  const at = timerRow.away_two_ptrs || 0;
-
-  $('homeScore').textContent = fmtGAA(hg, hp, ht);
-  $('homeTotal').textContent = `(${totalPts(hg, hp, ht)})`;
-  $('awayScore').textContent = fmtGAA(ag, ap, at);
-  $('awayTotal').textContent = `(${totalPts(ag, ap, at)})`;
-
-  $('homeGoals').textContent   = hg;
-  $('homePoints').textContent  = hp;
-  $('homeTwoPtrs').textContent = ht;
-  $('awayGoals').textContent   = ag;
-  $('awayPoints').textContent  = ap;
-  $('awayTwoPtrs').textContent = at;
-
-  updateScoreSummary(hg, hp, ht, ag, ap, at);
+  $('homeScore').textContent = fmtGAA('us');
+  $('homeTotal').textContent = `(${totalPts('us')})`;
+  $('awayScore').textContent = fmtGAA('opp');
+  $('awayTotal').textContent = `(${totalPts('opp')})`;
+  scoreTypes.forEach(t => {
+    const u = $(`cnt_${t.id}_us`);
+    const o = $(`cnt_${t.id}_opp`);
+    if (u) u.textContent = scoreCounts[t.id]?.us  || 0;
+    if (o) o.textContent = scoreCounts[t.id]?.opp || 0;
+  });
+  updateScoreSummary();
 }
 
-function updateScoreSummary(hg, hp, ht, ag, ap, at) {
+function updateScoreSummary() {
   const el = $('scoreSummary');
   if (!el) return;
-  const hTotal = totalPts(hg, hp, ht);
-  const aTotal = totalPts(ag, ap, at);
-  if (hTotal === 0 && aTotal === 0) { el.style.display = 'none'; return; }
+  const us   = totalPts('us');
+  const opp  = totalPts('opp');
+  if (us === 0 && opp === 0) { el.style.display = 'none'; return; }
   el.style.display = '';
-  const diff = hTotal - aTotal;
+  const diff = us - opp;
   if (diff > 0) {
     el.textContent = `▲ Us leading by ${diff} pt${diff !== 1 ? 's' : ''}`;
     el.className = 'score-summary leading';
@@ -1163,24 +1186,37 @@ function updateScoreSummary(hg, hp, ht, ag, ap, at) {
   }
 }
 
-async function adjustScore(side, type, delta) {
-  if (!timerRow) return;
-  const key = `${side}_${type}`;
-  timerRow[key] = Math.max(0, (timerRow[key] || 0) + delta);
+// Insert one event row (+ tap) or delete most recent row (− tap)
+async function adjustScore(typeId, side, delta) {
+  if (!matchStatsRow) return;
+  if (delta > 0) {
+    const eventMinute = Math.floor(computeElapsed(timerRow) / 60);
+    const { error } = await sb.from('match_stats_details').insert({
+      match_stats_id: matchStatsRow.id,
+      score_type:     typeId,
+      side,
+      count:          1,
+      event_minute:   eventMinute,
+    });
+    if (error) { console.error(error); return; }
+    if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
+    scoreCounts[typeId][side]++;
+  } else {
+    if (!scoreCounts[typeId]?.[side]) return;
+    const { data: rows } = await sb
+      .from('match_stats_details')
+      .select('id')
+      .eq('match_stats_id', matchStatsRow.id)
+      .eq('score_type', typeId)
+      .eq('side', side)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (rows?.length) {
+      await sb.from('match_stats_details').delete().eq('id', rows[0].id);
+      scoreCounts[typeId][side] = Math.max(0, scoreCounts[typeId][side] - 1);
+    }
+  }
   updateScoreDisplay();
-  await saveScores();
-}
-
-async function saveScores() {
-  const { error } = await sb.from('match_timer').update({
-    home_goals:    timerRow.home_goals    || 0,
-    home_points:   timerRow.home_points   || 0,
-    home_two_ptrs: timerRow.home_two_ptrs || 0,
-    away_goals:    timerRow.away_goals    || 0,
-    away_points:   timerRow.away_points   || 0,
-    away_two_ptrs: timerRow.away_two_ptrs || 0,
-  }).eq('event_id', currentEventId).eq('user_id', currentUser.id);
-  if (error) console.error('Score save error:', error);
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
