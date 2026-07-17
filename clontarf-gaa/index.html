@@ -43,7 +43,7 @@
     padding: .5rem 1rem;
     position: relative;
   }
-  .topnav img.crest { height: 36px; flex: 0 0 auto; }
+  .topnav img.crest { height: 44px; flex: 0 0 auto; }
 
   .nav-toggle {
     margin-left: auto;
@@ -96,25 +96,10 @@
   }
   .topnav a:hover { opacity: 1; background: rgba(255,255,255,.12); }
 
-  @media (min-width: 900px) {
-    .nav-toggle { display: none; }
+  @media (min-width: 600px) {
     .nav-links {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap;
-      position: static;
-      background: transparent;
-      border: 0;
-      box-shadow: none;
-      padding: 0;
-      gap: .25rem .5rem;
-      flex: 1;
-    }
-    .topnav a {
-      font-size: .82rem;
-      padding: .35rem .6rem;
-      border-bottom: 0;
-      white-space: nowrap;
+      max-width: 340px;
+      left: auto;
     }
   }
 
@@ -126,33 +111,48 @@
     padding: 2.5rem 1rem 2rem;
   }
   .hero-band h1 {
-    margin: 0 0 .25rem;
-    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    margin: 0 0 .3rem;
+    font-size: clamp(2.6rem, 8vw, 4.2rem);
     font-weight: 800;
+    letter-spacing: .5px;
   }
   .hero-band p.sub {
     margin: 0;
-    font-size: clamp(1.1rem, 3vw, 1.6rem);
+    font-size: clamp(1.1rem, 2.6vw, 1.5rem);
     font-weight: 400;
+    opacity: .95;
   }
   .hero-photo-wrap {
     position: relative;
     border-top: 6px solid var(--navy);
-    border-bottom: 6px solid var(--navy);
   }
   .hero-photo-wrap img.hero-photo { width: 100%; max-height: 320px; object-fit: cover; }
   .hero-crest {
     position: absolute;
-    right: clamp(10px, 4vw, 40px);
-    bottom: -30px;
-    height: 76px;
-    filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -58px;
+    height: 148px;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,.4));
+    z-index: 5;
   }
-  .logos-strip { display: block; width: 100%; }
+  .logos-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1.75rem clamp(1rem, 4vw, 2.75rem);
+    background: var(--red-dark);
+    border-top: 6px solid var(--navy);
+    padding: 5rem 1.5rem 1.75rem;
+  }
+  .logos-row img { height: 40px; width: auto; flex: 0 0 auto; }
   @media (max-width: 480px) {
-    .hero-band { padding: 1.5rem 1rem 1.25rem; }
+    .hero-band { padding: 1.75rem 1rem 1.5rem; }
     .hero-photo-wrap img.hero-photo { max-height: 190px; }
-    .hero-crest { height: 56px; bottom: -22px; }
+    .hero-crest { height: 100px; bottom: -40px; }
+    .logos-row { padding: 3.25rem 1rem 1.25rem; gap: 1.25rem 1.5rem; }
+    .logos-row img { height: 30px; }
   }
 
   /* ---------- Sections ---------- */
@@ -414,7 +414,12 @@
   <img class="hero-photo" src="images/hero-team-huddle.jpg" alt="Clontarf GAA underage team huddle before a match">
   <img class="hero-crest" src="images/clontarf-crest.png" alt="">
 </div>
-<img class="logos-strip" src="images/association-logos-strip.jpg" alt="GAA, LGFA, Camogie Association and GAA Handball logos">
+<div class="logos-row">
+  <img src="images/logo-gaa.png" alt="GAA">
+  <img src="images/logo-lgfa.png" alt="LGFA Ladies Gaelic Football">
+  <img src="images/logo-camogie.png" alt="The Camogie Association">
+  <img src="images/logo-handball.png" alt="GAA Handball">
+</div>
 
 <div class="wrap">
 
