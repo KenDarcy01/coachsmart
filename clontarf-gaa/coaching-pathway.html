@@ -168,6 +168,7 @@
     z-index: 5;
   }
   .logos-row {
+    --logo-h: 52px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -177,13 +178,18 @@
     border-top: 6px solid var(--navy);
     padding: 5rem 1.5rem 1.75rem;
   }
-  .logos-row img { height: 52px; width: auto; flex: 0 0 auto; }
+  .logos-row img { height: var(--logo-h); width: auto; flex: 0 0 auto; align-self: center; }
+  .logos-row img.logo-gaa { height: calc(var(--logo-h) * .8); }
   @media (max-width: 480px) {
     .hero-band { padding: 1.75rem 1rem 1.5rem; }
     .hero-photo-wrap img.hero-photo { max-height: 190px; }
     .hero-crest { height: 100px; bottom: -40px; }
-    .logos-row { padding: 3.25rem 1rem 1.25rem; gap: 1.25rem 1.5rem; }
-    .logos-row img { height: 36px; }
+    .logos-row {
+      --logo-h: 26px;
+      flex-wrap: nowrap;
+      gap: .5rem;
+      padding: 3.25rem .5rem 1.25rem;
+    }
   }
 
   /* ---------- Sections ---------- */
@@ -388,17 +394,41 @@
     overflow: hidden;
   }
   details.assessment summary {
-    background: var(--navy);
+    background: var(--red);
     color: #fff;
-    font-weight: 700;
-    font-size: .9rem;
-    padding: .65rem .9rem;
+    font-size: .95rem;
+    padding: .8rem 1rem;
     cursor: pointer;
     list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.18);
+    transition: background-color .15s ease;
   }
+  details.assessment summary:hover,
+  details.assessment summary:focus-visible { background: var(--red-dark); }
   details.assessment summary::-webkit-details-marker { display: none; }
-  details.assessment summary::before { content: "+ "; }
-  details.assessment[open] summary::before { content: "\2212 "; }
+  details.assessment .assessment-text {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+  }
+  details.assessment .assessment-text strong { font-weight: 700; }
+  details.assessment .assessment-text small {
+    font-weight: 400;
+    font-size: .78rem;
+    opacity: .9;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  details.assessment .chevron {
+    flex: 0 0 auto;
+    font-size: .85rem;
+    transition: transform .2s ease;
+  }
+  details.assessment[open] .chevron { transform: rotate(180deg); }
   details.assessment .table-scroll { margin: 0; border-radius: 0; box-shadow: none; }
   details.assessment .table-scroll + .table-scroll { border-top: 4px solid var(--red); }
 
@@ -472,10 +502,10 @@
   <img class="hero-crest" src="images/clontarf-crest.png" alt="">
 </div>
 <div class="logos-row">
-  <img src="images/logo-gaa.png" alt="GAA">
-  <img src="images/logo-lgfa.png" alt="LGFA Ladies Gaelic Football">
-  <img src="images/logo-camogie.png" alt="The Camogie Association">
-  <img src="images/logo-handball.png" alt="GAA Handball">
+  <img class="logo-gaa" src="images/logo-gaa.png" alt="GAA">
+  <img class="logo-lgfa" src="images/logo-lgfa.png" alt="LGFA Ladies Gaelic Football">
+  <img class="logo-camogie" src="images/logo-camogie.png" alt="The Camogie Association">
+  <img class="logo-handball" src="images/logo-handball.png" alt="GAA Handball">
 </div>
 
 <div class="wrap">
@@ -662,7 +692,13 @@
       </div>
 
       <details class="assessment">
-        <summary>Learning To Master The Ball &mdash; Skills Assessment</summary>
+        <summary>
+          <span class="assessment-text">
+            <strong>Learning To Master The Ball &mdash; Skills Assessment</strong>
+            <small>Tap to view the full checklist</small>
+          </span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
         <div class="table-scroll">
           <table>
             <caption>Hurling/Camogie Skills Checklist</caption>
@@ -813,7 +849,13 @@
       </div>
 
       <details class="assessment">
-        <summary>Learning To Use The Ball Well &mdash; Skills Assessment</summary>
+        <summary>
+          <span class="assessment-text">
+            <strong>Learning To Use The Ball Well &mdash; Skills Assessment</strong>
+            <small>Tap to view the full checklist</small>
+          </span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
         <div class="table-scroll">
           <table>
             <caption>Hurling/Camogie Skills Checklist</caption>
@@ -949,7 +991,13 @@
       </div>
 
       <details class="assessment">
-        <summary>Learning To Play Together &mdash; Skills Assessment</summary>
+        <summary>
+          <span class="assessment-text">
+            <strong>Learning To Play Together &mdash; Skills Assessment</strong>
+            <small>Tap to view the full checklist</small>
+          </span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
         <div class="table-scroll">
           <table>
             <caption>Hurling/Camogie Skills Checklist</caption>
@@ -1087,7 +1135,13 @@
       </div>
 
       <details class="assessment">
-        <summary>Learning About Positions and Decisions &mdash; Skills Assessment</summary>
+        <summary>
+          <span class="assessment-text">
+            <strong>Learning About Positions and Decisions &mdash; Skills Assessment</strong>
+            <small>Tap to view the full checklist</small>
+          </span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
         <div class="table-scroll">
           <table>
             <caption>Hurling/Camogie Skills Checklist</caption>
