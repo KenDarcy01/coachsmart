@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clontarf GAA Coaching Pathway</title>
 <meta name="description" content="Clontarf GAA Club Mentor Handbook — the 5-stage player development pathway from age 4 to 18.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --red: #ED1B2E;
@@ -15,6 +18,8 @@
     --lavender-alt: #EFF0FA;
     --ink: #1c1c1c;
     --paper: #ffffff;
+    --display-font: 'Anton', Impact, sans-serif;
+    --heading-font: 'Oswald', -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   * { box-sizing: border-box; }
   body {
@@ -43,7 +48,27 @@
     padding: .5rem 1rem;
     position: relative;
   }
-  .topnav img.crest { height: 44px; flex: 0 0 auto; }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    text-decoration: none;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+  .topnav img.crest { height: 52px; flex: 0 0 auto; }
+  .brand-name {
+    color: #fff;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: 1.15rem;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  @media (max-width: 400px) {
+    .brand-name { display: none; }
+  }
 
   .nav-toggle {
     margin-left: auto;
@@ -111,15 +136,21 @@
     padding: 2.5rem 1rem 2rem;
   }
   .hero-band h1 {
-    margin: 0 0 .3rem;
-    font-size: clamp(2.6rem, 8vw, 4.2rem);
-    font-weight: 800;
-    letter-spacing: .5px;
+    margin: 0 0 .4rem;
+    font-family: var(--display-font);
+    font-size: clamp(2.8rem, 9vw, 4.6rem);
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: 0 3px 0 rgba(0,0,0,.15);
   }
   .hero-band p.sub {
     margin: 0;
-    font-size: clamp(1.1rem, 2.6vw, 1.5rem);
-    font-weight: 400;
+    font-family: var(--heading-font);
+    font-size: clamp(1.1rem, 2.6vw, 1.6rem);
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
     opacity: .95;
   }
   .hero-photo-wrap {
@@ -146,13 +177,13 @@
     border-top: 6px solid var(--navy);
     padding: 5rem 1.5rem 1.75rem;
   }
-  .logos-row img { height: 40px; width: auto; flex: 0 0 auto; }
+  .logos-row img { height: 52px; width: auto; flex: 0 0 auto; }
   @media (max-width: 480px) {
     .hero-band { padding: 1.75rem 1rem 1.5rem; }
     .hero-photo-wrap img.hero-photo { max-height: 190px; }
     .hero-crest { height: 100px; bottom: -40px; }
     .logos-row { padding: 3.25rem 1rem 1.25rem; gap: 1.25rem 1.5rem; }
-    .logos-row img { height: 30px; }
+    .logos-row img { height: 36px; }
   }
 
   /* ---------- Sections ---------- */
@@ -161,10 +192,11 @@
   section.tight { padding-top: 2rem; }
   h2.section-title {
     color: var(--navy);
-    font-size: clamp(1.3rem, 3.5vw, 1.7rem);
-    font-weight: 800;
+    font-family: var(--heading-font);
+    font-size: clamp(1.4rem, 3.5vw, 1.85rem);
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .3px;
+    letter-spacing: .6px;
     margin: 0 0 .4rem;
   }
   .rule {
@@ -221,7 +253,10 @@
   table caption {
     background: var(--navy);
     color: #fff;
-    font-weight: 700;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    letter-spacing: .3px;
+    text-transform: uppercase;
     font-size: .9rem;
     text-align: center;
     padding: .55rem;
@@ -237,7 +272,9 @@
   thead th {
     background: var(--navy);
     color: #fff;
-    font-size: .82rem;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: .85rem;
     text-transform: uppercase;
     letter-spacing: .3px;
   }
@@ -263,13 +300,29 @@
     display: flex;
     flex-direction: column;
   }
+  .skill-grid .group-head {
+    background: var(--red-dark);
+    color: #fff;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    text-align: center;
+    padding: .5rem .7rem;
+  }
+  .skill-grid .group-head.span2 { grid-column: span 2; }
   .skill-grid .col-head {
     background: var(--navy);
     color: #fff;
-    font-weight: 700;
-    font-size: .8rem;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: .82rem;
     text-transform: uppercase;
     padding: .55rem .7rem;
+  }
+  @media (max-width: 720px) {
+    .skill-grid .group-head { display: none; }
   }
   .skill-grid .col-body {
     background: var(--lavender-alt);
@@ -310,9 +363,10 @@
     display: inline-block;
     background: var(--red);
     color: #fff;
-    font-weight: 800;
-    font-size: .75rem;
-    letter-spacing: .5px;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: .78rem;
+    letter-spacing: .6px;
     text-transform: uppercase;
     padding: .3rem .7rem;
     border-radius: 20px;
@@ -366,11 +420,14 @@
   strong.hurl { color: var(--navy); }
 </style>
 </head>
-<body>
+<body id="top">
 
 <nav class="topnav">
   <div class="topnav-inner">
-    <img class="crest" src="images/clontarf-crest.png" alt="Clontarf GAA crest">
+    <a class="brand" href="#top">
+      <img class="crest" src="images/clontarf-crest.png" alt="">
+      <span class="brand-name">Clontarf GAA</span>
+    </a>
     <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks">
       <span class="nav-toggle-icon"></span> Menu
     </button>
@@ -556,6 +613,8 @@
       </div>
 
       <div class="skill-grid">
+        <div class="group-head span2">Technical Skills</div>
+        <div class="group-head">Physical Skills</div>
         <div class="skill-col">
           <div class="col-head">Hurling/Camogie</div>
           <div class="col-body">
@@ -581,7 +640,7 @@
         </div>
         </div>
         <div class="skill-col">
-          <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
+          <div class="col-head">ABC &amp; RJT'S</div>
           <div class="col-body">
           <h4>Agility</h4>
           <ul><li>Chasing Games.</li><li>Dodging.</li></ul>
@@ -699,6 +758,8 @@
       </div>
 
       <div class="skill-grid">
+        <div class="group-head span2">Skill Development</div>
+        <div class="group-head">Physical Development</div>
         <div class="skill-col">
           <div class="col-head">Hurling/Camogie</div>
           <div class="col-body">
@@ -728,7 +789,7 @@
         </div>
         </div>
         <div class="skill-col">
-          <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
+          <div class="col-head">ABC &amp; RJT'S</div>
           <div class="col-body">
           <h4>Agility</h4>
           <ul><li>Zig Zag.</li></ul>
@@ -837,6 +898,8 @@
       </div>
 
       <div class="skill-grid">
+        <div class="group-head span2">Skill Development</div>
+        <div class="group-head">Physical Development</div>
         <div class="skill-col">
           <div class="col-head">Hurling/Camogie</div>
           <div class="col-body">
@@ -866,7 +929,7 @@
         </div>
         </div>
         <div class="skill-col">
-          <div class="col-head">Physical Skills &mdash; ABC &amp; RJT's</div>
+          <div class="col-head">ABC &amp; RJT'S</div>
           <div class="col-body">
           <h4>Speed</h4>
           <ul><li>Further development of speed in warm ups (Efforts less than 6 secs) e.g. quickness and change of direction and reaction sprints.</li></ul>
@@ -975,6 +1038,8 @@
       </div>
 
       <div class="skill-grid">
+        <div class="group-head span2">Skill Development</div>
+        <div class="group-head">Physical Development</div>
         <div class="skill-col">
           <div class="col-head">Hurling/Camogie</div>
           <div class="col-body">
@@ -1004,7 +1069,7 @@
         </div>
         </div>
         <div class="skill-col">
-          <div class="col-head">Physical Development &mdash; ABC &amp; RJT's</div>
+          <div class="col-head">ABC &amp; RJT'S</div>
           <div class="col-body">
           <h4>Speed</h4>
           <ul><li>Multi directional (Efforts less than 20 secs).</li><li>Quick footwork and agility.</li><li>Acceleration and deceleration e.g. go go stop.</li><li>Game related reaction exercises e.g. relay racing e.g. crazy ball drills.</li></ul>
@@ -1108,6 +1173,8 @@
       </div>
 
       <div class="skill-grid">
+        <div class="group-head span2">Skill Development</div>
+        <div class="group-head">Physical Development</div>
         <div class="skill-col">
           <div class="col-head">Hurling/Camogie</div>
           <div class="col-body">
@@ -1137,7 +1204,7 @@
         </div>
         </div>
         <div class="skill-col">
-          <div class="col-head">Physical Development &mdash; ABC &amp; RJT's</div>
+          <div class="col-head">ABC &amp; RJT'S</div>
           <div class="col-body">
           <h4>Speed</h4>
           <ul><li>Multi directional (Efforts less than 20 secs).</li><li>Quick footwork and agility.</li><li>Acceleration and deceleration e.g. go go stop.</li><li>Running Mechanics and Technique.</li><li>Strength Work To Improve Speed.</li></ul>
