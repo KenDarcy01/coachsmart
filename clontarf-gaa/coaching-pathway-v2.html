@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clontarf GAA Coaching Pathway</title>
+<meta name="description" content="Clontarf GAA Club Mentor Handbook — the 5-stage player development pathway from age 4 to 18.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #ED1B2E;
+    --red-dark: #C6101F;
+    --navy: #1B3A6B;
+    --navy-dark: #142c52;
+    --lavender: #1A2338;
+    --lavender-alt: #212C46;
+    --ink: #E7EAF3;
+    --paper: #0F1420;
+    --surface: #171E2E;
+    --surface-2: #1D2740;
+    --border-c: #2B3654;
+    --accent-blue-text: #9DB8FF;
+    --accent-red-text: #FF7B86;
+    --display-font: 'Anton', Impact, sans-serif;
+    --heading-font: 'Oswald', -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.5;
+  }
+  img { max-width: 100%; display: block; }
+
+  /* ---------- Top nav ---------- */
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--navy);
+    border-bottom: 3px solid var(--red);
+  }
+  .topnav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem 1rem;
+    position: relative;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    text-decoration: none;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+  .topnav img.crest { height: 52px; flex: 0 0 auto; }
+  .brand-name {
+    color: #fff;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: 1.15rem;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  @media (max-width: 400px) {
+    .brand-name { display: none; }
+  }
+
+  .nav-toggle {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,.45);
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: .4rem .7rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    cursor: pointer;
+  }
+  .nav-toggle-icon { position: relative; width: 16px; height: 2px; background: #fff; display: block; }
+  .nav-toggle-icon::before, .nav-toggle-icon::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 16px;
+    height: 2px;
+    background: #fff;
+  }
+  .nav-toggle-icon::before { top: -5px; }
+  .nav-toggle-icon::after { top: 5px; }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--navy);
+    border-bottom: 3px solid var(--red);
+    padding: .25rem 1rem 1rem;
+    box-shadow: 0 10px 18px rgba(0,0,0,.3);
+  }
+  .nav-links.open { display: flex; }
+  .topnav a {
+    color: #fff;
+    text-decoration: none;
+    font-size: .92rem;
+    font-weight: 600;
+    padding: .65rem .4rem;
+    border-radius: 5px;
+    opacity: .9;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .topnav a:hover { opacity: 1; background: rgba(255,255,255,.12); }
+
+  @media (min-width: 600px) {
+    .nav-links {
+      max-width: 340px;
+      left: auto;
+    }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero-band {
+    background: linear-gradient(180deg, var(--red) 0%, var(--red-dark) 100%);
+    color: #fff;
+    text-align: center;
+    padding: 2.5rem 1rem 2rem;
+  }
+  .hero-band h1 {
+    margin: 0 0 .4rem;
+    font-family: var(--display-font);
+    font-size: clamp(2.8rem, 9vw, 4.6rem);
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: 0 3px 0 rgba(0,0,0,.15);
+  }
+  .hero-band p.sub {
+    margin: 0;
+    font-family: var(--heading-font);
+    font-size: clamp(1.1rem, 2.6vw, 1.6rem);
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: .95;
+  }
+  .hero-photo-wrap {
+    position: relative;
+    border-top: 6px solid var(--navy);
+  }
+  .hero-photo-wrap img.hero-photo { width: 100%; max-height: 320px; object-fit: cover; }
+  .hero-crest {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -58px;
+    height: 148px;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,.4));
+    z-index: 5;
+  }
+  .logos-row {
+    --logo-h: 52px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1.75rem clamp(1rem, 4vw, 2.75rem);
+    background: var(--red-dark);
+    border-top: 6px solid var(--navy);
+    padding: 5rem 1.5rem 1.75rem;
+  }
+  .logos-row img { height: var(--logo-h); width: auto; flex: 0 0 auto; align-self: center; }
+  .logos-row img.logo-gaa { height: calc(var(--logo-h) * .8); }
+  @media (max-width: 480px) {
+    .hero-band { padding: 1.75rem 1rem 1.5rem; }
+    .hero-photo-wrap img.hero-photo { max-height: 190px; }
+    .hero-crest { height: 100px; bottom: -40px; }
+    .logos-row {
+      --logo-h: 26px;
+      flex-wrap: nowrap;
+      gap: .5rem;
+      padding: 3.25rem .5rem 1.25rem;
+    }
+  }
+
+  /* ---------- Sections ---------- */
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 1.25rem; }
+  section { padding: 3rem 0 1rem; }
+  section.tight { padding-top: 2rem; }
+  h2.section-title {
+    color: var(--accent-blue-text);
+    font-family: var(--heading-font);
+    font-size: clamp(1.4rem, 3.5vw, 1.85rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin: 0 0 .4rem;
+  }
+  .rule {
+    height: 3px;
+    background: var(--red);
+    width: 100%;
+    margin-bottom: 1.5rem;
+    border: none;
+  }
+  h3.sub-title {
+    color: var(--accent-red-text);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 1.5rem 0 .3rem;
+  }
+  h4.group-title {
+    color: var(--accent-blue-text);
+    font-size: .95rem;
+    font-weight: 700;
+    margin: 1rem 0 .3rem;
+  }
+  ul.plain { margin: .3rem 0 1rem; padding-left: 1.2rem; }
+  ul.plain li { margin-bottom: .3rem; }
+  ol.plain { margin: .3rem 0 1rem; padding-left: 1.3rem; }
+  ol.plain li { margin-bottom: .4rem; }
+  p { margin: 0 0 1rem; }
+  .mission-quote {
+    text-align: center;
+    font-weight: 800;
+    letter-spacing: .5px;
+    color: var(--accent-blue-text);
+    margin: 1.5rem 0 0;
+    font-size: 1.05rem;
+  }
+
+  /* ---------- Photo pair ---------- */
+  .photo-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    background: var(--surface-2);
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin: 1.5rem 0;
+  }
+  .photo-pair img { border-radius: 6px; border: 1px solid var(--border-c); width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 640px) {
+    .photo-pair { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Tables ---------- */
+  .table-scroll { overflow-x: auto; margin: 1rem 0 1.5rem; border-radius: 8px; border: 1px solid var(--border-c); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); }
+  table caption {
+    background: var(--navy);
+    color: #fff;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    font-size: .9rem;
+    text-align: center;
+    padding: .55rem;
+    caption-side: top;
+  }
+  th, td {
+    padding: .55rem .7rem;
+    text-align: left;
+    font-size: .87rem;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-c);
+  }
+  thead th {
+    background: var(--navy);
+    color: #fff;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+  tbody tr:nth-child(odd) { background: var(--lavender); }
+  tbody tr:nth-child(even) { background: var(--lavender-alt); }
+  td ul { margin: 0; padding-left: 1.1rem; }
+  td ul li { margin-bottom: .25rem; }
+  td.note { font-size: .8rem; }
+
+  /* ---------- Stage skill grid (3 columns like the booklet) ---------- */
+  .skill-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border-c);
+    border: 1px solid var(--border-c);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1rem 0 1.5rem;
+  }
+  .skill-grid .skill-col {
+    display: flex;
+    flex-direction: column;
+  }
+  .skill-grid .group-head {
+    background: var(--red-dark);
+    color: #fff;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    text-align: center;
+    padding: .5rem .7rem;
+  }
+  .skill-grid .group-head.span2 { grid-column: span 2; }
+  .skill-grid .col-head {
+    background: var(--navy);
+    color: #fff;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: .82rem;
+    text-transform: uppercase;
+    padding: .55rem .7rem;
+  }
+  @media (max-width: 720px) {
+    .skill-grid .group-head { display: none; }
+  }
+  .skill-grid .col-body {
+    background: var(--lavender-alt);
+    padding: .8rem .9rem;
+    font-size: .85rem;
+    flex: 1;
+  }
+  .skill-grid .col-body h4 {
+    margin: .6rem 0 .2rem;
+    color: var(--accent-red-text);
+    font-size: .82rem;
+    font-weight: 700;
+  }
+  .skill-grid .col-body h4:first-child { margin-top: 0; }
+  .skill-grid .col-body ul { margin: 0 0 .4rem; padding-left: 1.1rem; }
+  .skill-grid .col-body ul li { margin-bottom: .2rem; }
+  .skill-grid .full-row {
+    grid-column: 1 / -1;
+    background: var(--lavender);
+    padding: .7rem .9rem;
+    font-size: .85rem;
+  }
+  .skill-grid .full-row strong { color: var(--accent-blue-text); }
+  .skill-grid .full-row ul { margin: .25rem 0 0; padding-left: 1.1rem; }
+  @media (max-width: 720px) {
+    .skill-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Stage cards ---------- */
+  .stage-card {
+    border: 2px solid var(--navy);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0 2.5rem;
+    background: var(--surface);
+  }
+  .stage-card .stage-tag {
+    display: inline-block;
+    background: var(--red);
+    color: #fff;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    font-size: .78rem;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    padding: .3rem .7rem;
+    border-radius: 20px;
+    margin-bottom: .6rem;
+  }
+  .stage-card h2 { margin-top: 0; }
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.2rem;
+    margin-top: 1rem;
+  }
+  .char-grid h4 { color: var(--accent-red-text); }
+
+  details.assessment {
+    margin: .5rem 0 1.5rem;
+    border: 1px solid var(--border-c);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  details.assessment summary {
+    background: var(--red);
+    color: #fff;
+    font-size: .95rem;
+    padding: .8rem 1rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.18);
+    transition: background-color .15s ease;
+  }
+  details.assessment summary:hover,
+  details.assessment summary:focus-visible { background: var(--red-dark); }
+  details.assessment summary::-webkit-details-marker { display: none; }
+  details.assessment .assessment-text {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+  }
+  details.assessment .assessment-text strong { font-weight: 700; }
+  details.assessment .assessment-text small {
+    font-weight: 400;
+    font-size: .78rem;
+    opacity: .9;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  details.assessment .chevron {
+    flex: 0 0 auto;
+    font-size: .85rem;
+    transition: transform .2s ease;
+  }
+  details.assessment[open] .chevron { transform: rotate(180deg); }
+  details.assessment .table-scroll { margin: 0; border-radius: 0; box-shadow: none; }
+  details.assessment .table-scroll + .table-scroll { border-top: 4px solid var(--red); }
+
+  /* ---------- Overview tables (5 stages / games / session duration) ---------- */
+  table.overview td:first-child { font-weight: 600; color: var(--accent-blue-text); }
+  td.nowrap, th.nowrap { white-space: nowrap; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    background: var(--navy);
+    color: #cdd6ea;
+    text-align: center;
+    padding: 2rem 1rem 2.5rem;
+    margin-top: 3rem;
+  }
+  footer img.crest { height: 60px; margin-bottom: .8rem; }
+  footer p { margin: .2rem 0; font-size: .82rem; }
+
+  strong.hurl { color: var(--accent-blue-text); }
+</style>
+</head>
+<body id="top">
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <a class="brand" href="#top">
+      <img class="crest" src="images/clontarf-crest.png" alt="">
+      <span class="brand-name">Clontarf GAA</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks">
+      <span class="nav-toggle-icon"></span> Menu
+    </button>
+    <div class="nav-links" id="navLinks">
+      <a href="#mission">Mission</a>
+      <a href="#introduction">Introduction</a>
+      <a href="#pathway">Pathway</a>
+      <a href="#stages-overview">5 Stages</a>
+      <a href="#games">Games</a>
+      <a href="#stage1">Stage 1 (4-6)</a>
+      <a href="#stage2">Stage 2 (7-9)</a>
+      <a href="#stage3">Stage 3 (10-12)</a>
+      <a href="#stage4">Stage 4 (13-15)</a>
+      <a href="#stage5">Stage 5 (16-18)</a>
+      <a href="#guidelines">Session Guidelines</a>
+    </div>
+  </div>
+</nav>
+<script>
+  (function () {
+    var toggle = document.getElementById('navToggle');
+    var links = document.getElementById('navLinks');
+    toggle.addEventListener('click', function () {
+      var open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    links.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  })();
+</script>
+
+<header class="hero-band">
+  <h1>Clontarf GAA</h1>
+  <p class="sub">Coaching Pathway</p>
+</header>
+<div class="hero-photo-wrap">
+  <img class="hero-photo" src="images/hero-team-huddle.jpg" alt="Clontarf GAA underage team huddle before a match">
+  <img class="hero-crest" src="images/clontarf-crest.png" alt="">
+</div>
+<div class="logos-row">
+  <img class="logo-gaa" src="images/logo-gaa.png" alt="GAA">
+  <img class="logo-lgfa" src="images/logo-lgfa.png" alt="LGFA Ladies Gaelic Football">
+  <img class="logo-camogie" src="images/logo-camogie.png" alt="The Camogie Association">
+  <img class="logo-handball" src="images/logo-handball.png" alt="GAA Handball">
+</div>
+
+<div class="wrap">
+
+  <section id="mission">
+    <h2 class="section-title">Mission Statement</h2>
+    <hr class="rule">
+    <p>Clontarf GAA Club are committed to ensuring that all our juvenile teams are as competitive as possible. That each player is constantly learning and will be in a better place when progressing to the next age level, and with the intention of ensuring each player can reach their full potential throughout their underage careers. By devising and developing our own &ldquo;Player Pathway&rdquo; we are creating the environment that all our young players &ldquo;Play and Stay&rdquo; with Clontarf GAA Club, not only for their playing careers but throughout their lives.</p>
+    <p>This resource is designed to help our coaches do the right thing at the right time for all our players.</p>
+    <p class="mission-quote">BETTER COACHES = BETTER PLAYERS</p>
+  </section>
+
+  <section id="introduction">
+    <h2 class="section-title">Introduction</h2>
+    <hr class="rule">
+    <p>Welcome to the Clontarf GAA player pathway. This pathway has been created to provide a structured, consistent framework to help guide coaches, managers, mentors and parents who play an active role in the development of our young players.</p>
+    <p>In order to give our young players the best opportunity to succeed at whatever level they may play and reach their full potential &ldquo;doing the right thing, at the right time and in the right way&rdquo; this document should be viewed as a route map which sets out the key characteristics and identifies the age appropriate content (technical, tactical, physical and team play) that should be coached or practiced at a particular age and stage of the player&rsquo;s career.</p>
+    <p>Crucial to each player&rsquo;s development across all stages of the player pathway is their athletic development. We encourage all those assisting the implementation of this pathway to refer to the Athletic Development Programme that we developed by the club a number of years ago. This valuable resource is accessible on the club website at <a href="https://clontarfgaa.com/documents" style="color:var(--accent-red-text)">clontarfgaa.com/documents</a>.</p>
+  </section>
+
+  <div class="photo-pair">
+    <img src="images/nursery-hurling-1.jpg" alt="Nursery camogie group holding hurls aloft on the astro pitch">
+    <img src="images/nursery-hurling-2.jpg" alt="Nursery hurling group and coaches holding hurls aloft, Christmas session">
+  </div>
+
+  <section id="pathway" class="tight">
+    <h2 class="section-title">Our Club's Long Term Development Pathway</h2>
+    <hr class="rule">
+    <ol class="plain">
+      <li><strong>Active Fun Start:</strong> The club is fun and part of daily life.</li>
+      <li><strong>Fundamentals:</strong> Develop physical literacy and motor skills.</li>
+      <li><strong>Play To Learn:</strong> Learning the fundamental skills of the game.</li>
+      <li><strong>Learning To Train:</strong> Consolidating sports specific skills.</li>
+      <li><strong>Training To Compete:</strong> Fine tune skills and performance.</li>
+      <li><strong>Compete To Win:</strong> Maximising performance.</li>
+      <li><strong>Retirement and Retainment:</strong> Retain players/athletes for coaching/administration.</li>
+    </ol>
+
+    <h2 class="section-title" style="margin-top:2rem">How A Parent Can Help The Process</h2>
+    <hr class="rule">
+    <ol class="plain">
+      <li>Attend matches to see their children play.</li>
+      <li>Ask them how they got on at training and matches.</li>
+      <li>Go out for a few kicks and pucks with children most evenings.</li>
+      <li>Support all Clontarf GAA teams, with their children.</li>
+      <li>Become an active member of the club.</li>
+      <li>Respect coaches, referees and opposition teams.</li>
+    </ol>
+  </section>
+
+  <section id="stages-overview" class="tight">
+    <h2 class="section-title">5 Stages of Clontarf GAA Coaching Pathway</h2>
+    <hr class="rule">
+    <div class="table-scroll">
+      <table class="overview">
+        <thead><tr><th>Stage</th><th class="nowrap">Age</th><th>Emphasis</th></tr></thead>
+        <tbody>
+          <tr><td>Learn to Master the Ball</td><td class="nowrap">4-6</td><td>Should be about fun and participation with key emphasis on physical literacy and fundamental movement skills with the ball.</td></tr>
+          <tr><td>Learn to Use the Ball Well</td><td class="nowrap">7-9</td><td>Major skills learning phase where all the basic skills in football &amp; hurling are learned. Emphasis on using both sides of the body.</td></tr>
+          <tr><td>Learn to Play Together</td><td class="nowrap">10-12</td><td>Emphasis on understanding how to play and work together as a team.</td></tr>
+          <tr><td>Learn about Positions and Decisions</td><td class="nowrap">13-15</td><td>The principles of play and applying good decisions increase Game Sense.</td></tr>
+          <tr><td>Learn to Perform</td><td class="nowrap">15-18</td><td>Combining all aspects of performance including decision making, higher physical demands of the game and coping with competition.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="games" class="tight">
+    <h2 class="section-title">Developmental Games</h2>
+    <hr class="rule">
+    <div class="table-scroll">
+      <table class="overview">
+        <thead><tr><th>Game</th><th>Emphasis</th></tr></thead>
+        <tbody>
+          <tr><td>Chasing Game</td><td>These games involve tagging and chasing where players perform skills, such as fleeing and dodging. These games are particularly appropriate for warm up activities.</td></tr>
+          <tr><td>Target Games</td><td>The simplest form of a game which challenges players to use the technique previously learnt is to aim into or at a target. Players have lots of time to perform the task without any distraction from other players. There is a low level of decision making.</td></tr>
+          <tr><td>Court Games</td><td>Divided court games require players to pass ball over an obstacle like a net or zone to a receiver. The level of decision making has increased but is limited. The use of other skills essential for team work such as communication, anticipation and spatial awareness become more apparent.</td></tr>
+          <tr><td>Field Games</td><td>These are games which require one team to act as the strikers/kickers and the opposition become the fielders retrieving the ball. The fielding team tries to limit the runs or scores by the striking/kicking team and at the same time try to get the opposition players out. Greater decisions have to be made in relation to where, when and how to move or play the ball and good spatial awareness is more important.</td></tr>
+          <tr><td>Part Invasion</td><td>These games require players to complete a task with limited or direct opposition. Such games encourage awareness of time and space but also help develop characteristics of team play e.g. support play and communication. Part invasion games allow players to develop positional sense and decision making with limited pressure from opposition.</td></tr>
+          <tr><td>Full Invasion</td><td>The core objective here is to move into an opponents territory in order to score. To achieve this, players must maintain possession of the ball, create &amp; use space and attack a &lsquo;goal&rsquo;. The key element with invasion games is the number of players involved. The less space a player has, the less time he/she has, the more skill is required.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= STAGE 1 ================= -->
+  <section id="stage1">
+    <div class="stage-card">
+      <span class="stage-tag">Stage 1 &middot; Ages 4&ndash;6</span>
+      <h2 class="section-title" style="border:0;margin-bottom:1rem">Learning to Master the Ball</h2>
+
+      <div class="char-grid">
+        <div>
+          <h4>The Player</h4>
+          <ul class="plain">
+            <li>Has no sense of pace and will go flat out.</li>
+            <li>Is self-centred and will want their own ball.</li>
+            <li>Has little interest in team activities.</li>
+            <li>Has limited sense of time and space.</li>
+            <li>Has short attention span.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Coach</h4>
+          <ul class="plain">
+            <li>Coach open to trial and error.</li>
+            <li>Well organised/planned sessions.</li>
+            <li>Maximise coaching resources to increase knowledge.</li>
+            <li>Guide children. Don&rsquo;t tell them.</li>
+            <li>Be a role model.</li>
+            <li>Set fun activities for optimal learning.</li>
+            <li><strong>Complete Child Protection and Garda Vetting Complete.</strong></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Environment</h4>
+          <ul class="plain">
+            <li>Fun is number 1 priority.</li>
+            <li>Coach to player ratio 1:5.</li>
+            <li>Ball per child or minimum ball per 2 children.</li>
+            <li>Discovery/exploration.</li>
+            <li>Trial &amp; Error.</li>
+            <li>Variation of activities and equipment.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Game</h4>
+          <ul class="plain">
+            <li>Small sided games for training 2v2, 3v3, 4v4 Max.</li>
+            <li>First touch Sliotar and Football.</li>
+            <li>Each child has their own Hurl, Helmet, Gum shield &amp; Water Bottle.</li>
+            <li>Have a ball per child or ball between 2 at all sessions.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="skill-grid">
+        <div class="group-head span2">Technical Skills</div>
+        <div class="group-head">Physical Skills</div>
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
+          <h4>Handling</h4>
+          <ul><li>Correct Hurley Size.</li><li>Correct Grip.</li><li>Establish Dominant Hand.</li><li>Ready, Lock, Swing.</li></ul>
+          <h4>Catching</h4>
+          <ul><li>One Hand Catch - Bean Bag, Sliotar, Tennis Ball, Rolling, Throwing, Bowling.</li></ul>
+          <h4>Striking</h4>
+          <ul><li>&lsquo;C&rsquo; Swing.</li><li>Position of the feet.</li><li>Strike on the move.</li></ul>
+          <h4>Ball Control</h4>
+          <ul><li>Stopping.</li><li>Flick to space.</li><li>Bean Bag solo.</li><li>Bean Bag flick.</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
+          <h4>Handling</h4>
+          <ul><li>Bowling a ball.</li><li>2 Handed Bounce.</li><li>One Hand Bounce.</li><li>Body Catch.</li><li>Pick Up Stationary and Moving.</li><li>Throw and Catch.</li></ul>
+          <h4>Kicking</h4>
+          <ul><li>Ground Kick Stationary.</li><li>Ground Kick Moving.</li><li>Kick From 2 Hands.</li></ul>
+          <h4>Travelling</h4>
+          <ul><li>Knee Tap Solo.</li><li>Ground Dribble with Ball.</li><li>Move and Bounce.</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">ABC &amp; RJT'S</div>
+          <div class="col-body">
+          <h4>Agility</h4>
+          <ul><li>Chasing Games.</li><li>Dodging.</li></ul>
+          <h4>Balance</h4>
+          <ul><li>One foot.</li><li>Hopping.</li><li>Animal Movements.</li></ul>
+          <h4>Co-ordination</h4>
+          <ul><li>Skipping.</li><li>Bean Bag exercises.</li></ul>
+          <h4>Running</h4>
+          <ul><li>Forwards.</li><li>Backwards.</li><li>Marching.</li><li>Stopping.</li><li>Sideward's.</li></ul>
+          <h4>Jumping</h4>
+          <ul><li>Takeoff &amp; Landing.</li><li>Jumping Jacks.</li><li>Star Jumps.</li><li>Jump from 2 Feet Land on one Foot.</li></ul>
+          <h4>Throwing</h4>
+          <ul><li>Target Roll.</li><li>Skittles.</li><li>Bowling.</li></ul>
+        </div>
+        </div>
+        <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Piggy In The Middle (2v1, 3v1); Target Games</div>
+        <div class="full-row"><strong>Team Play:</strong> Zones used in games to stop bunching.</div>
+        <div class="full-row"><strong>Psychological Focus:</strong> Develop listening skills.</div>
+      </div>
+
+      <details class="assessment">
+        <summary>
+          <span class="assessment-text">
+            <strong>Learning To Master The Ball &mdash; Skills Assessment</strong>
+            <small>Tap to view the full checklist</small>
+          </span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="table-scroll">
+          <table>
+            <caption>Hurling/Camogie Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td>Correct <strong>Hurley Size</strong>.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Dominant Hand</strong> Established.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>Correct <strong>Grip</strong> (Ready, Lock, Swing).</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Swinging Hurley</strong> Dominant Side Hitting a Stationary Ball 5 Times in a Row without missing.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Swinging Hurley</strong> Non Dominant Side Hitting a Stationary Ball 5 Times in a Row without missing.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>Good <strong>Fluid</strong> Movement in Swing.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Striking</strong> Ball a Distance of 10m Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Striking</strong> Ball a Distance of 20m Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Striking</strong> Ball a Distance of 10m Non Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Striking</strong> Ball a Distance of 20m Non Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Stop:</strong> Stopping a Moving Ball (coach rolls to child) 10m away 5 times in a row without missing.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Dribble</strong> Ball on Ground 20m while Jogging/Running.</td><td class="nowrap">Yes/No</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>Football Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td>2 Handed <strong>Bounce and Catch</strong> - 10 times in a row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>2 Handed <strong>Bounce and Catch</strong> Jogging/Running 20m.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>One Hand <strong>Bounce and Catch</strong> Dominant Hand 10 times in row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td>One Hand <strong>Bounce and Catch</strong> Non Dominant Hand 10 Times in Row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Throw and Catch</strong> to Yourself in a Stationary Position 10 Times in a Row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Throw and Catch</strong> to Yourself Jogging/Running 10 Times in a Row.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Pick up</strong> a Ball as Many Times as Possible in 60 secs (Average is 15).</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Pick up</strong> a moving ball 10 times in a row (coach or partner rolls ball).</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Kick</strong> at a target dominant foot.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Ground Kick</strong> at a target non dominant foot.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Kick from 2 Hands</strong> at a target (partner) dominant foot 10 times.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Kick from 2 Hands</strong> at a target (partner) non dominant foot 10 times.</td><td class="nowrap">Yes/No</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================= STAGE 2 ================= -->
+  <section id="stage2">
+    <div class="stage-card">
+      <span class="stage-tag">Stage 2 &middot; Ages 7&ndash;9</span>
+      <h2 class="section-title" style="border:0;margin-bottom:1rem">Learning To Use The Ball Well</h2>
+
+      <div class="char-grid">
+        <div>
+          <h4>The Player</h4>
+          <ul class="plain">
+            <li>Has no sense of pace and will go flat out.</li>
+            <li>Needs approval from Coaches and Parents.</li>
+            <li>Like to show off individual skills.</li>
+            <li>Small group activities work well.</li>
+            <li>Imagine themselves as their role models.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Coach</h4>
+          <ul class="plain">
+            <li>Coach open to trial and error.</li>
+            <li>Well organised/planned sessions.</li>
+            <li>Maximise coaching resources to increase knowledge.</li>
+            <li>Guide children. Don&rsquo;t tell them.</li>
+            <li>Be a role model.</li>
+            <li>Convey Enthusiasm.</li>
+            <li><strong>Complete Introduction To Gaelic Games Course.</strong></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Environment</h4>
+          <ul class="plain">
+            <li>Fun is number 1 priority.</li>
+            <li>Coach to player ratio 1:6.</li>
+            <li>Be sensitive to each players development needs.</li>
+            <li>Discovery/exploration.</li>
+            <li>Actual game results are secondary.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Game</h4>
+          <ul class="plain">
+            <li>Small sided games for training 3v3, 4v4, 6v6 Max.</li>
+            <li>Zones can be used to stop players bunching.</li>
+            <li>Player fouled takes free.</li>
+            <li>Players try all positions.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="skill-grid">
+        <div class="group-head span2">Skill Development</div>
+        <div class="group-head">Physical Development</div>
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
+          <h4>Handling</h4>
+          <ul><li>Correct hurley size.</li><li>Identification of the &lsquo;strong&rsquo; hand.</li><li>Grip &amp; Swing.</li><li>Ready &amp; Lock.</li><li>Claw catch.</li><li>Cupped catch.</li></ul>
+          <h4>Striking</h4>
+          <ul><li>Ground striking (a moving ball) Left &amp; Right.</li><li>Ground doubling (same &amp; opposite direction).</li><li>Striking from the hand (Stationary).</li></ul>
+          <h4>Ball Control</h4>
+          <ul><li>Jab lift (Stationary Ball).</li></ul>
+          <h4>Travelling</h4>
+          <ul><li>Bean Bag balancing.</li><li>Ball balancing.</li></ul>
+          <h4>Tackling/Contesting</h4>
+          <ul><li>Ground Flick (backhand).</li><li>Ground clash.</li><li>Hooking Frontal Stationary.</li><li>Ground block Stationary (Hurl to Hurl).</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
+          <h4>Handling</h4>
+          <ul><li>Body Catch.</li><li>Low Catch.</li><li>High Catch.</li><li>Hand Pass.</li><li>Crouch Lift (Stationary Ball).</li></ul>
+          <h4>Kicking</h4>
+          <ul><li>Punt Kick Left &amp; Right dropping ball with one hand.</li><li>Hook Kick.</li></ul>
+          <h4>Travelling</h4>
+          <ul><li>High Bounce.</li><li>Toe Tap Solo (Stationary).</li><li>Roll and Evade.</li></ul>
+          <h4>Tackle</h4>
+          <ul><li>Near Hand Tackle.</li><li>Shadowing.</li><li>Frontal Tackle.</li><li>Block Down.</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">ABC &amp; RJT'S</div>
+          <div class="col-body">
+          <h4>Agility</h4>
+          <ul><li>Zig Zag.</li></ul>
+          <h4>Balance</h4>
+          <ul><li>One foot.</li><li>Hopping.</li><li>Hop and Land On Other Leg.</li></ul>
+          <h4>Co-ordination</h4>
+          <ul><li>Skipping.</li><li>Ladder Work.</li></ul>
+          <h4>Running</h4>
+          <ul><li>On The Spot.</li><li>Relay Races.</li><li>Hurdles.</li><li>Stopping.</li></ul>
+          <h4>Jumping</h4>
+          <ul><li>Leapfrog.</li><li>Jumping Jacks.</li><li>Star Jumps.</li><li>Jump from 2 Feet Land on one Foot.</li></ul>
+          <h4>Throwing</h4>
+          <ul><li>Target Roll, Bowling, Dodgeball.</li></ul>
+          <h4>Conditioning</h4>
+          <ul><li>Partner Resistance.</li><li>Tug Of War.</li><li>Whole Body Exercises.</li></ul>
+        </div>
+        </div>
+        <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Players encouraged to move into space; Devise games which encourage players to look up.</div>
+        <div class="full-row"><strong>Team Play:</strong> Use zones for basic positional understanding; Players play all positions to experience attack &amp; defence; Small sided games crucial for individual learning; Call for the ball.</div>
+        <div class="full-row"><strong>Psychological Focus:</strong> Ask players to imagine themselves as role models to improve skills; Use trigger words to develop communication.</div>
+      </div>
+
+      <details class="assessment">
+        <summary>
+          <span class="assessment-text">
+            <strong>Learning To Use The Ball Well &mdash; Skills Assessment</strong>
+            <small>Tap to view the full checklist</small>
+          </span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="table-scroll">
+          <table>
+            <caption>Hurling/Camogie Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Ground Strike</strong> From a standing position and from the dominant side take a full swing and strike the ball on the ground a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Ground Strike</strong> From a standing position and from the non dominant side take a full swing and strike the ball on the ground a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Jab Lift</strong> Sliotar as Many Times as Possible in 60 secs (Average is 15).</td><td class="nowrap">15</td></tr>
+              <tr><td><strong>Striking From Hand</strong> a Distance of 10m Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Striking From Hand</strong> a Distance of 10m Non Dominant Side.</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Bouncing Ball</strong> On Hurley in Succession in 60 secs (Average is 25).</td><td class="nowrap">Yes/No</td></tr>
+              <tr><td><strong>Chest Catch</strong> Coach throws ball/bean bag to child’s chest. Child catches ball with hand. Distance from coach 3m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>High Catch</strong> Coach throws a ball over child’s head and child attempts to catch the ball. Distance from coach is 3m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Coach rolls ball to alternate sides. Child must pull on ball without turning to dominant side. Both sides.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>Football Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Chest Catch</strong> Coach throws ball to child’s chest. Child catches ball using body. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Low Catch</strong> Coach throws a bouncing ball to child’s feet. Child catches ball using hands. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>High Catch</strong> Coach throws a High ball to child. Child catches ball above head using hands. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Kick from Hands</strong> From a standing position and from the dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Kick from Hands</strong> From a standing position and from the non dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Hook Kick</strong> From a standing position and from the dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Hook Kick</strong> From a standing position and from the non dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Solo</strong> Player Toe Tap Solo’s the ball as many times as possible in 60 secs (Average is 25).</td><td class="nowrap">20</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================= STAGE 3 ================= -->
+  <section id="stage3">
+    <div class="stage-card">
+      <span class="stage-tag">Stage 3 &middot; Ages 10&ndash;12</span>
+      <h2 class="section-title" style="border:0;margin-bottom:1rem">Learning To Play Together</h2>
+
+      <div class="char-grid">
+        <div>
+          <h4>The Player</h4>
+          <ul class="plain">
+            <li>Have a short attention span.</li>
+            <li>Enjoy team games.</li>
+            <li>Compete with greater intensity against each other.</li>
+            <li>Can be self-consciousness in learning new skills.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Coach</h4>
+          <ul class="plain">
+            <li>Simple tips.</li>
+            <li>Cheer and Praise.</li>
+            <li>Organised/Planned coaching sessions.</li>
+            <li>Check in on players (Build Rapport).</li>
+            <li>Recognise that player development comes before winning.</li>
+            <li><strong>Minimum 2 coaches in group to have Award 1 coaching course complete.</strong></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Environment</h4>
+          <ul class="plain">
+            <li>Fun is number 1 priority.</li>
+            <li>Coach to player ratio 1:8.</li>
+            <li>Players enjoy practice. Coach sets fun tasks between sessions.</li>
+            <li>Game experiences rather than results.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Game</h4>
+          <ul class="plain">
+            <li>Small sided games for training 4v4, 5v5, 7v7 Max.</li>
+            <li>Limit plays of the ball in coaching sessions to mirror that of match day rules.</li>
+            <li>Continue to allow Players try all positions.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="skill-grid">
+        <div class="group-head span2">Skill Development</div>
+        <div class="group-head">Physical Development</div>
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
+          <h4>Handling</h4>
+          <ul><li>Overhead catch (hurl to protect).</li><li>Hand passing (using both hands).</li><li>Low catch.</li></ul>
+          <h4>Striking</h4>
+          <ul><li>Striking on the run stick left &amp; right.</li><li>Striking off hurl.</li><li>First touch control.</li><li>Lift and Strike.</li></ul>
+          <h4>Ball Control</h4>
+          <ul><li>Jab lift (moving ball).</li><li>Roll lift.</li></ul>
+          <h4>Travelling</h4>
+          <ul><li>Soloing at speed.</li></ul>
+          <h4>Tackle/Contesting</h4>
+          <ul><li>Shouldering.</li><li>Hooking on the move.</li><li>Blocking (ground &amp; air).</li><li>Batting high ball.</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
+          <h4>Handling</h4>
+          <ul><li>High Catch.</li><li>Hand Pass Both Sides.</li><li>Crouch Lift Moving Ball.</li></ul>
+          <h4>Kicking</h4>
+          <ul><li>Punt Kick Left &amp; Right.</li><li>Punt Kick Outside of Foot.</li><li>Hook Kick Left and Right.</li></ul>
+          <h4>Travelling</h4>
+          <ul><li>Low Bounce.</li><li>Toe Tap Solo Left and Right.</li><li>Dummy Solo.</li></ul>
+          <h4>Tackle</h4>
+          <ul><li>Near Hand Tackle.</li><li>Shadowing.</li><li>Frontal Tackle.</li><li>Block Down.</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">ABC &amp; RJT'S</div>
+          <div class="col-body">
+          <h4>Speed</h4>
+          <ul><li>Further development of speed in warm ups (Efforts less than 6 secs) e.g. quickness and change of direction and reaction sprints.</li></ul>
+          <h4>Strength</h4>
+          <ul><li>Introduce Core strength e.g. twist with partner.</li><li>Own body strength exercises e.g. Pull ups, press ups etc&hellip;.</li><li>Introduce plyometric training e.g. bounding and hopping.</li></ul>
+          <h4>Stamina</h4>
+          <ul><li>Relay Running.</li><li>Small Sided Games &amp; Ball Drills.</li><li>Circuit Training with the Ball.</li></ul>
+          <h4>Flexibility &amp; Co-ordination</h4>
+          <ul><li>Dynamic Stretching and Mobility.</li><li>Warmup &amp; Cool Down.</li></ul>
+          <h4>Jumping</h4>
+          <ul><li>Leapfrog.</li><li>Jumping Jacks.</li><li>Star Jumps.</li><li>Jump from 2 Feet Land on one Foot.</li></ul>
+        </div>
+        </div>
+        <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Play conditioned games to create pressure on players decision making; Activities to focus on gaining &amp; maintaining possession of the ball; Individual decisions now have more impact on team outcome.</div>
+        <div class="full-row"><strong>Team Play:</strong> Encourage and support team mates vocally; Work on creating space when in possession; Work on denying space when not in possession.</div>
+        <div class="full-row"><strong>Psychological Focus:</strong> Look for feedback from players to question how to improve skills and activities.</div>
+      </div>
+
+      <details class="assessment">
+        <summary>
+          <span class="assessment-text">
+            <strong>Learning To Play Together &mdash; Skills Assessment</strong>
+            <small>Tap to view the full checklist</small>
+          </span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="table-scroll">
+          <table>
+            <caption>Hurling/Camogie Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Frontal Block:</strong> Coach strikes 6 sliotars and player attempts to block the ball in each case. Emphasis on proper technique.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Coach throws a ball over the players head and the player <strong>bats</strong> the ball back in the direction of the coach. Distance from coach to player = 3 metres.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Players <strong>strike</strong> ball from the hand on dominant side. Under/over crossbar 15m/20m/25m = 6 attempts (2 at each distance).</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Players <strong>strike</strong> ball from the hand on non dominant side. Under/over crossbar 15m/20m/25m = 6 attempts (2 at each distance).</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Player <strong>solos</strong> with ball on hurley at near top speed for a distance of 30m without allowing ball to fall.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Striking</strong> sliotar on the run from hand off dominant side over the bar from in front of goals 15m/20m/25m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Striking</strong> sliotar on the run from hand off non dominant side over the bar from in front of goals 15m/20m/25m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Player <strong>handpasses</strong> with dominant hand across the body to a receiver 3 metres away.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Player <strong>handpasses</strong> with non dominant hand across the body to a receiver 3 metres away.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Striking from the hand</strong> dominant side. Ball cannot touch ground and cannot go over the crossbar. Must hit back of net cleanly from 21m line.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Striking from the hand</strong> non dominant side. Ball cannot touch ground and cannot go over the crossbar. Must hit back of net cleanly from 21m line.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Long Strike</strong> a ball from the hand, from the ‘dominant’ side. A minimum distance before touching the ground of 32 metres i.e. from the 13 metre line over the 45 metre line.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Long Strike</strong> a ball from the hand, from the ‘Non dominant’ side. A minimum distance before touching the ground of 32 metres i.e. from the 13 metre line over the 45 metre line.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>Football Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td>Coach throws ball to child’s chest. Child catches ball using body. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Coach throws a bouncing ball to child’s feet. Child catches ball using hands. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Coach throws a High ball to child. Child catches ball above head using hands. Distance from coach 5m.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>From a standing position and from the dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>From a standing position and from the non dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>From a standing position and from the dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>From a standing position and from the non dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td>Player Toe Tap Solo’s the ball as many times as possible in 60 secs (Average is 25).</td><td class="nowrap">20</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================= STAGE 4 ================= -->
+  <section id="stage4">
+    <div class="stage-card">
+      <span class="stage-tag">Stage 4 &middot; Ages 13&ndash;15</span>
+      <h2 class="section-title" style="border:0;margin-bottom:1rem">Learning About Positions and Decisions</h2>
+
+      <div class="char-grid">
+        <div>
+          <h4>The Player</h4>
+          <ul class="plain">
+            <li>While players in this stage may have the same chronological age, they may differ significantly in terms of biological age, i.e. one may be more physically developed than another.</li>
+            <li>Tend to be self critical, rely on coach for positive reinforcement.</li>
+            <li>Popularity influences self esteem.</li>
+            <li>Players do not make connection between physical development and loss of form.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Coach</h4>
+          <ul class="plain">
+            <li>Allow players to make their own decisions on the pitch.</li>
+            <li>Accept that mistakes are a big part of player development and learning.</li>
+            <li>Set example by showing respect to officials and opponents at all times.</li>
+            <li>Use simple language.</li>
+            <li>Well Organised/Planned Sessions.</li>
+            <li><strong>Head Coaches To Have Level 2 Coaching Course Complete.</strong></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Environment</h4>
+          <ul class="plain">
+            <li>Fun is still number 1 priority.</li>
+            <li>Coach to player ratio 1:10.</li>
+            <li>At least 1 ball for every 2 players.</li>
+            <li>Match results are still secondary to player development.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Game</h4>
+          <ul class="plain">
+            <li>Small sided games for training 5v5, 6v6, 8v8 Max.</li>
+            <li>All players experience game time in matches.</li>
+            <li>Players beginning to become accustom to specific position but must still be challenged to playing a variety of positions.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="skill-grid">
+        <div class="group-head span2">Skill Development</div>
+        <div class="group-head">Physical Development</div>
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
+          <h4>Handling</h4>
+          <ul><li>High catch (protect from front &amp; behind).</li><li>Hand pass off the hurley (Both Hands).</li><li>Chest catch.</li></ul>
+          <h4>Striking</h4>
+          <ul><li>Striking on the run (Moving away from target).</li><li>Striking on the run.</li><li>Ground striking on the run.</li><li>Free taking.</li><li>Shooting for scores.</li></ul>
+          <h4>Ball Control</h4>
+          <ul><li>Jab lift at pace.</li><li>Roll Lift.</li><li>First touch control.</li></ul>
+          <h4>Travelling</h4>
+          <ul><li>Soloing (changing direction).</li><li>Tap &amp; move.</li></ul>
+          <h4>Tackle</h4>
+          <ul><li>Frontal block (Hurl to ball).</li><li>Low block.</li><li>Ground tussle.</li><li>Flick off the Hurley.</li><li>Hooking (Still &amp; Moving).</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
+          <h4>Handling</h4>
+          <ul><li>Ball Feint.</li><li>Fist Pass for Distance.</li><li>Overhead Tap on or Down.</li><li>Catching At Speed.</li></ul>
+          <h4>Kicking</h4>
+          <ul><li>Punt Kick To Moving Target.</li><li>Long Kick Pass.</li><li>Shooting From Angles.</li></ul>
+          <h4>Travelling</h4>
+          <ul><li>Change of Pace With The Ball.</li></ul>
+          <h4>Tackle</h4>
+          <ul><li>Near Hand Tackle.</li><li>Delay Opponent.</li><li>Frontal Tackle.</li><li>Dive Block.</li><li>Hand Off.</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">ABC &amp; RJT'S</div>
+          <div class="col-body">
+          <h4>Speed</h4>
+          <ul><li>Multi directional (Efforts less than 20 secs).</li><li>Quick footwork and agility.</li><li>Acceleration and deceleration e.g. go go stop.</li><li>Game related reaction exercises e.g. relay racing e.g. crazy ball drills.</li></ul>
+          <h4>Strength</h4>
+          <ul><li>Body weight Circuit training Upper body, legs, and back.</li><li>Develop core strength e.g. plank.</li><li>Learn correct weight lifting techniques e.g. squat, clean, snatch, <strong>N.B.</strong> Only qualified coaches to undertake this training.</li><li>Introduce free weights and medicine balls <strong>N.B.</strong> For upper age range group only Plyometric e.g. multi directional jumps.</li></ul>
+          <h4>Stamina</h4>
+          <ul><li>3 v 1 Games.</li><li>Activities incorporating the ball.</li></ul>
+          <h4>Flexibility &amp; Co-Ordination</h4>
+          <ul><li>Maintain Stretching and Mobility.</li><li>Dynamic Warmup.</li></ul>
+        </div>
+        </div>
+        <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Understand the specific responsibilities of the various position through playing experience and minimal direction from coach; Small sided games are crucial.</div>
+        <div class="full-row"><strong>Team Play:</strong> Moving the ball as a team; Implement principles of play.</div>
+        <div class="full-row"><strong>Psychological Focus:</strong> Question players individually on decisions made on and off the ball; Highlight recent examples of good play.</div>
+      </div>
+
+      <details class="assessment">
+        <summary>
+          <span class="assessment-text">
+            <strong>Learning About Positions and Decisions &mdash; Skills Assessment</strong>
+            <small>Tap to view the full checklist</small>
+          </span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="table-scroll">
+          <table>
+            <caption>Hurling/Camogie Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the dominant side, to pass under the crossbar without touching the ground.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the non dominant side, to pass under the crossbar without touching the ground.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Long Strike</strong> a ball from the hand, on the dominant side, a minimum distance of 50 metres before touching the ground.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Long Strike</strong> a ball from the hand, on the non dominant side, a minimum distance of 50 metres before touching the ground.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Lift, Solo, Strike</strong> Run at least 4 metres to a ball on the 65 metre line. Lift the ball. On the run using the two handed jab lift, solo run with the ball (hopping or stationary) on the hurley to a marker (flag) 45 metres away; without stopping, either strike the ball with the hurley or hand pass the ball (without dropping the hurley) a distance of at least 2 metres to pass between two posts set two metres apart without touching the ground.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption>Football Skills Checklist</caption>
+            <thead><tr><th>Skill</th><th class="nowrap">Result</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Ball Feint</strong> Players carry the ball 10m, ball feint a defender and shoot for goal 20m away.</td><td class="nowrap">6 out of 6 = Pass</td></tr>
+              <tr><td><strong>Fist Pass</strong> From a standing position and from the dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Fist Pass</strong> From a standing position and from the non dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Receiving ball at pace</strong> Player stands 30m away from coach or partner. Ball is delivered with the foot for a one bounce catch. Receiver sprints to the ball and attempts to catch and control.</td><td class="nowrap">5 out of 6 = Pass</td></tr>
+              <tr><td><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</td><td class="nowrap">4 out of 6 = Pass</td></tr>
+              <tr><td><strong>1 v 1 Near Hand Tackle</strong> Players pair off on the 45m line one going for goal and other the tackler. The tackler attempts to make a good technique attempt at a near hand tackle. Look at the tackler for good technique. 3 dispossessions equal a pass.</td><td class="nowrap">3 out of 6 = Pass</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="photo-pair">
+    <img src="images/ladies-football-action.jpg" alt="Two ladies footballers chasing the ball on the pitch">
+    <img src="images/stadium-match-crowd.jpg" alt="Senior footballers in action in front of a packed stadium crowd">
+  </div>
+
+  <!-- ================= STAGE 5 ================= -->
+  <section id="stage5">
+    <div class="stage-card">
+      <span class="stage-tag">Stage 5 &middot; Ages 16&ndash;18</span>
+      <h2 class="section-title" style="border:0;margin-bottom:1rem">Learn To Perform</h2>
+
+      <div class="char-grid">
+        <div>
+          <h4>The Player</h4>
+          <ul class="plain">
+            <li>During this phase players begin to reach their physical peak and those slow developers begin to catch up with their peers.</li>
+            <li>Advanced technical skill development/Skills developed under pressure.</li>
+            <li>Ability to mix socially with teammates and adults.</li>
+            <li>Responsible for Nutrition.</li>
+            <li>Manage time effectively between school and sport.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Coach</h4>
+          <ul class="plain">
+            <li>Encourage ideas of self-awareness and self-help within players.</li>
+            <li>Understand the principles of game play, tactics and game sense.</li>
+            <li>Instil concepts of mental toughness and calmness under pressure.</li>
+            <li>Check in on players (Build Rapport).</li>
+            <li>Recognise that player development comes before team development.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Environment</h4>
+          <ul class="plain">
+            <li>Enjoyment and Fun is still of consideration during sessions.</li>
+            <li>Coach to player ratio 1:10.</li>
+            <li>Awareness of game schedules when planning sessions.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The Game</h4>
+          <ul class="plain">
+            <li>Small sided games for training 8v8, 9v9, 10v10, 15v15.</li>
+            <li>Limit plays of the ball in coaching sessions to mirror that of match day rules.</li>
+            <li>Players beginning to become accustom to specific positions but must still be challenged to playing a variety of positions.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="skill-grid">
+        <div class="group-head span2">Skill Development</div>
+        <div class="group-head">Physical Development</div>
+        <div class="skill-col">
+          <div class="col-head">Hurling/Camogie</div>
+          <div class="col-body">
+          <h4>Game Plays</h4>
+          <ul><li>How To use a Sweeper.</li><li>How to Deal with a Sweeper.</li><li>Man Marking.</li><li>Zone Marking.</li><li>Creating space.</li></ul>
+          <h4>Winning The Ball</h4>
+          <ul><li>Catching High, Low and on the Bounce (Protect front &amp; behind).</li><li>First touch off the Hurl Low, High control.</li></ul>
+          <h4>Sending and Receiving</h4>
+          <ul><li>Lift &amp; Strike.</li><li>Strike on the Front Foot &amp; Back Foot.</li><li>Feint &amp; Strike.</li><li>Striking over the Shoulder moving away from the target.</li><li>Overhead Doubling &amp; Batting.</li><li>Overhead Block into hand.</li><li>Over head flick into your path.</li></ul>
+          <h4>Travelling</h4>
+          <ul><li>Making room with &amp; without the ball.</li><li>Taking on opponent &amp; protecting the body using Hurl.</li><li>Dummy Hand Pass.</li></ul>
+          <h4>Tackle</h4>
+          <ul><li>Shouldering.</li><li>Recovering the ball.</li><li>Flick.</li><li>Hook.</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">Football</div>
+          <div class="col-body">
+          <h4>Game Plays</h4>
+          <ul><li>How To use a Sweeper.</li><li>How to Deal with a Sweeper.</li><li>Man Marking.</li><li>Zone Marking.</li><li>Creating space.</li></ul>
+          <h4>Kicking</h4>
+          <ul><li>Kick for possession diagonal.</li><li>Kicking for scores.</li><li>Cutting in to score.</li></ul>
+          <h4>Ball Retention</h4>
+          <ul><li>Support the player with ball.</li><li>Breaking the tackle.</li><li>Getting out of congested areas.</li><li>Changing direction of play.</li></ul>
+          <h4>Tackle</h4>
+          <ul><li>Group Tackling.</li><li>Near Hand Tackle.</li><li>Delay.</li><li>Deny.</li><li>Dispossess.</li><li>Develop.</li></ul>
+        </div>
+        </div>
+        <div class="skill-col">
+          <div class="col-head">ABC &amp; RJT'S</div>
+          <div class="col-body">
+          <h4>Speed</h4>
+          <ul><li>Multi directional (Efforts less than 20 secs).</li><li>Quick footwork and agility.</li><li>Acceleration and deceleration e.g. go go stop.</li><li>Running Mechanics and Technique.</li><li>Strength Work To Improve Speed.</li></ul>
+          <h4>Strength</h4>
+          <ul><li>Functional Assessment to Establish Core Strength and Technique.</li><li>Individual Programmes.</li><li><strong>N.B.</strong> Only qualified coaches to undertake this training.</li></ul>
+          <h4>Stamina</h4>
+          <ul><li>Small Sided Games.</li><li>Activities incorporating the ball.</li></ul>
+          <h4>Flexibility &amp; Co-Ordination</h4>
+          <ul><li>Maintain Stretching and Mobility.</li><li>Dynamic Warmup.</li></ul>
+        </div>
+        </div>
+        <div class="full-row"><strong>Tactical Prowess (Decision Making):</strong> Questioning; Guided Discovery; Trial &amp; Error; Observation &amp; Feedback.</div>
+        <div class="full-row"><strong>Team Play:</strong> Players to adapt to a number of team playing styles; Lots of questions to encourage problem solving in a game; Reflection on game scenarios.</div>
+        <div class="full-row"><strong>Psychological Focus:</strong> Players can fully recognise the improvements made through individual practice.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SESSION GUIDELINES ================= -->
+  <section id="guidelines">
+    <h2 class="section-title">Session Guidelines</h2>
+    <hr class="rule">
+    <ol class="plain">
+      <li>Player Centred Approach</li>
+      <li>Lead By Example</li>
+      <li>Set Realistic and Achievable Goals</li>
+      <li>Plan Sessions</li>
+      <li>Review Sessions</li>
+      <li>Give Positive Feedback to players</li>
+    </ol>
+
+    <h3 class="sub-title">Session Duration</h3>
+    <div class="table-scroll">
+      <table class="overview">
+        <thead><tr><th>Age Group</th><th class="nowrap">Coach/Player Ratio</th><th class="nowrap">Duration</th></tr></thead>
+        <tbody>
+          <tr><td>Nursery</td><td class="nowrap">1:4</td><td class="nowrap">45 Minutes</td></tr>
+          <tr><td>Under 7, 8</td><td class="nowrap">1:6</td><td class="nowrap">45 minutes</td></tr>
+          <tr><td>Under 9, 10</td><td class="nowrap">1:8</td><td class="nowrap">45/50 Minutes</td></tr>
+          <tr><td>Under 11, 12</td><td class="nowrap">1:8</td><td class="nowrap">50/60 Minutes</td></tr>
+          <tr><td>Under 13, 14</td><td class="nowrap">1:8</td><td class="nowrap">60/70 Minutes</td></tr>
+          <tr><td>Under 15, 16</td><td class="nowrap">1:10</td><td class="nowrap">70/80 Minutes</td></tr>
+          <tr><td>Under 17, 18</td><td class="nowrap">1:12</td><td class="nowrap">70/90 Minutes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-title">Giving Back To My Game</h3>
+    <h4 class="group-title">Players</h4>
+    <ul class="plain">
+      <li>Will have surpassed physical peak or retired.</li>
+      <li>Possess an in-depth understanding of the game and will have their own opinion on how to play the game.</li>
+      <li>Understand positive lifestyle choices which will enhance sporting performance.</li>
+      <li>Have an understanding of the importance of individual preparation.</li>
+      <li>Have a desire to remain involved in their club.</li>
+      <li>Be hugely passionate about the success of their club and the quality of training provided.</li>
+      <li>Have an in-depth tactical awareness and understanding of how to apply tactics.</li>
+    </ul>
+    <h4 class="group-title">Coach</h4>
+    <ul class="plain">
+      <li>To keep past/retiring and current players in the club.</li>
+      <li>To educate new coaches and continue to develop coaches.</li>
+      <li>To continually increase the standard of coaching within the club.</li>
+      <li>To ensure lifelong involvement and enjoyment of the sport after playing career has ended.</li>
+    </ul>
+  </section>
+
+</div>
+
+<footer>
+  <img class="crest" src="images/clontarf-crest.png" alt="Clontarf GAA crest">
+  <p><strong>Clontarf GAA Club &middot; CLG Chluain Tarbh</strong></p>
+  <p>Coaching Pathway &amp; Mentor Handbook</p>
+</footer>
+</body>
+</html>
