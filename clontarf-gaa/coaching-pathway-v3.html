@@ -74,11 +74,15 @@ a { color: var(--red-dark); }
 
 /* ---------- Scrollspy rail (desktop) ---------- */
 .rail {
-  position: fixed; right: 22px; top: 50%; transform: translateY(-50%); z-index: 55;
-  display: none; flex-direction: column; gap: 10px; align-items: flex-end;
+  position: fixed; right: 22px; top: 12vh; height: 76vh; z-index: 55;
+  display: none;
 }
-@media (min-width: 1050px) { .rail { display: flex; } }
+@media (min-width: 1050px) { .rail { display: block; } }
+.rail-track {
+  position: absolute; top: 0; bottom: 0; right: 4px; width: 2px; background: var(--line); z-index: 0;
+}
 .rail a {
+  position: absolute; right: 0; transform: translateY(-50%);
   display: flex; align-items: center; gap: .55rem; text-decoration: none;
 }
 .rail .dot {
@@ -381,6 +385,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
 <body id="top">
 
 <nav class="rail">
+  <div class="rail-track"></div>
   <a href="#mission"><span class="dot"></span><span class="label">Mission</span></a>
   <a href="#pathway"><span class="dot"></span><span class="label">Pathway</span></a>
   <a href="#stages-overview"><span class="dot"></span><span class="label">5 Stages</span></a>
@@ -1715,6 +1720,25 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       });
     }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
     sections.forEach(function (s) { obs.observe(s); });
+
+    // Position each dot proportionally to where its section actually falls
+    // in the page, so a long Stage section spaces out further than a short
+    // one instead of every dot being evenly spaced regardless of content length.
+    var rail = document.querySelector('.rail');
+    function layoutRail() {
+      if (!rail) return;
+      var railHeight = rail.getBoundingClientRect().height;
+      var docHeight = document.body.scrollHeight;
+      railLinks.forEach(function (a) {
+        var sec = document.querySelector(a.getAttribute('href'));
+        if (!sec) return;
+        var ratio = sec.offsetTop / docHeight;
+        a.style.top = (ratio * railHeight) + 'px';
+      });
+    }
+    layoutRail();
+    window.addEventListener('load', layoutRail);
+    window.addEventListener('resize', layoutRail);
   }
 
   // Assessment checklists with localStorage persistence
