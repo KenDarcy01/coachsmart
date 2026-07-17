@@ -275,6 +275,43 @@ p { margin: 0 0 1rem; color: var(--ink); }
   font-size: .85rem; color: var(--red-dark);
 }
 
+/* ---------- Quick-jump pills ---------- */
+.quick-jump {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem;
+  background: var(--surface); padding: 1.1rem 1.25rem 1.35rem; border-bottom: 1px solid var(--line);
+}
+.quick-jump .qj-label {
+  width: 100%; text-align: center; font-family: var(--heading-font); font-weight: 600;
+  font-size: .75rem; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: .3rem;
+}
+.quick-jump a {
+  display: inline-flex; align-items: center; gap: .35rem; text-decoration: none;
+  background: var(--paper); border: 1.5px solid var(--navy); color: var(--navy);
+  font-family: var(--heading-font); font-weight: 600; font-size: .8rem;
+  padding: .45rem 1rem; border-radius: 20px; transition: all .15s ease;
+}
+.quick-jump a:hover { background: var(--navy); color: #fff; }
+.quick-jump a .qj-age { opacity: .75; font-weight: 400; }
+
+/* ---------- Focused-link mode ---------- */
+.focus-banner {
+  display: none; align-items: center; justify-content: center; gap: .5rem 1rem; flex-wrap: wrap;
+  background: var(--red); color: #fff; text-align: center; padding: .7rem 1.25rem;
+  font-family: var(--heading-font); font-size: .85rem; font-weight: 500;
+  z-index: 59;
+}
+.focus-banner.active { display: flex; position: sticky; }
+.focus-banner a { color: #fff; font-weight: 700; text-decoration: underline; }
+.stage-toggle {
+  display: none; align-items: center; gap: .5rem; background: var(--surface);
+  border: 1px solid var(--navy); color: var(--navy); font-family: var(--heading-font);
+  font-weight: 600; font-size: .85rem; padding: .65rem 1.15rem; border-radius: 8px;
+  cursor: pointer; margin: 0 0 1rem;
+}
+.stage-toggle:hover { background: var(--navy); color: #fff; }
+.stage-section.collapsed .stage-toggle { display: inline-flex; }
+.stage-section.collapsed .stage-collapsible { display: none; }
+
 .char-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin: 1.75rem 0 2rem; }
 .char-card {
   background: var(--surface); border-radius: 10px; padding: 1.1rem 1.25rem;
@@ -441,6 +478,11 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   </div>
 </header>
 
+<div class="focus-banner" id="focusBanner">
+  <span>Showing <span class="focus-stage-name">this stage</span> for you.</span>
+  <a href="?">View the full pathway</a>
+</div>
+
 <div class="hero">
   <img class="hero-bg" src="images/hero-team-huddle.jpg" alt="Clontarf GAA underage team huddle before a match">
   <div class="hero-content">
@@ -458,6 +500,15 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   <img class="logo-lgfa" src="images/logo-lgfa.png" alt="LGFA Ladies Gaelic Football">
   <img class="logo-camogie" src="images/logo-camogie.png" alt="The Camogie Association">
   <img class="logo-handball" src="images/logo-handball.png" alt="GAA Handball">
+</div>
+
+<div class="quick-jump">
+  <span class="qj-label">Jump straight to your stage</span>
+  <a href="#stage1">Stage 1 <span class="qj-age">&middot; 4-6</span></a>
+  <a href="#stage2">Stage 2 <span class="qj-age">&middot; 7-9</span></a>
+  <a href="#stage3">Stage 3 <span class="qj-age">&middot; 10-12</span></a>
+  <a href="#stage4">Stage 4 <span class="qj-age">&middot; 13-15</span></a>
+  <a href="#stage5">Stage 5 <span class="qj-age">&middot; 15-18</span></a>
 </div>
 
   <section id="mission">
@@ -606,6 +657,9 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </div>
       <h2 class="section-title">Learning to Master the Ball</h2>
 
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
       <div class="char-row">
       <div class="char-card">
         <h4>The Player</h4>
@@ -808,6 +862,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
         <button type="button" class="reset-checklist">Reset checklist</button>
       </details>
+      </div>
     </div>
   </section>
 
@@ -820,6 +875,9 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </div>
       <h2 class="section-title">Learning To Use The Ball Well</h2>
 
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
       <div class="char-row">
       <div class="char-card">
         <h4>The Player</h4>
@@ -1028,6 +1086,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
         <button type="button" class="reset-checklist">Reset checklist</button>
       </details>
+      </div>
     </div>
   </section>
 
@@ -1040,6 +1099,9 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </div>
       <h2 class="section-title">Learning To Play Together</h2>
 
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
       <div class="char-row">
       <div class="char-card">
         <h4>The Player</h4>
@@ -1234,6 +1296,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
         <button type="button" class="reset-checklist">Reset checklist</button>
       </details>
+      </div>
     </div>
   </section>
 
@@ -1246,6 +1309,9 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </div>
       <h2 class="section-title">Learning About Positions and Decisions</h2>
 
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
       <div class="char-row">
       <div class="char-card">
         <h4>The Player</h4>
@@ -1434,6 +1500,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
         <button type="button" class="reset-checklist">Reset checklist</button>
       </details>
+      </div>
     </div>
   </section>
 
@@ -1446,6 +1513,9 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </div>
       <h2 class="section-title">Learn To Perform</h2>
 
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
       <div class="char-row">
       <div class="char-card">
         <h4>The Player</h4>
@@ -1603,6 +1673,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </div>
       </div>
 
+      </div>
     </div>
   </section>
 
@@ -1708,6 +1779,39 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       });
     });
   }
+
+  // Focused-link mode: ?stage=N collapses every other stage and jumps to it,
+  // so a coach can be sent a link straight to their own age group.
+  var focusStage = parseInt(new URLSearchParams(window.location.search).get('stage'), 10);
+  if (focusStage >= 1 && focusStage <= 5) {
+    var targetId = 'stage' + focusStage;
+    document.querySelectorAll('.stage-section').forEach(function (sec) {
+      if (sec.id !== targetId) sec.classList.add('collapsed');
+    });
+    var banner = document.getElementById('focusBanner');
+    var topbar = document.querySelector('.topbar');
+    var topbarH = topbar ? topbar.offsetHeight : 0;
+    if (banner) {
+      banner.classList.add('active');
+      banner.style.top = topbarH + 'px';
+      var nameEl = banner.querySelector('.focus-stage-name');
+      if (nameEl) nameEl.textContent = 'Stage ' + focusStage;
+    }
+    window.addEventListener('load', function () {
+      var target = document.getElementById(targetId);
+      if (target) {
+        var bannerH = banner ? banner.offsetHeight : 0;
+        var y = target.getBoundingClientRect().top + window.scrollY - topbarH - bannerH - 10;
+        window.scrollTo({ top: y, behavior: 'instant' });
+      }
+    });
+  }
+  document.querySelectorAll('.stage-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var sec = btn.closest('.stage-section');
+      if (sec) sec.classList.remove('collapsed');
+    });
+  });
 
   // Tabs
   document.querySelectorAll('.tabs').forEach(function (tabsEl) {
