@@ -57,6 +57,8 @@ Future<String?> exportMultiGameCardPdf(
     final PdfColor secondary = _mgPdfColor(secondaryColour, 1.0, 0.76, 0.03);
     final PdfColor third = _mgPdfColor(thirdColour, 0.08, 0.40, 0.75);
     final bool hasThird = thirdColour != null && thirdColour.trim().isNotEmpty;
+    final PdfColor accentColor =
+        _mgSafeFg(secondary, third, primary, hasThird);
 
     final supabase = Supabase.instance.client;
     final List<dynamic> rows = await supabase
@@ -128,7 +130,7 @@ Future<String?> exportMultiGameCardPdf(
                 pw.Padding(
                   padding: const pw.EdgeInsets.only(top: 16),
                   child: _mgPdfSection('HOW TO SET UP', gameSetup, primary,
-                      secondary, hPad, bodyFont, bodyFontBold),
+                      accentColor, hPad, bodyFont, bodyFontBold),
                 ),
               if (gameImage != null)
                 pw.Padding(
@@ -142,17 +144,17 @@ Future<String?> exportMultiGameCardPdf(
                 ),
               pw.SizedBox(height: 8),
               if (gameHowToPlay.isNotEmpty)
-                _mgPdfSection('HOW TO PLAY', gameHowToPlay, primary, secondary,
-                    hPad, bodyFont, bodyFontBold),
+                _mgPdfSection('HOW TO PLAY', gameHowToPlay, primary,
+                    accentColor, hPad, bodyFont, bodyFontBold),
               if (gameVariations.isNotEmpty)
-                _mgPdfSection('VARIATIONS', gameVariations, primary, secondary,
-                    hPad, bodyFont, bodyFontBold),
+                _mgPdfSection('VARIATIONS', gameVariations, primary,
+                    accentColor, hPad, bodyFont, bodyFontBold),
               if (gameTeachingPoints.isNotEmpty)
                 _mgPdfSection('TEACHING POINTS', gameTeachingPoints, primary,
-                    secondary, hPad, bodyFont, bodyFontBold),
+                    accentColor, hPad, bodyFont, bodyFontBold),
               if (gameVideo.isNotEmpty)
                 _mgPdfVideoLink(
-                    gameVideo, secondary, primary, hPad, bodyFont),
+                    gameVideo, accentColor, primary, hPad, bodyFont),
             ]);
           }
 
@@ -204,6 +206,15 @@ Future<Uint8List?> _mgFetchBytes(String? url) async {
     if (res.statusCode == 200) return res.bodyBytes;
   } catch (_) {}
   return null;
+}
+
+bool _mgIsLight(PdfColor c) => c.red > 0.9 && c.green > 0.9 && c.blue > 0.9;
+
+PdfColor _mgSafeFg(
+    PdfColor secondary, PdfColor third, PdfColor primary, bool hasThird) {
+  if (!_mgIsLight(secondary)) return secondary;
+  if (hasThird && !_mgIsLight(third)) return third;
+  return primary;
 }
 
 PdfColor _mgPdfColor(

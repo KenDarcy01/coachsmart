@@ -55,6 +55,7 @@ Future<String?> exportGameCardPdf(
   final PdfColor secondary = _pdfColor(secondaryColour, 1.0, 0.76, 0.03);
   final PdfColor third = _pdfColor(thirdColour, 0.08, 0.40, 0.75);
   final bool hasThird = thirdColour != null && thirdColour.trim().isNotEmpty;
+  final PdfColor accentColor = _safeFg(secondary, third, primary, hasThird);
 
   final pw.ImageProvider? crestImage =
       await _pdfImage(await _fetchBytes(clubCrest));
@@ -89,7 +90,7 @@ Future<String?> exportGameCardPdf(
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 16),
             child: _pdfSection('HOW TO SET UP', _sanitise(gameSetup!), primary,
-                secondary, hPad, bodyFont, bodyFontBold),
+                accentColor, hPad, bodyFont, bodyFontBold),
           ),
         if (gameImage != null)
           pw.Padding(
@@ -104,16 +105,16 @@ Future<String?> exportGameCardPdf(
         pw.SizedBox(height: 8),
         if (_sanitise(gameHowToPlay ?? '').isNotEmpty)
           _pdfSection('HOW TO PLAY', _sanitise(gameHowToPlay!), primary,
-              secondary, hPad, bodyFont, bodyFontBold),
+              accentColor, hPad, bodyFont, bodyFontBold),
         if (_sanitise(gameVariations ?? '').isNotEmpty)
           _pdfSection('VARIATIONS', _sanitise(gameVariations!), primary,
-              secondary, hPad, bodyFont, bodyFontBold),
+              accentColor, hPad, bodyFont, bodyFontBold),
         if (_sanitise(gameTeachingPoints ?? '').isNotEmpty)
           _pdfSection('TEACHING POINTS', _sanitise(gameTeachingPoints!),
-              primary, secondary, hPad, bodyFont, bodyFontBold),
+              primary, accentColor, hPad, bodyFont, bodyFontBold),
         if ((gameVideoUrl ?? '').isNotEmpty)
           _pdfVideoLink(
-              _sanitise(gameVideoUrl!), secondary, primary, hPad, bodyFont),
+              _sanitise(gameVideoUrl!), accentColor, primary, hPad, bodyFont),
       ],
     ),
   );
@@ -153,6 +154,15 @@ Future<Uint8List?> _fetchBytes(String? url) async {
     if (res.statusCode == 200) return res.bodyBytes;
   } catch (_) {}
   return null;
+}
+
+bool _isLight(PdfColor c) => c.red > 0.9 && c.green > 0.9 && c.blue > 0.9;
+
+PdfColor _safeFg(
+    PdfColor secondary, PdfColor third, PdfColor primary, bool hasThird) {
+  if (!_isLight(secondary)) return secondary;
+  if (hasThird && !_isLight(third)) return third;
+  return primary;
 }
 
 PdfColor _pdfColor(
