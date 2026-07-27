@@ -50,3 +50,4 @@ export '/pages/team_selector/team_selector_widget.dart' show TeamSelectorWidget;
 export '/pages/analytics/analytics_widget.dart' show AnalyticsWidget;
 export '/pages/game_details/game_details_widget.dart' show GameDetailsWidget;
 export '/pages/favourites/favourites_widget.dart' show FavouritesWidget;
+export '/pages/match_stats/match_stats_widget.dart' show MatchStatsWidget;

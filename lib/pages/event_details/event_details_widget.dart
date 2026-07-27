@@ -237,6 +237,11 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                                   eventDetailsGetUserEventDetailsResponse
                                                       .jsonBody)!
                                               .eventType,
+                                      paramTeamID:
+                                          UserEventDetailsStruct.maybeFromMap(
+                                                  eventDetailsGetUserEventDetailsResponse
+                                                      .jsonBody)
+                                              ?.teamId,
                                     ),
                                   ),
                                 ),

@@ -490,6 +490,24 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               name: FavouritesWidget.routeName,
               path: FavouritesWidget.routePath,
               builder: (context, params) => FavouritesWidget(),
+            ),
+            FFRoute(
+              name: MatchStatsWidget.routeName,
+              path: MatchStatsWidget.routePath,
+              builder: (context, params) => MatchStatsWidget(
+                eventId: params.getParam(
+                  'eventId',
+                  ParamType.int,
+                ),
+                teamId: params.getParam(
+                  'teamId',
+                  ParamType.int,
+                ),
+                currentAuthToken: params.getParam(
+                  'currentAuthToken',
+                  ParamType.String,
+                ),
+              ),
             )
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),

@@ -18,16 +18,33 @@ class FavouritesModel extends FlutterFlowModel<FavouritesWidget> {
   void updateVarGameListAtIndex(int index, Function(int) updateFn) =>
       varGameList[index] = updateFn(varGameList[index]);
 
+  int? varDefaultClub;
+
+  String? varClubCrest;
+
+  String? varPrimaryColour;
+
+  String? varSecondaryColour;
+
+  String? varThirdColour;
+
   ///  State fields for stateful widgets in this page.
 
   // Stores action output result for [Backend Call - API (getUserFavourites)] action in Favourites widget.
   ApiCallResponse? apiUserFavourites;
+  // Stores action output result for [Backend Call - Query Rows] action in Favourites widget.
+  List<UsersRow>? queryUser;
+  // Stores action output result for [Backend Call - Query Rows] action in Favourites widget.
+  List<ClubsRow>? queryClub;
   // Stores action output result for [Backend Call - Query Rows] action in Container widget.
   List<GamesRow>? queryGame;
   // State field(s) for Checkbox widget.
   Map<UserFavouritesStruct, bool> checkboxValueMap = {};
   List<UserFavouritesStruct> get checkboxCheckedItems =>
       checkboxValueMap.entries.where((e) => e.value).map((e) => e.key).toList();
+
+  // Stores action output result for [Custom Action - exportMultiGameCardPdf] action in Container widget.
+  String? outputExportMultiGame;
 
   @override
   void initState(BuildContext context) {}

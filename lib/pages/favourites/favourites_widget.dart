@@ -56,7 +56,6 @@ class _FavouritesWidgetState extends State<FavouritesWidget>
           .withoutNulls
           .toList()
           .cast<UserFavouritesStruct>();
-      safeSetState(() {});
       logFirebaseEvent('Favourites_update_page_state');
       _model.varGameList = FFAppState()
           .userFavourites
@@ -64,6 +63,28 @@ class _FavouritesWidgetState extends State<FavouritesWidget>
           .toList()
           .toList()
           .cast<int>();
+      logFirebaseEvent('Favourites_backend_call');
+      _model.queryUser = await UsersTable().queryRows(
+        queryFn: (q) => q.eqOrNull(
+          'user_id',
+          currentUserUid,
+        ),
+      );
+      logFirebaseEvent('Favourites_update_page_state');
+      _model.varDefaultClub = _model.queryUser?.firstOrNull?.defaultClub;
+      logFirebaseEvent('Favourites_backend_call');
+      _model.queryClub = await ClubsTable().queryRows(
+        queryFn: (q) => q.eqOrNull(
+          'club_id',
+          _model.varDefaultClub,
+        ),
+      );
+      logFirebaseEvent('Favourites_update_page_state');
+      _model.varClubCrest = _model.queryClub?.firstOrNull?.crest;
+      _model.varPrimaryColour = _model.queryClub?.firstOrNull?.primaryColour;
+      _model.varSecondaryColour =
+          _model.queryClub?.firstOrNull?.secondaryColour;
+      _model.varThirdColour = _model.queryClub?.firstOrNull?.thirdColour;
       safeSetState(() {});
     });
 
@@ -456,67 +477,65 @@ class _FavouritesWidgetState extends State<FavouritesWidget>
                               onTap: () async {
                                 logFirebaseEvent(
                                     'FAVOURITES_Container_3a8v0mzm_ON_TAP');
-                                if (_model.varGameList.length < 10) {
-                                  logFirebaseEvent(
-                                      'Container_widget_animation');
-                                  if (animationsMap[
-                                          'containerOnActionTriggerAnimation'] !=
-                                      null) {
-                                    await animationsMap[
-                                            'containerOnActionTriggerAnimation']!
-                                        .controller
-                                      ..reset()
-                                      ..repeat();
-                                  }
-                                  logFirebaseEvent('Container_custom_action');
-                                  await actions.exportMultiGameCardPdf(
-                                    _model.varGameList.toList(),
-                                    'Clontarf GAA',
-                                    'https://gyfporsbdftvtakdvukt.supabase.co/storage/v1/object/public/coachsmartimages/Clontarf%20GAA%20Crest.png',
-                                    '#CE0C00',
-                                    '#0357a3',
-                                    '',
-                                  );
-                                  logFirebaseEvent(
-                                      'Container_widget_animation');
-                                  if (animationsMap[
-                                          'containerOnActionTriggerAnimation'] !=
-                                      null) {
-                                    animationsMap[
-                                            'containerOnActionTriggerAnimation']!
-                                        .controller
-                                        .stop();
-                                  }
-                                  logFirebaseEvent(
-                                      'Container_widget_animation');
-                                  if (animationsMap[
-                                          'containerOnActionTriggerAnimation'] !=
-                                      null) {
-                                    animationsMap[
-                                            'containerOnActionTriggerAnimation']!
-                                        .controller
-                                        .reset();
-                                  }
-                                } else {
+                                logFirebaseEvent('Container_widget_animation');
+                                if (animationsMap[
+                                        'containerOnActionTriggerAnimation'] !=
+                                    null) {
+                                  await animationsMap[
+                                          'containerOnActionTriggerAnimation']!
+                                      .controller
+                                    ..reset()
+                                    ..repeat();
+                                }
+                                logFirebaseEvent('Container_custom_action');
+                                _model.outputExportMultiGame =
+                                    await actions.exportMultiGameCardPdf(
+                                  _model.varGameList.toList(),
+                                  _model.queryClub!.firstOrNull!.clubName!,
+                                  _model.varClubCrest,
+                                  _model.varPrimaryColour,
+                                  _model.varSecondaryColour,
+                                  _model.varThirdColour,
+                                );
+                                logFirebaseEvent('Container_widget_animation');
+                                if (animationsMap[
+                                        'containerOnActionTriggerAnimation'] !=
+                                    null) {
+                                  animationsMap[
+                                          'containerOnActionTriggerAnimation']!
+                                      .controller
+                                      .stop();
+                                }
+                                logFirebaseEvent('Container_widget_animation');
+                                if (animationsMap[
+                                        'containerOnActionTriggerAnimation'] !=
+                                    null) {
+                                  animationsMap[
+                                          'containerOnActionTriggerAnimation']!
+                                      .controller
+                                      .reset();
+                                }
+                                if (_model.outputExportMultiGame != null &&
+                                    _model.outputExportMultiGame != '') {
                                   logFirebaseEvent('Container_show_snack_bar');
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'A session must have less than 10 games',
+                                        _model.outputExportMultiGame!,
                                         style: TextStyle(
                                           color: FlutterFlowTheme.of(context)
                                               .primaryText,
-                                          fontSize: 16.0,
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
                                       duration: Duration(milliseconds: 4000),
                                       backgroundColor:
-                                          FlutterFlowTheme.of(context)
-                                              .coachSmartGreen,
+                                          FlutterFlowTheme.of(context).error,
                                     ),
                                   );
                                 }
+
+                                safeSetState(() {});
                               },
                               child: Container(
                                 width: 90.0,

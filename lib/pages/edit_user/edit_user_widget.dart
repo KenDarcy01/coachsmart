@@ -1,9 +1,11 @@
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
+import '/flutter_flow/flutter_flow_drop_down.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import '/flutter_flow/form_field_controller.dart';
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -640,6 +642,154 @@ class _EditUserWidgetState extends State<EditUserWidget> {
                                   .asValidator(context),
                             ),
                           ),
+                          Align(
+                            alignment: AlignmentDirectional(-1.0, 0.0),
+                            child: Text(
+                              'Select Default Club:',
+                              style: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .override(
+                                    font: GoogleFonts.inter(
+                                      fontWeight: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontWeight,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                                    color: FlutterFlowTheme.of(context)
+                                        .coachSmartGrey,
+                                    letterSpacing: 0.0,
+                                    fontWeight: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .fontWeight,
+                                    fontStyle: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .fontStyle,
+                                  ),
+                            ),
+                          ),
+                          FutureBuilder<List<ClubsRow>>(
+                            future: ClubsTable().queryRows(
+                              queryFn: (q) =>
+                                  q.order('club_id', ascending: true),
+                            ),
+                            builder: (context, snapshot) {
+                              // Customize what your widget looks like when it's loading.
+                              if (!snapshot.hasData) {
+                                return Center(
+                                  child: SizedBox(
+                                    width: 50.0,
+                                    height: 50.0,
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        FlutterFlowTheme.of(context)
+                                            .coachSmartGreen,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              List<ClubsRow> dropDownClubsRowList =
+                                  snapshot.data!;
+
+                              return FlutterFlowDropDown<int>(
+                                controller: _model.dropDownValueController ??=
+                                    FormFieldController<int>(
+                                  _model.dropDownValue ??=
+                                      editUserUsersRow?.defaultClub,
+                                ),
+                                options: List<int>.from(dropDownClubsRowList
+                                    .map((e) => e.clubId)
+                                    .toList()),
+                                optionLabels: dropDownClubsRowList
+                                    .map((e) => e.clubName)
+                                    .withoutNulls
+                                    .toList(),
+                                onChanged: (val) => safeSetState(
+                                    () => _model.dropDownValue = val),
+                                height: 40.0,
+                                searchHintTextStyle: FlutterFlowTheme.of(
+                                        context)
+                                    .labelMedium
+                                    .override(
+                                      font: GoogleFonts.inter(
+                                        fontWeight: FlutterFlowTheme.of(context)
+                                            .labelMedium
+                                            .fontWeight,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .labelMedium
+                                            .fontStyle,
+                                      ),
+                                      letterSpacing: 0.0,
+                                      fontWeight: FlutterFlowTheme.of(context)
+                                          .labelMedium
+                                          .fontWeight,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .labelMedium
+                                          .fontStyle,
+                                    ),
+                                searchTextStyle: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .override(
+                                      font: GoogleFonts.inter(
+                                        fontWeight: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .fontWeight,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .fontStyle,
+                                      ),
+                                      letterSpacing: 0.0,
+                                      fontWeight: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontWeight,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                                textStyle: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .override(
+                                      font: GoogleFonts.inter(
+                                        fontWeight: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .fontWeight,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .fontStyle,
+                                      ),
+                                      letterSpacing: 0.0,
+                                      fontWeight: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontWeight,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                                hintText: 'Select...',
+                                searchHintText: 'Search...',
+                                icon: Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: FlutterFlowTheme.of(context)
+                                      .secondaryText,
+                                  size: 24.0,
+                                ),
+                                fillColor: FlutterFlowTheme.of(context)
+                                    .coachSmartLightBlack,
+                                elevation: 2.0,
+                                borderColor: Colors.transparent,
+                                borderWidth: 0.0,
+                                borderRadius: 8.0,
+                                margin: EdgeInsetsDirectional.fromSTEB(
+                                    12.0, 0.0, 12.0, 0.0),
+                                hidesUnderline: true,
+                                isOverButton: false,
+                                isSearchable: true,
+                                isMultiSelect: false,
+                              );
+                            },
+                          ),
                           Padding(
                             padding: EdgeInsetsDirectional.fromSTEB(
                                 0.0, 10.0, 0.0, 10.0),
@@ -711,42 +861,71 @@ class _EditUserWidgetState extends State<EditUserWidget> {
                                         ),
                                       );
                                     } else {
-                                      logFirebaseEvent('Button_backend_call');
-                                      await UsersTable().update(
-                                        data: {
-                                          'first_name': _model
-                                              .userFirstNameTextController.text,
-                                          'last_name': _model
-                                              .userLastNameTextController.text,
-                                          'phone_number': _model
-                                              .userPhoneNumberTextController
-                                              .text,
-                                        },
-                                        matchingRows: (rows) => rows.eqOrNull(
-                                          'user_id',
-                                          currentUserUid,
-                                        ),
-                                      );
-                                      logFirebaseEvent('Button_show_snack_bar');
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'User Details Updated',
-                                            style: TextStyle(
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .coachSmartWhite,
+                                      if (_model.dropDownValue == null) {
+                                        logFirebaseEvent(
+                                            'Button_show_snack_bar');
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Please select a default club',
+                                              style: TextStyle(
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .coachSmartWhite,
+                                              ),
+                                              textAlign: TextAlign.center,
                                             ),
-                                            textAlign: TextAlign.center,
+                                            duration:
+                                                Duration(milliseconds: 4000),
+                                            backgroundColor:
+                                                FlutterFlowTheme.of(context)
+                                                    .coachSmartGreen,
                                           ),
-                                          duration:
-                                              Duration(milliseconds: 4000),
-                                          backgroundColor:
-                                              FlutterFlowTheme.of(context)
-                                                  .coachSmartGreen,
-                                        ),
-                                      );
+                                        );
+                                      } else {
+                                        logFirebaseEvent('Button_backend_call');
+                                        await UsersTable().update(
+                                          data: {
+                                            'first_name': _model
+                                                .userFirstNameTextController
+                                                .text,
+                                            'last_name': _model
+                                                .userLastNameTextController
+                                                .text,
+                                            'phone_number': _model
+                                                .userPhoneNumberTextController
+                                                .text,
+                                            'default_club':
+                                                _model.dropDownValue,
+                                          },
+                                          matchingRows: (rows) => rows.eqOrNull(
+                                            'user_id',
+                                            currentUserUid,
+                                          ),
+                                        );
+                                        logFirebaseEvent(
+                                            'Button_show_snack_bar');
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'User Details Updated',
+                                              style: TextStyle(
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .coachSmartWhite,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            duration:
+                                                Duration(milliseconds: 4000),
+                                            backgroundColor:
+                                                FlutterFlowTheme.of(context)
+                                                    .coachSmartGreen,
+                                          ),
+                                        );
+                                      }
                                     }
                                   }
                                 }

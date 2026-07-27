@@ -1,4 +1,5 @@
 import '/flutter_flow/flutter_flow_util.dart';
+import '/flutter_flow/form_field_controller.dart';
 import '/index.dart';
 import 'edit_user_widget.dart' show EditUserWidget;
 import 'package:flutter/material.dart';
@@ -31,6 +32,9 @@ class EditUserModel extends FlutterFlowModel<EditUserWidget> {
   TextEditingController? userPhoneNumberTextController;
   String? Function(BuildContext, String?)?
       userPhoneNumberTextControllerValidator;
+  // State field(s) for DropDown widget.
+  int? dropDownValue;
+  FormFieldController<int>? dropDownValueController;
 
   @override
   void initState(BuildContext context) {}

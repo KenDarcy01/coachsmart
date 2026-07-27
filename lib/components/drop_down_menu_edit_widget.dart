@@ -1,3 +1,4 @@
+import '/auth/supabase_auth/auth_util.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
@@ -12,11 +13,13 @@ class DropDownMenuEditWidget extends StatefulWidget {
     required this.paramEventID,
     required this.paramRoleLevel,
     required this.paramEventType,
+    this.paramTeamID,
   });
 
   final int? paramEventID;
   final int? paramRoleLevel;
   final String? paramEventType;
+  final int? paramTeamID;
 
   @override
   State<DropDownMenuEditWidget> createState() => _DropDownMenuEditWidgetState();
@@ -226,6 +229,92 @@ class _DropDownMenuEditWidgetState extends State<DropDownMenuEditWidget> {
                                   12.0, 0.0, 0.0, 0.0),
                               child: Text(
                                 'Admin Options',
+                                style: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .override(
+                                      font: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w600,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .fontStyle,
+                                      ),
+                                      fontSize: 16.0,
+                                      letterSpacing: 0.0,
+                                      fontWeight: FontWeight.w600,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.paramRoleLevel! >= 20)
+              Padding(
+                padding: EdgeInsetsDirectional.fromSTEB(10.0, 0.0, 10.0, 10.0),
+                child: InkWell(
+                  splashColor: Colors.transparent,
+                  focusColor: Colors.transparent,
+                  hoverColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  onTap: () async {
+                    logFirebaseEvent(
+                        'DROP_DOWN_MENU_EDIT_convertComponent_ON_');
+                    logFirebaseEvent('convertComponent_navigate_to');
+
+                    context.pushNamed(
+                      MatchStatsWidget.routeName,
+                      queryParameters: {
+                        'eventId': serializeParam(
+                          widget.paramEventID,
+                          ParamType.int,
+                        ),
+                        'teamId': serializeParam(
+                          widget.paramTeamID,
+                          ParamType.int,
+                        ),
+                        'currentAuthToken': serializeParam(
+                          currentJwtToken,
+                          ParamType.String,
+                        ),
+                      }.withoutNulls,
+                    );
+
+                    logFirebaseEvent(
+                        'convertComponent_close_dialog_drawer_etc');
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: FlutterFlowTheme.of(context).coachSmartLightBlack,
+                    ),
+                    child: Padding(
+                      padding:
+                          EdgeInsetsDirectional.fromSTEB(0.0, 8.0, 0.0, 8.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Padding(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                12.0, 0.0, 0.0, 0.0),
+                            child: Icon(
+                              Icons.query_stats,
+                              color: FlutterFlowTheme.of(context).alternate,
+                              size: 28.0,
+                            ),
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsetsDirectional.fromSTEB(
+                                  12.0, 0.0, 0.0, 0.0),
+                              child: Text(
+                                'Timer & Stats',
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .override(

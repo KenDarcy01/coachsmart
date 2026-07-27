@@ -26,7 +26,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-Future<void> exportGameCardPdf(
+Future<String?> exportGameCardPdf(
   String? gameName,
   String? gameSetup,
   String? gameHowToPlay,
@@ -40,17 +40,27 @@ Future<void> exportGameCardPdf(
   String? thirdColour,
   String? gameVideoUrl,
 ) async {
+  pw.Font clubFont;
+  pw.Font bodyFont;
+  pw.Font bodyFontBold;
+  try {
+    clubFont = await PdfGoogleFonts.montserratBold();
+    bodyFont = await PdfGoogleFonts.notoSansRegular();
+    bodyFontBold = await PdfGoogleFonts.notoSansBold();
+  } catch (_) {
+    return 'An internet connection is required to generate PDFs. Please try again when online.';
+  }
+
   final PdfColor primary = _pdfColor(primaryColour, 0.18, 0.49, 0.20);
   final PdfColor secondary = _pdfColor(secondaryColour, 1.0, 0.76, 0.03);
   final PdfColor third = _pdfColor(thirdColour, 0.08, 0.40, 0.75);
   final bool hasThird = thirdColour != null && thirdColour.trim().isNotEmpty;
+  final PdfColor accentColor = _safeFg(secondary, third, primary, hasThird);
 
   final pw.ImageProvider? crestImage =
       await _pdfImage(await _fetchBytes(clubCrest));
   final pw.ImageProvider? gameImage =
       await _pdfImage(await _fetchBytes(gameImageUrl));
-
-  final pw.Font clubFont = await PdfGoogleFonts.montserratBold();
 
   final resolvedName = _sanitise(gameName ?? '');
   final safeName = resolvedName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
@@ -70,17 +80,17 @@ Future<void> exportGameCardPdf(
       header: (context) => pw.SizedBox(
         height: context.pageNumber > 1 ? 24 : 0,
       ),
-      footer: (context) => _pdfFooter(
-          _sanitise(clubName), primary, secondary, third, hPad, hasThird),
+      footer: (context) => _pdfFooter(_sanitise(clubName), primary, secondary,
+          third, hPad, hasThird, bodyFont, bodyFontBold),
       build: (context) => [
         _pdfHeader(resolvedName, _sanitise(clubName), crestImage, primary,
-            secondary, clubFont, hPad, crestSize),
+            secondary, clubFont, bodyFont, bodyFontBold, hPad, crestSize),
         _pdfAccentStripe(secondary, third, hasThird),
         if (_sanitise(gameSetup ?? '').isNotEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 16),
             child: _pdfSection('HOW TO SET UP', _sanitise(gameSetup!), primary,
-                secondary, hPad),
+                accentColor, hPad, bodyFont, bodyFontBold),
           ),
         if (gameImage != null)
           pw.Padding(
@@ -95,21 +105,23 @@ Future<void> exportGameCardPdf(
         pw.SizedBox(height: 8),
         if (_sanitise(gameHowToPlay ?? '').isNotEmpty)
           _pdfSection('HOW TO PLAY', _sanitise(gameHowToPlay!), primary,
-              secondary, hPad),
+              accentColor, hPad, bodyFont, bodyFontBold),
         if (_sanitise(gameVariations ?? '').isNotEmpty)
           _pdfSection('VARIATIONS', _sanitise(gameVariations!), primary,
-              secondary, hPad),
+              accentColor, hPad, bodyFont, bodyFontBold),
         if (_sanitise(gameTeachingPoints ?? '').isNotEmpty)
           _pdfSection('TEACHING POINTS', _sanitise(gameTeachingPoints!),
-              primary, secondary, hPad),
+              primary, accentColor, hPad, bodyFont, bodyFontBold),
         if ((gameVideoUrl ?? '').isNotEmpty)
-          _pdfVideoLink(_sanitise(gameVideoUrl!), secondary, primary, hPad),
+          _pdfVideoLink(
+              _sanitise(gameVideoUrl!), accentColor, primary, hPad, bodyFont),
       ],
     ),
   );
 
   final bytes = await pdf.save();
   await Printing.sharePdf(bytes: bytes, filename: '$safeName.pdf');
+  return null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -144,6 +156,15 @@ Future<Uint8List?> _fetchBytes(String? url) async {
   return null;
 }
 
+bool _isLight(PdfColor c) => c.red > 0.9 && c.green > 0.9 && c.blue > 0.9;
+
+PdfColor _safeFg(
+    PdfColor secondary, PdfColor third, PdfColor primary, bool hasThird) {
+  if (!_isLight(secondary)) return secondary;
+  if (hasThird && !_isLight(third)) return third;
+  return primary;
+}
+
 PdfColor _pdfColor(
     String? hex, double fallbackR, double fallbackG, double fallbackB) {
   if (hex == null || hex.trim().isEmpty) {
@@ -174,6 +195,8 @@ pw.Widget _pdfHeader(
   PdfColor primary,
   PdfColor secondary,
   pw.Font clubFont,
+  pw.Font bodyFont,
+  pw.Font bodyFontBold,
   double hPad,
   double crestSize,
 ) {
@@ -209,9 +232,9 @@ pw.Widget _pdfHeader(
               pw.Text(
                 gameName,
                 style: pw.TextStyle(
+                  font: bodyFontBold,
                   color: PdfColors.white,
                   fontSize: 17,
-                  fontWeight: pw.FontWeight.bold,
                 ),
               ),
             ],
@@ -238,6 +261,8 @@ pw.Widget _pdfSection(
   PdfColor primary,
   PdfColor secondary,
   double hPad,
+  pw.Font bodyFont,
+  pw.Font bodyFontBold,
 ) {
   final lines = body.split('\n').where((l) => l.trim().isNotEmpty).toList();
   return pw.Padding(
@@ -252,9 +277,9 @@ pw.Widget _pdfSection(
             pw.Text(
               title,
               style: pw.TextStyle(
+                font: bodyFontBold,
                 color: primary,
                 fontSize: 11,
-                fontWeight: pw.FontWeight.bold,
                 letterSpacing: 1.0,
               ),
             ),
@@ -283,6 +308,7 @@ pw.Widget _pdfSection(
                   child: pw.Text(
                     text,
                     style: pw.TextStyle(
+                      font: bodyFont,
                       color: PdfColor(0.18, 0.18, 0.18),
                       fontSize: 12,
                       lineSpacing: 3,
@@ -299,7 +325,12 @@ pw.Widget _pdfSection(
 }
 
 pw.Widget _pdfVideoLink(
-    String url, PdfColor secondary, PdfColor primary, double hPad) {
+  String url,
+  PdfColor secondary,
+  PdfColor primary,
+  double hPad,
+  pw.Font bodyFont,
+) {
   return pw.Padding(
     padding: pw.EdgeInsets.fromLTRB(hPad, 0, hPad, 16),
     child: pw.Column(
@@ -312,9 +343,9 @@ pw.Widget _pdfVideoLink(
             pw.Text(
               'VIDEO EXPLAINER',
               style: pw.TextStyle(
+                font: bodyFont,
                 color: primary,
                 fontSize: 11,
-                fontWeight: pw.FontWeight.bold,
                 letterSpacing: 1.0,
               ),
             ),
@@ -328,6 +359,7 @@ pw.Widget _pdfVideoLink(
             child: pw.Text(
               url,
               style: pw.TextStyle(
+                font: bodyFont,
                 color: PdfColor(0.1, 0.4, 0.85),
                 fontSize: 12,
                 decoration: pw.TextDecoration.underline,
@@ -347,6 +379,8 @@ pw.Widget _pdfFooter(
   PdfColor third,
   double hPad,
   bool hasThird,
+  pw.Font bodyFont,
+  pw.Font bodyFontBold,
 ) {
   return pw.Padding(
     padding: pw.EdgeInsets.fromLTRB(hPad, 8, hPad, 16),
@@ -360,14 +394,15 @@ pw.Widget _pdfFooter(
             pw.Text(
               clubName,
               style: pw.TextStyle(
+                font: bodyFontBold,
                 color: primary,
                 fontSize: 10,
-                fontWeight: pw.FontWeight.bold,
               ),
             ),
             pw.Text(
               'CoachSmart',
               style: pw.TextStyle(
+                font: bodyFont,
                 color: PdfColor(0.7, 0.7, 0.7),
                 fontSize: 10,
               ),

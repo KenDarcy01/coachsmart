@@ -2158,11 +2158,14 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           alignment: AlignmentDirectional(0.0, 1.0),
                           child: Padding(
                             padding: EdgeInsetsDirectional.fromSTEB(
-                                0.0, 0.0, 0.0, 20.0),
+                                15.0, 0.0, 15.0, 20.0),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Color(0xCF121512),
+                                color: Color(0x47656464),
                                 borderRadius: BorderRadius.circular(24.0),
+                                border: Border.all(
+                                  color: Color(0xA3424242),
+                                ),
                               ),
                               child: Padding(
                                 padding: EdgeInsetsDirectional.fromSTEB(

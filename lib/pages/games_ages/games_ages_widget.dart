@@ -64,9 +64,8 @@ class _GamesAgesWidgetState extends State<GamesAgesWidget> {
             ),
             onPressed: () async {
               logFirebaseEvent('GAMES_AGES_arrow_back_rounded_ICN_ON_TAP');
-              logFirebaseEvent('IconButton_navigate_to');
-
-              context.pushNamed(HomePageWidget.routeName);
+              logFirebaseEvent('IconButton_navigate_back');
+              context.safePop();
             },
           ),
           title: Text(

@@ -41,4 +41,7 @@ class UsersRow extends SupabaseDataRow {
 
   String? get supabaseToken => getField<String>('supabaseToken');
   set supabaseToken(String? value) => setField<String>('supabaseToken', value);
+
+  int? get defaultClub => getField<int>('default_club');
+  set defaultClub(int? value) => setField<int>('default_club', value);
 }

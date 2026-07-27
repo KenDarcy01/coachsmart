@@ -25,4 +25,7 @@ class UserGameLinkRow extends SupabaseDataRow {
 
   int? get gameId => getField<int>('game_id');
   set gameId(int? value) => setField<int>('game_id', value);
+
+  int get position => getField<int>('position')!;
+  set position(int value) => setField<int>('position', value);
 }

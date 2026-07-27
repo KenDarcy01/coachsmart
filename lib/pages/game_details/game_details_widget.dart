@@ -69,6 +69,29 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget>
         _model.varFavourite = false;
         safeSetState(() {});
       }
+
+      logFirebaseEvent('GameDetails_backend_call');
+      _model.queryUser = await UsersTable().queryRows(
+        queryFn: (q) => q.eqOrNull(
+          'user_id',
+          currentUserUid,
+        ),
+      );
+      logFirebaseEvent('GameDetails_update_page_state');
+      _model.varDefaultClub = _model.queryUser?.firstOrNull?.defaultClub;
+      logFirebaseEvent('GameDetails_backend_call');
+      _model.queryClub = await ClubsTable().queryRows(
+        queryFn: (q) => q.eqOrNull(
+          'club_id',
+          _model.varDefaultClub,
+        ),
+      );
+      logFirebaseEvent('GameDetails_update_page_state');
+      _model.varClubCrest = _model.queryClub?.firstOrNull?.crest;
+      _model.varPrimaryColour = _model.queryClub?.firstOrNull?.primaryColour;
+      _model.varSecondaryColour =
+          _model.queryClub?.firstOrNull?.secondaryColour;
+      _model.varThirdColour = _model.queryClub?.firstOrNull?.thirdColour;
     });
 
     animationsMap.addAll({
@@ -902,18 +925,19 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget>
                                   ),
                                 );
                                 logFirebaseEvent('Container_custom_action');
-                                await actions.exportGameCardPdf(
+                                _model.outputExportGame =
+                                    await actions.exportGameCardPdf(
                                   widget.gameRow?.gameName,
                                   widget.gameRow?.gameSetup,
                                   widget.gameRow?.gameHowToPlay,
                                   widget.gameRow?.gameVariations,
                                   widget.gameRow?.gameTeachingPoints,
                                   widget.gameRow?.gameImage,
-                                  'Clontarf GAA',
-                                  'https://storage.googleapis.com/flutterflow-io-6f20.appspot.com/projects/coach-smart-new-mpqa5l/assets/w3te2vgwbyk5/Clontarf_GAA_Crest.png',
-                                  '#b91a1e',
-                                  '#0060af',
-                                  '#ffffff',
+                                  _model.queryClub!.firstOrNull!.clubName!,
+                                  _model.varClubCrest,
+                                  _model.varPrimaryColour,
+                                  _model.varSecondaryColour,
+                                  _model.varThirdColour,
                                   widget.gameRow?.gameVideo,
                                 );
                                 logFirebaseEvent('Container_widget_animation');
@@ -934,6 +958,27 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget>
                                       .controller
                                       .reset();
                                 }
+                                if (_model.outputExportGame != null &&
+                                    _model.outputExportGame != '') {
+                                  logFirebaseEvent('Container_show_snack_bar');
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        _model.outputExportGame!,
+                                        style: TextStyle(
+                                          color: FlutterFlowTheme.of(context)
+                                              .primaryText,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      duration: Duration(milliseconds: 4000),
+                                      backgroundColor:
+                                          FlutterFlowTheme.of(context).error,
+                                    ),
+                                  );
+                                }
+
+                                safeSetState(() {});
                               },
                               child: Container(
                                 width: 90.0,
