@@ -16,6 +16,20 @@ The **website** (not PWA) is deployed automatically when code is pushed to `main
 - **Deploy via**: `main` (Firebase auto-deploys website on push to main; Supabase migrations applied manually via `supabase db push`)
 - Always merge working branch → main after commits
 
+## Merging to Main from Codespace
+The Claude Code environment and the Codespace are separate — branches created here don't exist locally in the Codespace. When merging from the Codespace, always use `origin/` to reference the remote branch:
+
+```bash
+git pull origin main
+git merge origin/claude/review-coachsmart-repo-HHk5i
+git push origin main
+```
+
+Then apply migrations:
+```bash
+supabase db push
+```
+
 ## Branch Structure — IMPORTANT
 | Branch | Owner | Contents |
 |---|---|---|
