@@ -992,9 +992,8 @@ function finishOnboarding() {
     showScreen('screen-done');
 }
 
-function postToFlutter(action) {
-    window.location.href = 'https://coach-smart-new-mpqa5l.web.app/webviews/action?type=' + action;
-}
+var _pendingAction = null;
+function postToFlutter(action) { _pendingAction = action; }
 
 function returnToApp() {
     postToFlutter('onboardingComplete');
