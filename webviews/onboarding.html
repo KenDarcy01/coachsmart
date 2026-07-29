@@ -726,7 +726,11 @@ async function signOut() {
         });
     } catch(e) {}
     session = null;
-    window.FlutterChannel.postMessage('onboardingLogout');
+    if (window.FlutterChannel) {
+        window.FlutterChannel.postMessage('onboardingLogout');
+    } else {
+        el('pending-status-error').textContent = 'Channel not available — please rebuild the app.';
+    }
 }
 
 // ── Login (fallback) ──────────────────────────────────────────────────
