@@ -374,7 +374,7 @@ html, body {
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════
-     FOUND EXISTING MEMBER
+     FOUND EXISTING MEMBER (active — offer to request access)
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-found" class="screen">
     <div class="logo-bar">
@@ -387,23 +387,80 @@ html, body {
     <div class="content centre-content">
         <div class="hero-icon amber">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="M21 21l-4.35-4.35M11 8v3l2 2"/>
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M11 8v3l2 2"/>
             </svg>
         </div>
         <div class="screen-title">Already on the roster</div>
         <div class="screen-sub" style="margin-top:12px;">
             <span class="name-chip" id="found-name"></span>
             <span style="display:block;margin-top:12px;">
-                is already listed on <strong id="found-team" style="color:var(--text)"></strong>.
+                is already a confirmed member of
+                <strong id="found-team" style="color:var(--text)"></strong>.
             </span>
-            <span style="display:block;margin-top:8px;">
+            <span style="display:block;margin-top:10px;">
                 Is this the person you are registering?
             </span>
+            <span style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
+                If yes, we'll send a request to the team admin to link your account to their profile. You'll be notified once it's approved.
+            </span>
         </div>
-        <button class="btn-primary" id="found-yes-btn" onclick="confirmExistingMember()">Yes, that's them</button>
+        <button class="btn-primary" id="found-yes-btn" onclick="confirmExistingMember()">Yes — request access to their profile</button>
         <button class="btn-secondary" onclick="denyExistingMember()">No — enter a different name</button>
         <div class="error-msg" id="found-error"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     ALREADY PENDING (same user re-submitting same name)
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-already-pending" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="content centre-content">
+        <div class="hero-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+        <div class="screen-title">Already submitted</div>
+        <div class="screen-sub" style="margin-top:12px;">
+            <span style="display:block;">You've already sent a request for</span>
+            <span class="name-chip" id="already-pending-name" style="margin-top:8px;display:inline-block;"></span>
+            <span style="display:block;margin-top:10px;">
+                to join <strong id="already-pending-team" style="color:var(--text)"></strong>.
+            </span>
+            <span style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
+                It's waiting for admin approval. You'll receive a notification once it's confirmed.
+            </span>
+        </div>
+        <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
+        <button class="btn-secondary" onclick="finishOnboarding()">I'm done for now</button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     PENDING OTHER (different user already submitted this name)
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-pending-other" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="content centre-content">
+        <div class="hero-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+        <div class="screen-title">Approval in progress</div>
+        <div class="screen-sub" style="margin-top:12px;">
+            <span class="name-chip" id="pending-other-name" style="display:inline-block;margin-bottom:10px;"></span>
+            <span style="display:block;">
+                already has a request pending to join
+                <strong id="pending-other-team" style="color:var(--text)"></strong>.
+            </span>
+            <span style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
+                Once their membership is confirmed by the admin, contact your team admin to link your account to their profile.
+            </span>
+        </div>
+        <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
+        <button class="btn-secondary" onclick="finishOnboarding()">I'm done for now</button>
     </div>
 </div>
 
@@ -421,10 +478,10 @@ html, body {
         <div class="screen-title">Request sent!</div>
         <div class="screen-sub" style="margin-top:12px;">
             <span class="name-chip" id="sent-name"></span>
-            <span style="display:block;margin-top:12px;">
+            <span id="sent-action" style="display:block;margin-top:12px;">
                 has been submitted to join <strong id="sent-team" style="color:var(--text)"></strong>.
             </span>
-            <span style="display:block;margin-top:10px;font-size:13px;">
+            <span id="sent-detail" style="display:block;margin-top:10px;font-size:13px;">
                 A team admin will confirm the membership shortly. You'll receive a notification when it's approved.
             </span>
         </div>
@@ -664,30 +721,47 @@ async function submitCode() {
         p_joining_code: code
     });
 
-    setLoading(btn, false, 'Request to Join');
+    setLoading(btn, false, resolvedTeamName ? 'Request to Join ' + resolvedTeamName : 'Request to Join');
 
     if (error) { err.textContent = 'Something went wrong. Please try again.'; return; }
 
     if (data.status === 'error') { err.textContent = data.message; return; }
 
+    const memberName = registering.firstName + ' ' + registering.lastName;
+    const teamName   = data.team_name || resolvedTeamName || 'the team';
+
     if (data.status === 'duplicate') {
-        foundMember = {
-            member_id: data.member_id || null,
-            name:      registering.firstName + ' ' + registering.lastName,
-            team_name: data.team_name || 'this team'
-        };
-        el('found-name').textContent = foundMember.name;
-        el('found-team').textContent = foundMember.team_name;
+        foundMember = { member_id: data.member_id || null, name: memberName, team_name: teamName };
+        el('found-name').textContent = memberName;
+        el('found-team').textContent = teamName;
         el('found-error').textContent = '';
         el('code-input').value = '';
         showScreen('screen-found');
         return;
     }
 
+    if (data.status === 'already_pending') {
+        el('already-pending-name').textContent = memberName;
+        el('already-pending-team').textContent = teamName;
+        resetCodeScreen();
+        showScreen('screen-already-pending');
+        return;
+    }
+
+    if (data.status === 'pending_other') {
+        el('pending-other-name').textContent = memberName;
+        el('pending-other-team').textContent = teamName;
+        resetCodeScreen();
+        showScreen('screen-pending-other');
+        return;
+    }
+
     if (data.status === 'pending') {
         pendingCount++;
-        el('sent-name').textContent = registering.firstName + ' ' + registering.lastName;
-        el('sent-team').textContent = data.team_name || 'the team';
+        el('sent-name').textContent = memberName;
+        el('sent-team').textContent = teamName;
+        el('sent-action').innerHTML = 'has been submitted to join <strong style="color:var(--text)">' + teamName + '</strong>.';
+        el('sent-detail').textContent = 'A team admin will confirm the membership shortly. You'll receive a notification when it's approved.';
         resetCodeScreen();
         showScreen('screen-sent');
     }
@@ -720,7 +794,8 @@ async function confirmExistingMember() {
 
     pendingCount++;
     el('sent-name').textContent = foundMember.name;
-    el('sent-team').textContent = foundMember.team_name;
+    el('sent-action').innerHTML = 'is already on the roster. Your request to link your account has been sent to the admin of <strong style="color:var(--text)">' + foundMember.team_name + '</strong>.';
+    el('sent-detail').textContent = 'Once confirmed by the admin, you'll be linked to their profile. You'll receive a notification when it's approved.';
     showScreen('screen-sent');
 }
 
