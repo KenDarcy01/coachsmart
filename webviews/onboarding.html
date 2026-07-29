@@ -726,13 +726,7 @@ async function signOut() {
         });
     } catch(e) {}
     session = null;
-    if (window.flutter_inappwebview) {
-        window.flutter_inappwebview.callHandler('onboardingLogout');
-    } else if (window.FlutterChannel) {
-        window.FlutterChannel.postMessage('onboardingLogout');
-    } else {
-        showScreen('screen-login');
-    }
+    window.FlutterChannel.postMessage('onboardingLogout');
 }
 
 // ── Login (fallback) ──────────────────────────────────────────────────
