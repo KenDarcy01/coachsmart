@@ -602,39 +602,53 @@ async function loadUser() {
 }
 
 async function checkAndRoute() {
-    // Check for any active memberships — if found, they shouldn't be here
-    const { data: active } = await sb
-        .from('member_team_link')
-        .select('member_team_id')
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle();
+    const userId = session.user.id;
 
-    if (active) { returnToApp(); return; }
-
-    // Check for pending new-member requests
-    const { data: pendingMembers } = await sb
-        .from('member_team_link')
-        .select('status, teams(team_name), members!inner(first_name, last_name, user_member_link!inner(user_id, status))')
-        .eq('status', 'pending')
-        .eq('members.user_member_link.user_id', session.user.id)
-        .eq('members.user_member_link.status', 'active');
-
-    // Check for pending access requests (second parent etc.)
-    const { data: pendingAccess } = await sb
+    // All member IDs this user owns (active links)
+    const { data: owned } = await sb
         .from('user_member_link')
-        .select('user_member_id, status, members(first_name, last_name, member_team_link(status, teams(team_name)))')
-        .eq('user_id', session.user.id)
-        .eq('status', 'pending');
+        .select('member_id')
+        .eq('user_id', userId)
+        .eq('status', 'active');
 
-    const hasPending = (pendingMembers?.length || 0) + (pendingAccess?.length || 0) > 0;
+    const ownedIds = (owned || []).map(r => r.member_id);
 
-    if (hasPending) {
-        renderPendingList(pendingMembers || [], pendingAccess || []);
-        showScreen('screen-pending-status');
-    } else {
-        showScreen('screen-who');
+    if (ownedIds.length > 0) {
+        // Check if any of this user's members have an active team link
+        const { data: activeLink } = await sb
+            .from('member_team_link')
+            .select('member_team_id, teams(team_name), members(first_name, last_name)')
+            .in('member_id', ownedIds)
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle();
+
+        if (activeLink) { returnToApp(); return; }
+
+        // Pending join requests for members this user owns
+        const { data: pendingMembers } = await sb
+            .from('member_team_link')
+            .select('member_id, teams(team_name), members(first_name, last_name)')
+            .in('member_id', ownedIds)
+            .eq('status', 'pending');
+
+        // Pending access requests (this user asking to link to someone else's member)
+        const { data: pendingAccess } = await sb
+            .from('user_member_link')
+            .select('user_member_id, members(first_name, last_name, member_team_link(status, teams(team_name)))')
+            .eq('user_id', userId)
+            .eq('status', 'pending');
+
+        const hasPending = (pendingMembers?.length || 0) + (pendingAccess?.length || 0) > 0;
+
+        if (hasPending) {
+            renderPendingList(pendingMembers || [], pendingAccess || []);
+            showScreen('screen-pending-status');
+            return;
+        }
     }
+
+    showScreen('screen-who');
 }
 
 function renderPendingList(memberRequests, accessRequests) {
@@ -669,16 +683,31 @@ async function checkPendingStatus() {
     setLoading(btn, true, 'Checking…');
     err.textContent = '';
 
-    const { data: active } = await sb
-        .from('member_team_link')
-        .select('member_team_id')
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle();
+    const userId = session.user.id;
+
+    const { data: owned } = await sb
+        .from('user_member_link')
+        .select('member_id')
+        .eq('user_id', userId)
+        .eq('status', 'active');
+
+    const ownedIds = (owned || []).map(r => r.member_id);
+
+    let approved = false;
+    if (ownedIds.length > 0) {
+        const { data: activeLink } = await sb
+            .from('member_team_link')
+            .select('member_team_id')
+            .in('member_id', ownedIds)
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle();
+        approved = !!activeLink;
+    }
 
     setLoading(btn, false, 'Check approval status');
 
-    if (active) {
+    if (approved) {
         returnToApp();
     } else {
         err.textContent = 'Still waiting — no approvals yet. Check back soon.';
