@@ -20,16 +20,12 @@ class NativeWebView extends StatefulWidget {
     this.height,
     required this.url,
     this.onPageReady,
-    this.onComplete,
-    this.onLogout,
   });
 
   final double? width;
   final double? height;
   final String url;
   final Future Function()? onPageReady;
-  final Future Function()? onComplete;
-  final Future Function()? onLogout;
 
   @override
   State<NativeWebView> createState() => _NativeWebViewState();
@@ -45,19 +41,6 @@ class _NativeWebViewState extends State<NativeWebView> {
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.transparent)
-        ..addJavaScriptChannel(
-          'FlutterChannel',
-          onMessageReceived: (JavaScriptMessage message) {
-            switch (message.message) {
-              case 'onboardingComplete':
-                widget.onComplete?.call();
-                break;
-              case 'onboardingLogout':
-                widget.onLogout?.call();
-                break;
-            }
-          },
-        )
         ..loadRequest(Uri.parse(widget.url));
     } catch (_) {}
   }
