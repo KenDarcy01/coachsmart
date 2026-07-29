@@ -993,11 +993,7 @@ function finishOnboarding() {
 }
 
 function postToFlutter(action) {
-    if (window.parent && window.parent !== window) {
-        window.parent.postMessage(action, '*');
-    } else {
-        window.location.href = 'coachsmart://' + action;
-    }
+    window.location.href = 'coachsmart://' + action;
 }
 
 function returnToApp() {
