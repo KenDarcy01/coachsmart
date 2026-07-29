@@ -176,6 +176,21 @@ html, body {
 .hero-icon.amber { background: rgba(245,166,35,0.13); border: 2px solid var(--amber); }
 .hero-icon.amber svg { color: var(--amber); }
 
+/* ── Team preview (code screen) ── */
+.team-preview {
+    border-radius: 8px; padding: 0 14px;
+    display: flex; align-items: center; gap: 9px;
+    font-size: 14px; font-weight: 500;
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.25s ease, padding 0.25s ease, margin 0.25s ease;
+    margin-bottom: 0;
+}
+.team-preview.visible { max-height: 52px; padding: 12px 14px; margin-bottom: 12px; }
+.team-preview.found   { background: rgba(135,194,50,0.10); border: 1px solid rgba(135,194,50,0.30); color: var(--green); }
+.team-preview.unknown { background: rgba(107,114,128,0.08); border: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+.team-preview.looking { background: transparent; color: var(--muted); font-size: 13px; }
+.team-preview svg { flex-shrink: 0; width: 16px; height: 16px; }
+
 /* ── Name chip ── */
 .name-chip {
     display: inline-block;
@@ -350,8 +365,9 @@ html, body {
         <input type="text" id="code-input" placeholder="Team code"
             maxlength="20" autocorrect="off" autocapitalize="characters"
             autocomplete="off" spellcheck="false"
-            oninput="this.value=this.value.toUpperCase()"
+            oninput="onCodeInput()"
             onkeydown="if(event.key==='Enter') submitCode()">
+        <div id="team-preview" class="team-preview"></div>
         <button class="btn-primary" id="code-btn" onclick="submitCode()">Request to Join</button>
         <div class="error-msg" id="code-error"></div>
     </div>
@@ -442,13 +458,15 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── State ─────────────────────────────────────────────────────────────
-let session       = null;
-let currentUser   = null;
-let registering   = { firstName: '', lastName: '', isMyself: false };
-let joiningCode   = '';
-let foundMember   = null;   // { member_id, name, team_name }
-let pendingCount  = 0;
-let screenHistory = [];
+let session          = null;
+let currentUser      = null;
+let registering      = { firstName: '', lastName: '', isMyself: false };
+let joiningCode      = '';
+let foundMember      = null;   // { member_id, name, team_name }
+let pendingCount     = 0;
+let screenHistory    = [];
+let codeDebounce     = null;
+let resolvedTeamName = null;
 
 // ── Init ──────────────────────────────────────────────────────────────
 async function init() {
@@ -586,6 +604,48 @@ function confirmTheirName() {
     showScreen('screen-code');
 }
 
+// ── Code lookup (debounced) ───────────────────────────────────────────
+function onCodeInput() {
+    const raw  = el('code-input').value.toUpperCase();
+    el('code-input').value = raw;
+    const code = raw.trim();
+
+    clearTimeout(codeDebounce);
+    resolvedTeamName = null;
+    el('code-btn').textContent = 'Request to Join';
+
+    const preview = el('team-preview');
+
+    if (code.length < 3) {
+        preview.className = 'team-preview';
+        preview.textContent = '';
+        return;
+    }
+
+    preview.className = 'team-preview looking visible';
+    preview.textContent = 'Looking up code…';
+
+    codeDebounce = setTimeout(() => lookupCode(code), 500);
+}
+
+async function lookupCode(code) {
+    const { data, error } = await sb.rpc('get_team_by_code', { p_joining_code: code });
+    const preview = el('team-preview');
+
+    if (!error && data?.team_name) {
+        resolvedTeamName = data.team_name;
+        preview.className = 'team-preview found visible';
+        preview.innerHTML =
+            `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>${data.team_name}`;
+        el('code-btn').textContent = 'Request to Join ' + data.team_name;
+    } else {
+        resolvedTeamName = null;
+        preview.className = 'team-preview unknown visible';
+        preview.textContent = 'Code not recognised';
+        el('code-btn').textContent = 'Request to Join';
+    }
+}
+
 // ── Code Entry ────────────────────────────────────────────────────────
 async function submitCode() {
     const code = el('code-input').value.trim().toUpperCase();
@@ -628,7 +688,7 @@ async function submitCode() {
         pendingCount++;
         el('sent-name').textContent = registering.firstName + ' ' + registering.lastName;
         el('sent-team').textContent = data.team_name || 'the team';
-        el('code-input').value = '';
+        resetCodeScreen();
         showScreen('screen-sent');
     }
 }
@@ -678,14 +738,23 @@ function denyExistingMember() {
 }
 
 // ── Post-Send ─────────────────────────────────────────────────────────
+function resetCodeScreen() {
+    el('code-input').value = '';
+    el('code-error').textContent = '';
+    el('code-btn').textContent = 'Request to Join';
+    el('team-preview').className = 'team-preview';
+    el('team-preview').textContent = '';
+    resolvedTeamName = null;
+    clearTimeout(codeDebounce);
+}
+
 function addAnother() {
     registering = { firstName: '', lastName: '', isMyself: false };
     foundMember = null;
     el('their-first').value  = '';
     el('their-last').value   = '';
     el('their-error').textContent = '';
-    el('code-error').textContent  = '';
-    el('code-input').value = '';
+    resetCodeScreen();
     el('who-title').textContent = 'Add another person?';
     el('who-sub').textContent   = 'Who would you like to register next?';
     showScreen('screen-who');
