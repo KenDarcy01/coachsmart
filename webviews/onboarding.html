@@ -448,15 +448,15 @@ html, body {
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
         </div>
-        <div class="screen-title">Approval in progress</div>
+        <div class="screen-title">Already submitted by someone else</div>
         <div class="screen-sub" style="margin-top:12px;">
-            <span class="name-chip" id="pending-other-name" style="display:inline-block;margin-bottom:10px;"></span>
-            <span style="display:block;">
-                already has a request pending to join
-                <strong id="pending-other-team" style="color:var(--text)"></strong>.
+            <span style="display:block;margin-bottom:10px;">Another parent has already sent a join request for</span>
+            <span class="name-chip" id="pending-other-name" style="display:inline-block;"></span>
+            <span style="display:block;margin-top:10px;">
+                to <strong id="pending-other-team" style="color:var(--text)"></strong>, and it's waiting for admin approval.
             </span>
-            <span style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
-                Once their membership is confirmed by the admin, contact your team admin to link your account to their profile.
+            <span style="display:block;margin-top:14px;font-size:13px;color:var(--muted);">
+                Once the admin confirms the membership, come back here and enter the same name and code — you'll be offered the option to link your account to their profile.
             </span>
         </div>
         <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
