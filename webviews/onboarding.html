@@ -761,7 +761,7 @@ async function submitCode() {
         el('sent-name').textContent = memberName;
         el('sent-team').textContent = teamName;
         el('sent-action').innerHTML = 'has been submitted to join <strong style="color:var(--text)">' + teamName + '</strong>.';
-        el('sent-detail').textContent = 'A team admin will confirm the membership shortly. You'll receive a notification when it's approved.';
+        el('sent-detail').textContent = "A team admin will confirm the membership shortly. You'll receive a notification when it's approved.";
         resetCodeScreen();
         showScreen('screen-sent');
     }
@@ -795,7 +795,7 @@ async function confirmExistingMember() {
     pendingCount++;
     el('sent-name').textContent = foundMember.name;
     el('sent-action').innerHTML = 'is already on the roster. Your request to link your account has been sent to the admin of <strong style="color:var(--text)">' + foundMember.team_name + '</strong>.';
-    el('sent-detail').textContent = 'Once confirmed by the admin, you'll be linked to their profile. You'll receive a notification when it's approved.';
+    el('sent-detail').textContent = "Once confirmed by the admin, you'll be linked to their profile. You'll receive a notification when it's approved.";
     showScreen('screen-sent');
 }
 
