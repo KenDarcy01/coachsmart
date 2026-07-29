@@ -718,13 +718,7 @@ async function checkPendingStatus() {
     }
 }
 
-async function signOut() {
-    try {
-        await fetch(SUPABASE_URL + '/auth/v1/logout', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': SUPABASE_ANON_KEY }
-        });
-    } catch(e) {}
+function signOut() {
     session = null;
     if (window.FlutterChannel) {
         window.FlutterChannel.postMessage('onboardingLogout');
