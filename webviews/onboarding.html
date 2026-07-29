@@ -992,28 +992,12 @@ function finishOnboarding() {
     showScreen('screen-done');
 }
 
-function postToFlutter(message) {
-    try {
-        if (window.FlutterChannel) {
-            window.FlutterChannel.postMessage(message);
-        } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.FlutterChannel) {
-            window.webkit.messageHandlers.FlutterChannel.postMessage(message);
-        } else if (window.flutter_inappwebview) {
-            window.flutter_inappwebview.callHandler(message);
-        } else {
-            el('pending-status-error').textContent = 'Debug: no channel found. Reload the app.';
-        }
-    } catch(e) {
-        el('pending-status-error').textContent = 'Debug: ' + e.message;
-    }
+function postToFlutter(action) {
+    window.location.href = 'coachsmart://' + action;
 }
 
 function returnToApp() {
-    try {
-        postToFlutter('onboardingComplete');
-    } catch(e) {
-        window.history.back();
-    }
+    postToFlutter('onboardingComplete');
 }
 
 // ── Navigation ────────────────────────────────────────────────────────
