@@ -478,10 +478,6 @@ html, body {
         <div id="pending-status-list" style="margin-top:24px;width:100%;text-align:left;"></div>
         <button class="btn-primary" id="pending-check-btn" onclick="checkPendingStatus()" style="margin-top:32px;">Check approval status</button>
         <div class="error-msg" id="pending-status-error" style="margin-top:12px;"></div>
-        <p style="margin-top:28px;font-size:13px;color:var(--muted);">
-            Want to use a different account?
-            <span onclick="signOut()" style="color:var(--green);cursor:pointer;text-decoration:underline;">Sign out</span>
-        </p>
     </div>
 </div>
 
@@ -716,11 +712,6 @@ async function checkPendingStatus() {
     } else {
         err.textContent = 'Still waiting — no approvals yet. Check back soon.';
     }
-}
-
-function signOut() {
-    session = null;
-    postToFlutter('onboardingLogout');
 }
 
 // ── Login (fallback) ──────────────────────────────────────────────────
