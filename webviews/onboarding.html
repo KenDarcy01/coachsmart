@@ -512,7 +512,7 @@ html, body {
 <script>
 const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb; // initialised in init() once we know whether we have an access token
 
 // ── State ─────────────────────────────────────────────────────────────
 let session          = null;
@@ -525,16 +525,29 @@ let screenHistory    = [];
 let codeDebounce     = null;
 let resolvedTeamName = null;
 
+function decodeJwt(token) {
+    try {
+        return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    } catch(e) { return null; }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────
 async function init() {
-    // Accept session tokens passed as URL params from FlutterFlow
     const params = new URLSearchParams(window.location.search);
     const at = params.get('access_token');
-    const rt = params.get('refresh_token');
 
-    if (at && rt) {
-        const { data } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
-        session = data?.session || null;
+    // If FlutterFlow passes an access token, inject it as the Authorization
+    // header so every Supabase call uses it — no refresh token needed.
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth:   { persistSession: false, autoRefreshToken: false },
+        global: at ? { headers: { Authorization: 'Bearer ' + at } } : {}
+    });
+
+    if (at) {
+        const payload = decodeJwt(at);
+        if (payload?.sub) {
+            session = { user: { id: payload.sub }, access_token: at };
+        }
     }
 
     if (!session) {
