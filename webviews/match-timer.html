@@ -1302,7 +1302,7 @@ async function doReset() {
   stopInterval();
   updateTimerUI();
   if (matchStatsRow) {
-    await sb.from('match_stats_details').delete().eq('match_stats_id', matchStatsRow.id);
+    await sb.rpc('reset_match_stats_details', { p_match_stats_id: matchStatsRow.id });
     scoreCounts = {};
     updateScoreDisplay();
   }
@@ -1474,36 +1474,22 @@ async function fetchScoreTypes(teamId) {
 
 // Upsert a match_stats row for this event/user session
 async function upsertMatchStats(opposition, squadId) {
-  const { data: existing } = await sb
-    .from('match_stats')
-    .select('id')
-    .eq('event_id', currentEventId)
-    .eq('user_id', currentUser.id)
-    .maybeSingle();
-  if (existing) {
-    await sb.from('match_stats').update({ opposition, squad_id: squadId }).eq('id', existing.id);
-    matchStatsRow = { ...existing, opposition, squad_id: squadId };
-  } else {
-    const { data, error } = await sb
-      .from('match_stats')
-      .insert({ event_id: currentEventId, user_id: currentUser.id, opposition, squad_id: squadId })
-      .select().single();
-    if (error) throw error;
-    matchStatsRow = data;
-  }
+  const { data, error } = await sb.rpc('upsert_match_stats', {
+    p_event_id:   currentEventId,
+    p_opposition: opposition,
+    p_squad_id:   squadId,
+  });
+  if (error) throw error;
+  matchStatsRow = { id: data.id, opposition, squad_id: squadId };
 }
 
-// Read all match_stats_details rows and aggregate into scoreCounts
+// Read aggregated score counts from the server
 async function loadScoreCounts() {
   if (!matchStatsRow) return;
-  const { data } = await sb
-    .from('match_stats_details')
-    .select('score_type, side')
-    .eq('match_stats_id', matchStatsRow.id);
+  const { data } = await sb.rpc('get_match_stat_counts', { p_match_stats_id: matchStatsRow.id });
   scoreCounts = {};
-  for (const row of (data || [])) {
-    if (!scoreCounts[row.score_type]) scoreCounts[row.score_type] = { us: 0, opp: 0 };
-    scoreCounts[row.score_type][row.side]++;
+  for (const [typeId, counts] of Object.entries(data || {})) {
+    scoreCounts[typeId] = { us: counts.us || 0, opp: counts.opp || 0 };
   }
 }
 
@@ -1577,32 +1563,27 @@ function updateScoreSummary() {
 async function adjustScore(typeId, side, delta) {
   if (!matchStatsRow) return;
   if (delta > 0) {
-    const eventMinute  = Math.floor(computeElapsed(timerRow) / 60);
-    const timerStatus  = timerRow?.status || 'stopped';
-    const { error } = await sb.from('match_stats_details').insert({
-      match_stats_id: matchStatsRow.id,
-      score_type:     typeId,
-      side,
-      count:          1,
-      event_minute:   eventMinute,
-      timer_status:   timerStatus,
-      half:           currentHalf,
+    const eventMinute = Math.floor(computeElapsed(timerRow) / 60);
+    const timerStatus = timerRow?.status || 'stopped';
+    const { error } = await sb.rpc('log_match_stat', {
+      p_match_stats_id: matchStatsRow.id,
+      p_score_type:     typeId,
+      p_side:           side,
+      p_event_minute:   eventMinute,
+      p_timer_status:   timerStatus,
+      p_half:           currentHalf,
     });
     if (error) { console.error(error); showToast('Score not saved — check connection'); return; }
     if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
     scoreCounts[typeId][side]++;
   } else {
     if (!scoreCounts[typeId]?.[side]) return;
-    const { data: rows } = await sb
-      .from('match_stats_details')
-      .select('id')
-      .eq('match_stats_id', matchStatsRow.id)
-      .eq('score_type', typeId)
-      .eq('side', side)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    if (rows?.length) {
-      await sb.from('match_stats_details').delete().eq('id', rows[0].id);
+    const { data: deleted } = await sb.rpc('delete_last_match_stat', {
+      p_match_stats_id: matchStatsRow.id,
+      p_score_type:     typeId,
+      p_side:           side,
+    });
+    if (deleted) {
       scoreCounts[typeId][side] = Math.max(0, scoreCounts[typeId][side] - 1);
     }
   }
@@ -1692,13 +1673,8 @@ function _hideInstallModal() {
 // ── Finalise stats ────────────────────────────────────────────────────────────
 async function finaliseStats() {
   if (!matchStatsRow) { showToast('No stats to save'); return; }
-  const now = new Date().toISOString();
-  const { error } = await sb
-    .from('match_stats')
-    .update({ finalised_at: now })
-    .eq('id', matchStatsRow.id);
+  const { error } = await sb.rpc('finalise_match_stats', { p_match_stats_id: matchStatsRow.id });
   if (error) { showToast('Error saving stats'); return; }
-  matchStatsRow.finalised_at = now;
   showToast('Stats saved — timer reset');
   await doReset();
 }
