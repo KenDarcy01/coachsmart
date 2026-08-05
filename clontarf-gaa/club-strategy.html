@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clontarf GAA Club Strategy</title>
-<meta name="description" content="Clontarf GAA Club Strategy — our ethos, playing philosophy, player pathway and games &amp; drills framework.">
+<meta name="description" content="Clontarf GAA Club Strategy — our ethos, playing philosophy, player pathway, session plans and skills framework.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -196,98 +196,26 @@ h3.sub-title {
 }
 .quick-jump a:hover { background: var(--navy); color: #fff; }
 
-/* ---------- Strategy diagram (the pyramid, rebuilt) ---------- */
-.diagram-card {
-  background: var(--surface); border-radius: 14px; padding: 2rem 1.5rem;
+/* ---------- Strategy diagram (official graphic) ---------- */
+.diagram-image-card {
+  background: var(--surface); border-radius: 14px; padding: 1.25rem;
   box-shadow: 0 2px 14px rgba(20,30,60,.08); border: 1px solid var(--line);
 }
-.diagram-crest { text-align: center; margin-bottom: 1.5rem; }
-.diagram-crest img { height: 84px; margin: 0 auto .5rem; }
-.diagram-crest .clubname {
-  font-family: var(--display-font); color: var(--navy); letter-spacing: 1.5px;
-  font-size: 1.05rem; text-transform: uppercase;
-}
-.diagram-tier { border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: .85rem; }
-.diagram-tier.ethos { background: var(--navy); }
-.diagram-tier.philosophy { background: var(--red); }
-.diagram-tier .tier-label {
-  display: block; text-align: center; color: #fff; font-family: var(--heading-font);
-  font-weight: 700; text-transform: uppercase; font-size: .78rem; letter-spacing: 1.6px; margin-bottom: .75rem;
-}
-.diagram-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; }
-.diagram-chips a {
-  display: flex; align-items: center; gap: .5rem; text-decoration: none;
-  background: rgba(255,255,255,.14); color: #fff; font-family: var(--heading-font);
-  font-weight: 500; font-size: .8rem; padding: .5rem .9rem .5rem .5rem; border-radius: 20px;
-  transition: background-color .15s ease;
-}
-.diagram-chips a:hover { background: rgba(255,255,255,.28); }
-.diagram-chips .n {
-  background: #fff; color: var(--navy); border-radius: 50%; width: 22px; height: 22px;
-  display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 700; flex: 0 0 auto;
-}
-.diagram-tier.philosophy .diagram-chips .n { color: var(--red-dark); }
-
-.diagram-arrow-down {
-  display: flex; justify-content: center; margin: -.35rem 0 .85rem;
-}
-.diagram-arrow-down .arrowhead {
-  width: 12px; height: 12px; border-right: 3px solid var(--line); border-bottom: 3px solid var(--line);
-  transform: rotate(45deg);
+.diagram-image-card img { border-radius: 8px; margin: 0 auto; max-width: 560px; width: 100%; }
+.diagram-caption {
+  text-align: center; margin-top: 1rem; font-family: var(--heading-font); color: var(--navy);
+  font-size: .85rem; letter-spacing: .3px;
 }
 
-.pyramid-base { display: grid; grid-template-columns: 1fr 60px 1fr; gap: .5rem; align-items: stretch; }
-.pyramid-col {
-  background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.1rem 1.25rem;
+/* ---------- Skills chip grid ---------- */
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap: 1rem; }
+.skill-card {
+  background: var(--surface); border-radius: 10px; padding: 1.15rem 1.25rem;
+  border-top: 4px solid var(--navy); box-shadow: 0 2px 10px rgba(20,30,60,.06); text-align: center;
 }
-.pyramid-col h4 {
-  margin: 0 0 .85rem; font-family: var(--heading-font); text-transform: uppercase; text-align: center;
-  color: var(--navy); font-size: .9rem; letter-spacing: .5px;
-}
-.stairs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column-reverse; gap: .5rem; }
-.stairs li {
-  display: flex; align-items: center; gap: .55rem;
-  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--navy);
-  border-radius: 6px; padding: .5rem .7rem; font-size: .82rem; color: var(--ink);
-}
-.stairs li:nth-child(1) { margin-right: 0; }
-.stairs li:nth-child(2) { margin-right: 8%; }
-.stairs li:nth-child(3) { margin-right: 16%; }
-.stairs li:nth-child(4) { margin-right: 24%; }
-.stairs .lvl {
-  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; background: var(--navy); color: #fff;
-  font-family: var(--heading-font); font-weight: 700; font-size: .74rem; display: flex; align-items: center; justify-content: center;
-}
-.drill-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-.drill-steps li {
-  display: flex; align-items: center; gap: .55rem;
-  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--red);
-  border-radius: 6px; padding: .5rem .7rem; font-size: .82rem; color: var(--ink);
-}
-.drill-steps .lvl {
-  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; background: var(--red); color: #fff;
-  font-family: var(--heading-font); font-weight: 700; font-size: .74rem; display: flex; align-items: center; justify-content: center;
-}
-.pyramid-mid {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem;
-}
-.pyramid-mid .bidir {
-  font-size: 1.4rem; color: var(--muted); line-height: 1;
-}
-.pyramid-mid .mid-label {
-  writing-mode: vertical-rl; text-orientation: mixed; font-family: var(--heading-font);
-  font-size: .68rem; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600;
-}
-@media (max-width: 700px) {
-  .pyramid-base { grid-template-columns: 1fr; }
-  .pyramid-mid { flex-direction: row; padding: .35rem 0; }
-  .pyramid-mid .bidir { transform: rotate(90deg); }
-  .pyramid-mid .mid-label { writing-mode: horizontal-tb; }
-  .stairs li:nth-child(2) { margin-right: 4%; }
-  .stairs li:nth-child(3) { margin-right: 8%; }
-  .stairs li:nth-child(4) { margin-right: 12%; }
-}
-.diagram-footnote { text-align: center; margin-top: 1.25rem; font-family: var(--heading-font); color: var(--navy); font-size: .95rem; letter-spacing: 1px; text-transform: uppercase; }
+.skill-card:nth-child(2n) { border-top-color: var(--red); }
+.skill-card h4 { margin: 0 0 .4rem; font-family: var(--heading-font); text-transform: uppercase; letter-spacing: .3px; color: var(--navy); font-size: .95rem; }
+.skill-card p { margin: 0; font-size: .85rem; color: var(--muted); }
 
 /* ---------- 4-up characteristic cards (reused pattern) ---------- */
 .char-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin: 1.75rem 0 0; }
@@ -306,6 +234,7 @@ h3.sub-title {
   display: flex; align-items: center; justify-content: center; font-size: .74rem; font-family: var(--heading-font);
 }
 .char-card:nth-child(2) h4 .n, .char-card:nth-child(4) h4 .n { background: var(--red); }
+.char-card h4 .n.wide { width: auto; border-radius: 12px; padding: 0 .5rem; font-size: .7rem; }
 .char-card p { font-size: .9rem; color: var(--muted); margin: 0 0 .5rem; }
 .char-card ul { margin: 0; padding-left: 1.1rem; font-size: .87rem; color: var(--muted); }
 .char-card li { margin-bottom: .35rem; }
@@ -449,8 +378,10 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   <a href="#overview"><span class="dot"></span><span class="label">Overview</span></a>
   <a href="#ethos"><span class="dot"></span><span class="label">Club Ethos</span></a>
   <a href="#philosophy"><span class="dot"></span><span class="label">Philosophy</span></a>
+  <a href="#club-support"><span class="dot"></span><span class="label">Club Support</span></a>
   <a href="#pathway"><span class="dot"></span><span class="label">Player Pathway</span></a>
-  <a href="#games-drills"><span class="dot"></span><span class="label">Games &amp; Drills</span></a>
+  <a href="#session-plans"><span class="dot"></span><span class="label">Session Plans</span></a>
+  <a href="#skills"><span class="dot"></span><span class="label">Skills</span></a>
   <a href="#self-check"><span class="dot"></span><span class="label">Coach Self-Check</span></a>
 </nav>
 
@@ -466,8 +397,10 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <a href="#overview">Overview</a>
       <a href="#ethos">Club Ethos</a>
       <a href="#philosophy">Playing Philosophy</a>
+      <a href="#club-support">Club Support</a>
       <a href="#pathway">Player Pathway</a>
-      <a href="#games-drills">Games &amp; Drills</a>
+      <a href="#session-plans">Session Plans</a>
+      <a href="#skills">Skills</a>
       <a href="#self-check">Coach Self-Check</a>
       <a href="coaching-pathway-v3.html">Coaching Pathway Handbook &rarr;</a>
   </div>
@@ -495,71 +428,21 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   <span class="qj-label">Jump to a section</span>
   <a href="#ethos">Club Ethos</a>
   <a href="#philosophy">Playing Philosophy</a>
+  <a href="#club-support">Club Support</a>
   <a href="#pathway">Player Pathway</a>
-  <a href="#games-drills">Games &amp; Drills</a>
+  <a href="#session-plans">Session Plans</a>
+  <a href="#skills">Skills</a>
 </div>
 
 <section id="overview">
   <div class="wrap">
     <span class="kicker">The whole picture, on one page</span>
     <h2 class="section-title">Our Club Strategy</h2>
-    <p>Everything Clontarf GAA does with its players is built on the same foundation. Our <strong>ethos</strong> sets the standard for how everyone in the club treats one another. Our <strong>playing philosophy</strong> sets the standard for how our teams play the game. Together they shape a single <strong>player pathway</strong>, delivered every week through a consistent approach to <strong>games and drills</strong>. This page sets out how the pieces fit together, and breaks each one down into the detail coaches and mentors need on the sideline.</p>
+    <p>Everything Clontarf GAA does with its players is built on the same foundation. Our <strong>ethos</strong> sets the standard for how everyone in the club treats one another. Our <strong>playing philosophy</strong> sets the standard for how our teams play the game. <strong>Club support</strong> from the GPO and DOS backs coaches up on the ground, so a single <strong>player pathway</strong> is delivered every week through consistent <strong>session plans</strong>, building the core <strong>skills</strong> every player needs. This page sets out how the pieces fit together, and breaks each one down into the detail coaches and mentors need on the sideline.</p>
 
-    <div class="diagram-card">
-      <div class="diagram-crest">
-        <img src="images/clontarf-crest.png" alt="Clontarf GAA crest, Cluain Tarbh">
-        <div class="clubname">Cluain Tarbh</div>
-      </div>
-
-      <div class="diagram-tier ethos">
-        <span class="tier-label">Club Ethos</span>
-        <div class="diagram-chips">
-          <a href="#ethos-respect"><span class="n">1</span>Respect &amp; Integrity</a>
-          <a href="#ethos-inclusivity"><span class="n">2</span>Inclusivity</a>
-          <a href="#ethos-wellbeing"><span class="n">3</span>Wellbeing</a>
-          <a href="#ethos-pride"><span class="n">4</span>Passion &amp; Pride</a>
-        </div>
-      </div>
-
-      <div class="diagram-arrow-down"><span class="arrowhead"></span></div>
-
-      <div class="diagram-tier philosophy">
-        <span class="tier-label">Playing Philosophy</span>
-        <div class="diagram-chips">
-          <a href="#phil-attacking"><span class="n">1</span>Attacking Mindset</a>
-          <a href="#phil-workrate"><span class="n">2</span>High-Intensity Work-Rate</a>
-          <a href="#phil-skill"><span class="n">3</span>Skilful Execution</a>
-          <a href="#phil-decisions"><span class="n">4</span>Intelligent Decision Making</a>
-        </div>
-      </div>
-
-      <div class="diagram-arrow-down"><span class="arrowhead"></span></div>
-
-      <div class="pyramid-base">
-        <div class="pyramid-col">
-          <h4>Player Pathway</h4>
-          <ol class="stairs">
-            <li><span class="lvl">1</span>Nursery</li>
-            <li><span class="lvl">2</span>Skill Dev</li>
-            <li><span class="lvl">3</span>Refinement</li>
-            <li><span class="lvl">4</span>Performance</li>
-          </ol>
-        </div>
-        <div class="pyramid-mid">
-          <span class="bidir">&#8596;</span>
-          <span class="mid-label">Feeds each other</span>
-        </div>
-        <div class="pyramid-col">
-          <h4>Games &amp; Drills</h4>
-          <ol class="drill-steps">
-            <li><span class="lvl">1</span>Small Sided Games</li>
-            <li><span class="lvl">2</span>Game-Based Scenarios</li>
-            <li><span class="lvl">3</span>Core Skill Stations</li>
-          </ol>
-        </div>
-      </div>
-
-      <div class="diagram-footnote">Cluain Tarbh</div>
+    <div class="diagram-image-card">
+      <img src="images/club-strategy-diagram.png" alt="Clontarf GAA club strategy diagram: Club Ethos (Respect &amp; Integrity, Inclusivity, Wellbeing, Passion &amp; Pride) sits above Playing Philosophy (Attacking Mindset, High-Intensity Work-Rate, Skilful Execution, Intelligent Decision Making), which feeds into four pillars — Club Support (GPO, DOS), Player Pathway (Level 1 Nursery to Level 4 Performance), Session Plans (Game-Based Scenarios, Small Sided Games, Core Skills, Athletic Development) and Skills (Kicking, Hand-Passing, Striking, Soloing, High Catching).">
+      <p class="diagram-caption">The Clontarf GAA club strategy, top to bottom</p>
     </div>
   </div>
 </section>
@@ -663,11 +546,42 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   </div>
 </section>
 
+<section id="club-support" class="tight">
+  <div class="wrap">
+    <span class="kicker">Backing coaches on the ground</span>
+    <h2 class="section-title">Club Support</h2>
+    <p>The pathway and playing philosophy don't just live on paper &mdash; two dedicated club roles exist to help every mentor deliver them. Support from both comes the same way: <strong>coach-the-coaches sessions</strong> to build knowledge, and <strong>face-to-face session support</strong> pitchside, working alongside coaches during their actual training sessions.</p>
+
+    <div class="char-row" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));">
+      <div class="char-card">
+        <h4><span class="n wide">GPO</span>Games Promotion Officer</h4>
+        <p>The club's dedicated resource for growing the games and supporting coaches week to week.</p>
+        <ul>
+          <li>Runs coach-the-coaches sessions on the pathway, philosophy and specific technical content.</li>
+          <li>Provides face-to-face support at training, working alongside mentors in real sessions.</li>
+          <li>Helps coaches translate this strategy into practical, age-appropriate session plans.</li>
+          <li>First point of contact for any coach who wants extra support or guidance.</li>
+        </ul>
+      </div>
+      <div class="char-card">
+        <h4><span class="n wide">DOS</span>Director of Sport</h4>
+        <p>Oversees the playing side of the club strategy end to end, across every code and age group.</p>
+        <ul>
+          <li>Delivers coach-the-coaches sessions alongside the GPO to keep standards consistent.</li>
+          <li>Provides face-to-face session support, especially at key transition points on the pathway.</li>
+          <li>Keeps every team, from Nursery to Senior, aligned to the one ethos and philosophy.</li>
+          <li>Owns the overall coaching strategy and how it evolves season to season.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="pathway">
   <div class="wrap">
     <span class="kicker">One player, one journey</span>
     <h2 class="section-title">Player Pathway</h2>
-    <p>The pathway is organised into four levels. Each level builds directly on the one before it, and each is delivered through the same games-and-drills framework, scaled to age. For the full age-by-age technical curriculum &mdash; skills checklists, session content and coach characteristics for every age group &mdash; see the <a href="coaching-pathway-v3.html">Coaching Pathway Mentor Handbook</a>.</p>
+    <p>The pathway is organised into four levels. Each level builds directly on the one before it, and each is delivered through the same session plans framework, scaled to age, backed by club support from the GPO and DOS. For the full age-by-age technical curriculum &mdash; skills checklists, session content and coach characteristics for every age group &mdash; see the <a href="coaching-pathway-v3.html">Coaching Pathway Mentor Handbook</a>.</p>
 
     <div class="roadmap">
       <div class="roadmap-track">
@@ -820,24 +734,15 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   </div>
 </section>
 
-<section id="games-drills" class="tight">
+<section id="session-plans" class="tight">
   <div class="wrap">
     <span class="kicker">How every session is built</span>
-    <h2 class="section-title">Games &amp; Drills</h2>
-    <p>Every level of the pathway is delivered through the same three building blocks. What changes with age isn't the framework &mdash; it's the numbers, the constraints and the complexity layered on top.</p>
+    <h2 class="section-title">Session Plans</h2>
+    <p>Every level of the pathway is delivered through the same four building blocks, run in this order in a well-structured session. What changes with age isn't the framework &mdash; it's the numbers, the constraints and the complexity layered on top.</p>
 
     <div class="games-grid">
-      <div class="game-card" id="ggd-ssg">
-        <h3><span class="n">1</span>Small Sided Games (SSGs)</h3>
-        <p>Reduced numbers &mdash; 2v2 up to 6v6 depending on age &mdash; so every player gets far more touches and far more decisions than they would in a full-sided game.</p>
-        <ul>
-          <li>The default format for training at Nursery through underage.</li>
-          <li>Maximises repetitions of the skills coached that week.</li>
-          <li>Naturally scales up in numbers and pitch size as players get older.</li>
-        </ul>
-      </div>
-      <div class="game-card" id="ggd-scenarios">
-        <h3><span class="n">2</span>Game-Based Scenarios</h3>
+      <div class="game-card" id="sp-scenarios">
+        <h3><span class="n">1</span>Game-Based Scenarios</h3>
         <p>Conditioned games built around a specific tactical theme &mdash; a constraint, an overload, a system &mdash; that bridge pure skill practice and the real match.</p>
         <ul>
           <li>Examples: playing with/against a sweeper, zone vs. man marking, creating and using overloads.</li>
@@ -845,13 +750,31 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <li>Coaches use questioning and reflection to embed the "why", not just the "what".</li>
         </ul>
       </div>
-      <div class="game-card" id="ggd-stations">
-        <h3><span class="n">3</span>Core Skill Stations</h3>
+      <div class="game-card" id="sp-ssg">
+        <h3><span class="n">2</span>Small Sided Games (SSGs)</h3>
+        <p>Reduced numbers &mdash; 2v2 up to 6v6 depending on age &mdash; so every player gets far more touches and far more decisions than they would in a full-sided game.</p>
+        <ul>
+          <li>The default format for training at Nursery through underage.</li>
+          <li>Maximises repetitions of the skills coached that week.</li>
+          <li>Naturally scales up in numbers and pitch size as players get older.</li>
+        </ul>
+      </div>
+      <div class="game-card" id="sp-core-skills">
+        <h3><span class="n">3</span>Core Skills</h3>
         <p>Rotation-based technical stations &mdash; striking, catching, kicking, tackling &mdash; that drill fundamentals with a high number of repetitions per player.</p>
         <ul>
           <li>Handling, striking, ball control and athletic movement all get dedicated station time.</li>
           <li>Used to introduce and groove a new skill before it's tested inside a game.</li>
-          <li>Scales from basic ABCs (agility, balance, coordination) at Nursery to sport-specific technical stations by Refinement.</li>
+          <li>Scales from basic ABCs (agility, balance, coordination) at Nursery to sport-specific technical work by Refinement.</li>
+        </ul>
+      </div>
+      <div class="game-card" id="sp-athletic">
+        <h3><span class="n">4</span>Athletic Development</h3>
+        <p>Age-appropriate physical development &mdash; speed, strength, stamina, flexibility and coordination &mdash; that underpins every skill above it.</p>
+        <ul>
+          <li>Fundamental movement and ABCs (agility, balance, coordination) at younger ages.</li>
+          <li>Structured speed, strength and conditioning work introduced from Refinement level.</li>
+          <li>Only qualified coaches deliver dedicated strength and conditioning sessions.</li>
         </ul>
       </div>
     </div>
@@ -864,6 +787,37 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </span>
       <span class="video-callout-cta">Coaching Pathway</span>
     </a>
+  </div>
+</section>
+
+<section id="skills" class="tight">
+  <div class="wrap">
+    <span class="kicker">What every session plan is building towards</span>
+    <h2 class="section-title">Skills</h2>
+    <p>These are the core technical skills every level of the pathway and every session plan is ultimately building towards, across both codes.</p>
+
+    <div class="skills-grid">
+      <div class="skill-card">
+        <h4>Kicking</h4>
+        <p>Striking the ball with the boot &mdash; placed, off the ground and from the hand, both feet.</p>
+      </div>
+      <div class="skill-card">
+        <h4>Hand-Passing</h4>
+        <p>The quick, accurate pass off the hand that keeps football moving at pace.</p>
+      </div>
+      <div class="skill-card">
+        <h4>Striking <span style="font-weight:400;text-transform:none;">(Hurling/Camogie)</span></h4>
+        <p>Striking the sliotar with the hurl &mdash; off the ground and from the hand, both sides.</p>
+      </div>
+      <div class="skill-card">
+        <h4>Soloing</h4>
+        <p>Carrying the ball at speed while staying legal &mdash; the football solo and the hurling/camogie hop and solo.</p>
+      </div>
+      <div class="skill-card">
+        <h4>High Catching</h4>
+        <p>Winning and controlling the ball in the air under pressure, in both codes.</p>
+      </div>
+    </div>
   </div>
 </section>
 
