@@ -650,6 +650,12 @@ async function submitCode() {
     const memberName = registering.firstName + ' ' + registering.lastName;
     const teamName   = data.team_name || resolvedTeamName || 'the team';
 
+    if (data.status === 'already_member') {
+        err.textContent = data.message ||
+            (memberName + ' is already linked to your account on ' + teamName + '.');
+        return;
+    }
+
     if (data.status === 'duplicate') {
         foundMember = { member_id: data.member_id || null, name: memberName, team_name: teamName };
         el('found-name').textContent = memberName;
