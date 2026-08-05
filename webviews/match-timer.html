@@ -246,6 +246,15 @@
       text-transform: uppercase; transition: all 0.15s;
     }
     .btn-secondary:hover { border-color: var(--red); color: var(--red); }
+    .btn-end-period {
+      width: 100%; padding: 14px; border-radius: 14px;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+      border: 1.5px solid var(--amber); color: var(--amber);
+      text-transform: uppercase; transition: all 0.15s; background: transparent;
+    }
+    .btn-end-period:hover { background: rgba(245,158,11,0.10); }
+    .btn-end-period:active { background: rgba(245,158,11,0.22); }
+
     .btn-save {
       width: 100%; padding: 14px; border-radius: 14px;
       font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
@@ -597,6 +606,7 @@
     <div class="timer-buttons">
       <button class="btn-primary btn-start" id="toggleBtn" onclick="toggleTimer()">Start</button>
       <button class="btn-primary btn-start" id="halfTimeBtn" style="display:none" onclick="startSecondHalf()">Start 2nd Half</button>
+      <button class="btn-end-period" id="endPeriodBtn" style="display:none" onclick="endCurrentPeriod()">End Half</button>
       <button class="btn-save" onclick="finaliseStats()">Save Stats</button>
       <button class="btn-secondary" onclick="showResetModal()">Reset Timer</button>
     </div>
@@ -818,6 +828,28 @@ async function startSecondHalf() {
   timerRow.status          = 'paused';
   timerRow.current_half    = 2;
   wasInInjuryTime = false;
+  updateTimerUI();
+}
+
+async function endCurrentPeriod() {
+  stopInterval();
+  // Snap elapsed to the cap so isInjuryTimeExpired() returns true
+  const cap = getDuration(timerRow) + getInjuryDuration(timerRow);
+  const { error } = await sb
+    .from('match_timer')
+    .update({ elapsed_seconds: cap, started_at: null, status: 'paused' })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Error ending period'); return; }
+  timerRow.elapsed_seconds = cap;
+  timerRow.started_at      = null;
+  timerRow.status          = 'paused';
+  wasInInjuryTime          = true;
+  if (currentHalf === 1) {
+    triggerHalfTimeWhistle();
+  } else {
+    triggerFinalWhistle();
+  }
   updateTimerUI();
 }
 
@@ -1344,16 +1376,25 @@ function updateTimerUI() {
   else                             { statusEl.textContent = 'Paused';               statusEl.className = 'timer-status paused'; }
 
   // Toggle / half-time button
-  const toggleBtn   = $('toggleBtn');
-  const halfTimeBtn = $('halfTimeBtn');
+  const toggleBtn    = $('toggleBtn');
+  const halfTimeBtn  = $('halfTimeBtn');
+  const endPeriodBtn = $('endPeriodBtn');
   if (isHalfTime) {
-    toggleBtn.style.display   = 'none';
-    halfTimeBtn.style.display = '';
+    toggleBtn.style.display    = 'none';
+    halfTimeBtn.style.display  = '';
+    endPeriodBtn.style.display = 'none';
   } else {
     toggleBtn.style.display   = '';
     halfTimeBtn.style.display = 'none';
     toggleBtn.textContent = isRunning ? 'Pause' : 'Start';
     toggleBtn.className   = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
+    // End Half / End Game — visible only during injury time before cap is hit
+    if (inInjury && !expired) {
+      endPeriodBtn.style.display = '';
+      endPeriodBtn.textContent   = currentHalf === 1 ? 'End Half' : 'End Game';
+    } else {
+      endPeriodBtn.style.display = 'none';
+    }
   }
 
   // Save button label
