@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clontarf GAA Club Strategy</title>
+<meta name="description" content="Clontarf GAA Club Strategy — our ethos, playing philosophy, player pathway and games &amp; drills framework.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #ED1B2E;
+  --red-dark: #C6101F;
+  --navy: #1B3A6B;
+  --navy-dark: #142c52;
+  --paper: #F5F6FB;
+  --surface: #FFFFFF;
+  --ink: #1B2333;
+  --muted: #5B6478;
+  --line: #E3E7F0;
+  --display-font: 'Anton', Impact, sans-serif;
+  --heading-font: 'Oswald', -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.6;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--red-dark); }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 1.25rem; }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 60;
+  background: var(--navy);
+  padding: .6rem 1.25rem;
+  display: flex; align-items: center; gap: .75rem;
+}
+.topbar .brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; }
+.topbar .crest { height: 40px; }
+.topbar .brand-name {
+  color: #fff; font-family: var(--heading-font); font-weight: 600;
+  font-size: 1.05rem; letter-spacing: .3px; text-transform: uppercase;
+}
+@media (max-width: 420px) { .topbar .brand-name { display: none; } }
+.topbar .nav-toggle {
+  margin-left: auto; background: transparent; border: 1px solid rgba(255,255,255,.4);
+  color: #fff; font-size: .82rem; font-weight: 600; padding: .4rem .7rem; border-radius: 6px;
+  display: flex; align-items: center; gap: .5rem; cursor: pointer;
+}
+.nav-toggle-icon { position: relative; width: 15px; height: 2px; background: #fff; display: block; }
+.nav-toggle-icon::before, .nav-toggle-icon::after {
+  content: ""; position: absolute; left: 0; width: 15px; height: 2px; background: #fff;
+}
+.nav-toggle-icon::before { top: -5px; }
+.nav-toggle-icon::after { top: 5px; }
+.nav-links {
+  display: none; flex-direction: column; position: absolute; top: 100%; right: 0; left: 0;
+  background: var(--navy-dark); padding: .5rem 1.25rem 1.25rem; box-shadow: 0 12px 24px rgba(0,0,0,.25);
+  max-height: 75vh; overflow-y: auto;
+}
+.nav-links.open { display: flex; }
+.nav-links a {
+  color: #fff; text-decoration: none; font-family: var(--heading-font); font-weight: 500;
+  font-size: .95rem; padding: .65rem .3rem; border-bottom: 1px solid rgba(255,255,255,.08);
+}
+@media (min-width: 600px) { .nav-links { max-width: 320px; left: auto; border-radius: 0 0 0 10px; } }
+
+/* ---------- Scrollspy rail (desktop) ---------- */
+.rail {
+  position: fixed; right: 22px; top: 12vh; height: 76vh; z-index: 55;
+  display: none;
+}
+@media (min-width: 1050px) { .rail { display: block; } }
+.rail-track {
+  position: absolute; top: 0; bottom: 0; right: 4px; width: 2px; background: var(--line); z-index: 0;
+}
+.rail a {
+  position: absolute; right: 0; transform: translateY(-50%);
+  display: flex; align-items: center; gap: .55rem; text-decoration: none;
+}
+.rail .dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #fff;
+  border: 2px solid var(--navy); transition: all .2s ease; flex: 0 0 auto;
+}
+.rail .label {
+  font-family: var(--heading-font); font-size: .72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .3px; color: var(--navy); background: var(--surface); padding: .25rem .6rem;
+  border-radius: 20px; opacity: 0; transform: translateX(6px); transition: all .18s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap; pointer-events: none;
+}
+.rail a:hover .label { opacity: 1; transform: translateX(0); }
+.rail a.active .dot { background: var(--red); border-color: var(--red); transform: scale(1.3); }
+.rail a.active .label { opacity: 1; transform: translateX(0); color: var(--red-dark); }
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative; min-height: 70vh; overflow: hidden;
+  display: flex; align-items: flex-end;
+}
+.hero img.hero-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(20,44,82,.2) 0%, rgba(11,20,38,.6) 55%, rgba(8,12,22,.94) 100%);
+}
+.hero::after {
+  content: ""; position: absolute; left: -10%; right: -10%; bottom: -1px; height: 90px;
+  background: var(--paper);
+  clip-path: polygon(0 100%, 100% 40%, 100% 100%);
+}
+.hero-content { position: relative; z-index: 2; padding: 3rem 1.25rem 6rem; width: 100%; }
+.hero-content .inner { max-width: 980px; margin: 0 auto; }
+.hero-tagline {
+  display: inline-block; background: var(--red); color: #fff; font-family: var(--heading-font);
+  font-weight: 600; font-size: .78rem; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: .4rem .9rem; border-radius: 2px; margin-bottom: 1rem;
+}
+.hero h1 {
+  margin: 0; color: #fff; font-family: var(--display-font); font-weight: 400;
+  font-size: clamp(2.4rem, 7vw, 4.6rem); line-height: .95; letter-spacing: .5px;
+  text-transform: uppercase; text-shadow: 0 4px 18px rgba(0,0,0,.4);
+}
+.hero p.sub {
+  margin: .75rem 0 0; color: rgba(255,255,255,.88); font-family: var(--heading-font);
+  font-weight: 400; font-size: clamp(1rem, 2.4vw, 1.35rem); letter-spacing: 1px;
+}
+@media (max-width: 600px) { .hero { min-height: 60vh; } .hero-content { padding-bottom: 4.5rem; } }
+
+/* ---------- Logos strip ---------- */
+.logos-strip {
+  background: var(--navy-dark); padding: 1.5rem 1.25rem; display: flex; flex-wrap: nowrap;
+  align-items: center; justify-content: center; gap: clamp(.6rem,4vw,2.5rem);
+}
+.logos-strip img { height: 34px; width: auto; flex: 0 0 auto; }
+.logos-strip img.logo-gaa { height: 27px; }
+@media (min-width: 640px) { .logos-strip img { height: 44px; } .logos-strip img.logo-gaa { height: 35px; } }
+
+/* ---------- Section shell ---------- */
+section { padding: 4.5rem 0; }
+section.tight { padding: 2.5rem 0; }
+.kicker {
+  display: block; font-family: var(--heading-font); font-weight: 600; font-size: .78rem;
+  letter-spacing: 2.5px; text-transform: uppercase; color: var(--red-dark); margin-bottom: .5rem;
+}
+h2.section-title {
+  color: var(--navy); font-family: var(--display-font); font-weight: 400;
+  font-size: clamp(1.8rem, 4.5vw, 2.6rem); letter-spacing: .5px; text-transform: uppercase;
+  margin: 0 0 1.5rem; line-height: 1.05;
+}
+section.tight h2.section-title { margin-bottom: 1.25rem; }
+p { margin: 0 0 1rem; color: var(--ink); }
+h3.sub-title {
+  font-family: var(--heading-font); text-transform: uppercase; letter-spacing: .5px;
+  color: var(--navy); font-size: 1.1rem; margin: 0 0 1rem;
+}
+
+/* ---------- Mission (pull quote) ---------- */
+.mission-wrap { text-align: center; max-width: 760px; margin: 0 auto; position: relative; }
+.mission-mark {
+  font-family: var(--display-font); font-size: 8rem; color: var(--red); opacity: .12;
+  position: absolute; top: -3.5rem; left: 50%; transform: translateX(-50%); line-height: 1; z-index: 0;
+  user-select: none;
+}
+.mission-wrap p {
+  position: relative; z-index: 1; font-family: var(--heading-font); font-weight: 400;
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem); color: var(--navy); line-height: 1.55;
+}
+.mission-banner {
+  margin-top: 2rem; background: var(--red); color: #fff; font-family: var(--display-font);
+  font-weight: 400; letter-spacing: 1px; text-transform: uppercase; text-align: center;
+  padding: 1.1rem 1rem; font-size: clamp(1.1rem, 3.2vw, 1.7rem);
+}
+
+/* ---------- Quick-jump pills ---------- */
+.quick-jump {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem;
+  background: var(--surface); padding: 1.1rem 1.25rem 1.35rem; border-bottom: 1px solid var(--line);
+}
+.quick-jump .qj-label {
+  width: 100%; text-align: center; font-family: var(--heading-font); font-weight: 600;
+  font-size: .75rem; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: .3rem;
+}
+.quick-jump a {
+  display: inline-flex; align-items: center; gap: .35rem; text-decoration: none;
+  background: var(--paper); border: 1.5px solid var(--navy); color: var(--navy);
+  font-family: var(--heading-font); font-weight: 600; font-size: .8rem;
+  padding: .45rem 1rem; border-radius: 20px; transition: all .15s ease;
+}
+.quick-jump a:hover { background: var(--navy); color: #fff; }
+
+/* ---------- Strategy diagram (the pyramid, rebuilt) ---------- */
+.diagram-card {
+  background: var(--surface); border-radius: 14px; padding: 2rem 1.5rem;
+  box-shadow: 0 2px 14px rgba(20,30,60,.08); border: 1px solid var(--line);
+}
+.diagram-crest { text-align: center; margin-bottom: 1.5rem; }
+.diagram-crest img { height: 84px; margin: 0 auto .5rem; }
+.diagram-crest .clubname {
+  font-family: var(--display-font); color: var(--navy); letter-spacing: 1.5px;
+  font-size: 1.05rem; text-transform: uppercase;
+}
+.diagram-tier { border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: .85rem; }
+.diagram-tier.ethos { background: var(--navy); }
+.diagram-tier.philosophy { background: var(--red); }
+.diagram-tier .tier-label {
+  display: block; text-align: center; color: #fff; font-family: var(--heading-font);
+  font-weight: 700; text-transform: uppercase; font-size: .78rem; letter-spacing: 1.6px; margin-bottom: .75rem;
+}
+.diagram-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; }
+.diagram-chips a {
+  display: flex; align-items: center; gap: .5rem; text-decoration: none;
+  background: rgba(255,255,255,.14); color: #fff; font-family: var(--heading-font);
+  font-weight: 500; font-size: .8rem; padding: .5rem .9rem .5rem .5rem; border-radius: 20px;
+  transition: background-color .15s ease;
+}
+.diagram-chips a:hover { background: rgba(255,255,255,.28); }
+.diagram-chips .n {
+  background: #fff; color: var(--navy); border-radius: 50%; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 700; flex: 0 0 auto;
+}
+.diagram-tier.philosophy .diagram-chips .n { color: var(--red-dark); }
+
+.diagram-arrow-down {
+  display: flex; justify-content: center; margin: -.35rem 0 .85rem;
+}
+.diagram-arrow-down .arrowhead {
+  width: 12px; height: 12px; border-right: 3px solid var(--line); border-bottom: 3px solid var(--line);
+  transform: rotate(45deg);
+}
+
+.pyramid-base { display: grid; grid-template-columns: 1fr 60px 1fr; gap: .5rem; align-items: stretch; }
+.pyramid-col {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.1rem 1.25rem;
+}
+.pyramid-col h4 {
+  margin: 0 0 .85rem; font-family: var(--heading-font); text-transform: uppercase; text-align: center;
+  color: var(--navy); font-size: .9rem; letter-spacing: .5px;
+}
+.stairs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column-reverse; gap: .5rem; }
+.stairs li {
+  display: flex; align-items: center; gap: .55rem;
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--navy);
+  border-radius: 6px; padding: .5rem .7rem; font-size: .82rem; color: var(--ink);
+}
+.stairs li:nth-child(1) { margin-right: 0; }
+.stairs li:nth-child(2) { margin-right: 8%; }
+.stairs li:nth-child(3) { margin-right: 16%; }
+.stairs li:nth-child(4) { margin-right: 24%; }
+.stairs .lvl {
+  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; background: var(--navy); color: #fff;
+  font-family: var(--heading-font); font-weight: 700; font-size: .74rem; display: flex; align-items: center; justify-content: center;
+}
+.drill-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.drill-steps li {
+  display: flex; align-items: center; gap: .55rem;
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--red);
+  border-radius: 6px; padding: .5rem .7rem; font-size: .82rem; color: var(--ink);
+}
+.drill-steps .lvl {
+  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; background: var(--red); color: #fff;
+  font-family: var(--heading-font); font-weight: 700; font-size: .74rem; display: flex; align-items: center; justify-content: center;
+}
+.pyramid-mid {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem;
+}
+.pyramid-mid .bidir {
+  font-size: 1.4rem; color: var(--muted); line-height: 1;
+}
+.pyramid-mid .mid-label {
+  writing-mode: vertical-rl; text-orientation: mixed; font-family: var(--heading-font);
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600;
+}
+@media (max-width: 700px) {
+  .pyramid-base { grid-template-columns: 1fr; }
+  .pyramid-mid { flex-direction: row; padding: .35rem 0; }
+  .pyramid-mid .bidir { transform: rotate(90deg); }
+  .pyramid-mid .mid-label { writing-mode: horizontal-tb; }
+  .stairs li:nth-child(2) { margin-right: 4%; }
+  .stairs li:nth-child(3) { margin-right: 8%; }
+  .stairs li:nth-child(4) { margin-right: 12%; }
+}
+.diagram-footnote { text-align: center; margin-top: 1.25rem; font-family: var(--heading-font); color: var(--navy); font-size: .95rem; letter-spacing: 1px; text-transform: uppercase; }
+
+/* ---------- 4-up characteristic cards (reused pattern) ---------- */
+.char-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin: 1.75rem 0 0; }
+.char-card {
+  background: var(--surface); border-radius: 10px; padding: 1.25rem 1.35rem;
+  border-left: 4px solid var(--navy); box-shadow: 0 2px 10px rgba(20,30,60,.06);
+}
+.char-card:nth-child(2) { border-left-color: var(--red); }
+.char-card:nth-child(4) { border-left-color: var(--red); }
+.char-card h4 {
+  margin: 0 0 .6rem; font-family: var(--heading-font); text-transform: uppercase;
+  font-size: .92rem; letter-spacing: .4px; color: var(--navy); display: flex; align-items: center; gap: .55rem;
+}
+.char-card h4 .n {
+  background: var(--navy); color: #fff; border-radius: 50%; width: 24px; height: 24px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center; font-size: .74rem; font-family: var(--heading-font);
+}
+.char-card:nth-child(2) h4 .n, .char-card:nth-child(4) h4 .n { background: var(--red); }
+.char-card p { font-size: .9rem; color: var(--muted); margin: 0 0 .5rem; }
+.char-card ul { margin: 0; padding-left: 1.1rem; font-size: .87rem; color: var(--muted); }
+.char-card li { margin-bottom: .35rem; }
+
+/* ---------- Games grid (reused pattern) ---------- */
+.games-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+@media (max-width: 700px) { .games-grid { grid-template-columns: 1fr; } }
+.game-card {
+  background: var(--surface); border-radius: 10px; padding: 1.25rem 1.35rem;
+  border-top: 4px solid var(--red); box-shadow: 0 2px 10px rgba(20,30,60,.06);
+}
+.game-card h3 {
+  margin: 0 0 .4rem; font-family: var(--heading-font); text-transform: uppercase;
+  letter-spacing: .3px; color: var(--navy); font-size: 1rem; display: flex; align-items: center; gap: .5rem;
+}
+.game-card h3 .n {
+  background: var(--red); color: #fff; border-radius: 50%; width: 24px; height: 24px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center; font-size: .76rem; font-family: var(--heading-font);
+}
+.game-card p { margin: 0 0 .5rem; font-size: .9rem; color: var(--muted); }
+.game-card ul { margin: 0; padding-left: 1.1rem; font-size: .87rem; color: var(--muted); }
+.game-card li { margin-bottom: .3rem; }
+
+/* ---------- Pathway roadmap (reused pattern, 4 nodes) ---------- */
+.roadmap { position: relative; padding: 1rem 0 .5rem; }
+.roadmap-track { display: flex; justify-content: space-between; position: relative; gap: .5rem; }
+.roadmap-track::before {
+  content: ""; position: absolute; left: 5%; right: 5%; top: 26px; height: 3px; background: var(--line); z-index: 0;
+}
+.roadmap-node {
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center;
+  text-align: center; text-decoration: none; flex: 1; min-width: 0;
+}
+.roadmap-node .circle {
+  width: 54px; height: 54px; border-radius: 50%; background: var(--surface); border: 3px solid var(--navy);
+  color: var(--navy); font-family: var(--display-font); font-size: 1.4rem; display: flex;
+  align-items: center; justify-content: center; transition: all .2s ease; box-shadow: 0 3px 10px rgba(27,58,107,.15);
+}
+.roadmap-node:hover .circle { background: var(--red); border-color: var(--red); color: #fff; transform: scale(1.08); }
+.roadmap-node .age { font-family: var(--heading-font); font-weight: 700; font-size: .72rem; color: var(--red-dark); margin-top: .6rem; text-transform: uppercase; letter-spacing: .4px; }
+.roadmap-node .name { font-size: .78rem; color: var(--muted); margin-top: .2rem; padding: 0 .25rem; line-height: 1.3; }
+@media (max-width: 760px) {
+  .roadmap-track { flex-direction: column; gap: 1.75rem; }
+  .roadmap-track::before { left: 26px; top: 5%; bottom: 5%; right: auto; width: 3px; height: auto; }
+  .roadmap-node { flex-direction: row; text-align: left; gap: 1rem; }
+  .roadmap-node .circle { width: 46px; height: 46px; font-size: 1.15rem; flex: 0 0 auto; }
+  .roadmap-node .meta { display: flex; flex-direction: column; }
+  .roadmap-node .age { margin-top: 0; }
+}
+
+/* ---------- Level detail blocks ---------- */
+.level-block { padding: 2rem 0; border-top: 1px solid var(--line); }
+.level-block:first-of-type { border-top: none; padding-top: 1rem; }
+.level-eyebrow { display: flex; align-items: center; gap: .75rem; margin-bottom: .35rem; flex-wrap: wrap; }
+.level-eyebrow .level-badge {
+  font-family: var(--display-font); font-size: 1.1rem; color: #fff; background: var(--navy);
+  width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
+}
+.level-eyebrow .age-range {
+  font-family: var(--heading-font); font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
+  font-size: .82rem; color: var(--red-dark);
+}
+.level-block h3.level-title { margin: 0 0 .6rem; font-family: var(--heading-font); color: var(--navy); text-transform: uppercase; font-size: 1.3rem; letter-spacing: .3px; }
+.level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+@media (max-width: 700px) { .level-grid { grid-template-columns: 1fr; gap: 1rem; } }
+.level-grid h5 { margin: 0 0 .5rem; color: var(--navy); font-family: var(--heading-font); text-transform: uppercase; font-size: .8rem; letter-spacing: .4px; }
+.level-grid ul { margin: 0; padding-left: 1.1rem; font-size: .9rem; }
+.level-grid li { margin-bottom: .35rem; }
+
+/* ---------- Note / callout cards ---------- */
+.notes-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: .85rem; margin: 1.5rem 0 0; }
+.note-card {
+  background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--red);
+  border-radius: 8px; padding: .9rem 1.1rem; font-size: .87rem;
+}
+.note-card strong { display: block; color: var(--navy); font-family: var(--heading-font); text-transform: uppercase; font-size: .78rem; letter-spacing: .3px; margin-bottom: .3rem; }
+
+.video-callout {
+  display: flex; align-items: center; gap: .75rem; text-decoration: none; color: inherit;
+  background: #FFF1F2; border: 1px solid #F8C6CB; border-left: 4px solid var(--red);
+  border-radius: 8px; padding: .7rem .9rem; margin: 1.5rem 0 0; transition: background-color .15s ease;
+}
+.video-callout:hover { background: #FFE4E6; }
+.video-callout-icon {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; background: var(--red);
+  display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--heading-font); font-weight: 700; font-size: .95rem;
+}
+.video-callout-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.video-callout-text strong { font-family: var(--heading-font); font-weight: 600; font-size: .85rem; color: var(--navy); }
+.video-callout-text span { font-size: .78rem; color: var(--muted); }
+.video-callout-cta {
+  flex: 0 0 auto; font-family: var(--heading-font); font-size: .78rem; font-weight: 700;
+  color: var(--red-dark); text-transform: uppercase; letter-spacing: .3px; white-space: nowrap;
+}
+@media (max-width: 480px) { .video-callout-text span { display: none; } }
+
+/* ---------- Coach self-check (assessment pattern) ---------- */
+.assessment-block { margin-top: 1.5rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--surface); }
+.assessment-block summary {
+  cursor: pointer; list-style: none; padding: 1rem 1.25rem; display: flex; align-items: center;
+  justify-content: space-between; gap: 1rem; background: var(--navy); color: #fff;
+}
+.assessment-block summary::-webkit-details-marker { display: none; }
+.assessment-block summary .a-title { font-family: var(--heading-font); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; font-size: .95rem; }
+.assessment-block summary .a-progress { display: flex; align-items: center; gap: .75rem; font-size: .82rem; opacity: .9; }
+.assessment-block summary .chevron { transition: transform .2s ease; font-size: .8rem; }
+.assessment-block[open] summary .chevron { transform: rotate(180deg); }
+.progress-bar { height: 5px; background: var(--line); }
+.progress-bar-fill { height: 100%; width: 0%; background: var(--red); transition: width .25s ease; }
+.checklist-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 1.5rem 1.25rem; }
+@media (max-width: 700px) { .checklist-cols { grid-template-columns: 1fr; gap: 1.5rem; } }
+.checklist-cols h4 { margin: 0 0 .75rem; color: var(--navy); font-family: var(--heading-font); text-transform: uppercase; font-size: .85rem; letter-spacing: .3px; }
+ul.checklist { list-style: none; margin: 0; padding: 0; }
+ul.checklist li { border-bottom: 1px solid var(--line); }
+ul.checklist li:last-child { border-bottom: none; }
+ul.checklist label { display: flex; align-items: flex-start; gap: .65rem; padding: .55rem .1rem; font-size: .88rem; cursor: pointer; }
+ul.checklist input[type=checkbox] { margin-top: .2rem; width: 17px; height: 17px; accent-color: var(--red); flex: 0 0 auto; cursor: pointer; }
+ul.checklist input[type=checkbox]:checked + span { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.reset-checklist {
+  display: block; margin: 0 1.25rem 1.25rem; background: transparent; border: 1px solid var(--line);
+  color: var(--muted); font-size: .78rem; padding: .5rem 1rem; border-radius: 6px; cursor: pointer;
+  font-family: var(--heading-font); text-transform: uppercase; letter-spacing: .3px;
+}
+.reset-checklist:hover { border-color: var(--red); color: var(--red-dark); }
+
+/* ---------- Footer ---------- */
+footer { background: var(--navy-dark); color: #cdd6ea; text-align: center; padding: 3rem 1.25rem 2.5rem; }
+footer img.crest { height: 56px; margin: 0 auto 1rem; }
+footer .foot-name { font-family: var(--display-font); font-size: 1.6rem; color: #fff; letter-spacing: .5px; text-transform: uppercase; }
+footer .foot-tag { font-family: var(--heading-font); font-size: .85rem; opacity: .8; margin-top: .25rem; }
+footer .foot-links { margin-top: 1.5rem; display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+footer .back-top { display: inline-block; color: #fff; text-decoration: none; font-family: var(--heading-font); font-size: .78rem; letter-spacing: .3px; text-transform: uppercase; border: 1px solid rgba(255,255,255,.3); padding: .5rem 1.1rem; border-radius: 20px; }
+footer .back-top:hover { background: rgba(255,255,255,.1); }
+</style>
+</head>
+<body id="top">
+
+<nav class="rail">
+  <div class="rail-track"></div>
+  <a href="#overview"><span class="dot"></span><span class="label">Overview</span></a>
+  <a href="#ethos"><span class="dot"></span><span class="label">Club Ethos</span></a>
+  <a href="#philosophy"><span class="dot"></span><span class="label">Philosophy</span></a>
+  <a href="#pathway"><span class="dot"></span><span class="label">Player Pathway</span></a>
+  <a href="#games-drills"><span class="dot"></span><span class="label">Games &amp; Drills</span></a>
+  <a href="#self-check"><span class="dot"></span><span class="label">Coach Self-Check</span></a>
+</nav>
+
+<header class="topbar">
+  <a class="brand" href="#top">
+    <img class="crest" src="images/clontarf-crest.png" alt="">
+    <span class="brand-name">Clontarf GAA</span>
+  </a>
+  <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks">
+    <span class="nav-toggle-icon"></span> Menu
+  </button>
+  <div class="nav-links" id="navLinks">
+      <a href="#overview">Overview</a>
+      <a href="#ethos">Club Ethos</a>
+      <a href="#philosophy">Playing Philosophy</a>
+      <a href="#pathway">Player Pathway</a>
+      <a href="#games-drills">Games &amp; Drills</a>
+      <a href="#self-check">Coach Self-Check</a>
+      <a href="coaching-pathway-v3.html">Coaching Pathway Handbook &rarr;</a>
+  </div>
+</header>
+
+<div class="hero">
+  <img class="hero-bg" src="images/stadium-match-crowd.jpg" alt="Clontarf GAA players in action in front of a full stand">
+  <div class="hero-content">
+    <div class="inner">
+      <span class="hero-tagline">Club Strategy</span>
+      <h1>Clontarf GAA</h1>
+      <p class="sub">Ethos, Playing Philosophy &amp; Player Pathway</p>
+    </div>
+  </div>
+</div>
+
+<div class="logos-strip">
+  <img class="logo-gaa" src="images/logo-gaa.png" alt="GAA">
+  <img class="logo-lgfa" src="images/logo-lgfa.png" alt="LGFA Ladies Gaelic Football">
+  <img class="logo-camogie" src="images/logo-camogie.png" alt="The Camogie Association">
+  <img class="logo-handball" src="images/logo-handball.png" alt="GAA Handball">
+</div>
+
+<div class="quick-jump">
+  <span class="qj-label">Jump to a section</span>
+  <a href="#ethos">Club Ethos</a>
+  <a href="#philosophy">Playing Philosophy</a>
+  <a href="#pathway">Player Pathway</a>
+  <a href="#games-drills">Games &amp; Drills</a>
+</div>
+
+<section id="overview">
+  <div class="wrap">
+    <span class="kicker">The whole picture, on one page</span>
+    <h2 class="section-title">Our Club Strategy</h2>
+    <p>Everything Clontarf GAA does with its players is built on the same foundation. Our <strong>ethos</strong> sets the standard for how everyone in the club treats one another. Our <strong>playing philosophy</strong> sets the standard for how our teams play the game. Together they shape a single <strong>player pathway</strong>, delivered every week through a consistent approach to <strong>games and drills</strong>. This page sets out how the pieces fit together, and breaks each one down into the detail coaches and mentors need on the sideline.</p>
+
+    <div class="diagram-card">
+      <div class="diagram-crest">
+        <img src="images/clontarf-crest.png" alt="Clontarf GAA crest, Cluain Tarbh">
+        <div class="clubname">Cluain Tarbh</div>
+      </div>
+
+      <div class="diagram-tier ethos">
+        <span class="tier-label">Club Ethos</span>
+        <div class="diagram-chips">
+          <a href="#ethos-respect"><span class="n">1</span>Respect &amp; Integrity</a>
+          <a href="#ethos-inclusivity"><span class="n">2</span>Inclusivity</a>
+          <a href="#ethos-wellbeing"><span class="n">3</span>Wellbeing</a>
+          <a href="#ethos-pride"><span class="n">4</span>Passion &amp; Pride</a>
+        </div>
+      </div>
+
+      <div class="diagram-arrow-down"><span class="arrowhead"></span></div>
+
+      <div class="diagram-tier philosophy">
+        <span class="tier-label">Playing Philosophy</span>
+        <div class="diagram-chips">
+          <a href="#phil-attacking"><span class="n">1</span>Attacking Mindset</a>
+          <a href="#phil-workrate"><span class="n">2</span>High-Intensity Work-Rate</a>
+          <a href="#phil-skill"><span class="n">3</span>Skilful Execution</a>
+          <a href="#phil-decisions"><span class="n">4</span>Intelligent Decision Making</a>
+        </div>
+      </div>
+
+      <div class="diagram-arrow-down"><span class="arrowhead"></span></div>
+
+      <div class="pyramid-base">
+        <div class="pyramid-col">
+          <h4>Player Pathway</h4>
+          <ol class="stairs">
+            <li><span class="lvl">1</span>Nursery</li>
+            <li><span class="lvl">2</span>Skill Dev</li>
+            <li><span class="lvl">3</span>Refinement</li>
+            <li><span class="lvl">4</span>Performance</li>
+          </ol>
+        </div>
+        <div class="pyramid-mid">
+          <span class="bidir">&#8596;</span>
+          <span class="mid-label">Feeds each other</span>
+        </div>
+        <div class="pyramid-col">
+          <h4>Games &amp; Drills</h4>
+          <ol class="drill-steps">
+            <li><span class="lvl">1</span>Small Sided Games</li>
+            <li><span class="lvl">2</span>Game-Based Scenarios</li>
+            <li><span class="lvl">3</span>Core Skill Stations</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="diagram-footnote">Cluain Tarbh</div>
+    </div>
+  </div>
+</section>
+
+<section id="ethos" class="tight">
+  <div class="wrap">
+    <span class="kicker">Non-negotiable, at every age group</span>
+    <h2 class="section-title">Club Ethos</h2>
+    <p>The ethos is the foundation everything else in this document sits on. It doesn't change by age group, code or team status &mdash; it applies to a Nursery session on a Saturday morning exactly as much as it applies to a Senior Championship match.</p>
+
+    <div class="char-row">
+      <div class="char-card" id="ethos-respect">
+        <h4><span class="n">1</span>Respect &amp; Integrity</h4>
+        <p>How we treat each other, our opponents and match officials, win or lose.</p>
+        <ul>
+          <li>Referees' decisions are accepted &mdash; no dissent, from players, coaches or sideline.</li>
+          <li>Coaches model the behaviour they expect from players.</li>
+          <li>Mistakes are owned, not blamed on teammates, officials or opponents.</li>
+          <li>Opposition players and clubs are treated as guests and hosts, not enemies.</li>
+        </ul>
+      </div>
+      <div class="char-card" id="ethos-inclusivity">
+        <h4><span class="n">2</span>Inclusivity</h4>
+        <p>Every child who wants to play Gaelic Games in Clontarf has a place to do it.</p>
+        <ul>
+          <li>No child is cut or turned away at underage level, regardless of ability.</li>
+          <li>Fair game time is protected, especially at Nursery through U12.</li>
+          <li>Sessions are adapted, not standardised, for players of different abilities.</li>
+          <li>Football, hurling/camogie and handball are all open doors into the club.</li>
+        </ul>
+      </div>
+      <div class="char-card" id="ethos-wellbeing">
+        <h4><span class="n">3</span>Wellbeing</h4>
+        <p>The player's welfare comes before the result, every single time.</p>
+        <ul>
+          <li>All mentors are Garda vetted and Child Protection trained before they coach.</li>
+          <li>Training load and match minutes are managed with age and fatigue in mind.</li>
+          <li>Coaches check in on players, not just their skills &mdash; a listening ear matters.</li>
+          <li>A safe, positive environment is treated as a precondition for learning, not a nice-to-have.</li>
+        </ul>
+      </div>
+      <div class="char-card" id="ethos-pride">
+        <h4><span class="n">4</span>Passion &amp; Pride</h4>
+        <p style="font-weight:600;color:var(--red-dark);margin-top:-.4rem;">(for Cluain Tarbh)</p>
+        <p>A lifelong connection to the club, not just a season of it.</p>
+        <ul>
+          <li>Pulling on the Clontarf jersey means representing the whole club community.</li>
+          <li>"Play and Stay" &mdash; we want players involved in the club for life, as players, coaches, volunteers or supporters.</li>
+          <li>Effort and commitment to the club badge are celebrated as much as scores and results.</li>
+          <li>Past players are encouraged back in as mentors &mdash; pride is passed down, not left behind.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="philosophy" class="tight">
+  <div class="wrap">
+    <span class="kicker">How our teams play the game</span>
+    <h2 class="section-title">Playing Philosophy</h2>
+    <p>Once the ethos is in place, the playing philosophy describes the style of play we coach towards at every level &mdash; scaled to what's age-appropriate, but consistent in direction from Nursery to Senior.</p>
+
+    <div class="games-grid">
+      <div class="game-card" id="phil-attacking">
+        <h3><span class="n">1</span>Attacking Mindset</h3>
+        <p>Players are coached to look forward first. Possession is a platform to create, not just protect.</p>
+        <ul>
+          <li>Positive first thought on the ball: can I advance play?</li>
+          <li>Risk-taking and creativity are encouraged, not punished when they don't come off.</li>
+          <li>Runners support the ball-carrier by offering forward options.</li>
+        </ul>
+      </div>
+      <div class="game-card" id="phil-workrate">
+        <h3><span class="n">2</span>High-Intensity Work-Rate</h3>
+        <p>Effort off the ball is coached with the same care as skill on it.</p>
+        <ul>
+          <li>Hustle back into position and support play at pace.</li>
+          <li>Physical conditioning is built progressively to sustain intensity for a full game.</li>
+          <li>At younger ages this means enthusiasm and hustle, not literal press-and-tackle systems.</li>
+        </ul>
+      </div>
+      <div class="game-card" id="phil-skill">
+        <h3><span class="n">3</span>Skilful Execution</h3>
+        <p>Technical quality is never sacrificed for outcome &mdash; "master the ball" starts on day one.</p>
+        <ul>
+          <li>Two-sided competence is a target at every age: dominant and non-dominant hand/foot/side.</li>
+          <li>Skills are drilled to a standard, not just introduced and moved past.</li>
+          <li>Game speed execution is the end goal of every technical drill.</li>
+        </ul>
+      </div>
+      <div class="game-card" id="phil-decisions">
+        <h3><span class="n">4</span>Intelligent Decision Making</h3>
+        <p>Reading the game is coached explicitly, growing from simple choices to full tactical awareness.</p>
+        <ul>
+          <li>Coaches ask questions ("what were your options there?") rather than only giving instructions.</li>
+          <li>Game understanding builds from "where do I go" at U8 to positional and tactical roles by U15+.</li>
+          <li>Players are trusted to make the call on the pitch, and reviewed afterwards, not overridden mid-play.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pathway">
+  <div class="wrap">
+    <span class="kicker">One player, one journey</span>
+    <h2 class="section-title">Player Pathway</h2>
+    <p>The pathway is organised into four levels. Each level builds directly on the one before it, and each is delivered through the same games-and-drills framework, scaled to age. For the full age-by-age technical curriculum &mdash; skills checklists, session content and coach characteristics for every age group &mdash; see the <a href="coaching-pathway-v3.html">Coaching Pathway Mentor Handbook</a>.</p>
+
+    <div class="roadmap">
+      <div class="roadmap-track">
+        <a class="roadmap-node" href="#level1">
+          <span class="circle">1</span>
+          <span class="meta">
+            <span class="age">Nursery</span>
+            <span class="name">Ages 4&ndash;6</span>
+          </span>
+        </a>
+        <a class="roadmap-node" href="#level2">
+          <span class="circle">2</span>
+          <span class="meta">
+            <span class="age">Skill Development</span>
+            <span class="name">Ages 7&ndash;10</span>
+          </span>
+        </a>
+        <a class="roadmap-node" href="#level3">
+          <span class="circle">3</span>
+          <span class="meta">
+            <span class="age">Refinement</span>
+            <span class="name">Ages 11&ndash;15</span>
+          </span>
+        </a>
+        <a class="roadmap-node" href="#level4">
+          <span class="circle">4</span>
+          <span class="meta">
+            <span class="age">Performance</span>
+            <span class="name">Ages 16&ndash;18 &amp; Adult</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <div class="level-block" id="level1">
+      <div class="level-eyebrow">
+        <span class="level-badge">1</span>
+        <span class="age-range">Ages 4&ndash;6</span>
+      </div>
+      <h3 class="level-title">Nursery</h3>
+      <p>The starting point of the pathway. The only goal is that every child has fun with a ball in their hand or on a hurl, and starts to build the basic physical literacy every game skill depends on.</p>
+      <div class="level-grid">
+        <div>
+          <h5>Focus</h5>
+          <ul>
+            <li>Fun as the number one priority, every session.</li>
+            <li>First touches: catching, striking, kicking, ball control.</li>
+            <li>Fundamental movement &mdash; running, jumping, balance, coordination.</li>
+            <li>A ball each, or between two, at every session.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>What good looks like</h5>
+          <ul>
+            <li>High coach-to-player ratio (around 1:5) so every child gets attention.</li>
+            <li>Small-sided games only &mdash; 2v2, 3v3, 4v4 maximum.</li>
+            <li>Discovery and trial-and-error over instruction.</li>
+            <li>No standings, no scores kept &mdash; the outcome is enjoyment.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="level-block" id="level2">
+      <div class="level-eyebrow">
+        <span class="level-badge">2</span>
+        <span class="age-range">Ages 7&ndash;10</span>
+      </div>
+      <h3 class="level-title">Skill Development</h3>
+      <p>Players broaden their technical range across codes and start to combine skills under light pressure, while still trying every position and both sides of the ball.</p>
+      <div class="level-grid">
+        <div>
+          <h5>Focus</h5>
+          <ul>
+            <li>Wider technical vocabulary: catching styles, striking variations, tackling basics.</li>
+            <li>Introducing zones and positional structure without locking players into one role.</li>
+            <li>Players try every position to build a full picture of the game.</li>
+            <li>Simple decision-making: look up, find space, use the ball early.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>What good looks like</h5>
+          <ul>
+            <li>Small-sided games up to 6v6, still with plenty of touches per player.</li>
+            <li>Coaches guide with questions rather than direct instruction.</li>
+            <li>Individual skill practice sits alongside game-based learning every session.</li>
+            <li>Actual results stay secondary to development.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="level-block" id="level3">
+      <div class="level-eyebrow">
+        <span class="level-badge">3</span>
+        <span class="age-range">Ages 11&ndash;15</span>
+      </div>
+      <h3 class="level-title">Refinement</h3>
+      <p>Skills learned earlier are consolidated and applied under real pressure. Players start to understand team play, positions, and the tactical "why" behind decisions, alongside their physical development.</p>
+      <div class="level-grid">
+        <div>
+          <h5>Focus</h5>
+          <ul>
+            <li>Sport-specific skills refined for consistency at pace and under contact.</li>
+            <li>Positional understanding: what does my role require of me, in and out of possession?</li>
+            <li>Introduction of game systems &mdash; using a sweeper, dealing with one, zone marking.</li>
+            <li>Structured athletic development: speed, strength and conditioning appropriate to age.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>What good looks like</h5>
+          <ul>
+            <li>Game-based scenarios with a tactical theme, not just open small-sided games.</li>
+            <li>Players are asked to reflect on decisions after training and matches.</li>
+            <li>Only qualified coaches deliver strength and conditioning work.</li>
+            <li>Session length grows with age, up to roughly 60&ndash;70 minutes.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="level-block" id="level4">
+      <div class="level-eyebrow">
+        <span class="level-badge">4</span>
+        <span class="age-range">Ages 16&ndash;18 &amp; Adult</span>
+      </div>
+      <h3 class="level-title">Performance</h3>
+      <p>The pathway's destination. Players fine-tune skills and performance, then train to compete and maximise performance, whether that's on a Minor, U20 or Senior team &mdash; and the club works to retain them beyond their playing days.</p>
+      <div class="level-grid">
+        <div>
+          <h5>Focus</h5>
+          <ul>
+            <li>Fine-tuning technique and decision making at full match intensity.</li>
+            <li>Full tactical literacy: game plans, opposition analysis, in-game adjustments.</li>
+            <li>Individual preparation &mdash; lifestyle, recovery and conditioning becomes the player's own responsibility.</li>
+            <li>A clear route from Minor/U20 panels into Senior football, hurling, camogie and ladies football.</li>
+          </ul>
+        </div>
+        <div>
+          <h5>What good looks like</h5>
+          <ul>
+            <li>Session content driven by team and individual performance goals.</li>
+            <li>Players retained in the club as mentors, coaches or volunteers once playing days end.</li>
+            <li>In-depth tactical awareness applied by players themselves, not just directed by the sideline.</li>
+            <li>The same core ethos &mdash; respect, inclusivity, wellbeing, pride &mdash; still holds at Senior level.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="games-drills" class="tight">
+  <div class="wrap">
+    <span class="kicker">How every session is built</span>
+    <h2 class="section-title">Games &amp; Drills</h2>
+    <p>Every level of the pathway is delivered through the same three building blocks. What changes with age isn't the framework &mdash; it's the numbers, the constraints and the complexity layered on top.</p>
+
+    <div class="games-grid">
+      <div class="game-card" id="ggd-ssg">
+        <h3><span class="n">1</span>Small Sided Games (SSGs)</h3>
+        <p>Reduced numbers &mdash; 2v2 up to 6v6 depending on age &mdash; so every player gets far more touches and far more decisions than they would in a full-sided game.</p>
+        <ul>
+          <li>The default format for training at Nursery through underage.</li>
+          <li>Maximises repetitions of the skills coached that week.</li>
+          <li>Naturally scales up in numbers and pitch size as players get older.</li>
+        </ul>
+      </div>
+      <div class="game-card" id="ggd-scenarios">
+        <h3><span class="n">2</span>Game-Based Scenarios</h3>
+        <p>Conditioned games built around a specific tactical theme &mdash; a constraint, an overload, a system &mdash; that bridge pure skill practice and the real match.</p>
+        <ul>
+          <li>Examples: playing with/against a sweeper, zone vs. man marking, creating and using overloads.</li>
+          <li>Introduced from Refinement level (roughly U12) as tactical understanding develops.</li>
+          <li>Coaches use questioning and reflection to embed the "why", not just the "what".</li>
+        </ul>
+      </div>
+      <div class="game-card" id="ggd-stations">
+        <h3><span class="n">3</span>Core Skill Stations</h3>
+        <p>Rotation-based technical stations &mdash; striking, catching, kicking, tackling &mdash; that drill fundamentals with a high number of repetitions per player.</p>
+        <ul>
+          <li>Handling, striking, ball control and athletic movement all get dedicated station time.</li>
+          <li>Used to introduce and groove a new skill before it's tested inside a game.</li>
+          <li>Scales from basic ABCs (agility, balance, coordination) at Nursery to sport-specific technical stations by Refinement.</li>
+        </ul>
+      </div>
+    </div>
+
+    <a class="video-callout" href="coaching-pathway-v3.html#games">
+      <span class="video-callout-icon">&rarr;</span>
+      <span class="video-callout-text">
+        <strong>See the full games taxonomy</strong>
+        <span>Chasing, target, court, field, part-invasion &amp; full-invasion games, explained by stage</span>
+      </span>
+      <span class="video-callout-cta">Coaching Pathway</span>
+    </a>
+  </div>
+</section>
+
+<section id="self-check">
+  <div class="wrap">
+    <span class="kicker">Bringing it together</span>
+    <h2 class="section-title">Coach Self-Check</h2>
+    <p>A quick way for any mentor to check their own session against the strategy above. Tick off what's true of your last session &mdash; this list is stored on your own device only, so use it however's useful to you.</p>
+
+    <details class="assessment-block" data-key="strategy-self-check">
+      <summary>
+        <span class="a-title">Am I living the strategy?</span>
+        <span class="a-progress">
+          <span class="progress-count">0 / 12 checked</span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </span>
+      </summary>
+      <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+      <div class="checklist-cols">
+        <div>
+          <h4>Ethos &amp; Philosophy</h4>
+          <ul class="checklist">
+            <li><label><input type="checkbox"><span>Every player was treated with <strong>respect</strong>, and I modelled that myself.</span></label></li>
+            <li><label><input type="checkbox"><span>No child was left out or under-involved &mdash; <strong>inclusivity</strong> held up.</span></label></li>
+            <li><label><input type="checkbox"><span>Session content and intensity suited the group's <strong>wellbeing</strong>, not just the plan on paper.</span></label></li>
+            <li><label><input type="checkbox"><span>Players left feeling <strong>pride</strong> in the jersey, regardless of the result.</span></label></li>
+            <li><label><input type="checkbox"><span>Players were encouraged to play with an <strong>attacking mindset</strong>.</span></label></li>
+            <li><label><input type="checkbox"><span>Work-rate off the ball was coached, not just skill on it.</span></label></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Pathway &amp; Session Design</h4>
+          <ul class="checklist">
+            <li><label><input type="checkbox"><span>Technical execution was coached to a <strong>standard</strong>, not just introduced.</span></label></li>
+            <li><label><input type="checkbox"><span>I asked questions to build <strong>decision-making</strong>, rather than only giving instructions.</span></label></li>
+            <li><label><input type="checkbox"><span>Session content matched this group's <strong>pathway level</strong>, not an older or younger group's.</span></label></li>
+            <li><label><input type="checkbox"><span>The session used <strong>small-sided games</strong> to maximise touches.</span></label></li>
+            <li><label><input type="checkbox"><span>Where appropriate, a <strong>game-based scenario</strong> tied skills to a tactical theme.</span></label></li>
+            <li><label><input type="checkbox"><span><strong>Core skill stations</strong> gave players real repetitions on a specific technique.</span></label></li>
+          </ul>
+        </div>
+      </div>
+      <button type="button" class="reset-checklist">Reset checklist</button>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <img class="crest" src="images/clontarf-crest.png" alt="Clontarf GAA crest">
+  <div class="foot-name">Clontarf GAA</div>
+  <div class="foot-tag">Club Strategy &middot; CLG Chluain Tarbh</div>
+  <div class="foot-links">
+    <a class="back-top" href="coaching-pathway-v3.html">Coaching Pathway Handbook</a>
+    <a class="back-top" href="#top">Back to top</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var links = document.getElementById('navLinks');
+  if (toggle) {
+    toggle.addEventListener('click', function () {
+      var open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    links.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
+  // Scrollspy rail
+  var railLinks = document.querySelectorAll('.rail a');
+  if (railLinks.length && 'IntersectionObserver' in window) {
+    var sections = [];
+    railLinks.forEach(function (a) {
+      var sec = document.querySelector(a.getAttribute('href'));
+      if (sec) sections.push(sec);
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var id = '#' + entry.target.id;
+        var link = document.querySelector('.rail a[href="' + id + '"]');
+        if (!link) return;
+        railLinks.forEach(function (l) { l.classList.remove('active'); });
+        link.classList.add('active');
+      });
+    }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+    sections.forEach(function (s) { obs.observe(s); });
+
+    var rail = document.querySelector('.rail');
+    function layoutRail() {
+      if (!rail) return;
+      var railHeight = rail.getBoundingClientRect().height;
+      var docHeight = document.body.scrollHeight;
+      railLinks.forEach(function (a) {
+        var sec = document.querySelector(a.getAttribute('href'));
+        if (!sec) return;
+        var ratio = sec.offsetTop / docHeight;
+        a.style.top = (ratio * railHeight) + 'px';
+      });
+    }
+    layoutRail();
+    window.addEventListener('load', layoutRail);
+    window.addEventListener('resize', layoutRail);
+  }
+
+  // Assessment checklist with localStorage persistence
+  document.querySelectorAll('.assessment-block').forEach(function (block) {
+    var key = 'clontarf-strategy-' + block.dataset.key;
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
+    var boxes = block.querySelectorAll('input[type=checkbox]');
+    var progressEl = block.querySelector('.progress-count');
+    var barEl = block.querySelector('.progress-bar-fill');
+    function update() {
+      var checked = 0;
+      boxes.forEach(function (b) { if (b.checked) checked++; });
+      if (progressEl) progressEl.textContent = checked + ' / ' + boxes.length + ' checked';
+      if (barEl) barEl.style.width = (boxes.length ? (checked / boxes.length * 100) : 0) + '%';
+    }
+    boxes.forEach(function (b, i) {
+      if (saved[i]) b.checked = true;
+      b.addEventListener('change', function () {
+        saved[i] = b.checked;
+        localStorage.setItem(key, JSON.stringify(saved));
+        update();
+      });
+    });
+    var resetBtn = block.querySelector('.reset-checklist');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        boxes.forEach(function (b, i) { b.checked = false; saved[i] = false; });
+        localStorage.setItem(key, JSON.stringify(saved));
+        update();
+      });
+    }
+    update();
+  });
+})();
+</script>
+</body>
+</html>
