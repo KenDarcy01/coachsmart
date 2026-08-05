@@ -1285,7 +1285,7 @@ async function doPause() {
 function showResetModal()  { $('resetModal').classList.add('show'); }
 function hideResetModal()  { $('resetModal').classList.remove('show'); }
 
-async function doReset() {
+async function doReset(clearStats = true) {
   hideResetModal();
   const { error } = await sb
     .from('match_timer')
@@ -1301,7 +1301,7 @@ async function doReset() {
   wasInInjuryTime = false;
   stopInterval();
   updateTimerUI();
-  if (matchStatsRow) {
+  if (clearStats && matchStatsRow) {
     await sb.rpc('reset_match_stats_details', { p_match_stats_id: matchStatsRow.id });
     scoreCounts = {};
     updateScoreDisplay();
@@ -1675,8 +1675,9 @@ async function finaliseStats() {
   if (!matchStatsRow) { showToast('No stats to save'); return; }
   const { error } = await sb.rpc('finalise_match_stats', { p_match_stats_id: matchStatsRow.id });
   if (error) { showToast('Error saving stats'); return; }
-  showToast('Stats saved — timer reset');
-  await doReset();
+  showToast('Stats saved');
+  // Reset the timer only — preserve match_stats_details so the chart retains the data
+  await doReset(false);
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
