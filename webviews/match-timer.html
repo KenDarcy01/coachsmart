@@ -607,7 +607,8 @@
       <button class="btn-primary btn-start" id="toggleBtn" onclick="toggleTimer()">Start</button>
       <button class="btn-primary btn-start" id="halfTimeBtn" style="display:none" onclick="startSecondHalf()">Start 2nd Half</button>
       <button class="btn-end-period" id="endPeriodBtn" style="display:none" onclick="endCurrentPeriod()">End Half</button>
-      <button class="btn-save" onclick="finaliseStats()">Save Stats</button>
+      <button class="btn-save" id="saveStatsBtn" style="display:none" onclick="finaliseStats()">Save Stats</button>
+      <button class="btn-save" id="finishSaveBtn" style="display:none" onclick="finaliseStats()">Finish &amp; Save</button>
       <button class="btn-secondary" onclick="showResetModal()">Reset Timer</button>
     </div>
   </div>
@@ -1397,9 +1398,19 @@ function updateTimerUI() {
     }
   }
 
-  // Save button label
-  const saveBtn = document.querySelector('.btn-save');
-  if (saveBtn) saveBtn.textContent = isFullTime ? 'Finish & Save' : 'Save Stats';
+  // Save / Finish & Save buttons
+  const saveStatsBtn  = $('saveStatsBtn');
+  const finishSaveBtn = $('finishSaveBtn');
+  if (isFullTime) {
+    saveStatsBtn.style.display  = 'none';
+    finishSaveBtn.style.display = '';
+  } else if (!isRunning && elapsed > 0 && !isHalfTime) {
+    saveStatsBtn.style.display  = '';
+    finishSaveBtn.style.display = 'none';
+  } else {
+    saveStatsBtn.style.display  = 'none';
+    finishSaveBtn.style.display = 'none';
+  }
 }
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
@@ -1577,7 +1588,7 @@ async function adjustScore(typeId, side, delta) {
       timer_status:   timerStatus,
       half:           currentHalf,
     });
-    if (error) { console.error(error); return; }
+    if (error) { console.error(error); showToast('Score not saved — check connection'); return; }
     if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
     scoreCounts[typeId][side]++;
   } else {
