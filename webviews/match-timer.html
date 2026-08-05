@@ -196,6 +196,7 @@
     .timer-status.injury       { background: rgba(239,68,68,0.15);   color: var(--red); }
     .timer-status.injury-pause { background: rgba(245,158,11,0.15);  color: var(--amber); }
     .timer-status.full-time    { background: rgba(239,68,68,0.15);   color: var(--red); }
+    .timer-status.half-time    { background: rgba(245,158,11,0.18);  color: var(--amber); }
 
     .timer-display {
       font-family: 'Bebas Neue', sans-serif;
@@ -220,6 +221,12 @@
       letter-spacing: 4px; line-height: 1;
       color: var(--red);
       user-select: none; -webkit-user-select: none;
+    }
+
+    .half-badge {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 17px; letter-spacing: 4px;
+      color: var(--muted); margin-bottom: 2px;
     }
 
     .timer-buttons { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin-top: 16px; }
@@ -565,6 +572,7 @@
   </div>
   <div class="timer-body" id="timerBody">
     <div class="timer-status paused" id="timerStatus">Paused</div>
+    <div class="half-badge" id="halfBadge">H1</div>
     <div class="timer-display" id="timerDisplay">30:00</div>
     <div class="injury-wrap" id="injuryWrap">
       <div class="injury-label">Injury Time</div>
@@ -588,6 +596,7 @@
     </div>
     <div class="timer-buttons">
       <button class="btn-primary btn-start" id="toggleBtn" onclick="toggleTimer()">Start</button>
+      <button class="btn-primary btn-start" id="halfTimeBtn" style="display:none" onclick="startSecondHalf()">Start 2nd Half</button>
       <button class="btn-save" onclick="finaliseStats()">Save Stats</button>
       <button class="btn-secondary" onclick="showResetModal()">Reset Timer</button>
     </div>
@@ -666,6 +675,7 @@ let timerInterval  = null;
 let selectedDurationMins = 30;
 let selectedInjuryMins   = 10;
 let wasInInjuryTime = false;   // tracks transition so alarm fires once per crossing
+let currentHalf     = 1;
 let matchStatsRow  = null;     // row in match_stats for this session
 let scoreTypes     = [];       // [{id, score_type, abbreviated_name, score_value}]
 let scoreCounts    = {};       // {typeId: {us: N, opp: N}}
@@ -777,6 +787,38 @@ function triggerFinalWhistle() {
     });
   } catch (_) {}
   showToast('Full time — timer stopped');
+}
+
+function triggerHalfTimeWhistle() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.4].forEach(delay => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = 740;
+      gain.gain.setValueAtTime(0.7, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+      osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.3);
+    });
+  } catch (_) {}
+  showToast('Half time!');
+}
+
+async function startSecondHalf() {
+  const { error } = await sb
+    .from('match_timer')
+    .update({ elapsed_seconds: 0, started_at: null, status: 'paused', current_half: 2 })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Error starting second half'); return; }
+  currentHalf = 2;
+  timerRow.elapsed_seconds = 0;
+  timerRow.started_at      = null;
+  timerRow.status          = 'paused';
+  timerRow.current_half    = 2;
+  wasInInjuryTime = false;
+  updateTimerUI();
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -1129,6 +1171,7 @@ async function openTimer() {
     const oppPart = opposition ? ` vs ${opposition}` : '';
     $('timerEventLabel').innerHTML = `<strong>${currentEventLabel}${esc(oppPart)}</strong>`;
     wasInInjuryTime = isInInjuryTime(timerRow);
+    currentHalf = timerRow.current_half || 1;
     $('awayLabel').textContent = timerRow.opposition || 'Opp';
 
     renderScorePanel();
@@ -1162,7 +1205,7 @@ async function loadOrCreateTimer(opposition, squadId, duration, injury) {
   } else {
     const { data, error } = await sb
       .from('match_timer')
-      .insert({ event_id: currentEventId, user_id: currentUser.id, opposition, squad_id: squadId, duration_seconds: duration, injury_seconds: injury })
+      .insert({ event_id: currentEventId, user_id: currentUser.id, opposition, squad_id: squadId, duration_seconds: duration, injury_seconds: injury, current_half: 1 })
       .select()
       .single();
     if (error) throw error;
@@ -1213,13 +1256,15 @@ async function doReset() {
   hideResetModal();
   const { error } = await sb
     .from('match_timer')
-    .update({ elapsed_seconds: 0, started_at: null, status: 'paused' })
+    .update({ elapsed_seconds: 0, started_at: null, status: 'paused', current_half: 1 })
     .eq('event_id', currentEventId)
     .eq('user_id', currentUser.id);
   if (error) { showToast('Error resetting timer'); return; }
+  currentHalf = 1;
   timerRow.elapsed_seconds = 0;
   timerRow.started_at      = null;
   timerRow.status          = 'paused';
+  timerRow.current_half    = 1;
   wasInInjuryTime = false;
   stopInterval();
   updateTimerUI();
@@ -1247,7 +1292,11 @@ async function tick() {
   wasInInjuryTime = inInjury;
   if (isInjuryTimeExpired(timerRow)) {
     stopInterval();
-    triggerFinalWhistle();
+    if (currentHalf === 1) {
+      triggerHalfTimeWhistle();
+    } else {
+      triggerFinalWhistle();
+    }
     await doPause();
     return;
   }
@@ -1257,21 +1306,27 @@ async function tick() {
 function updateTimerUI() {
   if (!timerRow) return;
 
-  const isRunning = timerRow.status === 'running';
-  const elapsed   = computeElapsed(timerRow);
-  const dur       = getDuration(timerRow);
-  const inInjury  = elapsed >= dur;
-  const remaining = Math.max(0, dur - elapsed);
-  const injury    = Math.max(0, elapsed - dur);
+  const isRunning  = timerRow.status === 'running';
+  const elapsed    = computeElapsed(timerRow);
+  const dur        = getDuration(timerRow);
+  const inInjury   = elapsed >= dur;
+  const remaining  = Math.max(0, dur - elapsed);
+  const injury     = Math.max(0, elapsed - dur);
+  const expired    = isInjuryTimeExpired(timerRow);
+  const isHalfTime = currentHalf === 1 && expired && !isRunning;
+  const isFullTime = currentHalf === 2 && expired && !isRunning;
+
+  // Half badge
+  $('halfBadge').textContent = `H${currentHalf}`;
 
   // Main countdown display
   const display = $('timerDisplay');
   display.textContent = formatMmSs(remaining);
   display.className   = `timer-display${isRunning && !inInjury ? ' running' : ''}${inInjury ? ' zeroed' : ''}`;
 
-  // Injury time secondary display
+  // Injury time secondary display — hide at half time / full time
   const wrap = $('injuryWrap');
-  if (inInjury) {
+  if (inInjury && !expired) {
     wrap.classList.add('show');
     $('injuryDisplay').textContent = `+${formatMmSs(injury)}`;
   } else {
@@ -1279,23 +1334,31 @@ function updateTimerUI() {
   }
 
   // Status pill
-  const statusEl  = $('timerStatus');
-  const expired   = isInjuryTimeExpired(timerRow);
-  if (inInjury && isRunning)  { statusEl.textContent = 'Injury Time'; statusEl.className = 'timer-status injury'; }
-  else if (expired)           { statusEl.textContent = 'Full Time'; statusEl.className = 'timer-status full-time'; }
-  else if (inInjury)          { statusEl.textContent = 'Injury Time — Paused'; statusEl.className = 'timer-status injury-pause'; }
-  else if (isRunning)         { statusEl.textContent = 'Running'; statusEl.className = 'timer-status running'; }
-  else if (elapsed === 0)     { statusEl.textContent = 'Ready'; statusEl.className = 'timer-status paused'; }
-  else                        { statusEl.textContent = 'Paused'; statusEl.className = 'timer-status paused'; }
+  const statusEl = $('timerStatus');
+  if (isHalfTime)                  { statusEl.textContent = 'Half Time';            statusEl.className = 'timer-status half-time'; }
+  else if (isFullTime)             { statusEl.textContent = 'Full Time';            statusEl.className = 'timer-status full-time'; }
+  else if (inInjury && isRunning)  { statusEl.textContent = 'Injury Time';          statusEl.className = 'timer-status injury'; }
+  else if (inInjury)               { statusEl.textContent = 'Injury Time — Paused'; statusEl.className = 'timer-status injury-pause'; }
+  else if (isRunning)              { statusEl.textContent = `H${currentHalf} Running`; statusEl.className = 'timer-status running'; }
+  else if (elapsed === 0)          { statusEl.textContent = `H${currentHalf} Ready`; statusEl.className = 'timer-status paused'; }
+  else                             { statusEl.textContent = 'Paused';               statusEl.className = 'timer-status paused'; }
 
-  // Toggle button
-  const btn = $('toggleBtn');
-  btn.textContent = isRunning ? 'Pause' : 'Start';
-  btn.className   = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
+  // Toggle / half-time button
+  const toggleBtn   = $('toggleBtn');
+  const halfTimeBtn = $('halfTimeBtn');
+  if (isHalfTime) {
+    toggleBtn.style.display   = 'none';
+    halfTimeBtn.style.display = '';
+  } else {
+    toggleBtn.style.display   = '';
+    halfTimeBtn.style.display = 'none';
+    toggleBtn.textContent = isRunning ? 'Pause' : 'Start';
+    toggleBtn.className   = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
+  }
 
   // Save button label
   const saveBtn = document.querySelector('.btn-save');
-  if (saveBtn) saveBtn.textContent = expired ? 'Finish & Save' : 'Save Stats';
+  if (saveBtn) saveBtn.textContent = isFullTime ? 'Finish & Save' : 'Save Stats';
 }
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
@@ -1471,6 +1534,7 @@ async function adjustScore(typeId, side, delta) {
       count:          1,
       event_minute:   eventMinute,
       timer_status:   timerStatus,
+      half:           currentHalf,
     });
     if (error) { console.error(error); return; }
     if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
