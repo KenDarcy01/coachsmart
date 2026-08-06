@@ -11,15 +11,14 @@
   <style>
     /* ── Tokens ─────────────────────────────────────────────────────────────── */
     :root {
-      --bg:       #111418;
-      --surface:  #1a2332;
-      --border:   #1e293b;
-      --text:     #e2e8f0;
-      --muted:    #64748b;
-      --us:       #87c232;   /* CoachSmart brand green — direct labels provide secondary encoding */
-      --opp:      #d95926;   /* Reference palette slot 2 dark (orange) — passes all CVD checks */
-      --amber:    #f59e0b;
-      --green:    #87c232;
+      --bg:      #111418;
+      --surface: #1a2332;
+      --border:  #1e293b;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --us:      #87c232;
+      --opp:     #d95926;
+      --amber:   #f59e0b;
     }
 
     /* ── Reset / base ───────────────────────────────────────────────────────── */
@@ -30,6 +29,7 @@
       background: var(--bg);
       color: var(--text);
       overscroll-behavior: none;
+      overflow-x: hidden; /* prevent horizontal scrollbar on web */
     }
 
     /* ── Loading / error screens ────────────────────────────────────────────── */
@@ -61,9 +61,9 @@
       padding: 24px;
       text-align: center;
     }
-    .error-icon { font-size: 32px; }
+    .error-icon  { font-size: 32px; }
     .error-title { font-size: 16px; font-weight: 600; }
-    .error-msg { font-size: 13px; color: var(--muted); }
+    .error-msg   { font-size: 13px; color: var(--muted); }
 
     /* ── Picker screen ───────────────────────────────────────────────────────── */
     #pickerScreen {
@@ -73,161 +73,64 @@
       padding: 20px 16px 32px;
     }
     .picker-event-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
     }
-    .picker-title {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-    .picker-subtitle {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 20px;
-    }
+    .picker-title    { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .picker-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
     .session-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      margin-bottom: 10px;
-      cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 12px;
+      margin-bottom: 10px; cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       transition: border-color 0.15s, opacity 0.15s;
     }
-    .session-card:active {
-      border-color: var(--us);
-      opacity: 0.8;
-    }
-    .session-colour-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
+    .session-card:active { border-color: var(--us); opacity: 0.8; }
+    .session-colour-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
     .session-info { flex: 1; min-width: 0; }
     .session-name {
-      font-size: 14px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .session-meta {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 3px;
-    }
-    .session-badges {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-    .badge {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      padding: 2px 7px;
-      border-radius: 20px;
-    }
-    .badge-mine {
-      background: rgba(135,194,50,0.15);
-      color: var(--us);
-      border: 1px solid rgba(135,194,50,0.3);
-    }
-    .badge-final {
-      background: rgba(100,116,139,0.15);
-      color: var(--muted);
-      border: 1px solid rgba(100,116,139,0.3);
-    }
-    .session-chevron {
-      color: var(--muted);
-      font-size: 20px;
-      line-height: 1;
-      flex-shrink: 0;
-    }
+    .session-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .session-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 20px; }
+    .badge-mine  { background: rgba(135,194,50,0.15); color: var(--us);   border: 1px solid rgba(135,194,50,0.3); }
+    .badge-final { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid rgba(100,116,139,0.3); }
+    .session-chevron { color: var(--muted); font-size: 20px; line-height: 1; flex-shrink: 0; }
 
     /* ── Main chart screen ──────────────────────────────────────────────────── */
     #chartScreen {
       display: none;
       flex-direction: column;
       min-height: 100vh;
-      padding: 0 0 24px;
+      padding: 0 0 40px;
+      max-width: 100vw;
+      overflow-x: hidden;
     }
 
     /* ── Header ─────────────────────────────────────────────────────────────── */
     .header { padding: 16px 16px 0; }
     .event-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 12px;
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
     }
-
-    /* Score board */
     .score-board {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 20px;
-      gap: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 14px 20px; gap: 8px;
     }
-    .score-team {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      flex: 1;
-    }
-    .score-team-name {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
+    .score-team { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+    .score-team-name { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
     .score-team-name.us  { color: var(--us); }
     .score-team-name.opp { color: var(--opp); }
-    .score-gaa {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 36px;
-      letter-spacing: 2px;
-      line-height: 1;
-    }
+    .score-gaa { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 2px; line-height: 1; }
     .score-gaa.us  { color: var(--us); }
     .score-gaa.opp { color: var(--opp); }
-    .score-pts {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--muted);
-    }
-    .score-vs {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-    .score-lead {
-      text-align: center;
-      font-size: 12px;
-      font-weight: 600;
-      margin-top: 10px;
-      height: 16px;
-    }
+    .score-pts { font-size: 12px; font-weight: 500; color: var(--muted); }
+    .score-vs  { font-size: 14px; font-weight: 600; color: var(--muted); flex-shrink: 0; }
+    .score-lead { text-align: center; font-size: 12px; font-weight: 600; margin-top: 10px; height: 16px; }
     .score-lead.leading  { color: var(--us); }
     .score-lead.trailing { color: var(--opp); }
     .score-lead.level    { color: var(--muted); }
@@ -235,40 +138,23 @@
     /* ── Chart area ─────────────────────────────────────────────────────────── */
     .chart-section { padding: 16px 10px 4px; }
     .chart-wrapper {
-      position: relative;
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
+      position: relative; width: 100%;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
     }
-    /* 500:300 aspect ratio */
-    .chart-wrapper::before {
-      content: '';
-      display: block;
-      padding-bottom: 60%;
-    }
+    .chart-wrapper::before { content: ''; display: block; padding-bottom: 60%; }
     .chart-wrapper svg {
-      position: absolute;
-      top: 0; left: 0;
+      position: absolute; top: 0; left: 0;
       width: 100%; height: 100%;
-      overflow: visible;
     }
 
     /* Tooltip */
     #tooltip {
-      display: none;
-      position: fixed;
-      background: #0f172a;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 12px;
-      color: var(--text);
-      pointer-events: none;
-      z-index: 200;
-      min-width: 110px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      display: none; position: fixed;
+      background: #0f172a; border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; font-size: 12px;
+      color: var(--text); pointer-events: none; z-index: 200;
+      min-width: 110px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
     }
     #tt-min { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
     .tt-row { display: flex; justify-content: space-between; gap: 12px; }
@@ -278,125 +164,53 @@
     .tt-score { font-weight: 500; font-variant-numeric: tabular-nums; }
 
     /* ── Legend ──────────────────────────────────────────────────────────────── */
-    .legend {
-      display: flex;
-      justify-content: center;
-      gap: 24px;
-      padding: 8px 16px 4px;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .legend-line {
-      width: 24px;
-      height: 3px;
-      border-radius: 2px;
-    }
+    .legend { display: flex; justify-content: center; gap: 24px; padding: 8px 16px 4px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+    .legend-line { width: 24px; height: 3px; border-radius: 2px; }
     .legend-line.us  { background: var(--us); }
     .legend-line.opp { background: var(--opp); }
 
-    /* ── Events list ─────────────────────────────────────────────────────────── */
-    .events-section { padding: 12px 16px 0; }
-    .events-header {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--muted);
+    /* ── Scoring tree ────────────────────────────────────────────────────────── */
+    .tree-section { padding: 12px 16px 0; }
+    .tree-header {
+      display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 10px;
     }
-    .events-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
+    .tree-section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted);
     }
-    .ev-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 12px;
-      border-radius: 8px;
+    .tree-team-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .tree-team-label.us  { color: var(--us); }
+    .tree-team-label.opp { color: var(--opp); }
+    .tree-wrapper {
+      width: 100%;
       background: var(--surface);
-      border-left: 3px solid transparent;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px 0;
+      overflow: hidden;
     }
-    .ev-item.us  { border-color: var(--us); }
-    .ev-item.opp { border-color: var(--opp); }
-    .ev-min {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      min-width: 36px;
-      font-variant-numeric: tabular-nums;
-    }
-    .ev-half {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 1px 5px;
-      border-radius: 4px;
-      background: var(--border);
-      color: var(--muted);
-    }
-    .ev-type {
-      font-size: 13px;
-      font-weight: 700;
-      flex: 1;
-    }
-    .ev-type.us  { color: var(--us); }
-    .ev-type.opp { color: var(--opp); }
-    .ev-team {
-      font-size: 11px;
-      color: var(--muted);
-      flex: 1;
-    }
-    .ev-tally {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text);
-      font-variant-numeric: tabular-nums;
-      min-width: 48px;
-      text-align: right;
-    }
+    .tree-wrapper svg { display: block; width: 100%; height: auto; }
     .no-events {
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      padding: 20px 0;
+      text-align: center; color: var(--muted); font-size: 13px; padding: 20px 0;
     }
 
     /* ── Live indicator ─────────────────────────────────────────────────────── */
     .live-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: #ef4444;
-      padding: 2px 8px 2px 6px;
-      border: 1px solid rgba(239,68,68,0.3);
-      border-radius: 20px;
-      background: rgba(239,68,68,0.08);
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: #ef4444;
+      padding: 2px 8px 2px 6px; border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 20px; background: rgba(239,68,68,0.08);
     }
     .live-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #ef4444;
+      width: 6px; height: 6px; border-radius: 50%; background: #ef4444;
       animation: pulse 1.2s ease-in-out infinite;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
-    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     .header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
     }
   </style>
 </head>
@@ -422,14 +236,14 @@
     <div id="pickerList"></div>
   </div>
 
-  <!-- Tooltip (floating, outside chart) -->
+  <!-- Tooltip -->
   <div id="tooltip">
     <div id="tt-min"></div>
     <div class="tt-row">
       <span class="tt-label us">Us</span>
       <span class="tt-score" id="tt-us">—</span>
     </div>
-    <div class="tt-row" id="tt-opp-row">
+    <div class="tt-row">
       <span class="tt-label opp" id="tt-opp-label">Opp</span>
       <span class="tt-score" id="tt-opp">—</span>
     </div>
@@ -460,6 +274,7 @@
       <div class="score-lead" id="scoreLead"></div>
     </div>
 
+    <!-- Line chart -->
     <div class="chart-section">
       <div class="chart-wrapper">
         <svg id="chart" viewBox="0 0 500 300" preserveAspectRatio="none"></svg>
@@ -467,19 +282,18 @@
     </div>
 
     <div class="legend">
-      <div class="legend-item">
-        <div class="legend-line us"></div>
-        <span>Us</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-line opp"></div>
-        <span id="legendOpp">Opp</span>
-      </div>
+      <div class="legend-item"><div class="legend-line us"></div><span>Us</span></div>
+      <div class="legend-item"><div class="legend-line opp"></div><span id="legendOpp">Opp</span></div>
     </div>
 
-    <div class="events-section">
-      <div class="events-header">Scoring Timeline</div>
-      <div class="events-list" id="eventsList">
+    <!-- Scoring tree -->
+    <div class="tree-section">
+      <div class="tree-header">
+        <span class="tree-team-label us">Us</span>
+        <span class="tree-section-label">Scoring Timeline</span>
+        <span class="tree-team-label opp" id="treeOppLabel">Opp</span>
+      </div>
+      <div class="tree-wrapper" id="treeWrapper">
         <div class="no-events">No scores yet</div>
       </div>
     </div>
@@ -504,14 +318,23 @@ const sb = window.supabase.createClient(
 // ── Chart constants ────────────────────────────────────────────────────────
 const VW = 500, VH = 300;
 const PAD = { l: 44, r: 24, t: 18, b: 36 };
-const CW  = VW - PAD.l - PAD.r;   // 432
-const CH  = VH - PAD.t - PAD.b;   // 246
+const CW  = VW - PAD.l - PAD.r;
+const CH  = VH - PAD.t - PAD.b;
 const C_US    = '#87c232';
 const C_OPP   = '#d95926';
 const C_GRID  = '#1e293b';
 const C_AXIS  = '#334155';
 const C_MUTE  = '#64748b';
 const C_AMBER = '#f59e0b';
+
+// Tree SVG constants
+const T_W       = 320;   // viewBox width
+const T_TRUNK   = 160;   // trunk x
+const T_PAD_V   = 36;    // top/bottom padding
+const T_BRANCH  = 80;    // branch reach from trunk (each side)
+const T_DOT_R   = 4;     // dot radius at branch tip
+const T_MIN_GAP = 22;    // minimum vertical gap between events (same side)
+const T_MIN_H   = 120;   // minimum tree height (no events)
 
 // ── State ─────────────────────────────────────────────────────────────────
 let timelineData     = null;
@@ -520,18 +343,12 @@ let realtimeChannel  = null;
 let pollTimer        = null;
 let oppLabel         = 'Opp';
 
-// Computed chart state (rebuilt on each render)
 let chartState = {
-  sortedEvents: [],
-  usLine: [], oppLine: [],
-  usTotal: 0, oppTotal: 0,
-  usGoals: 0, usPts: 0,
-  oppGoals: 0, oppPts: 0,
-  durationMins: 30,
-  currentHalf: 1,
-  currentAbsMins: 0,
-  maxMins: 35,
-  maxPts: 5,
+  sortedEvents: [], usLine: [], oppLine: [],
+  usTotal: 0, oppTotal: 0, usGoals: 0, usPts: 0, oppGoals: 0, oppPts: 0,
+  durationSecs: 1800, currentAbsSecs: 0, maxSecs: 1980,
+  hasH2: false, timerStatus: 'paused',
+  timeScale: { unit: 'minutes', tickSecs: 300 },
 };
 
 // ── Screens ───────────────────────────────────────────────────────────────
@@ -562,88 +379,56 @@ function showChart() {
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────
-
-// List all sessions for the event; auto-load if only one, else show picker.
 async function loadEventSessions() {
   if (!WV_EVENT) { showError('No event specified.'); return; }
-  const { data, error } = await sb.rpc('list_match_stats_for_event', {
-    p_event_id: parseInt(WV_EVENT)
-  });
+  const { data, error } = await sb.rpc('list_match_stats_for_event', { p_event_id: parseInt(WV_EVENT) });
   if (error || !data || !data.length) {
     showError('No match stats found for this event. Open the match timer first.');
     return;
   }
-  if (data.length === 1) {
-    await loadSessionById(data[0].id);
-    return;
-  }
+  if (data.length === 1) { await loadSessionById(data[0].id); return; }
   renderPicker(data);
   showPickerScreen();
 }
 
-// Load a specific session by match_stats_id and show the chart.
 async function loadSessionById(id) {
   currentSessionId = id;
-  const { data, error } = await sb.rpc('get_match_stats_session', {
-    p_match_stats_id: id
-  });
-  if (error || !data || !data.match_stats_id) {
-    showError('Could not load that stats session.');
-    return;
-  }
+  const { data, error } = await sb.rpc('get_match_stats_session', { p_match_stats_id: id });
+  if (error || !data || !data.match_stats_id) { showError('Could not load that stats session.'); return; }
   timelineData = data;
   oppLabel = data.opposition || 'Opp';
   document.getElementById('oppName').textContent      = oppLabel;
   document.getElementById('legendOpp').textContent    = oppLabel;
   document.getElementById('tt-opp-label').textContent = oppLabel;
+  document.getElementById('treeOppLabel').textContent = oppLabel;
   document.getElementById('eventLabel').textContent   = data.event_title || 'Match';
   render();
   showChart();
   subscribeRealtime(id);
 }
 
-// Tap handler on a picker card (global for inline onclick).
-async function selectSession(id) {
-  showLoading();
-  await loadSessionById(id);
-}
+async function selectSession(id) { showLoading(); await loadSessionById(id); }
 
-// Pull fresh data for the current session and re-render.
 async function refreshSession() {
   if (!currentSessionId) return;
-  const { data, error } = await sb.rpc('get_match_stats_session', {
-    p_match_stats_id: currentSessionId
-  });
-  if (!error && data && data.match_stats_id) {
-    timelineData = data;
-    render();
-  }
+  const { data, error } = await sb.rpc('get_match_stats_session', { p_match_stats_id: currentSessionId });
+  if (!error && data && data.match_stats_id) { timelineData = data; render(); }
 }
 
 // ── Picker rendering ──────────────────────────────────────────────────────
 function renderPicker(sessions) {
-  const listEl = document.getElementById('pickerList');
-
-  // Try to extract event title from first session (if available via a separate call)
-  // For now just leave pickerEventLabel empty — we don't have event_title here.
-
-  listEl.innerHTML = sessions.map(s => {
-    const dotColour  = s.squad_colour || '#64748b';
-    const squadPart  = s.squad_name   ? ` · ${s.squad_name}` : '';
-    const oppPart    = s.opposition   || 'Opposition';
-    const countPart  = `${s.score_count} score${s.score_count !== 1 ? 's' : ''}`;
-    const isFinal    = !!s.finalised_at;
-    const isMine     = !!s.is_mine;
-    const userName   = (s.user_name && s.user_name.trim()) ? s.user_name.trim() : 'Unknown';
-
-    const mineTag  = isMine  ? `<span class="badge badge-mine">Mine</span>` : '';
-    const finalTag = isFinal ? `<span class="badge badge-final">Final</span>` : '';
-
+  document.getElementById('pickerList').innerHTML = sessions.map(s => {
+    const dotColour = s.squad_colour || '#64748b';
+    const squadPart = s.squad_name   ? ` · ${s.squad_name}` : '';
+    const countPart = `${s.score_count} score${s.score_count !== 1 ? 's' : ''}`;
+    const userName  = (s.user_name && s.user_name.trim()) ? s.user_name.trim() : 'Unknown';
+    const mineTag   = s.is_mine    ? `<span class="badge badge-mine">Mine</span>`  : '';
+    const finalTag  = s.finalised_at ? `<span class="badge badge-final">Final</span>` : '';
     return `<div class="session-card" onclick="selectSession(${s.id})">
       <div class="session-colour-dot" style="background:${dotColour}"></div>
       <div class="session-info">
         <div class="session-name">${userName}${squadPart}</div>
-        <div class="session-meta">vs ${oppPart} · ${countPart}</div>
+        <div class="session-meta">vs ${s.opposition || 'Opposition'} · ${countPart}</div>
       </div>
       <div class="session-badges">${mineTag}${finalTag}</div>
       <div class="session-chevron">›</div>
@@ -651,33 +436,20 @@ function renderPicker(sessions) {
   }).join('');
 }
 
-// ── Realtime subscription ─────────────────────────────────────────────────
+// ── Realtime ──────────────────────────────────────────────────────────────
 function subscribeRealtime(matchStatsId) {
   if (realtimeChannel) sb.removeChannel(realtimeChannel);
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-
   realtimeChannel = sb
     .channel(`chart-${matchStatsId}`)
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'match_stats_details',
-      filter: `match_stats_id=eq.${matchStatsId}`,
-    }, () => refreshSession())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_stats_details',
+        filter: `match_stats_id=eq.${matchStatsId}` }, () => refreshSession())
     .subscribe(status => {
-      if (status === 'SUBSCRIBED') {
-        clearInterval(pollTimer);
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        startPolling();
-      }
+      if (status === 'SUBSCRIBED') clearInterval(pollTimer);
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
     });
-
-  // Fallback: if not subscribed after 5s, start polling
-  setTimeout(() => {
-    if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling();
-  }, 5000);
+  setTimeout(() => { if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling(); }, 5000);
 }
-
 function startPolling() {
   if (pollTimer) return;
   pollTimer = setInterval(refreshSession, 15000);
@@ -689,92 +461,107 @@ function render() {
   processData();
   renderScore();
   renderChartSVG();
-  renderEvents();
+  renderTree();
 }
 
+// ── Time scale ────────────────────────────────────────────────────────────
+function getTimeScale(maxSecs) {
+  if (maxSecs <= 120)  return { unit: 'seconds', tickSecs: 30 };
+  if (maxSecs <= 300)  return { unit: 'seconds', tickSecs: 60 };
+  if (maxSecs <= 600)  return { unit: 'seconds', tickSecs: 120 };
+  if (maxSecs <= 1800) return { unit: 'minutes', tickSecs: 300 };
+  if (maxSecs <= 5400) return { unit: 'minutes', tickSecs: 600 };
+  return                      { unit: 'minutes', tickSecs: 900 };
+}
+
+function fmtAxisLabel(secs, unit) {
+  if (unit === 'seconds') return `${secs}s`;
+  return `${Math.round(secs / 60)}'`;
+}
+
+function fmtEventTime(absSec, durationSecs, hasH2) {
+  if (!hasH2) {
+    const m = Math.round(absSec / 60);
+    return `${m}'`;
+  }
+  const half = absSec < durationSecs ? 1 : 2;
+  const relSec = half === 1 ? absSec : absSec - durationSecs;
+  return `H${half} ${Math.round(relSec / 60)}'`;
+}
+
+// ── processData ───────────────────────────────────────────────────────────
 function processData() {
   const timer  = timelineData.timer  || {};
   const events = timelineData.events || [];
 
-  const durationMins = Math.round((timer.duration_seconds || 1800) / 60);
+  const durationSecs = timer.duration_seconds || 1800;
   const currentHalf  = timer.current_half || 1;
 
-  // Current absolute time in minutes
   let elapsed = timer.elapsed_seconds || 0;
   if (timer.status === 'running' && timer.started_at) {
     elapsed += (Date.now() - new Date(timer.started_at).getTime()) / 1000;
   }
-  const elapsedMins    = elapsed / 60;
-  const currentAbsMins = currentHalf === 2
-    ? durationMins + Math.min(elapsedMins, durationMins + 15)
-    : Math.min(elapsedMins, durationMins + 15);
+  const currentAbsSecs = currentHalf === 2
+    ? durationSecs + Math.min(elapsed, durationSecs + 900)
+    : Math.min(elapsed, durationSecs + 900);
 
-  // Sort events chronologically
   const sortedEvents = [...events].sort((a, b) => {
     if (a.half !== b.half) return a.half - b.half;
     if (a.minute !== b.minute) return a.minute - b.minute;
     return new Date(a.created_at) - new Date(b.created_at);
   });
 
-  // Build step-function paths and accumulate scores
   let usRunning = 0, oppRunning = 0;
   let usGoals = 0, usPtsAcc = 0, oppGoals = 0, oppPtsAcc = 0;
   const usLine  = [{ x: 0, y: 0 }];
   const oppLine = [{ x: 0, y: 0 }];
 
   const enrichedEvents = sortedEvents.map(ev => {
-    const absMin = ev.half === 1 ? ev.minute : durationMins + ev.minute;
+    const absSec = (ev.half === 1 ? ev.minute : (durationSecs / 60) + ev.minute) * 60;
     const val = ev.score_value || 1;
     const isGoal = val >= 3;
     let usCum, oppCum;
     if (ev.side === 'us') {
-      usLine.push({ x: absMin, y: usRunning });
+      usLine.push({ x: absSec, y: usRunning });
       usRunning += val;
-      usLine.push({ x: absMin, y: usRunning });
+      usLine.push({ x: absSec, y: usRunning });
       if (isGoal) usGoals++; else usPtsAcc += val;
-      usCum  = usRunning;
-      oppCum = oppRunning;
+      usCum = usRunning; oppCum = oppRunning;
     } else {
-      oppLine.push({ x: absMin, y: oppRunning });
+      oppLine.push({ x: absSec, y: oppRunning });
       oppRunning += val;
-      oppLine.push({ x: absMin, y: oppRunning });
+      oppLine.push({ x: absSec, y: oppRunning });
       if (isGoal) oppGoals++; else oppPtsAcc += val;
-      usCum  = usRunning;
-      oppCum = oppRunning;
+      usCum = usRunning; oppCum = oppRunning;
     }
-    return { ...ev, absMin, val, isGoal, usCum, oppCum };
+    return { ...ev, absSec, val, isGoal, usCum, oppCum };
   });
 
-  // Extend lines to current time
-  usLine.push(  { x: currentAbsMins, y: usRunning });
-  oppLine.push( { x: currentAbsMins, y: oppRunning });
+  usLine.push(  { x: currentAbsSecs, y: usRunning });
+  oppLine.push( { x: currentAbsSecs, y: oppRunning });
 
   const hasH2  = sortedEvents.some(e => e.half === 2) || currentHalf === 2;
-  const maxMins = hasH2
-    ? Math.max(currentAbsMins + 2, 2 * durationMins + 2)
-    : Math.max(currentAbsMins + 2, durationMins + 2, 12);
+  const maxSecs = hasH2
+    ? Math.max(currentAbsSecs + 120, 2 * durationSecs + 120)
+    : Math.max(currentAbsSecs + 120, durationSecs + 120, 720);
   const maxPts  = Math.max(usRunning, oppRunning, 4) + 3;
+  const timeScale = getTimeScale(maxSecs);
 
   chartState = {
     sortedEvents: enrichedEvents,
     usLine, oppLine,
     usTotal: usRunning, oppTotal: oppRunning,
-    usGoals, usPts: usPtsAcc,
-    oppGoals, oppPts: oppPtsAcc,
-    durationMins, currentHalf,
-    currentAbsMins, maxMins, maxPts,
-    hasH2, timerStatus: timer.status,
+    usGoals, usPts: usPtsAcc, oppGoals, oppPts: oppPtsAcc,
+    durationSecs, currentHalf, currentAbsSecs, maxSecs, maxPts,
+    hasH2, timerStatus: timer.status, timeScale,
   };
 
-  // Live badge
   document.getElementById('liveBadge').style.display =
     timer.status === 'running' ? 'inline-flex' : 'none';
 }
 
 // ── Score display ─────────────────────────────────────────────────────────
-function fmtGAA(goals, pts) {
-  return `${goals}-${String(pts).padStart(2, '0')}`;
-}
+function fmtGAA(goals, pts) { return `${goals}-${String(pts).padStart(2, '0')}`; }
 
 function renderScore() {
   const { usTotal, oppTotal, usGoals, usPts, oppGoals, oppPts } = chartState;
@@ -782,241 +569,236 @@ function renderScore() {
   document.getElementById('usPts').textContent  = `(${usTotal})`;
   document.getElementById('oppGAA').textContent = fmtGAA(oppGoals, oppPts);
   document.getElementById('oppPts').textContent = `(${oppTotal})`;
-
   const leadEl = document.getElementById('scoreLead');
   const diff = usTotal - oppTotal;
-  if (diff > 0) {
-    leadEl.textContent = `▲ Us leading by ${diff} pt${diff !== 1 ? 's' : ''}`;
-    leadEl.className = 'score-lead leading';
-  } else if (diff < 0) {
-    leadEl.textContent = `▼ Us trailing by ${Math.abs(diff)} pt${Math.abs(diff) !== 1 ? 's' : ''}`;
-    leadEl.className = 'score-lead trailing';
-  } else if (usTotal === 0 && oppTotal === 0) {
-    leadEl.textContent = '';
-    leadEl.className = 'score-lead';
-  } else {
-    leadEl.textContent = '= Level';
-    leadEl.className = 'score-lead level';
-  }
+  if      (diff > 0) { leadEl.textContent = `▲ Us leading by ${diff} pt${diff !== 1 ? 's' : ''}`; leadEl.className = 'score-lead leading'; }
+  else if (diff < 0) { leadEl.textContent = `▼ Us trailing by ${Math.abs(diff)} pt${Math.abs(diff) !== 1 ? 's' : ''}`; leadEl.className = 'score-lead trailing'; }
+  else if (usTotal === 0) { leadEl.textContent = ''; leadEl.className = 'score-lead'; }
+  else { leadEl.textContent = '= Level'; leadEl.className = 'score-lead level'; }
 }
 
-// ── SVG chart ─────────────────────────────────────────────────────────────
-function xS(m, maxMins) { return PAD.l + (m / maxMins) * CW; }
+// ── SVG line chart ────────────────────────────────────────────────────────
+function xS(s, maxSecs) { return PAD.l + (s / maxSecs) * CW; }
 function yS(p, maxPts)  { return PAD.t + CH - (p / maxPts) * CH; }
 function f(n)            { return n.toFixed(1); }
-
-function pts2str(pts, maxMins, maxPts) {
-  return pts.map(p => `${f(xS(p.x, maxMins))},${f(yS(p.y, maxPts))}`).join(' ');
+function pts2str(pts, maxSecs, maxPts) {
+  return pts.map(p => `${f(xS(p.x, maxSecs))},${f(yS(p.y, maxPts))}`).join(' ');
 }
 
 function renderChartSVG() {
-  const {
-    sortedEvents, usLine, oppLine,
-    usTotal, oppTotal, durationMins, currentAbsMins,
-    maxMins, maxPts, hasH2, currentHalf,
-  } = chartState;
+  const { sortedEvents, usLine, oppLine, usTotal, oppTotal,
+          durationSecs, currentAbsSecs, maxSecs, maxPts, hasH2, timeScale } = chartState;
 
   let svg = '';
 
-  // Y-axis grid lines
+  // Y grid
   const yTick = maxPts <= 5 ? 1 : maxPts <= 12 ? 2 : maxPts <= 25 ? 5 : 10;
   for (let y = 0; y <= maxPts; y += yTick) {
     const cy = f(yS(y, maxPts));
-    svg += `<line x1="${PAD.l}" y1="${cy}" x2="${f(PAD.l + CW)}" y2="${cy}" stroke="${C_GRID}" stroke-width="1"/>`;
-    svg += `<text x="${PAD.l - 4}" y="${cy}" dy="4" text-anchor="end" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${y}</text>`;
+    svg += `<line x1="${PAD.l}" y1="${cy}" x2="${f(PAD.l+CW)}" y2="${cy}" stroke="${C_GRID}" stroke-width="1"/>`;
+    svg += `<text x="${PAD.l-4}" y="${cy}" dy="4" text-anchor="end" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${y}</text>`;
   }
 
-  // X-axis grid lines
-  const xTick = maxMins <= 20 ? 5 : maxMins <= 40 ? 5 : 10;
-  for (let x = 0; x <= Math.ceil(maxMins); x += xTick) {
-    const cx = f(xS(x, maxMins));
-    svg += `<line x1="${cx}" y1="${PAD.t}" x2="${cx}" y2="${f(PAD.t + CH)}" stroke="${C_GRID}" stroke-width="1"/>`;
-    svg += `<text x="${cx}" y="${f(PAD.t + CH + 14)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${x}'</text>`;
+  // X grid — dynamic tick interval in seconds
+  for (let s = 0; s <= Math.ceil(maxSecs); s += timeScale.tickSecs) {
+    const cx = f(xS(s, maxSecs));
+    svg += `<line x1="${cx}" y1="${PAD.t}" x2="${cx}" y2="${f(PAD.t+CH)}" stroke="${C_GRID}" stroke-width="1"/>`;
+    svg += `<text x="${cx}" y="${f(PAD.t+CH+14)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${fmtAxisLabel(s, timeScale.unit)}</text>`;
   }
 
   // Halftime marker
   if (hasH2) {
-    const htX = f(xS(durationMins, maxMins));
-    svg += `<line x1="${htX}" y1="${PAD.t}" x2="${htX}" y2="${f(PAD.t + CH)}" stroke="${C_AMBER}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.75"/>`;
-    svg += `<text x="${htX}" y="${PAD.t - 4}" text-anchor="middle" fill="${C_AMBER}" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">HT</text>`;
+    const htX = f(xS(durationSecs, maxSecs));
+    svg += `<line x1="${htX}" y1="${PAD.t}" x2="${htX}" y2="${f(PAD.t+CH)}" stroke="${C_AMBER}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.75"/>`;
+    svg += `<text x="${htX}" y="${PAD.t-4}" text-anchor="middle" fill="${C_AMBER}" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">HT</text>`;
   }
 
   // Axes
-  svg += `<line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${f(PAD.t + CH)}" stroke="${C_AXIS}" stroke-width="1"/>`;
-  svg += `<line x1="${PAD.l}" y1="${f(PAD.t + CH)}" x2="${f(PAD.l + CW)}" y2="${f(PAD.t + CH)}" stroke="${C_AXIS}" stroke-width="1"/>`;
-
-  // Axis labels
-  svg += `<text x="${f(PAD.l + CW / 2)}" y="${VH - 2}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">Minutes</text>`;
-  svg += `<text x="9" y="${f(PAD.t + CH / 2)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif" transform="rotate(-90 9 ${f(PAD.t + CH / 2)})">Points</text>`;
+  svg += `<line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${f(PAD.t+CH)}" stroke="${C_AXIS}" stroke-width="1"/>`;
+  svg += `<line x1="${PAD.l}" y1="${f(PAD.t+CH)}" x2="${f(PAD.l+CW)}" y2="${f(PAD.t+CH)}" stroke="${C_AXIS}" stroke-width="1"/>`;
+  svg += `<text x="${f(PAD.l+CW/2)}" y="${VH-2}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${timeScale.unit === 'seconds' ? 'Seconds' : 'Minutes'}</text>`;
+  svg += `<text x="9" y="${f(PAD.t+CH/2)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif" transform="rotate(-90 9 ${f(PAD.t+CH/2)})">Points</text>`;
 
   // Current time cursor
-  if (currentAbsMins > 0) {
-    const cX = f(xS(currentAbsMins, maxMins));
-    svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t + CH)}" stroke="#475569" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
+  if (currentAbsSecs > 0) {
+    const cX = f(xS(currentAbsSecs, maxSecs));
+    svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#475569" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
   }
 
-  // Data lines (opp first so Us draws on top)
-  if (oppLine.length > 1) {
-    svg += `<polyline points="${pts2str(oppLine, maxMins, maxPts)}" fill="none" stroke="${C_OPP}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-  }
-  if (usLine.length > 1) {
-    svg += `<polyline points="${pts2str(usLine, maxMins, maxPts)}" fill="none" stroke="${C_US}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-  }
+  // Lines
+  if (oppLine.length > 1)
+    svg += `<polyline points="${pts2str(oppLine, maxSecs, maxPts)}" fill="none" stroke="${C_OPP}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if (usLine.length > 1)
+    svg += `<polyline points="${pts2str(usLine, maxSecs, maxPts)}" fill="none" stroke="${C_US}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
 
-  // Event markers (circles at each score)
+  // Event markers
   for (const ev of sortedEvents) {
-    const cx = f(xS(ev.absMin, maxMins));
+    const cx = f(xS(ev.absSec, maxSecs));
     const cy = ev.side === 'us' ? f(yS(ev.usCum, maxPts)) : f(yS(ev.oppCum, maxPts));
     const c  = ev.side === 'us' ? C_US : C_OPP;
     const r  = ev.isGoal ? 4.5 : 3;
-
-    // White ring then colour fill for legibility
-    svg += `<circle cx="${cx}" cy="${cy}" r="${r + 1}" fill="#111418"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r+1}" fill="#111418"/>`;
     svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c}"/>`;
-
-    // Goal label (abbreviated name)
     if (ev.isGoal) {
-      const labelY = ev.side === 'us' ? parseFloat(cy) - 8 : parseFloat(cy) + 14;
-      svg += `<text x="${cx}" y="${f(labelY)}" text-anchor="middle" fill="${c}" font-size="8" font-weight="700" font-family="DM Sans,sans-serif">${ev.abbreviated_name || 'G'}</text>`;
+      const ly = ev.side === 'us' ? parseFloat(cy) - 8 : parseFloat(cy) + 14;
+      svg += `<text x="${cx}" y="${f(ly)}" text-anchor="middle" fill="${c}" font-size="8" font-weight="700" font-family="DM Sans,sans-serif">${ev.abbreviated_name || 'G'}</text>`;
     }
   }
 
-  // Direct labels at end of each line (secondary encoding)
+  // End labels
   const usEnd  = usLine[usLine.length - 1];
   const oppEnd = oppLine[oppLine.length - 1];
   if (usTotal > 0) {
-    const lx = Math.min(xS(usEnd.x, maxMins) + 4, VW - PAD.r - 2);
-    const ly = yS(usEnd.y, maxPts);
-    svg += `<text x="${f(lx)}" y="${f(ly - 4)}" fill="${C_US}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">Us ${usTotal}</text>`;
+    const lx = Math.min(xS(usEnd.x, maxSecs) + 4, VW - PAD.r - 2);
+    svg += `<text x="${f(lx)}" y="${f(yS(usEnd.y, maxPts) - 4)}" fill="${C_US}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">Us ${usTotal}</text>`;
   }
   if (oppTotal > 0) {
-    const lx = Math.min(xS(oppEnd.x, maxMins) + 4, VW - PAD.r - 2);
-    const ly = yS(oppEnd.y, maxPts);
+    const lx  = Math.min(xS(oppEnd.x, maxSecs) + 4, VW - PAD.r - 2);
     const yOff = Math.abs(yS(usEnd.y, maxPts) - yS(oppEnd.y, maxPts)) < 14 ? 12 : -4;
-    svg += `<text x="${f(lx)}" y="${f(ly + yOff)}" fill="${C_OPP}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">${oppLabel} ${oppTotal}</text>`;
+    svg += `<text x="${f(lx)}" y="${f(yS(oppEnd.y, maxPts) + yOff)}" fill="${C_OPP}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">${oppLabel} ${oppTotal}</text>`;
   }
 
-  // Empty-state message
-  if (sortedEvents.length === 0) {
-    svg += `<text x="${f(VW / 2)}" y="${f(VH / 2)}" text-anchor="middle" fill="${C_MUTE}" font-size="12" font-family="DM Sans,sans-serif">Waiting for first score…</text>`;
-  }
+  if (sortedEvents.length === 0)
+    svg += `<text x="${f(VW/2)}" y="${f(VH/2)}" text-anchor="middle" fill="${C_MUTE}" font-size="12" font-family="DM Sans,sans-serif">Waiting for first score…</text>`;
 
-  // Invisible interaction overlay
   svg += `<rect id="chartOverlay" x="${PAD.l}" y="${PAD.t}" width="${CW}" height="${CH}" fill="transparent" style="cursor:crosshair"/>`;
-
   document.getElementById('chart').innerHTML = svg;
   attachChartInteraction();
 }
 
-// ── Chart interaction (crosshair + tooltip) ───────────────────────────────
+// ── Chart interaction ─────────────────────────────────────────────────────
 function attachChartInteraction() {
   const overlay = document.getElementById('chartOverlay');
   const tooltip = document.getElementById('tooltip');
   if (!overlay) return;
 
-  function getAbsMin(clientX) {
-    const rect  = overlay.closest('svg').getBoundingClientRect();
+  function getAbsSec(clientX) {
+    const rect   = overlay.closest('svg').getBoundingClientRect();
     const scaleX = VW / rect.width;
-    const svgX   = (clientX - rect.left) * scaleX;
-    const chartX = svgX - PAD.l;
-    return (chartX / CW) * chartState.maxMins;
+    return ((clientX - rect.left) * scaleX - PAD.l) / CW * chartState.maxSecs;
   }
-
-  function getScoresAtMin(absMin) {
+  function getScores(absSec) {
     let us = 0, opp = 0;
     for (const ev of chartState.sortedEvents) {
-      if (ev.absMin <= absMin) {
-        if (ev.side === 'us')  us  = ev.usCum;
-        else                   opp = ev.oppCum;
-      }
+      if (ev.absSec <= absSec) { if (ev.side === 'us') us = ev.usCum; else opp = ev.oppCum; }
     }
     return { us, opp };
   }
-
-  function showTip(clientX, clientY, absMin) {
-    if (absMin < 0 || absMin > chartState.maxMins) { hideTip(); return; }
-    const scores  = getScoresAtMin(absMin);
-    const { durationMins } = chartState;
-    const half = absMin < durationMins ? 1 : 2;
-    const relMin = half === 1 ? absMin : absMin - durationMins;
-    const halfStr = chartState.hasH2 ? `H${half} · ` : '';
-
-    document.getElementById('tt-min').textContent = `${halfStr}${Math.round(relMin)}'`;
+  function showTip(clientX, clientY, absSec) {
+    if (absSec < 0 || absSec > chartState.maxSecs) { hideTip(); return; }
+    const scores = getScores(absSec);
+    document.getElementById('tt-min').textContent = fmtEventTime(absSec, chartState.durationSecs, chartState.hasH2);
     document.getElementById('tt-us').textContent  = scores.us;
     document.getElementById('tt-opp').textContent = scores.opp;
-
-    const tipEl = tooltip;
-    tipEl.style.display = 'block';
-    const tipW = tipEl.offsetWidth, tipH = tipEl.offsetHeight;
-    const vw = window.innerWidth, vh = window.innerHeight;
+    tooltip.style.display = 'block';
+    const tipW = tooltip.offsetWidth, tipH = tooltip.offsetHeight;
     let left = clientX + 12, top = clientY - tipH / 2;
-    if (left + tipW > vw) left = clientX - tipW - 12;
+    if (left + tipW > window.innerWidth)  left = clientX - tipW - 12;
     if (top < 8) top = 8;
-    if (top + tipH > vh - 8) top = vh - tipH - 8;
-    tipEl.style.left = `${left}px`;
-    tipEl.style.top  = `${top}px`;
+    if (top + tipH > window.innerHeight - 8) top = window.innerHeight - tipH - 8;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top  = `${top}px`;
   }
-
   function hideTip() { tooltip.style.display = 'none'; }
 
-  overlay.addEventListener('mousemove',  e => showTip(e.clientX, e.clientY, getAbsMin(e.clientX)));
+  overlay.addEventListener('mousemove',  e => showTip(e.clientX, e.clientY, getAbsSec(e.clientX)));
   overlay.addEventListener('mouseleave', hideTip);
-  overlay.addEventListener('touchstart', e => {
-    e.preventDefault();
-    const t = e.touches[0];
-    showTip(t.clientX, t.clientY, getAbsMin(t.clientX));
-  }, { passive: false });
-  overlay.addEventListener('touchmove', e => {
-    e.preventDefault();
-    const t = e.touches[0];
-    showTip(t.clientX, t.clientY, getAbsMin(t.clientX));
-  }, { passive: false });
+  overlay.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; showTip(t.clientX, t.clientY, getAbsSec(t.clientX)); }, { passive: false });
+  overlay.addEventListener('touchmove',  e => { e.preventDefault(); const t = e.touches[0]; showTip(t.clientX, t.clientY, getAbsSec(t.clientX)); }, { passive: false });
   overlay.addEventListener('touchend', hideTip);
 }
 
-// ── Events list ───────────────────────────────────────────────────────────
-function renderEvents() {
-  const el = document.getElementById('eventsList');
-  const { sortedEvents, hasH2 } = chartState;
+// ── Scoring tree ──────────────────────────────────────────────────────────
+function renderTree() {
+  const wrapper = document.getElementById('treeWrapper');
+  const { sortedEvents, maxSecs, durationSecs, hasH2 } = chartState;
 
   if (!sortedEvents.length) {
-    el.innerHTML = '<div class="no-events">No scores yet</div>';
+    wrapper.innerHTML = '<div class="no-events">No scores yet</div>';
     return;
   }
 
-  el.innerHTML = [...sortedEvents].reverse().map(ev => {
-    const teamClass = ev.side === 'us' ? 'us' : 'opp';
-    const teamName  = ev.side === 'us' ? 'Us' : oppLabel;
-    const halfLabel = hasH2 ? `H${ev.half}` : '';
-    const minLabel  = `${ev.absMin}'`;
-    const scoreStr  = `${ev.usCum} – ${ev.oppCum}`;
+  // Compute tree height
+  const H = Math.max(T_MIN_H, sortedEvents.length * 28 + T_PAD_V * 2);
+  const USABLE = H - T_PAD_V * 2;
 
-    return `<div class="ev-item ${teamClass}">
-      <span class="ev-min">${minLabel}</span>
-      ${halfLabel ? `<span class="ev-half">${halfLabel}</span>` : ''}
-      <span class="ev-type ${teamClass}">${ev.abbreviated_name || '?'}</span>
-      <span class="ev-team">${teamName}</span>
-      <span class="ev-tally">${scoreStr}</span>
-    </div>`;
-  }).join('');
+  // Assign raw y positions (top = Finish = high absSec, bottom = Start = 0)
+  const positioned = sortedEvents.map(ev => {
+    const rawY = T_PAD_V + (1 - ev.absSec / maxSecs) * USABLE;
+    return { ...ev, y: rawY };
+  });
+
+  // Spread overlapping events per side
+  ['us', 'opp'].forEach(side => {
+    const sideEvs = positioned.filter(e => e.side === side).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sideEvs.length; i++) {
+      if (sideEvs[i].y - sideEvs[i-1].y < T_MIN_GAP) {
+        sideEvs[i].y = sideEvs[i-1].y + T_MIN_GAP;
+      }
+    }
+  });
+
+  // Recompute H to fit spread events
+  const maxY = Math.max(...positioned.map(e => e.y));
+  const finalH = Math.max(H, maxY + T_PAD_V);
+
+  const C_TRUNK = '#2d3f56';
+  const C_TICK  = '#334155';
+  const FONT    = "DM Sans,system-ui,sans-serif";
+
+  let svg = `<svg viewBox="0 0 ${T_W} ${finalH}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Trunk
+  svg += `<line x1="${T_TRUNK}" y1="${T_PAD_V - 8}" x2="${T_TRUNK}" y2="${finalH - T_PAD_V + 8}" stroke="${C_TRUNK}" stroke-width="2"/>`;
+
+  // Finish / Start labels
+  svg += `<text x="${T_TRUNK}" y="${T_PAD_V - 12}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">FINISH</text>`;
+  svg += `<text x="${T_TRUNK}" y="${finalH - T_PAD_V + 22}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">START</text>`;
+
+  // Optional halftime tick on trunk
+  if (hasH2) {
+    const htY = f(T_PAD_V + (1 - durationSecs / maxSecs) * USABLE);
+    svg += `<line x1="${T_TRUNK - 8}" y1="${htY}" x2="${T_TRUNK + 8}" y2="${htY}" stroke="${C_AMBER}" stroke-width="1.5"/>`;
+    svg += `<text x="${T_TRUNK + 12}" y="${parseFloat(htY) + 4}" text-anchor="start" fill="${C_AMBER}" font-size="8" font-weight="600" font-family="${FONT}">HT</text>`;
+  }
+
+  // Draw events
+  for (const ev of positioned) {
+    const y  = f(ev.y);
+    const c  = ev.side === 'us' ? C_US : C_OPP;
+    const label = ev.abbreviated_name || (ev.isGoal ? 'G' : 'P');
+
+    if (ev.side === 'us') {
+      // Branch goes left
+      const dotX = T_TRUNK - T_BRANCH;
+      svg += `<line x1="${T_TRUNK}" y1="${y}" x2="${dotX}" y2="${y}" stroke="${c}" stroke-width="1.5" opacity="0.7"/>`;
+      svg += `<circle cx="${T_TRUNK}" cy="${y}" r="3" fill="${C_TRUNK}" stroke="${c}" stroke-width="1.5"/>`;
+      svg += `<circle cx="${dotX}" cy="${y}" r="${T_DOT_R}" fill="${c}"/>`;
+      svg += `<text x="${dotX - 8}" y="${parseFloat(y) + 4}" text-anchor="end" fill="${c}" font-size="11" font-weight="700" font-family="${FONT}">${label}</text>`;
+    } else {
+      // Branch goes right
+      const dotX = T_TRUNK + T_BRANCH;
+      svg += `<line x1="${T_TRUNK}" y1="${y}" x2="${dotX}" y2="${y}" stroke="${c}" stroke-width="1.5" opacity="0.7"/>`;
+      svg += `<circle cx="${T_TRUNK}" cy="${y}" r="3" fill="${C_TRUNK}" stroke="${c}" stroke-width="1.5"/>`;
+      svg += `<circle cx="${dotX}" cy="${y}" r="${T_DOT_R}" fill="${c}"/>`;
+      svg += `<text x="${dotX + 8}" y="${parseFloat(y) + 4}" text-anchor="start" fill="${c}" font-size="11" font-weight="700" font-family="${FONT}">${label}</text>`;
+    }
+  }
+
+  svg += `</svg>`;
+  wrapper.innerHTML = svg;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 async function boot() {
   showLoading();
-  if (!WV_TOKEN) {
-    showError('Authentication required. Please open this page from the CoachSmart app.');
-    return;
-  }
+  if (!WV_TOKEN) { showError('Authentication required. Please open this page from the CoachSmart app.'); return; }
   try {
     const { data: { user }, error } = await sb.auth.getUser();
     if (error || !user) { showError('Session expired. Please re-open from the app.'); return; }
-
     if (WV_STATS_ID) {
-      // Direct session load — skip picker entirely
       await loadSessionById(parseInt(WV_STATS_ID));
     } else {
-      // Event-based — list sessions, auto-load or show picker
       await loadEventSessions();
     }
   } catch (e) {
