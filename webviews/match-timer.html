@@ -1098,8 +1098,13 @@ async function goToSetup(eventId, label, defaultOpposition) {
 
     const squadField  = $('squadField');
     const squadSelect = $('squadSelect');
-    if (squads && squads.length > 1) {
-      squadSelect.innerHTML = '<option value="">All squads</option>' +
+    if (squads && squads.length === 1) {
+      // Single squad — auto-select silently; no need to show the picker
+      squadSelect.innerHTML = squads.map(s => `<option value="${s.squad_id}">${esc(s.squad_name)}</option>`).join('');
+      squadSelect.value = squads[0].squad_id;
+      squadField.style.display = 'none';
+    } else if (squads && squads.length > 1) {
+      squadSelect.innerHTML = '<option value="">Select squad…</option>' +
         squads.map(s => `<option value="${s.squad_id}">${esc(s.squad_name)}</option>`).join('');
       squadField.style.display = '';
     } else {
@@ -1220,6 +1225,11 @@ async function openTimer() {
     return;
   }
   const squadId = parseInt($('squadSelect').value) || null;
+  if ($('squadField').style.display !== 'none' && !squadId) {
+    showToast('Select a squad to continue');
+    $('squadSelect').focus();
+    return;
+  }
   const duration = selectedDurationMins * 60;
   const injury   = selectedInjuryMins * 60;
 
