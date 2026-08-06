@@ -418,10 +418,14 @@ function showChart() {
 
 // ── Data loading ──────────────────────────────────────────────────────────
 async function loadEventSessions() {
-  if (!WV_EVENT) { showError('No event specified.'); return; }
+  if (!WV_EVENT) { showError('No event ID was passed to this page. Try opening it again from the CoachSmart app.'); return; }
   const { data, error } = await sb.rpc('list_match_stats_for_event', { p_event_id: parseInt(WV_EVENT) });
-  if (error || !data || !data.length) {
-    showError('No match stats found for this event. Open the match timer first.');
+  if (error) {
+    showError(`Could not fetch match sessions (${error.message || error.code || 'unknown error'}). Check your connection and try again.`);
+    return;
+  }
+  if (!data || !data.length) {
+    showError('No match stats found for this event. Open the Match Timer in the CoachSmart app first, then come back here.');
     return;
   }
   if (data.length === 1) { await loadSessionById(data[0].id); return; }
@@ -432,7 +436,8 @@ async function loadEventSessions() {
 async function loadSessionById(id) {
   currentSessionId = id;
   const { data, error } = await sb.rpc('get_match_stats_session', { p_match_stats_id: id });
-  if (error || !data || !data.match_stats_id) { showError('Could not load that stats session.'); return; }
+  if (error) { showError(`Could not load match stats (${error.message || error.code || 'unknown error'}). Check your connection and try again.`); return; }
+  if (!data || !data.match_stats_id) { showError('Match stats session not found. It may have been reset. Open the Match Timer in the app and try again.'); return; }
   timelineData = data;
   oppLabel = data.opposition || 'Opp';
   document.getElementById('oppName').textContent      = oppLabel;
@@ -714,13 +719,14 @@ function processData() {
     return { ...ev, absSec, val, isGoal, usCum, oppCum };
   });
 
+  const isFinished = !!timelineData.finalised_at;
+  const isLive     = !isFinished;
+
   const lineEndSecs = isLive ? Math.min(currentAbsSecs, totalMatchSecs) : currentAbsSecs;
   usLine.push(  { x: lineEndSecs, y: usRunning });
   oppLine.push( { x: lineEndSecs, y: oppRunning });
 
   const lastEventSec = enrichedEvents.length > 0 ? Math.max(...enrichedEvents.map(e => e.absSec)) : 0;
-  const isFinished = !!timelineData.finalised_at;
-  const isLive     = !isFinished;
 
   // In live mode: always show the full expected match duration on the axis so the
   // user can see where they are in the match — not just how far has elapsed.
@@ -1006,18 +1012,18 @@ function renderTree() {
 // ── Boot ──────────────────────────────────────────────────────────────────
 async function boot() {
   showLoading();
-  if (!WV_TOKEN) { showError('Authentication required. Please open this page from the CoachSmart app.'); return; }
+  if (!WV_TOKEN) { showError('No authentication token found. Please open this page from the CoachSmart app — do not open it directly in a browser.'); return; }
   try {
     const { data: { user }, error } = await sb.auth.getUser();
-    if (error || !user) { showError('Session expired. Please re-open from the app.'); return; }
+    if (error || !user) { showError('Your session has expired. Close this page and re-open Match Stats from the CoachSmart app.'); return; }
     if (WV_STATS_ID) {
       await loadSessionById(parseInt(WV_STATS_ID));
     } else {
       await loadEventSessions();
     }
   } catch (e) {
-    console.error(e);
-    showError('Failed to load chart data. Check your connection.');
+    console.error('CoachSmart chart error:', e);
+    showError(`Unexpected error: ${e?.message || 'unknown'}. Try closing and reopening from the app. If this persists, contact support.`);
   }
 }
 
