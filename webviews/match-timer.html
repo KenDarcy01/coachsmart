@@ -1543,13 +1543,23 @@ function setupBroadcast() {
 
 function broadcastTimerState() {
   if (!broadcastChannel || !timerRow) return;
+  // Compute current total elapsed on this device so the receiver doesn't need
+  // to subtract cross-device clocks (which can differ by several seconds).
+  // We send elapsed_seconds = total elapsed NOW, and started_at = this device's
+  // current time. The receiver calculates: elapsed_seconds + (their_now - started_at)
+  // which is just network latency (~50 ms) — not clock skew between devices.
+  const sendAt = Date.now();
+  let currentElapsed = timerRow.elapsed_seconds || 0;
+  if (timerRow.status === 'running' && timerRow.started_at) {
+    currentElapsed += (sendAt - new Date(timerRow.started_at).getTime()) / 1000;
+  }
   broadcastChannel.send({
     type: 'broadcast',
     event: 'timer_state',
     payload: {
       status:           timerRow.status,
-      started_at:       timerRow.started_at,
-      elapsed_seconds:  timerRow.elapsed_seconds,
+      started_at:       new Date(sendAt).toISOString(),
+      elapsed_seconds:  Math.max(0, Math.floor(currentElapsed)),
       current_half:     timerRow.current_half,
       duration_seconds: timerRow.duration_seconds,
     },
