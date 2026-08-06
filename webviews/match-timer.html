@@ -374,9 +374,10 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 
-    /* ── WEBVIEW MODE — hide header bar and orphaned back button ── */
+    /* ── WEBVIEW MODE — hide header bar, event banner, and orphaned back button ── */
     .webview .top-bar { display: none !important; }
     .webview #setupScreen .back-btn { display: none; }
+    .webview #timerScreen .sub-bar  { display: none; }
 
     /* ── INSTALL PROMPT ── */
     .install-overlay {
@@ -1331,7 +1332,9 @@ async function doReset(clearStats = true) {
   stopInterval();
   updateTimerUI();
   if (clearStats && matchStatsRow) {
-    await sb.rpc('reset_match_stats_details', { p_match_stats_id: matchStatsRow.id });
+    // Marks old session 'reset', deletes its details, returns a fresh active session id
+    const { data: resetData } = await sb.rpc('reset_match_stats_session', { p_match_stats_id: matchStatsRow.id });
+    if (resetData?.id) matchStatsRow = { ...matchStatsRow, id: resetData.id };
     scoreCounts = {};
     updateScoreDisplay();
   }
