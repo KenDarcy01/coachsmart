@@ -566,34 +566,42 @@ function processData() {
   );
   const maxPts  = Math.max(usRunning, oppRunning, 4) + 3;
 
+  const isFinished = !!timelineData.finalised_at;
+
   chartState = {
     sortedEvents: enrichedEvents,
     usLine, oppLine,
     usTotal: usRunning, oppTotal: oppRunning,
     usGoals, usPts: usPtsAcc, oppGoals, oppPts: oppPtsAcc,
     durationSecs, currentHalf, currentAbsSecs, maxSecs, maxPts,
-    hasH2, timerStatus: timer.status, timeScale,
+    hasH2, timerStatus: timer.status, timeScale, isFinished,
   };
 
   document.getElementById('liveBadge').style.display =
-    timer.status === 'running' ? 'inline-flex' : 'none';
+    (!isFinished && timer.status === 'running') ? 'inline-flex' : 'none';
 }
 
 // ── Score display ─────────────────────────────────────────────────────────
 function fmtGAA(goals, pts) { return `${goals}-${String(pts).padStart(2, '0')}`; }
 
 function renderScore() {
-  const { usTotal, oppTotal, usGoals, usPts, oppGoals, oppPts } = chartState;
+  const { usTotal, oppTotal, usGoals, usPts, oppGoals, oppPts, isFinished } = chartState;
   document.getElementById('usGAA').textContent  = fmtGAA(usGoals, usPts);
   document.getElementById('usPts').textContent  = `(${usTotal})`;
   document.getElementById('oppGAA').textContent = fmtGAA(oppGoals, oppPts);
   document.getElementById('oppPts').textContent = `(${oppTotal})`;
   const leadEl = document.getElementById('scoreLead');
   const diff = usTotal - oppTotal;
-  if      (diff > 0) { leadEl.textContent = `▲ Us leading by ${diff} pt${diff !== 1 ? 's' : ''}`; leadEl.className = 'score-lead leading'; }
-  else if (diff < 0) { leadEl.textContent = `▼ Us trailing by ${Math.abs(diff)} pt${Math.abs(diff) !== 1 ? 's' : ''}`; leadEl.className = 'score-lead trailing'; }
-  else if (usTotal === 0) { leadEl.textContent = ''; leadEl.className = 'score-lead'; }
-  else { leadEl.textContent = '= Level'; leadEl.className = 'score-lead level'; }
+  if (isFinished) {
+    if      (diff > 0) { leadEl.textContent = `Win by ${diff} pt${diff !== 1 ? 's' : ''}`; leadEl.className = 'score-lead leading'; }
+    else if (diff < 0) { leadEl.textContent = `Loss by ${Math.abs(diff)} pt${Math.abs(diff) !== 1 ? 's' : ''}`; leadEl.className = 'score-lead trailing'; }
+    else               { leadEl.textContent = 'Draw'; leadEl.className = 'score-lead level'; }
+  } else {
+    if      (diff > 0) { leadEl.textContent = `▲ Us leading by ${diff} pt${diff !== 1 ? 's' : ''}`; leadEl.className = 'score-lead leading'; }
+    else if (diff < 0) { leadEl.textContent = `▼ Us trailing by ${Math.abs(diff)} pt${Math.abs(diff) !== 1 ? 's' : ''}`; leadEl.className = 'score-lead trailing'; }
+    else if (usTotal === 0) { leadEl.textContent = ''; leadEl.className = 'score-lead'; }
+    else { leadEl.textContent = '= Level'; leadEl.className = 'score-lead level'; }
+  }
 }
 
 // ── SVG line chart ────────────────────────────────────────────────────────
