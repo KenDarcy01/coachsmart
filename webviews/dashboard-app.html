@@ -687,7 +687,16 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 <script>
 const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Optional token param — when set the page is being opened inside the app webview
+const _p     = new URLSearchParams(window.location.search);
+const WV_TOKEN = _p.get('token') || _p.get('currentAuthToken') || _p.get('access_token') || null;
+
+const sb = window.supabase.createClient(
+    SUPABASE_URL, SUPABASE_ANON_KEY,
+    WV_TOKEN
+        ? { global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } }, auth: { persistSession: false } }
+        : {}
+);
 const H  = {'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${SUPABASE_ANON_KEY}`};
 const MAX_MONTHS = 12;
 
@@ -734,6 +743,17 @@ function getMonthsInRange(start,end) {
 
 // ── Auth functions ────────────────────────────────────────────────
 async function checkAuth() {
+    if (WV_TOKEN) {
+        // Webview path: JWT supplied via URL — validate and skip the login screen entirely
+        const { data: { user }, error } = await sb.auth.getUser();
+        if (error || !user) { showLoginScreen(); return; }
+        await handleSession({ user, access_token: WV_TOKEN });
+        // Hide sign-out controls — signing out inside a webview leaves the user stranded
+        document.querySelectorAll('.logout-topbar-btn, .denied-sign-out').forEach(el => el.style.display = 'none');
+        return;
+    }
+
+    // Standalone path: existing behaviour — session persistence, login form, token refresh
     const{data:{session}}=await sb.auth.getSession();
     if(session) await handleSession(session);
     else showLoginScreen();
@@ -825,6 +845,7 @@ async function doLogin() {
 }
 
 async function doLogout() {
+    if (WV_TOKEN) return; // no-op in webview mode — sign-out buttons are hidden anyway
     await sb.auth.signOut();
 }
 
