@@ -136,6 +136,27 @@
     .score-lead.trailing { color: var(--opp); }
     .score-lead.level    { color: var(--muted); }
 
+    /* ── Live timer strip ───────────────────────────────────────────────────── */
+    #timerStrip {
+      margin: 10px 0 0;
+      padding: 8px 14px;
+      background: rgba(30,41,59,0.5);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .ts-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--us);
+      animation: pulse 1.2s ease-in-out infinite; flex-shrink: 0;
+    }
+    #tsStatus { color: var(--text); }
+    #tsTime   { color: var(--muted); }
+
     /* ── Chart area ─────────────────────────────────────────────────────────── */
     .chart-section { padding: 16px 10px 4px; }
     .chart-wrapper {
@@ -273,6 +294,12 @@
         </div>
       </div>
       <div class="score-lead" id="scoreLead"></div>
+      <!-- Live timer strip — hidden when finalised or no timer data -->
+      <div id="timerStrip" style="display:none">
+        <div class="ts-dot" id="tsDot"></div>
+        <span id="tsStatus"></span>
+        <span id="tsTime"></span>
+      </div>
     </div>
 
     <!-- Line chart -->
@@ -338,11 +365,13 @@ const T_MIN_GAP = 22;    // minimum vertical gap between events (same side)
 const T_MIN_H   = 120;   // minimum tree height (no events)
 
 // ── State ─────────────────────────────────────────────────────────────────
-let timelineData     = null;
-let currentSessionId = null;
-let realtimeChannel  = null;
-let pollTimer        = null;
-let oppLabel         = 'Opp';
+let timelineData          = null;
+let currentSessionId      = null;
+let realtimeChannel       = null;
+let realtimeTimerChannel  = null;
+let pollTimer             = null;
+let liveTimerInterval     = null;
+let oppLabel              = 'Opp';
 
 let chartState = {
   sortedEvents: [], usLine: [], oppLine: [],
@@ -405,7 +434,8 @@ async function loadSessionById(id) {
   document.getElementById('eventLabel').textContent   = data.event_title || 'Match';
   render();
   showChart();
-  subscribeRealtime(id);
+  startLiveTimer();
+  subscribeRealtime(id, data.event_id);
 }
 
 async function selectSession(id) { showLoading(); await loadSessionById(id); }
@@ -413,7 +443,11 @@ async function selectSession(id) { showLoading(); await loadSessionById(id); }
 async function refreshSession() {
   if (!currentSessionId) return;
   const { data, error } = await sb.rpc('get_match_stats_session', { p_match_stats_id: currentSessionId });
-  if (!error && data && data.match_stats_id) { timelineData = data; render(); }
+  if (!error && data && data.match_stats_id) {
+    timelineData = data;
+    render();
+    startLiveTimer(); // resync clock from authoritative server data
+  }
 }
 
 // ── Picker rendering ──────────────────────────────────────────────────────
@@ -439,22 +473,124 @@ function renderPicker(sessions) {
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────
-function subscribeRealtime(matchStatsId) {
-  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+function subscribeRealtime(matchStatsId, eventId) {
+  if (realtimeChannel)      sb.removeChannel(realtimeChannel);
+  if (realtimeTimerChannel) sb.removeChannel(realtimeTimerChannel);
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+
+  // Score events — refresh full session so chart redraws
   realtimeChannel = sb
     .channel(`chart-${matchStatsId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'match_stats_details',
         filter: `match_stats_id=eq.${matchStatsId}` }, () => refreshSession())
     .subscribe(status => {
-      if (status === 'SUBSCRIBED') clearInterval(pollTimer);
+      if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
       else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
     });
-  setTimeout(() => { if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling(); }, 5000);
+
+  // Timer events — update local timer state immediately (pause/resume/half change)
+  if (eventId) {
+    realtimeTimerChannel = sb
+      .channel(`timer-${eventId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_timer',
+          filter: `event_id=eq.${eventId}` }, payload => {
+        if (timelineData && payload.new) {
+          timelineData.timer = {
+            elapsed_seconds:  payload.new.elapsed_seconds,
+            started_at:       payload.new.started_at,
+            status:           payload.new.status,
+            duration_seconds: payload.new.duration_seconds,
+            current_half:     payload.new.current_half,
+          };
+          startLiveTimer();
+        }
+      })
+      .subscribe();
+  }
+
+  // Fall back to polling if realtime doesn't connect within 3 s
+  setTimeout(() => { if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling(); }, 3000);
 }
+
 function startPolling() {
   if (pollTimer) return;
-  pollTimer = setInterval(refreshSession, 15000);
+  // Poll every 5 s for live matches, 30 s for finalised ones
+  const interval = (timelineData && !timelineData.finalised_at) ? 5000 : 30000;
+  pollTimer = setInterval(refreshSession, interval);
+}
+
+// ── Live timer ────────────────────────────────────────────────────────────
+function fmtMmSs(s) {
+  s = Math.max(0, Math.floor(s));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function updateLiveTimerDisplay() {
+  const strip = document.getElementById('timerStrip');
+  if (!strip) return;
+
+  if (!timelineData || timelineData.finalised_at) { strip.style.display = 'none'; return; }
+
+  const timer = timelineData.timer;
+  if (!timer) { strip.style.display = 'none'; return; }
+
+  const dur      = timer.duration_seconds || 1800;
+  const half     = timer.current_half || 1;
+  const halfName = half === 1 ? 'First Half' : 'Second Half';
+
+  let elapsed = timer.elapsed_seconds || 0;
+  if (timer.status === 'running' && timer.started_at) {
+    elapsed += (Date.now() - new Date(timer.started_at).getTime()) / 1000;
+  }
+  elapsed = Math.max(0, elapsed);
+
+  const remaining  = Math.max(0, dur - elapsed);
+  const inInjury   = elapsed > dur;
+  const injurySecs = Math.max(0, elapsed - dur);
+  const isRunning  = timer.status === 'running';
+
+  // Half time: H1 expired and not running
+  const isHalfTime = half === 1 && elapsed >= dur && !isRunning;
+
+  strip.style.display = 'flex';
+  const statusEl = document.getElementById('tsStatus');
+  const timeEl   = document.getElementById('tsTime');
+  const dotEl    = document.getElementById('tsDot');
+
+  if (isHalfTime) {
+    dotEl.style.display = 'none';
+    statusEl.textContent = 'Half Time';
+    timeEl.textContent   = `· 2nd half starts at ${fmtMmSs(dur)}`;
+    return;
+  }
+
+  dotEl.style.display = isRunning ? '' : 'none';
+
+  if (inInjury) {
+    statusEl.textContent = halfName;
+    timeEl.textContent   = `+${fmtMmSs(injurySecs)}${isRunning ? '' : ' (paused)'}`;
+  } else if (elapsed < 1 && !isRunning) {
+    statusEl.textContent = `${halfName} Ready`;
+    timeEl.textContent   = `· ${fmtMmSs(dur)}`;
+  } else if (!isRunning) {
+    statusEl.textContent = `${halfName} Paused`;
+    timeEl.textContent   = `· ${fmtMmSs(remaining)} remaining`;
+  } else {
+    statusEl.textContent = halfName;
+    timeEl.textContent   = `· ${fmtMmSs(remaining)} remaining`;
+  }
+}
+
+function startLiveTimer() {
+  stopLiveTimer();
+  updateLiveTimerDisplay();
+  if (timelineData && !timelineData.finalised_at) {
+    liveTimerInterval = setInterval(updateLiveTimerDisplay, 1000);
+  }
+}
+
+function stopLiveTimer() {
+  if (liveTimerInterval) { clearInterval(liveTimerInterval); liveTimerInterval = null; }
 }
 
 // ── Render pipeline ───────────────────────────────────────────────────────
