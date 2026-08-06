@@ -744,7 +744,8 @@ function getMonthsInRange(start,end) {
 // ── Auth functions ────────────────────────────────────────────────
 async function checkAuth() {
     if (WV_TOKEN) {
-        // Webview path: JWT supplied via URL — validate and skip the login screen entirely
+        // Webview path: JWT supplied via URL — skip splash entirely and validate token
+        document.getElementById('splashScreen').style.display = 'none';
         const { data: { user }, error } = await sb.auth.getUser();
         if (error || !user) { showLoginScreen(); return; }
         await handleSession({ user, access_token: WV_TOKEN });
