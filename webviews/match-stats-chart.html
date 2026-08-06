@@ -526,11 +526,17 @@ function processData() {
 
   const allEvents = [...events].sort((a, b) => {
     if (a.half !== b.half) return a.half - b.half;
-    if (a.minute !== b.minute) return a.minute - b.minute;
+    if (a.second !== b.second) return a.second - b.second;
     return new Date(a.created_at) - new Date(b.created_at);
   });
   // Only include events that have a positive score value (exclude e.g. kick-outs, fouls)
   const sortedEvents = allEvents.filter(ev => ev.score_value && ev.score_value > 0);
+
+  // Determine whether the match has a second half before building absSec values,
+  // so we can cap injury-time events at the match end rather than letting them
+  // push the axis (and tree) beyond the game boundary.
+  const hasH2 = allEvents.some(e => e.half === 2) || currentHalf === 2;
+  const totalMatchSecs = hasH2 ? 2 * durationSecs : durationSecs;
 
   let usRunning = 0, oppRunning = 0;
   let usGoals = 0, usPtsAcc = 0, oppGoals = 0, oppPtsAcc = 0;
@@ -538,7 +544,11 @@ function processData() {
   const oppLine = [{ x: 0, y: 0 }];
 
   const enrichedEvents = sortedEvents.map(ev => {
-    const absSec = ev.half === 1 ? ev.second : durationSecs + ev.second;
+    // Cap at totalMatchSecs so injury-time scores don't create a phantom third period
+    const absSec = Math.min(
+      ev.half === 1 ? ev.second : durationSecs + ev.second,
+      totalMatchSecs
+    );
     const val = ev.score_value || 1;
     const isGoal = val >= 3;
     let usCum, oppCum;
@@ -561,7 +571,6 @@ function processData() {
   usLine.push(  { x: currentAbsSecs, y: usRunning });
   oppLine.push( { x: currentAbsSecs, y: oppRunning });
 
-  const hasH2  = allEvents.some(e => e.half === 2) || currentHalf === 2;
   const lastEventSec = enrichedEvents.length > 0 ? Math.max(...enrichedEvents.map(e => e.absSec)) : 0;
   const rawMaxSecs = Math.max(currentAbsSecs, lastEventSec, 60);
   const timeScale = getTimeScale(rawMaxSecs);
