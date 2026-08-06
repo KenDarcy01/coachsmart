@@ -301,10 +301,7 @@
           <div class="live-badge" id="liveBadge" style="display:none">
             <div class="live-dot"></div> Live
           </div>
-          <button id="exportPdfBtn" onclick="exportPDF()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            PDF
-          </button>
+          <button id="exportPdfBtn">&#8595; PDF</button>
         </div>
       </div>
 
@@ -633,6 +630,12 @@ function updateLiveTimerDisplay() {
     : Math.min(elapsed, dur + 900);
 
   if (rawAbsSecs > 0 && chartState.maxSecs) {
+    // Injury time: if the clock has outrun the axis, re-render (computeChartData will
+    // extend maxSecs by 2 min so we don't re-render every second).
+    if (chartState.isLive && rawAbsSecs > chartState.maxSecs) {
+      render();
+      return;
+    }
     const clampedAbsSecs = Math.min(rawAbsSecs, chartState.maxSecs);
 
     // Move the "Now" cursor in the chart SVG each tick
@@ -670,7 +673,10 @@ function updateLiveTimerDisplay() {
   }
 }
 
-function exportPDF() { window.print(); }
+function exportPDF() {
+  try { window.print(); } catch(e) {}
+}
+document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
 
 function startLiveTimer() {
   stopLiveTimer();
@@ -798,17 +804,17 @@ function processData() {
   const isFinished = !!timelineData.finalised_at;
   const isLive     = !isFinished;
 
-  const lineEndSecs = isLive ? Math.min(currentAbsSecs, totalMatchSecs) : currentAbsSecs;
+  const lineEndSecs = currentAbsSecs;
   usLine.push(  { x: lineEndSecs, y: usRunning });
   oppLine.push( { x: lineEndSecs, y: oppRunning });
 
   const lastEventSec = enrichedEvents.length > 0 ? Math.max(...enrichedEvents.map(e => e.absSec)) : 0;
 
-  // In live mode: always show the full expected match duration on the axis so the
-  // user can see where they are in the match — not just how far has elapsed.
-  // In finalised mode: snap to actual elapsed time as before.
+  // In live mode: lock to match duration normally; extend with a 2-min buffer if in injury time
+  // so the axis follows the clock without rebuilding every second.
+  // In finalised mode: snap to actual elapsed time.
   const rawMaxSecs = isLive
-    ? totalMatchSecs   // fixed reference frame — injury time stays within match duration
+    ? (currentAbsSecs > totalMatchSecs ? currentAbsSecs + 120 : totalMatchSecs)
     : Math.max(currentAbsSecs, lastEventSec, 60);
 
   const timeScale = getTimeScale(rawMaxSecs);
