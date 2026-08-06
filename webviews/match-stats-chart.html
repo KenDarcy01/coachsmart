@@ -443,7 +443,7 @@ async function loadSessionById(id) {
   render();
   showChart();
   startLiveTimer();
-  subscribeRealtime(id, data.event_id);
+  subscribeRealtime(id);
 }
 
 async function selectSession(id) { showLoading(); await loadSessionById(id); }
@@ -481,12 +481,16 @@ function renderPicker(sessions) {
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────
-// Server-side column filters require REPLICA IDENTITY FULL (non-PK columns
-// are not in the WAL by default). We filter client-side instead so the
-// subscription works regardless of whether that migration has been applied.
-function subscribeRealtime(matchStatsId, eventId) {
+// Server-side column filters require REPLICA IDENTITY FULL. We filter
+// client-side so the subscription works before that migration is applied.
+//
+// match_timer is NOT subscribed via realtime — the local tick keeps the
+// display accurate when running, and the 5 s poll resyncs pause/resume.
+// Subscribing to match_timer would broadcast every pause/start to all
+// connected viewers, which doesn't scale to many concurrent matches.
+function subscribeRealtime(matchStatsId) {
   if (realtimeChannel)      sb.removeChannel(realtimeChannel);
-  if (realtimeTimerChannel) sb.removeChannel(realtimeTimerChannel);
+  if (realtimeTimerChannel) { sb.removeChannel(realtimeTimerChannel); realtimeTimerChannel = null; }
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 
   // Score events — any change to match_stats_details; filter client-side
@@ -501,27 +505,6 @@ function subscribeRealtime(matchStatsId, eventId) {
       if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
       else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
     });
-
-  // Timer events — any UPDATE to match_timer; filter client-side by event_id
-  if (eventId) {
-    realtimeTimerChannel = sb
-      .channel(`timer-${eventId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_timer' },
-          payload => {
-            if (payload.new?.event_id !== eventId) return;
-            if (timelineData && payload.new) {
-              timelineData.timer = {
-                elapsed_seconds:  payload.new.elapsed_seconds,
-                started_at:       payload.new.started_at,
-                status:           payload.new.status,
-                duration_seconds: payload.new.duration_seconds,
-                current_half:     payload.new.current_half,
-              };
-              startLiveTimer();
-            }
-          })
-      .subscribe();
-  }
 
   // Fall back to polling if realtime doesn't connect within 3 s
   setTimeout(() => { if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling(); }, 3000);
@@ -589,6 +572,21 @@ function updateLiveTimerDisplay() {
     halfEl.textContent = halfName;
     timeEl.textContent = fmtMmSs(remaining);
     subEl.textContent  = isRunning ? 'remaining' : 'remaining — paused';
+  }
+
+  // Move the "Now" cursor in the chart SVG each tick (avoids full re-render)
+  const cursorLine = document.getElementById('nowCursorLine');
+  const cursorText = document.getElementById('nowCursorText');
+  if (cursorLine && cursorText && chartState.maxSecs) {
+    const currentAbsSecs = half === 2
+      ? dur + Math.min(elapsed, dur + 900)
+      : Math.min(elapsed, dur + 900);
+    if (currentAbsSecs > 0 && currentAbsSecs < chartState.maxSecs) {
+      const cX = f(xS(currentAbsSecs, chartState.maxSecs));
+      cursorLine.setAttribute('x1', cX);
+      cursorLine.setAttribute('x2', cX);
+      cursorText.setAttribute('x', cX);
+    }
   }
 }
 
@@ -821,8 +819,8 @@ function renderChartSVG() {
   if (currentAbsSecs > 0 && currentAbsSecs < maxSecs) {
     const cX = f(xS(currentAbsSecs, maxSecs));
     if (isLive) {
-      svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>`;
-      svg += `<text x="${cX}" y="${PAD.t-4}" text-anchor="middle" fill="#94a3b8" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">Now</text>`;
+      svg += `<line id="nowCursorLine" x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+      svg += `<text id="nowCursorText" x="${cX}" y="${PAD.t-4}" text-anchor="middle" fill="#94a3b8" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">Now</text>`;
     } else {
       svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#475569" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
     }
