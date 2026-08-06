@@ -13,10 +13,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Copy webviews into main website
-        run: cp -r webviews website/webviews
+        run: rm -rf website/webviews && cp -r webviews website/webviews
 
       - name: Copy clontarf-gaa into main website
-        run: cp -r clontarf-gaa website/clontarf-gaa
+        run: rm -rf website/clontarf-gaa && cp -r clontarf-gaa website/clontarf-gaa
 
       - name: Deploy main website
         uses: FirebaseExtended/action-hosting-deploy@v0
