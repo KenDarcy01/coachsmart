@@ -830,6 +830,8 @@ async function startSecondHalf() {
   timerRow.current_half    = 2;
   wasInInjuryTime = false;
   updateTimerUI();
+  // Start running immediately — no second tap needed
+  await doStart();
 }
 
 async function endCurrentPeriod() {
@@ -883,8 +885,35 @@ async function bootWebview() {
     const typeStr = [event.event_codes?.event_code, event.event_types?.event_type].filter(Boolean).join(' · ');
     const oppStr  = event.opposition ? ` vs ${event.opposition}` : '';
     currentEventLabel = `${dateStr} · ${typeStr}${oppStr}`.trim();
+
+    // If a timer row already exists, skip setup and resume directly
+    const { data: existing } = await sb
+      .from('match_timer')
+      .select('*')
+      .eq('event_id', currentEventId)
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
     hideLoading();
-    await goToSetup(currentEventId, currentEventLabel, event.opposition || '');
+
+    if (existing) {
+      timerRow    = existing;
+      currentHalf = existing.current_half || 1;
+      scoreTypes  = await fetchScoreTypes(currentTeamId);
+      await upsertMatchStats(existing.opposition || '', existing.squad_id);
+      await loadScoreCounts();
+      const oppPart = existing.opposition ? ` vs ${existing.opposition}` : '';
+      $('timerEventLabel').innerHTML = `<strong>${currentEventLabel}${esc(oppPart)}</strong>`;
+      $('awayLabel').textContent     = existing.opposition || 'Opp';
+      wasInInjuryTime = isInInjuryTime(timerRow);
+      renderScorePanel();
+      updateScoreDisplay();
+      showScreen('timerScreen');
+      updateTimerUI();
+      if (timerRow.status === 'running') startInterval();
+    } else {
+      await goToSetup(currentEventId, currentEventLabel, event.opposition || '');
+    }
   } catch (e) {
     hideLoading();
     showToast('Error loading match');
