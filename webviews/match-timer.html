@@ -691,6 +691,7 @@ let currentHalf     = 1;
 let matchStatsRow  = null;     // row in match_stats for this session
 let scoreTypes     = [];       // [{id, score_type, abbreviated_name, score_value}]
 let scoreCounts    = {};       // {typeId: {us: N, opp: N}}
+let broadcastChannel = null;   // realtime channel for broadcasting timer state to stats viewers
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -857,6 +858,7 @@ async function endCurrentPeriod() {
     triggerFinalWhistle();
   }
   updateTimerUI();
+  broadcastTimerState();
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -1307,6 +1309,7 @@ async function doStart() {
   timerRow.status     = 'running';
   startInterval();
   updateTimerUI();
+  broadcastTimerState();
 }
 
 async function doPause() {
@@ -1322,6 +1325,7 @@ async function doPause() {
   timerRow.status          = 'paused';
   stopInterval();
   updateTimerUI();
+  broadcastTimerState();
 }
 
 function showResetModal()  { $('resetModal').classList.add('show'); }
@@ -1525,6 +1529,31 @@ async function upsertMatchStats(opposition, squadId) {
   });
   if (error) throw error;
   matchStatsRow = { id: data.id, opposition, squad_id: squadId };
+  setupBroadcast();
+}
+
+// Broadcast timer state to any stats-page viewers subscribed to this session's channel.
+// Uses Supabase Broadcast (peer-to-peer via realtime server) so RLS doesn't apply.
+function setupBroadcast() {
+  if (!matchStatsRow) return;
+  if (broadcastChannel) sb.removeChannel(broadcastChannel);
+  broadcastChannel = sb.channel(`chart-${matchStatsRow.id}`);
+  broadcastChannel.subscribe();
+}
+
+function broadcastTimerState() {
+  if (!broadcastChannel || !timerRow) return;
+  broadcastChannel.send({
+    type: 'broadcast',
+    event: 'timer_state',
+    payload: {
+      status:           timerRow.status,
+      started_at:       timerRow.started_at,
+      elapsed_seconds:  timerRow.elapsed_seconds,
+      current_half:     timerRow.current_half,
+      duration_seconds: timerRow.duration_seconds,
+    },
+  }).catch(() => {});
 }
 
 // Read aggregated score counts from the server

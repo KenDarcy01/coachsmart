@@ -507,13 +507,18 @@ function subscribeRealtime(matchStatsId) {
           const rowId = payload.new?.match_stats_id ?? payload.old?.match_stats_id;
           if (rowId === matchStatsId) refreshSession();
         })
-    // Timer status events — start, pause, half change (a few per match, not every second)
-    // Filter by event_id if available; otherwise accept all (single active match per user)
+    // Timer status via postgres_changes — fallback if broadcast isn't received
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_timer' },
         payload => {
           if (timerEventId && payload.new?.event_id && payload.new.event_id !== timerEventId) return;
           refreshSession();
         })
+    // Timer state via Broadcast — bypasses RLS, fires immediately on scorekeeper action
+    .on('broadcast', { event: 'timer_state' }, ({ payload }) => {
+      if (!payload || !timelineData) return;
+      timelineData.timer = { ...(timelineData.timer || {}), ...payload };
+      startLiveTimer();
+    })
     .subscribe(status => {
       if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
       else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
