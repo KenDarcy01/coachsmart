@@ -136,26 +136,32 @@
     .score-lead.trailing { color: var(--opp); }
     .score-lead.level    { color: var(--muted); }
 
-    /* ── Live timer strip ───────────────────────────────────────────────────── */
-    #timerStrip {
+    /* ── Live timer card ────────────────────────────────────────────────────── */
+    #liveTimerCard {
       margin: 10px 0 0;
-      padding: 8px 14px;
-      background: rgba(30,41,59,0.5);
+      padding: 18px 20px 16px;
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      font-size: 12px;
-      font-weight: 600;
+      border-radius: 16px;
+      text-align: center;
     }
-    .ts-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: var(--us);
-      animation: pulse 1.2s ease-in-out infinite; flex-shrink: 0;
+    .ltc-half {
+      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
-    #tsStatus { color: var(--text); }
-    #tsTime   { color: var(--muted); }
+    .ltc-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #ef4444;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .ltc-time {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 64px; letter-spacing: 3px; line-height: 1;
+      color: var(--text);
+    }
+    .ltc-sub {
+      font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500;
+    }
 
     /* ── Chart area ─────────────────────────────────────────────────────────── */
     .chart-section { padding: 16px 10px 4px; }
@@ -294,11 +300,11 @@
         </div>
       </div>
       <div class="score-lead" id="scoreLead"></div>
-      <!-- Live timer strip — hidden when finalised or no timer data -->
-      <div id="timerStrip" style="display:none">
-        <div class="ts-dot" id="tsDot"></div>
-        <span id="tsStatus"></span>
-        <span id="tsTime"></span>
+      <!-- Live timer card — visible only during live matches -->
+      <div id="liveTimerCard" style="display:none">
+        <div class="ltc-half"><div class="ltc-dot" id="ltcDot"></div><span id="ltcHalf">First Half</span></div>
+        <div class="ltc-time" id="ltcTime">30:00</div>
+        <div class="ltc-sub" id="ltcSub">remaining</div>
       </div>
     </div>
 
@@ -535,13 +541,13 @@ function fmtMmSs(s) {
 }
 
 function updateLiveTimerDisplay() {
-  const strip = document.getElementById('timerStrip');
-  if (!strip) return;
+  const card = document.getElementById('liveTimerCard');
+  if (!card) return;
 
-  if (!timelineData || timelineData.finalised_at) { strip.style.display = 'none'; return; }
+  if (!timelineData || timelineData.finalised_at) { card.style.display = 'none'; return; }
 
   const timer = timelineData.timer;
-  if (!timer) { strip.style.display = 'none'; return; }
+  if (!timer) { card.style.display = 'none'; return; }
 
   const dur      = timer.duration_seconds || 1800;
   const half     = timer.current_half || 1;
@@ -557,36 +563,32 @@ function updateLiveTimerDisplay() {
   const inInjury   = elapsed > dur;
   const injurySecs = Math.max(0, elapsed - dur);
   const isRunning  = timer.status === 'running';
-
-  // Half time: H1 expired and not running
   const isHalfTime = half === 1 && elapsed >= dur && !isRunning;
 
-  strip.style.display = 'flex';
-  const statusEl = document.getElementById('tsStatus');
-  const timeEl   = document.getElementById('tsTime');
-  const dotEl    = document.getElementById('tsDot');
-
-  if (isHalfTime) {
-    dotEl.style.display = 'none';
-    statusEl.textContent = 'Half Time';
-    timeEl.textContent   = `· 2nd half starts at ${fmtMmSs(dur)}`;
-    return;
-  }
+  card.style.display = '';
+  const halfEl = document.getElementById('ltcHalf');
+  const timeEl = document.getElementById('ltcTime');
+  const subEl  = document.getElementById('ltcSub');
+  const dotEl  = document.getElementById('ltcDot');
 
   dotEl.style.display = isRunning ? '' : 'none';
 
-  if (inInjury) {
-    statusEl.textContent = halfName;
-    timeEl.textContent   = `+${fmtMmSs(injurySecs)}${isRunning ? '' : ' (paused)'}`;
+  if (isHalfTime) {
+    halfEl.textContent = 'Half Time';
+    timeEl.textContent = fmtMmSs(dur);
+    subEl.textContent  = '2nd half starting';
+  } else if (inInjury) {
+    halfEl.textContent = halfName;
+    timeEl.textContent = `+${fmtMmSs(injurySecs)}`;
+    subEl.textContent  = isRunning ? 'injury time' : 'injury time — paused';
   } else if (elapsed < 1 && !isRunning) {
-    statusEl.textContent = `${halfName} Ready`;
-    timeEl.textContent   = `· ${fmtMmSs(dur)}`;
-  } else if (!isRunning) {
-    statusEl.textContent = `${halfName} Paused`;
-    timeEl.textContent   = `· ${fmtMmSs(remaining)} remaining`;
+    halfEl.textContent = halfName;
+    timeEl.textContent = fmtMmSs(dur);
+    subEl.textContent  = 'ready to start';
   } else {
-    statusEl.textContent = halfName;
-    timeEl.textContent   = `· ${fmtMmSs(remaining)} remaining`;
+    halfEl.textContent = halfName;
+    timeEl.textContent = fmtMmSs(remaining);
+    subEl.textContent  = isRunning ? 'remaining' : 'remaining — paused';
   }
 }
 
@@ -717,16 +719,25 @@ function processData() {
   oppLine.push( { x: currentAbsSecs, y: oppRunning });
 
   const lastEventSec = enrichedEvents.length > 0 ? Math.max(...enrichedEvents.map(e => e.absSec)) : 0;
-  const rawMaxSecs = Math.max(currentAbsSecs, lastEventSec, 60);
+  const isFinished = !!timelineData.finalised_at;
+  const isLive     = !isFinished;
+
+  // In live mode: always show the full expected match duration on the axis so the
+  // user can see where they are in the match — not just how far has elapsed.
+  // In finalised mode: snap to actual elapsed time as before.
+  const rawMaxSecs = isLive
+    ? Math.max(totalMatchSecs, currentAbsSecs)   // full match + any injury overflow
+    : Math.max(currentAbsSecs, lastEventSec, 60);
+
   const timeScale = getTimeScale(rawMaxSecs);
-  // Snap to next tick so the axis always ends on a clean label
-  const maxSecs = Math.max(
+  const maxSecs   = Math.max(
     Math.ceil(rawMaxSecs / timeScale.tickSecs) * timeScale.tickSecs,
     timeScale.tickSecs
   );
   const maxPts  = Math.max(usRunning, oppRunning, 4) + 3;
 
-  const isFinished = !!timelineData.finalised_at;
+  // Show HT divider whenever the axis spans more than one half (live: always; finalised: only if H2 played)
+  const showHT = maxSecs > durationSecs;
 
   chartState = {
     sortedEvents: enrichedEvents,
@@ -734,7 +745,7 @@ function processData() {
     usTotal: usRunning, oppTotal: oppRunning,
     usGoals, usPts: usPtsAcc, oppGoals, oppPts: oppPtsAcc,
     durationSecs, currentHalf, currentAbsSecs, maxSecs, maxPts,
-    hasH2, timerStatus: timer.status, timeScale, isFinished,
+    hasH2, showHT, timerStatus: timer.status, timeScale, isFinished, isLive,
   };
 
   document.getElementById('liveBadge').style.display =
@@ -774,7 +785,7 @@ function pts2str(pts, maxSecs, maxPts) {
 
 function renderChartSVG() {
   const { sortedEvents, usLine, oppLine, usTotal, oppTotal,
-          durationSecs, currentAbsSecs, maxSecs, maxPts, hasH2, timeScale } = chartState;
+          durationSecs, currentAbsSecs, maxSecs, maxPts, showHT, isLive, timeScale } = chartState;
 
   let svg = '';
 
@@ -793,8 +804,8 @@ function renderChartSVG() {
     svg += `<text x="${cx}" y="${f(PAD.t+CH+14)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${fmtAxisLabel(s, timeScale.unit)}</text>`;
   }
 
-  // Halftime marker
-  if (hasH2) {
+  // Halftime marker — shown whenever the axis spans more than one half
+  if (showHT) {
     const htX = f(xS(durationSecs, maxSecs));
     svg += `<line x1="${htX}" y1="${PAD.t}" x2="${htX}" y2="${f(PAD.t+CH)}" stroke="${C_AMBER}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.75"/>`;
     svg += `<text x="${htX}" y="${PAD.t-4}" text-anchor="middle" fill="${C_AMBER}" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">HT</text>`;
@@ -806,10 +817,15 @@ function renderChartSVG() {
   svg += `<text x="${f(PAD.l+CW/2)}" y="${VH-2}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${timeScale.unit === 'seconds' ? 'Seconds' : 'Minutes'}</text>`;
   svg += `<text x="9" y="${f(PAD.t+CH/2)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif" transform="rotate(-90 9 ${f(PAD.t+CH/2)})">Points</text>`;
 
-  // Current time cursor
-  if (currentAbsSecs > 0) {
+  // "Now" cursor — prominent in live mode, subtle in finalised
+  if (currentAbsSecs > 0 && currentAbsSecs < maxSecs) {
     const cX = f(xS(currentAbsSecs, maxSecs));
-    svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#475569" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
+    if (isLive) {
+      svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+      svg += `<text x="${cX}" y="${PAD.t-4}" text-anchor="middle" fill="#94a3b8" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">Now</text>`;
+    } else {
+      svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#475569" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
+    }
   }
 
   // Lines
@@ -898,7 +914,7 @@ function attachChartInteraction() {
 // ── Scoring tree ──────────────────────────────────────────────────────────
 function renderTree() {
   const wrapper = document.getElementById('treeWrapper');
-  const { sortedEvents, maxSecs, durationSecs, hasH2, timeScale } = chartState;
+  const { sortedEvents, maxSecs, durationSecs, showHT, isLive, currentAbsSecs, timeScale } = chartState;
 
   if (!sortedEvents.length) {
     wrapper.innerHTML = '<div class="no-events">No scores yet</div>';
@@ -942,11 +958,18 @@ function renderTree() {
   svg += `<text x="${T_TRUNK}" y="${T_PAD_V - 12}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">FINISH</text>`;
   svg += `<text x="${T_TRUNK}" y="${finalH - T_PAD_V + 22}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">START</text>`;
 
-  // Optional halftime tick on trunk
-  if (hasH2) {
+  // Halftime tick on trunk
+  if (showHT) {
     const htY = f(T_PAD_V + (1 - durationSecs / maxSecs) * USABLE);
     svg += `<line x1="${T_TRUNK - 8}" y1="${htY}" x2="${T_TRUNK + 8}" y2="${htY}" stroke="${C_AMBER}" stroke-width="1.5"/>`;
     svg += `<text x="${T_TRUNK + 12}" y="${parseFloat(htY) + 4}" text-anchor="start" fill="${C_AMBER}" font-size="8" font-weight="600" font-family="${FONT}">HT</text>`;
+  }
+
+  // "Now" marker on trunk — only in live mode
+  if (isLive && currentAbsSecs > 0 && currentAbsSecs < maxSecs) {
+    const nowY = f(T_PAD_V + (1 - currentAbsSecs / maxSecs) * USABLE);
+    svg += `<circle cx="${T_TRUNK}" cy="${nowY}" r="4" fill="#94a3b8"/>`;
+    svg += `<text x="${T_TRUNK + 10}" y="${parseFloat(nowY) + 4}" text-anchor="start" fill="#94a3b8" font-size="8" font-weight="600" font-family="${FONT}">Now</text>`;
   }
 
   // Draw events
