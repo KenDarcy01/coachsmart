@@ -475,38 +475,45 @@ function renderPicker(sessions) {
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────
+// Server-side column filters require REPLICA IDENTITY FULL (non-PK columns
+// are not in the WAL by default). We filter client-side instead so the
+// subscription works regardless of whether that migration has been applied.
 function subscribeRealtime(matchStatsId, eventId) {
   if (realtimeChannel)      sb.removeChannel(realtimeChannel);
   if (realtimeTimerChannel) sb.removeChannel(realtimeTimerChannel);
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 
-  // Score events — refresh full session so chart redraws
+  // Score events — any change to match_stats_details; filter client-side
   realtimeChannel = sb
     .channel(`chart-${matchStatsId}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_stats_details',
-        filter: `match_stats_id=eq.${matchStatsId}` }, () => refreshSession())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_stats_details' },
+        payload => {
+          const rowId = payload.new?.match_stats_id ?? payload.old?.match_stats_id;
+          if (rowId === matchStatsId) refreshSession();
+        })
     .subscribe(status => {
       if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
       else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
     });
 
-  // Timer events — update local timer state immediately (pause/resume/half change)
+  // Timer events — any UPDATE to match_timer; filter client-side by event_id
   if (eventId) {
     realtimeTimerChannel = sb
       .channel(`timer-${eventId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_timer',
-          filter: `event_id=eq.${eventId}` }, payload => {
-        if (timelineData && payload.new) {
-          timelineData.timer = {
-            elapsed_seconds:  payload.new.elapsed_seconds,
-            started_at:       payload.new.started_at,
-            status:           payload.new.status,
-            duration_seconds: payload.new.duration_seconds,
-            current_half:     payload.new.current_half,
-          };
-          startLiveTimer();
-        }
-      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_timer' },
+          payload => {
+            if (payload.new?.event_id !== eventId) return;
+            if (timelineData && payload.new) {
+              timelineData.timer = {
+                elapsed_seconds:  payload.new.elapsed_seconds,
+                started_at:       payload.new.started_at,
+                status:           payload.new.status,
+                duration_seconds: payload.new.duration_seconds,
+                current_half:     payload.new.current_half,
+              };
+              startLiveTimer();
+            }
+          })
       .subscribe();
   }
 
