@@ -1724,8 +1724,13 @@ async function finaliseStats() {
   const { error } = await sb.rpc('finalise_match_stats', { p_match_stats_id: matchStatsRow.id });
   if (error) { showToast('Error saving stats'); return; }
   showToast('Stats saved');
-  // Reset the timer only — preserve match_stats_details so the chart retains the data
+  // Reset timer only — preserve match_stats_details so the chart retains the data
   await doReset(false);
+  // Immediately create a fresh active session so any subsequent scores don't
+  // corrupt the finalised one (matchStatsRow still pointed to the old id)
+  await upsertMatchStats(timerRow?.opposition || '', timerRow?.squad_id || null);
+  scoreCounts = {};
+  updateScoreDisplay();
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
