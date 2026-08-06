@@ -457,9 +457,16 @@ async function refreshSession() {
   if (!currentSessionId) return;
   const { data, error } = await sb.rpc('get_match_stats_session', { p_match_stats_id: currentSessionId });
   if (!error && data && data.match_stats_id) {
+    const prevTimer = timelineData?.timer;
     timelineData = data;
+    // Preserve a broadcast-anchored timer reference (receiver's own clock) rather than
+    // overwriting with the DB's started_at, which was written from the sender's clock and
+    // can differ from the receiver's Date.now() by several seconds.
+    if (prevTimer?._localRef && data.timer?.status === 'running' && prevTimer.status === 'running') {
+      timelineData.timer = { ...data.timer, elapsed_seconds: prevTimer.elapsed_seconds, started_at: prevTimer.started_at, _localRef: true };
+    }
     render();
-    startLiveTimer(); // resync clock from authoritative server data
+    startLiveTimer();
   }
 }
 
@@ -516,7 +523,13 @@ function subscribeRealtime(matchStatsId) {
     // Timer state via Broadcast — bypasses RLS, fires immediately on scorekeeper action
     .on('broadcast', { event: 'timer_state' }, ({ payload }) => {
       if (!payload || !timelineData) return;
-      timelineData.timer = { ...(timelineData.timer || {}), ...payload };
+      // Re-anchor started_at to the receiver's own clock to eliminate cross-device skew.
+      // elapsed_seconds is the total elapsed computed on the sender's device; we record
+      // our own "received at" time so all subsequent ticking uses one device's clock only.
+      const timerUpdate = payload.status === 'running'
+        ? { ...payload, started_at: new Date().toISOString(), _localRef: true }
+        : payload;
+      timelineData.timer = { ...(timelineData.timer || {}), ...timerUpdate };
       startLiveTimer();
     })
     .subscribe(status => {
@@ -617,6 +630,20 @@ function updateLiveTimerDisplay() {
       const nowY = (T_PAD_V + (1 - clampedAbsSecs / chartState.maxSecs) * chartState.treeUsable).toFixed(1);
       treeDot.setAttribute('cy', nowY);
       treeText.setAttribute('y', (parseFloat(nowY) + 4).toFixed(1));
+    }
+
+    // Extend tail lines and end labels to follow the "Now" position
+    const usTailLine  = document.getElementById('usTailLine');
+    const oppTailLine = document.getElementById('oppTailLine');
+    if (usTailLine || oppTailLine) {
+      const tailX   = f(xS(clampedAbsSecs, chartState.maxSecs));
+      const labelX  = f(Math.min(xS(clampedAbsSecs, chartState.maxSecs) + 4, VW - PAD.r - 2));
+      if (usTailLine)  usTailLine.setAttribute('x2', tailX);
+      if (oppTailLine) oppTailLine.setAttribute('x2', tailX);
+      const usEndLabel  = document.getElementById('usEndLabel');
+      const oppEndLabel = document.getElementById('oppEndLabel');
+      if (usEndLabel)  usEndLabel.setAttribute('x', labelX);
+      if (oppEndLabel) oppEndLabel.setAttribute('x', labelX);
     }
   }
 }
@@ -861,11 +888,22 @@ function renderChartSVG() {
     }
   }
 
-  // Lines
-  if (oppLine.length > 1)
-    svg += `<polyline points="${pts2str(oppLine, maxSecs, maxPts)}" fill="none" stroke="${C_OPP}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-  if (usLine.length > 1)
-    svg += `<polyline points="${pts2str(usLine, maxSecs, maxPts)}" fill="none" stroke="${C_US}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  // Lines — in live mode the final "now-cap" point is drawn as a separate animated tail
+  // line (id="usTailLine" / "oppTailLine") so only its x2 needs updating each second,
+  // not the entire polyline. In finalised mode the full polyline is used as-is.
+  const usStaticLine  = isLive ? usLine.slice(0, -1)  : usLine;
+  const oppStaticLine = isLive ? oppLine.slice(0, -1) : oppLine;
+  if (oppStaticLine.length > 1)
+    svg += `<polyline points="${pts2str(oppStaticLine, maxSecs, maxPts)}" fill="none" stroke="${C_OPP}" stroke-width="2"   stroke-linejoin="round" stroke-linecap="round"/>`;
+  if (usStaticLine.length > 1)
+    svg += `<polyline points="${pts2str(usStaticLine,  maxSecs, maxPts)}" fill="none" stroke="${C_US}"  stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if (isLive) {
+    const usAnchor   = usLine[usLine.length - 2]  || usLine[0];
+    const oppAnchor  = oppLine[oppLine.length - 2] || oppLine[0];
+    const tailNowX   = f(xS(Math.min(currentAbsSecs, maxSecs), maxSecs));
+    svg += `<line id="oppTailLine" x1="${f(xS(oppAnchor.x,maxSecs))}" y1="${f(yS(oppAnchor.y,maxPts))}" x2="${tailNowX}" y2="${f(yS(oppAnchor.y,maxPts))}" stroke="${C_OPP}" stroke-width="2"   stroke-linecap="round"/>`;
+    svg += `<line id="usTailLine"  x1="${f(xS(usAnchor.x, maxSecs))}" y1="${f(yS(usAnchor.y, maxPts))}" x2="${tailNowX}" y2="${f(yS(usAnchor.y, maxPts))}" stroke="${C_US}"  stroke-width="2.5" stroke-linecap="round"/>`;
+  }
 
   // Event markers
   for (const ev of sortedEvents) {
@@ -881,17 +919,19 @@ function renderChartSVG() {
     }
   }
 
-  // End labels
+  // End labels — in live mode given IDs so the 1-second tick can move them with the cursor
   const usEnd  = usLine[usLine.length - 1];
   const oppEnd = oppLine[oppLine.length - 1];
   if (usTotal > 0) {
-    const lx = Math.min(xS(usEnd.x, maxSecs) + 4, VW - PAD.r - 2);
-    svg += `<text x="${f(lx)}" y="${f(yS(usEnd.y, maxPts) - 4)}" fill="${C_US}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">Us ${usTotal}</text>`;
+    const lx     = Math.min(xS(usEnd.x, maxSecs) + 4, VW - PAD.r - 2);
+    const idAttr = isLive ? ' id="usEndLabel"' : '';
+    svg += `<text${idAttr} x="${f(lx)}" y="${f(yS(usEnd.y, maxPts) - 4)}" fill="${C_US}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">Us ${usTotal}</text>`;
   }
   if (oppTotal > 0) {
-    const lx  = Math.min(xS(oppEnd.x, maxSecs) + 4, VW - PAD.r - 2);
-    const yOff = Math.abs(yS(usEnd.y, maxPts) - yS(oppEnd.y, maxPts)) < 14 ? 12 : -4;
-    svg += `<text x="${f(lx)}" y="${f(yS(oppEnd.y, maxPts) + yOff)}" fill="${C_OPP}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">${oppLabel} ${oppTotal}</text>`;
+    const lx     = Math.min(xS(oppEnd.x, maxSecs) + 4, VW - PAD.r - 2);
+    const yOff   = Math.abs(yS(usEnd.y, maxPts) - yS(oppEnd.y, maxPts)) < 14 ? 12 : -4;
+    const idAttr = isLive ? ' id="oppEndLabel"' : '';
+    svg += `<text${idAttr} x="${f(lx)}" y="${f(yS(oppEnd.y, maxPts) + yOff)}" fill="${C_OPP}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">${oppLabel} ${oppTotal}</text>`;
   }
 
   if (sortedEvents.length === 0)
@@ -988,8 +1028,9 @@ function renderTree() {
   // Trunk
   svg += `<line x1="${T_TRUNK}" y1="${T_PAD_V - 8}" x2="${T_TRUNK}" y2="${finalH - T_PAD_V + 8}" stroke="${C_TRUNK}" stroke-width="2"/>`;
 
-  // Finish / Start labels
-  svg += `<text x="${T_TRUNK}" y="${T_PAD_V - 12}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">FINISH</text>`;
+  // Finish / Start labels — "HALF TIME" for single-half matches, "FULL TIME" for two-half
+  const finishLabel = hasH2 ? 'FULL TIME' : 'HALF TIME';
+  svg += `<text x="${T_TRUNK}" y="${T_PAD_V - 12}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">${finishLabel}</text>`;
   svg += `<text x="${T_TRUNK}" y="${finalH - T_PAD_V + 22}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">START</text>`;
 
   // Halftime tick on trunk

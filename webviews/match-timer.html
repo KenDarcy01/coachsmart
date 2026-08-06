@@ -1675,6 +1675,9 @@ async function adjustScore(typeId, side, delta) {
     }
   }
   updateScoreDisplay();
+  // Broadcast timer state so the stats page can re-anchor its clock to the receiver's
+  // own timeline — eliminates cross-device clock skew after every score refresh.
+  broadcastTimerState();
 }
 
 // ── Install / Add to Home Screen ─────────────────────────────────────────────
