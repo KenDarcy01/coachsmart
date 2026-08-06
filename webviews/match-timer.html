@@ -1595,13 +1595,13 @@ function updateScoreSummary() {
 async function adjustScore(typeId, side, delta) {
   if (!matchStatsRow) return;
   if (delta > 0) {
-    const eventMinute = Math.floor(computeElapsed(timerRow) / 60);
+    const eventSecond = Math.floor(computeElapsed(timerRow));
     const timerStatus = timerRow?.status || 'stopped';
     const { error } = await sb.rpc('log_match_stat', {
       p_match_stats_id: matchStatsRow.id,
       p_score_type:     typeId,
       p_side:           side,
-      p_event_minute:   eventMinute,
+      p_event_second:   eventSecond,
       p_timer_status:   timerStatus,
       p_half:           currentHalf,
     });

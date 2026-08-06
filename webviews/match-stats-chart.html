@@ -500,8 +500,12 @@ function fmtTreeTime(ev, durationSecs, hasH2, timeScale) {
     }
     return `${Math.round(ev.absSec)}s`;
   }
-  if (hasH2) return `H${ev.half} ${ev.minute}'`;
-  return `${ev.minute}'`;
+  if (hasH2) {
+    const half = ev.absSec < durationSecs ? 1 : 2;
+    const relSec = half === 1 ? ev.absSec : ev.absSec - durationSecs;
+    return `H${half} ${Math.floor(relSec / 60)}'`;
+  }
+  return `${Math.floor(ev.absSec / 60)}'`;
 }
 
 // ── processData ───────────────────────────────────────────────────────────
@@ -534,7 +538,7 @@ function processData() {
   const oppLine = [{ x: 0, y: 0 }];
 
   const enrichedEvents = sortedEvents.map(ev => {
-    const absSec = (ev.half === 1 ? ev.minute : (durationSecs / 60) + ev.minute) * 60;
+    const absSec = ev.half === 1 ? ev.second : durationSecs + ev.second;
     const val = ev.score_value || 1;
     const isGoal = val >= 3;
     let usCum, oppCum;
