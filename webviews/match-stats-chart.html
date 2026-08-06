@@ -240,6 +240,21 @@
     .header-row {
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
     }
+    #exportPdfBtn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 8px;
+      background: rgba(135,194,50,0.12); border: 1px solid rgba(135,194,50,0.3);
+      color: var(--us); font-size: 12px; font-weight: 600; font-family: inherit;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+    }
+    #exportPdfBtn:active { opacity: 0.7; }
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      #loadingScreen, #errorScreen, #pickerScreen, #liveTimerCard, #liveBadge,
+      #tooltip, #exportPdfBtn { display: none !important; }
+      #chartScreen { display: flex !important; padding: 0 !important; }
+    }
   </style>
 </head>
 <body>
@@ -282,8 +297,14 @@
     <div class="header">
       <div class="header-row">
         <div class="event-label" id="eventLabel">Match</div>
-        <div class="live-badge" id="liveBadge" style="display:none">
-          <div class="live-dot"></div> Live
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="live-badge" id="liveBadge" style="display:none">
+            <div class="live-dot"></div> Live
+          </div>
+          <button id="exportPdfBtn" onclick="exportPDF()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            PDF
+          </button>
         </div>
       </div>
 
@@ -649,6 +670,8 @@ function updateLiveTimerDisplay() {
   }
 }
 
+function exportPDF() { window.print(); }
+
 function startLiveTimer() {
   stopLiveTimer();
   updateLiveTimerDisplay();
@@ -889,11 +912,10 @@ function renderChartSVG() {
     }
   }
 
-  // Lines — in live mode the final "now-cap" point is drawn as a separate animated tail
-  // line (id="usTailLine" / "oppTailLine") so only its x2 needs updating each second,
-  // not the entire polyline. In finalised mode the full polyline is used as-is.
-  const usStaticLine  = isLive ? usLine.slice(0, -1)  : usLine;
-  const oppStaticLine = isLive ? oppLine.slice(0, -1) : oppLine;
+  // Lines — the tail point (lineEndSecs) is always excluded from the static polyline.
+  // In live mode it becomes an animated tail line; in finalised mode it becomes an endpoint dot.
+  const usStaticLine  = usLine.slice(0, -1);
+  const oppStaticLine = oppLine.slice(0, -1);
   if (oppStaticLine.length > 1)
     svg += `<polyline points="${pts2str(oppStaticLine, maxSecs, maxPts)}" fill="none" stroke="${C_OPP}" stroke-width="2"   stroke-linejoin="round" stroke-linecap="round"/>`;
   if (usStaticLine.length > 1)
@@ -904,6 +926,17 @@ function renderChartSVG() {
     const tailNowX   = f(xS(Math.min(currentAbsSecs, maxSecs), maxSecs));
     svg += `<line id="oppTailLine" x1="${f(xS(oppAnchor.x,maxSecs))}" y1="${f(yS(oppAnchor.y,maxPts))}" x2="${tailNowX}" y2="${f(yS(oppAnchor.y,maxPts))}" stroke="${C_OPP}" stroke-width="2"   stroke-linecap="round"/>`;
     svg += `<line id="usTailLine"  x1="${f(xS(usAnchor.x, maxSecs))}" y1="${f(yS(usAnchor.y, maxPts))}" x2="${tailNowX}" y2="${f(yS(usAnchor.y, maxPts))}" stroke="${C_US}"  stroke-width="2.5" stroke-linecap="round"/>`;
+  } else {
+    const usEndPt  = usStaticLine[usStaticLine.length - 1]  || usLine[0];
+    const oppEndPt = oppStaticLine[oppStaticLine.length - 1] || oppLine[0];
+    if (usTotal > 0) {
+      svg += `<circle cx="${f(xS(usEndPt.x, maxSecs))}" cy="${f(yS(usEndPt.y, maxPts))}" r="6"   fill="#111418"/>`;
+      svg += `<circle cx="${f(xS(usEndPt.x, maxSecs))}" cy="${f(yS(usEndPt.y, maxPts))}" r="4.5" fill="${C_US}"/>`;
+    }
+    if (oppTotal > 0) {
+      svg += `<circle cx="${f(xS(oppEndPt.x, maxSecs))}" cy="${f(yS(oppEndPt.y, maxPts))}" r="5.5" fill="#111418"/>`;
+      svg += `<circle cx="${f(xS(oppEndPt.x, maxSecs))}" cy="${f(yS(oppEndPt.y, maxPts))}" r="4"   fill="${C_OPP}"/>`;
+    }
   }
 
   // Event markers
@@ -920,9 +953,9 @@ function renderChartSVG() {
     }
   }
 
-  // End labels — in live mode given IDs so the 1-second tick can move them with the cursor
-  const usEnd  = usLine[usLine.length - 1];
-  const oppEnd = oppLine[oppLine.length - 1];
+  // End labels — live: track the animated tail tip; finalised: sit next to the endpoint dot
+  const usEnd  = isLive ? usLine[usLine.length - 1]  : (usStaticLine[usStaticLine.length - 1]  || usLine[0]);
+  const oppEnd = isLive ? oppLine[oppLine.length - 1] : (oppStaticLine[oppStaticLine.length - 1] || oppLine[0]);
   if (usTotal > 0) {
     const lx     = Math.min(xS(usEnd.x, maxSecs) + 4, VW - PAD.r - 2);
     const idAttr = isLive ? ' id="usEndLabel"' : '';
