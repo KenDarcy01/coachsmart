@@ -723,6 +723,8 @@ function formatMmSs(totalSeconds) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
+function halfName(n) { return n === 1 ? 'First Half' : 'Second Half'; }
+
 // elapsed seconds since timer last started (not total — just current run)
 function computeElapsed(row) {
   if (!row) return 0;
@@ -1392,11 +1394,11 @@ function updateTimerUI() {
   const isFullTime = currentHalf === 2 && expired && !isRunning;
 
   // Half badge
-  $('halfBadge').textContent = `H${currentHalf}`;
+  $('halfBadge').textContent = halfName(currentHalf);
 
-  // Main countdown display
+  // Main countdown display — at half time preview H2 start time so there's no visible reset
   const display = $('timerDisplay');
-  display.textContent = formatMmSs(remaining);
+  display.textContent = formatMmSs(isHalfTime ? dur : remaining);
   display.className   = `timer-display${isRunning && !inInjury ? ' running' : ''}${inInjury ? ' zeroed' : ''}`;
 
   // Injury time secondary display — hide at half time / full time
@@ -1414,8 +1416,8 @@ function updateTimerUI() {
   else if (isFullTime)             { statusEl.textContent = 'Full Time';            statusEl.className = 'timer-status full-time'; }
   else if (inInjury && isRunning)  { statusEl.textContent = 'Injury Time';          statusEl.className = 'timer-status injury'; }
   else if (inInjury)               { statusEl.textContent = 'Injury Time — Paused'; statusEl.className = 'timer-status injury-pause'; }
-  else if (isRunning)              { statusEl.textContent = `H${currentHalf} Running`; statusEl.className = 'timer-status running'; }
-  else if (elapsed === 0)          { statusEl.textContent = `H${currentHalf} Ready`; statusEl.className = 'timer-status paused'; }
+  else if (isRunning)              { statusEl.textContent = `${halfName(currentHalf)} Running`; statusEl.className = 'timer-status running'; }
+  else if (elapsed === 0)          { statusEl.textContent = `${halfName(currentHalf)} Ready`;   statusEl.className = 'timer-status paused'; }
   else                             { statusEl.textContent = 'Paused';               statusEl.className = 'timer-status paused'; }
 
   // Toggle / half-time button
