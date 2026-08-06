@@ -486,43 +486,38 @@ function renderPicker(sessions) {
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────
-// Server-side column filters require REPLICA IDENTITY FULL. We filter
-// client-side so the subscription works before that migration is applied.
-//
-// match_timer is subscribed for status/started_at changes only (start,
-// pause, half transitions). This is low-frequency — a few events per match —
-// so it scales fine across many concurrent sessions.
+// Both match_stats_details (scores) and match_timer (start/pause/half) are
+// subscribed on the SAME channel so they share one authenticated join.
+// A separate timer channel silently fails when its join handshake isn't
+// authenticated — merging avoids that entirely.
+// Client-side filtering handles the lack of server-side column filters
+// (REPLICA IDENTITY FULL migration may not yet be applied).
 function subscribeRealtime(matchStatsId) {
   if (realtimeChannel)      sb.removeChannel(realtimeChannel);
   if (realtimeTimerChannel) { sb.removeChannel(realtimeTimerChannel); realtimeTimerChannel = null; }
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 
-  // Score events — any change to match_stats_details; filter client-side
+  const timerEventId = timelineData && timelineData.event_id;
+
   realtimeChannel = sb
     .channel(`chart-${matchStatsId}`)
+    // Score events — filter client-side to this session
     .on('postgres_changes', { event: '*', schema: 'public', table: 'match_stats_details' },
         payload => {
           const rowId = payload.new?.match_stats_id ?? payload.old?.match_stats_id;
           if (rowId === matchStatsId) refreshSession();
         })
-    .subscribe(status => {
-      if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
-      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
-    });
-
-  // Timer status events — start, pause, half change. Fires only when the
-  // scorekeeper taps a button, not every second. Filter by event_id client-side
-  // (event_id in timelineData requires migration 20260806000007; falls back to
-  // accepting all updates if event_id is not yet in the RPC response).
-  const timerEventId = timelineData && timelineData.event_id;
-  realtimeTimerChannel = sb
-    .channel(`chart-timer-${matchStatsId}`)
+    // Timer status events — start, pause, half change (a few per match, not every second)
+    // Filter by event_id if available; otherwise accept all (single active match per user)
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_timer' },
         payload => {
           if (timerEventId && payload.new?.event_id && payload.new.event_id !== timerEventId) return;
           refreshSession();
         })
-    .subscribe();
+    .subscribe(status => {
+      if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
+    });
 
   // Fall back to polling if realtime doesn't connect within 3 s
   setTimeout(() => { if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling(); }, 3000);
