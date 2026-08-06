@@ -1606,6 +1606,10 @@ function updateScoreSummary() {
 // Insert one event row (+ tap) or delete most recent row (− tap)
 async function adjustScore(typeId, side, delta) {
   if (!matchStatsRow) return;
+  if (delta > 0 && timerRow?.status !== 'running') {
+    showToast('Start the timer before recording a score');
+    return;
+  }
   if (delta > 0) {
     const eventSecond = Math.floor(computeElapsed(timerRow));
     const timerStatus = timerRow?.status || 'stopped';
