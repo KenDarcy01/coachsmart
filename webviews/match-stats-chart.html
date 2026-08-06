@@ -126,11 +126,11 @@
     .score-team-name { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
     .score-team-name.us  { color: var(--us); }
     .score-team-name.opp { color: var(--opp); }
-    .score-gaa { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 2px; line-height: 1; }
+    .score-gaa { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 2px; line-height: 1; }
     .score-gaa.us  { color: var(--us); }
     .score-gaa.opp { color: var(--opp); }
-    .score-pts { font-size: 12px; font-weight: 500; color: var(--muted); }
-    .score-vs  { font-size: 14px; font-weight: 600; color: var(--muted); flex-shrink: 0; }
+    .score-pts { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .score-vs  { font-size: 16px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
     .score-lead { text-align: center; font-size: 12px; font-weight: 600; margin-top: 10px; height: 16px; }
     .score-lead.leading  { color: var(--us); }
     .score-lead.trailing { color: var(--opp); }
@@ -138,7 +138,7 @@
 
     /* ── Live timer card ────────────────────────────────────────────────────── */
     #liveTimerCard {
-      margin: 10px 0 0;
+      margin: 0 0 12px;
       padding: 18px 20px 16px;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -286,6 +286,12 @@
           <div class="live-dot"></div> Live
         </div>
       </div>
+      <!-- Live timer card — visible only during live matches -->
+      <div id="liveTimerCard" style="display:none">
+        <div class="ltc-half"><div class="ltc-dot" id="ltcDot"></div><span id="ltcHalf">First Half</span></div>
+        <div class="ltc-time" id="ltcTime">30:00</div>
+        <div class="ltc-sub" id="ltcSub">remaining</div>
+      </div>
       <div class="score-board">
         <div class="score-team">
           <div class="score-team-name us">Us</div>
@@ -300,12 +306,6 @@
         </div>
       </div>
       <div class="score-lead" id="scoreLead"></div>
-      <!-- Live timer card — visible only during live matches -->
-      <div id="liveTimerCard" style="display:none">
-        <div class="ltc-half"><div class="ltc-dot" id="ltcDot"></div><span id="ltcHalf">First Half</span></div>
-        <div class="ltc-time" id="ltcTime">30:00</div>
-        <div class="ltc-sub" id="ltcSub">remaining</div>
-      </div>
     </div>
 
     <!-- Line chart -->
