@@ -1109,7 +1109,7 @@ async function goToSetup(eventId, label, defaultOpposition) {
     // Load existing timer row if present (to pre-fill)
     const { data: existing } = await sb
       .from('match_timer')
-      .select('opposition, squad_id, duration_seconds')
+      .select('opposition, squad_id, duration_seconds, injury_seconds')
       .eq('event_id', currentEventId)
       .eq('user_id', currentUser.id)
       .maybeSingle();
