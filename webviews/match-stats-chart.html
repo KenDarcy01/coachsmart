@@ -342,6 +342,8 @@ const sb = window.supabase.createClient(
     ? { global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } }, auth: { persistSession: false } }
     : {}
 );
+// global.headers only covers HTTP/REST — realtime WebSocket needs the JWT set separately
+if (WV_TOKEN) sb.realtime.setAuth(WV_TOKEN);
 
 // ── Chart constants ────────────────────────────────────────────────────────
 const VW = 500, VH = 300;
