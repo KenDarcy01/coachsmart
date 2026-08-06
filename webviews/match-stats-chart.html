@@ -578,11 +578,12 @@ function updateLiveTimerDisplay() {
   const cursorLine = document.getElementById('nowCursorLine');
   const cursorText = document.getElementById('nowCursorText');
   if (cursorLine && cursorText && chartState.maxSecs) {
-    const currentAbsSecs = half === 2
+    const rawAbsSecs = half === 2
       ? dur + Math.min(elapsed, dur + 900)
       : Math.min(elapsed, dur + 900);
-    if (currentAbsSecs > 0 && currentAbsSecs < chartState.maxSecs) {
-      const cX = f(xS(currentAbsSecs, chartState.maxSecs));
+    if (rawAbsSecs > 0) {
+      const clampedAbsSecs = Math.min(rawAbsSecs, chartState.maxSecs);
+      const cX = f(xS(clampedAbsSecs, chartState.maxSecs));
       cursorLine.setAttribute('x1', cX);
       cursorLine.setAttribute('x2', cX);
       cursorText.setAttribute('x', cX);
@@ -713,8 +714,9 @@ function processData() {
     return { ...ev, absSec, val, isGoal, usCum, oppCum };
   });
 
-  usLine.push(  { x: currentAbsSecs, y: usRunning });
-  oppLine.push( { x: currentAbsSecs, y: oppRunning });
+  const lineEndSecs = isLive ? Math.min(currentAbsSecs, totalMatchSecs) : currentAbsSecs;
+  usLine.push(  { x: lineEndSecs, y: usRunning });
+  oppLine.push( { x: lineEndSecs, y: oppRunning });
 
   const lastEventSec = enrichedEvents.length > 0 ? Math.max(...enrichedEvents.map(e => e.absSec)) : 0;
   const isFinished = !!timelineData.finalised_at;
@@ -724,7 +726,7 @@ function processData() {
   // user can see where they are in the match — not just how far has elapsed.
   // In finalised mode: snap to actual elapsed time as before.
   const rawMaxSecs = isLive
-    ? Math.max(totalMatchSecs, currentAbsSecs)   // full match + any injury overflow
+    ? totalMatchSecs   // fixed reference frame — injury time stays within match duration
     : Math.max(currentAbsSecs, lastEventSec, 60);
 
   const timeScale = getTimeScale(rawMaxSecs);
@@ -815,13 +817,15 @@ function renderChartSVG() {
   svg += `<text x="${f(PAD.l+CW/2)}" y="${VH-2}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${timeScale.unit === 'seconds' ? 'Seconds' : 'Minutes'}</text>`;
   svg += `<text x="9" y="${f(PAD.t+CH/2)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif" transform="rotate(-90 9 ${f(PAD.t+CH/2)})">Points</text>`;
 
-  // "Now" cursor — prominent in live mode, subtle in finalised
-  if (currentAbsSecs > 0 && currentAbsSecs < maxSecs) {
-    const cX = f(xS(currentAbsSecs, maxSecs));
+  // "Now" cursor — prominent in live mode, subtle in finalised.
+  // In injury time, currentAbsSecs > maxSecs so we clamp to right edge rather than hiding.
+  if (currentAbsSecs > 0) {
+    const clampedAbsSecs = Math.min(currentAbsSecs, maxSecs);
+    const cX = f(xS(clampedAbsSecs, maxSecs));
     if (isLive) {
       svg += `<line id="nowCursorLine" x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>`;
       svg += `<text id="nowCursorText" x="${cX}" y="${PAD.t-4}" text-anchor="middle" fill="#94a3b8" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">Now</text>`;
-    } else {
+    } else if (currentAbsSecs < maxSecs) {
       svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#475569" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
     }
   }
@@ -912,7 +916,7 @@ function attachChartInteraction() {
 // ── Scoring tree ──────────────────────────────────────────────────────────
 function renderTree() {
   const wrapper = document.getElementById('treeWrapper');
-  const { sortedEvents, maxSecs, durationSecs, showHT, isLive, currentAbsSecs, timeScale } = chartState;
+  const { sortedEvents, maxSecs, durationSecs, hasH2, showHT, isLive, currentAbsSecs, timeScale } = chartState;
 
   if (!sortedEvents.length) {
     wrapper.innerHTML = '<div class="no-events">No scores yet</div>';
@@ -963,9 +967,10 @@ function renderTree() {
     svg += `<text x="${T_TRUNK + 12}" y="${parseFloat(htY) + 4}" text-anchor="start" fill="${C_AMBER}" font-size="8" font-weight="600" font-family="${FONT}">HT</text>`;
   }
 
-  // "Now" marker on trunk — only in live mode
-  if (isLive && currentAbsSecs > 0 && currentAbsSecs < maxSecs) {
-    const nowY = f(T_PAD_V + (1 - currentAbsSecs / maxSecs) * USABLE);
+  // "Now" marker on trunk — only in live mode; clamp to top during injury time
+  if (isLive && currentAbsSecs > 0) {
+    const clampedNowSecs = Math.min(currentAbsSecs, maxSecs);
+    const nowY = f(T_PAD_V + (1 - clampedNowSecs / maxSecs) * USABLE);
     svg += `<circle cx="${T_TRUNK}" cy="${nowY}" r="4" fill="#94a3b8"/>`;
     svg += `<text x="${T_TRUNK + 10}" y="${parseFloat(nowY) + 4}" text-anchor="start" fill="#94a3b8" font-size="8" font-weight="600" font-family="${FONT}">Now</text>`;
   }
