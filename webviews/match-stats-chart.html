@@ -489,6 +489,19 @@ function fmtEventTime(absSec, durationSecs, hasH2) {
   return `H${half} ${Math.round(relSec / 60)}'`;
 }
 
+function fmtTreeTime(ev, durationSecs, hasH2, timeScale) {
+  if (timeScale.unit === 'seconds') {
+    if (hasH2) {
+      const half = ev.absSec < durationSecs ? 1 : 2;
+      const relSec = half === 1 ? ev.absSec : ev.absSec - durationSecs;
+      return `H${half} ${Math.round(relSec)}s`;
+    }
+    return `${Math.round(ev.absSec)}s`;
+  }
+  if (hasH2) return `H${ev.half} ${ev.minute}'`;
+  return `${ev.minute}'`;
+}
+
 // ── processData ───────────────────────────────────────────────────────────
 function processData() {
   const timer  = timelineData.timer  || {};
@@ -505,11 +518,13 @@ function processData() {
     ? durationSecs + Math.min(elapsed, durationSecs + 900)
     : Math.min(elapsed, durationSecs + 900);
 
-  const sortedEvents = [...events].sort((a, b) => {
+  const allEvents = [...events].sort((a, b) => {
     if (a.half !== b.half) return a.half - b.half;
     if (a.minute !== b.minute) return a.minute - b.minute;
     return new Date(a.created_at) - new Date(b.created_at);
   });
+  // Only include events that have a positive score value (exclude e.g. kick-outs, fouls)
+  const sortedEvents = allEvents.filter(ev => ev.score_value && ev.score_value > 0);
 
   let usRunning = 0, oppRunning = 0;
   let usGoals = 0, usPtsAcc = 0, oppGoals = 0, oppPtsAcc = 0;
@@ -540,12 +555,16 @@ function processData() {
   usLine.push(  { x: currentAbsSecs, y: usRunning });
   oppLine.push( { x: currentAbsSecs, y: oppRunning });
 
-  const hasH2  = sortedEvents.some(e => e.half === 2) || currentHalf === 2;
-  const maxSecs = hasH2
-    ? Math.max(currentAbsSecs + 120, 2 * durationSecs + 120)
-    : Math.max(currentAbsSecs + 120, durationSecs + 120, 720);
+  const hasH2  = allEvents.some(e => e.half === 2) || currentHalf === 2;
+  const lastEventSec = enrichedEvents.length > 0 ? Math.max(...enrichedEvents.map(e => e.absSec)) : 0;
+  const rawMaxSecs = Math.max(currentAbsSecs, lastEventSec, 60);
+  const timeScale = getTimeScale(rawMaxSecs);
+  // Snap to next tick so the axis always ends on a clean label
+  const maxSecs = Math.max(
+    Math.ceil(rawMaxSecs / timeScale.tickSecs) * timeScale.tickSecs,
+    timeScale.tickSecs
+  );
   const maxPts  = Math.max(usRunning, oppRunning, 4) + 3;
-  const timeScale = getTimeScale(maxSecs);
 
   chartState = {
     sortedEvents: enrichedEvents,
@@ -711,7 +730,7 @@ function attachChartInteraction() {
 // ── Scoring tree ──────────────────────────────────────────────────────────
 function renderTree() {
   const wrapper = document.getElementById('treeWrapper');
-  const { sortedEvents, maxSecs, durationSecs, hasH2 } = chartState;
+  const { sortedEvents, maxSecs, durationSecs, hasH2, timeScale } = chartState;
 
   if (!sortedEvents.length) {
     wrapper.innerHTML = '<div class="no-events">No scores yet</div>';
@@ -768,20 +787,21 @@ function renderTree() {
     const c  = ev.side === 'us' ? C_US : C_OPP;
     const label = ev.abbreviated_name || (ev.isGoal ? 'G' : 'P');
 
+    const time = fmtTreeTime(ev, durationSecs, hasH2, timeScale);
     if (ev.side === 'us') {
       // Branch goes left
       const dotX = T_TRUNK - T_BRANCH;
       svg += `<line x1="${T_TRUNK}" y1="${y}" x2="${dotX}" y2="${y}" stroke="${c}" stroke-width="1.5" opacity="0.7"/>`;
       svg += `<circle cx="${T_TRUNK}" cy="${y}" r="3" fill="${C_TRUNK}" stroke="${c}" stroke-width="1.5"/>`;
       svg += `<circle cx="${dotX}" cy="${y}" r="${T_DOT_R}" fill="${c}"/>`;
-      svg += `<text x="${dotX - 8}" y="${parseFloat(y) + 4}" text-anchor="end" fill="${c}" font-size="11" font-weight="700" font-family="${FONT}">${label}</text>`;
+      svg += `<text x="${dotX - 8}" y="${parseFloat(y) + 4}" text-anchor="end" fill="${c}" font-size="10" font-weight="600" font-family="${FONT}">(${time}) ${label}</text>`;
     } else {
       // Branch goes right
       const dotX = T_TRUNK + T_BRANCH;
       svg += `<line x1="${T_TRUNK}" y1="${y}" x2="${dotX}" y2="${y}" stroke="${c}" stroke-width="1.5" opacity="0.7"/>`;
       svg += `<circle cx="${T_TRUNK}" cy="${y}" r="3" fill="${C_TRUNK}" stroke="${c}" stroke-width="1.5"/>`;
       svg += `<circle cx="${dotX}" cy="${y}" r="${T_DOT_R}" fill="${c}"/>`;
-      svg += `<text x="${dotX + 8}" y="${parseFloat(y) + 4}" text-anchor="start" fill="${c}" font-size="11" font-weight="700" font-family="${FONT}">${label}</text>`;
+      svg += `<text x="${dotX + 8}" y="${parseFloat(y) + 4}" text-anchor="start" fill="${c}" font-size="10" font-weight="600" font-family="${FONT}">${label} (${time})</text>`;
     }
   }
 
