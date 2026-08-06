@@ -10,7 +10,10 @@ UPDATE public.match_stats_details
    SET event_second = event_second * 60;
 
 -- ── 2. log_match_stat — accept seconds instead of minutes ─────────────────────
-CREATE OR REPLACE FUNCTION public.log_match_stat(
+-- Must DROP first — CREATE OR REPLACE cannot rename existing parameters.
+DROP FUNCTION IF EXISTS public.log_match_stat(bigint, bigint, text, int, text, int);
+
+CREATE FUNCTION public.log_match_stat(
     p_match_stats_id bigint,
     p_score_type     bigint,
     p_side           text,
