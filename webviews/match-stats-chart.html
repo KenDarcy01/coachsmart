@@ -489,10 +489,9 @@ function renderPicker(sessions) {
 // Server-side column filters require REPLICA IDENTITY FULL. We filter
 // client-side so the subscription works before that migration is applied.
 //
-// match_timer is NOT subscribed via realtime — the local tick keeps the
-// display accurate when running, and the 5 s poll resyncs pause/resume.
-// Subscribing to match_timer would broadcast every pause/start to all
-// connected viewers, which doesn't scale to many concurrent matches.
+// match_timer is subscribed for status/started_at changes only (start,
+// pause, half transitions). This is low-frequency — a few events per match —
+// so it scales fine across many concurrent sessions.
 function subscribeRealtime(matchStatsId) {
   if (realtimeChannel)      sb.removeChannel(realtimeChannel);
   if (realtimeTimerChannel) { sb.removeChannel(realtimeTimerChannel); realtimeTimerChannel = null; }
@@ -510,6 +509,20 @@ function subscribeRealtime(matchStatsId) {
       if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
       else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
     });
+
+  // Timer status events — start, pause, half change. Fires only when the
+  // scorekeeper taps a button, not every second. Filter by event_id client-side
+  // (event_id in timelineData requires migration 20260806000007; falls back to
+  // accepting all updates if event_id is not yet in the RPC response).
+  const timerEventId = timelineData && timelineData.event_id;
+  realtimeTimerChannel = sb
+    .channel(`chart-timer-${matchStatsId}`)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_timer' },
+        payload => {
+          if (timerEventId && payload.new?.event_id && payload.new.event_id !== timerEventId) return;
+          refreshSession();
+        })
+    .subscribe();
 
   // Fall back to polling if realtime doesn't connect within 3 s
   setTimeout(() => { if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling(); }, 3000);
@@ -579,19 +592,31 @@ function updateLiveTimerDisplay() {
     subEl.textContent  = isRunning ? 'remaining' : 'remaining — paused';
   }
 
-  // Move the "Now" cursor in the chart SVG each tick (avoids full re-render)
-  const cursorLine = document.getElementById('nowCursorLine');
-  const cursorText = document.getElementById('nowCursorText');
-  if (cursorLine && cursorText && chartState.maxSecs) {
-    const rawAbsSecs = half === 2
-      ? dur + Math.min(elapsed, dur + 900)
-      : Math.min(elapsed, dur + 900);
-    if (rawAbsSecs > 0) {
-      const clampedAbsSecs = Math.min(rawAbsSecs, chartState.maxSecs);
+  // Compute current abs seconds once — reused for both chart cursor and tree dot
+  const rawAbsSecs = half === 2
+    ? dur + Math.min(elapsed, dur + 900)
+    : Math.min(elapsed, dur + 900);
+
+  if (rawAbsSecs > 0 && chartState.maxSecs) {
+    const clampedAbsSecs = Math.min(rawAbsSecs, chartState.maxSecs);
+
+    // Move the "Now" cursor in the chart SVG each tick
+    const cursorLine = document.getElementById('nowCursorLine');
+    const cursorText = document.getElementById('nowCursorText');
+    if (cursorLine && cursorText) {
       const cX = f(xS(clampedAbsSecs, chartState.maxSecs));
       cursorLine.setAttribute('x1', cX);
       cursorLine.setAttribute('x2', cX);
       cursorText.setAttribute('x', cX);
+    }
+
+    // Move the "Now" dot on the scoring tree each tick
+    const treeDot  = document.getElementById('treeNowDot');
+    const treeText = document.getElementById('treeNowText');
+    if (treeDot && treeText && chartState.treeUsable) {
+      const nowY = (T_PAD_V + (1 - clampedAbsSecs / chartState.maxSecs) * chartState.treeUsable).toFixed(1);
+      treeDot.setAttribute('cy', nowY);
+      treeText.setAttribute('y', (parseFloat(nowY) + 4).toFixed(1));
     }
   }
 }
@@ -932,6 +957,7 @@ function renderTree() {
   // Compute tree height
   const H = Math.max(T_MIN_H, sortedEvents.length * 28 + T_PAD_V * 2);
   const USABLE = H - T_PAD_V * 2;
+  chartState.treeUsable = USABLE;  // stored so the 1s tick can move the Now dot
 
   // Assign raw y positions (top = Finish = high absSec, bottom = Start = 0)
   const positioned = sortedEvents.map(ev => {
@@ -977,8 +1003,8 @@ function renderTree() {
   if (isLive && currentAbsSecs > 0) {
     const clampedNowSecs = Math.min(currentAbsSecs, maxSecs);
     const nowY = f(T_PAD_V + (1 - clampedNowSecs / maxSecs) * USABLE);
-    svg += `<circle cx="${T_TRUNK}" cy="${nowY}" r="4" fill="#94a3b8"/>`;
-    svg += `<text x="${T_TRUNK + 10}" y="${parseFloat(nowY) + 4}" text-anchor="start" fill="#94a3b8" font-size="8" font-weight="600" font-family="${FONT}">Now</text>`;
+    svg += `<circle id="treeNowDot" cx="${T_TRUNK}" cy="${nowY}" r="4" fill="#94a3b8"/>`;
+    svg += `<text id="treeNowText" x="${T_TRUNK + 10}" y="${parseFloat(nowY) + 4}" text-anchor="start" fill="#94a3b8" font-size="8" font-weight="600" font-family="${FONT}">Now</text>`;
   }
 
   // Draw events
