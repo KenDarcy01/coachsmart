@@ -982,9 +982,8 @@ function attachChartInteraction() {
 
   overlay.addEventListener('mousemove',  e => showTip(e.clientX, e.clientY, getAbsSec(e.clientX)));
   overlay.addEventListener('mouseleave', hideTip);
-  overlay.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; showTip(t.clientX, t.clientY, getAbsSec(t.clientX)); }, { passive: false });
-  overlay.addEventListener('touchmove',  e => { e.preventDefault(); const t = e.touches[0]; showTip(t.clientX, t.clientY, getAbsSec(t.clientX)); }, { passive: false });
-  overlay.addEventListener('touchend', hideTip);
+  // Touch events intentionally removed — tooltip under finger is unreadable on mobile
+  // and the non-passive preventDefault was blocking page scroll.
 }
 
 // ── Scoring tree ──────────────────────────────────────────────────────────
