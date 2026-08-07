@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background:#111418">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Member Analytics</title>
 <style>
-/* ── Tokens ─────────────────────────────────────────────────────────────── */
+/* ── Tokens — CoachSmart dark palette ───────────────────────────────────── */
 :root {
   --accent:      #87C232;
-  --accent-dim:  rgba(135,194,50,0.10);
+  --accent-dim:  rgba(135,194,50,0.12);
   --accent-mid:  rgba(135,194,50,0.30);
 
   --attend:      #22C55E;
@@ -17,54 +17,37 @@
   --absent-dim:  rgba(239,68,68,0.10);
   --unsure:      #F59E0B;
   --unsure-dim:  rgba(245,158,11,0.10);
-  --noresponse:  #CBD5E1;
+  --noresponse:  #4B5563;
 
-  --bg:          #F4F5F8;
-  --surface:     #FFFFFF;
-  --surface-2:   #EDEEF2;
-  --border:      #E0E2EA;
-  --text:        #0D1117;
-  --text-2:      #3D4354;
-  --muted:       #7C849A;
-  --shadow:      0 1px 3px rgba(0,0,0,0.07), 0 1px 8px rgba(0,0,0,0.04);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg:        #10131C;
-    --surface:   #191D29;
-    --surface-2: #222736;
-    --border:    #2A3044;
-    --text:      #EDF0F7;
-    --text-2:    #A8B0C8;
-    --muted:     #6470890;
-    --shadow:    0 1px 3px rgba(0,0,0,0.30), 0 1px 8px rgba(0,0,0,0.20);
-    --noresponse:#4B5563;
-  }
-}
-:root[data-theme="dark"] {
-  --bg:        #10131C;
-  --surface:   #191D29;
-  --surface-2: #222736;
-  --border:    #2A3044;
-  --text:      #EDF0F7;
-  --text-2:    #A8B0C8;
-  --muted:     #647089;
-  --shadow:    0 1px 3px rgba(0,0,0,0.30), 0 1px 8px rgba(0,0,0,0.20);
-  --noresponse:#4B5563;
+  --bg:          #111418;
+  --surface:     #1E222B;
+  --surface-2:   #252A35;
+  --border:      rgba(255,255,255,0.07);
+  --text:        #E7EBEE;
+  --text-2:      #B0B8C8;
+  --muted:       #6B7280;
+  --shadow:      0 1px 4px rgba(0,0,0,0.40);
 }
 
 /* ── Reset + base ───────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  height: 100%;
+  /* Prevent the html element growing beyond the webview container */
+  overflow: hidden;
+}
+
 body {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
 }
 
 /* ── Loading / Error screens ─────────────────────────────────────────────── */
@@ -73,7 +56,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
+  height: 50vh;
   padding: 40px 24px;
   text-align: center;
   gap: 12px;
@@ -893,6 +876,19 @@ function showError(msg) {
   document.getElementById('errorScreen').style.display  = 'flex';
   document.getElementById('errMsg').textContent         = msg;
 }
+
+/* ── Height reporting (for FlutterFlow dynamic WebView sizing) ───────────── */
+// After every render, post the full scroll height so the parent Flutter widget
+// can resize via an app state variable bound to a JavascriptChannel.
+function reportHeight() {
+  const h = document.documentElement.scrollHeight;
+  try { window.flutter_inappwebview?.callHandler?.('onHeightChanged', h); } catch(_) {}
+  try { window.parent?.postMessage?.({ type: 'webviewHeight', height: h }, '*'); } catch(_) {}
+}
+
+// Observe DOM changes so height reports fire after filter re-renders too
+const _ro = new ResizeObserver(() => reportHeight());
+_ro.observe(document.body);
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
 init();
