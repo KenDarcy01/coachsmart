@@ -328,7 +328,7 @@
   <div id="waitingScreen">
     <div class="waiting-orb"><div class="waiting-inner-dot"></div></div>
     <div class="waiting-title">WAITING FOR<br>MATCH TO START</div>
-    <div class="waiting-msg">Open Match Stats in the CoachSmart app to begin scoring. This screen will connect automatically the moment scoring starts.</div>
+    <div class="waiting-msg">The scorekeeper needs to open the Match Timer in CoachSmart. This screen will connect automatically when the match begins.</div>
     <div class="waiting-live">
       <div class="waiting-live-dot"></div>
       Listening for scorekeeper
@@ -650,7 +650,10 @@ function subscribeRealtime(matchStatsId) {
           if (timerEventId && payload.new?.event_id && payload.new.event_id !== timerEventId) return;
           refreshSession();
         })
-    // Timer state via Broadcast — bypasses RLS, fires immediately on scorekeeper action
+    // Timer state via Broadcast — bypasses RLS, fires immediately on scorekeeper action.
+    // broadcastTimerState() is also called after every score entry, so refreshSession()
+    // here is what keeps scores live — match_stats_details postgres_changes is unreliable
+    // if the table isn't in the realtime publication.
     .on('broadcast', { event: 'timer_state' }, ({ payload }) => {
       if (!payload || !timelineData) return;
       // Re-anchor started_at to the receiver's own clock to eliminate cross-device skew.
@@ -661,6 +664,7 @@ function subscribeRealtime(matchStatsId) {
         : payload;
       timelineData.timer = { ...(timelineData.timer || {}), ...timerUpdate };
       startLiveTimer();
+      refreshSession();
     })
     .subscribe(status => {
       if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
