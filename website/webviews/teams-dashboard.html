@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoachSmart — Teams</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+:root {
+    --green:  #87C232;
+    --dark:   #111418;
+    --card:   #1E222B;
+    --card2:  #252A35;
+    --border: rgba(255,255,255,0.07);
+    --text:   #E7EBEE;
+    --muted:  #6B7280;
+    --red:    #e05252;
+    --amber:  #F5A623;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); min-height: 100%; }
+
+/* Topbar */
+.topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 24px; display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 20;
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex-shrink: 0; }
+.logo span { color: var(--green); }
+.topbar-div { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.page-title { font-size: 14px; font-weight: 600; color: var(--muted); }
+.topbar select {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 10px; border-radius: 6px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; min-width: 200px;
+}
+.topbar select:focus { outline: none; border-color: var(--green); }
+
+/* Nav pills */
+.nav-pills { display: flex; background: var(--card2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; flex-shrink: 0; margin-left: auto; }
+.nav-pill {
+    padding: 5px 13px; font-size: 12px; font-weight: 500; color: var(--muted);
+    text-decoration: none; border: none; background: transparent; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap; display: block;
+}
+.nav-pill:hover { color: var(--text); }
+.nav-pill.active { background: var(--green); color: #111; pointer-events: none; }
+
+/* Filter strip */
+.filter-strip {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 10px 24px 12px; position: sticky; top: 53px; z-index: 19;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.fs-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
+.period-row { display: flex; align-items: center; gap: 10px; }
+.slider-dates { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.slider-dates span { font-size: 11px; font-weight: 500; background: var(--card2); padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); }
+.slider-wrap { position: relative; height: 26px; display: flex; align-items: center; flex: 1; min-width: 160px; }
+.slider-track { position: absolute; width: 100%; height: 3px; background: var(--border); border-radius: 2px; }
+.slider-fill  { position: absolute; height: 3px; background: var(--green); border-radius: 2px; }
+input[type=range] { position: absolute; width: 100%; height: 3px; background: transparent; -webkit-appearance: none; pointer-events: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all; box-shadow: 0 0 0 4px rgba(135,194,50,0.15); }
+input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all; }
+.slider-range-label { font-size: 11px; font-weight: 500; background: var(--card2); padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); white-space: nowrap; flex-shrink: 0; }
+.filter-groups { display: flex; align-items: flex-start; gap: 0; flex-wrap: wrap; }
+.filter-group { display: flex; flex-direction: column; gap: 5px; padding: 0 14px; border-right: 1px solid var(--border); }
+.filter-group:first-child { padding-left: 0; }
+.filter-group:last-child  { border-right: none; }
+.chip-group { display: flex; gap: 5px; flex-wrap: wrap; }
+.s-chip { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--card2); cursor: pointer; transition: all 0.15s; user-select: none; white-space: nowrap; }
+.s-chip:hover { border-color: rgba(255,255,255,0.18); }
+.s-chip.active { background: rgba(135,194,50,0.18); color: var(--green); border-color: rgba(135,194,50,0.45); }
+
+/* Main */
+.main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+/* Teams grid */
+.teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; }
+
+/* Team card */
+.team-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+    display: flex; flex-direction: column;
+}
+.team-card:hover { border-color: rgba(135,194,50,0.4); box-shadow: 0 4px 24px rgba(0,0,0,0.35); }
+.tc-head { padding: 16px 18px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.tc-name { font-size: 15px; font-weight: 600; flex: 1; }
+.tc-badge { font-size: 11px; font-weight: 500; color: var(--muted); background: var(--card2); padding: 3px 9px; border-radius: 10px; border: 1px solid var(--border); white-space: nowrap; }
+.tc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); padding: 14px 18px; gap: 4px; border-bottom: 1px solid var(--border); }
+.tc-kpi { text-align: center; }
+.tc-kv { font-size: 22px; font-weight: 600; line-height: 1; }
+.tc-kv.green { color: var(--green); }
+.tc-kv.amber { color: var(--amber); }
+.tc-kl { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 5px; }
+.tc-chart-wrap { padding: 14px 16px 10px; height: 190px; }
+.tc-footer { padding: 10px 18px; font-size: 12px; color: var(--muted); text-align: right; border-top: 1px solid var(--border); transition: color 0.15s; }
+.team-card:hover .tc-footer { color: var(--green); }
+.tc-empty { padding: 24px 18px; font-size: 12px; color: var(--muted); text-align: center; border-top: 1px solid var(--border); }
+
+.loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; gap: 14px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 900px) { .teams-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+    .main { padding: 14px; }
+    .topbar, .filter-strip { padding-left: 14px; padding-right: 14px; }
+    .filter-group { padding: 0 8px; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="logo">Coach<span>Smart</span></div>
+    <div class="topbar-div"></div>
+    <div class="page-title">Teams Dashboard</div>
+    <span id="ctxLabel" style="display:none;font-size:13px;font-weight:600;"></span>
+    <div class="nav-pills">
+        <a class="nav-pill" id="navOverview" href="overview-dashboard.html">Overview</a>
+        <span class="nav-pill active">Teams</span>
+    </div>
+    <div id="clubWrap">
+        <select id="clubSelect" onchange="onClubChange()"><option value="">Select Club…</option></select>
+    </div>
+</div>
+
+<div class="filter-strip">
+    <div class="period-row">
+        <span class="fs-label" style="flex-shrink:0;">Period</span>
+        <div style="flex:1;">
+            <div class="slider-dates">
+                <span id="dateFrom">—</span>
+                <span id="dateTo">—</span>
+            </div>
+            <div class="slider-wrap">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="dateFill"></div>
+                <input type="range" id="sliderFrom" min="0" max="12" value="3" oninput="onDateSlider()">
+                <input type="range" id="sliderTo"   min="0" max="12" value="12" oninput="onDateSlider()">
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-groups" id="filterGroups" style="display:none;">
+        <div class="filter-group" id="codeGroup">
+            <span class="fs-label">Code</span>
+            <div class="chip-group" id="codeChips"></div>
+        </div>
+        <div class="filter-group" id="typeGroup">
+            <span class="fs-label">Type</span>
+            <div class="chip-group" id="typeChips"></div>
+        </div>
+        <div class="filter-group" id="roleGroup">
+            <span class="fs-label">Role</span>
+            <div class="chip-group" id="roleChips"></div>
+        </div>
+    </div>
+
+    <div class="period-row" id="attRow" style="display:none;">
+        <span class="fs-label" style="flex-shrink:0;">Attendees</span>
+        <div class="slider-wrap">
+            <div class="slider-track"></div>
+            <div class="slider-fill" id="attFill"></div>
+            <input type="range" id="attFrom" min="0" max="100" value="0"   oninput="onAttSlider()">
+            <input type="range" id="attTo"   min="0" max="100" value="100" oninput="onAttSlider()">
+        </div>
+        <span class="slider-range-label" id="attLabel">0 – 0</span>
+    </div>
+</div>
+
+<div class="main">
+    <div class="loading-wrap" id="loading" style="display:none;">
+        <div class="spinner"></div>
+        <div style="color:var(--muted);font-size:13px;">Loading dashboard…</div>
+    </div>
+    <div id="teamsGrid" class="teams-grid"></div>
+    <div class="empty-state" id="emptyState">Select a club above to load the dashboard.</div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const H = { 'Content-Type':'application/json', 'apikey':SUPABASE_ANON_KEY, 'Authorization':`Bearer ${SUPABASE_ANON_KEY}` };
+
+const MAX_MONTHS = 12;
+const QS         = new URLSearchParams(location.search);
+const paramClub  = QS.get('club_id') ? parseInt(QS.get('club_id')) : null;
+
+let dashData   = null;
+let teamCharts = {};
+let fCode      = new Set();
+let fType      = new Set();
+let fRole      = new Set();
+let attMin     = 0, attMax = Infinity;
+let allCodes = [], allTypes = [], allRoles = [];
+let currentClubId = null;
+
+// ── Helpers ───────────────────────────────────────────────────────
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtMonth(d) { return d.toLocaleDateString('en-IE',{month:'short',year:'numeric'}); }
+
+// ── Nav ───────────────────────────────────────────────────────────
+function updateNavLinks() {
+    const clubId = paramClub || parseInt(document.getElementById('clubSelect').value) || '';
+    document.getElementById('navOverview').href = 'overview-dashboard.html' + (clubId ? `?club_id=${clubId}` : '');
+}
+
+// ── Date slider ───────────────────────────────────────────────────
+function monthToDate(i) {
+    const d = new Date();
+    d.setDate(1); d.setHours(0,0,0,0);
+    d.setMonth(d.getMonth() - (MAX_MONTHS - i));
+    return d;
+}
+function getDateRange() {
+    const f = parseInt(document.getElementById('sliderFrom').value);
+    const t = parseInt(document.getElementById('sliderTo').value);
+    const start = monthToDate(f);
+    const end   = monthToDate(t);
+    end.setMonth(end.getMonth() + 1);
+    return { start, end };
+}
+function getMonthsInRange(start, end) {
+    const months = [];
+    const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cur < end) {
+        months.push({ year: cur.getFullYear(), month: cur.getMonth(), label: fmtMonth(new Date(cur)) });
+        cur.setMonth(cur.getMonth() + 1);
+    }
+    return months;
+}
+function onDateSlider() {
+    let f = parseInt(document.getElementById('sliderFrom').value);
+    let t = parseInt(document.getElementById('sliderTo').value);
+    if (f >= t) {
+        if (document.activeElement === document.getElementById('sliderFrom')) f = t-1;
+        else t = f+1;
+        document.getElementById('sliderFrom').value = f;
+        document.getElementById('sliderTo').value   = t;
+    }
+    document.getElementById('dateFrom').textContent = fmtMonth(monthToDate(f));
+    document.getElementById('dateTo').textContent   = fmtMonth(monthToDate(t));
+    const p1 = f/MAX_MONTHS*100, p2 = t/MAX_MONTHS*100;
+    document.getElementById('dateFill').style.left  = p1+'%';
+    document.getElementById('dateFill').style.width = (p2-p1)+'%';
+    if (dashData) loadDashboard();
+}
+
+// ── Attendees slider ──────────────────────────────────────────────
+function initAttSlider(maxVal) {
+    const fromEl = document.getElementById('attFrom');
+    const toEl   = document.getElementById('attTo');
+    attMin = 0; attMax = maxVal || 1;
+    fromEl.max = attMax; fromEl.value = 0;
+    toEl.max   = attMax; toEl.value   = attMax;
+    updateAttFill();
+    document.getElementById('attRow').style.display = maxVal > 0 ? '' : 'none';
+}
+function onAttSlider() {
+    let f = parseInt(document.getElementById('attFrom').value);
+    let t = parseInt(document.getElementById('attTo').value);
+    if (f > t) {
+        if (document.activeElement === document.getElementById('attFrom')) f = t;
+        else t = f;
+        document.getElementById('attFrom').value = f;
+        document.getElementById('attTo').value   = t;
+    }
+    attMin = f; attMax = t;
+    updateAttFill();
+    applyFiltersNoReload();
+}
+function updateAttFill() {
+    const f   = parseInt(document.getElementById('attFrom').value);
+    const t   = parseInt(document.getElementById('attTo').value);
+    const max = parseInt(document.getElementById('attTo').max) || 1;
+    document.getElementById('attFill').style.left  = (f/max*100)+'%';
+    document.getElementById('attFill').style.width = ((t-f)/max*100)+'%';
+    document.getElementById('attLabel').textContent = `${f} – ${t}`;
+}
+
+// ── Club loading ──────────────────────────────────────────────────
+async function loadClubs() {
+    if (paramClub) {
+        document.getElementById('clubWrap').style.display = 'none';
+        loadDashboard();
+        return;
+    }
+    try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clubs?select=club_id,club_name&order=club_name`,{headers:H});
+        const clubs = await r.json();
+        if (!Array.isArray(clubs)) return;
+        const sel = document.getElementById('clubSelect');
+        clubs.forEach(c => { const o=document.createElement('option'); o.value=c.club_id; o.textContent=c.club_name; sel.appendChild(o); });
+        if (clubs.length === 1) { sel.value = clubs[0].club_id; onClubChange(); }
+    } catch(e) { console.error(e); }
+}
+function onClubChange() {
+    updateNavLinks();
+    if (document.getElementById('clubSelect').value) loadDashboard();
+}
+
+// ── Dashboard fetch ───────────────────────────────────────────────
+async function loadDashboard() {
+    const clubId = paramClub || parseInt(document.getElementById('clubSelect').value);
+    if (!clubId) return;
+
+    document.getElementById('loading').style.display    = 'flex';
+    document.getElementById('teamsGrid').style.display  = 'none';
+    document.getElementById('emptyState').style.display = 'none';
+
+    const {start,end} = getDateRange();
+    try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_club_comparison_dashboard`, {
+            method:'POST', headers:H,
+            body: JSON.stringify({p_club_id:clubId, p_start_date:start.toISOString(), p_end_date:end.toISOString()})
+        });
+        if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.message||e.error||`HTTP ${r.status}`); }
+        const data = await r.json();
+        if (data.error) throw new Error(data.error);
+        dashData = data;
+
+        if (paramClub && data.club_name) {
+            document.getElementById('ctxLabel').textContent = data.club_name;
+            document.getElementById('ctxLabel').style.display = '';
+        }
+
+        updateNavLinks();
+        buildFilters(clubId);
+        applyFilters();
+        document.getElementById('teamsGrid').style.display  = '';
+        document.getElementById('filterGroups').style.display = '';
+    } catch(e) {
+        document.getElementById('emptyState').textContent = 'Error: ' + e.message;
+        document.getElementById('emptyState').style.display = 'block';
+        console.error(e);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+// ── Filters ───────────────────────────────────────────────────────
+function buildFilters(clubId) {
+    const codes = new Set(), types = new Set(), roles = new Set();
+    for (const team of dashData.teams||[]) {
+        for (const e of team.events||[]) {
+            if (e.code) codes.add(e.code);
+            if (e.type) types.add(e.type);
+            for (const m of e.members||[]) { if (m.role) roles.add(m.role); }
+        }
+    }
+    allCodes = [...codes].sort();
+    allTypes = [...types].sort();
+    allRoles = [...roles].sort();
+
+    if (clubId !== currentClubId) {
+        currentClubId = clubId;
+        fCode = new Set(); fType = new Set(); fRole = new Set();
+    } else {
+        fCode = new Set([...fCode].filter(v => allCodes.includes(v)));
+        fType = new Set([...fType].filter(v => allTypes.includes(v)));
+        fRole = new Set([...fRole].filter(v => allRoles.includes(v)));
+    }
+
+    renderMultiChips('codeChips', 'code', allCodes, fCode);
+    renderMultiChips('typeChips', 'type', allTypes, fType);
+    renderMultiChips('roleChips', 'role', allRoles, fRole);
+    document.getElementById('codeGroup').style.display = allCodes.length ? '' : 'none';
+    document.getElementById('typeGroup').style.display = allTypes.length ? '' : 'none';
+    document.getElementById('roleGroup').style.display = allRoles.length ? '' : 'none';
+}
+function renderMultiChips(containerId, key, values, current) {
+    const allActive = current.size === 0;
+    document.getElementById(containerId).innerHTML =
+        `<span class="s-chip ${allActive?'active':''}" data-key="${key}" data-val="" onclick="pickFilter(this)">All</span>` +
+        values.map(v => `<span class="s-chip ${current.has(v)?'active':''}" data-key="${key}" data-val="${esc(v)}" onclick="pickFilter(this)">${esc(v)}</span>`).join('');
+}
+function pickFilter(el) {
+    const key = el.dataset.key, val = el.dataset.val;
+    const map = { code: fCode, type: fType, role: fRole };
+    const s = map[key]; if (!s) return;
+    if (val === '') { s.clear(); } else { if (s.has(val)) s.delete(val); else s.add(val); }
+    renderMultiChips('codeChips', 'code', allCodes, fCode);
+    renderMultiChips('typeChips', 'type', allTypes, fType);
+    renderMultiChips('roleChips', 'role', allRoles, fRole);
+    applyFiltersNoReload();
+}
+
+// ── Filter pipeline ───────────────────────────────────────────────
+function getFilteredEventsPerTeam() {
+    const result = {};
+    for (const team of dashData.teams||[]) {
+        const evts = [];
+        for (const e of team.events||[]) {
+            if (fCode.size > 0 && !fCode.has(e.code)) continue;
+            if (fType.size > 0 && !fType.has(e.type)) continue;
+            const members     = fRole.size > 0 ? (e.members||[]).filter(m=>fRole.has(m.role)) : (e.members||[]);
+            const accepted    = members.filter(m=>m.response==='accepted').length;
+            const declined    = members.filter(m=>m.response==='declined').length;
+            const no_response = members.filter(m=>m.response==='no_response').length;
+            evts.push({...e, members, accepted, declined, no_response, total: members.length});
+        }
+        result[team.team_id] = evts;
+    }
+    return result;
+}
+function applyFilters() {
+    const base = getFilteredEventsPerTeam();
+    const maxAcc = Object.values(base).flat().reduce((mx,e)=>Math.max(mx,e.accepted),0);
+    initAttSlider(maxAcc);
+    const filtered = {};
+    for (const [id, evts] of Object.entries(base)) filtered[id] = evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);
+    renderTeamCards(filtered);
+}
+function applyFiltersNoReload() {
+    const base = getFilteredEventsPerTeam();
+    const filtered = {};
+    for (const [id, evts] of Object.entries(base)) filtered[id] = evts.filter(e=>e.accepted>=attMin&&e.accepted<=attMax);
+    renderTeamCards(filtered);
+}
+
+// ── Render team cards ─────────────────────────────────────────────
+function renderTeamCards(evtsPerTeam) {
+    const grid   = document.getElementById('teamsGrid');
+    const clubId = paramClub || parseInt(document.getElementById('clubSelect').value);
+    const {start, end} = getDateRange();
+    const months = getMonthsInRange(start, end);
+
+    Object.values(teamCharts).forEach(c => c.destroy());
+    teamCharts = {};
+
+    const teams = dashData.teams||[];
+    if (!teams.length) {
+        grid.innerHTML = '<div class="empty-state">No teams found.</div>';
+        return;
+    }
+
+    grid.innerHTML = teams.map(team => {
+        const evts     = evtsPerTeam[team.team_id] || [];
+        const totalAcc = evts.reduce((s,e)=>s+e.accepted,    0);
+        const totalDec = evts.reduce((s,e)=>s+e.declined,    0);
+        const totalNR  = evts.reduce((s,e)=>s+e.no_response, 0);
+        const totalAll = totalAcc + totalDec + totalNR;
+        const accRate  = totalAll > 0 ? (totalAcc/totalAll*100).toFixed(1)+'%' : '—';
+        const respRate = totalAll > 0 ? ((totalAcc+totalDec)/totalAll*100).toFixed(1)+'%' : '—';
+        const avgAcc   = evts.length > 0 ? (totalAcc/evts.length).toFixed(1) : '—';
+        const noEvts   = evts.length === 0;
+        return `
+        <div class="team-card" onclick="window.location.href='overview-dashboard.html?club_id=${clubId}&team_id=${team.team_id}'">
+            <div class="tc-head">
+                <div class="tc-name">${esc(team.team_name)}</div>
+                <span class="tc-badge">${evts.length} event${evts.length!==1?'s':''}</span>
+            </div>
+            <div class="tc-kpis">
+                <div class="tc-kpi"><div class="tc-kv green">${accRate}</div><div class="tc-kl">Acceptance</div></div>
+                <div class="tc-kpi"><div class="tc-kv">${avgAcc}</div><div class="tc-kl">Avg Accepted</div></div>
+                <div class="tc-kpi"><div class="tc-kv">${evts.length}</div><div class="tc-kl">Events</div></div>
+                <div class="tc-kpi"><div class="tc-kv amber">${respRate}</div><div class="tc-kl">Response</div></div>
+            </div>
+            ${noEvts
+                ? `<div class="tc-empty">No events in this period</div>`
+                : `<div class="tc-chart-wrap"><canvas id="chart-${team.team_id}"></canvas></div>`
+            }
+            <div class="tc-footer">View team detail →</div>
+        </div>`;
+    }).join('');
+
+    teams.forEach(team => {
+        const evts = evtsPerTeam[team.team_id] || [];
+        if (!evts.length) return;
+        const ctx = document.getElementById(`chart-${team.team_id}`);
+        if (!ctx) return;
+
+        const barData = months.map(m => {
+            const monthEvts = evts.filter(e => {
+                const d = new Date(e.date);
+                return d.getFullYear() === m.year && d.getMonth() === m.month;
+            });
+            if (!monthEvts.length) return null;
+            return parseFloat((monthEvts.reduce((s,e)=>s+e.accepted,0) / monthEvts.length).toFixed(1));
+        });
+
+        teamCharts[team.team_id] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: months.map(m => m.label),
+                datasets: [{
+                    data: barData,
+                    backgroundColor: 'rgba(135,194,50,0.22)',
+                    borderColor: '#87C232',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: item => `Avg accepted: ${item.raw ?? 0}` } }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#6B7280', font: { family: 'DM Sans', size: 10 }, maxRotation: 45, maxTicksLimit: 8 },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#6B7280', font: { family: 'DM Sans', size: 10 }, precision: 1 },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    }
+                }
+            }
+        });
+    });
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+onDateSlider();
+loadClubs();
+</script>
+</body>
+</html>

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoachSmart — Team Overview</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green: #87C232;
+            --dark: #111418;
+            --card: #1E222B;
+            --card2: #252A35;
+            --border: rgba(255,255,255,0.07);
+            --text: #E7EBEE;
+            --muted: #6B7280;
+            --red: #EF4444;
+            --amber: #F59E0B;
+            --blue: #3B82F6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); min-height: 100vh; }
+
+        .header {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 3px; }
+        .logo span { color: var(--green); }
+        .header-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+
+        .filters-panel {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 40px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 170px; }
+        .filter-group.wide { min-width: 240px; }
+        .filter-group.stretch { flex: 1; min-width: 280px; }
+        .filter-label {
+            font-size: 10px; font-weight: 500;
+            text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted);
+        }
+        select {
+            background: var(--card2); color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 10px 14px; font-size: 13px;
+            font-family: 'DM Sans', sans-serif; cursor: pointer; outline: none;
+            transition: border-color 0.2s;
+        }
+        select:focus { border-color: var(--green); }
+        select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .load-btn {
+            background: var(--green); color: #111418; border: none;
+            border-radius: 8px; padding: 10px 24px; font-size: 13px;
+            font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer;
+            letter-spacing: 0.3px; transition: opacity 0.2s; white-space: nowrap; align-self: flex-end;
+        }
+        .load-btn:hover { opacity: 0.85; }
+        .load-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .export-btn {
+            background: transparent; color: var(--green);
+            border: 1px solid var(--green); border-radius: 8px;
+            padding: 10px 24px; font-size: 13px; font-weight: 600;
+            font-family: 'DM Sans', sans-serif; cursor: pointer;
+            letter-spacing: 0.3px; transition: all 0.2s; white-space: nowrap; align-self: flex-end;
+        }
+        .export-btn:hover { background: rgba(135,194,50,0.1); }
+        .export-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .date-labels { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .date-labels span {
+            font-size: 12px; color: var(--text); font-weight: 500;
+            background: var(--card2); padding: 3px 8px; border-radius: 5px; border: 1px solid var(--border);
+        }
+        .slider-wrap { position: relative; height: 24px; display: flex; align-items: center; }
+        .slider-track { position: absolute; width: 100%; height: 3px; background: var(--border); border-radius: 2px; }
+        .slider-fill { position: absolute; height: 3px; background: var(--green); border-radius: 2px; }
+        input[type=range] {
+            position: absolute; width: 100%; height: 3px;
+            background: transparent; -webkit-appearance: none; pointer-events: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px;
+            border-radius: 50%; background: var(--green); border: 2px solid var(--dark);
+            cursor: pointer; pointer-events: all; box-shadow: 0 0 0 3px rgba(135,194,50,0.2);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 16px; height: 16px; border-radius: 50%;
+            background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all;
+        }
+
+        .loading {
+            display: flex; align-items: center; justify-content: center;
+            height: 50vh; flex-direction: column; gap: 16px;
+        }
+        .spinner {
+            width: 36px; height: 36px; border: 3px solid var(--border);
+            border-top-color: var(--green); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+        .error-box {
+            margin: 40px; background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 10px;
+            padding: 20px 24px; color: #FCA5A5; font-size: 14px;
+        }
+
+        .content { padding: 32px 40px; display: none; }
+        .content.visible { display: block; }
+
+        .placeholder {
+            display: flex; align-items: center; justify-content: center;
+            height: 40vh; flex-direction: column; gap: 12px; color: var(--muted);
+        }
+        .placeholder .big {
+            font-family: 'Bebas Neue', sans-serif; font-size: 72px;
+            color: rgba(255,255,255,0.04); letter-spacing: 4px;
+        }
+        .placeholder p { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+        .table-card {
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+        }
+        .table-toolbar {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .table-title {
+            font-size: 10px; font-weight: 500; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--muted);
+        }
+        .table-wrap { overflow-x: auto; }
+        .table-wrap::-webkit-scrollbar { height: 4px; }
+        .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead th {
+            padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 500;
+            text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted);
+            background: var(--card2); white-space: nowrap;
+            cursor: pointer; user-select: none; transition: color 0.15s;
+        }
+        thead th:hover { color: var(--text); }
+        thead th.sort-asc::after  { content: ' ↑'; color: var(--green); }
+        thead th.sort-desc::after { content: ' ↓'; color: var(--green); }
+        thead th.active { color: var(--green); }
+
+        tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: rgba(255,255,255,0.025); }
+        td { padding: 11px 16px; vertical-align: middle; white-space: nowrap; }
+        .player-cell { font-weight: 500; color: var(--text); }
+
+        .rate-wrap { display: flex; align-items: center; gap: 8px; }
+        .rate-bar-bg { width: 60px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
+        .rate-bar-fill { height: 4px; border-radius: 2px; background: var(--green); }
+        .rate-text { font-size: 12px; font-weight: 600; color: var(--amber); min-width: 36px; }
+
+        .squad-count { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--text); letter-spacing: 0.5px; }
+        .squad-count.zero { color: var(--muted); font-size: 14px; font-family: 'DM Sans', sans-serif; }
+
+        .num-cell { font-size: 14px; color: var(--text); }
+        .num-cell.green { color: var(--green); }
+        .num-cell.red   { color: var(--red); }
+        .num-cell.muted { color: var(--muted); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <div class="logo">COACH<span>SMART</span></div>
+        <div class="header-sub">Team Overview Dashboard</div>
+    </div>
+    <div id="resultMeta" style="font-size:12px; color:var(--muted); text-align:right;"></div>
+</div>
+
+<div class="filters-panel">
+    <div class="filter-group wide">
+        <div class="filter-label">Team</div>
+        <select id="filterTeam" onchange="onTeamChange()">
+            <option value="" disabled selected>Loading teams…</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <div class="filter-label">Event Code</div>
+        <select id="filterCode" disabled>
+            <option value="" disabled selected>Select team first</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <div class="filter-label">Event Type</div>
+        <select id="filterType" disabled>
+            <option value="" disabled selected>Select team first</option>
+        </select>
+    </div>
+    <!-- Load button left of slider, Export button right of slider -->
+    <div>
+        <button class="load-btn" id="loadBtn" onclick="loadData()" disabled>Load Data</button>
+    </div>
+    <div class="filter-group stretch">
+        <div class="filter-label">Date Range</div>
+        <div class="date-labels">
+            <span id="dateFromLabel">Start</span>
+            <span id="dateToLabel">End</span>
+        </div>
+        <div class="slider-wrap">
+            <div class="slider-track"></div>
+            <div class="slider-fill" id="sliderFill"></div>
+            <input type="range" id="sliderFrom" min="0" max="100" value="0"   oninput="onSliderInput()">
+            <input type="range" id="sliderTo"   min="0" max="100" value="100" oninput="onSliderInput()">
+        </div>
+    </div>
+    <div>
+        <button class="export-btn" id="exportBtn" onclick="exportExcel()" disabled>Export Excel</button>
+    </div>
+</div>
+
+<div class="loading" id="loadingState" style="display:none;">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Loading…</div>
+</div>
+
+<div class="error-box" id="errorState" style="display:none;">
+    <strong>Error loading data.</strong>
+    <div id="errorDetail" style="margin-top:8px; font-size:12px; opacity:0.7;"></div>
+</div>
+
+<div class="content" id="mainContent">
+    <div class="placeholder" id="placeholder">
+        <div class="big">CS</div>
+        <p>Select filters and load data to begin</p>
+    </div>
+
+    <div id="teamDashboard" style="display:none;">
+        <div class="table-card">
+            <div class="table-toolbar">
+                <div class="table-title" id="tableTitle">Team Overview</div>
+                <div style="font-size:11px;color:var(--muted);" id="tableSubtitle"></div>
+            </div>
+            <div class="table-wrap">
+                <table id="overviewTable">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+
+const H = {
+    'Content-Type':  'application/json',
+    'apikey':        SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+};
+
+let playerData  = [];
+let allDates    = [];
+let squadNames  = [];
+let sortCol     = 'player';
+let sortDir     = 'asc';
+let currentRows = [];
+
+const TODAY = new Date().toISOString().split('T')[0];
+
+async function sbGet(path) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: H });
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    return r.json();
+}
+async function sbRpc(fn, body) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+        method: 'POST', headers: H, body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    return r.json();
+}
+
+function showLoading(msg) {
+    document.getElementById('loadingState').style.display = 'flex';
+    document.getElementById('loadingText').innerText = msg || 'Loading…';
+    document.getElementById('errorState').style.display = 'none';
+    document.getElementById('mainContent').classList.remove('visible');
+}
+function hideLoading() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('mainContent').classList.add('visible');
+}
+function showError(msg) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'block';
+    document.getElementById('errorDetail').innerText = msg;
+    document.getElementById('mainContent').classList.remove('visible');
+}
+function fmtDate(s) {
+    return new Date(s).toLocaleDateString('en-IE', { day:'2-digit', month:'short', year:'numeric' });
+}
+function fmtMonth(s) {
+    return new Date(s).toLocaleDateString('en-IE', { month:'short', year:'numeric' });
+}
+
+async function init() {
+    showLoading('Loading teams…');
+    try {
+        const teams = await sbGet('teams?select=team_name&order=team_name');
+        const sel = document.getElementById('filterTeam');
+        sel.innerHTML = '<option value="" disabled selected>— Select a team —</option>';
+        teams.forEach(t => {
+            const o = document.createElement('option');
+            o.value = t.team_name;
+            o.textContent = t.team_name;
+            sel.appendChild(o);
+        });
+        hideLoading();
+        document.getElementById('placeholder').style.display = 'flex';
+        document.getElementById('teamDashboard').style.display = 'none';
+    } catch(e) {
+        showError('Could not load teams: ' + e.message);
+    }
+}
+
+async function onTeamChange() {
+    const codeEl  = document.getElementById('filterCode');
+    const typeEl  = document.getElementById('filterType');
+    const loadBtn = document.getElementById('loadBtn');
+
+    codeEl.disabled = typeEl.disabled = loadBtn.disabled = true;
+    codeEl.innerHTML = '<option value="" disabled selected>Loading…</option>';
+    typeEl.innerHTML = '<option value="" disabled selected>Loading…</option>';
+
+    try {
+        const [codes, types] = await Promise.all([
+            sbGet('event_codes?select=event_code&order=event_code'),
+            sbGet('event_types?select=event_type&order=event_type')
+        ]);
+
+        codeEl.innerHTML = '<option value="" disabled selected>— Select code —</option>';
+        codes.forEach(c => {
+            const o = document.createElement('option');
+            o.value = o.textContent = c.event_code;
+            codeEl.appendChild(o);
+        });
+
+        typeEl.innerHTML = '<option value="" disabled selected>— Select type —</option>';
+        types.forEach(t => {
+            const o = document.createElement('option');
+            o.value = o.textContent = t.event_type;
+            typeEl.appendChild(o);
+        });
+
+        codeEl.disabled = typeEl.disabled = loadBtn.disabled = false;
+    } catch(e) {
+        codeEl.innerHTML = typeEl.innerHTML = '<option value="" disabled selected>Error</option>';
+    }
+}
+
+async function loadData() {
+    const team = document.getElementById('filterTeam').value;
+    const code = document.getElementById('filterCode').value;
+    const type = document.getElementById('filterType').value;
+
+    if (!team || !code || !type) {
+        alert('Please select Team, Event Code and Event Type.');
+        return;
+    }
+
+    showLoading('Fetching team data…');
+
+    try {
+        const raw = await sbRpc('get_member_match_stats_detail', {
+            p_team_name:  team,
+            p_event_code: code,
+            p_event_type: type,
+            p_from_date:  '2000-01-01'
+        });
+
+        const data = raw?.[0]?.result?.[0]?.json_agg;
+        if (!Array.isArray(data)) throw new Error('No data returned. Check team / code / type combination.');
+
+        playerData = data;
+
+        const dateSet = new Set();
+        playerData.forEach(p => {
+            (p.events || []).forEach(e => {
+                if (e.event_date_time) dateSet.add(e.event_date_time.split('T')[0]);
+            });
+        });
+        dateSet.add(TODAY);
+        allDates = [...dateSet].sort();
+
+        const squadSet = new Set();
+        playerData.forEach(p => {
+            (p.events || []).forEach(e => {
+                if (e.squad_name) squadSet.add(e.squad_name);
+            });
+        });
+        squadNames = [...squadSet].sort();
+
+        initSlider();
+
+        document.getElementById('resultMeta').innerHTML =
+            `<div style="color:var(--text);font-size:13px;font-weight:500;">${team}</div>
+             <div style="color:var(--muted);font-size:11px;letter-spacing:1px;margin-top:2px;">${code} · ${type}</div>`;
+
+        sortCol = 'player';
+        sortDir = 'asc';
+
+        hideLoading();
+        document.getElementById('placeholder').style.display = 'none';
+        document.getElementById('teamDashboard').style.display = 'block';
+        document.getElementById('exportBtn').disabled = false;
+
+        renderTable();
+
+    } catch(e) {
+        showError(e.message);
+    }
+}
+
+function initSlider() {
+    document.getElementById('sliderFrom').value = 0;
+    document.getElementById('sliderTo').value   = 100;
+    updateSliderUI();
+}
+
+function dateAtPct(pct) {
+    if (!allDates.length) return null;
+    const idx = Math.round((pct / 100) * (allDates.length - 1));
+    return allDates[Math.min(idx, allDates.length - 1)];
+}
+
+function updateSliderUI() {
+    const from = parseInt(document.getElementById('sliderFrom').value);
+    const to   = parseInt(document.getElementById('sliderTo').value);
+    document.getElementById('sliderFill').style.left  = from + '%';
+    document.getElementById('sliderFill').style.width = (to - from) + '%';
+
+    if (allDates.length) {
+        document.getElementById('dateFromLabel').innerText = fmtMonth(dateAtPct(from));
+        document.getElementById('dateToLabel').innerText   = fmtMonth(dateAtPct(to));
+    }
+}
+
+function onSliderInput() {
+    let from = parseInt(document.getElementById('sliderFrom').value);
+    let to   = parseInt(document.getElementById('sliderTo').value);
+    if (from > to) {
+        document.getElementById('sliderFrom').value = to;
+        from = to;
+    }
+    updateSliderUI();
+    if (playerData.length) renderTable();
+}
+
+function getDateRange() {
+    return {
+        from: dateAtPct(parseInt(document.getElementById('sliderFrom').value)),
+        to:   dateAtPct(parseInt(document.getElementById('sliderTo').value))
+    };
+}
+
+function filteredEvents(events) {
+    const { from, to } = getDateRange();
+    return (events || []).filter(e => {
+        const d = (e.event_date_time || '').split('T')[0];
+        return d >= from && d <= to;
+    });
+}
+
+function calcPotential() {
+    const { from, to } = getDateRange();
+    const ids = new Set();
+    playerData.forEach(p => {
+        (p.events || []).forEach(e => {
+            const d = (e.event_date_time || '').split('T')[0];
+            if (d >= from && d <= to) ids.add(e.event_id || d);
+        });
+    });
+    return ids.size;
+}
+
+function buildRows() {
+    const potential = calcPotential();
+    return playerData.map(p => {
+        const events   = filteredEvents(p.events);
+        const accepted = events.filter(e => e.attendance_response === 'Accepted').length;
+        const declined = events.filter(e => e.attendance_response === 'Declined').length;
+        const none     = events.filter(e => !e.attendance_response).length;
+        const rate     = potential > 0 ? Math.round((accepted / potential) * 100) : 0;
+        const ratePct  = potential > 0 ? rate + '%' : '—';
+
+        const squadCounts = {};
+        squadNames.forEach(s => squadCounts[s] = 0);
+        events.forEach(e => {
+            if (e.squad_name && squadCounts[e.squad_name] !== undefined) squadCounts[e.squad_name]++;
+        });
+
+        return { player: p.member_name, potential, accepted, declined, none, rate, ratePct, squadCounts };
+    });
+}
+
+function sortRows(rows) {
+    return [...rows].sort((a, b) => {
+        let av, bv;
+        if (sortCol === 'player') {
+            av = a.player.toLowerCase(); bv = b.player.toLowerCase();
+        } else if (sortCol === 'rate') {
+            av = a.rate; bv = b.rate;
+        } else if (squadNames.includes(sortCol)) {
+            av = a.squadCounts[sortCol]; bv = b.squadCounts[sortCol];
+        } else {
+            av = a[sortCol] ?? 0; bv = b[sortCol] ?? 0;
+        }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+}
+
+function onHeaderClick(col) {
+    if (sortCol === col) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortCol = col;
+        sortDir = col === 'player' ? 'asc' : 'desc';
+    }
+    renderTable();
+}
+
+function renderTable() {
+    const { from, to } = getDateRange();
+    const fromStr = from ? fmtDate(from) : '—';
+    const toStr   = to   ? fmtDate(to)   : '—';
+
+    document.getElementById('tableTitle').innerText    = document.getElementById('filterTeam').value + ' · Team Overview';
+    document.getElementById('tableSubtitle').innerText = `${fromStr} – ${toStr}`;
+
+    const rows = sortRows(buildRows());
+    currentRows = rows;
+
+    const cols = [
+        { key: 'player',    label: 'Player' },
+        { key: 'potential', label: 'Total' },
+        { key: 'accepted',  label: 'Accepted' },
+        { key: 'declined',  label: 'Declined' },
+        { key: 'none',      label: 'No Response' },
+        { key: 'rate',      label: 'Attendance Rate' },
+        ...squadNames.map(s => ({ key: s, label: s })),
+    ];
+
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '<tr>' + cols.map(c => {
+        const isActive = sortCol === c.key;
+        const cls = isActive ? (sortDir === 'asc' ? 'sort-asc active' : 'sort-desc active') : '';
+        return `<th class="${cls}" onclick="onHeaderClick('${c.key}')">${c.label}</th>`;
+    }).join('') + '</tr>';
+
+    const tbody = document.getElementById('tableBody');
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="${cols.length}" style="text-align:center;padding:30px;color:var(--muted);">No data in selected range</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+        const rateHtml = r.ratePct !== '—'
+            ? `<div class="rate-wrap">
+                 <div class="rate-bar-bg"><div class="rate-bar-fill" style="width:${r.rate}%"></div></div>
+                 <span class="rate-text">${r.ratePct}</span>
+               </div>`
+            : `<span class="rate-text">—</span>`;
+
+        const squadCells = squadNames.map(s => {
+            const count = r.squadCounts[s];
+            return count === 0
+                ? `<td><span class="squad-count zero">0</span></td>`
+                : `<td><span class="squad-count">${count}</span></td>`;
+        }).join('');
+
+        return `<tr>
+            <td class="player-cell">${r.player}</td>
+            <td class="num-cell">${r.potential}</td>
+            <td class="num-cell green">${r.accepted}</td>
+            <td class="num-cell red">${r.declined}</td>
+            <td class="num-cell muted">${r.none}</td>
+            <td>${rateHtml}</td>
+            ${squadCells}
+        </tr>`;
+    }).join('');
+}
+
+function exportExcel() {
+    if (!currentRows.length) return;
+
+    const team = document.getElementById('filterTeam').value;
+    const code = document.getElementById('filterCode').value;
+    const type = document.getElementById('filterType').value;
+    const { from, to } = getDateRange();
+
+    const headers = [
+        'Player', 'Total Matches', 'Accepted', 'Declined',
+        'No Response', 'Attendance Rate (%)',
+        ...squadNames
+    ];
+
+    const dataRows = currentRows.map(r => [
+        r.player,
+        r.potential,
+        r.accepted,
+        r.declined,
+        r.none,
+        r.ratePct === '—' ? '' : r.rate,
+        ...squadNames.map(s => r.squadCounts[s])
+    ]);
+
+    const wsData = [headers, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    ws['!cols'] = [
+        { wch: 24 },
+        { wch: 14 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 20 },
+        ...squadNames.map(() => ({ wch: 16 })),
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Team Overview');
+
+    const fromStr = from ? from : 'all';
+    const toStr   = to   ? to   : 'all';
+    const filename = `CoachSmart_${team}_${code}_${type}_${fromStr}_${toStr}.xlsx`.replace(/\s+/g, '_');
+
+    XLSX.writeFile(wb, filename);
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

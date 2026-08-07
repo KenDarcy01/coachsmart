@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CoachSmart — Join a Team</title>
+<meta name="theme-color" content="#111418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root {
+    --green:  #87C232;
+    --dark:   #111418;
+    --card:   #1E222B;
+    --card2:  #252A35;
+    --border: rgba(255,255,255,0.07);
+    --text:   #E7EBEE;
+    --muted:  #6B7280;
+    --red:    #e05252;
+    --amber:  #F5A623;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100%;
+    overscroll-behavior-y: none;
+}
+
+/* ── Loading ── */
+#loading {
+    position: fixed; inset: 0; background: var(--dark);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border); border-top-color: var(--green);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Screens ── */
+.screen { display: none; flex-direction: column; min-height: 100vh; padding-bottom: 48px; }
+.screen.active { display: flex; }
+
+/* ── Logo bar ── */
+.logo-bar {
+    padding: 20px 20px 0;
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex: 1; }
+.logo span { color: var(--green); }
+
+.back-btn {
+    display: flex; align-items: center; gap: 5px;
+    background: none; border: none; color: var(--muted);
+    font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; padding: 4px; flex-shrink: 0;
+}
+.back-btn svg { width: 18px; height: 18px; }
+
+/* ── Progress dots ── */
+.progress { display: flex; justify-content: center; gap: 8px; padding: 22px 0 0; flex-shrink: 0; }
+.dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: transparent; border: 1.5px solid var(--muted);
+    transition: all 0.2s;
+}
+.dot.active  { background: var(--green); border-color: var(--green); }
+.dot.done    { background: var(--green); border-color: var(--green); opacity: 0.35; }
+
+/* ── Content ── */
+.content {
+    flex: 1; padding: 32px 24px 0;
+    max-width: 440px; width: 100%; margin: 0 auto;
+}
+
+.step-label {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;
+}
+.screen-title { font-size: 26px; font-weight: 600; line-height: 1.25; margin-bottom: 8px; }
+.screen-sub   { font-size: 14px; color: var(--muted); line-height: 1.65; margin-bottom: 28px; }
+
+/* ── Inputs ── */
+.field { margin-bottom: 14px; }
+.field label {
+    display: block; font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+}
+.field input {
+    width: 100%; padding: 14px 16px;
+    border-radius: 10px; background: var(--card2);
+    border: 1.5px solid var(--border); color: var(--text);
+    font-size: 16px; font-family: 'DM Sans', sans-serif;
+    -webkit-appearance: none; outline: none; transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--green); }
+.field input::placeholder { color: var(--muted); }
+
+/* ── Code input ── */
+#code-input {
+    width: 100%; padding: 22px 16px;
+    border-radius: 12px; background: var(--card2);
+    border: 1.5px solid var(--border); color: var(--text);
+    font-size: 32px; font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 8px; text-align: center; text-transform: uppercase;
+    -webkit-appearance: none; outline: none; transition: border-color 0.15s;
+    margin-bottom: 14px;
+}
+#code-input:focus { border-color: var(--green); }
+#code-input::placeholder {
+    color: var(--muted); font-size: 14px;
+    letter-spacing: 1px; font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+    width: 100%; padding: 17px; border-radius: 10px;
+    background: var(--green); border: none; color: #111;
+    font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; margin-top: 8px; transition: opacity 0.15s;
+    -webkit-appearance: none;
+}
+.btn-primary:disabled { opacity: 0.45; cursor: default; }
+.btn-primary:active:not(:disabled) { opacity: 0.82; }
+
+.btn-secondary {
+    width: 100%; padding: 17px; border-radius: 10px;
+    background: transparent; border: 1.5px solid var(--border);
+    color: var(--muted); font-size: 15px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+    margin-top: 10px; transition: all 0.15s; -webkit-appearance: none;
+}
+.btn-secondary:active { opacity: 0.7; }
+
+/* ── Error ── */
+.error-msg { font-size: 13px; color: var(--red); margin-top: 12px; min-height: 18px; text-align: center; line-height: 1.5; }
+
+/* ── Choice cards ── */
+.choice-card {
+    width: 100%; background: var(--card);
+    border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 20px; cursor: pointer;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 12px; transition: border-color 0.15s, background 0.15s;
+    text-align: left; -webkit-appearance: none; outline: none; color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+}
+.choice-card:active { background: var(--card2); border-color: var(--green); }
+.choice-icon { font-size: 30px; flex-shrink: 0; width: 44px; text-align: center; }
+.choice-label { font-size: 16px; font-weight: 600; margin-bottom: 3px; }
+.choice-sub   { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+/* ── For-name label ── */
+.for-name-label {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 14px; margin-bottom: 18px;
+    font-size: 13px; color: var(--muted);
+}
+.for-name-label strong { color: var(--text); font-weight: 600; }
+
+/* ── Success / info icon ── */
+.hero-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 28px;
+}
+.hero-icon svg { width: 36px; height: 36px; }
+.hero-icon.green { background: rgba(135,194,50,0.13); border: 2px solid var(--green); }
+.hero-icon.green svg { color: var(--green); }
+.hero-icon.amber { background: rgba(245,166,35,0.13); border: 2px solid var(--amber); }
+.hero-icon.amber svg { color: var(--amber); }
+
+/* ── Team preview (code screen) ── */
+.team-preview {
+    border-radius: 8px; padding: 0 14px;
+    display: flex; align-items: center; gap: 9px;
+    font-size: 14px; font-weight: 500;
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.25s ease, padding 0.25s ease, margin 0.25s ease;
+    margin-bottom: 0;
+}
+.team-preview.visible { max-height: 52px; padding: 12px 14px; margin-bottom: 12px; }
+.team-preview.found   { background: rgba(135,194,50,0.10); border: 1px solid rgba(135,194,50,0.30); color: var(--green); }
+.team-preview.unknown { background: rgba(107,114,128,0.08); border: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+.team-preview.looking { background: transparent; color: var(--muted); font-size: 13px; }
+.team-preview svg { flex-shrink: 0; width: 16px; height: 16px; }
+
+/* ── Name chip ── */
+.name-chip {
+    display: inline-block;
+    background: rgba(135,194,50,0.12); border: 1px solid rgba(135,194,50,0.35);
+    color: var(--green); border-radius: 6px; padding: 3px 11px;
+    font-weight: 600; font-size: 15px;
+}
+
+/* ── Centred layout helper ── */
+.centre-content { padding-top: 48px; }
+.centre-content .screen-title { text-align: center; }
+.centre-content .screen-sub   { text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div></div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     LOGIN  (fallback — shown when no token is passed from FlutterFlow)
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-login" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="content" style="display:flex;flex-direction:column;justify-content:center;flex:1;padding-top:0;">
+        <div class="step-label">Welcome</div>
+        <div class="screen-title">Sign in to continue</div>
+        <div class="screen-sub">Enter the email and password you used when you signed up.</div>
+        <div class="field">
+            <label>Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="field">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password"
+                onkeydown="if(event.key==='Enter') login()">
+        </div>
+        <button class="btn-primary" id="login-btn" onclick="login()">Sign In</button>
+        <div class="error-msg" id="login-error"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     STEP 1 — WHO ARE YOU ADDING?
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-who" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="progress">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+    </div>
+    <div class="content">
+        <div class="step-label">Step 1 of 2</div>
+        <div class="screen-title" id="who-title">Who are you joining a team as?</div>
+        <div class="screen-sub" id="who-sub">Choose one to continue.</div>
+
+        <button class="choice-card" onclick="selectMyself()">
+            <div class="choice-icon">🏃</div>
+            <div>
+                <div class="choice-label">Myself</div>
+                <div class="choice-sub">I play or coach on this team</div>
+            </div>
+        </button>
+
+        <button class="choice-card" onclick="selectSomeoneElse()">
+            <div class="choice-icon">👨‍👧</div>
+            <div>
+                <div class="choice-label">Someone else</div>
+                <div class="choice-sub">My child or another family member</div>
+            </div>
+        </button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     THEIR NAME
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-their-name" class="screen">
+    <div class="logo-bar">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
+    <div class="progress">
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+    </div>
+    <div class="content">
+        <div class="step-label">Step 2 of 2</div>
+        <div class="screen-title">What is their name?</div>
+        <div class="screen-sub">Enter their name exactly as it appears, or will appear, on the team roster.</div>
+        <div class="field">
+            <label>First Name</label>
+            <input type="text" id="their-first" placeholder="First name" autocapitalize="words">
+        </div>
+        <div class="field">
+            <label>Last Name</label>
+            <input type="text" id="their-last" placeholder="Last name" autocapitalize="words"
+                onkeydown="if(event.key==='Enter') confirmTheirName()">
+        </div>
+        <button class="btn-primary" onclick="confirmTheirName()">Continue</button>
+        <div class="error-msg" id="their-error"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     STEP 2 — TEAM JOINING CODE
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-code" class="screen">
+    <div class="logo-bar">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
+    <div class="progress">
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+    </div>
+    <div class="content">
+        <div class="step-label">Step 2 of 2</div>
+        <div class="screen-title">Enter the team joining code</div>
+        <div class="screen-sub">Your team admin will have shared this with you.</div>
+        <div class="for-name-label">
+            Joining as <strong id="code-for-name"></strong>
+        </div>
+        <input type="text" id="code-input" placeholder="Team code"
+            maxlength="20" autocorrect="off" autocapitalize="characters"
+            autocomplete="off" spellcheck="false"
+            oninput="onCodeInput()"
+            onkeydown="if(event.key==='Enter') submitCode()">
+        <div id="team-preview" class="team-preview"></div>
+        <button class="btn-primary" id="code-btn" onclick="submitCode()">Request to Join</button>
+        <div class="error-msg" id="code-error"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     FOUND EXISTING MEMBER (active — offer to request access)
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-found" class="screen">
+    <div class="logo-bar">
+        <button class="back-btn" onclick="denyExistingMember()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
+    <div class="content centre-content">
+        <div class="hero-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M11 8v3l2 2"/>
+            </svg>
+        </div>
+        <div class="screen-title">Already on the roster</div>
+        <div class="screen-sub" style="margin-top:12px;">
+            <span class="name-chip" id="found-name"></span>
+            <span style="display:block;margin-top:12px;">
+                is already a confirmed member of
+                <strong id="found-team" style="color:var(--text)"></strong>.
+            </span>
+            <span style="display:block;margin-top:10px;">
+                Is this the person you are registering?
+            </span>
+            <span style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
+                If yes, we'll send a request to the team admin to link your account to their profile. You'll be notified once it's approved.
+            </span>
+        </div>
+        <button class="btn-primary" id="found-yes-btn" onclick="confirmExistingMember()">Yes — request access to their profile</button>
+        <button class="btn-secondary" onclick="denyExistingMember()">No — enter a different name</button>
+        <div class="error-msg" id="found-error"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     ALREADY PENDING (same user re-submitting same name + code)
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-already-pending" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="content centre-content">
+        <div class="hero-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+        <div class="screen-title">Already submitted</div>
+        <div class="screen-sub" style="margin-top:12px;">
+            <span style="display:block;">You've already sent a request for</span>
+            <span class="name-chip" id="already-pending-name" style="margin-top:8px;display:inline-block;"></span>
+            <span style="display:block;margin-top:10px;">
+                to join <strong id="already-pending-team" style="color:var(--text)"></strong>.
+            </span>
+            <span style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
+                It's waiting for admin approval. You'll receive a notification once it's confirmed.
+            </span>
+        </div>
+        <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
+        <button class="btn-secondary" onclick="finish()">I'm done for now</button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     PENDING OTHER (different user already submitted this name)
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-pending-other" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="content centre-content">
+        <div class="hero-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+        </div>
+        <div class="screen-title">Already submitted by someone else</div>
+        <div class="screen-sub" style="margin-top:12px;">
+            <span style="display:block;margin-bottom:10px;">Another parent has already sent a join request for</span>
+            <span class="name-chip" id="pending-other-name" style="display:inline-block;"></span>
+            <span style="display:block;margin-top:10px;">
+                to <strong id="pending-other-team" style="color:var(--text)"></strong>, and it's waiting for admin approval.
+            </span>
+            <span style="display:block;margin-top:14px;font-size:13px;color:var(--muted);">
+                Once the admin confirms the membership, come back here and enter the same name and code — you'll be offered the option to link your account to their profile.
+            </span>
+        </div>
+        <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
+        <button class="btn-secondary" onclick="finish()">I'm done for now</button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     REQUEST SENT
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-sent" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="content centre-content">
+        <div class="hero-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        </div>
+        <div class="screen-title">Request sent!</div>
+        <div class="screen-sub" style="margin-top:12px;">
+            <span class="name-chip" id="sent-name"></span>
+            <span id="sent-action" style="display:block;margin-top:12px;"></span>
+            <span id="sent-detail" style="display:block;margin-top:10px;font-size:13px;"></span>
+        </div>
+        <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
+        <button class="btn-secondary" onclick="finish()">I'm done for now</button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     ALL DONE
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-done" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="content centre-content">
+        <div class="hero-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        </div>
+        <div class="screen-title">You're all set!</div>
+        <div class="screen-sub" id="done-sub" style="margin-top:12px;"></div>
+        <button class="btn-primary" onclick="window.history.back()" style="margin-top:32px;">Back to CoachSmart</button>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+let sb;
+
+// ── State ─────────────────────────────────────────────────────────────
+let session          = null;
+let currentUser      = null;
+let registering      = { firstName: '', lastName: '', isMyself: false };
+let joiningCode      = '';
+let foundMember      = null;
+let pendingCount     = 0;
+let screenHistory    = [];
+let codeDebounce     = null;
+let resolvedTeamName = null;
+
+function decodeJwt(token) {
+    try {
+        return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    } catch(e) { return null; }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+async function init() {
+    const params = new URLSearchParams(window.location.search);
+    const at = params.get('access_token');
+
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth:   { persistSession: false, autoRefreshToken: false },
+        global: at ? { headers: { Authorization: 'Bearer ' + at } } : {}
+    });
+
+    if (at) {
+        const payload = decodeJwt(at);
+        if (payload?.sub) {
+            session = { user: { id: payload.sub }, access_token: at };
+        }
+    }
+
+    if (!session) {
+        const { data } = await sb.auth.getSession();
+        session = data?.session || null;
+    }
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (!session) { showScreen('screen-login'); return; }
+
+    await loadUser();
+}
+
+async function loadUser() {
+    const { data, error } = await sb
+        .from('users')
+        .select('user_id, first_name, last_name')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+    if (error || !data) { showScreen('screen-login'); return; }
+
+    currentUser = data;
+    showScreen('screen-who');
+}
+
+// ── Login (fallback) ──────────────────────────────────────────────────
+async function login() {
+    const email    = el('login-email').value.trim();
+    const password = el('login-password').value;
+    const btn      = el('login-btn');
+    const err      = el('login-error');
+
+    if (!email || !password) { err.textContent = 'Please enter your email and password.'; return; }
+
+    setLoading(btn, true, 'Signing in…');
+    err.textContent = '';
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+    if (error) {
+        err.textContent = error.message;
+        setLoading(btn, false, 'Sign In');
+        return;
+    }
+
+    session = data.session;
+    await loadUser();
+}
+
+// ── Who ───────────────────────────────────────────────────────────────
+function selectMyself() {
+    registering = {
+        firstName: currentUser.first_name || '',
+        lastName:  currentUser.last_name  || '',
+        isMyself:  true
+    };
+    el('code-for-name').textContent = registering.firstName + ' ' + registering.lastName;
+    showScreen('screen-code');
+}
+
+function selectSomeoneElse() {
+    registering = { firstName: '', lastName: '', isMyself: false };
+    showScreen('screen-their-name');
+}
+
+// ── Their Name ────────────────────────────────────────────────────────
+function confirmTheirName() {
+    const firstName = el('their-first').value.trim();
+    const lastName  = el('their-last').value.trim();
+    const err       = el('their-error');
+
+    if (!firstName || !lastName) {
+        err.textContent = 'Please enter their first and last name.';
+        return;
+    }
+
+    err.textContent = '';
+    registering = { firstName, lastName, isMyself: false };
+    el('code-for-name').textContent = firstName + ' ' + lastName;
+    showScreen('screen-code');
+}
+
+// ── Code lookup (debounced) ───────────────────────────────────────────
+function onCodeInput() {
+    const raw  = el('code-input').value.toUpperCase();
+    el('code-input').value = raw;
+    const code = raw.trim();
+
+    clearTimeout(codeDebounce);
+    resolvedTeamName = null;
+    el('code-btn').textContent = 'Request to Join';
+
+    const preview = el('team-preview');
+
+    if (code.length < 3) {
+        preview.className = 'team-preview';
+        preview.textContent = '';
+        return;
+    }
+
+    preview.className = 'team-preview looking visible';
+    preview.textContent = 'Looking up code…';
+
+    codeDebounce = setTimeout(() => lookupCode(code), 500);
+}
+
+async function lookupCode(code) {
+    const { data, error } = await sb.rpc('get_team_by_code', { p_joining_code: code });
+    const preview = el('team-preview');
+
+    if (!error && data?.team_name) {
+        resolvedTeamName = data.team_name;
+        preview.className = 'team-preview found visible';
+        preview.innerHTML =
+            `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>${data.team_name}`;
+        el('code-btn').textContent = 'Request to Join ' + data.team_name;
+    } else {
+        resolvedTeamName = null;
+        preview.className = 'team-preview unknown visible';
+        preview.textContent = 'Code not recognised';
+        el('code-btn').textContent = 'Request to Join';
+    }
+}
+
+// ── Code Entry ────────────────────────────────────────────────────────
+async function submitCode() {
+    const code = el('code-input').value.trim().toUpperCase();
+    const btn  = el('code-btn');
+    const err  = el('code-error');
+
+    if (!code) { err.textContent = 'Please enter the team joining code.'; return; }
+
+    setLoading(btn, true, 'Checking…');
+    err.textContent = '';
+    joiningCode = code;
+
+    const { data, error } = await sb.rpc('create_new_member_by_code', {
+        p_first_name:   registering.firstName,
+        p_last_name:    registering.lastName,
+        p_joining_code: code
+    });
+
+    setLoading(btn, false, resolvedTeamName ? 'Request to Join ' + resolvedTeamName : 'Request to Join');
+
+    if (error) { err.textContent = 'Something went wrong. Please try again.'; return; }
+
+    if (data.status === 'error') { err.textContent = data.message; return; }
+
+    const memberName = registering.firstName + ' ' + registering.lastName;
+    const teamName   = data.team_name || resolvedTeamName || 'the team';
+
+    if (data.status === 'already_member') {
+        err.textContent = data.message ||
+            (memberName + ' is already linked to your account on ' + teamName + '.');
+        return;
+    }
+
+    if (data.status === 'duplicate') {
+        foundMember = { member_id: data.member_id || null, name: memberName, team_name: teamName };
+        el('found-name').textContent = memberName;
+        el('found-team').textContent = teamName;
+        el('found-error').textContent = '';
+        el('code-input').value = '';
+        showScreen('screen-found');
+        return;
+    }
+
+    if (data.status === 'already_pending') {
+        el('already-pending-name').textContent = memberName;
+        el('already-pending-team').textContent = teamName;
+        resetCodeScreen();
+        showScreen('screen-already-pending');
+        return;
+    }
+
+    if (data.status === 'pending_other') {
+        el('pending-other-name').textContent = memberName;
+        el('pending-other-team').textContent = teamName;
+        resetCodeScreen();
+        showScreen('screen-pending-other');
+        return;
+    }
+
+    if (data.status === 'pending') {
+        pendingCount++;
+        el('sent-name').textContent = memberName;
+        el('sent-action').innerHTML = 'has been submitted to join <strong style="color:var(--text)">' + teamName + '</strong>.';
+        el('sent-detail').textContent = "A team admin will confirm the membership shortly. You'll receive a notification when it's approved.";
+        resetCodeScreen();
+        showScreen('screen-sent');
+    }
+}
+
+// ── Found Existing Member ─────────────────────────────────────────────
+async function confirmExistingMember() {
+    const btn = el('found-yes-btn');
+    const err = el('found-error');
+
+    if (!foundMember?.member_id) {
+        err.textContent = 'Please contact your team admin to link your account.';
+        return;
+    }
+
+    setLoading(btn, true, 'Sending…');
+    err.textContent = '';
+
+    const { data, error } = await sb.rpc('request_member_access', {
+        p_member_id:    foundMember.member_id,
+        p_joining_code: joiningCode
+    });
+
+    setLoading(btn, false, "Yes, that's them");
+
+    if (error || !data?.success) {
+        err.textContent = data?.message || 'Something went wrong. Please try again.';
+        return;
+    }
+
+    pendingCount++;
+    el('sent-name').textContent = foundMember.name;
+    el('sent-action').innerHTML = 'is already on the roster. Your request to link your account has been sent to the admin of <strong style="color:var(--text)">' + foundMember.team_name + '</strong>.';
+    el('sent-detail').textContent = "Once confirmed by the admin, you'll be linked to their profile. You'll receive a notification when it's approved.";
+    showScreen('screen-sent');
+}
+
+function denyExistingMember() {
+    foundMember = null;
+    el('found-error').textContent = '';
+    if (registering.isMyself) {
+        showScreen('screen-who');
+    } else {
+        el('their-first').value = '';
+        el('their-last').value  = '';
+        el('their-error').textContent = '';
+        showScreen('screen-their-name');
+    }
+}
+
+// ── Post-Send ─────────────────────────────────────────────────────────
+function resetCodeScreen() {
+    el('code-input').value = '';
+    el('code-error').textContent = '';
+    el('code-btn').textContent = 'Request to Join';
+    el('team-preview').className = 'team-preview';
+    el('team-preview').textContent = '';
+    resolvedTeamName = null;
+    clearTimeout(codeDebounce);
+}
+
+function addAnother() {
+    registering = { firstName: '', lastName: '', isMyself: false };
+    foundMember = null;
+    el('their-first').value  = '';
+    el('their-last').value   = '';
+    el('their-error').textContent = '';
+    resetCodeScreen();
+    el('who-title').textContent = 'Add another person?';
+    el('who-sub').textContent   = 'Who would you like to join next?';
+    showScreen('screen-who');
+}
+
+function finish() {
+    el('done-sub').textContent = pendingCount === 1
+        ? "Your request has been sent. You'll receive a notification once the team admin approves it."
+        : "Your requests have been sent. You'll receive a notification once the team admin approves them.";
+    showScreen('screen-done');
+}
+
+// ── Navigation ────────────────────────────────────────────────────────
+function showScreen(id, push = true) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (target) { target.classList.add('active'); window.scrollTo(0, 0); }
+    if (push) {
+        if (screenHistory[screenHistory.length - 1] !== id) screenHistory.push(id);
+    } else {
+        screenHistory = [id];
+    }
+}
+
+function goBack() {
+    if (screenHistory.length > 1) {
+        screenHistory.pop();
+        const prev = screenHistory[screenHistory.length - 1];
+        showScreen(prev, false);
+        screenHistory.push(prev);
+    }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function el(id) { return document.getElementById(id); }
+function setLoading(btn, loading, label) {
+    btn.disabled    = loading;
+    btn.textContent = label;
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
