@@ -510,6 +510,11 @@ body {
 
     <div class="filter-divider"></div>
 
+    <div class="filter-label">Code</div>
+    <div class="pills-scroll" id="codePills"></div>
+
+    <div class="filter-divider"></div>
+
     <div class="filter-label">Event type</div>
     <div class="pills-scroll" id="typePills"></div>
 
@@ -613,16 +618,21 @@ let filtered  = { events: [], matchSelections: [] };
 let fState    = {
   fromIdx:   0,
   toIdx:     MONTHS_ARR.length - 1,
+  code:      'all',
   eventType: 'all',
   teamId:    'all'
 };
 
 /* ── Response categoriser ────────────────────────────────────────────────── */
-function catResponse(rv) {
+// response_id 3 = attending (matches dashboard-app logic)
+function catResponse(e) {
+  if (e.response_id === null || e.response_id === undefined) return 'none';
+  if (e.response_id === 3) return 'yes';
+  // Fallback text match in case response_id mapping differs
+  const rv = (e.response || '').toLowerCase();
+  if (rv.includes('yes') || rv.includes('attend')) return 'yes';
+  if (rv.includes('no') || rv.includes('absent') || rv.includes('not')) return 'no';
   if (!rv) return 'none';
-  const l = rv.toLowerCase();
-  if (l.includes('yes') || l.includes('attend') || l === 'y') return 'yes';
-  if (l.includes('no') || l.includes('absent') || l.includes('not') || l === 'n') return 'no';
   return 'other';
 }
 const CAT_LABEL = { yes: 'Attending', no: 'Not Attending', other: 'Unsure', none: '–' };
@@ -651,6 +661,23 @@ async function init() {
 }
 
 /* ── Filters ─────────────────────────────────────────────────────────────── */
+function buildPillGroup(containerId, key, values, onChange) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  values.forEach(v => {
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (v === 'all' ? ' active' : '');
+    btn.dataset.key = key;
+    btn.textContent = v === 'all' ? 'All' : v;
+    btn.addEventListener('click', () => {
+      el.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(v);
+    });
+    el.appendChild(btn);
+  });
+}
+
 function buildFilters() {
   const max = MONTHS_ARR.length - 1;
 
@@ -676,21 +703,18 @@ function buildFilters() {
     applyAndRender();
   });
 
+  // Code chips
+  const codes = ['all', ...new Set((rawData.events || []).map(e => e.event_code).filter(Boolean))];
+  if (codes.length > 1) {
+    buildPillGroup('codePills', 'code', codes, v => { fState.code = v; applyAndRender(); });
+  } else {
+    document.getElementById('codePills').closest('.filter-divider + *')?.previousElementSibling?.remove();
+    document.getElementById('codePills').parentElement.style.display = 'none';
+  }
+
   // Type pills
   const types = ['all', ...new Set((rawData.events || []).map(e => e.event_type).filter(Boolean))];
-  const pillsEl = document.getElementById('typePills');
-  types.forEach(t => {
-    const btn = document.createElement('button');
-    btn.className = 'pill' + (t === 'all' ? ' active' : '');
-    btn.textContent = t === 'all' ? 'All' : t;
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      fState.eventType = t;
-      applyAndRender();
-    });
-    pillsEl.appendChild(btn);
-  });
+  buildPillGroup('typePills', 'type', types, v => { fState.eventType = v; applyAndRender(); });
 
   // Team selector
   const teams = rawData.teams || [];
@@ -727,8 +751,9 @@ function applyAndRender() {
     if (!e.event_date_time) return false;
     const d = new Date(e.event_date_time);
     if (d < from || d > to) return false;
-    if (fState.eventType !== 'all' && e.event_type !== fState.eventType) return false;
-    if (fState.teamId !== 'all' && String(e.team_id) !== fState.teamId) return false;
+    if (fState.code      !== 'all' && e.event_code  !== fState.code)      return false;
+    if (fState.eventType !== 'all' && e.event_type  !== fState.eventType) return false;
+    if (fState.teamId    !== 'all' && String(e.team_id) !== fState.teamId) return false;
     return true;
   });
   filtered.matchSelections = (rawData.matchSelections || []).filter(m => {
@@ -746,12 +771,12 @@ function applyAndRender() {
 
 /* ── Stats strip ─────────────────────────────────────────────────────────── */
 function renderStats() {
-  const evs  = filtered.events;
+  const evs   = filtered.events;
   const total = evs.length;
-  const responded  = evs.filter(e => e.response).length;
-  const attending  = evs.filter(e => catResponse(e.response) === 'yes').length;
-  const respPct    = total ? Math.round((responded / total) * 100) : 0;
-  const attendPct  = total ? Math.round((attending / total) * 100) : 0;
+  const responded = evs.filter(e => catResponse(e) !== 'none').length;
+  const attending = evs.filter(e => catResponse(e) === 'yes').length;
+  const respPct   = total ? Math.round((responded / total) * 100) : 0;
+  const attendPct = total ? Math.round((attending / total) * 100) : 0;
 
   document.getElementById('statEvents').textContent    = total;
   document.getElementById('statResponded').textContent = total ? `${respPct}%` : '–';
@@ -773,7 +798,7 @@ function renderAttendance() {
   evs.forEach(e => {
     const t = e.event_type || 'Other';
     if (!groups[t]) groups[t] = { yes: 0, no: 0, other: 0, none: 0 };
-    groups[t][catResponse(e.response)]++;
+    groups[t][catResponse(e)]++;
   });
 
   let html = '';
@@ -849,7 +874,7 @@ function renderEventLog() {
     const { day, mon, yr } = fmtDay(e.event_date_time);
     const now   = new Date().getFullYear();
     const yrTxt = yr !== now ? `'${String(yr).slice(2)}` : '';
-    const cat   = catResponse(e.response);
+    const cat   = catResponse(e);
     const label = e.response_label || (cat === 'none' ? '–' : CAT_LABEL[cat]);
     return `
       <div class="event-row">
