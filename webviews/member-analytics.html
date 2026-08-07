@@ -170,6 +170,31 @@ body {
   pointer-events: all;
 }
 
+/* Quick date chips */
+.quick-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.quick-chip {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.quick-chip.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-mid);
+  color: var(--accent);
+}
+
 .filter-divider { height: 1px; background: var(--border); margin: 14px 0; }
 
 /* Type pills */
@@ -495,7 +520,11 @@ body {
   <!-- Filter bar -->
   <div class="filter-card">
 
-    <div class="filter-label">Date range</div>
+    <div class="quick-chips">
+      <button class="quick-chip" data-range="month">This Month</button>
+      <button class="quick-chip" data-range="3months">Last 3 Months</button>
+      <button class="quick-chip active" data-range="year">This Year</button>
+    </div>
     <div class="date-range-label">
       <span class="from-label" id="fromLabel">–</span>
       <span class="arrow">→</span>
@@ -693,14 +722,21 @@ function buildFilters() {
   sFrom.addEventListener('input', () => {
     if (+sFrom.value > +sTo.value) sFrom.value = sTo.value;
     fState.fromIdx = +sFrom.value;
+    clearQuickChips();
     updateSliderUI();
     applyAndRender();
   });
   sTo.addEventListener('input', () => {
     if (+sTo.value < +sFrom.value) sTo.value = sFrom.value;
     fState.toIdx = +sTo.value;
+    clearQuickChips();
     updateSliderUI();
     applyAndRender();
+  });
+
+  // Quick chips
+  document.querySelectorAll('.quick-chip').forEach(btn => {
+    btn.addEventListener('click', () => setQuickRange(btn.dataset.range));
   });
 
   // Code chips
@@ -726,6 +762,40 @@ function buildFilters() {
       teams.map(t => `<option value="${t.team_id}">${t.team_name}</option>`).join('');
     sel.addEventListener('change', () => { fState.teamId = sel.value; applyAndRender(); });
   }
+}
+
+function clearQuickChips() {
+  document.querySelectorAll('.quick-chip').forEach(c => c.classList.remove('active'));
+}
+
+function setQuickRange(key) {
+  const now    = new Date();
+  const curYr  = now.getFullYear();
+  const curMon = now.getMonth();
+  const lastIdx = MONTHS_ARR.length - 1;
+  let fromIdx;
+
+  if (key === 'month') {
+    fromIdx = MONTHS_ARR.findIndex(m => m.getFullYear() === curYr && m.getMonth() === curMon);
+  } else if (key === '3months') {
+    const target = new Date(curYr, curMon - 2, 1);
+    fromIdx = MONTHS_ARR.findIndex(m => m >= target);
+  } else { // year
+    fromIdx = MONTHS_ARR.findIndex(m => m.getFullYear() === curYr && m.getMonth() === 0);
+  }
+
+  fState.fromIdx = Math.max(0, fromIdx >= 0 ? fromIdx : 0);
+  fState.toIdx   = lastIdx;
+
+  document.getElementById('sliderFrom').value = fState.fromIdx;
+  document.getElementById('sliderTo').value   = fState.toIdx;
+
+  clearQuickChips();
+  const activeBtn = document.querySelector(`.quick-chip[data-range="${key}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  updateSliderUI();
+  applyAndRender();
 }
 
 function updateSliderUI() {
