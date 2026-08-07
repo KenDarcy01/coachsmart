@@ -1,3 +1,4 @@
+import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/form_field_controller.dart';
 import '/index.dart';
@@ -19,6 +20,8 @@ class EditUserModel extends FlutterFlowModel<EditUserWidget> {
 
   ///  State fields for stateful widgets in this page.
 
+  // Stores action output result for [Backend Call - API (getEditUserData)] action in EditUser widget.
+  ApiCallResponse? apiUserData;
   // State field(s) for userFirstName widget.
   FocusNode? userFirstNameFocusNode;
   TextEditingController? userFirstNameTextController;

@@ -210,4 +210,14 @@ class FFAppState extends ChangeNotifier {
   void insertAtIndexInJoinRoles(int index, GetTeamRolesStruct value) {
     joinRoles.insert(index, value);
   }
+
+  GetEditUserDataStruct _getEditUserData = GetEditUserDataStruct();
+  GetEditUserDataStruct get getEditUserData => _getEditUserData;
+  set getEditUserData(GetEditUserDataStruct value) {
+    _getEditUserData = value;
+  }
+
+  void updateGetEditUserDataStruct(Function(GetEditUserDataStruct) updateFn) {
+    updateFn(_getEditUserData);
+  }
 }
