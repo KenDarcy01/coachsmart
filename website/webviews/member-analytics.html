@@ -667,6 +667,19 @@ async function init() {
   if (!data)  return showError('No data returned.');
 
   rawData  = data;
+
+  // Deduplicate by event_id — defensive against any DB-level fan-out
+  const dedupeByEventId = arr => {
+    const seen = new Set();
+    return (arr || []).filter(item => {
+      if (seen.has(item.event_id)) return false;
+      seen.add(item.event_id);
+      return true;
+    });
+  };
+  rawData.events          = dedupeByEventId(rawData.events);
+  rawData.matchSelections = dedupeByEventId(rawData.matchSelections);
+
   isFemale = (rawData.teams || []).some(t => t.team_female === true);
 
   // Build slider default: from = Jan of current year
