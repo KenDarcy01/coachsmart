@@ -1866,6 +1866,7 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 
 function _shouldShowInstall() {
+    if (WV_TOKEN) return false;
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return false;
     if (localStorage.getItem('cs_install_done')) return false;        // user actually installed
     if (sessionStorage.getItem('cs_install_dismissed')) return false; // dismissed this session
