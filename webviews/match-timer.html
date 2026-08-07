@@ -182,9 +182,20 @@
 
     .timer-body {
       flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 12px 20px 16px; gap: 0;
+      align-items: center; justify-content: flex-start;
+      padding: 24px 20px 16px; gap: 0;
     }
+
+    #configBackBtn {
+      display: none; align-self: flex-start; margin-bottom: 20px;
+      padding: 6px 14px; border-radius: 20px;
+      background: var(--card2); border: 1px solid var(--border);
+      color: var(--muted); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    #configBackBtn:hover, #configBackBtn:active { color: var(--green); border-color: rgba(135,194,50,0.35); }
 
     .timer-status {
       font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
@@ -581,6 +592,7 @@
     <div class="sub-bar-label" id="timerEventLabel"></div>
   </div>
   <div class="timer-body" id="timerBody">
+    <button id="configBackBtn" onclick="goToSetup()">&#8592; Setup</button>
     <div class="timer-status paused" id="timerStatus">Paused</div>
     <div class="half-badge" id="halfBadge">H1</div>
     <div class="timer-display" id="timerDisplay">30:00</div>
@@ -1396,6 +1408,9 @@ function updateTimerUI() {
   const expired    = isInjuryTimeExpired(timerRow);
   const isHalfTime = currentHalf === 1 && expired && !isRunning;
   const isFullTime = currentHalf === 2 && expired && !isRunning;
+
+  // Config back button — only when clock has never started or has been fully reset
+  $('configBackBtn').style.display = (elapsed === 0 && !isRunning) ? 'block' : 'none';
 
   // Half badge
   $('halfBadge').textContent = halfName(currentHalf);
