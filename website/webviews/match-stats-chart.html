@@ -131,9 +131,9 @@
     .score-gaa { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 2px; line-height: 1; }
     .score-gaa.us  { color: var(--us); }
     .score-gaa.opp { color: var(--opp); }
-    .score-pts { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .score-pts { font-size: 16px; font-weight: 600; color: var(--muted); }
     .score-vs  { font-size: 16px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
-    .score-lead { text-align: center; font-size: 12px; font-weight: 600; margin-top: 10px; height: 16px; }
+    .score-lead { text-align: center; font-size: 14px; font-weight: 600; margin-top: 10px; height: 18px; }
     .score-lead.leading  { color: var(--us); }
     .score-lead.trailing { color: var(--opp); }
     .score-lead.level    { color: var(--muted); }
@@ -243,7 +243,7 @@
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
     }
     #exportPdfBtn {
-      position: fixed; bottom: 28px; left: 16px; z-index: 500;
+      position: fixed; bottom: 28px; left: 28px; z-index: 500;
       display: none; align-items: center; gap: 6px;
       padding: 7px 14px; border-radius: 20px;
       background: #1a2332; border: 1px solid rgba(135,194,50,0.5);
@@ -1140,7 +1140,7 @@ function renderTree() {
   // Halftime line — full width, prominent
   if (showHT) {
     const htY = f(T_PAD_V + (1 - durationSecs / maxSecs) * USABLE);
-    svg += `<line x1="0" y1="${htY}" x2="${T_W}" y2="${htY}" stroke="${C_AMBER}" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.7"/>`;
+    svg += `<line x1="0" y1="${htY}" x2="${T_W}" y2="${htY}" stroke="${C_AMBER}" stroke-width="1" stroke-dasharray="4,4" opacity="0.35"/>`;
     svg += `<text x="${T_W - 4}" y="${parseFloat(htY) - 4}" text-anchor="end" fill="${C_AMBER}" font-size="9" font-weight="700" font-family="${FONT}" letter-spacing="0.5">HALF TIME</text>`;
   }
 
@@ -1160,7 +1160,7 @@ function renderTree() {
 
     const scoreType  = ev.val >= 3 ? 'Goal' : ev.val === 2 ? '2 Pointer' : 'Point';
     const playerName = ev.abbreviated_name || '';
-    const lead       = ev.usCum - ev.oppCum;
+    const lead       = ev.side === 'us' ? ev.usCum - ev.oppCum : ev.oppCum - ev.usCum;
     const leadStr    = lead > 0 ? `+${lead}` : lead < 0 ? `${lead}` : '=';
     const leadColor  = c;
     const time       = fmtTreeTime(ev, durationSecs);
