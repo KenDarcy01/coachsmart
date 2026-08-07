@@ -642,9 +642,9 @@ function updateLiveTimerDisplay() {
     : Math.min(elapsed, dur + 900);
 
   if (rawAbsSecs > 0 && chartState.maxSecs) {
-    // Injury time: if the clock has outrun the axis, re-render (computeChartData will
-    // extend maxSecs by 2 min so we don't re-render every second).
-    if (chartState.isLive && rawAbsSecs > chartState.maxSecs) {
+    // During injury time re-render every second so the axis grows smoothly with the clock.
+    // Outside injury time only re-render if the clock has somehow outrun the axis.
+    if (chartState.isLive && (inInjury || rawAbsSecs > chartState.maxSecs)) {
       render();
       return;
     }
@@ -875,18 +875,23 @@ function processData() {
 
   const lastEventSec = enrichedEvents.length > 0 ? Math.max(...enrichedEvents.map(e => e.absSec)) : 0;
 
-  // In live mode: lock to match duration normally; extend with a 2-min buffer if in injury time
-  // so the axis follows the clock without rebuilding every second.
-  // In finalised mode: snap to actual elapsed time.
-  const rawMaxSecs = isLive
-    ? (currentAbsSecs > totalMatchSecs ? currentAbsSecs + 120 : totalMatchSecs)
-    : Math.max(currentAbsSecs, lastEventSec, 60);
+  // In live mode during injury time: grow the axis by the second (currentAbsSecs + 30s breathing room).
+  // During normal play: lock to match duration. Finalised: snap to actual elapsed.
+  const inInjuryTime = isLive && currentAbsSecs > totalMatchSecs;
+  const rawMaxSecs = inInjuryTime
+    ? currentAbsSecs + 30
+    : isLive
+      ? totalMatchSecs
+      : Math.max(currentAbsSecs, lastEventSec, 60);
 
   const timeScale = getTimeScale(rawMaxSecs);
-  const maxSecs   = Math.max(
-    Math.ceil(rawMaxSecs / timeScale.tickSecs) * timeScale.tickSecs,
-    timeScale.tickSecs
-  );
+  // During injury time don't snap to tick boundaries — let maxSecs grow by the second
+  const maxSecs = inInjuryTime
+    ? rawMaxSecs
+    : Math.max(
+        Math.ceil(rawMaxSecs / timeScale.tickSecs) * timeScale.tickSecs,
+        timeScale.tickSecs
+      );
   const maxPts  = Math.max(usRunning, oppRunning, 4) + 3;
 
   // Show HT divider only when H2 has actually started — not during H1 injury time
