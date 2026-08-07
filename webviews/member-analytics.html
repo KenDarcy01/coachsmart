@@ -656,7 +656,7 @@ function catResponse(e) {
   if (e.response_id === 4) return 'no';
   return 'none';
 }
-const CAT_LABEL = { yes: 'Attending', no: 'Not Attending', none: 'No Response' };
+const CAT_LABEL = { yes: 'Attending', no: 'Declined', none: 'No Response' };
 
 /* ── Load ────────────────────────────────────────────────────────────────── */
 async function init() {
@@ -905,7 +905,7 @@ function renderAttendance() {
         </div>
         <div class="attend-legend">
           ${counts.yes   ? `<span class="legend-item"><span class="legend-dot yes"></span>${counts.yes} attending</span>` : ''}
-          ${counts.no    ? `<span class="legend-item"><span class="legend-dot no"></span>${counts.no} not attending</span>` : ''}
+          ${counts.no    ? `<span class="legend-item"><span class="legend-dot no"></span>${counts.no} declined</span>` : ''}
           ${counts.none  ? `<span class="legend-item"><span class="legend-dot none"></span>${counts.none} no response</span>` : ''}
         </div>
       </div>`;
