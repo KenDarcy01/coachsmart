@@ -674,7 +674,8 @@ async function init() {
   if (error) return showError(`Failed to load data: ${error.message}`);
   if (!data)  return showError('No data returned.');
 
-  rawData = data;
+  rawData  = data;
+  isFemale = (rawData.teams || []).some(t => t.team_female === true);
 
   // Build slider default: from = Jan of current year
   const now         = new Date();
@@ -687,6 +688,13 @@ async function init() {
   applyAndRender();
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display    = 'block';
+}
+
+/* ── Code label helper (Hurling → Camogie for female teams) ─────────────── */
+let isFemale = false;
+function codeLabel(code) {
+  if (!code) return code;
+  return (isFemale && code === 'Hurling') ? 'Camogie' : code;
 }
 
 /* ── Filters ─────────────────────────────────────────────────────────────── */
@@ -739,8 +747,9 @@ function buildFilters() {
     btn.addEventListener('click', () => setQuickRange(btn.dataset.range));
   });
 
-  // Code chips
-  const codes = ['all', ...new Set((rawData.events || []).map(e => e.event_code).filter(Boolean))];
+  // Code chips — apply Hurling→Camogie remap before building labels
+  const rawCodes = [...new Set((rawData.events || []).map(e => e.event_code).filter(Boolean))];
+  const codes    = ['all', ...rawCodes.map(codeLabel)];
   if (codes.length > 1) {
     buildPillGroup('codePills', 'code', codes, v => { fState.code = v; applyAndRender(); });
   } else {
@@ -821,7 +830,7 @@ function applyAndRender() {
     if (!e.event_date_time) return false;
     const d = new Date(e.event_date_time);
     if (d < from || d > to) return false;
-    if (fState.code      !== 'all' && e.event_code  !== fState.code)      return false;
+    if (fState.code      !== 'all' && codeLabel(e.event_code) !== fState.code) return false;
     if (fState.eventType !== 'all' && e.event_type  !== fState.eventType) return false;
     if (fState.teamId    !== 'all' && String(e.team_id) !== fState.teamId) return false;
     return true;
@@ -830,7 +839,9 @@ function applyAndRender() {
     if (!m.event_date_time) return false;
     const d = new Date(m.event_date_time);
     if (d < from || d > to) return false;
-    if (fState.teamId !== 'all' && String(m.team_id) !== fState.teamId) return false;
+    if (fState.code      !== 'all' && codeLabel(m.event_code) !== fState.code) return false;
+    if (fState.eventType !== 'all' && m.event_type !== fState.eventType)       return false;
+    if (fState.teamId    !== 'all' && String(m.team_id) !== fState.teamId)     return false;
     return true;
   });
   renderStats();
