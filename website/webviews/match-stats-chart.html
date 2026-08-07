@@ -495,6 +495,12 @@ async function refreshSession() {
     // can differ from the receiver's Date.now() by several seconds.
     if (prevTimer?._localRef && data.timer?.status === 'running' && prevTimer.status === 'running') {
       timelineData.timer = { ...data.timer, elapsed_seconds: prevTimer.elapsed_seconds, started_at: prevTimer.started_at, _localRef: true };
+    } else if (prevTimer && prevTimer.elapsed_seconds > 0 && data.timer?.status === 'paused'
+               && prevTimer.elapsed_seconds < (data.timer.elapsed_seconds || Infinity)) {
+      // DB stores a ceiling value for elapsed_seconds when a period ends in injury time
+      // (so the timer UI knows the allowance is exhausted). The broadcast already delivered
+      // the real clock time — keep the smaller value so the axis doesn't jump.
+      timelineData.timer = { ...data.timer, elapsed_seconds: prevTimer.elapsed_seconds };
     }
     render();
     startLiveTimer();
