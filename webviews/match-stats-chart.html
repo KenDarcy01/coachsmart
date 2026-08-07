@@ -243,11 +243,11 @@
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
     }
     #exportPdfBtn {
-      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 500;
+      position: fixed; bottom: 28px; left: 16px; z-index: 500;
       display: none; align-items: center; gap: 6px;
-      padding: 11px 28px; border-radius: 28px;
+      padding: 7px 14px; border-radius: 20px;
       background: #1a2332; border: 1px solid rgba(135,194,50,0.5);
-      color: var(--us); font-size: 14px; font-weight: 700; font-family: inherit;
+      color: var(--us); font-size: 12px; font-weight: 700; font-family: inherit;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
       touch-action: manipulation; white-space: nowrap;
       box-shadow: 0 4px 20px rgba(0,0,0,0.6);
@@ -1141,7 +1141,7 @@ function renderTree() {
   if (showHT) {
     const htY = f(T_PAD_V + (1 - durationSecs / maxSecs) * USABLE);
     svg += `<line x1="0" y1="${htY}" x2="${T_W}" y2="${htY}" stroke="${C_AMBER}" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.7"/>`;
-    svg += `<text x="${T_TRUNK}" y="${parseFloat(htY) - 4}" text-anchor="middle" fill="${C_AMBER}" font-size="9" font-weight="700" font-family="${FONT}" letter-spacing="0.5">HALF TIME</text>`;
+    svg += `<text x="${T_W - 4}" y="${parseFloat(htY) - 4}" text-anchor="end" fill="${C_AMBER}" font-size="9" font-weight="700" font-family="${FONT}" letter-spacing="0.5">HALF TIME</text>`;
   }
 
   // "Now" marker on trunk — only in live mode; clamp to top during injury time
@@ -1162,7 +1162,7 @@ function renderTree() {
     const playerName = ev.abbreviated_name || '';
     const lead       = ev.usCum - ev.oppCum;
     const leadStr    = lead > 0 ? `+${lead}` : lead < 0 ? `${lead}` : '=';
-    const leadColor  = lead > 0 ? C_US : lead < 0 ? C_OPP : C_MUTE;
+    const leadColor  = c;
     const time       = fmtTreeTime(ev, durationSecs);
 
     if (ev.side === 'us') {
@@ -1176,7 +1176,7 @@ function renderTree() {
       // Lead indicator below score type
       svg += `<text x="${dotX - 8}" y="${yN + 14}" text-anchor="end" fill="${leadColor}" font-size="8" font-weight="600" font-family="${FONT}">${leadStr}${playerName ? '  ' + playerName : ''}</text>`;
       // Time on trunk, right side
-      svg += `<text x="${T_TRUNK + 5}" y="${yN + 4}" text-anchor="start" fill="${C_MUTE}" font-size="8" font-family="${FONT}">${time}</text>`;
+      svg += `<text x="${T_TRUNK + 10}" y="${yN - 4}" text-anchor="start" fill="${C_MUTE}" font-size="8" font-family="${FONT}">${time}</text>`;
     } else {
       // Branch goes right
       const dotX = T_TRUNK + T_BRANCH;
@@ -1188,7 +1188,7 @@ function renderTree() {
       // Lead indicator below score type
       svg += `<text x="${dotX + 8}" y="${yN + 14}" text-anchor="start" fill="${leadColor}" font-size="8" font-weight="600" font-family="${FONT}">${playerName ? playerName + '  ' : ''}${leadStr}</text>`;
       // Time on trunk, left side
-      svg += `<text x="${T_TRUNK - 5}" y="${yN + 4}" text-anchor="end" fill="${C_MUTE}" font-size="8" font-family="${FONT}">${time}</text>`;
+      svg += `<text x="${T_TRUNK - 10}" y="${yN - 4}" text-anchor="end" fill="${C_MUTE}" font-size="8" font-family="${FONT}">${time}</text>`;
     }
   }
 
