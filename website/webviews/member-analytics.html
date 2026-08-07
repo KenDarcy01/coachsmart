@@ -346,7 +346,6 @@ body {
 }
 .attend-bar-seg.yes  { background: var(--attend); }
 .attend-bar-seg.no   { background: var(--absent); }
-.attend-bar-seg.other { background: var(--unsure); }
 .attend-bar-seg.none { background: var(--noresponse); }
 
 .attend-legend {
@@ -369,7 +368,6 @@ body {
 }
 .legend-dot.yes   { background: var(--attend); }
 .legend-dot.no    { background: var(--absent); }
-.legend-dot.other { background: var(--unsure); }
 .legend-dot.none  { background: var(--noresponse); }
 
 /* ── Match history ───────────────────────────────────────────────────────── */
@@ -480,7 +478,6 @@ body {
 }
 .response-chip.yes   { background: var(--attend-dim); color: var(--attend); }
 .response-chip.no    { background: var(--absent-dim); color: var(--absent); }
-.response-chip.other { background: var(--unsure-dim); color: var(--unsure); }
 .response-chip.none  { color: var(--muted); background: var(--surface-2); }
 
 /* ── Empty states ────────────────────────────────────────────────────────── */
@@ -653,18 +650,13 @@ let fState    = {
 };
 
 /* ── Response categoriser ────────────────────────────────────────────────── */
-// response_id 3 = attending (matches dashboard-app logic)
+// response_id 3 = attending, 4 = declined, anything else = pre-created "no response" placeholder
 function catResponse(e) {
-  if (e.response_id === null || e.response_id === undefined) return 'none';
   if (e.response_id === 3) return 'yes';
-  // Fallback text match in case response_id mapping differs
-  const rv = (e.response || '').toLowerCase();
-  if (rv.includes('yes') || rv.includes('attend')) return 'yes';
-  if (rv.includes('no') || rv.includes('absent') || rv.includes('not')) return 'no';
-  if (!rv) return 'none';
-  return 'other';
+  if (e.response_id === 4) return 'no';
+  return 'none';
 }
-const CAT_LABEL = { yes: 'Attending', no: 'Not Attending', other: 'Unsure', none: '–' };
+const CAT_LABEL = { yes: 'Attending', no: 'Not Attending', none: 'No Response' };
 
 /* ── Load ────────────────────────────────────────────────────────────────── */
 async function init() {
@@ -878,13 +870,13 @@ function renderAttendance() {
   const groups = {};
   evs.forEach(e => {
     const t = e.event_type || 'Other';
-    if (!groups[t]) groups[t] = { yes: 0, no: 0, other: 0, none: 0 };
+    if (!groups[t]) groups[t] = { yes: 0, no: 0, none: 0 };
     groups[t][catResponse(e)]++;
   });
 
   let html = '';
   Object.entries(groups).forEach(([type, counts]) => {
-    const total  = counts.yes + counts.no + counts.other + counts.none;
+    const total  = counts.yes + counts.no + counts.none;
     const pct    = v => total ? Math.round((v / total) * 100) : 0;
     html += `
       <div class="attend-row">
@@ -895,13 +887,12 @@ function renderAttendance() {
         <div class="attend-bar">
           <div class="attend-bar-seg yes"   style="width:${pct(counts.yes)}%"></div>
           <div class="attend-bar-seg no"    style="width:${pct(counts.no)}%"></div>
-          <div class="attend-bar-seg other" style="width:${pct(counts.other)}%"></div>
+
           <div class="attend-bar-seg none"  style="width:${pct(counts.none)}%"></div>
         </div>
         <div class="attend-legend">
           ${counts.yes   ? `<span class="legend-item"><span class="legend-dot yes"></span>${counts.yes} attending</span>` : ''}
           ${counts.no    ? `<span class="legend-item"><span class="legend-dot no"></span>${counts.no} not attending</span>` : ''}
-          ${counts.other ? `<span class="legend-item"><span class="legend-dot other"></span>${counts.other} unsure</span>` : ''}
           ${counts.none  ? `<span class="legend-item"><span class="legend-dot none"></span>${counts.none} no response</span>` : ''}
         </div>
       </div>`;
@@ -956,7 +947,7 @@ function renderEventLog() {
     const now   = new Date().getFullYear();
     const yrTxt = yr !== now ? `'${String(yr).slice(2)}` : '';
     const cat   = catResponse(e);
-    const label = e.response_label || (cat === 'none' ? '–' : CAT_LABEL[cat]);
+    const label = CAT_LABEL[cat] || 'No Response';
     return `
       <div class="event-row">
         <div class="event-date-col">
