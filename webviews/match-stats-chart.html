@@ -67,6 +67,55 @@
     .error-title { font-size: 16px; font-weight: 600; }
     .error-msg   { font-size: 13px; color: var(--muted); }
 
+    /* ── Waiting screen ─────────────────────────────────────────────────────── */
+    #waitingScreen {
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; padding: 40px 32px; text-align: center;
+    }
+    .waiting-orb {
+      position: relative; width: 80px; height: 80px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 36px;
+    }
+    .waiting-orb::before, .waiting-orb::after {
+      content: ''; position: absolute; border-radius: 50%;
+      border: 2px solid rgba(135,194,50,0.25);
+      width: 80px; height: 80px;
+      animation: orb-ripple 2.4s ease-out infinite;
+    }
+    .waiting-orb::after { animation-delay: 1.2s; }
+    @keyframes orb-ripple {
+      0%   { transform: scale(1);   opacity: 0.8; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .waiting-inner-dot {
+      width: 22px; height: 22px; border-radius: 50%; background: var(--us);
+      animation: inner-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes inner-pulse {
+      0%, 100% { transform: scale(1);    opacity: 1;   }
+      50%       { transform: scale(0.86); opacity: 0.7; }
+    }
+    .waiting-title {
+      font-family: 'Bebas Neue', sans-serif; font-size: 30px;
+      letter-spacing: 3px; color: var(--text); line-height: 1.15; margin-bottom: 14px;
+    }
+    .waiting-msg {
+      font-size: 14px; color: var(--muted); line-height: 1.65;
+      max-width: 270px; margin-bottom: 28px;
+    }
+    .waiting-live {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      color: rgba(135,194,50,0.8); margin-bottom: 40px;
+    }
+    .waiting-live-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--us);
+      animation: blink 1.4s ease-in-out infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+
     /* ── Picker screen ───────────────────────────────────────────────────────── */
     #pickerScreen {
       display: none;
@@ -255,7 +304,7 @@
     #exportPdfBtn:active { opacity: 0.6; }
     @media print {
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      #loadingScreen, #errorScreen, #pickerScreen, #liveTimerCard, #liveBadge,
+      #loadingScreen, #waitingScreen, #errorScreen, #pickerScreen, #liveTimerCard, #liveBadge,
       #tooltip, #exportPdfBtn { display: none !important; }
       #chartScreen { display: flex !important; padding: 0 !important; }
     }
@@ -275,11 +324,22 @@
     <div class="error-msg" id="errorMsg">No stats found for this event.</div>
   </div>
 
+  <!-- Waiting for scorekeeper to start -->
+  <div id="waitingScreen">
+    <div class="waiting-orb"><div class="waiting-inner-dot"></div></div>
+    <div class="waiting-title">WAITING FOR<br>MATCH TO START</div>
+    <div class="waiting-msg">Open Match Stats in the CoachSmart app to begin scoring. This screen will connect automatically the moment scoring starts.</div>
+    <div class="waiting-live">
+      <div class="waiting-live-dot"></div>
+      Listening for scorekeeper
+    </div>
+  </div>
+
   <!-- Session picker -->
   <div id="pickerScreen">
     <div class="picker-event-label" id="pickerEventLabel"></div>
     <div class="picker-title">Match Stats</div>
-    <div class="picker-subtitle">Multiple sessions recorded — tap to view</div>
+    <div class="picker-subtitle" id="pickerSubtitle">Multiple sessions recorded — tap to view</div>
     <div id="pickerList"></div>
   </div>
 
@@ -403,6 +463,9 @@ let realtimeTimerChannel  = null;
 let pollTimer             = null;
 let liveTimerInterval     = null;
 let oppLabel              = 'Opp';
+let waitingChannel        = null;
+let waitingPoll           = null;
+let pickerPoll            = null;
 
 let chartState = {
   sortedEvents: [], usLine: [], oppLine: [],
@@ -417,34 +480,57 @@ function _setPdfBtn(visible) {
   const btn = document.getElementById('exportPdfBtn');
   if (btn) btn.style.display = visible ? 'flex' : 'none';
 }
-function showLoading() {
-  document.getElementById('loadingScreen').style.display = 'flex';
-  document.getElementById('errorScreen').style.display   = 'none';
-  document.getElementById('pickerScreen').style.display  = 'none';
-  document.getElementById('chartScreen').style.display   = 'none';
-  _setPdfBtn(false);
+function _hideAll() {
+  ['loadingScreen','waitingScreen','errorScreen','pickerScreen','chartScreen']
+    .forEach(id => document.getElementById(id).style.display = 'none');
 }
+function showLoading()        { _hideAll(); document.getElementById('loadingScreen').style.display = 'flex'; _setPdfBtn(false); }
+function showWaiting()        { _hideAll(); document.getElementById('waitingScreen').style.display = 'flex'; _setPdfBtn(false); }
+function showPickerScreen()   { _hideAll(); document.getElementById('pickerScreen').style.display  = 'flex'; _setPdfBtn(false); }
+function showChart()          { _hideAll(); document.getElementById('chartScreen').style.display   = 'flex'; _setPdfBtn(true);  }
 function showError(msg) {
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('errorScreen').style.display   = 'flex';
-  document.getElementById('pickerScreen').style.display  = 'none';
-  document.getElementById('chartScreen').style.display   = 'none';
+  _hideAll();
+  document.getElementById('errorScreen').style.display = 'flex';
   document.getElementById('errorMsg').textContent = msg;
   _setPdfBtn(false);
 }
-function showPickerScreen() {
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('errorScreen').style.display   = 'none';
-  document.getElementById('pickerScreen').style.display  = 'flex';
-  document.getElementById('chartScreen').style.display   = 'none';
-  _setPdfBtn(false);
+
+// ── Waiting / picker-refresh ──────────────────────────────────────────────
+function stopWaiting() {
+  if (waitingChannel) { sb.removeChannel(waitingChannel); waitingChannel = null; }
+  if (waitingPoll)    { clearInterval(waitingPoll);       waitingPoll    = null; }
+  if (pickerPoll)     { clearInterval(pickerPoll);        pickerPoll     = null; }
 }
-function showChart() {
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('errorScreen').style.display   = 'none';
-  document.getElementById('pickerScreen').style.display  = 'none';
-  document.getElementById('chartScreen').style.display   = 'flex';
-  _setPdfBtn(true);
+
+async function checkForSessions() {
+  if (!WV_EVENT) return;
+  const { data, error } = await sb.rpc('list_match_stats_for_event', { p_event_id: parseInt(WV_EVENT) });
+  if (error || !data || !data.length) return;
+  stopWaiting();
+  if (data.length === 1) { showLoading(); await loadSessionById(data[0].id); }
+  else { renderPicker(data); showPickerScreen(); startPickerRefresh(); }
+}
+
+function startWaiting() {
+  waitingChannel = sb
+    .channel(`waiting-${WV_EVENT}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'match_stats' },
+        payload => { if (String(payload.new?.event_id) === String(WV_EVENT)) checkForSessions(); })
+    .subscribe();
+  waitingPoll = setInterval(checkForSessions, 5000);
+}
+
+function startPickerRefresh() {
+  pickerPoll = setInterval(async () => {
+    if (!WV_EVENT) return;
+    const { data, error } = await sb.rpc('list_match_stats_for_event', { p_event_id: parseInt(WV_EVENT) });
+    if (error || !data || !data.length) return;
+    if (data.length === 1 && !currentSessionId) {
+      stopWaiting(); showLoading(); await loadSessionById(data[0].id);
+    } else {
+      renderPicker(data);
+    }
+  }, 10000);
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────
@@ -456,15 +542,18 @@ async function loadEventSessions() {
     return;
   }
   if (!data || !data.length) {
-    showError('No match stats found for this event. Open the Match Timer in the CoachSmart app first, then come back here.');
+    showWaiting();
+    startWaiting();
     return;
   }
   if (data.length === 1) { await loadSessionById(data[0].id); return; }
   renderPicker(data);
   showPickerScreen();
+  startPickerRefresh();
 }
 
 async function loadSessionById(id) {
+  stopWaiting();
   currentSessionId = id;
   const { data, error } = await sb.rpc('get_match_stats_session', { p_match_stats_id: id });
   if (error) { showError(`Could not load match stats (${error.message || error.code || 'unknown error'}). Check your connection and try again.`); return; }
@@ -509,6 +598,10 @@ async function refreshSession() {
 
 // ── Picker rendering ──────────────────────────────────────────────────────
 function renderPicker(sessions) {
+  const liveCount  = sessions.filter(s => s.status === 'active' && !s.finalised_at).length;
+  const countLabel = sessions.length === 1 ? '1 session' : `${sessions.length} sessions`;
+  const liveLabel  = liveCount > 0 ? ` · ${liveCount} live` : '';
+  document.getElementById('pickerSubtitle').textContent = `${countLabel}${liveLabel} — tap to view`;
   document.getElementById('pickerList').innerHTML = sessions.map(s => {
     const dotColour = s.squad_colour || '#64748b';
     const squadPart = s.squad_name   ? ` · ${s.squad_name}` : '';
