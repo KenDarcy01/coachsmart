@@ -1108,9 +1108,9 @@ async function goToSetup(eventId, label, defaultOpposition) {
     // Load squads for team
     const { data: squads } = await sb
       .from('squads')
-      .select('squad_id, squad_name')
+      .select('squad_id, squad_name, squad_list_seq')
       .eq('team_id', currentTeamId)
-      .order('squad_name');
+      .order('squad_list_seq', { ascending: true });
 
     const squadField  = $('squadField');
     const squadSelect = $('squadSelect');
