@@ -855,7 +855,9 @@ async function startSecondHalf() {
 
 async function endCurrentPeriod() {
   stopInterval();
-  // Snap elapsed to the cap so isInjuryTimeExpired() returns true
+  // Capture the real clock time before snapping — used for the chart broadcast
+  const actualElapsed = Math.floor(computeElapsed(timerRow));
+  // DB gets cap so isInjuryTimeExpired() returns true and the timer UI shows correctly
   const cap = getDuration(timerRow) + getInjuryDuration(timerRow);
   const { error } = await sb
     .from('match_timer')
@@ -863,7 +865,6 @@ async function endCurrentPeriod() {
     .eq('event_id', currentEventId)
     .eq('user_id', currentUser.id);
   // Update local state even on DB error so the UI advances past "End Game"
-  // (the DB write may fail if the session JWT expired mid-match)
   if (error) { showToast(`Save error: ${error.message || error.code || 'check connection'}`); }
   timerRow.elapsed_seconds = cap;
   timerRow.started_at      = null;
@@ -875,7 +876,19 @@ async function endCurrentPeriod() {
     triggerFinalWhistle();
   }
   updateTimerUI();
-  broadcastTimerState();
+  // Broadcast actual elapsed (not cap) so the chart axis doesn't jump to the
+  // full injury allowance — it stays at wherever the clock really stopped
+  if (broadcastChannel) {
+    broadcastChannel.send({
+      type: 'broadcast', event: 'timer_state',
+      payload: {
+        status: 'paused', started_at: new Date().toISOString(),
+        elapsed_seconds: actualElapsed,
+        current_half: timerRow.current_half,
+        duration_seconds: timerRow.duration_seconds,
+      },
+    }).catch(() => {});
+  }
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
