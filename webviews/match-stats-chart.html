@@ -8,6 +8,7 @@
   <title>Match Chart</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     /* ── Tokens ─────────────────────────────────────────────────────────────── */
     :root {
@@ -241,15 +242,14 @@
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
     }
     #exportPdfBtn {
-      position: fixed; bottom: 80px; right: 20px; z-index: 500;
-      display: flex; align-items: center; gap: 5px;
-      padding: 10px 18px; border-radius: 24px;
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 500;
+      display: none; align-items: center; gap: 6px;
+      padding: 11px 28px; border-radius: 28px;
       background: #1a2332; border: 1px solid rgba(135,194,50,0.5);
-      color: var(--us); font-size: 13px; font-weight: 700; font-family: inherit;
+      color: var(--us); font-size: 14px; font-weight: 700; font-family: inherit;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-      transition: opacity 0.15s;
+      touch-action: manipulation; white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     }
     #exportPdfBtn:active { opacity: 0.6; }
     @media print {
@@ -412,11 +412,16 @@ let chartState = {
 };
 
 // ── Screens ───────────────────────────────────────────────────────────────
+function _setPdfBtn(visible) {
+  const btn = document.getElementById('exportPdfBtn');
+  if (btn) btn.style.display = visible ? 'flex' : 'none';
+}
 function showLoading() {
   document.getElementById('loadingScreen').style.display = 'flex';
   document.getElementById('errorScreen').style.display   = 'none';
   document.getElementById('pickerScreen').style.display  = 'none';
   document.getElementById('chartScreen').style.display   = 'none';
+  _setPdfBtn(false);
 }
 function showError(msg) {
   document.getElementById('loadingScreen').style.display = 'none';
@@ -424,18 +429,21 @@ function showError(msg) {
   document.getElementById('pickerScreen').style.display  = 'none';
   document.getElementById('chartScreen').style.display   = 'none';
   document.getElementById('errorMsg').textContent = msg;
+  _setPdfBtn(false);
 }
 function showPickerScreen() {
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('errorScreen').style.display   = 'none';
   document.getElementById('pickerScreen').style.display  = 'flex';
   document.getElementById('chartScreen').style.display   = 'none';
+  _setPdfBtn(false);
 }
 function showChart() {
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('errorScreen').style.display   = 'none';
   document.getElementById('pickerScreen').style.display  = 'none';
   document.getElementById('chartScreen').style.display   = 'flex';
+  _setPdfBtn(true);
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────
@@ -676,9 +684,107 @@ function updateLiveTimerDisplay() {
   }
 }
 
-function exportPDF() {
-  try { window.print(); } catch(e) {}
+function svgToCanvas(svgStr, w, h) {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#111418';
+    ctx.fillRect(0, 0, w, h);
+    const img = new Image();
+    const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+    img.onload  = () => { ctx.drawImage(img, 0, 0, w, h); resolve(canvas); };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
 }
+
+async function exportPDF() {
+  const btn = document.getElementById('exportPdfBtn');
+  const origText = btn.textContent;
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
+
+  try {
+    const eventName = (document.getElementById('eventLabel')?.textContent || 'Match').trim();
+    const oppName   = (document.getElementById('oppName')?.textContent    || 'Opp').trim();
+    const usScore   = (document.getElementById('usGAA')?.textContent      || '0-00').trim();
+    const oppScore  = (document.getElementById('oppGAA')?.textContent     || '0-00').trim();
+    const dateStr   = new Date().toISOString().slice(0, 10);
+    const filename  = [eventName, 'vs', oppName, usScore, oppScore, dateStr]
+      .join('_').replace(/[^a-zA-Z0-9_\-]/g, '_') + '.pdf';
+
+    const svgEl  = document.getElementById('chart');
+    const svgStr = new XMLSerializer().serializeToString(svgEl);
+    const chartCanvas = await svgToCanvas(svgStr, 1000, 600);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pw  = doc.internal.pageSize.getWidth();
+    const ph  = doc.internal.pageSize.getHeight();
+
+    doc.setFillColor(17, 20, 24);
+    doc.rect(0, 0, pw, ph, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(135, 194, 50);
+    doc.text(eventName, pw / 2, 13, { align: 'center' });
+
+    doc.setFontSize(20);
+    doc.setTextColor(226, 232, 240);
+    doc.text(`Us  ${usScore}`, pw * 0.28, 24, { align: 'center' });
+    doc.setFontSize(11);
+    doc.setTextColor(100, 116, 139);
+    doc.text('vs', pw * 0.5, 24, { align: 'center' });
+    doc.setFontSize(20);
+    doc.setTextColor(214, 59, 59);
+    doc.text(`${oppName}  ${oppScore}`, pw * 0.72, 24, { align: 'center' });
+
+    const chartW = pw - 16;
+    const chartH = chartW * 0.6;
+    doc.addImage(chartCanvas.toDataURL('image/png'), 'PNG', 8, 30, chartW, chartH);
+
+    const events = chartState?.sortedEvents || [];
+    if (events.length) {
+      let y = 32 + chartH + 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      const cols = Math.ceil(events.length / 2);
+      events.forEach((ev, i) => {
+        if (y > ph - 6) return;
+        const t    = fmtEventTime(ev.absSec, chartState.durationSecs, chartState.hasH2);
+        const who  = ev.side === 'us' ? 'Us' : oppName;
+        const what = ev.isGoal ? 'Goal' : 'Point';
+        const nm   = ev.abbreviated_name ? ` · ${ev.abbreviated_name}` : '';
+        const [r, g, b] = ev.side === 'us' ? [135, 194, 50] : [214, 59, 59];
+        doc.setTextColor(r, g, b);
+        doc.text(`${t}  ${who} ${what}${nm}`, pw / 2, y, { align: 'center' });
+        y += 4.5;
+      });
+    }
+
+    const pdfBlob = doc.output('blob');
+    const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      await navigator.share({ title: filename.replace(/_/g, ' ').replace('.pdf', ''), files: [pdfFile] });
+    } else {
+      const url = URL.createObjectURL(pdfBlob);
+      const a   = Object.assign(document.createElement('a'), { href: url, download: filename });
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+  } catch(err) {
+    console.error('PDF export:', err);
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
 (function() {
   const btn = document.getElementById('exportPdfBtn');
   btn.addEventListener('click',    exportPDF);
