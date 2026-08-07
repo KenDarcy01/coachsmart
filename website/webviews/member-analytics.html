@@ -968,7 +968,7 @@ function renderEventLog() {
           <div>${mon}${yrTxt ? ' ' + yrTxt : ''}</div>
         </div>
         <div class="event-info">
-          <div class="event-title-text">${esc(e.event_title || '–')}</div>
+          <div class="event-title-text">${esc(e.event_title || (e.opposition ? `vs ${e.opposition}` : '–'))}</div>
           <div class="event-type-tag">${esc(e.event_type || '')}</div>
         </div>
         <div class="response-chip ${cat}">${esc(label)}</div>
