@@ -1,4 +1,5 @@
 import '/backend/api_requests/api_calls.dart';
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'edit_event_widget.dart' show EditEventWidget;
 import 'package:flutter/material.dart';
@@ -61,8 +62,18 @@ class EditEventModel extends FlutterFlowModel<EditEventWidget> {
   String? Function(BuildContext, String?)? eventDetailTextControllerValidator;
   // Stores action output result for [Backend Call - API (getUserEventDetails)] action in Button widget.
   ApiCallResponse? apiUpdateEventDetails;
+  // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.
+  List<EventsRow>? outputCancelled;
+  // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.
+  List<EventAttendanceRow>? outputCancelledAttendance;
   // Stores action output result for [Backend Call - API (getUserHomeEvents)] action in Button widget.
-  ApiCallResponse? outputUpdatedEvents;
+  ApiCallResponse? outputUpdatedEventsCancel;
+  // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.
+  List<EventsRow>? outputDeleted;
+  // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.
+  List<EventAttendanceRow>? outputDeletedAttendance;
+  // Stores action output result for [Backend Call - API (getUserHomeEvents)] action in Button widget.
+  ApiCallResponse? outputUpdatedEventsDelete;
 
   @override
   void initState(BuildContext context) {}

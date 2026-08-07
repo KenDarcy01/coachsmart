@@ -288,8 +288,6 @@ dynamic deserializeParam<T>(
         switch (T) {
           case LegacyUsersRow:
             return LegacyUsersRow(data);
-          case ViewUserClubsRow:
-            return ViewUserClubsRow(data);
           case EventResponseTypeRow:
             return EventResponseTypeRow(data);
           case SportRow:
@@ -298,36 +296,22 @@ dynamic deserializeParam<T>(
             return LineupRow(data);
           case MemberSquadLinkRow:
             return MemberSquadLinkRow(data);
-          case ViewMemberEventCountRow:
-            return ViewMemberEventCountRow(data);
           case ClubCodeLinkRow:
             return ClubCodeLinkRow(data);
-          case ViewUserUniqueMemberTeamEventsRow:
-            return ViewUserUniqueMemberTeamEventsRow(data);
-          case MatchScoreTypesRow:
-            return MatchScoreTypesRow(data);
           case EventCodesRow:
             return EventCodesRow(data);
-          case ViewMembersNoResponseRow:
-            return ViewMembersNoResponseRow(data);
-          case ViewEventAttendanceDetailsRow:
-            return ViewEventAttendanceDetailsRow(data);
+          case MatchStatTypeTeamLinkRow:
+            return MatchStatTypeTeamLinkRow(data);
           case CarPoolDetailRow:
             return CarPoolDetailRow(data);
           case LineupDetailsRow:
             return LineupDetailsRow(data);
-          case MatchScoresDetailsRow:
-            return MatchScoresDetailsRow(data);
           case ViewTeamDetailsRow:
             return ViewTeamDetailsRow(data);
           case MemberTeamLinkRow:
             return MemberTeamLinkRow(data);
           case EventAttendanceRow:
             return EventAttendanceRow(data);
-          case ViewMemberResponseListRow:
-            return ViewMemberResponseListRow(data);
-          case ViewUniqueUserTeamMembersRow:
-            return ViewUniqueUserTeamMembersRow(data);
           case MatchSquadDetailsRow:
             return MatchSquadDetailsRow(data);
           case SquadsRow:
@@ -336,56 +320,38 @@ dynamic deserializeParam<T>(
             return ViewUserTeamMembersRow(data);
           case UserGameLinkRow:
             return UserGameLinkRow(data);
-          case ViewUserTeamsGradeRow:
-            return ViewUserTeamsGradeRow(data);
-          case ViewUserTeamMemberSquadRow:
-            return ViewUserTeamMemberSquadRow(data);
-          case ViewAttendeeDetailsRow:
-            return ViewAttendeeDetailsRow(data);
-          case ViewLatestMemberEventAttendanceRow:
-            return ViewLatestMemberEventAttendanceRow(data);
           case InvitationsRow:
             return InvitationsRow(data);
           case CarPoolRow:
             return CarPoolRow(data);
+          case MatchTimerRow:
+            return MatchTimerRow(data);
+          case MatchStatCategoriesRow:
+            return MatchStatCategoriesRow(data);
           case UserMemberLinkRow:
             return UserMemberLinkRow(data);
           case TeamsRow:
             return TeamsRow(data);
+          case MatchStatsDetailsRow:
+            return MatchStatsDetailsRow(data);
+          case MatchStatTypesRow:
+            return MatchStatTypesRow(data);
           case GameAgesRow:
             return GameAgesRow(data);
-          case ViewTeamRolesRow:
-            return ViewTeamRolesRow(data);
-          case ViewEventAttendanceSummaryRow:
-            return ViewEventAttendanceSummaryRow(data);
-          case ViewEventRemindersRow:
-            return ViewEventRemindersRow(data);
-          case ViewTestDataRow:
-            return ViewTestDataRow(data);
-          case ViewUserHighestRoleRow:
-            return ViewUserHighestRoleRow(data);
-          case MatchScoresRow:
-            return MatchScoresRow(data);
+          case MatchStatsRow:
+            return MatchStatsRow(data);
           case RemindersRow:
             return RemindersRow(data);
           case ViewMatchReportsRow:
             return ViewMatchReportsRow(data);
           case ClubsRow:
             return ClubsRow(data);
-          case ViewHomepageListviewRow:
-            return ViewHomepageListviewRow(data);
-          case ViewUserMemberTeamEventsRow:
-            return ViewUserMemberTeamEventsRow(data);
           case EventsRow:
             return EventsRow(data);
-          case ViewUserTeamsRow:
-            return ViewUserTeamsRow(data);
           case GamesRow:
             return GamesRow(data);
           case ViewTeamMembersRow:
             return ViewTeamMembersRow(data);
-          case ViewMatchSquadsRow:
-            return ViewMatchSquadsRow(data);
           case EventTypesRow:
             return EventTypesRow(data);
           case ViewUserMembersNewRow:
@@ -396,8 +362,6 @@ dynamic deserializeParam<T>(
             return EventUserPaymentRow(data);
           case RolesRow:
             return RolesRow(data);
-          case ViewEventSquadSummaryRow:
-            return ViewEventSquadSummaryRow(data);
           case ViewUserMembersRow:
             return ViewUserMembersRow(data);
           case MembersRow:
@@ -406,8 +370,6 @@ dynamic deserializeParam<T>(
             return MatchReportsRow(data);
           case TeamRolesLinkRow:
             return TeamRolesLinkRow(data);
-          case ViewUniqueUserTeamsRow:
-            return ViewUniqueUserTeamsRow(data);
           case ViewUserTeamHighestRoleRow:
             return ViewUserTeamHighestRoleRow(data);
           case MemberTeamRoleLinkRow:

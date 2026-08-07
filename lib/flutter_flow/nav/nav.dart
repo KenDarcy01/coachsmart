@@ -99,20 +99,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               builder: (context, params) => GamesAgesWidget(),
             ),
             FFRoute(
-              name: MemberDetailsWidget.routeName,
-              path: MemberDetailsWidget.routePath,
-              builder: (context, params) => MemberDetailsWidget(
-                memberID: params.getParam(
-                  'memberID',
-                  ParamType.int,
-                ),
-                teamID: params.getParam(
-                  'teamID',
-                  ParamType.int,
-                ),
-              ),
-            ),
-            FFRoute(
               name: GamesWidget.routeName,
               path: GamesWidget.routePath,
               builder: (context, params) => GamesWidget(
@@ -123,6 +109,20 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                 gameAgeDescription: params.getParam(
                   'gameAgeDescription',
                   ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: MemberDetailsWidget.routeName,
+              path: MemberDetailsWidget.routePath,
+              builder: (context, params) => MemberDetailsWidget(
+                memberID: params.getParam(
+                  'memberID',
+                  ParamType.int,
+                ),
+                teamID: params.getParam(
+                  'teamID',
+                  ParamType.int,
                 ),
               ),
             ),
@@ -490,6 +490,49 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               name: FavouritesWidget.routeName,
               path: FavouritesWidget.routePath,
               builder: (context, params) => FavouritesWidget(),
+            ),
+            FFRoute(
+              name: MatchScoreWidget.routeName,
+              path: MatchScoreWidget.routePath,
+              builder: (context, params) => MatchScoreWidget(
+                eventId: params.getParam(
+                  'eventId',
+                  ParamType.int,
+                ),
+                teamId: params.getParam(
+                  'teamId',
+                  ParamType.int,
+                ),
+                currentAuthToken: params.getParam(
+                  'currentAuthToken',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: OnBoardingWidget.routeName,
+              path: OnBoardingWidget.routePath,
+              builder: (context, params) => OnBoardingWidget(
+                paramJWT: params.getParam(
+                  'paramJWT',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: PendingRequestsWidget.routeName,
+              path: PendingRequestsWidget.routePath,
+              builder: (context, params) => PendingRequestsWidget(
+                paramTeamID: params.getParam(
+                  'paramTeamID',
+                  ParamType.int,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: JoinTeamNewWidget.routeName,
+              path: JoinTeamNewWidget.routePath,
+              builder: (context, params) => JoinTeamNewWidget(),
             ),
             FFRoute(
               name: MatchStatsWidget.routeName,

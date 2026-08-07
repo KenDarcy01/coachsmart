@@ -21,6 +21,7 @@ class CreateTeamsStruct extends FFFirebaseStruct {
     List<EventCodesStruct>? eventCodes,
     List<EventTypesStruct>? eventTypes,
     String? authorizedMemberName,
+    List<SquadsStruct>? squads,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _clubId = clubId,
         _roleId = roleId,
@@ -34,6 +35,7 @@ class CreateTeamsStruct extends FFFirebaseStruct {
         _eventCodes = eventCodes,
         _eventTypes = eventTypes,
         _authorizedMemberName = authorizedMemberName,
+        _squads = squads,
         super(firestoreUtilData);
 
   // "club_id" field.
@@ -142,6 +144,17 @@ class CreateTeamsStruct extends FFFirebaseStruct {
 
   bool hasAuthorizedMemberName() => _authorizedMemberName != null;
 
+  // "squads" field.
+  List<SquadsStruct>? _squads;
+  List<SquadsStruct> get squads => _squads ?? const [];
+  set squads(List<SquadsStruct>? val) => _squads = val;
+
+  void updateSquads(Function(List<SquadsStruct>) updateFn) {
+    updateFn(_squads ??= []);
+  }
+
+  bool hasSquads() => _squads != null;
+
   static CreateTeamsStruct fromMap(Map<String, dynamic> data) =>
       CreateTeamsStruct(
         clubId: castToType<int>(data['club_id']),
@@ -165,6 +178,10 @@ class CreateTeamsStruct extends FFFirebaseStruct {
           EventTypesStruct.fromMap,
         ),
         authorizedMemberName: data['authorized_member_name'] as String?,
+        squads: getStructList(
+          data['squads'],
+          SquadsStruct.fromMap,
+        ),
       );
 
   static CreateTeamsStruct? maybeFromMap(dynamic data) => data is Map
@@ -184,6 +201,7 @@ class CreateTeamsStruct extends FFFirebaseStruct {
         'event_codes': _eventCodes?.map((e) => e.toMap()).toList(),
         'event_types': _eventTypes?.map((e) => e.toMap()).toList(),
         'authorized_member_name': _authorizedMemberName,
+        'squads': _squads?.map((e) => e.toMap()).toList(),
       }.withoutNulls;
 
   @override
@@ -238,6 +256,11 @@ class CreateTeamsStruct extends FFFirebaseStruct {
         'authorized_member_name': serializeParam(
           _authorizedMemberName,
           ParamType.String,
+        ),
+        'squads': serializeParam(
+          _squads,
+          ParamType.DataStruct,
+          isList: true,
         ),
       }.withoutNulls;
 
@@ -306,6 +329,12 @@ class CreateTeamsStruct extends FFFirebaseStruct {
           ParamType.String,
           false,
         ),
+        squads: deserializeStructParam<SquadsStruct>(
+          data['squads'],
+          ParamType.DataStruct,
+          true,
+          structBuilder: SquadsStruct.fromSerializableMap,
+        ),
       );
 
   @override
@@ -326,7 +355,8 @@ class CreateTeamsStruct extends FFFirebaseStruct {
         adminLevel == other.adminLevel &&
         listEquality.equals(eventCodes, other.eventCodes) &&
         listEquality.equals(eventTypes, other.eventTypes) &&
-        authorizedMemberName == other.authorizedMemberName;
+        authorizedMemberName == other.authorizedMemberName &&
+        listEquality.equals(squads, other.squads);
   }
 
   @override
@@ -342,7 +372,8 @@ class CreateTeamsStruct extends FFFirebaseStruct {
         adminLevel,
         eventCodes,
         eventTypes,
-        authorizedMemberName
+        authorizedMemberName,
+        squads
       ]);
 }
 

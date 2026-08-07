@@ -20,12 +20,16 @@ class NativeWebView extends StatefulWidget {
     this.height,
     required this.url,
     this.onPageReady,
+    this.onComplete,
+    this.onLogout,
   });
 
   final double? width;
   final double? height;
   final String url;
   final Future Function()? onPageReady;
+  final Future Function()? onComplete;
+  final Future Function()? onLogout;
 
   @override
   State<NativeWebView> createState() => _NativeWebViewState();

@@ -268,6 +268,92 @@ class _DropDownMenuEditWidgetState extends State<DropDownMenuEditWidget> {
                     logFirebaseEvent('convertComponent_navigate_to');
 
                     context.pushNamed(
+                      MatchScoreWidget.routeName,
+                      queryParameters: {
+                        'eventId': serializeParam(
+                          widget.paramEventID,
+                          ParamType.int,
+                        ),
+                        'teamId': serializeParam(
+                          widget.paramTeamID,
+                          ParamType.int,
+                        ),
+                        'currentAuthToken': serializeParam(
+                          currentJwtToken,
+                          ParamType.String,
+                        ),
+                      }.withoutNulls,
+                    );
+
+                    logFirebaseEvent(
+                        'convertComponent_close_dialog_drawer_etc');
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: FlutterFlowTheme.of(context).coachSmartLightBlack,
+                    ),
+                    child: Padding(
+                      padding:
+                          EdgeInsetsDirectional.fromSTEB(0.0, 8.0, 0.0, 8.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Padding(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                12.0, 0.0, 0.0, 0.0),
+                            child: Icon(
+                              Icons.sports_soccer,
+                              color: FlutterFlowTheme.of(context).alternate,
+                              size: 28.0,
+                            ),
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsetsDirectional.fromSTEB(
+                                  12.0, 0.0, 0.0, 0.0),
+                              child: Text(
+                                'Score Keeper',
+                                style: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .override(
+                                      font: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w600,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .fontStyle,
+                                      ),
+                                      fontSize: 16.0,
+                                      letterSpacing: 0.0,
+                                      fontWeight: FontWeight.w600,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.paramRoleLevel! >= 20)
+              Padding(
+                padding: EdgeInsetsDirectional.fromSTEB(10.0, 0.0, 10.0, 10.0),
+                child: InkWell(
+                  splashColor: Colors.transparent,
+                  focusColor: Colors.transparent,
+                  hoverColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  onTap: () async {
+                    logFirebaseEvent(
+                        'DROP_DOWN_MENU_EDIT_convertComponent_ON_');
+                    logFirebaseEvent('convertComponent_navigate_to');
+
+                    context.pushNamed(
                       MatchStatsWidget.routeName,
                       queryParameters: {
                         'eventId': serializeParam(
@@ -314,7 +400,7 @@ class _DropDownMenuEditWidgetState extends State<DropDownMenuEditWidget> {
                               padding: EdgeInsetsDirectional.fromSTEB(
                                   12.0, 0.0, 0.0, 0.0),
                               child: Text(
-                                'Timer & Stats',
+                                'Match Stats',
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .override(
@@ -387,7 +473,7 @@ class _DropDownMenuEditWidgetState extends State<DropDownMenuEditWidget> {
                             padding: EdgeInsetsDirectional.fromSTEB(
                                 12.0, 0.0, 0.0, 0.0),
                             child: Icon(
-                              Icons.sports_soccer,
+                              Icons.post_add_sharp,
                               color: FlutterFlowTheme.of(context).alternate,
                               size: 28.0,
                             ),

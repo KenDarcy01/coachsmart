@@ -1833,6 +1833,239 @@ class NotifyAdminsAttendanceChangeCall {
   }
 }
 
+class GetPendingTeamRequestsCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    int? pTeamId,
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "p_team_id": ${pTeamId}
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'getPendingTeamRequests',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/get_pending_team_requests',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class GetUserOnboardingStatusCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+  }) async {
+    final ffApiRequestBody = '''
+{
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'getUserOnboardingStatus',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/get_user_onboarding_status',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class GetTeamRolesCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    int? pTeamId,
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "p_team_id": ${pTeamId}
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'getTeamRoles',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/get_team_roles',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class ConfirmMemberJoinCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    int? pMemberTeamId,
+    List<int>? pRoleIdsList,
+  }) async {
+    final pRoleIds = _serializeList(pRoleIdsList);
+
+    final ffApiRequestBody = '''
+{
+  "p_member_team_id": ${pMemberTeamId},
+  "p_role_ids": ${pRoleIds}
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'confirmMemberJoin',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/confirm_member_join',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class ConfirmUserMemberAccessCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    int? pUserMemberId,
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "p_user_member_id": ${pUserMemberId}
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'confirmUserMemberAccess',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/confirm_user_member_access',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class DenyMemberJoinCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    int? pMemberTeamId,
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "p_member_team_id": ${pMemberTeamId}
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'denyMemberJoin',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/deny_member_join',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class DenyUserMemberAccessCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    int? pUserMemberId,
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "p_user_member_id": ${pUserMemberId}
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'denyUserMemberAccess',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/deny_user_member_access',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
 class ApiPagingParams {
   int nextPageNumber = 0;
   int numItems = 0;

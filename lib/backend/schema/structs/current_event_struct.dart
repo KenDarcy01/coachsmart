@@ -24,6 +24,8 @@ class CurrentEventStruct extends FFFirebaseStruct {
     String? opposition,
     String? homeAway,
     String? meetTime,
+    int? squadId,
+    String? status,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _teamId = teamId,
         _eventId = eventId,
@@ -41,6 +43,8 @@ class CurrentEventStruct extends FFFirebaseStruct {
         _opposition = opposition,
         _homeAway = homeAway,
         _meetTime = meetTime,
+        _squadId = squadId,
+        _status = status,
         super(firestoreUtilData);
 
   // "team_id" field.
@@ -165,6 +169,22 @@ class CurrentEventStruct extends FFFirebaseStruct {
 
   bool hasMeetTime() => _meetTime != null;
 
+  // "squad_id" field.
+  int? _squadId;
+  int get squadId => _squadId ?? 0;
+  set squadId(int? val) => _squadId = val;
+
+  void incrementSquadId(int amount) => squadId = squadId + amount;
+
+  bool hasSquadId() => _squadId != null;
+
+  // "status" field.
+  String? _status;
+  String get status => _status ?? '';
+  set status(String? val) => _status = val;
+
+  bool hasStatus() => _status != null;
+
   static CurrentEventStruct fromMap(Map<String, dynamic> data) =>
       CurrentEventStruct(
         teamId: castToType<int>(data['team_id']),
@@ -183,6 +203,8 @@ class CurrentEventStruct extends FFFirebaseStruct {
         opposition: data['opposition'] as String?,
         homeAway: data['home_away'] as String?,
         meetTime: data['meet_time'] as String?,
+        squadId: castToType<int>(data['squad_id']),
+        status: data['status'] as String?,
       );
 
   static CurrentEventStruct? maybeFromMap(dynamic data) => data is Map
@@ -206,6 +228,8 @@ class CurrentEventStruct extends FFFirebaseStruct {
         'opposition': _opposition,
         'home_away': _homeAway,
         'meet_time': _meetTime,
+        'squad_id': _squadId,
+        'status': _status,
       }.withoutNulls;
 
   @override
@@ -272,6 +296,14 @@ class CurrentEventStruct extends FFFirebaseStruct {
         ),
         'meet_time': serializeParam(
           _meetTime,
+          ParamType.String,
+        ),
+        'squad_id': serializeParam(
+          _squadId,
+          ParamType.int,
+        ),
+        'status': serializeParam(
+          _status,
           ParamType.String,
         ),
       }.withoutNulls;
@@ -358,6 +390,16 @@ class CurrentEventStruct extends FFFirebaseStruct {
           ParamType.String,
           false,
         ),
+        squadId: deserializeParam(
+          data['squad_id'],
+          ParamType.int,
+          false,
+        ),
+        status: deserializeParam(
+          data['status'],
+          ParamType.String,
+          false,
+        ),
       );
 
   @override
@@ -381,7 +423,9 @@ class CurrentEventStruct extends FFFirebaseStruct {
         requestAttendance == other.requestAttendance &&
         opposition == other.opposition &&
         homeAway == other.homeAway &&
-        meetTime == other.meetTime;
+        meetTime == other.meetTime &&
+        squadId == other.squadId &&
+        status == other.status;
   }
 
   @override
@@ -401,7 +445,9 @@ class CurrentEventStruct extends FFFirebaseStruct {
         requestAttendance,
         opposition,
         homeAway,
-        meetTime
+        meetTime,
+        squadId,
+        status
       ]);
 }
 
@@ -422,6 +468,8 @@ CurrentEventStruct createCurrentEventStruct({
   String? opposition,
   String? homeAway,
   String? meetTime,
+  int? squadId,
+  String? status,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -444,6 +492,8 @@ CurrentEventStruct createCurrentEventStruct({
       opposition: opposition,
       homeAway: homeAway,
       meetTime: meetTime,
+      squadId: squadId,
+      status: status,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

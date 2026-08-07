@@ -122,8 +122,10 @@ class _MatchStatsWidgetState extends State<MatchStatsWidget> {
               width: double.infinity,
               height: double.infinity,
               url:
-                  'https://coach-smart-new-mpqa5l.web.app/webviews/match-timer.html?eventId=${widget.eventId?.toString()}&currentAuthToken=${widget.currentAuthToken}',
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/match-stats-chart.html?event_id=${widget.eventId?.toString()}&token=${widget.currentAuthToken}',
               onPageReady: () async {},
+              onComplete: () async {},
+              onLogout: () async {},
             ),
           ),
         ),

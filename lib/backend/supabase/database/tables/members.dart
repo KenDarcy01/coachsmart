@@ -46,4 +46,7 @@ class MembersRow extends SupabaseDataRow {
   String? get nameTranslated => getField<String>('name_translated');
   set nameTranslated(String? value) =>
       setField<String>('name_translated', value);
+
+  String get status => getField<String>('status')!;
+  set status(String value) => setField<String>('status', value);
 }

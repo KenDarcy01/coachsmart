@@ -24,7 +24,7 @@ class HomePageModel extends FlutterFlowModel<HomePageWidget> {
   // Stores action output result for [Backend Call - API (getUserHomeEvents)] action in HomePage widget.
   ApiCallResponse? outputHomeLoad;
   // Stores action output result for [Backend Call - API (getUserHomeEvents)] action in scrollingColumn widget.
-  ApiCallResponse? outputHomeRefresh;
+  ApiCallResponse? outputHomeLoadRefresh;
 
   @override
   void initState(BuildContext context) {}

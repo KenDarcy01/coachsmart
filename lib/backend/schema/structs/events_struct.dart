@@ -44,6 +44,9 @@ class EventsStruct extends FFFirebaseStruct {
     int? userHighestRoleOnTeam,
     bool? eventPaid,
     bool? paymentRequired,
+    String? eventStatus,
+    int? squadId,
+    String? squadName,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _clubId = clubId,
         _teamId = teamId,
@@ -81,6 +84,9 @@ class EventsStruct extends FFFirebaseStruct {
         _userHighestRoleOnTeam = userHighestRoleOnTeam,
         _eventPaid = eventPaid,
         _paymentRequired = paymentRequired,
+        _eventStatus = eventStatus,
+        _squadId = squadId,
+        _squadName = squadName,
         super(firestoreUtilData);
 
   // "club_id" field.
@@ -366,6 +372,29 @@ class EventsStruct extends FFFirebaseStruct {
 
   bool hasPaymentRequired() => _paymentRequired != null;
 
+  // "event_status" field.
+  String? _eventStatus;
+  String get eventStatus => _eventStatus ?? '';
+  set eventStatus(String? val) => _eventStatus = val;
+
+  bool hasEventStatus() => _eventStatus != null;
+
+  // "squad_id" field.
+  int? _squadId;
+  int get squadId => _squadId ?? 0;
+  set squadId(int? val) => _squadId = val;
+
+  void incrementSquadId(int amount) => squadId = squadId + amount;
+
+  bool hasSquadId() => _squadId != null;
+
+  // "squad_name" field.
+  String? _squadName;
+  String get squadName => _squadName ?? '';
+  set squadName(String? val) => _squadName = val;
+
+  bool hasSquadName() => _squadName != null;
+
   static EventsStruct fromMap(Map<String, dynamic> data) => EventsStruct(
         clubId: castToType<int>(data['club_id']),
         teamId: castToType<int>(data['team_id']),
@@ -404,6 +433,9 @@ class EventsStruct extends FFFirebaseStruct {
             castToType<int>(data['user_highest_role_on_team']),
         eventPaid: data['event_paid'] as bool?,
         paymentRequired: data['payment_required'] as bool?,
+        eventStatus: data['event_status'] as String?,
+        squadId: castToType<int>(data['squad_id']),
+        squadName: data['squad_name'] as String?,
       );
 
   static EventsStruct? maybeFromMap(dynamic data) =>
@@ -446,6 +478,9 @@ class EventsStruct extends FFFirebaseStruct {
         'user_highest_role_on_team': _userHighestRoleOnTeam,
         'event_paid': _eventPaid,
         'payment_required': _paymentRequired,
+        'event_status': _eventStatus,
+        'squad_id': _squadId,
+        'squad_name': _squadName,
       }.withoutNulls;
 
   @override
@@ -593,6 +628,18 @@ class EventsStruct extends FFFirebaseStruct {
         'payment_required': serializeParam(
           _paymentRequired,
           ParamType.bool,
+        ),
+        'event_status': serializeParam(
+          _eventStatus,
+          ParamType.String,
+        ),
+        'squad_id': serializeParam(
+          _squadId,
+          ParamType.int,
+        ),
+        'squad_name': serializeParam(
+          _squadName,
+          ParamType.String,
         ),
       }.withoutNulls;
 
@@ -778,6 +825,21 @@ class EventsStruct extends FFFirebaseStruct {
           ParamType.bool,
           false,
         ),
+        eventStatus: deserializeParam(
+          data['event_status'],
+          ParamType.String,
+          false,
+        ),
+        squadId: deserializeParam(
+          data['squad_id'],
+          ParamType.int,
+          false,
+        ),
+        squadName: deserializeParam(
+          data['squad_name'],
+          ParamType.String,
+          false,
+        ),
       );
 
   @override
@@ -821,7 +883,10 @@ class EventsStruct extends FFFirebaseStruct {
         eventDateTimeFormatted == other.eventDateTimeFormatted &&
         userHighestRoleOnTeam == other.userHighestRoleOnTeam &&
         eventPaid == other.eventPaid &&
-        paymentRequired == other.paymentRequired;
+        paymentRequired == other.paymentRequired &&
+        eventStatus == other.eventStatus &&
+        squadId == other.squadId &&
+        squadName == other.squadName;
   }
 
   @override
@@ -861,7 +926,10 @@ class EventsStruct extends FFFirebaseStruct {
         eventDateTimeFormatted,
         userHighestRoleOnTeam,
         eventPaid,
-        paymentRequired
+        paymentRequired,
+        eventStatus,
+        squadId,
+        squadName
       ]);
 }
 
@@ -902,6 +970,9 @@ EventsStruct createEventsStruct({
   int? userHighestRoleOnTeam,
   bool? eventPaid,
   bool? paymentRequired,
+  String? eventStatus,
+  int? squadId,
+  String? squadName,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -944,6 +1015,9 @@ EventsStruct createEventsStruct({
       userHighestRoleOnTeam: userHighestRoleOnTeam,
       eventPaid: eventPaid,
       paymentRequired: paymentRequired,
+      eventStatus: eventStatus,
+      squadId: squadId,
+      squadName: squadName,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

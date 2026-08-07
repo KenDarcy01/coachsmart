@@ -29,4 +29,7 @@ class EventAttendanceRow extends SupabaseDataRow {
 
   int? get responseId => getField<int>('response_id');
   set responseId(int? value) => setField<int>('response_id', value);
+
+  String? get status => getField<String>('status');
+  set status(String? value) => setField<String>('status', value);
 }

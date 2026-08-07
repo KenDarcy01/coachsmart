@@ -93,4 +93,7 @@ class EventsRow extends SupabaseDataRow {
 
   bool? get carPooling => getField<bool>('car_pooling');
   set carPooling(bool? value) => setField<bool>('car_pooling', value);
+
+  String get status => getField<String>('status')!;
+  set status(String value) => setField<String>('status', value);
 }

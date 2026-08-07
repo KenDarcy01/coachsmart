@@ -2429,6 +2429,131 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                               ),
                               Padding(
                                 padding: EdgeInsetsDirectional.fromSTEB(
+                                    0.0, 0.0, 0.0, 5.0),
+                                child: FFButtonWidget(
+                                  onPressed: () async {
+                                    logFirebaseEvent(
+                                        'EDIT_EVENT_PAGE_CANCEL_EVENT_BTN_ON_TAP');
+                                    logFirebaseEvent('Button_alert_dialog');
+                                    var confirmDialogResponse =
+                                        await showDialog<bool>(
+                                              context: context,
+                                              builder: (alertDialogContext) {
+                                                return WebViewAware(
+                                                  child: AlertDialog(
+                                                    title: Text('Cancel Event'),
+                                                    content: Text(
+                                                        'Are you sure you want to cancel this event?'),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                alertDialogContext,
+                                                                false),
+                                                        child: Text('No'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                alertDialogContext,
+                                                                true),
+                                                        child: Text('Proceed'),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ) ??
+                                            false;
+                                    if (confirmDialogResponse) {
+                                      logFirebaseEvent('Button_backend_call');
+                                      await EventsTable().update(
+                                        data: {
+                                          'status': 'cancelled',
+                                        },
+                                        matchingRows: (rows) => rows.eqOrNull(
+                                          'event_id',
+                                          widget.paramEventId,
+                                        ),
+                                      );
+                                      logFirebaseEvent('Button_backend_call');
+                                      await EventAttendanceTable().update(
+                                        data: {
+                                          'status': 'Cancelled',
+                                        },
+                                        matchingRows: (rows) => rows.eqOrNull(
+                                          'event_id',
+                                          widget.paramEventId,
+                                        ),
+                                      );
+                                      logFirebaseEvent('Button_backend_call');
+                                      _model.outputUpdatedEventsCancel =
+                                          await GetUserHomeEventsCall.call(
+                                        pUserId: currentUserUid,
+                                        supabaseJWTtoken: currentJwtToken,
+                                      );
+
+                                      logFirebaseEvent(
+                                          'Button_update_app_state');
+                                      FFAppState().homePageEvents =
+                                          UserEventsHomeStruct.maybeFromMap(
+                                              (_model.outputUpdatedEventsCancel
+                                                      ?.jsonBody ??
+                                                  ''))!;
+                                      logFirebaseEvent('Button_navigate_back');
+                                      context.safePop();
+                                    }
+
+                                    safeSetState(() {});
+                                  },
+                                  text: 'Cancel Event',
+                                  icon: Icon(
+                                    Icons.cancel,
+                                    size: 25.0,
+                                  ),
+                                  options: FFButtonOptions(
+                                    width: double.infinity,
+                                    height: 40.0,
+                                    padding: EdgeInsetsDirectional.fromSTEB(
+                                        16.0, 0.0, 16.0, 0.0),
+                                    iconPadding: EdgeInsetsDirectional.fromSTEB(
+                                        0.0, 0.0, 0.0, 0.0),
+                                    color: Color(0xFFBDB8B8),
+                                    textStyle: FlutterFlowTheme.of(context)
+                                        .titleSmall
+                                        .override(
+                                          font: GoogleFonts.interTight(
+                                            fontWeight:
+                                                FlutterFlowTheme.of(context)
+                                                    .titleSmall
+                                                    .fontWeight,
+                                            fontStyle:
+                                                FlutterFlowTheme.of(context)
+                                                    .titleSmall
+                                                    .fontStyle,
+                                          ),
+                                          color: FlutterFlowTheme.of(context)
+                                              .coachSmartLightBlack,
+                                          letterSpacing: 0.0,
+                                          fontWeight:
+                                              FlutterFlowTheme.of(context)
+                                                  .titleSmall
+                                                  .fontWeight,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .titleSmall
+                                                  .fontStyle,
+                                        ),
+                                    elevation: 0.0,
+                                    borderSide: BorderSide(
+                                      width: 2.0,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsetsDirectional.fromSTEB(
                                     0.0, 0.0, 0.0, 30.0),
                                 child: FFButtonWidget(
                                   onPressed: () async {
@@ -2467,28 +2592,27 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                             false;
                                     if (confirmDialogResponse) {
                                       logFirebaseEvent('Button_backend_call');
-                                      await RemindersTable().delete(
+                                      await EventsTable().update(
+                                        data: {
+                                          'status': 'deleted',
+                                        },
                                         matchingRows: (rows) => rows.eqOrNull(
                                           'event_id',
                                           widget.paramEventId,
                                         ),
                                       );
                                       logFirebaseEvent('Button_backend_call');
-                                      await EventAttendanceTable().delete(
+                                      await EventAttendanceTable().update(
+                                        data: {
+                                          'status': 'deleted',
+                                        },
                                         matchingRows: (rows) => rows.eqOrNull(
                                           'event_id',
                                           widget.paramEventId,
                                         ),
                                       );
                                       logFirebaseEvent('Button_backend_call');
-                                      await EventsTable().delete(
-                                        matchingRows: (rows) => rows.eqOrNull(
-                                          'event_id',
-                                          widget.paramEventId,
-                                        ),
-                                      );
-                                      logFirebaseEvent('Button_backend_call');
-                                      _model.outputUpdatedEvents =
+                                      _model.outputUpdatedEventsDelete =
                                           await GetUserHomeEventsCall.call(
                                         pUserId: currentUserUid,
                                         supabaseJWTtoken: currentJwtToken,
@@ -2498,7 +2622,7 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                           'Button_update_app_state');
                                       FFAppState().homePageEvents =
                                           UserEventsHomeStruct.maybeFromMap(
-                                              (_model.outputUpdatedEvents
+                                              (_model.outputUpdatedEventsDelete
                                                       ?.jsonBody ??
                                                   ''))!;
                                       logFirebaseEvent('Button_navigate_back');

@@ -161,4 +161,53 @@ class FFAppState extends ChangeNotifier {
   void insertAtIndexInUserFavourites(int index, UserFavouritesStruct value) {
     userFavourites.insert(index, value);
   }
+
+  UserTeamSummaryStruct _userTeamSummary = UserTeamSummaryStruct();
+  UserTeamSummaryStruct get userTeamSummary => _userTeamSummary;
+  set userTeamSummary(UserTeamSummaryStruct value) {
+    _userTeamSummary = value;
+  }
+
+  void updateUserTeamSummaryStruct(Function(UserTeamSummaryStruct) updateFn) {
+    updateFn(_userTeamSummary);
+  }
+
+  JoinRequestsStruct _joinRequests = JoinRequestsStruct();
+  JoinRequestsStruct get joinRequests => _joinRequests;
+  set joinRequests(JoinRequestsStruct value) {
+    _joinRequests = value;
+  }
+
+  void updateJoinRequestsStruct(Function(JoinRequestsStruct) updateFn) {
+    updateFn(_joinRequests);
+  }
+
+  List<GetTeamRolesStruct> _joinRoles = [];
+  List<GetTeamRolesStruct> get joinRoles => _joinRoles;
+  set joinRoles(List<GetTeamRolesStruct> value) {
+    _joinRoles = value;
+  }
+
+  void addToJoinRoles(GetTeamRolesStruct value) {
+    joinRoles.add(value);
+  }
+
+  void removeFromJoinRoles(GetTeamRolesStruct value) {
+    joinRoles.remove(value);
+  }
+
+  void removeAtIndexFromJoinRoles(int index) {
+    joinRoles.removeAt(index);
+  }
+
+  void updateJoinRolesAtIndex(
+    int index,
+    GetTeamRolesStruct Function(GetTeamRolesStruct) updateFn,
+  ) {
+    joinRoles[index] = updateFn(_joinRoles[index]);
+  }
+
+  void insertAtIndexInJoinRoles(int index, GetTeamRolesStruct value) {
+    joinRoles.insert(index, value);
+  }
 }

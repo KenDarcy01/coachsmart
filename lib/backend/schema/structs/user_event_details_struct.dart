@@ -52,6 +52,7 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
     int? newNumPayments,
     bool? carPoolingEnabled,
     int? codeId,
+    int? squadId,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _eventId = eventId,
         _homeAway = homeAway,
@@ -96,6 +97,7 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
         _newNumPayments = newNumPayments,
         _carPoolingEnabled = carPoolingEnabled,
         _codeId = codeId,
+        _squadId = squadId,
         super(firestoreUtilData);
 
   // "event_id" field.
@@ -473,6 +475,15 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
 
   bool hasCodeId() => _codeId != null;
 
+  // "squad_id" field.
+  int? _squadId;
+  int get squadId => _squadId ?? 0;
+  set squadId(int? val) => _squadId = val;
+
+  void incrementSquadId(int amount) => squadId = squadId + amount;
+
+  bool hasSquadId() => _squadId != null;
+
   static UserEventDetailsStruct fromMap(Map<String, dynamic> data) =>
       UserEventDetailsStruct(
         eventId: castToType<int>(data['event_id']),
@@ -531,6 +542,7 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
         newNumPayments: castToType<int>(data['new_num_payments']),
         carPoolingEnabled: data['car_pooling_enabled'] as bool?,
         codeId: castToType<int>(data['code_id']),
+        squadId: castToType<int>(data['squad_id']),
       );
 
   static UserEventDetailsStruct? maybeFromMap(dynamic data) => data is Map
@@ -584,6 +596,7 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
         'new_num_payments': _newNumPayments,
         'car_pooling_enabled': _carPoolingEnabled,
         'code_id': _codeId,
+        'squad_id': _squadId,
       }.withoutNulls;
 
   @override
@@ -762,6 +775,10 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
         ),
         'code_id': serializeParam(
           _codeId,
+          ParamType.int,
+        ),
+        'squad_id': serializeParam(
+          _squadId,
           ParamType.int,
         ),
       }.withoutNulls;
@@ -991,6 +1008,11 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
           ParamType.int,
           false,
         ),
+        squadId: deserializeParam(
+          data['squad_id'],
+          ParamType.int,
+          false,
+        ),
       );
 
   @override
@@ -1045,7 +1067,8 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
         newNetAmount == other.newNetAmount &&
         newNumPayments == other.newNumPayments &&
         carPoolingEnabled == other.carPoolingEnabled &&
-        codeId == other.codeId;
+        codeId == other.codeId &&
+        squadId == other.squadId;
   }
 
   @override
@@ -1092,7 +1115,8 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
         newNetAmount,
         newNumPayments,
         carPoolingEnabled,
-        codeId
+        codeId,
+        squadId
       ]);
 }
 
@@ -1136,6 +1160,7 @@ UserEventDetailsStruct createUserEventDetailsStruct({
   int? newNumPayments,
   bool? carPoolingEnabled,
   int? codeId,
+  int? squadId,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -1181,6 +1206,7 @@ UserEventDetailsStruct createUserEventDetailsStruct({
       newNumPayments: newNumPayments,
       carPoolingEnabled: carPoolingEnabled,
       codeId: codeId,
+      squadId: squadId,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

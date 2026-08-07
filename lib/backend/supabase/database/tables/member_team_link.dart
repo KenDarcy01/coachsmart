@@ -33,4 +33,7 @@ class MemberTeamLinkRow extends SupabaseDataRow {
   String? get memberTeamCode => getField<String>('member_team_code');
   set memberTeamCode(String? value) =>
       setField<String>('member_team_code', value);
+
+  String get status => getField<String>('status')!;
+  set status(String value) => setField<String>('status', value);
 }

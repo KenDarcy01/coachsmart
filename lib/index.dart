@@ -1,9 +1,9 @@
 // Export pages
 export '/pages/auth_page/auth_page_widget.dart' show AuthPageWidget;
 export '/pages/games_ages/games_ages_widget.dart' show GamesAgesWidget;
+export '/pages/games/games_widget.dart' show GamesWidget;
 export '/pages/member_details/member_details_widget.dart'
     show MemberDetailsWidget;
-export '/pages/games/games_widget.dart' show GamesWidget;
 export '/pages/teams/teams_widget.dart' show TeamsWidget;
 export '/pages/create_team/create_team_widget.dart' show CreateTeamWidget;
 export '/pages/join_team/join_team_widget.dart' show JoinTeamWidget;
@@ -50,4 +50,9 @@ export '/pages/team_selector/team_selector_widget.dart' show TeamSelectorWidget;
 export '/pages/analytics/analytics_widget.dart' show AnalyticsWidget;
 export '/pages/game_details/game_details_widget.dart' show GameDetailsWidget;
 export '/pages/favourites/favourites_widget.dart' show FavouritesWidget;
+export '/pages/match_score/match_score_widget.dart' show MatchScoreWidget;
+export '/pages/on_boarding/on_boarding_widget.dart' show OnBoardingWidget;
+export '/pages/pending_requests/pending_requests_widget.dart'
+    show PendingRequestsWidget;
+export '/pages/join_team_new/join_team_new_widget.dart' show JoinTeamNewWidget;
 export '/pages/match_stats/match_stats_widget.dart' show MatchStatsWidget;

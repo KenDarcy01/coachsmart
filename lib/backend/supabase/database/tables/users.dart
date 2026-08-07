@@ -44,4 +44,8 @@ class UsersRow extends SupabaseDataRow {
 
   int? get defaultClub => getField<int>('default_club');
   set defaultClub(int? value) => setField<int>('default_club', value);
+
+  String? get onboardingStatus => getField<String>('onboarding_status');
+  set onboardingStatus(String? value) =>
+      setField<String>('onboarding_status', value);
 }

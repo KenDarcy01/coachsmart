@@ -12,11 +12,13 @@ class TeamsStruct extends FFFirebaseStruct {
     String? teamName,
     String? teamRoleName,
     int? teamHighestRoleLevel,
+    int? pendingApprovals,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _teamId = teamId,
         _teamName = teamName,
         _teamRoleName = teamRoleName,
         _teamHighestRoleLevel = teamHighestRoleLevel,
+        _pendingApprovals = pendingApprovals,
         super(firestoreUtilData);
 
   // "team_id" field.
@@ -52,11 +54,22 @@ class TeamsStruct extends FFFirebaseStruct {
 
   bool hasTeamHighestRoleLevel() => _teamHighestRoleLevel != null;
 
+  // "pending_approvals" field.
+  int? _pendingApprovals;
+  int get pendingApprovals => _pendingApprovals ?? 0;
+  set pendingApprovals(int? val) => _pendingApprovals = val;
+
+  void incrementPendingApprovals(int amount) =>
+      pendingApprovals = pendingApprovals + amount;
+
+  bool hasPendingApprovals() => _pendingApprovals != null;
+
   static TeamsStruct fromMap(Map<String, dynamic> data) => TeamsStruct(
         teamId: castToType<int>(data['team_id']),
         teamName: data['team_name'] as String?,
         teamRoleName: data['team_role_name'] as String?,
         teamHighestRoleLevel: castToType<int>(data['team_highest_role_level']),
+        pendingApprovals: castToType<int>(data['pending_approvals']),
       );
 
   static TeamsStruct? maybeFromMap(dynamic data) =>
@@ -67,6 +80,7 @@ class TeamsStruct extends FFFirebaseStruct {
         'team_name': _teamName,
         'team_role_name': _teamRoleName,
         'team_highest_role_level': _teamHighestRoleLevel,
+        'pending_approvals': _pendingApprovals,
       }.withoutNulls;
 
   @override
@@ -85,6 +99,10 @@ class TeamsStruct extends FFFirebaseStruct {
         ),
         'team_highest_role_level': serializeParam(
           _teamHighestRoleLevel,
+          ParamType.int,
+        ),
+        'pending_approvals': serializeParam(
+          _pendingApprovals,
           ParamType.int,
         ),
       }.withoutNulls;
@@ -111,6 +129,11 @@ class TeamsStruct extends FFFirebaseStruct {
           ParamType.int,
           false,
         ),
+        pendingApprovals: deserializeParam(
+          data['pending_approvals'],
+          ParamType.int,
+          false,
+        ),
       );
 
   @override
@@ -122,12 +145,13 @@ class TeamsStruct extends FFFirebaseStruct {
         teamId == other.teamId &&
         teamName == other.teamName &&
         teamRoleName == other.teamRoleName &&
-        teamHighestRoleLevel == other.teamHighestRoleLevel;
+        teamHighestRoleLevel == other.teamHighestRoleLevel &&
+        pendingApprovals == other.pendingApprovals;
   }
 
   @override
-  int get hashCode => const ListEquality()
-      .hash([teamId, teamName, teamRoleName, teamHighestRoleLevel]);
+  int get hashCode => const ListEquality().hash(
+      [teamId, teamName, teamRoleName, teamHighestRoleLevel, pendingApprovals]);
 }
 
 TeamsStruct createTeamsStruct({
@@ -135,6 +159,7 @@ TeamsStruct createTeamsStruct({
   String? teamName,
   String? teamRoleName,
   int? teamHighestRoleLevel,
+  int? pendingApprovals,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -145,6 +170,7 @@ TeamsStruct createTeamsStruct({
       teamName: teamName,
       teamRoleName: teamRoleName,
       teamHighestRoleLevel: teamHighestRoleLevel,
+      pendingApprovals: pendingApprovals,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

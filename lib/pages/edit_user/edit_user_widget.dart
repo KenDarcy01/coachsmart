@@ -1034,6 +1034,7 @@ class _EditUserWidgetState extends State<EditUserWidget> {
 
                               return ListView.builder(
                                 padding: EdgeInsets.zero,
+                                primary: false,
                                 shrinkWrap: true,
                                 scrollDirection: Axis.vertical,
                                 itemCount:

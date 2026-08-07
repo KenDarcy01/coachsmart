@@ -284,6 +284,171 @@ class _CreateEventWidgetState extends State<CreateEventWidget> {
                       ),
                     ),
                     if ((_model.stateEventTeamID != null) &&
+                        (_model.stateEventTeamID != 0) &&
+                        (CreateEventDetailStruct.maybeFromMap(
+                                    createEventGetUserEventCreateDetailResponse
+                                        .jsonBody)!
+                                .createTeams
+                                .where(
+                                    (e) => e.teamId == _model.stateEventTeamID)
+                                .toList()
+                                .firstOrNull!
+                                .squads
+                                .length >
+                            2))
+                      Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(
+                            15.0, 15.0, 15.0, 0.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Align(
+                              alignment: AlignmentDirectional(-1.0, 0.0),
+                              child: Padding(
+                                padding: EdgeInsetsDirectional.fromSTEB(
+                                    0.0, 0.0, 0.0, 10.0),
+                                child: Text(
+                                  'Select Squad (optional):',
+                                  style: FlutterFlowTheme.of(context)
+                                      .bodyMedium
+                                      .override(
+                                        font: GoogleFonts.inter(
+                                          fontWeight:
+                                              FlutterFlowTheme.of(context)
+                                                  .bodyMedium
+                                                  .fontWeight,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .bodyMedium
+                                                  .fontStyle,
+                                        ),
+                                        color: FlutterFlowTheme.of(context)
+                                            .coachSmartGrey,
+                                        letterSpacing: 0.0,
+                                        fontWeight: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .fontWeight,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .fontStyle,
+                                      ),
+                                ),
+                              ),
+                            ),
+                            Align(
+                              alignment: AlignmentDirectional(-1.0, 0.0),
+                              child: Builder(
+                                builder: (context) {
+                                  final childrenSquadsWrap =
+                                      CreateEventDetailStruct.maybeFromMap(
+                                                  createEventGetUserEventCreateDetailResponse
+                                                      .jsonBody)
+                                              ?.createTeams
+                                              .where((e) =>
+                                                  e.teamId ==
+                                                  _model.stateEventTeamID)
+                                              .toList()
+                                              .firstOrNull
+                                              ?.squads
+                                              .sortedList(
+                                                  keyOf: (e) => e.squadListSeq,
+                                                  desc: false)
+                                              .toList() ??
+                                          [];
+
+                                  return Wrap(
+                                    spacing: 10.0,
+                                    runSpacing: 10.0,
+                                    alignment: WrapAlignment.start,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.start,
+                                    direction: Axis.horizontal,
+                                    runAlignment: WrapAlignment.start,
+                                    verticalDirection: VerticalDirection.down,
+                                    clipBehavior: Clip.none,
+                                    children:
+                                        List.generate(childrenSquadsWrap.length,
+                                            (childrenSquadsWrapIndex) {
+                                      final childrenSquadsWrapItem =
+                                          childrenSquadsWrap[
+                                              childrenSquadsWrapIndex];
+                                      return FFButtonWidget(
+                                        onPressed: () async {
+                                          logFirebaseEvent(
+                                              'CREATE_EVENT_PAGE_Button_ra184g99_ON_TAP');
+                                          logFirebaseEvent(
+                                              'Button_update_page_state');
+                                          _model.stateSquadID =
+                                              childrenSquadsWrapItem.id;
+                                          safeSetState(() {});
+                                        },
+                                        text: valueOrDefault<String>(
+                                          childrenSquadsWrapItem.name,
+                                          'squad_name',
+                                        ),
+                                        options: FFButtonOptions(
+                                          padding:
+                                              EdgeInsetsDirectional.fromSTEB(
+                                                  16.0, 15.0, 16.0, 15.0),
+                                          iconPadding:
+                                              EdgeInsetsDirectional.fromSTEB(
+                                                  0.0, 0.0, 0.0, 0.0),
+                                          color: _model.stateSquadID ==
+                                                  childrenSquadsWrapItem.id
+                                              ? FlutterFlowTheme.of(context)
+                                                  .coachSmartGreen
+                                              : FlutterFlowTheme.of(context)
+                                                  .coachSmartLightBlack,
+                                          textStyle: FlutterFlowTheme.of(
+                                                  context)
+                                              .titleSmall
+                                              .override(
+                                                font: GoogleFonts.interTight(
+                                                  fontWeight:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .titleSmall
+                                                          .fontWeight,
+                                                  fontStyle:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .titleSmall
+                                                          .fontStyle,
+                                                ),
+                                                color: _model.stateSquadID ==
+                                                        childrenSquadsWrapItem
+                                                            .id
+                                                    ? FlutterFlowTheme.of(
+                                                            context)
+                                                        .coachSmartLightBlack
+                                                    : FlutterFlowTheme.of(
+                                                            context)
+                                                        .coachSmartGrey,
+                                                fontSize: isWeb ? 14.0 : 16.0,
+                                                letterSpacing: 0.0,
+                                                fontWeight:
+                                                    FlutterFlowTheme.of(context)
+                                                        .titleSmall
+                                                        .fontWeight,
+                                                fontStyle:
+                                                    FlutterFlowTheme.of(context)
+                                                        .titleSmall
+                                                        .fontStyle,
+                                              ),
+                                          elevation: 0.0,
+                                          borderRadius:
+                                              BorderRadius.circular(24.0),
+                                        ),
+                                      );
+                                    }),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if ((_model.stateEventTeamID != null) &&
                         (_model.stateEventTeamID != 0))
                       Padding(
                         padding: EdgeInsetsDirectional.fromSTEB(
@@ -2173,6 +2338,7 @@ class _CreateEventWidgetState extends State<CreateEventWidget> {
                                               _model.datePicked),
                                       'notify_admins_changes': true,
                                       'notify_admins_all': false,
+                                      'status': 'active',
                                     });
                                     logFirebaseEvent('Button_backend_call');
                                     _model.outputUpdatedEvents =

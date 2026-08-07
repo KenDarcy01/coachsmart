@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.0.0+168
+version: 1.0.0+171
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -39,7 +39,6 @@ dependencies:
   cloud_firestore_platform_interface: 6.6.9
   cloud_firestore_web: 4.4.9
   collection: 1.19.1
-  cross_file: 0.3.5+1
   dropdown_button2: 
     git:
       url: https://github.com/FlutterFlow/dropdown_button2.git
@@ -47,7 +46,6 @@ dependencies:
       path: packages/dropdown_button2
   easy_debounce: 2.0.1
   equatable: 2.0.7
-  file_picker: 10.1.9
   firebase_analytics: 11.5.0
   firebase_analytics_platform_interface: 4.4.0
   firebase_analytics_web: 0.5.10+13
@@ -58,7 +56,6 @@ dependencies:
   flutter_animate: 4.5.0
   flutter_app_badger:
   flutter_cache_manager: 3.4.1
-  flutter_plugin_android_lifecycle: 2.0.28
   font_awesome_flutter: 10.7.0
   from_css_color: 2.0.0
   functions_client: 2.4.2

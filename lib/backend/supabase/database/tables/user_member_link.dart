@@ -26,4 +26,7 @@ class UserMemberLinkRow extends SupabaseDataRow {
 
   int? get memberId => getField<int>('member_id');
   set memberId(int? value) => setField<int>('member_id', value);
+
+  String get status => getField<String>('status')!;
+  set status(String value) => setField<String>('status', value);
 }

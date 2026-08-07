@@ -250,8 +250,14 @@ class _TeamMembersWidgetState extends State<TeamMembersWidget> {
                                   final childrenCodesItem =
                                       childrenCodes[childrenCodesIndex];
                                   return FFButtonWidget(
-                                    onPressed: () {
-                                      print('Button pressed ...');
+                                    onPressed: () async {
+                                      logFirebaseEvent(
+                                          'TEAM_MEMBERS_PAGE_Button_8sn2zgj3_ON_TAP');
+                                      logFirebaseEvent(
+                                          'Button_update_page_state');
+                                      _model.codeSelected =
+                                          childrenCodesItem.codeId;
+                                      safeSetState(() {});
                                     },
                                     text: valueOrDefault<String>(
                                       childrenCodesItem.codeId == 1

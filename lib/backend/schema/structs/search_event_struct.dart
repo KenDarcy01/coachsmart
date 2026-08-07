@@ -33,6 +33,7 @@ class SearchEventStruct extends FFFirebaseStruct {
     int? totalEligibleMembers,
     String? createdByPhoneNumber,
     String? eventDateTimeFormatted,
+    String? eventStatus,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _clubId = clubId,
         _teamId = teamId,
@@ -59,6 +60,7 @@ class SearchEventStruct extends FFFirebaseStruct {
         _totalEligibleMembers = totalEligibleMembers,
         _createdByPhoneNumber = createdByPhoneNumber,
         _eventDateTimeFormatted = eventDateTimeFormatted,
+        _eventStatus = eventStatus,
         super(firestoreUtilData);
 
   // "club_id" field.
@@ -254,6 +256,13 @@ class SearchEventStruct extends FFFirebaseStruct {
 
   bool hasEventDateTimeFormatted() => _eventDateTimeFormatted != null;
 
+  // "event_status" field.
+  String? _eventStatus;
+  String get eventStatus => _eventStatus ?? '';
+  set eventStatus(String? val) => _eventStatus = val;
+
+  bool hasEventStatus() => _eventStatus != null;
+
   static SearchEventStruct fromMap(Map<String, dynamic> data) =>
       SearchEventStruct(
         clubId: castToType<int>(data['club_id']),
@@ -281,6 +290,7 @@ class SearchEventStruct extends FFFirebaseStruct {
         totalEligibleMembers: castToType<int>(data['total_eligible_members']),
         createdByPhoneNumber: data['created_by_phone_number'] as String?,
         eventDateTimeFormatted: data['event_date_time_formatted'] as String?,
+        eventStatus: data['event_status'] as String?,
       );
 
   static SearchEventStruct? maybeFromMap(dynamic data) => data is Map
@@ -313,6 +323,7 @@ class SearchEventStruct extends FFFirebaseStruct {
         'total_eligible_members': _totalEligibleMembers,
         'created_by_phone_number': _createdByPhoneNumber,
         'event_date_time_formatted': _eventDateTimeFormatted,
+        'event_status': _eventStatus,
       }.withoutNulls;
 
   @override
@@ -415,6 +426,10 @@ class SearchEventStruct extends FFFirebaseStruct {
         ),
         'event_date_time_formatted': serializeParam(
           _eventDateTimeFormatted,
+          ParamType.String,
+        ),
+        'event_status': serializeParam(
+          _eventStatus,
           ParamType.String,
         ),
       }.withoutNulls;
@@ -546,6 +561,11 @@ class SearchEventStruct extends FFFirebaseStruct {
           ParamType.String,
           false,
         ),
+        eventStatus: deserializeParam(
+          data['event_status'],
+          ParamType.String,
+          false,
+        ),
       );
 
   @override
@@ -578,7 +598,8 @@ class SearchEventStruct extends FFFirebaseStruct {
         notifyAdminsChanges == other.notifyAdminsChanges &&
         totalEligibleMembers == other.totalEligibleMembers &&
         createdByPhoneNumber == other.createdByPhoneNumber &&
-        eventDateTimeFormatted == other.eventDateTimeFormatted;
+        eventDateTimeFormatted == other.eventDateTimeFormatted &&
+        eventStatus == other.eventStatus;
   }
 
   @override
@@ -607,7 +628,8 @@ class SearchEventStruct extends FFFirebaseStruct {
         notifyAdminsChanges,
         totalEligibleMembers,
         createdByPhoneNumber,
-        eventDateTimeFormatted
+        eventDateTimeFormatted,
+        eventStatus
       ]);
 }
 
@@ -637,6 +659,7 @@ SearchEventStruct createSearchEventStruct({
   int? totalEligibleMembers,
   String? createdByPhoneNumber,
   String? eventDateTimeFormatted,
+  String? eventStatus,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -668,6 +691,7 @@ SearchEventStruct createSearchEventStruct({
       totalEligibleMembers: totalEligibleMembers,
       createdByPhoneNumber: createdByPhoneNumber,
       eventDateTimeFormatted: eventDateTimeFormatted,
+      eventStatus: eventStatus,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

@@ -1,7 +1,8 @@
+import '/auth/supabase_auth/auth_util.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_web_view.dart';
+import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -111,48 +112,18 @@ class _AnalyticsWidgetState extends State<AnalyticsWidget> {
         ),
         body: SafeArea(
           top: true,
-          child: Stack(
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  FlutterFlowWebView(
-                    content:
-                        'https://coach-smart-new-mpqa5l.web.app/webviews/dashboard-app.html',
-                    bypass: false,
-                    height: 700.0,
-                    verticalScroll: false,
-                    horizontalScroll: false,
-                  ),
-                ],
-              ),
-              if (_model.varPageLoaded)
-                Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      height: 700.0,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                      ),
-                      child: Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(
-                            120.0, 120.0, 120.0, 120.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(0.0),
-                          child: Image.asset(
-                            'assets/images/loading.gif',
-                            width: 50.0,
-                            height: 50.0,
-                            fit: BoxFit.fitWidth,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            child: custom_widgets.NativeWebView(
+              width: double.infinity,
+              height: double.infinity,
+              url:
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/dashboard-app.html?token=${currentJwtToken}',
+              onPageReady: () async {},
+              onComplete: () async {},
+              onLogout: () async {},
+            ),
           ),
         ),
       ),

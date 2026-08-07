@@ -5,52 +5,49 @@ import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'team_selector_model.dart';
-export 'team_selector_model.dart';
+import 'match_score_model.dart';
+export 'match_score_model.dart';
 
-class TeamSelectorWidget extends StatefulWidget {
-  const TeamSelectorWidget({
+class MatchScoreWidget extends StatefulWidget {
+  const MatchScoreWidget({
     super.key,
     required this.eventId,
     required this.teamId,
-    required this.squadId,
     required this.currentAuthToken,
   });
 
   final int? eventId;
   final int? teamId;
-  final int? squadId;
   final String? currentAuthToken;
 
-  static String routeName = 'TeamSelector';
-  static String routePath = 'teamSelector';
+  static String routeName = 'MatchScore';
+  static String routePath = 'matchScore';
 
   @override
-  State<TeamSelectorWidget> createState() => _TeamSelectorWidgetState();
+  State<MatchScoreWidget> createState() => _MatchScoreWidgetState();
 }
 
-class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
-  late TeamSelectorModel _model;
+class _MatchScoreWidgetState extends State<MatchScoreWidget> {
+  late MatchScoreModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => TeamSelectorModel());
+    _model = createModel(context, () => MatchScoreModel());
 
-    logFirebaseEvent('screen_view',
-        parameters: {'screen_name': 'TeamSelector'});
+    logFirebaseEvent('screen_view', parameters: {'screen_name': 'MatchScore'});
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      logFirebaseEvent('TEAM_SELECTOR_TeamSelector_ON_INIT_STATE');
-      logFirebaseEvent('TeamSelector_wait__delay');
+      logFirebaseEvent('MATCH_SCORE_MatchScore_ON_INIT_STATE');
+      logFirebaseEvent('MatchScore_wait__delay');
       await Future.delayed(
         Duration(
-          milliseconds: 4000,
+          milliseconds: 1000,
         ),
       );
-      logFirebaseEvent('TeamSelector_update_page_state');
+      logFirebaseEvent('MatchScore_update_page_state');
       _model.varPageLoaded = false;
       safeSetState(() {});
     });
@@ -89,13 +86,13 @@ class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
               size: 30.0,
             ),
             onPressed: () async {
-              logFirebaseEvent('TEAM_SELECTOR_arrow_back_rounded_ICN_ON_');
+              logFirebaseEvent('MATCH_SCORE_arrow_back_rounded_ICN_ON_TA');
               logFirebaseEvent('IconButton_navigate_back');
               context.safePop();
             },
           ),
           title: Text(
-            'Team Selector',
+            'Match Score',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:
@@ -125,7 +122,7 @@ class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
               width: double.infinity,
               height: double.infinity,
               url:
-                  'https://coach-smart-new-mpqa5l.web.app/webviews/team_selector.html?teamId=${widget.teamId?.toString()}&eventId=${widget.eventId?.toString()}&squadId=${widget.squadId?.toString()}&token=${widget.currentAuthToken}',
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/match-timer.html?eventId=${widget.eventId?.toString()}&currentAuthToken=${widget.currentAuthToken}',
               onPageReady: () async {},
               onComplete: () async {},
               onLogout: () async {},

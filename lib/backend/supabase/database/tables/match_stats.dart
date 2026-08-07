@@ -1,18 +1,18 @@
 import '../database.dart';
 
-class MatchScoresTable extends SupabaseTable<MatchScoresRow> {
+class MatchStatsTable extends SupabaseTable<MatchStatsRow> {
   @override
-  String get tableName => 'match_scores';
+  String get tableName => 'match_stats';
 
   @override
-  MatchScoresRow createRow(Map<String, dynamic> data) => MatchScoresRow(data);
+  MatchStatsRow createRow(Map<String, dynamic> data) => MatchStatsRow(data);
 }
 
-class MatchScoresRow extends SupabaseDataRow {
-  MatchScoresRow(Map<String, dynamic> data) : super(data);
+class MatchStatsRow extends SupabaseDataRow {
+  MatchStatsRow(Map<String, dynamic> data) : super(data);
 
   @override
-  SupabaseTable get table => MatchScoresTable();
+  SupabaseTable get table => MatchStatsTable();
 
   int get id => getField<int>('id')!;
   set id(int value) => setField<int>('id', value);
@@ -40,4 +40,7 @@ class MatchScoresRow extends SupabaseDataRow {
 
   bool? get timerRunning => getField<bool>('timer_running');
   set timerRunning(bool? value) => setField<bool>('timer_running', value);
+
+  DateTime? get finalisedAt => getField<DateTime>('finalised_at');
+  set finalisedAt(DateTime? value) => setField<DateTime>('finalised_at', value);
 }

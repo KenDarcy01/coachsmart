@@ -1,60 +1,34 @@
+import '/auth/supabase_auth/auth_util.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'team_selector_model.dart';
-export 'team_selector_model.dart';
+import 'join_team_new_model.dart';
+export 'join_team_new_model.dart';
 
-class TeamSelectorWidget extends StatefulWidget {
-  const TeamSelectorWidget({
-    super.key,
-    required this.eventId,
-    required this.teamId,
-    required this.squadId,
-    required this.currentAuthToken,
-  });
+class JoinTeamNewWidget extends StatefulWidget {
+  const JoinTeamNewWidget({super.key});
 
-  final int? eventId;
-  final int? teamId;
-  final int? squadId;
-  final String? currentAuthToken;
-
-  static String routeName = 'TeamSelector';
-  static String routePath = 'teamSelector';
+  static String routeName = 'JoinTeamNew';
+  static String routePath = 'joinTeamNew';
 
   @override
-  State<TeamSelectorWidget> createState() => _TeamSelectorWidgetState();
+  State<JoinTeamNewWidget> createState() => _JoinTeamNewWidgetState();
 }
 
-class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
-  late TeamSelectorModel _model;
+class _JoinTeamNewWidgetState extends State<JoinTeamNewWidget> {
+  late JoinTeamNewModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => TeamSelectorModel());
+    _model = createModel(context, () => JoinTeamNewModel());
 
-    logFirebaseEvent('screen_view',
-        parameters: {'screen_name': 'TeamSelector'});
-    // On page load action.
-    SchedulerBinding.instance.addPostFrameCallback((_) async {
-      logFirebaseEvent('TEAM_SELECTOR_TeamSelector_ON_INIT_STATE');
-      logFirebaseEvent('TeamSelector_wait__delay');
-      await Future.delayed(
-        Duration(
-          milliseconds: 4000,
-        ),
-      );
-      logFirebaseEvent('TeamSelector_update_page_state');
-      _model.varPageLoaded = false;
-      safeSetState(() {});
-    });
-
+    logFirebaseEvent('screen_view', parameters: {'screen_name': 'JoinTeamNew'});
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
@@ -74,7 +48,7 @@ class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
       },
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: Colors.black,
+        backgroundColor: FlutterFlowTheme.of(context).coachSmartMidBlack,
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primaryText,
           automaticallyImplyLeading: false,
@@ -89,13 +63,13 @@ class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
               size: 30.0,
             ),
             onPressed: () async {
-              logFirebaseEvent('TEAM_SELECTOR_arrow_back_rounded_ICN_ON_');
+              logFirebaseEvent('JOIN_TEAM_NEW_arrow_back_rounded_ICN_ON_');
               logFirebaseEvent('IconButton_navigate_back');
-              context.safePop();
+              context.pop();
             },
           ),
           title: Text(
-            'Team Selector',
+            'Join Team',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:
@@ -125,7 +99,7 @@ class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
               width: double.infinity,
               height: double.infinity,
               url:
-                  'https://coach-smart-new-mpqa5l.web.app/webviews/team_selector.html?teamId=${widget.teamId?.toString()}&eventId=${widget.eventId?.toString()}&squadId=${widget.squadId?.toString()}&token=${widget.currentAuthToken}',
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/join-team.html?access_token=${currentJwtToken}',
               onPageReady: () async {},
               onComplete: () async {},
               onLogout: () async {},
