@@ -18,6 +18,8 @@ class EditUserModel extends FlutterFlowModel<EditUserWidget> {
 
   int? squadSelected;
 
+  bool dataReady = false;
+
   ///  State fields for stateful widgets in this page.
 
   // Stores action output result for [Backend Call - API (getEditUserData)] action in EditUser widget.

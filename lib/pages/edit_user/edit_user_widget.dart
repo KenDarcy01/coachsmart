@@ -55,6 +55,23 @@ class _EditUserWidgetState extends State<EditUserWidget> {
         logFirebaseEvent('EditUser_update_app_state');
         FFAppState().getEditUserData = GetEditUserDataStruct.maybeFromMap(
             (_model.apiUserData?.jsonBody ?? ''))!;
+        logFirebaseEvent('EditUser_set_form_field');
+        safeSetState(() {
+          _model.userFirstNameTextController?.text =
+              FFAppState().getEditUserData.user.firstName;
+        });
+        logFirebaseEvent('EditUser_set_form_field');
+        safeSetState(() {
+          _model.userLastNameTextController?.text =
+              FFAppState().getEditUserData.user.lastName;
+        });
+        logFirebaseEvent('EditUser_set_form_field');
+        safeSetState(() {
+          _model.userPhoneNumberTextController?.text =
+              FFAppState().getEditUserData.user.phoneNumber;
+        });
+        logFirebaseEvent('EditUser_update_page_state');
+        _model.dataReady = true;
         safeSetState(() {});
       }
     });
@@ -112,26 +129,30 @@ class _EditUserWidgetState extends State<EditUserWidget> {
               context.pop();
             },
           ),
-          title: Text(
-            valueOrDefault<String>(
-              FFAppState().getEditUserData.user.emailAddress,
-              'email_address',
-            ),
-            style: FlutterFlowTheme.of(context).headlineMedium.override(
-                  font: GoogleFonts.interTight(
+          title: Visibility(
+            visible: _model.dataReady == true,
+            child: Text(
+              valueOrDefault<String>(
+                FFAppState().getEditUserData.user.emailAddress,
+                'email_address',
+              ),
+              style: FlutterFlowTheme.of(context).headlineMedium.override(
+                    font: GoogleFonts.interTight(
+                      fontWeight: FlutterFlowTheme.of(context)
+                          .headlineMedium
+                          .fontWeight,
+                      fontStyle:
+                          FlutterFlowTheme.of(context).headlineMedium.fontStyle,
+                    ),
+                    color: FlutterFlowTheme.of(context).secondaryBackground,
+                    fontSize: 18.0,
+                    letterSpacing: 0.0,
                     fontWeight:
                         FlutterFlowTheme.of(context).headlineMedium.fontWeight,
                     fontStyle:
                         FlutterFlowTheme.of(context).headlineMedium.fontStyle,
                   ),
-                  color: FlutterFlowTheme.of(context).secondaryBackground,
-                  fontSize: 18.0,
-                  letterSpacing: 0.0,
-                  fontWeight:
-                      FlutterFlowTheme.of(context).headlineMedium.fontWeight,
-                  fontStyle:
-                      FlutterFlowTheme.of(context).headlineMedium.fontStyle,
-                ),
+            ),
           ),
           actions: [],
           centerTitle: true,
@@ -140,7 +161,7 @@ class _EditUserWidgetState extends State<EditUserWidget> {
         body: SafeArea(
           top: true,
           child: Visibility(
-            visible: FFAppState().getEditUserData != null,
+            visible: _model.dataReady == true,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.max,
@@ -1012,6 +1033,18 @@ class _EditUserWidgetState extends State<EditUserWidget> {
                                           'teamID': serializeParam(
                                             childMembersItem.teamId,
                                             ParamType.int,
+                                          ),
+                                          'memberFullName': serializeParam(
+                                            childMembersItem.fullName,
+                                            ParamType.String,
+                                          ),
+                                          'teamName': serializeParam(
+                                            childMembersItem.teamName,
+                                            ParamType.String,
+                                          ),
+                                          'uniqueMemberCode': serializeParam(
+                                            childMembersItem.uniqueMemberCode,
+                                            ParamType.String,
                                           ),
                                         }.withoutNulls,
                                       );

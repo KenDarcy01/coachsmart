@@ -163,6 +163,18 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   'teamID',
                   ParamType.int,
                 ),
+                memberFullName: params.getParam(
+                  'memberFullName',
+                  ParamType.String,
+                ),
+                teamName: params.getParam(
+                  'teamName',
+                  ParamType.String,
+                ),
+                uniqueMemberCode: params.getParam(
+                  'uniqueMemberCode',
+                  ParamType.String,
+                ),
               ),
             ),
             FFRoute(
