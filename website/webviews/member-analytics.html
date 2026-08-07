@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Member Analytics</title>
+<style>
+/* ── Tokens ─────────────────────────────────────────────────────────────── */
+:root {
+  --accent:      #87C232;
+  --accent-dim:  rgba(135,194,50,0.10);
+  --accent-mid:  rgba(135,194,50,0.30);
+
+  --attend:      #22C55E;
+  --attend-dim:  rgba(34,197,94,0.12);
+  --absent:      #EF4444;
+  --absent-dim:  rgba(239,68,68,0.10);
+  --unsure:      #F59E0B;
+  --unsure-dim:  rgba(245,158,11,0.10);
+  --noresponse:  #CBD5E1;
+
+  --bg:          #F4F5F8;
+  --surface:     #FFFFFF;
+  --surface-2:   #EDEEF2;
+  --border:      #E0E2EA;
+  --text:        #0D1117;
+  --text-2:      #3D4354;
+  --muted:       #7C849A;
+  --shadow:      0 1px 3px rgba(0,0,0,0.07), 0 1px 8px rgba(0,0,0,0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10131C;
+    --surface:   #191D29;
+    --surface-2: #222736;
+    --border:    #2A3044;
+    --text:      #EDF0F7;
+    --text-2:    #A8B0C8;
+    --muted:     #6470890;
+    --shadow:    0 1px 3px rgba(0,0,0,0.30), 0 1px 8px rgba(0,0,0,0.20);
+    --noresponse:#4B5563;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #10131C;
+  --surface:   #191D29;
+  --surface-2: #222736;
+  --border:    #2A3044;
+  --text:      #EDF0F7;
+  --text-2:    #A8B0C8;
+  --muted:     #647089;
+  --shadow:    0 1px 3px rgba(0,0,0,0.30), 0 1px 8px rgba(0,0,0,0.20);
+  --noresponse:#4B5563;
+}
+
+/* ── Reset + base ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── Loading / Error screens ─────────────────────────────────────────────── */
+#loadingScreen, #errorScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 12px;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.err-icon { font-size: 32px; }
+.err-msg  { color: var(--muted); font-size: 14px; max-width: 260px; }
+
+/* ── Main layout ─────────────────────────────────────────────────────────── */
+#mainScreen { display: none; padding: 16px 16px 40px; }
+
+/* ── Filter bar ──────────────────────────────────────────────────────────── */
+.filter-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.filter-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* Date slider */
+.date-range-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.date-range-label .from-label,
+.date-range-label .to-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.date-range-label .arrow {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.slider-wrap {
+  position: relative;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.slider-track {
+  position: absolute;
+  left: 0; right: 0;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  z-index: 0;
+}
+.slider-fill {
+  position: absolute;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+.slider-wrap input[type=range] {
+  position: absolute;
+  left: 0; right: 0; width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  z-index: 2;
+}
+.slider-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--surface);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.20);
+  cursor: pointer;
+  pointer-events: all;
+  transition: transform 0.1s;
+}
+.slider-wrap input[type=range]:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.slider-wrap input[type=range]::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--surface);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.20);
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.filter-divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* Type pills */
+.pills-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.pills-scroll::-webkit-scrollbar { display: none; }
+.pill {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.pill.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-mid);
+  color: var(--accent);
+}
+
+/* Team selector */
+.team-select {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237C849A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+/* ── Stats strip ─────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.stat-value.accent { color: var(--accent); }
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stat-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── Section header ──────────────────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.section-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Attendance chart ────────────────────────────────────────────────────── */
+.attend-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.attend-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.attend-row:last-child { margin-bottom: 0; }
+
+.attend-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.attend-type-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.attend-type-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.attend-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+  display: flex;
+}
+.attend-bar-seg {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+.attend-bar-seg.yes  { background: var(--attend); }
+.attend-bar-seg.no   { background: var(--absent); }
+.attend-bar-seg.other { background: var(--unsure); }
+.attend-bar-seg.none { background: var(--noresponse); }
+
+.attend-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.legend-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-dot.yes   { background: var(--attend); }
+.legend-dot.no    { background: var(--absent); }
+.legend-dot.other { background: var(--unsure); }
+.legend-dot.none  { background: var(--noresponse); }
+
+/* ── Match history ───────────────────────────────────────────────────────── */
+.match-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.match-date {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.match-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+.match-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.match-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.match-chip.squad {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-mid);
+}
+.match-chip.homeaway {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ── Event log ───────────────────────────────────────────────────────────── */
+.event-log-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.event-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.event-row:last-child { border-bottom: none; }
+
+.event-date-col {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  text-align: right;
+}
+.event-date-day  { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1; }
+
+.event-info { overflow: hidden; }
+.event-title-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.event-type-tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.response-chip {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.response-chip.yes   { background: var(--attend-dim); color: var(--attend); }
+.response-chip.no    { background: var(--absent-dim); color: var(--absent); }
+.response-chip.other { background: var(--unsure-dim); color: var(--unsure); }
+.response-chip.none  { color: var(--muted); background: var(--surface-2); }
+
+/* ── Empty states ────────────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  gap: 6px;
+}
+.empty-icon { font-size: 28px; opacity: 0.5; }
+
+.section-wrap { margin-bottom: 20px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+</div>
+
+<div id="errorScreen" style="display:none">
+  <div class="err-icon">⚠️</div>
+  <div id="errMsg" class="err-msg">Unable to load data</div>
+</div>
+
+<div id="mainScreen">
+
+  <!-- Filter bar -->
+  <div class="filter-card">
+
+    <div class="filter-label">Date range</div>
+    <div class="date-range-label">
+      <span class="from-label" id="fromLabel">–</span>
+      <span class="arrow">→</span>
+      <span class="to-label" id="toLabel">–</span>
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-track"></div>
+      <div class="slider-fill" id="sliderFill"></div>
+      <input type="range" id="sliderFrom" min="0" value="0">
+      <input type="range" id="sliderTo"   min="0" value="0">
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <div class="filter-label">Event type</div>
+    <div class="pills-scroll" id="typePills"></div>
+
+    <div id="teamFilterWrap" style="display:none">
+      <div class="filter-divider"></div>
+      <div class="filter-label">Team</div>
+      <select class="team-select" id="teamSelect"></select>
+    </div>
+
+  </div>
+
+  <!-- Stats strip -->
+  <div class="stats-grid">
+    <div class="stat-tile">
+      <div class="stat-value" id="statEvents">–</div>
+      <div class="stat-label">Events</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-value accent" id="statResponded">–</div>
+      <div class="stat-label">Responded</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-value accent" id="statAttending">–</div>
+      <div class="stat-label">Attending %</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-value" id="statMatches">–</div>
+      <div class="stat-label">Matches Selected</div>
+    </div>
+  </div>
+
+  <!-- Attendance breakdown -->
+  <div class="section-wrap">
+    <div class="section-header">
+      <span class="section-title">Attendance</span>
+    </div>
+    <div class="attend-card" id="attendChart"></div>
+  </div>
+
+  <!-- Match history -->
+  <div class="section-wrap" id="matchSection">
+    <div class="section-header">
+      <span class="section-title">Match Selections</span>
+      <span class="section-count" id="matchCount"></span>
+    </div>
+    <div id="matchList"></div>
+  </div>
+
+  <!-- Event log -->
+  <div class="section-wrap" id="eventSection">
+    <div class="section-header">
+      <span class="section-title">Event Log</span>
+      <span class="section-count" id="eventCount"></span>
+    </div>
+    <div class="event-log-card" id="eventLog"></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+
+/* ── Config ──────────────────────────────────────────────────────────────── */
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+
+const _p        = new URLSearchParams(window.location.search);
+const WV_MEMBER = _p.get('member_id');
+const WV_TOKEN  = _p.get('token') || _p.get('currentAuthToken') || _p.get('access_token');
+
+const sb = window.supabase.createClient(
+  SUPABASE_URL, SUPABASE_ANON_KEY,
+  WV_TOKEN
+    ? { global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } }, auth: { persistSession: false } }
+    : {}
+);
+
+/* ── Month helpers ───────────────────────────────────────────────────────── */
+const MONTHS_ARR = [];
+(function() {
+  const now   = new Date();
+  const start = new Date(now.getFullYear() - 2, 0, 1);
+  let d = new Date(start);
+  while (d <= now) {
+    MONTHS_ARR.push(new Date(d));
+    d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  }
+})();
+
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtMonth(d) { return `${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+function fmtDay(iso)  {
+  const d = new Date(iso);
+  return { day: d.getDate(), mon: SHORT_MONTHS[d.getMonth()], yr: d.getFullYear() };
+}
+
+/* ── State ───────────────────────────────────────────────────────────────── */
+let rawData   = null;
+let filtered  = { events: [], matchSelections: [] };
+let fState    = {
+  fromIdx:   0,
+  toIdx:     MONTHS_ARR.length - 1,
+  eventType: 'all',
+  teamId:    'all'
+};
+
+/* ── Response categoriser ────────────────────────────────────────────────── */
+function catResponse(rv) {
+  if (!rv) return 'none';
+  const l = rv.toLowerCase();
+  if (l.includes('yes') || l.includes('attend') || l === 'y') return 'yes';
+  if (l.includes('no') || l.includes('absent') || l.includes('not') || l === 'n') return 'no';
+  return 'other';
+}
+const CAT_LABEL = { yes: 'Attending', no: 'Not Attending', other: 'Unsure', none: '–' };
+
+/* ── Load ────────────────────────────────────────────────────────────────── */
+async function init() {
+  if (!WV_MEMBER) return showError('No member ID provided.');
+
+  const { data, error } = await sb.rpc('get_member_analytics', { p_member_id: parseInt(WV_MEMBER) });
+  if (error) return showError(`Failed to load data: ${error.message}`);
+  if (!data)  return showError('No data returned.');
+
+  rawData = data;
+
+  // Build slider default: from = Jan of current year
+  const now         = new Date();
+  const curYear     = now.getFullYear();
+  const janIdx      = MONTHS_ARR.findIndex(m => m.getFullYear() === curYear && m.getMonth() === 0);
+  fState.fromIdx    = janIdx >= 0 ? janIdx : 0;
+  fState.toIdx      = MONTHS_ARR.length - 1;
+
+  buildFilters();
+  applyAndRender();
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display    = 'block';
+}
+
+/* ── Filters ─────────────────────────────────────────────────────────────── */
+function buildFilters() {
+  const max = MONTHS_ARR.length - 1;
+
+  // Sliders
+  const sFrom = document.getElementById('sliderFrom');
+  const sTo   = document.getElementById('sliderTo');
+  sFrom.max   = max;
+  sTo.max     = max;
+  sFrom.value = fState.fromIdx;
+  sTo.value   = fState.toIdx;
+  updateSliderUI();
+
+  sFrom.addEventListener('input', () => {
+    if (+sFrom.value > +sTo.value) sFrom.value = sTo.value;
+    fState.fromIdx = +sFrom.value;
+    updateSliderUI();
+    applyAndRender();
+  });
+  sTo.addEventListener('input', () => {
+    if (+sTo.value < +sFrom.value) sTo.value = sFrom.value;
+    fState.toIdx = +sTo.value;
+    updateSliderUI();
+    applyAndRender();
+  });
+
+  // Type pills
+  const types = ['all', ...new Set((rawData.events || []).map(e => e.event_type).filter(Boolean))];
+  const pillsEl = document.getElementById('typePills');
+  types.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (t === 'all' ? ' active' : '');
+    btn.textContent = t === 'all' ? 'All' : t;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      fState.eventType = t;
+      applyAndRender();
+    });
+    pillsEl.appendChild(btn);
+  });
+
+  // Team selector
+  const teams = rawData.teams || [];
+  if (teams.length > 1) {
+    const wrap   = document.getElementById('teamFilterWrap');
+    const sel    = document.getElementById('teamSelect');
+    wrap.style.display = 'block';
+    sel.innerHTML = `<option value="all">All Teams</option>` +
+      teams.map(t => `<option value="${t.team_id}">${t.team_name}</option>`).join('');
+    sel.addEventListener('change', () => { fState.teamId = sel.value; applyAndRender(); });
+  }
+}
+
+function updateSliderUI() {
+  const max = MONTHS_ARR.length - 1;
+  const l   = (fState.fromIdx / max) * 100;
+  const r   = 100 - (fState.toIdx / max) * 100;
+  document.getElementById('sliderFill').style.left  = l + '%';
+  document.getElementById('sliderFill').style.right = r + '%';
+  document.getElementById('fromLabel').textContent  = fmtMonth(MONTHS_ARR[fState.fromIdx]);
+  document.getElementById('toLabel').textContent    = fmtMonth(MONTHS_ARR[fState.toIdx]);
+}
+
+function dateRange() {
+  const from = MONTHS_ARR[fState.fromIdx];
+  const toM  = MONTHS_ARR[fState.toIdx];
+  const to   = new Date(toM.getFullYear(), toM.getMonth() + 1, 0, 23, 59, 59); // last ms of month
+  return { from, to };
+}
+
+function applyAndRender() {
+  const { from, to } = dateRange();
+  filtered.events = (rawData.events || []).filter(e => {
+    if (!e.event_date_time) return false;
+    const d = new Date(e.event_date_time);
+    if (d < from || d > to) return false;
+    if (fState.eventType !== 'all' && e.event_type !== fState.eventType) return false;
+    if (fState.teamId !== 'all' && String(e.team_id) !== fState.teamId) return false;
+    return true;
+  });
+  filtered.matchSelections = (rawData.matchSelections || []).filter(m => {
+    if (!m.event_date_time) return false;
+    const d = new Date(m.event_date_time);
+    if (d < from || d > to) return false;
+    if (fState.teamId !== 'all' && String(m.team_id) !== fState.teamId) return false;
+    return true;
+  });
+  renderStats();
+  renderAttendance();
+  renderMatchHistory();
+  renderEventLog();
+}
+
+/* ── Stats strip ─────────────────────────────────────────────────────────── */
+function renderStats() {
+  const evs  = filtered.events;
+  const total = evs.length;
+  const responded  = evs.filter(e => e.response).length;
+  const attending  = evs.filter(e => catResponse(e.response) === 'yes').length;
+  const respPct    = total ? Math.round((responded / total) * 100) : 0;
+  const attendPct  = total ? Math.round((attending / total) * 100) : 0;
+
+  document.getElementById('statEvents').textContent    = total;
+  document.getElementById('statResponded').textContent = total ? `${respPct}%` : '–';
+  document.getElementById('statAttending').textContent = total ? `${attendPct}%` : '–';
+  document.getElementById('statMatches').textContent   = filtered.matchSelections.length;
+}
+
+/* ── Attendance chart ────────────────────────────────────────────────────── */
+function renderAttendance() {
+  const el = document.getElementById('attendChart');
+  const evs = filtered.events;
+  if (!evs.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>No events in this period</div>`;
+    return;
+  }
+
+  // Group by event type
+  const groups = {};
+  evs.forEach(e => {
+    const t = e.event_type || 'Other';
+    if (!groups[t]) groups[t] = { yes: 0, no: 0, other: 0, none: 0 };
+    groups[t][catResponse(e.response)]++;
+  });
+
+  let html = '';
+  Object.entries(groups).forEach(([type, counts]) => {
+    const total  = counts.yes + counts.no + counts.other + counts.none;
+    const pct    = v => total ? Math.round((v / total) * 100) : 0;
+    html += `
+      <div class="attend-row">
+        <div class="attend-row-header">
+          <span class="attend-type-name">${esc(type)}</span>
+          <span class="attend-type-count">${total} event${total !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="attend-bar">
+          <div class="attend-bar-seg yes"   style="width:${pct(counts.yes)}%"></div>
+          <div class="attend-bar-seg no"    style="width:${pct(counts.no)}%"></div>
+          <div class="attend-bar-seg other" style="width:${pct(counts.other)}%"></div>
+          <div class="attend-bar-seg none"  style="width:${pct(counts.none)}%"></div>
+        </div>
+        <div class="attend-legend">
+          ${counts.yes   ? `<span class="legend-item"><span class="legend-dot yes"></span>${counts.yes} attending</span>` : ''}
+          ${counts.no    ? `<span class="legend-item"><span class="legend-dot no"></span>${counts.no} not attending</span>` : ''}
+          ${counts.other ? `<span class="legend-item"><span class="legend-dot other"></span>${counts.other} unsure</span>` : ''}
+          ${counts.none  ? `<span class="legend-item"><span class="legend-dot none"></span>${counts.none} no response</span>` : ''}
+        </div>
+      </div>`;
+  });
+  el.innerHTML = html;
+}
+
+/* ── Match history ───────────────────────────────────────────────────────── */
+function renderMatchHistory() {
+  const el   = document.getElementById('matchList');
+  const cnt  = document.getElementById('matchCount');
+  const sels = filtered.matchSelections;
+  cnt.textContent = sels.length ? `${sels.length} match${sels.length !== 1 ? 'es' : ''}` : '';
+
+  if (!sels.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🏐</div>No match selections in this period</div>`;
+    return;
+  }
+
+  el.innerHTML = sels.map(m => {
+    const { day, mon, yr } = fmtDay(m.event_date_time);
+    const now  = new Date().getFullYear();
+    const yrTxt = yr !== now ? ` ${yr}` : '';
+    const title = m.opposition ? `vs ${esc(m.opposition)}` : esc(m.event_title || 'Match');
+    const ha    = m.home_away ? `<span class="match-chip homeaway">${esc(m.home_away)}</span>` : '';
+    const squad = m.squad_name ? `<span class="match-chip squad">${esc(m.squad_name)}</span>` : '';
+    const role  = m.role_name  ? `<span class="match-chip">${esc(m.role_name)}</span>`   : '';
+    const team  = m.team_name  ? `<span class="match-chip">${esc(m.team_name)}</span>`   : '';
+    return `
+      <div class="match-card">
+        <div class="match-date">${day} ${mon}${yrTxt}</div>
+        <div class="match-title">${title}</div>
+        <div class="match-meta">${ha}${squad}${role}${team}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ── Event log ───────────────────────────────────────────────────────────── */
+function renderEventLog() {
+  const el  = document.getElementById('eventLog');
+  const cnt = document.getElementById('eventCount');
+  const evs = filtered.events;
+  cnt.textContent = evs.length ? `${evs.length} event${evs.length !== 1 ? 's' : ''}` : '';
+
+  if (!evs.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>No events in this period</div>`;
+    return;
+  }
+
+  el.innerHTML = evs.map(e => {
+    const { day, mon, yr } = fmtDay(e.event_date_time);
+    const now   = new Date().getFullYear();
+    const yrTxt = yr !== now ? `'${String(yr).slice(2)}` : '';
+    const cat   = catResponse(e.response);
+    const label = e.response_label || (cat === 'none' ? '–' : CAT_LABEL[cat]);
+    return `
+      <div class="event-row">
+        <div class="event-date-col">
+          <div class="event-date-day">${day}</div>
+          <div>${mon}${yrTxt ? ' ' + yrTxt : ''}</div>
+        </div>
+        <div class="event-info">
+          <div class="event-title-text">${esc(e.event_title || '–')}</div>
+          <div class="event-type-tag">${esc(e.event_type || '')}</div>
+        </div>
+        <div class="response-chip ${cat}">${esc(label)}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showError(msg) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('errorScreen').style.display  = 'flex';
+  document.getElementById('errMsg').textContent         = msg;
+}
+
+/* ── Boot ────────────────────────────────────────────────────────────────── */
+init();
+</script>
+</body>
+</html>
