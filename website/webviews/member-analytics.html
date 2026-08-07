@@ -924,10 +924,18 @@ function renderAttendance() {
 
 /* ── Match history ───────────────────────────────────────────────────────── */
 function renderMatchHistory() {
+  const wrap = document.getElementById('matchSection');
   const el   = document.getElementById('matchList');
   const cnt  = document.getElementById('matchCount');
   const sels = filtered.matchSelections;
-  cnt.textContent = sels.length ? `${sels.length} match${sels.length !== 1 ? 'es' : ''}` : '';
+
+  const uniqueSquads = new Set(sels.map(m => m.squad_id).filter(Boolean));
+  if (!sels.length || uniqueSquads.size <= 1) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  cnt.textContent = `${sels.length} match${sels.length !== 1 ? 'es' : ''}`;
 
   if (!sels.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">🏐</div>No match selections in this period</div>`;
