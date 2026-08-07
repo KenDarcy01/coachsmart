@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     /* ── Tokens ─────────────────────────────────────────────────────────────── */
     :root {
@@ -386,12 +387,12 @@ const C_MUTE  = '#64748b';
 const C_AMBER = '#f59e0b';
 
 // Tree SVG constants
-const T_W       = 320;   // viewBox width
-const T_TRUNK   = 160;   // trunk x
+const T_W       = 440;   // viewBox width
+const T_TRUNK   = 220;   // trunk x (centred)
 const T_PAD_V   = 36;    // top/bottom padding
-const T_BRANCH  = 80;    // branch reach from trunk (each side)
+const T_BRANCH  = 110;   // branch reach from trunk (each side)
 const T_DOT_R   = 4;     // dot radius at branch tip
-const T_MIN_GAP = 22;    // minimum vertical gap between events (same side)
+const T_MIN_GAP = 32;    // minimum vertical gap — enough for 2-line event labels
 const T_MIN_H   = 120;   // minimum tree height (no events)
 
 // ── State ─────────────────────────────────────────────────────────────────
@@ -684,21 +685,6 @@ function updateLiveTimerDisplay() {
   }
 }
 
-function svgToCanvas(svgStr, w, h) {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#111418';
-    ctx.fillRect(0, 0, w, h);
-    const img = new Image();
-    const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
-    img.onload  = () => { ctx.drawImage(img, 0, 0, w, h); resolve(canvas); };
-    img.onerror = reject;
-    img.src = dataUrl;
-  });
-}
-
 async function exportPDF() {
   const btn = document.getElementById('exportPdfBtn');
   const origText = btn.textContent;
@@ -706,107 +692,38 @@ async function exportPDF() {
   btn.disabled = true;
 
   try {
-    // — Collect all visible data from the DOM —
-    const eventName = (document.getElementById('eventLabel')?.textContent  || 'Match').trim();
-    const oppName   = (document.getElementById('oppName')?.textContent     || 'Opp').trim();
-    const usGAA     = (document.getElementById('usGAA')?.textContent       || '0-00').trim();
-    const oppGAA    = (document.getElementById('oppGAA')?.textContent      || '0-00').trim();
-    const usPts     = (document.getElementById('usPts')?.textContent       || '').trim();
-    const oppPts    = (document.getElementById('oppPts')?.textContent      || '').trim();
-    const leadText  = (document.getElementById('scoreLead')?.textContent   || '').trim();
-    const isFinal   = !!(chartState?.isFinished);
+    const eventName = (document.getElementById('eventLabel')?.textContent || 'Match').trim();
+    const oppName   = (document.getElementById('oppName')?.textContent    || 'Opp').trim();
+    const usGAA     = (document.getElementById('usGAA')?.textContent      || '0-00').trim();
+    const oppGAA    = (document.getElementById('oppGAA')?.textContent     || '0-00').trim();
     const dateStr   = new Date().toISOString().slice(0, 10);
     const filename  = [eventName, 'vs', oppName, usGAA, oppGAA, dateStr]
       .join('_').replace(/[^a-zA-Z0-9_\-]/g, '_') + '.pdf';
 
-    // — Render both SVGs to canvas images —
-    const chartCanvas = await svgToCanvas(
-      new XMLSerializer().serializeToString(document.getElementById('chart')), 1000, 600);
+    const target = document.getElementById('chartScreen');
+    btn.style.visibility = 'hidden';
 
-    let treeCanvas = null, treeAspect = 1;
-    const treeSvgEl = document.querySelector('#treeWrapper svg');
-    if (treeSvgEl) {
-      const vb = treeSvgEl.viewBox.baseVal;
-      treeAspect = (vb.height && vb.width) ? vb.height / vb.width : 1.5;
-      treeCanvas = await svgToCanvas(
-        new XMLSerializer().serializeToString(treeSvgEl), 800, Math.max(Math.round(800 * treeAspect), 200));
-    }
+    const canvas = await html2canvas(target, {
+      backgroundColor: '#111418',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      width:        target.scrollWidth,
+      height:       target.scrollHeight,
+      windowWidth:  target.scrollWidth,
+      windowHeight: target.scrollHeight,
+    });
 
-    // — Build PDF —
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    btn.style.visibility = '';
+
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: isMobile ? 'portrait' : 'landscape', unit: 'mm', format: 'a4' });
-    const pw  = doc.internal.pageSize.getWidth();
-    const ph  = doc.internal.pageSize.getHeight();
-    const pad = 8;
+    const pdfW = 210;
+    const pdfH = pdfW * canvas.height / canvas.width;
+    const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfW, pdfH] });
+    doc.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pdfW, pdfH);
 
-    const fillBg = () => { doc.setFillColor(17, 20, 24); doc.rect(0, 0, pw, ph, 'F'); };
-    fillBg();
-
-    let y = 12;
-
-    // Event name + status
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(isMobile ? 13 : 11);
-    doc.setTextColor(135, 194, 50);
-    doc.text(eventName + (isFinal ? ' · Final' : ' · Live'), pw / 2, y, { align: 'center' });
-    y += isMobile ? 8 : 7;
-
-    // Score row — Us (white) / vs (muted) / Opp (red)
-    const sf = isMobile ? 19 : 16;
-    doc.setFontSize(sf);
-    doc.setTextColor(226, 232, 240);
-    doc.text(`Us  ${usGAA} ${usPts}`, pw * 0.25, y, { align: 'center' });
-    doc.setFontSize(isMobile ? 10 : 9);
-    doc.setTextColor(100, 116, 139);
-    doc.text('vs', pw * 0.5, y, { align: 'center' });
-    doc.setFontSize(sf);
-    doc.setTextColor(214, 59, 59);
-    doc.text(`${oppName}  ${oppGAA} ${oppPts}`, pw * 0.75, y, { align: 'center' });
-    y += isMobile ? 6 : 5;
-
-    // Score lead line
-    if (leadText) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(isMobile ? 9 : 8);
-      const lower = leadText.toLowerCase();
-      const [r, g, b] = lower.includes('win') || lower.includes('leading') ? [135, 194, 50]
-                       : lower.includes('loss') || lower.includes('trailing') ? [214, 59, 59]
-                       : [100, 116, 139];
-      doc.setTextColor(r, g, b);
-      doc.text(leadText, pw / 2, y, { align: 'center' });
-      y += isMobile ? 5 : 4;
-    }
-    y += 2;
-
-    // Chart
-    const chartW = pw - pad * 2;
-    const chartH = chartW * 0.6;
-    doc.addImage(chartCanvas.toDataURL('image/png'), 'PNG', pad, y, chartW, chartH);
-    y += chartH + 3;
-
-    // Legend
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(isMobile ? 8 : 7.5);
-    doc.setTextColor(135, 194, 50);
-    doc.text('— Us', pw * 0.35, y, { align: 'center' });
-    doc.setTextColor(214, 59, 59);
-    doc.text(`— ${oppName}`, pw * 0.65, y, { align: 'center' });
-    y += isMobile ? 5 : 4;
-
-    // Scoring timeline tree
-    if (treeCanvas) {
-      const treeW = pw - pad * 2;
-      const treeH = treeW * treeAspect;
-      if (y + treeH > ph - 6) {
-        doc.addPage();
-        fillBg();
-        y = 10;
-      }
-      doc.addImage(treeCanvas.toDataURL('image/png'), 'PNG', pad, y, treeW, Math.min(treeH, ph - y - 6));
-    }
-
-    // — Share on mobile, download on web —
     const pdfBlob = doc.output('blob');
     const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
@@ -826,6 +743,7 @@ async function exportPDF() {
   } finally {
     btn.textContent = origText;
     btn.disabled = false;
+    btn.style.visibility = '';
   }
 }
 
@@ -881,21 +799,11 @@ function fmtEventTime(absSec, durationSecs, hasH2) {
   return `H${half} ${Math.round(relSec / 60)}'`;
 }
 
-function fmtTreeTime(ev, durationSecs, hasH2, timeScale) {
-  if (timeScale.unit === 'seconds') {
-    if (hasH2) {
-      const half = ev.absSec < durationSecs ? 1 : 2;
-      const relSec = half === 1 ? ev.absSec : ev.absSec - durationSecs;
-      return `H${half} ${Math.round(relSec)}s`;
-    }
-    return `${Math.round(ev.absSec)}s`;
-  }
-  if (hasH2) {
-    const half = ev.absSec < durationSecs ? 1 : 2;
-    const relSec = half === 1 ? ev.absSec : ev.absSec - durationSecs;
-    return `H${half} ${Math.floor(relSec / 60)}'`;
-  }
-  return `${Math.floor(ev.absSec / 60)}'`;
+function fmtTreeTime(ev, durationSecs) {
+  const relSec = ev.absSec < durationSecs ? ev.absSec : ev.absSec - durationSecs;
+  const m = Math.floor(relSec / 60);
+  const s = Math.floor(relSec % 60);
+  return s > 0 ? `${m}'${String(s).padStart(2, '0')}"` : `${m}'`;
 }
 
 // ── processData ───────────────────────────────────────────────────────────
@@ -1229,11 +1137,11 @@ function renderTree() {
   svg += `<text x="${T_TRUNK}" y="${T_PAD_V - 12}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">${finishLabel}</text>`;
   svg += `<text x="${T_TRUNK}" y="${finalH - T_PAD_V + 22}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">START</text>`;
 
-  // Halftime tick on trunk
+  // Halftime line — full width, prominent
   if (showHT) {
     const htY = f(T_PAD_V + (1 - durationSecs / maxSecs) * USABLE);
-    svg += `<line x1="${T_TRUNK - 8}" y1="${htY}" x2="${T_TRUNK + 8}" y2="${htY}" stroke="${C_AMBER}" stroke-width="1.5"/>`;
-    svg += `<text x="${T_TRUNK + 12}" y="${parseFloat(htY) + 4}" text-anchor="start" fill="${C_AMBER}" font-size="8" font-weight="600" font-family="${FONT}">HT</text>`;
+    svg += `<line x1="0" y1="${htY}" x2="${T_W}" y2="${htY}" stroke="${C_AMBER}" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.7"/>`;
+    svg += `<text x="${T_TRUNK}" y="${parseFloat(htY) - 4}" text-anchor="middle" fill="${C_AMBER}" font-size="9" font-weight="700" font-family="${FONT}" letter-spacing="0.5">HALF TIME</text>`;
   }
 
   // "Now" marker on trunk — only in live mode; clamp to top during injury time
@@ -1247,24 +1155,40 @@ function renderTree() {
   // Draw events
   for (const ev of positioned) {
     const y  = f(ev.y);
+    const yN = parseFloat(y);
     const c  = ev.side === 'us' ? C_US : C_OPP;
-    const label = ev.abbreviated_name || (ev.isGoal ? 'G' : 'P');
 
-    const time = fmtTreeTime(ev, durationSecs, hasH2, timeScale);
+    const scoreType  = ev.val >= 3 ? 'Goal' : ev.val === 2 ? '2 Pointer' : 'Point';
+    const playerName = ev.abbreviated_name || '';
+    const lead       = ev.usCum - ev.oppCum;
+    const leadStr    = lead > 0 ? `+${lead}` : lead < 0 ? `${lead}` : '=';
+    const leadColor  = lead > 0 ? C_US : lead < 0 ? C_OPP : C_MUTE;
+    const time       = fmtTreeTime(ev, durationSecs);
+
     if (ev.side === 'us') {
       // Branch goes left
       const dotX = T_TRUNK - T_BRANCH;
       svg += `<line x1="${T_TRUNK}" y1="${y}" x2="${dotX}" y2="${y}" stroke="${c}" stroke-width="1.5" opacity="0.7"/>`;
       svg += `<circle cx="${T_TRUNK}" cy="${y}" r="3" fill="${C_TRUNK}" stroke="${c}" stroke-width="1.5"/>`;
       svg += `<circle cx="${dotX}" cy="${y}" r="${T_DOT_R}" fill="${c}"/>`;
-      svg += `<text x="${dotX - 8}" y="${parseFloat(y) + 4}" text-anchor="end" fill="${c}" font-size="10" font-weight="600" font-family="${FONT}">(${time}) ${label}</text>`;
+      // Score type at tip
+      svg += `<text x="${dotX - 8}" y="${yN + 3}" text-anchor="end" fill="${c}" font-size="10" font-weight="700" font-family="${FONT}">${scoreType}</text>`;
+      // Lead indicator below score type
+      svg += `<text x="${dotX - 8}" y="${yN + 14}" text-anchor="end" fill="${leadColor}" font-size="8" font-weight="600" font-family="${FONT}">${leadStr}${playerName ? '  ' + playerName : ''}</text>`;
+      // Time on trunk, right side
+      svg += `<text x="${T_TRUNK + 5}" y="${yN + 4}" text-anchor="start" fill="${C_MUTE}" font-size="8" font-family="${FONT}">${time}</text>`;
     } else {
       // Branch goes right
       const dotX = T_TRUNK + T_BRANCH;
       svg += `<line x1="${T_TRUNK}" y1="${y}" x2="${dotX}" y2="${y}" stroke="${c}" stroke-width="1.5" opacity="0.7"/>`;
       svg += `<circle cx="${T_TRUNK}" cy="${y}" r="3" fill="${C_TRUNK}" stroke="${c}" stroke-width="1.5"/>`;
       svg += `<circle cx="${dotX}" cy="${y}" r="${T_DOT_R}" fill="${c}"/>`;
-      svg += `<text x="${dotX + 8}" y="${parseFloat(y) + 4}" text-anchor="start" fill="${c}" font-size="10" font-weight="600" font-family="${FONT}">${label} (${time})</text>`;
+      // Score type at tip
+      svg += `<text x="${dotX + 8}" y="${yN + 3}" text-anchor="start" fill="${c}" font-size="10" font-weight="700" font-family="${FONT}">${scoreType}</text>`;
+      // Lead indicator below score type
+      svg += `<text x="${dotX + 8}" y="${yN + 14}" text-anchor="start" fill="${leadColor}" font-size="8" font-weight="600" font-family="${FONT}">${playerName ? playerName + '  ' : ''}${leadStr}</text>`;
+      // Time on trunk, left side
+      svg += `<text x="${T_TRUNK - 5}" y="${yN + 4}" text-anchor="end" fill="${C_MUTE}" font-size="8" font-family="${FONT}">${time}</text>`;
     }
   }
 
