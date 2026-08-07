@@ -889,8 +889,8 @@ function processData() {
   );
   const maxPts  = Math.max(usRunning, oppRunning, 4) + 3;
 
-  // Show HT divider whenever the axis spans more than one half (live: always; finalised: only if H2 played)
-  const showHT = maxSecs > durationSecs;
+  // Show HT divider only when H2 has actually started — not during H1 injury time
+  const showHT = hasH2;
 
   chartState = {
     sortedEvents: enrichedEvents,
