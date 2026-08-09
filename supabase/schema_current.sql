@@ -6878,8 +6878,7 @@ BEGIN
         '<td style="background:#2c313a;border-radius:8px;padding:16px 18px;border:1px solid #3a3f4b;">' ||
         '<p style="margin:0 0 4px 0;font-size:13px;font-weight:700;color:#87C232;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.5px;">ACTION REQUIRED</p>' ||
         '<p style="margin:0;font-size:13px;color:#a3a3a3;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">' ||
-        'Please open the <strong style="color:#e7ebee;">CoachSmart app</strong> on your device to confirm attendance. ' ||
-        'Your team manager is waiting on your response.</p>' ||
+        'Please open the <strong style="color:#e7ebee;">CoachSmart app</strong> on your device to confirm attendance.</p>' ||
         '</td></tr></table>' ||
 
         '</td></tr>' ||
