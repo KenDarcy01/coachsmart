@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Notifications</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0f1215;
+  --surface:   #161b22;
+  --border:    #232830;
+  --green:     #87C232;
+  --green-dim: rgba(135,194,50,0.10);
+  --text:      #e8ecf0;
+  --sub:       #8891a0;
+  --muted:     #4d5566;
+  --unread-bg: #181e2b;
+  --read-bg:   #131720;
+  --chip-bg:   #232830;
+  --tap-bg:    #1d2438;
+}
+
+html { height: 100%; background: var(--bg); }
+
+body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.hdr {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(15,18,21,0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  padding: 15px 18px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.hdr-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.badge {
+  background: var(--green);
+  color: #0d1108;
+  font-size: 11px;
+  font-weight: 800;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.badge.show { display: flex; }
+
+.mark-all {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px 0;
+  display: none;
+  opacity: 1;
+  transition: opacity .15s;
+  letter-spacing: -0.1px;
+}
+.mark-all.show { display: block; }
+.mark-all:active { opacity: .5; }
+
+/* ── Section header ──────────────────────────────────────────── */
+.section-hdr {
+  padding: 20px 18px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  user-select: none;
+}
+.section-hdr:first-child { padding-top: 14px; }
+
+/* ── Notification row ────────────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  padding: 14px 18px 14px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--read-bg);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s;
+  position: relative;
+}
+.row.unread {
+  background: var(--unread-bg);
+}
+.row.unread::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--green);
+  border-radius: 0 2px 2px 0;
+}
+.row:active { background: var(--tap-bg); }
+
+/* dot */
+.dot-col {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  display: none;
+  flex-shrink: 0;
+}
+.row.unread .dot { display: block; }
+
+/* content */
+.content {}
+
+.row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.ntitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sub);
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+.row.unread .ntitle {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ntime {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nbody {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 9px;
+}
+.row.unread .nbody { color: var(--sub); }
+
+.nfooter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nteam {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green-dim);
+  padding: 2px 8px;
+  border-radius: 5px;
+  letter-spacing: 0.1px;
+  border: 1px solid rgba(135,194,50,0.18);
+}
+
+/* ── States ──────────────────────────────────────────────────── */
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  gap: 10px;
+  text-align: center;
+  padding: 48px 24px;
+}
+.state-icon { font-size: 44px; line-height: 1; opacity: .3; }
+.state-h { font-size: 16px; font-weight: 600; color: var(--text); }
+.state-p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ── Skeleton ────────────────────────────────────────────────── */
+.sk-row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border);
+  gap: 0;
+}
+.sk-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; }
+.sk {
+  background: linear-gradient(90deg, #1e232e 25%, #262c38 50%, #1e232e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.sk-a { height: 13px; width: 65%; margin-bottom: 8px; }
+.sk-b { height: 12px; width: 88%; margin-bottom: 5px; }
+.sk-c { height: 12px; width: 50%; margin-bottom: 9px; }
+.sk-d { height: 17px; width: 90px; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-title">Notifications</span>
+    <span class="badge" id="badge"></span>
+  </div>
+  <button class="mark-all" id="markAllBtn" onclick="onMarkAll()">Mark all read</button>
+</div>
+
+<div id="feed"></div>
+
+<script>
+/* ── Config ───────────────────────────────────────────────── */
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+
+const _p       = new URLSearchParams(location.search);
+const WV_USER  = _p.get('user_id');
+const WV_TOKEN = _p.get('token') || _p.get('currentAuthToken') || _p.get('access_token');
+
+let notifications = [];
+
+/* ── Supabase helper ──────────────────────────────────────── */
+async function rpc(fn, body) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${WV_TOKEN || SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+/* ── Date helpers ─────────────────────────────────────────── */
+const MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+
+function parseNotifDate(str) {
+  // "Sat, 09 Aug 2026 at 10:30 AM"
+  const m = (str||'').match(/(\d+)\s+(\w{3})\s+(\d{4})\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+  if (!m) return new Date();
+  let [, day, mon, yr, hr, min, ampm] = m;
+  let h = parseInt(hr);
+  if (ampm.toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (ampm.toUpperCase() === 'AM' && h === 12) h = 0;
+  return new Date(parseInt(yr), MONTHS[mon] ?? 0, parseInt(day), h, parseInt(min));
+}
+
+function dateGroup(createdAt) {
+  const d   = parseNotifDate(createdAt);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff  = Math.floor((today - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+  if (diff <= 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  if (diff <= 7)  return 'This week';
+  return 'Earlier';
+}
+
+/* ── Escape helper ────────────────────────────────────────── */
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Update header state ──────────────────────────────────── */
+function updateHeader() {
+  const count = notifications.filter(n => !n.is_read).length;
+  const badge = document.getElementById('badge');
+  const btn   = document.getElementById('markAllBtn');
+  badge.textContent = count;
+  badge.classList.toggle('show', count > 0);
+  btn.classList.toggle('show', count > 0);
+}
+
+/* ── Render ───────────────────────────────────────────────── */
+function render() {
+  updateHeader();
+
+  if (!notifications.length) {
+    document.getElementById('feed').innerHTML = `
+      <div class="state">
+        <div class="state-icon">🔔</div>
+        <div class="state-h">You're all caught up</div>
+        <div class="state-p">No notifications yet</div>
+      </div>`;
+    return;
+  }
+
+  const GROUP_ORDER = ['Today','Yesterday','This week','Earlier'];
+  const groups = {};
+  notifications.forEach(n => {
+    const g = dateGroup(n.created_at);
+    (groups[g] = groups[g] || []).push(n);
+  });
+
+  let html = '';
+  GROUP_ORDER.forEach(g => {
+    if (!groups[g]) return;
+    html += `<div class="section-hdr">${g}</div>`;
+    groups[g].forEach(n => {
+      const cls = n.is_read ? 'row' : 'row unread';
+      html += `
+        <div class="${cls}" id="row-${n.id}" onclick="onTap(${n.id},${JSON.stringify(n.link_page||'')})">
+          <div class="dot-col"><div class="dot"></div></div>
+          <div class="content">
+            <div class="row-top">
+              <div class="ntitle">${esc(n.app_title)}</div>
+              <div class="ntime">${esc(n.time_label)}</div>
+            </div>
+            ${n.app_body ? `<div class="nbody">${esc(n.app_body)}</div>` : ''}
+            <div class="nfooter">
+              ${n.team_name ? `<span class="nteam">${esc(n.team_name)}</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+    });
+  });
+
+  document.getElementById('feed').innerHTML = html;
+}
+
+/* ── Tap ──────────────────────────────────────────────────── */
+async function onTap(id, linkPage) {
+  const n   = notifications.find(x => x.id === id);
+  const row = document.getElementById(`row-${id}`);
+
+  if (n && !n.is_read) {
+    n.is_read = true;
+    if (row) row.classList.remove('unread');
+    updateHeader();
+    rpc('mark_notification_read', { p_notification_id: id, p_user_id: WV_USER }).catch(() => {});
+  }
+
+  if (linkPage) {
+    // postMessage so FlutterFlow can handle navigation
+    try { window.parent.postMessage(JSON.stringify({ type: 'navigate', url: linkPage }), '*'); } catch(_) {}
+    // Also set location — Flutter's WebView navigationDelegate intercepts coachsmartv2:// scheme
+    setTimeout(() => { window.location.href = linkPage; }, 80);
+  }
+}
+
+/* ── Mark all ─────────────────────────────────────────────── */
+async function onMarkAll() {
+  notifications.forEach(n => { n.is_read = true; });
+  document.querySelectorAll('.row.unread').forEach(el => el.classList.remove('unread'));
+  updateHeader();
+  rpc('mark_all_notifications_read', { p_user_id: WV_USER }).catch(() => {});
+}
+
+/* ── Skeleton ─────────────────────────────────────────────── */
+function showSkeleton() {
+  let h = '';
+  for (let i = 0; i < 6; i++) {
+    h += `<div class="sk-row">
+      <div class="dot-col"><div class="sk sk-dot"></div></div>
+      <div>
+        <div class="sk sk-a"></div>
+        <div class="sk sk-b"></div>
+        <div class="sk sk-c"></div>
+        <div class="sk sk-d"></div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('feed').innerHTML = h;
+}
+
+function showError(msg) {
+  document.getElementById('feed').innerHTML = `
+    <div class="state">
+      <div class="state-icon">⚠️</div>
+      <div class="state-h">Couldn't load notifications</div>
+      <div class="state-p">${esc(msg)}</div>
+    </div>`;
+}
+
+/* ── Init ─────────────────────────────────────────────────── */
+async function init() {
+  if (!WV_USER) { showError('No user ID provided'); return; }
+  showSkeleton();
+  try {
+    const data = await rpc('get_user_notifications', { p_user_id: WV_USER });
+    notifications = (Array.isArray(data) ? data : []).slice(0, 100);
+    render();
+  } catch (e) {
+    showError(e.message || 'Unknown error');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
