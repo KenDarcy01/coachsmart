@@ -563,7 +563,7 @@ async function init() {
     if (at) {
         const payload = decodeJwt(at);
         if (payload?.sub) {
-            session = { user: { id: payload.sub }, access_token: at };
+            session = { user: { id: payload.sub, email: payload.email || '' }, access_token: at };
         }
     }
 
@@ -760,14 +760,21 @@ async function saveDetails() {
     setLoading(btn, true, 'Saving…');
     err.textContent = '';
 
+    const upsertPayload = {
+        user_id:       session.user.id,
+        first_name:    firstName,
+        last_name:     lastName,
+        email_address: session.user.email || ''
+    };
+
     const { error } = await sb
         .from('users')
-        .upsert({ user_id: session.user.id, first_name: firstName, last_name: lastName },
-                { onConflict: 'user_id' });
+        .upsert(upsertPayload, { onConflict: 'user_id' });
 
     setLoading(btn, false, 'Continue');
 
     if (error) {
+        console.error('saveDetails upsert error:', error);
         err.textContent = 'Could not save your details. Please try again.';
         return;
     }
