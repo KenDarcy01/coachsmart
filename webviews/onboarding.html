@@ -762,8 +762,8 @@ async function saveDetails() {
 
     const { error } = await sb
         .from('users')
-        .upsert({ user_id: session.user.id, first_name: firstName, last_name: lastName })
-        .eq('user_id', session.user.id);
+        .upsert({ user_id: session.user.id, first_name: firstName, last_name: lastName },
+                { onConflict: 'user_id' });
 
     setLoading(btn, false, 'Continue');
 
