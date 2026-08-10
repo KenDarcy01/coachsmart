@@ -1,0 +1,74 @@
+<!-- Subject: Your CoachSmart sign-in link -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Your CoachSmart sign-in link</title>
+</head>
+<body style="margin:0;padding:0;background-color:#111418;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;background-color:#111418;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#212529;border-radius:16px;overflow:hidden;border:1px solid #3a3f4b;">
+
+      <!-- Header -->
+      <tr>
+        <td style="background-color:#1E222B;padding:28px 24px;text-align:center;border-bottom:3px solid #87C232;">
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>
+            <td style="padding-right:16px;vertical-align:middle;">
+              <img src="https://gyfporsbdftvtakdvukt.supabase.co/storage/v1/object/sign/coachsmartimages/CoachSmart%20Logo%20Transparent.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OTA4NmRkYy01MWQ3LTQ1NzUtYWYwMC1mZjQxYmMyNDU2YWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb2FjaHNtYXJ0aW1hZ2VzL0NvYWNoU21hcnQgTG9nbyBUcmFuc3BhcmVudC5wbmciLCJpYXQiOjE3NzQ2MDYzOTksImV4cCI6MjYzODYwNjM5OX0.20yMzSYnG08kYjMK6cmGMvwA6VPGvm9_yHG-CmEfSIs"
+                   alt="CoachSmart" width="72" style="display:block;height:auto;border:0;">
+            </td>
+            <td style="vertical-align:middle;text-align:left;">
+              <p style="margin:0;font-size:26px;font-weight:900;letter-spacing:2.5px;line-height:1;font-family:Arial,Helvetica,sans-serif;">
+                <span style="color:#c8ccd0;">COACH</span><span style="color:#87C232;">SMART</span></p>
+              <p style="margin:5px 0 0;font-size:9px;font-weight:700;letter-spacing:4px;color:#87C232;font-family:Arial,Helvetica,sans-serif;">
+                COACHING&nbsp;&nbsp;MADE&nbsp;&nbsp;SIMPLE</p>
+            </td>
+          </tr></table>
+        </td>
+      </tr>
+
+      <!-- Body -->
+      <tr>
+        <td style="padding:36px 32px 28px;">
+          <p style="margin:0 0 10px;font-size:22px;font-weight:700;color:#e7ebee;line-height:1.25;font-family:Arial,Helvetica,sans-serif;">
+            Your sign-in link
+          </p>
+          <p style="margin:0 0 28px;font-size:14px;color:#a3a3a3;line-height:1.65;font-family:Arial,Helvetica,sans-serif;">
+            Click the button below to sign in to your CoachSmart account. This link works once and expires shortly.
+          </p>
+
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="border-radius:8px;background-color:#87C232;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#0d1108;text-decoration:none;font-family:Arial,Helvetica,sans-serif;border-radius:8px;">
+                Sign In to CoachSmart
+              </a>
+            </td>
+          </tr></table>
+
+          <p style="margin:24px 0 0;font-size:12px;color:#5a6270;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
+            Button not working? Copy and paste this link into your browser:<br>
+            <a href="{{ .ConfirmationURL }}" style="color:#87C232;word-break:break-all;">{{ .ConfirmationURL }}</a>
+          </p>
+          <p style="margin:14px 0 0;font-size:12px;color:#454d5a;font-family:Arial,Helvetica,sans-serif;line-height:1.5;">
+            This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
+          </p>
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="padding:16px 28px;border-top:1px solid #3a3f4b;text-align:center;">
+          <p style="margin:0 0 4px;font-size:11px;color:#555;letter-spacing:1.5px;font-family:Arial,Helvetica,sans-serif;">COACHSMART · COACHING MADE SIMPLE</p>
+          <p style="margin:0;font-size:11px;color:#444;font-family:Arial,Helvetica,sans-serif;">You received this because a sign-in was requested for this email address.</p>
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>
