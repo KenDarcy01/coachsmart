@@ -767,9 +767,12 @@ async function saveDetails() {
         email_address: session.user.email || ''
     };
 
+    // Conflict on email_address so that if the old public.users row still exists
+    // (from a deleted-and-recreated auth account) we update it in place rather
+    // than trying to INSERT a duplicate email, which would 409.
     const { error } = await sb
         .from('users')
-        .upsert(upsertPayload, { onConflict: 'user_id' });
+        .upsert(upsertPayload, { onConflict: 'email_address' });
 
     setLoading(btn, false, 'Continue');
 
