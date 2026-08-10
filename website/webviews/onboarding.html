@@ -997,6 +997,14 @@ async function updateOnboardingStatus(status) {
     } catch(e) {}
 }
 
+// ── Return to app ─────────────────────────────────────────────────────
+function returnToApp() {
+    // Signal FlutterFlow's onComplete handler via postMessage
+    try { window.parent.postMessage('complete', '*'); } catch(_) {}
+    // Fallback: deep link triggers Flutter's WebView navigationDelegate
+    try { window.location.href = 'coachsmartv2://coachsmartv2.com/home'; } catch(_) {}
+}
+
 // ── Navigation ────────────────────────────────────────────────────────
 function showScreen(id, push = true) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
