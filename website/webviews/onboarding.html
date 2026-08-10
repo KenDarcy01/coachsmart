@@ -551,7 +551,7 @@ function decodeJwt(token) {
 // ── Init ──────────────────────────────────────────────────────────────
 async function init() {
     const params = new URLSearchParams(window.location.search);
-    const at = params.get('access_token');
+    const at = params.get('access_token') || params.get('token') || params.get('currentAuthToken');
 
     // If FlutterFlow passes an access token, inject it as the Authorization
     // header so every Supabase call uses it — no refresh token needed.
@@ -586,7 +586,14 @@ async function loadUser() {
         .eq('user_id', session.user.id)
         .maybeSingle();
 
-    if (error || !data) { showScreen('screen-login'); return; }
+    if (error) { showScreen('screen-login'); return; }
+
+    // No public.users record yet — new user, go straight to name entry
+    if (!data) {
+        currentUser = { user_id: session.user.id, first_name: '', last_name: '' };
+        showScreen('screen-details');
+        return;
+    }
 
     currentUser = data;
 
@@ -755,7 +762,7 @@ async function saveDetails() {
 
     const { error } = await sb
         .from('users')
-        .update({ first_name: firstName, last_name: lastName })
+        .upsert({ user_id: session.user.id, first_name: firstName, last_name: lastName })
         .eq('user_id', session.user.id);
 
     setLoading(btn, false, 'Continue');
