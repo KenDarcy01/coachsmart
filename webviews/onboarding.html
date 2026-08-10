@@ -760,24 +760,17 @@ async function saveDetails() {
     setLoading(btn, true, 'Saving…');
     err.textContent = '';
 
-    const upsertPayload = {
-        user_id:       session.user.id,
-        first_name:    firstName,
-        last_name:     lastName,
-        email_address: session.user.email || ''
-    };
-
-    // Conflict on email_address so that if the old public.users row still exists
-    // (from a deleted-and-recreated auth account) we update it in place rather
-    // than trying to INSERT a duplicate email, which would 409.
-    const { error } = await sb
-        .from('users')
-        .upsert(upsertPayload, { onConflict: 'email_address' });
+    const { error } = await sb.rpc('save_onboarding_details', {
+        p_user_id:    session.user.id,
+        p_email:      session.user.email || '',
+        p_first_name: firstName,
+        p_last_name:  lastName
+    });
 
     setLoading(btn, false, 'Continue');
 
     if (error) {
-        console.error('saveDetails upsert error:', error);
+        console.error('saveDetails error:', error);
         err.textContent = 'Could not save your details. Please try again.';
         return;
     }
