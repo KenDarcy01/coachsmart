@@ -510,21 +510,6 @@ html, body {
 <!-- ════════════════════════════════════════════════════════════════════
      ALL DONE
      ════════════════════════════════════════════════════════════════════ -->
-<div id="screen-done" class="screen">
-    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
-    <div class="content centre-content">
-        <div class="hero-icon green">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="20 6 9 17 4 12"/>
-            </svg>
-        </div>
-        <div class="screen-title">You're all set!</div>
-        <div class="screen-sub" id="done-sub" style="margin-top:12px;">
-            Your requests have been sent. You'll receive a notification once the team admin approves them.
-        </div>
-        <button class="btn-primary" onclick="returnToApp()" style="margin-top:32px;">Back to CoachSmart</button>
-    </div>
-</div>
 
 <script>
 const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
@@ -991,11 +976,8 @@ function addAnother() {
 }
 
 function finishOnboarding() {
-    el('done-sub').textContent = pendingCount === 1
-        ? 'Your request has been sent. You\'ll receive a notification once the team admin approves it.'
-        : 'Your requests have been sent. You\'ll receive a notification once the team admin approves them.';
     updateOnboardingStatus('pending');
-    showScreen('screen-done');
+    returnToApp();
 }
 
 async function updateOnboardingStatus(status) {
