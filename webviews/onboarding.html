@@ -721,7 +721,16 @@ async function login() {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
     if (error) {
-        err.textContent = error.message;
+        let message = 'Sign in failed. Please check your details and try again.';
+        try {
+            const { data: exists } = await sb.rpc('check_email_exists', { p_email: email });
+            if (exists === false) {
+                message = 'No account found with that email address.';
+            } else if (exists === true) {
+                message = 'Incorrect password. Please try again.';
+            }
+        } catch (_) {}
+        err.textContent = message;
         setLoading(btn, false, 'Sign In');
         return;
     }
