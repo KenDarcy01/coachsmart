@@ -25,6 +25,7 @@ Future<String?> signUpWithEmail(
       final AuthResponse res = await supabase.auth.signUp(
         email: email,
         password: password,
+        emailRedirectTo: 'https://coach-smart-new-mpqa5l.web.app/auth/confirmed.html',
       );
       return null;
     } on AuthException catch (e) {
