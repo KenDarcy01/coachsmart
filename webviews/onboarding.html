@@ -417,19 +417,18 @@ html, body {
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
         </div>
-        <div class="screen-title">Already submitted</div>
+        <div class="screen-title">Awaiting approval</div>
         <div class="screen-sub" style="margin-top:12px;">
-            <span style="display:block;">You've already sent a request for</span>
+            <span style="display:block;">Your request for</span>
             <span class="name-chip" id="already-pending-name" style="margin-top:8px;display:inline-block;"></span>
             <span style="display:block;margin-top:10px;">
-                to join <strong id="already-pending-team" style="color:var(--text)"></strong>.
+                to join <strong id="already-pending-team" style="color:var(--text)"></strong> is already pending.
             </span>
-            <span style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
-                It's waiting for admin approval. You'll receive a notification once it's confirmed.
+            <span style="display:block;margin-top:14px;font-size:13px;color:var(--muted);">
+                Once a team admin approves it, a <strong style="color:var(--text);">Continue</strong> button will appear at the top of this screen. Tap it to get started. You can also log out and log back in after the admin has confirmed your membership.
             </span>
         </div>
         <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
-        <button class="btn-secondary" onclick="finishOnboarding()">I'm done for now</button>
     </div>
 </div>
 
@@ -444,19 +443,21 @@ html, body {
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
         </div>
-        <div class="screen-title">Already submitted by someone else</div>
+        <div class="screen-title">Awaiting approval</div>
         <div class="screen-sub" style="margin-top:12px;">
-            <span style="display:block;margin-bottom:10px;">Another parent has already sent a join request for</span>
+            <span style="display:block;margin-bottom:10px;">A join request for</span>
             <span class="name-chip" id="pending-other-name" style="display:inline-block;"></span>
             <span style="display:block;margin-top:10px;">
-                to <strong id="pending-other-team" style="color:var(--text)"></strong>, and it's waiting for admin approval.
+                to <strong id="pending-other-team" style="color:var(--text)"></strong> is already waiting for admin approval.
             </span>
             <span style="display:block;margin-top:14px;font-size:13px;color:var(--muted);">
-                Once the admin confirms the membership, come back here and enter the same name and code — you'll be offered the option to link your account to their profile.
+                Once the admin confirms it, come back and enter the same name and code — you'll be offered the option to link your account to their profile.
+            </span>
+            <span style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
+                Once a team admin approves it, a <strong style="color:var(--text);">Continue</strong> button will appear at the top of this screen. Tap it to get started. You can also log out and log back in after the admin has confirmed your membership.
             </span>
         </div>
         <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
-        <button class="btn-secondary" onclick="finishOnboarding()">I'm done for now</button>
     </div>
 </div>
 
@@ -471,9 +472,9 @@ html, body {
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
         </div>
-        <div class="screen-title">Waiting for approval</div>
+        <div class="screen-title">Awaiting approval</div>
         <div class="screen-sub" style="margin-top:12px;">
-            You have requests pending. Once an admin approves them you'll have full access to the app.
+            Your membership request is pending. Once a team admin approves it, a <strong style="color:var(--text);">Continue</strong> button will appear at the top of this screen — tap it to get started. You can also log out and log back in after the admin has confirmed your membership.
         </div>
         <div id="pending-status-list" style="margin-top:24px;width:100%;text-align:left;"></div>
         <button class="btn-primary" id="pending-check-btn" onclick="checkPendingStatus()" style="margin-top:32px;">Check approval status</button>
@@ -498,12 +499,11 @@ html, body {
             <span id="sent-action" style="display:block;margin-top:12px;">
                 has been submitted to join <strong id="sent-team" style="color:var(--text)"></strong>.
             </span>
-            <span id="sent-detail" style="display:block;margin-top:10px;font-size:13px;">
-                A team admin will confirm the membership shortly. You'll receive a notification when it's approved.
+            <span id="sent-detail" style="display:block;margin-top:10px;font-size:13px;color:var(--muted);">
+                Once a team admin approves it, a <strong style="color:var(--text);">Continue</strong> button will appear at the top of this screen — tap it to get started. You can also log out and log back in after the admin has confirmed your membership.
             </span>
         </div>
         <button class="btn-primary" onclick="addAnother()" style="margin-top:32px;">Add another person</button>
-        <button class="btn-secondary" onclick="finishOnboarding()">I'm done for now</button>
     </div>
 </div>
 
