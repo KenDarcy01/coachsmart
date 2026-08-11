@@ -131,7 +131,7 @@ Deno.serve(async (req)=>{
     }
     // -------------------------------------------------------------------------
     // SECTION B: EMAIL NOTIFICATIONS
-    // HTML is pre-built in the SQL function and stored in email_body.
+    // HTML is generated at send time from app_title / app_body.
     // -------------------------------------------------------------------------
     if (emailNotes.length > 0) {
       const uniqueEmailNotes = Array.from(new Map(emailNotes.map((n)=>[
@@ -147,12 +147,27 @@ Deno.serve(async (req)=>{
           console.log(`⏭️ Notification ${n.id} already processed via push — skipping email`);
           return false;
         }
-        if (!n.email_body) {
-          console.warn(`⚠️ No email_body for notification ${n.id} — skipping`);
-          return false;
-        }
         return true;
       }).map((n)=>{
+        const firstName = n.users?.first_name || 'there';
+        const title = n.app_title || 'Notification';
+        const body = n.app_body || '';
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #212529; color: #fff;">
+            <div style="text-align: center; margin-bottom: 20px; background-color: #2c313a; padding: 20px; border-radius: 8px;">
+              <h1 style="font-size: 24px; color: #76C74A; margin-top: 10px; margin-bottom: 0;">CoachSmart</h1>
+              <p style="font-size: 14px; color: #bbb; font-weight: 300; letter-spacing: 0.2em; margin-top: 5px;">COACHING MADE SIMPLE</p>
+            </div>
+            <div style="background-color: #2c313a; padding: 20px; border-radius: 8px;">
+              <p style="font-size: 16px; color: #fff;">Hi ${firstName},</p>
+              <h2 style="font-size: 20px; color: #76C74A; margin: 10px 0;">${title}</h2>
+              <p style="font-size: 16px; color: #fff;">${body}</p>
+            </div>
+            <div style="text-align: center; margin-top: 20px; color: #bbb; font-size: 12px;">
+              This is an automated message. Please do not reply.
+            </div>
+          </div>
+        `;
         console.log(`📧 Sending email for notification ${n.id} | to=${n.users.email_address}`);
         return {
           _id: n.id,
@@ -160,8 +175,8 @@ Deno.serve(async (req)=>{
           to: [
             n.users.email_address
           ],
-          subject: n.email_title,
-          html: n.email_body
+          subject: title,
+          html
         };
       });
       if (emailsToSend.length > 0) {
