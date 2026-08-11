@@ -113,13 +113,22 @@ h1 {
 
 <script>
 function openApp() {
+  const start = Date.now();
   window.location.href = 'coachsmartv2://coachsmartv2.com/home';
+
+  // If the page is still visible after 1600ms the deep link didn't open the app.
+  // Redirect PWA/browser users to the PWA sign-in page so they can log in.
+  setTimeout(function () {
+    if (Date.now() - start < 3000 && !document.hidden) {
+      window.location.href = 'https://my.coachsmart.app';
+    }
+  }, 1600);
 }
 
-// On mobile, try the deep link automatically after a short delay
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 if (isMobile) {
+  // Small delay so the confirmation exchange completes before we fire the deep link
   setTimeout(openApp, 600);
 } else {
   document.getElementById('desktopNote').style.display = 'block';
