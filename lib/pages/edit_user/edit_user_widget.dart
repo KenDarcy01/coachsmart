@@ -65,11 +65,6 @@ class _EditUserWidgetState extends State<EditUserWidget> {
           _model.userLastNameTextController?.text =
               FFAppState().getEditUserData.user.lastName;
         });
-        logFirebaseEvent('EditUser_set_form_field');
-        safeSetState(() {
-          _model.userPhoneNumberTextController?.text =
-              FFAppState().getEditUserData.user.phoneNumber;
-        });
         logFirebaseEvent('EditUser_update_page_state');
         _model.dataReady = true;
         safeSetState(() {});
@@ -83,10 +78,6 @@ class _EditUserWidgetState extends State<EditUserWidget> {
     _model.userLastNameTextController ??=
         TextEditingController(text: FFAppState().getEditUserData.user.lastName);
     _model.userLastNameFocusNode ??= FocusNode();
-
-    _model.userPhoneNumberTextController ??= TextEditingController(
-        text: FFAppState().getEditUserData.user.phoneNumber);
-    _model.userPhoneNumberFocusNode ??= FocusNode();
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
@@ -507,141 +498,6 @@ class _EditUserWidgetState extends State<EditUserWidget> {
                         Align(
                           alignment: AlignmentDirectional(-1.0, 0.0),
                           child: Text(
-                            'Users Phone Number (begins +3538):',
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                                  color: FlutterFlowTheme.of(context)
-                                      .coachSmartGrey,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                ),
-                          ),
-                        ),
-                        Container(
-                          width: double.infinity,
-                          child: TextFormField(
-                            controller: _model.userPhoneNumberTextController,
-                            focusNode: _model.userPhoneNumberFocusNode,
-                            autofocus: false,
-                            obscureText: false,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              labelStyle: FlutterFlowTheme.of(context)
-                                  .labelMedium
-                                  .override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontStyle,
-                                    ),
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontStyle,
-                                  ),
-                              hintStyle: FlutterFlowTheme.of(context)
-                                  .labelMedium
-                                  .override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontStyle,
-                                    ),
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontStyle,
-                                  ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Color(0x00000000),
-                                  width: 1.0,
-                                ),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: FlutterFlowTheme.of(context)
-                                      .coachSmartGreen,
-                                  width: 1.0,
-                                ),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: FlutterFlowTheme.of(context).error,
-                                  width: 1.0,
-                                ),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: FlutterFlowTheme.of(context).error,
-                                  width: 1.0,
-                                ),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              filled: true,
-                              fillColor: FlutterFlowTheme.of(context)
-                                  .coachSmartLightBlack,
-                            ),
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                                  color: FlutterFlowTheme.of(context)
-                                      .primaryBackground,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                ),
-                            cursorColor:
-                                FlutterFlowTheme.of(context).primaryBackground,
-                            validator: _model
-                                .userPhoneNumberTextControllerValidator
-                                .asValidator(context),
-                          ),
-                        ),
-                        Align(
-                          alignment: AlignmentDirectional(-1.0, 0.0),
-                          child: Text(
                             'Select Default Club:',
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
@@ -834,14 +690,12 @@ class _EditUserWidgetState extends State<EditUserWidget> {
                                     ),
                                   );
                                 } else {
-                                  if (_model.userPhoneNumberTextController
-                                              .text ==
-                                          '') {
+                                  if (_model.dropDownValue == null) {
                                     logFirebaseEvent('Button_show_snack_bar');
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          'Phone Number must not be empty',
+                                          'Please select a default club',
                                           style: TextStyle(
                                             color: FlutterFlowTheme.of(context)
                                                 .coachSmartWhite,
@@ -855,66 +709,37 @@ class _EditUserWidgetState extends State<EditUserWidget> {
                                       ),
                                     );
                                   } else {
-                                    if (_model.dropDownValue == null) {
-                                      logFirebaseEvent('Button_show_snack_bar');
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Please select a default club',
-                                            style: TextStyle(
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .coachSmartWhite,
-                                            ),
-                                            textAlign: TextAlign.center,
+                                    logFirebaseEvent('Button_backend_call');
+                                    await UsersTable().update(
+                                      data: {
+                                        'first_name': _model
+                                            .userFirstNameTextController.text,
+                                        'last_name': _model
+                                            .userLastNameTextController.text,
+                                        'default_club': _model.dropDownValue,
+                                      },
+                                      matchingRows: (rows) => rows.eqOrNull(
+                                        'user_id',
+                                        currentUserUid,
+                                      ),
+                                    );
+                                    logFirebaseEvent('Button_show_snack_bar');
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'User Details Updated',
+                                          style: TextStyle(
+                                            color: FlutterFlowTheme.of(context)
+                                                .coachSmartLightBlack,
                                           ),
-                                          duration:
-                                              Duration(milliseconds: 4000),
-                                          backgroundColor:
-                                              FlutterFlowTheme.of(context)
-                                                  .coachSmartGreen,
+                                          textAlign: TextAlign.center,
                                         ),
-                                      );
-                                    } else {
-                                      logFirebaseEvent('Button_backend_call');
-                                      await UsersTable().update(
-                                        data: {
-                                          'first_name': _model
-                                              .userFirstNameTextController.text,
-                                          'last_name': _model
-                                              .userLastNameTextController.text,
-                                          'phone_number': _model
-                                              .userPhoneNumberTextController
-                                              .text,
-                                          'default_club': _model.dropDownValue,
-                                        },
-                                        matchingRows: (rows) => rows.eqOrNull(
-                                          'user_id',
-                                          currentUserUid,
-                                        ),
-                                      );
-                                      logFirebaseEvent('Button_show_snack_bar');
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'User Details Updated',
-                                            style: TextStyle(
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .coachSmartWhite,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          duration:
-                                              Duration(milliseconds: 4000),
-                                          backgroundColor:
-                                              FlutterFlowTheme.of(context)
-                                                  .coachSmartGreen,
-                                        ),
-                                      );
-                                    }
+                                        duration: Duration(milliseconds: 4000),
+                                        backgroundColor:
+                                            FlutterFlowTheme.of(context)
+                                                .coachSmartGreen,
+                                      ),
+                                    );
                                   }
                                 }
                               }

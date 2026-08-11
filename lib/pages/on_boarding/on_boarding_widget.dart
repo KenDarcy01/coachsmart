@@ -1,4 +1,5 @@
 import '/auth/supabase_auth/auth_util.dart';
+import '/backend/api_requests/api_calls.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -6,17 +7,13 @@ import '/flutter_flow/flutter_flow_widgets.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'on_boarding_model.dart';
 export 'on_boarding_model.dart';
 
 class OnBoardingWidget extends StatefulWidget {
-  const OnBoardingWidget({
-    super.key,
-    required this.paramJWT,
-  });
-
-  final String? paramJWT;
+  const OnBoardingWidget({super.key});
 
   static String routeName = 'onBoarding';
   static String routePath = 'onBoarding';
@@ -36,6 +33,25 @@ class _OnBoardingWidgetState extends State<OnBoardingWidget> {
     _model = createModel(context, () => OnBoardingModel());
 
     logFirebaseEvent('screen_view', parameters: {'screen_name': 'onBoarding'});
+    // On page load action.
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      logFirebaseEvent('ON_BOARDING_onBoarding_ON_INIT_STATE');
+      logFirebaseEvent('onBoarding_backend_call');
+      _model.apiResult8lz = await GetUserOnboardingStatusCall.call(
+        supabaseJWTtoken: currentJwtToken,
+      );
+
+      if ((_model.apiResult8lz?.succeeded ?? true)) {
+        logFirebaseEvent('onBoarding_update_page_state');
+        _model.varUserOboarded = true;
+        safeSetState(() {});
+      } else {
+        logFirebaseEvent('onBoarding_update_page_state');
+        _model.varUserOboarded = false;
+        safeSetState(() {});
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
@@ -142,18 +158,16 @@ class _OnBoardingWidgetState extends State<OnBoardingWidget> {
                 ],
               ),
               actions: [
-                Padding(
-                  padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 15.0, 0.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (onBoardingUsersRowList
-                                  .firstOrNull?.onboardingStatus !=
-                              null &&
-                          onBoardingUsersRowList
-                                  .firstOrNull?.onboardingStatus !=
-                              '')
+                Visibility(
+                  visible:
+                      onBoardingUsersRowList.firstOrNull?.onboardingStatus ==
+                          'active',
+                  child: Padding(
+                    padding:
+                        EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 15.0, 0.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
                         FFButtonWidget(
                           onPressed: () async {
                             logFirebaseEvent(
@@ -164,8 +178,8 @@ class _OnBoardingWidgetState extends State<OnBoardingWidget> {
                           },
                           text: 'Continue',
                           icon: Icon(
-                            Icons.chevron_right,
-                            size: 30.0,
+                            Icons.keyboard_arrow_right,
+                            size: 15.0,
                           ),
                           options: FFButtonOptions(
                             height: 40.0,
@@ -197,15 +211,11 @@ class _OnBoardingWidgetState extends State<OnBoardingWidget> {
                                       .fontStyle,
                                 ),
                             elevation: 0.0,
-                            borderSide: BorderSide(
-                              color:
-                                  FlutterFlowTheme.of(context).coachSmartGreen,
-                              width: 2.0,
-                            ),
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -221,9 +231,14 @@ class _OnBoardingWidgetState extends State<OnBoardingWidget> {
                   width: double.infinity,
                   height: double.infinity,
                   url:
-                      'https://coach-smart-new-mpqa5l.web.app/webviews/onboarding.html?access_token=${widget.paramJWT}',
+                      'https://coach-smart-new-mpqa5l.web.app/webviews/onboarding.html?access_token=${currentJwtToken}',
                   onPageReady: () async {},
-                  onComplete: () async {},
+                  onComplete: () async {
+                    logFirebaseEvent('ON_BOARDING_Container_j3r3rhoa_CALLBACK');
+                    logFirebaseEvent('NativeWebView_navigate_to');
+
+                    context.pushNamed(HomePageWidget.routeName);
+                  },
                   onLogout: () async {},
                 ),
               ),

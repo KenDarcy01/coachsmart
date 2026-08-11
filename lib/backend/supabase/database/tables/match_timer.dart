@@ -47,24 +47,9 @@ class MatchTimerRow extends SupabaseDataRow {
   int? get squadId => getField<int>('squad_id');
   set squadId(int? value) => setField<int>('squad_id', value);
 
-  int get homeGoals => getField<int>('home_goals')!;
-  set homeGoals(int value) => setField<int>('home_goals', value);
-
-  int get homePoints => getField<int>('home_points')!;
-  set homePoints(int value) => setField<int>('home_points', value);
-
-  int get homeTwoPtrs => getField<int>('home_two_ptrs')!;
-  set homeTwoPtrs(int value) => setField<int>('home_two_ptrs', value);
-
-  int get awayGoals => getField<int>('away_goals')!;
-  set awayGoals(int value) => setField<int>('away_goals', value);
-
-  int get awayPoints => getField<int>('away_points')!;
-  set awayPoints(int value) => setField<int>('away_points', value);
-
-  int get awayTwoPtrs => getField<int>('away_two_ptrs')!;
-  set awayTwoPtrs(int value) => setField<int>('away_two_ptrs', value);
-
   int get injurySeconds => getField<int>('injury_seconds')!;
   set injurySeconds(int value) => setField<int>('injury_seconds', value);
+
+  int get currentHalf => getField<int>('current_half')!;
+  set currentHalf(int value) => setField<int>('current_half', value);
 }

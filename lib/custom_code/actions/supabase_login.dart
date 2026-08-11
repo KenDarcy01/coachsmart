@@ -18,18 +18,24 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<String> supabaseLogin(String email, String password) async {
   try {
-    // Attempt to sign in with the provided email and password
     await Supabase.instance.client.auth.signInWithPassword(
       email: email,
       password: password,
     );
-    // If sign-in is successful, return an empty string to indicate no error
     return '';
   } on AuthException catch (e) {
-    // Catch a Supabase AuthException and return its message as the error
-    return e.message;
+    try {
+      final exists = await Supabase.instance.client
+          .rpc('check_email_exists', params: {'p_email': email});
+      if (exists == false) {
+        return 'No account found with that email address.';
+      } else {
+        return 'Incorrect password. Please try again.';
+      }
+    } catch (_) {
+      return e.message;
+    }
   } catch (e) {
-    // Catch any other unexpected error and return a generic message
     return 'An unexpected error occurred: ${e.toString()}';
   }
 }

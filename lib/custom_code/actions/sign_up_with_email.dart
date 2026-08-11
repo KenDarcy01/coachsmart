@@ -17,21 +17,28 @@ Future<String?> signUpWithEmail(
   String password,
   String confirmPassword,
 ) async {
-  // Add your function code here!
-  if (password == confirmPassword) {
-    try {
-      final supabase = SupaFlow.client;
+  if (password != confirmPassword) {
+    return 'Passwords do not match.';
+  }
 
-      final AuthResponse res = await supabase.auth.signUp(
-        email: email,
-        password: password,
-        emailRedirectTo: 'https://coach-smart-new-mpqa5l.web.app/auth/confirmed.html',
-      );
-      return null;
-    } on AuthException catch (e) {
-      return (e.message);
+  try {
+    final supabase = SupaFlow.client;
+
+    final AuthResponse res = await supabase.auth.signUp(
+      email: email,
+      password: password,
+      emailRedirectTo:
+          'https://coach-smart-new-mpqa5l.web.app/auth/confirmed.html',
+    );
+
+    // Supabase returns success silently for existing emails —
+    // empty identities is the only indicator the account already exists.
+    if (res.user != null && (res.user!.identities?.isEmpty ?? true)) {
+      return 'An account with this email already exists. Please sign in instead.';
     }
-  } else {
-    return ("Passwords do not match.");
+
+    return null;
+  } on AuthException catch (e) {
+    return e.message;
   }
 }

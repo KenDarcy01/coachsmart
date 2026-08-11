@@ -20,6 +20,8 @@ class EditEventModel extends FlutterFlowModel<EditEventWidget> {
 
   DateTime? dateTimePicked;
 
+  String? buttonText = 'Cancel Event';
+
   ///  State fields for stateful widgets in this page.
 
   final formKey = GlobalKey<FormState>();
@@ -62,6 +64,12 @@ class EditEventModel extends FlutterFlowModel<EditEventWidget> {
   String? Function(BuildContext, String?)? eventDetailTextControllerValidator;
   // Stores action output result for [Backend Call - API (getUserEventDetails)] action in Button widget.
   ApiCallResponse? apiUpdateEventDetails;
+  // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.
+  List<EventsRow>? outputCancelled1;
+  // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.
+  List<EventAttendanceRow>? outputCancelledAttendance1;
+  // Stores action output result for [Backend Call - API (getUserHomeEvents)] action in Button widget.
+  ApiCallResponse? outputUpdatedEventsCancel1;
   // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.
   List<EventsRow>? outputCancelled;
   // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.

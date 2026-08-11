@@ -67,32 +67,26 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         supabaseJWTtoken: currentJwtToken,
       );
 
-      if ((_model.outputHomeLoad?.succeeded ?? true)) {
+      if ((_model.outputHomeLoad?.succeeded ?? true) == true) {
         if (UserEventsHomeStruct.maybeFromMap(
-                (_model.outputHomeLoad?.jsonBody ?? ''))!
-            .userOnboarded) {
+                    (_model.outputHomeLoad?.jsonBody ?? ''))
+                ?.userOnboarded ==
+            true) {
           logFirebaseEvent('HomePage_update_app_state');
           FFAppState().homePageEvents = UserEventsHomeStruct.maybeFromMap(
               (_model.outputHomeLoad?.jsonBody ?? ''))!;
-          safeSetState(() {});
           logFirebaseEvent('HomePage_update_page_state');
           _model.varShowHome = true;
+          safeSetState(() {});
         } else {
           logFirebaseEvent('HomePage_navigate_to');
 
-          context.pushNamed(
-            OnBoardingWidget.routeName,
-            queryParameters: {
-              'paramJWT': serializeParam(
-                currentJwtToken,
-                ParamType.String,
-              ),
-            }.withoutNulls,
-          );
+          context.pushNamed(OnBoardingWidget.routeName);
         }
       } else {
         logFirebaseEvent('HomePage_update_page_state');
         _model.varShowHome = false;
+        safeSetState(() {});
       }
     });
 
@@ -944,15 +938,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         } else {
                           logFirebaseEvent('scrollingColumn_navigate_to');
 
-                          context.pushNamed(
-                            OnBoardingWidget.routeName,
-                            queryParameters: {
-                              'paramJWT': serializeParam(
-                                currentJwtToken,
-                                ParamType.String,
-                              ),
-                            }.withoutNulls,
-                          );
+                          context.pushNamed(OnBoardingWidget.routeName);
                         }
                       } else {
                         logFirebaseEvent('scrollingColumn_update_page_state');

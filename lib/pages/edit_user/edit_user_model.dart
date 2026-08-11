@@ -32,11 +32,6 @@ class EditUserModel extends FlutterFlowModel<EditUserWidget> {
   FocusNode? userLastNameFocusNode;
   TextEditingController? userLastNameTextController;
   String? Function(BuildContext, String?)? userLastNameTextControllerValidator;
-  // State field(s) for userPhoneNumber widget.
-  FocusNode? userPhoneNumberFocusNode;
-  TextEditingController? userPhoneNumberTextController;
-  String? Function(BuildContext, String?)?
-      userPhoneNumberTextControllerValidator;
   // State field(s) for DropDown widget.
   int? dropDownValue;
   FormFieldController<int>? dropDownValueController;
@@ -51,8 +46,5 @@ class EditUserModel extends FlutterFlowModel<EditUserWidget> {
 
     userLastNameFocusNode?.dispose();
     userLastNameTextController?.dispose();
-
-    userPhoneNumberFocusNode?.dispose();
-    userPhoneNumberTextController?.dispose();
   }
 }

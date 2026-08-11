@@ -56,3 +56,5 @@ export '/pages/pending_requests/pending_requests_widget.dart'
     show PendingRequestsWidget;
 export '/pages/join_team_new/join_team_new_widget.dart' show JoinTeamNewWidget;
 export '/pages/match_stats/match_stats_widget.dart' show MatchStatsWidget;
+export '/pages/member_analytics/member_analytics_widget.dart'
+    show MemberAnalyticsWidget;

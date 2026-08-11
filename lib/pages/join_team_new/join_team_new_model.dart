@@ -1,3 +1,4 @@
+import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'join_team_new_widget.dart' show JoinTeamNewWidget;
 import 'package:flutter/material.dart';
@@ -20,6 +21,11 @@ class JoinTeamNewModel extends FlutterFlowModel<JoinTeamNewWidget> {
   bool varJoiningCodeBool = false;
 
   bool? varJoinaTeam;
+
+  ///  State fields for stateful widgets in this page.
+
+  // Stores action output result for [Backend Call - API (getUserTeamSummary)] action in IconButton widget.
+  ApiCallResponse? apiTeamSummary;
 
   @override
   void initState(BuildContext context) {}

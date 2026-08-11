@@ -524,12 +524,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: OnBoardingWidget.routeName,
               path: OnBoardingWidget.routePath,
-              builder: (context, params) => OnBoardingWidget(
-                paramJWT: params.getParam(
-                  'paramJWT',
-                  ParamType.String,
-                ),
-              ),
+              builder: (context, params) => OnBoardingWidget(),
             ),
             FFRoute(
               name: PendingRequestsWidget.routeName,
@@ -560,6 +555,20 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                 ),
                 currentAuthToken: params.getParam(
                   'currentAuthToken',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: MemberAnalyticsWidget.routeName,
+              path: MemberAnalyticsWidget.routePath,
+              builder: (context, params) => MemberAnalyticsWidget(
+                memberId: params.getParam(
+                  'memberId',
+                  ParamType.int,
+                ),
+                memberName: params.getParam(
+                  'memberName',
                   ParamType.String,
                 ),
               ),

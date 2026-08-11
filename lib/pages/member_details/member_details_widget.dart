@@ -8,9 +8,11 @@ import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import '/flutter_flow/custom_functions.dart' as functions;
+import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:webviewx_plus/webviewx_plus.dart';
 import 'member_details_model.dart';
 export 'member_details_model.dart';
 
@@ -155,25 +157,79 @@ class _MemberDetailsWidgetState extends State<MemberDetailsWidget> {
               context.safePop();
             },
           ),
-          title: Text(
-            'Member Details',
-            style: FlutterFlowTheme.of(context).headlineMedium.override(
-                  font: GoogleFonts.interTight(
-                    fontWeight:
-                        FlutterFlowTheme.of(context).headlineMedium.fontWeight,
-                    fontStyle:
-                        FlutterFlowTheme.of(context).headlineMedium.fontStyle,
-                  ),
-                  color: FlutterFlowTheme.of(context).secondaryBackground,
-                  fontSize: 18.0,
-                  letterSpacing: 0.0,
-                  fontWeight:
-                      FlutterFlowTheme.of(context).headlineMedium.fontWeight,
-                  fontStyle:
-                      FlutterFlowTheme.of(context).headlineMedium.fontStyle,
+          actions: [
+            Align(
+              alignment: AlignmentDirectional(0.0, 0.0),
+              child: Padding(
+                padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 15.0, 0.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Align(
+                      alignment: AlignmentDirectional(0.0, -1.0),
+                      child: FFButtonWidget(
+                        onPressed: () async {
+                          logFirebaseEvent(
+                              'MEMBER_DETAILS_STATISTICS_BTN_ON_TAP');
+                          logFirebaseEvent('Button_navigate_to');
+
+                          context.pushNamed(
+                            MemberAnalyticsWidget.routeName,
+                            queryParameters: {
+                              'memberId': serializeParam(
+                                widget.memberID,
+                                ParamType.int,
+                              ),
+                              'memberName': serializeParam(
+                                '${_model.memberTeamDetails?.firstName} ${_model.memberTeamDetails?.lastName}',
+                                ParamType.String,
+                              ),
+                            }.withoutNulls,
+                          );
+                        },
+                        text: 'Statistics',
+                        icon: Icon(
+                          Icons.query_stats,
+                          size: 25.0,
+                        ),
+                        options: FFButtonOptions(
+                          height: 30.0,
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                              16.0, 0.0, 16.0, 0.0),
+                          iconPadding: EdgeInsetsDirectional.fromSTEB(
+                              0.0, 0.0, 0.0, 0.0),
+                          color: FlutterFlowTheme.of(context).coachSmartGreen,
+                          textStyle:
+                              FlutterFlowTheme.of(context).titleSmall.override(
+                                    font: GoogleFonts.interTight(
+                                      fontWeight: FlutterFlowTheme.of(context)
+                                          .titleSmall
+                                          .fontWeight,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .titleSmall
+                                          .fontStyle,
+                                    ),
+                                    color: FlutterFlowTheme.of(context)
+                                        .coachSmartLightBlack,
+                                    letterSpacing: 0.0,
+                                    fontWeight: FlutterFlowTheme.of(context)
+                                        .titleSmall
+                                        .fontWeight,
+                                    fontStyle: FlutterFlowTheme.of(context)
+                                        .titleSmall
+                                        .fontStyle,
+                                  ),
+                          elevation: 0.0,
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-          ),
-          actions: [],
+              ),
+            ),
+          ],
           centerTitle: true,
           elevation: 2.0,
         ),
@@ -201,37 +257,67 @@ class _MemberDetailsWidgetState extends State<MemberDetailsWidget> {
                                 logFirebaseEvent(
                                     'MEMBER_DETAILS_createTeamButton_ON_TAP');
                                 logFirebaseEvent(
-                                    'createTeamButton_backend_call');
-                                _model.apiResultj6g =
-                                    await RemoveMemberFromTeamCall.call(
-                                  supabaseJWTtoken: currentJwtToken,
-                                  pMemberId: widget.memberID,
-                                  pTeamId: widget.teamID,
-                                );
-
-                                logFirebaseEvent(
-                                    'createTeamButton_backend_call');
-                                _model.apiGetTeamMembersByRole =
-                                    await GetTeamMembersByRoleCall.call(
-                                  pUserId: currentUserUid,
-                                  supabaseJWTtoken: currentJwtToken,
-                                  pTeamId: widget.teamID,
-                                );
-
-                                if ((_model
-                                        .apiGetTeamMembersByRole?.succeeded ??
-                                    true)) {
+                                    'createTeamButton_alert_dialog');
+                                var confirmDialogResponse = await showDialog<
+                                        bool>(
+                                      context: context,
+                                      builder: (alertDialogContext) {
+                                        return WebViewAware(
+                                          child: AlertDialog(
+                                            title: Text('Remove Team Member'),
+                                            content: Text(
+                                                'Are you sure you want to remove ${_model.memberTeamDetails?.firstName} ${_model.memberTeamDetails?.lastName} from this team?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(
+                                                    alertDialogContext, false),
+                                                child: Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(
+                                                    alertDialogContext, true),
+                                                child: Text('Confirm'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ) ??
+                                    false;
+                                if (confirmDialogResponse) {
                                   logFirebaseEvent(
-                                      'createTeamButton_update_app_state');
-                                  FFAppState().listTeamMembers =
-                                      ListTeamMembersStruct.maybeFromMap((_model
-                                              .apiGetTeamMembersByRole
-                                              ?.jsonBody ??
-                                          ''))!;
-                                  safeSetState(() {});
+                                      'createTeamButton_backend_call');
+                                  _model.apiResultj6g =
+                                      await RemoveMemberFromTeamCall.call(
+                                    supabaseJWTtoken: currentJwtToken,
+                                    pMemberId: widget.memberID,
+                                    pTeamId: widget.teamID,
+                                  );
+
                                   logFirebaseEvent(
-                                      'createTeamButton_navigate_back');
-                                  context.safePop();
+                                      'createTeamButton_backend_call');
+                                  _model.apiGetTeamMembersByRole =
+                                      await GetTeamMembersByRoleCall.call(
+                                    pUserId: currentUserUid,
+                                    supabaseJWTtoken: currentJwtToken,
+                                    pTeamId: widget.teamID,
+                                  );
+
+                                  if ((_model
+                                          .apiGetTeamMembersByRole?.succeeded ??
+                                      true)) {
+                                    logFirebaseEvent(
+                                        'createTeamButton_update_app_state');
+                                    FFAppState().listTeamMembers =
+                                        ListTeamMembersStruct.maybeFromMap(
+                                            (_model.apiGetTeamMembersByRole
+                                                    ?.jsonBody ??
+                                                ''))!;
+                                    safeSetState(() {});
+                                    logFirebaseEvent(
+                                        'createTeamButton_navigate_back');
+                                    context.safePop();
+                                  }
                                 }
 
                                 safeSetState(() {});

@@ -32,15 +32,9 @@ class MatchStatsRow extends SupabaseDataRow {
   int? get squadId => getField<int>('squad_id');
   set squadId(int? value) => setField<int>('squad_id', value);
 
-  int? get timerStart => getField<int>('timer_start');
-  set timerStart(int? value) => setField<int>('timer_start', value);
-
-  int? get timerEnd => getField<int>('timer_end');
-  set timerEnd(int? value) => setField<int>('timer_end', value);
-
-  bool? get timerRunning => getField<bool>('timer_running');
-  set timerRunning(bool? value) => setField<bool>('timer_running', value);
-
   DateTime? get finalisedAt => getField<DateTime>('finalised_at');
   set finalisedAt(DateTime? value) => setField<DateTime>('finalised_at', value);
+
+  String get status => getField<String>('status')!;
+  set status(String value) => setField<String>('status', value);
 }

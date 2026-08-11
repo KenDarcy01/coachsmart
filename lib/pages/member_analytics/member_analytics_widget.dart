@@ -1,36 +1,57 @@
 import '/auth/supabase_auth/auth_util.dart';
-import '/backend/api_requests/api_calls.dart';
-import '/backend/schema/structs/index.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'join_team_new_model.dart';
-export 'join_team_new_model.dart';
+import 'member_analytics_model.dart';
+export 'member_analytics_model.dart';
 
-class JoinTeamNewWidget extends StatefulWidget {
-  const JoinTeamNewWidget({super.key});
+class MemberAnalyticsWidget extends StatefulWidget {
+  const MemberAnalyticsWidget({
+    super.key,
+    required this.memberId,
+    required this.memberName,
+  });
 
-  static String routeName = 'JoinTeamNew';
-  static String routePath = 'joinTeamNew';
+  final int? memberId;
+  final String? memberName;
+
+  static String routeName = 'MemberAnalytics';
+  static String routePath = 'memberAnalytics';
 
   @override
-  State<JoinTeamNewWidget> createState() => _JoinTeamNewWidgetState();
+  State<MemberAnalyticsWidget> createState() => _MemberAnalyticsWidgetState();
 }
 
-class _JoinTeamNewWidgetState extends State<JoinTeamNewWidget> {
-  late JoinTeamNewModel _model;
+class _MemberAnalyticsWidgetState extends State<MemberAnalyticsWidget> {
+  late MemberAnalyticsModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => JoinTeamNewModel());
+    _model = createModel(context, () => MemberAnalyticsModel());
 
-    logFirebaseEvent('screen_view', parameters: {'screen_name': 'JoinTeamNew'});
+    logFirebaseEvent('screen_view',
+        parameters: {'screen_name': 'MemberAnalytics'});
+    // On page load action.
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      logFirebaseEvent('MEMBER_ANALYTICS_MemberAnalytics_ON_INIT');
+      logFirebaseEvent('MemberAnalytics_wait__delay');
+      await Future.delayed(
+        Duration(
+          milliseconds: 4000,
+        ),
+      );
+      logFirebaseEvent('MemberAnalytics_update_page_state');
+      _model.varPageLoaded = false;
+      safeSetState(() {});
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
@@ -50,7 +71,7 @@ class _JoinTeamNewWidgetState extends State<JoinTeamNewWidget> {
       },
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).coachSmartMidBlack,
+        backgroundColor: Colors.black,
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primaryText,
           automaticallyImplyLeading: false,
@@ -65,28 +86,16 @@ class _JoinTeamNewWidgetState extends State<JoinTeamNewWidget> {
               size: 30.0,
             ),
             onPressed: () async {
-              logFirebaseEvent('JOIN_TEAM_NEW_arrow_back_rounded_ICN_ON_');
-              logFirebaseEvent('IconButton_backend_call');
-              _model.apiTeamSummary = await GetUserTeamSummaryCall.call(
-                supabaseJWTtoken: currentJwtToken,
-                pUserId: currentUserUid,
-              );
-
-              if ((_model.apiTeamSummary?.succeeded ?? true)) {
-                logFirebaseEvent('IconButton_update_app_state');
-                FFAppState().userTeamSummary =
-                    UserTeamSummaryStruct.maybeFromMap(
-                        (_model.apiTeamSummary?.jsonBody ?? ''))!;
-                safeSetState(() {});
-              }
+              logFirebaseEvent('MEMBER_ANALYTICS_arrow_back_rounded_ICN_');
               logFirebaseEvent('IconButton_navigate_back');
-              context.pop();
-
-              safeSetState(() {});
+              context.safePop();
             },
           ),
           title: Text(
-            'Join Team',
+            valueOrDefault<String>(
+              widget.memberName,
+              'member_name',
+            ),
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:
@@ -116,7 +125,7 @@ class _JoinTeamNewWidgetState extends State<JoinTeamNewWidget> {
               width: double.infinity,
               height: double.infinity,
               url:
-                  'https://coach-smart-new-mpqa5l.web.app/webviews/join-team.html?access_token=${currentJwtToken}',
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/member-analytics.html?member_id=${widget.memberId?.toString()}&token=${currentJwtToken}',
               onPageReady: () async {},
               onComplete: () async {},
               onLogout: () async {},

@@ -252,20 +252,20 @@ class _NotificationDetailsWidgetState extends State<NotificationDetailsWidget> {
                               ),
                             ),
                           ),
+                          Divider(
+                            thickness: 1.0,
+                            color: FlutterFlowTheme.of(context).secondaryText,
+                          ),
                           Column(
                             mainAxisSize: MainAxisSize.max,
                             children: [
                               Container(
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(4.0),
-                                  border: Border.all(
-                                    color: FlutterFlowTheme.of(context)
-                                        .secondaryText,
-                                  ),
                                 ),
                                 child: Padding(
                                   padding: EdgeInsetsDirectional.fromSTEB(
-                                      10.0, 10.0, 10.0, 10.0),
+                                      10.0, 0.0, 10.0, 0.0),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.max,
                                     children: [
@@ -337,10 +337,6 @@ class _NotificationDetailsWidgetState extends State<NotificationDetailsWidget> {
                                       );
                                     },
                                     text: 'Update Event',
-                                    icon: Icon(
-                                      Icons.arrow_forward_sharp,
-                                      size: 27.0,
-                                    ),
                                     options: FFButtonOptions(
                                       width: double.infinity,
                                       height: 40.0,

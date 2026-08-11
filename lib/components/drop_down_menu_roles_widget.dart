@@ -58,7 +58,7 @@ class _DropDownMenuRolesWidgetState extends State<DropDownMenuRolesWidget> {
 
     return Container(
       decoration: BoxDecoration(
-        color: FlutterFlowTheme.of(context).coachSmartLightBlack,
+        color: FlutterFlowTheme.of(context).coachSmartMidBlack,
       ),
       child: Padding(
         padding: EdgeInsetsDirectional.fromSTEB(15.0, 15.0, 15.0, 15.0),
@@ -247,7 +247,7 @@ class _DropDownMenuRolesWidgetState extends State<DropDownMenuRolesWidget> {
                           EdgeInsetsDirectional.fromSTEB(16.0, 0.0, 16.0, 0.0),
                       iconPadding:
                           EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
-                      color: FlutterFlowTheme.of(context).coachSmartMidBlack,
+                      color: FlutterFlowTheme.of(context).coachSmartLightBlack,
                       textStyle:
                           FlutterFlowTheme.of(context).titleSmall.override(
                                 font: GoogleFonts.interTight(
@@ -269,7 +269,7 @@ class _DropDownMenuRolesWidgetState extends State<DropDownMenuRolesWidget> {
                               ),
                       elevation: 0.0,
                       borderSide: BorderSide(
-                        color: Color(0xFF3A3939),
+                        color: FlutterFlowTheme.of(context).coachSmartGreen,
                       ),
                       borderRadius: BorderRadius.circular(8.0),
                     ),

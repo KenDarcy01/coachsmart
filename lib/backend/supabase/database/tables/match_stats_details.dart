@@ -33,9 +33,12 @@ class MatchStatsDetailsRow extends SupabaseDataRow {
   String get side => getField<String>('side')!;
   set side(String value) => setField<String>('side', value);
 
-  int? get eventMinute => getField<int>('event_minute');
-  set eventMinute(int? value) => setField<int>('event_minute', value);
+  int? get eventSecond => getField<int>('event_second');
+  set eventSecond(int? value) => setField<int>('event_second', value);
 
   String? get timerStatus => getField<String>('timer_status');
   set timerStatus(String? value) => setField<String>('timer_status', value);
+
+  int get half => getField<int>('half')!;
+  set half(int value) => setField<int>('half', value);
 }

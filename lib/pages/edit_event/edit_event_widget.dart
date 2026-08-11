@@ -106,6 +106,12 @@ class _EditEventWidgetState extends State<EditEventWidget> {
             FFAppState().editEventDetails.currentEvent.requestAttendance;
       });
       logFirebaseEvent('EditEvent_update_page_state');
+      _model.buttonText =
+          FFAppState().editEventDetails.currentEvent.status == 'cancelled'
+              ? 'UnCancel Event'
+              : 'Cancel Event';
+      safeSetState(() {});
+      logFirebaseEvent('EditEvent_update_page_state');
       _model.dateTimePicked = functions.convertStringToDateTime(
           FFAppState().editEventDetails.currentEvent.eventDateTime);
     });
@@ -2434,42 +2440,15 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                   onPressed: () async {
                                     logFirebaseEvent(
                                         'EDIT_EVENT_PAGE_CANCEL_EVENT_BTN_ON_TAP');
-                                    logFirebaseEvent('Button_alert_dialog');
-                                    var confirmDialogResponse =
-                                        await showDialog<bool>(
-                                              context: context,
-                                              builder: (alertDialogContext) {
-                                                return WebViewAware(
-                                                  child: AlertDialog(
-                                                    title: Text('Cancel Event'),
-                                                    content: Text(
-                                                        'Are you sure you want to cancel this event?'),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                alertDialogContext,
-                                                                false),
-                                                        child: Text('No'),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                alertDialogContext,
-                                                                true),
-                                                        child: Text('Proceed'),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
-                                            ) ??
-                                            false;
-                                    if (confirmDialogResponse) {
+                                    if (FFAppState()
+                                            .editEventDetails
+                                            .currentEvent
+                                            .status ==
+                                        'cancelled') {
                                       logFirebaseEvent('Button_backend_call');
                                       await EventsTable().update(
                                         data: {
-                                          'status': 'cancelled',
+                                          'status': 'active',
                                         },
                                         matchingRows: (rows) => rows.eqOrNull(
                                           'event_id',
@@ -2479,7 +2458,7 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                       logFirebaseEvent('Button_backend_call');
                                       await EventAttendanceTable().update(
                                         data: {
-                                          'status': 'Cancelled',
+                                          'status': 'active',
                                         },
                                         matchingRows: (rows) => rows.eqOrNull(
                                           'event_id',
@@ -2487,7 +2466,7 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                         ),
                                       );
                                       logFirebaseEvent('Button_backend_call');
-                                      _model.outputUpdatedEventsCancel =
+                                      _model.outputUpdatedEventsCancel1 =
                                           await GetUserHomeEventsCall.call(
                                         pUserId: currentUserUid,
                                         supabaseJWTtoken: currentJwtToken,
@@ -2497,16 +2476,89 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                           'Button_update_app_state');
                                       FFAppState().homePageEvents =
                                           UserEventsHomeStruct.maybeFromMap(
-                                              (_model.outputUpdatedEventsCancel
+                                              (_model.outputUpdatedEventsCancel1
                                                       ?.jsonBody ??
                                                   ''))!;
                                       logFirebaseEvent('Button_navigate_back');
                                       context.safePop();
+                                    } else {
+                                      logFirebaseEvent('Button_alert_dialog');
+                                      var confirmDialogResponse =
+                                          await showDialog<bool>(
+                                                context: context,
+                                                builder: (alertDialogContext) {
+                                                  return WebViewAware(
+                                                    child: AlertDialog(
+                                                      title:
+                                                          Text('Cancel Event'),
+                                                      content: Text(
+                                                          'Are you sure you want to cancel this event?'),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  alertDialogContext,
+                                                                  false),
+                                                          child: Text('No'),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  alertDialogContext,
+                                                                  true),
+                                                          child:
+                                                              Text('Proceed'),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              ) ??
+                                              false;
+                                      if (confirmDialogResponse) {
+                                        logFirebaseEvent('Button_backend_call');
+                                        await EventsTable().update(
+                                          data: {
+                                            'status': 'cancelled',
+                                          },
+                                          matchingRows: (rows) => rows.eqOrNull(
+                                            'event_id',
+                                            widget.paramEventId,
+                                          ),
+                                        );
+                                        logFirebaseEvent('Button_backend_call');
+                                        await EventAttendanceTable().update(
+                                          data: {
+                                            'status': 'cancelled',
+                                          },
+                                          matchingRows: (rows) => rows.eqOrNull(
+                                            'event_id',
+                                            widget.paramEventId,
+                                          ),
+                                        );
+                                        logFirebaseEvent('Button_backend_call');
+                                        _model.outputUpdatedEventsCancel =
+                                            await GetUserHomeEventsCall.call(
+                                          pUserId: currentUserUid,
+                                          supabaseJWTtoken: currentJwtToken,
+                                        );
+
+                                        logFirebaseEvent(
+                                            'Button_update_app_state');
+                                        FFAppState().homePageEvents =
+                                            UserEventsHomeStruct.maybeFromMap(
+                                                (_model.outputUpdatedEventsCancel
+                                                        ?.jsonBody ??
+                                                    ''))!;
+                                        logFirebaseEvent(
+                                            'Button_navigate_back');
+                                        context.safePop();
+                                      }
                                     }
 
                                     safeSetState(() {});
                                   },
-                                  text: 'Cancel Event',
+                                  text: _model.buttonText!,
                                   icon: Icon(
                                     Icons.cancel,
                                     size: 25.0,
