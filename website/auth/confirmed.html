@@ -58,41 +58,17 @@ h1 {
 }
 
 .sub {
-  font-size: 14px;
-  color: #7a8a9e;
-  line-height: 1.65;
-  margin-bottom: 32px;
-}
-
-.btn {
-  display: inline-block;
-  background: #87C232;
-  color: #0d1108;
   font-size: 15px;
-  font-weight: 700;
-  padding: 14px 36px;
-  border-radius: 10px;
-  text-decoration: none;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-  border: none;
-  width: 100%;
-}
-.btn:hover { background: #96d438; }
-
-.desktop-note {
-  display: none;
-  margin-top: 20px;
-  font-size: 13px;
-  color: #4a5568;
-  line-height: 1.6;
+  color: #9aaab8;
+  line-height: 1.65;
 }
 
-.fallback-note {
+.hint {
   display: none;
-  margin-top: 20px;
-  font-size: 13px;
-  color: #4a5568;
+  margin-top: 28px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #c8d8e8;
   line-height: 1.6;
 }
 </style>
@@ -109,19 +85,9 @@ h1 {
   </div>
 
   <h1>Email confirmed!</h1>
-  <p class="sub">Your CoachSmart account is verified.<br>Open the app to continue.</p>
+  <p class="sub">Your CoachSmart account is verified.</p>
 
-  <button class="btn" onclick="openApp()">Open CoachSmart</button>
-
-  <p class="desktop-note" id="desktopNote">
-    On a desktop? Open the CoachSmart app on your phone to sign in —<br>
-    your email is already confirmed.
-  </p>
-
-  <p class="fallback-note" id="fallbackNote">
-    Didn't open? Return to the CoachSmart app on your device and sign in —<br>
-    your email is already confirmed.
-  </p>
+  <p class="hint" id="hint"></p>
 </div>
 
 <script>
@@ -129,13 +95,17 @@ function openApp() {
   const start = Date.now();
   window.location.href = 'coachsmartv2://coachsmartv2.com/home';
 
-  // If page is still visible after 1600ms the native app didn't open.
-  // Show the fallback message instead of redirecting to the (broken) PWA.
   setTimeout(function () {
     if (Date.now() - start < 3000 && !document.hidden) {
-      document.getElementById('fallbackNote').style.display = 'block';
+      showHint('Return to the CoachSmart app on your device and sign in.');
     }
   }, 1600);
+}
+
+function showHint(msg) {
+  var el = document.getElementById('hint');
+  el.textContent = msg;
+  el.style.display = 'block';
 }
 
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -143,7 +113,7 @@ const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 if (isMobile) {
   setTimeout(openApp, 600);
 } else {
-  document.getElementById('desktopNote').style.display = 'block';
+  showHint('Open the CoachSmart app on your phone to sign in.');
 }
 </script>
 
