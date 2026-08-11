@@ -61,12 +61,11 @@ h1 {
   font-size: 15px;
   color: #9aaab8;
   line-height: 1.65;
+  margin-bottom: 28px;
 }
 
 .hint {
-  display: none;
-  margin-top: 28px;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: #c8d8e8;
   line-height: 1.6;
@@ -86,34 +85,17 @@ h1 {
 
   <h1>Email confirmed!</h1>
   <p class="sub">Your CoachSmart account is verified.</p>
-
   <p class="hint" id="hint"></p>
 </div>
 
 <script>
-function openApp() {
-  const start = Date.now();
-  window.location.href = 'coachsmartv2://coachsmartv2.com/home';
-
-  setTimeout(function () {
-    if (Date.now() - start < 3000 && !document.hidden) {
-      showHint('Return to the CoachSmart app on your device and sign in.');
-    }
-  }, 1600);
-}
-
-function showHint(msg) {
-  var el = document.getElementById('hint');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const hint = document.getElementById('hint');
 
 if (isMobile) {
-  setTimeout(openApp, 600);
+  hint.textContent = 'Return to the CoachSmart app on your device and sign in.';
 } else {
-  showHint('Open the CoachSmart app on your phone to sign in.');
+  hint.textContent = 'Open the CoachSmart app on your phone to sign in.';
 }
 </script>
 
