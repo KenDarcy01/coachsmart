@@ -991,10 +991,16 @@ async function updateOnboardingStatus(status) {
 
 // ── Return to app ─────────────────────────────────────────────────────
 function returnToApp() {
-    // Signal FlutterFlow's onComplete handler via postMessage
+    // Works in both the PWA (Flutter web iframe) and native iOS WebView.
     try { window.parent.postMessage('complete', '*'); } catch(_) {}
-    // Fallback: deep link triggers Flutter's WebView navigationDelegate
-    try { window.location.href = 'coachsmartv2://coachsmartv2.com/home'; } catch(_) {}
+
+    // In the native iOS WebView window.parent === window (no parent frame).
+    // Fire the deep link so FlutterFlow's navigationDelegate can intercept it.
+    // Skip this inside the PWA iframe — it navigates the iframe to an
+    // unhandled scheme and breaks the page.
+    if (window.parent === window) {
+        try { window.location.href = 'coachsmartv2://coachsmartv2.com/home'; } catch(_) {}
+    }
 }
 
 // ── Navigation ────────────────────────────────────────────────────────
