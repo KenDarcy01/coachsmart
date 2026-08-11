@@ -87,6 +87,14 @@ h1 {
   color: #4a5568;
   line-height: 1.6;
 }
+
+.fallback-note {
+  display: none;
+  margin-top: 20px;
+  font-size: 13px;
+  color: #4a5568;
+  line-height: 1.6;
+}
 </style>
 </head>
 <body>
@@ -109,6 +117,11 @@ h1 {
     On a desktop? Open the CoachSmart app on your phone to sign in —<br>
     your email is already confirmed.
   </p>
+
+  <p class="fallback-note" id="fallbackNote">
+    Didn't open? Return to the CoachSmart app on your device and sign in —<br>
+    your email is already confirmed.
+  </p>
 </div>
 
 <script>
@@ -116,11 +129,11 @@ function openApp() {
   const start = Date.now();
   window.location.href = 'coachsmartv2://coachsmartv2.com/home';
 
-  // If the page is still visible after 1600ms the deep link didn't open the app.
-  // Redirect PWA/browser users to the PWA sign-in page so they can log in.
+  // If page is still visible after 1600ms the native app didn't open.
+  // Show the fallback message instead of redirecting to the (broken) PWA.
   setTimeout(function () {
     if (Date.now() - start < 3000 && !document.hidden) {
-      window.location.href = 'https://my.coachsmart.app';
+      document.getElementById('fallbackNote').style.display = 'block';
     }
   }, 1600);
 }
@@ -128,7 +141,6 @@ function openApp() {
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 if (isMobile) {
-  // Small delay so the confirmation exchange completes before we fire the deep link
   setTimeout(openApp, 600);
 } else {
   document.getElementById('desktopNote').style.display = 'block';
