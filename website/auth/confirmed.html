@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Email Confirmed — CoachSmart</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: #111418;
+  font-family: Arial, Helvetica, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  background: #1a1f2b;
+  border: 1px solid #2a3040;
+  border-radius: 18px;
+  max-width: 480px;
+  width: 100%;
+  padding: 48px 36px;
+  text-align: center;
+}
+
+.wordmark {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin-bottom: 36px;
+}
+.wordmark .dim { color: #8a9ab0; }
+.wordmark .grn { color: #87C232; }
+
+.tick {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(135,194,50,0.12);
+  border: 2px solid #87C232;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 28px;
+}
+.tick svg { width: 32px; height: 32px; stroke: #87C232; }
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e7ebee;
+  margin-bottom: 12px;
+}
+
+.sub {
+  font-size: 14px;
+  color: #7a8a9e;
+  line-height: 1.65;
+  margin-bottom: 32px;
+}
+
+.btn {
+  display: inline-block;
+  background: #87C232;
+  color: #0d1108;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 14px 36px;
+  border-radius: 10px;
+  text-decoration: none;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+}
+.btn:hover { background: #96d438; }
+
+.desktop-note {
+  display: none;
+  margin-top: 20px;
+  font-size: 13px;
+  color: #4a5568;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="wordmark"><span class="dim">COACH</span><span class="grn">SMART</span></div>
+
+  <div class="tick">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  </div>
+
+  <h1>Email confirmed!</h1>
+  <p class="sub">Your CoachSmart account is verified.<br>Open the app to continue.</p>
+
+  <button class="btn" onclick="openApp()">Open CoachSmart</button>
+
+  <p class="desktop-note" id="desktopNote">
+    On a desktop? Open the CoachSmart app on your phone to sign in —<br>
+    your email is already confirmed.
+  </p>
+</div>
+
+<script>
+function openApp() {
+  window.location.href = 'coachsmartv2://coachsmartv2.com/home';
+}
+
+// On mobile, try the deep link automatically after a short delay
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+if (isMobile) {
+  setTimeout(openApp, 600);
+} else {
+  document.getElementById('desktopNote').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
