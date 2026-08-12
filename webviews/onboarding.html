@@ -1019,23 +1019,18 @@ function showScreen(id, push = true) {
     if (target) { target.classList.add('active'); window.scrollTo(0, 0); }
     if (push) {
         if (screenHistory[screenHistory.length - 1] !== id) screenHistory.push(id);
-    } else {
-        screenHistory = [id];
     }
+    // push=false: caller manages history — just show the screen
 }
 
 function goBack() {
     if (screenHistory.length > 1) {
         screenHistory.pop();
-        const prev = screenHistory[screenHistory.length - 1];
-        // Prevent going back past the who screen into details on return visits
-        if (prev === 'screen-details' && currentUser?.first_name) {
-            showScreen('screen-who', false);
+        // Prevent going back past who-screen into details on return visits
+        if (screenHistory[screenHistory.length - 1] === 'screen-details' && currentUser?.first_name) {
             screenHistory = ['screen-who'];
-        } else {
-            showScreen(prev, false);
-            screenHistory.push(prev);
         }
+        showScreen(screenHistory[screenHistory.length - 1], false);
     }
 }
 
