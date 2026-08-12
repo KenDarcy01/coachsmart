@@ -172,8 +172,7 @@ async function applyFormatting(
   const WHITE: RGB    = { red: 1, green: 1, blue: 1 };
   const BLACK: RGB    = { red: 0, green: 0, blue: 0 };
 
-  // deno-lint-ignore no-explicit-any
-  const requests: any[] = [
+  const requests: unknown[] = [
     // Column A narrow indent, column B wide content
     { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 0, endIndex: 1 }, properties: { pixelSize: 40 }, fields: "pixelSize" } },
     { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 1, endIndex: 2 }, properties: { pixelSize: 300 }, fields: "pixelSize" } },
