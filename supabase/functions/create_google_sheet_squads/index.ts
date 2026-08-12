@@ -137,6 +137,87 @@ async function shareFile(token: string, fileId: string, type: string, role: stri
 }
 
 // ---------------------------------------------------------------------------
+// Formatting
+// ---------------------------------------------------------------------------
+
+type RGB = { red: number; green: number; blue: number };
+
+const SQUAD_BG: Record<string, RGB> = {
+  blue:   { red: 0.259, green: 0.522, blue: 0.957 },
+  red:    { red: 0.918, green: 0.263, blue: 0.208 },
+  green:  { red: 0.204, green: 0.659, blue: 0.325 },
+  black:  { red: 0.200, green: 0.200, blue: 0.200 },
+  purple: { red: 0.612, green: 0.153, blue: 0.690 },
+  orange: { red: 1.000, green: 0.596, blue: 0.000 },
+  yellow: { red: 1.000, green: 0.922, blue: 0.231 },
+  white:  { red: 0.850, green: 0.850, blue: 0.850 },
+};
+const DEFAULT_SQUAD_BG: RGB = { red: 0.118, green: 0.133, blue: 0.169 }; // #1E222B
+const LIGHT_TEXT_COLORS = new Set(["yellow", "orange", "white"]);
+
+function getSquadColor(squadName: string): { bg: RGB; darkText: boolean } {
+  const lower = squadName.toLowerCase();
+  for (const [key, bg] of Object.entries(SQUAD_BG)) {
+    if (lower.includes(key)) return { bg, darkText: LIGHT_TEXT_COLORS.has(key) };
+  }
+  return { bg: DEFAULT_SQUAD_BG, darkText: false };
+}
+
+async function applyFormatting(
+  token: string,
+  spreadsheetId: string,
+  rowMetas: Array<{ type: "squad" | "role" | "member"; squadName: string }>
+): Promise<void> {
+  const ROLE_BG: RGB  = { red: 0.851, green: 0.851, blue: 0.851 };
+  const WHITE: RGB    = { red: 1, green: 1, blue: 1 };
+  const BLACK: RGB    = { red: 0, green: 0, blue: 0 };
+
+  // deno-lint-ignore no-explicit-any
+  const requests: any[] = [
+    // Column A narrow indent, column B wide content
+    { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 0, endIndex: 1 }, properties: { pixelSize: 40 }, fields: "pixelSize" } },
+    { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 1, endIndex: 2 }, properties: { pixelSize: 300 }, fields: "pixelSize" } },
+  ];
+
+  for (let i = 0; i < rowMetas.length; i++) {
+    const { type, squadName } = rowMetas[i];
+    const rowRange = { sheetId: 0, startRowIndex: i, endRowIndex: i + 1, startColumnIndex: 0, endColumnIndex: 5 };
+
+    if (type === "squad") {
+      const { bg, darkText } = getSquadColor(squadName);
+      requests.push({
+        repeatCell: {
+          range: rowRange,
+          cell: { userEnteredFormat: { backgroundColor: bg, textFormat: { bold: true, fontSize: 11, foregroundColor: darkText ? BLACK : WHITE } } },
+          fields: "userEnteredFormat(backgroundColor,textFormat)",
+        },
+      });
+    } else if (type === "role") {
+      requests.push({
+        repeatCell: {
+          range: rowRange,
+          cell: { userEnteredFormat: { backgroundColor: ROLE_BG, textFormat: { bold: true, fontSize: 10 } } },
+          fields: "userEnteredFormat(backgroundColor,textFormat)",
+        },
+      });
+    }
+  }
+
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ requests }),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    console.warn(`Sheet formatting failed (${res.status}): ${text}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
 
@@ -221,8 +302,12 @@ const handler = async (request: Request): Promise<Response> => {
     ];
 
     const dataForSheet: string[][] = [];
+    const rowMetas: Array<{ type: "squad" | "role" | "member"; squadName: string }> = [];
+
     for (const squadName of sortedSquads) {
       dataForSheet.push(["", squadName]);
+      rowMetas.push({ type: "squad", squadName });
+
       const rolesMap = organizedData.get(squadName)!;
       const roles = Array.from(rolesMap.keys())
         .map(name => ({ name, seq: rolesMap.get(name)!.seq }))
@@ -232,7 +317,11 @@ const handler = async (request: Request): Promise<Response> => {
         if (squadName === "No Team") members = members.filter(m => !assignedMembers.has(m));
         if (members.length > 0) {
           dataForSheet.push(["", role.name]);
-          members.sort().forEach(m => dataForSheet.push(["", m]));
+          rowMetas.push({ type: "role", squadName });
+          members.sort().forEach(m => {
+            dataForSheet.push(["", m]);
+            rowMetas.push({ type: "member", squadName });
+          });
         }
       }
     }
@@ -248,6 +337,7 @@ const handler = async (request: Request): Promise<Response> => {
     console.log("[STEP 3/4] Creating spreadsheet and writing data...");
     const { spreadsheetId, spreadsheetUrl } = await createSpreadsheet(googleToken, sheetTitle);
     await writeSheetValues(googleToken, spreadsheetId, dataForSheet);
+    await applyFormatting(googleToken, spreadsheetId, rowMetas);
 
     // Share: requesting user gets writer access; anyone with the link can view
     await shareFile(googleToken, spreadsheetId, "user",   "writer", user_email);
