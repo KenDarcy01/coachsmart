@@ -36,6 +36,19 @@ Deno.serve(async (req)=>{
       const sa = JSON.parse(saJson);
       const accessToken = await getFcmAccessToken(sa);
       const userPushGroups = groupBy(pushNotes, 'recipient_user_id');
+
+      // Pre-fetch true unread counts so the APNS badge reflects total DB unread, not just batch size
+      const pushUserIds = Object.keys(userPushGroups);
+      const { data: unreadRows } = await supabaseClient
+        .from('notifications')
+        .select('recipient_user_id')
+        .in('recipient_user_id', pushUserIds)
+        .eq('is_read', false);
+      const unreadCountMap: Record<string, number> = {};
+      (unreadRows || []).forEach((row) => {
+        unreadCountMap[row.recipient_user_id] = (unreadCountMap[row.recipient_user_id] || 0) + 1;
+      });
+
       await Promise.all(Object.entries(userPushGroups).map(async ([userId, notes])=>{
         const user = notes[0].users;
         if (!user?.fcm_token) {
@@ -83,7 +96,7 @@ Deno.serve(async (req)=>{
                       body: displayBody
                     },
                     sound: 'default',
-                    badge: notes.length,
+                    badge: unreadCountMap[userId] ?? notes.length,
                     'content-available': 1,
                     'mutable-content': 1,
                     // FlutterFlow uses this category for iOS cold start routing
