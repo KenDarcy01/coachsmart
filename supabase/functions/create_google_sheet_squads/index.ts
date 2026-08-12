@@ -1,36 +1,158 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import postgres from "https://deno.land/x/postgresjs@v3.3.3/mod.js";
 import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
+
 const RequestSchema = z.object({
   event_id: z.coerce.string(),
   user_email: z.string().email(),
   match_squad_id: z.coerce.string()
 });
-const jsonReplacer = (_key, value)=>{
-  return typeof value === 'bigint' ? value.toString() : value;
+
+const jsonReplacer = (_key: string, value: unknown) =>
+  typeof value === 'bigint' ? value.toString() : value;
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization"
 };
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWAvz64fn4Sp3zX3N3glpzIrWUOHmjf11csbmXoAydvRTKae9tR-9JpMZawZgeGeKPzg/exec";
+
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const DATABASE_URL = Deno.env.get("SUPABASE_DB_URL");
-const sql = postgres(DATABASE_URL, {
-  prepare: false
-});
-const handler = async (request)=>{
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
-    });
+const DATABASE_URL  = Deno.env.get("SUPABASE_DB_URL");
+
+const sql = postgres(DATABASE_URL!, { prepare: false });
+
+// ---------------------------------------------------------------------------
+// Google OAuth token via service account (same pattern as FCM)
+// ---------------------------------------------------------------------------
+
+function pemToBinary(pem: string): ArrayBuffer {
+  const base64 = pem
+    .trim()
+    .split("\n")
+    .filter(l => !l.includes("BEGIN") && !l.includes("END"))
+    .join("");
+  const binary = atob(base64);
+  const buf = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
+  return buf.buffer;
+}
+
+async function getGoogleAccessToken(clientEmail: string, privateKey: string): Promise<string> {
+  const now  = Math.floor(Date.now() / 1000);
+  const header  = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss:   clientEmail,
+    scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
+    aud:   "https://oauth2.googleapis.com/token",
+    iat:   now,
+    exp:   now + 3600,
+  };
+
+  const enc = (obj: unknown) =>
+    btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+  const unsigned = `${enc(header)}.${enc(payload)}`;
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    pemToBinary(privateKey),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, new TextEncoder().encode(unsigned));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+  const jwt = `${unsigned}.${sigB64}`;
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+  if (!tokenRes.ok) {
+    const text = await tokenRes.text();
+    throw new Error(`Google token exchange failed (${tokenRes.status}): ${text}`);
   }
+  const { access_token } = await tokenRes.json();
+  return access_token;
+}
+
+// ---------------------------------------------------------------------------
+// Sheets helpers
+// ---------------------------------------------------------------------------
+
+async function createSpreadsheet(token: string, title: string): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
+  const res = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ properties: { title } }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Sheets create failed (${res.status}): ${text}`);
+  }
+  const { spreadsheetId, spreadsheetUrl } = await res.json();
+  return { spreadsheetId, spreadsheetUrl };
+}
+
+async function writeSheetValues(token: string, spreadsheetId: string, values: unknown[][]): Promise<void> {
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1?valueInputOption=RAW`,
+    {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ values }, jsonReplacer),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Sheets write failed (${res.status}): ${text}`);
+  }
+}
+
+async function shareFile(token: string, fileId: string, type: string, role: string, emailAddress?: string): Promise<void> {
+  const body: Record<string, string> = { type, role };
+  if (emailAddress) body.emailAddress = emailAddress;
+
+  const params = new URLSearchParams({ sendNotificationEmail: "false" });
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?${params}`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    console.warn(`Share (${type}/${role}) failed (${res.status}): ${text}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Handler
+// ---------------------------------------------------------------------------
+
+const handler = async (request: Request): Promise<Response> => {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   console.log("--- STARTING EXPORT PROCESS ---");
+
   try {
     const body = await request.json();
     const { event_id, user_email, match_squad_id } = RequestSchema.parse(body);
-    console.log("[STEP 1/4] Querying Database...");
+
+    // ── STEP 1: Database ──────────────────────────────────────────────────
+    console.log("[STEP 1/4] Querying database...");
     const rows = await sql`
       SELECT
         s.squad_name, r.role_name_plural,
@@ -40,179 +162,157 @@ const handler = async (request)=>{
         s.squad_list_seq, ec.event_code, et.event_type, e.opposition, ev_team.team_female
       FROM public.match_squad_details msd
       JOIN public.match_squads ms ON msd.match_squad_id = ms.match_squad_id
-      JOIN public.members m ON msd.member_id = m.member_id
-      JOIN public.roles r ON msd.role_id = r.role_id
-      JOIN public.events e ON ms.event_id = e.event_id
-      LEFT JOIN public.squads s ON msd.squad_id = s.squad_id
-      LEFT JOIN public.teams sq_team ON s.team_id = sq_team.team_id
-      INNER JOIN public.teams ev_team ON e.team_id = ev_team.team_id
-      LEFT JOIN public.event_codes ec ON e.event_code_id = ec.code_id
-      LEFT JOIN public.event_types et ON e.event_type_id = et.event_type_id
+      JOIN public.members m       ON msd.member_id = m.member_id
+      JOIN public.roles r         ON msd.role_id = r.role_id
+      JOIN public.events e        ON ms.event_id = e.event_id
+      LEFT JOIN public.squads s         ON msd.squad_id = s.squad_id
+      LEFT JOIN public.teams sq_team    ON s.team_id = sq_team.team_id
+      INNER JOIN public.teams ev_team   ON e.team_id = ev_team.team_id
+      LEFT JOIN public.event_codes ec   ON e.event_code_id = ec.code_id
+      LEFT JOIN public.event_types et   ON e.event_type_id = et.event_type_id
       WHERE ms.event_id = ${event_id}
         AND ms.match_squad_id = ${match_squad_id}
       ORDER BY s.squad_list_seq ASC, (m.first_name || ' ' || m.last_name) ASC
     `;
+
     if (rows.length === 0) {
-      console.error("[ERROR] No database rows returned.");
-      return new Response(JSON.stringify({
-        error: "No data found."
-      }), {
-        status: 404
+      return new Response(JSON.stringify({ error: "No data found." }), {
+        status: 404,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
     }
-    const firstRow = rows[0];
-    // Logic: Camogie Swap
-    let displayCode = firstRow.event_code || "";
-    if (displayCode === "Hurling" && (firstRow.team_female === "YES" || firstRow.team_female === true)) {
+
+    // ── Build sheet title ─────────────────────────────────────────────────
+    const first = rows[0];
+    let displayCode = first.event_code || "";
+    if (displayCode === "Hurling" && (first.team_female === "YES" || first.team_female === true)) {
       displayCode = "Camogie";
     }
-    let displayTitle = firstRow.event_title;
-    const baseFallback = `${displayCode} ${firstRow.event_type || ""}`.trim();
-    if (!displayTitle || displayTitle.trim() === "") {
-      displayTitle = baseFallback || "Event";
+    let displayTitle = first.event_title;
+    const baseFallback = `${displayCode} ${first.event_type || ""}`.trim();
+    if (!displayTitle || displayTitle.trim() === "") displayTitle = baseFallback || "Event";
+    if (first.event_type === "Match" && first.opposition?.trim()) {
+      displayTitle = `${displayTitle} - ${first.opposition.trim()}`;
     }
-    if (firstRow.event_type === "Match" && firstRow.opposition?.trim()) {
-      displayTitle = `${displayTitle} - ${firstRow.opposition.trim()}`;
-    }
-    const sheetTitle = `Teams - ${firstRow.team_name} (${displayTitle}) - ${firstRow.formatted_event_date_time}`;
-    // --- Data Organization ---
-    const organizedData = new Map();
-    const squadSequences = new Map();
-    const assignedMembers = new Set();
-    for (const row of rows){
+    const sheetTitle = `Teams - ${first.team_name} (${displayTitle}) - ${first.formatted_event_date_time}`;
+
+    // ── Organise rows into squads → roles → members ───────────────────────
+    const organizedData  = new Map<string, Map<string, { members: Set<string>; seq: number }>>();
+    const squadSequences = new Map<string, number>();
+    const assignedMembers = new Set<string>();
+
+    for (const row of rows) {
       const { squad_name, role_name_plural, full_member_name, role_list_seq, squad_list_seq } = row;
       if (!squad_name || !full_member_name) continue;
       if (squad_list_seq !== null) squadSequences.set(squad_name, squad_list_seq);
       if (squad_name !== "No Team") assignedMembers.add(full_member_name);
       if (!organizedData.has(squad_name)) organizedData.set(squad_name, new Map());
-      const squadMap = organizedData.get(squad_name);
-      if (!squadMap.has(role_name_plural)) {
-        squadMap.set(role_name_plural, {
-          members: new Set(),
-          seq: role_list_seq
-        });
-      }
-      squadMap.get(role_name_plural).members.add(full_member_name);
+      const squadMap = organizedData.get(squad_name)!;
+      if (!squadMap.has(role_name_plural)) squadMap.set(role_name_plural, { members: new Set(), seq: role_list_seq });
+      squadMap.get(role_name_plural)!.members.add(full_member_name);
     }
+
     const squadNames = Array.from(organizedData.keys());
     const sortedSquads = [
-      ...squadNames.filter((n)=>n !== "No Team").sort((a, b)=>(squadSequences.get(a) || 999) - (squadSequences.get(b) || 999) || a.localeCompare(b)),
-      ...squadNames.filter((n)=>n === "No Team")
+      ...squadNames.filter(n => n !== "No Team").sort((a, b) =>
+        (squadSequences.get(a) ?? 999) - (squadSequences.get(b) ?? 999) || a.localeCompare(b)
+      ),
+      ...squadNames.filter(n => n === "No Team"),
     ];
-    const dataForSheet = [];
-    for (const squadName of sortedSquads){
-      dataForSheet.push([
-        "",
-        squadName
-      ]);
-      const rolesMap = organizedData.get(squadName);
-      const roles = Array.from(rolesMap.keys()).map((name)=>({
-          name,
-          seq: rolesMap.get(name).seq
-        })).sort((a, b)=>a.seq - b.seq);
-      for (const role of roles){
-        let members = Array.from(rolesMap.get(role.name).members);
-        if (squadName === "No Team") members = members.filter((m)=>!assignedMembers.has(m));
+
+    const dataForSheet: string[][] = [];
+    for (const squadName of sortedSquads) {
+      dataForSheet.push(["", squadName]);
+      const rolesMap = organizedData.get(squadName)!;
+      const roles = Array.from(rolesMap.keys())
+        .map(name => ({ name, seq: rolesMap.get(name)!.seq }))
+        .sort((a, b) => a.seq - b.seq);
+      for (const role of roles) {
+        let members = Array.from(rolesMap.get(role.name)!.members);
+        if (squadName === "No Team") members = members.filter(m => !assignedMembers.has(m));
         if (members.length > 0) {
-          dataForSheet.push([
-            "",
-            role.name
-          ]);
-          members.sort().forEach((m)=>dataForSheet.push([
-              "",
-              m
-            ]));
+          dataForSheet.push(["", role.name]);
+          members.sort().forEach(m => dataForSheet.push(["", m]));
         }
       }
     }
-    // --- Google Apps Script Handoff ---
-    console.log("[STEP 2/4] Calling Google Apps Script...");
-    const appsScriptResponse = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        title: sheetTitle,
-        data: dataForSheet
-      }, jsonReplacer)
-    });
 
-    const contentType = appsScriptResponse.headers.get('content-type') || '';
-    if (!appsScriptResponse.ok || !contentType.includes('application/json')) {
-      const rawText = await appsScriptResponse.text();
-      console.error(`[ERROR] Apps Script returned HTTP ${appsScriptResponse.status} with content-type "${contentType}"`);
-      console.error(`[ERROR] Apps Script raw response (first 300 chars): ${rawText.substring(0, 300)}`);
-      throw new Error(`Apps Script failed (HTTP ${appsScriptResponse.status}). The deployment URL may have expired — re-deploy the script and update APPS_SCRIPT_URL.`);
-    }
+    // ── STEP 2: Google auth ───────────────────────────────────────────────
+    console.log("[STEP 2/4] Getting Google access token...");
+    const clientEmail = Deno.env.get("GOOGLE_CLIENT_EMAIL");
+    const privateKey  = Deno.env.get("GOOGLE_PRIVATE_KEY")?.replace(/\\n/g, "\n");
+    if (!clientEmail || !privateKey) throw new Error("Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY");
+    const googleToken = await getGoogleAccessToken(clientEmail, privateKey);
 
-    const appsScriptResult = await appsScriptResponse.json();
-    console.log("[STEP 3/4] Sheet created:", appsScriptResult.url);
-    const sheetUrl = appsScriptResult.url;
-    // --- Restored Branded Resend Email ---
+    // ── STEP 3: Create sheet + write data ─────────────────────────────────
+    console.log("[STEP 3/4] Creating spreadsheet and writing data...");
+    const { spreadsheetId, spreadsheetUrl } = await createSpreadsheet(googleToken, sheetTitle);
+    await writeSheetValues(googleToken, spreadsheetId, dataForSheet);
+
+    // Share: requesting user gets writer access; anyone with the link can view
+    await shareFile(googleToken, spreadsheetId, "user",   "writer", user_email);
+    await shareFile(googleToken, spreadsheetId, "anyone", "reader");
+
+    console.log("[STEP 4/4] Sending email to", user_email);
+
+    // ── STEP 4: Email ─────────────────────────────────────────────────────
     const emailHtml = `
 <!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin: 0; padding: 0; background-color: #f7fafc; font-family: Arial, sans-serif;">
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #1E222B; padding: 20px 0;">
-        <tr><td align="center"><table border="0" cellpadding="0" cellspacing="0" width="600" style="max-width: 600px; background-color: #1E222B;">
-            <tr><td align="center" style="padding: 20px 0;">
-                <h1 style="margin: 0; font-size: 28px; color: #87C232; font-family: Arial, sans-serif; font-weight: bold;">CoachSmart</h1>
-                <p style="margin: 5px 0 0; font-size: 14px; color: #ffffff; font-family: Arial, sans-serif; letter-spacing: 1px;">COACHING MADE SIMPLE</p>
-            </td></tr>
-            <tr><td bgcolor="#1E222B" style="padding: 40px 30px; border-radius: 8px;">
-                <table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 16px; line-height: 1.5;">
-                    <p style="margin: 0 0 20px;">Hi there,</p>
-                    <p style="margin: 0 0 20px;">Your team squads for <b>${sheetTitle}</b> have been successfully exported to Google Sheets.</p>
-                    <p style="margin: 25px 0 10px; text-align: center;">
-                        <a href="${sheetUrl || '#'}" style="background-color: #87C232; color: #1E222B; padding: 12px 25px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif; font-size: 16px;">View Team Sheet</a>
-                    </p>
-                    <p style="margin-top: 30px; font-size: 14px; color: #b0b0b0; text-align: center;">Copy this clean link to share:</p>
-                    <div style="word-break: break-all; font-family: monospace; background-color: #0d1117; color: #87C232; padding: 15px; border: 1px solid #87C232; border-radius: 4px; margin-top: 10px; font-size: 14px; overflow-wrap: break-word; text-align: center;">${sheetUrl || 'Link processing...'}</div>
-                </td></tr></table>
-            </td></tr>
-            <tr><td align="center" style="padding: 30px 0 10px; color: #b0b0b0; font-family: Arial, sans-serif; font-size: 12px;">
-                <p style="margin: 0;">Thanks,<br/>The CoachSmart Team</p>
-            </td></tr>
-        </table></td></tr>
-    </table>
+<body style="margin:0;padding:0;background-color:#f7fafc;font-family:Arial,sans-serif;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#1E222B;padding:20px 0;">
+    <tr><td align="center"><table border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background-color:#1E222B;">
+      <tr><td align="center" style="padding:20px 0;">
+        <h1 style="margin:0;font-size:28px;color:#87C232;font-family:Arial,sans-serif;font-weight:bold;">CoachSmart</h1>
+        <p style="margin:5px 0 0;font-size:14px;color:#ffffff;letter-spacing:1px;">COACHING MADE SIMPLE</p>
+      </td></tr>
+      <tr><td style="padding:40px 30px;border-radius:8px;">
+        <p style="color:#ffffff;font-size:16px;line-height:1.5;margin:0 0 20px;">Hi there,</p>
+        <p style="color:#ffffff;font-size:16px;line-height:1.5;margin:0 0 20px;">
+          Your team squads for <b>${sheetTitle}</b> have been successfully exported to Google Sheets.
+        </p>
+        <p style="margin:25px 0 10px;text-align:center;">
+          <a href="${spreadsheetUrl}" style="background-color:#87C232;color:#1E222B;padding:12px 25px;text-decoration:none;border-radius:6px;display:inline-block;font-weight:bold;font-size:16px;">View Team Sheet</a>
+        </p>
+        <p style="margin-top:30px;font-size:14px;color:#b0b0b0;text-align:center;">Copy this link to share:</p>
+        <div style="word-break:break-all;font-family:monospace;background-color:#0d1117;color:#87C232;padding:15px;border:1px solid #87C232;border-radius:4px;margin-top:10px;font-size:14px;text-align:center;">${spreadsheetUrl}</div>
+        <p style="margin-top:30px;font-size:14px;color:#b0b0b0;text-align:center;">Thanks,<br/>The CoachSmart Team</p>
+      </td></tr>
+    </table></td></tr>
+  </table>
 </body>
 </html>`;
+
     await fetch("https://api.resend.com/emails", {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'CoachSmart <noreply@coachsmart.app>',
+        from: "CoachSmart <noreply@coachsmart.app>",
         to: user_email,
         subject: sheetTitle,
-        html: emailHtml
-      })
+        html: emailHtml,
+      }),
     });
-    return new Response(JSON.stringify({
-      status: 'success',
-      sheetUrl
-    }), {
+
+    console.log("--- EXPORT COMPLETE ---");
+
+    return new Response(JSON.stringify({ status: "success", sheetUrl: spreadsheetUrl }), {
       status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json"
-      }
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
-  } catch (err) {
-    console.error(`[CRITICAL ERROR] ${err.message}`);
-    return new Response(JSON.stringify({
-      error: err.message
-    }), {
+
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[CRITICAL ERROR] ${msg}`);
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json"
-      }
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
   }
 };
+
 serve(handler);
