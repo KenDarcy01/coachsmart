@@ -197,10 +197,36 @@ Deno.serve(async (req)=>{
 
         // Detect notification type from title to choose badge and intro phrasing
         const titleLower = title.toLowerCase();
+        const bodyLower = body.toLowerCase();
         const isReminder = titleLower.includes('reminder') || titleLower.includes('response');
-        const badgeLabel = isReminder ? 'ACTION REQUIRED' : 'ATTENDANCE UPDATE';
-        const badgeColor = isReminder ? '#87C232' : '#4a9eff';
         const introText = isReminder ? `${title} for the following event:` : `${title}:`;
+
+        let badgeLabel: string;
+        let badgeColor: string;
+        if (isReminder) {
+          badgeLabel = 'ACTION REQUIRED';
+          badgeColor = '#87C232';
+        } else if (titleLower.startsWith('attendance accepted')) {
+          badgeLabel = 'ACCEPTED';
+          badgeColor = '#87C232';
+        } else if (titleLower.startsWith('attendance declined')) {
+          badgeLabel = 'DECLINED';
+          badgeColor = '#e05252';
+        } else if (titleLower.startsWith('change of attendance')) {
+          if (bodyLower.includes('to accepted')) {
+            badgeLabel = 'DECLINED → ACCEPTED';
+            badgeColor = '#87C232';
+          } else if (bodyLower.includes('to declined')) {
+            badgeLabel = 'ACCEPTED → DECLINED';
+            badgeColor = '#e05252';
+          } else {
+            badgeLabel = 'ATTENDANCE CHANGED';
+            badgeColor = '#888888';
+          }
+        } else {
+          badgeLabel = 'ATTENDANCE UPDATE';
+          badgeColor = '#4a9eff';
+        }
         const displayBody = isReminder
           ? 'Please open the CoachSmart app and respond for this event so that your team can finalise their plans. Thank you!'
           : body;
