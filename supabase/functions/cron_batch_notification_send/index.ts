@@ -132,13 +132,12 @@ Deno.serve(async (req)=>{
     // -------------------------------------------------------------------------
     // SECTION B: EMAIL NOTIFICATIONS
     // HTML is generated at send time from app_title / app_body.
+    // Event data is fetched from the DB to build a structured event card.
     // -------------------------------------------------------------------------
     if (emailNotes.length > 0) {
-      const uniqueEmailNotes = Array.from(new Map(emailNotes.map((n)=>[
-          n.id,
-          n
-        ])).values());
-      const emailsToSend = uniqueEmailNotes.filter((n)=>{
+      const uniqueEmailNotes = Array.from(new Map(emailNotes.map((n) => [n.id, n])).values());
+
+      const validEmailNotes = uniqueEmailNotes.filter((n) => {
         if (!n.users?.email_address) {
           console.warn(`⚠️ No email address for recipient ${n.recipient_user_id} — skipping`);
           return false;
@@ -148,31 +147,83 @@ Deno.serve(async (req)=>{
           return false;
         }
         return true;
-      }).map((n)=>{
+      });
+
+      // Batch-fetch event data for all notifications that reference an event via link_page
+      const eventIds = [
+        ...new Set(
+          validEmailNotes
+            .map((n) => { const m = n.link_page?.match(/eventID=(\d+)/); return m ? parseInt(m[1]) : null; })
+            .filter(Boolean)
+        ),
+      ];
+      const eventDataMap = new Map();
+      if (eventIds.length > 0) {
+        const { data: eventsData } = await supabaseClient
+          .from('events')
+          .select('event_id, event_title, event_date_time, opposition')
+          .in('event_id', eventIds);
+        (eventsData || []).forEach((ev) => {
+          const dt = new Date(ev.event_date_time);
+          const formattedDate = dt.toLocaleString('en-IE', {
+            timeZone: 'Europe/Dublin',
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+          });
+          const eventDisplayTitle = ev.opposition ? `${ev.event_title} vs. ${ev.opposition}` : ev.event_title;
+          eventDataMap.set(ev.event_id, { eventDisplayTitle, formattedDate });
+        });
+      }
+
+      const logoUrl = 'https://gyfporsbdftvtakdvukt.supabase.co/storage/v1/object/sign/coachsmartimages/CoachSmart%20Logo%20Transparent.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OTA4NmRkYy01MWQ3LTQ1NzUtYWYwMC1mZjQxYmMyNDU2YWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb2FjaHNtYXJ0aW1hZ2VzL0NvYWNoU21hcnQgTG9nbyBUcmFuc3BhcmVudC5wbmciLCJpYXQiOjE3NzQ2MDYzOTksImV4cCI6MjYzODYwNjM5OX0.20yMzSYnG08kYjMK6cmGMvwA6VPGvm9_yHG-CmEfSIs';
+
+      const emailsToSend = validEmailNotes.map((n) => {
         const firstName = n.users?.first_name || 'there';
         const title = n.app_title || 'Notification';
         const body = n.app_body || '';
-        const logoUrl = 'https://gyfporsbdftvtakdvukt.supabase.co/storage/v1/object/sign/coachsmartimages/CoachSmart%20Logo%20Transparent.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OTA4NmRkYy01MWQ3LTQ1NzUtYWYwMC1mZjQxYmMyNDU2YWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb2FjaHNtYXJ0aW1hZ2VzL0NvYWNoU21hcnQgTG9nbyBUcmFuc3BhcmVudC5wbmciLCJpYXQiOjE3NzQ2MDYzOTksImV4cCI6MjYzODYwNjM5OX0.20yMzSYnG08kYjMK6cmGMvwA6VPGvm9_yHG-CmEfSIs';
-        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>CoachSmart</title></head><body style="margin:0;padding:0;background-color:#111418;font-family:Arial,Helvetica,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#212529;border-radius:16px;overflow:hidden;border:1px solid #3a3f4b;"><tr><td style="background-color:#1E222B;padding:28px 24px;text-align:center;border-bottom:3px solid #87C232;"><table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td style="padding-right:16px;vertical-align:middle;"><img src="${logoUrl}" alt="CoachSmart" width="80" style="display:block;height:auto;border:0;"></td><td style="vertical-align:middle;text-align:left;"><p style="margin:0;font-size:26px;font-weight:900;letter-spacing:2.5px;line-height:1;font-family:Arial,Helvetica,sans-serif;"><span style="color:#c8ccd0;">COACH</span><span style="color:#87C232;">SMART</span></p><p style="margin:5px 0 0 0;font-size:9px;font-weight:700;letter-spacing:4px;color:#87C232;font-family:Arial,Helvetica,sans-serif;">COACHING&nbsp;&nbsp;MADE&nbsp;&nbsp;SIMPLE</p></td></tr></table></td></tr><tr><td style="padding:28px 28px 24px;"><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">Hi ${firstName},</p><table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;"><tr><td style="background:#2c313a;border-left:3px solid #87C232;padding:16px 18px;border-radius:0 8px 8px 0;"><p style="margin:0;color:#e7ebee;font-size:15px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">${title}</p></td></tr></table><p style="margin:0;font-size:14px;color:#a3a3a3;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">${body}</p></td></tr><tr><td style="padding:16px 28px;border-top:1px solid #3a3f4b;text-align:center;"><p style="margin:0 0 4px 0;font-size:11px;color:#555;letter-spacing:1.5px;font-family:Arial,Helvetica,sans-serif;">COACHSMART &middot; COACHING MADE SIMPLE</p><p style="margin:0;font-size:11px;color:#444;font-family:Arial,Helvetica,sans-serif;">You received this because you are a member of a CoachSmart team.</p></td></tr></table></td></tr></table></body></html>`;
+
+        const eventIdMatch = n.link_page?.match(/eventID=(\d+)/);
+        const eventIdNum = eventIdMatch ? parseInt(eventIdMatch[1]) : null;
+        const eventData = eventIdNum ? eventDataMap.get(eventIdNum) : null;
+
+        // Detect notification type from title to choose badge and intro phrasing
+        const titleLower = title.toLowerCase();
+        const isReminder = titleLower.includes('reminder') || titleLower.includes('response');
+        const badgeLabel = isReminder ? 'ACTION REQUIRED' : 'ATTENDANCE UPDATE';
+        const badgeColor = isReminder ? '#87C232' : '#4a9eff';
+        const introText = isReminder ? `${title} for the following event:` : `${title}:`;
+
+        const eventCardHtml = eventData
+          ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;"><tr><td style="background:#2c313a;border-left:4px solid #87C232;padding:16px 18px;border-radius:0 8px 8px 0;"><p style="margin:0 0 6px 0;color:#e7ebee;font-size:16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">${eventData.eventDisplayTitle}</p><p style="margin:0;color:#87C232;font-size:13px;font-family:Arial,Helvetica,sans-serif;">${eventData.formattedDate}</p></td></tr></table>`
+          : '';
+
+        const badgeHtml = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;"><tr><td><span style="display:inline-block;background:${badgeColor};color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 12px;border-radius:4px;font-family:Arial,Helvetica,sans-serif;">${badgeLabel}</span></td></tr></table>`;
+
+        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>CoachSmart</title></head><body style="margin:0;padding:0;background-color:#111418;font-family:Arial,Helvetica,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#212529;border-radius:16px;overflow:hidden;border:1px solid #3a3f4b;"><tr><td style="background-color:#1E222B;padding:28px 24px;text-align:center;border-bottom:3px solid #87C232;"><table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td style="padding-right:16px;vertical-align:middle;"><img src="${logoUrl}" alt="CoachSmart" width="80" style="display:block;height:auto;border:0;"></td><td style="vertical-align:middle;text-align:left;"><p style="margin:0;font-size:26px;font-weight:900;letter-spacing:2.5px;line-height:1;font-family:Arial,Helvetica,sans-serif;"><span style="color:#c8ccd0;">COACH</span><span style="color:#87C232;">SMART</span></p><p style="margin:5px 0 0 0;font-size:9px;font-weight:700;letter-spacing:4px;color:#87C232;font-family:Arial,Helvetica,sans-serif;">COACHING&nbsp;&nbsp;MADE&nbsp;&nbsp;SIMPLE</p></td></tr></table></td></tr><tr><td style="padding:28px 28px 24px;"><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">Hi ${firstName},</p><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">${introText}</p>${eventCardHtml}${badgeHtml}<p style="margin:0;font-size:14px;color:#a3a3a3;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">${body}</p></td></tr><tr><td style="padding:16px 28px;border-top:1px solid #3a3f4b;text-align:center;"><p style="margin:0 0 4px 0;font-size:11px;color:#555;letter-spacing:1.5px;font-family:Arial,Helvetica,sans-serif;">COACHSMART &middot; COACHING MADE SIMPLE</p><p style="margin:0;font-size:11px;color:#444;font-family:Arial,Helvetica,sans-serif;">You received this because you are a member of a CoachSmart team.</p></td></tr></table></td></tr></table></body></html>`;
+
         console.log(`📧 Sending email for notification ${n.id} | to=${n.users.email_address}`);
         return {
           _id: n.id,
           from: 'CoachSmart <noreply@coachsmart.app>',
-          to: [
-            n.users.email_address
-          ],
+          to: [n.users.email_address],
           subject: title,
-          html
+          html,
         };
       });
+
       if (emailsToSend.length > 0) {
-        for(let i = 0; i < emailsToSend.length; i += 100){
+        for (let i = 0; i < emailsToSend.length; i += 100) {
           const chunk = emailsToSend.slice(i, i + 100);
-          const resendPayload = chunk.map(({ _id, ...rest })=>rest);
+          const resendPayload = chunk.map(({ _id, ...rest }) => rest);
           const { error: emailError } = await resend.batch.send(resendPayload);
           if (!emailError) {
             console.log(`✉️ Sent batch of ${chunk.length} email(s) ✓`);
-            chunk.forEach((e)=>processedIds.push(e._id));
+            chunk.forEach((e) => processedIds.push(e._id));
           } else {
             console.error('❌ Resend Batch Error:', emailError);
           }
