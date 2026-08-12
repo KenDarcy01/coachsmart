@@ -143,8 +143,8 @@ async function shareFile(token: string, fileId: string, type: string, role: stri
 type RGB = { red: number; green: number; blue: number };
 
 const SQUAD_BG: Record<string, RGB> = {
-  blue:   { red: 0.259, green: 0.522, blue: 0.957 },
-  red:    { red: 0.918, green: 0.263, blue: 0.208 },
+  blue:   { red: 0.051, green: 0.278, blue: 0.812 },
+  red:    { red: 0.800, green: 0.000, blue: 0.000 },
   green:  { red: 0.204, green: 0.659, blue: 0.325 },
   black:  { red: 0.200, green: 0.200, blue: 0.200 },
   purple: { red: 0.612, green: 0.153, blue: 0.690 },
@@ -174,7 +174,7 @@ async function applyFormatting(
 
   const requests: unknown[] = [
     // Column A narrow indent, column B wide content
-    { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 0, endIndex: 1 }, properties: { pixelSize: 40 }, fields: "pixelSize" } },
+    { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 0, endIndex: 1 }, properties: { pixelSize: 20 }, fields: "pixelSize" } },
     { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 1, endIndex: 2 }, properties: { pixelSize: 300 }, fields: "pixelSize" } },
   ];
 
