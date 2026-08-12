@@ -161,7 +161,7 @@ Deno.serve(async (req)=>{
       if (eventIds.length > 0) {
         const { data: eventsData } = await supabaseClient
           .from('events')
-          .select('event_id, event_title, event_date_time, opposition')
+          .select('event_id, event_title, event_date_time, opposition, event_codes(event_code), event_types(event_type)')
           .in('event_id', eventIds);
         (eventsData || []).forEach((ev) => {
           const dt = new Date(ev.event_date_time);
@@ -175,7 +175,11 @@ Deno.serve(async (req)=>{
             minute: '2-digit',
             hour12: true,
           });
-          const eventDisplayTitle = ev.opposition ? `${ev.event_title} vs. ${ev.opposition}` : ev.event_title;
+          // Build title: use event_title if set, otherwise fall back to "EventCode EventType"
+          const baseTitle = ev.event_title
+            || [ev.event_codes?.event_code, ev.event_types?.event_type].filter(Boolean).join(' ')
+            || 'Event';
+          const eventDisplayTitle = ev.opposition ? `${baseTitle} vs. ${ev.opposition}` : baseTitle;
           eventDataMap.set(ev.event_id, { eventDisplayTitle, formattedDate });
         });
       }
@@ -197,6 +201,9 @@ Deno.serve(async (req)=>{
         const badgeLabel = isReminder ? 'ACTION REQUIRED' : 'ATTENDANCE UPDATE';
         const badgeColor = isReminder ? '#87C232' : '#4a9eff';
         const introText = isReminder ? `${title} for the following event:` : `${title}:`;
+        const displayBody = isReminder
+          ? 'Please open the CoachSmart app and respond for this event so that your team can finalise their plans. Thank you!'
+          : body;
 
         const eventCardHtml = eventData
           ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;"><tr><td style="background:#2c313a;border-left:4px solid #87C232;padding:16px 18px;border-radius:0 8px 8px 0;"><p style="margin:0 0 6px 0;color:#e7ebee;font-size:16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">${eventData.eventDisplayTitle}</p><p style="margin:0;color:#87C232;font-size:13px;font-family:Arial,Helvetica,sans-serif;">${eventData.formattedDate}</p></td></tr></table>`
@@ -204,7 +211,7 @@ Deno.serve(async (req)=>{
 
         const badgeHtml = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;"><tr><td><span style="display:inline-block;background:${badgeColor};color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 12px;border-radius:4px;font-family:Arial,Helvetica,sans-serif;">${badgeLabel}</span></td></tr></table>`;
 
-        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>CoachSmart</title></head><body style="margin:0;padding:0;background-color:#111418;font-family:Arial,Helvetica,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#212529;border-radius:16px;overflow:hidden;border:1px solid #3a3f4b;"><tr><td style="background-color:#1E222B;padding:28px 24px;text-align:center;border-bottom:3px solid #87C232;"><table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td style="padding-right:16px;vertical-align:middle;"><img src="${logoUrl}" alt="CoachSmart" width="80" style="display:block;height:auto;border:0;"></td><td style="vertical-align:middle;text-align:left;"><p style="margin:0;font-size:26px;font-weight:900;letter-spacing:2.5px;line-height:1;font-family:Arial,Helvetica,sans-serif;"><span style="color:#c8ccd0;">COACH</span><span style="color:#87C232;">SMART</span></p><p style="margin:5px 0 0 0;font-size:9px;font-weight:700;letter-spacing:4px;color:#87C232;font-family:Arial,Helvetica,sans-serif;">COACHING&nbsp;&nbsp;MADE&nbsp;&nbsp;SIMPLE</p></td></tr></table></td></tr><tr><td style="padding:28px 28px 24px;"><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">Hi ${firstName},</p><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">${introText}</p>${eventCardHtml}${badgeHtml}<p style="margin:0;font-size:14px;color:#a3a3a3;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">${body}</p></td></tr><tr><td style="padding:16px 28px;border-top:1px solid #3a3f4b;text-align:center;"><p style="margin:0 0 4px 0;font-size:11px;color:#555;letter-spacing:1.5px;font-family:Arial,Helvetica,sans-serif;">COACHSMART &middot; COACHING MADE SIMPLE</p><p style="margin:0;font-size:11px;color:#444;font-family:Arial,Helvetica,sans-serif;">You received this because you are a member of a CoachSmart team.</p></td></tr></table></td></tr></table></body></html>`;
+        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>CoachSmart</title></head><body style="margin:0;padding:0;background-color:#111418;font-family:Arial,Helvetica,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#212529;border-radius:16px;overflow:hidden;border:1px solid #3a3f4b;"><tr><td style="background-color:#1E222B;padding:28px 24px;text-align:center;border-bottom:3px solid #87C232;"><table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td style="padding-right:16px;vertical-align:middle;"><img src="${logoUrl}" alt="CoachSmart" width="80" style="display:block;height:auto;border:0;"></td><td style="vertical-align:middle;text-align:left;"><p style="margin:0;font-size:26px;font-weight:900;letter-spacing:2.5px;line-height:1;font-family:Arial,Helvetica,sans-serif;"><span style="color:#c8ccd0;">COACH</span><span style="color:#87C232;">SMART</span></p><p style="margin:5px 0 0 0;font-size:9px;font-weight:700;letter-spacing:4px;color:#87C232;font-family:Arial,Helvetica,sans-serif;">COACHING&nbsp;&nbsp;MADE&nbsp;&nbsp;SIMPLE</p></td></tr></table></td></tr><tr><td style="padding:28px 28px 24px;"><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">Hi ${firstName},</p><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">${introText}</p>${eventCardHtml}${badgeHtml}<p style="margin:0;font-size:14px;color:#a3a3a3;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">${displayBody}</p></td></tr><tr><td style="padding:16px 28px;border-top:1px solid #3a3f4b;text-align:center;"><p style="margin:0 0 4px 0;font-size:11px;color:#555;letter-spacing:1.5px;font-family:Arial,Helvetica,sans-serif;">COACHSMART &middot; COACHING MADE SIMPLE</p><p style="margin:0;font-size:11px;color:#444;font-family:Arial,Helvetica,sans-serif;">You received this because you are a member of a CoachSmart team.</p></td></tr></table></td></tr></table></body></html>`;
 
         console.log(`📧 Sending email for notification ${n.id} | to=${n.users.email_address}`);
         return {
