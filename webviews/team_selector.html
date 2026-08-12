@@ -1440,7 +1440,8 @@ applyJC();renderPos();renderSubs();updateShareBtn();
 // ── LOAD MOST RECENT LINEUP ──
 async function loadExistingLineup() {
   try {
-    const rows = await sb(`lineup?event_id=eq.${eventId}&team_id=eq.${teamId}&order=lineup_id.desc&limit=1`);
+    const squadFilter = squadId ? `&squad_id=eq.${squadId}` : `&squad_id=is.null`;
+    const rows = await sb(`lineup?event_id=eq.${eventId}&team_id=eq.${teamId}${squadFilter}&order=lineup_id.desc&limit=1`);
     if (!rows.length) return;
 
     const saved = rows[0];
