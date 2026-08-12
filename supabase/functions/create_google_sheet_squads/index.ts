@@ -231,29 +231,36 @@ const handler = async (request: Request): Promise<Response> => {
     const body = await request.json();
     const { event_id, user_email, match_squad_id } = RequestSchema.parse(body);
 
-    // ── STEP 1: Database ──────────────────────────────────────────────────
-    console.log("[STEP 1/4] Querying database...");
-    const rows = await sql`
-      SELECT
-        s.squad_name, r.role_name_plural,
-        (m.first_name || ' ' || m.last_name) AS full_member_name,
-        r.role_list_seq, sq_team.team_name, e.event_title,
-        to_char(e.event_date_time, 'Month DD, YYYY HH:MI AM') AS formatted_event_date_time,
-        s.squad_list_seq, ec.event_code, et.event_type, e.opposition, ev_team.team_female
-      FROM public.match_squad_details msd
-      JOIN public.match_squads ms ON msd.match_squad_id = ms.match_squad_id
-      JOIN public.members m       ON msd.member_id = m.member_id
-      JOIN public.roles r         ON msd.role_id = r.role_id
-      JOIN public.events e        ON ms.event_id = e.event_id
-      LEFT JOIN public.squads s         ON msd.squad_id = s.squad_id
-      LEFT JOIN public.teams sq_team    ON s.team_id = sq_team.team_id
-      INNER JOIN public.teams ev_team   ON e.team_id = ev_team.team_id
-      LEFT JOIN public.event_codes ec   ON e.event_code_id = ec.code_id
-      LEFT JOIN public.event_types et   ON e.event_type_id = et.event_type_id
-      WHERE ms.event_id = ${event_id}
-        AND ms.match_squad_id = ${match_squad_id}
-      ORDER BY s.squad_list_seq ASC, (m.first_name || ' ' || m.last_name) ASC
-    `;
+    // ── STEP 1: DB query + Google auth in parallel ────────────────────────
+    console.log("[STEP 1/3] Querying database and getting Google token...");
+    const clientEmail = Deno.env.get("GOOGLE_CLIENT_EMAIL");
+    const privateKey  = Deno.env.get("GOOGLE_PRIVATE_KEY")?.replace(/\\n/g, "\n");
+    if (!clientEmail || !privateKey) throw new Error("Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY");
+
+    const [rows, googleToken] = await Promise.all([
+      sql`
+        SELECT
+          s.squad_name, r.role_name_plural,
+          (m.first_name || ' ' || m.last_name) AS full_member_name,
+          r.role_list_seq, sq_team.team_name, e.event_title,
+          to_char(e.event_date_time, 'Month DD, YYYY HH:MI AM') AS formatted_event_date_time,
+          s.squad_list_seq, ec.event_code, et.event_type, e.opposition, ev_team.team_female
+        FROM public.match_squad_details msd
+        JOIN public.match_squads ms ON msd.match_squad_id = ms.match_squad_id
+        JOIN public.members m       ON msd.member_id = m.member_id
+        JOIN public.roles r         ON msd.role_id = r.role_id
+        JOIN public.events e        ON ms.event_id = e.event_id
+        LEFT JOIN public.squads s         ON msd.squad_id = s.squad_id
+        LEFT JOIN public.teams sq_team    ON s.team_id = sq_team.team_id
+        INNER JOIN public.teams ev_team   ON e.team_id = ev_team.team_id
+        LEFT JOIN public.event_codes ec   ON e.event_code_id = ec.code_id
+        LEFT JOIN public.event_types et   ON e.event_type_id = et.event_type_id
+        WHERE ms.event_id = ${event_id}
+          AND ms.match_squad_id = ${match_squad_id}
+        ORDER BY s.squad_list_seq ASC, (m.first_name || ' ' || m.last_name) ASC
+      `,
+      getGoogleAccessToken(clientEmail, privateKey),
+    ]);
 
     if (rows.length === 0) {
       return new Response(JSON.stringify({ error: "No data found." }), {
@@ -325,26 +332,14 @@ const handler = async (request: Request): Promise<Response> => {
       }
     }
 
-    // ── STEP 2: Google auth ───────────────────────────────────────────────
-    console.log("[STEP 2/4] Getting Google access token...");
-    const clientEmail = Deno.env.get("GOOGLE_CLIENT_EMAIL");
-    const privateKey  = Deno.env.get("GOOGLE_PRIVATE_KEY")?.replace(/\\n/g, "\n");
-    if (!clientEmail || !privateKey) throw new Error("Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY");
-    const googleToken = await getGoogleAccessToken(clientEmail, privateKey);
-
-    // ── STEP 3: Create sheet + write data ─────────────────────────────────
-    console.log("[STEP 3/4] Creating spreadsheet and writing data...");
+    // ── STEP 2: Create sheet + write data ────────────────────────────────
+    console.log("[STEP 2/3] Creating spreadsheet and writing data...");
     const { spreadsheetId, spreadsheetUrl } = await createSpreadsheet(googleToken, sheetTitle);
     await writeSheetValues(googleToken, spreadsheetId, dataForSheet);
-    await applyFormatting(googleToken, spreadsheetId, rowMetas);
 
-    // Share: requesting user gets writer access; anyone with the link can view
-    await shareFile(googleToken, spreadsheetId, "user",   "writer", user_email);
-    await shareFile(googleToken, spreadsheetId, "anyone", "reader");
+    // ── STEP 3: Format + share + email in parallel ────────────────────────
+    console.log("[STEP 3/3] Formatting, sharing and sending email...");
 
-    console.log("[STEP 4/4] Sending email to", user_email);
-
-    // ── STEP 4: Email ─────────────────────────────────────────────────────
     const emailHtml = `
 <!DOCTYPE html>
 <html lang="en">
@@ -373,19 +368,21 @@ const handler = async (request: Request): Promise<Response> => {
 </body>
 </html>`;
 
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: "CoachSmart <noreply@coachsmart.app>",
-        to: user_email,
-        subject: sheetTitle,
-        html: emailHtml,
+    await Promise.all([
+      applyFormatting(googleToken, spreadsheetId, rowMetas),
+      shareFile(googleToken, spreadsheetId, "user",   "writer", user_email),
+      shareFile(googleToken, spreadsheetId, "anyone", "reader"),
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+        body: JSON.stringify({
+          from: "CoachSmart <noreply@coachsmart.app>",
+          to: user_email,
+          subject: sheetTitle,
+          html: emailHtml,
+        }),
       }),
-    });
+    ]);
 
     console.log("--- EXPORT COMPLETE ---");
 
