@@ -1461,6 +1461,19 @@ async function loadExistingLineup() {
       else          assign[d.position_num]     = d.member_id;
     });
 
+    // The role-filter query in initFromParams uses member_team_link which is RLS-restricted
+    // to the authenticated user's own member rows — so players[] may be missing most of the
+    // team. Fetch any saved member_ids that aren't already present directly from members.
+    const knownIds = new Set(players.map(p => p.id));
+    const missingIds = details.map(d => d.member_id).filter(id => !knownIds.has(id));
+    if (missingIds.length > 0) {
+      const missingRows = await sb(`members?select=member_id,first_name,last_name&member_id=in.(${missingIds.join(',')})`);
+      missingRows.forEach(m => {
+        players.push({ id: m.member_id, name: `${m.first_name} ${m.last_name}`.trim() });
+      });
+      players.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     dirty = false;
     refresh();
     updateShareBtn();
