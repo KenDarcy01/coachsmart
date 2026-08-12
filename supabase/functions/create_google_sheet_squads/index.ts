@@ -126,6 +126,7 @@ const handler = async (request)=>{
       }
     }
     // --- Google Apps Script Handoff ---
+    console.log("[STEP 2/4] Calling Google Apps Script...");
     const appsScriptResponse = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: {
@@ -136,7 +137,17 @@ const handler = async (request)=>{
         data: dataForSheet
       }, jsonReplacer)
     });
+
+    const contentType = appsScriptResponse.headers.get('content-type') || '';
+    if (!appsScriptResponse.ok || !contentType.includes('application/json')) {
+      const rawText = await appsScriptResponse.text();
+      console.error(`[ERROR] Apps Script returned HTTP ${appsScriptResponse.status} with content-type "${contentType}"`);
+      console.error(`[ERROR] Apps Script raw response (first 300 chars): ${rawText.substring(0, 300)}`);
+      throw new Error(`Apps Script failed (HTTP ${appsScriptResponse.status}). The deployment URL may have expired — re-deploy the script and update APPS_SCRIPT_URL.`);
+    }
+
     const appsScriptResult = await appsScriptResponse.json();
+    console.log("[STEP 3/4] Sheet created:", appsScriptResult.url);
     const sheetUrl = appsScriptResult.url;
     // --- Restored Branded Resend Email ---
     const emailHtml = `
