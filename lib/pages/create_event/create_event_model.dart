@@ -21,6 +21,8 @@ class CreateEventModel extends FlutterFlowModel<CreateEventWidget> {
 
   int? stateEventTeamID;
 
+  int? stateRecurringWeek;
+
   ///  State fields for stateful widgets in this page.
 
   // State field(s) for eventOppositionInput widget.
@@ -34,6 +36,13 @@ class CreateEventModel extends FlutterFlowModel<CreateEventWidget> {
   String? Function(BuildContext, String?)?
       eventTitleInputTextControllerValidator;
   DateTime? datePicked;
+  // State field(s) for switchRecurringEvent widget.
+  bool? switchRecurringEventValue;
+  // State field(s) for numberWeeksInput widget.
+  FocusNode? numberWeeksInputFocusNode;
+  TextEditingController? numberWeeksInputTextController;
+  String? Function(BuildContext, String?)?
+      numberWeeksInputTextControllerValidator;
   // State field(s) for eventMeetTimeInput widget.
   FocusNode? eventMeetTimeInputFocusNode;
   TextEditingController? eventMeetTimeInputTextController;
@@ -67,6 +76,9 @@ class CreateEventModel extends FlutterFlowModel<CreateEventWidget> {
 
     eventTitleInputFocusNode?.dispose();
     eventTitleInputTextController?.dispose();
+
+    numberWeeksInputFocusNode?.dispose();
+    numberWeeksInputTextController?.dispose();
 
     eventMeetTimeInputFocusNode?.dispose();
     eventMeetTimeInputTextController?.dispose();

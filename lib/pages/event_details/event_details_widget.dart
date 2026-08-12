@@ -260,7 +260,7 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
             body: SafeArea(
               top: true,
               child: Align(
-                alignment: AlignmentDirectional(0.0, 0.0),
+                alignment: AlignmentDirectional(0.0, -1.0),
                 child: Stack(
                   alignment: AlignmentDirectional(0.0, 0.0),
                   children: [
@@ -3717,23 +3717,6 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                   ),
                                 ),
                             ],
-                          ),
-                        ),
-                      ),
-                    if (FFAppState().homePageEvents.highestRoleLevel >= 30)
-                      Align(
-                        alignment: AlignmentDirectional(-1.0, 0.0),
-                        child: Padding(
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              15.0, 0.0, 15.0, 20.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Color(0x47656464),
-                              borderRadius: BorderRadius.circular(24.0),
-                              border: Border.all(
-                                color: Color(0xA3424242),
-                              ),
-                            ),
                           ),
                         ),
                       ),
