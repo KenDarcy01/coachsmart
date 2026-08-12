@@ -373,6 +373,7 @@ function markDirty(){ dirty=true; updateShareBtn(); }
 function jwtUserId(token){ try{ return JSON.parse(atob(token.split('.')[1])).sub; }catch{ return null; } }
 let jc={p:'#cc0000',s:'#cc0000',g:'#ffffff'};
 let teamId=null,teamName='',eventId=null,eventLabel='',squadName='',squadId=null;
+let currentSquadMemberIds = new Set(); // all member_ids in current squad (set by initFromParams)
 
 const $=id=>document.getElementById(id);
 
@@ -1462,11 +1463,15 @@ async function loadExistingLineup() {
       else          assign[d.position_num]     = d.member_id;
     });
 
-    // The role-filter query in initFromParams uses member_team_link which is RLS-restricted
-    // to the authenticated user's own member rows — so players[] may be missing most of the
-    // team. Fetch any saved member_ids that aren't already present directly from members.
+    // The role-filter in initFromParams queries member_team_link which is RLS-restricted to
+    // the authenticated user's own rows — so players[] may be missing most of the team.
+    // Fetch saved members that aren't yet in players[], but only those belonging to the
+    // current squad (currentSquadMemberIds) to prevent cross-squad contamination from stale
+    // lineup records saved before the squad filter was in place.
     const knownIds = new Set(players.map(p => p.id));
-    const missingIds = details.map(d => d.member_id).filter(id => !knownIds.has(id));
+    const missingIds = details
+      .map(d => d.member_id)
+      .filter(id => !knownIds.has(id) && currentSquadMemberIds.has(id));
     if (missingIds.length > 0) {
       const missingRows = await sb(`members?select=member_id,first_name,last_name&member_id=in.(${missingIds.join(',')})`);
       missingRows.forEach(m => {
@@ -1474,6 +1479,12 @@ async function loadExistingLineup() {
       });
       players.sort((a, b) => a.name.localeCompare(b.name));
     }
+
+    // Purge any saved positions that reference members outside the current player pool.
+    // This handles stale cross-squad data from saves made before the squad filter existed.
+    const validIds = new Set(players.map(p => p.id));
+    Object.keys(assign).forEach(pos => { if (!validIds.has(assign[pos])) delete assign[pos]; });
+    Object.keys(subAssign).forEach(slot => { if (!validIds.has(subAssign[slot])) delete subAssign[slot]; });
 
     dirty = false;
     refresh();
@@ -1542,6 +1553,7 @@ async function initFromParams(){
     detRows.forEach(r=>{ if(!latestByMember[r.member_id]) latestByMember[r.member_id]=r; });
     const squadMemberIds = Object.keys(latestByMember).map(Number);
     if(!squadMemberIds.length){ load(false); toast('No players found in match squad'); return; }
+    currentSquadMemberIds = new Set(squadMemberIds);
 
     // Attendance filter
     const attRows = await sb(`event_attendance?select=member_id,response_id,created_at&event_id=eq.${eventId}&member_id=in.(${squadMemberIds.join(',')})&order=member_id,created_at.desc`);
