@@ -180,7 +180,7 @@ async function applyFormatting(
 
   for (let i = 0; i < rowMetas.length; i++) {
     const { type, squadName } = rowMetas[i];
-    const rowRange = { sheetId: 0, startRowIndex: i, endRowIndex: i + 1, startColumnIndex: 0, endColumnIndex: 5 };
+    const rowRange = { sheetId: 0, startRowIndex: i, endRowIndex: i + 1, startColumnIndex: 1, endColumnIndex: 2 };
 
     if (type === "squad") {
       const { bg, darkText } = getSquadColor(squadName);
