@@ -175,7 +175,7 @@ async function applyFormatting(
   const requests: unknown[] = [
     // Column A narrow indent, column B wide content
     { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 0, endIndex: 1 }, properties: { pixelSize: 20 }, fields: "pixelSize" } },
-    { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 1, endIndex: 2 }, properties: { pixelSize: 300 }, fields: "pixelSize" } },
+    { updateDimensionProperties: { range: { sheetId: 0, dimension: "COLUMNS", startIndex: 1, endIndex: 2 }, properties: { pixelSize: 240 }, fields: "pixelSize" } },
   ];
 
   for (let i = 0; i < rowMetas.length; i++) {
