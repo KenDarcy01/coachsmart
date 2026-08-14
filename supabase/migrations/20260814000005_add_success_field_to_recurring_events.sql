@@ -1,5 +1,13 @@
 -- Add success boolean to the response so callers can check $[0].success
 -- instead of comparing events_created > 0.
+-- Must DROP first because CREATE OR REPLACE cannot change the return type.
+
+DROP FUNCTION IF EXISTS public.create_recurring_events(
+    integer, integer, text, timestamptz, timestamp,
+    bigint, uuid, bigint, bigint, bigint, bigint,
+    text, text, text, text, text, text, text,
+    boolean, boolean, boolean, boolean, smallint, boolean
+);
 
 CREATE OR REPLACE FUNCTION public.create_recurring_events(
     p_recurring_type        INTEGER,
