@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'website/**'
+      - 'webviews/**'
+      - 'clontarf-gaa/**'
   workflow_dispatch:
 
 jobs:
