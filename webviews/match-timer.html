@@ -1329,33 +1329,37 @@ async function toggleTimer() {
 
 async function doStart() {
   const now = new Date().toISOString();
-  const { error } = await sb
-    .from('match_timer')
-    .update({ started_at: now, status: 'running' })
-    .eq('event_id', currentEventId)
-    .eq('user_id', currentUser.id);
-  if (error) { showToast('Error starting timer'); return; }
+  // Update local state immediately so the timer works regardless of connectivity
   timerRow.started_at = now;
   timerRow.status     = 'running';
   startInterval();
   updateTimerUI();
   broadcastTimerState();
+  // Persist to DB in the background
+  const { error } = await sb
+    .from('match_timer')
+    .update({ started_at: now, status: 'running' })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Timer running — sync will retry on reconnect'); }
 }
 
 async function doPause() {
   const banked = Math.floor(computeElapsed(timerRow));
-  const { error } = await sb
-    .from('match_timer')
-    .update({ elapsed_seconds: banked, started_at: null, status: 'paused' })
-    .eq('event_id', currentEventId)
-    .eq('user_id', currentUser.id);
-  if (error) { showToast('Error pausing timer'); return; }
+  // Update local state immediately
   timerRow.elapsed_seconds = banked;
   timerRow.started_at      = null;
   timerRow.status          = 'paused';
   stopInterval();
   updateTimerUI();
   broadcastTimerState();
+  // Persist to DB in the background
+  const { error } = await sb
+    .from('match_timer')
+    .update({ elapsed_seconds: banked, started_at: null, status: 'paused' })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Paused — sync will retry on reconnect'); }
 }
 
 function showResetModal()  { $('resetModal').classList.add('show'); }
