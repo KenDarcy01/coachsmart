@@ -836,12 +836,7 @@ function triggerHalfTimeWhistle() {
 }
 
 async function startSecondHalf() {
-  const { error } = await sb
-    .from('match_timer')
-    .update({ elapsed_seconds: 0, started_at: null, status: 'paused', current_half: 2 })
-    .eq('event_id', currentEventId)
-    .eq('user_id', currentUser.id);
-  if (error) { showToast('Error starting second half'); return; }
+  // Update local state immediately
   currentHalf = 2;
   timerRow.elapsed_seconds = 0;
   timerRow.started_at      = null;
@@ -849,6 +844,13 @@ async function startSecondHalf() {
   timerRow.current_half    = 2;
   wasInInjuryTime = false;
   updateTimerUI();
+  // Persist to DB in the background
+  const { error } = await sb
+    .from('match_timer')
+    .update({ elapsed_seconds: 0, started_at: null, status: 'paused', current_half: 2 })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Second half — sync will retry on reconnect'); }
   // Start running immediately — no second tap needed
   await doStart();
 }
@@ -1367,12 +1369,7 @@ function hideResetModal()  { $('resetModal').classList.remove('show'); }
 
 async function doReset(clearStats = true) {
   hideResetModal();
-  const { error } = await sb
-    .from('match_timer')
-    .update({ elapsed_seconds: 0, started_at: null, status: 'paused', current_half: 1 })
-    .eq('event_id', currentEventId)
-    .eq('user_id', currentUser.id);
-  if (error) { showToast('Error resetting timer'); return; }
+  // Update local state immediately
   currentHalf = 1;
   timerRow.elapsed_seconds = 0;
   timerRow.started_at      = null;
@@ -1381,6 +1378,13 @@ async function doReset(clearStats = true) {
   wasInInjuryTime = false;
   stopInterval();
   updateTimerUI();
+  // Persist to DB in the background
+  const { error } = await sb
+    .from('match_timer')
+    .update({ elapsed_seconds: 0, started_at: null, status: 'paused', current_half: 1 })
+    .eq('event_id', currentEventId)
+    .eq('user_id', currentUser.id);
+  if (error) { showToast('Reset — sync will retry on reconnect'); }
   if (clearStats && matchStatsRow) {
     // Marks old session 'reset', deletes its details, returns a fresh active session id
     const { data: resetData } = await sb.rpc('reset_match_stats_session', { p_match_stats_id: matchStatsRow.id });
