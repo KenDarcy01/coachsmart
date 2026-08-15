@@ -6,7 +6,6 @@ const RequestSchema = z.object({
   event_id: z.coerce.string(),
   user_email: z.string().email(),
   match_squad_id: z.coerce.string(),
-  admin_emails: z.array(z.string().email()).optional().default([]),
 });
 
 const jsonReplacer = (_key: string, value: unknown) =>
@@ -230,7 +229,7 @@ const handler = async (request: Request): Promise<Response> => {
 
   try {
     const body = await request.json();
-    const { event_id, user_email, match_squad_id, admin_emails } = RequestSchema.parse(body);
+    const { event_id, user_email, match_squad_id } = RequestSchema.parse(body);
 
     // ── STEP 1: DB query + Google auth in parallel ────────────────────────
     console.log("[STEP 1/3] Querying database and getting Google token...");
@@ -238,7 +237,7 @@ const handler = async (request: Request): Promise<Response> => {
     const privateKey  = Deno.env.get("GOOGLE_PRIVATE_KEY")?.replace(/\\n/g, "\n");
     if (!clientEmail || !privateKey) throw new Error("Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY");
 
-    const [rows, googleToken] = await Promise.all([
+    const [rows, adminRows, googleToken] = await Promise.all([
       sql`
         SELECT
           s.squad_name, r.role_name_plural,
@@ -260,8 +259,23 @@ const handler = async (request: Request): Promise<Response> => {
           AND ms.match_squad_id = ${match_squad_id}
         ORDER BY s.squad_list_seq ASC, (m.first_name || ' ' || m.last_name) ASC
       `,
+      sql`
+        SELECT DISTINCT u.email_address
+        FROM public.events e
+        JOIN public.member_team_link mtl      ON e.team_id = mtl.team_id AND mtl.status = 'active'
+        JOIN public.member_team_role_link mtrl ON mtl.member_team_id = mtrl.member_team_id
+        JOIN public.roles r                    ON mtrl.role_id = r.role_id AND r.role_grade = 100
+        JOIN public.members m                  ON mtl.member_id = m.member_id AND m.status != 'deleted'
+        JOIN public.user_member_link uml       ON m.member_id = uml.member_id
+        JOIN public.users u                    ON uml.user_id = u.user_id
+        WHERE e.event_id = ${event_id}
+          AND u.email_address IS NOT NULL
+          AND u.email_address != ''
+      `,
       getGoogleAccessToken(clientEmail, privateKey),
     ]);
+
+    const adminEmails = adminRows.map((r: { email_address: string }) => r.email_address);
 
     if (rows.length === 0) {
       return new Response(JSON.stringify({ error: "No data found." }), {
@@ -369,13 +383,12 @@ const handler = async (request: Request): Promise<Response> => {
 </body>
 </html>`;
 
-    // Deduplicate admin list and exclude the calling user (already granted below)
-    const extraEditors = [...new Set(admin_emails.filter(e => e !== user_email))];
+    // Grant writer to calling user + all team admins (deduped)
+    const editors = [...new Set([user_email, ...adminEmails])];
 
     await Promise.all([
       applyFormatting(googleToken, spreadsheetId, rowMetas),
-      shareFile(googleToken, spreadsheetId, "user",   "writer", user_email),
-      ...extraEditors.map(email => shareFile(googleToken, spreadsheetId, "user", "writer", email)),
+      ...editors.map(email => shareFile(googleToken, spreadsheetId, "user", "writer", email)),
       shareFile(googleToken, spreadsheetId, "anyone", "reader"),
       fetch("https://api.resend.com/emails", {
         method: "POST",
