@@ -75,30 +75,8 @@ const TEAM_COLOR_MAP = {
     fontColor: 'FFFFFFFF'
   }
 };
-const getEmailHtml = (sheetTitle)=>`
-<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin: 0; padding: 0; background-color: #f7fafc; font-family: Arial, sans-serif;">
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #1E222B; padding: 20px 0;">
-        <tr><td align="center"><table border="0" cellpadding="0" cellspacing="0" width="600" style="max-width: 600px; background-color: #1E222B;">
-            <tr><td align="center" style="padding: 20px 0;">
-                <h1 style="margin: 0; font-size: 28px; color: #87C232; font-family: Arial, sans-serif; font-weight: bold;">CoachSmart</h1>
-                <p style="margin: 5px 0 0; font-size: 14px; color: #ffffff; font-family: Arial, sans-serif; letter-spacing: 1px;">COACHING MADE SIMPLE</p>
-            </td></tr>
-            <tr><td bgcolor="#1E222B" style="padding: 40px 30px; border-radius: 8px;">
-                <table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td style="color: #ffffff; font-family: Arial, sans-serif; font-size: 16px; line-height: 1.5;">
-                    <p style="margin: 0 0 20px;">Hi there,</p>
-                    <p style="margin: 0 0 20px;">Your team squads report for <b>${sheetTitle}</b> has been successfully exported and is attached to this email as an <b>XLSX</b> file.</p>
-                </td></tr></table>
-            </td></tr>
-            <tr><td align="center" style="padding: 30px 0 10px; color: #b0b0b0; font-family: Arial, sans-serif; font-size: 12px;">
-                <p style="margin: 0;">Thanks,<br/>The CoachSmart Team</p>
-            </td></tr>
-        </table></td></tr>
-    </table>
-</body>
-</html>`;
+const LOGO_URL = 'https://gyfporsbdftvtakdvukt.supabase.co/storage/v1/object/sign/coachsmartimages/CoachSmart%20Logo%20Transparent.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OTA4NmRkYy01MWQ3LTQ1NzUtYWYwMC1mZjQxYmMyNDU2YWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb2FjaHNtYXJ0aW1hZ2VzL0NvYWNoU21hcnQgTG9nbyBUcmFuc3BhcmVudC5wbmciLCJpYXQiOjE3NzQ2MDYzOTksImV4cCI6MjYzODYwNjM5OX0.20yMzSYnG08kYjMK6cmGMvwA6VPGvm9_yHG-CmEfSIs';
+const getEmailHtml = (sheetTitle, firstName)=>`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>CoachSmart</title></head><body style="margin:0;padding:0;background-color:#111418;font-family:Arial,Helvetica,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#212529;border-radius:16px;overflow:hidden;border:1px solid #3a3f4b;"><tr><td style="background-color:#1E222B;padding:28px 24px;text-align:center;border-bottom:3px solid #87C232;"><table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td style="padding-right:16px;vertical-align:middle;"><img src="${LOGO_URL}" alt="CoachSmart" width="80" style="display:block;height:auto;border:0;"></td><td style="vertical-align:middle;text-align:left;"><p style="margin:0;font-size:26px;font-weight:900;letter-spacing:2.5px;line-height:1;font-family:Arial,Helvetica,sans-serif;"><span style="color:#c8ccd0;">COACH</span><span style="color:#87C232;">SMART</span></p><p style="margin:5px 0 0 0;font-size:9px;font-weight:700;letter-spacing:4px;color:#87C232;font-family:Arial,Helvetica,sans-serif;">COACHING&nbsp;&nbsp;MADE&nbsp;&nbsp;SIMPLE</p></td></tr></table></td></tr><tr><td style="padding:28px 28px 24px;"><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">Hi ${firstName},</p><p style="margin:0 0 12px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">Your squad sheet has been exported successfully and is attached as an <strong>XLSX</strong> file.</p><p style="margin:0 0 24px 0;font-size:16px;font-weight:700;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">${sheetTitle}</p></td></tr><tr><td style="padding:16px 28px;border-top:1px solid #3a3f4b;text-align:center;"><p style="margin:0 0 4px 0;font-size:11px;color:#555;letter-spacing:1.5px;font-family:Arial,Helvetica,sans-serif;">COACHSMART &middot; COACHING MADE SIMPLE</p><p style="margin:0;font-size:11px;color:#444;font-family:Arial,Helvetica,sans-serif;">You received this because you are a member of a CoachSmart team.</p></td></tr></table></td></tr></table></body></html>`;
 const handler = async (request)=>{
   if (request.method === "OPTIONS") {
     return new Response(null, {
@@ -150,6 +128,13 @@ const handler = async (request)=>{
     }
     const reportTitle = `Teams - ${firstRow.team_name} (${displayTitle}) - ${firstRow.formatted_event_date_time}`;
     console.log(`[INFO] Report Title: ${reportTitle}`);
+    const userNameRows = await sql`
+      SELECT m.first_name FROM public.users u
+      JOIN public.user_member_link uml ON u.user_id = uml.user_id
+      JOIN public.members m ON uml.member_id = m.member_id
+      WHERE u.email_address = ${user_email} AND m.status != 'deleted' LIMIT 1
+    `;
+    const firstName = userNameRows?.[0]?.first_name || 'there';
     // 2. Data Organization
     const organizedData = new Map();
     const squadSequences = new Map();
@@ -224,7 +209,7 @@ const handler = async (request)=>{
         user_email
       ],
       subject: reportTitle,
-      html: getEmailHtml(reportTitle),
+      html: getEmailHtml(reportTitle, firstName),
       attachments: [
         {
           filename: fileName,
