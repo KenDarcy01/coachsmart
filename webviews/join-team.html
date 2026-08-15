@@ -265,6 +265,76 @@ html, body {
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════
+     HOW TO FIND THEM  (pivot after "Someone else")
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-how-to-find" class="screen">
+    <div class="logo-bar">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
+    <div class="progress">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+    </div>
+    <div class="content">
+        <div class="step-label">Step 1 of 2</div>
+        <div class="screen-title">Do you have their member code?</div>
+        <div class="screen-sub">If another parent or admin has shared a unique member code with you, use it to find them instantly — no risk of creating a duplicate.</div>
+
+        <button class="choice-card" onclick="selectByCode()">
+            <div class="choice-icon">🔑</div>
+            <div>
+                <div class="choice-label">Yes — use their code</div>
+                <div class="choice-sub">Enter the unique code that was shared with you</div>
+            </div>
+        </button>
+
+        <button class="choice-card" onclick="selectByName()">
+            <div class="choice-icon">✏️</div>
+            <div>
+                <div class="choice-label">No — enter their name</div>
+                <div class="choice-sub">I'll type their first and last name</div>
+            </div>
+        </button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     MEMBER CODE LOOKUP
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-member-code" class="screen">
+    <div class="logo-bar">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
+    <div class="progress">
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+    </div>
+    <div class="content">
+        <div class="step-label">Step 2 of 2</div>
+        <div class="screen-title">Use their member code</div>
+        <div class="screen-sub">Another parent or team admin can share this unique code with you. Enter it below to find the member.</div>
+        <div class="field">
+            <label>Member Code</label>
+            <input type="text" id="member-unique-code" placeholder="e.g. ABC12345"
+                maxlength="20" autocorrect="off" autocapitalize="characters"
+                autocomplete="off" spellcheck="false"
+                oninput="this.value=this.value.toUpperCase()"
+                onkeydown="if(event.key==='Enter') lookupByMemberCode()">
+        </div>
+        <button class="btn-primary" id="member-code-btn" onclick="lookupByMemberCode()">Find Member</button>
+        <div class="error-msg" id="member-code-error"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
      THEIR NAME
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-their-name" class="screen">
@@ -561,7 +631,17 @@ function selectMyself() {
 
 function selectSomeoneElse() {
     registering = { firstName: '', lastName: '', isMyself: false };
+    showScreen('screen-how-to-find');
+}
+
+function selectByName() {
     showScreen('screen-their-name');
+}
+
+function selectByCode() {
+    el('member-unique-code').value      = '';
+    el('member-code-error').textContent = '';
+    showScreen('screen-member-code');
 }
 
 // ── Their Name ────────────────────────────────────────────────────────
@@ -727,14 +807,64 @@ async function confirmExistingMember() {
 function denyExistingMember() {
     foundMember = null;
     el('found-error').textContent = '';
-    if (registering.isMyself) {
+    const prev = screenHistory.length >= 2 ? screenHistory[screenHistory.length - 2] : null;
+    if (prev === 'screen-member-code') {
+        screenHistory.pop();
+        showScreen('screen-member-code', false);
+    } else if (registering.isMyself) {
         showScreen('screen-who');
     } else {
-        el('their-first').value = '';
-        el('their-last').value  = '';
+        el('their-first').value       = '';
+        el('their-last').value        = '';
         el('their-error').textContent = '';
         showScreen('screen-their-name');
     }
+}
+
+// ── Member Code Lookup ────────────────────────────────────────────────
+async function lookupByMemberCode() {
+    const memberCode = el('member-unique-code').value.trim();
+    const btn        = el('member-code-btn');
+    const err        = el('member-code-error');
+
+    if (!memberCode) {
+        err.textContent = 'Please enter the member code.';
+        return;
+    }
+
+    setLoading(btn, true, 'Looking up…');
+    err.textContent = '';
+
+    const { data, error } = await sb.rpc('lookup_member_by_code', {
+        p_unique_member_code: memberCode
+    });
+
+    setLoading(btn, false, 'Find Member');
+
+    if (error || !data) {
+        err.textContent = 'Something went wrong. Please try again.';
+        return;
+    }
+
+    if (data.status === 'error') {
+        err.textContent = data.message || 'Something went wrong. Please try again.';
+        return;
+    }
+
+    if (data.status === 'not_found') {
+        err.textContent = 'No member found with that code. Please check and try again.';
+        return;
+    }
+
+    // Found — populate state and route to the confirmation screen
+    joiningCode = data.team_code;
+    registering = { firstName: data.first_name, lastName: data.last_name, isMyself: false };
+    const memberName = data.first_name + ' ' + data.last_name;
+    foundMember = { member_id: data.member_id, name: memberName, team_name: data.team_name };
+    el('found-name').textContent  = memberName;
+    el('found-team').textContent  = data.team_name;
+    el('found-error').textContent = '';
+    showScreen('screen-found');
 }
 
 // ── Post-Send ─────────────────────────────────────────────────────────
