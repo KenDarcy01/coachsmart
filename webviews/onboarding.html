@@ -302,6 +302,45 @@ html, body {
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════
+     HOW TO FIND THEM  (pivot after "Someone else")
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-how-to-find" class="screen">
+    <div class="logo-bar">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
+    <div class="progress">
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+    </div>
+    <div class="content">
+        <div class="step-label">Step 2 of 3</div>
+        <div class="screen-title">Do you have their member code?</div>
+        <div class="screen-sub">If another parent or admin has shared a unique member code with you, use it to find them instantly — no risk of creating a duplicate.</div>
+
+        <button class="choice-card" onclick="selectByCode()">
+            <div class="choice-icon">🔑</div>
+            <div>
+                <div class="choice-label">Yes — use their code</div>
+                <div class="choice-sub">Enter the unique code that was shared with you</div>
+            </div>
+        </button>
+
+        <button class="choice-card" onclick="selectByName()">
+            <div class="choice-icon">✏️</div>
+            <div>
+                <div class="choice-label">No — enter their name</div>
+                <div class="choice-sub">I'll type their first and last name</div>
+            </div>
+        </button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
      THEIR NAME
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-their-name" class="screen">
@@ -332,11 +371,6 @@ html, body {
         </div>
         <button class="btn-primary" onclick="confirmTheirName()">Continue</button>
         <div class="error-msg" id="their-error"></div>
-        <div style="text-align:center;margin-top:24px;">
-            <button onclick="goToMemberCode()" style="background:none;border:none;color:var(--green);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;padding:4px;">
-                Have their member code? Use it instead
-            </button>
-        </div>
     </div>
 </div>
 
@@ -824,7 +858,17 @@ function selectMyself() {
 
 function selectSomeoneElse() {
     registering = { firstName: '', lastName: '', isMyself: false };
+    showScreen('screen-how-to-find');
+}
+
+function selectByName() {
     showScreen('screen-their-name');
+}
+
+function selectByCode() {
+    el('member-unique-code').value      = '';
+    el('member-code-error').textContent = '';
+    showScreen('screen-member-code');
 }
 
 // ── Their Name ────────────────────────────────────────────────────────
@@ -1004,11 +1048,6 @@ function denyExistingMember() {
 }
 
 // ── Member Code Lookup ────────────────────────────────────────────────
-function goToMemberCode() {
-    el('member-unique-code').value      = '';
-    el('member-code-error').textContent = '';
-    showScreen('screen-member-code');
-}
 
 async function lookupByMemberCode() {
     const memberCode = el('member-unique-code').value.trim();
