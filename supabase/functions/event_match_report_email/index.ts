@@ -182,24 +182,8 @@ serve(async (req)=>{
       const intendedRecipients = [];
       for (const admin of adminsToEmail){
         const subject = `Match Report for ${team_name || 'Your Team'}: ${event_title || 'Event'}`;
-        const htmlBody = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #212529; color: #fff;">
-            <div style="text-align: center; margin-bottom: 20px; background-color: #2c313a; padding: 20px; border-radius: 8px;">
-              <h1 style="font-size: 24px; color: #76C74A; margin-top: 10px; margin-bottom: 0;">CoachSmart</h1>
-              <p style="font-size: 14px; color: #bbb; font-weight: 300; letter-spacing: 0.2em; margin-top: 5px;">COACHING MADE SIMPLE</p>
-            </div>
-            <div style="background-color: #2c313a; padding: 20px; border-radius: 8px;">
-              <p style="font-size: 16px; color: #fff;">Hi ${admin.first_name || 'there'},</p>
-              <p style="font-size: 16px; color: #fff;">Here is the match report for the recent event (${event_title || 'Match Report'}) on ${formattedDate}, submitted by ${submitterName || 'A user'}:</p>
-              <div style="background-color: #343a40; padding: 15px; border-radius: 6px; border-left: 3px solid #76C74A; margin-top: 20px;">
-                <p style="font-size: 16px; color: #fff; white-space: pre-wrap;">${matchReportText}</p>
-              </div>
-            </div>
-            <div style="text-align: center; margin-top: 20px; color: #bbb; font-size: 12px;">
-              This is an automated message. Please do not reply.
-            </div>
-          </div>
-        `;
+        const logoUrl = 'https://gyfporsbdftvtakdvukt.supabase.co/storage/v1/object/sign/coachsmartimages/CoachSmart%20Logo%20Transparent.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OTA4NmRkYy01MWQ3LTQ1NzUtYWYwMC1mZjQxYmMyNDU2YWMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb2FjaHNtYXJ0aW1hZ2VzL0NvYWNoU21hcnQgTG9nbyBUcmFuc3BhcmVudC5wbmciLCJpYXQiOjE3NzQ2MDYzOTksImV4cCI6MjYzODYwNjM5OX0.20yMzSYnG08kYjMK6cmGMvwA6VPGvm9_yHG-CmEfSIs';
+        const htmlBody = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>CoachSmart</title></head><body style="margin:0;padding:0;background-color:#111418;font-family:Arial,Helvetica,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#212529;border-radius:16px;overflow:hidden;border:1px solid #3a3f4b;"><tr><td style="background-color:#1E222B;padding:28px 24px;text-align:center;border-bottom:3px solid #87C232;"><table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td style="padding-right:16px;vertical-align:middle;"><img src="${logoUrl}" alt="CoachSmart" width="80" style="display:block;height:auto;border:0;"></td><td style="vertical-align:middle;text-align:left;"><p style="margin:0;font-size:26px;font-weight:900;letter-spacing:2.5px;line-height:1;font-family:Arial,Helvetica,sans-serif;"><span style="color:#c8ccd0;">COACH</span><span style="color:#87C232;">SMART</span></p><p style="margin:5px 0 0 0;font-size:9px;font-weight:700;letter-spacing:4px;color:#87C232;font-family:Arial,Helvetica,sans-serif;">COACHING&nbsp;&nbsp;MADE&nbsp;&nbsp;SIMPLE</p></td></tr></table></td></tr><tr><td style="padding:28px 28px 24px;"><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">Hi ${admin.first_name || 'there'},</p><p style="margin:0 0 20px 0;font-size:15px;color:#e7ebee;font-family:Arial,Helvetica,sans-serif;">Here is the match report for <strong>${event_title || 'the recent event'}</strong> on ${formattedDate}, submitted by ${submitterName || 'a user'}:</p><table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;"><tr><td style="background:#2c313a;border-left:4px solid #87C232;padding:16px 18px;border-radius:0 8px 8px 0;"><p style="margin:0;font-size:15px;color:#e7ebee;white-space:pre-wrap;font-family:Arial,Helvetica,sans-serif;">${matchReportText}</p></td></tr></table></td></tr><tr><td style="padding:16px 28px;border-top:1px solid #3a3f4b;text-align:center;"><p style="margin:0 0 4px 0;font-size:11px;color:#555;letter-spacing:1.5px;font-family:Arial,Helvetica,sans-serif;">COACHSMART &middot; COACHING MADE SIMPLE</p><p style="margin:0;font-size:11px;color:#444;font-family:Arial,Helvetica,sans-serif;">You received this because you are a member of a CoachSmart team.</p></td></tr></table></td></tr></table></body></html>`;
         emailsToSend.push({
           from: 'CoachSmart <noreply@coachsmart.app>',
           to: [
