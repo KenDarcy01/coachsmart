@@ -5,7 +5,8 @@ import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
 const RequestSchema = z.object({
   event_id: z.coerce.string(),
   user_email: z.string().email(),
-  match_squad_id: z.coerce.string()
+  match_squad_id: z.coerce.string(),
+  admin_emails: z.array(z.string().email()).optional().default([]),
 });
 
 const jsonReplacer = (_key: string, value: unknown) =>
@@ -229,7 +230,7 @@ const handler = async (request: Request): Promise<Response> => {
 
   try {
     const body = await request.json();
-    const { event_id, user_email, match_squad_id } = RequestSchema.parse(body);
+    const { event_id, user_email, match_squad_id, admin_emails } = RequestSchema.parse(body);
 
     // ── STEP 1: DB query + Google auth in parallel ────────────────────────
     console.log("[STEP 1/3] Querying database and getting Google token...");
@@ -368,9 +369,13 @@ const handler = async (request: Request): Promise<Response> => {
 </body>
 </html>`;
 
+    // Deduplicate admin list and exclude the calling user (already granted below)
+    const extraEditors = [...new Set(admin_emails.filter(e => e !== user_email))];
+
     await Promise.all([
       applyFormatting(googleToken, spreadsheetId, rowMetas),
       shareFile(googleToken, spreadsheetId, "user",   "writer", user_email),
+      ...extraEditors.map(email => shareFile(googleToken, spreadsheetId, "user", "writer", email)),
       shareFile(googleToken, spreadsheetId, "anyone", "reader"),
       fetch("https://api.resend.com/emails", {
         method: "POST",
