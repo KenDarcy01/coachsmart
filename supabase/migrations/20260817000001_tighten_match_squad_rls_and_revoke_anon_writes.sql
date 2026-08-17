@@ -92,10 +92,12 @@ CREATE POLICY "team_member_can_manage_match_squad_details"
     );
 
 -- ─── 2. Revoke EXECUTE from anon on dangerous write RPCs ──────────────────────
--- These are admin/management operations. The PWA does not call them without a
--- JWT — they require a signed-in admin session in the native app.
+-- remove_member_from_team had GRANT ALL to anon in the baseline schema and was
+-- re-granted three times — this is the live exposure that needs closing.
+-- create_recurring_events has no explicit anon grant but inherits default
+-- privileges; revoke it defensively.
+-- confirm_member_join and deny_member_join have multiple overloads and were
+-- never granted to anon — no revoke needed for those.
 
+REVOKE EXECUTE ON FUNCTION public.remove_member_from_team(bigint, bigint) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.create_recurring_events     FROM anon;
-REVOKE EXECUTE ON FUNCTION public.remove_member_from_team     FROM anon;
-REVOKE EXECUTE ON FUNCTION public.confirm_member_join         FROM anon;
-REVOKE EXECUTE ON FUNCTION public.deny_member_join            FROM anon;
