@@ -243,8 +243,11 @@ Deno.serve(async (req)=>{
         } else if (titleLower.includes('approved')) {
           badgeLabel = 'APPROVED';
           badgeColor = '#87C232';
-        } else if (titleLower.includes('access request') || titleLower.includes('request')) {
+        } else if (titleLower.includes('access request')) {
           badgeLabel = 'ACCESS REQUEST';
+          badgeColor = '#4a9eff';
+        } else if (titleLower.includes('join request') || titleLower.includes('join')) {
+          badgeLabel = 'JOIN REQUEST';
           badgeColor = '#4a9eff';
         } else {
           badgeLabel = 'ATTENDANCE UPDATE';
