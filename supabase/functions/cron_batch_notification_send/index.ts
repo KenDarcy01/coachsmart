@@ -27,6 +27,7 @@ Deno.serve(async (req)=>{
     let pushNotes = notifications.filter((n)=>n.delivery_method === 'push');
     let emailNotes = notifications.filter((n)=>n.delivery_method === 'email');
     const processedIds = [];
+    const emailDeliveredIds = [];
     const deadTokens = [];
     // -------------------------------------------------------------------------
     // SECTION A: PUSH NOTIFICATIONS (FCM + APNS)
@@ -278,7 +279,7 @@ Deno.serve(async (req)=>{
           const { error: emailError } = await resend.batch.send(resendPayload);
           if (!emailError) {
             console.log(`✉️ Sent batch of ${chunk.length} email(s) ✓`);
-            chunk.forEach((e) => processedIds.push(e._id));
+            chunk.forEach((e) => { processedIds.push(e._id); emailDeliveredIds.push(e._id); });
           } else {
             console.error('❌ Resend Batch Error:', emailError);
           }
@@ -298,6 +299,17 @@ Deno.serve(async (req)=>{
         console.error('❌ Final Update Error:', updateError.message);
       } else {
         console.log(`✅ Marked ${processedIds.length} notification(s) as is_delivered=true`);
+      }
+    }
+    if (emailDeliveredIds.length > 0) {
+      const { error: emailMethodError } = await supabaseClient
+        .from('notifications')
+        .update({ delivery_method: 'email' })
+        .in('id', emailDeliveredIds);
+      if (emailMethodError) {
+        console.error('❌ delivery_method update error:', emailMethodError.message);
+      } else {
+        console.log(`📝 Updated delivery_method to email for ${emailDeliveredIds.length} notification(s)`);
       }
     }
     if (deadTokens.length > 0) {
