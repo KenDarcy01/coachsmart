@@ -236,6 +236,12 @@ Deno.serve(async (req)=>{
             badgeLabel = 'ATTENDANCE CHANGED';
             badgeColor = '#888888';
           }
+        } else if (titleLower.includes('not approved')) {
+          badgeLabel = 'NOT APPROVED';
+          badgeColor = '#e05252';
+        } else if (titleLower.includes('approved')) {
+          badgeLabel = 'APPROVED';
+          badgeColor = '#87C232';
         } else {
           badgeLabel = 'ATTENDANCE UPDATE';
           badgeColor = '#4a9eff';
