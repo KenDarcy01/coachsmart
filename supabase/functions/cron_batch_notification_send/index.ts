@@ -242,6 +242,9 @@ Deno.serve(async (req)=>{
         } else if (titleLower.includes('approved')) {
           badgeLabel = 'APPROVED';
           badgeColor = '#87C232';
+        } else if (titleLower.includes('access request') || titleLower.includes('request')) {
+          badgeLabel = 'ACCESS REQUEST';
+          badgeColor = '#4a9eff';
         } else {
           badgeLabel = 'ATTENDANCE UPDATE';
           badgeColor = '#4a9eff';
