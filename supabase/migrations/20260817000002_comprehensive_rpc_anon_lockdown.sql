@@ -108,12 +108,20 @@ BEGIN
     REVOKE EXECUTE ON FUNCTION public.get_event_attendance_summary_by_role_and_squad FROM PUBLIC;
   END IF;
 
-  -- get_event_attendance_details
+  -- get_event_attendance_details has two overloads; revoke each by explicit signature
   IF EXISTS (
     SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public' AND p.proname = 'get_event_attendance_details'
+      AND p.pronargs = 1
   ) THEN
-    REVOKE EXECUTE ON FUNCTION public.get_event_attendance_details FROM PUBLIC;
+    REVOKE EXECUTE ON FUNCTION public.get_event_attendance_details(bigint) FROM PUBLIC;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'get_event_attendance_details'
+      AND p.pronargs = 3
+  ) THEN
+    REVOKE EXECUTE ON FUNCTION public.get_event_attendance_details(uuid, bigint, integer) FROM PUBLIC;
   END IF;
 
   -- get_event_context_and_next_code
