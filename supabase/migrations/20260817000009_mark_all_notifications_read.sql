@@ -13,7 +13,9 @@
 
 -- ─── mark_all_notifications_read ─────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION public.mark_all_notifications_read(p_user_id uuid)
+DROP FUNCTION IF EXISTS public.mark_all_notifications_read(uuid);
+
+CREATE FUNCTION public.mark_all_notifications_read(p_user_id uuid)
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -45,7 +47,9 @@ GRANT  EXECUTE ON FUNCTION public.mark_all_notifications_read(uuid) TO service_r
 
 -- ─── mark_notification_read ───────────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION public.mark_notification_read(p_notification_id bigint)
+DROP FUNCTION IF EXISTS public.mark_notification_read(bigint);
+
+CREATE FUNCTION public.mark_notification_read(p_notification_id bigint)
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
