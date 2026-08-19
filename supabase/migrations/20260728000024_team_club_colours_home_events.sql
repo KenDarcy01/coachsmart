@@ -224,3 +224,4 @@ SELECT
 FROM user_details AS ud;
 $$;
 
+
