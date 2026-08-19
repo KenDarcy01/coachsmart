@@ -458,11 +458,18 @@ function drawPitch() {
 
 // ── Resize ────────────────────────────────────────────────────
 function resize() {
-  canvas.setWidth(wrap.offsetWidth);
-  canvas.setHeight(wrap.offsetHeight);
+  const w = wrap.offsetWidth;
+  const h = wrap.offsetHeight;
+  if (!w || !h) return;
+  if (w === canvas.getWidth() && h === canvas.getHeight()) return;
+  canvas.setDimensions({ width: w, height: h });
   drawPitch();
 }
-window.addEventListener('resize', resize);
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(resize, 120);
+});
 resize();
 
 // ── Token factory ─────────────────────────────────────────────
@@ -618,6 +625,7 @@ canvas.on('mouse:up', opt => {
 });
 
 canvas.on('path:created', () => saveState());
+canvas.on('object:modified', () => saveState());
 
 // ── Selection tracking ────────────────────────────────────────
 canvas.on('selection:created', updateDeleteBtn);
