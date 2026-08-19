@@ -508,26 +508,17 @@ async function createTeam() {
   btn.textContent = 'Creating…';
 
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-team`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token ?? ''}`,
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({
-        club_id:             state.clubId,
-        team_name:           state.teamName,
-        team_juvenile:       state.juvenile,
-        team_female:         state.female,
-        car_pooling_allowed: state.carpool,
-        first_name:          state.firstName,
-        last_name:           state.lastName,
-      }),
+    const { data: result, error: rpcError } = await sb.rpc('create_team_with_admin', {
+      p_club_id:             state.clubId,
+      p_team_name:           state.teamName,
+      p_team_juvenile:       state.juvenile,
+      p_team_female:         state.female,
+      p_car_pooling_allowed: state.carpool,
+      p_first_name:          state.firstName,
+      p_last_name:           state.lastName,
     });
 
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error || 'Something went wrong. Please try again.');
+    if (rpcError) throw new Error(rpcError.message || 'Something went wrong. Please try again.');
 
     localStorage.setItem(SUCCESS_KEY, JSON.stringify({ teamName: state.teamName, teamCode: result.team_unique_code }));
     clearDraft();
