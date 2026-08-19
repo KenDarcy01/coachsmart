@@ -108,6 +108,7 @@ body {
   transition: all 0.12s;
   padding: 5px 2px;
   flex-shrink: 0;
+  touch-action: none;
 }
 .side-btn:active { background: rgba(255,255,255,0.06); transform: scale(0.94); }
 .side-btn.active  { border-color: #3aaa6a; background: rgba(58,170,106,0.12); color: #6fda90; }
@@ -625,10 +626,18 @@ document.addEventListener('click', e => {
 });
 
 // ── Drag-from-sidebar ─────────────────────────────────────────
-const ghost   = document.getElementById('drag-ghost');
-let dragType  = null;
+// Uses touch events (reliable on iOS WKWebView) with mouse fallback for desktop.
+// Document-level move/end listeners let the finger roam freely off the button.
+const ghost  = document.getElementById('drag-ghost');
+let dragType = null;
 
 function ghostMove(x, y) { ghost.style.left = x + 'px'; ghost.style.top = y + 'px'; }
+
+function startDrag(type, x, y) {
+  dragType = type;
+  ghost.style.display = 'block';
+  ghostMove(x, y);
+}
 
 function dropToken(x, y) {
   if (!dragType) return;
@@ -643,18 +652,41 @@ function dropToken(x, y) {
   dragType = null;
 }
 
+function cancelDrag() { ghost.style.display = 'none'; dragType = null; }
+
 document.querySelectorAll('[data-action="add"]').forEach(btn => {
-  btn.addEventListener('pointerdown', e => {
+  // Touch (iOS primary path)
+  btn.addEventListener('touchstart', e => {
     e.preventDefault();
-    dragType = btn.dataset.type;
-    ghost.style.display = 'block';
-    ghostMove(e.clientX, e.clientY);
-    btn.setPointerCapture(e.pointerId);
+    const t = e.touches[0];
+    startDrag(btn.dataset.type, t.clientX, t.clientY);
+  }, { passive: false });
+
+  // Mouse (desktop fallback)
+  btn.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startDrag(btn.dataset.type, e.clientX, e.clientY);
   });
-  btn.addEventListener('pointermove', e => { if (dragType) ghostMove(e.clientX, e.clientY); });
-  btn.addEventListener('pointerup',   e => dropToken(e.clientX, e.clientY));
-  btn.addEventListener('pointercancel', () => { ghost.style.display = 'none'; dragType = null; });
 });
+
+// Document-level listeners so finger/cursor can move anywhere
+document.addEventListener('touchmove', e => {
+  if (!dragType) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  ghostMove(t.clientX, t.clientY);
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  if (!dragType) return;
+  const t = e.changedTouches[0];
+  dropToken(t.clientX, t.clientY);
+}, { passive: false });
+
+document.addEventListener('touchcancel', cancelDrag);
+
+document.addEventListener('mousemove', e => { if (dragType) ghostMove(e.clientX, e.clientY); });
+document.addEventListener('mouseup',   e => { if (dragType) dropToken(e.clientX, e.clientY); });
 
 // ── Init ──────────────────────────────────────────────────────
 saveState();
