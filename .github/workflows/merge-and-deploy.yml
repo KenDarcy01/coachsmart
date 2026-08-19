@@ -1,0 +1,36 @@
+name: Merge Dev Branch to Main
+
+on:
+  push:
+    branches:
+      - claude/review-coachsmart-repo-HHk5i
+  workflow_dispatch:
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge dev branch into main
+        run: |
+          git fetch origin claude/review-coachsmart-repo-HHk5i
+          git merge origin/claude/review-coachsmart-repo-HHk5i --no-edit
+          git push origin main
+
+      - name: Trigger Firebase deploy
+        run: gh workflow run firebase-deploy.yml --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
