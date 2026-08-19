@@ -95,6 +95,21 @@ body {
   letter-spacing: 0.3px;
 }
 
+/* ── Drag ghost ──────────────────────────────────── */
+#drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.7);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  transform: translate(-50%, -50%);
+  display: none;
+}
+
 /* ── Bottom palette ──────────────────────────────── */
 #palette {
   background: #1a2332;
@@ -172,6 +187,9 @@ body {
   <div id="mode-label">Select &amp; Move</div>
 </div>
 
+<!-- Drag ghost -->
+<div id="drag-ghost"></div>
+
 <!-- Bottom palette -->
 <div id="palette">
   <div id="palette-inner">
@@ -211,21 +229,20 @@ body {
 
     <button class="pal-btn" data-action="add" data-type="ball">
       <svg width="32" height="32" viewBox="0 0 32 32">
-        <circle cx="16" cy="16" r="12" fill="#8B4513"/>
-        <path d="M8 12 Q16 10 24 12" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
-        <path d="M6 18 Q16 16 26 18" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
-        <line x1="16" y1="4" x2="16" y2="28" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-        <circle cx="16" cy="16" r="12" fill="none" stroke="#fff" stroke-width="1" opacity="0.3"/>
+        <circle cx="16" cy="16" r="12" fill="#f5f0e8" stroke="#bbb" stroke-width="1.5"/>
+        <line x1="8" y1="16" x2="24" y2="16" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/>
+        <line x1="16" y1="8" x2="16" y2="24" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/>
       </svg>
       Ball
     </button>
 
     <button class="pal-btn" data-action="add" data-type="posts">
       <svg width="32" height="32" viewBox="0 0 32 32">
-        <rect x="14" y="4" width="4" height="24" fill="#e0e0e0" rx="1"/>
-        <rect x="4" y="4" width="24" height="4" fill="#e0e0e0" rx="1"/>
-        <rect x="4" y="4" width="4" height="14" fill="#c0c0c0" rx="1"/>
-        <rect x="24" y="4" width="4" height="14" fill="#c0c0c0" rx="1"/>
+        <rect x="4"  y="14" width="24" height="3"  fill="#ffe55c" rx="1"/>
+        <rect x="4"  y="4"  width="4"  height="10" fill="#ffe55c" rx="1"/>
+        <rect x="24" y="4"  width="4"  height="10" fill="#ffe55c" rx="1"/>
+        <rect x="12" y="17" width="3"  height="11" fill="#ffe55c" rx="1"/>
+        <rect x="17" y="17" width="3"  height="11" fill="#ffe55c" rx="1"/>
       </svg>
       Posts
     </button>
@@ -511,15 +528,15 @@ function makeCone() {
 
 function makeBall() {
   const circle = new fabric.Circle({
-    radius: 14, fill: '#8B4513', stroke: '#fff', strokeWidth: 1.5,
+    radius: 14, fill: '#f5f0e8', stroke: '#bbb', strokeWidth: 1.5,
     originX: 'center', originY: 'center',
   });
-  const seam1 = new fabric.Line([-12, 0, 12, 0], {
-    stroke: 'rgba(255,255,255,0.35)', strokeWidth: 1.5,
+  const seam1 = new fabric.Line([-10, 0, 10, 0], {
+    stroke: 'rgba(0,0,0,0.18)', strokeWidth: 1.5,
     originX: 'center', originY: 'center',
   });
-  const seam2 = new fabric.Line([0, -12, 0, 12], {
-    stroke: 'rgba(255,255,255,0.35)', strokeWidth: 1.5,
+  const seam2 = new fabric.Line([0, -10, 0, 10], {
+    stroke: 'rgba(0,0,0,0.18)', strokeWidth: 1.5,
     originX: 'center', originY: 'center',
   });
   return new fabric.Group([circle, seam1, seam2], {
@@ -529,17 +546,20 @@ function makeBall() {
 }
 
 function makePosts() {
-  const center = new fabric.Rect({ left: -2, top: -22, width: 4, height: 40, fill: '#fff', rx: 1 });
-  const cross  = new fabric.Rect({ left: -18, top: -22, width: 36, height: 3, fill: '#ddd', rx: 1 });
-  const lpost  = new fabric.Rect({ left: -18, top: -22, width: 3, height: 16, fill: '#bbb', rx: 1 });
-  const rpost  = new fabric.Rect({ left: 15, top: -22, width: 3, height: 16, fill: '#bbb', rx: 1 });
-  return new fabric.Group([center, cross, lpost, rpost], {
+  // GAA H-posts: crossbar at mid-height, two tall uprights above, short goal posts below
+  const POST = '#ffe55c';
+  const crossbar = new fabric.Rect({ left: -22, top: -2,  width: 44, height: 4,  fill: POST, rx: 1 });
+  const lUp      = new fabric.Rect({ left: -22, top: -28, width: 4,  height: 26, fill: POST, rx: 1 });
+  const rUp      = new fabric.Rect({ left:  18, top: -28, width: 4,  height: 26, fill: POST, rx: 1 });
+  const lGoal    = new fabric.Rect({ left: -10, top:   2, width: 3,  height: 18, fill: POST, rx: 1 });
+  const rGoal    = new fabric.Rect({ left:   7, top:   2, width: 3,  height: 18, fill: POST, rx: 1 });
+  return new fabric.Group([crossbar, lUp, rUp, lGoal, rGoal], {
     left: canvas.getWidth() / 2, top: canvas.getHeight() / 2,
     originX: 'center', originY: 'center', _tokenType: 'posts',
   });
 }
 
-function addToken(type) {
+function addToken(type, cx, cy) {
   let obj;
   if (type === 'player-blue') obj = makePlayer('player-blue');
   else if (type === 'player-red') obj = makePlayer('player-red');
@@ -547,9 +567,13 @@ function addToken(type) {
   else if (type === 'ball') obj = makeBall();
   else if (type === 'posts') obj = makePosts();
   if (!obj) return;
+  if (cx !== undefined && cy !== undefined) {
+    obj.set({ left: cx, top: cy });
+  }
   canvas.add(obj);
   canvas.setActiveObject(obj);
   saveState();
+  canvas.renderAll();
 }
 
 // ── Arrow drawing ─────────────────────────────────────────────
@@ -659,19 +683,10 @@ function setTool(tool) {
 
 // ── History ───────────────────────────────────────────────────
 function saveState() {
-  // Exclude pitch background from history (pitch redrawn on restore)
-  const objs = canvas.getObjects().filter(o => !o._isPitch);
-  const tmp  = [];
-  canvas.getObjects().filter(o => o._isPitch).forEach(o => {
-    canvas.remove(o);
-    tmp.push(o);
-  });
-
-  history.push(JSON.stringify(canvas.toJSON(['_tokenType', '_isArrow'])));
+  const json = canvas.toJSON(['_tokenType', '_isArrow', '_isPitch']);
+  json.objects = (json.objects || []).filter(o => !o._isPitch);
+  history.push(JSON.stringify(json));
   if (history.length > 40) history.shift();
-
-  tmp.forEach(o => { canvas.add(o); canvas.sendToBack(o); });
-  canvas.renderAll();
 }
 
 function undo() {
@@ -763,9 +778,50 @@ document.querySelectorAll('[data-action="tool"]').forEach(btn =>
   btn.addEventListener('click', () => setTool(btn.dataset.tool))
 );
 
-document.querySelectorAll('[data-action="add"]').forEach(btn =>
-  btn.addEventListener('click', () => { setTool('select'); addToken(btn.dataset.type); })
-);
+// ── Drag-from-palette ─────────────────────────────────────────
+const ghost = document.getElementById('drag-ghost');
+let dragType = null;
+
+function ghostMove(clientX, clientY) {
+  ghost.style.left = clientX + 'px';
+  ghost.style.top  = clientY + 'px';
+}
+
+function dropToken(clientX, clientY) {
+  if (!dragType) return;
+  ghost.style.display = 'none';
+  const wrapRect = wrap.getBoundingClientRect();
+  if (clientX >= wrapRect.left && clientX <= wrapRect.right &&
+      clientY >= wrapRect.top  && clientY <= wrapRect.bottom) {
+    const scale = canvas.getWidth() / wrapRect.width;
+    const cx = (clientX - wrapRect.left) * scale;
+    const cy = (clientY - wrapRect.top)  * scale;
+    setTool('select');
+    addToken(dragType, cx, cy);
+  }
+  dragType = null;
+}
+
+document.querySelectorAll('[data-action="add"]').forEach(btn => {
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    dragType = btn.dataset.type;
+    ghost.style.display = 'block';
+    ghostMove(e.clientX, e.clientY);
+    btn.setPointerCapture(e.pointerId);
+  });
+  btn.addEventListener('pointermove', e => {
+    if (!dragType) return;
+    ghostMove(e.clientX, e.clientY);
+  });
+  btn.addEventListener('pointerup', e => {
+    dropToken(e.clientX, e.clientY);
+  });
+  btn.addEventListener('pointercancel', () => {
+    ghost.style.display = 'none';
+    dragType = null;
+  });
+});
 
 document.getElementById('undo-btn').addEventListener('click', undo);
 document.getElementById('delete-btn').addEventListener('click', deleteSelected);
