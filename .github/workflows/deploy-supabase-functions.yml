@@ -25,6 +25,6 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Push DB Migrations
-        run: supabase db push --project-ref gyfporsbdftvtakdvukt
+        run: supabase db push --include-all --project-ref gyfporsbdftvtakdvukt
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
