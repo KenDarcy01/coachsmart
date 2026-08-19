@@ -338,11 +338,15 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const DRAFT_KEY   = 'cs_create_team_draft';
 const SUCCESS_KEY = 'cs_create_team_success';
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+let sb;
 let session  = null;
 let allClubs = [];
 let state    = freshState();
+
+function decodeJwt(token) {
+  try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); }
+  catch(e) { return null; }
+}
 
 function freshState() {
   return { firstName: '', lastName: '', clubId: null, clubName: '', teamName: '', juvenile: false, female: false, carpool: true };
@@ -352,13 +356,19 @@ function freshState() {
 async function init() {
   const params = new URLSearchParams(window.location.search);
   const at = params.get('access_token');
-  const rt = params.get('refresh_token');
-  if (at && rt) {
-    const { data } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
-    session = data.session;
-  } else {
+
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth:   { persistSession: false, autoRefreshToken: false },
+    global: at ? { headers: { Authorization: 'Bearer ' + at } } : {}
+  });
+
+  if (at) {
+    const payload = decodeJwt(at);
+    if (payload?.sub) session = { user: { id: payload.sub }, access_token: at };
+  }
+  if (!session) {
     const { data } = await sb.auth.getSession();
-    session = data.session;
+    session = data?.session || null;
   }
 
   // If team was already created, go straight to success
