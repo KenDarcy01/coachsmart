@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CoachSmart — Create Team</title>
+<meta name="theme-color" content="#111418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root {
+  --green:  #87C232;
+  --dark:   #111418;
+  --card:   #1E222B;
+  --card2:  #252A35;
+  --border: rgba(255,255,255,0.07);
+  --text:   #E7EBEE;
+  --muted:  #6B7280;
+  --red:    #e05252;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--dark); color: var(--text);
+  min-height: 100%; overscroll-behavior-y: none;
+}
+
+/* Loading */
+#loading {
+  position: fixed; inset: 0; background: var(--dark);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border); border-top-color: var(--green);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Screens */
+.screen { display: none; flex-direction: column; min-height: 100vh; padding-bottom: 48px; }
+.screen.active { display: flex; }
+
+/* Logo bar */
+.logo-bar {
+  padding: 20px 20px 0;
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex: 1; }
+.logo span { color: var(--green); }
+.back-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: none; color: var(--muted);
+  font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; padding: 4px; flex-shrink: 0;
+}
+.back-btn svg { width: 18px; height: 18px; }
+
+/* Progress dots */
+.progress { display: flex; justify-content: center; gap: 8px; padding: 22px 0 0; flex-shrink: 0; }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: transparent; border: 1.5px solid var(--muted); transition: all 0.2s;
+}
+.dot.active { background: var(--green); border-color: var(--green); }
+.dot.done   { background: var(--green); border-color: var(--green); opacity: 0.35; }
+
+/* Content */
+.content { flex: 1; padding: 32px 24px 0; max-width: 440px; width: 100%; margin: 0 auto; }
+.step-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.screen-title { font-size: 26px; font-weight: 600; line-height: 1.25; margin-bottom: 8px; }
+.screen-sub   { font-size: 14px; color: var(--muted); line-height: 1.65; margin-bottom: 28px; }
+
+/* Inputs */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.field input {
+  width: 100%; padding: 14px 16px;
+  border-radius: 10px; background: var(--card2);
+  border: 1.5px solid var(--border); color: var(--text);
+  font-size: 16px; font-family: 'DM Sans', sans-serif;
+  -webkit-appearance: none; outline: none; transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--green); }
+.field input::placeholder { color: var(--muted); }
+
+/* Toggles */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; background: var(--card2);
+  border-radius: 10px; border: 1.5px solid var(--border); margin-bottom: 10px;
+}
+.toggle-label { font-size: 15px; font-weight: 500; }
+.toggle-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.toggle { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.12); border-radius: 13px;
+  transition: background 0.2s; cursor: pointer;
+}
+.toggle input:checked + .toggle-track { background: var(--green); }
+.toggle-track::after {
+  content: ''; position: absolute; left: 3px; top: 3px;
+  width: 20px; height: 20px; background: #fff; border-radius: 50%;
+  transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.toggle input:checked + .toggle-track::after { transform: translateX(18px); }
+
+/* Club search & list */
+.search-wrap { position: relative; margin-bottom: 12px; }
+.search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+#club-search {
+  width: 100%; padding: 12px 16px 12px 40px;
+  border-radius: 10px; background: var(--card2);
+  border: 1.5px solid var(--border); color: var(--text);
+  font-size: 15px; font-family: 'DM Sans', sans-serif;
+  -webkit-appearance: none; outline: none; transition: border-color 0.15s;
+}
+#club-search:focus { border-color: var(--green); }
+#club-search::placeholder { color: var(--muted); }
+.clubs-list { max-height: 340px; overflow-y: auto; border-radius: 10px; border: 1.5px solid var(--border); }
+.club-item {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.12s;
+  display: flex; align-items: center; justify-content: space-between; font-size: 15px;
+}
+.club-item:last-child { border-bottom: none; }
+.club-item:active { background: rgba(135,194,50,0.08); }
+.club-item.selected { background: rgba(135,194,50,0.12); }
+.check-circle {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--muted); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.club-item.selected .check-circle { background: var(--green); border-color: var(--green); }
+.check-inner {
+  display: none; width: 5px; height: 9px;
+  border: 2px solid #111; border-top: none; border-left: none;
+  transform: rotate(40deg) translate(-1px, -1px);
+}
+.club-item.selected .check-inner { display: block; }
+.clubs-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* Buttons */
+.btn-primary {
+  width: 100%; padding: 17px; border-radius: 10px;
+  background: var(--green); border: none; color: #111;
+  font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; margin-top: 8px; transition: opacity 0.15s; -webkit-appearance: none;
+}
+.btn-primary:disabled { opacity: 0.4; cursor: default; }
+.btn-primary:active:not(:disabled) { opacity: 0.82; }
+.btn-secondary {
+  width: 100%; padding: 17px; border-radius: 10px;
+  background: transparent; border: 1.5px solid var(--border);
+  color: var(--muted); font-size: 15px; font-weight: 500;
+  font-family: 'DM Sans', sans-serif; cursor: pointer;
+  margin-top: 10px; transition: opacity 0.15s; -webkit-appearance: none;
+}
+.btn-secondary:active { opacity: 0.7; }
+
+.error-msg {
+  background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3);
+  border-radius: 8px; padding: 12px 14px;
+  color: var(--red); font-size: 13px; margin-bottom: 14px; display: none;
+}
+
+/* Resume card */
+.resume-card {
+  background: var(--card2); border-radius: 14px;
+  border: 1.5px solid var(--border); padding: 28px 24px; text-align: center;
+}
+.resume-card .rc-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(135,194,50,0.12);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;
+}
+.resume-card .rc-icon svg { width: 28px; height: 28px; color: var(--green); }
+.resume-card .rc-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.resume-card .rc-sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+
+/* Success */
+.success-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(135,194,50,0.15);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
+}
+.success-icon svg { width: 36px; height: 36px; color: var(--green); }
+
+.team-code-box {
+  background: var(--card2); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 24px 20px 18px;
+  text-align: center; cursor: pointer; transition: border-color 0.15s;
+  margin-bottom: 16px; width: 100%; position: relative; user-select: none;
+}
+.team-code-box:active { border-color: var(--green); }
+.code-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.code-value { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 8px; color: var(--green); line-height: 1; }
+.code-hint { font-size: 12px; color: var(--muted); margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.copied-badge {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--green); color: #111;
+  font-size: 12px; font-weight: 700; padding: 4px 14px;
+  border-radius: 20px; opacity: 0; transition: opacity 0.2s; white-space: nowrap; pointer-events: none;
+}
+.copied-badge.show { opacity: 1; }
+
+.share-note {
+  background: var(--card); border-radius: 10px; padding: 14px 16px;
+  font-size: 13px; color: var(--muted); line-height: 1.6;
+  display: flex; gap: 10px; align-items: flex-start; margin-bottom: 20px; width: 100%;
+}
+.share-note .wa-icon { flex-shrink: 0; margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div></div>
+
+<!-- Resume prompt -->
+<div id="s-resume" class="screen">
+  <div class="logo-bar"><div class="logo">Coach<span>Smart</span></div></div>
+  <div class="content" style="display:flex;flex-direction:column;justify-content:center;flex:1">
+    <div class="resume-card">
+      <div class="rc-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+      </div>
+      <div class="rc-title">Continue where you left off?</div>
+      <div class="rc-sub">You started creating a team. Pick up where you left off or start fresh.</div>
+      <button class="btn-primary" onclick="resumeDraft()">Continue</button>
+      <button class="btn-secondary" onclick="clearAndStart()">Start Fresh</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 1: Your Details -->
+<div id="s-1" class="screen">
+  <div class="logo-bar"><div class="logo">Coach<span>Smart</span></div></div>
+  <div class="progress">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="content">
+    <div class="step-label">Step 1 of 3</div>
+    <div class="screen-title">Your details</div>
+    <div class="screen-sub">You'll be set up as the team admin. You can update these any time.</div>
+    <div class="error-msg" id="err-1"></div>
+    <div class="field">
+      <label>First Name</label>
+      <input id="first-name" type="text" placeholder="First name" autocomplete="given-name">
+    </div>
+    <div class="field">
+      <label>Last Name</label>
+      <input id="last-name" type="text" placeholder="Last name" autocomplete="family-name">
+    </div>
+    <button class="btn-primary" onclick="goStep2()">Next</button>
+  </div>
+</div>
+
+<!-- Step 2: Select Club -->
+<div id="s-2" class="screen">
+  <div class="logo-bar">
+    <div class="logo">Coach<span>Smart</span></div>
+    <button class="back-btn" onclick="goStep(1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Back
+    </button>
+  </div>
+  <div class="progress">
+    <div class="dot done"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="content">
+    <div class="step-label">Step 2 of 3</div>
+    <div class="screen-title">Select your club</div>
+    <div class="screen-sub">Your team will sit under this club.</div>
+    <div class="error-msg" id="err-2"></div>
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="club-search" type="text" placeholder="Search clubs…" oninput="filterClubs()">
+    </div>
+    <div class="clubs-list" id="clubs-list">
+      <div class="clubs-empty">Loading clubs…</div>
+    </div>
+    <button class="btn-primary" id="btn-2" onclick="goStep3()" disabled>Next</button>
+  </div>
+</div>
+
+<!-- Step 3: Team Details -->
+<div id="s-3" class="screen">
+  <div class="logo-bar">
+    <div class="logo">Coach<span>Smart</span></div>
+    <button class="back-btn" onclick="goStep(2)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Back
+    </button>
+  </div>
+  <div class="progress">
+    <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
+  </div>
+  <div class="content">
+    <div class="step-label">Step 3 of 3</div>
+    <div class="screen-title">Team details</div>
+    <div class="screen-sub">Tell us a bit about your team.</div>
+    <div class="error-msg" id="err-3"></div>
+    <div class="field">
+      <label>Team Name</label>
+      <input id="team-name" type="text" placeholder="e.g. U13 Boys">
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Under 18 team</div>
+        <div class="toggle-sub">Is this a juvenile / underage team?</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="tog-juvenile">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Female team</div>
+        <div class="toggle-sub">Is this a female / ladies team?</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="tog-female">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Car pooling</div>
+        <div class="toggle-sub">Allow members to organise lifts to events</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="tog-carpool" checked>
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+    <button class="btn-primary" id="btn-create" onclick="createTeam()">Create Team</button>
+  </div>
+</div>
+
+<!-- Success -->
+<div id="s-success" class="screen">
+  <div class="logo-bar"><div class="logo">Coach<span>Smart</span></div></div>
+  <div class="content" style="display:flex;flex-direction:column;align-items:center;padding-top:40px">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="screen-title" id="success-title" style="text-align:center;margin-bottom:6px">Team Created!</div>
+    <div class="screen-sub" style="text-align:center;margin-bottom:28px">Share the code below with your players and coaches so they can join.</div>
+
+    <div class="team-code-box" onclick="copyCode()">
+      <div class="copied-badge" id="copied-badge">Copied ✓</div>
+      <div class="code-label">Team Code</div>
+      <div class="code-value" id="team-code-display">———</div>
+      <div class="code-hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Tap to copy
+      </div>
+    </div>
+
+    <div class="share-note">
+      <svg class="wa-icon" width="18" height="18" viewBox="0 0 32 32" fill="#25D366"><path d="M16 0C7.163 0 0 7.163 0 16c0 2.83.736 5.48 2.018 7.78L0 32l8.437-2.01A15.934 15.934 0 0 0 16 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm8.326 22.326c-.348.978-2.034 1.868-2.778 1.985-.744.117-1.66.166-2.676-.168-.617-.204-1.408-.474-2.419-.928-4.25-1.835-7.015-6.13-7.228-6.41-.214-.281-1.736-2.31-1.736-4.407 0-2.098 1.1-3.12 1.49-3.543.39-.424.85-.53 1.134-.53.283 0 .566.003.814.014.26.012.61-.099.955.728.348.833 1.183 2.882 1.287 3.09.103.208.172.452.034.727-.138.275-.207.448-.414.688-.207.24-.436.537-.622.72-.207.203-.422.423-.181.83.24.407 1.069 1.764 2.294 2.857 1.576 1.406 2.905 1.84 3.314 2.046.408.207.645.172.884-.103.239-.275 1.022-1.192 1.295-1.6.272-.408.545-.34.919-.204.373.137 2.376 1.12 2.784 1.325.408.206.68.309.78.481.103.172.103 1.003-.246 1.981z"/></svg>
+      Tap the code to copy it, then paste into WhatsApp or any chat to share with your squad.
+    </div>
+
+    <button class="btn-primary" style="width:100%" onclick="done()">Done</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const DRAFT_KEY   = 'cs_create_team_draft';
+const SUCCESS_KEY = 'cs_create_team_success';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let session  = null;
+let allClubs = [];
+let state    = freshState();
+
+function freshState() {
+  return { firstName: '', lastName: '', clubId: null, clubName: '', teamName: '', juvenile: false, female: false, carpool: true };
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const at = params.get('access_token');
+  const rt = params.get('refresh_token');
+  if (at && rt) {
+    const { data } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
+    session = data.session;
+  } else {
+    const { data } = await sb.auth.getSession();
+    session = data.session;
+  }
+
+  // If team was already created, go straight to success
+  const saved = loadSuccess();
+  if (saved) {
+    showSuccess(saved.teamName, saved.teamCode);
+    hide('loading');
+    return;
+  }
+
+  // Mid-flow draft?
+  const draft = loadDraft();
+  if (draft && (draft.firstName || draft.clubId || draft.teamName)) {
+    hide('loading');
+    show('s-resume');
+    return;
+  }
+
+  await prefillUser();
+  hide('loading');
+  show('s-1');
+}
+
+async function prefillUser() {
+  if (!session) return;
+  const { data } = await sb
+    .from('users')
+    .select('first_name, last_name')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+  if (data) {
+    if (data.first_name) document.getElementById('first-name').value = data.first_name;
+    if (data.last_name)  document.getElementById('last-name').value  = data.last_name;
+  }
+}
+
+// ── Clubs ─────────────────────────────────────────────────────────────
+async function loadClubs() {
+  document.getElementById('clubs-list').innerHTML = '<div class="clubs-empty">Loading clubs…</div>';
+  const { data, error } = await sb.from('clubs').select('club_id, club_name').order('club_name');
+  if (error || !data) {
+    document.getElementById('clubs-list').innerHTML = '<div class="clubs-empty">Failed to load clubs. Please try again.</div>';
+    return;
+  }
+  allClubs = data;
+  renderClubs(allClubs);
+}
+
+function renderClubs(list) {
+  const el = document.getElementById('clubs-list');
+  if (!list.length) { el.innerHTML = '<div class="clubs-empty">No clubs found</div>'; return; }
+  el.innerHTML = list.map(c => `
+    <div class="club-item${state.clubId === c.club_id ? ' selected' : ''}" onclick="selectClub(${c.club_id},${JSON.stringify(c.club_name)})">
+      <span>${c.club_name}</span>
+      <div class="check-circle"><div class="check-inner"></div></div>
+    </div>`).join('');
+}
+
+function filterClubs() {
+  const q = document.getElementById('club-search').value.toLowerCase();
+  renderClubs(q ? allClubs.filter(c => c.club_name.toLowerCase().includes(q)) : allClubs);
+}
+
+function selectClub(id, name) {
+  state.clubId   = id;
+  state.clubName = name;
+  document.getElementById('btn-2').disabled = false;
+  saveDraftNow();
+  filterClubs();
+}
+
+// ── Navigation ────────────────────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  show('s-' + n);
+}
+
+async function goStep2() {
+  const fn = document.getElementById('first-name').value.trim();
+  const ln = document.getElementById('last-name').value.trim();
+  if (!fn || !ln) { showErr('err-1', 'Please enter your first and last name.'); return; }
+  clearErr('err-1');
+  state.firstName = fn;
+  state.lastName  = ln;
+  saveDraftNow();
+  goStep(2);
+  if (!allClubs.length) await loadClubs();
+}
+
+function goStep3() {
+  if (!state.clubId) { showErr('err-2', 'Please select a club.'); return; }
+  clearErr('err-2');
+  saveDraftNow();
+  goStep(3);
+}
+
+async function createTeam() {
+  const teamName = document.getElementById('team-name').value.trim();
+  if (!teamName) { showErr('err-3', 'Please enter a team name.'); return; }
+  clearErr('err-3');
+
+  state.teamName = teamName;
+  state.juvenile = document.getElementById('tog-juvenile').checked;
+  state.female   = document.getElementById('tog-female').checked;
+  state.carpool  = document.getElementById('tog-carpool').checked;
+  saveDraftNow();
+
+  const btn = document.getElementById('btn-create');
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-team`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        club_id:             state.clubId,
+        team_name:           state.teamName,
+        team_juvenile:       state.juvenile,
+        team_female:         state.female,
+        car_pooling_allowed: state.carpool,
+        first_name:          state.firstName,
+        last_name:           state.lastName,
+      }),
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Something went wrong. Please try again.');
+
+    localStorage.setItem(SUCCESS_KEY, JSON.stringify({ teamName: state.teamName, teamCode: result.team_unique_code }));
+    clearDraft();
+    showSuccess(state.teamName, result.team_unique_code);
+  } catch (err) {
+    showErr('err-3', err.message);
+    btn.disabled = false;
+    btn.textContent = 'Create Team';
+  }
+}
+
+function showSuccess(teamName, teamCode) {
+  document.getElementById('success-title').textContent = teamName + ' — Created!';
+  document.getElementById('team-code-display').textContent = teamCode;
+  goStep('success');
+}
+
+function copyCode() {
+  const code = document.getElementById('team-code-display').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const b = document.getElementById('copied-badge');
+    b.classList.add('show');
+    setTimeout(() => b.classList.remove('show'), 1800);
+  });
+}
+
+function done() {
+  localStorage.removeItem(SUCCESS_KEY);
+  if (window.history.length > 1) window.history.back();
+  else window.close();
+}
+
+// ── Draft ─────────────────────────────────────────────────────────────
+function saveDraftNow() {
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+}
+function loadDraft()   { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); }   catch { return null; } }
+function loadSuccess() { try { return JSON.parse(localStorage.getItem(SUCCESS_KEY)); } catch { return null; } }
+function clearDraft()  { localStorage.removeItem(DRAFT_KEY); }
+
+async function resumeDraft() {
+  const draft = loadDraft();
+  if (!draft) { clearAndStart(); return; }
+  Object.assign(state, draft);
+
+  document.getElementById('first-name').value          = state.firstName || '';
+  document.getElementById('last-name').value           = state.lastName  || '';
+  document.getElementById('team-name').value           = state.teamName  || '';
+  document.getElementById('tog-juvenile').checked      = !!state.juvenile;
+  document.getElementById('tog-female').checked        = !!state.female;
+  document.getElementById('tog-carpool').checked       = state.carpool !== false;
+
+  if (state.clubId) {
+    await loadClubs();
+    document.getElementById('btn-2').disabled = false;
+  }
+
+  if (state.teamName)        goStep(3);
+  else if (state.clubId)     goStep(3);
+  else if (state.firstName)  goStep(2);
+  else                       goStep(1);
+}
+
+async function clearAndStart() {
+  clearDraft();
+  state = freshState();
+  await prefillUser();
+  goStep(1);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function show(id) { document.getElementById(id)?.classList.add('active'); }
+function hide(id) { document.getElementById(id)?.classList.remove('active'); }
+function showErr(id, msg) { const e = document.getElementById(id); e.textContent = msg; e.style.display = 'block'; }
+function clearErr(id) { document.getElementById(id).style.display = 'none'; }
+
+init();
+</script>
+</body>
+</html>
