@@ -299,16 +299,6 @@ html, body {
         <div class="toggle-track"></div>
       </label>
     </div>
-    <div class="toggle-row">
-      <div>
-        <div class="toggle-label">Car pooling</div>
-        <div class="toggle-sub">Allow members to organise lifts to events</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" id="tog-carpool" checked>
-        <div class="toggle-track"></div>
-      </label>
-    </div>
     <button class="btn-primary" id="btn-create" onclick="createTeam()">Create Team</button>
   </div>
 </div>
@@ -467,7 +457,7 @@ async function createTeam() {
   state.teamName = teamName;
   state.juvenile = document.getElementById('tog-juvenile').checked;
   state.female   = document.getElementById('tog-female').checked;
-  state.carpool  = document.getElementById('tog-carpool').checked;
+  state.carpool  = false;
   saveDraftNow();
 
   const btn = document.getElementById('btn-create');
