@@ -274,12 +274,9 @@ const handler = async (request: Request): Promise<Response> => {
       `,
       getGoogleAccessToken(clientEmail, privateKey),
       sql`
-        SELECT m.first_name
-        FROM public.users u
-        JOIN public.user_member_link uml ON u.user_id = uml.user_id
-        JOIN public.members m            ON uml.member_id = m.member_id
-        WHERE u.email_address = ${user_email}
-          AND m.status != 'deleted'
+        SELECT first_name
+        FROM public.users
+        WHERE email_address = ${user_email}
         LIMIT 1
       `,
     ]);
