@@ -426,7 +426,7 @@ function renderClubs(list) {
   const el = document.getElementById('clubs-list');
   if (!list.length) { el.innerHTML = '<div class="clubs-empty">No clubs found</div>'; return; }
   el.innerHTML = list.map(c => `
-    <div class="club-item${state.clubId === c.club_id ? ' selected' : ''}" onclick="selectClub(${c.club_id},${JSON.stringify(c.club_name)})">
+    <div class="club-item${state.clubId === c.club_id ? ' selected' : ''}" data-id="${c.club_id}" data-name="${c.club_name.replace(/"/g, '&quot;')}" onclick="selectClub(+this.dataset.id, this.dataset.name)">
       <span>${c.club_name}</span>
       <div class="check-circle"><div class="check-inner"></div></div>
     </div>`).join('');
