@@ -237,30 +237,29 @@ html, body {
   </div>
 </div>
 
-<!-- Step 1: Your Details -->
+<!-- Step 1: Select Club -->
 <div id="s-1" class="screen">
   <div class="logo-bar"><div class="logo">Coach<span>Smart</span></div></div>
   <div class="progress">
-    <div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+    <div class="dot active"></div><div class="dot"></div>
   </div>
   <div class="content">
-    <div class="step-label">Step 1 of 3</div>
-    <div class="screen-title">Your details</div>
-    <div class="screen-sub">You'll be set up as the team admin. You can update these any time.</div>
+    <div class="step-label">Step 1 of 2</div>
+    <div class="screen-title">Select your club</div>
+    <div class="screen-sub">Your team will sit under this club.</div>
     <div class="error-msg" id="err-1"></div>
-    <div class="field">
-      <label>First Name</label>
-      <input id="first-name" type="text" placeholder="First name" autocomplete="given-name">
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="club-search" type="text" placeholder="Search clubs…" oninput="filterClubs()">
     </div>
-    <div class="field">
-      <label>Last Name</label>
-      <input id="last-name" type="text" placeholder="Last name" autocomplete="family-name">
+    <div class="clubs-list" id="clubs-list">
+      <div class="clubs-empty">Loading clubs…</div>
     </div>
-    <button class="btn-primary" onclick="goStep2()">Next</button>
+    <button class="btn-primary" id="btn-1" onclick="goStep2()" disabled>Next</button>
   </div>
 </div>
 
-<!-- Step 2: Select Club -->
+<!-- Step 2: Team Details -->
 <div id="s-2" class="screen">
   <div class="logo-bar">
     <div class="logo">Coach<span>Smart</span></div>
@@ -269,40 +268,13 @@ html, body {
     </button>
   </div>
   <div class="progress">
-    <div class="dot done"></div><div class="dot active"></div><div class="dot"></div>
+    <div class="dot done"></div><div class="dot active"></div>
   </div>
   <div class="content">
-    <div class="step-label">Step 2 of 3</div>
-    <div class="screen-title">Select your club</div>
-    <div class="screen-sub">Your team will sit under this club.</div>
-    <div class="error-msg" id="err-2"></div>
-    <div class="search-wrap">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="club-search" type="text" placeholder="Search clubs…" oninput="filterClubs()">
-    </div>
-    <div class="clubs-list" id="clubs-list">
-      <div class="clubs-empty">Loading clubs…</div>
-    </div>
-    <button class="btn-primary" id="btn-2" onclick="goStep3()" disabled>Next</button>
-  </div>
-</div>
-
-<!-- Step 3: Team Details -->
-<div id="s-3" class="screen">
-  <div class="logo-bar">
-    <div class="logo">Coach<span>Smart</span></div>
-    <button class="back-btn" onclick="goStep(2)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Back
-    </button>
-  </div>
-  <div class="progress">
-    <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
-  </div>
-  <div class="content">
-    <div class="step-label">Step 3 of 3</div>
+    <div class="step-label">Step 2 of 2</div>
     <div class="screen-title">Team details</div>
     <div class="screen-sub">Tell us a bit about your team.</div>
-    <div class="error-msg" id="err-3"></div>
+    <div class="error-msg" id="err-2"></div>
     <div class="field">
       <label>Team Name</label>
       <input id="team-name" type="text" placeholder="e.g. U13 Boys">
@@ -415,12 +387,17 @@ async function init() {
     return;
   }
 
-  await prefillUser();
+  // Fetch user name silently — no need to ask, we know who they are
+  await fetchUserName();
+
+  // Load clubs in parallel with page reveal so step 1 is ready immediately
+  loadClubs();
+
   hide('loading');
   show('s-1');
 }
 
-async function prefillUser() {
+async function fetchUserName() {
   if (!session) return;
   const { data } = await sb
     .from('users')
@@ -428,8 +405,8 @@ async function prefillUser() {
     .eq('user_id', session.user.id)
     .maybeSingle();
   if (data) {
-    if (data.first_name) document.getElementById('first-name').value = data.first_name;
-    if (data.last_name)  document.getElementById('last-name').value  = data.last_name;
+    state.firstName = data.first_name || '';
+    state.lastName  = data.last_name  || '';
   }
 }
 
@@ -463,7 +440,7 @@ function filterClubs() {
 function selectClub(id, name) {
   state.clubId   = id;
   state.clubName = name;
-  document.getElementById('btn-2').disabled = false;
+  document.getElementById('btn-1').disabled = false;
   saveDraftNow();
   filterClubs();
 }
@@ -474,29 +451,18 @@ function goStep(n) {
   show('s-' + n);
 }
 
-async function goStep2() {
-  const fn = document.getElementById('first-name').value.trim();
-  const ln = document.getElementById('last-name').value.trim();
-  if (!fn || !ln) { showErr('err-1', 'Please enter your first and last name.'); return; }
+// Step 1 (club) → Step 2 (team details)
+function goStep2() {
+  if (!state.clubId) { showErr('err-1', 'Please select a club.'); return; }
   clearErr('err-1');
-  state.firstName = fn;
-  state.lastName  = ln;
   saveDraftNow();
   goStep(2);
-  if (!allClubs.length) await loadClubs();
-}
-
-function goStep3() {
-  if (!state.clubId) { showErr('err-2', 'Please select a club.'); return; }
-  clearErr('err-2');
-  saveDraftNow();
-  goStep(3);
 }
 
 async function createTeam() {
   const teamName = document.getElementById('team-name').value.trim();
-  if (!teamName) { showErr('err-3', 'Please enter a team name.'); return; }
-  clearErr('err-3');
+  if (!teamName) { showErr('err-2', 'Please enter a team name.'); return; }
+  clearErr('err-2');
 
   state.teamName = teamName;
   state.juvenile = document.getElementById('tog-juvenile').checked;
@@ -525,7 +491,7 @@ async function createTeam() {
     clearDraft();
     showSuccess(state.teamName, result.team_unique_code);
   } catch (err) {
-    showErr('err-3', err.message);
+    showErr('err-2', err.message);
     btn.disabled = false;
     btn.textContent = 'Create Team';
   }
@@ -565,8 +531,6 @@ async function resumeDraft() {
   if (!draft) { clearAndStart(); return; }
   Object.assign(state, draft);
 
-  document.getElementById('first-name').value          = state.firstName || '';
-  document.getElementById('last-name').value           = state.lastName  || '';
   document.getElementById('team-name').value           = state.teamName  || '';
   document.getElementById('tog-juvenile').checked      = !!state.juvenile;
   document.getElementById('tog-female').checked        = !!state.female;
@@ -574,19 +538,18 @@ async function resumeDraft() {
 
   if (state.clubId) {
     await loadClubs();
-    document.getElementById('btn-2').disabled = false;
+    document.getElementById('btn-1').disabled = false;
   }
 
-  if (state.teamName)        goStep(3);
-  else if (state.clubId)     goStep(3);
-  else if (state.firstName)  goStep(2);
-  else                       goStep(1);
+  if (state.teamName || state.clubId) goStep(2);
+  else                                goStep(1);
 }
 
 async function clearAndStart() {
   clearDraft();
   state = freshState();
-  await prefillUser();
+  await fetchUserName();
+  if (!allClubs.length) loadClubs();
   goStep(1);
 }
 
