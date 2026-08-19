@@ -32,6 +32,7 @@ html, body {
   position: fixed; inset: 0; background: var(--dark);
   display: flex; align-items: center; justify-content: center; z-index: 100;
 }
+#loading.hidden { display: none; }
 .spinner {
   width: 36px; height: 36px;
   border: 3px solid var(--border); border-top-color: var(--green);
@@ -591,11 +592,15 @@ async function clearAndStart() {
 
 // ── Helpers ───────────────────────────────────────────────────────────
 function show(id) { document.getElementById(id)?.classList.add('active'); }
-function hide(id) { document.getElementById(id)?.classList.remove('active'); }
+function hide(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (id === 'loading') { el.classList.add('hidden'); } else { el.classList.remove('active'); }
+}
 function showErr(id, msg) { const e = document.getElementById(id); e.textContent = msg; e.style.display = 'block'; }
 function clearErr(id) { document.getElementById(id).style.display = 'none'; }
 
-init();
+init().catch(err => { console.error('init failed:', err); hide('loading'); show('s-1'); });
 </script>
 </body>
 </html>
