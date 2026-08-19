@@ -11,10 +11,33 @@ CoachSmart is a **GAA (Gaelic Athletic Association) coaching management app** fo
 
 The **website** (not PWA) is deployed automatically when code is pushed to `main` via `.github/workflows/firebase-deploy.yml` — it deploys `website/` and `webviews/` to Firebase Hosting (project: `coach-smart-new-mpqa5l`). The PWA is deployed separately and directly from FlutterFlow.
 
-## Git Workflow
+## Git Workflow — AGREED PROCESS (do not change without discussion)
+
+### How it works
+Claude commits to the dev branch, then merges directly to `main` via git commands. There is **no GitHub Actions workflow that does the merge** — Claude does it manually. Once code lands on `main`, two path-triggered workflows fire automatically based on *which files changed*:
+
+| Workflow | File | Triggers when |
+|---|---|---|
+| Firebase deploy | `firebase-deploy.yml` | `website/**`, `webviews/**`, `clontarf-gaa/**` |
+| Supabase deploy | `deploy-supabase-functions.yml` | `supabase/functions/**`, `supabase/migrations/**` |
+
+If only Supabase files changed, only the Supabase workflow runs. If only website files changed, only Firebase runs. **Never both unless both paths changed.**
+
+### Merge commands (run in Claude Code session)
+```bash
+git checkout main
+git pull origin main
+git merge origin/claude/review-coachsmart-repo-HHk5i
+git push origin main
+git checkout claude/review-coachsmart-repo-HHk5i
+```
+
+### Rules — DO NOT BREAK THESE
+- **Never create a GitHub Actions workflow to automate the merge** — this was tried on 2026-08-19 (`merge-and-deploy.yml`) and caused Firebase to deploy on every push regardless of what changed. It was removed. The merge is Claude's job, not a workflow's.
+- **Never add `--include-all` to `supabase db push`** — this re-runs already-applied migrations and causes duplicate key errors on `schema_migrations`.
+- **Migration file timestamps must not collide** with existing files in `supabase/migrations/`. Always check for a file with the same timestamp prefix before creating a new migration. New migrations should use today's date (format: `YYYYMMDDNNNNNN`).
 - **Develop on**: `claude/review-coachsmart-repo-HHk5i`
-- **Deploy via**: `main` (Firebase auto-deploys website on push to main; Supabase migrations applied manually via `supabase db push`)
-- Always merge working branch → main after commits
+- **Deploy via**: `main`
 
 ## Merging to Main from Codespace
 The Claude Code environment and the Codespace are separate — branches created here don't exist locally in the Codespace. When merging from the Codespace, always use `origin/` to reference the remote branch:
