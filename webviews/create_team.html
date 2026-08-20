@@ -370,9 +370,11 @@ async function init() {
     session = data?.session || null;
   }
 
-  // If team was already created, go straight to success
+  // If team was already created, show success once then clear so the next
+  // webview load starts fresh rather than looping back here forever.
   const saved = loadSuccess();
   if (saved) {
+    localStorage.removeItem(SUCCESS_KEY);
     showSuccess(saved.teamName, saved.teamCode);
     hide('loading');
     return;
