@@ -559,6 +559,12 @@ function showErr(id, msg) { const e = document.getElementById(id); e.textContent
 function clearErr(id) { document.getElementById(id).style.display = 'none'; }
 
 init().catch(err => { console.error('init failed:', err); hide('loading'); show('s-1'); });
+
+// Force a fresh load when the webview is restored from bfcache (back/forward cache),
+// otherwise the browser re-displays whatever screen was last visible without re-running init().
+window.addEventListener('pageshow', function(e) {
+  if (e.persisted) window.location.reload();
+});
 </script>
 </body>
 </html>
