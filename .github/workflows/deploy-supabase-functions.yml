@@ -17,7 +17,9 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.x
+          version: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy Edge Functions
         run: supabase functions deploy --project-ref gyfporsbdftvtakdvukt
