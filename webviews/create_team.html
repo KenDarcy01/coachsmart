@@ -328,7 +328,6 @@ html, body {
       Tap the code to copy it, then paste into WhatsApp or any chat to share with your squad.
     </div>
 
-    <button class="btn-primary" style="width:100%" onclick="done()">Done</button>
   </div>
 </div>
 
@@ -510,12 +509,6 @@ function copyCode() {
     b.classList.add('show');
     setTimeout(() => b.classList.remove('show'), 1800);
   });
-}
-
-function done() {
-  localStorage.removeItem(SUCCESS_KEY);
-  if (window.history.length > 1) window.history.back();
-  else window.close();
 }
 
 // ── Draft ─────────────────────────────────────────────────────────────
