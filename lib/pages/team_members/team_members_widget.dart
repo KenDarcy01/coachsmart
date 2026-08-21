@@ -241,6 +241,8 @@ class _TeamMembersWidgetState extends State<TeamMembersWidget> {
                               final childrenCodes = FFAppState()
                                   .listTeamMembers
                                   .clubCodes
+                                  .sortedList(
+                                      keyOf: (e) => e.codeId, desc: false)
                                   .toList();
 
                               return Row(
@@ -718,6 +720,9 @@ class _TeamMembersWidgetState extends State<TeamMembersWidget> {
                                                                                       'team_id': widget.teamID,
                                                                                     });
                                                                                   }
+
+                                                                                  logFirebaseEvent('Row_rebuild_page');
+                                                                                  safeSetState(() {});
                                                                                 }
 
                                                                                 safeSetState(() {});

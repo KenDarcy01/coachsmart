@@ -285,24 +285,16 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                       0.0, 10.0, 0.0, 0.0),
                                   child: Builder(
                                     builder: (context) {
-                                      final dynamicMembers = UserEventDetailsStruct
-                                                  .maybeFromMap(
+                                      final dynamicMembers =
+                                          UserEventDetailsStruct.maybeFromMap(
                                                       eventDetailsGetUserEventDetailsResponse
                                                           .jsonBody)
-                                              ?.teamMembers
-                                              .where((e) =>
-                                                  e.roleLevel >=
-                                                  UserEventDetailsStruct
-                                                          .maybeFromMap(
-                                                              eventDetailsGetUserEventDetailsResponse
-                                                                  .jsonBody)!
-                                                      .eventRoleLevel)
-                                              .toList()
-                                              .sortedList(
-                                                  keyOf: (e) => e.roleLevel,
-                                                  desc: false)
-                                              .toList() ??
-                                          [];
+                                                  ?.teamMembers
+                                                  .sortedList(
+                                                      keyOf: (e) => e.roleLevel,
+                                                      desc: false)
+                                                  .toList() ??
+                                              [];
 
                                       return Column(
                                         mainAxisSize: MainAxisSize.max,

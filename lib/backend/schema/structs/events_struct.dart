@@ -47,6 +47,7 @@ class EventsStruct extends FFFirebaseStruct {
     String? eventStatus,
     int? squadId,
     String? squadName,
+    String? squadImage,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _clubId = clubId,
         _teamId = teamId,
@@ -87,6 +88,7 @@ class EventsStruct extends FFFirebaseStruct {
         _eventStatus = eventStatus,
         _squadId = squadId,
         _squadName = squadName,
+        _squadImage = squadImage,
         super(firestoreUtilData);
 
   // "club_id" field.
@@ -395,6 +397,13 @@ class EventsStruct extends FFFirebaseStruct {
 
   bool hasSquadName() => _squadName != null;
 
+  // "squad_image" field.
+  String? _squadImage;
+  String get squadImage => _squadImage ?? '';
+  set squadImage(String? val) => _squadImage = val;
+
+  bool hasSquadImage() => _squadImage != null;
+
   static EventsStruct fromMap(Map<String, dynamic> data) => EventsStruct(
         clubId: castToType<int>(data['club_id']),
         teamId: castToType<int>(data['team_id']),
@@ -436,6 +445,7 @@ class EventsStruct extends FFFirebaseStruct {
         eventStatus: data['event_status'] as String?,
         squadId: castToType<int>(data['squad_id']),
         squadName: data['squad_name'] as String?,
+        squadImage: data['squad_image'] as String?,
       );
 
   static EventsStruct? maybeFromMap(dynamic data) =>
@@ -481,6 +491,7 @@ class EventsStruct extends FFFirebaseStruct {
         'event_status': _eventStatus,
         'squad_id': _squadId,
         'squad_name': _squadName,
+        'squad_image': _squadImage,
       }.withoutNulls;
 
   @override
@@ -639,6 +650,10 @@ class EventsStruct extends FFFirebaseStruct {
         ),
         'squad_name': serializeParam(
           _squadName,
+          ParamType.String,
+        ),
+        'squad_image': serializeParam(
+          _squadImage,
           ParamType.String,
         ),
       }.withoutNulls;
@@ -840,6 +855,11 @@ class EventsStruct extends FFFirebaseStruct {
           ParamType.String,
           false,
         ),
+        squadImage: deserializeParam(
+          data['squad_image'],
+          ParamType.String,
+          false,
+        ),
       );
 
   @override
@@ -886,7 +906,8 @@ class EventsStruct extends FFFirebaseStruct {
         paymentRequired == other.paymentRequired &&
         eventStatus == other.eventStatus &&
         squadId == other.squadId &&
-        squadName == other.squadName;
+        squadName == other.squadName &&
+        squadImage == other.squadImage;
   }
 
   @override
@@ -929,7 +950,8 @@ class EventsStruct extends FFFirebaseStruct {
         paymentRequired,
         eventStatus,
         squadId,
-        squadName
+        squadName,
+        squadImage
       ]);
 }
 
@@ -973,6 +995,7 @@ EventsStruct createEventsStruct({
   String? eventStatus,
   int? squadId,
   String? squadName,
+  String? squadImage,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -1018,6 +1041,7 @@ EventsStruct createEventsStruct({
       eventStatus: eventStatus,
       squadId: squadId,
       squadName: squadName,
+      squadImage: squadImage,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

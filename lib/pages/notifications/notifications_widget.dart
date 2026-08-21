@@ -450,6 +450,32 @@ class _NotificationsWidgetState extends State<NotificationsWidget> {
                                                   ?.length,
                                             );
                                             logFirebaseEvent(
+                                                'Container_backend_call');
+                                            _model.apiUserNotificationsRefresh =
+                                                await GetUserNotificationsCall
+                                                    .call(
+                                              pUserId: currentUserUid,
+                                            );
+
+                                            logFirebaseEvent(
+                                                'Container_update_app_state');
+                                            FFAppState()
+                                                .userNotifications = ((_model
+                                                                .apiUserNotificationsRefresh
+                                                                ?.jsonBody ??
+                                                            '')
+                                                        .toList()
+                                                        .map<UserNotificationsStruct?>(
+                                                            UserNotificationsStruct
+                                                                .maybeFromMap)
+                                                        .toList()
+                                                    as Iterable<
+                                                        UserNotificationsStruct?>)
+                                                .withoutNulls
+                                                .toList()
+                                                .cast<
+                                                    UserNotificationsStruct>();
+                                            logFirebaseEvent(
                                                 'Container_navigate_to');
 
                                             context.pushNamed(

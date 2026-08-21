@@ -344,6 +344,8 @@ class _AdminOptionsWidgetState extends State<AdminOptionsWidget> {
                               final childrenReminders = FFAppState()
                                   .eventAdminDetail
                                   .reminders
+                                  .sortedList(
+                                      keyOf: (e) => e.createdAt, desc: true)
                                   .toList();
 
                               return ListView.separated(

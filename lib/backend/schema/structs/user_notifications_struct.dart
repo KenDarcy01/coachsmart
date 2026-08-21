@@ -16,6 +16,12 @@ class UserNotificationsStruct extends FFFirebaseStruct {
     String? timeLabel,
     String? teamName,
     int? eventId,
+    String? image,
+    bool? isDelivered,
+    String? action,
+    int? actionRefId,
+    int? teamId,
+    int? memberId,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _id = id,
         _createdAt = createdAt,
@@ -25,6 +31,12 @@ class UserNotificationsStruct extends FFFirebaseStruct {
         _timeLabel = timeLabel,
         _teamName = teamName,
         _eventId = eventId,
+        _image = image,
+        _isDelivered = isDelivered,
+        _action = action,
+        _actionRefId = actionRefId,
+        _teamId = teamId,
+        _memberId = memberId,
         super(firestoreUtilData);
 
   // "id" field.
@@ -87,6 +99,54 @@ class UserNotificationsStruct extends FFFirebaseStruct {
 
   bool hasEventId() => _eventId != null;
 
+  // "image" field.
+  String? _image;
+  String get image => _image ?? '';
+  set image(String? val) => _image = val;
+
+  bool hasImage() => _image != null;
+
+  // "is_delivered" field.
+  bool? _isDelivered;
+  bool get isDelivered => _isDelivered ?? false;
+  set isDelivered(bool? val) => _isDelivered = val;
+
+  bool hasIsDelivered() => _isDelivered != null;
+
+  // "action" field.
+  String? _action;
+  String get action => _action ?? '';
+  set action(String? val) => _action = val;
+
+  bool hasAction() => _action != null;
+
+  // "action_ref_id" field.
+  int? _actionRefId;
+  int get actionRefId => _actionRefId ?? 0;
+  set actionRefId(int? val) => _actionRefId = val;
+
+  void incrementActionRefId(int amount) => actionRefId = actionRefId + amount;
+
+  bool hasActionRefId() => _actionRefId != null;
+
+  // "team_id" field.
+  int? _teamId;
+  int get teamId => _teamId ?? 0;
+  set teamId(int? val) => _teamId = val;
+
+  void incrementTeamId(int amount) => teamId = teamId + amount;
+
+  bool hasTeamId() => _teamId != null;
+
+  // "member_id" field.
+  int? _memberId;
+  int get memberId => _memberId ?? 0;
+  set memberId(int? val) => _memberId = val;
+
+  void incrementMemberId(int amount) => memberId = memberId + amount;
+
+  bool hasMemberId() => _memberId != null;
+
   static UserNotificationsStruct fromMap(Map<String, dynamic> data) =>
       UserNotificationsStruct(
         id: castToType<int>(data['id']),
@@ -97,6 +157,12 @@ class UserNotificationsStruct extends FFFirebaseStruct {
         timeLabel: data['time_label'] as String?,
         teamName: data['team_name'] as String?,
         eventId: castToType<int>(data['event_id']),
+        image: data['image'] as String?,
+        isDelivered: data['is_delivered'] as bool?,
+        action: data['action'] as String?,
+        actionRefId: castToType<int>(data['action_ref_id']),
+        teamId: castToType<int>(data['team_id']),
+        memberId: castToType<int>(data['member_id']),
       );
 
   static UserNotificationsStruct? maybeFromMap(dynamic data) => data is Map
@@ -112,6 +178,12 @@ class UserNotificationsStruct extends FFFirebaseStruct {
         'time_label': _timeLabel,
         'team_name': _teamName,
         'event_id': _eventId,
+        'image': _image,
+        'is_delivered': _isDelivered,
+        'action': _action,
+        'action_ref_id': _actionRefId,
+        'team_id': _teamId,
+        'member_id': _memberId,
       }.withoutNulls;
 
   @override
@@ -146,6 +218,30 @@ class UserNotificationsStruct extends FFFirebaseStruct {
         ),
         'event_id': serializeParam(
           _eventId,
+          ParamType.int,
+        ),
+        'image': serializeParam(
+          _image,
+          ParamType.String,
+        ),
+        'is_delivered': serializeParam(
+          _isDelivered,
+          ParamType.bool,
+        ),
+        'action': serializeParam(
+          _action,
+          ParamType.String,
+        ),
+        'action_ref_id': serializeParam(
+          _actionRefId,
+          ParamType.int,
+        ),
+        'team_id': serializeParam(
+          _teamId,
+          ParamType.int,
+        ),
+        'member_id': serializeParam(
+          _memberId,
           ParamType.int,
         ),
       }.withoutNulls;
@@ -193,6 +289,36 @@ class UserNotificationsStruct extends FFFirebaseStruct {
           ParamType.int,
           false,
         ),
+        image: deserializeParam(
+          data['image'],
+          ParamType.String,
+          false,
+        ),
+        isDelivered: deserializeParam(
+          data['is_delivered'],
+          ParamType.bool,
+          false,
+        ),
+        action: deserializeParam(
+          data['action'],
+          ParamType.String,
+          false,
+        ),
+        actionRefId: deserializeParam(
+          data['action_ref_id'],
+          ParamType.int,
+          false,
+        ),
+        teamId: deserializeParam(
+          data['team_id'],
+          ParamType.int,
+          false,
+        ),
+        memberId: deserializeParam(
+          data['member_id'],
+          ParamType.int,
+          false,
+        ),
       );
 
   @override
@@ -208,12 +334,32 @@ class UserNotificationsStruct extends FFFirebaseStruct {
         isRead == other.isRead &&
         timeLabel == other.timeLabel &&
         teamName == other.teamName &&
-        eventId == other.eventId;
+        eventId == other.eventId &&
+        image == other.image &&
+        isDelivered == other.isDelivered &&
+        action == other.action &&
+        actionRefId == other.actionRefId &&
+        teamId == other.teamId &&
+        memberId == other.memberId;
   }
 
   @override
-  int get hashCode => const ListEquality().hash(
-      [id, createdAt, appTitle, appBody, isRead, timeLabel, teamName, eventId]);
+  int get hashCode => const ListEquality().hash([
+        id,
+        createdAt,
+        appTitle,
+        appBody,
+        isRead,
+        timeLabel,
+        teamName,
+        eventId,
+        image,
+        isDelivered,
+        action,
+        actionRefId,
+        teamId,
+        memberId
+      ]);
 }
 
 UserNotificationsStruct createUserNotificationsStruct({
@@ -225,6 +371,12 @@ UserNotificationsStruct createUserNotificationsStruct({
   String? timeLabel,
   String? teamName,
   int? eventId,
+  String? image,
+  bool? isDelivered,
+  String? action,
+  int? actionRefId,
+  int? teamId,
+  int? memberId,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -239,6 +391,12 @@ UserNotificationsStruct createUserNotificationsStruct({
       timeLabel: timeLabel,
       teamName: teamName,
       eventId: eventId,
+      image: image,
+      isDelivered: isDelivered,
+      action: action,
+      actionRefId: actionRefId,
+      teamId: teamId,
+      memberId: memberId,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

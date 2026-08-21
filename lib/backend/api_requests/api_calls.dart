@@ -1253,10 +1253,12 @@ class GetUserNotificationsCall {
     String? supabaseAccessToken =
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
     String? pUserId = '',
+    int? pLimit,
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": "${escapeStringForJson(pUserId)}",
+  "p_limit": ${pLimit}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserNotifications',
@@ -2081,6 +2083,147 @@ class GetEditUserDataCall {
       callName: 'getEditUserData',
       apiUrl:
           'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/get_edit_user_data',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class MarkAllNotifcationsReadCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    String? pUserId = '',
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "p_user_id": "${escapeStringForJson(pUserId)}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'markAllNotifcationsRead',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/mark_all_notifications_read',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class MarkNotificationReadCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    int? pNotificationId,
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "p_notification_id": ${pNotificationId}
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'markNotificationRead',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/mark_notification_read',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization': 'Bearer ${supabaseJWTtoken}',
+        'apikey': '${supabaseAccessToken}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class CreateRecurringEventsCall {
+  static Future<ApiCallResponse> call({
+    String? supabaseJWTtoken = '',
+    String? supabaseAccessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+    int? pRecurringType,
+    int? pNumWeeks,
+    String? pEventTitle = '',
+    String? pEventDateTime = '',
+    String? pEventDateTime2 = '',
+    int? pTeamId,
+    String? pCreatedBy = '',
+    int? pEventTypeId,
+    int? pEventCodeId,
+    int? pAudienceId,
+    int? pSquadId,
+    String? pLocationName = '',
+    String? pLocationPin = '',
+    String? pMeetTime = '',
+    String? pOpposition = '',
+    String? pEventDetails = '',
+    bool? pRequestAttendance,
+    bool? pNotifyAdminsChanges,
+    bool? pNotifyAdminsAll,
+    bool? pPaymentRequired,
+    bool? pCarPooling,
+    String? pEventImage = '',
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "p_recurring_type": ${pRecurringType},
+  "p_num_weeks": ${pNumWeeks},
+  "p_event_title": "${escapeStringForJson(pEventTitle)}",
+  "p_event_date_time": "${escapeStringForJson(pEventDateTime)}",
+  "p_event_date_time_2": "${escapeStringForJson(pEventDateTime2)}",
+  "p_team_id": ${pTeamId},
+  "p_created_by": "${escapeStringForJson(pCreatedBy)}",
+  "p_event_type_id": ${pEventTypeId},
+  "p_event_code_id": ${pEventCodeId},
+  "p_audience_id": ${pAudienceId},
+  "p_squad_id": ${pSquadId},
+  "p_location_name": "${escapeStringForJson(pLocationName)}",
+  "p_location_pin": "${escapeStringForJson(pLocationPin)}",
+  "p_meet_time": "${escapeStringForJson(pMeetTime)}",
+  "p_opposition": "${escapeStringForJson(pOpposition)}",
+  "p_event_details": "${escapeStringForJson(pEventDetails)}",
+  "p_request_attendance": ${pRequestAttendance},
+  "p_notify_admins_changes": ${pNotifyAdminsChanges},
+  "p_notify_admins_all": ${pNotifyAdminsAll},
+  "p_payment_required": ${pPaymentRequired},
+  "p_car_pooling": ${pCarPooling},
+  "p_event_image": "${escapeStringForJson(pEventImage)}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'createRecurringEvents',
+      apiUrl:
+          'https://gyfporsbdftvtakdvukt.supabase.co/rest/v1/rpc/create_recurring_events',
       callType: ApiCallType.POST,
       headers: {
         'Authorization': 'Bearer ${supabaseJWTtoken}',

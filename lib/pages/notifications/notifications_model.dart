@@ -22,6 +22,8 @@ class NotificationsModel extends FlutterFlowModel<NotificationsWidget> {
   List<NotificationsRow>? outputUnreadNotifications;
   // Stores action output result for [Custom Action - updateAppBadge] action in Container widget.
   String? outputBadgeUpdate;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Container widget.
+  ApiCallResponse? apiUserNotificationsRefresh;
   // Stores action output result for [Backend Call - API (getUserNotifications)] action in Icon widget.
   ApiCallResponse? apiUserNotifications1;
 

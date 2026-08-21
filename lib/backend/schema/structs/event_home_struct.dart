@@ -43,6 +43,7 @@ class EventHomeStruct extends FFFirebaseStruct {
     bool? notifyAdminsChanges,
     bool? notifyAdminsAll,
     bool? userOnboarded,
+    bool? isGaaMember,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _eventId = eventId,
         _eventTitle = eventTitle,
@@ -79,6 +80,7 @@ class EventHomeStruct extends FFFirebaseStruct {
         _notifyAdminsChanges = notifyAdminsChanges,
         _notifyAdminsAll = notifyAdminsAll,
         _userOnboarded = userOnboarded,
+        _isGaaMember = isGaaMember,
         super(firestoreUtilData);
 
   // "event_id" field.
@@ -357,6 +359,13 @@ class EventHomeStruct extends FFFirebaseStruct {
 
   bool hasUserOnboarded() => _userOnboarded != null;
 
+  // "is_gaa_member" field.
+  bool? _isGaaMember;
+  bool get isGaaMember => _isGaaMember ?? false;
+  set isGaaMember(bool? val) => _isGaaMember = val;
+
+  bool hasIsGaaMember() => _isGaaMember != null;
+
   static EventHomeStruct fromMap(Map<String, dynamic> data) => EventHomeStruct(
         eventId: castToType<int>(data['event_id']),
         eventTitle: data['event_title'] as String?,
@@ -395,6 +404,7 @@ class EventHomeStruct extends FFFirebaseStruct {
         notifyAdminsChanges: data['notify_admins_changes'] as bool?,
         notifyAdminsAll: data['notify_admins_all'] as bool?,
         userOnboarded: data['user_onboarded'] as bool?,
+        isGaaMember: data['is_gaa_member'] as bool?,
       );
 
   static EventHomeStruct? maybeFromMap(dynamic data) => data is Map
@@ -437,6 +447,7 @@ class EventHomeStruct extends FFFirebaseStruct {
         'notify_admins_changes': _notifyAdminsChanges,
         'notify_admins_all': _notifyAdminsAll,
         'user_onboarded': _userOnboarded,
+        'is_gaa_member': _isGaaMember,
       }.withoutNulls;
 
   @override
@@ -579,6 +590,10 @@ class EventHomeStruct extends FFFirebaseStruct {
         ),
         'user_onboarded': serializeParam(
           _userOnboarded,
+          ParamType.bool,
+        ),
+        'is_gaa_member': serializeParam(
+          _isGaaMember,
           ParamType.bool,
         ),
       }.withoutNulls;
@@ -760,6 +775,11 @@ class EventHomeStruct extends FFFirebaseStruct {
           ParamType.bool,
           false,
         ),
+        isGaaMember: deserializeParam(
+          data['is_gaa_member'],
+          ParamType.bool,
+          false,
+        ),
       );
 
   @override
@@ -802,7 +822,8 @@ class EventHomeStruct extends FFFirebaseStruct {
         clubId == other.clubId &&
         notifyAdminsChanges == other.notifyAdminsChanges &&
         notifyAdminsAll == other.notifyAdminsAll &&
-        userOnboarded == other.userOnboarded;
+        userOnboarded == other.userOnboarded &&
+        isGaaMember == other.isGaaMember;
   }
 
   @override
@@ -841,7 +862,8 @@ class EventHomeStruct extends FFFirebaseStruct {
         clubId,
         notifyAdminsChanges,
         notifyAdminsAll,
-        userOnboarded
+        userOnboarded,
+        isGaaMember
       ]);
 }
 
@@ -881,6 +903,7 @@ EventHomeStruct createEventHomeStruct({
   bool? notifyAdminsChanges,
   bool? notifyAdminsAll,
   bool? userOnboarded,
+  bool? isGaaMember,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -922,6 +945,7 @@ EventHomeStruct createEventHomeStruct({
       notifyAdminsChanges: notifyAdminsChanges,
       notifyAdminsAll: notifyAdminsAll,
       userOnboarded: userOnboarded,
+      isGaaMember: isGaaMember,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

@@ -12,11 +12,13 @@ class PaymentDetailsStruct extends FFFirebaseStruct {
     String? paymentDate,
     int? amountPaid,
     String? memberFullName,
+    int? paymentId,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _userFullName = userFullName,
         _paymentDate = paymentDate,
         _amountPaid = amountPaid,
         _memberFullName = memberFullName,
+        _paymentId = paymentId,
         super(firestoreUtilData);
 
   // "user_full_name" field.
@@ -49,12 +51,22 @@ class PaymentDetailsStruct extends FFFirebaseStruct {
 
   bool hasMemberFullName() => _memberFullName != null;
 
+  // "payment_id" field.
+  int? _paymentId;
+  int get paymentId => _paymentId ?? 0;
+  set paymentId(int? val) => _paymentId = val;
+
+  void incrementPaymentId(int amount) => paymentId = paymentId + amount;
+
+  bool hasPaymentId() => _paymentId != null;
+
   static PaymentDetailsStruct fromMap(Map<String, dynamic> data) =>
       PaymentDetailsStruct(
         userFullName: data['user_full_name'] as String?,
         paymentDate: data['payment_date'] as String?,
         amountPaid: castToType<int>(data['amount_paid']),
         memberFullName: data['member_full_name'] as String?,
+        paymentId: castToType<int>(data['payment_id']),
       );
 
   static PaymentDetailsStruct? maybeFromMap(dynamic data) => data is Map
@@ -66,6 +78,7 @@ class PaymentDetailsStruct extends FFFirebaseStruct {
         'payment_date': _paymentDate,
         'amount_paid': _amountPaid,
         'member_full_name': _memberFullName,
+        'payment_id': _paymentId,
       }.withoutNulls;
 
   @override
@@ -85,6 +98,10 @@ class PaymentDetailsStruct extends FFFirebaseStruct {
         'member_full_name': serializeParam(
           _memberFullName,
           ParamType.String,
+        ),
+        'payment_id': serializeParam(
+          _paymentId,
+          ParamType.int,
         ),
       }.withoutNulls;
 
@@ -110,6 +127,11 @@ class PaymentDetailsStruct extends FFFirebaseStruct {
           ParamType.String,
           false,
         ),
+        paymentId: deserializeParam(
+          data['payment_id'],
+          ParamType.int,
+          false,
+        ),
       );
 
   @override
@@ -121,12 +143,13 @@ class PaymentDetailsStruct extends FFFirebaseStruct {
         userFullName == other.userFullName &&
         paymentDate == other.paymentDate &&
         amountPaid == other.amountPaid &&
-        memberFullName == other.memberFullName;
+        memberFullName == other.memberFullName &&
+        paymentId == other.paymentId;
   }
 
   @override
   int get hashCode => const ListEquality()
-      .hash([userFullName, paymentDate, amountPaid, memberFullName]);
+      .hash([userFullName, paymentDate, amountPaid, memberFullName, paymentId]);
 }
 
 PaymentDetailsStruct createPaymentDetailsStruct({
@@ -134,6 +157,7 @@ PaymentDetailsStruct createPaymentDetailsStruct({
   String? paymentDate,
   int? amountPaid,
   String? memberFullName,
+  int? paymentId,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -144,6 +168,7 @@ PaymentDetailsStruct createPaymentDetailsStruct({
       paymentDate: paymentDate,
       amountPaid: amountPaid,
       memberFullName: memberFullName,
+      paymentId: paymentId,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

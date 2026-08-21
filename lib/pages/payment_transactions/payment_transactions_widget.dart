@@ -262,7 +262,7 @@ class _PaymentTransactionsWidgetState extends State<PaymentTransactionsWidget> {
                                                       PaymentDetailsStruct?>)
                                               .withoutNulls
                                               .sortedList(
-                                                  keyOf: (e) => e.paymentDate,
+                                                  keyOf: (e) => e.paymentId,
                                                   desc: true)
                                               .toList() ??
                                           [];

@@ -23,6 +23,8 @@ class CreateEventModel extends FlutterFlowModel<CreateEventWidget> {
 
   int? stateRecurringWeek;
 
+  String? stateImageLink;
+
   ///  State fields for stateful widgets in this page.
 
   // State field(s) for eventOppositionInput widget.
@@ -59,10 +61,21 @@ class CreateEventModel extends FlutterFlowModel<CreateEventWidget> {
       locationPinInputTextControllerValidator;
   // State field(s) for switchRequestAttendance widget.
   bool? switchRequestAttendanceValue;
+  bool isDataUploading_uploadDataDlb = false;
+  FFUploadedFile uploadedLocalFile_uploadDataDlb =
+      FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
+
   // State field(s) for eventDetail widget.
   FocusNode? eventDetailFocusNode;
   TextEditingController? eventDetailTextController;
   String? Function(BuildContext, String?)? eventDetailTextControllerValidator;
+  bool isDataUploading_uploadData79m = false;
+  FFUploadedFile uploadedLocalFile_uploadData79m =
+      FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
+  String uploadedFileUrl_uploadData79m = '';
+
+  // Stores action output result for [Backend Call - API (createRecurringEvents)] action in Button widget.
+  ApiCallResponse? apiCreateEvent;
   // Stores action output result for [Backend Call - API (getUserHomeEvents)] action in Button widget.
   ApiCallResponse? outputUpdatedEvents;
 

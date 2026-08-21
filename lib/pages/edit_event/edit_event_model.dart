@@ -22,6 +22,8 @@ class EditEventModel extends FlutterFlowModel<EditEventWidget> {
 
   String? buttonText = 'Cancel Event';
 
+  String? stateImageLink;
+
   ///  State fields for stateful widgets in this page.
 
   final formKey = GlobalKey<FormState>();
@@ -58,10 +60,19 @@ class EditEventModel extends FlutterFlowModel<EditEventWidget> {
       eventLinkInputTextControllerValidator;
   // State field(s) for switchRequestAttendance widget.
   bool? switchRequestAttendanceValue;
+  bool isDataUploading_uploadDataDlb1 = false;
+  FFUploadedFile uploadedLocalFile_uploadDataDlb1 =
+      FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
+
   // State field(s) for eventDetail widget.
   FocusNode? eventDetailFocusNode;
   TextEditingController? eventDetailTextController;
   String? Function(BuildContext, String?)? eventDetailTextControllerValidator;
+  bool isDataUploading_uploadData1g9 = false;
+  FFUploadedFile uploadedLocalFile_uploadData1g9 =
+      FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
+  String uploadedFileUrl_uploadData1g9 = '';
+
   // Stores action output result for [Backend Call - API (getUserEventDetails)] action in Button widget.
   ApiCallResponse? apiUpdateEventDetails;
   // Stores action output result for [Backend Call - Update Row(s)] action in Button widget.

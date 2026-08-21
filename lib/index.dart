@@ -58,3 +58,7 @@ export '/pages/join_team_new/join_team_new_widget.dart' show JoinTeamNewWidget;
 export '/pages/match_stats/match_stats_widget.dart' show MatchStatsWidget;
 export '/pages/member_analytics/member_analytics_widget.dart'
     show MemberAnalyticsWidget;
+export '/pages/notifications_new/notifications_new_widget.dart'
+    show NotificationsNewWidget;
+export '/pages/create_team_new/create_team_new_widget.dart'
+    show CreateTeamNewWidget;

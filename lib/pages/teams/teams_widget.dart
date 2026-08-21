@@ -137,7 +137,7 @@ class _TeamsWidgetState extends State<TeamsWidget> {
                                   'TEAMS_PAGE_acceptButton_ON_TAP');
                               logFirebaseEvent('acceptButton_navigate_to');
 
-                              context.pushNamed(CreateTeamWidget.routeName);
+                              context.pushNamed(CreateTeamNewWidget.routeName);
                             },
                             text: 'Create Team',
                             icon: Icon(

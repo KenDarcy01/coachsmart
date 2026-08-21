@@ -15,6 +15,8 @@ class UserTeamsStruct extends FFFirebaseStruct {
     bool? teamFemale,
     String? teamUniqueCode,
     int? userHighestRoleOnTeam,
+    String? primaryColour,
+    String? secondaryColour,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _clubId = clubId,
         _teamId = teamId,
@@ -23,6 +25,8 @@ class UserTeamsStruct extends FFFirebaseStruct {
         _teamFemale = teamFemale,
         _teamUniqueCode = teamUniqueCode,
         _userHighestRoleOnTeam = userHighestRoleOnTeam,
+        _primaryColour = primaryColour,
+        _secondaryColour = secondaryColour,
         super(firestoreUtilData);
 
   // "club_id" field.
@@ -81,6 +85,20 @@ class UserTeamsStruct extends FFFirebaseStruct {
 
   bool hasUserHighestRoleOnTeam() => _userHighestRoleOnTeam != null;
 
+  // "primary_colour" field.
+  String? _primaryColour;
+  String get primaryColour => _primaryColour ?? '';
+  set primaryColour(String? val) => _primaryColour = val;
+
+  bool hasPrimaryColour() => _primaryColour != null;
+
+  // "secondary_colour" field.
+  String? _secondaryColour;
+  String get secondaryColour => _secondaryColour ?? '';
+  set secondaryColour(String? val) => _secondaryColour = val;
+
+  bool hasSecondaryColour() => _secondaryColour != null;
+
   static UserTeamsStruct fromMap(Map<String, dynamic> data) => UserTeamsStruct(
         clubId: castToType<int>(data['club_id']),
         teamId: castToType<int>(data['team_id']),
@@ -90,6 +108,8 @@ class UserTeamsStruct extends FFFirebaseStruct {
         teamUniqueCode: data['team_unique_code'] as String?,
         userHighestRoleOnTeam:
             castToType<int>(data['user_highest_role_on_team']),
+        primaryColour: data['primary_colour'] as String?,
+        secondaryColour: data['secondary_colour'] as String?,
       );
 
   static UserTeamsStruct? maybeFromMap(dynamic data) => data is Map
@@ -104,6 +124,8 @@ class UserTeamsStruct extends FFFirebaseStruct {
         'team_female': _teamFemale,
         'team_unique_code': _teamUniqueCode,
         'user_highest_role_on_team': _userHighestRoleOnTeam,
+        'primary_colour': _primaryColour,
+        'secondary_colour': _secondaryColour,
       }.withoutNulls;
 
   @override
@@ -135,6 +157,14 @@ class UserTeamsStruct extends FFFirebaseStruct {
         'user_highest_role_on_team': serializeParam(
           _userHighestRoleOnTeam,
           ParamType.int,
+        ),
+        'primary_colour': serializeParam(
+          _primaryColour,
+          ParamType.String,
+        ),
+        'secondary_colour': serializeParam(
+          _secondaryColour,
+          ParamType.String,
         ),
       }.withoutNulls;
 
@@ -175,6 +205,16 @@ class UserTeamsStruct extends FFFirebaseStruct {
           ParamType.int,
           false,
         ),
+        primaryColour: deserializeParam(
+          data['primary_colour'],
+          ParamType.String,
+          false,
+        ),
+        secondaryColour: deserializeParam(
+          data['secondary_colour'],
+          ParamType.String,
+          false,
+        ),
       );
 
   @override
@@ -189,7 +229,9 @@ class UserTeamsStruct extends FFFirebaseStruct {
         profilePic == other.profilePic &&
         teamFemale == other.teamFemale &&
         teamUniqueCode == other.teamUniqueCode &&
-        userHighestRoleOnTeam == other.userHighestRoleOnTeam;
+        userHighestRoleOnTeam == other.userHighestRoleOnTeam &&
+        primaryColour == other.primaryColour &&
+        secondaryColour == other.secondaryColour;
   }
 
   @override
@@ -200,7 +242,9 @@ class UserTeamsStruct extends FFFirebaseStruct {
         profilePic,
         teamFemale,
         teamUniqueCode,
-        userHighestRoleOnTeam
+        userHighestRoleOnTeam,
+        primaryColour,
+        secondaryColour
       ]);
 }
 
@@ -212,6 +256,8 @@ UserTeamsStruct createUserTeamsStruct({
   bool? teamFemale,
   String? teamUniqueCode,
   int? userHighestRoleOnTeam,
+  String? primaryColour,
+  String? secondaryColour,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -225,6 +271,8 @@ UserTeamsStruct createUserTeamsStruct({
       teamFemale: teamFemale,
       teamUniqueCode: teamUniqueCode,
       userHighestRoleOnTeam: userHighestRoleOnTeam,
+      primaryColour: primaryColour,
+      secondaryColour: secondaryColour,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

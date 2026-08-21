@@ -239,7 +239,7 @@ class _ForgotPasswordWidgetState extends State<ForgotPasswordWidget>
                                                             decoration:
                                                                 InputDecoration(
                                                               labelText:
-                                                                  'Email......',
+                                                                  'Email:',
                                                               labelStyle:
                                                                   FlutterFlowTheme.of(
                                                                           context)

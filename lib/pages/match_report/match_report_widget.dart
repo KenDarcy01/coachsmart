@@ -280,7 +280,7 @@ class _MatchReportWidgetState extends State<MatchReportWidget> {
                                         .fontStyle,
                                   ),
                           maxLines: null,
-                          minLines: 5,
+                          minLines: 20,
                           cursorColor:
                               FlutterFlowTheme.of(context).primaryBackground,
                           validator: _model.eventDetailTextControllerValidator
@@ -298,103 +298,112 @@ class _MatchReportWidgetState extends State<MatchReportWidget> {
                           ],
                         ),
                       ),
-                      Divider(
-                        thickness: 2.0,
-                        indent: 5.0,
-                        endIndent: 5.0,
-                        color: Color(0xFF474747),
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Expanded(
-                            child: FFButtonWidget(
-                              onPressed: () async {
-                                logFirebaseEvent(
-                                    'MATCH_REPORT_SAVE_MATCH_REPORT_BTN_ON_TA');
-                                if (_model.eventDetailTextController.text !=
-                                        '') {
-                                  logFirebaseEvent('Button_backend_call');
-                                  _model.outputCreatedMatchReport =
-                                      await MatchReportsTable().insert({
-                                    'created_at': supaSerialize<DateTime>(
-                                        getCurrentTimestamp),
-                                    'event_id': matchReportEventsRow?.eventId,
-                                    'user_id': currentUserUid,
-                                    'match_report':
-                                        _model.eventDetailTextController.text,
-                                  });
+                      Padding(
+                        padding:
+                            EdgeInsetsDirectional.fromSTEB(0.0, 10.0, 0.0, 0.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Expanded(
+                              child: FFButtonWidget(
+                                onPressed: () async {
                                   logFirebaseEvent(
-                                      'Button_refresh_database_request');
-                                  safeSetState(
-                                      () => _model.requestCompleter = null);
-                                  await _model.waitForRequestCompleted();
-                                  logFirebaseEvent('Button_show_snack_bar');
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Match Report Saved',
-                                        style: TextStyle(
-                                          color: FlutterFlowTheme.of(context)
-                                              .primaryText,
+                                      'MATCH_REPORT_SAVE_MATCH_REPORT_BTN_ON_TA');
+                                  if (_model.eventDetailTextController.text !=
+                                          '') {
+                                    logFirebaseEvent('Button_backend_call');
+                                    _model.outputCreatedMatchReport =
+                                        await MatchReportsTable().insert({
+                                      'created_at': supaSerialize<DateTime>(
+                                          getCurrentTimestamp),
+                                      'event_id': matchReportEventsRow?.eventId,
+                                      'user_id': currentUserUid,
+                                      'match_report':
+                                          _model.eventDetailTextController.text,
+                                    });
+                                    logFirebaseEvent(
+                                        'Button_refresh_database_request');
+                                    safeSetState(
+                                        () => _model.requestCompleter = null);
+                                    await _model.waitForRequestCompleted();
+                                    logFirebaseEvent('Button_show_snack_bar');
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Match Report Saved',
+                                          style: TextStyle(
+                                            color: FlutterFlowTheme.of(context)
+                                                .primaryText,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
-                                        textAlign: TextAlign.center,
+                                        duration: Duration(milliseconds: 4000),
+                                        backgroundColor:
+                                            FlutterFlowTheme.of(context)
+                                                .coachSmartGreen,
                                       ),
-                                      duration: Duration(milliseconds: 4000),
-                                      backgroundColor:
-                                          FlutterFlowTheme.of(context)
-                                              .coachSmartGreen,
-                                    ),
-                                  );
-                                  logFirebaseEvent('Button_navigate_back');
-                                  context.safePop();
-                                  logFirebaseEvent('Button_backend_call');
-                                  _model.apiResultjx3 =
-                                      await SendMatchReportToAdminsCall.call(
-                                    supabaseAccessToken:
-                                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
-                                    pEventId: widget.paramEventID,
-                                    pReportId:
-                                        _model.outputCreatedMatchReport?.id,
-                                  );
-                                } else {
-                                  logFirebaseEvent('Button_show_snack_bar');
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'The match report is empty',
-                                        style: TextStyle(
-                                          color: FlutterFlowTheme.of(context)
-                                              .primaryText,
+                                    );
+                                    logFirebaseEvent('Button_navigate_back');
+                                    context.safePop();
+                                    logFirebaseEvent('Button_backend_call');
+                                    _model.apiResultjx3 =
+                                        await SendMatchReportToAdminsCall.call(
+                                      supabaseAccessToken:
+                                          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
+                                      pEventId: widget.paramEventID,
+                                      pReportId:
+                                          _model.outputCreatedMatchReport?.id,
+                                    );
+                                  } else {
+                                    logFirebaseEvent('Button_show_snack_bar');
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'The match report is empty',
+                                          style: TextStyle(
+                                            color: FlutterFlowTheme.of(context)
+                                                .primaryText,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
-                                        textAlign: TextAlign.center,
+                                        duration: Duration(milliseconds: 4000),
+                                        backgroundColor:
+                                            FlutterFlowTheme.of(context).error,
                                       ),
-                                      duration: Duration(milliseconds: 4000),
-                                      backgroundColor:
-                                          FlutterFlowTheme.of(context).error,
-                                    ),
-                                  );
-                                }
+                                    );
+                                  }
 
-                                safeSetState(() {});
-                              },
-                              text: 'Save Match Report',
-                              icon: Icon(
-                                Icons.save,
-                                size: 25.0,
-                              ),
-                              options: FFButtonOptions(
-                                height: 40.0,
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    16.0, 0.0, 16.0, 0.0),
-                                iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                color: FlutterFlowTheme.of(context)
-                                    .coachSmartLightBlack,
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .titleSmall
-                                    .override(
-                                      font: GoogleFonts.interTight(
+                                  safeSetState(() {});
+                                },
+                                text: 'Save Match Report',
+                                icon: Icon(
+                                  Icons.save,
+                                  size: 25.0,
+                                ),
+                                options: FFButtonOptions(
+                                  height: 40.0,
+                                  padding: EdgeInsetsDirectional.fromSTEB(
+                                      16.0, 0.0, 16.0, 0.0),
+                                  iconPadding: EdgeInsetsDirectional.fromSTEB(
+                                      0.0, 0.0, 0.0, 0.0),
+                                  color: FlutterFlowTheme.of(context)
+                                      .coachSmartLightBlack,
+                                  textStyle: FlutterFlowTheme.of(context)
+                                      .titleSmall
+                                      .override(
+                                        font: GoogleFonts.interTight(
+                                          fontWeight:
+                                              FlutterFlowTheme.of(context)
+                                                  .titleSmall
+                                                  .fontWeight,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .titleSmall
+                                                  .fontStyle,
+                                        ),
+                                        color: FlutterFlowTheme.of(context)
+                                            .coachSmartGreen,
+                                        letterSpacing: 0.0,
                                         fontWeight: FlutterFlowTheme.of(context)
                                             .titleSmall
                                             .fontWeight,
@@ -402,22 +411,17 @@ class _MatchReportWidgetState extends State<MatchReportWidget> {
                                             .titleSmall
                                             .fontStyle,
                                       ),
-                                      color: FlutterFlowTheme.of(context)
-                                          .coachSmartGreen,
-                                      letterSpacing: 0.0,
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .fontStyle,
-                                    ),
-                                elevation: 0.0,
-                                borderRadius: BorderRadius.circular(8.0),
+                                  elevation: 0.0,
+                                  borderSide: BorderSide(
+                                    color: FlutterFlowTheme.of(context)
+                                        .coachSmartGreen,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       if (widget.paramRoleLevel! >= 100)
                         Column(

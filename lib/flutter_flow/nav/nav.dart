@@ -572,6 +572,16 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   ParamType.String,
                 ),
               ),
+            ),
+            FFRoute(
+              name: NotificationsNewWidget.routeName,
+              path: NotificationsNewWidget.routePath,
+              builder: (context, params) => NotificationsNewWidget(),
+            ),
+            FFRoute(
+              name: CreateTeamNewWidget.routeName,
+              path: CreateTeamNewWidget.routePath,
+              builder: (context, params) => CreateTeamNewWidget(),
             )
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),

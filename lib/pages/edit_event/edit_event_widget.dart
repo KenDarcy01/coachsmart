@@ -6,6 +6,7 @@ import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import '/flutter_flow/upload_data.dart';
 import '/flutter_flow/custom_functions.dart' as functions;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -2096,28 +2097,200 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                       ),
                                 ),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  Icon(
-                                    Icons.camera_alt,
-                                    color: FlutterFlowTheme.of(context)
-                                        .coachSmartGrey,
-                                    size: 35.0,
-                                  ),
-                                  Flexible(
-                                    child: Container(
-                                      width: double.infinity,
-                                      height: 40.0,
-                                      decoration: BoxDecoration(
-                                        color: FlutterFlowTheme.of(context)
-                                            .coachSmartLightBlack,
-                                        borderRadius:
-                                            BorderRadius.circular(8.0),
+                              InkWell(
+                                splashColor: Colors.transparent,
+                                focusColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                onTap: () async {
+                                  logFirebaseEvent(
+                                      'EDIT_EVENT_PAGE_Row_3s31yeej_ON_TAP');
+                                  logFirebaseEvent(
+                                      'Row_store_media_for_upload');
+                                  final selectedMedia =
+                                      await selectMediaWithSourceBottomSheet(
+                                    context: context,
+                                    allowPhoto: true,
+                                  );
+                                  if (selectedMedia != null &&
+                                      selectedMedia.every((m) =>
+                                          validateFileFormat(
+                                              m.storagePath, context))) {
+                                    safeSetState(() => _model
+                                        .isDataUploading_uploadDataDlb1 = true);
+                                    var selectedUploadedFiles =
+                                        <FFUploadedFile>[];
+
+                                    try {
+                                      selectedUploadedFiles = selectedMedia
+                                          .map((m) => FFUploadedFile(
+                                                name: m.storagePath
+                                                    .split('/')
+                                                    .last,
+                                                bytes: m.bytes,
+                                                height: m.dimensions?.height,
+                                                width: m.dimensions?.width,
+                                                blurHash: m.blurHash,
+                                                originalFilename:
+                                                    m.originalFilename,
+                                              ))
+                                          .toList();
+                                    } finally {
+                                      _model.isDataUploading_uploadDataDlb1 =
+                                          false;
+                                    }
+                                    if (selectedUploadedFiles.length ==
+                                        selectedMedia.length) {
+                                      safeSetState(() {
+                                        _model.uploadedLocalFile_uploadDataDlb1 =
+                                            selectedUploadedFiles.first;
+                                      });
+                                    } else {
+                                      safeSetState(() {});
+                                      return;
+                                    }
+                                  }
+
+                                  logFirebaseEvent('Row_update_page_state');
+                                  _model.stateImageLink = _model
+                                      .uploadedLocalFile_uploadDataDlb1
+                                      .originalFilename;
+                                  safeSetState(() {});
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Icon(
+                                      Icons.camera_alt,
+                                      color: FlutterFlowTheme.of(context)
+                                          .coachSmartGrey,
+                                      size: 35.0,
+                                    ),
+                                    Flexible(
+                                      child: Container(
+                                        width: double.infinity,
+                                        height: 40.0,
+                                        decoration: BoxDecoration(
+                                          color: FlutterFlowTheme.of(context)
+                                              .coachSmartLightBlack,
+                                          borderRadius:
+                                              BorderRadius.circular(8.0),
+                                        ),
+                                        child: Padding(
+                                          padding:
+                                              EdgeInsetsDirectional.fromSTEB(
+                                                  20.0, 0.0, 0.0, 0.0),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                mainAxisSize: MainAxisSize.max,
+                                                children: [
+                                                  if (_model.stateImageLink !=
+                                                          null &&
+                                                      _model.stateImageLink !=
+                                                          '')
+                                                    Icon(
+                                                      Icons.check,
+                                                      color:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .coachSmartGreen,
+                                                      size: 30.0,
+                                                    ),
+                                                  Text(
+                                                    _model.stateImageLink !=
+                                                                null &&
+                                                            _model.stateImageLink !=
+                                                                ''
+                                                        ? 'Image Uploaded Successfully'
+                                                        : 'Click to Upload Image',
+                                                    style: FlutterFlowTheme.of(
+                                                            context)
+                                                        .bodyMedium
+                                                        .override(
+                                                          font:
+                                                              GoogleFonts.inter(
+                                                            fontWeight:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .bodyMedium
+                                                                    .fontWeight,
+                                                            fontStyle:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .bodyMedium
+                                                                    .fontStyle,
+                                                          ),
+                                                          color: FlutterFlowTheme
+                                                                  .of(context)
+                                                              .coachSmartGrey,
+                                                          letterSpacing: 0.0,
+                                                          fontWeight:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .bodyMedium
+                                                                  .fontWeight,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .bodyMedium
+                                                                  .fontStyle,
+                                                        ),
+                                                  ),
+                                                ].divide(SizedBox(width: 5.0)),
+                                              ),
+                                              Padding(
+                                                padding: EdgeInsetsDirectional
+                                                    .fromSTEB(
+                                                        0.0, 0.0, 10.0, 0.0),
+                                                child: InkWell(
+                                                  splashColor:
+                                                      Colors.transparent,
+                                                  focusColor:
+                                                      Colors.transparent,
+                                                  hoverColor:
+                                                      Colors.transparent,
+                                                  highlightColor:
+                                                      Colors.transparent,
+                                                  onTap: () async {
+                                                    logFirebaseEvent(
+                                                        'EDIT_EVENT_Container_hn0he51x_ON_TAP');
+                                                    logFirebaseEvent(
+                                                        'Container_update_page_state');
+                                                    _model.stateImageLink =
+                                                        null;
+                                                    safeSetState(() {});
+                                                  },
+                                                  child: Container(
+                                                    width: 30.0,
+                                                    height: 30.0,
+                                                    decoration: BoxDecoration(
+                                                      color: FlutterFlowTheme
+                                                              .of(context)
+                                                          .coachSmartMidBlack,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.cancel,
+                                                      color:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .alternate,
+                                                      size: 30.0,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ].divide(SizedBox(width: 10.0)),
+                                  ].divide(SizedBox(width: 10.0)),
+                                ),
                               ),
                               Divider(
                                 thickness: 1.0,
@@ -2301,6 +2474,64 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                             (_model.stateAudienceID != null)
                                         ? true
                                         : false) {
+                                      if (_model.stateImageLink != null &&
+                                          _model.stateImageLink != '') {
+                                        logFirebaseEvent(
+                                            'Button_upload_media_to_supabase');
+                                        {
+                                          safeSetState(() => _model
+                                                  .isDataUploading_uploadData1g9 =
+                                              true);
+                                          var selectedUploadedFiles =
+                                              <FFUploadedFile>[];
+                                          var selectedMedia = <SelectedFile>[];
+                                          var downloadUrls = <String>[];
+                                          try {
+                                            selectedUploadedFiles = _model
+                                                    .uploadedLocalFile_uploadDataDlb1
+                                                    .bytes!
+                                                    .isNotEmpty
+                                                ? [
+                                                    _model
+                                                        .uploadedLocalFile_uploadDataDlb1
+                                                  ]
+                                                : <FFUploadedFile>[];
+                                            selectedMedia =
+                                                selectedFilesFromUploadedFiles(
+                                              selectedUploadedFiles,
+                                              storageFolderPath: '',
+                                            );
+                                            downloadUrls =
+                                                await uploadSupabaseStorageFiles(
+                                              bucketName: 'event_images',
+                                              selectedFiles: selectedMedia,
+                                            );
+                                          } finally {
+                                            _model.isDataUploading_uploadData1g9 =
+                                                false;
+                                          }
+                                          if (selectedUploadedFiles.length ==
+                                                  selectedMedia.length &&
+                                              downloadUrls.length ==
+                                                  selectedMedia.length) {
+                                            safeSetState(() {
+                                              _model.uploadedLocalFile_uploadData1g9 =
+                                                  selectedUploadedFiles.first;
+                                              _model.uploadedFileUrl_uploadData1g9 =
+                                                  downloadUrls.first;
+                                            });
+                                          } else {
+                                            safeSetState(() {});
+                                            return;
+                                          }
+                                        }
+
+                                        logFirebaseEvent(
+                                            'Button_update_page_state');
+                                        _model.stateImageLink = _model
+                                            .uploadedLocalFile_uploadDataDlb1
+                                            .originalFilename;
+                                      }
                                       logFirebaseEvent('Button_backend_call');
                                       await EventsTable().update(
                                         data: {
@@ -2335,6 +2566,7 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                           'event_date_time_2':
                                               supaSerialize<DateTime>(
                                                   _model.dateTimePicked),
+                                          'event_image': _model.stateImageLink,
                                         },
                                         matchingRows: (rows) => rows.eqOrNull(
                                           'event_id',

@@ -10,6 +10,7 @@ export 'car_pools_struct.dart';
 export 'club_codes_struct.dart';
 export 'clubs_struct.dart';
 export 'create_event_detail_struct.dart';
+export 'create_event_result_struct.dart';
 export 'create_member_struct.dart';
 export 'create_teams_struct.dart';
 export 'current_event_struct.dart';

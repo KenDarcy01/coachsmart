@@ -233,7 +233,7 @@ class _UpdatePasswordWidgetState extends State<UpdatePasswordWidget>
                                                           decoration:
                                                               InputDecoration(
                                                             labelText:
-                                                                'New Password......',
+                                                                'New Password:',
                                                             labelStyle:
                                                                 FlutterFlowTheme.of(
                                                                         context)
@@ -412,7 +412,7 @@ class _UpdatePasswordWidgetState extends State<UpdatePasswordWidget>
                                                           decoration:
                                                               InputDecoration(
                                                             labelText:
-                                                                'Confirm Password......',
+                                                                'Confirm Password:',
                                                             labelStyle:
                                                                 FlutterFlowTheme.of(
                                                                         context)

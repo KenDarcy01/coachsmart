@@ -22,6 +22,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/services.dart';
@@ -64,13 +65,6 @@ void _logBannerState(
 
 // ---------------------------------------------------------------------------
 // MODULE-LEVEL STATE
-//
-// _activeSupabase / _activeUserId: set whenever the handler initialises for
-//   a user. Used by the lifecycle watcher to refresh the badge on resume
-//   without needing the entry-point context.
-//
-// _lifecycleRegistered: prevents adding a duplicate WidgetsBindingObserver
-//   when registerBackgroundMessageHandler is called again on re-login.
 // ---------------------------------------------------------------------------
 
 SupabaseClient? _activeSupabase;
@@ -101,8 +95,6 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _CooldownManager.activate();
       _refreshNavigatorContext();
-      // Refresh badge for the current user on every app resume so the count
-      // stays accurate after switching users or backgrounding the app.
       if (_activeSupabase != null && _activeUserId != null) {
         _updateBadge(_activeSupabase!, _activeUserId!);
       }
@@ -112,17 +104,6 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
 
 // ---------------------------------------------------------------------------
 // NAVIGATOR CONTEXT + STATE
-//
-// _navigatorContext (BuildContext): the Navigator widget's element.
-//   Used for GoRouter navigation — context.pushNamed(queryParameters:...)
-//   is a GoRouter extension on BuildContext that works from this element.
-//
-// _navigatorState (NavigatorState): derived from the same element.
-//   Used for overlay resolution — navigatorState.overlay is the overlay
-//   the navigator itself manages. Overlay.of(navigatorElement) looks UP
-//   the tree for an ancestor Overlay; for the root navigator nothing is
-//   above it, so that call always throws/returns null. Using .overlay
-//   directly is the correct approach.
 // ---------------------------------------------------------------------------
 
 BuildContext? _navigatorContext;
@@ -222,12 +203,6 @@ Future<void> _markNotificationRead(
 
 // ---------------------------------------------------------------------------
 // 4. NAVIGATION HELPERS
-//
-// routeName = 'EventDetails' (capital E) — from EventDetailsWidget:
-//   static String routeName = 'EventDetails';
-//   static String routePath = 'eventDetails';
-//
-// pushNamed uses routeName not routePath.
 // ---------------------------------------------------------------------------
 
 Future<void> _navigateFromPushLink(String linkPage) async {
@@ -344,16 +319,6 @@ Future<void> _navigateFromBannerLink(String linkPage) async {
 
 // ---------------------------------------------------------------------------
 // 5. SUPABASE STREAM
-//
-// KEY DESIGN DECISION:
-// is_delivered is NOT checked before showing the banner.
-// _processedNotificationIds prevents re-firing when we write
-// is_delivered=true back to the row (which triggers another stream event).
-//
-// Stream skips if:
-//   - ID is in _processedNotificationIds (already handled this session)
-//   - is_delivered = true (already sent via another channel e.g. email/cron)
-//   - created_at > 60s ago (stale notification)
 // ---------------------------------------------------------------------------
 
 final Set<String> _processedNotificationIds = {};
@@ -538,9 +503,8 @@ Future<void> _handleNewNotification(
     _logError('GetUserHomeEventsCall threw an exception', e);
   }
 
-  _logStep('Handler', 'Proceeding to badge update...');
-  await _updateBadge(supabase, userId);
-
+  // FIX: Mark is_delivered=true BEFORE updating the badge so the badge
+  // query sees the correct delivered state.
   try {
     await supabase
         .from('notifications')
@@ -549,6 +513,9 @@ Future<void> _handleNewNotification(
   } catch (e) {
     _logError('Failed to mark $alertId as is_delivered=true', e);
   }
+
+  _logStep('Handler', 'Proceeding to badge update...');
+  await _updateBadge(supabase, userId);
 
   if (_CooldownManager.isActive) {
     _logWarn('Cooldown still active — popup suppressed for $alertId');
@@ -562,6 +529,8 @@ Future<void> _handleNewNotification(
 
 // ---------------------------------------------------------------------------
 // 7. BADGE
+//
+// FIX: Query is_read=false only — no is_delivered filter.
 // ---------------------------------------------------------------------------
 
 Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
@@ -575,8 +544,7 @@ Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
         .from('notifications')
         .select('id')
         .eq('recipient_user_id', userId)
-        .eq('is_read', false)
-        .eq('is_delivered', true);
+        .eq('is_read', false);
 
     final int unreadCount = (unreadResponse as List).length;
     _logStep('Badge', 'Unread count = $unreadCount');
@@ -608,7 +576,6 @@ Future<void> _showPopup(
   OverlayState? overlay;
   String overlaySource = 'none';
 
-  // Strategy 1 — NavigatorState.overlay (the navigator's own overlay).
   try {
     if (_navigatorState != null && _navigatorState!.mounted) {
       final OverlayState? o = _navigatorState!.overlay;
@@ -627,7 +594,6 @@ Future<void> _showPopup(
     _logError('Strategy 1 (navigatorState.overlay) threw', e);
   }
 
-  // Strategy 2 — root navigator via focusManager context.
   if (overlay == null) {
     try {
       final BuildContext? fc =
@@ -651,7 +617,6 @@ Future<void> _showPopup(
     }
   }
 
-  // Strategy 3 — fresh tree walk to re-acquire NavigatorState.
   if (overlay == null) {
     try {
       _logStep('Popup', 'Strategy 3 — refreshing NavigatorState from tree...');
@@ -981,6 +946,12 @@ class _SlickBannerState extends State<_SlickBanner>
       _animateOut(),
     ]);
 
+    // FIX: Refresh badge immediately after marking this notification as read
+    // so the app-icon count decrements without waiting for the next resume.
+    if (_activeSupabase != null && _activeUserId != null) {
+      await _updateBadge(_activeSupabase!, _activeUserId!);
+    }
+
     if (widget.linkPage.isNotEmpty) {
       _i('tap', 'navigating after dismiss');
       await _navigateFromBannerLink(widget.linkPage);
@@ -1216,6 +1187,7 @@ Future<void> registerBackgroundMessageHandler() async {
   _initLifecycle();
   await _initFirebase();
 
+  // ─── POST-FRAME: stream, badge, onMessageOpenedApp ────────────────────────
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     _logStep('Init', 'Post-frame callback firing...');
 
@@ -1229,12 +1201,11 @@ Future<void> registerBackgroundMessageHandler() async {
 
     _log('Authenticated user: ${currentUser.id}');
 
-    // Store active user references so the lifecycle watcher can refresh the
-    // badge on resume without needing a new entry-point call.
     _activeSupabase = supabase;
     _activeUserId = currentUser.id;
 
     if (!kIsWeb) {
+      // Background tap (app was running in background, user taps notification)
       FirebaseMessaging.onMessageOpenedApp
           .listen((RemoteMessage message) async {
         _logStep('PushTap', 'onMessageOpenedApp fired | data=${message.data}');
@@ -1244,6 +1215,7 @@ Future<void> registerBackgroundMessageHandler() async {
             'PushTap', 'notificationId=$notificationId | linkPage=$linkPage');
         if (notificationId != null && notificationId.isNotEmpty) {
           await _markNotificationRead(supabase, notificationId);
+          await _updateBadge(supabase, currentUser.id);
         } else {
           _logWarn('PushTap — notification_id missing from FCM data payload');
         }
@@ -1255,37 +1227,12 @@ Future<void> registerBackgroundMessageHandler() async {
         }
       });
       _log('onMessageOpenedApp listener registered ✓');
-
-      final RemoteMessage? initialMessage =
-          await FirebaseMessaging.instance.getInitialMessage();
-      if (initialMessage != null) {
-        _logStep(
-            'PushTap',
-            'getInitialMessage — app launched from terminated state | '
-                'data=${initialMessage.data}');
-        final String? notificationId = initialMessage.data['notification_id'];
-        final String? linkPage = initialMessage.data['link_page'];
-        if (notificationId != null && notificationId.isNotEmpty) {
-          await _markNotificationRead(supabase, notificationId);
-        }
-        if (linkPage != null && linkPage.isNotEmpty) {
-          _logStep(
-              'InitialMessage', 'Delaying 500ms then navigating: $linkPage');
-          await Future.delayed(const Duration(milliseconds: 500));
-          await _navigateFromPushLink(linkPage);
-        }
-      } else {
-        _logStep(
-            'Init', 'getInitialMessage — no initial message (normal launch)');
-      }
     }
 
     _refreshNavigatorContext();
 
     await _startNotificationStream(supabase, currentUser.id);
 
-    // Immediately sync the badge for the newly logged-in user so the count
-    // is correct before the next notification arrives.
     await _updateBadge(supabase, currentUser.id);
 
     _log('registerBackgroundMessageHandler COMPLETE ✓');
