@@ -26,6 +26,8 @@ class TeamMembersModel extends FlutterFlowModel<TeamMembersWidget> {
   List<MemberSquadLinkRow>? outputExistingCodeRecord;
   // Stores action output result for [Backend Call - Insert Row] action in Row widget.
   MemberSquadLinkRow? outputInsertSquadLink;
+  // Stores action output result for [Backend Call - API (getTeamMembersByRole)] action in Row widget.
+  ApiCallResponse? apiGetTeamMembersByRoleRefresh;
 
   @override
   void initState(BuildContext context) {}

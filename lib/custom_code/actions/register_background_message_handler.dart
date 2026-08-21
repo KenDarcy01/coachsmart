@@ -318,7 +318,7 @@ Future<void> _navigateFromBannerLink(String linkPage) async {
 }
 
 // ---------------------------------------------------------------------------
-// 5. SUPABASE STREAM
+// 5. SUPABASE STREAM — new notification delivery
 // ---------------------------------------------------------------------------
 
 final Set<String> _processedNotificationIds = {};
@@ -417,6 +417,90 @@ Future<void> _startNotificationStream(
       );
 
   _log('Notification stream active ✓');
+}
+
+// ---------------------------------------------------------------------------
+// 5b. READ-SYNC CHANNEL — refreshes home badge when is_read changes
+// ---------------------------------------------------------------------------
+
+RealtimeChannel? _readSyncChannel;
+
+void _cancelReadSyncChannel() {
+  if (_readSyncChannel != null) {
+    _readSyncChannel!.unsubscribe();
+    _readSyncChannel = null;
+    _log('Read-sync channel cancelled ✓');
+  }
+}
+
+void _startReadSyncChannel(SupabaseClient supabase, String userId) {
+  _cancelReadSyncChannel();
+  _logStep('ReadSync', 'Opening postgres_changes channel for user: $userId');
+
+  _readSyncChannel = supabase
+      .channel('notification-read-sync-$userId')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'notifications',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'recipient_user_id',
+          value: userId,
+        ),
+        callback: (PostgresChangePayload payload) async {
+          final newRow = payload.newRecord;
+          final String rowId = newRow['id']?.toString() ?? 'unknown';
+          final bool isRead = newRow['is_read'] == true;
+
+          _logStep('ReadSync', 'UPDATE received — id=$rowId | is_read=$isRead');
+
+          if (!isRead) {
+            _logStep('ReadSync',
+                'is_read=false — not a read event, skipping home refresh');
+            return;
+          }
+
+          _logStep(
+              'ReadSync', 'is_read=true — refreshing home badge and events...');
+
+          // Update OS app icon badge
+          await _updateBadge(supabase, userId);
+
+          // Refresh home page event data so the in-app badge count is accurate
+          final String? jwtToken = supabase.auth.currentSession?.accessToken;
+          if (jwtToken == null) {
+            _logWarn('ReadSync — JWT null, skipping GetUserHomeEventsCall');
+            return;
+          }
+
+          try {
+            final apiResult = await GetUserHomeEventsCall.call(
+              pUserId: userId,
+              supabaseJWTtoken: jwtToken,
+            );
+            if (apiResult.succeeded && apiResult.jsonBody != null) {
+              FFAppState().update(() {
+                FFAppState().homePageEvents =
+                    UserEventsHomeStruct.fromMap(apiResult.jsonBody);
+              });
+              _log('ReadSync — FFAppState.homePageEvents updated ✓');
+            } else {
+              _logWarn('ReadSync — GetUserHomeEventsCall did not succeed');
+            }
+          } catch (e) {
+            _logError('ReadSync — GetUserHomeEventsCall threw', e);
+          }
+        },
+      )
+      .subscribe((status, [error]) {
+    _logStep('ReadSync', 'Channel status: $status');
+    if (error != null) {
+      _logError('ReadSync channel error', error);
+    }
+  });
+
+  _log('Read-sync channel active ✓');
 }
 
 // ---------------------------------------------------------------------------
@@ -1232,6 +1316,7 @@ Future<void> registerBackgroundMessageHandler() async {
     _refreshNavigatorContext();
 
     await _startNotificationStream(supabase, currentUser.id);
+    _startReadSyncChannel(supabase, currentUser.id);
 
     await _updateBadge(supabase, currentUser.id);
 

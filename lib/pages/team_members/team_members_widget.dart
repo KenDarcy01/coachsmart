@@ -721,8 +721,18 @@ class _TeamMembersWidgetState extends State<TeamMembersWidget> {
                                                                                     });
                                                                                   }
 
-                                                                                  logFirebaseEvent('Row_rebuild_page');
-                                                                                  safeSetState(() {});
+                                                                                  logFirebaseEvent('Row_backend_call');
+                                                                                  _model.apiGetTeamMembersByRoleRefresh = await GetTeamMembersByRoleCall.call(
+                                                                                    pUserId: currentUserUid,
+                                                                                    supabaseJWTtoken: currentJwtToken,
+                                                                                    pTeamId: widget.teamID,
+                                                                                  );
+
+                                                                                  if ((_model.apiGetTeamMembersByRoleRefresh?.succeeded ?? true)) {
+                                                                                    logFirebaseEvent('Row_update_app_state');
+                                                                                    FFAppState().listTeamMembers = ListTeamMembersStruct.maybeFromMap((_model.apiGetTeamMembersByRoleRefresh?.jsonBody ?? ''))!;
+                                                                                    safeSetState(() {});
+                                                                                  }
                                                                                 }
 
                                                                                 safeSetState(() {});
