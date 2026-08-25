@@ -345,6 +345,34 @@ p { margin: 0 0 1rem; color: var(--ink); }
 .tab-panel ul { margin: 0 0 .5rem; padding-left: 1.15rem; }
 .tab-panel li { margin-bottom: .25rem; font-size: .92rem; }
 
+/* ---------- Sample Session tab (TURAS Player Pathway) ---------- */
+.turas-credit {
+  display: flex; align-items: center; gap: .85rem; flex-wrap: wrap;
+  background: var(--navy); border-radius: 8px; padding: .55rem 1rem; margin: 0 0 1.5rem;
+}
+.turas-credit-label {
+  color: #fff; font-family: var(--heading-font); font-size: .7rem; text-transform: uppercase;
+  letter-spacing: .4px; opacity: .85; margin-right: .1rem;
+}
+.turas-credit img { height: 20px; width: auto; display: block; }
+.turas-credit img.logo-leinster { height: 28px; }
+.session-activity { margin: 0 0 1.75rem; padding-bottom: 1.75rem; border-bottom: 1px solid var(--line); }
+.session-activity:last-of-type { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.session-activity h4 { margin: 0 0 .75rem !important; }
+.session-activity-body { display: flex; gap: 1.25rem; align-items: flex-start; }
+.session-activity-body img.session-diagram {
+  width: 200px; flex: 0 0 auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(20,30,60,.15);
+}
+.session-activity-body ul { flex: 1; margin: 0 !important; }
+@media (max-width: 620px) {
+  .session-activity-body { flex-direction: column; }
+  .session-activity-body img.session-diagram { width: 100%; max-width: 320px; }
+}
+.turas-principles { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.25rem; }
+.turas-principles h4 { margin: 0 0 .65rem !important; }
+.turas-principles ul { padding-left: 1.15rem; }
+.turas-principles li strong { color: var(--red-dark); }
+
 .notes-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: .85rem; margin-bottom: 1rem; }
 .note-card {
   background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--red);
@@ -711,6 +739,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         <button type="button" class="tab-btn active">Hurling/Camogie</button>
         <button type="button" class="tab-btn">Football</button>
         <button type="button" class="tab-btn">ABC &amp; RJT'S</button>
+        <button type="button" class="tab-btn">Sample Session</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
@@ -800,6 +829,81 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <li>Skittles.</li>
           <li>Bowling.</li>
         </ul>
+      </div>
+      <div class="tab-panel">
+        <div class="turas-credit">
+          <span class="turas-credit-label">Delivered through</span>
+          <img src="images/logo-turas.png" alt="TURAS Player Pathway">
+          <img class="logo-leinster" src="images/logo-leinster.png" alt="Leinster GAA">
+          <img src="images/logo-gaa-learning.png" alt="GAA Learning">
+        </div>
+        <p>All players warm up together. Any pulse raiser can be used here &mdash; Bulldog, Stuck In The Mud, Chasing Games. Encourage players to run at speed in warm up.</p>
+        <p>Run as a five-station rotation. Coaching time is one hour total, 8 minutes per station &mdash; a coach manages time at each station and blows the whistle for all groups to move on together. Only players move between stations; each coach stays put for the whole session. Max 6 players per station (more players = more stations).</p>
+
+        <div class="session-activity">
+          <h4>1. Skill: Empty The Yard</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/nursery-station-1.png" alt="Empty the Yard station diagram">
+            <ul>
+              <li>Set up as diagram.</li>
+              <li>Football split between both teams.</li>
+              <li>On whistle players kick balls continuously into other team's yard.</li>
+              <li>On 2nd whistle &ndash; team with the least balls in the yard wins.</li>
+              <li>Reset footballs and play again.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>2. Game 3v3 End Zone (Team Play)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/nursery-station-2.png" alt="3v3 End Zone station diagram">
+            <ul>
+              <li>Outline pitch clearly with cones and clear end zone.</li>
+              <li>Players run with ball &amp; pass to each other by throwing/kicking the ball.</li>
+              <li>Players score by getting the ball into end zone.</li>
+              <li>Restart game with different player after each score.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>3. Fun Game &ndash; Chase Tails (Speed)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/nursery-station-3.png" alt="Chase Tails station diagram">
+            <ul>
+              <li>Outline playing area clearly with cones.</li>
+              <li>Each player creates their tail by tucking a bib at their back.</li>
+              <li>On coach's whistle players run around the area for 45 seconds.</li>
+              <li>Players try to take as many bibs off others as possible.</li>
+              <li>At end of game, check how many bibs each player has, and who was not caught.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>4. Skill: Piggy in the Middle (Catching)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/nursery-station-4.png" alt="Piggy in the Middle station diagram">
+            <ul>
+              <li>Set up three cones in a triangle shape.</li>
+              <li>Player stands at each cone with one ball between 3.</li>
+              <li>1 player stands in the middle &ndash; Piggy in the middle.</li>
+              <li>Players on cones pass the ball trying to maintain possession.</li>
+              <li>Regression: player in the middle is on his/her knees.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>5. ABC Activity: Rob the Nest (Balance)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/nursery-station-5.png" alt="Rob the Nest station diagram">
+            <ul>
+              <li>Set up three even teams as in diagram.</li>
+              <li>Place bibs in centre of the grid.</li>
+              <li>Players hop to centre on one leg and bring 1 bib back to their team.</li>
+              <li>Continue until all bibs are gone from the middle. Ask players to change leg each time.</li>
+              <li>Regression: hop on both legs, or skip.</li>
+            </ul>
+          </div>
+        </div>
       </div>
         </div>
       </div>
@@ -928,6 +1032,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         <button type="button" class="tab-btn active">Hurling/Camogie</button>
         <button type="button" class="tab-btn">Football</button>
         <button type="button" class="tab-btn">ABC &amp; RJT'S</button>
+        <button type="button" class="tab-btn">Sample Session</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
@@ -1031,6 +1136,75 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <li>Tug Of War.</li>
           <li>Whole Body Exercises.</li>
         </ul>
+      </div>
+      <div class="tab-panel">
+        <div class="turas-credit">
+          <span class="turas-credit-label">Delivered through</span>
+          <img src="images/logo-turas.png" alt="TURAS Player Pathway">
+          <img class="logo-leinster" src="images/logo-leinster.png" alt="Leinster GAA">
+          <img src="images/logo-gaa-learning.png" alt="GAA Learning">
+        </div>
+
+        <div class="session-activity">
+          <h4>Warm Up Activity</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age7-9-warmup.png" alt="Warm up activity diagram, age 7-9">
+            <ul>
+              <li>2 players are chosen as chasers.</li>
+              <li>All other players line up side by side with a ball. Make a tail for each player using a bib or tag.</li>
+              <li>On whistle, players with a ball try to run from one side to the other with chasers trying to grab their tails.</li>
+              <li>When caught, players become chasers. Game continues until all players are caught.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Games Based Activity</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age7-9-games.png" alt="Games based activity diagram, age 7-9">
+            <ul>
+              <li>Mark out a circle and divide players into three teams.</li>
+              <li>One team in the side circle, two teams outside the circle working together.</li>
+              <li>Players inside the circle try to keep the circle clear of footballs by punt kicking balls out.</li>
+              <li>Outside players must return the balls to the circle.</li>
+              <li>Rotate the teams to ensure all teams have a turn inside the circle.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Intervention (Fix the Skill)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age7-9-intervention.png" alt="Intervention drill diagram, age 7-9">
+            <ul>
+              <li>Mark out 4 cones approx. 20m apart, with one player at each cone.</li>
+              <li>Ball is punt kicked along the line of players.</li>
+              <li>After a set time, change players' positions at cones.</li>
+              <li>Challenge the players: 1/ relay race, 2/ left &amp; right foot, 3/ ball can't touch the ground relay race.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Game</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age7-9-game.png" alt="Game diagram, age 7-9">
+            <ul>
+              <li>Organise the players into two even teams. Max 7v7.</li>
+              <li>Restrict players to one play of the ball before playing it away.</li>
+              <li>The player who is fouled takes the free.</li>
+              <li>When a player fouls the ball, the nearest opponent takes the free kick.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="turas-principles">
+          <h4>TURAS Coaching Principles</h4>
+          <ul>
+            <li><strong>T</strong>esting and Challenging: all players should be challenged to improve at their level.</li>
+            <li><strong>U</strong>nderstands the player is at the centre of the game and provides individualised development (player centred).</li>
+            <li><strong>R</strong>esembles the game (games based).</li>
+            <li><strong>A</strong>ll players involved, all the time; lots of touches, lots of decisions.</li>
+            <li><strong>S</strong>hould always be an enjoyable, developmentally appropriate &amp; holistic GAA experience.</li>
+          </ul>
+        </div>
       </div>
         </div>
       </div>
@@ -1148,6 +1322,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         <button type="button" class="tab-btn active">Hurling/Camogie</button>
         <button type="button" class="tab-btn">Football</button>
         <button type="button" class="tab-btn">ABC &amp; RJT'S</button>
+        <button type="button" class="tab-btn">Sample Session</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
@@ -1237,6 +1412,74 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <li>Star Jumps.</li>
           <li>Jump from 2 Feet Land on one Foot.</li>
         </ul>
+      </div>
+      <div class="tab-panel">
+        <div class="turas-credit">
+          <span class="turas-credit-label">Delivered through</span>
+          <img src="images/logo-turas.png" alt="TURAS Player Pathway">
+          <img class="logo-leinster" src="images/logo-leinster.png" alt="Leinster GAA">
+          <img src="images/logo-gaa-learning.png" alt="GAA Learning">
+        </div>
+
+        <div class="session-activity">
+          <h4>Warm Up Activity</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age10-11-warmup.png" alt="Warm up activity diagram, age 10-11">
+            <ul>
+              <li>Divide the group into two teams, and the area into four quadrants.</li>
+              <li>Using 2 balls per team, keep possession by kicking the ball to one another.</li>
+              <li>Progression 1: players must pass to a player in a different quadrant.</li>
+              <li>Progression 2: players must run to another quadrant after a pass.</li>
+              <li>Progression 3: two balls can never be in the same quadrant.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Games Based Activity</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age10-11-games.png" alt="Games based activity diagram, age 10-11">
+            <ul>
+              <li>Attackers line up in pairs on the endline cone; defenders line up on the outside cone.</li>
+              <li>Attackers round the cone directly opposite them and try to score.</li>
+              <li>Defenders must touch either post before coming out to defend.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Intervention (Fix the Skill)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age10-11-intervention.png" alt="Intervention drill diagram, age 10-11">
+            <ul>
+              <li>Players work in groups of 4. Play:rest ratio is 1:1.</li>
+              <li>Player takes the ball at one end of the channel and tries to carry it down to the opposite end.</li>
+              <li>Tackler tries to halt his progression.</li>
+              <li>Player in possession continues up and down the channel for 45 seconds.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Game</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age10-11-game.png" alt="Game diagram, age 10-11">
+            <ul>
+              <li>Balls are placed in all of the coloured corners of the playing area.</li>
+              <li>Coach calls a colour &amp; attacking players take a ball from that square unopposed.</li>
+              <li>Defending players try to dispossess and bring the ball out of the playing area.</li>
+              <li>Once play goes dead, coach calls a new colour and the game resumes.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="turas-principles">
+          <h4>TURAS Coaching Principles</h4>
+          <ul>
+            <li><strong>T</strong>esting and Challenging: all players should be challenged to improve at their level.</li>
+            <li><strong>U</strong>nderstands the player is at the centre of the game and provides individualised development (player centred).</li>
+            <li><strong>R</strong>esembles the game (games based).</li>
+            <li><strong>A</strong>ll players involved, all the time; lots of touches, lots of decisions.</li>
+            <li><strong>S</strong>hould always be an enjoyable, developmentally appropriate &amp; holistic GAA experience.</li>
+          </ul>
+        </div>
       </div>
         </div>
       </div>
@@ -1358,6 +1601,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         <button type="button" class="tab-btn active">Hurling/Camogie</button>
         <button type="button" class="tab-btn">Football</button>
         <button type="button" class="tab-btn">ABC &amp; RJT'S</button>
+        <button type="button" class="tab-btn">Sample Session</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
@@ -1448,6 +1692,118 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <li>Maintain Stretching and Mobility.</li>
           <li>Dynamic Warmup.</li>
         </ul>
+      </div>
+      <div class="tab-panel">
+        <div class="turas-credit">
+          <span class="turas-credit-label">Delivered through</span>
+          <img src="images/logo-turas.png" alt="TURAS Player Pathway">
+          <img class="logo-leinster" src="images/logo-leinster.png" alt="Leinster GAA">
+          <img src="images/logo-gaa-learning.png" alt="GAA Learning">
+        </div>
+        <p>This stage spans two TURAS age bands &mdash; sample sessions for both are below.</p>
+
+        <span class="kicker">Ages 12&ndash;13</span>
+        <div class="session-activity">
+          <h4>Warm Up Activity</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age12-13-warmup.png" alt="Warm up activity diagram, age 12-13">
+            <ul>
+              <li>All players are paired off in one square.</li>
+              <li>Each pair must pass the ball to each other while continuously moving.</li>
+              <li>On the coach's whistle, the player without possession must tag their partner (if in possession) within 20 seconds. Encourage players to run at speed.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Games Based Activity <span style="font-weight:400;text-transform:none;letter-spacing:0;">(Possession, emphasis on Support Play)</span></h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age12-13-games.png" alt="Games based activity diagram, age 12-13">
+            <ul>
+              <li>Divide players into two even teams.</li>
+              <li>A kick pass must be followed by a hand pass. Score awarded for a successful kick pass.</li>
+              <li>First team to 5 scores wins &mdash; reset the game and start again.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Intervention (Fix the Skill)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age12-13-intervention.png" alt="Intervention drill diagram, age 12-13">
+            <ul>
+              <li>Players line up in pairs: Player A on the end line, Player B 5m away at a cone.</li>
+              <li>A passes to B, who immediately returns it. A passes to B again before sprinting 5m past him without the ball (3 passes total).</li>
+              <li>Player A turns to face Player B, then repeat with roles reversed until both reach the far line of cones.</li>
+              <li>Adaptions: left/right hand, change to kick pass, race to finish.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Game</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age12-13-game.png" alt="Game diagram, age 12-13">
+            <ul>
+              <li>2 teams: 1 attacks, 1 defends. Coach places balls as in diagram. Attacking team numbered 1-8.</li>
+              <li>Coach calls a number; that player retrieves a ball and tries to work a score.</li>
+              <li>If dispossessed, defenders must work the ball out through any of the gates. Coach calls another number when the ball goes dead &mdash; swap roles.</li>
+            </ul>
+          </div>
+        </div>
+
+        <span class="kicker">Ages 14&ndash;15</span>
+        <div class="session-activity">
+          <h4>Warm Up Activity <span style="font-weight:400;text-transform:none;letter-spacing:0;">&mdash; "The Clontarf Way Warm Up"</span></h4>
+          <div class="session-activity-body">
+            <ul>
+              <li>A structured ladder-and-cone running pattern combined with dynamic stretching.</li>
+              <li>Used as a pulse raiser and as part of the club's long term injury prevention programme.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Games Based Activity <span style="font-weight:400;text-transform:none;letter-spacing:0;">(Possession, emphasis on Kick Passing)</span></h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age14-15-games.png" alt="Games based activity diagram, age 14-15">
+            <ul>
+              <li>Divide players into two even teams.</li>
+              <li>Team tries to keep possession using both hand pass &amp; kick pass.</li>
+              <li>Score awarded to team for every pass completed over 20m.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Intervention (Fix the Skill)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age14-15-intervention.png" alt="Intervention drill diagram, age 14-15">
+            <ul>
+              <li>Set out grid as diagram. Divide players equally at four starting cones, max 3 per cone (add a square if there are more players).</li>
+              <li>Players solo to the cone directly in front, then turn and kick pass diagonally (25m) to the opposite cone.</li>
+              <li>Players always follow their pass, and the drill continues.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Game</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age14-15-game.png" alt="Game diagram, age 14-15">
+            <ul>
+              <li>Divide into two even teams: Red can only score in the two red goals, Blue in the two blue goals.</li>
+              <li>Teams can only score after a successful diagonal kick pass across the line of cones in the middle of the pitch.</li>
+              <li>Goalkeepers work across the line to protect two goals each and aren't assigned to a team.</li>
+              <li>Cool down after the game with static stretching.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="turas-principles">
+          <h4>TURAS Coaching Principles</h4>
+          <ul>
+            <li><strong>T</strong>esting and Challenging: all players should be challenged to improve at their level.</li>
+            <li><strong>U</strong>nderstands the player is at the centre of the game and provides individualised development (player centred).</li>
+            <li><strong>R</strong>esembles the game (games based).</li>
+            <li><strong>A</strong>ll players involved, all the time; lots of touches, lots of decisions.</li>
+            <li><strong>S</strong>hould always be an enjoyable, developmentally appropriate &amp; holistic GAA experience.</li>
+          </ul>
+        </div>
       </div>
         </div>
       </div>
@@ -1561,6 +1917,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         <button type="button" class="tab-btn active">Hurling/Camogie</button>
         <button type="button" class="tab-btn">Football</button>
         <button type="button" class="tab-btn">ABC &amp; RJT'S</button>
+        <button type="button" class="tab-btn">Sample Session</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
@@ -1658,6 +2015,71 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <li>Maintain Stretching and Mobility.</li>
           <li>Dynamic Warmup.</li>
         </ul>
+      </div>
+      <div class="tab-panel">
+        <div class="turas-credit">
+          <span class="turas-credit-label">Delivered through</span>
+          <img src="images/logo-turas.png" alt="TURAS Player Pathway">
+          <img class="logo-leinster" src="images/logo-leinster.png" alt="Leinster GAA">
+          <img src="images/logo-gaa-learning.png" alt="GAA Learning">
+        </div>
+
+        <div class="session-activity">
+          <h4>Warm Up Activity <span style="font-weight:400;text-transform:none;letter-spacing:0;">&mdash; "The Clontarf Way Warm Up"</span></h4>
+          <div class="session-activity-body">
+            <ul>
+              <li>A structured ladder-and-cone running pattern combined with dynamic stretching.</li>
+              <li>Used as a pulse raiser and as part of the club's long term injury prevention programme.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Games Based Activity</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age16-17-games.png" alt="Games based activity diagram, age 16-17">
+            <ul>
+              <li>Set up: 4 players in red bibs, 4 in blue bibs, 4 cones in a 20m square, colour co-ordinated.</li>
+              <li>2 players of each colour in the square, 1 from each colour diagonally opposite on the corners.</li>
+              <li>Players in the middle take turns receiving a pass from a corner teammate and try to work the ball to the teammate at the opposite corner. Opposite-colour players tackle to prevent it.</li>
+              <li>Players on the inside compete for 45 seconds then rotate with the players on the outside.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Intervention (Fix the Skill)</h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age16-17-intervention.png" alt="Intervention drill diagram, age 16-17">
+            <ul>
+              <li>Set up a 10m x 15m square, 3 players at each end.</li>
+              <li>1 player at one end kicks to the other side and all players enter the square.</li>
+              <li>The receiving player plays 1 touch only (hop or solo), and his team tries to exit the square at the far side.</li>
+              <li>Depending on attack/defence focus, progress to 3v2 entering from either end, and increase the distance.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="session-activity">
+          <h4>Game <span style="font-weight:400;text-transform:none;letter-spacing:0;">(First to score 15 &mdash; 3pts goal, 1pt point)</span></h4>
+          <div class="session-activity-body">
+            <img class="session-diagram" src="images/sessions/age16-17-game.png" alt="Game diagram, age 16-17">
+            <ul>
+              <li>Set up two even teams to play the game.</li>
+              <li>Condition 1: all players have to take on an opponent when in possession.</li>
+              <li>Condition 2: extra score of 3 points for a successful tackle.</li>
+              <li>Game progresses to removing Condition 1, but Condition 2 remains for the duration. Cool down after with static stretching.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="turas-principles">
+          <h4>TURAS Coaching Principles</h4>
+          <ul>
+            <li><strong>T</strong>esting and Challenging: all players should be challenged to improve at their level.</li>
+            <li><strong>U</strong>nderstands the player is at the centre of the game and provides individualised development (player centred).</li>
+            <li><strong>R</strong>esembles the game (games based).</li>
+            <li><strong>A</strong>ll players involved, all the time; lots of touches, lots of decisions.</li>
+            <li><strong>S</strong>hould always be an enjoyable, developmentally appropriate &amp; holistic GAA experience.</li>
+          </ul>
+        </div>
       </div>
         </div>
       </div>
