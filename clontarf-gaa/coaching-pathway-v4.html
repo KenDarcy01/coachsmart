@@ -450,6 +450,57 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
 @media (max-width: 480px) {
   .video-callout-text span { display: none; }
 }
+
+/* ---------- Print ---------- */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  html { scroll-behavior: auto; }
+  body { background: #fff; }
+
+  /* Interactive/on-screen-only chrome has no place on a printed page */
+  .rail, .topbar .nav-toggle, .nav-links, .focus-banner,
+  .quick-jump, .hero .scroll-cue, .stage-toggle,
+  .pathway-image-link::after, .reset-checklist, .stage-watermark {
+    display: none !important;
+  }
+
+  /* Every stage is collapsed by default in JS -- print always shows the
+     full content regardless of on-screen state (see the beforeprint
+     handler below, which also forces the checklists open) */
+  .stage-section.collapsed .stage-collapsible { display: block !important; }
+
+  /* Both sport tabs are meant to be in the printed handbook, not just
+     whichever one happened to be selected on screen */
+  .sport-tabs .tab-buttons { display: none !important; }
+  .sport-tabs .tab-panel { display: block !important; margin-bottom: 1.5rem; }
+  .sport-tabs .tab-panel:not(:last-child) {
+    padding-bottom: 1.5rem; border-bottom: 2px solid var(--line);
+  }
+  .sport-tabs .tab-panel::before {
+    display: block; font-family: var(--heading-font); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px; font-size: .8rem;
+    color: #fff; background: var(--navy); padding: .35rem .7rem;
+    border-radius: 4px; margin: 0 0 1rem; width: fit-content;
+    break-after: avoid;
+  }
+  .sport-tabs .tab-panel:first-child::before { content: "Football"; }
+  .sport-tabs .tab-panel:last-child::before { content: "Hurling / Camogie"; }
+
+  /* Chapter per stage, so each age band starts cleanly on its own page */
+  .stage-section, #guidelines { break-before: page; }
+  .hero { break-after: page; }
+
+  /* Keep visually-atomic units from splitting across a page boundary */
+  .pathway-image-block, .roadmap-node, .duration-row,
+  .giving-back-card, .mission-wrap, .stage-eyebrow,
+  h2.section-title, .pathway-image-heading {
+    break-inside: avoid;
+  }
+  .checklist-cols > div { break-inside: avoid-page; }
+  .assessment-block { break-before: page; }
+
+  a[href]:not(.pathway-image-link) { color: inherit; text-decoration: none; }
+}
 </style>
 </head>
 <body id="top">
@@ -1351,6 +1402,30 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
     window.addEventListener('load', layoutRail);
     window.addEventListener('resize', layoutRail);
   }
+
+  // Printing should always show full content, regardless of what's
+  // collapsed/closed on screen -- stage sections default to collapsed,
+  // and <details> hides its content natively unless [open] is set.
+  window.addEventListener('beforeprint', function () {
+    document.querySelectorAll('.stage-section.collapsed').forEach(function (s) {
+      s.classList.add('was-collapsed-for-print');
+      s.classList.remove('collapsed');
+    });
+    document.querySelectorAll('details.assessment-block:not([open])').forEach(function (d) {
+      d.open = true;
+      d.dataset.reclose = 'true';
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    document.querySelectorAll('.was-collapsed-for-print').forEach(function (s) {
+      s.classList.add('collapsed');
+      s.classList.remove('was-collapsed-for-print');
+    });
+    document.querySelectorAll('details.assessment-block[data-reclose]').forEach(function (d) {
+      d.open = false;
+      delete d.dataset.reclose;
+    });
+  });
 
   // Assessment checklists with localStorage persistence
   document.querySelectorAll('.assessment-block').forEach(function (block) {
