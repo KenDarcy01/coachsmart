@@ -271,8 +271,8 @@ p { margin: 0 0 1rem; color: var(--ink); }
   flex: 0 0 auto;
 }
 .stage-eyebrow .age-range {
-  font-family: var(--heading-font); font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
-  font-size: .85rem; color: var(--red-dark);
+  font-family: var(--heading-font); font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  font-size: 1.5rem; color: var(--red-dark);
 }
 
 /* ---------- Quick-jump pills ---------- */
@@ -341,14 +341,13 @@ p { margin: 0 0 1rem; color: var(--ink); }
   padding: 1rem .75rem; margin-bottom: 0; font-size: 1.05rem; letter-spacing: .5px;
   color: var(--navy); box-shadow: 0 2px 10px rgba(20,30,60,.06);
 }
-.sport-tabs .tab-btn:hover { border-color: var(--navy); color: var(--navy); }
+.sport-tabs .tab-btn:hover { border-color: var(--red); color: var(--red-dark); }
 .sport-tabs .tab-btn.active {
-  background: var(--navy); border-color: var(--navy); color: #fff;
+  background: var(--red); border-color: var(--red); color: #fff;
 }
 .sport-tabs .tab-panels {
   background: transparent; border-radius: 0; padding: 1.5rem 0 0; box-shadow: none;
 }
-.pathway-intro { color: var(--muted); font-size: .92rem; margin: 0 0 1.5rem; }
 .pathway-image-block { margin: 0 0 2rem; }
 .pathway-image-block:last-child { margin-bottom: 0; }
 .pathway-image-heading {
@@ -365,13 +364,6 @@ p { margin: 0 0 1rem; color: var(--ink); }
   width: 100%; border-radius: 10px; box-shadow: 0 2px 14px rgba(20,30,60,.12);
   border: 1px solid var(--line);
 }
-
-.notes-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: .85rem; margin-bottom: 1rem; }
-.note-card {
-  background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--red);
-  border-radius: 8px; padding: .9rem 1.1rem; font-size: .87rem;
-}
-.note-card strong { display: block; color: var(--navy); font-family: var(--heading-font); text-transform: uppercase; font-size: .78rem; letter-spacing: .3px; margin-bottom: .3rem; }
 
 /* ---------- Assessment / checklist ---------- */
 .assessment-block {
@@ -692,25 +684,13 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
 
       <div class="stage-collapsible">
-      <p class="pathway-intro">The TURAS Player Pathway wheel below covers the coach, player, environment and game guidance for this age band in one graphic, split by sport. The Nursery Stations Model underneath is the club's go-to session format for this age.</p>
-
       <div class="tabs sport-tabs">
         <div class="tab-buttons">
-        <button type="button" class="tab-btn active">Hurling / Camogie</button>
-        <button type="button" class="tab-btn">Football</button>
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 4-6</span></h3>
-          <img src="images/pathway/hurling-pathway-4-6.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 4-6" loading="lazy">
-        </div>
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Nursery Stations Model <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 4-6</span></h3>
-          <img src="images/pathway/hurling-session-4-6.webp" alt="Hurling and Camogie Nursery Stations Model for Ages 4-6" loading="lazy">
-        </div>
-      </div>
-      <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 4-6</span></h3>
           <img src="images/pathway/football-pathway-4-6.webp" alt="Football Player Pathway wheel for Ages 4-6" loading="lazy">
@@ -720,20 +700,19 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <img src="images/pathway/football-session-4-6.webp" alt="Football Nursery Stations Model for Ages 4-6" loading="lazy">
         </div>
       </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 4-6</span></h3>
+          <img src="images/pathway/hurling-pathway-4-6.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 4-6" loading="lazy">
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Nursery Stations Model <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 4-6</span></h3>
+          <img src="images/pathway/hurling-session-4-6.webp" alt="Hurling and Camogie Nursery Stations Model for Ages 4-6" loading="lazy">
+        </div>
+      </div>
         </div>
       </div>
 
-      <div class="notes-row">
-      <div class="note-card">
-        <strong>Tactical Prowess (Decision Making)</strong>Piggy In The Middle (2v1, 3v1); Target Games
-      </div>
-      <div class="note-card">
-        <strong>Team Play</strong>Zones used in games to stop bunching.
-      </div>
-      <div class="note-card">
-        <strong>Psychological Focus</strong>Develop listening skills.
-      </div>
-      </div>
 
       <details class="assessment-block" data-key="stage1">
         <summary>
@@ -798,25 +777,13 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
 
       <div class="stage-collapsible">
-      <p class="pathway-intro">The TURAS Player Pathway wheel below covers the coach, player, environment and game guidance for this age band in one graphic, split by sport. The Sample Session underneath shows how a typical training session is run at this age.</p>
-
       <div class="tabs sport-tabs">
         <div class="tab-buttons">
-        <button type="button" class="tab-btn active">Hurling / Camogie</button>
-        <button type="button" class="tab-btn">Football</button>
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 7-9</span></h3>
-          <img src="images/pathway/hurling-pathway-7-9.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 7-9" loading="lazy">
-        </div>
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 7-9</span></h3>
-          <img src="images/pathway/hurling-session-7-9.webp" alt="Hurling and Camogie sample session for Ages 7-9" loading="lazy">
-        </div>
-      </div>
-      <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 7-9</span></h3>
           <img src="images/pathway/football-pathway-7-9.webp" alt="Football Player Pathway wheel for Ages 7-9" loading="lazy">
@@ -826,19 +793,17 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <img src="images/pathway/football-session-7-9.webp" alt="Football sample session for Ages 7-9" loading="lazy">
         </div>
       </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 7-9</span></h3>
+          <img src="images/pathway/hurling-pathway-7-9.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 7-9" loading="lazy">
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 7-9</span></h3>
+          <img src="images/pathway/hurling-session-7-9.webp" alt="Hurling and Camogie sample session for Ages 7-9" loading="lazy">
         </div>
       </div>
-
-      <div class="notes-row">
-      <div class="note-card">
-        <strong>Tactical Prowess (Decision Making)</strong>Players encouraged to move into space; Devise games which encourage players to look up.
-      </div>
-      <div class="note-card">
-        <strong>Team Play</strong>Use zones for basic positional understanding; Players play all positions to experience attack &amp; defence; Small sided games crucial for individual learning; Call for the ball.
-      </div>
-      <div class="note-card">
-        <strong>Psychological Focus</strong>Ask players to imagine themselves as role models to improve skills; Use trigger words to develop communication.
-      </div>
+        </div>
       </div>
 
       <details class="assessment-block" data-key="stage2">
@@ -897,25 +862,13 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
 
       <div class="stage-collapsible">
-      <p class="pathway-intro">The TURAS Player Pathway wheel below covers the coach, player, environment and game guidance for this age band in one graphic, split by sport. The Sample Session underneath shows how a typical training session is run at this age.</p>
-
       <div class="tabs sport-tabs">
         <div class="tab-buttons">
-        <button type="button" class="tab-btn active">Hurling / Camogie</button>
-        <button type="button" class="tab-btn">Football</button>
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 10-11</span></h3>
-          <img src="images/pathway/hurling-pathway-10-11.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 10-11" loading="lazy">
-        </div>
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 10-11</span></h3>
-          <img src="images/pathway/hurling-session-10-11.webp" alt="Hurling and Camogie sample session for Ages 10-11" loading="lazy">
-        </div>
-      </div>
-      <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 10-11</span></h3>
           <img src="images/pathway/football-pathway-10-11.webp" alt="Football Player Pathway wheel for Ages 10-11" loading="lazy">
@@ -925,19 +878,17 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <img src="images/pathway/football-session-10-11.webp" alt="Football sample session for Ages 10-11" loading="lazy">
         </div>
       </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 10-11</span></h3>
+          <img src="images/pathway/hurling-pathway-10-11.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 10-11" loading="lazy">
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 10-11</span></h3>
+          <img src="images/pathway/hurling-session-10-11.webp" alt="Hurling and Camogie sample session for Ages 10-11" loading="lazy">
         </div>
       </div>
-
-      <div class="notes-row">
-      <div class="note-card">
-        <strong>Tactical Prowess (Decision Making)</strong>Play conditioned games to create pressure on players decision making; Activities to focus on gaining &amp; maintaining possession of the ball; Individual decisions now have more impact on team outcome.
-      </div>
-      <div class="note-card">
-        <strong>Team Play</strong>Encourage and support team mates vocally; Work on creating space when in possession; Work on denying space when not in possession.
-      </div>
-      <div class="note-card">
-        <strong>Psychological Focus</strong>Look for feedback from players to question how to improve skills and activities.
-      </div>
+        </div>
       </div>
 
       <details class="assessment-block" data-key="stage3">
@@ -1000,25 +951,13 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
 
       <div class="stage-collapsible">
-      <p class="pathway-intro">The TURAS Player Pathway wheel below covers the coach, player, environment and game guidance for this age band in one graphic, split by sport. The Sample Session underneath shows how a typical training session is run at this age.</p>
-
       <div class="tabs sport-tabs">
         <div class="tab-buttons">
-        <button type="button" class="tab-btn active">Hurling / Camogie</button>
-        <button type="button" class="tab-btn">Football</button>
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 12-13</span></h3>
-          <img src="images/pathway/hurling-pathway-12-13.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 12-13" loading="lazy">
-        </div>
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 12-13</span></h3>
-          <img src="images/pathway/hurling-session-12-13.webp" alt="Hurling and Camogie sample session for Ages 12-13" loading="lazy">
-        </div>
-      </div>
-      <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 12-13</span></h3>
           <img src="images/pathway/football-pathway-12-13.webp" alt="Football Player Pathway wheel for Ages 12-13" loading="lazy">
@@ -1028,19 +967,17 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <img src="images/pathway/football-session-12-13.webp" alt="Football sample session for Ages 12-13" loading="lazy">
         </div>
       </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 12-13</span></h3>
+          <img src="images/pathway/hurling-pathway-12-13.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 12-13" loading="lazy">
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 12-13</span></h3>
+          <img src="images/pathway/hurling-session-12-13.webp" alt="Hurling and Camogie sample session for Ages 12-13" loading="lazy">
         </div>
       </div>
-
-      <div class="notes-row">
-      <div class="note-card">
-        <strong>Tactical Prowess (Decision Making)</strong>Understand the specific responsibilities of the various position through playing experience and minimal direction from coach; Small sided games are crucial.
-      </div>
-      <div class="note-card">
-        <strong>Team Play</strong>Moving the ball as a team; Implement principles of play.
-      </div>
-      <div class="note-card">
-        <strong>Psychological Focus</strong>Question players individually on decisions made on and off the ball; Highlight recent examples of good play.
-      </div>
+        </div>
       </div>
 
       <details class="assessment-block" data-key="stage4">
@@ -1096,25 +1033,13 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
 
       <div class="stage-collapsible">
-      <p class="pathway-intro">The TURAS Player Pathway wheel below covers the coach, player, environment and game guidance for this age band in one graphic, split by sport. The Sample Session underneath shows how a typical training session is run at this age.</p>
-
       <div class="tabs sport-tabs">
         <div class="tab-buttons">
-        <button type="button" class="tab-btn active">Hurling / Camogie</button>
-        <button type="button" class="tab-btn">Football</button>
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 14-15</span></h3>
-          <img src="images/pathway/hurling-pathway-14-15.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 14-15" loading="lazy">
-        </div>
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 14-15</span></h3>
-          <img src="images/pathway/hurling-session-14-15.webp" alt="Hurling and Camogie sample session for Ages 14-15" loading="lazy">
-        </div>
-      </div>
-      <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 14-15</span></h3>
           <img src="images/pathway/football-pathway-14-15.webp" alt="Football Player Pathway wheel for Ages 14-15" loading="lazy">
@@ -1124,19 +1049,17 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <img src="images/pathway/football-session-14-15.webp" alt="Football sample session for Ages 14-15" loading="lazy">
         </div>
       </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 14-15</span></h3>
+          <img src="images/pathway/hurling-pathway-14-15.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 14-15" loading="lazy">
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 14-15</span></h3>
+          <img src="images/pathway/hurling-session-14-15.webp" alt="Hurling and Camogie sample session for Ages 14-15" loading="lazy">
         </div>
       </div>
-
-      <div class="notes-row">
-      <div class="note-card">
-        <strong>Tactical Prowess (Decision Making)</strong>Understand the specific responsibilities of the various position through playing experience and minimal direction from coach; Small sided games are crucial.
-      </div>
-      <div class="note-card">
-        <strong>Team Play</strong>Moving the ball as a team; Implement principles of play.
-      </div>
-      <div class="note-card">
-        <strong>Psychological Focus</strong>Question players individually on decisions made on and off the ball; Highlight recent examples of good play.
-      </div>
+        </div>
       </div>
 
       <details class="assessment-block" data-key="stage5">
@@ -1192,25 +1115,13 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
 
       <div class="stage-collapsible">
-      <p class="pathway-intro">The TURAS Player Pathway wheel below covers the coach, player, environment and game guidance for this age band in one graphic, split by sport. The Sample Session underneath shows how a typical training session is run at this age.</p>
-
       <div class="tabs sport-tabs">
         <div class="tab-buttons">
-        <button type="button" class="tab-btn active">Hurling / Camogie</button>
-        <button type="button" class="tab-btn">Football</button>
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
         </div>
         <div class="tab-panels">
       <div class="tab-panel active">
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 16-17</span></h3>
-          <img src="images/pathway/hurling-pathway-16-17.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 16-17" loading="lazy">
-        </div>
-        <div class="pathway-image-block">
-          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 16-17</span></h3>
-          <img src="images/pathway/hurling-session-16-17.webp" alt="Hurling and Camogie sample session for Ages 16-17" loading="lazy">
-        </div>
-      </div>
-      <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 16-17</span></h3>
           <img src="images/pathway/football-pathway-16-17.webp" alt="Football Player Pathway wheel for Ages 16-17" loading="lazy">
@@ -1220,19 +1131,17 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           <img src="images/pathway/football-session-16-17.webp" alt="Football sample session for Ages 16-17" loading="lazy">
         </div>
       </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 16-17</span></h3>
+          <img src="images/pathway/hurling-pathway-16-17.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 16-17" loading="lazy">
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 16-17</span></h3>
+          <img src="images/pathway/hurling-session-16-17.webp" alt="Hurling and Camogie sample session for Ages 16-17" loading="lazy">
         </div>
       </div>
-
-      <div class="notes-row">
-      <div class="note-card">
-        <strong>Tactical Prowess (Decision Making)</strong>Questioning; Guided Discovery; Trial &amp; Error; Observation &amp; Feedback.
-      </div>
-      <div class="note-card">
-        <strong>Team Play</strong>Players to adapt to a number of team playing styles; Lots of questions to encourage problem solving in a game; Reflection on game scenarios.
-      </div>
-      <div class="note-card">
-        <strong>Psychological Focus</strong>Players can fully recognise the improvements made through individual practice.
-      </div>
+        </div>
       </div>
 
       </div>
