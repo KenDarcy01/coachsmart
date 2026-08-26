@@ -241,19 +241,6 @@ p { margin: 0 0 1rem; color: var(--ink); }
   .roadmap-node .age { margin-top: 0; }
 }
 
-/* ---------- Games grid ---------- */
-.games-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-@media (max-width: 700px) { .games-grid { grid-template-columns: 1fr; } }
-.game-card {
-  background: var(--surface); border-radius: 10px; padding: 1.25rem 1.35rem;
-  border-top: 4px solid var(--red); box-shadow: 0 2px 10px rgba(20,30,60,.06);
-}
-.game-card h3 {
-  margin: 0 0 .4rem; font-family: var(--heading-font); text-transform: uppercase;
-  letter-spacing: .3px; color: var(--navy); font-size: 1rem;
-}
-.game-card p { margin: 0; font-size: .9rem; color: var(--muted); }
-
 /* ---------- Stage sections ---------- */
 .stage-section { position: relative; overflow: hidden; }
 .stage-watermark {
@@ -360,9 +347,21 @@ p { margin: 0 0 1rem; color: var(--ink); }
   color: #fff; background: var(--red); padding: .2rem .55rem; border-radius: 12px;
   letter-spacing: .4px; text-transform: uppercase;
 }
-.pathway-image-block img {
-  width: 100%; border-radius: 10px; box-shadow: 0 2px 14px rgba(20,30,60,.12);
-  border: 1px solid var(--line);
+.pathway-image-link {
+  position: relative; display: block; border-radius: 10px; overflow: hidden;
+  box-shadow: 0 2px 14px rgba(20,30,60,.12); border: 1px solid var(--line);
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.pathway-image-link:hover, .pathway-image-link:focus-visible {
+  box-shadow: 0 8px 24px rgba(20,30,60,.24); transform: translateY(-2px);
+}
+.pathway-image-link img { width: 100%; display: block; }
+.pathway-image-link::after {
+  content: "Tap to save or share \2197";
+  position: absolute; right: .6rem; bottom: .6rem;
+  background: rgba(27,58,107,.85); color: #fff; font-family: var(--heading-font);
+  font-size: .68rem; font-weight: 600; letter-spacing: .3px; text-transform: uppercase;
+  padding: .35rem .65rem; border-radius: 20px; pointer-events: none;
 }
 
 /* ---------- Assessment / checklist ---------- */
@@ -460,7 +459,6 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   <a href="#mission"><span class="dot"></span><span class="label">Mission</span></a>
   <a href="#pathway"><span class="dot"></span><span class="label">Pathway</span></a>
   <a href="#stages-overview"><span class="dot"></span><span class="label">6 Stages</span></a>
-  <a href="#games"><span class="dot"></span><span class="label">Games</span></a>
   <a href="#stage1"><span class="dot"></span><span class="label">Stage 1</span></a>
   <a href="#stage2"><span class="dot"></span><span class="label">Stage 2</span></a>
   <a href="#stage3"><span class="dot"></span><span class="label">Stage 3</span></a>
@@ -482,7 +480,6 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <a href="#mission">Mission</a>
       <a href="#pathway">Pathway</a>
       <a href="#stages-overview">6 Stages</a>
-      <a href="#games">Games</a>
       <a href="#stage1">Stage 1 (4-6)</a>
       <a href="#stage2">Stage 2 (7-9)</a>
       <a href="#stage3">Stage 3 (10-11)</a>
@@ -638,38 +635,6 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
     </div>
   </section>
 
-  <section id="games" class="tight">
-    <div class="wrap">
-      <span class="kicker">Building blocks</span>
-      <h2 class="section-title">Developmental Games</h2>
-      <div class="games-grid">
-      <div class="game-card">
-        <h3>Chasing Game</h3>
-        <p>These games involve tagging and chasing where players perform skills, such as fleeing and dodging. These games are particularly appropriate for warm up activities.</p>
-      </div>
-      <div class="game-card">
-        <h3>Target Games</h3>
-        <p>The simplest form of a game which challenges players to use the technique previously learnt is to aim into or at a target. Players have lots of time to perform the task without any distraction from other players. There is a low level of decision making.</p>
-      </div>
-      <div class="game-card">
-        <h3>Court Games</h3>
-        <p>Divided court games require players to pass ball over an obstacle like a net or zone to a receiver. The level of decision making has increased but is limited. The use of other skills essential for team work such as communication, anticipation and spatial awareness become more apparent.</p>
-      </div>
-      <div class="game-card">
-        <h3>Field Games</h3>
-        <p>These are games which require one team to act as the strikers/kickers and the opposition become the fielders retrieving the ball. The fielding team tries to limit the runs or scores by the striking/kicking team and at the same time try to get the opposition players out. Greater decisions have to be made in relation to where, when and how to move or play the ball and good spatial awareness is more important.</p>
-      </div>
-      <div class="game-card">
-        <h3>Part Invasion</h3>
-        <p>These games require players to complete a task with limited or direct opposition. Such games encourage awareness of time and space but also help develop characteristics of team play e.g. support play and communication. Part invasion games allow players to develop positional sense and decision making with limited pressure from opposition.</p>
-      </div>
-      <div class="game-card">
-        <h3>Full Invasion</h3>
-        <p>The core objective here is to move into an opponents territory in order to score. To achieve this, players must maintain possession of the ball, create &amp; use space and attack a ‘goal’. The key element with invasion games is the number of players involved. The less space a player has, the less time he/she has, the more skill is required.</p>
-      </div>
-      </div>
-    </div>
-  </section>
 
   <section id="stage1" class="stage-section">
     <span class="stage-watermark" aria-hidden="true">01</span>
@@ -692,21 +657,29 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <div class="tab-panel active">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 4-6</span></h3>
-          <img src="images/pathway/football-pathway-4-6.webp" alt="Football Player Pathway wheel for Ages 4-6" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-pathway-4-6.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 4-6">
+            <img src="images/pathway/football-pathway-4-6.webp" alt="Football Player Pathway wheel for Ages 4-6" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Nursery Stations Model <span class="pathway-age-tag">Football &middot; Ages 4-6</span></h3>
-          <img src="images/pathway/football-session-4-6.webp" alt="Football Nursery Stations Model for Ages 4-6" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-session-4-6.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Nursery Stations Model for Ages 4-6">
+            <img src="images/pathway/football-session-4-6.webp" alt="Football Nursery Stations Model for Ages 4-6" loading="lazy">
+          </a>
         </div>
       </div>
       <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 4-6</span></h3>
-          <img src="images/pathway/hurling-pathway-4-6.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 4-6" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-4-6.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 4-6">
+            <img src="images/pathway/hurling-pathway-4-6.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 4-6" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Nursery Stations Model <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 4-6</span></h3>
-          <img src="images/pathway/hurling-session-4-6.webp" alt="Hurling and Camogie Nursery Stations Model for Ages 4-6" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-session-4-6.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Nursery Stations Model for Ages 4-6">
+            <img src="images/pathway/hurling-session-4-6.webp" alt="Hurling and Camogie Nursery Stations Model for Ages 4-6" loading="lazy">
+          </a>
         </div>
       </div>
         </div>
@@ -785,21 +758,29 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <div class="tab-panel active">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 7-9</span></h3>
-          <img src="images/pathway/football-pathway-7-9.webp" alt="Football Player Pathway wheel for Ages 7-9" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-pathway-7-9.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 7-9">
+            <img src="images/pathway/football-pathway-7-9.webp" alt="Football Player Pathway wheel for Ages 7-9" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 7-9</span></h3>
-          <img src="images/pathway/football-session-7-9.webp" alt="Football sample session for Ages 7-9" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-session-7-9.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 7-9">
+            <img src="images/pathway/football-session-7-9.webp" alt="Football sample session for Ages 7-9" loading="lazy">
+          </a>
         </div>
       </div>
       <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 7-9</span></h3>
-          <img src="images/pathway/hurling-pathway-7-9.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 7-9" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-7-9.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 7-9">
+            <img src="images/pathway/hurling-pathway-7-9.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 7-9" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 7-9</span></h3>
-          <img src="images/pathway/hurling-session-7-9.webp" alt="Hurling and Camogie sample session for Ages 7-9" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-session-7-9.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 7-9">
+            <img src="images/pathway/hurling-session-7-9.webp" alt="Hurling and Camogie sample session for Ages 7-9" loading="lazy">
+          </a>
         </div>
       </div>
         </div>
@@ -870,21 +851,29 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <div class="tab-panel active">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 10-11</span></h3>
-          <img src="images/pathway/football-pathway-10-11.webp" alt="Football Player Pathway wheel for Ages 10-11" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-pathway-10-11.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 10-11">
+            <img src="images/pathway/football-pathway-10-11.webp" alt="Football Player Pathway wheel for Ages 10-11" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 10-11</span></h3>
-          <img src="images/pathway/football-session-10-11.webp" alt="Football sample session for Ages 10-11" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-session-10-11.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 10-11">
+            <img src="images/pathway/football-session-10-11.webp" alt="Football sample session for Ages 10-11" loading="lazy">
+          </a>
         </div>
       </div>
       <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 10-11</span></h3>
-          <img src="images/pathway/hurling-pathway-10-11.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 10-11" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-10-11.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 10-11">
+            <img src="images/pathway/hurling-pathway-10-11.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 10-11" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 10-11</span></h3>
-          <img src="images/pathway/hurling-session-10-11.webp" alt="Hurling and Camogie sample session for Ages 10-11" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-session-10-11.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 10-11">
+            <img src="images/pathway/hurling-session-10-11.webp" alt="Hurling and Camogie sample session for Ages 10-11" loading="lazy">
+          </a>
         </div>
       </div>
         </div>
@@ -959,21 +948,29 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <div class="tab-panel active">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 12-13</span></h3>
-          <img src="images/pathway/football-pathway-12-13.webp" alt="Football Player Pathway wheel for Ages 12-13" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-pathway-12-13.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 12-13">
+            <img src="images/pathway/football-pathway-12-13.webp" alt="Football Player Pathway wheel for Ages 12-13" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 12-13</span></h3>
-          <img src="images/pathway/football-session-12-13.webp" alt="Football sample session for Ages 12-13" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-session-12-13.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 12-13">
+            <img src="images/pathway/football-session-12-13.webp" alt="Football sample session for Ages 12-13" loading="lazy">
+          </a>
         </div>
       </div>
       <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 12-13</span></h3>
-          <img src="images/pathway/hurling-pathway-12-13.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 12-13" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-12-13.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 12-13">
+            <img src="images/pathway/hurling-pathway-12-13.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 12-13" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 12-13</span></h3>
-          <img src="images/pathway/hurling-session-12-13.webp" alt="Hurling and Camogie sample session for Ages 12-13" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-session-12-13.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 12-13">
+            <img src="images/pathway/hurling-session-12-13.webp" alt="Hurling and Camogie sample session for Ages 12-13" loading="lazy">
+          </a>
         </div>
       </div>
         </div>
@@ -1041,21 +1038,29 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <div class="tab-panel active">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 14-15</span></h3>
-          <img src="images/pathway/football-pathway-14-15.webp" alt="Football Player Pathway wheel for Ages 14-15" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-pathway-14-15.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 14-15">
+            <img src="images/pathway/football-pathway-14-15.webp" alt="Football Player Pathway wheel for Ages 14-15" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 14-15</span></h3>
-          <img src="images/pathway/football-session-14-15.webp" alt="Football sample session for Ages 14-15" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-session-14-15.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 14-15">
+            <img src="images/pathway/football-session-14-15.webp" alt="Football sample session for Ages 14-15" loading="lazy">
+          </a>
         </div>
       </div>
       <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 14-15</span></h3>
-          <img src="images/pathway/hurling-pathway-14-15.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 14-15" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-14-15.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 14-15">
+            <img src="images/pathway/hurling-pathway-14-15.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 14-15" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 14-15</span></h3>
-          <img src="images/pathway/hurling-session-14-15.webp" alt="Hurling and Camogie sample session for Ages 14-15" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-session-14-15.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 14-15">
+            <img src="images/pathway/hurling-session-14-15.webp" alt="Hurling and Camogie sample session for Ages 14-15" loading="lazy">
+          </a>
         </div>
       </div>
         </div>
@@ -1123,21 +1128,29 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       <div class="tab-panel active">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 16-17</span></h3>
-          <img src="images/pathway/football-pathway-16-17.webp" alt="Football Player Pathway wheel for Ages 16-17" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-pathway-16-17.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 16-17">
+            <img src="images/pathway/football-pathway-16-17.webp" alt="Football Player Pathway wheel for Ages 16-17" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 16-17</span></h3>
-          <img src="images/pathway/football-session-16-17.webp" alt="Football sample session for Ages 16-17" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/football-session-16-17.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 16-17">
+            <img src="images/pathway/football-session-16-17.webp" alt="Football sample session for Ages 16-17" loading="lazy">
+          </a>
         </div>
       </div>
       <div class="tab-panel">
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 16-17</span></h3>
-          <img src="images/pathway/hurling-pathway-16-17.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 16-17" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-16-17.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 16-17">
+            <img src="images/pathway/hurling-pathway-16-17.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 16-17" loading="lazy">
+          </a>
         </div>
         <div class="pathway-image-block">
           <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 16-17</span></h3>
-          <img src="images/pathway/hurling-session-16-17.webp" alt="Hurling and Camogie sample session for Ages 16-17" loading="lazy">
+          <a class="pathway-image-link" href="images/pathway/hurling-session-16-17.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 16-17">
+            <img src="images/pathway/hurling-session-16-17.webp" alt="Hurling and Camogie sample session for Ages 16-17" loading="lazy">
+          </a>
         </div>
       </div>
         </div>
