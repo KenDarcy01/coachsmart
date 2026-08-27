@@ -470,8 +470,13 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
 .video-code-chip {
   display: inline-block; font-family: var(--heading-font); font-weight: 700; font-size: .62rem;
   text-transform: uppercase; letter-spacing: .3px; padding: .15rem .5rem; border-radius: 10px;
-  color: #fff; margin-left: .5rem; vertical-align: middle;
+  margin-left: .5rem; vertical-align: middle;
 }
+/* Higher specificity than ".video-callout-text strong" (which sets its own
+   navy text colour) -- the chip sits inside that <strong>, so a plain
+   ".video-code-chip { color:#fff }" was losing that fight and rendering
+   as low-contrast navy-on-navy/red instead of white. */
+.video-callout-text strong .video-code-chip { color: #fff; }
 .video-code-chip.football { background: var(--red); }
 .video-code-chip.hurling { background: var(--navy); }
 
@@ -1558,8 +1563,9 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
 <script>
 // Coaching videos, loaded at runtime from a published Google Sheet (File >
 // Share > Publish to web > CSV). Sheet columns expected: Age Band | Code |
-// Title | YouTube URL. Editing the sheet is enough to update the site --
-// no code change or deploy needed.
+// Title | Video URL. Video URL accepts a YouTube link or a Google Drive
+// share link. Editing the sheet is enough to update the site -- no code
+// change or deploy needed.
 (function () {
   var VIDEO_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTak7pQPr6lKYTNmv-OZPiu9RQbdfe8-2ii4X53H3RFXXQeE-X19zfdOZ68uBOfyYOEpuuMJ2XVyQRM/pub?gid=0&single=true&output=csv';
   if (!VIDEO_SHEET_CSV_URL || VIDEO_SHEET_CSV_URL.indexOf('PASTE_') === 0) return;
@@ -1597,6 +1603,22 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
     return m ? m[1] : null;
   }
 
+  function extractDriveId(url) {
+    if (!url) return null;
+    var m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([A-Za-z0-9_-]+)/);
+    return m ? m[1] : null;
+  }
+
+  // Figures out which of the two accepted video sources a URL is, and
+  // normalises it to that source's canonical "watch" link.
+  function resolveVideo(url) {
+    var ytId = extractYouTubeId(url);
+    if (ytId) return { watchUrl: 'https://www.youtube.com/watch?v=' + ytId, source: 'YouTube' };
+    var driveId = extractDriveId(url);
+    if (driveId) return { watchUrl: 'https://drive.google.com/file/d/' + driveId + '/view', source: 'Google Drive' };
+    return null;
+  }
+
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -1612,7 +1634,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       var ageIdx = header.indexOf('age band');
       var codeIdx = header.indexOf('code');
       var titleIdx = header.indexOf('title');
-      var urlIdx = header.indexOf('youtube url');
+      var urlIdx = header.indexOf('video url');
       if (ageIdx < 0 || titleIdx < 0 || urlIdx < 0) return;
 
       var byAge = {};
@@ -1622,10 +1644,10 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         var title = (r[titleIdx] || '').trim();
         var url = (r[urlIdx] || '').trim();
         var code = codeIdx >= 0 ? (r[codeIdx] || '').trim() : '';
-        var vid = extractYouTubeId(url);
-        if (!age || !title || !vid) continue;
+        var video = resolveVideo(url);
+        if (!age || !title || !video) continue;
         (byAge[age] = byAge[age] || []).push({
-          title: title, code: code, watchUrl: 'https://www.youtube.com/watch?v=' + vid
+          title: title, code: code, watchUrl: video.watchUrl, source: video.source
         });
       }
 
@@ -1645,7 +1667,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
           a.rel = 'noopener noreferrer';
           a.innerHTML =
             '<span class="video-callout-icon" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff"></path></svg></span>' +
-            '<span class="video-callout-text"><strong>' + escapeHtml(v.title) + chip + '</strong><span>Watch on YouTube</span></span>' +
+            '<span class="video-callout-text"><strong>' + escapeHtml(v.title) + chip + '</strong><span>Watch on ' + v.source + '</span></span>' +
             '<span class="video-callout-cta">Watch &rarr;</span>';
           grid.appendChild(a);
         });
