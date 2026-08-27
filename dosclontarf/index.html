@@ -451,6 +451,30 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   .video-callout-text span { display: none; }
 }
 
+/* ---------- Coaching Videos drawer ---------- */
+.video-drawer {
+  margin-top: 1.5rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--line);
+  background: var(--surface);
+}
+.video-drawer summary {
+  cursor: pointer; list-style: none; padding: 1rem 1.25rem; display: flex; align-items: center;
+  justify-content: space-between; gap: 1rem; background: var(--navy); color: #fff;
+}
+.video-drawer summary::-webkit-details-marker { display: none; }
+.video-drawer summary .a-title { font-family: var(--heading-font); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; font-size: .95rem; }
+.video-drawer summary .chevron { transition: transform .2s ease; font-size: .8rem; }
+.video-drawer[open] summary .chevron { transform: rotate(180deg); }
+.video-drawer.is-empty { display: none; }
+.video-grid { padding: 1.25rem; display: grid; gap: .65rem; }
+.video-grid .video-callout { margin: 0; }
+.video-code-chip {
+  display: inline-block; font-family: var(--heading-font); font-weight: 700; font-size: .62rem;
+  text-transform: uppercase; letter-spacing: .3px; padding: .15rem .5rem; border-radius: 10px;
+  color: #fff; margin-left: .5rem; vertical-align: middle;
+}
+.video-code-chip.football { background: var(--red); }
+.video-code-chip.hurling { background: var(--navy); }
+
 /* ---------- Print ---------- */
 @media print {
   @page { size: A4 landscape; margin: 10mm 12mm; }
@@ -465,7 +489,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   .rail, .topbar .nav-toggle, .nav-links, .focus-banner,
   .quick-jump, .hero .scroll-cue, .stage-toggle,
   .pathway-image-link::after, .reset-checklist, .stage-watermark,
-  .assessment-block {
+  .assessment-block, .video-drawer {
     display: none !important;
   }
 
@@ -764,6 +788,13 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
+      <details class="video-drawer" open data-age="4-6">
+        <summary>
+          <span class="a-title">Coaching Videos</span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="video-grid"></div>
+      </details>
 
       <details class="assessment-block" data-key="stage1">
         <summary>
@@ -865,6 +896,14 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
+      <details class="video-drawer" open data-age="7-9">
+        <summary>
+          <span class="a-title">Coaching Videos</span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="video-grid"></div>
+      </details>
+
       <details class="assessment-block" data-key="stage2">
         <summary>
           <span class="a-title">Skills Assessment</span>
@@ -957,6 +996,14 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </div>
         </div>
       </div>
+
+      <details class="video-drawer" open data-age="10-11">
+        <summary>
+          <span class="a-title">Coaching Videos</span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="video-grid"></div>
+      </details>
 
       <details class="assessment-block" data-key="stage3">
         <summary>
@@ -1055,6 +1102,14 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
+      <details class="video-drawer" open data-age="12-13">
+        <summary>
+          <span class="a-title">Coaching Videos</span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="video-grid"></div>
+      </details>
+
       <details class="assessment-block" data-key="stage4">
         <summary>
           <span class="a-title">Skills Assessment</span>
@@ -1145,6 +1200,14 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
+      <details class="video-drawer" open data-age="14-15">
+        <summary>
+          <span class="a-title">Coaching Videos</span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="video-grid"></div>
+      </details>
+
       <details class="assessment-block" data-key="stage5">
         <summary>
           <span class="a-title">Skills Assessment</span>
@@ -1234,6 +1297,14 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
       </div>
         </div>
       </div>
+
+      <details class="video-drawer" open data-age="16-17">
+        <summary>
+          <span class="a-title">Coaching Videos</span>
+          <span class="chevron" aria-hidden="true">&#9660;</span>
+        </summary>
+        <div class="video-grid"></div>
+      </details>
 
       </div>
     </div>
@@ -1481,6 +1552,108 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
     }
     update();
   });
+})();
+</script>
+
+<script>
+// Coaching videos, loaded at runtime from a published Google Sheet (File >
+// Share > Publish to web > CSV). Sheet columns expected: Age Band | Code |
+// Title | YouTube URL. Editing the sheet is enough to update the site --
+// no code change or deploy needed.
+(function () {
+  var VIDEO_SHEET_CSV_URL = 'PASTE_YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE';
+  if (!VIDEO_SHEET_CSV_URL || VIDEO_SHEET_CSV_URL.indexOf('PASTE_') === 0) return;
+
+  function parseCSV(text) {
+    var rows = [], row = [], field = '', inQuotes = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
+        } else {
+          field += c;
+        }
+      } else if (c === '"') {
+        inQuotes = true;
+      } else if (c === ',') {
+        row.push(field); field = '';
+      } else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); field = '';
+        if (row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
+      } else {
+        field += c;
+      }
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  function extractYouTubeId(url) {
+    if (!url) return null;
+    var m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  fetch(VIDEO_SHEET_CSV_URL)
+    .then(function (r) { return r.text(); })
+    .then(function (text) {
+      var rows = parseCSV(text);
+      if (!rows.length) return;
+      var header = rows[0].map(function (h) { return h.trim().toLowerCase(); });
+      var ageIdx = header.indexOf('age band');
+      var codeIdx = header.indexOf('code');
+      var titleIdx = header.indexOf('title');
+      var urlIdx = header.indexOf('youtube url');
+      if (ageIdx < 0 || titleIdx < 0 || urlIdx < 0) return;
+
+      var byAge = {};
+      for (var i = 1; i < rows.length; i++) {
+        var r = rows[i];
+        var age = (r[ageIdx] || '').trim();
+        var title = (r[titleIdx] || '').trim();
+        var url = (r[urlIdx] || '').trim();
+        var code = codeIdx >= 0 ? (r[codeIdx] || '').trim() : '';
+        var vid = extractYouTubeId(url);
+        if (!age || !title || !vid) continue;
+        (byAge[age] = byAge[age] || []).push({
+          title: title, code: code, watchUrl: 'https://www.youtube.com/watch?v=' + vid
+        });
+      }
+
+      document.querySelectorAll('.video-drawer').forEach(function (drawer) {
+        var list = byAge[drawer.dataset.age];
+        if (!list || !list.length) {
+          drawer.classList.add('is-empty');
+          return;
+        }
+        var grid = drawer.querySelector('.video-grid');
+        list.forEach(function (v) {
+          var chip = '';
+          if (/football/i.test(v.code)) chip = ' <span class="video-code-chip football">Football</span>';
+          else if (/hurling|camogie/i.test(v.code)) chip = ' <span class="video-code-chip hurling">Hurling/Camogie</span>';
+          var a = document.createElement('a');
+          a.className = 'video-callout';
+          a.href = v.watchUrl;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.innerHTML =
+            '<span class="video-callout-icon" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff"></path></svg></span>' +
+            '<span class="video-callout-text"><strong>' + escapeHtml(v.title) + chip + '</strong><span>Watch on YouTube</span></span>' +
+            '<span class="video-callout-cta">Watch &rarr;</span>';
+          grid.appendChild(a);
+        });
+      });
+    })
+    .catch(function (err) { console.warn('Could not load coaching videos:', err); });
 })();
 </script>
 </body>
