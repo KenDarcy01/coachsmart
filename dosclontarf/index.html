@@ -788,7 +788,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
-      <details class="video-drawer" open data-age="4-6">
+      <details class="video-drawer is-empty" open data-age="4-6">
         <summary>
           <span class="a-title">Coaching Videos</span>
           <span class="chevron" aria-hidden="true">&#9660;</span>
@@ -896,7 +896,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
-      <details class="video-drawer" open data-age="7-9">
+      <details class="video-drawer is-empty" open data-age="7-9">
         <summary>
           <span class="a-title">Coaching Videos</span>
           <span class="chevron" aria-hidden="true">&#9660;</span>
@@ -997,7 +997,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
-      <details class="video-drawer" open data-age="10-11">
+      <details class="video-drawer is-empty" open data-age="10-11">
         <summary>
           <span class="a-title">Coaching Videos</span>
           <span class="chevron" aria-hidden="true">&#9660;</span>
@@ -1102,7 +1102,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
-      <details class="video-drawer" open data-age="12-13">
+      <details class="video-drawer is-empty" open data-age="12-13">
         <summary>
           <span class="a-title">Coaching Videos</span>
           <span class="chevron" aria-hidden="true">&#9660;</span>
@@ -1200,7 +1200,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
-      <details class="video-drawer" open data-age="14-15">
+      <details class="video-drawer is-empty" open data-age="14-15">
         <summary>
           <span class="a-title">Coaching Videos</span>
           <span class="chevron" aria-hidden="true">&#9660;</span>
@@ -1298,7 +1298,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         </div>
       </div>
 
-      <details class="video-drawer" open data-age="16-17">
+      <details class="video-drawer is-empty" open data-age="16-17">
         <summary>
           <span class="a-title">Coaching Videos</span>
           <span class="chevron" aria-hidden="true">&#9660;</span>
@@ -1631,10 +1631,8 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
 
       document.querySelectorAll('.video-drawer').forEach(function (drawer) {
         var list = byAge[drawer.dataset.age];
-        if (!list || !list.length) {
-          drawer.classList.add('is-empty');
-          return;
-        }
+        if (!list || !list.length) return; // stays hidden -- is-empty is the default state
+        drawer.classList.remove('is-empty');
         var grid = drawer.querySelector('.video-grid');
         list.forEach(function (v) {
           var chip = '';
