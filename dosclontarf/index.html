@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clontarf GAA Coaching Pathway</title>
+<meta name="description" content="Clontarf GAA Club Mentor Handbook — the 6-stage player development pathway from age 4 to 17, with the TURAS Player Pathway for Football and Hurling/Camogie at every stage.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #ED1B2E;
+  --red-dark: #C6101F;
+  --navy: #1B3A6B;
+  --navy-dark: #142c52;
+  --paper: #F5F6FB;
+  --surface: #FFFFFF;
+  --ink: #1B2333;
+  --muted: #5B6478;
+  --line: #E3E7F0;
+  --display-font: 'Anton', Impact, sans-serif;
+  --heading-font: 'Oswald', -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.6;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--red-dark); }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 1.25rem; }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 60;
+  background: var(--navy);
+  padding: .6rem 1.25rem;
+  display: flex; align-items: center; gap: .75rem;
+}
+.topbar .brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; }
+.topbar .crest { height: 40px; }
+.topbar .brand-name {
+  color: #fff; font-family: var(--heading-font); font-weight: 600;
+  font-size: 1.05rem; letter-spacing: .3px; text-transform: uppercase;
+}
+@media (max-width: 420px) { .topbar .brand-name { display: none; } }
+.topbar .nav-toggle {
+  margin-left: auto; background: transparent; border: 1px solid rgba(255,255,255,.4);
+  color: #fff; font-size: .82rem; font-weight: 600; padding: .4rem .7rem; border-radius: 6px;
+  display: flex; align-items: center; gap: .5rem; cursor: pointer;
+}
+.nav-toggle-icon { position: relative; width: 15px; height: 2px; background: #fff; display: block; }
+.nav-toggle-icon::before, .nav-toggle-icon::after {
+  content: ""; position: absolute; left: 0; width: 15px; height: 2px; background: #fff;
+}
+.nav-toggle-icon::before { top: -5px; }
+.nav-toggle-icon::after { top: 5px; }
+.nav-links {
+  display: none; flex-direction: column; position: absolute; top: 100%; right: 0; left: 0;
+  background: var(--navy-dark); padding: .5rem 1.25rem 1.25rem; box-shadow: 0 12px 24px rgba(0,0,0,.25);
+  max-height: 75vh; overflow-y: auto;
+}
+.nav-links.open { display: flex; }
+.nav-links a {
+  color: #fff; text-decoration: none; font-family: var(--heading-font); font-weight: 500;
+  font-size: .95rem; padding: .65rem .3rem; border-bottom: 1px solid rgba(255,255,255,.08);
+}
+@media (min-width: 600px) { .nav-links { max-width: 320px; left: auto; border-radius: 0 0 0 10px; } }
+
+/* ---------- Scrollspy rail (desktop) ---------- */
+.rail {
+  position: fixed; right: 22px; top: 12vh; height: 76vh; z-index: 55;
+  display: none;
+}
+@media (min-width: 1050px) { .rail { display: block; } }
+.rail-track {
+  position: absolute; top: 0; bottom: 0; right: 4px; width: 2px; background: var(--line); z-index: 0;
+}
+.rail a {
+  position: absolute; right: 0; transform: translateY(-50%);
+  display: flex; align-items: center; gap: .55rem; text-decoration: none;
+}
+.rail .dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #fff;
+  border: 2px solid var(--navy); transition: all .2s ease; flex: 0 0 auto;
+}
+.rail .label {
+  font-family: var(--heading-font); font-size: .72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .3px; color: var(--navy); background: var(--surface); padding: .25rem .6rem;
+  border-radius: 20px; opacity: 0; transform: translateX(6px); transition: all .18s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap; pointer-events: none;
+}
+.rail a:hover .label { opacity: 1; transform: translateX(0); }
+.rail a.active .dot { background: var(--red); border-color: var(--red); transform: scale(1.3); }
+.rail a.active .label { opacity: 1; transform: translateX(0); color: var(--red-dark); }
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative; min-height: 88vh; overflow: hidden;
+  display: flex; align-items: flex-end;
+}
+.hero img.hero-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.hero::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(20,44,82,.15) 0%, rgba(11,20,38,.55) 55%, rgba(8,12,22,.92) 100%);
+}
+.hero::after {
+  content: ""; position: absolute; left: -10%; right: -10%; bottom: -1px; height: 90px;
+  background: var(--paper);
+  clip-path: polygon(0 100%, 100% 40%, 100% 100%);
+}
+.hero-content { position: relative; z-index: 2; padding: 3rem 1.25rem 6rem; width: 100%; }
+.hero-content .inner { max-width: 980px; margin: 0 auto; }
+.hero-tagline {
+  display: inline-block; background: var(--red); color: #fff; font-family: var(--heading-font);
+  font-weight: 600; font-size: .78rem; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: .4rem .9rem; border-radius: 2px; margin-bottom: 1rem;
+}
+.hero h1 {
+  margin: 0; color: #fff; font-family: var(--display-font); font-weight: 400;
+  font-size: clamp(2.6rem, 8vw, 5.5rem); line-height: .95; letter-spacing: .5px;
+  text-transform: uppercase; text-shadow: 0 4px 18px rgba(0,0,0,.4);
+}
+.hero p.sub {
+  margin: .75rem 0 0; color: rgba(255,255,255,.88); font-family: var(--heading-font);
+  font-weight: 400; font-size: clamp(1rem, 2.4vw, 1.35rem); letter-spacing: 1px;
+}
+.hero .scroll-cue {
+  position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 2;
+  color: rgba(255,255,255,.75); font-size: .7rem; letter-spacing: 2px; text-transform: uppercase;
+  font-family: var(--heading-font); display: flex; flex-direction: column; align-items: center; gap: .4rem;
+}
+.hero .scroll-cue .arrow { width: 10px; height: 10px; border-right: 2px solid rgba(255,255,255,.75); border-bottom: 2px solid rgba(255,255,255,.75); transform: rotate(45deg); animation: bob 1.6s infinite; }
+@keyframes bob { 0%,100%{ transform: translateY(0) rotate(45deg);} 50%{ transform: translateY(6px) rotate(45deg);} }
+@media (max-width: 600px) {
+  .hero { min-height: 78vh; }
+  .hero-content { padding-bottom: 4.5rem; }
+}
+
+/* ---------- Logos strip ---------- */
+.logos-strip {
+  background: var(--navy-dark); padding: 1.5rem 1.25rem; display: flex; flex-wrap: nowrap;
+  align-items: center; justify-content: center; gap: clamp(.6rem,4vw,2.5rem);
+}
+.logos-strip img { height: 34px; width: auto; flex: 0 0 auto; }
+.logos-strip img.logo-gaa { height: 27px; }
+@media (min-width: 640px) { .logos-strip img { height: 44px; } .logos-strip img.logo-gaa { height: 35px; } }
+
+/* ---------- Section shell ---------- */
+section { padding: 4.5rem 0; }
+section.tight { padding: 2.5rem 0; }
+.kicker {
+  display: block; font-family: var(--heading-font); font-weight: 600; font-size: .78rem;
+  letter-spacing: 2.5px; text-transform: uppercase; color: var(--red-dark); margin-bottom: .5rem;
+}
+h2.section-title {
+  color: var(--navy); font-family: var(--display-font); font-weight: 400;
+  font-size: clamp(1.8rem, 4.5vw, 2.6rem); letter-spacing: .5px; text-transform: uppercase;
+  margin: 0 0 1.5rem; line-height: 1.05;
+}
+section.tight h2.section-title { margin-bottom: 1.25rem; }
+p { margin: 0 0 1rem; color: var(--ink); }
+
+/* ---------- Mission (pull quote) ---------- */
+.mission-wrap { text-align: center; max-width: 760px; margin: 0 auto; position: relative; }
+.mission-mark {
+  font-family: var(--display-font); font-size: 8rem; color: var(--red); opacity: .12;
+  position: absolute; top: -3.5rem; left: 50%; transform: translateX(-50%); line-height: 1; z-index: 0;
+  user-select: none;
+}
+.mission-wrap p {
+  position: relative; z-index: 1; font-family: var(--heading-font); font-weight: 400;
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem); color: var(--navy); line-height: 1.55;
+}
+.mission-banner {
+  margin-top: 2rem; background: var(--red); color: #fff; font-family: var(--display-font);
+  font-weight: 400; letter-spacing: 1px; text-transform: uppercase; text-align: center;
+  padding: 1.1rem 1rem; font-size: clamp(1.1rem, 3.2vw, 1.7rem);
+}
+
+/* ---------- Photo pair ---------- */
+.photo-pair {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin: 0 0 0;
+}
+.photo-pair img { width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 640px) { .photo-pair { grid-template-columns: 1fr; } }
+
+/* ---------- Numbered timeline lists ---------- */
+.num-list { list-style: none; margin: 0; padding: 0; position: relative; }
+.num-list::before {
+  content: ""; position: absolute; left: 15px; top: 6px; bottom: 6px; width: 2px; background: var(--line);
+}
+.num-list li { position: relative; padding: 0 0 1.15rem 3rem; }
+.num-list li:last-child { padding-bottom: 0; }
+.num-list .num {
+  position: absolute; left: 0; top: 0; width: 31px; height: 31px; border-radius: 50%;
+  background: var(--navy); color: #fff; font-family: var(--heading-font); font-weight: 700;
+  font-size: .85rem; display: flex; align-items: center; justify-content: center; z-index: 1;
+}
+.num-list.red .num { background: var(--red); }
+.two-col-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin-top: 1.5rem; }
+@media (max-width: 720px) { .two-col-lists { grid-template-columns: 1fr; gap: 2rem; } }
+.two-col-lists h3 {
+  font-family: var(--heading-font); text-transform: uppercase; letter-spacing: .5px;
+  color: var(--navy); font-size: 1.1rem; margin: 0 0 1rem;
+}
+
+/* ---------- 5 stage roadmap ---------- */
+.roadmap { position: relative; padding: 1rem 0 .5rem; }
+.roadmap-track {
+  display: flex; justify-content: space-between; position: relative; gap: .5rem;
+}
+.roadmap-track::before {
+  content: ""; position: absolute; left: 5%; right: 5%; top: 26px; height: 3px; background: var(--line); z-index: 0;
+}
+.roadmap-node {
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center;
+  text-align: center; text-decoration: none; flex: 1; min-width: 0;
+}
+.roadmap-node .circle {
+  width: 54px; height: 54px; border-radius: 50%; background: var(--surface); border: 3px solid var(--navy);
+  color: var(--navy); font-family: var(--display-font); font-size: 1.4rem; display: flex;
+  align-items: center; justify-content: center; transition: all .2s ease; box-shadow: 0 3px 10px rgba(27,58,107,.15);
+}
+.roadmap-node:hover .circle { background: var(--red); border-color: var(--red); color: #fff; transform: scale(1.08); }
+.roadmap-node .age { font-family: var(--heading-font); font-weight: 700; font-size: .72rem; color: var(--red-dark); margin-top: .6rem; text-transform: uppercase; letter-spacing: .4px; }
+.roadmap-node .name { font-size: .78rem; color: var(--muted); margin-top: .2rem; padding: 0 .25rem; line-height: 1.3; }
+@media (max-width: 760px) {
+  .roadmap-track { flex-direction: column; gap: 1.75rem; }
+  .roadmap-track::before { left: 26px; top: 5%; bottom: 5%; right: auto; width: 3px; height: auto; }
+  .roadmap-node { flex-direction: row; text-align: left; gap: 1rem; }
+  .roadmap-node .circle { width: 46px; height: 46px; font-size: 1.15rem; flex: 0 0 auto; }
+  .roadmap-node .meta { display: flex; flex-direction: column; }
+  .roadmap-node .age { margin-top: 0; }
+}
+
+/* ---------- Stage sections ---------- */
+.stage-section { position: relative; overflow: hidden; }
+.stage-watermark {
+  position: absolute; top: -1.5rem; right: -.5rem; font-family: var(--display-font);
+  font-size: clamp(7rem, 22vw, 15rem); color: var(--navy); opacity: .05; line-height: 1;
+  z-index: 0; user-select: none; pointer-events: none;
+}
+.stage-inner { position: relative; z-index: 1; }
+.stage-eyebrow {
+  display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; flex-wrap: wrap;
+}
+.stage-eyebrow .stage-num-badge {
+  font-family: var(--display-font); font-size: 1.3rem; color: #fff; background: var(--red);
+  width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
+}
+.stage-eyebrow .age-range {
+  font-family: var(--heading-font); font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  font-size: 1.5rem; color: var(--red-dark);
+}
+
+/* ---------- Quick-jump pills ---------- */
+.quick-jump {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem;
+  background: var(--surface); padding: 1.1rem 1.25rem 1.35rem; border-bottom: 1px solid var(--line);
+}
+.quick-jump .qj-label {
+  width: 100%; text-align: center; font-family: var(--heading-font); font-weight: 600;
+  font-size: .75rem; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: .3rem;
+}
+.quick-jump a {
+  display: inline-flex; align-items: center; gap: .35rem; text-decoration: none;
+  background: var(--paper); border: 1.5px solid var(--navy); color: var(--navy);
+  font-family: var(--heading-font); font-weight: 600; font-size: .8rem;
+  padding: .45rem 1rem; border-radius: 20px; transition: all .15s ease;
+}
+.quick-jump a:hover { background: var(--navy); color: #fff; }
+.quick-jump a .qj-age { opacity: .75; font-weight: 400; }
+
+/* ---------- Focused-link mode ---------- */
+.focus-banner {
+  display: none; align-items: center; justify-content: center; gap: .5rem 1rem; flex-wrap: wrap;
+  background: var(--red); color: #fff; text-align: center; padding: .7rem 1.25rem;
+  font-family: var(--heading-font); font-size: .85rem; font-weight: 500;
+  z-index: 59;
+}
+.focus-banner.active { display: flex; position: sticky; }
+.focus-banner a { color: #fff; font-weight: 700; text-decoration: underline; }
+.stage-toggle {
+  display: none; align-items: center; gap: .5rem; background: var(--surface);
+  border: 1px solid var(--navy); color: var(--navy); font-family: var(--heading-font);
+  font-weight: 600; font-size: .85rem; padding: .65rem 1.15rem; border-radius: 8px;
+  cursor: pointer; margin: 0 0 1rem;
+}
+.stage-toggle:hover { background: var(--navy); color: #fff; }
+.stage-section.collapsed .stage-toggle { display: inline-flex; }
+.stage-section.collapsed .stage-collapsible { display: none; }
+
+/* ---------- Tabs ---------- */
+.tabs { margin: 1.5rem 0 2rem; }
+.tab-buttons { display: flex; gap: .4rem; border-bottom: 2px solid var(--line); flex-wrap: wrap; }
+.tab-btn {
+  appearance: none; background: transparent; border: none; cursor: pointer;
+  font-family: var(--heading-font); font-weight: 600; font-size: .82rem; text-transform: uppercase;
+  letter-spacing: .3px; color: var(--muted); padding: .75rem 1.1rem; border-bottom: 3px solid transparent;
+  margin-bottom: -2px; transition: all .15s ease;
+}
+.tab-btn:hover { color: var(--navy); }
+.tab-btn.active { color: var(--red-dark); border-bottom-color: var(--red); }
+.tab-panels { background: var(--surface); border-radius: 0 0 10px 10px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(20,30,60,.06); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.tab-panel h4 { margin: 1rem 0 .3rem; color: var(--red-dark); font-size: .88rem; font-weight: 700; }
+.tab-panel h4:first-child { margin-top: 0; }
+.tab-panel ul { margin: 0 0 .5rem; padding-left: 1.15rem; }
+.tab-panel li { margin-bottom: .25rem; font-size: .92rem; }
+
+/* ---------- Sport tabs (Player Pathway images) ---------- */
+.sport-tabs { margin: 1.75rem 0 2rem; }
+.sport-tabs .tab-buttons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; border-bottom: none;
+}
+.sport-tabs .tab-btn {
+  background: var(--surface); border: 2px solid var(--line); border-radius: 10px;
+  padding: 1rem .75rem; margin-bottom: 0; font-size: 1.05rem; letter-spacing: .5px;
+  color: var(--navy); box-shadow: 0 2px 10px rgba(20,30,60,.06);
+}
+.sport-tabs .tab-btn:hover { border-color: var(--red); color: var(--red-dark); }
+.sport-tabs .tab-btn.active {
+  background: var(--red); border-color: var(--red); color: #fff;
+}
+.sport-tabs .tab-panels {
+  background: transparent; border-radius: 0; padding: 1.5rem 0 0; box-shadow: none;
+}
+.pathway-image-block { margin: 0 0 2rem; }
+.pathway-image-block:last-child { margin-bottom: 0; }
+.pathway-image-heading {
+  display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+  font-family: var(--heading-font); font-weight: 600; text-transform: uppercase;
+  letter-spacing: .3px; color: var(--navy); font-size: 1rem; margin: 0 0 .75rem;
+}
+.pathway-age-tag {
+  font-family: var(--heading-font); font-weight: 700; font-size: .72rem;
+  color: #fff; background: var(--red); padding: .2rem .55rem; border-radius: 12px;
+  letter-spacing: .4px; text-transform: uppercase;
+}
+.pathway-image-link {
+  position: relative; display: block; border-radius: 10px; overflow: hidden;
+  box-shadow: 0 2px 14px rgba(20,30,60,.12); border: 1px solid var(--line);
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.pathway-image-link:hover, .pathway-image-link:focus-visible {
+  box-shadow: 0 8px 24px rgba(20,30,60,.24); transform: translateY(-2px);
+}
+.pathway-image-link img { width: 100%; display: block; }
+.pathway-image-link::after {
+  content: "Tap to save or share \2197";
+  position: absolute; right: .6rem; bottom: .6rem;
+  background: rgba(27,58,107,.85); color: #fff; font-family: var(--heading-font);
+  font-size: .68rem; font-weight: 600; letter-spacing: .3px; text-transform: uppercase;
+  padding: .35rem .65rem; border-radius: 20px; pointer-events: none;
+}
+
+/* ---------- Assessment / checklist ---------- */
+.assessment-block {
+  margin-top: 1.5rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--line);
+  background: var(--surface);
+}
+.assessment-block summary {
+  cursor: pointer; list-style: none; padding: 1rem 1.25rem; display: flex; align-items: center;
+  justify-content: space-between; gap: 1rem; background: var(--navy); color: #fff;
+}
+.assessment-block summary::-webkit-details-marker { display: none; }
+.assessment-block summary .a-title { font-family: var(--heading-font); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; font-size: .95rem; }
+.assessment-block summary .a-progress { display: flex; align-items: center; gap: .75rem; font-size: .82rem; opacity: .9; }
+.assessment-block summary .chevron { transition: transform .2s ease; font-size: .8rem; }
+.assessment-block[open] summary .chevron { transform: rotate(180deg); }
+.progress-bar { height: 5px; background: var(--line); }
+.progress-bar-fill { height: 100%; width: 0%; background: var(--red); transition: width .25s ease; }
+.checklist-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 1.5rem 1.25rem; }
+@media (max-width: 700px) { .checklist-cols { grid-template-columns: 1fr; gap: 1.5rem; } }
+.checklist-cols h4 { margin: 0 0 .75rem; color: var(--navy); font-family: var(--heading-font); text-transform: uppercase; font-size: .85rem; letter-spacing: .3px; }
+ul.checklist { list-style: none; margin: 0; padding: 0; }
+ul.checklist li { border-bottom: 1px solid var(--line); }
+ul.checklist li:last-child { border-bottom: none; }
+ul.checklist label { display: flex; align-items: flex-start; gap: .65rem; padding: .55rem .1rem; font-size: .88rem; cursor: pointer; }
+ul.checklist input[type=checkbox] { margin-top: .2rem; width: 17px; height: 17px; accent-color: var(--red); flex: 0 0 auto; cursor: pointer; }
+ul.checklist input[type=checkbox]:checked + span { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.reset-checklist {
+  display: block; margin: 0 1.25rem 1.25rem; background: transparent; border: 1px solid var(--line);
+  color: var(--muted); font-size: .78rem; padding: .5rem 1rem; border-radius: 6px; cursor: pointer;
+  font-family: var(--heading-font); text-transform: uppercase; letter-spacing: .3px;
+}
+.reset-checklist:hover { border-color: var(--red); color: var(--red-dark); }
+
+/* ---------- Guidelines ---------- */
+.principles-row { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 2.5rem; }
+.principle-chip {
+  background: var(--navy); color: #fff; font-family: var(--heading-font); font-size: .82rem;
+  font-weight: 500; padding: .55rem 1rem; border-radius: 20px; display: flex; align-items: center; gap: .5rem;
+}
+.principle-chip .n { background: var(--red); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 700; flex: 0 0 auto; }
+
+.duration-rows { margin-bottom: 2.5rem; }
+.duration-row { display: grid; grid-template-columns: 110px 1fr 100px; align-items: center; gap: 1rem; padding: .5rem 0; }
+.duration-row .age-group { font-family: var(--heading-font); font-weight: 600; font-size: .85rem; color: var(--navy); }
+.duration-row .bar-track { display: block; background: var(--line); border-radius: 6px; height: 10px; overflow: hidden; }
+.duration-row .bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--red) 0%, var(--navy) 100%); border-radius: 6px; }
+.duration-row .duration-label { font-size: .8rem; color: var(--muted); text-align: right; white-space: nowrap; }
+@media (max-width: 560px) {
+  .duration-row { grid-template-columns: 90px 1fr; }
+  .duration-row .duration-label { grid-column: 1 / -1; text-align: left; font-size: .75rem; }
+}
+
+.giving-back-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 700px) { .giving-back-grid { grid-template-columns: 1fr; } }
+.giving-back-card { background: var(--surface); border-radius: 10px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(20,30,60,.06); }
+.giving-back-card h3 { margin: 0 0 .85rem; font-family: var(--display-font); font-weight: 400; text-transform: uppercase; color: var(--red-dark); font-size: 1.4rem; }
+.giving-back-card ul { margin: 0; padding-left: 1.1rem; }
+.giving-back-card li { margin-bottom: .5rem; font-size: .9rem; }
+
+/* ---------- Footer ---------- */
+footer { background: var(--navy-dark); color: #cdd6ea; text-align: center; padding: 3rem 1.25rem 2.5rem; }
+footer img.crest { height: 56px; margin: 0 auto 1rem; }
+footer .foot-name { font-family: var(--display-font); font-size: 1.6rem; color: #fff; letter-spacing: .5px; text-transform: uppercase; }
+footer .foot-tag { font-family: var(--heading-font); font-size: .85rem; opacity: .8; margin-top: .25rem; }
+footer .back-top { display: inline-block; margin-top: 1.5rem; color: #fff; text-decoration: none; font-family: var(--heading-font); font-size: .78rem; letter-spacing: .3px; text-transform: uppercase; border: 1px solid rgba(255,255,255,.3); padding: .5rem 1.1rem; border-radius: 20px; }
+footer .back-top:hover { background: rgba(255,255,255,.1); }
+
+.video-callout {
+  display: flex; align-items: center; gap: .75rem; text-decoration: none; color: inherit;
+  background: #FFF1F2; border: 1px solid #F8C6CB; border-left: 4px solid var(--red);
+  border-radius: 8px; padding: .7rem .9rem; margin: .1rem 0 1rem; transition: background-color .15s ease;
+}
+.video-callout:hover { background: #FFE4E6; }
+.video-callout-icon {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; background: var(--red);
+  display: flex; align-items: center; justify-content: center;
+}
+.video-callout-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.video-callout-text strong { font-family: var(--heading-font); font-weight: 600; font-size: .85rem; color: var(--navy); }
+.video-callout-text span { font-size: .78rem; color: var(--muted); }
+.video-callout-cta {
+  flex: 0 0 auto; font-family: var(--heading-font); font-size: .78rem; font-weight: 700;
+  color: var(--red-dark); text-transform: uppercase; letter-spacing: .3px; white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .video-callout-text span { display: none; }
+}
+
+/* ---------- Print ---------- */
+@media print {
+  @page { size: A4 landscape; margin: 10mm 12mm; }
+  html { scroll-behavior: auto; }
+  body { background: #fff; }
+
+  /* Interactive/on-screen-only chrome has no place on a printed page.
+     The Skills Assessment checklists are left off the printed handbook
+     entirely -- they're an on-screen, tick-as-you-go tool, not reference
+     content -- and the roadmap-node links carry #stage anchors that are
+     meaningless once flattened to paper. */
+  .rail, .topbar .nav-toggle, .nav-links, .focus-banner,
+  .quick-jump, .hero .scroll-cue, .stage-toggle,
+  .pathway-image-link::after, .reset-checklist, .stage-watermark,
+  .assessment-block {
+    display: none !important;
+  }
+
+  /* Every stage is collapsed by default in JS -- print always shows the
+     full content regardless of on-screen state (see the beforeprint
+     handler below) */
+  .stage-section.collapsed .stage-collapsible { display: block !important; }
+
+  /* Both sport tabs are meant to be in the printed handbook, not just
+     whichever one happened to be selected on screen -- and each image
+     gets a page to itself for readability, landscape-sized to fill it.
+     Nothing prints alone though: the stage heading rides along with the
+     first (Football/Player Pathway) image, the "Hurling / Camogie" label
+     rides along with its first image, and each image's own heading
+     (which already names the sport and age band) travels with it since
+     it lives inside the same break-avoid block. */
+  .sport-tabs .tab-buttons { display: none !important; }
+  .sport-tabs .tab-panel { display: block !important; }
+  .sport-tabs .tab-panel::before {
+    display: block; font-family: var(--heading-font); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px; font-size: .85rem;
+    color: #fff; background: var(--navy); padding: .4rem .8rem;
+    border-radius: 4px; margin: 0 0 1rem; width: fit-content;
+  }
+  .sport-tabs .tab-panel:first-child::before { content: "Football"; }
+  .sport-tabs .tab-panel:last-child::before { content: "Hurling / Camogie"; }
+  .sport-tabs .tab-panel:last-child { break-before: page; }
+  .pathway-image-heading { font-size: .9rem; margin-bottom: .5rem; }
+  .pathway-image-block { break-inside: avoid; }
+  .sport-tabs .tab-panel > .pathway-image-block:first-child { break-before: avoid; }
+  .sport-tabs .tab-panel > .pathway-image-block:last-child { break-before: page; }
+  /* Sized conservatively enough to still fit alongside a stage heading
+     that wraps to two lines (e.g. "Learning About Positions and
+     Decisions") -- not just the common single-line case. */
+  .pathway-image-link { max-height: 88mm; width: fit-content; margin: 0 auto; }
+  .pathway-image-link img { max-height: 88mm; width: auto; }
+
+  /* Chapter per stage, so each age band starts cleanly on its own page */
+  .stage-section, #guidelines { break-before: page; }
+  .hero { break-after: page; }
+
+  /* Keep visually-atomic units from splitting across a page boundary */
+  .roadmap-node, .duration-row, .giving-back-card, .mission-wrap,
+  .stage-eyebrow, h2.section-title {
+    break-inside: avoid;
+  }
+  /* No heading should ever print stranded alone with its content pushed
+     to the next page -- this was happening to both "6 Stages of the
+     Pathway" (orphaned from the roadmap) and each stage's own title
+     (orphaned from its first pathway image). */
+  h2.section-title, .stage-eyebrow, .kicker { break-after: avoid; }
+
+  /* The mobile vertical-list roadmap (stacked circles + connecting line)
+     is meant for a narrow phone screen -- a print page is roughly that
+     narrow too, which drags in that same cramped layout. Force the
+     roomier horizontal/wrapped card layout instead for print specifically. */
+  .roadmap-track { flex-direction: row !important; flex-wrap: wrap; justify-content: center; gap: 1.25rem 1.5rem; }
+  .roadmap-track::before { display: none; }
+  .roadmap-node { flex-direction: column !important; text-align: center; width: 150px; gap: 0; }
+  .roadmap-node .circle { width: 48px; height: 48px; font-size: 1.2rem; }
+
+  a[href]:not(.pathway-image-link) { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body id="top">
+
+<nav class="rail">
+  <div class="rail-track"></div>
+  <a href="#mission"><span class="dot"></span><span class="label">Mission</span></a>
+  <a href="#pathway"><span class="dot"></span><span class="label">Pathway</span></a>
+  <a href="#stages-overview"><span class="dot"></span><span class="label">6 Stages</span></a>
+  <a href="#stage1"><span class="dot"></span><span class="label">Stage 1</span></a>
+  <a href="#stage2"><span class="dot"></span><span class="label">Stage 2</span></a>
+  <a href="#stage3"><span class="dot"></span><span class="label">Stage 3</span></a>
+  <a href="#stage4"><span class="dot"></span><span class="label">Stage 4</span></a>
+  <a href="#stage5"><span class="dot"></span><span class="label">Stage 5</span></a>
+  <a href="#stage6"><span class="dot"></span><span class="label">Stage 6</span></a>
+  <a href="#guidelines"><span class="dot"></span><span class="label">Guidelines</span></a>
+</nav>
+
+<header class="topbar">
+  <a class="brand" href="#top">
+    <img class="crest" src="images/clontarf-crest.png" alt="">
+    <span class="brand-name">Clontarf GAA</span>
+  </a>
+  <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks">
+    <span class="nav-toggle-icon"></span> Menu
+  </button>
+  <div class="nav-links" id="navLinks">
+      <a href="#mission">Mission</a>
+      <a href="#pathway">Pathway</a>
+      <a href="#stages-overview">6 Stages</a>
+      <a href="#stage1">Stage 1 (4-6)</a>
+      <a href="#stage2">Stage 2 (7-9)</a>
+      <a href="#stage3">Stage 3 (10-11)</a>
+      <a href="#stage4">Stage 4 (12-13)</a>
+      <a href="#stage5">Stage 5 (14-15)</a>
+      <a href="#stage6">Stage 6 (16-17)</a>
+      <a href="#guidelines">Session Guidelines</a>
+  </div>
+</header>
+
+<div class="focus-banner" id="focusBanner">
+  <span>Showing <span class="focus-stage-name">this stage</span> for you.</span>
+  <a href="?">View the full pathway</a>
+</div>
+
+<div class="hero">
+  <img class="hero-bg" src="images/hero-team-huddle.jpg" alt="Clontarf GAA underage team huddle before a match">
+  <div class="hero-content">
+    <div class="inner">
+      <span class="hero-tagline">Mentor Handbook</span>
+      <h1>Clontarf GAA</h1>
+      <p class="sub">The Coaching Pathway</p>
+    </div>
+  </div>
+  <div class="scroll-cue"><span>Scroll</span><span class="arrow"></span></div>
+</div>
+
+<div class="logos-strip">
+  <img class="logo-gaa" src="images/logo-gaa.png" alt="GAA">
+  <img class="logo-lgfa" src="images/logo-lgfa.png" alt="LGFA Ladies Gaelic Football">
+  <img class="logo-camogie" src="images/logo-camogie.png" alt="The Camogie Association">
+  <img class="logo-handball" src="images/logo-handball.png" alt="GAA Handball">
+</div>
+
+<div class="quick-jump">
+  <span class="qj-label">Jump straight to your stage</span>
+  <a href="#stage1">Stage 1 <span class="qj-age">&middot; 4-6</span></a>
+  <a href="#stage2">Stage 2 <span class="qj-age">&middot; 7-9</span></a>
+  <a href="#stage3">Stage 3 <span class="qj-age">&middot; 10-11</span></a>
+  <a href="#stage4">Stage 4 <span class="qj-age">&middot; 12-13</span></a>
+  <a href="#stage5">Stage 5 <span class="qj-age">&middot; 14-15</span></a>
+  <a href="#stage6">Stage 6 <span class="qj-age">&middot; 16-17</span></a>
+</div>
+
+  <section id="mission">
+    <div class="wrap">
+      <span class="kicker">Why we do this</span>
+      <h2 class="section-title">Mission Statement</h2>
+      <div class="mission-wrap">
+        <span class="mission-mark" aria-hidden="true">&ldquo;</span>
+        <p>Clontarf GAA Club are committed to ensuring that all our juvenile teams are as competitive as possible. That each player is constantly learning and will be in a better place when progressing to the next age level, and with the intention of ensuring each player can reach their full potential throughout their underage careers. By devising and developing our own “Player Pathway” we are creating the environment that all our young players “Play and Stay” with Clontarf GAA Club, not only for their playing careers but throughout their lives.</p>
+    <p>This resource is designed to help our coaches do the right thing at the right time for all our players.</p>
+      </div>
+    </div>
+    <p class="mission-banner">BETTER COACHES = BETTER PLAYERS</p>
+  </section>
+
+<div class="wrap">
+<section id="introduction" class="tight">
+  <span class="kicker">Getting started</span>
+  <h2 class="section-title">Introduction</h2>
+  <p>Welcome to the Clontarf GAA player pathway. This pathway has been created to provide a structured, consistent framework to help guide coaches, managers, mentors and parents who play an active role in the development of our young players.</p><p>In order to give our young players the best opportunity to succeed at whatever level they may play and reach their full potential “doing the right thing, at the right time and in the right way” this document should be viewed as a route map which sets out the key characteristics and identifies the age appropriate content (technical, tactical, physical and team play) that should be coached or practiced at a particular age and stage of the player’s career.</p><p>Crucial to each player’s development across all stages of the player pathway is their athletic development. We encourage all those assisting the implementation of this pathway to refer to the Athletic Development Programme that we developed by the club a number of years ago. This valuable resource is accessible on the club website at <a href="https://clontarfgaa.com/documents" style="color:var(--red-dark)">clontarfgaa.com/documents</a>.</p>
+</section>
+</div>
+
+  <div class="photo-pair">
+    <img src="images/nursery-hurling-1.jpg" alt="Nursery camogie group holding hurls aloft on the astro pitch">
+    <img src="images/nursery-hurling-2.jpg" alt="Nursery hurling group and coaches holding hurls aloft, Christmas session">
+  </div>
+
+  <section id="pathway" class="tight">
+    <div class="wrap">
+      <span class="kicker">The journey</span>
+      <h2 class="section-title">Our Long Term Development Pathway</h2>
+      <div class="two-col-lists">
+        <div>
+          <h3>The Club's Pathway</h3>
+          <ol class="num-list">
+      <li><span class="num">1</span><strong>Active Fun Start:</strong> The club is fun and part of daily life.</li>
+      <li><span class="num">2</span><strong>Fundamentals:</strong> Develop physical literacy and motor skills.</li>
+      <li><span class="num">3</span><strong>Play To Learn:</strong> Learning the fundamental skills of the game.</li>
+      <li><span class="num">4</span><strong>Learning To Train:</strong> Consolidating sports specific skills.</li>
+      <li><span class="num">5</span><strong>Training To Compete:</strong> Fine tune skills and performance.</li>
+      <li><span class="num">6</span><strong>Compete To Win:</strong> Maximising performance.</li>
+      <li><span class="num">7</span><strong>Retirement and Retainment:</strong> Retain players/athletes for coaching/administration.</li>
+          </ol>
+        </div>
+        <div>
+          <h3>How A Parent Can Help</h3>
+          <ol class="num-list red">
+      <li><span class="num">1</span>Attend matches to see their children play.</li>
+      <li><span class="num">2</span>Ask them how they got on at training and matches.</li>
+      <li><span class="num">3</span>Go out for a few kicks and pucks with children most evenings.</li>
+      <li><span class="num">4</span>Support all Clontarf GAA teams, with their children.</li>
+      <li><span class="num">5</span>Become an active member of the club.</li>
+      <li><span class="num">6</span>Respect coaches, referees and opposition teams.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="stages-overview" class="tight">
+    <div class="wrap">
+      <span class="kicker">The big picture</span>
+      <h2 class="section-title">6 Stages of the Pathway</h2>
+      <div class="roadmap">
+        <div class="roadmap-track">
+    <a class="roadmap-node" href="#stage1">
+      <span class="circle">1</span>
+      <span class="meta">
+        <span class="age">Ages 4-6</span>
+        <span class="name">Learn to Master the Ball</span>
+      </span>
+    </a>
+    <a class="roadmap-node" href="#stage2">
+      <span class="circle">2</span>
+      <span class="meta">
+        <span class="age">Ages 7-9</span>
+        <span class="name">Learn to Use the Ball Well</span>
+      </span>
+    </a>
+    <a class="roadmap-node" href="#stage3">
+      <span class="circle">3</span>
+      <span class="meta">
+        <span class="age">Ages 10-11</span>
+        <span class="name">Learn to Play Together</span>
+      </span>
+    </a>
+    <a class="roadmap-node" href="#stage4">
+      <span class="circle">4</span>
+      <span class="meta">
+        <span class="age">Ages 12-13</span>
+        <span class="name">Learn about Positions and Decisions</span>
+      </span>
+    </a>
+    <a class="roadmap-node" href="#stage5">
+      <span class="circle">5</span>
+      <span class="meta">
+        <span class="age">Ages 14-15</span>
+        <span class="name">Learn about Positions and Decisions</span>
+      </span>
+    </a>
+    <a class="roadmap-node" href="#stage6">
+      <span class="circle">6</span>
+      <span class="meta">
+        <span class="age">Ages 16-17</span>
+        <span class="name">Learn to Perform</span>
+      </span>
+    </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="stage1" class="stage-section">
+    <span class="stage-watermark" aria-hidden="true">01</span>
+    <div class="wrap stage-inner">
+      <div class="stage-eyebrow">
+        <span class="stage-num-badge">1</span>
+        <span class="age-range">Ages 4–6</span>
+      </div>
+      <h2 class="section-title">Learning to Master the Ball</h2>
+
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
+      <div class="tabs sport-tabs">
+        <div class="tab-buttons">
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
+        </div>
+        <div class="tab-panels">
+      <div class="tab-panel active">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 4-6</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-pathway-4-6.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 4-6">
+            <img src="images/pathway/football-pathway-4-6.webp" alt="Football Player Pathway wheel for Ages 4-6" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Nursery Stations Model <span class="pathway-age-tag">Football &middot; Ages 4-6</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-session-4-6.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Nursery Stations Model for Ages 4-6">
+            <img src="images/pathway/football-session-4-6.webp" alt="Football Nursery Stations Model for Ages 4-6" loading="lazy">
+          </a>
+        </div>
+      </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 4-6</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-4-6.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 4-6">
+            <img src="images/pathway/hurling-pathway-4-6.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 4-6" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Nursery Stations Model <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 4-6</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-session-4-6.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Nursery Stations Model for Ages 4-6">
+            <img src="images/pathway/hurling-session-4-6.webp" alt="Hurling and Camogie Nursery Stations Model for Ages 4-6" loading="lazy">
+          </a>
+        </div>
+      </div>
+        </div>
+      </div>
+
+
+      <details class="assessment-block" data-key="stage1">
+        <summary>
+          <span class="a-title">Skills Assessment</span>
+          <span class="a-progress">
+            <span class="progress-count">0 / 24 checked</span>
+            <span class="chevron" aria-hidden="true">&#9660;</span>
+          </span>
+        </summary>
+        <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+        <div class="checklist-cols">
+        <div>
+          <h4>Hurling/Camogie Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span>Correct <strong>Hurley Size</strong>.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Dominant Hand</strong> Established.</span></label></li>
+          <li><label><input type="checkbox"><span>Correct <strong>Grip</strong> (Ready, Lock, Swing).</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Swinging Hurley</strong> Dominant Side Hitting a Stationary Ball 5 Times in a Row without missing.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Swinging Hurley</strong> Non Dominant Side Hitting a Stationary Ball 5 Times in a Row without missing.</span></label></li>
+          <li><label><input type="checkbox"><span>Good <strong>Fluid</strong> Movement in Swing.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Ground Striking</strong> Ball a Distance of 10m Dominant Side.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Ground Striking</strong> Ball a Distance of 20m Dominant Side.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Ground Striking</strong> Ball a Distance of 10m Non Dominant Side.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Ground Striking</strong> Ball a Distance of 20m Non Dominant Side.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Ground Stop:</strong> Stopping a Moving Ball (coach rolls to child) 10m away 5 times in a row without missing.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Dribble</strong> Ball on Ground 20m while Jogging/Running.</span></label></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Football Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span>2 Handed <strong>Bounce and Catch</strong> - 10 times in a row.</span></label></li>
+          <li><label><input type="checkbox"><span>2 Handed <strong>Bounce and Catch</strong> Jogging/Running 20m.</span></label></li>
+          <li><label><input type="checkbox"><span>One Hand <strong>Bounce and Catch</strong> Dominant Hand 10 times in row.</span></label></li>
+          <li><label><input type="checkbox"><span>One Hand <strong>Bounce and Catch</strong> Non Dominant Hand 10 Times in Row.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Throw and Catch</strong> to Yourself in a Stationary Position 10 Times in a Row.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Throw and Catch</strong> to Yourself Jogging/Running 10 Times in a Row.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Pick up</strong> a Ball as Many Times as Possible in 60 secs (Average is 15).</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Pick up</strong> a moving ball 10 times in a row (coach or partner rolls ball).</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Ground Kick</strong> at a target dominant foot.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Ground Kick</strong> at a target non dominant foot.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Kick from 2 Hands</strong> at a target (partner) dominant foot 10 times.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Kick from 2 Hands</strong> at a target (partner) non dominant foot 10 times.</span></label></li>
+          </ul>
+        </div>
+        </div>
+        <button type="button" class="reset-checklist">Reset checklist</button>
+      </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="stage2" class="stage-section">
+    <span class="stage-watermark" aria-hidden="true">02</span>
+    <div class="wrap stage-inner">
+      <div class="stage-eyebrow">
+        <span class="stage-num-badge">2</span>
+        <span class="age-range">Ages 7–9</span>
+      </div>
+      <h2 class="section-title">Learning To Use The Ball Well</h2>
+
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
+      <div class="tabs sport-tabs">
+        <div class="tab-buttons">
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
+        </div>
+        <div class="tab-panels">
+      <div class="tab-panel active">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 7-9</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-pathway-7-9.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 7-9">
+            <img src="images/pathway/football-pathway-7-9.webp" alt="Football Player Pathway wheel for Ages 7-9" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 7-9</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-session-7-9.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 7-9">
+            <img src="images/pathway/football-session-7-9.webp" alt="Football sample session for Ages 7-9" loading="lazy">
+          </a>
+        </div>
+      </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 7-9</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-7-9.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 7-9">
+            <img src="images/pathway/hurling-pathway-7-9.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 7-9" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 7-9</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-session-7-9.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 7-9">
+            <img src="images/pathway/hurling-session-7-9.webp" alt="Hurling and Camogie sample session for Ages 7-9" loading="lazy">
+          </a>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      <details class="assessment-block" data-key="stage2">
+        <summary>
+          <span class="a-title">Skills Assessment</span>
+          <span class="a-progress">
+            <span class="progress-count">0 / 17 checked</span>
+            <span class="chevron" aria-hidden="true">&#9660;</span>
+          </span>
+        </summary>
+        <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+        <div class="checklist-cols">
+        <div>
+          <h4>Hurling/Camogie Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span><strong>Ground Strike</strong> From a standing position and from the dominant side take a full swing and strike the ball on the ground a minimum distance of 13 metres between two posts that are three metres apart.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Ground Strike</strong> From a standing position and from the non dominant side take a full swing and strike the ball on the ground a minimum distance of 13 metres between two posts that are three metres apart.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Jab Lift</strong> Sliotar as Many Times as Possible in 60 secs (Average is 15).</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Striking From Hand</strong> a Distance of 10m Dominant Side.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Striking From Hand</strong> a Distance of 10m Non Dominant Side.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Bouncing Ball</strong> On Hurley in Succession in 60 secs (Average is 25).</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Chest Catch</strong> Coach throws ball/bean bag to child’s chest. Child catches ball with hand. Distance from coach 3m.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>High Catch</strong> Coach throws a ball over child’s head and child attempts to catch the ball. Distance from coach is 3m.</span></label></li>
+          <li><label><input type="checkbox"><span>Coach rolls ball to alternate sides. Child must pull on ball without turning to dominant side. Both sides.</span></label></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Football Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span><strong>Chest Catch</strong> Coach throws ball to child’s chest. Child catches ball using body. Distance from coach 5m.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Low Catch</strong> Coach throws a bouncing ball to child’s feet. Child catches ball using hands. Distance from coach 5m.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>High Catch</strong> Coach throws a High ball to child. Child catches ball above head using hands. Distance from coach 5m.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Kick from Hands</strong> From a standing position and from the dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Kick from Hands</strong> From a standing position and from the non dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Hook Kick</strong> From a standing position and from the dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Hook Kick</strong> From a standing position and from the non dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Solo</strong> Player Toe Tap Solo’s the ball as many times as possible in 60 secs (Average is 25).</span></label></li>
+          </ul>
+        </div>
+        </div>
+        <button type="button" class="reset-checklist">Reset checklist</button>
+      </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="stage3" class="stage-section">
+    <span class="stage-watermark" aria-hidden="true">03</span>
+    <div class="wrap stage-inner">
+      <div class="stage-eyebrow">
+        <span class="stage-num-badge">3</span>
+        <span class="age-range">Ages 10–11</span>
+      </div>
+      <h2 class="section-title">Learning To Play Together</h2>
+
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
+      <div class="tabs sport-tabs">
+        <div class="tab-buttons">
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
+        </div>
+        <div class="tab-panels">
+      <div class="tab-panel active">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 10-11</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-pathway-10-11.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 10-11">
+            <img src="images/pathway/football-pathway-10-11.webp" alt="Football Player Pathway wheel for Ages 10-11" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 10-11</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-session-10-11.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 10-11">
+            <img src="images/pathway/football-session-10-11.webp" alt="Football sample session for Ages 10-11" loading="lazy">
+          </a>
+        </div>
+      </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 10-11</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-10-11.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 10-11">
+            <img src="images/pathway/hurling-pathway-10-11.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 10-11" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 10-11</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-session-10-11.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 10-11">
+            <img src="images/pathway/hurling-session-10-11.webp" alt="Hurling and Camogie sample session for Ages 10-11" loading="lazy">
+          </a>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      <details class="assessment-block" data-key="stage3">
+        <summary>
+          <span class="a-title">Skills Assessment</span>
+          <span class="a-progress">
+            <span class="progress-count">0 / 21 checked</span>
+            <span class="chevron" aria-hidden="true">&#9660;</span>
+          </span>
+        </summary>
+        <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+        <div class="checklist-cols">
+        <div>
+          <h4>Hurling/Camogie Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span><strong>Frontal Block:</strong> Coach strikes 6 sliotars and player attempts to block the ball in each case. Emphasis on proper technique.</span></label></li>
+          <li><label><input type="checkbox"><span>Coach throws a ball over the players head and the player <strong>bats</strong> the ball back in the direction of the coach. Distance from coach to player = 3 metres.</span></label></li>
+          <li><label><input type="checkbox"><span>Players <strong>strike</strong> ball from the hand on dominant side. Under/over crossbar 15m/20m/25m = 6 attempts (2 at each distance).</span></label></li>
+          <li><label><input type="checkbox"><span>Players <strong>strike</strong> ball from the hand on non dominant side. Under/over crossbar 15m/20m/25m = 6 attempts (2 at each distance).</span></label></li>
+          <li><label><input type="checkbox"><span>Player <strong>solos</strong> with ball on hurley at near top speed for a distance of 30m without allowing ball to fall.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Striking</strong> sliotar on the run from hand off dominant side over the bar from in front of goals 15m/20m/25m.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Striking</strong> sliotar on the run from hand off non dominant side over the bar from in front of goals 15m/20m/25m.</span></label></li>
+          <li><label><input type="checkbox"><span>Player <strong>handpasses</strong> with dominant hand across the body to a receiver 3 metres away.</span></label></li>
+          <li><label><input type="checkbox"><span>Player <strong>handpasses</strong> with non dominant hand across the body to a receiver 3 metres away.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Striking from the hand</strong> dominant side. Ball cannot touch ground and cannot go over the crossbar. Must hit back of net cleanly from 21m line.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Striking from the hand</strong> non dominant side. Ball cannot touch ground and cannot go over the crossbar. Must hit back of net cleanly from 21m line.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Long Strike</strong> a ball from the hand, from the ‘dominant’ side. A minimum distance before touching the ground of 32 metres i.e. from the 13 metre line over the 45 metre line.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Long Strike</strong> a ball from the hand, from the ‘Non dominant’ side. A minimum distance before touching the ground of 32 metres i.e. from the 13 metre line over the 45 metre line.</span></label></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Football Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span>Coach throws ball to child’s chest. Child catches ball using body. Distance from coach 5m.</span></label></li>
+          <li><label><input type="checkbox"><span>Coach throws a bouncing ball to child’s feet. Child catches ball using hands. Distance from coach 5m.</span></label></li>
+          <li><label><input type="checkbox"><span>Coach throws a High ball to child. Child catches ball above head using hands. Distance from coach 5m.</span></label></li>
+          <li><label><input type="checkbox"><span>From a standing position and from the dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</span></label></li>
+          <li><label><input type="checkbox"><span>From a standing position and from the non dominant foot player Punt kicks the ball dropping with one hand a minimum distance of 13 metres to a partner for a catch.</span></label></li>
+          <li><label><input type="checkbox"><span>From a standing position and from the dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</span></label></li>
+          <li><label><input type="checkbox"><span>From a standing position and from the non dominant foot player Hook kicks the ball dropping with one hand a minimum distance of 13 metres between two posts that are three metres apart.</span></label></li>
+          <li><label><input type="checkbox"><span>Player Toe Tap Solo’s the ball as many times as possible in 60 secs (Average is 25).</span></label></li>
+          </ul>
+        </div>
+        </div>
+        <button type="button" class="reset-checklist">Reset checklist</button>
+      </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="stage4" class="stage-section">
+    <span class="stage-watermark" aria-hidden="true">04</span>
+    <div class="wrap stage-inner">
+      <div class="stage-eyebrow">
+        <span class="stage-num-badge">4</span>
+        <span class="age-range">Ages 12–13</span>
+      </div>
+      <h2 class="section-title">Learning About Positions and Decisions</h2>
+
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
+      <div class="tabs sport-tabs">
+        <div class="tab-buttons">
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
+        </div>
+        <div class="tab-panels">
+      <div class="tab-panel active">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 12-13</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-pathway-12-13.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 12-13">
+            <img src="images/pathway/football-pathway-12-13.webp" alt="Football Player Pathway wheel for Ages 12-13" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 12-13</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-session-12-13.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 12-13">
+            <img src="images/pathway/football-session-12-13.webp" alt="Football sample session for Ages 12-13" loading="lazy">
+          </a>
+        </div>
+      </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 12-13</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-12-13.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 12-13">
+            <img src="images/pathway/hurling-pathway-12-13.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 12-13" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 12-13</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-session-12-13.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 12-13">
+            <img src="images/pathway/hurling-session-12-13.webp" alt="Hurling and Camogie sample session for Ages 12-13" loading="lazy">
+          </a>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      <details class="assessment-block" data-key="stage4">
+        <summary>
+          <span class="a-title">Skills Assessment</span>
+          <span class="a-progress">
+            <span class="progress-count">0 / 14 checked</span>
+            <span class="chevron" aria-hidden="true">&#9660;</span>
+          </span>
+        </summary>
+        <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+        <div class="checklist-cols">
+        <div>
+          <h4>Hurling/Camogie Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the dominant side, to pass under the crossbar without touching the ground.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the non dominant side, to pass under the crossbar without touching the ground.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Long Strike</strong> a ball from the hand, on the dominant side, a minimum distance of 50 metres before touching the ground.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Long Strike</strong> a ball from the hand, on the non dominant side, a minimum distance of 50 metres before touching the ground.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Lift, Solo, Strike</strong> Run at least 4 metres to a ball on the 65 metre line. Lift the ball. On the run using the two handed jab lift, solo run with the ball (hopping or stationary) on the hurley to a marker (flag) 45 metres away; without stopping, either strike the ball with the hurley or hand pass the ball (without dropping the hurley) a distance of at least 2 metres to pass between two posts set two metres apart without touching the ground.</span></label></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Football Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span><strong>Ball Feint</strong> Players carry the ball 10m, ball feint a defender and shoot for goal 20m away.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Fist Pass</strong> From a standing position and from the dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Fist Pass</strong> From a standing position and from the non dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Receiving ball at pace</strong> Player stands 30m away from coach or partner. Ball is delivered with the foot for a one bounce catch. Receiver sprints to the ball and attempts to catch and control.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>1 v 1 Near Hand Tackle</strong> Players pair off on the 45m line one going for goal and other the tackler. The tackler attempts to make a good technique attempt at a near hand tackle. Look at the tackler for good technique. 3 dispossessions equal a pass.</span></label></li>
+          </ul>
+        </div>
+        </div>
+        <button type="button" class="reset-checklist">Reset checklist</button>
+      </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="stage5" class="stage-section">
+    <span class="stage-watermark" aria-hidden="true">05</span>
+    <div class="wrap stage-inner">
+      <div class="stage-eyebrow">
+        <span class="stage-num-badge">5</span>
+        <span class="age-range">Ages 14–15</span>
+      </div>
+      <h2 class="section-title">Learning About Positions and Decisions</h2>
+
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
+      <div class="tabs sport-tabs">
+        <div class="tab-buttons">
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
+        </div>
+        <div class="tab-panels">
+      <div class="tab-panel active">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 14-15</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-pathway-14-15.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 14-15">
+            <img src="images/pathway/football-pathway-14-15.webp" alt="Football Player Pathway wheel for Ages 14-15" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 14-15</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-session-14-15.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 14-15">
+            <img src="images/pathway/football-session-14-15.webp" alt="Football sample session for Ages 14-15" loading="lazy">
+          </a>
+        </div>
+      </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 14-15</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-14-15.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 14-15">
+            <img src="images/pathway/hurling-pathway-14-15.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 14-15" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 14-15</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-session-14-15.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 14-15">
+            <img src="images/pathway/hurling-session-14-15.webp" alt="Hurling and Camogie sample session for Ages 14-15" loading="lazy">
+          </a>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      <details class="assessment-block" data-key="stage5">
+        <summary>
+          <span class="a-title">Skills Assessment</span>
+          <span class="a-progress">
+            <span class="progress-count">0 / 14 checked</span>
+            <span class="chevron" aria-hidden="true">&#9660;</span>
+          </span>
+        </summary>
+        <div class="progress-bar"><div class="progress-bar-fill"></div></div>
+        <div class="checklist-cols">
+        <div>
+          <h4>Hurling/Camogie Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the dominant side, to pass under the crossbar without touching the ground.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Free Puck</strong> From a standing position on the centre of the 20m line, roll - lift the ball and strike it, without handling, on the non dominant side, to pass under the crossbar without touching the ground.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Free Puck</strong> From a standing position 40 metres from goal strike from the hand, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Long Strike</strong> a ball from the hand, on the dominant side, a minimum distance of 50 metres before touching the ground.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Long Strike</strong> a ball from the hand, on the non dominant side, a minimum distance of 50 metres before touching the ground.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Lift, Solo, Strike</strong> Run at least 4 metres to a ball on the 65 metre line. Lift the ball. On the run using the two handed jab lift, solo run with the ball (hopping or stationary) on the hurley to a marker (flag) 45 metres away; without stopping, either strike the ball with the hurley or hand pass the ball (without dropping the hurley) a distance of at least 2 metres to pass between two posts set two metres apart without touching the ground.</span></label></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Football Skills Checklist</h4>
+          <ul class="checklist">
+          <li><label><input type="checkbox"><span><strong>Ball Feint</strong> Players carry the ball 10m, ball feint a defender and shoot for goal 20m away.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Fist Pass</strong> From a standing position and from the dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Fist Pass</strong> From a standing position and from the non dominant hand player fist passes the ball a minimum distance of 13 metres to a partner for a catch.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Receiving ball at pace</strong> Player stands 30m away from coach or partner. Ball is delivered with the foot for a one bounce catch. Receiver sprints to the ball and attempts to catch and control.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>Shooting at angles</strong> From a standing position 25 metres from goal kick, on the non dominant side, over the crossbar. Two attempts to be made facing the centre of the goal, and two attempts to be made 20 metres from the right and left hand sides of the goal.</span></label></li>
+          <li><label><input type="checkbox"><span><strong>1 v 1 Near Hand Tackle</strong> Players pair off on the 45m line one going for goal and other the tackler. The tackler attempts to make a good technique attempt at a near hand tackle. Look at the tackler for good technique. 3 dispossessions equal a pass.</span></label></li>
+          </ul>
+        </div>
+        </div>
+        <button type="button" class="reset-checklist">Reset checklist</button>
+      </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="stage6" class="stage-section">
+    <span class="stage-watermark" aria-hidden="true">06</span>
+    <div class="wrap stage-inner">
+      <div class="stage-eyebrow">
+        <span class="stage-num-badge">6</span>
+        <span class="age-range">Ages 16–17</span>
+      </div>
+      <h2 class="section-title">Learn To Perform</h2>
+
+      <button type="button" class="stage-toggle">Show full details for this stage &darr;</button>
+
+      <div class="stage-collapsible">
+      <div class="tabs sport-tabs">
+        <div class="tab-buttons">
+        <button type="button" class="tab-btn active">Football</button>
+        <button type="button" class="tab-btn">Hurling / Camogie</button>
+        </div>
+        <div class="tab-panels">
+      <div class="tab-panel active">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Football &middot; Ages 16-17</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-pathway-16-17.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football Player Pathway wheel for Ages 16-17">
+            <img src="images/pathway/football-pathway-16-17.webp" alt="Football Player Pathway wheel for Ages 16-17" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Football &middot; Ages 16-17</span></h3>
+          <a class="pathway-image-link" href="images/pathway/football-session-16-17.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Football sample session for Ages 16-17">
+            <img src="images/pathway/football-session-16-17.webp" alt="Football sample session for Ages 16-17" loading="lazy">
+          </a>
+        </div>
+      </div>
+      <div class="tab-panel">
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Player Pathway <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 16-17</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-pathway-16-17.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie Player Pathway wheel for Ages 16-17">
+            <img src="images/pathway/hurling-pathway-16-17.webp" alt="Hurling and Camogie Player Pathway wheel for Ages 16-17" loading="lazy">
+          </a>
+        </div>
+        <div class="pathway-image-block">
+          <h3 class="pathway-image-heading">Sample Session <span class="pathway-age-tag">Hurling/Camogie &middot; Ages 16-17</span></h3>
+          <a class="pathway-image-link" href="images/pathway/hurling-session-16-17.webp" target="_blank" rel="noopener" aria-label="Open full-size image to save or share: Hurling and Camogie sample session for Ages 16-17">
+            <img src="images/pathway/hurling-session-16-17.webp" alt="Hurling and Camogie sample session for Ages 16-17" loading="lazy">
+          </a>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section id="guidelines">
+    <div class="wrap">
+      <span class="kicker">Putting it into practice</span>
+      <h2 class="section-title">Session Guidelines</h2>
+      <div class="principles-row">
+      <span class="principle-chip"><span class="n">1</span>Player Centred Approach</span>
+      <span class="principle-chip"><span class="n">2</span>Lead By Example</span>
+      <span class="principle-chip"><span class="n">3</span>Set Realistic and Achievable Goals</span>
+      <span class="principle-chip"><span class="n">4</span>Plan Sessions</span>
+      <span class="principle-chip"><span class="n">5</span>Review Sessions</span>
+      <span class="principle-chip"><span class="n">6</span>Give Positive Feedback to players</span>
+      </div>
+
+      <h3 style="font-family:var(--heading-font);text-transform:uppercase;letter-spacing:.5px;color:var(--navy);font-size:1.1rem;margin:0 0 1rem;">Session Duration</h3>
+      <div class="duration-rows">
+      <div class="duration-row">
+        <span class="age-group">Nursery</span>
+        <span class="bar-track"><span class="bar-fill" style="width:50%"></span></span>
+        <span class="duration-label">45 Minutes</span>
+      </div>
+      <div class="duration-row">
+        <span class="age-group">Under 7, 8</span>
+        <span class="bar-track"><span class="bar-fill" style="width:50%"></span></span>
+        <span class="duration-label">45 minutes</span>
+      </div>
+      <div class="duration-row">
+        <span class="age-group">Under 9, 10</span>
+        <span class="bar-track"><span class="bar-fill" style="width:56%"></span></span>
+        <span class="duration-label">45/50 Minutes</span>
+      </div>
+      <div class="duration-row">
+        <span class="age-group">Under 11, 12</span>
+        <span class="bar-track"><span class="bar-fill" style="width:67%"></span></span>
+        <span class="duration-label">50/60 Minutes</span>
+      </div>
+      <div class="duration-row">
+        <span class="age-group">Under 13, 14</span>
+        <span class="bar-track"><span class="bar-fill" style="width:78%"></span></span>
+        <span class="duration-label">60/70 Minutes</span>
+      </div>
+      <div class="duration-row">
+        <span class="age-group">Under 15, 16</span>
+        <span class="bar-track"><span class="bar-fill" style="width:89%"></span></span>
+        <span class="duration-label">70/80 Minutes</span>
+      </div>
+      <div class="duration-row">
+        <span class="age-group">Under 17, 18</span>
+        <span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>
+        <span class="duration-label">70/90 Minutes</span>
+      </div>
+      </div>
+
+      <h3 style="font-family:var(--heading-font);text-transform:uppercase;letter-spacing:.5px;color:var(--navy);font-size:1.1rem;margin:2rem 0 1rem;">Giving Back To My Game</h3>
+      <div class="giving-back-grid">
+    <div class="giving-back-card">
+      <h3>Players</h3>
+      <ul>
+          <li>Will have surpassed physical peak or retired.</li>
+          <li>Possess an in-depth understanding of the game and will have their own opinion on how to play the game.</li>
+          <li>Understand positive lifestyle choices which will enhance sporting performance.</li>
+          <li>Have an understanding of the importance of individual preparation.</li>
+          <li>Have a desire to remain involved in their club.</li>
+          <li>Be hugely passionate about the success of their club and the quality of training provided.</li>
+          <li>Have an in-depth tactical awareness and understanding of how to apply tactics.</li>
+      </ul>
+    </div>
+    <div class="giving-back-card">
+      <h3>Coach</h3>
+      <ul>
+          <li>To keep past/retiring and current players in the club.</li>
+          <li>To educate new coaches and continue to develop coaches.</li>
+          <li>To continually increase the standard of coaching within the club.</li>
+          <li>To ensure lifelong involvement and enjoyment of the sport after playing career has ended.</li>
+      </ul>
+    </div>
+      </div>
+    </div>
+  </section>
+
+<footer>
+  <img class="crest" src="images/clontarf-crest.png" alt="Clontarf GAA crest">
+  <div class="foot-name">Clontarf GAA</div>
+  <div class="foot-tag">Coaching Pathway &amp; Mentor Handbook &middot; CLG Chluain Tarbh</div>
+  <div style="margin-top:1.5rem;display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+    <a class="back-top" href="#top">Back to top</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var links = document.getElementById('navLinks');
+  if (toggle) {
+    toggle.addEventListener('click', function () {
+      var open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    links.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
+  // Focused-link mode: ?stage=N collapses every other stage and jumps to it,
+  // so a coach can be sent a link straight to their own age group.
+  var focusStage = parseInt(new URLSearchParams(window.location.search).get('stage'), 10);
+  if (focusStage >= 1 && focusStage <= 6) {
+    var targetId = 'stage' + focusStage;
+    document.querySelectorAll('.stage-section').forEach(function (sec) {
+      if (sec.id !== targetId) sec.classList.add('collapsed');
+    });
+    var banner = document.getElementById('focusBanner');
+    var topbar = document.querySelector('.topbar');
+    var topbarH = topbar ? topbar.offsetHeight : 0;
+    if (banner) {
+      banner.classList.add('active');
+      banner.style.top = topbarH + 'px';
+      var nameEl = banner.querySelector('.focus-stage-name');
+      if (nameEl) nameEl.textContent = 'Stage ' + focusStage;
+    }
+    window.addEventListener('load', function () {
+      var target = document.getElementById(targetId);
+      if (target) {
+        var bannerH = banner ? banner.offsetHeight : 0;
+        var y = target.getBoundingClientRect().top + window.scrollY - topbarH - bannerH - 10;
+        window.scrollTo({ top: y, behavior: 'instant' });
+      }
+    });
+  }
+  document.querySelectorAll('.stage-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var sec = btn.closest('.stage-section');
+      if (sec) sec.classList.remove('collapsed');
+    });
+  });
+
+  // Tabs
+  document.querySelectorAll('.tabs').forEach(function (tabsEl) {
+    var buttons = tabsEl.querySelectorAll('.tab-btn');
+    var panels = tabsEl.querySelectorAll('.tab-panel');
+    buttons.forEach(function (btn, i) {
+      btn.addEventListener('click', function () {
+        buttons.forEach(function (b) { b.classList.remove('active'); });
+        panels.forEach(function (p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        panels[i].classList.add('active');
+      });
+    });
+  });
+
+  // Scrollspy rail
+  var railLinks = document.querySelectorAll('.rail a');
+  if (railLinks.length && 'IntersectionObserver' in window) {
+    var sections = [];
+    railLinks.forEach(function (a) {
+      var sec = document.querySelector(a.getAttribute('href'));
+      if (sec) sections.push(sec);
+    });
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var id = '#' + entry.target.id;
+        var link = document.querySelector('.rail a[href="' + id + '"]');
+        if (!link) return;
+        railLinks.forEach(function (l) { l.classList.remove('active'); });
+        link.classList.add('active');
+      });
+    }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+    sections.forEach(function (s) { obs.observe(s); });
+
+    // Position each dot proportionally to where its section actually falls
+    // in the page, so a long Stage section spaces out further than a short
+    // one instead of every dot being evenly spaced regardless of content length.
+    var rail = document.querySelector('.rail');
+    function layoutRail() {
+      if (!rail) return;
+      var railHeight = rail.getBoundingClientRect().height;
+      var docHeight = document.body.scrollHeight;
+      railLinks.forEach(function (a) {
+        var sec = document.querySelector(a.getAttribute('href'));
+        if (!sec) return;
+        var ratio = sec.offsetTop / docHeight;
+        a.style.top = (ratio * railHeight) + 'px';
+      });
+    }
+    layoutRail();
+    window.addEventListener('load', layoutRail);
+    window.addEventListener('resize', layoutRail);
+  }
+
+  // Printing should always show full content, regardless of what's
+  // collapsed/closed on screen -- stage sections default to collapsed.
+  // (Skills Assessment checklists are excluded from print entirely via
+  // CSS, so they don't need to be forced open here.)
+  window.addEventListener('beforeprint', function () {
+    document.querySelectorAll('.stage-section.collapsed').forEach(function (s) {
+      s.classList.add('was-collapsed-for-print');
+      s.classList.remove('collapsed');
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    document.querySelectorAll('.was-collapsed-for-print').forEach(function (s) {
+      s.classList.add('collapsed');
+      s.classList.remove('was-collapsed-for-print');
+    });
+  });
+
+  // Assessment checklists with localStorage persistence
+  document.querySelectorAll('.assessment-block').forEach(function (block) {
+    var key = 'clontarf-v4-' + block.dataset.key;
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
+    var boxes = block.querySelectorAll('input[type=checkbox]');
+    var progressEl = block.querySelector('.progress-count');
+    var barEl = block.querySelector('.progress-bar-fill');
+    function update() {
+      var checked = 0;
+      boxes.forEach(function (b) { if (b.checked) checked++; });
+      if (progressEl) progressEl.textContent = checked + ' / ' + boxes.length + ' checked';
+      if (barEl) barEl.style.width = (boxes.length ? (checked / boxes.length * 100) : 0) + '%';
+    }
+    boxes.forEach(function (b, i) {
+      if (saved[i]) b.checked = true;
+      b.addEventListener('change', function () {
+        saved[i] = b.checked;
+        localStorage.setItem(key, JSON.stringify(saved));
+        update();
+      });
+    });
+    var resetBtn = block.querySelector('.reset-checklist');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        boxes.forEach(function (b, i) { b.checked = false; saved[i] = false; });
+        localStorage.setItem(key, JSON.stringify(saved));
+        update();
+      });
+    }
+    update();
+  });
+})();
+</script>
+</body>
+</html>

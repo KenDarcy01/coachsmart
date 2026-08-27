@@ -19,6 +19,11 @@
       "target": "website-alt",
       "public": "website-alt",
       "ignore": ["firebase.json", "**/.*"]
+    },
+    {
+      "target": "dosclontarf",
+      "public": "dosclontarf",
+      "ignore": ["firebase.json", "**/.*"]
     }
   ]
 }
