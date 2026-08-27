@@ -453,7 +453,7 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
 
 /* ---------- Print ---------- */
 @media print {
-  @page { size: A4; margin: 14mm 12mm; }
+  @page { size: A4 landscape; margin: 10mm 12mm; }
   html { scroll-behavior: auto; }
   body { background: #fff; }
 
@@ -475,30 +475,33 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   .stage-section.collapsed .stage-collapsible { display: block !important; }
 
   /* Both sport tabs are meant to be in the printed handbook, not just
-     whichever one happened to be selected on screen. Each tab's pathway
-     wheel + sample-session pair is kept together as one page-break unit,
-     and the images are capped so the pair reliably fits on one page. */
+     whichever one happened to be selected on screen -- and each image
+     gets a page to itself for readability, landscape-sized to fill it.
+     Nothing prints alone though: the stage heading rides along with the
+     first (Football/Player Pathway) image, the "Hurling / Camogie" label
+     rides along with its first image, and each image's own heading
+     (which already names the sport and age band) travels with it since
+     it lives inside the same break-avoid block. */
   .sport-tabs .tab-buttons { display: none !important; }
-  .sport-tabs .tab-panel {
-    display: block !important; margin-bottom: 1.25rem; break-inside: avoid;
-  }
-  .sport-tabs .tab-panel:not(:last-child) {
-    padding-bottom: 1.25rem; border-bottom: 2px solid var(--line);
-  }
+  .sport-tabs .tab-panel { display: block !important; }
   .sport-tabs .tab-panel::before {
     display: block; font-family: var(--heading-font); font-weight: 700;
-    text-transform: uppercase; letter-spacing: .4px; font-size: .8rem;
-    color: #fff; background: var(--navy); padding: .35rem .7rem;
-    border-radius: 4px; margin: 0 0 .75rem; width: fit-content;
-    break-after: avoid;
+    text-transform: uppercase; letter-spacing: .4px; font-size: .85rem;
+    color: #fff; background: var(--navy); padding: .4rem .8rem;
+    border-radius: 4px; margin: 0 0 1rem; width: fit-content;
   }
   .sport-tabs .tab-panel:first-child::before { content: "Football"; }
   .sport-tabs .tab-panel:last-child::before { content: "Hurling / Camogie"; }
-  .pathway-image-heading { font-size: .78rem; margin-bottom: .3rem; }
-  .pathway-image-block { margin-bottom: .4rem; }
-  .pathway-image-block:last-child { margin-bottom: 0; }
-  .pathway-image-link { max-height: 92mm; width: fit-content; margin: 0 auto; }
-  .pathway-image-link img { max-height: 92mm; width: auto; }
+  .sport-tabs .tab-panel:last-child { break-before: page; }
+  .pathway-image-heading { font-size: .9rem; margin-bottom: .5rem; }
+  .pathway-image-block { break-inside: avoid; }
+  .sport-tabs .tab-panel > .pathway-image-block:first-child { break-before: avoid; }
+  .sport-tabs .tab-panel > .pathway-image-block:last-child { break-before: page; }
+  /* Sized conservatively enough to still fit alongside a stage heading
+     that wraps to two lines (e.g. "Learning About Positions and
+     Decisions") -- not just the common single-line case. */
+  .pathway-image-link { max-height: 88mm; width: fit-content; margin: 0 auto; }
+  .pathway-image-link img { max-height: 88mm; width: auto; }
 
   /* Chapter per stage, so each age band starts cleanly on its own page */
   .stage-section, #guidelines { break-before: page; }
@@ -509,6 +512,11 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   .stage-eyebrow, h2.section-title {
     break-inside: avoid;
   }
+  /* No heading should ever print stranded alone with its content pushed
+     to the next page -- this was happening to both "6 Stages of the
+     Pathway" (orphaned from the roadmap) and each stage's own title
+     (orphaned from its first pathway image). */
+  h2.section-title, .stage-eyebrow, .kicker { break-after: avoid; }
 
   /* The mobile vertical-list roadmap (stacked circles + connecting line)
      is meant for a narrow phone screen -- a print page is roughly that
