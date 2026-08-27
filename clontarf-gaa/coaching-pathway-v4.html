@@ -457,47 +457,67 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   html { scroll-behavior: auto; }
   body { background: #fff; }
 
-  /* Interactive/on-screen-only chrome has no place on a printed page */
+  /* Interactive/on-screen-only chrome has no place on a printed page.
+     The Skills Assessment checklists are left off the printed handbook
+     entirely -- they're an on-screen, tick-as-you-go tool, not reference
+     content -- and the roadmap-node links carry #stage anchors that are
+     meaningless once flattened to paper. */
   .rail, .topbar .nav-toggle, .nav-links, .focus-banner,
   .quick-jump, .hero .scroll-cue, .stage-toggle,
-  .pathway-image-link::after, .reset-checklist, .stage-watermark {
+  .pathway-image-link::after, .reset-checklist, .stage-watermark,
+  .assessment-block {
     display: none !important;
   }
 
   /* Every stage is collapsed by default in JS -- print always shows the
      full content regardless of on-screen state (see the beforeprint
-     handler below, which also forces the checklists open) */
+     handler below) */
   .stage-section.collapsed .stage-collapsible { display: block !important; }
 
   /* Both sport tabs are meant to be in the printed handbook, not just
-     whichever one happened to be selected on screen */
+     whichever one happened to be selected on screen. Each tab's pathway
+     wheel + sample-session pair is kept together as one page-break unit,
+     and the images are capped so the pair reliably fits on one page. */
   .sport-tabs .tab-buttons { display: none !important; }
-  .sport-tabs .tab-panel { display: block !important; margin-bottom: 1.5rem; }
+  .sport-tabs .tab-panel {
+    display: block !important; margin-bottom: 1.25rem; break-inside: avoid;
+  }
   .sport-tabs .tab-panel:not(:last-child) {
-    padding-bottom: 1.5rem; border-bottom: 2px solid var(--line);
+    padding-bottom: 1.25rem; border-bottom: 2px solid var(--line);
   }
   .sport-tabs .tab-panel::before {
     display: block; font-family: var(--heading-font); font-weight: 700;
     text-transform: uppercase; letter-spacing: .4px; font-size: .8rem;
     color: #fff; background: var(--navy); padding: .35rem .7rem;
-    border-radius: 4px; margin: 0 0 1rem; width: fit-content;
+    border-radius: 4px; margin: 0 0 .75rem; width: fit-content;
     break-after: avoid;
   }
   .sport-tabs .tab-panel:first-child::before { content: "Football"; }
   .sport-tabs .tab-panel:last-child::before { content: "Hurling / Camogie"; }
+  .pathway-image-heading { font-size: .78rem; margin-bottom: .3rem; }
+  .pathway-image-block { margin-bottom: .4rem; }
+  .pathway-image-block:last-child { margin-bottom: 0; }
+  .pathway-image-link { max-height: 92mm; width: fit-content; margin: 0 auto; }
+  .pathway-image-link img { max-height: 92mm; width: auto; }
 
   /* Chapter per stage, so each age band starts cleanly on its own page */
   .stage-section, #guidelines { break-before: page; }
   .hero { break-after: page; }
 
   /* Keep visually-atomic units from splitting across a page boundary */
-  .pathway-image-block, .roadmap-node, .duration-row,
-  .giving-back-card, .mission-wrap, .stage-eyebrow,
-  h2.section-title, .pathway-image-heading {
+  .roadmap-node, .duration-row, .giving-back-card, .mission-wrap,
+  .stage-eyebrow, h2.section-title {
     break-inside: avoid;
   }
-  .checklist-cols > div { break-inside: avoid-page; }
-  .assessment-block { break-before: page; }
+
+  /* The mobile vertical-list roadmap (stacked circles + connecting line)
+     is meant for a narrow phone screen -- a print page is roughly that
+     narrow too, which drags in that same cramped layout. Force the
+     roomier horizontal/wrapped card layout instead for print specifically. */
+  .roadmap-track { flex-direction: row !important; flex-wrap: wrap; justify-content: center; gap: 1.25rem 1.5rem; }
+  .roadmap-track::before { display: none; }
+  .roadmap-node { flex-direction: column !important; text-align: center; width: 150px; gap: 0; }
+  .roadmap-node .circle { width: 48px; height: 48px; font-size: 1.2rem; }
 
   a[href]:not(.pathway-image-link) { color: inherit; text-decoration: none; }
 }
@@ -1404,26 +1424,19 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
   }
 
   // Printing should always show full content, regardless of what's
-  // collapsed/closed on screen -- stage sections default to collapsed,
-  // and <details> hides its content natively unless [open] is set.
+  // collapsed/closed on screen -- stage sections default to collapsed.
+  // (Skills Assessment checklists are excluded from print entirely via
+  // CSS, so they don't need to be forced open here.)
   window.addEventListener('beforeprint', function () {
     document.querySelectorAll('.stage-section.collapsed').forEach(function (s) {
       s.classList.add('was-collapsed-for-print');
       s.classList.remove('collapsed');
-    });
-    document.querySelectorAll('details.assessment-block:not([open])').forEach(function (d) {
-      d.open = true;
-      d.dataset.reclose = 'true';
     });
   });
   window.addEventListener('afterprint', function () {
     document.querySelectorAll('.was-collapsed-for-print').forEach(function (s) {
       s.classList.add('collapsed');
       s.classList.remove('was-collapsed-for-print');
-    });
-    document.querySelectorAll('details.assessment-block[data-reclose]').forEach(function (d) {
-      d.open = false;
-      delete d.dataset.reclose;
     });
   });
 
