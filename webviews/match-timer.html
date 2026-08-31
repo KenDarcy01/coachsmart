@@ -277,6 +277,17 @@
     }
     .btn-save:hover { background: var(--green-dim); }
 
+    /* ── OFFLINE QUEUE INDICATOR ── */
+    .queue-indicator {
+      display: none; align-items: center; gap: 6px;
+      background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35);
+      border-radius: 8px; padding: 6px 12px; margin-top: 4px;
+      font-size: 11px; font-weight: 600; color: var(--amber);
+      width: 100%; max-width: 300px; box-sizing: border-box;
+    }
+    .queue-indicator.show { display: flex; }
+    .queue-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; }
+
     /* ── SCORE PANEL ── */
     .score-panel {
       width: 100%; max-width: 380px; margin-top: 8px;
@@ -619,6 +630,10 @@
         <div class="score-rows" id="oppScoreRows"></div>
       </div>
     </div>
+    <div class="queue-indicator" id="queueIndicator">
+      <div class="queue-dot"></div>
+      <span id="queueIndicatorText"></span>
+    </div>
     <div class="timer-buttons">
       <button class="btn-primary btn-start" id="toggleBtn" onclick="toggleTimer()">Start</button>
       <button class="btn-primary btn-start" id="halfTimeBtn" style="display:none" onclick="startSecondHalf()">Start 2nd Half</button>
@@ -675,17 +690,28 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // ── Webview parameter detection ───────────────────────────────────────────────
 // Accepts both snake_case (event_id, token) and camelCase (eventId, currentAuthToken)
 const _p         = new URLSearchParams(window.location.search);
-const WV_EVENT   = _p.get('event_id')  || _p.get('eventId');
-const WV_TOKEN   = _p.get('token')     || _p.get('currentAuthToken');
+const WV_EVENT   = _p.get('event_id')     || _p.get('eventId');
+const WV_TOKEN   = _p.get('token')        || _p.get('currentAuthToken');
+const WV_REFRESH = _p.get('refreshToken') || _p.get('refresh_token');
 const IS_WEBVIEW = !!(WV_EVENT && WV_TOKEN);
 
-const sb = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  IS_WEBVIEW
-    ? { global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } }, auth: { persistSession: false } }
-    : {}
-);
+// Build the Supabase client and a readiness promise.
+// If a refresh token is provided the SDK manages auto-refresh via setSession.
+// Otherwise fall back to a static Authorization header (backward compat).
+let sb, _sbReady;
+if (IS_WEBVIEW && WV_REFRESH) {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+  _sbReady = sb.auth.setSession({ access_token: WV_TOKEN, refresh_token: WV_REFRESH });
+} else if (IS_WEBVIEW) {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } },
+    auth: { persistSession: false },
+  });
+  _sbReady = Promise.resolve(null);
+} else {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  _sbReady = Promise.resolve(null);
+}
 
 if (IS_WEBVIEW) document.body.classList.add('webview');
 
@@ -707,6 +733,7 @@ let matchStatsRow  = null;     // row in match_stats for this session
 let scoreTypes     = [];       // [{id, score_type, abbreviated_name, score_value}]
 let scoreCounts    = {};       // {typeId: {us: N, opp: N}}
 let broadcastChannel = null;   // realtime channel for broadcasting timer state to stats viewers
+let matchEnded       = false;  // true once H2 has been explicitly ended; gates the Save Stats button
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -871,10 +898,11 @@ async function endCurrentPeriod() {
   timerRow.elapsed_seconds = cap;
   timerRow.started_at      = null;
   timerRow.status          = 'paused';
-  wasInInjuryTime          = true;
+  wasInInjuryTime = true;
   if (currentHalf === 1) {
     triggerHalfTimeWhistle();
   } else {
+    matchEnded = true;
     triggerFinalWhistle();
   }
   updateTimerUI();
@@ -907,8 +935,10 @@ async function checkAuth() {
 async function bootWebview() {
   showLoading('Loading match…');
   try {
+    const sessionResult = await _sbReady;
+    if (sessionResult?.error) throw new Error('Session expired — re-open the scorekeeper');
     const { data: { user }, error: authError } = await sb.auth.getUser();
-    if (authError || !user) throw new Error('Invalid auth token');
+    if (authError || !user) throw new Error('Session expired — re-open the scorekeeper');
     currentUser    = user;
     currentEventId = parseInt(WV_EVENT);
     const { data: event, error } = await sb
@@ -946,6 +976,7 @@ async function bootWebview() {
       renderScorePanel();
       updateScoreDisplay();
       showScreen('timerScreen');
+      updateQueueIndicator();
       updateTimerUI();
       if (timerRow.status === 'running') startInterval();
     } else {
@@ -953,7 +984,8 @@ async function bootWebview() {
     }
   } catch (e) {
     hideLoading();
-    showToast('Error loading match');
+    const expired = e.message?.includes('expired') || e.message?.includes('Invalid');
+    showToast(expired ? 'Session expired — re-open the scorekeeper' : 'Error loading match — check connection');
     console.error(e);
   }
 }
@@ -1286,6 +1318,7 @@ async function openTimer() {
     renderScorePanel();
     updateScoreDisplay();
     showScreen('timerScreen');
+    updateQueueIndicator();
     updateTimerUI();
     if (timerRow.status === 'running') startInterval();
   } catch (e) {
@@ -1376,6 +1409,7 @@ async function doReset(clearStats = true) {
   timerRow.status          = 'paused';
   timerRow.current_half    = 1;
   wasInInjuryTime = false;
+  matchEnded      = false;
   stopInterval();
   updateTimerUI();
   // Persist to DB in the background
@@ -1386,6 +1420,7 @@ async function doReset(clearStats = true) {
     .eq('user_id', currentUser.id);
   if (error) { showToast('Reset — sync will retry on reconnect'); }
   if (clearStats && matchStatsRow) {
+    clearQueue();
     // Marks old session 'reset', deletes its details, returns a fresh active session id
     const { data: resetData } = await sb.rpc('reset_match_stats_session', { p_match_stats_id: matchStatsRow.id });
     if (resetData?.id) matchStatsRow = { ...matchStatsRow, id: resetData.id };
@@ -1414,6 +1449,7 @@ async function tick() {
     if (currentHalf === 1) {
       triggerHalfTimeWhistle();
     } else {
+      matchEnded = true;
       triggerFinalWhistle();
     }
     await doPause();
@@ -1478,28 +1514,16 @@ function updateTimerUI() {
     halfTimeBtn.style.display = 'none';
     toggleBtn.textContent = isRunning ? 'Pause' : 'Start';
     toggleBtn.className   = `btn-primary ${isRunning ? 'btn-pause' : 'btn-start'}`;
-    // End Half / End Game — visible only during injury time before cap is hit
-    if (inInjury && !expired) {
-      endPeriodBtn.style.display = '';
-      endPeriodBtn.textContent   = currentHalf === 1 ? 'End Half' : 'End Game';
-    } else {
-      endPeriodBtn.style.display = 'none';
-    }
+    // End Half / End Game — visible whenever the timer is running (not just injury time)
+    endPeriodBtn.style.display = isRunning ? '' : 'none';
+    endPeriodBtn.textContent   = currentHalf === 1 ? 'End Half' : 'End Game';
   }
 
-  // Save / Finish & Save buttons
+  // Finish & Save — only after the user has explicitly ended the match (matchEnded flag)
   const saveStatsBtn  = $('saveStatsBtn');
   const finishSaveBtn = $('finishSaveBtn');
-  if (isFullTime) {
-    saveStatsBtn.style.display  = 'none';
-    finishSaveBtn.style.display = '';
-  } else if (!isRunning && elapsed > 0 && !isHalfTime) {
-    saveStatsBtn.style.display  = '';
-    finishSaveBtn.style.display = 'none';
-  } else {
-    saveStatsBtn.style.display  = 'none';
-    finishSaveBtn.style.display = 'none';
-  }
+  saveStatsBtn.style.display  = 'none';
+  finishSaveBtn.style.display = matchEnded ? '' : 'none';
 }
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
@@ -1683,6 +1707,50 @@ function updateScoreSummary() {
   }
 }
 
+// ── Offline score queue ───────────────────────────────────────────────────────
+function queueKey() { return `cs_score_queue_${currentEventId}`; }
+
+function enqueueScore(params) {
+  try {
+    const q = JSON.parse(localStorage.getItem(queueKey()) || '[]');
+    q.push(params);
+    localStorage.setItem(queueKey(), JSON.stringify(q));
+  } catch (_) {}
+  updateQueueIndicator();
+}
+
+function clearQueue() {
+  try { localStorage.removeItem(queueKey()); } catch (_) {}
+  updateQueueIndicator();
+}
+
+async function flushQueue() {
+  let q;
+  try { q = JSON.parse(localStorage.getItem(queueKey()) || '[]'); } catch (_) { q = []; }
+  if (!q.length) return 0;
+  const remaining = [];
+  for (const params of q) {
+    const { error } = await sb.rpc('log_match_stat', params);
+    if (error) remaining.push(params);
+  }
+  try { localStorage.setItem(queueKey(), JSON.stringify(remaining)); } catch (_) {}
+  updateQueueIndicator();
+  return remaining.length;
+}
+
+function updateQueueIndicator() {
+  const el = $('queueIndicator');
+  if (!el) return;
+  let q;
+  try { q = JSON.parse(localStorage.getItem(queueKey()) || '[]'); } catch (_) { q = []; }
+  if (q.length > 0) {
+    el.classList.add('show');
+    $('queueIndicatorText').textContent = `${q.length} score${q.length !== 1 ? 's' : ''} queued — will save when connected`;
+  } else {
+    el.classList.remove('show');
+  }
+}
+
 // Insert one event row (+ tap) or delete most recent row (− tap)
 async function adjustScore(typeId, side, delta) {
   if (!matchStatsRow) return;
@@ -1701,7 +1769,27 @@ async function adjustScore(typeId, side, delta) {
       p_timer_status:   timerStatus,
       p_half:           currentHalf,
     });
-    if (error) { console.error(error); showToast('Score not saved — check connection'); return; }
+    if (error) {
+      console.error(error);
+      const isAuthErr = error.status === 401 || error.status === 403 || error.code === 'PGRST301';
+      if (isAuthErr) {
+        showToast('Session expired — re-open the scorekeeper');
+      } else {
+        enqueueScore({
+          p_match_stats_id: matchStatsRow.id,
+          p_score_type:     typeId,
+          p_side:           side,
+          p_event_second:   eventSecond,
+          p_timer_status:   timerStatus,
+          p_half:           currentHalf,
+        });
+        if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
+        scoreCounts[typeId][side]++;
+        updateScoreDisplay();
+        showToast('No connection — score queued');
+      }
+      return;
+    }
     if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
     scoreCounts[typeId][side]++;
   } else {
@@ -1804,8 +1892,20 @@ function _hideInstallModal() {
 // ── Finalise stats ────────────────────────────────────────────────────────────
 async function finaliseStats() {
   if (!matchStatsRow) { showToast('No stats to save'); return; }
+  showLoading('Saving stats…');
+  const failedCount = await flushQueue();
+  if (failedCount > 0) {
+    hideLoading();
+    showToast(`${failedCount} score${failedCount !== 1 ? 's' : ''} still offline — check connection`);
+    return;
+  }
   const { error } = await sb.rpc('finalise_match_stats', { p_match_stats_id: matchStatsRow.id });
-  if (error) { showToast('Error saving stats'); return; }
+  hideLoading();
+  if (error) {
+    const isAuthErr = error.status === 401 || error.status === 403 || error.code === 'PGRST301';
+    showToast(isAuthErr ? 'Session expired — re-open the scorekeeper' : 'Error saving stats — check connection');
+    return;
+  }
   showToast('Stats saved');
   // Reset timer only — preserve match_stats_details so the chart retains the data
   await doReset(false);
