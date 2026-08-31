@@ -1448,11 +1448,15 @@ async function tick() {
     stopInterval();
     if (currentHalf === 1) {
       triggerHalfTimeWhistle();
+      await doPause();
     } else {
       matchEnded = true;
       triggerFinalWhistle();
+      await doPause();
+      // Auto-save after a brief pause so the full-time state is visible first.
+      // If the save fails the error toast is shown and Finish & Save stays visible.
+      setTimeout(() => finaliseStats(), 1800);
     }
-    await doPause();
     return;
   }
   updateTimerUI();
