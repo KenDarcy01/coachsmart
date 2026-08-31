@@ -1472,6 +1472,26 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
         panels.forEach(function (p) { p.classList.remove('active'); });
         btn.classList.add('active');
         panels[i].classList.add('active');
+        if (tabsEl.classList.contains('sport-tabs') && typeof gtag === 'function') {
+          var stageSection = tabsEl.closest('.stage-section');
+          var ageRange = stageSection ? stageSection.querySelector('.age-range') : null;
+          gtag('event', 'sport_tab_click', {
+            sport: btn.textContent.trim(),
+            age_band: ageRange ? ageRange.textContent.trim() : ''
+          });
+        }
+      });
+    });
+  });
+
+  // Analytics: pathway image clicks (tap to save/share)
+  document.querySelectorAll('.pathway-image-link').forEach(function (a) {
+    a.addEventListener('click', function () {
+      if (typeof gtag !== 'function') return;
+      var img = a.querySelector('img');
+      gtag('event', 'pathway_image_click', {
+        image_label: img ? img.alt : (a.getAttribute('aria-label') || ''),
+        link_url: a.getAttribute('href')
       });
     });
   });
@@ -1678,6 +1698,15 @@ footer .back-top:hover { background: rgba(255,255,255,.1); }
             '<span class="video-callout-icon" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff"></path></svg></span>' +
             '<span class="video-callout-text"><strong>' + escapeHtml(v.title) + chip + '</strong><span>Watch on ' + v.source + '</span></span>' +
             '<span class="video-callout-cta">Watch &rarr;</span>';
+          a.addEventListener('click', function () {
+            if (typeof gtag !== 'function') return;
+            gtag('event', 'video_click', {
+              age_band: drawer.dataset.age,
+              code: v.code || 'general',
+              title: v.title,
+              platform: v.source
+            });
+          });
           grid.appendChild(a);
         });
       });
