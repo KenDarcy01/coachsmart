@@ -16,6 +16,21 @@ abstract class SupabaseTable<T extends SupabaseDataRow> {
     return query.select().then((rows) => rows.map(createRow).toList());
   }
 
+  /// Fetches one page of rows, starting at row [offset] and returning at most
+  /// [pageSize] rows. A page shorter than [pageSize] means the query is
+  /// exhausted.
+  Future<List<T>> queryRowsPage({
+    required PostgrestTransformBuilder Function(PostgrestFilterBuilder) queryFn,
+    required int offset,
+    required int pageSize,
+  }) {
+    final select = _select();
+    return queryFn(select)
+        .range(offset, offset + pageSize - 1)
+        .select()
+        .then((rows) => rows.map(createRow).toList());
+  }
+
   Future<List<T>> querySingleRow({
     required PostgrestTransformBuilder Function(PostgrestFilterBuilder) queryFn,
   }) =>

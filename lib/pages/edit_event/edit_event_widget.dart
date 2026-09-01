@@ -53,68 +53,90 @@ class _EditEventWidgetState extends State<EditEventWidget> {
         pEventId: widget.paramEventId,
       );
 
-      logFirebaseEvent('EditEvent_update_app_state');
-      FFAppState().editEventDetails = EditEventDetailsStruct.maybeFromMap(
-          (_model.apiEventDetails?.jsonBody ?? ''))!;
-      safeSetState(() {});
-      logFirebaseEvent('EditEvent_update_page_state');
-      _model.stateEventTypeID = EditEventDetailsStruct.maybeFromMap(
-              (_model.apiEventDetails?.jsonBody ?? ''))
-          ?.currentEvent
-          .eventTypeId;
-      _model.stateEventCodeID =
-          FFAppState().editEventDetails.currentEvent.eventCodeId;
-      _model.stateAudienceID =
-          FFAppState().editEventDetails.currentEvent.audienceId;
-      logFirebaseEvent('EditEvent_set_form_field');
-      safeSetState(() {
-        _model.oppositionInputTextController?.text =
-            FFAppState().editEventDetails.currentEvent.opposition;
-      });
-      logFirebaseEvent('EditEvent_set_form_field');
-      safeSetState(() {
-        _model.eventTitleInputTextController?.text =
-            FFAppState().editEventDetails.currentEvent.eventTitle;
-      });
-      logFirebaseEvent('EditEvent_set_form_field');
-      safeSetState(() {
-        _model.meetingInputTextController?.text =
-            FFAppState().editEventDetails.currentEvent.meetTime;
-      });
-      logFirebaseEvent('EditEvent_set_form_field');
-      safeSetState(() {
-        _model.locationInputTextController?.text =
-            FFAppState().editEventDetails.currentEvent.locationName;
-      });
-      logFirebaseEvent('EditEvent_set_form_field');
-      safeSetState(() {
-        _model.locationPinInputTextController?.text =
-            FFAppState().editEventDetails.currentEvent.locationPin;
-      });
-      logFirebaseEvent('EditEvent_set_form_field');
-      safeSetState(() {
-        _model.eventLinkInputTextController?.text =
-            FFAppState().editEventDetails.currentEvent.eventLink;
-      });
-      logFirebaseEvent('EditEvent_set_form_field');
-      safeSetState(() {
-        _model.eventDetailTextController?.text =
-            FFAppState().editEventDetails.currentEvent.eventDetails;
-      });
-      logFirebaseEvent('EditEvent_set_form_field');
-      safeSetState(() {
-        _model.switchRequestAttendanceValue =
-            FFAppState().editEventDetails.currentEvent.requestAttendance;
-      });
-      logFirebaseEvent('EditEvent_update_page_state');
-      _model.buttonText =
-          FFAppState().editEventDetails.currentEvent.status == 'cancelled'
-              ? 'UnCancel Event'
-              : 'Cancel Event';
-      safeSetState(() {});
-      logFirebaseEvent('EditEvent_update_page_state');
-      _model.dateTimePicked = functions.convertStringToDateTime(
-          FFAppState().editEventDetails.currentEvent.eventDateTime);
+      if ((_model.apiEventDetails?.succeeded ?? true) == true) {
+        logFirebaseEvent('EditEvent_update_app_state');
+        FFAppState().editEventDetails = EditEventDetailsStruct.maybeFromMap(
+            (_model.apiEventDetails?.jsonBody ?? ''))!;
+        safeSetState(() {});
+        logFirebaseEvent('EditEvent_update_page_state');
+        _model.stateEventTypeID = EditEventDetailsStruct.maybeFromMap(
+                (_model.apiEventDetails?.jsonBody ?? ''))
+            ?.currentEvent
+            .eventTypeId;
+        _model.stateEventCodeID =
+            FFAppState().editEventDetails.currentEvent.eventCodeId;
+        _model.stateAudienceID =
+            FFAppState().editEventDetails.currentEvent.audienceId;
+        logFirebaseEvent('EditEvent_set_form_field');
+        safeSetState(() {
+          _model.oppositionInputTextController?.text =
+              FFAppState().editEventDetails.currentEvent.opposition;
+        });
+        logFirebaseEvent('EditEvent_set_form_field');
+        safeSetState(() {
+          _model.eventTitleInputTextController?.text =
+              FFAppState().editEventDetails.currentEvent.eventTitle;
+        });
+        logFirebaseEvent('EditEvent_set_form_field');
+        safeSetState(() {
+          _model.meetingInputTextController?.text =
+              FFAppState().editEventDetails.currentEvent.meetTime;
+        });
+        logFirebaseEvent('EditEvent_set_form_field');
+        safeSetState(() {
+          _model.locationInputTextController?.text =
+              FFAppState().editEventDetails.currentEvent.locationName;
+        });
+        logFirebaseEvent('EditEvent_set_form_field');
+        safeSetState(() {
+          _model.locationPinInputTextController?.text =
+              FFAppState().editEventDetails.currentEvent.locationPin;
+        });
+        logFirebaseEvent('EditEvent_set_form_field');
+        safeSetState(() {
+          _model.eventLinkInputTextController?.text =
+              FFAppState().editEventDetails.currentEvent.eventLink;
+        });
+        logFirebaseEvent('EditEvent_set_form_field');
+        safeSetState(() {
+          _model.eventDetailTextController?.text =
+              FFAppState().editEventDetails.currentEvent.eventDetails;
+        });
+        logFirebaseEvent('EditEvent_set_form_field');
+        safeSetState(() {
+          _model.switchRequestAttendanceValue =
+              FFAppState().editEventDetails.currentEvent.requestAttendance;
+        });
+        logFirebaseEvent('EditEvent_update_page_state');
+        _model.buttonText =
+            FFAppState().editEventDetails.currentEvent.status == 'cancelled'
+                ? 'UnCancel Event'
+                : 'Cancel Event';
+        safeSetState(() {});
+        logFirebaseEvent('EditEvent_update_page_state');
+        _model.dateTimePicked = functions.convertStringToDateTime(
+            FFAppState().editEventDetails.currentEvent.eventDateTime);
+      } else {
+        logFirebaseEvent('EditEvent_alert_dialog');
+        await showDialog(
+          context: context,
+          builder: (alertDialogContext) {
+            return WebViewAware(
+              child: AlertDialog(
+                title: Text('Error triggering API Call'),
+                content:
+                    Text((_model.apiEventDetails?.jsonBody ?? '').toString()),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(alertDialogContext),
+                    child: Text('Ok'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      }
     });
 
     _model.oppositionInputTextController ??= TextEditingController();

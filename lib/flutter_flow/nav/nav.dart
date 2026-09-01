@@ -407,11 +407,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
-              name: NotificationsWidget.routeName,
-              path: NotificationsWidget.routePath,
-              builder: (context, params) => NotificationsWidget(),
-            ),
-            FFRoute(
               name: NotificationDetailsWidget.routeName,
               path: NotificationDetailsWidget.routePath,
               builder: (context, params) => NotificationDetailsWidget(
@@ -574,9 +569,9 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
-              name: NotificationsNewWidget.routeName,
-              path: NotificationsNewWidget.routePath,
-              builder: (context, params) => NotificationsNewWidget(),
+              name: NotificationsWidget.routeName,
+              path: NotificationsWidget.routePath,
+              builder: (context, params) => NotificationsWidget(),
             ),
             FFRoute(
               name: CreateTeamNewWidget.routeName,
@@ -586,7 +581,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),
       ].map((r) => r.toRoute(appStateNotifier)).toList(),
-      observers: [routeObserver],
+      observers: ffNavigatorObservers,
     );
 
 extension NavParamExtensions on Map<String, String?> {

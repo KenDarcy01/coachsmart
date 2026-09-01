@@ -14,18 +14,56 @@ class NotificationsModel extends FlutterFlowModel<NotificationsWidget> {
 
   // Stores action output result for [Backend Call - API (getUserNotifications)] action in Notifications widget.
   ApiCallResponse? apiUserNotifications;
+  // Stores action output result for [Backend Call - API (markAllNotifcationsRead)] action in Notifications widget.
+  ApiCallResponse? apiMarkAllNotificationAsRead;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Notifications widget.
+  ApiCallResponse? apiUserNotificationsRead;
   // Stores action output result for [Backend Call - API (getUserHomeEvents)] action in IconButton widget.
   ApiCallResponse? outputUpdatedEvents;
-  // Stores action output result for [Backend Call - Update Row(s)] action in Container widget.
-  List<NotificationsRow>? outputUpdate;
-  // Stores action output result for [Backend Call - Query Rows] action in Container widget.
-  List<NotificationsRow>? outputUnreadNotifications;
-  // Stores action output result for [Custom Action - updateAppBadge] action in Container widget.
-  String? outputBadgeUpdate;
-  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Container widget.
-  ApiCallResponse? apiUserNotificationsRefresh;
   // Stores action output result for [Backend Call - API (getUserNotifications)] action in Icon widget.
   ApiCallResponse? apiUserNotifications1;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<NotificationsRow>? queryNotification;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsExisting;
+  // Stores action output result for [Backend Call - API (getTeamRoles)] action in Button widget.
+  ApiCallResponse? apiRoleList;
+  // Stores action output result for [Backend Call - API (markNotificationRead)] action in Button widget.
+  ApiCallResponse? apiMarkNotificationReadAccepted;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsAccepted;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<NotificationsRow>? queryNotificationDeclined;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsDeclinedFail;
+  // Stores action output result for [Backend Call - API (denyMemberJoin)] action in Button widget.
+  ApiCallResponse? apiDenyJoin;
+  // Stores action output result for [Backend Call - API (markNotificationRead)] action in Button widget.
+  ApiCallResponse? apiMarkNotificationDeclined;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsDeclined;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<NotificationsRow>? queryNotificationAccess;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsExistingAccess;
+  // Stores action output result for [Backend Call - API (confirmUserMemberAccess)] action in Button widget.
+  ApiCallResponse? apiConfirmUserMemberAccess;
+  // Stores action output result for [Backend Call - API (markNotificationRead)] action in Button widget.
+  ApiCallResponse? apiMarkNotificationReadAcceptedAccess;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsAcceptedAccess;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<NotificationsRow>? queryNotificationDeclinedAccess;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsDeclinedFailAccess;
+  // Stores action output result for [Backend Call - API (markNotificationRead)] action in Button widget.
+  ApiCallResponse? apiMarkNotificationDeclinedAccess;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsDeclinedAccess;
+  // Stores action output result for [Backend Call - API (markNotificationRead)] action in Button widget.
+  ApiCallResponse? apiMarkNotificationReadAcceptedEvent;
+  // Stores action output result for [Backend Call - API (getUserNotifications)] action in Button widget.
+  ApiCallResponse? apiUserNotificationsAcceptedEvent;
 
   @override
   void initState(BuildContext context) {}

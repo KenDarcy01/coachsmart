@@ -48,9 +48,9 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSCameraUsageDescription</key>
-    <string>In order to take a picture or video, this app requires permission to access the camera.</string>
+    <string>Coachsmart users may want to use their camera to take photos and upload them to the app</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>In order to upload data, this app requires permission to access the photo library.</string>
+    <string>Coachsmart users may want to use their photo library to upload them to the app</string>
     <key>PermissionGroupNotification</key>
     <string>Allow CoachSmart permission to send push notifications</string>
     <key>LSApplicationQueriesSchemes</key>

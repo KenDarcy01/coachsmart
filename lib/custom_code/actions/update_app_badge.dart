@@ -10,27 +10,37 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-Future<String?> updateAppBadge(int? badgeCount) async {
+Future<String?> updateAppBadge() async {
+  if (kIsWeb) return 'skipped — web does not support badges';
+
   try {
-    // 1. Check if the device supports badging at all
-    bool isSupported = await FlutterAppBadger.isAppBadgeSupported();
-    if (!isSupported) {
-      return "Device does not support app icon badges.";
-    }
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return 'skipped — no authenticated user';
 
-    int count = badgeCount ?? 0;
+    final rows = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('recipient_user_id', userId)
+        .eq('is_read', false);
 
-    if (count <= 0) {
+    final int unreadCount = (rows as List).length;
+
+    final bool supported = await FlutterAppBadger.isAppBadgeSupported();
+    if (!supported) return 'device does not support badges';
+
+    if (unreadCount <= 0) {
       FlutterAppBadger.removeBadge();
     } else {
-      FlutterAppBadger.updateBadgeCount(count);
+      FlutterAppBadger.updateBadgeCount(unreadCount);
     }
 
-    return "success"; // Return success string
+    return 'success — badge set to $unreadCount';
   } catch (e) {
-    // 2. Return the actual error message if something crashes
-    return "Error updating badge: ${e.toString()}";
+    return 'error: ${e.toString()}';
   }
 }

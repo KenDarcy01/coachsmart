@@ -19,3 +19,4 @@ export 'export_game_card.dart' show exportGameCard;
 export 'export_game_card_pdf.dart' show exportGameCardPdf;
 export 'export_multi_game_card_pdf.dart' show exportMultiGameCardPdf;
 export 'check_and_navigate_pending.dart' show checkAndNavigatePending;
+export 'setup_notification_listener.dart' show setupNotificationListener;

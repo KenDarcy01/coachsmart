@@ -111,9 +111,7 @@ class _DropDownMenuNotificationsWidgetState
                         ),
                   );
                   logFirebaseEvent('replaceWidget_custom_action');
-                  _model.outputBadgeUpdate = await actions.updateAppBadge(
-                    _model.outputUnreadNotifications?.length,
-                  );
+                  _model.outputBadgeUpdate = await actions.updateAppBadge();
                   logFirebaseEvent('replaceWidget_backend_call');
                   _model.apiUserNotificationsRefresh =
                       await GetUserNotificationsCall.call(
@@ -232,9 +230,7 @@ class _DropDownMenuNotificationsWidgetState
                         ),
                   );
                   logFirebaseEvent('replaceWidget_custom_action');
-                  _model.outputBadgeUpdateRead = await actions.updateAppBadge(
-                    _model.outputReadNotifications?.length,
-                  );
+                  _model.outputBadgeUpdateRead = await actions.updateAppBadge();
                   logFirebaseEvent('replaceWidget_backend_call');
                   _model.apiUserNotificationsRefreshRead =
                       await GetUserNotificationsCall.call(

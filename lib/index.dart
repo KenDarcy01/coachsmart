@@ -39,8 +39,6 @@ export '/pages/create_car_pool/create_car_pool_widget.dart'
     show CreateCarPoolWidget;
 export '/pages/car_pool_details/car_pool_details_widget.dart'
     show CarPoolDetailsWidget;
-export '/pages/notifications/notifications_widget.dart'
-    show NotificationsWidget;
 export '/pages/notification_details/notification_details_widget.dart'
     show NotificationDetailsWidget;
 export '/pages/home_page/home_page_widget.dart' show HomePageWidget;
@@ -58,7 +56,7 @@ export '/pages/join_team_new/join_team_new_widget.dart' show JoinTeamNewWidget;
 export '/pages/match_stats/match_stats_widget.dart' show MatchStatsWidget;
 export '/pages/member_analytics/member_analytics_widget.dart'
     show MemberAnalyticsWidget;
-export '/pages/notifications_new/notifications_new_widget.dart'
-    show NotificationsNewWidget;
+export '/pages/notifications/notifications_widget.dart'
+    show NotificationsWidget;
 export '/pages/create_team_new/create_team_new_widget.dart'
     show CreateTeamNewWidget;
