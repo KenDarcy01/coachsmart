@@ -785,7 +785,7 @@ function updateAttFill() {
 async function loadClubs() {
     if (paramClub) { document.getElementById('clubWrap').style.display='none'; loadDashboard(); return; }
     try {
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/clubs?select=club_id,club_name&order=club_name`,{headers:H});
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_clubs_for_dashboard`,{method:'POST',headers:H,body:'{}'});
         const clubs = await r.json();
         if (!Array.isArray(clubs)) return;
         const sel = document.getElementById('clubSelect');
