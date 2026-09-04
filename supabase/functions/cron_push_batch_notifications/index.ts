@@ -89,10 +89,12 @@ Deno.serve(async (req)=>{
             token: user.fcm_token,
             notification: notificationPayload,
             android: {
+              priority: 'high',
               notification: {
                 channel_id: 'high_importance_channel',
                 sound: 'default',
-                priority: 'HIGH'
+                priority: 'HIGH',
+                click_action: 'FLUTTER_NOTIFICATION_CLICK'
               }
             },
             apns: {
