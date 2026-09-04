@@ -94,7 +94,7 @@ Deno.serve(async (req)=>{
                 channel_id: 'high_importance_channel',
                 sound: 'default',
                 priority: 'HIGH',
-                click_action: 'FLUTTER_NOTIFICATION_CLICK'
+                icon: 'ic_launcher'
               }
             },
             apns: {
