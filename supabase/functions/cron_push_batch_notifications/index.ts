@@ -75,8 +75,8 @@ Deno.serve(async (req)=>{
       const notificationPayload = isBatch ? {
         title: `You have ${userNotes.length} new updates`
       } : {
-        title: latestNote.title,
-        body: latestNote.body
+        title: latestNote.push_title || latestNote.app_title || 'CoachSmart',
+        body: latestNote.push_body || latestNote.app_body || ''
       };
       const fcmResponse = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
         method: 'POST',
@@ -88,6 +88,13 @@ Deno.serve(async (req)=>{
           message: {
             token: user.fcm_token,
             notification: notificationPayload,
+            android: {
+              notification: {
+                channel_id: 'high_importance_channel',
+                sound: 'default',
+                priority: 'HIGH'
+              }
+            },
             apns: {
               payload: {
                 aps: {
@@ -98,6 +105,7 @@ Deno.serve(async (req)=>{
               }
             },
             data: {
+              notification_id: latestNote.id?.toString() || "",
               link_page: latestNote.link_page || "",
               is_batch: isBatch.toString()
             }
