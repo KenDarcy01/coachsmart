@@ -371,7 +371,7 @@ const handler = async (request: Request): Promise<Response> => {
     await Promise.all([
       applyFormatting(googleToken, spreadsheetId, rowMetas),
       ...editors.map(email => shareFile(googleToken, spreadsheetId, "user", "writer", email)),
-      shareFile(googleToken, spreadsheetId, "anyone", "reader"),
+      shareFile(googleToken, spreadsheetId, "anyone", "writer"),
       fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
