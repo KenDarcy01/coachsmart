@@ -1,0 +1,505 @@
+-- link_page now holds the Flutter route name (e.g. 'Notifications') rather
+-- than a deep-link URL. The navigation layer in the custom action reads it
+-- and calls context.pushNamed(link_page).
+--
+-- Changes:
+--   1. Add DEFAULT 'Notifications' to the column so any INSERT that omits
+--      link_page (all 6 member/access notification functions) gets the right
+--      value without rewriting those functions.
+--   2. Back-fill existing rows where link_page is NULL.
+--   3. Rewrite populate_event_notifications to set link_page = 'Notifications'.
+--   4. Rewrite notify_admins_attendance_change to set link_page = 'Notifications'.
+
+ALTER TABLE public.notifications
+    ALTER COLUMN link_page SET DEFAULT 'Notifications';
+
+UPDATE public.notifications
+SET link_page = 'Notifications'
+WHERE link_page IS NULL;
+
+-- ---------------------------------------------------------------------------
+-- populate_event_notifications
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.populate_event_notifications(
+    p_event_id_param integer,
+    p_role_grade      integer DEFAULT NULL::integer,
+    p_role_level      integer DEFAULT NULL::integer
+)
+RETURNS TABLE(notifications_created integer)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = 'public'
+AS $$
+DECLARE
+    created_count INT := 0;
+BEGIN
+    INSERT INTO public.notifications (
+        recipient_user_id,
+        team_id,
+        event_id,
+        link_page,
+        is_delivered,
+        is_read,
+        delivery_method,
+        created_at,
+        push_title,
+        push_body,
+        app_title,
+        app_body,
+        action
+    )
+    WITH target_event AS (
+        SELECT
+            e.event_id,
+            e.event_date_time,
+            e.team_id,
+            e.squad_id,
+            t.team_name,
+            CASE
+                WHEN e.event_title IS NOT NULL AND e.event_title <> '' THEN e.event_title
+                ELSE (
+                    CASE
+                        WHEN t.team_female = true AND ec.code_id = 3 THEN 'Camogie'
+                        ELSE COALESCE(ec.event_code, '')
+                    END || ' ' ||
+                    COALESCE(et.event_type, '') ||
+                    CASE
+                        WHEN et.event_type_id = 2 AND e.opposition IS NOT NULL AND e.opposition <> ''
+                        THEN ' - ' || e.opposition
+                        ELSE ''
+                    END
+                )
+            END AS display_title,
+            trim(to_char(e.event_date_time, 'Day, Mon DD, YYYY "at" HH24:MI')) AS date_time_formatted
+        FROM public.events e
+        JOIN public.teams t ON e.team_id = t.team_id
+        LEFT JOIN public.event_codes ec ON e.event_code_id = ec.code_id
+        LEFT JOIN public.event_types et ON e.event_type_id = et.event_type_id
+        WHERE e.event_id = p_event_id_param
+    ),
+    unresponded_members AS (
+        SELECT
+            m.member_id,
+            m.first_name AS member_fname,
+            u.user_id,
+            u.first_name AS user_fname,
+            u.fcm_token,
+            r.role_grade,
+            r.role_level
+        FROM target_event te
+        JOIN public.member_team_link mtl ON te.team_id = mtl.team_id AND mtl.status = 'active'
+        JOIN public.members m ON mtl.member_id = m.member_id
+        JOIN public.user_member_link uml ON m.member_id = uml.member_id AND uml.status = 'active'
+        JOIN public.users u ON uml.user_id = u.user_id
+        LEFT JOIN public.member_team_role_link mtrl ON mtl.member_team_id = mtrl.member_team_id
+        LEFT JOIN public.roles r ON mtrl.role_id = r.role_id
+        WHERE
+            NOT EXISTS (
+                SELECT 1
+                FROM public.event_attendance ea
+                WHERE ea.event_id = p_event_id_param
+                  AND ea.member_id = m.member_id
+                  AND ea.response_id IS NOT NULL
+                  AND ea.response_id > 0
+            )
+            AND (p_role_grade IS NULL OR r.role_grade = p_role_grade)
+            AND (p_role_level IS NULL OR r.role_level >= p_role_level)
+            AND (
+                te.squad_id IS NULL
+                OR EXISTS (
+                    SELECT 1 FROM public.member_squad_link msl
+                    WHERE msl.member_id = m.member_id
+                      AND msl.squad_id  = te.squad_id
+                      AND msl.code_id   = public.get_updated_event_code(p_event_id_param)
+                )
+            )
+    ),
+    consolidated_per_user AS (
+        SELECT
+            um.user_id,
+            um.user_fname,
+            um.fcm_token,
+            te.team_id,
+            te.event_id,
+            te.team_name,
+            te.display_title,
+            te.date_time_formatted,
+            COUNT(um.member_id) AS member_count,
+            CASE
+                WHEN COUNT(um.member_id) = 1 THEN
+                    MAX(um.member_fname)
+                WHEN COUNT(um.member_id) = 2 THEN
+                    MIN(um.member_fname) || ' and ' || MAX(um.member_fname)
+                ELSE
+                    (
+                        SELECT string_agg(member_fname, ', ' ORDER BY member_fname)
+                        FROM (
+                            SELECT member_fname
+                            FROM unresponded_members um2
+                            WHERE um2.user_id = um.user_id
+                            ORDER BY member_fname
+                            LIMIT (COUNT(um.member_id) - 1)
+                        ) all_but_last
+                    ) || ' and ' || (
+                        SELECT member_fname
+                        FROM unresponded_members um3
+                        WHERE um3.user_id = um.user_id
+                        ORDER BY member_fname DESC
+                        LIMIT 1
+                    )
+            END AS member_name_list
+        FROM unresponded_members um
+        CROSS JOIN target_event te
+        GROUP BY
+            um.user_id,
+            um.user_fname,
+            um.fcm_token,
+            te.team_id,
+            te.event_id,
+            te.team_name,
+            te.display_title,
+            te.date_time_formatted
+    )
+    SELECT
+        cpu.user_id,
+        cpu.team_id,
+        cpu.event_id,
+        'Notifications',
+        false,  -- is_delivered
+        false,  -- is_read: always false — cleared by mark_notification_read after Attend/Decline
+        CASE
+            WHEN cpu.fcm_token IS NOT NULL AND cpu.fcm_token <> '' THEN 'push'
+            ELSE 'email'
+        END,
+        NOW(),
+        cpu.team_name,
+        CASE
+            WHEN cpu.member_count = 1 THEN
+                'Attendance response needed for ' || cpu.member_name_list || ' — ' || trim(cpu.display_title)
+            ELSE
+                'Attendance responses needed for ' || cpu.member_name_list || ' — ' || trim(cpu.display_title)
+        END,
+        CASE
+            WHEN cpu.member_count = 1 THEN 'Response needed for ' || cpu.member_name_list
+            ELSE 'Responses needed for ' || cpu.member_name_list
+        END,
+        CASE
+            WHEN cpu.member_count = 1 THEN
+                'Please confirm attendance for ' || cpu.member_name_list ||
+                ' for: ' || trim(cpu.display_title) || ' on ' || cpu.date_time_formatted
+            ELSE
+                'Please confirm attendance for ' || cpu.member_name_list ||
+                ' for: ' || trim(cpu.display_title) || ' on ' || cpu.date_time_formatted
+        END,
+        'attend'
+    FROM consolidated_per_user cpu;
+
+    GET DIAGNOSTICS created_count = ROW_COUNT;
+
+    IF created_count > 0 AND auth.uid() IS NOT NULL THEN
+        INSERT INTO public.reminders (event_id, user_id, result)
+        VALUES (p_event_id_param, auth.uid(), created_count::text || ' reminders sent.');
+    END IF;
+
+    RETURN QUERY SELECT created_count;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.populate_event_notifications(integer, integer, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.populate_event_notifications(integer, integer, integer) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- notify_admins_attendance_change
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION "public"."notify_admins_attendance_change"(
+    "p_event_id_param" integer,
+    "p_member_id_param" integer,
+    "p_response_id" integer,
+    "p_attendance_id" bigint
+)
+RETURNS TABLE("notifications_created" integer)
+LANGUAGE "plpgsql" SECURITY DEFINER
+SET search_path = 'public'
+AS $$
+DECLARE
+    created_count         INT := 0;
+    v_notify_all          BOOLEAN;
+    v_notify_changes      BOOLEAN;
+    v_prev_response_id    BIGINT;
+    v_is_change_of_mind   BOOLEAN := false;
+    v_response_word       TEXT;
+    v_prev_response_word  TEXT;
+    v_response_colour     TEXT;
+    v_prev_response_colour TEXT;
+    v_badge_label         TEXT;
+    v_admin_count         INT := 0;
+    v_event_exists        BOOLEAN := false;
+    v_member_exists       BOOLEAN := false;
+BEGIN
+
+    RAISE NOTICE '=== notify_admins_attendance_change START ===';
+    RAISE NOTICE 'Inputs: p_event_id_param=%, p_member_id_param=%, p_response_id=%, p_attendance_id=%',
+        p_event_id_param, p_member_id_param, p_response_id, p_attendance_id;
+
+    SELECT
+        true,
+        COALESCE(notify_admins_all, false),
+        COALESCE(notify_admins_changes, false)
+    INTO v_event_exists, v_notify_all, v_notify_changes
+    FROM public.events
+    WHERE event_id = p_event_id_param;
+
+    IF NOT v_event_exists THEN
+        RAISE NOTICE 'EXIT: Event % not found', p_event_id_param;
+        RETURN QUERY SELECT 0;
+        RETURN;
+    END IF;
+
+    RAISE NOTICE 'Event found: notify_admins_all=%, notify_admins_changes=%', v_notify_all, v_notify_changes;
+
+    IF NOT v_notify_all AND NOT v_notify_changes THEN
+        RAISE NOTICE 'EXIT: Both notification flags are false/null — nothing to do';
+        RETURN QUERY SELECT 0;
+        RETURN;
+    END IF;
+
+    SELECT true INTO v_member_exists
+    FROM public.members
+    WHERE member_id = p_member_id_param;
+
+    IF NOT v_member_exists THEN
+        RAISE NOTICE 'EXIT: Member % not found', p_member_id_param;
+        RETURN QUERY SELECT 0;
+        RETURN;
+    END IF;
+
+    RAISE NOTICE 'Member % found', p_member_id_param;
+
+    SELECT response_id
+    INTO v_prev_response_id
+    FROM public.event_attendance
+    WHERE event_id    = p_event_id_param
+      AND member_id   = p_member_id_param
+      AND attendance_id < p_attendance_id
+    ORDER BY attendance_id DESC
+    LIMIT 1;
+
+    RAISE NOTICE 'Previous attendance lookup: attendance_id < % → prev_response_id=%',
+        p_attendance_id, v_prev_response_id;
+
+    IF NOT v_notify_all AND v_notify_changes THEN
+        RAISE NOTICE 'Mode: notify_changes only — checking for genuine change of mind';
+        IF v_prev_response_id IS NULL THEN
+            RAISE NOTICE 'EXIT: No previous response found — first time responding, skipping';
+            RETURN QUERY SELECT 0;
+            RETURN;
+        END IF;
+        IF v_prev_response_id = p_response_id THEN
+            RAISE NOTICE 'EXIT: Previous response (%) = current response (%) — no change of mind, skipping',
+                v_prev_response_id, p_response_id;
+            RETURN QUERY SELECT 0;
+            RETURN;
+        END IF;
+        v_is_change_of_mind := true;
+        RAISE NOTICE 'Change of mind confirmed: % → %', v_prev_response_id, p_response_id;
+    END IF;
+
+    IF v_notify_all THEN
+        RAISE NOTICE 'Mode: notify_all — will create notification regardless';
+        IF v_prev_response_id IS NOT NULL AND v_prev_response_id <> p_response_id THEN
+            v_is_change_of_mind := true;
+            RAISE NOTICE 'Also a change of mind: % → %', v_prev_response_id, p_response_id;
+        END IF;
+    END IF;
+
+    v_response_word := CASE p_response_id
+        WHEN 3 THEN 'accepted'
+        WHEN 4 THEN 'declined'
+        ELSE        'updated'
+    END;
+
+    v_prev_response_word := CASE v_prev_response_id
+        WHEN 3 THEN 'accepted'
+        WHEN 4 THEN 'declined'
+        ELSE        'updated'
+    END;
+
+    v_response_colour := CASE p_response_id
+        WHEN 3 THEN '#87C232'
+        WHEN 4 THEN '#e05252'
+        ELSE        '#e7ebee'
+    END;
+
+    v_prev_response_colour := CASE v_prev_response_id
+        WHEN 3 THEN '#87C232'
+        WHEN 4 THEN '#e05252'
+        ELSE        '#e7ebee'
+    END;
+
+    v_badge_label := CASE
+        WHEN v_is_change_of_mind THEN 'CHANGE OF ATTENDANCE'
+        WHEN p_response_id = 3   THEN 'ATTENDANCE ACCEPTED'
+        WHEN p_response_id = 4   THEN 'ATTENDANCE DECLINED'
+        ELSE                          'ATTENDANCE UPDATED'
+    END;
+
+    RAISE NOTICE 'Messaging: response_word=%, prev_response_word=%, badge_label=%, is_change_of_mind=%',
+        v_response_word, v_prev_response_word, v_badge_label, v_is_change_of_mind;
+
+    SELECT COUNT(DISTINCT u.user_id)
+    INTO v_admin_count
+    FROM public.member_team_link mtl
+    JOIN public.member_team_role_link mtrl ON mtl.member_team_id = mtrl.member_team_id
+    JOIN public.roles r                    ON mtrl.role_id = r.role_id
+    JOIN public.members m                  ON mtl.member_id = m.member_id
+    JOIN public.user_member_link uml       ON m.member_id = uml.member_id
+    JOIN public.users u                    ON uml.user_id = u.user_id
+    JOIN public.events e                   ON e.team_id = mtl.team_id
+    WHERE e.event_id = p_event_id_param
+      AND r.role_grade = 100
+      AND m.member_id != p_member_id_param;
+
+    RAISE NOTICE 'Admin users found for team (excluding actor): %', v_admin_count;
+
+    IF v_admin_count = 0 THEN
+        RAISE NOTICE 'WARN: No other admin users (role_grade=100) found for this team — no notifications will be created';
+    END IF;
+
+    RAISE NOTICE 'Proceeding with INSERT...';
+
+    INSERT INTO public.notifications (
+        recipient_user_id,
+        team_id,
+        event_id,
+        link_page,
+        is_delivered,
+        is_read,
+        delivery_method,
+        created_at,
+        push_title,
+        push_body,
+        app_title,
+        app_body
+    )
+    WITH target_event AS (
+        SELECT
+            e.event_id,
+            e.event_date_time,
+            e.team_id,
+            t.team_name,
+            CASE
+                WHEN e.event_title IS NOT NULL AND e.event_title <> '' THEN e.event_title
+                ELSE (
+                    CASE
+                        WHEN t.team_female = true AND ec.code_id = 3 THEN 'Camogie'
+                        ELSE COALESCE(ec.event_code, '')
+                    END || ' ' ||
+                    COALESCE(et.event_type, '') ||
+                    CASE
+                        WHEN et.event_type_id = 2
+                         AND e.opposition IS NOT NULL
+                         AND e.opposition <> ''
+                        THEN ' - ' || e.opposition
+                        ELSE ''
+                    END
+                )
+            END AS display_title,
+            trim(to_char(e.event_date_time, 'Day, Mon DD, YYYY "at" HH24:MI')) AS date_time_formatted
+        FROM public.events e
+        JOIN public.teams t ON e.team_id = t.team_id
+        LEFT JOIN public.event_codes ec ON e.event_code_id = ec.code_id
+        LEFT JOIN public.event_types et ON e.event_type_id = et.event_type_id
+        WHERE e.event_id = p_event_id_param
+    ),
+    changing_member AS (
+        SELECT
+            COALESCE(
+                NULLIF(trim(m.first_name || ' ' || COALESCE(m.last_name, '')), ''),
+                'A member'
+            ) AS full_name
+        FROM public.members m
+        WHERE m.member_id = p_member_id_param
+    ),
+    admin_users AS (
+        SELECT DISTINCT
+            u.user_id,
+            u.first_name AS user_fname,
+            u.fcm_token
+        FROM target_event te
+        JOIN public.member_team_link mtl       ON te.team_id = mtl.team_id
+        JOIN public.member_team_role_link mtrl ON mtl.member_team_id = mtrl.member_team_id
+        JOIN public.roles r                    ON mtrl.role_id = r.role_id
+        JOIN public.members m                  ON mtl.member_id = m.member_id
+        JOIN public.user_member_link uml       ON m.member_id = uml.member_id
+        JOIN public.users u                    ON uml.user_id = u.user_id
+        WHERE r.role_grade = 100
+          AND m.member_id != p_member_id_param
+    )
+    SELECT
+        au.user_id,
+        te.team_id,
+        te.event_id,
+
+        'Notifications',
+
+        false,  -- is_delivered
+        false,  -- is_read: always false so notification appears as unread in-app
+
+        CASE
+            WHEN au.fcm_token IS NOT NULL AND au.fcm_token <> '' THEN 'push'
+            ELSE 'email'
+        END,
+
+        NOW(),
+
+        -- push_title
+        te.team_name || ': Change of Attendance',
+
+        -- push_body
+        CASE
+            WHEN v_is_change_of_mind THEN
+                cm.full_name || ' has changed their attendance from ' ||
+                v_prev_response_word || ' to ' || v_response_word || ' for ' ||
+                trim(te.display_title) || ' on ' || te.date_time_formatted
+            ELSE
+                cm.full_name || ' has ' || v_response_word || ' attendance for ' ||
+                trim(te.display_title) || ' on ' || te.date_time_formatted
+        END,
+
+        -- app_title
+        CASE
+            WHEN v_is_change_of_mind THEN
+                'Change of Attendance — ' || cm.full_name
+            ELSE
+                CASE p_response_id
+                    WHEN 3 THEN 'Attendance Accepted'
+                    WHEN 4 THEN 'Attendance Declined'
+                    ELSE        'Attendance Updated'
+                END || ' — ' || cm.full_name
+        END,
+
+        -- app_body
+        CASE
+            WHEN v_is_change_of_mind THEN
+                cm.full_name || ' has changed their attendance from ' ||
+                v_prev_response_word || ' to ' || v_response_word || ' for ' ||
+                trim(te.display_title) || ' on ' || te.date_time_formatted
+            ELSE
+                cm.full_name || ' has ' || v_response_word || ' attendance for ' ||
+                trim(te.display_title) || ' on ' || te.date_time_formatted
+        END
+
+    FROM admin_users au
+    CROSS JOIN target_event te
+    CROSS JOIN changing_member cm;
+
+    GET DIAGNOSTICS created_count = ROW_COUNT;
+
+    RAISE NOTICE 'INSERT complete: % notification row(s) created', created_count;
+    RAISE NOTICE '=== notify_admins_attendance_change END ===';
+
+    RETURN QUERY SELECT created_count;
+END;
+$$;
