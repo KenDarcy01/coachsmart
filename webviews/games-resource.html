@@ -288,9 +288,14 @@
 const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
 
-const _p         = new URLSearchParams(window.location.search);
-const WV_TOKEN   = _p.get('token') || _p.get('currentAuthToken');
-const WV_REFRESH = _p.get('refreshToken') || _p.get('refresh_token');
+// Use raw regex + decodeURIComponent so that + in base64 tokens is preserved.
+// URLSearchParams converts + to space, silently corrupting the JWT.
+function _getParam(name) {
+  const m = window.location.search.match(new RegExp('[?&]' + name + '=([^&]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+const WV_TOKEN   = _getParam('token') || _getParam('currentAuthToken');
+const WV_REFRESH = _getParam('refreshToken') || _getParam('refresh_token');
 const IS_WEBVIEW = !!WV_TOKEN;
 
 let sb, _sbReady;
