@@ -1920,6 +1920,46 @@ async function finaliseStats() {
   updateScoreDisplay();
 }
 
+// ── Connectivity ─────────────────────────────────────────────────────────────
+
+// Re-initialise the Supabase client after a connectivity gap.
+// The static-token path recreates the client to get fresh underlying
+// connections; the refresh-token path calls refreshSession instead.
+async function _reinitSb() {
+  try {
+    if (IS_WEBVIEW && WV_REFRESH) {
+      await sb.auth.refreshSession();
+    } else if (IS_WEBVIEW) {
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } },
+        auth:   { persistSession: false },
+      });
+    }
+    // Browser path: Supabase manages the session automatically.
+  } catch (_) {}
+}
+
+window.addEventListener('offline', () => {
+  showToast('Connection lost — scores will be queued');
+});
+
+window.addEventListener('online', async () => {
+  showToast('Connection restored — syncing…');
+  await _reinitSb();
+  const remaining = await flushQueue();
+  showToast(remaining === 0 ? 'Scores synced ✓' : `${remaining} score${remaining !== 1 ? 's' : ''} still offline`);
+});
+
+// Periodic retry every 30 s — catches cases where the 'online' browser event
+// does not fire reliably inside a Flutter WebView.
+setInterval(async () => {
+  let q;
+  try { q = JSON.parse(localStorage.getItem(queueKey()) || '[]'); } catch (_) { q = []; }
+  if (!q.length) return;
+  await _reinitSb();
+  await flushQueue();
+}, 30_000);
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 checkAuth();
 </script>
