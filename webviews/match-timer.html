@@ -1761,7 +1761,17 @@ function updateQueueIndicator() {
 }
 
 // Insert one event row (+ tap) or delete most recent row (− tap)
+let _adjustInFlight = false;
 async function adjustScore(typeId, side, delta) {
+  if (_adjustInFlight) return;  // block concurrent taps
+  _adjustInFlight = true;
+  try {
+    await _adjustScoreImpl(typeId, side, delta);
+  } finally {
+    _adjustInFlight = false;
+  }
+}
+async function _adjustScoreImpl(typeId, side, delta) {
   if (!matchStatsRow) return;
   if (delta > 0 && timerRow?.status !== 'running') {
     showToast('Start the timer before recording a score');
