@@ -73,27 +73,63 @@
 
     /* ── STAGE GRID ── */
     .stage-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 10px;
     }
     .stage-card {
       background: var(--card);
       border-radius: 12px;
       border: 1px solid var(--border);
-      padding: 16px 14px;
-      display: flex; flex-direction: column; gap: 5px;
-      text-align: left;
+      padding: 16px;
+      display: flex; align-items: center; gap: 14px;
+      text-align: left; width: 100%;
       transition: border-color 0.15s, background 0.1s;
     }
     .stage-card:active { background: var(--card2); border-color: var(--green); }
-    .stage-age {
-      font-size: 24px; font-weight: 700;
-      color: var(--green); text-transform: uppercase; line-height: 1;
+    .stage-num {
+      font-size: 22px; font-weight: 700; line-height: 1;
+      color: var(--green); flex-shrink: 0;
+      min-width: 28px; text-align: center;
     }
-    .stage-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
-    .stage-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
-    .stage-count { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .stage-divider {
+      width: 1px; height: 36px; background: var(--border); flex-shrink: 0;
+    }
+    .stage-info { flex: 1; min-width: 0; }
+    .stage-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+    .stage-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .stage-ages-pill {
+      font-size: 10px; font-weight: 600;
+      padding: 2px 8px; border-radius: 10px;
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid rgba(135,194,50,0.2);
+      text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .stage-count { font-size: 11px; color: var(--muted); }
+    .stage-chev { color: var(--muted); flex-shrink: 0; }
+    .stage-chev svg { width: 16px; height: 16px; }
+
+    /* ── WEBSITE LINK CARD ── */
+    .website-link-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; margin-top: 6px;
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border);
+      text-decoration: none; transition: border-color 0.15s, background 0.1s;
+    }
+    .website-link-card:active { background: var(--card2); border-color: var(--green); }
+    .website-link-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: var(--green-dim); border: 1px solid rgba(135,194,50,0.2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--green);
+    }
+    .website-link-icon svg { width: 18px; height: 18px; }
+    .website-link-text { flex: 1; min-width: 0; }
+    .website-link-label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .website-link-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .website-link-ext { color: var(--muted); flex-shrink: 0; }
+    .website-link-ext svg { width: 14px; height: 14px; }
 
     /* ── FILTERS ── */
     .filters-wrap {
@@ -236,8 +272,23 @@
     <div class="bar-wordmark">Coach<span>Smart</span></div>
   </div>
   <div class="scroll-content">
-    <div class="section-label" style="margin-bottom:14px">Select age stage</div>
+    <div class="section-label" style="margin-bottom:14px">Select development stage</div>
     <div class="stage-grid" id="stageGrid"></div>
+    <div style="margin-top:20px">
+      <div class="section-label" style="margin-bottom:10px">Full coaching resources</div>
+      <a href="https://www.dosclontarf.com" target="_blank" class="website-link-card">
+        <div class="website-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div class="website-link-text">
+          <div class="website-link-label">dosclontarf.com</div>
+          <div class="website-link-sub">Full coaching plans, videos &amp; assessments</div>
+        </div>
+        <div class="website-link-ext">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </div>
+      </a>
+    </div>
   </div>
 </div>
 
@@ -314,15 +365,23 @@ if (IS_WEBVIEW && WV_REFRESH) {
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
-let allGames      = [];
-let gameAges      = [];
-let selectedAge   = null;
-let selectedSport = 'All';
-let selectedType  = 'All';
+let allGames        = [];
+let selectedStageId = null;
+let selectedSport   = 'All';
+let selectedType    = 'All';
 
-const AGE_ORDER = ['u6','u7','u8','u9','u10','u11','u12','u13','u14','u15','u16','u17','u18'];
-const SPORTS    = ['All','Football','Hurling','Camogie'];
-const TYPES     = ['All','Games','Warmups','Drill'];
+const SPORTS = ['All','Football','Hurling','Camogie'];
+const TYPES  = ['All','Games','Warmups','Drill'];
+
+// Development stages from dosclontarf.com
+const STAGES = [
+  { id: 1, label: 'Stage 1', subtitle: 'Learning to Master the Ball',          ages: ['u4','u5','u6'] },
+  { id: 2, label: 'Stage 2', subtitle: 'Learning to Use the Ball Well',        ages: ['u7','u8','u9'] },
+  { id: 3, label: 'Stage 3', subtitle: 'Learning to Play Together',            ages: ['u10','u11'] },
+  { id: 4, label: 'Stage 4', subtitle: 'Learning About Positions & Decisions', ages: ['u12','u13'] },
+  { id: 5, label: 'Stage 5', subtitle: 'Competing & Refining',                 ages: ['u14','u15'] },
+  { id: 6, label: 'Stage 6', subtitle: 'Learn to Perform',                     ages: ['u16','u17'] },
+];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -344,15 +403,6 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Resolve display label and description from a game_ages row
-// Handles multiple possible column naming conventions
-function resolveAgeRow(row) {
-  const code = (row.age_code || row.code || row.age_id || '').toLowerCase();
-  const name = row.age_name || row.name || row.label || (code ? code.toUpperCase() : '?');
-  const desc = row.age_description || row.description || row.age_desc || '';
-  return { code, name, desc };
-}
-
 // Get the primary game_type for colour coding (first type wins)
 function primaryType(types) {
   if (!types?.length) return 'game';
@@ -364,65 +414,68 @@ function primaryType(types) {
 
 // ── Stage Screen ─────────────────────────────────────────────────────────────
 function renderStages() {
-  // Build age list from game_ages table, ordered by AGE_ORDER
-  const fromTable = gameAges.map(r => resolveAgeRow(r))
-    .filter(r => r.code)
-    .sort((a, b) => {
-      const ai = AGE_ORDER.indexOf(a.code);
-      const bi = AGE_ORDER.indexOf(b.code);
-      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  // Count distinct games per stage (a game counts once per stage even if it spans multiple ages)
+  const countByStage = {};
+  STAGES.forEach(s => {
+    const set = new Set();
+    allGames.forEach(g => {
+      if ((g.game_age || []).some(a => s.ages.includes(a.toLowerCase()))) {
+        set.add(g.game_id);
+      }
     });
+    countByStage[s.id] = set.size;
+  });
 
-  // Fallback: derive age list from games data if table was empty
-  let stages = fromTable;
-  if (!stages.length) {
-    const ageSet = new Set();
-    allGames.forEach(g => (g.game_age || []).forEach(a => ageSet.add(a.toLowerCase())));
-    stages = [...ageSet]
-      .sort((a, b) => {
-        const ai = AGE_ORDER.indexOf(a);
-        const bi = AGE_ORDER.indexOf(b);
-        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-      })
-      .map(code => ({ code, name: code.toUpperCase(), desc: '' }));
-  }
+  // Only show stages that have at least one game (or all stages if no games loaded yet)
+  const visibleStages = allGames.length
+    ? STAGES.filter(s => countByStage[s.id] > 0)
+    : STAGES;
 
-  // Count games per age
-  const countByAge = {};
-  allGames.forEach(g => (g.game_age || []).forEach(a => {
-    const k = a.toLowerCase();
-    countByAge[k] = (countByAge[k] || 0) + 1;
-  }));
-
-  $('stageGrid').innerHTML = stages.map(s => {
-    const count = countByAge[s.code] || 0;
-    return `<button class="stage-card" onclick="selectStage('${esc(s.code)}','${esc(s.name)}')">
-      <div class="stage-age">${esc(s.name)}</div>
-      ${s.desc ? `<div class="stage-desc">${esc(s.desc)}</div>` : ''}
-      ${count ? `<div class="stage-count">${count} resource${count !== 1 ? 's' : ''}</div>` : ''}
+  $('stageGrid').innerHTML = visibleStages.map(s => {
+    const count = countByStage[s.id] || 0;
+    const agesLabel = s.ages.map(a => a.toUpperCase()).join(', ');
+    return `<button class="stage-card" onclick="selectStage(${s.id})">
+      <div class="stage-num">${s.id}</div>
+      <div class="stage-divider"></div>
+      <div class="stage-info">
+        <div class="stage-name">${esc(s.subtitle)}</div>
+        <div class="stage-meta">
+          <span class="stage-ages-pill">${esc(agesLabel)}</span>
+          ${count ? `<span class="stage-count">${count} resource${count !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+      </div>
+      <div class="stage-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
     </button>`;
-  }).join('') || '<div class="empty-state"><p>No age stages found.</p></div>';
+  }).join('') || '<div class="empty-state"><p>No resources found.</p></div>';
 }
 
-function selectStage(code, label) {
-  selectedAge   = code;
-  selectedSport = 'All';
-  selectedType  = 'All';
-  $('gamesTitle').textContent = label + ' Resources';
+function selectStage(stageId) {
+  const stage = STAGES.find(s => s.id === stageId);
+  if (!stage) return;
+  selectedStageId = stageId;
+  selectedSport   = 'All';
+  selectedType    = 'All';
+  $('gamesTitle').textContent = 'Stage ' + stageId + ' — ' + stage.subtitle;
   renderFilters();
   renderGameList();
   showScreen('gamesScreen');
 }
 
 // ── Games List Screen ─────────────────────────────────────────────────────────
-function gamesForAge() {
+function stageAges() {
+  const stage = STAGES.find(s => s.id === selectedStageId);
+  return stage ? stage.ages : [];
+}
+
+function gamesForStage() {
+  const ages = stageAges();
   return allGames.filter(g =>
-    (g.game_age || []).some(a => a.toLowerCase() === selectedAge)
+    (g.game_age || []).some(a => ages.includes(a.toLowerCase()))
   );
 }
 
 function filteredGames() {
-  return gamesForAge().filter(g => {
+  return gamesForStage().filter(g => {
     if (selectedSport !== 'All' && !(g.game_code || []).includes(selectedSport)) return false;
     if (selectedType  !== 'All' && !(g.game_type || []).includes(selectedType))  return false;
     return true;
@@ -430,7 +483,7 @@ function filteredGames() {
 }
 
 function renderFilters() {
-  const ageGames = gamesForAge();
+  const ageGames = gamesForStage();
 
   const availSports = new Set(['All']);
   ageGames.forEach(g => (g.game_code || []).forEach(c => availSports.add(c)));
@@ -554,34 +607,25 @@ async function boot() {
   try {
     await _sbReady;
 
-    // Load game_ages anon-accessible in parallel with games (auth required)
-    const agesPromise = sb.from('game_ages').select('*');
-    const gamesPromise = IS_WEBVIEW
-      ? sb.from('games').select(
-          'game_id,game_name,game_age,game_code,game_type,game_skill,' +
-          'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
-          'game_pdf,game_video,game_image'
-        )
-      : Promise.resolve({ data: [], error: { message: 'No token provided' } });
+    if (!IS_WEBVIEW) {
+      $('errorMsg').innerHTML = '<strong>Access required</strong>Open this page from the CoachSmart app to access coaching resources.';
+      showScreen('errorScreen');
+      hideLoading();
+      return;
+    }
 
-    const [agesResult, gamesResult] = await Promise.all([agesPromise, gamesPromise]);
+    const { data, error } = await sb.from('games').select(
+      'game_id,game_name,game_age,game_code,game_type,game_skill,' +
+      'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
+      'game_pdf,game_video,game_image'
+    );
 
-    gameAges = agesResult.data || [];
-    if (agesResult.error) console.warn('game_ages:', agesResult.error.message);
-
-    if (gamesResult.error) {
-      console.warn('games:', gamesResult.error.message);
-      if (!IS_WEBVIEW) {
-        $('errorMsg').innerHTML = '<strong>Access required</strong>Open this page from the CoachSmart app to access coaching resources.';
-        showScreen('errorScreen');
-        hideLoading();
-        return;
-      }
+    if (error) {
+      console.warn('games:', error.message);
       showToast('Could not load resources — please try again');
     }
 
-    allGames = gamesResult.data || [];
-
+    allGames = data || [];
     renderStages();
     showScreen('stageScreen');
   } catch (e) {
