@@ -225,6 +225,18 @@
     .media-btn.pdf   { color: var(--red); }
     .media-btn.video { color: var(--green); }
 
+    /* ── HEART / FAVOURITE ── */
+    .heart-btn {
+      width: 34px; height: 34px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; transition: background 0.1s;
+      color: var(--muted);
+    }
+    .heart-btn:active { background: rgba(239,68,68,0.12); }
+    .heart-btn.fav { color: #EF4444; }
+    .heart-btn svg { width: 18px; height: 18px; }
+    .heart-btn.fav svg { fill: #EF4444; stroke: #EF4444; }
+
     /* ── LOADING ── */
     #loadingOverlay {
       display: none; position: fixed; inset: 0; z-index: 200;
@@ -272,30 +284,28 @@
     <div class="bar-wordmark">Coach<span>Smart</span></div>
   </div>
   <div class="scroll-content">
+    <div class="section-label" style="margin-bottom:10px">Coaching resources website</div>
+    <a href="https://www.dosclontarf.com" target="_blank" class="website-link-card" style="margin-bottom:20px">
+      <div class="website-link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </div>
+      <div class="website-link-text">
+        <div class="website-link-label">dosclontarf.com</div>
+        <div class="website-link-sub">Full coaching plans, videos &amp; assessments</div>
+      </div>
+      <div class="website-link-ext">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </div>
+    </a>
     <div class="section-label" style="margin-bottom:14px">Select development stage</div>
     <div class="stage-grid" id="stageGrid"></div>
-    <div style="margin-top:20px">
-      <div class="section-label" style="margin-bottom:10px">Full coaching resources</div>
-      <a href="https://www.dosclontarf.com" target="_blank" class="website-link-card">
-        <div class="website-link-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        </div>
-        <div class="website-link-text">
-          <div class="website-link-label">dosclontarf.com</div>
-          <div class="website-link-sub">Full coaching plans, videos &amp; assessments</div>
-        </div>
-        <div class="website-link-ext">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        </div>
-      </a>
-    </div>
   </div>
 </div>
 
 <!-- ── GAMES LIST ── -->
 <div id="gamesScreen" class="screen">
   <div class="top-bar">
-    <button class="back-btn" onclick="showScreen('stageScreen')">
+    <button class="back-btn" onclick="navBack()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div>
@@ -314,12 +324,15 @@
 <!-- ── GAME DETAIL ── -->
 <div id="detailScreen" class="screen">
   <div class="top-bar">
-    <button class="back-btn" onclick="showScreen('gamesScreen')">
+    <button class="back-btn" onclick="navBack()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div style="min-width:0;flex:1">
-      <div class="bar-title" id="detailTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px"></div>
+      <div class="bar-title" id="detailTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px"></div>
     </div>
+    <button class="heart-btn" id="detailHeart" onclick="toggleFavFromDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
   </div>
   <div class="scroll-content" style="padding:0">
     <div id="detailContent"></div>
@@ -386,12 +399,78 @@ const STAGES = [
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-function showScreen(id) {
+let _currentScreen = 'stageScreen';
+
+function showScreen(id, pushState = true) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
+  _currentScreen = id;
+  // Push a history entry so the webview handles its own back navigation,
+  // keeping the Flutter-level back button from firing unexpectedly.
+  if (pushState) history.pushState({ screen: id }, '');
 }
+
+// Hardware / Flutter back button navigates within the webview
+window.addEventListener('popstate', () => {
+  if (_currentScreen === 'detailScreen') {
+    showScreen('gamesScreen', false);
+  } else if (_currentScreen === 'gamesScreen') {
+    showScreen('stageScreen', false);
+  }
+  // On stageScreen there's no state to pop back to, so Flutter handles it
+});
+
+function navBack() {
+  if (_currentScreen === 'detailScreen') showScreen('gamesScreen');
+  else showScreen('stageScreen');
+}
+
 function showLoading(msg = 'Loading…') { $('loadingText').textContent = msg; $('loadingOverlay').classList.add('show'); }
 function hideLoading() { $('loadingOverlay').classList.remove('show'); }
+
+// ── Favourites ────────────────────────────────────────────────────────────────
+const FAV_KEY = 'cs_fav_games';
+
+function loadFavourites() {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')); }
+  catch (_) { return new Set(); }
+}
+function saveFavourites(set) {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify([...set])); } catch (_) {}
+}
+let favourites = loadFavourites();
+
+function isFav(gameId) { return favourites.has(gameId); }
+
+function toggleFav(gameId) {
+  if (favourites.has(gameId)) { favourites.delete(gameId); }
+  else                         { favourites.add(gameId); }
+  saveFavourites(favourites);
+}
+
+// Called from heart button on a game card in the list (stops card click propagating)
+function toggleFavFromCard(event, gameId) {
+  event.stopPropagation();
+  toggleFav(gameId);
+  const btn = event.currentTarget;
+  btn.classList.toggle('fav', isFav(gameId));
+  showToast(isFav(gameId) ? 'Added to favourites' : 'Removed from favourites');
+}
+
+// Called from heart button in detail top-bar
+let _currentDetailGameId = null;
+function toggleFavFromDetail() {
+  if (_currentDetailGameId == null) return;
+  toggleFav(_currentDetailGameId);
+  updateDetailHeart();
+  showToast(isFav(_currentDetailGameId) ? 'Added to favourites' : 'Removed from favourites');
+}
+
+function updateDetailHeart() {
+  const btn = $('detailHeart');
+  if (!btn) return;
+  btn.classList.toggle('fav', isFav(_currentDetailGameId));
+}
 
 let _toast;
 function showToast(msg) {
@@ -518,7 +597,8 @@ function renderGameList() {
     const pt    = primaryType(g.game_type);
     const types = g.game_type  || [];
     const skills = (g.game_skill || []).slice(0, 2);
-    return `<button class="game-card" onclick="showDetail(${g.game_id})">
+    const fav   = isFav(g.game_id);
+    return `<div class="game-card" style="cursor:pointer" onclick="showDetail(${g.game_id})">
       <div class="type-dot${pt !== 'game' ? ' ' + pt : ''}"></div>
       <div class="game-info">
         <div class="game-name">${esc(g.game_name)}</div>
@@ -527,10 +607,10 @@ function renderGameList() {
           ${skills.map(s => `<span class="gtag skill">${esc(s)}</span>`).join('')}
         </div>
       </div>
-      <div class="game-chev">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
-    </button>`;
+      <button class="heart-btn${fav ? ' fav' : ''}" onclick="toggleFavFromCard(event,${g.game_id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+    </div>`;
   }).join('');
 }
 
@@ -539,6 +619,7 @@ function showDetail(gameId) {
   const g = allGames.find(x => x.game_id === gameId);
   if (!g) return;
 
+  _currentDetailGameId = g.game_id;
   $('detailTitle').textContent = g.game_name;
 
   const parts = [];
@@ -599,6 +680,7 @@ function showDetail(gameId) {
 
   $('detailContent').innerHTML = parts.join('');
   showScreen('detailScreen');
+  updateDetailHeart();
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
@@ -627,7 +709,9 @@ async function boot() {
 
     allGames = data || [];
     renderStages();
-    showScreen('stageScreen');
+    // Replace the current history entry so the very first popstate stays inside the webview
+    history.replaceState({ screen: 'stageScreen' }, '');
+    showScreen('stageScreen', false);
   } catch (e) {
     console.error('Boot error:', e);
     $('errorMsg').innerHTML = '<strong>Something went wrong</strong>Please close and reopen coaching resources.';
