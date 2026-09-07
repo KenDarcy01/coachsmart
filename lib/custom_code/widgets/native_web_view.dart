@@ -45,6 +45,22 @@ class _NativeWebViewState extends State<NativeWebView> {
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.transparent)
+        ..addJavaScriptChannel(
+          'FlutterBridge',
+          onMessageReceived: (JavaScriptMessage msg) {
+            switch (msg.message) {
+              case 'close':
+                widget.onLogout?.call();
+                break;
+              case 'complete':
+                widget.onComplete?.call();
+                break;
+            }
+          },
+        )
+        ..setNavigationDelegate(NavigationDelegate(
+          onPageFinished: (_) => widget.onPageReady?.call(),
+        ))
         ..loadRequest(Uri.parse(widget.url));
     } catch (_) {}
   }
