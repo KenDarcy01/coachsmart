@@ -688,17 +688,23 @@ function showDetail(gameId) {
   // Media buttons
   const hasPdf   = !!g.game_pdf?.trim();
   const hasVideo = !!g.game_video?.trim();
-  if (hasPdf || hasVideo) {
-    parts.push(`<div class="media-row">
-      ${hasPdf   ? `<a href="${esc(g.game_pdf)}"   target="_blank" class="media-btn pdf">
+  // On native builds FlutterBridge is available — use the exportGameCardPdf action.
+  // On web fall back to the static PDF link if one exists.
+  const pdfBtn = window.FlutterBridge
+    ? `<button class="media-btn pdf" onclick="exportGamePdf(${g.game_id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-        </svg>PDF Guide</a>` : ''}
-      ${hasVideo  ? `<a href="${esc(g.game_video)}" target="_blank" class="media-btn video">
+        </svg>PDF Card</button>`
+    : (hasPdf ? `<a href="${esc(g.game_pdf)}" target="_blank" class="media-btn pdf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        </svg>PDF Guide</a>` : '');
+  const videoBtn = hasVideo ? `<a href="${esc(g.game_video)}" target="_blank" class="media-btn video">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
-        </svg>Watch Video</a>` : ''}
-    </div>`);
+        </svg>Watch Video</a>` : '';
+  if (pdfBtn || videoBtn) {
+    parts.push(`<div class="media-row">${pdfBtn}${videoBtn}</div>`);
   }
 
   // Badges
@@ -734,6 +740,10 @@ function showDetail(gameId) {
   $('detailContent').innerHTML = parts.join('');
   showScreen('detailScreen');
   updateDetailHeart();
+}
+
+function exportGamePdf(gameId) {
+  window.FlutterBridge?.postMessage('exportPdf:' + gameId);
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
