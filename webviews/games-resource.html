@@ -281,7 +281,10 @@
 <!-- ── STAGE PICKER ── -->
 <div id="stageScreen" class="screen">
   <div class="top-bar">
-    <div class="bar-wordmark">Coach<span>Smart</span></div>
+    <div class="bar-wordmark" style="flex:1">Coach<span>Smart</span></div>
+    <button class="back-btn" onclick="closeResources()" title="Close resources" style="color:var(--muted)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>
   <div class="scroll-content">
     <div class="section-label" style="margin-bottom:10px">Coaching resources website</div>
@@ -423,6 +426,12 @@ window.addEventListener('popstate', () => {
 function navBack() {
   if (_currentScreen === 'detailScreen') showScreen('gamesScreen');
   else showScreen('stageScreen');
+}
+
+// Navigate to a custom URL scheme that FlutterFlow intercepts and maps to "Navigate Back".
+// The stage picker is the only screen that shows the × button; games/detail have no exit.
+function closeResources() {
+  window.location.href = 'coachsmartv2://close';
 }
 
 function showLoading(msg = 'Loading…') { $('loadingText').textContent = msg; $('loadingOverlay').classList.add('show'); }
