@@ -276,6 +276,14 @@
     #printCard { display: none; }
 
     @media print {
+      /* CSS custom properties for club colours — set by JS before window.print() */
+      :root {
+        --pc-primary:   #2d7a00;
+        --pc-secondary: #ffd700;
+        --pc-third:     transparent;
+        --pc-has-third: 0;      /* toggled to 1 by JS when third colour exists */
+      }
+
       body * { visibility: hidden; }
       #printCard, #printCard * { visibility: visible; }
       #printCard {
@@ -283,36 +291,77 @@
         position: fixed; inset: 0;
         background: #fff; color: #111;
         font-family: 'DM Sans', Arial, sans-serif;
-        padding: 28px 32px;
         font-size: 12pt;
       }
+
+      /* ── Header block (coloured background) ── */
       .pc-header {
-        display: flex; align-items: flex-start; justify-content: space-between;
-        border-bottom: 3px solid #87C232; padding-bottom: 12px; margin-bottom: 16px;
+        background: var(--pc-primary);
+        padding: 16px 20px;
+        display: flex; align-items: center; gap: 14px;
       }
-      .pc-title { font-size: 18pt; font-weight: 700; color: #111; line-height: 1.2; }
-      .pc-logo  { font-size: 12pt; font-weight: 700; color: #87C232; white-space: nowrap; margin-left: 16px; padding-top: 2px; }
-      .pc-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-      .pc-badge {
-        font-size: 9pt; font-weight: 600; padding: 3px 10px; border-radius: 10px;
-        border: 1px solid #87C232; color: #087a00; background: #edffd6;
+      .pc-crest {
+        width: 64pt; height: 64pt; object-fit: contain; flex-shrink: 0;
       }
-      .pc-badge.type  { border-color: #aaa; color: #333; background: #f5f5f5; }
-      .pc-badge.skill { border-color: #ccc; color: #666; background: #fafafa; font-weight: 500; }
-      .pc-section { margin-bottom: 14px; page-break-inside: avoid; }
-      .pc-label {
-        font-size: 8pt; font-weight: 700; letter-spacing: 1.4px;
-        text-transform: uppercase; color: #87C232; margin-bottom: 5px;
+      .pc-header-text { flex: 1; min-width: 0; }
+      .pc-club-name {
+        font-size: 16pt; font-weight: 700; color: #fff; line-height: 1.2;
       }
-      .pc-text { font-size: 11pt; color: #222; line-height: 1.6; white-space: pre-line; }
+      .pc-rule { height: 1pt; background: rgba(255,255,255,0.5); margin: 5pt 0; }
+      .pc-game-name {
+        font-size: 13pt; font-weight: 600; color: #fff; line-height: 1.3;
+      }
+
+      /* ── Accent stripe below header ── */
+      .pc-stripe-wrap { display: flex; flex-direction: column; }
+      .pc-stripe-white  { height: 2pt; background: #fff; }
+      .pc-stripe-sec    { height: 4pt; background: var(--pc-secondary); }
+      .pc-stripe-third  { height: 3pt; background: var(--pc-third); }
+
+      /* ── Body padding ── */
+      .pc-body { padding: 16px 20px; }
+
+      /* ── Game image ── */
       .pc-img {
-        width: 100%; max-height: 200px; object-fit: cover;
-        border-radius: 6px; margin-bottom: 14px; display: block;
+        width: 100%; max-height: 180pt; object-fit: contain;
+        display: block; margin-bottom: 12pt;
       }
+
+      /* ── Badges ── */
+      .pc-badges { display: flex; flex-wrap: wrap; gap: 5pt; margin-bottom: 12pt; }
+      .pc-badge {
+        font-size: 8.5pt; font-weight: 600; padding: 2pt 8pt; border-radius: 8pt;
+        border: 1pt solid var(--pc-primary); color: var(--pc-primary); background: #f0fff0;
+      }
+      .pc-badge.type  { border-color: #aaa; color: #444; background: #f5f5f5; }
+      .pc-badge.skill { border-color: #ccc; color: #777; background: #fafafa; font-weight: 500; }
+
+      /* ── Sections ── */
+      .pc-section { margin-bottom: 12pt; page-break-inside: avoid; }
+      .pc-label-row { display: flex; align-items: center; gap: 6pt; margin-bottom: 6pt; }
+      .pc-label-bar { width: 3pt; height: 11pt; background: var(--pc-secondary); flex-shrink: 0; }
+      .pc-label {
+        font-size: 8.5pt; font-weight: 700; letter-spacing: 1pt;
+        text-transform: uppercase; color: var(--pc-primary);
+      }
+      .pc-line { display: flex; align-items: flex-start; gap: 6pt; margin-bottom: 4pt; padding-left: 10pt; }
+      .pc-bullet {
+        width: 5pt; height: 5pt; border-radius: 50%;
+        background: var(--pc-secondary); flex-shrink: 0; margin-top: 4pt;
+      }
+      .pc-line-text { font-size: 10.5pt; color: #222; line-height: 1.55; flex: 1; }
+
+      /* ── Video link ── */
+      .pc-video-url { font-size: 10pt; color: #1a6fcc; text-decoration: underline; padding-left: 10pt; }
+
+      /* ── Footer ── */
       .pc-footer {
-        margin-top: 20px; border-top: 1px solid #ddd; padding-top: 8px;
-        font-size: 8.5pt; color: #999; text-align: right;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 7pt 20px 0; border-top: 1.5pt solid var(--pc-secondary);
+        margin-top: 10pt;
       }
+      .pc-footer-club  { font-size: 9pt; font-weight: 700; color: var(--pc-primary); }
+      .pc-footer-brand { font-size: 9pt; color: #aaa; }
     }
   </style>
 </head>
@@ -408,6 +457,14 @@ function _getParam(name) {
 const WV_TOKEN   = _getParam('token') || _getParam('currentAuthToken');
 const WV_REFRESH = _getParam('refreshToken') || _getParam('refresh_token');
 const IS_WEBVIEW = !!WV_TOKEN;
+
+// Club branding — passed by FlutterFlow as URL params when opening the webview.
+// Colours are hex strings (e.g. '#87C232'); empty string = use fallback.
+const CLUB_NAME    = decodeURIComponent(_getParam('clubName')    || '');
+const CLUB_CREST   = decodeURIComponent(_getParam('clubCrest')   || '');
+const CLUB_PRIMARY = _getParam('primary')   || '#2d7a00';
+const CLUB_SEC     = _getParam('secondary') || '#ffd700';
+const CLUB_THIRD   = _getParam('third')     || '';
 
 let sb, _sbReady;
 if (IS_WEBVIEW && WV_REFRESH) {
@@ -782,40 +839,90 @@ function exportGamePdf(gameId) {
   const g = allGames.find(x => x.game_id === gameId);
   if (!g) return;
 
+  // Apply club colours to CSS custom properties so @media print picks them up.
+  const root = document.documentElement;
+  root.style.setProperty('--pc-primary',   CLUB_PRIMARY || '#2d7a00');
+  root.style.setProperty('--pc-secondary', CLUB_SEC     || '#ffd700');
+  root.style.setProperty('--pc-third',     CLUB_THIRD   || 'transparent');
+
+  // Header block
+  const crestHtml = CLUB_CREST
+    ? `<img class="pc-crest" src="${esc(CLUB_CREST)}" alt="" onerror="this.style.display='none'"/>`
+    : '';
+  const clubNameHtml = CLUB_NAME
+    ? `<div class="pc-club-name">${esc(CLUB_NAME)}</div><div class="pc-rule"></div>`
+    : '';
+
+  // Accent stripe — third stripe only if a third colour was passed
+  const thirdStripe = CLUB_THIRD ? `<div class="pc-stripe-third"></div>` : '';
+
+  // Badges
   const sports = g.game_code  || [];
   const types  = g.game_type  || [];
   const skills = g.game_skill || [];
-
   const badgesHtml = [
     ...sports.map(s => `<span class="pc-badge">${esc(s)}</span>`),
     ...types.map(t  => `<span class="pc-badge type">${esc(t)}</span>`),
     ...skills.map(s => `<span class="pc-badge skill">${esc(s)}</span>`),
   ].join('');
 
+  // Game image
   const imgHtml = g.game_image?.trim()
     ? `<img class="pc-img" src="${esc(g.game_image)}" alt="${esc(g.game_name)}" onerror="this.style.display='none'"/>`
     : '';
 
-  const sections = [
-    { key: 'game_setup',           label: 'Setup' },
-    { key: 'game_how_to_play',     label: 'How to Play' },
-    { key: 'game_variations',      label: 'Variations' },
-    { key: 'game_teaching_points', label: 'Teaching Points' },
-  ].filter(f => g[f.key]?.trim())
-   .map(f => `<div class="pc-section">
-      <div class="pc-label">${esc(f.label)}</div>
-      <div class="pc-text">${esc(g[f.key])}</div>
-    </div>`).join('');
+  // Content sections — each text line becomes a bullet row
+  function sectionHtml(title, text) {
+    if (!text?.trim()) return '';
+    const rows = text.split('\n')
+      .map(l => l.replace(/^[•\-]\s*/, '').trim())
+      .filter(Boolean)
+      .map(l => `<div class="pc-line"><div class="pc-bullet"></div><div class="pc-line-text">${esc(l)}</div></div>`)
+      .join('');
+    return `<div class="pc-section">
+      <div class="pc-label-row"><div class="pc-label-bar"></div><div class="pc-label">${title}</div></div>
+      ${rows}
+    </div>`;
+  }
+
+  const sectionsHtml = [
+    sectionHtml('HOW TO SET UP',   g.game_setup),
+    sectionHtml('HOW TO PLAY',     g.game_how_to_play),
+    sectionHtml('VARIATIONS',      g.game_variations),
+    sectionHtml('TEACHING POINTS', g.game_teaching_points),
+  ].join('');
+
+  // Video link
+  const videoHtml = g.game_video?.trim()
+    ? `<div class="pc-section">
+        <div class="pc-label-row"><div class="pc-label-bar"></div><div class="pc-label">VIDEO EXPLAINER</div></div>
+        <div class="pc-video-url">${esc(g.game_video)}</div>
+       </div>`
+    : '';
 
   $('printCard').innerHTML = `
     <div class="pc-header">
-      <div class="pc-title">${esc(g.game_name)}</div>
-      <div class="pc-logo">CoachSmart</div>
+      ${crestHtml}
+      <div class="pc-header-text">
+        ${clubNameHtml}
+        <div class="pc-game-name">${esc(g.game_name)}</div>
+      </div>
     </div>
-    ${imgHtml}
-    ${badgesHtml ? `<div class="pc-badges">${badgesHtml}</div>` : ''}
-    ${sections}
-    <div class="pc-footer">coachsmart.app</div>
+    <div class="pc-stripe-wrap">
+      <div class="pc-stripe-white"></div>
+      <div class="pc-stripe-sec"></div>
+      ${thirdStripe}
+    </div>
+    <div class="pc-body">
+      ${imgHtml}
+      ${badgesHtml ? `<div class="pc-badges">${badgesHtml}</div>` : ''}
+      ${sectionsHtml}
+      ${videoHtml}
+      <div class="pc-footer">
+        <span class="pc-footer-club">${esc(CLUB_NAME || 'CoachSmart')}</span>
+        <span class="pc-footer-brand">CoachSmart</span>
+      </div>
+    </div>
   `;
 
   window.print();
