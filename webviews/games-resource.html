@@ -428,13 +428,14 @@ function navBack() {
   else showScreen('stageScreen');
 }
 
-// Signal Flutter to close the webview via the FlutterBridge JS channel.
-// Falls back to a hash change for older builds that predate the channel.
+// Signal Flutter to close the webview.
+// Native builds: FlutterBridge JS channel (injected by webview_flutter).
+// Web / older builds: navigate to sentinel URL intercepted by onNavigationRequest.
 function closeResources() {
   if (window.FlutterBridge) {
     window.FlutterBridge.postMessage('close');
   } else {
-    window.location.hash = 'cs-close';
+    window.location.href = window.location.origin + '/cs-close';
   }
 }
 
