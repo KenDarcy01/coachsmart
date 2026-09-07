@@ -458,13 +458,36 @@ const WV_TOKEN   = _getParam('token') || _getParam('currentAuthToken');
 const WV_REFRESH = _getParam('refreshToken') || _getParam('refresh_token');
 const IS_WEBVIEW = !!WV_TOKEN;
 
-// Club branding — passed by FlutterFlow as URL params when opening the webview.
-// Colours are hex strings (e.g. '#87C232'); empty string = use fallback.
-const CLUB_NAME    = decodeURIComponent(_getParam('clubName')    || '');
-const CLUB_CREST   = decodeURIComponent(_getParam('clubCrest')   || '');
-const CLUB_PRIMARY = _getParam('primary')   || '#2d7a00';
-const CLUB_SEC     = _getParam('secondary') || '#ffd700';
-const CLUB_THIRD   = _getParam('third')     || '';
+// Club branding — loaded from Supabase at boot using the user's default_club.
+let clubInfo = { name: '', crest: '', primary: '#2d7a00', secondary: '#ffd700', third: '' };
+
+async function loadClubInfo() {
+  if (!IS_WEBVIEW) return;
+  try {
+    const { data: uData, error: uErr } = await sb
+      .from('users')
+      .select('default_club')
+      .maybeSingle();
+    if (uErr || !uData?.default_club) return;
+
+    const { data: cData, error: cErr } = await sb
+      .from('clubs')
+      .select('club_name, crest, primary_colour, secondary_colour, third_colour')
+      .eq('club_id', uData.default_club)
+      .maybeSingle();
+    if (cErr || !cData) return;
+
+    clubInfo = {
+      name:      cData.club_name        || '',
+      crest:     cData.crest            || '',
+      primary:   cData.primary_colour   || '#2d7a00',
+      secondary: cData.secondary_colour || '#ffd700',
+      third:     cData.third_colour     || '',
+    };
+  } catch (e) {
+    console.warn('loadClubInfo:', e);
+  }
+}
 
 let sb, _sbReady;
 if (IS_WEBVIEW && WV_REFRESH) {
@@ -841,20 +864,20 @@ function exportGamePdf(gameId) {
 
   // Apply club colours to CSS custom properties so @media print picks them up.
   const root = document.documentElement;
-  root.style.setProperty('--pc-primary',   CLUB_PRIMARY || '#2d7a00');
-  root.style.setProperty('--pc-secondary', CLUB_SEC     || '#ffd700');
-  root.style.setProperty('--pc-third',     CLUB_THIRD   || 'transparent');
+  root.style.setProperty('--pc-primary',   clubInfo.primary   || '#2d7a00');
+  root.style.setProperty('--pc-secondary', clubInfo.secondary || '#ffd700');
+  root.style.setProperty('--pc-third',     clubInfo.third     || 'transparent');
 
   // Header block
-  const crestHtml = CLUB_CREST
-    ? `<img class="pc-crest" src="${esc(CLUB_CREST)}" alt="" onerror="this.style.display='none'"/>`
+  const crestHtml = clubInfo.crest
+    ? `<img class="pc-crest" src="${esc(clubInfo.crest)}" alt="" onerror="this.style.display='none'"/>`
     : '';
-  const clubNameHtml = CLUB_NAME
-    ? `<div class="pc-club-name">${esc(CLUB_NAME)}</div><div class="pc-rule"></div>`
+  const clubNameHtml = clubInfo.name
+    ? `<div class="pc-club-name">${esc(clubInfo.name)}</div><div class="pc-rule"></div>`
     : '';
 
-  // Accent stripe — third stripe only if a third colour was passed
-  const thirdStripe = CLUB_THIRD ? `<div class="pc-stripe-third"></div>` : '';
+  // Accent stripe — third stripe only if a third colour exists
+  const thirdStripe = clubInfo.third ? `<div class="pc-stripe-third"></div>` : '';
 
   // Badges
   const sports = g.game_code  || [];
@@ -919,7 +942,7 @@ function exportGamePdf(gameId) {
       ${sectionsHtml}
       ${videoHtml}
       <div class="pc-footer">
-        <span class="pc-footer-club">${esc(CLUB_NAME || 'CoachSmart')}</span>
+        <span class="pc-footer-club">${esc(clubInfo.name || 'CoachSmart')}</span>
         <span class="pc-footer-brand">CoachSmart</span>
       </div>
     </div>
@@ -953,8 +976,9 @@ async function boot() {
     }
 
     allGames = data || [];
-    // Load favourites from DB (non-blocking — hearts update when it resolves)
+    // Both non-blocking — UI renders immediately, data arrives when ready
     loadFavouritesFromDB();
+    loadClubInfo();
     renderStages();
     // Replace the current history entry so the very first popstate stays inside the webview
     history.replaceState({ screen: 'stageScreen' }, '');
