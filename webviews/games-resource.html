@@ -877,6 +877,22 @@ function exportGamePdf(gameId) {
   const g = allGames.find(x => x.game_id === gameId);
   if (!g) return;
 
+  // Native: hand game fields to Flutter — exportGameCardPdf handles the rest
+  // (club branding, kIsWeb download vs. share-sheet split, fonts, layout).
+  if (window.FlutterBridge) {
+    window.FlutterBridge.postMessage('exportPdf:' + JSON.stringify({
+      name:           g.game_name             || '',
+      setup:          g.game_setup            || '',
+      howToPlay:      g.game_how_to_play      || '',
+      variations:     g.game_variations       || '',
+      teachingPoints: g.game_teaching_points  || '',
+      image:          g.game_image            || '',
+      video:          g.game_video            || '',
+    }));
+    return;
+  }
+
+  // Web fallback: window.print() with a styled print card.
   const primary   = clubInfo.primary   || '#2d7a00';
   const secondary = clubInfo.secondary || '#ffd700';
   const third     = clubInfo.third     || '';
