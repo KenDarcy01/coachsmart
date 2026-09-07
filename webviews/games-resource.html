@@ -444,27 +444,58 @@ function hideLoading() { $('loadingOverlay').classList.remove('show'); }
 // ── Favourites ────────────────────────────────────────────────────────────────
 const FAV_KEY = 'cs_fav_games';
 
-function loadFavourites() {
+function _favFromStorage() {
   try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')); }
   catch (_) { return new Set(); }
 }
-function saveFavourites(set) {
+function _saveFavStorage(set) {
   try { localStorage.setItem(FAV_KEY, JSON.stringify([...set])); } catch (_) {}
 }
-let favourites = loadFavourites();
+let favourites = _favFromStorage();
 
 function isFav(gameId) { return favourites.has(gameId); }
 
-function toggleFav(gameId) {
-  if (favourites.has(gameId)) { favourites.delete(gameId); }
-  else                         { favourites.add(gameId); }
-  saveFavourites(favourites);
+// Load favourites from Supabase and refresh hearts on screen.
+async function loadFavouritesFromDB() {
+  if (!IS_WEBVIEW) return;
+  try {
+    const { data, error } = await sb.rpc('get_user_game_links');
+    if (error) { console.warn('get_user_game_links:', error.message); return; }
+    favourites = new Set((data || []).map(Number));
+    _saveFavStorage(favourites);
+    // Refresh any hearts already visible on screen
+    document.querySelectorAll('.heart-btn[data-gid]').forEach(btn => {
+      btn.classList.toggle('fav', isFav(Number(btn.dataset.gid)));
+    });
+    if (_currentDetailGameId != null) updateDetailHeart();
+  } catch (e) {
+    console.warn('loadFavouritesFromDB:', e);
+  }
+}
+
+// Toggle in DB async; update UI immediately, revert on failure.
+async function toggleFav(gameId) {
+  const wasOn = favourites.has(gameId);
+  if (wasOn) { favourites.delete(gameId); } else { favourites.add(gameId); }
+  _saveFavStorage(favourites);
+
+  if (!IS_WEBVIEW) return;
+  try {
+    const { error } = await sb.rpc('toggle_user_game_link', { p_game_id: gameId });
+    if (error) throw error;
+  } catch (e) {
+    // Revert on failure
+    if (wasOn) { favourites.add(gameId); } else { favourites.delete(gameId); }
+    _saveFavStorage(favourites);
+    console.warn('toggle_user_game_link:', e.message);
+    showToast('Could not save — please try again');
+  }
 }
 
 // Called from heart button on a game card in the list (stops card click propagating)
-function toggleFavFromCard(event, gameId) {
+async function toggleFavFromCard(event, gameId) {
   event.stopPropagation();
-  toggleFav(gameId);
+  await toggleFav(gameId);
   const btn = event.currentTarget;
   btn.classList.toggle('fav', isFav(gameId));
   showToast(isFav(gameId) ? 'Added to favourites' : 'Removed from favourites');
@@ -472,9 +503,9 @@ function toggleFavFromCard(event, gameId) {
 
 // Called from heart button in detail top-bar
 let _currentDetailGameId = null;
-function toggleFavFromDetail() {
+async function toggleFavFromDetail() {
   if (_currentDetailGameId == null) return;
-  toggleFav(_currentDetailGameId);
+  await toggleFav(_currentDetailGameId);
   updateDetailHeart();
   showToast(isFav(_currentDetailGameId) ? 'Added to favourites' : 'Removed from favourites');
 }
@@ -620,7 +651,7 @@ function renderGameList() {
           ${skills.map(s => `<span class="gtag skill">${esc(s)}</span>`).join('')}
         </div>
       </div>
-      <button class="heart-btn${fav ? ' fav' : ''}" onclick="toggleFavFromCard(event,${g.game_id})">
+      <button class="heart-btn${fav ? ' fav' : ''}" data-gid="${g.game_id}" onclick="toggleFavFromCard(event,${g.game_id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       </button>
     </div>`;
@@ -721,6 +752,8 @@ async function boot() {
     }
 
     allGames = data || [];
+    // Load favourites from DB (non-blocking — hearts update when it resolves)
+    loadFavouritesFromDB();
     renderStages();
     // Replace the current history entry so the very first popstate stays inside the webview
     history.replaceState({ screen: 'stageScreen' }, '');
