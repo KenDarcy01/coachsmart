@@ -188,7 +188,7 @@
 
     /* ── DETAIL ── */
     .detail-image {
-      width: 100%; height: 190px; object-fit: cover;
+      width: 100%; height: auto;
       display: block; background: var(--card2);
     }
     .detail-body { padding: 16px; }
@@ -222,7 +222,7 @@
     }
     .media-btn:active { background: var(--card2); border-color: var(--green); }
     .media-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
-    .media-btn.pdf   { color: var(--red); }
+    .media-btn.pdf   { color: var(--green); }
     .media-btn.video { color: var(--green); }
 
     /* ── HEART / FAVOURITE ── */
@@ -461,21 +461,40 @@ const IS_WEBVIEW = !!WV_TOKEN;
 // Club branding — loaded from Supabase at boot using the user's default_club.
 let clubInfo = { name: '', crest: '', primary: '#2d7a00', secondary: '#ffd700', third: '' };
 
+// Extract user_id (sub claim) from the JWT without a network call.
+function _jwtUserId() {
+  try {
+    const payload = WV_TOKEN.split('.')[1];
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return decoded.sub || null;
+  } catch (_) { return null; }
+}
+
 async function loadClubInfo() {
   if (!IS_WEBVIEW) return;
   try {
+    const userId = _jwtUserId();
+    if (!userId) return;
+
     const { data: uData, error: uErr } = await sb
       .from('users')
       .select('default_club')
+      .eq('user_id', userId)
       .maybeSingle();
-    if (uErr || !uData?.default_club) return;
+    if (uErr || !uData?.default_club) {
+      console.warn('loadClubInfo users:', uErr?.message);
+      return;
+    }
 
     const { data: cData, error: cErr } = await sb
       .from('clubs')
       .select('club_name, crest, primary_colour, secondary_colour, third_colour')
       .eq('club_id', uData.default_club)
       .maybeSingle();
-    if (cErr || !cData) return;
+    if (cErr || !cData) {
+      console.warn('loadClubInfo clubs:', cErr?.message);
+      return;
+    }
 
     clubInfo = {
       name:      cData.club_name        || '',
