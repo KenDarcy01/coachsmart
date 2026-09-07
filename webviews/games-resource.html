@@ -430,12 +430,12 @@ function navBack() {
 
 // Signal Flutter to close the webview.
 // Native builds: FlutterBridge JS channel (injected by webview_flutter).
-// Web / older builds: navigate to sentinel URL intercepted by onNavigationRequest.
+// Web: cross-origin iframe blocks channel injection; fall back to history.back().
 function closeResources() {
   if (window.FlutterBridge) {
     window.FlutterBridge.postMessage('close');
   } else {
-    window.location.href = window.location.origin + '/cs-close';
+    history.back();
   }
 }
 
