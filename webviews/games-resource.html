@@ -455,7 +455,12 @@ let favourites = _favFromStorage();
 
 function isFav(gameId) { return favourites.has(gameId); }
 
-// Load favourites from Supabase and refresh hearts on screen.
+function _setFav(gameId, on) {
+  if (on) { favourites.add(gameId); } else { favourites.delete(gameId); }
+  _saveFavStorage(favourites);
+}
+
+// Load favourites from Supabase and refresh any hearts already on screen.
 async function loadFavouritesFromDB() {
   if (!IS_WEBVIEW) return;
   try {
@@ -463,7 +468,6 @@ async function loadFavouritesFromDB() {
     if (error) { console.warn('get_user_game_links:', error.message); return; }
     favourites = new Set((data || []).map(Number));
     _saveFavStorage(favourites);
-    // Refresh any hearts already visible on screen
     document.querySelectorAll('.heart-btn[data-gid]').forEach(btn => {
       btn.classList.toggle('fav', isFav(Number(btn.dataset.gid)));
     });
@@ -473,41 +477,46 @@ async function loadFavouritesFromDB() {
   }
 }
 
-// Toggle in DB async; update UI immediately, revert on failure.
-async function toggleFav(gameId) {
-  const wasOn = favourites.has(gameId);
-  if (wasOn) { favourites.delete(gameId); } else { favourites.add(gameId); }
-  _saveFavStorage(favourites);
+// Called from heart button on a game card (stops card click propagating).
+// Optimistic: flips the heart immediately, reverts on DB failure.
+async function toggleFavFromCard(event, gameId) {
+  event.stopPropagation();
+  const nowFav = !isFav(gameId);
+  const btn = event.currentTarget;
+  _setFav(gameId, nowFav);
+  btn.classList.toggle('fav', nowFav);
 
-  if (!IS_WEBVIEW) return;
+  if (!IS_WEBVIEW) { showToast(nowFav ? 'Added to favourites' : 'Removed from favourites'); return; }
   try {
     const { error } = await sb.rpc('toggle_user_game_link', { p_game_id: gameId });
     if (error) throw error;
+    showToast(nowFav ? 'Added to favourites' : 'Removed from favourites');
   } catch (e) {
-    // Revert on failure
-    if (wasOn) { favourites.add(gameId); } else { favourites.delete(gameId); }
-    _saveFavStorage(favourites);
-    console.warn('toggle_user_game_link:', e.message);
+    _setFav(gameId, !nowFav);
+    btn.classList.toggle('fav', !nowFav);
     showToast('Could not save — please try again');
   }
 }
 
-// Called from heart button on a game card in the list (stops card click propagating)
-async function toggleFavFromCard(event, gameId) {
-  event.stopPropagation();
-  await toggleFav(gameId);
-  const btn = event.currentTarget;
-  btn.classList.toggle('fav', isFav(gameId));
-  showToast(isFav(gameId) ? 'Added to favourites' : 'Removed from favourites');
-}
-
-// Called from heart button in detail top-bar
+// Called from heart button in detail top-bar.
 let _currentDetailGameId = null;
 async function toggleFavFromDetail() {
   if (_currentDetailGameId == null) return;
-  await toggleFav(_currentDetailGameId);
+  const gameId = _currentDetailGameId;
+  const nowFav = !isFav(gameId);
+  _setFav(gameId, nowFav);
   updateDetailHeart();
-  showToast(isFav(_currentDetailGameId) ? 'Added to favourites' : 'Removed from favourites');
+
+  if (!IS_WEBVIEW) { showToast(nowFav ? 'Added to favourites' : 'Removed from favourites'); return; }
+  try {
+    const { error } = await sb.rpc('toggle_user_game_link', { p_game_id: gameId });
+    if (error) throw error;
+    showToast(nowFav ? 'Added to favourites' : 'Removed from favourites');
+  } catch (e) {
+    _setFav(gameId, !nowFav);
+    updateDetailHeart();
+    showToast('Could not save — please try again');
+  }
 }
 
 function updateDetailHeart() {
