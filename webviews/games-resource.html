@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111418"/>
   <style>html,body{background:#111418 !important;}</style>
   <title>Coaching Resources</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@700&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     :root {
@@ -276,12 +276,14 @@
     #printCard { display: none; }
 
     @media print {
-      /* CSS custom properties for club colours — set by JS before window.print() */
+      /* Narrow format matching Flutter's PdfPageFormat(380, 820) on native */
+      @page { size: 134mm 289mm; margin: 0; }
+
+      /* CSS custom properties — set by JS before window.print() */
       :root {
         --pc-primary:   #2d7a00;
         --pc-secondary: #ffd700;
         --pc-third:     transparent;
-        --pc-has-third: 0;      /* toggled to 1 by JS when third colour exists */
       }
 
       body * { visibility: hidden; }
@@ -289,79 +291,73 @@
       #printCard {
         display: block !important;
         position: fixed; inset: 0;
-        background: #fff; color: #111;
-        font-family: 'DM Sans', Arial, sans-serif;
-        font-size: 12pt;
+        background: #fff;
+        font-family: 'Noto Sans', sans-serif;
+        color: #2e2e2e;
       }
 
-      /* ── Header block (coloured background) ── */
+      /* ── Header (mirrors _pdfHeader) ── */
       .pc-header {
         background: var(--pc-primary);
-        padding: 16px 20px;
-        display: flex; align-items: center; gap: 14px;
+        padding: 16pt 16pt;
+        display: flex; align-items: center; gap: 14pt;
       }
-      .pc-crest {
-        width: 64pt; height: 64pt; object-fit: contain; flex-shrink: 0;
-      }
+      .pc-crest { width: 68pt; height: 68pt; object-fit: contain; flex-shrink: 0; }
       .pc-header-text { flex: 1; min-width: 0; }
       .pc-club-name {
-        font-size: 16pt; font-weight: 700; color: #fff; line-height: 1.2;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 22pt; font-weight: 700; color: #fff; line-height: 1.2;
       }
       .pc-rule { height: 1pt; background: rgba(255,255,255,0.5); margin: 5pt 0; }
       .pc-game-name {
-        font-size: 13pt; font-weight: 600; color: #fff; line-height: 1.3;
+        font-size: 17pt; font-weight: 700; color: #fff; line-height: 1.3;
       }
 
-      /* ── Accent stripe below header ── */
+      /* ── Accent stripe (mirrors _pdfAccentStripe) ── */
       .pc-stripe-wrap { display: flex; flex-direction: column; }
-      .pc-stripe-white  { height: 2pt; background: #fff; }
-      .pc-stripe-sec    { height: 4pt; background: var(--pc-secondary); }
-      .pc-stripe-third  { height: 3pt; background: var(--pc-third); }
+      .pc-stripe-white { height: 2pt; background: #fff; }
+      .pc-stripe-sec   { height: 4pt; background: var(--pc-secondary); }
+      .pc-stripe-third { height: 3pt; background: var(--pc-third); }
 
-      /* ── Body padding ── */
-      .pc-body { padding: 16px 20px; }
+      /* ── Body ── */
+      .pc-body { padding: 0 16pt; }
 
       /* ── Game image ── */
       .pc-img {
         width: 100%; max-height: 180pt; object-fit: contain;
-        display: block; margin-bottom: 12pt;
+        display: block; margin: 8pt 0;
       }
 
-      /* ── Badges ── */
-      .pc-badges { display: flex; flex-wrap: wrap; gap: 5pt; margin-bottom: 12pt; }
-      .pc-badge {
-        font-size: 8.5pt; font-weight: 600; padding: 2pt 8pt; border-radius: 8pt;
-        border: 1pt solid var(--pc-primary); color: var(--pc-primary); background: #f0fff0;
-      }
-      .pc-badge.type  { border-color: #aaa; color: #444; background: #f5f5f5; }
-      .pc-badge.skill { border-color: #ccc; color: #777; background: #fafafa; font-weight: 500; }
-
-      /* ── Sections ── */
-      .pc-section { margin-bottom: 12pt; page-break-inside: avoid; }
-      .pc-label-row { display: flex; align-items: center; gap: 6pt; margin-bottom: 6pt; }
-      .pc-label-bar { width: 3pt; height: 11pt; background: var(--pc-secondary); flex-shrink: 0; }
+      /* ── Section (mirrors _pdfSection) ── */
+      .pc-section { margin-bottom: 16pt; page-break-inside: avoid; }
+      .pc-section-first { padding-top: 16pt; }
+      .pc-label-row { display: flex; align-items: center; gap: 8pt; margin-bottom: 7pt; }
+      .pc-label-bar { width: 3pt; height: 13pt; background: var(--pc-secondary); flex-shrink: 0; }
       .pc-label {
-        font-size: 8.5pt; font-weight: 700; letter-spacing: 1pt;
+        font-size: 11pt; font-weight: 700; letter-spacing: 1pt;
         text-transform: uppercase; color: var(--pc-primary);
       }
-      .pc-line { display: flex; align-items: flex-start; gap: 6pt; margin-bottom: 4pt; padding-left: 10pt; }
+      .pc-line {
+        display: flex; align-items: flex-start; gap: 7pt;
+        margin-bottom: 5pt; padding-left: 11pt;
+      }
       .pc-bullet {
         width: 5pt; height: 5pt; border-radius: 50%;
         background: var(--pc-secondary); flex-shrink: 0; margin-top: 4pt;
       }
-      .pc-line-text { font-size: 10.5pt; color: #222; line-height: 1.55; flex: 1; }
+      .pc-line-text { font-size: 12pt; color: #2e2e2e; line-height: 1.55; flex: 1; }
 
-      /* ── Video link ── */
-      .pc-video-url { font-size: 10pt; color: #1a6fcc; text-decoration: underline; padding-left: 10pt; }
+      /* ── Video link (mirrors _pdfVideoLink) ── */
+      .pc-video-url { font-size: 12pt; color: #1a6fcc; text-decoration: underline; padding-left: 11pt; }
 
-      /* ── Footer ── */
+      /* ── Footer (mirrors _pdfFooter) ── */
+      .pc-footer-line { height: 1.5pt; background: var(--pc-footer-line-col); margin: 10pt 0 8pt; }
       .pc-footer {
         display: flex; justify-content: space-between; align-items: center;
-        padding: 7pt 20px 0; border-top: 1.5pt solid var(--pc-secondary);
-        margin-top: 10pt;
+        padding: 0 0 16pt;
       }
-      .pc-footer-club  { font-size: 9pt; font-weight: 700; color: var(--pc-primary); }
-      .pc-footer-brand { font-size: 9pt; color: #aaa; }
+      .pc-footer-club  { font-size: 10pt; font-weight: 700; color: var(--pc-primary); }
+      .pc-footer-brand { font-size: 10pt; color: #b3b3b3; }
     }
   </style>
 </head>
@@ -881,39 +877,29 @@ function exportGamePdf(gameId) {
   const g = allGames.find(x => x.game_id === gameId);
   if (!g) return;
 
-  // Apply club colours to CSS custom properties so @media print picks them up.
-  const root = document.documentElement;
-  root.style.setProperty('--pc-primary',   clubInfo.primary   || '#2d7a00');
-  root.style.setProperty('--pc-secondary', clubInfo.secondary || '#ffd700');
-  root.style.setProperty('--pc-third',     clubInfo.third     || 'transparent');
+  const primary   = clubInfo.primary   || '#2d7a00';
+  const secondary = clubInfo.secondary || '#ffd700';
+  const third     = clubInfo.third     || '';
 
-  // Header block
+  // Apply club colours as CSS custom properties for @media print
+  const root = document.documentElement;
+  root.style.setProperty('--pc-primary',        primary);
+  root.style.setProperty('--pc-secondary',      secondary);
+  root.style.setProperty('--pc-third',          third || 'transparent');
+  // Footer line: third colour if present, else secondary (mirrors _pdfFooter)
+  root.style.setProperty('--pc-footer-line-col', third || secondary);
+
+  // ── Header ────────────────────────────────────────────────────────────────
   const crestHtml = clubInfo.crest
     ? `<img class="pc-crest" src="${esc(clubInfo.crest)}" alt="" onerror="this.style.display='none'"/>`
     : '';
   const clubNameHtml = clubInfo.name
     ? `<div class="pc-club-name">${esc(clubInfo.name)}</div><div class="pc-rule"></div>`
     : '';
+  const thirdStripe = third ? `<div class="pc-stripe-third"></div>` : '';
 
-  // Accent stripe — third stripe only if a third colour exists
-  const thirdStripe = clubInfo.third ? `<div class="pc-stripe-third"></div>` : '';
-
-  // Badges
-  const sports = g.game_code  || [];
-  const types  = g.game_type  || [];
-  const skills = g.game_skill || [];
-  const badgesHtml = [
-    ...sports.map(s => `<span class="pc-badge">${esc(s)}</span>`),
-    ...types.map(t  => `<span class="pc-badge type">${esc(t)}</span>`),
-    ...skills.map(s => `<span class="pc-badge skill">${esc(s)}</span>`),
-  ].join('');
-
-  // Game image
-  const imgHtml = g.game_image?.trim()
-    ? `<img class="pc-img" src="${esc(g.game_image)}" alt="${esc(g.game_name)}" onerror="this.style.display='none'"/>`
-    : '';
-
-  // Content sections — each text line becomes a bullet row
+  // ── Sections (bullet rows, same as _pdfSection) ───────────────────────────
+  let isFirstSection = true;
   function sectionHtml(title, text) {
     if (!text?.trim()) return '';
     const rows = text.split('\n')
@@ -921,26 +907,29 @@ function exportGamePdf(gameId) {
       .filter(Boolean)
       .map(l => `<div class="pc-line"><div class="pc-bullet"></div><div class="pc-line-text">${esc(l)}</div></div>`)
       .join('');
-    return `<div class="pc-section">
+    const cls = isFirstSection ? 'pc-section pc-section-first' : 'pc-section';
+    isFirstSection = false;
+    return `<div class="${cls}">
       <div class="pc-label-row"><div class="pc-label-bar"></div><div class="pc-label">${title}</div></div>
       ${rows}
     </div>`;
   }
 
-  const sectionsHtml = [
-    sectionHtml('HOW TO SET UP',   g.game_setup),
-    sectionHtml('HOW TO PLAY',     g.game_how_to_play),
-    sectionHtml('VARIATIONS',      g.game_variations),
-    sectionHtml('TEACHING POINTS', g.game_teaching_points),
-  ].join('');
-
-  // Video link
-  const videoHtml = g.game_video?.trim()
-    ? `<div class="pc-section">
-        <div class="pc-label-row"><div class="pc-label-bar"></div><div class="pc-label">VIDEO EXPLAINER</div></div>
-        <div class="pc-video-url">${esc(g.game_video)}</div>
-       </div>`
+  // ── Game image (between Setup and How To Play, matching Flutter order) ─────
+  const imgHtml = g.game_image?.trim()
+    ? `<img class="pc-img" src="${esc(g.game_image)}" alt="${esc(g.game_name)}" onerror="this.style.display='none'"/>`
     : '';
+
+  // ── Video link ─────────────────────────────────────────────────────────────
+  function videoHtml(url) {
+    if (!url?.trim()) return '';
+    const cls = isFirstSection ? 'pc-section pc-section-first' : 'pc-section';
+    isFirstSection = false;
+    return `<div class="${cls}">
+      <div class="pc-label-row"><div class="pc-label-bar"></div><div class="pc-label">VIDEO EXPLAINER</div></div>
+      <div class="pc-video-url">${esc(url)}</div>
+    </div>`;
+  }
 
   $('printCard').innerHTML = `
     <div class="pc-header">
@@ -956,10 +945,13 @@ function exportGamePdf(gameId) {
       ${thirdStripe}
     </div>
     <div class="pc-body">
+      ${sectionHtml('HOW TO SET UP', g.game_setup)}
       ${imgHtml}
-      ${badgesHtml ? `<div class="pc-badges">${badgesHtml}</div>` : ''}
-      ${sectionsHtml}
-      ${videoHtml}
+      ${sectionHtml('HOW TO PLAY', g.game_how_to_play)}
+      ${sectionHtml('VARIATIONS', g.game_variations)}
+      ${sectionHtml('TEACHING POINTS', g.game_teaching_points)}
+      ${videoHtml(g.game_video)}
+      <div class="pc-footer-line"></div>
       <div class="pc-footer">
         <span class="pc-footer-club">${esc(clubInfo.name || 'CoachSmart')}</span>
         <span class="pc-footer-brand">CoachSmart</span>
