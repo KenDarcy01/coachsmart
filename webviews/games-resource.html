@@ -415,6 +415,7 @@ function showScreen(id, pushState = true) {
 
 // Hardware / Flutter back button navigates within the webview
 window.addEventListener('popstate', () => {
+  if (window.location.hash === '#cs-close') return; // let Flutter handle the close
   if (_currentScreen === 'detailScreen') {
     showScreen('gamesScreen', false);
   } else if (_currentScreen === 'gamesScreen') {
@@ -428,10 +429,11 @@ function navBack() {
   else showScreen('stageScreen');
 }
 
-// Navigate to a custom URL scheme that FlutterFlow intercepts and maps to "Navigate Back".
-// The stage picker is the only screen that shows the × button; games/detail have no exit.
+// Signal Flutter to close the webview by appending a hash that FlutterFlow's
+// onUrlChanged can detect. Using a hash avoids: (a) reloading the page,
+// (b) triggering OS deep-link scheme handlers (coachsmartv2:// causes errors).
 function closeResources() {
-  window.location.href = 'coachsmartv2://close';
+  window.location.hash = 'cs-close';
 }
 
 function showLoading(msg = 'Loading…') { $('loadingText').textContent = msg; $('loadingOverlay').classList.add('show'); }
