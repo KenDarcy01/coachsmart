@@ -424,8 +424,7 @@ window.addEventListener('popstate', () => {
 });
 
 function navBack() {
-  if (_currentScreen === 'detailScreen') showScreen('gamesScreen');
-  else showScreen('stageScreen');
+  history.back();
 }
 
 // Signal Flutter to close the webview.
