@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Closing</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #111418; display: flex; align-items: center; justify-content: center; font-family: sans-serif; color: #6B7280; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <span>Returning to app…</span>
+  <script>
+    // Fallback: if Flutter's onNavigationRequest didn't intercept, go back.
+    setTimeout(() => history.back(), 500);
+  </script>
+</body>
+</html>
