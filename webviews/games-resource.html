@@ -725,11 +725,6 @@ async function boot() {
     // Replace the current history entry so the very first popstate stays inside the webview
     history.replaceState({ screen: 'stageScreen' }, '');
     showScreen('stageScreen', false);
-    showToast(
-      window.FlutterBridge  ? '✓ FlutterBridge OK' :
-      window.FlutterChannel ? '✓ FlutterChannel OK' :
-      '✗ No JS channel found'
-    );
   } catch (e) {
     console.error('Boot error:', e);
     $('errorMsg').innerHTML = '<strong>Something went wrong</strong>Please close and reopen coaching resources.';
