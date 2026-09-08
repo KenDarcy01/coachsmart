@@ -112,7 +112,7 @@ interface ClubData {
   third_colour: string | null;
 }
 
-async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
+async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promise<Uint8Array> {
   // ── Colours ──
   const primaryRgb   = hexToRgb(club.primary_colour   || "#2d7a00");
   const secondaryRgb = hexToRgb(club.secondary_colour || "#ffd700");
@@ -163,12 +163,12 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const notoReg        = await embedOrFallback(notoRegBytes,        StandardFonts.Helvetica);
   const notoBold       = await embedOrFallback(notoBoldBytes,       StandardFonts.HelveticaBold);
 
-  // Page dimensions (A4)
-  const PW = 595.28;
-  const PH = 841.89;
-  const ML = 24; // left margin
-  const MR = 24; // right margin
-  const CW = PW - ML - MR; // content width: 547.28
+  // Page dimensions — mobile: phone-width portrait; web: A4 for print
+  const PW = isMobile ? 430 : 595.28;
+  const PH = isMobile ? 900 : 841.89;
+  const ML = isMobile ? 20 : 28;
+  const MR = isMobile ? 20 : 28;
+  const CW = PW - ML - MR;
 
   // ── Embed images ──
   let gameImg: any = null;
@@ -189,10 +189,10 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   }
 
   // ── Layout constants ──
-  const CREST_SIZE  = 85;   // crest image size
-  const HEADER_PAD  = 12;   // header top/bottom padding
-  const CLUB_SIZE   = 22;   // Montserrat Bold — club name
-  const GAME_SIZE   = 18;   // NotoSans Bold — game name
+  const CREST_SIZE  = 105;  // crest image size
+  const HEADER_PAD  = 14;   // header top/bottom padding
+  const CLUB_SIZE   = 28;   // Montserrat Bold — club name
+  const GAME_SIZE   = 23;   // NotoSans Bold — game name
   const RULE_H      = 1;
 
   // Header: horizontal layout (crest left, text right)
@@ -219,8 +219,8 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const SECTION_FONT_S = 12;       // label text size
 
   // Body text
-  const BODY_FONT_S = 13;
-  const LINE_H      = 19;   // line height
+  const BODY_FONT_S = 15;
+  const LINE_H      = 24;   // line height
   const BODY_LEFT   = ML + 10;  // left edge for bullets
   const BODY_RIGHT  = PW - MR - 10;
   const BODY_W      = BODY_RIGHT - BODY_LEFT;
@@ -380,7 +380,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
     // Scale to fit within content width, cap height at 220 — both dims shrink proportionally
     let imgW = CW;
     let imgH = imgW / ratio;
-    if (imgH > 220) {
+    if (imgH > 300) {
       imgH = 220;
       imgW = imgH * ratio;
     }
@@ -463,7 +463,8 @@ serve(async (req) => {
       });
     }
 
-    const { game_id } = await req.json();
+    const { game_id, platform } = await req.json();
+    const isMobile = platform === 'mobile';
     if (!game_id) {
       return new Response(JSON.stringify({ error: "Missing game_id" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -518,7 +519,7 @@ serve(async (req) => {
       }
     }
 
-    const pdfBytes = await buildPdf(gameRes.data as GameData, clubData);
+    const pdfBytes = await buildPdf(gameRes.data as GameData, clubData, isMobile);
     // Chunked base64 — avoids spread-arg stack overflow on large PDFs
     let b64 = '';
     for (let i = 0; i < pdfBytes.length; i += 8192) {

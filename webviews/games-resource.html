@@ -915,7 +915,7 @@ async function exportGamePdf(gameId) {
         'Authorization': 'Bearer ' + authToken,
         'apikey':        SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ game_id: gameId }),
+      body: JSON.stringify({ game_id: gameId, platform: window.FlutterBridge ? 'mobile' : 'web' }),
     });
 
     if (!res.ok) {
