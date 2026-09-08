@@ -64,6 +64,7 @@ supabase db push
 - Custom Dart code lives at `lib/custom_code/` on the `flutterflow` branch
 - The `flutterflow/` subfolder on `main` is unused — not part of any deploy pipeline
 - Supabase migrations and edge functions are committed to `main` only
+- **NEVER push custom widget/action Dart code to the `flutterflow` branch** — FlutterFlow owns that branch and overwrites it. When custom Dart code changes, print the updated code in the chat and the user pastes it directly into FlutterFlow's custom widget/action editor. Keep a copy of the current code in `lib/custom_code/` on `main` for reference only.
 
 ## Stack
 - **Frontend**: FlutterFlow (Dart/Flutter) — source in `flutterflow/`
