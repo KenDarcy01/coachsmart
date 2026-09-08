@@ -220,7 +220,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
 
   // Body text
   const BODY_FONT_S = 13;
-  const LINE_H      = 21;   // line height
+  const LINE_H      = 19;   // line height
   const BODY_LEFT   = ML + 10;  // left edge for bullets
   const BODY_RIGHT  = PW - MR - 10;
   const BODY_W      = BODY_RIGHT - BODY_LEFT;
@@ -324,17 +324,19 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
       y: rowCenterY - SECTION_FONT_S / 2,
       size: SECTION_FONT_S, font: notoBold, color: sectionTextRgb,
     });
-    curY += SECTION_LABEL_ROW_H + 4;
+    curY += SECTION_LABEL_ROW_H + 10;
   }
 
   // ── Body text: per-paragraph bullets, proper continuation indent ──
   function drawBodyText(text: string) {
     if (!text.trim()) return;
-    const darkText = rgb(0.25, 0.25, 0.25);
-    const bulletStr = "• ";  // "• "
-    const bulletW = notoReg.widthOfTextAtSize(bulletStr, BODY_FONT_S);
-    const paraMaxW = BODY_W - bulletW;
-    const contX = BODY_LEFT + bulletW;  // continuation line x
+    const darkText  = rgb(0.25, 0.25, 0.25);
+    // Bullet colour: use sectionBarRgb (already guaranteed non-white)
+    const bulletCol = sectionBarRgb;
+    const bulletStr = "• ";
+    const bulletW   = notoReg.widthOfTextAtSize(bulletStr, BODY_FONT_S);
+    const paraMaxW  = BODY_W - bulletW;
+    const contX     = BODY_LEFT + bulletW;  // continuation line x
 
     // Each DB line = one bullet paragraph; strip any existing bullet/dash prefix
     const paragraphs = text.split(/\n/)
@@ -361,12 +363,12 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
         ensureSpace(LINE_H);
         const lineY = PH - curY - BODY_FONT_S;
         if (i === 0) {
-          currentPage.drawText(bulletStr, { x: BODY_LEFT, y: lineY, size: BODY_FONT_S, font: notoReg, color: darkText });
+          currentPage.drawText(bulletStr, { x: BODY_LEFT, y: lineY, size: BODY_FONT_S, font: notoReg, color: bulletCol });
         }
         currentPage.drawText(wrappedLines[i], { x: contX, y: lineY, size: BODY_FONT_S, font: notoReg, color: darkText });
         curY += LINE_H;
       }
-      curY += 6;  // gap between bullet points
+      curY += 5;  // gap between bullet points
     }
     curY += 12;  // gap after section
   }
