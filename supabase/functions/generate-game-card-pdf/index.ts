@@ -166,7 +166,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   }
 
   // ── Layout constants ──
-  const CREST_SIZE  = 62;   // crest image size
+  const CREST_SIZE  = 75;   // crest image size
   const HEADER_PAD  = 12;   // header top/bottom padding
   const CLUB_SIZE   = 18;   // Montserrat Bold — club name
   const GAME_SIZE   = 13;   // NotoSans Bold — game name
@@ -174,7 +174,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
 
   // Header: horizontal layout (crest left, text right)
   // Text block = club name + gap + rule + gap + game name
-  const TEXT_BLOCK_H = CLUB_SIZE + 6 + RULE_H + 6 + GAME_SIZE;
+  const TEXT_BLOCK_H = CLUB_SIZE + 8 + RULE_H + 8 + GAME_SIZE;
   const headerContentH = Math.max(CREST_SIZE, TEXT_BLOCK_H);
   const headerH = headerContentH + 2 * HEADER_PAD;
 
@@ -190,10 +190,10 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const FOOTER_ZONE   = 54;
 
   // Section label (left-bar accent style, matching Flutter)
-  const SECTION_LABEL_ROW_H = 22;  // total row height incl. padding
-  const SECTION_BAR_W  = 5;        // left accent bar width
-  const SECTION_BAR_H  = 18;       // left accent bar height
-  const SECTION_FONT_S = 10;       // label text size
+  const SECTION_LABEL_ROW_H = 34;  // total row height incl. padding
+  const SECTION_BAR_W  = 6;        // left accent bar width
+  const SECTION_BAR_H  = 26;       // left accent bar height
+  const SECTION_FONT_S = 14;       // label text size
 
   // Body text
   const BODY_FONT_S = 11;
@@ -352,14 +352,21 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   async function drawGameImage() {
     if (!gameImg) return;
     const ratio = gameImg.width / gameImg.height;
-    const imgW = BODY_W;
-    const imgH = Math.min(imgW / ratio, 220);
-    ensureSpace(imgH + 12);
+    // Scale to fit within content width, cap height at 220 — both dims shrink proportionally
+    let imgW = CW;
+    let imgH = imgW / ratio;
+    if (imgH > 220) {
+      imgH = 220;
+      imgW = imgH * ratio;
+    }
+    // Centre horizontally within the content area
+    const imgX = ML + (CW - imgW) / 2;
+    ensureSpace(imgH + 16);
     currentPage.drawImage(gameImg, {
-      x: BODY_LEFT, y: PH - curY - imgH,
+      x: imgX, y: PH - curY - imgH,
       width: imgW, height: imgH,
     });
-    curY += imgH + 12;
+    curY += imgH + 16;
   }
 
   // ── Build content (section order matches Flutter exportGameCardPdf) ──
