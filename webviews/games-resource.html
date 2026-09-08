@@ -383,7 +383,7 @@
   </div>
   <div class="scroll-content">
     <div class="section-label" style="margin-bottom:10px">Coaching resources website</div>
-    <a href="https://www.dosclontarf.com" target="_blank" class="website-link-card" style="margin-bottom:20px">
+    <a href="https://www.dosclontarf.com" class="website-link-card" style="margin-bottom:20px" onclick="openExternal('https://www.dosclontarf.com'); return false;">
       <div class="website-link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </div>
@@ -678,6 +678,15 @@ function showToast(msg) {
 
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Open a URL in the device's external browser (not inside the webview)
+function openExternal(url) {
+  if (window.FlutterBridge) {
+    window.FlutterBridge.postMessage('openUrl:' + url);
+  } else {
+    window.open(url, '_blank');
+  }
 }
 
 // Get the primary game_type for colour coding (first type wins)

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 
 import 'dart:convert';
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class NativeWebView extends StatefulWidget {
@@ -51,6 +52,13 @@ class _NativeWebViewState extends State<NativeWebView> {
           'FlutterBridge',
           onMessageReceived: (JavaScriptMessage msg) {
             final message = msg.message;
+            if (message.startsWith('openUrl:')) {
+              final url = message.substring('openUrl:'.length);
+              try {
+                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+              } catch (_) {}
+              return;
+            }
             if (message.startsWith('sharePdf:')) {
               // Format: sharePdf:filename.pdf:BASE64DATA
               final rest = message.substring('sharePdf:'.length);
