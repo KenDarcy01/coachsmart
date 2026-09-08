@@ -189,7 +189,7 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
   }
 
   // ── Layout constants ──
-  const CREST_SIZE  = 93;   // crest image size
+  const CREST_SIZE  = 80;   // crest image size
   const HEADER_PAD  = 14;   // header top/bottom padding
   const CLUB_SIZE   = 24;   // Montserrat Bold — club name
   const GAME_SIZE   = 20;   // NotoSans Bold — game name
