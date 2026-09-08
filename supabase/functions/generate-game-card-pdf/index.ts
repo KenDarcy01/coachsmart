@@ -21,24 +21,23 @@ function hexToRgb(hex: string) {
   );
 }
 
-// ─── Font fetching (Google Fonts → TTF via old UA) ───────────────────────────
+// ─── Font fetching (direct TTF from Google Fonts GitHub) ─────────────────────
 
-async function fetchGoogleFontBytes(family: string): Promise<Uint8Array | null> {
+const FONT_TTF: Record<string, string> = {
+  "montserrat-bold":  "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-Bold.ttf",
+  "notosans-regular": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans-Regular.ttf",
+  "notosans-bold":    "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans-Bold.ttf",
+};
+
+async function fetchFontBytes(key: string): Promise<Uint8Array | null> {
   try {
-    const cssUrl = `https://fonts.googleapis.com/css?family=${encodeURIComponent(family)}`;
-    const css = await fetch(cssUrl, {
-      headers: { "User-Agent": "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)" },
-    }).then((r) => r.text());
-    // Handle both quoted and unquoted CSS url() values
-    const match = css.match(/url\(['"]?(https:\/\/fonts\.gstatic\.com\/[^'")\s]+)['"]?\)/);
-    if (!match) {
-      console.warn(`No font URL found in Google Fonts CSS for: ${family}`);
-      return null;
-    }
-    const buf = await fetch(match[1]).then((r) => r.arrayBuffer());
-    return new Uint8Array(buf);
+    const url = FONT_TTF[key];
+    if (!url) return null;
+    const res = await fetch(url);
+    if (!res.ok) { console.warn(`Font fetch ${key}: ${res.status}`); return null; }
+    return new Uint8Array(await res.arrayBuffer());
   } catch (e) {
-    console.warn(`fetchGoogleFontBytes failed for ${family}:`, e);
+    console.warn(`fetchFontBytes ${key}:`, e);
     return null;
   }
 }
@@ -113,9 +112,9 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
 
   // ── Fonts (fetch in parallel, fall back to Helvetica if unavailable) ──
   const [montserratBoldBytes, notoRegBytes, notoBoldBytes] = await Promise.all([
-    fetchGoogleFontBytes("Montserrat:700"),
-    fetchGoogleFontBytes("Noto+Sans"),
-    fetchGoogleFontBytes("Noto+Sans:700"),
+    fetchFontBytes("montserrat-bold"),
+    fetchFontBytes("notosans-regular"),
+    fetchFontBytes("notosans-bold"),
   ]);
 
   // ── Images (fetch in parallel) ──
@@ -128,15 +127,16 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
-  const montserratBold = montserratBoldBytes
-    ? await doc.embedFont(montserratBoldBytes)
-    : await doc.embedFont(StandardFonts.HelveticaBold);
-  const notoReg = notoRegBytes
-    ? await doc.embedFont(notoRegBytes)
-    : await doc.embedFont(StandardFonts.Helvetica);
-  const notoBold = notoBoldBytes
-    ? await doc.embedFont(notoBoldBytes)
-    : await doc.embedFont(StandardFonts.HelveticaBold);
+  async function embedOrFallback(bytes: Uint8Array | null, fallback: StandardFonts): Promise<PDFFont> {
+    if (bytes) {
+      try { return await doc.embedFont(bytes); } catch (e) { console.warn("embedFont failed, using fallback:", e); }
+    }
+    return doc.embedFont(fallback);
+  }
+
+  const montserratBold = await embedOrFallback(montserratBoldBytes, StandardFonts.HelveticaBold);
+  const notoReg        = await embedOrFallback(notoRegBytes,        StandardFonts.Helvetica);
+  const notoBold       = await embedOrFallback(notoBoldBytes,       StandardFonts.HelveticaBold);
 
   // Page dimensions (A4)
   const PW = 595.28;
