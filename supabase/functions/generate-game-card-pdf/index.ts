@@ -89,6 +89,7 @@ interface GameData {
   game_how_to_play: string | null;
   game_variations: string | null;
   game_teaching_points: string | null;
+  game_image: string | null;
   game_details_image: string | null;
   game_video: string | null;
 }
@@ -117,10 +118,11 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
     fetchFontBytes("notosans-bold"),
   ]);
 
-  // ── Images (fetch in parallel) ──
+  // ── Images (fetch in parallel) — prefer game_image (used by webview), fall back to game_details_image ──
+  const gameImageUrl = game.game_image || game.game_details_image || null;
   const [gameImgBytes, crestBytes] = await Promise.all([
-    game.game_details_image ? fetchImageBytes(game.game_details_image) : Promise.resolve(null),
-    club.crest              ? fetchImageBytes(club.crest)              : Promise.resolve(null),
+    gameImageUrl ? fetchImageBytes(gameImageUrl) : Promise.resolve(null),
+    club.crest   ? fetchImageBytes(club.crest)   : Promise.resolve(null),
   ]);
 
   // ── Create PDF ──
@@ -164,7 +166,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   }
 
   // ── Layout constants ──
-  const CREST_SIZE  = 52;   // crest image size
+  const CREST_SIZE  = 62;   // crest image size
   const HEADER_PAD  = 12;   // header top/bottom padding
   const CLUB_SIZE   = 18;   // Montserrat Bold — club name
   const GAME_SIZE   = 13;   // NotoSans Bold — game name
@@ -189,8 +191,8 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
 
   // Section label (left-bar accent style, matching Flutter)
   const SECTION_LABEL_ROW_H = 22;  // total row height incl. padding
-  const SECTION_BAR_W  = 3;        // left accent bar width
-  const SECTION_BAR_H  = 16;       // left accent bar height
+  const SECTION_BAR_W  = 5;        // left accent bar width
+  const SECTION_BAR_H  = 18;       // left accent bar height
   const SECTION_FONT_S = 10;       // label text size
 
   // Body text
@@ -444,7 +446,7 @@ serve(async (req) => {
     // Fetch game data + user's club in parallel
     const [gameRes, userRes] = await Promise.all([
       supabase.from("games")
-        .select("game_name,game_setup,game_how_to_play,game_variations,game_teaching_points,game_details_image,game_video")
+        .select("game_name,game_setup,game_how_to_play,game_variations,game_teaching_points,game_image,game_details_image,game_video")
         .eq("game_id", game_id)
         .maybeSingle(),
       supabase.from("users")
