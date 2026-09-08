@@ -133,7 +133,7 @@
 
     /* ── FILTERS ── */
     .filters-wrap {
-      padding: 10px 16px 0;
+      padding: 10px 16px 12px;
       flex-shrink: 0;
       display: flex; flex-direction: column; gap: 8px;
     }
@@ -751,8 +751,16 @@ function gamesForStage() {
   );
 }
 
+function hasContent(g) {
+  const hasImage = !!g.game_image?.trim();
+  const hasText  = !!(g.game_setup?.trim() || g.game_how_to_play?.trim() ||
+                      g.game_variations?.trim() || g.game_teaching_points?.trim());
+  return hasImage && hasText;
+}
+
 function filteredGames() {
   return gamesForStage().filter(g => {
+    if (!hasContent(g)) return false;
     if (selectedSport !== 'All' && !(g.game_code || []).includes(selectedSport)) return false;
     if (selectedType  !== 'All' && !(g.game_type || []).includes(selectedType))  return false;
     return true;
