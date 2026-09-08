@@ -192,7 +192,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const CREST_SIZE  = 85;   // crest image size
   const HEADER_PAD  = 12;   // header top/bottom padding
   const CLUB_SIZE   = 22;   // Montserrat Bold — club name
-  const GAME_SIZE   = 16;   // NotoSans Bold — game name
+  const GAME_SIZE   = 18;   // NotoSans Bold — game name
   const RULE_H      = 1;
 
   // Header: horizontal layout (crest left, text right)
@@ -213,13 +213,13 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const FOOTER_ZONE   = 54;
 
   // Section label (left-bar accent style, matching Flutter)
-  const SECTION_LABEL_ROW_H = 34;  // total row height incl. padding
+  const SECTION_LABEL_ROW_H = 28;  // total row height incl. padding
   const SECTION_BAR_W  = 6;        // left accent bar width
-  const SECTION_BAR_H  = 26;       // left accent bar height
-  const SECTION_FONT_S = 14;       // label text size
+  const SECTION_BAR_H  = 19;       // left accent bar height — just a touch taller than text
+  const SECTION_FONT_S = 12;       // label text size
 
   // Body text
-  const BODY_FONT_S = 11;
+  const BODY_FONT_S = 13;
   const LINE_H      = 16;   // line height
   const BODY_LEFT   = ML + 10;  // left edge for bullets
   const BODY_RIGHT  = PW - MR - 10;
@@ -330,7 +330,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   // ── Body text: per-paragraph bullets, proper continuation indent ──
   function drawBodyText(text: string) {
     if (!text.trim()) return;
-    const darkText = rgb(0.08, 0.08, 0.08);
+    const darkText = rgb(0.25, 0.25, 0.25);
     const bulletStr = "• ";  // "• "
     const bulletW = notoReg.widthOfTextAtSize(bulletStr, BODY_FONT_S);
     const paraMaxW = BODY_W - bulletW;
