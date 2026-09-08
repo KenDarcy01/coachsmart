@@ -817,11 +817,6 @@ function showDetail(gameId) {
 
   const parts = [];
 
-  // Hero image
-  if (g.game_image?.trim()) {
-    parts.push(`<img class="detail-image" src="${esc(g.game_image)}" alt="${esc(g.game_name)}" onerror="this.style.display='none'"/>`);
-  }
-
   // Body wrapper open
   parts.push('<div class="detail-body">');
 
@@ -852,9 +847,22 @@ function showDetail(gameId) {
     </div>`);
   }
 
-  // Content sections
+  // Content sections — same order as PDF: Setup → image → How to Play → Variations → Teaching Points
+  if (g.game_setup?.trim()) {
+    parts.push(`<div class="d-section">
+      <div class="d-section-label">Setup</div>
+      <div class="d-section-text">${esc(g.game_setup)}</div>
+    </div>`);
+  }
+
+  // Image between Setup and How to Play (matching PDF layout)
+  parts.push('</div>'); // close detail-body before image so it can span with its own margin
+  if (g.game_image?.trim()) {
+    parts.push(`<img class="detail-image" src="${esc(g.game_image)}" alt="${esc(g.game_name)}" onerror="this.style.display='none'"/>`);
+  }
+  parts.push('<div class="detail-body" style="padding-top:16px">'); // reopen for remaining sections
+
   [
-    { key: 'game_setup',           label: 'Setup' },
     { key: 'game_how_to_play',     label: 'How to Play' },
     { key: 'game_variations',      label: 'Variations' },
     { key: 'game_teaching_points', label: 'Teaching Points' },
