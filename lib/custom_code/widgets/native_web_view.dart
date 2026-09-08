@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'dart:convert';
+import 'package:printing/printing.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class NativeWebView extends StatefulWidget {
@@ -46,18 +48,42 @@ class _NativeWebViewState extends State<NativeWebView> {
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.transparent)
         ..addJavaScriptChannel(
-          'FlutterChannel',
-          onMessageReceived: (JavaScriptMessage message) {
-            switch (message.message) {
-              case 'onboardingComplete':
-                widget.onComplete?.call();
-                break;
-              case 'onboardingLogout':
+          'FlutterBridge',
+          onMessageReceived: (JavaScriptMessage msg) {
+            final message = msg.message;
+            if (message.startsWith('sharePdf:')) {
+              // Format: sharePdf:filename.pdf:BASE64DATA
+              final rest = message.substring('sharePdf:'.length);
+              final sep = rest.indexOf(':');
+              if (sep > 0) {
+                final filename = rest.substring(0, sep);
+                final b64 = rest.substring(sep + 1);
+                try {
+                  final bytes = base64Decode(b64);
+                  Printing.sharePdf(bytes, filename: filename);
+                } catch (_) {}
+              }
+              return;
+            }
+            switch (message) {
+              case 'close':
                 widget.onLogout?.call();
+                break;
+              case 'complete':
+                widget.onComplete?.call();
                 break;
             }
           },
         )
+        ..setNavigationDelegate(NavigationDelegate(
+          onNavigationRequest: (NavigationRequest request) {
+            if (request.url.contains('/cs-close')) {
+              widget.onLogout?.call();
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
+        ))
         ..loadRequest(Uri.parse(widget.url));
     } catch (_) {}
   }
