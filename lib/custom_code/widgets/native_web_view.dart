@@ -60,7 +60,7 @@ class _NativeWebViewState extends State<NativeWebView> {
                 final b64 = rest.substring(sep + 1);
                 try {
                   final bytes = base64Decode(b64);
-                  Printing.sharePdf(bytes, filename: filename);
+                  Printing.sharePdf(bytes: bytes, filename: filename);
                 } catch (_) {}
               }
               return;
