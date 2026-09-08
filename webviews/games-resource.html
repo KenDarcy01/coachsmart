@@ -226,6 +226,8 @@
     .media-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
     .media-btn.pdf   { color: var(--green); }
     .media-btn.video { color: var(--green); }
+    .video-embed { position: relative; width: 100%; padding-bottom: 56.25%; height: 0; margin-bottom: 22px; border-radius: 8px; overflow: hidden; background: #000; }
+    .video-embed iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 
     /* ── HEART / FAVOURITE ── */
     .heart-btn {
@@ -821,19 +823,11 @@ function showDetail(gameId) {
   // Body wrapper open
   parts.push('<div class="detail-body">');
 
-  // Media buttons
-  const hasVideo = !!g.game_video?.trim();
-  const pdfBtn = `<button class="media-btn pdf" onclick="exportGamePdf(${g.game_id})">
+  // Media buttons — PDF only; video is embedded inline below content
+  parts.push(`<div class="media-row"><button class="media-btn pdf" onclick="exportGamePdf(${g.game_id})">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-      </svg>PDF Card</button>`;
-  const videoBtn = hasVideo ? `<a href="${esc(g.game_video)}" target="_blank" class="media-btn video">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <polygon points="5 3 19 12 5 21 5 3"/>
-        </svg>Watch Video</a>` : '';
-  if (pdfBtn || videoBtn) {
-    parts.push(`<div class="media-row">${pdfBtn}${videoBtn}</div>`);
-  }
+      </svg>PDF Card</button></div>`);
 
   // Badges
   const sports = g.game_code  || [];
@@ -873,6 +867,19 @@ function showDetail(gameId) {
       </div>`);
     }
   });
+
+  // Inline video player — extract YouTube ID and embed; fall back to link
+  if (g.game_video?.trim()) {
+    const ytMatch = g.game_video.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoHtml = ytMatch
+      ? `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`
+      : `<a href="${esc(g.game_video)}" target="_blank" class="media-btn video" style="margin-bottom:22px;display:inline-flex;">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>Watch Video</a>`;
+    parts.push(`<div class="d-section">
+      <div class="d-section-label">Video</div>
+      ${videoHtml}
+    </div>`);
+  }
 
   parts.push('</div>'); // close detail-body
 
