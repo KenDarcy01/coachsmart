@@ -380,7 +380,7 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
     // Scale to fit within content width, cap height at 220 — both dims shrink proportionally
     let imgW = CW;
     let imgH = imgW / ratio;
-    if (imgH > 300) {
+    if (imgH > 380) {
       imgH = 220;
       imgW = imgH * ratio;
     }
