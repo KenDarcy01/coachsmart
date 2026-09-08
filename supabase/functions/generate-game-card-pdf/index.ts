@@ -189,10 +189,10 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
   }
 
   // ── Layout constants ──
-  const CREST_SIZE  = 105;  // crest image size
+  const CREST_SIZE  = 93;   // crest image size
   const HEADER_PAD  = 14;   // header top/bottom padding
-  const CLUB_SIZE   = 28;   // Montserrat Bold — club name
-  const GAME_SIZE   = 23;   // NotoSans Bold — game name
+  const CLUB_SIZE   = 24;   // Montserrat Bold — club name
+  const GAME_SIZE   = 20;   // NotoSans Bold — game name
   const RULE_H      = 1;
 
   // Header: horizontal layout (crest left, text right)
