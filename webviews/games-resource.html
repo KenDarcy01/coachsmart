@@ -871,10 +871,11 @@ function showDetail(gameId) {
   // Inline video player — extract YouTube ID and embed; fall back to link
   if (g.game_video?.trim()) {
     const ytMatch = g.game_video.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const extBtn = `<a href="${esc(g.game_video)}" target="_blank" class="media-btn video" style="display:inline-flex;margin-top:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>Open in YouTube</a>`;
     const videoHtml = ytMatch
-      ? `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`
-      : `<a href="${esc(g.game_video)}" target="_blank" class="media-btn video" style="margin-bottom:22px;display:inline-flex;">
-           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>Watch Video</a>`;
+      ? `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>${extBtn}`
+      : extBtn;
     parts.push(`<div class="d-section">
       <div class="d-section-label">Video</div>
       ${videoHtml}
