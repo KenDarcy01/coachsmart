@@ -163,16 +163,18 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
     } catch { /* skip */ }
   }
 
-  // ── Header layout ──
-  const CREST_SIZE  = 60;
-  const HEADER_PAD  = 16;
-  const CLUB_SIZE   = 22;  // Montserrat Bold
-  const GAME_SIZE   = 17;  // NotoSans Bold
+  // ── Layout constants ──
+  const CREST_SIZE  = 52;   // crest image size
+  const HEADER_PAD  = 12;   // header top/bottom padding
+  const CLUB_SIZE   = 18;   // Montserrat Bold — club name
+  const GAME_SIZE   = 13;   // NotoSans Bold — game name
   const RULE_H      = 1;
 
-  let headerH = HEADER_PAD;
-  if (crestImg) headerH += CREST_SIZE + 8;
-  headerH += CLUB_SIZE + 6 + RULE_H + 8 + GAME_SIZE + HEADER_PAD;
+  // Header: horizontal layout (crest left, text right)
+  // Text block = club name + gap + rule + gap + game name
+  const TEXT_BLOCK_H = CLUB_SIZE + 6 + RULE_H + 6 + GAME_SIZE;
+  const headerContentH = Math.max(CREST_SIZE, TEXT_BLOCK_H);
+  const headerH = headerContentH + 2 * HEADER_PAD;
 
   // Accent stripe heights
   const WHITE_STRIPE = 2;
@@ -180,78 +182,62 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const THIRD_STRIPE = thirdRgb ? 3 : 0;
   const STRIPE_H     = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
 
-  // Footer height (from bottom)
-  const FOOTER_LINE_Y  = 48;       // y of footer rule (from page bottom)
-  const FOOTER_TEXT_Y  = 32;       // y of footer text baseline
-  const FOOTER_ZONE    = 56;       // total reserved at bottom
+  // Footer
+  const FOOTER_LINE_Y = 44;
+  const FOOTER_TEXT_Y = 30;
+  const FOOTER_ZONE   = 54;
 
-  // Section constants
-  const SECTION_BAR_H  = 30;       // section label bar height
-  const SECTION_FONT_S = 13;
-  const BODY_FONT_S    = 11;
-  const LINE_H         = 17;       // body line height
-  const BODY_INDENT    = 12;       // indent inside content width
-  const BODY_W         = CW - BODY_INDENT * 2;
+  // Section label (left-bar accent style, matching Flutter)
+  const SECTION_LABEL_ROW_H = 22;  // total row height incl. padding
+  const SECTION_BAR_W  = 3;        // left accent bar width
+  const SECTION_BAR_H  = 16;       // left accent bar height
+  const SECTION_FONT_S = 10;       // label text size
 
-  // ── Draw header on a page ──
+  // Body text
+  const BODY_FONT_S = 11;
+  const LINE_H      = 16;   // line height
+  const BODY_LEFT   = ML + 10;  // left edge for bullets
+  const BODY_RIGHT  = PW - MR - 10;
+  const BODY_W      = BODY_RIGHT - BODY_LEFT;
+
+  // ── Draw header (horizontal: crest left, text right) ──
   function drawHeader(page: any) {
-    const yt = PH; // top of page in pdf-lib coords (y grows up, so top is PH)
+    const headerBottom = PH - headerH;
 
-    // Primary colour header rect
-    page.drawRectangle({
-      x: 0, y: yt - headerH,
-      width: PW, height: headerH,
-      color: primaryRgb,
-    });
+    // Red background
+    page.drawRectangle({ x: 0, y: headerBottom, width: PW, height: headerH, color: primaryRgb });
 
-    let yp = HEADER_PAD; // distance from TOP of page going down
-    const centerX = PW / 2;
-
+    // Crest (left, vertically centered)
     if (crestImg) {
-      const cx = centerX - CREST_SIZE / 2;
-      page.drawImage(crestImg, {
-        x: cx, y: yt - yp - CREST_SIZE,
-        width: CREST_SIZE, height: CREST_SIZE,
-      });
-      yp += CREST_SIZE + 8;
+      const crestY = headerBottom + (headerH - CREST_SIZE) / 2;
+      page.drawImage(crestImg, { x: ML, y: crestY, width: CREST_SIZE, height: CREST_SIZE });
     }
 
-    // Club name
-    const clubW = montserratBold.widthOfTextAtSize(club.club_name, CLUB_SIZE);
+    // Text column (right of crest)
+    const textLeft = ML + (crestImg ? CREST_SIZE + 12 : 0);
+    const textRight = PW - MR;
+
+    // Vertical centre of header → anchor the text block from there
+    const blockMidY = headerBottom + headerH / 2;
+    const clubNameY  = blockMidY + TEXT_BLOCK_H / 2 - CLUB_SIZE;
+    const ruleY      = clubNameY - 6;
+    const gameNameY  = ruleY - 6 - GAME_SIZE;
+
     page.drawText(club.club_name, {
-      x: centerX - clubW / 2,
-      y: yt - yp - CLUB_SIZE,
-      size: CLUB_SIZE,
-      font: montserratBold,
-      color: white,
+      x: textLeft, y: clubNameY,
+      size: CLUB_SIZE, font: montserratBold, color: white,
     });
-    yp += CLUB_SIZE + 6;
-
-    // Rule
     page.drawLine({
-      start: { x: ML, y: yt - yp },
-      end:   { x: PW - MR, y: yt - yp },
-      thickness: RULE_H,
-      color: white,
+      start: { x: textLeft, y: ruleY }, end: { x: textRight, y: ruleY },
+      thickness: RULE_H, color: white,
     });
-    yp += RULE_H + 8;
-
-    // Game name (truncate if too wide)
-    let gameNameText = game.game_name;
-    while (notoBold.widthOfTextAtSize(gameNameText, GAME_SIZE) > CW - 8 && gameNameText.length > 0) {
-      gameNameText = gameNameText.slice(0, -4) + "...";
-    }
-    const gnW = notoBold.widthOfTextAtSize(gameNameText, GAME_SIZE);
-    page.drawText(gameNameText, {
-      x: centerX - gnW / 2,
-      y: yt - yp - GAME_SIZE,
-      size: GAME_SIZE,
-      font: notoBold,
-      color: white,
+    page.drawText(game.game_name, {
+      x: textLeft, y: gameNameY,
+      size: GAME_SIZE, font: notoBold, color: white,
     });
 
-    // Accent stripes
-    let sy = yt - headerH;
+    // Accent stripes immediately below header
+    let sy = headerBottom;
     page.drawRectangle({ x: 0, y: sy - WHITE_STRIPE, width: PW, height: WHITE_STRIPE, color: white });
     sy -= WHITE_STRIPE;
     page.drawRectangle({ x: 0, y: sy - SEC_STRIPE, width: PW, height: SEC_STRIPE, color: secondaryRgb });
@@ -261,151 +247,151 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
     }
   }
 
-  // ── Draw footer on a page ──
+  // ── Draw footer ──
   function drawFooter(page: any) {
     page.drawLine({
-      start: { x: ML, y: FOOTER_LINE_Y },
-      end:   { x: PW - MR, y: FOOTER_LINE_Y },
-      thickness: 1.5,
-      color: footerLineRgb,
+      start: { x: ML, y: FOOTER_LINE_Y }, end: { x: PW - MR, y: FOOTER_LINE_Y },
+      thickness: 1.5, color: footerLineRgb,
     });
     page.drawText(club.club_name, {
-      x: ML,
-      y: FOOTER_TEXT_Y,
-      size: 10,
-      font: notoBold,
-      color: primaryRgb,
+      x: ML, y: FOOTER_TEXT_Y, size: 10, font: notoBold, color: primaryRgb,
     });
     const csW = notoReg.widthOfTextAtSize("CoachSmart", 10);
     page.drawText("CoachSmart", {
-      x: PW - MR - csW,
-      y: FOOTER_TEXT_Y,
-      size: 10,
-      font: notoReg,
-      color: grey,
+      x: PW - MR - csW, y: FOOTER_TEXT_Y, size: 10, font: notoReg, color: grey,
     });
   }
 
   // ── Page manager ──
   let currentPage: any = null;
-  let curY = 0; // current Y from page top (increases as we go down)
+  let curY = 0;
 
   function newPage(isFirst: boolean) {
     const page = doc.addPage([PW, PH]);
     drawFooter(page);
     if (isFirst) {
       drawHeader(page);
-      curY = headerH + STRIPE_H;
+      curY = headerH + STRIPE_H + 8;
     } else {
-      // continuation spacer
       curY = 24;
     }
     currentPage = page;
   }
 
   function ensureSpace(needed: number) {
-    const available = PH - curY - FOOTER_ZONE;
-    if (available < needed) {
-      newPage(false);
-    }
+    if (PH - curY - FOOTER_ZONE < needed) newPage(false);
   }
 
-  // Draw a coloured section bar
-  function drawSectionBar(label: string) {
-    ensureSpace(SECTION_BAR_H + LINE_H + 8);
-    const yTop = PH - curY;
+  // ── Section label: left accent bar + bold coloured text (matches Flutter) ──
+  function drawSectionLabel(label: string) {
+    ensureSpace(SECTION_LABEL_ROW_H + LINE_H + 4);
+    const rowCenterY = PH - curY - SECTION_LABEL_ROW_H / 2;
+
+    // Left accent bar
     currentPage.drawRectangle({
-      x: 0, y: yTop - SECTION_BAR_H,
-      width: PW, height: SECTION_BAR_H,
+      x: ML, y: rowCenterY - SECTION_BAR_H / 2,
+      width: SECTION_BAR_W, height: SECTION_BAR_H,
       color: secondaryRgb,
     });
+    // Label text (vertically centred in row)
     currentPage.drawText(label, {
-      x: ML + BODY_INDENT,
-      y: yTop - SECTION_BAR_H + (SECTION_BAR_H - SECTION_FONT_S) / 2,
-      size: SECTION_FONT_S,
-      font: notoBold,
-      color: white,
+      x: ML + SECTION_BAR_W + 6,
+      y: rowCenterY - SECTION_FONT_S / 2,
+      size: SECTION_FONT_S, font: notoBold, color: secondaryRgb,
     });
-    curY += SECTION_BAR_H + 6;
+    curY += SECTION_LABEL_ROW_H + 4;
   }
 
-  // Draw wrapped body text
+  // ── Body text: per-paragraph bullets, proper continuation indent ──
   function drawBodyText(text: string) {
     if (!text.trim()) return;
-    const lines = wrapText(text, notoReg, BODY_FONT_S, BODY_W);
-    for (const line of lines) {
-      ensureSpace(LINE_H);
-      const prefix = "• ";
-      const displayText = line ? `${prefix}${line}` : "";
-      if (displayText) {
-        currentPage.drawText(displayText, {
-          x: ML + BODY_INDENT,
-          y: PH - curY - BODY_FONT_S,
-          size: BODY_FONT_S,
-          font: notoReg,
-          color: rgb(0.1, 0.1, 0.1),
-        });
+    const darkText = rgb(0.08, 0.08, 0.08);
+    const bulletStr = "• ";  // "• "
+    const bulletW = notoReg.widthOfTextAtSize(bulletStr, BODY_FONT_S);
+    const paraMaxW = BODY_W - bulletW;
+    const contX = BODY_LEFT + bulletW;  // continuation line x
+
+    // Each DB line = one bullet paragraph; strip any existing bullet/dash prefix
+    const paragraphs = text.split(/\n/)
+      .map(l => l.replace(/^[•\-\*]\s*/, "").trim())
+      .filter(Boolean);
+
+    for (const para of paragraphs) {
+      // Word-wrap this paragraph
+      const words = para.split(/\s+/);
+      const wrappedLines: string[] = [];
+      let cur = "";
+      for (const w of words) {
+        const test = cur ? `${cur} ${w}` : w;
+        if (notoReg.widthOfTextAtSize(test, BODY_FONT_S) <= paraMaxW) {
+          cur = test;
+        } else {
+          if (cur) wrappedLines.push(cur);
+          cur = w;
+        }
       }
-      curY += LINE_H;
+      if (cur) wrappedLines.push(cur);
+
+      for (let i = 0; i < wrappedLines.length; i++) {
+        ensureSpace(LINE_H);
+        const lineY = PH - curY - BODY_FONT_S;
+        if (i === 0) {
+          currentPage.drawText(bulletStr, { x: BODY_LEFT, y: lineY, size: BODY_FONT_S, font: notoReg, color: darkText });
+        }
+        currentPage.drawText(wrappedLines[i], { x: contX, y: lineY, size: BODY_FONT_S, font: notoReg, color: darkText });
+        curY += LINE_H;
+      }
+      curY += 3;  // gap between bullet points
     }
-    curY += 6; // gap after section content
+    curY += 6;  // gap after section
   }
 
-  // Draw the game image
+  // ── Game image ──
   async function drawGameImage() {
     if (!gameImg) return;
     const ratio = gameImg.width / gameImg.height;
-    const imgW = CW;
-    const imgH = Math.min(imgW / ratio, 200); // cap at 200pt
-    ensureSpace(imgH + 8);
+    const imgW = BODY_W;
+    const imgH = Math.min(imgW / ratio, 220);
+    ensureSpace(imgH + 12);
     currentPage.drawImage(gameImg, {
-      x: ML,
-      y: PH - curY - imgH,
-      width: imgW,
-      height: imgH,
+      x: BODY_LEFT, y: PH - curY - imgH,
+      width: imgW, height: imgH,
     });
-    curY += imgH + 8;
+    curY += imgH + 12;
   }
 
-  // ── Build content ──
+  // ── Build content (section order matches Flutter exportGameCardPdf) ──
   newPage(true);
 
-  // Section order matches Flutter: Setup → Image → How To Play → Variations → Teaching Points → Video
   if (game.game_setup?.trim()) {
-    drawSectionBar("SETUP");
+    drawSectionLabel("HOW TO SET UP");
     drawBodyText(game.game_setup);
-    curY += 4;
   }
 
   await drawGameImage();
 
   if (game.game_how_to_play?.trim()) {
-    drawSectionBar("HOW TO PLAY");
+    drawSectionLabel("HOW TO PLAY");
     drawBodyText(game.game_how_to_play);
-    curY += 4;
   }
 
   if (game.game_variations?.trim()) {
-    drawSectionBar("VARIATIONS");
+    drawSectionLabel("VARIATIONS");
     drawBodyText(game.game_variations);
-    curY += 4;
   }
 
   if (game.game_teaching_points?.trim()) {
-    drawSectionBar("TEACHING POINTS");
+    drawSectionLabel("TEACHING POINTS");
     drawBodyText(game.game_teaching_points);
-    curY += 4;
   }
 
   if (game.game_video?.trim()) {
-    drawSectionBar("VIDEO EXPLAINER");
+    drawSectionLabel("VIDEO EXPLAINER");
     ensureSpace(LINE_H);
     currentPage.drawText(game.game_video, {
-      x: ML + BODY_INDENT,
+      x: BODY_LEFT,
       y: PH - curY - BODY_FONT_S,
-      size: BODY_FONT_S,
-      font: notoReg,
-      color: rgb(0.0, 0.3, 0.8),
+      size: BODY_FONT_S, font: notoReg, color: rgb(0.0, 0.3, 0.8),
     });
     curY += LINE_H + 6;
   }
