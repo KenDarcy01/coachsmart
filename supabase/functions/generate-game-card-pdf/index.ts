@@ -1,7 +1,8 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, rgb, PDFFont } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, rgb, PDFFont, StandardFonts } from "npm:pdf-lib@1.17.1";
 import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
 
 const corsHeaders = {
@@ -23,15 +24,24 @@ function hexToRgb(hex: string) {
 
 // ─── Font fetching (Google Fonts → TTF via old UA) ───────────────────────────
 
-async function fetchGoogleFontBytes(family: string): Promise<Uint8Array> {
-  const cssUrl = `https://fonts.googleapis.com/css?family=${encodeURIComponent(family)}`;
-  const css = await fetch(cssUrl, {
-    headers: { "User-Agent": "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" },
-  }).then((r) => r.text());
-  const match = css.match(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/);
-  if (!match) throw new Error(`TTF not found in Google Fonts CSS for: ${family}`);
-  const buf = await fetch(match[1]).then((r) => r.arrayBuffer());
-  return new Uint8Array(buf);
+async function fetchGoogleFontBytes(family: string): Promise<Uint8Array | null> {
+  try {
+    const cssUrl = `https://fonts.googleapis.com/css?family=${encodeURIComponent(family)}`;
+    const css = await fetch(cssUrl, {
+      headers: { "User-Agent": "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)" },
+    }).then((r) => r.text());
+    // Handle both quoted and unquoted CSS url() values
+    const match = css.match(/url\(['"]?(https:\/\/fonts\.gstatic\.com\/[^'")\s]+)['"]?\)/);
+    if (!match) {
+      console.warn(`No font URL found in Google Fonts CSS for: ${family}`);
+      return null;
+    }
+    const buf = await fetch(match[1]).then((r) => r.arrayBuffer());
+    return new Uint8Array(buf);
+  } catch (e) {
+    console.warn(`fetchGoogleFontBytes failed for ${family}:`, e);
+    return null;
+  }
 }
 
 // ─── Image fetching ───────────────────────────────────────────────────────────
@@ -102,10 +112,10 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const white        = rgb(1, 1, 1);
   const grey         = rgb(0.70, 0.70, 0.70);
 
-  // ── Fonts (fetch in parallel) ──
+  // ── Fonts (fetch in parallel, fall back to Helvetica if unavailable) ──
   const [montserratBoldBytes, notoRegBytes, notoBoldBytes] = await Promise.all([
     fetchGoogleFontBytes("Montserrat:700"),
-    fetchGoogleFontBytes("Noto+Sans:400"),
+    fetchGoogleFontBytes("Noto+Sans"),
     fetchGoogleFontBytes("Noto+Sans:700"),
   ]);
 
@@ -119,9 +129,15 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
-  const montserratBold = await doc.embedFont(montserratBoldBytes);
-  const notoReg        = await doc.embedFont(notoRegBytes);
-  const notoBold       = await doc.embedFont(notoBoldBytes);
+  const montserratBold = montserratBoldBytes
+    ? await doc.embedFont(montserratBoldBytes)
+    : await doc.embedFont(StandardFonts.HelveticaBold);
+  const notoReg = notoRegBytes
+    ? await doc.embedFont(notoRegBytes)
+    : await doc.embedFont(StandardFonts.Helvetica);
+  const notoBold = notoBoldBytes
+    ? await doc.embedFont(notoBoldBytes)
+    : await doc.embedFont(StandardFonts.HelveticaBold);
 
   // Page dimensions (A4)
   const PW = 595.28;
@@ -483,7 +499,7 @@ serve(async (req) => {
     }
 
     const pdfBytes = await buildPdf(gameRes.data as GameData, clubData);
-    const base64 = btoa(String.fromCharCode(...pdfBytes));
+    const base64 = encodeBase64(pdfBytes);
     const filename = `${safeName(gameRes.data.game_name || "game_card")}.pdf`;
 
     return new Response(JSON.stringify({ pdf: base64, filename }), {
