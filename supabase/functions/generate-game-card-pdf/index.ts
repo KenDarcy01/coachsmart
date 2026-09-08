@@ -21,6 +21,16 @@ function hexToRgb(hex: string) {
   );
 }
 
+// Returns true if a hex colour is white or near-white (not usable on a white page)
+function isNearWhite(hex: string | null | undefined): boolean {
+  if (!hex) return false;
+  const h = hex.replace("#", "").padEnd(6, "0");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return (r + g + b) / 3 > 210; // average channel > 210/255
+}
+
 // ─── Font fetching (direct TTF from Google Fonts GitHub) ─────────────────────
 
 const FONT_TTF: Record<string, string> = {
@@ -111,6 +121,19 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   const white        = rgb(1, 1, 1);
   const grey         = rgb(0.70, 0.70, 0.70);
 
+  // ── Section heading colours — skip near-white, bar and text must be different ──
+  // Rank: secondary → third → primary; pick first two non-white entries
+  type ColourEntry = { hex: string | null; col: ReturnType<typeof hexToRgb> };
+  const colourRank: ColourEntry[] = [
+    { hex: club.secondary_colour, col: secondaryRgb },
+    { hex: club.third_colour,     col: thirdRgb as ReturnType<typeof hexToRgb> },
+    { hex: club.primary_colour,   col: primaryRgb },
+  ].filter((c): c is ColourEntry => c.col !== null && !isNearWhite(c.hex));
+
+  // Bar: first usable colour; Text: second usable colour (distinct from bar)
+  const sectionBarRgb  = colourRank[0]?.col ?? primaryRgb;
+  const sectionTextRgb = colourRank.find(c => c.col !== sectionBarRgb)?.col ?? secondaryRgb;
+
   // ── Fonts (fetch in parallel, fall back to Helvetica if unavailable) ──
   const [montserratBoldBytes, notoRegBytes, notoBoldBytes] = await Promise.all([
     fetchFontBytes("montserrat-bold"),
@@ -166,10 +189,10 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
   }
 
   // ── Layout constants ──
-  const CREST_SIZE  = 75;   // crest image size
+  const CREST_SIZE  = 85;   // crest image size
   const HEADER_PAD  = 12;   // header top/bottom padding
-  const CLUB_SIZE   = 18;   // Montserrat Bold — club name
-  const GAME_SIZE   = 13;   // NotoSans Bold — game name
+  const CLUB_SIZE   = 22;   // Montserrat Bold — club name
+  const GAME_SIZE   = 16;   // NotoSans Bold — game name
   const RULE_H      = 1;
 
   // Header: horizontal layout (crest left, text right)
@@ -284,7 +307,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
     if (PH - curY - FOOTER_ZONE < needed) newPage(false);
   }
 
-  // ── Section label: left accent bar + bold coloured text (matches Flutter) ──
+  // ── Section label: left accent bar (sectionBarRgb) + bold text (sectionTextRgb) ──
   function drawSectionLabel(label: string) {
     ensureSpace(SECTION_LABEL_ROW_H + LINE_H + 4);
     const rowCenterY = PH - curY - SECTION_LABEL_ROW_H / 2;
@@ -293,13 +316,13 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
     currentPage.drawRectangle({
       x: ML, y: rowCenterY - SECTION_BAR_H / 2,
       width: SECTION_BAR_W, height: SECTION_BAR_H,
-      color: secondaryRgb,
+      color: sectionBarRgb,
     });
-    // Label text (vertically centred in row)
+    // Label text (baseline = mid of bar)
     currentPage.drawText(label, {
       x: ML + SECTION_BAR_W + 6,
       y: rowCenterY - SECTION_FONT_S / 2,
-      size: SECTION_FONT_S, font: notoBold, color: secondaryRgb,
+      size: SECTION_FONT_S, font: notoBold, color: sectionTextRgb,
     });
     curY += SECTION_LABEL_ROW_H + 4;
   }
