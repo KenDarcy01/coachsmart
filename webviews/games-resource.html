@@ -873,109 +873,51 @@ function showDetail(gameId) {
   updateDetailHeart();
 }
 
-function exportGamePdf(gameId) {
+async function exportGamePdf(gameId) {
   const g = allGames.find(x => x.game_id === gameId);
   if (!g) return;
 
-  // Native: hand game fields to Flutter — exportGameCardPdf handles the rest
-  // (club branding, kIsWeb download vs. share-sheet split, fonts, layout).
-  if (window.FlutterBridge) {
-    window.FlutterBridge.postMessage('exportPdf:' + JSON.stringify({
-      name:           g.game_name             || '',
-      setup:          g.game_setup            || '',
-      howToPlay:      g.game_how_to_play      || '',
-      variations:     g.game_variations       || '',
-      teachingPoints: g.game_teaching_points  || '',
-      image:          g.game_image            || '',
-      video:          g.game_video            || '',
-    }));
-    return;
+  // Disable button while generating
+  const btn = document.querySelector(`.media-btn.pdf[onclick*="${gameId}"]`);
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Generating…'; btn.disabled = true; }
+
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/generate-game-card-pdf', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': 'Bearer ' + WV_TOKEN,
+        'apikey':        SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ game_id: gameId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Server error ' + res.status);
+    }
+
+    const { pdf, filename } = await res.json();
+
+    if (window.FlutterBridge) {
+      // Native: Flutter calls Printing.sharePdf(base64Decode(base64), filename: filename)
+      window.FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
+    } else {
+      // Web: blob download
+      const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
+      const blob  = new Blob([bytes], { type: 'application/pdf' });
+      const url   = URL.createObjectURL(blob);
+      const a     = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+  } catch (e) {
+    console.error('exportGamePdf:', e);
+    showToast('Could not generate PDF — please try again');
+  } finally {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
   }
-
-  // Web fallback: window.print() with a styled print card.
-  const primary   = clubInfo.primary   || '#2d7a00';
-  const secondary = clubInfo.secondary || '#ffd700';
-  const third     = clubInfo.third     || '';
-
-  // Apply club colours as CSS custom properties for @media print
-  const root = document.documentElement;
-  root.style.setProperty('--pc-primary',        primary);
-  root.style.setProperty('--pc-secondary',      secondary);
-  root.style.setProperty('--pc-third',          third || 'transparent');
-  // Footer line: third colour if present, else secondary (mirrors _pdfFooter)
-  root.style.setProperty('--pc-footer-line-col', third || secondary);
-
-  // ── Header ────────────────────────────────────────────────────────────────
-  const crestHtml = clubInfo.crest
-    ? `<img class="pc-crest" src="${esc(clubInfo.crest)}" alt="" onerror="this.style.display='none'"/>`
-    : '';
-  const clubNameHtml = clubInfo.name
-    ? `<div class="pc-club-name">${esc(clubInfo.name)}</div><div class="pc-rule"></div>`
-    : '';
-  const thirdStripe = third ? `<div class="pc-stripe-third"></div>` : '';
-
-  // ── Sections (bullet rows, same as _pdfSection) ───────────────────────────
-  let isFirstSection = true;
-  function sectionHtml(title, text) {
-    if (!text?.trim()) return '';
-    const rows = text.split('\n')
-      .map(l => l.replace(/^[•\-]\s*/, '').trim())
-      .filter(Boolean)
-      .map(l => `<div class="pc-line"><div class="pc-bullet"></div><div class="pc-line-text">${esc(l)}</div></div>`)
-      .join('');
-    const cls = isFirstSection ? 'pc-section pc-section-first' : 'pc-section';
-    isFirstSection = false;
-    return `<div class="${cls}">
-      <div class="pc-label-row"><div class="pc-label-bar"></div><div class="pc-label">${title}</div></div>
-      ${rows}
-    </div>`;
-  }
-
-  // ── Game image (between Setup and How To Play, matching Flutter order) ─────
-  const imgHtml = g.game_image?.trim()
-    ? `<img class="pc-img" src="${esc(g.game_image)}" alt="${esc(g.game_name)}" onerror="this.style.display='none'"/>`
-    : '';
-
-  // ── Video link ─────────────────────────────────────────────────────────────
-  function videoHtml(url) {
-    if (!url?.trim()) return '';
-    const cls = isFirstSection ? 'pc-section pc-section-first' : 'pc-section';
-    isFirstSection = false;
-    return `<div class="${cls}">
-      <div class="pc-label-row"><div class="pc-label-bar"></div><div class="pc-label">VIDEO EXPLAINER</div></div>
-      <div class="pc-video-url">${esc(url)}</div>
-    </div>`;
-  }
-
-  $('printCard').innerHTML = `
-    <div class="pc-header">
-      ${crestHtml}
-      <div class="pc-header-text">
-        ${clubNameHtml}
-        <div class="pc-game-name">${esc(g.game_name)}</div>
-      </div>
-    </div>
-    <div class="pc-stripe-wrap">
-      <div class="pc-stripe-white"></div>
-      <div class="pc-stripe-sec"></div>
-      ${thirdStripe}
-    </div>
-    <div class="pc-body">
-      ${sectionHtml('HOW TO SET UP', g.game_setup)}
-      ${imgHtml}
-      ${sectionHtml('HOW TO PLAY', g.game_how_to_play)}
-      ${sectionHtml('VARIATIONS', g.game_variations)}
-      ${sectionHtml('TEACHING POINTS', g.game_teaching_points)}
-      ${videoHtml(g.game_video)}
-      <div class="pc-footer-line"></div>
-      <div class="pc-footer">
-        <span class="pc-footer-club">${esc(clubInfo.name || 'CoachSmart')}</span>
-        <span class="pc-footer-brand">CoachSmart</span>
-      </div>
-    </div>
-  `;
-
-  window.print();
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
