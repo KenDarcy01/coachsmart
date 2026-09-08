@@ -220,7 +220,7 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
 
   // Body text
   const BODY_FONT_S = 13;
-  const LINE_H      = 16;   // line height
+  const LINE_H      = 21;   // line height
   const BODY_LEFT   = ML + 10;  // left edge for bullets
   const BODY_RIGHT  = PW - MR - 10;
   const BODY_W      = BODY_RIGHT - BODY_LEFT;
@@ -366,9 +366,9 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
         currentPage.drawText(wrappedLines[i], { x: contX, y: lineY, size: BODY_FONT_S, font: notoReg, color: darkText });
         curY += LINE_H;
       }
-      curY += 3;  // gap between bullet points
+      curY += 6;  // gap between bullet points
     }
-    curY += 6;  // gap after section
+    curY += 12;  // gap after section
   }
 
   // ── Game image ──
@@ -384,12 +384,13 @@ async function buildPdf(game: GameData, club: ClubData): Promise<Uint8Array> {
     }
     // Centre horizontally within the content area
     const imgX = ML + (CW - imgW) / 2;
-    ensureSpace(imgH + 16);
+    curY += 10;  // space above image
+    ensureSpace(imgH + 28);
     currentPage.drawImage(gameImg, {
       x: imgX, y: PH - curY - imgH,
       width: imgW, height: imgH,
     });
-    curY += imgH + 16;
+    curY += imgH + 24;  // space below image
   }
 
   // ── Build content (section order matches Flutter exportGameCardPdf) ──
