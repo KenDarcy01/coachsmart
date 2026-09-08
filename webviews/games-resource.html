@@ -883,11 +883,18 @@ async function exportGamePdf(gameId) {
   if (btn) { btn.textContent = 'Generating…'; btn.disabled = true; }
 
   try {
+    // Prefer the current session token (may have been refreshed since page load)
+    let authToken = WV_TOKEN;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.access_token) authToken = session.access_token;
+    } catch (_) {}
+
     const res = await fetch(SUPABASE_URL + '/functions/v1/generate-game-card-pdf', {
       method: 'POST',
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': 'Bearer ' + WV_TOKEN,
+        'Authorization': 'Bearer ' + authToken,
         'apikey':        SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({ game_id: gameId }),
