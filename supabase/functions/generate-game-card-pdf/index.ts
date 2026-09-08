@@ -1,6 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, PDFFont, StandardFonts } from "npm:pdf-lib@1.17.1";
 import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
@@ -499,7 +498,12 @@ serve(async (req) => {
     }
 
     const pdfBytes = await buildPdf(gameRes.data as GameData, clubData);
-    const base64 = encodeBase64(pdfBytes);
+    // Chunked base64 — avoids spread-arg stack overflow on large PDFs
+    let b64 = '';
+    for (let i = 0; i < pdfBytes.length; i += 8192) {
+      b64 += String.fromCharCode(...pdfBytes.subarray(i, i + 8192));
+    }
+    const base64 = btoa(b64);
     const filename = `${safeName(gameRes.data.game_name || "game_card")}.pdf`;
 
     return new Response(JSON.stringify({ pdf: base64, filename }), {
