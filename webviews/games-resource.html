@@ -188,9 +188,10 @@
 
     /* ── DETAIL ── */
     .detail-image {
-      width: calc(100% - 32px); height: auto;
+      width: 100%; height: auto;
       display: block; background: var(--card2);
-      margin: 0 16px;
+      border-radius: 6px;
+      margin-bottom: 22px;
     }
     .detail-body { padding: 16px; }
     .detail-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
@@ -855,12 +856,10 @@ function showDetail(gameId) {
     </div>`);
   }
 
-  // Image between Setup and How to Play (matching PDF layout)
-  parts.push('</div>'); // close detail-body before image so it can span with its own margin
+  // Image between Setup and How to Play — sits inside detail-body so padding aligns with text
   if (g.game_image?.trim()) {
     parts.push(`<img class="detail-image" src="${esc(g.game_image)}" alt="${esc(g.game_name)}" onerror="this.style.display='none'"/>`);
   }
-  parts.push('<div class="detail-body" style="padding-top:16px">'); // reopen for remaining sections
 
   [
     { key: 'game_how_to_play',     label: 'How to Play' },
