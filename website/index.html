@@ -115,13 +115,7 @@
   }
 
   .hero-bg .orb-1 {
-    width: 700px;
-    height: 700px;
-    background: radial-gradient(circle, rgba(135,194,50,0.13) 0%, transparent 70%);
-    filter: blur(90px);
-    top: -20%;
-    right: -5%;
-    animation: orbFloat1 20s ease-in-out infinite;
+    display: none;
   }
 
   .hero-bg .orb-2 {
@@ -525,38 +519,62 @@
     stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
 
-  /* SOCIAL PROOF */
-  .stats-row {
+  /* PILLARS */
+  .pillars {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
+    gap: 16px;
     margin-bottom: 80px;
   }
 
-  .stat-block {
+  .pillar {
     background: var(--dark);
-    padding: 36px 24px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 20px 24px;
     text-align: center;
+    transition: border-color 0.2s, transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
   }
 
-  .stat-num {
+  .pillar:hover {
+    border-color: rgba(135,194,50,0.35);
+    transform: translateY(-3px);
+  }
+
+  .pillar-icon {
+    width: 52px; height: 52px;
+    background: var(--green-dim);
+    border: 1px solid rgba(135,194,50,0.2);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .pillar-icon svg {
+    width: 26px; height: 26px;
+    stroke: var(--green); fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .pillar-body { display: flex; flex-direction: column; gap: 5px; }
+
+  .pillar-title {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 52px;
+    font-size: 28px;
     color: var(--green);
     letter-spacing: 1px;
     line-height: 1;
-    margin-bottom: 6px;
   }
 
-  .stat-label {
+  .pillar-label {
     font-size: 13px;
     color: var(--muted);
     font-weight: 500;
-    letter-spacing: 0.3px;
+    line-height: 1.5;
   }
 
   /* TESTIMONIALS */
@@ -879,7 +897,7 @@
     .feature-card.f-hero.flip { flex-direction: row; }
     .f-illus { width: 100px; padding: 12px; }
     .appscreens-grid { grid-template-columns: 1fr 1fr; }
-    .stats-row { grid-template-columns: 1fr 1fr; }
+    .pillars { grid-template-columns: 1fr 1fr; }
     .testimonials-grid { grid-template-columns: 1fr; }
     .steps-grid { grid-template-columns: 1fr 1fr; }
     .steps-grid::before { display: none; }
@@ -892,7 +910,7 @@
     .feature-card.f-hero.flip { flex-direction: column; }
     .f-illus { width: 100%; max-width: 180px; margin: 0 auto; }
     .appscreens-grid { grid-template-columns: 1fr; }
-    .stats-row { grid-template-columns: 1fr 1fr; }
+    .pillars { grid-template-columns: 1fr 1fr; }
     .steps-grid { grid-template-columns: 1fr; }
   }
 </style>
@@ -949,26 +967,51 @@
   </div>
 </section>
 
-<!-- STATS -->
+<!-- PILLARS -->
 <div style="padding: 0 5%; background: var(--darker);">
-  <div style="max-width:1200px; margin:0 auto 0;">
-    <div class="stats-row fade-up">
-      <div class="stat-block">
-        <div class="stat-num">GAA</div>
-        <div class="stat-label">Built specifically for Gaelic games</div>
+  <div style="max-width:1200px; margin:0 auto;">
+    <div class="pillars fade-up">
+
+      <div class="pillar">
+        <div class="pillar-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg>
+        </div>
+        <div class="pillar-body">
+          <div class="pillar-title">GAA</div>
+          <div class="pillar-label">Built specifically for Gaelic games</div>
+        </div>
       </div>
-      <div class="stat-block">
-        <div class="stat-num">Free</div>
-        <div class="stat-label">No subscription. No hidden fees.</div>
+
+      <div class="pillar">
+        <div class="pillar-icon">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div class="pillar-body">
+          <div class="pillar-title">Free</div>
+          <div class="pillar-label">No subscription. No hidden fees.</div>
+        </div>
       </div>
-      <div class="stat-block">
-        <div class="stat-num">iOS</div>
-        <div class="stat-label">Native iPhone app</div>
+
+      <div class="pillar">
+        <div class="pillar-icon">
+          <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3"/></svg>
+        </div>
+        <div class="pillar-body">
+          <div class="pillar-title">iOS</div>
+          <div class="pillar-label">Native iPhone app</div>
+        </div>
       </div>
-      <div class="stat-block">
-        <div class="stat-num">All</div>
-        <div class="stat-label">Football, Hurling &amp; Camogie</div>
+
+      <div class="pillar">
+        <div class="pillar-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+        </div>
+        <div class="pillar-body">
+          <div class="pillar-title">All Codes</div>
+          <div class="pillar-label">Football, Hurling &amp; Camogie</div>
+        </div>
       </div>
+
     </div>
   </div>
 </div>
