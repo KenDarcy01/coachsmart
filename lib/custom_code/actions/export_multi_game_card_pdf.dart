@@ -137,7 +137,7 @@ Future<String?> exportMultiGameCardPdf(
         pw.MultiPage(
           pageFormat: pageFormat,
           margin: pw.EdgeInsets.zero,
-          header: (context) => context.pageNumber == 1
+          header: (context) => context.pageNumber == 0
               ? pw.SizedBox()
               : _mgPdfContinuationHeader(
                   gameName, primary, secondary, hPad, bodyFont, bodyFontBold),
