@@ -301,7 +301,7 @@ pw.Widget _mgPdfHeader(
                 clubName,
                 style: pw.TextStyle(font: clubFont, color: PdfColors.white, fontSize: 22),
               ),
-              pw.SizedBox(height: 5),
+              pw.SizedBox(height: 8),
               pw.Container(height: 1, color: PdfColors.white),
               pw.SizedBox(height: 5),
               pw.Text(
