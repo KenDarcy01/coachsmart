@@ -103,77 +103,72 @@ Future<String?> exportMultiGameCardPdf(
     debugPrint('[PDF] Building PDF document (kIsWeb=$kIsWeb)...');
     final pdf = pw.Document(compress: !kIsWeb);
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: pageFormat,
-        margin: pw.EdgeInsets.zero,
-        header: (_) => pw.SizedBox(),
-        footer: (context) => _mgPdfFooter(_mgSanitise(clubName), primary,
-            secondary, third, hPad, hasThird, bodyFont, bodyFontBold),
-        build: (context) {
-          final widgets = <pw.Widget>[];
+    // One MultiPage per game so context.pageNumber resets to 1 for each game's
+    // first page (banner page = no top padding) and is >1 for continuation pages
+    // (content only = needs breathing room at top).
+    for (int i = 0; i < ordered.length; i++) {
+      final row = ordered[i];
+      final gameName = _mgSanitise(row['game_name'] as String? ?? '');
+      final gameSetup = _mgSanitise(row['game_setup'] as String? ?? '');
+      final gameHowToPlay =
+          _mgSanitise(row['game_how_to_play'] as String? ?? '');
+      final gameVariations =
+          _mgSanitise(row['game_variations'] as String? ?? '');
+      final gameTeachingPoints =
+          _mgSanitise(row['game_teaching_points'] as String? ?? '');
+      final gameVideo = (row['game_video'] as String? ?? '').trim();
+      final (gameImage, imageRatio) = gameImageData[i];
 
-          for (int i = 0; i < ordered.length; i++) {
-            if (i > 0) widgets.add(pw.NewPage());
+      final double contentW = pageFormat.width - 2 * hPad;
+      pw.Widget? imageWidget;
+      if (gameImage != null) {
+        double imgW = contentW;
+        double imgH = imageRatio != null ? imgW / imageRatio : 280.0;
+        if (imgH > 380) { imgH = 280; imgW = imgH * (imageRatio ?? 1.0); }
+        imageWidget = pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(vertical: 8),
+          child: pw.Center(
+            child: pw.Image(gameImage, width: imgW, height: imgH, fit: pw.BoxFit.contain),
+          ),
+        );
+      }
 
-            final row = ordered[i];
-            final gameName = _mgSanitise(row['game_name'] as String? ?? '');
-            final gameSetup = _mgSanitise(row['game_setup'] as String? ?? '');
-            final gameHowToPlay =
-                _mgSanitise(row['game_how_to_play'] as String? ?? '');
-            final gameVariations =
-                _mgSanitise(row['game_variations'] as String? ?? '');
-            final gameTeachingPoints =
-                _mgSanitise(row['game_teaching_points'] as String? ?? '');
-            final gameVideo = (row['game_video'] as String? ?? '').trim();
-            final (gameImage, imageRatio) = gameImageData[i];
-
-            // Same sizing logic as edge function: full content width, height from ratio, cap tall images
-            final double contentW = pageFormat.width - 2 * hPad;
-            pw.Widget? imageWidget;
-            if (gameImage != null) {
-              double imgW = contentW;
-              double imgH = imageRatio != null ? imgW / imageRatio : 280.0;
-              if (imgH > 380) { imgH = 280; imgW = imgH * (imageRatio ?? 1.0); }
-              imageWidget = pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(vertical: 8),
-                child: pw.Center(
-                  child: pw.Image(gameImage, width: imgW, height: imgH, fit: pw.BoxFit.contain),
-                ),
-              );
-            }
-
-            widgets.addAll([
-              _mgPdfHeader(gameName, _mgSanitise(clubName), crestImage, primary,
-                  secondary, clubFont, bodyFontBold, hPad, crestSize),
-              _mgPdfAccentStripe(secondary, third, hasThird),
-              if (gameSetup.isNotEmpty)
-                pw.Padding(
-                  padding: const pw.EdgeInsets.only(top: 16),
-                  child: _mgPdfSection('HOW TO SET UP', gameSetup, primary,
-                      secondary, hPad, bodyFont, bodyFontBold),
-                ),
-              if (imageWidget != null) imageWidget,
-              pw.SizedBox(height: 8),
-              if (gameHowToPlay.isNotEmpty)
-                _mgPdfSection('HOW TO PLAY', gameHowToPlay, primary, secondary,
-                    hPad, bodyFont, bodyFontBold),
-              if (gameVariations.isNotEmpty)
-                _mgPdfSection('VARIATIONS', gameVariations, primary, secondary,
-                    hPad, bodyFont, bodyFontBold),
-              if (gameTeachingPoints.isNotEmpty)
-                _mgPdfSection('TEACHING POINTS', gameTeachingPoints, primary,
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: pageFormat,
+          margin: pw.EdgeInsets.zero,
+          header: (context) =>
+              pw.SizedBox(height: context.pageNumber == 1 ? 0 : 16),
+          footer: (context) => _mgPdfFooter(_mgSanitise(clubName), primary,
+              secondary, third, hPad, hasThird, bodyFont, bodyFontBold),
+          build: (context) => [
+            _mgPdfHeader(gameName, _mgSanitise(clubName), crestImage, primary,
+                secondary, clubFont, bodyFontBold, hPad, crestSize),
+            _mgPdfAccentStripe(secondary, third, hasThird),
+            if (gameSetup.isNotEmpty)
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 16),
+                child: _mgPdfSection('HOW TO SET UP', gameSetup, primary,
                     secondary, hPad, bodyFont, bodyFontBold),
-              if (gameVideo.isNotEmpty)
-                _mgPdfVideoLink(
-                    _mgSanitise(gameVideo), secondary, primary, hPad, bodyFont, bodyFontBold),
-            ]);
-          }
-
-          return widgets;
-        },
-      ),
-    );
+              ),
+            if (imageWidget != null) imageWidget,
+            pw.SizedBox(height: 8),
+            if (gameHowToPlay.isNotEmpty)
+              _mgPdfSection('HOW TO PLAY', gameHowToPlay, primary, secondary,
+                  hPad, bodyFont, bodyFontBold),
+            if (gameVariations.isNotEmpty)
+              _mgPdfSection('VARIATIONS', gameVariations, primary, secondary,
+                  hPad, bodyFont, bodyFontBold),
+            if (gameTeachingPoints.isNotEmpty)
+              _mgPdfSection('TEACHING POINTS', gameTeachingPoints, primary,
+                  secondary, hPad, bodyFont, bodyFontBold),
+            if (gameVideo.isNotEmpty)
+              _mgPdfVideoLink(
+                  _mgSanitise(gameVideo), secondary, primary, hPad, bodyFont, bodyFontBold),
+          ],
+        ),
+      );
+    }
 
     debugPrint('[PDF] Saving PDF...');
     final safeClub = clubName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
