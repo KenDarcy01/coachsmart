@@ -7,8 +7,8 @@ import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import '/custom_code/actions/index.dart' as actions;
+import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
-import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -75,6 +75,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           logFirebaseEvent('HomePage_update_app_state');
           FFAppState().homePageEvents = UserEventsHomeStruct.maybeFromMap(
               (_model.outputHomeLoad?.jsonBody ?? ''))!;
+          logFirebaseEvent('HomePage_update_app_state');
+          FFAppState().notificationBadgeCount =
+              FFAppState().homePageEvents.unreadNotifications;
           logFirebaseEvent('HomePage_update_page_state');
           _model.varShowHome = true;
           safeSetState(() {});
@@ -680,7 +683,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         mainAxisSize: MainAxisSize.max,
                                         children: [
                                           Text(
-                                            'v2.1.7',
+                                            'v2.1.8',
                                             style: FlutterFlowTheme.of(context)
                                                 .titleSmall
                                                 .override(
@@ -804,64 +807,20 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.max,
                                 children: [
-                                  Align(
-                                    alignment: AlignmentDirectional(0.0, 0.0),
-                                    child: badges.Badge(
-                                      badgeContent: Text(
-                                        valueOrDefault<String>(
-                                          FFAppState()
-                                              .homePageEvents
-                                              .unreadNotifications
-                                              .toString(),
-                                          '?',
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        style: FlutterFlowTheme.of(context)
-                                            .titleSmall
-                                            .override(
-                                              font: GoogleFonts.interTight(
-                                                fontWeight:
-                                                    FlutterFlowTheme.of(context)
-                                                        .titleSmall
-                                                        .fontWeight,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .titleSmall
-                                                        .fontStyle,
-                                              ),
-                                              color: Colors.white,
-                                              fontSize: 14.0,
-                                              letterSpacing: 0.0,
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .titleSmall
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .titleSmall
-                                                      .fontStyle,
-                                            ),
-                                      ),
-                                      showBadge: true,
-                                      shape: badges.BadgeShape.circle,
-                                      badgeColor: Color(0xFFB4041F),
-                                      elevation: 4.0,
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          8.0, 8.0, 8.0, 8.0),
-                                      position: badges.BadgePosition.topStart(),
-                                      animationType:
-                                          badges.BadgeAnimationType.scale,
-                                      toAnimate: true,
-                                      child: Padding(
-                                        padding: EdgeInsetsDirectional.fromSTEB(
-                                            0.0, 6.0, 0.0, 0.0),
-                                        child: Icon(
-                                          Icons.notifications_sharp,
-                                          color: FlutterFlowTheme.of(context)
-                                              .coachSmartGreen,
-                                          size: 30.0,
-                                        ),
-                                      ),
+                                  Container(
+                                    width: 45.0,
+                                    height: 41.0,
+                                    child:
+                                        custom_widgets.NotificationBadgeWidget(
+                                      width: 45.0,
+                                      height: 41.0,
+                                      iconColor: FlutterFlowTheme.of(context)
+                                          .coachSmartGreen,
+                                      badgeColor: Color(0xFF940B0B),
+                                      badgeTextColor:
+                                          FlutterFlowTheme.of(context)
+                                              .alternate,
+                                      iconSize: 30.0,
                                     ),
                                   ),
                                 ],
@@ -2193,12 +2152,19 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         'HOME_PAGE_PAGE_Container_4q289tp4_ON_TAP');
                                     logFirebaseEvent('Container_navigate_to');
 
-                                    context
-                                        .pushNamed(GamesAgesWidget.routeName);
+                                    context.pushNamed(
+                                      ResourcesWidget.routeName,
+                                      queryParameters: {
+                                        'currentAuthToken': serializeParam(
+                                          currentJwtToken,
+                                          ParamType.String,
+                                        ),
+                                      }.withoutNulls,
+                                    );
                                   },
                                   child: Container(
-                                    width: 90.0,
-                                    height: 50.0,
+                                    width: 100.0,
+                                    height: 55.0,
                                     decoration: BoxDecoration(
                                       color: Color(0x8A1E222B),
                                       borderRadius: BorderRadius.circular(24.0),
@@ -2209,13 +2175,13 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           MainAxisAlignment.center,
                                       children: [
                                         FaIcon(
-                                          FontAwesomeIcons.walking,
+                                          FontAwesomeIcons.running,
                                           color: FlutterFlowTheme.of(context)
                                               .alternate,
-                                          size: 20.0,
+                                          size: 25.0,
                                         ),
                                         Text(
-                                          'Games',
+                                          'Resources',
                                           style: FlutterFlowTheme.of(context)
                                               .bodyMedium
                                               .override(
@@ -2231,7 +2197,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                           .bodyMedium
                                                           .fontStyle,
                                                 ),
-                                                fontSize: 12.0,
+                                                fontSize: 14.0,
                                                 letterSpacing: 0.0,
                                                 fontWeight:
                                                     FlutterFlowTheme.of(context)
@@ -2263,8 +2229,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         .pushNamed(FavouritesWidget.routeName);
                                   },
                                   child: Container(
-                                    width: 90.0,
-                                    height: 50.0,
+                                    width: 100.0,
+                                    height: 55.0,
                                     decoration: BoxDecoration(
                                       color: Color(0x951E222B),
                                       borderRadius: BorderRadius.circular(24.0),
@@ -2278,7 +2244,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           Icons.favorite_sharp,
                                           color: FlutterFlowTheme.of(context)
                                               .alternate,
-                                          size: 20.0,
+                                          size: 25.0,
                                         ),
                                         Text(
                                           'Favourites',
@@ -2297,7 +2263,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                           .bodyMedium
                                                           .fontStyle,
                                                 ),
-                                                fontSize: 12.0,
+                                                fontSize: 14.0,
                                                 letterSpacing: 0.0,
                                                 fontWeight:
                                                     FlutterFlowTheme.of(context)
@@ -2331,8 +2297,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         .pushNamed(CreateEventWidget.routeName);
                                   },
                                   child: Container(
-                                    width: 90.0,
-                                    height: 50.0,
+                                    width: 100.0,
+                                    height: 55.0,
                                     decoration: BoxDecoration(
                                       color: Color(0x941E222B),
                                       borderRadius: BorderRadius.circular(24.0),
@@ -2346,7 +2312,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           Icons.add,
                                           color: FlutterFlowTheme.of(context)
                                               .alternate,
-                                          size: 20.0,
+                                          size: 25.0,
                                         ),
                                         Text(
                                           'Add Event',
@@ -2365,7 +2331,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                           .bodyMedium
                                                           .fontStyle,
                                                 ),
-                                                fontSize: 12.0,
+                                                fontSize: 14.0,
                                                 letterSpacing: 0.0,
                                                 fontWeight:
                                                     FlutterFlowTheme.of(context)

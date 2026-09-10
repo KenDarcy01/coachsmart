@@ -125,12 +125,12 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                 borderWidth: 1.0,
                 buttonSize: 60.0,
                 icon: Icon(
-                  Icons.keyboard_backspace,
+                  Icons.chevron_left,
                   color: Color(0xFF87C232),
-                  size: 30.0,
+                  size: 40.0,
                 ),
                 onPressed: () async {
-                  logFirebaseEvent('EVENT_DETAILS_keyboard_backspace_ICN_ON_');
+                  logFirebaseEvent('EVENT_DETAILS_chevron_left_ICN_ON_TAP');
                   if (widget.fromSearch == true) {
                     logFirebaseEvent('IconButton_navigate_back');
                     context.safePop();
@@ -184,7 +184,7 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                   visible: UserEventDetailsStruct.maybeFromMap(
                               eventDetailsGetUserEventDetailsResponse.jsonBody)!
                           .userHighestRoleLevel >=
-                      100,
+                      20,
                   child: Builder(
                     builder: (context) => Padding(
                       padding:
@@ -2070,9 +2070,6 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                                             FlutterFlowTheme.of(
                                                                     context)
                                                                 .coachSmartGrey,
-                                                        fontSize: isWeb == true
-                                                            ? 14.0
-                                                            : 16.0,
                                                         letterSpacing: 0.0,
                                                         fontWeight:
                                                             FlutterFlowTheme.of(

@@ -98,12 +98,12 @@ class _TeamMembersWidgetState extends State<TeamMembersWidget> {
             borderWidth: 1.0,
             buttonSize: 60.0,
             icon: Icon(
-              Icons.arrow_back_rounded,
+              Icons.chevron_left,
               color: Color(0xFF87C232),
-              size: 30.0,
+              size: 40.0,
             ),
             onPressed: () async {
-              logFirebaseEvent('TEAM_MEMBERS_arrow_back_rounded_ICN_ON_T');
+              logFirebaseEvent('TEAM_MEMBERS_chevron_left_ICN_ON_TAP');
               logFirebaseEvent('IconButton_navigate_back');
               context.safePop();
             },

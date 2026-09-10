@@ -12,8 +12,6 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
-import 'index.dart'; // Imports other custom actions
-
 import '/backend/api_requests/api_calls.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -170,9 +168,13 @@ Future<void> _initFirebase() async {
     } else {
       _log('Firebase already initialised — skipping');
     }
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       _logStep('FCM', 'Token refreshed → ${newToken.substring(0, 16)}...');
       FFAppState().fcmToken = newToken;
+      // Persist the rotated token to the database if a user is signed in.
+      if (_activeSupabase != null && _activeUserId != null) {
+        await _saveFcmToken(_activeSupabase!, _activeUserId!, newToken);
+      }
     });
     _log('FCM token refresh listener attached ✓');
   } catch (e) {
@@ -181,7 +183,27 @@ Future<void> _initFirebase() async {
 }
 
 // ---------------------------------------------------------------------------
-// 3. MARK READ HELPER
+// 3. FCM TOKEN HELPER
+// ---------------------------------------------------------------------------
+
+Future<void> _saveFcmToken(
+  SupabaseClient supabase,
+  String userId,
+  String token,
+) async {
+  _logStep('FCM', 'Saving token to users table...');
+  try {
+    await supabase
+        .from('users')
+        .update({'fcm_token': token}).eq('user_id', userId);
+    _log('FCM token saved to DB ✓');
+  } catch (e) {
+    _logError('Failed to save FCM token', e);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4. MARK READ HELPER
 // ---------------------------------------------------------------------------
 
 Future<void> _markNotificationRead(
@@ -205,30 +227,32 @@ Future<void> _markNotificationRead(
 // ---------------------------------------------------------------------------
 
 Future<void> _navigateFromPushLink(String linkPage) async {
-  _logStep('Navigate', 'Push tap — navigating to NotificationsNew');
+  final String destination = (linkPage.isNotEmpty) ? linkPage : 'Notifications';
+  _logStep('Navigate', 'Push tap — navigating to $destination');
   _refreshNavigatorContext();
   if (_navigatorContext == null || !_navigatorContext!.mounted) {
     _logError('Navigator context not available for push navigation');
     return;
   }
   try {
-    _navigatorContext!.pushNamed('NotificationsNew');
-    _log('Push navigated to NotificationsNew ✓');
+    _navigatorContext!.pushNamed(destination);
+    _log('Push navigated to $destination ✓');
   } catch (e) {
     _logError('Push navigation threw', e);
   }
 }
 
 Future<void> _navigateFromBannerLink(String linkPage) async {
-  _logStep('BannerNav', 'Banner tap — navigating to NotificationsNew');
+  final String destination = (linkPage.isNotEmpty) ? linkPage : 'Notifications';
+  _logStep('BannerNav', 'Banner tap — navigating to $destination');
   _refreshNavigatorContext();
   if (_navigatorContext == null || !_navigatorContext!.mounted) {
     _logError('Navigator context not available for banner navigation');
     return;
   }
   try {
-    _navigatorContext!.pushNamed('NotificationsNew');
-    _log('Banner navigated to NotificationsNew ✓');
+    _navigatorContext!.pushNamed(destination);
+    _log('Banner navigated to $destination ✓');
   } catch (e) {
     _logError('Banner navigation threw', e);
   }
@@ -395,9 +419,10 @@ void _startReadSyncChannel(SupabaseClient supabase, String userId) {
 // ---------------------------------------------------------------------------
 // 6. HOME PAGE COUNT REFRESH
 //
-// Queries unread notifications directly and updates FFAppState so the home
-// page badge count rebuilds without a full GetUserHomeEventsCall.
-// Called on app resume and when is_read changes via the read-sync channel.
+// Queries unread notifications and updates FFAppState.notificationBadgeCount.
+// This is a simple int App State variable — FlutterFlow generates context.watch
+// for widgets bound to it, so they auto-rebuild when this value changes.
+// Called on app resume, read-sync events, banner tap, and init.
 // ---------------------------------------------------------------------------
 
 Future<void> _refreshHomePageCount(
@@ -412,10 +437,12 @@ Future<void> _refreshHomePageCount(
         .eq('recipient_user_id', userId)
         .eq('is_read', false);
     final int count = (rows as List).length;
-    FFAppState().updateHomePageEventsStruct(
-      (s) => s..unreadNotifications = count,
-    );
-    _log('Home page unread count updated → $count ✓');
+    // update() calls notifyListeners() — widgets using context.watch<FFAppState>()
+    // will rebuild automatically (e.g. the NotificationBadge custom widget).
+    FFAppState().update(() {
+      FFAppState().homePageEvents.unreadNotifications = count;
+    });
+    _log('homePageEvents.unreadNotifications updated → $count ✓');
   } catch (e) {
     _logError('_refreshHomePageCount failed', e);
   }
@@ -940,19 +967,15 @@ class _SlickBannerState extends State<_SlickBanner>
             'linkPage="${widget.linkPage}"');
     HapticFeedback.selectionClick();
 
-    await Future.wait([
-      _markNotificationRead(widget.supabase, widget.notificationId),
-      _animateOut(),
-    ]);
+    await _animateOut();
 
-    // Refresh badge immediately after marking this notification as read.
     if (_activeSupabase != null && _activeUserId != null) {
       await _updateBadge(_activeSupabase!, _activeUserId!);
       await _refreshHomePageCount(_activeSupabase!, _activeUserId!);
     }
 
     // Always navigate to Notifications regardless of linkPage content.
-    _i('tap', 'navigating to NotificationsNew');
+    _i('tap', 'navigating to Notifications');
     await _navigateFromBannerLink(widget.linkPage);
   }
 
@@ -1199,7 +1222,39 @@ Future<void> registerBackgroundMessageHandler() async {
     _activeSupabase = supabase;
     _activeUserId = currentUser.id;
 
+    // Fetch and persist the current FCM token on every app start.
+    // On a fresh install the token changes; this ensures the DB is always current.
     if (!kIsWeb) {
+      try {
+        final String? currentToken =
+            await FirebaseMessaging.instance.getToken();
+        if (currentToken != null) {
+          FFAppState().fcmToken = currentToken;
+          await _saveFcmToken(supabase, currentUser.id, currentToken);
+        } else {
+          _logWarn('getToken() returned null — push notifications unavailable');
+        }
+      } catch (e) {
+        _logError('Failed to fetch FCM token on startup', e);
+      }
+    }
+
+    if (!kIsWeb) {
+      // Cold start — app was killed, user tapped the notification.
+      final RemoteMessage? initialMessage =
+          await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) {
+        _logStep('ColdStart',
+            'getInitialMessage fired | data=${initialMessage.data}');
+        final String? notificationId = initialMessage.data['notification_id'];
+        final String? linkPage = initialMessage.data['link_page'];
+        if (notificationId != null && notificationId.isNotEmpty) {
+          await _updateBadge(supabase, currentUser.id);
+          await _refreshHomePageCount(supabase, currentUser.id);
+        }
+        await _navigateFromPushLink(linkPage ?? '');
+      }
+
       // Background tap — app was in background, user taps system notification.
       FirebaseMessaging.onMessageOpenedApp
           .listen((RemoteMessage message) async {
@@ -1209,7 +1264,6 @@ Future<void> registerBackgroundMessageHandler() async {
         _logStep(
             'PushTap', 'notificationId=$notificationId | linkPage=$linkPage');
         if (notificationId != null && notificationId.isNotEmpty) {
-          await _markNotificationRead(supabase, notificationId);
           await _updateBadge(supabase, currentUser.id);
           await _refreshHomePageCount(supabase, currentUser.id);
         } else {

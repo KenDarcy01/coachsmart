@@ -220,4 +220,10 @@ class FFAppState extends ChangeNotifier {
   void updateGetEditUserDataStruct(Function(GetEditUserDataStruct) updateFn) {
     updateFn(_getEditUserData);
   }
+
+  int _notificationBadgeCount = 0;
+  int get notificationBadgeCount => _notificationBadgeCount;
+  set notificationBadgeCount(int value) {
+    _notificationBadgeCount = value;
+  }
 }

@@ -361,20 +361,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
-              name: EventDetailsWidget.routeName,
-              path: EventDetailsWidget.routePath,
-              builder: (context, params) => EventDetailsWidget(
-                eventID: params.getParam(
-                  'eventID',
-                  ParamType.int,
-                ),
-                fromSearch: params.getParam(
-                  'fromSearch',
-                  ParamType.bool,
-                ),
-              ),
-            ),
-            FFRoute(
               name: CreateCarPoolWidget.routeName,
               path: CreateCarPoolWidget.routePath,
               builder: (context, params) => CreateCarPoolWidget(
@@ -415,11 +401,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   ParamType.int,
                 ),
               ),
-            ),
-            FFRoute(
-              name: HomePageWidget.routeName,
-              path: HomePageWidget.routePath,
-              builder: (context, params) => HomePageWidget(),
             ),
             FFRoute(
               name: AttendeeListAdminsWidget.routeName,
@@ -577,6 +558,35 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               name: CreateTeamNewWidget.routeName,
               path: CreateTeamNewWidget.routePath,
               builder: (context, params) => CreateTeamNewWidget(),
+            ),
+            FFRoute(
+              name: EventDetailsWidget.routeName,
+              path: EventDetailsWidget.routePath,
+              builder: (context, params) => EventDetailsWidget(
+                eventID: params.getParam(
+                  'eventID',
+                  ParamType.int,
+                ),
+                fromSearch: params.getParam(
+                  'fromSearch',
+                  ParamType.bool,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: HomePageWidget.routeName,
+              path: HomePageWidget.routePath,
+              builder: (context, params) => HomePageWidget(),
+            ),
+            FFRoute(
+              name: ResourcesWidget.routeName,
+              path: ResourcesWidget.routePath,
+              builder: (context, params) => ResourcesWidget(
+                currentAuthToken: params.getParam(
+                  'currentAuthToken',
+                  ParamType.String,
+                ),
+              ),
             )
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),

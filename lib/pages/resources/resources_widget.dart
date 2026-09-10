@@ -1,53 +1,49 @@
-import '/flutter_flow/flutter_flow_icon_button.dart';
+import '/auth/supabase_auth/auth_util.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'match_score_model.dart';
-export 'match_score_model.dart';
+import 'resources_model.dart';
+export 'resources_model.dart';
 
-class MatchScoreWidget extends StatefulWidget {
-  const MatchScoreWidget({
+class ResourcesWidget extends StatefulWidget {
+  const ResourcesWidget({
     super.key,
-    required this.eventId,
-    required this.teamId,
     required this.currentAuthToken,
   });
 
-  final int? eventId;
-  final int? teamId;
   final String? currentAuthToken;
 
-  static String routeName = 'MatchScore';
-  static String routePath = 'matchScore';
+  static String routeName = 'Resources';
+  static String routePath = 'resources';
 
   @override
-  State<MatchScoreWidget> createState() => _MatchScoreWidgetState();
+  State<ResourcesWidget> createState() => _ResourcesWidgetState();
 }
 
-class _MatchScoreWidgetState extends State<MatchScoreWidget> {
-  late MatchScoreModel _model;
+class _ResourcesWidgetState extends State<ResourcesWidget> {
+  late ResourcesModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => MatchScoreModel());
+    _model = createModel(context, () => ResourcesModel());
 
-    logFirebaseEvent('screen_view', parameters: {'screen_name': 'MatchScore'});
+    logFirebaseEvent('screen_view', parameters: {'screen_name': 'Resources'});
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      logFirebaseEvent('MATCH_SCORE_MatchScore_ON_INIT_STATE');
-      logFirebaseEvent('MatchScore_wait__delay');
+      logFirebaseEvent('RESOURCES_PAGE_Resources_ON_INIT_STATE');
+      logFirebaseEvent('Resources_wait__delay');
       await Future.delayed(
         Duration(
-          milliseconds: 1000,
+          milliseconds: 4000,
         ),
       );
-      logFirebaseEvent('MatchScore_update_page_state');
+      logFirebaseEvent('Resources_update_page_state');
       _model.varPageLoaded = false;
       safeSetState(() {});
     });
@@ -75,24 +71,8 @@ class _MatchScoreWidgetState extends State<MatchScoreWidget> {
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primaryText,
           automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderColor: Colors.transparent,
-            borderRadius: 30.0,
-            borderWidth: 1.0,
-            buttonSize: 60.0,
-            icon: Icon(
-              Icons.chevron_left,
-              color: Color(0xFF87C232),
-              size: 40.0,
-            ),
-            onPressed: () async {
-              logFirebaseEvent('MATCH_SCORE_PAGE_chevron_left_ICN_ON_TAP');
-              logFirebaseEvent('IconButton_navigate_back');
-              context.safePop();
-            },
-          ),
           title: Text(
-            'Match Score',
+            'Resources',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:
@@ -122,10 +102,14 @@ class _MatchScoreWidgetState extends State<MatchScoreWidget> {
               width: double.infinity,
               height: double.infinity,
               url:
-                  'https://coach-smart-new-mpqa5l.web.app/webviews/match-timer.html?eventId=${widget.eventId?.toString()}&currentAuthToken=${widget.currentAuthToken}',
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/games-resource.html?token=${currentJwtToken}',
               onPageReady: () async {},
               onComplete: () async {},
-              onLogout: () async {},
+              onLogout: () async {
+                logFirebaseEvent('RESOURCES_Container_865w2281_CALLBACK');
+                logFirebaseEvent('NativeWebView_navigate_back');
+                context.safePop();
+              },
             ),
           ),
         ),

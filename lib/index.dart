@@ -34,14 +34,12 @@ export '/pages/search_page/search_page_widget.dart' show SearchPageWidget;
 export '/pages/create_event/create_event_widget.dart' show CreateEventWidget;
 export '/pages/edit_event/edit_event_widget.dart' show EditEventWidget;
 export '/pages/admin_options/admin_options_widget.dart' show AdminOptionsWidget;
-export '/pages/event_details/event_details_widget.dart' show EventDetailsWidget;
 export '/pages/create_car_pool/create_car_pool_widget.dart'
     show CreateCarPoolWidget;
 export '/pages/car_pool_details/car_pool_details_widget.dart'
     show CarPoolDetailsWidget;
 export '/pages/notification_details/notification_details_widget.dart'
     show NotificationDetailsWidget;
-export '/pages/home_page/home_page_widget.dart' show HomePageWidget;
 export '/pages/attendee_list_admins/attendee_list_admins_widget.dart'
     show AttendeeListAdminsWidget;
 export '/pages/team_selector/team_selector_widget.dart' show TeamSelectorWidget;
@@ -60,3 +58,6 @@ export '/pages/notifications/notifications_widget.dart'
     show NotificationsWidget;
 export '/pages/create_team_new/create_team_new_widget.dart'
     show CreateTeamNewWidget;
+export '/pages/event_details/event_details_widget.dart' show EventDetailsWidget;
+export '/pages/home_page/home_page_widget.dart' show HomePageWidget;
+export '/pages/resources/resources_widget.dart' show ResourcesWidget;
