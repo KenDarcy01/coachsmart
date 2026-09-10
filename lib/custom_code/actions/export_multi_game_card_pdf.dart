@@ -50,6 +50,8 @@ Future<String?> exportMultiGameCardPdf(
         !_mgIsWhite(thirdColour);
 
     final pw.Font clubFont = await PdfGoogleFonts.montserratBold();
+    final pw.Font bodyFont = await PdfGoogleFonts.notoSansRegular();
+    final pw.Font bodyFontBold = await PdfGoogleFonts.notoSansBold();
 
     final supabase = Supabase.instance.client;
     final List<dynamic> rows = await supabase
@@ -92,8 +94,8 @@ Future<String?> exportMultiGameCardPdf(
         header: (context) => pw.SizedBox(
           height: context.pageNumber > 1 ? 24 : 0,
         ),
-        footer: (context) => _mgPdfFooter(
-            _mgSanitise(clubName), primary, secondary, third, hPad, hasThird),
+        footer: (context) => _mgPdfFooter(_mgSanitise(clubName), primary,
+            secondary, third, hPad, hasThird, bodyFont, bodyFontBold),
         build: (context) {
           final widgets = <pw.Widget>[];
 
@@ -114,13 +116,13 @@ Future<String?> exportMultiGameCardPdf(
 
             widgets.addAll([
               _mgPdfHeader(gameName, _mgSanitise(clubName), crestImage, primary,
-                  secondary, clubFont, hPad, crestSize),
+                  secondary, clubFont, bodyFontBold, hPad, crestSize),
               _mgPdfAccentStripe(secondary, third, hasThird),
               if (gameSetup.isNotEmpty)
                 pw.Padding(
                   padding: const pw.EdgeInsets.only(top: 16),
-                  child: _mgPdfSection(
-                      'HOW TO SET UP', gameSetup, primary, secondary, hPad),
+                  child: _mgPdfSection('HOW TO SET UP', gameSetup, primary,
+                      secondary, hPad, bodyFont, bodyFontBold),
                 ),
               if (gameImage != null)
                 pw.Padding(
@@ -129,17 +131,17 @@ Future<String?> exportMultiGameCardPdf(
                 ),
               pw.SizedBox(height: 8),
               if (gameHowToPlay.isNotEmpty)
-                _mgPdfSection(
-                    'HOW TO PLAY', gameHowToPlay, primary, secondary, hPad),
+                _mgPdfSection('HOW TO PLAY', gameHowToPlay, primary, secondary,
+                    hPad, bodyFont, bodyFontBold),
               if (gameVariations.isNotEmpty)
-                _mgPdfSection(
-                    'VARIATIONS', gameVariations, primary, secondary, hPad),
+                _mgPdfSection('VARIATIONS', gameVariations, primary, secondary,
+                    hPad, bodyFont, bodyFontBold),
               if (gameTeachingPoints.isNotEmpty)
                 _mgPdfSection('TEACHING POINTS', gameTeachingPoints, primary,
-                    secondary, hPad),
+                    secondary, hPad, bodyFont, bodyFontBold),
               if (gameVideo.isNotEmpty)
                 _mgPdfVideoLink(
-                    _mgSanitise(gameVideo), secondary, primary, hPad),
+                    _mgSanitise(gameVideo), secondary, primary, hPad, bodyFont, bodyFontBold),
             ]);
           }
 
@@ -230,6 +232,7 @@ pw.Widget _mgPdfHeader(
   PdfColor primary,
   PdfColor secondary,
   pw.Font clubFont,
+  pw.Font gameNameFont,
   double hPad,
   double crestSize,
 ) {
@@ -253,22 +256,14 @@ pw.Widget _mgPdfHeader(
             children: [
               pw.Text(
                 clubName,
-                style: pw.TextStyle(
-                  font: clubFont,
-                  color: PdfColors.white,
-                  fontSize: 22,
-                ),
+                style: pw.TextStyle(font: clubFont, color: PdfColors.white, fontSize: 22),
               ),
               pw.SizedBox(height: 5),
               pw.Container(height: 1, color: PdfColors.white),
               pw.SizedBox(height: 5),
               pw.Text(
                 gameName,
-                style: pw.TextStyle(
-                  color: PdfColors.white,
-                  fontSize: 17,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+                style: pw.TextStyle(font: gameNameFont, color: PdfColors.white, fontSize: 17),
               ),
             ],
           ),
@@ -295,6 +290,8 @@ pw.Widget _mgPdfSection(
   PdfColor primary,
   PdfColor secondary,
   double hPad,
+  pw.Font bodyFont,
+  pw.Font bodyFontBold,
 ) {
   final lines = body.split('\n').where((l) => l.trim().isNotEmpty).toList();
   return pw.Padding(
@@ -308,12 +305,7 @@ pw.Widget _mgPdfSection(
             pw.SizedBox(width: 8),
             pw.Text(
               title,
-              style: pw.TextStyle(
-                color: primary,
-                fontSize: 11,
-                fontWeight: pw.FontWeight.bold,
-                letterSpacing: 1.0,
-              ),
+              style: pw.TextStyle(font: bodyFontBold, color: primary, fontSize: 11, letterSpacing: 1.0),
             ),
           ],
         ),
@@ -331,19 +323,12 @@ pw.Widget _mgPdfSection(
                   width: 5,
                   height: 5,
                   margin: const pw.EdgeInsets.only(top: 4, right: 7),
-                  decoration: pw.BoxDecoration(
-                    color: secondary,
-                    shape: pw.BoxShape.circle,
-                  ),
+                  decoration: pw.BoxDecoration(color: secondary, shape: pw.BoxShape.circle),
                 ),
                 pw.Expanded(
                   child: pw.Text(
                     text,
-                    style: pw.TextStyle(
-                      color: PdfColor(0.18, 0.18, 0.18),
-                      fontSize: 12,
-                      lineSpacing: 3,
-                    ),
+                    style: pw.TextStyle(font: bodyFont, color: PdfColor(0.18, 0.18, 0.18), fontSize: 12, lineSpacing: 3),
                   ),
                 ),
               ],
@@ -356,7 +341,8 @@ pw.Widget _mgPdfSection(
 }
 
 pw.Widget _mgPdfVideoLink(
-    String url, PdfColor secondary, PdfColor primary, double hPad) {
+    String url, PdfColor secondary, PdfColor primary, double hPad,
+    pw.Font bodyFont, pw.Font bodyFontBold) {
   return pw.Padding(
     padding: pw.EdgeInsets.fromLTRB(hPad, 0, hPad, 16),
     child: pw.Column(
@@ -368,12 +354,7 @@ pw.Widget _mgPdfVideoLink(
             pw.SizedBox(width: 8),
             pw.Text(
               'VIDEO EXPLAINER',
-              style: pw.TextStyle(
-                color: primary,
-                fontSize: 11,
-                fontWeight: pw.FontWeight.bold,
-                letterSpacing: 1.0,
-              ),
+              style: pw.TextStyle(font: bodyFontBold, color: primary, fontSize: 11, letterSpacing: 1.0),
             ),
           ],
         ),
@@ -384,11 +365,7 @@ pw.Widget _mgPdfVideoLink(
             destination: url,
             child: pw.Text(
               url,
-              style: pw.TextStyle(
-                color: PdfColor(0.1, 0.4, 0.85),
-                fontSize: 12,
-                decoration: pw.TextDecoration.underline,
-              ),
+              style: pw.TextStyle(font: bodyFont, color: PdfColor(0.1, 0.4, 0.85), fontSize: 12, decoration: pw.TextDecoration.underline),
             ),
           ),
         ),
@@ -404,6 +381,8 @@ pw.Widget _mgPdfFooter(
   PdfColor third,
   double hPad,
   bool hasThird,
+  pw.Font bodyFont,
+  pw.Font bodyFontBold,
 ) {
   return pw.Padding(
     padding: pw.EdgeInsets.fromLTRB(hPad, 8, hPad, 16),
@@ -414,21 +393,10 @@ pw.Widget _mgPdfFooter(
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text(
-              clubName,
-              style: pw.TextStyle(
-                color: primary,
-                fontSize: 10,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-            pw.Text(
-              'CoachSmart',
-              style: pw.TextStyle(
-                color: PdfColor(0.7, 0.7, 0.7),
-                fontSize: 10,
-              ),
-            ),
+            pw.Text(clubName,
+                style: pw.TextStyle(font: bodyFontBold, color: primary, fontSize: 10)),
+            pw.Text('CoachSmart',
+                style: pw.TextStyle(font: bodyFont, color: PdfColor(0.7, 0.7, 0.7), fontSize: 10)),
           ],
         ),
       ],
