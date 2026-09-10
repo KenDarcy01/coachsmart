@@ -32,23 +32,65 @@ function isNearWhite(hex: string | null | undefined): boolean {
 
 // ─── Font fetching ────────────────────────────────────────────────────────────
 
-// Fetch a TTF from Google Fonts by querying the CSS API with an old User-Agent.
-// Google returns TTF (not WOFF2) for legacy UAs, hosted on fonts.gstatic.com —
-// content-addressed URLs that are extremely stable.
+// Direct TTF URLs from the Google Fonts GitHub repo (served via jsDelivr CDN).
+// Used as fallback when the Google Fonts CSS API approach fails.
+const FONT_CDN_FALLBACK: Record<string, Record<number, string>> = {
+  "Montserrat": {
+    700: "https://cdn.jsdelivr.net/gh/google/fonts/ofl/montserrat/static/Montserrat-Bold.ttf",
+  },
+  "Noto Sans": {
+    400: "https://cdn.jsdelivr.net/gh/google/fonts/ofl/notosans/NotoSans-Regular.ttf",
+    700: "https://cdn.jsdelivr.net/gh/google/fonts/ofl/notosans/NotoSans-Bold.ttf",
+  },
+};
+
 async function fetchFontBytes(family: string, weight: number): Promise<Uint8Array | null> {
+  // 1. Try Google Fonts CSS API with legacy User-Agent (forces TTF response)
   try {
     const cssUrl = `https://fonts.googleapis.com/css?family=${encodeURIComponent(family)}:${weight}&subset=latin`;
-    const css = await fetch(cssUrl, { headers: { "User-Agent": "Mozilla/4.0 (compatible; MSIE 6.0)" } })
-      .then(r => r.ok ? r.text() : Promise.reject(r.status));
-    const match = css.match(/src:\s*url\(([^)]+\.ttf)\)/);
-    if (!match) { console.warn(`No TTF URL found for ${family}:${weight}`); return null; }
-    const res = await fetch(match[1]);
-    if (!res.ok) { console.warn(`Font download failed ${family}:${weight}: ${res.status}`); return null; }
-    return new Uint8Array(await res.arrayBuffer());
+    const cssRes = await fetch(cssUrl, { headers: { "User-Agent": "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" } });
+    if (cssRes.ok) {
+      const css = await cssRes.text();
+      console.log(`[font] CSS for ${family}:${weight} (first 300 chars): ${css.slice(0, 300)}`);
+      // Handle both quoted and unquoted URL() values
+      let fontUrl: string | null = null;
+      const m1 = css.match(/url\(['"]?([^'")\s]+\.ttf)['"]?\)/);
+      if (m1) { fontUrl = m1[1]; }
+      else {
+        // Some CSS responses use format('truetype') without .ttf extension
+        const m2 = css.match(/url\(['"]?([^'")\s]+)['"]?\)\s*format\(['"]?truetype['"]?\)/);
+        if (m2) { fontUrl = m2[1]; }
+      }
+      if (fontUrl) {
+        console.log(`[font] Fetching TTF from CSS API: ${fontUrl}`);
+        const res = await fetch(fontUrl);
+        if (res.ok) return new Uint8Array(await res.arrayBuffer());
+        console.warn(`[font] TTF download failed ${res.status}: ${fontUrl}`);
+      } else {
+        console.warn(`[font] No TTF URL in CSS for ${family}:${weight}`);
+      }
+    } else {
+      console.warn(`[font] CSS API HTTP ${cssRes.status} for ${family}:${weight}`);
+    }
   } catch (e) {
-    console.warn(`fetchFontBytes ${family}:${weight}:`, e);
-    return null;
+    console.warn(`[font] CSS API error for ${family}:${weight}:`, e);
   }
+
+  // 2. Fall back to direct jsDelivr CDN URL
+  const fallbackUrl = FONT_CDN_FALLBACK[family]?.[weight];
+  if (fallbackUrl) {
+    console.log(`[font] Trying jsDelivr fallback: ${fallbackUrl}`);
+    try {
+      const res = await fetch(fallbackUrl);
+      if (res.ok) { console.log(`[font] jsDelivr OK for ${family}:${weight}`); return new Uint8Array(await res.arrayBuffer()); }
+      console.warn(`[font] jsDelivr failed ${res.status} for ${family}:${weight}`);
+    } catch (e) {
+      console.warn(`[font] jsDelivr error for ${family}:${weight}:`, e);
+    }
+  }
+
+  console.warn(`[font] All sources failed for ${family}:${weight} — will use fallback font`);
+  return null;
 }
 
 // ─── Image fetching ───────────────────────────────────────────────────────────
