@@ -82,7 +82,6 @@ Future<String?> exportMultiGameCardPdf(
         kIsWeb ? PdfPageFormat.a4 : const PdfPageFormat(380, 820);
     final double hPad = kIsWeb ? 28.0 : 16.0;
     final double crestSize = kIsWeb ? 84.0 : 68.0;
-    final double imageHeight = kIsWeb ? 260.0 : 200.0;
 
     final pdf = pw.Document(compress: !kIsWeb);
 
@@ -126,12 +125,7 @@ Future<String?> exportMultiGameCardPdf(
               if (gameImage != null)
                 pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(vertical: 8),
-                  child: pw.Center(
-                    child: pw.SizedBox(
-                      height: imageHeight,
-                      child: pw.Image(gameImage, fit: pw.BoxFit.contain),
-                    ),
-                  ),
+                  child: pw.Image(gameImage, fit: pw.BoxFit.fitWidth, width: double.infinity),
                 ),
               pw.SizedBox(height: 8),
               if (gameHowToPlay.isNotEmpty)
