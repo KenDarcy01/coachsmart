@@ -32,21 +32,21 @@ function isNearWhite(hex: string | null | undefined): boolean {
 
 // ─── Font fetching ────────────────────────────────────────────────────────────
 
-const FONT_TTF: Record<string, string> = {
-  "montserrat-bold":  "https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5/files/montserrat-latin-700-normal.woff2",
-  "notosans-regular": "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5/files/noto-sans-latin-400-normal.woff2",
-  "notosans-bold":    "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5/files/noto-sans-latin-700-normal.woff2",
-};
-
-async function fetchFontBytes(key: string): Promise<Uint8Array | null> {
+// Fetch a TTF from Google Fonts by querying the CSS API with an old User-Agent.
+// Google returns TTF (not WOFF2) for legacy UAs, hosted on fonts.gstatic.com —
+// content-addressed URLs that are extremely stable.
+async function fetchFontBytes(family: string, weight: number): Promise<Uint8Array | null> {
   try {
-    const url = FONT_TTF[key];
-    if (!url) return null;
-    const res = await fetch(url);
-    if (!res.ok) { console.warn(`Font fetch ${key}: ${res.status}`); return null; }
+    const cssUrl = `https://fonts.googleapis.com/css?family=${encodeURIComponent(family)}:${weight}&subset=latin`;
+    const css = await fetch(cssUrl, { headers: { "User-Agent": "Mozilla/4.0 (compatible; MSIE 6.0)" } })
+      .then(r => r.ok ? r.text() : Promise.reject(r.status));
+    const match = css.match(/src:\s*url\(([^)]+\.ttf)\)/);
+    if (!match) { console.warn(`No TTF URL found for ${family}:${weight}`); return null; }
+    const res = await fetch(match[1]);
+    if (!res.ok) { console.warn(`Font download failed ${family}:${weight}: ${res.status}`); return null; }
     return new Uint8Array(await res.arrayBuffer());
   } catch (e) {
-    console.warn(`fetchFontBytes ${key}:`, e);
+    console.warn(`fetchFontBytes ${family}:${weight}:`, e);
     return null;
   }
 }
@@ -118,9 +118,9 @@ async function buildPdf(games: GameData[], club: ClubData, isMobile = false): Pr
 
   // ── Fonts — fetched ONCE, shared across all games ──
   const [montserratBoldBytes, notoRegBytes, notoBoldBytes] = await Promise.all([
-    fetchFontBytes("montserrat-bold"),
-    fetchFontBytes("notosans-regular"),
-    fetchFontBytes("notosans-bold"),
+    fetchFontBytes("Montserrat", 700),
+    fetchFontBytes("Noto Sans", 400),
+    fetchFontBytes("Noto Sans", 700),
   ]);
 
   // ── Create PDF document ──
