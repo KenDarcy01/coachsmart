@@ -107,7 +107,7 @@ Future<String?> exportMultiGameCardPdf(
       pw.MultiPage(
         pageFormat: pageFormat,
         margin: pw.EdgeInsets.zero,
-        header: (_) => const pw.SizedBox(),
+        header: (_) => pw.SizedBox(),
         footer: (context) => _mgPdfFooter(_mgSanitise(clubName), primary,
             secondary, third, hPad, hasThird, bodyFont, bodyFontBold),
         build: (context) {
