@@ -249,8 +249,8 @@ async function buildPdf(games: GameData[], club: ClubData, isMobile = false): Pr
     const textRight = PW - MR;
     const blockMidY = headerBottom + headerH / 2;
     const clubNameY  = blockMidY + TEXT_BLOCK_H / 2 - CLUB_SIZE;
-    const ruleY      = clubNameY - 6;
-    const gameNameY  = ruleY - 6 - GAME_SIZE;
+    const ruleY      = clubNameY - 8;
+    const gameNameY  = ruleY - 8 - GAME_SIZE;
 
     page.drawText(club.club_name, { x: textLeft, y: clubNameY, size: CLUB_SIZE, font: montserratBold, color: white });
     page.drawLine({ start: { x: textLeft, y: ruleY }, end: { x: textRight, y: ruleY }, thickness: RULE_H, color: white });
