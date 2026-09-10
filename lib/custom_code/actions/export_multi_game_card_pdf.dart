@@ -42,6 +42,8 @@ Future<String?> exportMultiGameCardPdf(
   }
 
   try {
+    debugPrint('[PDF] Starting exportMultiGameCardPdf for ${gameIds.length} games: $gameIds');
+
     final PdfColor primary = _mgPdfColor(primaryColour, 0.18, 0.49, 0.20);
     final PdfColor secondary = _mgPdfColor(secondaryColour, 1.0, 0.76, 0.03);
     final PdfColor third = _mgPdfColor(thirdColour, 0.08, 0.40, 0.75);
@@ -49,17 +51,21 @@ Future<String?> exportMultiGameCardPdf(
         thirdColour.trim().isNotEmpty &&
         !_mgIsWhite(thirdColour);
 
+    debugPrint('[PDF] Loading fonts...');
     final pw.Font clubFont = await PdfGoogleFonts.montserratBold();
     final pw.Font bodyFont = await PdfGoogleFonts.notoSansRegular();
     final pw.Font bodyFontBold = await PdfGoogleFonts.notoSansBold();
+    debugPrint('[PDF] Fonts loaded');
 
     final supabase = Supabase.instance.client;
+    debugPrint('[PDF] Fetching game rows from Supabase...');
     final List<dynamic> rows = await supabase
         .from('games')
         .select(
             'game_id, game_name, game_setup, game_how_to_play, game_variations, game_teaching_points, game_image, game_video')
         .inFilter('game_id', gameIds);
 
+    debugPrint('[PDF] Got ${rows.length} rows');
     if (rows.isEmpty) return null;
 
     final rowMap = <int, Map<String, dynamic>>{
@@ -70,12 +76,18 @@ Future<String?> exportMultiGameCardPdf(
         .map((id) => rowMap[id]!)
         .toList();
 
+    debugPrint('[PDF] Fetching club crest: $clubCrest');
     final pw.ImageProvider? crestImage =
         await _mgPdfImage(await _mgFetchBytes(clubCrest));
+    debugPrint('[PDF] Crest loaded: ${crestImage != null}');
 
+    debugPrint('[PDF] Fetching game images...');
     final List<pw.ImageProvider?> gameImages = await Future.wait(
       ordered.map((row) async {
-        final bytes = await _mgFetchBytes(row['game_image'] as String?);
+        final url = row['game_image'] as String?;
+        debugPrint('[PDF]   game image url: $url');
+        final bytes = await _mgFetchBytes(url);
+        debugPrint('[PDF]   game image bytes: ${bytes?.length ?? 0}');
         return _mgPdfImage(bytes);
       }),
     );
@@ -85,6 +97,7 @@ Future<String?> exportMultiGameCardPdf(
     final double hPad = kIsWeb ? 28.0 : 16.0;
     final double crestSize = kIsWeb ? 84.0 : 68.0;
 
+    debugPrint('[PDF] Building PDF document (kIsWeb=$kIsWeb)...');
     final pdf = pw.Document(compress: !kIsWeb);
 
     pdf.addPage(
@@ -150,16 +163,21 @@ Future<String?> exportMultiGameCardPdf(
       ),
     );
 
+    debugPrint('[PDF] Saving PDF...');
     final safeClub = clubName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
     final bytes = await pdf.save();
+    debugPrint('[PDF] PDF saved (${bytes.length} bytes), sharing...');
     await Printing.sharePdf(
       bytes: bytes,
       filename: '${safeClub}_${ordered.length}_games.pdf',
     );
 
+    debugPrint('[PDF] Done');
     return null;
-  } catch (e) {
-    return 'Something went wrong generating the PDF. Please try again.';
+  } catch (e, stack) {
+    debugPrint('[PDF] ERROR: $e');
+    debugPrint('[PDF] STACK: $stack');
+    return 'PDF error: $e';
   }
 }
 
