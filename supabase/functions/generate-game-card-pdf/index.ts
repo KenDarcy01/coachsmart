@@ -21,17 +21,16 @@ function hexToRgb(hex: string) {
   );
 }
 
-// Returns true if a hex colour is white or near-white (not usable on a white page)
 function isNearWhite(hex: string | null | undefined): boolean {
   if (!hex) return false;
   const h = hex.replace("#", "").padEnd(6, "0");
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
-  return (r + g + b) / 3 > 210; // average channel > 210/255
+  return (r + g + b) / 3 > 210;
 }
 
-// ─── Font fetching (direct TTF from Google Fonts GitHub) ─────────────────────
+// ─── Font fetching ────────────────────────────────────────────────────────────
 
 const FONT_TTF: Record<string, string> = {
   "montserrat-bold":  "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-Bold.ttf",
@@ -70,28 +69,11 @@ function isPng(b: Uint8Array)  { return b[0] === 0x89 && b[1] === 0x50; }
 
 // ─── Text helpers ─────────────────────────────────────────────────────────────
 
-function wrapText(text: string, font: PDFFont, size: number, maxW: number): string[] {
-  const paragraphs = text.split(/\n+/);
-  const lines: string[] = [];
-  for (const para of paragraphs) {
-    if (!para.trim()) { lines.push(""); continue; }
-    const words = para.trim().split(/\s+/);
-    let cur = "";
-    for (const w of words) {
-      const test = cur ? `${cur} ${w}` : w;
-      if (font.widthOfTextAtSize(test, size) <= maxW) { cur = test; }
-      else { if (cur) lines.push(cur); cur = w; }
-    }
-    if (cur) lines.push(cur);
-  }
-  return lines;
-}
-
 function safeName(s: string) {
   return s.replace(/[^a-z0-9]/gi, "_").replace(/_+/g, "_").slice(0, 60);
 }
 
-// ─── PDF builder ──────────────────────────────────────────────────────────────
+// ─── Data types ───────────────────────────────────────────────────────────────
 
 interface GameData {
   game_name: string;
@@ -112,8 +94,11 @@ interface ClubData {
   third_colour: string | null;
 }
 
-async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promise<Uint8Array> {
-  // ── Colours ──
+// ─── PDF builder — accepts one or many games, one PDF per call ────────────────
+
+async function buildPdf(games: GameData[], club: ClubData, isMobile = false): Promise<Uint8Array> {
+
+  // ── Colours (shared across all games) ──
   const primaryRgb   = hexToRgb(club.primary_colour   || "#2d7a00");
   const secondaryRgb = hexToRgb(club.secondary_colour || "#ffd700");
   const thirdRgb     = club.third_colour ? hexToRgb(club.third_colour) : null;
@@ -121,8 +106,6 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
   const white        = rgb(1, 1, 1);
   const grey         = rgb(0.70, 0.70, 0.70);
 
-  // ── Section heading colours — skip near-white, bar and text must be different ──
-  // Rank: secondary → third → primary; pick first two non-white entries
   type ColourEntry = { hex: string | null; col: ReturnType<typeof hexToRgb> };
   const colourRank: ColourEntry[] = [
     { hex: club.secondary_colour, col: secondaryRgb },
@@ -130,31 +113,23 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
     { hex: club.primary_colour,   col: primaryRgb },
   ].filter((c): c is ColourEntry => c.col !== null && !isNearWhite(c.hex));
 
-  // Bar: first usable colour; Text: second usable colour (distinct from bar)
   const sectionBarRgb  = colourRank[0]?.col ?? primaryRgb;
   const sectionTextRgb = colourRank.find(c => c.col !== sectionBarRgb)?.col ?? secondaryRgb;
 
-  // ── Fonts (fetch in parallel, fall back to Helvetica if unavailable) ──
+  // ── Fonts — fetched ONCE, shared across all games ──
   const [montserratBoldBytes, notoRegBytes, notoBoldBytes] = await Promise.all([
     fetchFontBytes("montserrat-bold"),
     fetchFontBytes("notosans-regular"),
     fetchFontBytes("notosans-bold"),
   ]);
 
-  // ── Images (fetch in parallel) — prefer game_image (used by webview), fall back to game_details_image ──
-  const gameImageUrl = game.game_image || game.game_details_image || null;
-  const [gameImgBytes, crestBytes] = await Promise.all([
-    gameImageUrl ? fetchImageBytes(gameImageUrl) : Promise.resolve(null),
-    club.crest   ? fetchImageBytes(club.crest)   : Promise.resolve(null),
-  ]);
-
-  // ── Create PDF ──
+  // ── Create PDF document ──
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
   async function embedOrFallback(bytes: Uint8Array | null, fallback: StandardFonts): Promise<PDFFont> {
     if (bytes) {
-      try { return await doc.embedFont(bytes); } catch (e) { console.warn("embedFont failed, using fallback:", e); }
+      try { return await doc.embedFont(bytes); } catch (e) { console.warn("embedFont failed:", e); }
     }
     return doc.embedFont(fallback);
   }
@@ -163,23 +138,16 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
   const notoReg        = await embedOrFallback(notoRegBytes,        StandardFonts.Helvetica);
   const notoBold       = await embedOrFallback(notoBoldBytes,       StandardFonts.HelveticaBold);
 
-  // Page dimensions — mobile: phone-width portrait; web: A4 for print
+  // ── Page dimensions — same for every page in this document ──
   const PW = isMobile ? 430 : 595.28;
   const PH = isMobile ? 900 : 841.89;
   const ML = isMobile ? 20 : 28;
   const MR = isMobile ? 20 : 28;
   const CW = PW - ML - MR;
 
-  // ── Embed images ──
-  let gameImg: any = null;
+  // ── Club crest — fetched and embedded ONCE ──
+  const crestBytes = club.crest ? await fetchImageBytes(club.crest) : null;
   let crestImg: any = null;
-  if (gameImgBytes) {
-    try {
-      gameImg = isJpeg(gameImgBytes)
-        ? await doc.embedJpg(gameImgBytes)
-        : isPng(gameImgBytes) ? await doc.embedPng(gameImgBytes) : null;
-    } catch { /* skip */ }
-  }
   if (crestBytes) {
     try {
       crestImg = isJpeg(crestBytes)
@@ -189,79 +157,67 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
   }
 
   // ── Layout constants ──
-  const CREST_SIZE  = 80;   // crest image size
-  const HEADER_PAD  = 14;   // header top/bottom padding
-  const CLUB_SIZE   = 24;   // Montserrat Bold — club name
-  const GAME_SIZE   = 20;   // NotoSans Bold — game name
+  const CREST_SIZE  = 80;
+  const HEADER_PAD  = 14;
+  const CLUB_SIZE   = 24;
+  const GAME_SIZE   = 20;
   const RULE_H      = 1;
-
-  // Header: horizontal layout (crest left, text right)
-  // Text block = club name + gap + rule + gap + game name
   const TEXT_BLOCK_H = CLUB_SIZE + 8 + RULE_H + 8 + GAME_SIZE;
   const headerContentH = Math.max(CREST_SIZE, TEXT_BLOCK_H);
   const headerH = headerContentH + 2 * HEADER_PAD;
-
-  // Accent stripe heights
   const WHITE_STRIPE = 2;
   const SEC_STRIPE   = 4;
   const THIRD_STRIPE = thirdRgb ? 3 : 0;
   const STRIPE_H     = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
-
-  // Footer
   const FOOTER_LINE_Y = 44;
   const FOOTER_TEXT_Y = 30;
   const FOOTER_ZONE   = 54;
-
-  // Section label (left-bar accent style, matching Flutter)
-  const SECTION_LABEL_ROW_H = 28;  // total row height incl. padding
-  const SECTION_BAR_W  = 6;        // left accent bar width
-  const SECTION_BAR_H  = 19;       // left accent bar height — just a touch taller than text
-  const SECTION_FONT_S = 12;       // label text size
-
-  // Body text
+  const SECTION_LABEL_ROW_H = 28;
+  const SECTION_BAR_W  = 6;
+  const SECTION_BAR_H  = 19;
+  const SECTION_FONT_S = 12;
   const BODY_FONT_S = 15;
-  const LINE_H      = 24;   // line height
-  const BODY_LEFT   = ML + 10;  // left edge for bullets
+  const LINE_H      = 24;
+  const BODY_LEFT   = ML + 10;
   const BODY_RIGHT  = PW - MR - 10;
   const BODY_W      = BODY_RIGHT - BODY_LEFT;
 
-  // ── Draw header (horizontal: crest left, text right) ──
-  function drawHeader(page: any) {
-    const headerBottom = PH - headerH;
+  // ── Shared mutable page state ──
+  let currentPage: any = null;
+  let curY = 0;
 
-    // Red background
+  // ── Shared drawing helpers ──
+
+  function drawFooter(page: any) {
+    page.drawLine({
+      start: { x: ML, y: FOOTER_LINE_Y }, end: { x: PW - MR, y: FOOTER_LINE_Y },
+      thickness: 1.5, color: footerLineRgb,
+    });
+    page.drawText(club.club_name, { x: ML, y: FOOTER_TEXT_Y, size: 10, font: notoBold, color: primaryRgb });
+    const csW = notoReg.widthOfTextAtSize("CoachSmart", 10);
+    page.drawText("CoachSmart", { x: PW - MR - csW, y: FOOTER_TEXT_Y, size: 10, font: notoReg, color: grey });
+  }
+
+  function drawHeader(page: any, game: GameData) {
+    const headerBottom = PH - headerH;
     page.drawRectangle({ x: 0, y: headerBottom, width: PW, height: headerH, color: primaryRgb });
 
-    // Crest (left, vertically centered)
     if (crestImg) {
       const crestY = headerBottom + (headerH - CREST_SIZE) / 2;
       page.drawImage(crestImg, { x: ML, y: crestY, width: CREST_SIZE, height: CREST_SIZE });
     }
 
-    // Text column (right of crest)
     const textLeft = ML + (crestImg ? CREST_SIZE + 12 : 0);
     const textRight = PW - MR;
-
-    // Vertical centre of header → anchor the text block from there
     const blockMidY = headerBottom + headerH / 2;
     const clubNameY  = blockMidY + TEXT_BLOCK_H / 2 - CLUB_SIZE;
     const ruleY      = clubNameY - 6;
     const gameNameY  = ruleY - 6 - GAME_SIZE;
 
-    page.drawText(club.club_name, {
-      x: textLeft, y: clubNameY,
-      size: CLUB_SIZE, font: montserratBold, color: white,
-    });
-    page.drawLine({
-      start: { x: textLeft, y: ruleY }, end: { x: textRight, y: ruleY },
-      thickness: RULE_H, color: white,
-    });
-    page.drawText(game.game_name, {
-      x: textLeft, y: gameNameY,
-      size: GAME_SIZE, font: notoBold, color: white,
-    });
+    page.drawText(club.club_name, { x: textLeft, y: clubNameY, size: CLUB_SIZE, font: montserratBold, color: white });
+    page.drawLine({ start: { x: textLeft, y: ruleY }, end: { x: textRight, y: ruleY }, thickness: RULE_H, color: white });
+    page.drawText(game.game_name, { x: textLeft, y: gameNameY, size: GAME_SIZE, font: notoBold, color: white });
 
-    // Accent stripes immediately below header
     let sy = headerBottom;
     page.drawRectangle({ x: 0, y: sy - WHITE_STRIPE, width: PW, height: WHITE_STRIPE, color: white });
     sy -= WHITE_STRIPE;
@@ -272,30 +228,12 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
     }
   }
 
-  // ── Draw footer ──
-  function drawFooter(page: any) {
-    page.drawLine({
-      start: { x: ML, y: FOOTER_LINE_Y }, end: { x: PW - MR, y: FOOTER_LINE_Y },
-      thickness: 1.5, color: footerLineRgb,
-    });
-    page.drawText(club.club_name, {
-      x: ML, y: FOOTER_TEXT_Y, size: 10, font: notoBold, color: primaryRgb,
-    });
-    const csW = notoReg.widthOfTextAtSize("CoachSmart", 10);
-    page.drawText("CoachSmart", {
-      x: PW - MR - csW, y: FOOTER_TEXT_Y, size: 10, font: notoReg, color: grey,
-    });
-  }
-
-  // ── Page manager ──
-  let currentPage: any = null;
-  let curY = 0;
-
-  function newPage(isFirst: boolean) {
+  // newPage: isFirst=true draws the game header; continuation pages are plain
+  function newPage(isFirst: boolean, game?: GameData) {
     const page = doc.addPage([PW, PH]);
     drawFooter(page);
-    if (isFirst) {
-      drawHeader(page);
+    if (isFirst && game) {
+      drawHeader(page, game);
       curY = headerH + STRIPE_H + 8;
     } else {
       curY = 24;
@@ -307,18 +245,14 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
     if (PH - curY - FOOTER_ZONE < needed) newPage(false);
   }
 
-  // ── Section label: left accent bar (sectionBarRgb) + bold text (sectionTextRgb) ──
   function drawSectionLabel(label: string) {
     ensureSpace(SECTION_LABEL_ROW_H + LINE_H + 4);
     const rowCenterY = PH - curY - SECTION_LABEL_ROW_H / 2;
-
-    // Left accent bar
     currentPage.drawRectangle({
       x: ML, y: rowCenterY - SECTION_BAR_H / 2,
       width: SECTION_BAR_W, height: SECTION_BAR_H,
       color: sectionBarRgb,
     });
-    // Label text (baseline = mid of bar)
     currentPage.drawText(label, {
       x: ML + SECTION_BAR_W + 6,
       y: rowCenterY - SECTION_FONT_S / 2,
@@ -327,35 +261,27 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
     curY += SECTION_LABEL_ROW_H + 10;
   }
 
-  // ── Body text: per-paragraph bullets, proper continuation indent ──
   function drawBodyText(text: string) {
     if (!text.trim()) return;
     const darkText  = rgb(0.25, 0.25, 0.25);
-    // Bullet colour: use sectionBarRgb (already guaranteed non-white)
     const bulletCol = sectionBarRgb;
     const bulletStr = "• ";
     const bulletW   = notoReg.widthOfTextAtSize(bulletStr, BODY_FONT_S);
     const paraMaxW  = BODY_W - bulletW;
-    const contX     = BODY_LEFT + bulletW;  // continuation line x
+    const contX     = BODY_LEFT + bulletW;
 
-    // Each DB line = one bullet paragraph; strip any existing bullet/dash prefix
     const paragraphs = text.split(/\n/)
       .map(l => l.replace(/^[•\-\*]\s*/, "").trim())
       .filter(Boolean);
 
     for (const para of paragraphs) {
-      // Word-wrap this paragraph
       const words = para.split(/\s+/);
       const wrappedLines: string[] = [];
       let cur = "";
       for (const w of words) {
         const test = cur ? `${cur} ${w}` : w;
-        if (notoReg.widthOfTextAtSize(test, BODY_FONT_S) <= paraMaxW) {
-          cur = test;
-        } else {
-          if (cur) wrappedLines.push(cur);
-          cur = w;
-        }
+        if (notoReg.widthOfTextAtSize(test, BODY_FONT_S) <= paraMaxW) { cur = test; }
+        else { if (cur) wrappedLines.push(cur); cur = w; }
       }
       if (cur) wrappedLines.push(cur);
 
@@ -368,71 +294,76 @@ async function buildPdf(game: GameData, club: ClubData, isMobile = false): Promi
         currentPage.drawText(wrappedLines[i], { x: contX, y: lineY, size: BODY_FONT_S, font: notoReg, color: darkText });
         curY += LINE_H;
       }
-      curY += 5;  // gap between bullet points
+      curY += 5;
     }
-    curY += 12;  // gap after section
+    curY += 12;
   }
 
-  // ── Game image ──
-  async function drawGameImage() {
-    if (!gameImg) return;
-    const ratio = gameImg.width / gameImg.height;
-    // Scale to fit within content width, cap height at 220 — both dims shrink proportionally
-    let imgW = CW;
-    let imgH = imgW / ratio;
-    if (imgH > 380) {
-      imgH = 220;
-      imgW = imgH * ratio;
+  // ── Per-game render loop ──────────────────────────────────────────────────────
+
+  for (const game of games) {
+    // Fetch this game's image
+    const gameImageUrl = game.game_image || game.game_details_image || null;
+    const gameImgBytes = gameImageUrl ? await fetchImageBytes(gameImageUrl) : null;
+    let gameImg: any = null;
+    if (gameImgBytes) {
+      try {
+        gameImg = isJpeg(gameImgBytes)
+          ? await doc.embedJpg(gameImgBytes)
+          : isPng(gameImgBytes) ? await doc.embedPng(gameImgBytes) : null;
+      } catch { /* skip */ }
     }
-    // Centre horizontally within the content area
-    const imgX = ML + (CW - imgW) / 2;
-    curY += 10;  // space above image
-    ensureSpace(imgH + 28);
-    currentPage.drawImage(gameImg, {
-      x: imgX, y: PH - curY - imgH,
-      width: imgW, height: imgH,
-    });
-    curY += imgH + 24;  // space below image
+
+    // Start this game on a fresh page with its own header
+    newPage(true, game);
+
+    // Sections — same order as Flutter exportGameCardPdf
+    if (game.game_setup?.trim()) {
+      drawSectionLabel("HOW TO SET UP");
+      drawBodyText(game.game_setup);
+    }
+
+    // Game image (between setup and how to play)
+    if (gameImg) {
+      const ratio = gameImg.width / gameImg.height;
+      let imgW = CW;
+      let imgH = imgW / ratio;
+      if (imgH > 380) { imgH = 220; imgW = imgH * ratio; }
+      const imgX = ML + (CW - imgW) / 2;
+      curY += 10;
+      ensureSpace(imgH + 28);
+      currentPage.drawImage(gameImg, { x: imgX, y: PH - curY - imgH, width: imgW, height: imgH });
+      curY += imgH + 24;
+    }
+
+    if (game.game_how_to_play?.trim()) {
+      drawSectionLabel("HOW TO PLAY");
+      drawBodyText(game.game_how_to_play);
+    }
+
+    if (game.game_variations?.trim()) {
+      drawSectionLabel("VARIATIONS");
+      drawBodyText(game.game_variations);
+    }
+
+    if (game.game_teaching_points?.trim()) {
+      drawSectionLabel("TEACHING POINTS");
+      drawBodyText(game.game_teaching_points);
+    }
+
+    if (game.game_video?.trim()) {
+      drawSectionLabel("VIDEO EXPLAINER");
+      ensureSpace(LINE_H);
+      currentPage.drawText(game.game_video, {
+        x: BODY_LEFT,
+        y: PH - curY - BODY_FONT_S,
+        size: BODY_FONT_S, font: notoReg, color: rgb(0.0, 0.3, 0.8),
+      });
+      curY += LINE_H + 6;
+    }
   }
 
-  // ── Build content (section order matches Flutter exportGameCardPdf) ──
-  newPage(true);
-
-  if (game.game_setup?.trim()) {
-    drawSectionLabel("HOW TO SET UP");
-    drawBodyText(game.game_setup);
-  }
-
-  await drawGameImage();
-
-  if (game.game_how_to_play?.trim()) {
-    drawSectionLabel("HOW TO PLAY");
-    drawBodyText(game.game_how_to_play);
-  }
-
-  if (game.game_variations?.trim()) {
-    drawSectionLabel("VARIATIONS");
-    drawBodyText(game.game_variations);
-  }
-
-  if (game.game_teaching_points?.trim()) {
-    drawSectionLabel("TEACHING POINTS");
-    drawBodyText(game.game_teaching_points);
-  }
-
-  if (game.game_video?.trim()) {
-    drawSectionLabel("VIDEO EXPLAINER");
-    ensureSpace(LINE_H);
-    currentPage.drawText(game.game_video, {
-      x: BODY_LEFT,
-      y: PH - curY - BODY_FONT_S,
-      size: BODY_FONT_S, font: notoReg, color: rgb(0.0, 0.3, 0.8),
-    });
-    curY += LINE_H + 6;
-  }
-
-  const pdfBytes = await doc.save();
-  return pdfBytes;
+  return doc.save();
 }
 
 // ─── Edge function handler ────────────────────────────────────────────────────
@@ -443,7 +374,6 @@ serve(async (req) => {
   }
 
   try {
-    // Validate JWT and get user ID
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing auth" }), {
@@ -463,34 +393,40 @@ serve(async (req) => {
       });
     }
 
-    const { game_id, platform } = await req.json();
+    const body = await req.json();
+    const { game_id, game_ids, platform } = body;
     const isMobile = platform === 'mobile';
-    if (!game_id) {
-      return new Response(JSON.stringify({ error: "Missing game_id" }), {
+
+    // Accept either a single game_id or an array of game_ids
+    let gameIds: string[] = [];
+    if (Array.isArray(game_ids) && game_ids.length > 0) {
+      gameIds = game_ids;
+    } else if (game_id) {
+      gameIds = [game_id];
+    } else {
+      return new Response(JSON.stringify({ error: "Missing game_id or game_ids" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Supabase service role client for data fetching
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Fetch game data + user's club in parallel
-    const [gameRes, userRes] = await Promise.all([
+    // Fetch all games + user's club in parallel
+    const [gamesRes, userRes] = await Promise.all([
       supabase.from("games")
         .select("game_name,game_setup,game_how_to_play,game_variations,game_teaching_points,game_image,game_details_image,game_video")
-        .eq("game_id", game_id)
-        .maybeSingle(),
+        .in("game_id", gameIds),
       supabase.from("users")
         .select("default_club")
         .eq("user_id", userId)
         .maybeSingle(),
     ]);
 
-    if (gameRes.error || !gameRes.data) {
-      return new Response(JSON.stringify({ error: "Game not found" }), {
+    if (gamesRes.error || !gamesRes.data?.length) {
+      return new Response(JSON.stringify({ error: "Games not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -510,23 +446,27 @@ serve(async (req) => {
         .maybeSingle();
       if (clubRes.data) {
         clubData = {
-          club_name:       clubRes.data.club_name       || "CoachSmart",
-          crest:           clubRes.data.crest           || null,
-          primary_colour:  clubRes.data.primary_colour  || "#2d7a00",
-          secondary_colour:clubRes.data.secondary_colour|| "#ffd700",
-          third_colour:    clubRes.data.third_colour    || null,
+          club_name:        clubRes.data.club_name        || "CoachSmart",
+          crest:            clubRes.data.crest            || null,
+          primary_colour:   clubRes.data.primary_colour   || "#2d7a00",
+          secondary_colour: clubRes.data.secondary_colour || "#ffd700",
+          third_colour:     clubRes.data.third_colour     || null,
         };
       }
     }
 
-    const pdfBytes = await buildPdf(gameRes.data as GameData, clubData, isMobile);
+    const pdfBytes = await buildPdf(gamesRes.data as GameData[], clubData, isMobile);
+
     // Chunked base64 — avoids spread-arg stack overflow on large PDFs
     let b64 = '';
     for (let i = 0; i < pdfBytes.length; i += 8192) {
       b64 += String.fromCharCode(...pdfBytes.subarray(i, i + 8192));
     }
     const base64 = btoa(b64);
-    const filename = `${safeName(gameRes.data.game_name || "game_card")}.pdf`;
+
+    const filename = gameIds.length === 1
+      ? `${safeName(gamesRes.data[0].game_name || "game_card")}.pdf`
+      : `CoachSmart_Games_${gameIds.length}.pdf`;
 
     return new Response(JSON.stringify({ pdf: base64, filename }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
