@@ -52,17 +52,13 @@ async function fetchFontBytes(family: string, weight: number): Promise<Uint8Arra
     if (cssRes.ok) {
       const css = await cssRes.text();
       console.log(`[font] CSS for ${family}:${weight} (first 300 chars): ${css.slice(0, 300)}`);
-      // Handle both quoted and unquoted URL() values
+      // Capture any URL from src: url(...) — Google now returns query-string URLs
+      // like fonts.gstatic.com/l/font?kit=... with no extension or format annotation
       let fontUrl: string | null = null;
-      const m1 = css.match(/url\(['"]?([^'")\s]+\.ttf)['"]?\)/);
+      const m1 = css.match(/src:\s*url\(['"]?([^'")\s]+)['"]?\)/);
       if (m1) { fontUrl = m1[1]; }
-      else {
-        // Some CSS responses use format('truetype') without .ttf extension
-        const m2 = css.match(/url\(['"]?([^'")\s]+)['"]?\)\s*format\(['"]?truetype['"]?\)/);
-        if (m2) { fontUrl = m2[1]; }
-      }
       if (fontUrl) {
-        console.log(`[font] Fetching TTF from CSS API: ${fontUrl}`);
+        console.log(`[font] Fetching font from CSS API URL: ${fontUrl}`);
         const res = await fetch(fontUrl);
         if (res.ok) return new Uint8Array(await res.arrayBuffer());
         console.warn(`[font] TTF download failed ${res.status}: ${fontUrl}`);

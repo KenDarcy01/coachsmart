@@ -24,10 +24,12 @@ Claude commits to the dev branch, then merges directly to `main` via git command
 If only Supabase files changed, only the Supabase workflow runs. If only website files changed, only Firebase runs. **Never both unless both paths changed.**
 
 ### Merge commands (run in Claude Code session)
+Always pass `-m` with a descriptive message — this becomes the GitHub Actions workflow run title, so it must summarise what changed (not just say "Merge branch …").
+
 ```bash
 git checkout main
 git pull origin main
-git merge origin/claude/review-coachsmart-repo-HHk5i
+git merge origin/claude/review-coachsmart-repo-HHk5i -m "describe the change here"
 git push origin main
 git checkout claude/review-coachsmart-repo-HHk5i
 ```
