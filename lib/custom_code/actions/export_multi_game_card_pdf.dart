@@ -82,7 +82,7 @@ Future<String?> exportMultiGameCardPdf(
         kIsWeb ? PdfPageFormat.a4 : const PdfPageFormat(380, 820);
     final double hPad = kIsWeb ? 28.0 : 16.0;
     final double crestSize = kIsWeb ? 84.0 : 68.0;
-    final double imageHeight = kIsWeb ? 260.0 : 200.0;
+    final double imageHeight = kIsWeb ? 300.0 : 320.0;
 
     final pdf = pw.Document(compress: !kIsWeb);
 
