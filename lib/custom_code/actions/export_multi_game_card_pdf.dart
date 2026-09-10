@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 //   printing: ^5.12.0
 
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' as paint;
@@ -82,13 +83,15 @@ Future<String?> exportMultiGameCardPdf(
     debugPrint('[PDF] Crest loaded: ${crestImage != null}');
 
     debugPrint('[PDF] Fetching game images...');
-    final List<pw.ImageProvider?> gameImages = await Future.wait(
+    final List<(pw.ImageProvider?, double?)> gameImageData = await Future.wait(
       ordered.map((row) async {
         final url = row['game_image'] as String?;
         debugPrint('[PDF]   game image url: $url');
         final bytes = await _mgFetchBytes(url);
         debugPrint('[PDF]   game image bytes: ${bytes?.length ?? 0}');
-        return _mgPdfImage(bytes);
+        final provider = await _mgPdfImage(bytes);
+        final ratio = bytes != null ? await _mgImageRatio(bytes) : null;
+        return (provider, ratio);
       }),
     );
 
@@ -125,7 +128,22 @@ Future<String?> exportMultiGameCardPdf(
             final gameTeachingPoints =
                 _mgSanitise(row['game_teaching_points'] as String? ?? '');
             final gameVideo = (row['game_video'] as String? ?? '').trim();
-            final gameImage = gameImages[i];
+            final (gameImage, imageRatio) = gameImageData[i];
+
+            // Same sizing logic as edge function: full content width, height from ratio, cap tall images
+            final double contentW = pageFormat.width - 2 * hPad;
+            pw.Widget? imageWidget;
+            if (gameImage != null) {
+              double imgW = contentW;
+              double imgH = imageRatio != null ? imgW / imageRatio : 280.0;
+              if (imgH > 380) { imgH = 280; imgW = imgH * (imageRatio ?? 1.0); }
+              imageWidget = pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 8),
+                child: pw.Center(
+                  child: pw.Image(gameImage, width: imgW, height: imgH, fit: pw.BoxFit.contain),
+                ),
+              );
+            }
 
             widgets.addAll([
               _mgPdfHeader(gameName, _mgSanitise(clubName), crestImage, primary,
@@ -137,16 +155,7 @@ Future<String?> exportMultiGameCardPdf(
                   child: _mgPdfSection('HOW TO SET UP', gameSetup, primary,
                       secondary, hPad, bodyFont, bodyFontBold),
                 ),
-              if (gameImage != null)
-                pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(vertical: 8),
-                  child: pw.Center(
-                    child: pw.SizedBox(
-                      height: kIsWeb ? 300.0 : 280.0,
-                      child: pw.Image(gameImage, fit: pw.BoxFit.contain),
-                    ),
-                  ),
-                ),
+              if (imageWidget != null) imageWidget,
               pw.SizedBox(height: 8),
               if (gameHowToPlay.isNotEmpty)
                 _mgPdfSection('HOW TO PLAY', gameHowToPlay, primary, secondary,
@@ -234,6 +243,19 @@ String _mgSanitise(String text) {
       .replaceAll('–', '-')
       .replaceAll('—', '-')
       .replaceAll('…', '...');
+}
+
+Future<double?> _mgImageRatio(Uint8List bytes) async {
+  try {
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final ratio = frame.image.width / frame.image.height;
+    frame.image.dispose();
+    codec.dispose();
+    return ratio;
+  } catch (_) {
+    return null;
+  }
 }
 
 Future<Uint8List?> _mgFetchBytes(String? url) async {
