@@ -913,24 +913,24 @@
     top: 40%;
     transform: translateY(-50%);
     z-index: 10;
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    border: 1px solid rgba(135,194,50,0.4);
-    background: rgba(30,34,43,0.92);
-    color: #87C232;
+    border: 2px solid #87C232;
+    background: #87C232;
+    color: #111418;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
-    backdrop-filter: blur(8px);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 20px rgba(135,194,50,0.35);
   }
-  .carousel-arrow:hover { background: rgba(135,194,50,0.15); border-color: #87C232; }
+  .carousel-arrow:hover { background: #9fd93a; transform: translateY(-50%) scale(1.08); box-shadow: 0 6px 28px rgba(135,194,50,0.5); }
   .carousel-arrow:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
-  .carousel-arrow svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  .carousel-arrow-prev { left: -8px; }
-  .carousel-arrow-next { right: -8px; }
+  .carousel-arrow svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .carousel-arrow-prev { left: -20px; }
+  .carousel-arrow-next { right: -20px; }
 
   /* Dot indicators */
   .appscreens-dots {
@@ -996,7 +996,9 @@
     .feature-card.f-hero.flip { flex-direction: row; }
     .f-illus { width: 100px; padding: 12px; }
     .appscreen-item { width: 300px; }
-    .carousel-arrow { width: 40px; height: 40px; }
+    .carousel-arrow { width: 48px; height: 48px; }
+    .carousel-arrow-prev { left: -14px; }
+    .carousel-arrow-next { right: -14px; }
     .pillars { grid-template-columns: 1fr 1fr; }
     .testimonials-grid { grid-template-columns: 1fr; }
     .steps-grid { grid-template-columns: 1fr 1fr; }
@@ -1187,15 +1189,7 @@
         </div>
       </div>
 
-      <div class="appscreens-dots" id="carouselDots">
-        <button class="appscreens-dot active" data-index="0" aria-label="Screenshot 1"></button>
-        <button class="appscreens-dot" data-index="1" aria-label="Screenshot 2"></button>
-        <button class="appscreens-dot" data-index="2" aria-label="Screenshot 3"></button>
-        <button class="appscreens-dot" data-index="3" aria-label="Screenshot 4"></button>
-        <button class="appscreens-dot" data-index="4" aria-label="Screenshot 5"></button>
-        <button class="appscreens-dot" data-index="5" aria-label="Screenshot 6"></button>
-        <button class="appscreens-dot" data-index="6" aria-label="Screenshot 7"></button>
-      </div>
+      <div class="appscreens-dots" id="carouselDots"></div>
     </div>
   </div>
 </section>
@@ -1205,22 +1199,45 @@
   const scroll = document.getElementById('appscreensScroll');
   const prev = document.getElementById('carouselPrev');
   const next = document.getElementById('carouselNext');
-  const dots = document.querySelectorAll('.appscreens-dot');
+  const dotsWrap = document.getElementById('carouselDots');
   const items = document.querySelectorAll('.appscreen-item');
-  const TOTAL = items.length;
 
   function getCardWidth() {
-    return items[0].offsetWidth + 24; // card width + gap
+    return items[0].offsetWidth + 24;
+  }
+
+  function getNumStops() {
+    const maxScroll = scroll.scrollWidth - scroll.clientWidth;
+    return Math.round(maxScroll / getCardWidth()) + 1;
   }
 
   function currentIndex() {
     return Math.round(scroll.scrollLeft / getCardWidth());
   }
 
+  let dots = [];
+
+  function buildDots() {
+    dotsWrap.innerHTML = '';
+    dots = [];
+    const n = getNumStops();
+    for (let i = 0; i < n; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'appscreens-dot' + (i === 0 ? ' active' : '');
+      btn.setAttribute('aria-label', 'Screenshot ' + (i + 1));
+      btn.addEventListener('click', () => {
+        scroll.scrollTo({ left: i * getCardWidth(), behavior: 'smooth' });
+      });
+      dotsWrap.appendChild(btn);
+      dots.push(btn);
+    }
+  }
+
   function updateUI() {
     const idx = currentIndex();
+    const n = dots.length;
     prev.disabled = (idx === 0);
-    next.disabled = (idx >= TOTAL - 1);
+    next.disabled = (idx >= n - 1);
     dots.forEach((d, i) => d.classList.toggle('active', i === idx));
   }
 
@@ -1232,13 +1249,15 @@
     scroll.scrollBy({ left: getCardWidth(), behavior: 'smooth' });
   });
 
-  dots.forEach((dot, i) => {
-    dot.addEventListener('click', () => {
-      scroll.scrollTo({ left: i * getCardWidth(), behavior: 'smooth' });
-    });
+  scroll.addEventListener('scroll', updateUI, { passive: true });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { buildDots(); updateUI(); }, 150);
   });
 
-  scroll.addEventListener('scroll', updateUI, { passive: true });
+  buildDots();
   updateUI();
 })();
 </script>
