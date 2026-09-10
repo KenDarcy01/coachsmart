@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, PDFFont, StandardFonts } from "npm:pdf-lib@1.17.1";
-import fontkit from "npm:fontkit@2.0.4";
+import * as fontkit from "npm:fontkit@2.0.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
