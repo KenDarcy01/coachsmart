@@ -137,8 +137,10 @@ Future<String?> exportMultiGameCardPdf(
         pw.MultiPage(
           pageFormat: pageFormat,
           margin: pw.EdgeInsets.zero,
-          header: (context) =>
-              pw.SizedBox(height: context.pageNumber == 1 ? 0 : 16),
+          header: (context) => context.pageNumber == 1
+              ? pw.SizedBox()
+              : _mgPdfContinuationHeader(
+                  gameName, primary, secondary, hPad, bodyFont, bodyFontBold),
           footer: (context) => _mgPdfFooter(_mgSanitise(clubName), primary,
               secondary, third, hPad, hasThird, bodyFont, bodyFontBold),
           build: (context) => [
@@ -407,6 +409,30 @@ pw.Widget _mgPdfVideoLink(
             ),
           ),
         ),
+      ],
+    ),
+  );
+}
+
+pw.Widget _mgPdfContinuationHeader(
+  String gameName,
+  PdfColor primary,
+  PdfColor secondary,
+  double hPad,
+  pw.Font bodyFont,
+  pw.Font bodyFontBold,
+) {
+  return pw.Padding(
+    padding: pw.EdgeInsets.fromLTRB(hPad, 12, hPad, 8),
+    child: pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          gameName,
+          style: pw.TextStyle(font: bodyFontBold, color: primary, fontSize: 11),
+        ),
+        pw.SizedBox(height: 5),
+        pw.Container(height: 1, color: secondary),
       ],
     ),
   );
