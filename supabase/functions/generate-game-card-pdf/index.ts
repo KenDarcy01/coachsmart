@@ -33,9 +33,9 @@ function isNearWhite(hex: string | null | undefined): boolean {
 // ─── Font fetching ────────────────────────────────────────────────────────────
 
 const FONT_TTF: Record<string, string> = {
-  "montserrat-bold":  "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/static/Montserrat-Bold.ttf",
-  "notosans-regular": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans-Regular.ttf",
-  "notosans-bold":    "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans-Bold.ttf",
+  "montserrat-bold":  "https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5/files/montserrat-latin-700-normal.woff2",
+  "notosans-regular": "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5/files/noto-sans-latin-400-normal.woff2",
+  "notosans-bold":    "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5/files/noto-sans-latin-700-normal.woff2",
 };
 
 async function fetchFontBytes(key: string): Promise<Uint8Array | null> {
