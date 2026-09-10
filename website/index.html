@@ -862,6 +862,10 @@
   }
 
   /* APP SCREENS SHOWCASE */
+  .appscreens-carousel {
+    position: relative;
+  }
+
   .appscreens-scroll-wrap .appscreen-item {
     opacity: 1;
     transform: none;
@@ -871,6 +875,7 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
     scrollbar-width: none;
     padding-bottom: 12px;
     margin: 0 -5%;
@@ -881,15 +886,15 @@
 
   .appscreens-grid {
     display: flex;
-    gap: 20px;
+    gap: 24px;
     width: max-content;
   }
 
   .appscreen-item {
-    width: 240px;
+    width: 360px;
     flex-shrink: 0;
     scroll-snap-align: start;
-    border-radius: 16px;
+    border-radius: 20px;
     overflow: hidden;
     border: 1px solid var(--border);
     box-shadow: 0 24px 48px rgba(0,0,0,0.4);
@@ -900,6 +905,53 @@
   .appscreen-item:hover {
     transform: translateY(-6px);
     box-shadow: 0 36px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(135,194,50,0.15);
+  }
+
+  /* Arrow buttons */
+  .carousel-arrow {
+    position: absolute;
+    top: 40%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(135,194,50,0.4);
+    background: rgba(30,34,43,0.92);
+    color: #87C232;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+    backdrop-filter: blur(8px);
+  }
+  .carousel-arrow:hover { background: rgba(135,194,50,0.15); border-color: #87C232; }
+  .carousel-arrow:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+  .carousel-arrow svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .carousel-arrow-prev { left: -8px; }
+  .carousel-arrow-next { right: -8px; }
+
+  /* Dot indicators */
+  .appscreens-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 28px;
+  }
+  .appscreens-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .appscreens-dot.active {
+    background: #87C232;
+    transform: scale(1.3);
   }
 
   .appscreen-item img {
@@ -943,7 +995,8 @@
     .feature-card.f-hero { grid-column: span 2; gap: 24px; }
     .feature-card.f-hero.flip { flex-direction: row; }
     .f-illus { width: 100px; padding: 12px; }
-    .appscreen-item { width: 200px; }
+    .appscreen-item { width: 300px; }
+    .carousel-arrow { width: 40px; height: 40px; }
     .pillars { grid-template-columns: 1fr 1fr; }
     .testimonials-grid { grid-template-columns: 1fr; }
     .steps-grid { grid-template-columns: 1fr 1fr; }
@@ -956,7 +1009,8 @@
     .feature-card.f-hero { grid-column: span 1; flex-direction: column; }
     .feature-card.f-hero.flip { flex-direction: column; }
     .f-illus { width: 100%; max-width: 180px; margin: 0 auto; }
-    .appscreen-item { width: 180px; }
+    .appscreen-item { width: 260px; }
+    .carousel-arrow { display: none; }
     .pillars { grid-template-columns: 1fr 1fr; }
     .steps-grid { grid-template-columns: 1fr; }
   }
@@ -1071,61 +1125,123 @@
       <h2 class="section-title">See It In Action</h2>
       <p class="section-sub">A clean, fast experience built for the sideline — not the boardroom.</p>
     </div>
-    <div class="appscreens-scroll-wrap">
-      <div class="appscreens-grid">
-        <div class="appscreen-item fade-up">
-          <img src="images/01.png" alt="CoachSmart home screen — season calendar">
-          <div class="appscreen-caption">
-            <h3>Your Entire Season, Organised</h3>
-            <p>All your clubs and teams in one unified calendar. See upcoming events, attendance counts, and your own status at a glance.</p>
+    <div class="appscreens-carousel">
+      <button class="carousel-arrow carousel-arrow-prev" id="carouselPrev" aria-label="Previous screenshot" disabled>
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="carousel-arrow carousel-arrow-next" id="carouselNext" aria-label="Next screenshot">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+
+      <div class="appscreens-scroll-wrap" id="appscreensScroll">
+        <div class="appscreens-grid">
+          <div class="appscreen-item">
+            <img src="images/01.png" alt="CoachSmart home screen — season calendar">
+            <div class="appscreen-caption">
+              <h3>Your Entire Season, Organised</h3>
+              <p>All your clubs and teams in one unified calendar. See upcoming events, attendance counts, and your own status at a glance.</p>
+            </div>
+          </div>
+          <div class="appscreen-item">
+            <img src="images/02.png" alt="CoachSmart attendance tracking">
+            <div class="appscreen-caption">
+              <h3>Know Who's In, Instantly</h3>
+              <p>Real-time attendance for every event. See accepted, declined, and no-response counts — broken down by players and coaches.</p>
+            </div>
+          </div>
+          <div class="appscreen-item">
+            <img src="images/03.png" alt="CoachSmart publish and export teams">
+            <div class="appscreen-caption">
+              <h3>Publish &amp; Export Teams</h3>
+              <p>Split your accepted players into teams in seconds. Publish to the squad or export to Google Sheets, Excel, or CSV.</p>
+            </div>
+          </div>
+          <div class="appscreen-item">
+            <img src="images/04.png" alt="CoachSmart squad management">
+            <div class="appscreen-caption">
+              <h3>Squad Management, Simplified</h3>
+              <p>Build colour-coded squads, assign roles, and share the lineup with players and coaches in one tap.</p>
+            </div>
+          </div>
+          <div class="appscreen-item">
+            <img src="images/05.png" alt="CoachSmart drag and drop team selector">
+            <div class="appscreen-caption">
+              <h3>Drag &amp; Drop Team Selector</h3>
+              <p>Place players in positions on a pitch graphic, choose your format (9, 11, 13, or 15), and share the teamsheet instantly.</p>
+            </div>
+          </div>
+          <div class="appscreen-item">
+            <img src="images/06.png" alt="CoachSmart score keeper">
+            <div class="appscreen-caption">
+              <h3>Live Score Keeper</h3>
+              <p>Track goals, points, and 2-pointers in real time with a running clock. Share the live score with parents and supporters.</p>
+            </div>
+          </div>
+          <div class="appscreen-item">
+            <img src="images/07.png" alt="CoachSmart analytics and stats">
+            <div class="appscreen-caption">
+              <h3>Full Historical Stats</h3>
+              <p>Club and team analytics across every season — events, acceptance rates, average attendance, and response rates over time.</p>
+            </div>
           </div>
         </div>
-        <div class="appscreen-item fade-up">
-          <img src="images/02.png" alt="CoachSmart attendance tracking">
-          <div class="appscreen-caption">
-            <h3>Know Who's In, Instantly</h3>
-            <p>Real-time attendance for every event. See accepted, declined, and no-response counts — broken down by players and coaches.</p>
-          </div>
-        </div>
-        <div class="appscreen-item fade-up">
-          <img src="images/03.png" alt="CoachSmart publish and export teams">
-          <div class="appscreen-caption">
-            <h3>Publish &amp; Export Teams</h3>
-            <p>Split your accepted players into teams in seconds. Publish to the squad or export to Google Sheets, Excel, or CSV.</p>
-          </div>
-        </div>
-        <div class="appscreen-item fade-up">
-          <img src="images/04.png" alt="CoachSmart squad management">
-          <div class="appscreen-caption">
-            <h3>Squad Management, Simplified</h3>
-            <p>Build colour-coded squads, assign roles, and share the lineup with players and coaches in one tap.</p>
-          </div>
-        </div>
-        <div class="appscreen-item fade-up">
-          <img src="images/05.png" alt="CoachSmart drag and drop team selector">
-          <div class="appscreen-caption">
-            <h3>Drag &amp; Drop Team Selector</h3>
-            <p>Place players in positions on a pitch graphic, choose your format (9, 11, 13, or 15), and share the teamsheet instantly.</p>
-          </div>
-        </div>
-        <div class="appscreen-item fade-up">
-          <img src="images/06.png" alt="CoachSmart score keeper">
-          <div class="appscreen-caption">
-            <h3>Live Score Keeper</h3>
-            <p>Track goals, points, and 2-pointers in real time with a running clock. Share the live score with parents and supporters.</p>
-          </div>
-        </div>
-        <div class="appscreen-item fade-up">
-          <img src="images/07.png" alt="CoachSmart analytics and stats">
-          <div class="appscreen-caption">
-            <h3>Full Historical Stats</h3>
-            <p>Club and team analytics across every season — events, acceptance rates, average attendance, and response rates over time.</p>
-          </div>
-        </div>
+      </div>
+
+      <div class="appscreens-dots" id="carouselDots">
+        <button class="appscreens-dot active" data-index="0" aria-label="Screenshot 1"></button>
+        <button class="appscreens-dot" data-index="1" aria-label="Screenshot 2"></button>
+        <button class="appscreens-dot" data-index="2" aria-label="Screenshot 3"></button>
+        <button class="appscreens-dot" data-index="3" aria-label="Screenshot 4"></button>
+        <button class="appscreens-dot" data-index="4" aria-label="Screenshot 5"></button>
+        <button class="appscreens-dot" data-index="5" aria-label="Screenshot 6"></button>
+        <button class="appscreens-dot" data-index="6" aria-label="Screenshot 7"></button>
       </div>
     </div>
   </div>
 </section>
+
+<script>
+(function() {
+  const scroll = document.getElementById('appscreensScroll');
+  const prev = document.getElementById('carouselPrev');
+  const next = document.getElementById('carouselNext');
+  const dots = document.querySelectorAll('.appscreens-dot');
+  const items = document.querySelectorAll('.appscreen-item');
+  const TOTAL = items.length;
+
+  function getCardWidth() {
+    return items[0].offsetWidth + 24; // card width + gap
+  }
+
+  function currentIndex() {
+    return Math.round(scroll.scrollLeft / getCardWidth());
+  }
+
+  function updateUI() {
+    const idx = currentIndex();
+    prev.disabled = (idx === 0);
+    next.disabled = (idx >= TOTAL - 1);
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  }
+
+  prev.addEventListener('click', () => {
+    scroll.scrollBy({ left: -getCardWidth(), behavior: 'smooth' });
+  });
+
+  next.addEventListener('click', () => {
+    scroll.scrollBy({ left: getCardWidth(), behavior: 'smooth' });
+  });
+
+  dots.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      scroll.scrollTo({ left: i * getCardWidth(), behavior: 'smooth' });
+    });
+  });
+
+  scroll.addEventListener('scroll', updateUI, { passive: true });
+  updateUI();
+})();
+</script>
 
 <!-- FEATURES -->
 <section id="features" class="features-bg">
