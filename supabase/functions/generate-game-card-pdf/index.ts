@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, PDFFont, StandardFonts } from "npm:pdf-lib@1.17.1";
-import * as fontkit from "npm:fontkit@2.0.4";
+import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,7 +48,7 @@ async function fetchFontBytes(family: string, weight: number): Promise<Uint8Arra
   // 1. Try Google Fonts CSS API with legacy User-Agent (forces TTF response)
   try {
     const cssUrl = `https://fonts.googleapis.com/css?family=${encodeURIComponent(family)}:${weight}&subset=latin`;
-    const cssRes = await fetch(cssUrl, { headers: { "User-Agent": "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" } });
+    const cssRes = await fetch(cssUrl, { headers: { "User-Agent": "curl/7.68.0" } });
     if (cssRes.ok) {
       const css = await cssRes.text();
       console.log(`[font] CSS for ${family}:${weight} (first 300 chars): ${css.slice(0, 300)}`);
