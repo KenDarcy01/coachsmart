@@ -140,7 +140,12 @@ Future<String?> exportMultiGameCardPdf(
               if (gameImage != null)
                 pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(vertical: 8),
-                  child: pw.Image(gameImage, fit: pw.BoxFit.fitWidth, width: double.infinity),
+                  child: pw.Center(
+                    child: pw.SizedBox(
+                      height: kIsWeb ? 300.0 : 280.0,
+                      child: pw.Image(gameImage, fit: pw.BoxFit.contain),
+                    ),
+                  ),
                 ),
               pw.SizedBox(height: 8),
               if (gameHowToPlay.isNotEmpty)
