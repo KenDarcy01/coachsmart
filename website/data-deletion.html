@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Deletion — CoachSmart</title>
+<meta name="description" content="How to request deletion of your CoachSmart account and associated personal data.">
+<link rel="icon" type="image/png" href="/images/CoachSmart%20-%20Black%20Icon.PNG">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --dark: #1E222B;
+    --darker: #15181f;
+    --card: #252a35;
+    --border: #2e3441;
+    --green: #87C232;
+    --green-dim: rgba(135,194,50,0.12);
+    --text: #E7EBEE;
+    --muted: #8a93a0;
+    --light: #c2cad4;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--darker);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(21,24,31,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo-img { height: 36px; width: auto; }
+  .nav-logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; }
+  .nav-logo-text .coach { color: var(--light); }
+  .nav-logo-text .smart { color: var(--green); }
+
+  .nav-cta {
+    background: var(--green);
+    color: var(--darker);
+    border: none;
+    padding: 9px 22px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+    display: inline-block;
+  }
+  .nav-cta:hover { opacity: 0.88; }
+
+  /* PAGE HEADER */
+  .page-header {
+    padding: 120px 5% 64px;
+    border-bottom: 1px solid var(--border);
+    background: var(--dark);
+  }
+
+  .page-header-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .page-tag {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 12px;
+  }
+
+  .page-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 6vw, 64px);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .page-header .meta {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* CONTENT */
+  .content-wrap {
+    padding: 64px 5% 100px;
+  }
+
+  .content-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .policy-section {
+    margin-bottom: 48px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .policy-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .policy-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .policy-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 10px;
+  }
+
+  .policy-section p {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 14px;
+  }
+
+  .policy-section p:last-child { margin-bottom: 0; }
+
+  .policy-section ul, .policy-section ol {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.8;
+    padding-left: 20px;
+    margin-bottom: 14px;
+  }
+
+  .policy-section li { margin-bottom: 6px; }
+
+  .highlight-box {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .highlight-box p {
+    color: var(--light);
+    margin-bottom: 0;
+  }
+
+  /* Steps */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .steps li::before {
+    content: counter(step);
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--green-dim);
+    border: 1px solid rgba(135,194,50,0.3);
+    color: var(--green);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+
+  /* Retention table */
+  .retention-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+
+  .retention-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--dark);
+    color: var(--light);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .retention-table td {
+    padding: 10px 14px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .retention-table tr:last-child td { border-bottom: none; }
+
+  .badge-deleted {
+    display: inline-block;
+    background: rgba(220,50,50,0.12);
+    color: #e07070;
+    border: 1px solid rgba(220,50,50,0.25);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .badge-retained {
+    display: inline-block;
+    background: rgba(135,194,50,0.1);
+    color: var(--green);
+    border: 1px solid rgba(135,194,50,0.25);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  /* Contact card */
+  .contact-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-top: 16px;
+  }
+
+  .contact-card p {
+    margin-bottom: 8px;
+  }
+
+  .contact-card a {
+    color: var(--green);
+    text-decoration: none;
+  }
+  .contact-card a:hover { text-decoration: underline; }
+
+  .email-btn {
+    display: inline-block;
+    margin-top: 8px;
+    background: var(--green);
+    color: var(--darker);
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .email-btn:hover { opacity: 0.88; text-decoration: none; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .footer-logo-img { height: 28px; width: auto; opacity: 0.85; }
+  .footer-copy { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 24px; list-style: none; }
+  .footer-links a {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    .page-header { padding: 100px 5% 48px; }
+    .content-wrap { padding: 48px 5% 80px; }
+    .contact-card { padding: 20px; }
+    .retention-table { font-size: 13px; }
+    .retention-table th, .retention-table td { padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="nav-logo-img">
+    <span class="nav-logo-text"><span class="coach">COACH</span><span class="smart">SMART</span></span>
+  </a>
+  <a href="/#download" class="nav-cta">Get the App</a>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-tag">Legal</div>
+    <h1>DATA DELETION</h1>
+    <p class="meta">Last updated: 11 September 2026</p>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+  <div class="content-inner">
+
+    <div class="policy-section">
+      <div class="highlight-box">
+        <p>You have the right to request deletion of your CoachSmart account and all associated personal data at any time. This page explains how to submit a request, what data will be deleted, and what (if anything) is retained and why.</p>
+      </div>
+    </div>
+
+    <div class="policy-section">
+      <h2>How to Request Deletion</h2>
+      <p>To delete your account and data, send an email to our support team from the email address associated with your CoachSmart account. We will process your request within <strong style="color: var(--light);">30 days</strong> and confirm by email when deletion is complete.</p>
+
+      <ol class="steps">
+        <li>Send an email to <a href="mailto:privacy@coachsmart.app" style="color: var(--green);">privacy@coachsmart.app</a> from the email address linked to your CoachSmart account.</li>
+        <li>Include <strong style="color: var(--light);">"Account Deletion Request"</strong> in the subject line, and your full name in the body of the email.</li>
+        <li>We will verify your identity and confirm receipt within 5 business days.</li>
+        <li>Your account and personal data will be permanently deleted within 30 days of your confirmed request.</li>
+        <li>You will receive a final email confirming that deletion is complete.</li>
+      </ol>
+
+      <div class="contact-card" style="margin-top: 28px;">
+        <p style="color: var(--light); font-weight: 600; margin-bottom: 4px;">Submit a deletion request</p>
+        <p>Send your request to <a href="mailto:privacy@coachsmart.app">privacy@coachsmart.app</a></p>
+        <a href="mailto:privacy@coachsmart.app?subject=Account%20Deletion%20Request" class="email-btn">Email Us to Delete My Account</a>
+      </div>
+    </div>
+
+    <div class="policy-section">
+      <h2>What Gets Deleted</h2>
+      <p>When your deletion request is processed, the following personal data associated with your account is permanently removed from our systems:</p>
+
+      <table class="retention-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Account credentials (email address, password hash)</td>
+            <td><span class="badge-deleted">Deleted</span></td>
+          </tr>
+          <tr>
+            <td>Profile information (name, profile photo)</td>
+            <td><span class="badge-deleted">Deleted</span></td>
+          </tr>
+          <tr>
+            <td>Club and team memberships</td>
+            <td><span class="badge-deleted">Deleted</span></td>
+          </tr>
+          <tr>
+            <td>Event attendance responses</td>
+            <td><span class="badge-deleted">Deleted</span></td>
+          </tr>
+          <tr>
+            <td>Car pool entries linked to your account</td>
+            <td><span class="badge-deleted">Deleted</span></td>
+          </tr>
+          <tr>
+            <td>Push notification tokens and notification history</td>
+            <td><span class="badge-deleted">Deleted</span></td>
+          </tr>
+          <tr>
+            <td>Squad selections and match reports authored by you</td>
+            <td><span class="badge-deleted">Deleted</span></td>
+          </tr>
+          <tr>
+            <td>Any uploaded images linked to your account</td>
+            <td><span class="badge-deleted">Deleted</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="policy-section">
+      <h2>What May Be Retained</h2>
+      <p>In limited circumstances, some data may be retained after your account is deleted. This only occurs where we are legally required to do so.</p>
+
+      <table class="retention-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Retention</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Payment transaction records (if applicable)</td>
+            <td><span class="badge-retained">7 years</span></td>
+            <td>Irish financial and tax law</td>
+          </tr>
+          <tr>
+            <td>Aggregated, anonymised usage statistics</td>
+            <td><span class="badge-retained">Indefinite</span></td>
+            <td>No personal data — cannot be linked back to you</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top: 20px;">Retained data is held securely and used only for the purpose stated above. It is never sold or shared with third parties for marketing.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Effect on Club Data</h2>
+      <p>CoachSmart is a team management platform. Deleting your account removes <strong style="color: var(--light);">your personal data</strong> from our systems, but does not automatically remove club-level data (such as team rosters or event records) that your club administrator manages independently.</p>
+      <p>If you are an <strong style="color: var(--light);">administrator</strong> and the only admin for your club, please contact us before requesting deletion so we can discuss how to handle the club's data or transfer admin rights to another member.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>Contact Us</h2>
+      <p>For any questions about data deletion, your rights under GDPR, or how we handle your personal data, contact our privacy team.</p>
+      <div class="contact-card">
+        <p style="color: var(--light); font-weight: 600; margin-bottom: 12px;">CoachSmart — Privacy &amp; Data</p>
+        <p><strong style="color: var(--light);">Email:</strong> <a href="mailto:privacy@coachsmart.app">privacy@coachsmart.app</a></p>
+        <p><strong style="color: var(--light);">Privacy Policy:</strong> <a href="/privacy.html">coachsmart.app/privacy.html</a></p>
+        <p style="margin-top: 12px;">We aim to respond to all requests within <strong style="color: var(--light);">5 business days</strong> and complete deletions within <strong style="color: var(--light);">30 days</strong> as required under GDPR Article 17.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="footer-logo-img">
+  <span class="footer-copy">&copy; 2026 CoachSmart. All rights reserved.</span>
+  <ul class="footer-links">
+    <li><a href="/privacy.html">Privacy Policy</a></li>
+    <li><a href="/terms.html">Terms of Use</a></li>
+    <li><a href="/data-deletion.html">Data Deletion</a></li>
+  </ul>
+</footer>
+
+<script src="/cookie-consent.js"></script>
+</body>
+</html>
