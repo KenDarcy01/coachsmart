@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#111418"/>
+  <style>html,body{background:#111418 !important;}</style>
+  <title>Coaching Resources</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@700&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --green:     #87C232;
+      --green-dim: rgba(135,194,50,0.12);
+      --green-mid: rgba(135,194,50,0.22);
+      --dark:      #111418;
+      --card:      #1E222B;
+      --card2:     #252A35;
+      --border:    rgba(255,255,255,0.07);
+      --text:      #E7EBEE;
+      --muted:     #6B7280;
+      --red:       #EF4444;
+      --amber:     #F59E0B;
+      --blue:      #60A5FA;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; -webkit-text-size-adjust: none; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); font-size: 16px; overscroll-behavior: none; }
+    ::-webkit-scrollbar { display: none; }
+    * { -ms-overflow-style: none; scrollbar-width: none; }
+    button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+    a { text-decoration: none; }
+
+    /* ── SCREENS ── */
+    .screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── TOP BAR ── */
+    .top-bar {
+      background: var(--card);
+      border-bottom: 3px solid var(--green);
+      padding: 0 16px;
+      height: 60px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .back-btn {
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green); flex-shrink: 0;
+      border-radius: 8px;
+      transition: background 0.1s;
+    }
+    .back-btn:active { background: var(--green-dim); }
+    .back-btn svg { width: 34px; height: 34px; }
+    .bar-wordmark { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+    .bar-wordmark span { color: var(--green); }
+    .bar-title { font-size: 17px; font-weight: 600; line-height: 1.2; }
+    .bar-sub   { font-size: 12px; color: var(--muted); margin-top: 1px; letter-spacing: 0.5px; }
+
+    /* ── SCROLL CONTENT ── */
+    .scroll-content { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      font-size: 12px; font-weight: 700;
+      color: var(--muted); letter-spacing: 1.5px;
+      text-transform: uppercase; margin-bottom: 12px;
+    }
+
+    /* ── PATHWAY SELECTOR SCREEN ── */
+    .pathway-select-grid { display: flex; flex-direction: column; gap: 10px; }
+    .pathway-select-card {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 18px 16px;
+      display: flex; align-items: center; gap: 14px;
+      text-align: left; width: 100%;
+      transition: border-color 0.15s, background 0.1s;
+    }
+    .pathway-select-card:active { background: var(--card2); border-color: var(--green); }
+    .pathway-select-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: var(--green-dim); border: 1px solid rgba(135,194,50,0.2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--green);
+    }
+    .pathway-select-icon svg { width: 22px; height: 22px; }
+    .pathway-select-name { font-size: 16px; font-weight: 600; color: var(--text); flex: 1; }
+    .pathway-select-chev { color: var(--muted); }
+    .pathway-select-chev svg { width: 20px; height: 20px; }
+
+    /* ── PATHWAY HEADER BANNER ── */
+    .pathway-banner {
+      flex-shrink: 0;
+      padding: 20px 16px 16px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .pathway-banner-crest {
+      width: 54px; height: 54px; border-radius: 10px;
+      object-fit: contain; flex-shrink: 0;
+      background: rgba(255,255,255,0.08);
+    }
+    .pathway-banner-crest-placeholder {
+      width: 54px; height: 54px; border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.3);
+    }
+    .pathway-banner-crest-placeholder svg { width: 28px; height: 28px; }
+    .pathway-banner-text { flex: 1; min-width: 0; }
+    .pathway-banner-club {
+      font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 0.3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pathway-banner-name {
+      font-size: 20px; font-weight: 700; color: #fff;
+      line-height: 1.25; margin-top: 2px;
+    }
+    .pathway-banner-accent {
+      height: 3px; flex-shrink: 0;
+    }
+
+    /* ── STAGE GRID ── */
+    .stage-grid { display: flex; flex-direction: column; gap: 10px; }
+    .stage-card {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      display: flex; align-items: center; gap: 14px;
+      text-align: left; width: 100%;
+      transition: border-color 0.15s, background 0.1s;
+    }
+    .stage-card:active { background: var(--card2); border-color: var(--green); }
+    .stage-num {
+      font-size: 24px; font-weight: 700; line-height: 1;
+      color: var(--green); flex-shrink: 0;
+      min-width: 28px; text-align: center;
+    }
+    .stage-divider { width: 1px; height: 36px; background: var(--border); flex-shrink: 0; }
+    .stage-info { flex: 1; min-width: 0; }
+    .stage-name { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+    .stage-desc { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 4px; }
+    .stage-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .stage-ages-pill {
+      font-size: 12px; font-weight: 600;
+      padding: 2px 8px; border-radius: 10px;
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid rgba(135,194,50,0.2);
+      text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .stage-count { font-size: 13px; color: var(--muted); }
+    .stage-chev { color: var(--muted); flex-shrink: 0; }
+    .stage-chev svg { width: 20px; height: 20px; }
+
+    /* ── STAGE DETAIL SCREEN ── */
+    .guidance-section { margin-bottom: 20px; }
+    .guidance-card {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden; margin-bottom: 10px;
+    }
+    .guidance-card-body { padding: 14px 16px; }
+    .guidance-heading { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 6px; }
+    .guidance-subheading { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .guidance-img {
+      width: 100%; display: block; max-height: 220px;
+      object-fit: cover; background: var(--card2);
+    }
+    .guidance-img-below { padding: 0 16px 14px; }
+    .guidance-video-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin: 10px 0 0;
+      font-size: 14px; font-weight: 600; color: var(--green);
+    }
+    .guidance-video-btn svg { width: 16px; height: 16px; }
+
+    /* ── FILTERS ── */
+    .filters-wrap {
+      padding: 10px 16px 12px;
+      flex-shrink: 0;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .filter-row {
+      display: flex; gap: 6px;
+      overflow-x: auto; padding-bottom: 2px;
+    }
+    .filter-chip {
+      flex-shrink: 0;
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 14px; font-weight: 600;
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--muted); transition: all 0.15s;
+    }
+    .filter-chip.active { background: var(--green); border-color: var(--green); color: #111418; }
+
+    /* ── GAME LIST ── */
+    .game-list { display: flex; flex-direction: column; gap: 8px; }
+    .game-card {
+      background: var(--card); border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 14px; width: 100%;
+      display: flex; align-items: flex-start; gap: 12px;
+      text-align: left; transition: border-color 0.15s;
+    }
+    .game-card:active { border-color: var(--green); background: var(--card2); }
+    .type-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green); flex-shrink: 0; margin-top: 6px;
+    }
+    .type-dot.warmup { background: var(--amber); }
+    .type-dot.drill  { background: var(--blue); }
+    .game-info { flex: 1; min-width: 0; }
+    .game-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 5px; line-height: 1.3; }
+    .game-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .gtag {
+      font-size: 12px; font-weight: 500;
+      padding: 2px 7px; border-radius: 10px;
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid rgba(135,194,50,0.2);
+    }
+    .gtag.warmup { background: rgba(245,158,11,0.10); color: var(--amber); border-color: rgba(245,158,11,0.2); }
+    .gtag.drill  { background: rgba(96,165,250,0.10); color: var(--blue);  border-color: rgba(96,165,250,0.2); }
+    .gtag.skill  { background: rgba(255,255,255,0.05); color: var(--muted); border-color: var(--border); }
+    .game-chev { color: var(--muted); flex-shrink: 0; }
+    .game-chev svg { width: 20px; height: 20px; }
+
+    /* ── EMPTY / ERROR states ── */
+    .empty-state { text-align: center; padding: 32px 20px; }
+    .empty-state svg { width: 36px; height: 36px; color: var(--muted); opacity: 0.35; margin-bottom: 10px; }
+    .empty-state p { font-size: 15px; color: var(--muted); line-height: 1.6; }
+
+    /* ── DETAIL ── */
+    .detail-image {
+      width: 100%; height: auto; display: block;
+      background: var(--card2); border-radius: 6px; margin-bottom: 22px;
+    }
+    .detail-body { padding: 16px; }
+    .detail-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .d-badge { font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 10px; }
+    .d-badge.sport  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(135,194,50,0.25); }
+    .d-badge.type   { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
+    .d-badge.skill  { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
+    .d-badge.warmup { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+    .d-badge.drill  { background: rgba(96,165,250,0.12); color: var(--blue);  border: 1px solid rgba(96,165,250,0.2); }
+    .d-section { margin-bottom: 22px; }
+    .d-section-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--green); margin-bottom: 8px; }
+    .d-section-text { font-size: 15px; color: var(--text); line-height: 1.65; white-space: pre-line; }
+    .media-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .media-btn {
+      flex: 1; padding: 12px 10px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--card);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 15px; font-weight: 600; color: var(--text);
+      transition: all 0.15s;
+    }
+    .media-btn:active { background: var(--card2); border-color: var(--green); }
+    .media-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .media-btn.pdf   { color: var(--green); }
+    .media-btn.video { color: var(--green); }
+    .video-embed { position: relative; width: 100%; padding-bottom: 56.25%; height: 0; margin-bottom: 22px; border-radius: 8px; overflow: hidden; background: #000; }
+    .video-embed iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
+    /* ── HEART / FAVOURITE ── */
+    .heart-btn {
+      width: 34px; height: 34px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; transition: background 0.1s;
+      color: var(--muted);
+    }
+    .heart-btn:active { background: rgba(239,68,68,0.12); }
+    .heart-btn.fav { color: #EF4444; }
+    .heart-btn svg { width: 24px; height: 24px; }
+    .heart-btn.fav svg { fill: #EF4444; stroke: #EF4444; }
+    #detailHeart { width: 44px; height: 44px; }
+    #detailHeart svg { width: 26px; height: 26px; }
+
+    /* ── LOADING ── */
+    #loadingOverlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(17,20,24,0.88);
+      flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    }
+    #loadingOverlay.show { display: flex; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(135,194,50,0.2);
+      border-top-color: var(--green); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loadingText { font-size: 13px; color: var(--muted); }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 18px;
+      font-size: 13px; font-weight: 500; color: var(--text);
+      z-index: 300; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap; max-width: 90vw; text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── ERROR ── */
+    #errorScreen { align-items: center; justify-content: center; padding: 32px 24px; text-align: center; }
+    .error-icon { font-size: 52px; margin-bottom: 16px; }
+    .error-msg { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 300px; }
+    .error-msg strong { color: var(--text); display: block; margin-bottom: 6px; font-size: 16px; }
+
+    /* ── PRINT CARD ── */
+    #printCard { display: none; }
+    @media print {
+      @page { size: 134mm 289mm; margin: 0; }
+      :root { --pc-primary: #2d7a00; --pc-secondary: #ffd700; --pc-third: transparent; }
+      body * { visibility: hidden; }
+      #printCard, #printCard * { visibility: visible; }
+      #printCard { display: block !important; position: fixed; inset: 0; background: #fff; font-family: 'Noto Sans', sans-serif; color: #2e2e2e; }
+      .pc-header { background: var(--pc-primary); padding: 16pt 16pt; display: flex; align-items: center; gap: 14pt; }
+      .pc-crest { width: 68pt; height: 68pt; object-fit: contain; flex-shrink: 0; }
+      .pc-header-text { flex: 1; min-width: 0; }
+      .pc-club-name { font-family: 'Montserrat', sans-serif; font-size: 22pt; font-weight: 700; color: #fff; line-height: 1.2; }
+      .pc-rule { height: 1pt; background: rgba(255,255,255,0.5); margin: 5pt 0; }
+      .pc-game-name { font-size: 17pt; font-weight: 700; color: #fff; line-height: 1.3; }
+      .pc-stripe-wrap { display: flex; flex-direction: column; }
+      .pc-stripe-white { height: 2pt; background: #fff; }
+      .pc-stripe-sec { height: 4pt; background: var(--pc-secondary); }
+      .pc-stripe-third { height: 3pt; background: var(--pc-third); }
+      .pc-body { padding: 0 16pt; }
+      .pc-img { width: 100%; max-height: 180pt; object-fit: contain; display: block; margin: 8pt 0; }
+      .pc-section { margin-bottom: 16pt; page-break-inside: avoid; }
+      .pc-section-first { padding-top: 16pt; }
+      .pc-label-row { display: flex; align-items: center; gap: 8pt; margin-bottom: 7pt; }
+      .pc-label-bar { width: 3pt; height: 13pt; background: var(--pc-secondary); flex-shrink: 0; }
+      .pc-label { font-size: 11pt; font-weight: 700; letter-spacing: 1pt; text-transform: uppercase; color: var(--pc-primary); }
+      .pc-line { display: flex; align-items: flex-start; gap: 7pt; margin-bottom: 5pt; padding-left: 11pt; }
+      .pc-bullet { width: 5pt; height: 5pt; border-radius: 50%; background: var(--pc-secondary); flex-shrink: 0; margin-top: 4pt; }
+      .pc-line-text { font-size: 12pt; color: #2e2e2e; line-height: 1.55; flex: 1; }
+      .pc-video-url { font-size: 12pt; color: #1a6fcc; text-decoration: underline; padding-left: 11pt; }
+      .pc-footer-line { height: 1.5pt; background: var(--pc-footer-line-col); margin: 10pt 0 8pt; }
+      .pc-footer { display: flex; justify-content: space-between; align-items: center; padding: 0 0 16pt; }
+      .pc-footer-club { font-size: 10pt; font-weight: 700; color: var(--pc-primary); }
+      .pc-footer-brand { font-size: 10pt; color: #b3b3b3; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">Loading…</div></div>
+<div id="toast"></div>
+<div id="printCard" aria-hidden="true"></div>
+
+<!-- ── PATHWAY SELECTOR (shown when club has 2+ pathways) ── -->
+<div id="pathwaySelectScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="closeResources()" title="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="bar-wordmark" style="flex:1">Coach<span>Smart</span></div>
+  </div>
+  <div class="scroll-content">
+    <div class="section-label" style="margin-bottom:14px">Select a pathway</div>
+    <div class="pathway-select-grid" id="pathwaySelectGrid"></div>
+  </div>
+</div>
+
+<!-- ── PATHWAY OVERVIEW (club header + stage list) ── -->
+<div id="pathwayScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="navBack()" title="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="bar-wordmark" style="flex:1">Coach<span>Smart</span></div>
+  </div>
+  <div id="pathwayBanner" class="pathway-banner"></div>
+  <div id="pathwayAccent" class="pathway-banner-accent"></div>
+  <div class="scroll-content">
+    <div class="section-label" style="margin-bottom:14px">Development stages</div>
+    <div class="stage-grid" id="pathwayStageGrid"></div>
+  </div>
+</div>
+
+<!-- ── STAGE DETAIL (guidance + games) ── -->
+<div id="stageDetailScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="navBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div style="min-width:0;flex:1">
+      <div class="bar-title" id="stageDetailTitle"></div>
+    </div>
+  </div>
+  <div class="filters-wrap">
+    <div class="filter-row" id="stageCodeFilter"></div>
+    <div class="filter-row" id="stageTypeFilter"></div>
+  </div>
+  <div class="scroll-content" style="padding-top:12px">
+    <div id="guidanceList" class="guidance-section"></div>
+    <div id="stageGameList" class="game-list"></div>
+  </div>
+</div>
+
+<!-- ── FALLBACK: ORIGINAL STAGE PICKER ── -->
+<div id="stageScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="closeResources()" title="Close resources">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="bar-wordmark" style="flex:1">Coach<span>Smart</span></div>
+  </div>
+  <div class="scroll-content">
+    <div class="section-label" style="margin-bottom:14px">Select development stage</div>
+    <div class="stage-grid" id="stageGrid"></div>
+  </div>
+</div>
+
+<!-- ── FALLBACK: GAMES LIST ── -->
+<div id="gamesScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="navBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div>
+      <div class="bar-title" id="gamesTitle">Resources</div>
+    </div>
+  </div>
+  <div class="filters-wrap">
+    <div class="filter-row" id="sportFilter"></div>
+    <div class="filter-row" id="typeFilter"></div>
+  </div>
+  <div class="scroll-content" style="padding-top:12px">
+    <div class="game-list" id="gameList"></div>
+  </div>
+</div>
+
+<!-- ── GAME DETAIL ── -->
+<div id="detailScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="navBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div style="min-width:0;flex:1">
+      <div class="bar-title" id="detailTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px"></div>
+    </div>
+    <button class="heart-btn" id="detailHeart" onclick="toggleFavFromDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+  </div>
+  <div class="scroll-content" style="padding:0">
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- ── ERROR ── -->
+<div id="errorScreen" class="screen">
+  <div class="error-icon">🔒</div>
+  <div class="error-msg" id="errorMsg">
+    <strong>Access required</strong>
+    Open this page from the CoachSmart app to access coaching resources.
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+
+function _getParam(name) {
+  const m = window.location.search.match(new RegExp('[?&]' + name + '=([^&]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+const WV_TOKEN   = _getParam('token') || _getParam('currentAuthToken');
+const WV_REFRESH = _getParam('refreshToken') || _getParam('refresh_token');
+const IS_WEBVIEW = !!WV_TOKEN;
+
+let clubInfo = { name: '', crest: '', primary: '#1a3a1a', secondary: '#87C232', third: '' };
+
+function _jwtUserId() {
+  try {
+    const payload = WV_TOKEN.split('.')[1];
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return decoded.sub || null;
+  } catch (_) { return null; }
+}
+
+let sb, _sbReady;
+if (IS_WEBVIEW && WV_REFRESH) {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+  _sbReady = sb.auth.setSession({ access_token: WV_TOKEN, refresh_token: WV_REFRESH });
+} else if (IS_WEBVIEW) {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } },
+    auth: { persistSession: false },
+  });
+  _sbReady = Promise.resolve(null);
+} else {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  _sbReady = Promise.resolve(null);
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allGames        = [];
+let allPathways     = [];   // [{pathway_type_id, pathway_name}]
+let pathwayStages   = [];   // [{pathway_stage_id, pathway_stage, pathway_stage_desc, pathway_ages, pathway_display_seq}]
+let stageDetails    = [];   // [{pathway_stage_details_id, detail_heading, detail_subheading, image_link, video_link, code_text}]
+let selectedStageObj   = null;
+let selectedCodeText   = 'All';
+let selectedType       = 'All';
+let _detailOrigin      = 'gamesScreen';  // which list screen to return to from detailScreen
+
+// Fallback state
+let selectedFallbackStageId = null;
+let selectedSport = 'All';
+let selectedFallbackType = 'All';
+
+const SPORTS = ['All','Football','Hurling','Camogie'];
+const TYPES  = ['All','Games','Warmups','Drill'];
+
+const STAGES = [
+  { id: 1, label: 'Stage 1', subtitle: 'Learning to Master the Ball',          ages: ['u4','u5','u6'] },
+  { id: 2, label: 'Stage 2', subtitle: 'Learning to Use the Ball Well',        ages: ['u7','u8','u9'] },
+  { id: 3, label: 'Stage 3', subtitle: 'Learning to Play Together',            ages: ['u10','u11'] },
+  { id: 4, label: 'Stage 4', subtitle: 'Learning About Positions & Decisions', ages: ['u12','u13'] },
+  { id: 5, label: 'Stage 5', subtitle: 'Competing & Refining',                 ages: ['u14','u15'] },
+  { id: 6, label: 'Stage 6', subtitle: 'Learn to Perform',                     ages: ['u16','u17'] },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+let _currentScreen = 'stageScreen';
+
+function showScreen(id, pushState = true) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  _currentScreen = id;
+  if (pushState) history.pushState({ screen: id }, '');
+}
+
+window.addEventListener('popstate', () => {
+  switch (_currentScreen) {
+    case 'detailScreen':
+      showScreen(_detailOrigin, false);
+      break;
+    case 'stageDetailScreen':
+      showScreen('pathwayScreen', false);
+      break;
+    case 'pathwayScreen':
+      if (allPathways.length > 1) showScreen('pathwaySelectScreen', false);
+      break;
+    case 'gamesScreen':
+      showScreen('stageScreen', false);
+      break;
+  }
+});
+
+function navBack() { history.back(); }
+
+function closeResources() {
+  if (window.FlutterBridge) {
+    window.FlutterBridge.postMessage('close');
+  } else {
+    history.back();
+  }
+}
+
+function showLoading(msg = 'Loading…') { $('loadingText').textContent = msg; $('loadingOverlay').classList.add('show'); }
+function hideLoading() { $('loadingOverlay').classList.remove('show'); }
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openExternal(url) {
+  if (window.FlutterBridge) {
+    window.FlutterBridge.postMessage('openUrl:' + url);
+  } else {
+    window.open(url, '_blank');
+  }
+}
+
+function primaryType(types) {
+  if (!types?.length) return 'game';
+  const t = types[0].toLowerCase();
+  if (t === 'warmups') return 'warmup';
+  if (t === 'drill')   return 'drill';
+  return 'game';
+}
+
+// ── Club Info ─────────────────────────────────────────────────────────────────
+async function loadClubInfo(clubId) {
+  try {
+    const { data, error } = await sb
+      .from('clubs')
+      .select('club_name, crest, primary_colour, secondary_colour, third_colour')
+      .eq('club_id', clubId)
+      .maybeSingle();
+    if (error || !data) return;
+    clubInfo = {
+      name:      data.club_name        || '',
+      crest:     data.crest            || '',
+      primary:   data.primary_colour   || '#1a3a1a',
+      secondary: data.secondary_colour || '#87C232',
+      third:     data.third_colour     || '',
+    };
+  } catch (e) {
+    console.warn('loadClubInfo:', e);
+  }
+}
+
+// ── Favourites ────────────────────────────────────────────────────────────────
+const FAV_KEY = 'cs_fav_games';
+function _favFromStorage() {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')); } catch (_) { return new Set(); }
+}
+function _saveFavStorage(set) {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify([...set])); } catch (_) {}
+}
+let favourites = _favFromStorage();
+function isFav(gameId) { return favourites.has(gameId); }
+function _setFav(gameId, on) {
+  if (on) { favourites.add(gameId); } else { favourites.delete(gameId); }
+  _saveFavStorage(favourites);
+}
+
+async function loadFavouritesFromDB() {
+  if (!IS_WEBVIEW) return;
+  try {
+    const { data, error } = await sb.rpc('get_user_game_links');
+    if (error) { console.warn('get_user_game_links:', error.message); return; }
+    favourites = new Set((data || []).map(Number));
+    _saveFavStorage(favourites);
+    document.querySelectorAll('.heart-btn[data-gid]').forEach(btn => {
+      btn.classList.toggle('fav', isFav(Number(btn.dataset.gid)));
+    });
+    if (_currentDetailGameId != null) updateDetailHeart();
+  } catch (e) { console.warn('loadFavouritesFromDB:', e); }
+}
+
+async function toggleFavFromCard(event, gameId) {
+  event.stopPropagation();
+  const nowFav = !isFav(gameId);
+  const btn = event.currentTarget;
+  _setFav(gameId, nowFav);
+  btn.classList.toggle('fav', nowFav);
+  if (!IS_WEBVIEW) { showToast(nowFav ? 'Added to favourites' : 'Removed from favourites'); return; }
+  try {
+    const { error } = await sb.rpc('toggle_user_game_link', { p_game_id: gameId });
+    if (error) throw error;
+    showToast(nowFav ? 'Added to favourites' : 'Removed from favourites');
+  } catch (e) {
+    _setFav(gameId, !nowFav);
+    btn.classList.toggle('fav', !nowFav);
+    showToast('Could not save — please try again');
+  }
+}
+
+let _currentDetailGameId = null;
+async function toggleFavFromDetail() {
+  if (_currentDetailGameId == null) return;
+  const gameId = _currentDetailGameId;
+  const nowFav = !isFav(gameId);
+  _setFav(gameId, nowFav);
+  updateDetailHeart();
+  if (!IS_WEBVIEW) { showToast(nowFav ? 'Added to favourites' : 'Removed from favourites'); return; }
+  try {
+    const { error } = await sb.rpc('toggle_user_game_link', { p_game_id: gameId });
+    if (error) throw error;
+    showToast(nowFav ? 'Added to favourites' : 'Removed from favourites');
+  } catch (e) {
+    _setFav(gameId, !nowFav);
+    updateDetailHeart();
+    showToast('Could not save — please try again');
+  }
+}
+
+function updateDetailHeart() {
+  const btn = $('detailHeart');
+  if (!btn) return;
+  btn.classList.toggle('fav', isFav(_currentDetailGameId));
+}
+
+let _toast;
+function showToast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(_toast); _toast = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── Pathway Selector ──────────────────────────────────────────────────────────
+function renderPathwaySelector() {
+  $('pathwaySelectGrid').innerHTML = allPathways.map(p => `
+    <button class="pathway-select-card" onclick="selectPathway(${p.pathway_type_id}, '${esc(p.pathway_name)}')">
+      <div class="pathway-select-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </div>
+      <div class="pathway-select-name">${esc(p.pathway_name)}</div>
+      <div class="pathway-select-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </button>`).join('');
+}
+
+// ── Pathway Overview ──────────────────────────────────────────────────────────
+async function selectPathway(pathwayTypeId, pathwayName) {
+  showLoading('Loading pathway…');
+  try {
+    const { data, error } = await sb
+      .from('pathway_stages')
+      .select('pathway_stage_id, pathway_stage, pathway_stage_desc, pathway_ages, pathway_display_seq')
+      .eq('pathway_type_id', pathwayTypeId)
+      .order('pathway_display_seq', { ascending: true });
+
+    if (error) throw error;
+    pathwayStages = data || [];
+    renderPathwayBanner(pathwayName);
+    renderPathwayStages();
+    showScreen('pathwayScreen');
+  } catch(e) {
+    console.error('selectPathway:', e);
+    showToast('Could not load pathway — please try again');
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderPathwayBanner(pathwayName) {
+  const primary = clubInfo.primary || '#1a3a1a';
+  const secondary = clubInfo.secondary || '#87C232';
+
+  const crestHtml = clubInfo.crest
+    ? `<img class="pathway-banner-crest" src="${esc(clubInfo.crest)}" alt="${esc(clubInfo.name)}" onerror="this.style.display='none'">`
+    : `<div class="pathway-banner-crest-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>`;
+
+  $('pathwayBanner').style.background = primary;
+  $('pathwayBanner').innerHTML = `
+    ${crestHtml}
+    <div class="pathway-banner-text">
+      <div class="pathway-banner-club">${esc(clubInfo.name)}</div>
+      <div class="pathway-banner-name">${esc(pathwayName)}</div>
+    </div>`;
+
+  $('pathwayAccent').style.background = secondary;
+}
+
+function renderPathwayStages() {
+  if (!pathwayStages.length) {
+    $('pathwayStageGrid').innerHTML = '<div class="empty-state"><p>No stages found for this pathway.</p></div>';
+    return;
+  }
+
+  $('pathwayStageGrid').innerHTML = pathwayStages.map((s, idx) => {
+    const ages = (s.pathway_ages || []);
+    const agesLabel = ages.map(a => a.toUpperCase()).join(', ');
+    const ageSet = new Set(ages.map(a => a.toLowerCase()));
+    const gameCount = allGames.filter(g =>
+      (g.game_age || []).some(a => ageSet.has(a.toLowerCase()))
+    ).length;
+
+    return `<button class="stage-card" onclick="openStageDetail(${s.pathway_stage_id})">
+      <div class="stage-num">${s.pathway_display_seq || idx + 1}</div>
+      <div class="stage-divider"></div>
+      <div class="stage-info">
+        <div class="stage-name">${esc(s.pathway_stage)}</div>
+        ${s.pathway_stage_desc ? `<div class="stage-desc">${esc(s.pathway_stage_desc)}</div>` : ''}
+        <div class="stage-meta">
+          ${agesLabel ? `<span class="stage-ages-pill">${esc(agesLabel)}</span>` : ''}
+          ${gameCount ? `<span class="stage-count">${gameCount} resource${gameCount !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+      </div>
+      <div class="stage-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </button>`;
+  }).join('');
+}
+
+// ── Stage Detail ──────────────────────────────────────────────────────────────
+async function openStageDetail(stageId) {
+  selectedStageObj = pathwayStages.find(s => s.pathway_stage_id === stageId);
+  if (!selectedStageObj) return;
+
+  selectedCodeText = 'All';
+  selectedType     = 'All';
+
+  showLoading('Loading stage…');
+  try {
+    const { data, error } = await sb
+      .from('pathway_stage_details')
+      .select('pathway_stage_details_id, detail_heading, detail_subheading, image_link, video_link, detail_code_id, event_codes(event_code)')
+      .eq('pathway_stage_id', stageId);
+
+    if (error) throw error;
+    stageDetails = (data || []).map(d => ({
+      ...d,
+      code_text: d.event_codes?.event_code || null,
+    }));
+
+    $('stageDetailTitle').textContent = selectedStageObj.pathway_stage;
+    renderStageDetailFilters();
+    renderStageDetailContent();
+    _detailOrigin = 'stageDetailScreen';
+    showScreen('stageDetailScreen');
+  } catch(e) {
+    console.error('openStageDetail:', e);
+    showToast('Could not load stage — please try again');
+  } finally {
+    hideLoading();
+  }
+}
+
+function getStageCodeOptions() {
+  const ageSet = new Set((selectedStageObj.pathway_ages || []).map(a => a.toLowerCase()));
+  const stageGames = allGames.filter(g =>
+    (g.game_age || []).some(a => ageSet.has(a.toLowerCase()))
+  );
+  const codeSet = new Set();
+  stageDetails.forEach(d => { if (d.code_text) codeSet.add(d.code_text); });
+  stageGames.forEach(g => (g.game_code || []).forEach(c => codeSet.add(c)));
+  return ['All', ...Array.from(codeSet).sort()];
+}
+
+function getStageTypeOptions() {
+  const ageSet = new Set((selectedStageObj.pathway_ages || []).map(a => a.toLowerCase()));
+  const stageGames = allGames.filter(g =>
+    (g.game_age || []).some(a => ageSet.has(a.toLowerCase()))
+  );
+  const typeSet = new Set();
+  stageGames.forEach(g => (g.game_type || []).forEach(t => typeSet.add(t)));
+  const order = ['Games', 'Warmups', 'Drill'];
+  return ['All', ...order.filter(t => typeSet.has(t))];
+}
+
+function renderStageDetailFilters() {
+  const codes = getStageCodeOptions();
+  $('stageCodeFilter').innerHTML = codes.map(c =>
+    `<button class="filter-chip${c === selectedCodeText ? ' active' : ''}" onclick="setStageCode('${esc(c)}')">${esc(c)}</button>`
+  ).join('');
+
+  const types = getStageTypeOptions();
+  $('stageTypeFilter').innerHTML = types.length > 1 ? types.map(t =>
+    `<button class="filter-chip${t === selectedType ? ' active' : ''}" onclick="setStageType('${esc(t)}')">${esc(t)}</button>`
+  ).join('') : '';
+}
+
+function setStageCode(code) { selectedCodeText = code; renderStageDetailFilters(); renderStageDetailContent(); }
+function setStageType(type) { selectedType = type;     renderStageDetailFilters(); renderStageDetailContent(); }
+
+function getFilteredDetails() {
+  if (selectedCodeText === 'All') return stageDetails;
+  return stageDetails.filter(d => d.code_text === selectedCodeText || d.code_text === null);
+}
+
+function getFilteredStageGames() {
+  const ageSet = new Set((selectedStageObj.pathway_ages || []).map(a => a.toLowerCase()));
+  return allGames.filter(g => {
+    if (!(g.game_age || []).some(a => ageSet.has(a.toLowerCase()))) return false;
+    if (selectedCodeText !== 'All' && !(g.game_code || []).includes(selectedCodeText)) return false;
+    if (selectedType !== 'All' && !(g.game_type || []).includes(selectedType)) return false;
+    if (!hasContent(g)) return false;
+    return true;
+  });
+}
+
+function renderStageDetailContent() {
+  const details = getFilteredDetails();
+  const games   = getFilteredStageGames();
+
+  // Guidance cards
+  if (details.length) {
+    $('guidanceList').innerHTML = `
+      <div class="section-label" style="margin-bottom:10px">Stage guidance</div>
+      ${details.map(d => {
+        const imgHtml = d.image_link
+          ? `<img class="guidance-img" src="${esc(d.image_link)}" alt="${esc(d.detail_heading)}" onerror="this.style.display='none'">`
+          : '';
+        const videoHtml = d.video_link
+          ? `<button class="guidance-video-btn" onclick="openExternal('${esc(d.video_link)}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Watch video
+            </button>`
+          : '';
+        return `<div class="guidance-card">
+          ${imgHtml}
+          <div class="guidance-card-body">
+            <div class="guidance-heading">${esc(d.detail_heading)}</div>
+            ${d.detail_subheading ? `<div class="guidance-subheading">${esc(d.detail_subheading)}</div>` : ''}
+            ${videoHtml}
+          </div>
+        </div>`;
+      }).join('')}`;
+  } else {
+    $('guidanceList').innerHTML = '';
+  }
+
+  // Game cards
+  if (games.length) {
+    $('stageGameList').innerHTML = `
+      <div class="section-label" style="margin:${details.length ? '12px' : '0'} 0 10px">Practice resources</div>
+      ${games.map(g => {
+        const pt = primaryType(g.game_type);
+        const fav = isFav(g.game_id);
+        const skills = (g.game_skill || []).slice(0, 2);
+        return `<div class="game-card" style="cursor:pointer" onclick="showDetail(${g.game_id})">
+          <div class="type-dot${pt !== 'game' ? ' ' + pt : ''}"></div>
+          <div class="game-info">
+            <div class="game-name">${esc(g.game_name)}</div>
+            <div class="game-tags">
+              ${(g.game_type || []).map(t => `<span class="gtag ${pt !== 'game' ? pt : ''}">${esc(t)}</span>`).join('')}
+              ${skills.map(s => `<span class="gtag skill">${esc(s)}</span>`).join('')}
+            </div>
+          </div>
+          <button class="heart-btn${fav ? ' fav' : ''}" data-gid="${g.game_id}" onclick="toggleFavFromCard(event,${g.game_id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+        </div>`;
+      }).join('')}`;
+  } else {
+    const noGames = selectedCodeText !== 'All' || selectedType !== 'All'
+      ? 'No resources match this filter.'
+      : 'No practice resources for this stage yet.';
+    $('stageGameList').innerHTML = details.length ? '' :
+      `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        <p>${noGames}</p>
+      </div>`;
+    if (details.length && !games.length) {
+      $('stageGameList').innerHTML = `<div class="empty-state" style="padding:20px 0"><p style="font-size:14px">${noGames}</p></div>`;
+    }
+  }
+}
+
+// ── Fallback: Original Stage/Games Flow ───────────────────────────────────────
+function hasContent(g) {
+  const hasImage = !!g.game_image?.trim();
+  const hasText  = !!(g.game_setup?.trim() || g.game_how_to_play?.trim() ||
+                      g.game_variations?.trim() || g.game_teaching_points?.trim());
+  return hasImage && hasText;
+}
+
+function renderStages() {
+  const countByStage = {};
+  STAGES.forEach(s => {
+    const set = new Set();
+    allGames.forEach(g => {
+      if ((g.game_age || []).some(a => s.ages.includes(a.toLowerCase()))) set.add(g.game_id);
+    });
+    countByStage[s.id] = set.size;
+  });
+  const visibleStages = allGames.length ? STAGES.filter(s => countByStage[s.id] > 0) : STAGES;
+  $('stageGrid').innerHTML = visibleStages.map(s => {
+    const count = countByStage[s.id] || 0;
+    const agesLabel = s.ages.map(a => a.toUpperCase()).join(', ');
+    return `<button class="stage-card" onclick="selectFallbackStage(${s.id})">
+      <div class="stage-num">${s.id}</div>
+      <div class="stage-divider"></div>
+      <div class="stage-info">
+        <div class="stage-name">${esc(s.subtitle)}</div>
+        <div class="stage-meta">
+          <span class="stage-ages-pill">${esc(agesLabel)}</span>
+          ${count ? `<span class="stage-count">${count} resource${count !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+      </div>
+      <div class="stage-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </button>`;
+  }).join('') || '<div class="empty-state"><p>No resources found.</p></div>';
+}
+
+function selectFallbackStage(stageId) {
+  const stage = STAGES.find(s => s.id === stageId);
+  if (!stage) return;
+  selectedFallbackStageId = stageId;
+  selectedSport = 'All';
+  selectedFallbackType = 'All';
+  $('gamesTitle').textContent = stage.subtitle;
+  _detailOrigin = 'gamesScreen';
+  renderFallbackFilters();
+  renderFallbackGameList();
+  showScreen('gamesScreen');
+}
+
+function fallbackStageAges() {
+  const stage = STAGES.find(s => s.id === selectedFallbackStageId);
+  return stage ? stage.ages : [];
+}
+
+function fallbackGamesForStage() {
+  const ages = fallbackStageAges();
+  return allGames.filter(g => (g.game_age || []).some(a => ages.includes(a.toLowerCase())));
+}
+
+function fallbackFilteredGames() {
+  return fallbackGamesForStage().filter(g => {
+    if (!hasContent(g)) return false;
+    if (selectedSport !== 'All' && !(g.game_code || []).includes(selectedSport)) return false;
+    if (selectedFallbackType !== 'All' && !(g.game_type || []).includes(selectedFallbackType)) return false;
+    return true;
+  });
+}
+
+function renderFallbackFilters() {
+  const ageGames = fallbackGamesForStage();
+  const availSports = new Set(['All']);
+  ageGames.forEach(g => (g.game_code || []).forEach(c => availSports.add(c)));
+  $('sportFilter').innerHTML = SPORTS.filter(s => availSports.has(s)).map(s =>
+    `<button class="filter-chip${s === selectedSport ? ' active' : ''}" onclick="setFallbackSport('${esc(s)}')">${esc(s)}</button>`
+  ).join('');
+  const availTypes = new Set(['All']);
+  ageGames.forEach(g => (g.game_type || []).forEach(t => availTypes.add(t)));
+  $('typeFilter').innerHTML = TYPES.filter(t => availTypes.has(t)).map(t =>
+    `<button class="filter-chip${t === selectedFallbackType ? ' active' : ''}" onclick="setFallbackType('${esc(t)}')">${esc(t)}</button>`
+  ).join('');
+}
+
+function setFallbackSport(s) { selectedSport = s; renderFallbackFilters(); renderFallbackGameList(); }
+function setFallbackType(t)  { selectedFallbackType = t; renderFallbackFilters(); renderFallbackGameList(); }
+
+function renderFallbackGameList() {
+  const games = fallbackFilteredGames();
+  if (!games.length) {
+    $('gameList').innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+      <p>No resources found for this filter.</p>
+    </div>`;
+    return;
+  }
+  $('gameList').innerHTML = games.map(g => {
+    const pt = primaryType(g.game_type);
+    const skills = (g.game_skill || []).slice(0, 2);
+    const fav = isFav(g.game_id);
+    return `<div class="game-card" style="cursor:pointer" onclick="showDetail(${g.game_id})">
+      <div class="type-dot${pt !== 'game' ? ' ' + pt : ''}"></div>
+      <div class="game-info">
+        <div class="game-name">${esc(g.game_name)}</div>
+        <div class="game-tags">
+          ${(g.game_type || []).map(t => `<span class="gtag ${pt !== 'game' ? pt : ''}">${esc(t)}</span>`).join('')}
+          ${skills.map(s => `<span class="gtag skill">${esc(s)}</span>`).join('')}
+        </div>
+      </div>
+      <button class="heart-btn${fav ? ' fav' : ''}" data-gid="${g.game_id}" onclick="toggleFavFromCard(event,${g.game_id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ── Game Detail ───────────────────────────────────────────────────────────────
+function showDetail(gameId) {
+  const g = allGames.find(x => x.game_id === gameId);
+  if (!g) return;
+  _currentDetailGameId = g.game_id;
+  $('detailTitle').textContent = g.game_name;
+  const parts = ['<div class="detail-body">'];
+  parts.push(`<div class="media-row"><button class="media-btn pdf" onclick="exportGamePdf(${g.game_id})">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    </svg>PDF Card</button></div>`);
+  const sports = g.game_code || [], types = g.game_type || [], skills = g.game_skill || [];
+  if (sports.length || types.length || skills.length) {
+    const pt = primaryType(types);
+    parts.push(`<div class="detail-meta">
+      ${sports.map(s => `<span class="d-badge sport">${esc(s)}</span>`).join('')}
+      ${types.map(t  => `<span class="d-badge type ${pt !== 'game' ? pt : ''}">${esc(t)}</span>`).join('')}
+      ${skills.map(s => `<span class="d-badge skill">${esc(s)}</span>`).join('')}
+    </div>`);
+  }
+  if (g.game_setup?.trim()) {
+    parts.push(`<div class="d-section"><div class="d-section-label">Setup</div><div class="d-section-text">${esc(g.game_setup)}</div></div>`);
+  }
+  if (g.game_image?.trim()) {
+    parts.push(`<img class="detail-image" src="${esc(g.game_image)}" alt="${esc(g.game_name)}" onerror="this.style.display='none'"/>`);
+  }
+  [
+    { key: 'game_how_to_play',     label: 'How to Play' },
+    { key: 'game_variations',      label: 'Variations' },
+    { key: 'game_teaching_points', label: 'Teaching Points' },
+  ].forEach(f => {
+    if (g[f.key]?.trim()) {
+      parts.push(`<div class="d-section"><div class="d-section-label">${esc(f.label)}</div><div class="d-section-text">${esc(g[f.key])}</div></div>`);
+    }
+  });
+  if (g.game_video?.trim()) {
+    const ytMatch = g.game_video.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const extBtn = `<a href="${esc(g.game_video)}" target="_blank" class="media-btn video" style="display:inline-flex;margin-top:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>Open in YouTube</a>`;
+    const videoHtml = ytMatch
+      ? `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>${extBtn}`
+      : extBtn;
+    parts.push(`<div class="d-section"><div class="d-section-label">Video</div>${videoHtml}</div>`);
+  }
+  parts.push('</div>');
+  $('detailContent').innerHTML = parts.join('');
+  showScreen('detailScreen');
+  updateDetailHeart();
+}
+
+async function exportGamePdf(gameId) {
+  const g = allGames.find(x => x.game_id === gameId);
+  if (!g) return;
+  const btn = document.querySelector(`.media-btn.pdf[onclick*="${gameId}"]`);
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Generating…'; btn.disabled = true; }
+  try {
+    let authToken = WV_TOKEN;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.access_token) authToken = session.access_token;
+    } catch (_) {}
+    const res = await fetch(SUPABASE_URL + '/functions/v1/generate-game-card-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken, 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ game_id: gameId, platform: window.FlutterBridge ? 'mobile' : 'web' }),
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Server error ' + res.status); }
+    const { pdf, filename } = await res.json();
+    if (window.FlutterBridge) {
+      window.FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
+    } else {
+      const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
+      const blob  = new Blob([bytes], { type: 'application/pdf' });
+      const url   = URL.createObjectURL(blob);
+      const a     = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+  } catch (e) {
+    console.error('exportGamePdf:', e);
+    showToast('Could not generate PDF — please try again');
+  } finally {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+async function boot() {
+  showLoading('Loading resources…');
+  try {
+    await _sbReady;
+
+    if (!IS_WEBVIEW) {
+      showScreen('errorScreen', false);
+      hideLoading();
+      return;
+    }
+
+    // Load games
+    const { data: gamesData, error: gamesErr } = await sb.from('games').select(
+      'game_id,game_name,game_age,game_code,game_type,game_skill,' +
+      'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
+      'game_pdf,game_video,game_image'
+    );
+    if (gamesErr) console.warn('games:', gamesErr.message);
+    allGames = gamesData || [];
+    loadFavouritesFromDB();
+
+    // Look up user → default_club
+    const userId = _jwtUserId();
+    let defaultClub = null;
+    if (userId) {
+      const { data: uData } = await sb.from('users').select('default_club').eq('user_id', userId).maybeSingle();
+      defaultClub = uData?.default_club || null;
+    }
+
+    if (defaultClub) {
+      // Load club info and pathways in parallel
+      const [, linksResult] = await Promise.all([
+        loadClubInfo(defaultClub),
+        sb.from('club_pathway_link')
+          .select('pathway_types(pathway_type_id, pathway_name)')
+          .eq('club_id', defaultClub),
+      ]);
+
+      allPathways = ((linksResult.data || [])
+        .map(l => l.pathway_types)
+        .filter(Boolean));
+    }
+
+    history.replaceState({ screen: '' }, '');
+
+    if (allPathways.length === 0) {
+      // No pathway for this club — show original stage picker
+      renderStages();
+      showScreen('stageScreen', false);
+    } else if (allPathways.length === 1) {
+      // One pathway — go straight to pathway overview
+      await selectPathway(allPathways[0].pathway_type_id, allPathways[0].pathway_name);
+      // Replace the history entry added by selectPathway so back goes to Flutter
+      history.replaceState({ screen: 'pathwayScreen' }, '');
+    } else {
+      // Multiple pathways — show selector
+      renderPathwaySelector();
+      showScreen('pathwaySelectScreen', false);
+    }
+  } catch (e) {
+    console.error('Boot error:', e);
+    $('errorMsg').innerHTML = '<strong>Something went wrong</strong>Please close and reopen coaching resources.';
+    showScreen('errorScreen', false);
+  } finally {
+    hideLoading();
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
