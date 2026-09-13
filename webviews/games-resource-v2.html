@@ -114,17 +114,17 @@
     .pathway-banner-crest-placeholder svg { width: 28px; height: 28px; }
     .pathway-banner-text { flex: 1; min-width: 0; }
     .pathway-banner-club {
-      font-size: 13px; font-weight: 600;
-      color: rgba(255,255,255,0.75);
+      font-size: 16px; font-weight: 800;
       letter-spacing: 0.3px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      paint-order: stroke fill;
     }
     .pathway-banner-name {
       font-size: 20px; font-weight: 700; color: #fff;
       line-height: 1.25; margin-top: 2px;
     }
     .pathway-banner-accent {
-      height: 3px; flex-shrink: 0;
+      height: 4px; flex-shrink: 0;
     }
 
     /* ── STAGE GRID ── */
@@ -730,8 +730,9 @@ async function selectPathway(pathwayTypeId, pathwayName) {
 }
 
 function renderPathwayBanner(pathwayName) {
-  const primary = clubInfo.primary || '#1a3a1a';
-  const secondary = clubInfo.secondary || '#87C232';
+  const primary   = clubInfo.primary   || '#87C232';
+  const secondary = clubInfo.secondary || '#ffffff';
+  const third     = clubInfo.third     || '';
 
   const crestHtml = clubInfo.crest
     ? `<img class="pathway-banner-crest" src="${esc(clubInfo.crest)}" alt="${esc(clubInfo.name)}" onerror="this.style.display='none'">`
@@ -739,15 +740,21 @@ function renderPathwayBanner(pathwayName) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       </div>`;
 
-  $('pathwayBanner').style.background = primary;
+  $('pathwayBanner').style.background = '';
   $('pathwayBanner').innerHTML = `
     ${crestHtml}
     <div class="pathway-banner-text">
-      <div class="pathway-banner-club">${esc(clubInfo.name)}</div>
+      <div class="pathway-banner-club" style="color:${primary};-webkit-text-stroke:1.5px ${secondary};paint-order:stroke fill">${esc(clubInfo.name)}</div>
       <div class="pathway-banner-name">${esc(pathwayName)}</div>
     </div>`;
 
-  $('pathwayAccent').style.background = secondary;
+  // Colour bar: split equally across available club colours
+  const accent = $('pathwayAccent');
+  if (third) {
+    accent.style.background = `linear-gradient(to right,${primary} 0% 33.33%,${secondary} 33.33% 66.67%,${third} 66.67% 100%)`;
+  } else {
+    accent.style.background = `linear-gradient(to right,${primary} 0% 50%,${secondary} 50% 100%)`;
+  }
 }
 
 function renderPathwayStages() {
