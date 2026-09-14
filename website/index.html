@@ -36,10 +36,29 @@
     overflow-x: hidden;
   }
 
+  /* TOP STRIP */
+  .top-strip {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 101;
+    height: 36px;
+    background: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px;
+  }
+  .top-strip a {
+    color: #111418;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-decoration: none;
+  }
+  .top-strip a:hover { text-decoration: underline; }
+
   /* NAV */
   nav {
     position: fixed;
-    top: 0; left: 0; right: 0;
+    top: 36px; left: 0; right: 0;
     z-index: 100;
     background: rgba(21,24,31,0.85);
     backdrop-filter: blur(12px);
@@ -99,7 +118,7 @@
     min-height: 100vh;
     display: flex;
     align-items: center;
-    padding: 100px 5% 80px;
+    padding: 136px 5% 80px;
     position: relative;
     overflow: hidden;
   }
@@ -1021,6 +1040,10 @@
 <body>
 
 <!-- NAV -->
+<div class="top-strip">
+  <a href="https://www.dosclontarf.com" target="_blank" rel="noopener">dosclontarf.com</a>
+</div>
+
 <nav>
   <a href="#" class="nav-logo">
     <img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="nav-logo-img">
