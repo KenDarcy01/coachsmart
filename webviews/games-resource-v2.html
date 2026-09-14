@@ -610,6 +610,7 @@ window.addEventListener('popstate', () => {
       break;
     case 'pathwayScreen':
       if (allPathways.length > 1) showScreen('pathwaySelectScreen', false);
+      else closeResources();
       break;
     case 'gamesScreen':
       showScreen('stageScreen', false);
@@ -1239,8 +1240,6 @@ async function boot() {
         .map(l => l.pathway_types)
         .filter(Boolean));
     }
-
-    history.replaceState({ screen: '' }, '');
 
     if (allPathways.length === 0) {
       // No pathway for this club — show original stage picker
