@@ -1784,34 +1784,33 @@ async function _adjustScoreImpl(typeId, side, delta) {
   if (delta > 0) {
     const eventSecond = Math.floor(computeElapsed(timerRow));
     const timerStatus = timerRow?.status || 'stopped';
-    const { error } = await sb.rpc('log_match_stat', {
+    const rpcParams = {
       p_match_stats_id: matchStatsRow.id,
       p_score_type:     typeId,
       p_side:           side,
       p_event_second:   eventSecond,
       p_timer_status:   timerStatus,
       p_half:           currentHalf,
-    });
+    };
+    let { error } = await sb.rpc('log_match_stat', rpcParams);
     if (error) {
-      console.error(error);
       const isAuthErr = error.status === 401 || error.status === 403 || error.code === 'PGRST301';
       if (isAuthErr) {
         showToast('Session expired — re-open the scorekeeper');
-      } else {
-        enqueueScore({
-          p_match_stats_id: matchStatsRow.id,
-          p_score_type:     typeId,
-          p_side:           side,
-          p_event_second:   eventSecond,
-          p_timer_status:   timerStatus,
-          p_half:           currentHalf,
-        });
+        return;
+      }
+      // Non-auth failure: reconnect silently and retry once before queuing
+      await _reinitSb();
+      ({ error } = await sb.rpc('log_match_stat', rpcParams));
+      if (error) {
+        // Retry also failed — queue locally and update display optimistically
+        enqueueScore(rpcParams);
         if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
         scoreCounts[typeId][side]++;
         updateScoreDisplay();
-        showToast('No connection — score queued');
+        showToast('Score saved locally — will sync when connection returns');
+        return;
       }
-      return;
     }
     if (!scoreCounts[typeId]) scoreCounts[typeId] = { us: 0, opp: 0 };
     scoreCounts[typeId][side]++;
