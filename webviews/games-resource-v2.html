@@ -816,7 +816,7 @@ function renderPathwayStages() {
     const agesLabel = ages.map(a => a.toUpperCase()).join(', ');
     const ageSet = new Set(ages.map(a => a.toLowerCase()));
     const gameCount = allGames.filter(g =>
-      (g.game_age || []).some(a => ageSet.has(a.toLowerCase()))
+      (g.game_age || []).some(a => ageSet.has(a.toLowerCase())) && hasContent(g)
     ).length;
 
     return `<button class="stage-card" onclick="openStageDetail(${s.pathway_stage_id})">
@@ -939,8 +939,8 @@ function renderStageDetailContent() {
   const ppItems  = _filteredDetails('Player Pathways');
   const ssItems  = _filteredDetails('Sample Sessions');
   const allStageGames = _filteredStageGames();
-  const skillGames    = allStageGames.filter(g => (g.game_type || []).includes('Drill'));
-  const gamesDrills   = allStageGames.filter(g => !(g.game_type || []).includes('Drill'));
+  const skillGames    = allStageGames.filter(g => (g.game_type || []).includes('Skills'));
+  const gamesDrills   = allStageGames.filter(g => !(g.game_type || []).includes('Skills'));
 
   function renderSection(sectionId, listId, items, renderFn) {
     const sec = $(sectionId);
