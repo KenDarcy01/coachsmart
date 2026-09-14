@@ -661,6 +661,10 @@ function openExternal(url) {
   }
 }
 
+function isSkillGame(g) {
+  return (g.game_type || []).some(t => t === 'Skills' || t === 'Skill');
+}
+
 function primaryType(types) {
   if (!types?.length) return 'game';
   const t = types[0].toLowerCase();
@@ -937,9 +941,8 @@ function renderStageDetailContent() {
   const ppItems  = _filteredDetails('Player Pathways');
   const ssItems  = _filteredDetails('Sample Sessions');
   const allStageGames = _filteredStageGames();
-  const isSkill = g => (g.game_type || []).some(t => t === 'Skills' || t === 'Skill');
-  const skillGames    = allStageGames.filter(isSkill);
-  const gamesDrills   = allStageGames.filter(g => !isSkill(g));
+  const skillGames    = allStageGames.filter(isSkillGame);
+  const gamesDrills   = allStageGames.filter(g => !isSkillGame(g));
 
   function renderSection(sectionId, listId, items, renderFn) {
     const sec = $(sectionId);
@@ -951,7 +954,7 @@ function renderStageDetailContent() {
   renderSection('sectionPlayerPathways', 'listPlayerPathways', ppItems,  _detailRowHtml);
   renderSection('sectionSampleSessions', 'listSampleSessions', ssItems,  _detailRowHtml);
   renderSection('sectionSkills',         'listSkills',         skillGames,  g => _gameRowHtml(g, false));
-  renderSection('sectionGamesAndDrills', 'listGamesAndDrills', gamesDrills, _gameRowHtml);
+  renderSection('sectionGamesAndDrills', 'listGamesAndDrills', gamesDrills, g => _gameRowHtml(g, true));
 
   const anyContent = ppItems.length || ssItems.length || skillGames.length || gamesDrills.length;
   $('stageEmptyState').hidden = !!anyContent;
@@ -1115,6 +1118,7 @@ function showDetail(gameId) {
   const g = allGames.find(x => x.game_id === gameId);
   if (!g) return;
   _currentDetailGameId = g.game_id;
+  $('detailHeart').hidden = isSkillGame(g);
   $('detailTitle').textContent = g.game_name;
   const parts = ['<div class="detail-body">'];
   parts.push(`<div class="media-row"><button class="media-btn pdf" onclick="exportGamePdf(${g.game_id})">
