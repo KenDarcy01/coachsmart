@@ -1612,7 +1612,11 @@ function setupBroadcast() {
   if (!matchStatsRow) return;
   if (broadcastChannel) sb.removeChannel(broadcastChannel);
   broadcastChannel = sb.channel(`chart-${matchStatsRow.id}`);
-  broadcastChannel.subscribe();
+  broadcastChannel.subscribe(status => {
+    if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && matchStatsRow) {
+      setTimeout(setupBroadcast, 5000);
+    }
+  });
 }
 
 function broadcastTimerState() {
@@ -1951,6 +1955,8 @@ async function _reinitSb() {
       });
     }
     // Browser path: Supabase manages the session automatically.
+    // Re-establish the broadcast channel on the (possibly new) client.
+    if (matchStatsRow) setupBroadcast();
   } catch (_) {}
 }
 
@@ -1965,14 +1971,18 @@ window.addEventListener('online', async () => {
   showToast(remaining === 0 ? 'Scores synced ✓' : `${remaining} score${remaining !== 1 ? 's' : ''} still offline`);
 });
 
-// Periodic retry every 30 s — catches cases where the 'online' browser event
-// does not fire reliably inside a Flutter WebView.
+// Periodic health-check every 30 s — catches cases where the 'online' browser
+// event does not fire reliably inside a Flutter WebView, and detects a dead
+// broadcast channel even when no scores are queued.
 setInterval(async () => {
+  const channelState = broadcastChannel?.state;
+  const channelDead  = matchStatsRow && channelState !== 'joined' && channelState !== 'joining';
   let q;
   try { q = JSON.parse(localStorage.getItem(queueKey()) || '[]'); } catch (_) { q = []; }
-  if (!q.length) return;
-  await _reinitSb();
-  await flushQueue();
+  if (channelDead || q.length) {
+    await _reinitSb();          // reinits client + calls setupBroadcast if matchStatsRow set
+    if (q.length) await flushQueue();
+  }
 }, 30_000);
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
