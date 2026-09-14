@@ -392,10 +392,8 @@
     <button class="back-btn" onclick="navBack()" title="Back">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <div class="bar-wordmark" style="flex:1">Coach<span>Smart</span></div>
+    <div class="bar-title" style="flex:1">Player Pathway</div>
   </div>
-  <div id="pathwayBanner" class="pathway-banner"></div>
-  <div id="pathwayAccent" class="pathway-banner-accent"></div>
   <div class="scroll-content">
     <div class="section-label" style="margin-bottom:14px">Development stages</div>
     <div class="stage-grid" id="pathwayStageGrid"></div>
@@ -775,7 +773,6 @@ async function selectPathway(pathwayTypeId, pathwayName) {
 
     if (error) throw error;
     pathwayStages = data || [];
-    renderPathwayBanner(pathwayName);
     renderPathwayStages();
     showScreen('pathwayScreen');
   } catch(e) {
@@ -786,23 +783,6 @@ async function selectPathway(pathwayTypeId, pathwayName) {
   }
 }
 
-function renderPathwayBanner(pathwayName) {
-  const primary = clubInfo.primary || '#87C232';
-
-  const crestHtml = clubInfo.crest
-    ? `<img class="pathway-banner-crest" src="${esc(clubInfo.crest)}" alt="${esc(clubInfo.name)}" onerror="this.style.display='none'">`
-    : `<div class="pathway-banner-crest-placeholder">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      </div>`;
-
-  $('pathwayBanner').style.background = '';
-  $('pathwayBanner').innerHTML = `
-    ${crestHtml}
-    <div class="pathway-banner-text">
-      <div class="pathway-banner-club">${esc(clubInfo.name)}</div>
-      <div class="pathway-banner-name">${esc(pathwayName)}</div>
-    </div>`;
-}
 
 function renderPathwayStages() {
   if (!pathwayStages.length) {
