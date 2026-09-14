@@ -940,8 +940,9 @@ function renderStageDetailContent() {
   const ppItems  = _filteredDetails('Player Pathways');
   const ssItems  = _filteredDetails('Sample Sessions');
   const allStageGames = _filteredStageGames();
-  const skillGames    = allStageGames.filter(g => (g.game_type || []).includes('Skills'));
-  const gamesDrills   = allStageGames.filter(g => !(g.game_type || []).includes('Skills'));
+  const isSkill = g => (g.game_type || []).some(t => t === 'Skills' || t === 'Skill');
+  const skillGames    = allStageGames.filter(isSkill);
+  const gamesDrills   = allStageGames.filter(g => !isSkill(g));
 
   function renderSection(sectionId, listId, items, renderFn) {
     const sec = $(sectionId);
@@ -1002,7 +1003,8 @@ function hasContent(g) {
   const hasImage = !!g.game_image?.trim();
   const hasText  = !!(g.game_setup?.trim() || g.game_how_to_play?.trim() ||
                       g.game_variations?.trim() || g.game_teaching_points?.trim());
-  return hasImage && hasText;
+  const hasMedia = !!(g.game_video?.trim() || g.game_pdf?.trim());
+  return hasImage || hasText || hasMedia;
 }
 
 function renderStages() {
