@@ -93,6 +93,22 @@
     .pathway-select-chev { color: var(--muted); }
     .pathway-select-chev svg { width: 20px; height: 20px; }
 
+    /* ── EXTERNAL LINK STRIP ── */
+    .ext-link-strip {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--card); border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 12px 14px; margin-bottom: 16px;
+      text-decoration: none; color: var(--text);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .ext-link-strip:active { background: var(--card2); border-color: var(--green); }
+    .ext-link-strip-icon { color: var(--green); flex-shrink: 0; }
+    .ext-link-strip-icon svg { width: 18px; height: 18px; display: block; }
+    .ext-link-strip-label { flex: 1; font-size: 14px; font-weight: 600; letter-spacing: 0.2px; }
+    .ext-link-strip-chev { color: var(--muted); flex-shrink: 0; }
+    .ext-link-strip-chev svg { width: 16px; height: 16px; display: block; }
+
     /* ── PATHWAY HEADER BANNER ── */
     .pathway-banner {
       flex-shrink: 0;
@@ -395,6 +411,11 @@
     <div class="bar-title" style="flex:1">Player Pathway</div>
   </div>
   <div class="scroll-content">
+    <a href="https://www.dosclontarf.com" target="_blank" rel="noopener" class="ext-link-strip">
+      <span class="ext-link-strip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+      <span class="ext-link-strip-label">dosclontarf.com</span>
+      <span class="ext-link-strip-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+    </a>
     <div class="section-label" style="margin-bottom:14px">Development stages</div>
     <div class="stage-grid" id="pathwayStageGrid"></div>
   </div>
