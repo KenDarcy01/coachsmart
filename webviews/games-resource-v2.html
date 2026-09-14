@@ -101,27 +101,27 @@
       display: flex; align-items: center; gap: 16px;
     }
     .pathway-banner-crest {
-      width: 72px; height: 72px; border-radius: 12px;
+      width: 88px; height: 88px; border-radius: 14px;
       object-fit: contain; flex-shrink: 0;
       background: rgba(255,255,255,0.08);
     }
     .pathway-banner-crest-placeholder {
-      width: 72px; height: 72px; border-radius: 12px;
+      width: 88px; height: 88px; border-radius: 14px;
       background: rgba(255,255,255,0.08);
       flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       color: rgba(255,255,255,0.3);
     }
-    .pathway-banner-crest-placeholder svg { width: 36px; height: 36px; }
+    .pathway-banner-crest-placeholder svg { width: 44px; height: 44px; }
     .pathway-banner-text { flex: 1; min-width: 0; }
     .pathway-banner-club {
-      font-size: 20px; font-weight: 800;
-      letter-spacing: 0.2px;
+      font-size: 24px; font-weight: 800; color: #fff;
+      letter-spacing: 0.1px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .pathway-banner-name {
-      font-size: 15px; font-weight: 500; color: var(--muted);
-      line-height: 1.3; margin-top: 4px;
+      font-size: 18px; font-weight: 500; color: var(--muted);
+      line-height: 1.3; margin-top: 5px;
     }
     .pathway-banner-accent { display: none; }
 
@@ -158,26 +158,43 @@
     .stage-chev svg { width: 20px; height: 20px; }
 
     /* ── STAGE DETAIL SCREEN ── */
-    .guidance-section { margin-bottom: 20px; }
-    .guidance-card {
-      background: var(--card); border-radius: 12px;
+    .stage-section { margin-bottom: 24px; }
+    .resource-list { display: flex; flex-direction: column; gap: 8px; }
+    .resource-row {
+      background: var(--card); border-radius: 10px;
       border: 1px solid var(--border);
-      overflow: hidden; margin-bottom: 10px;
+      padding: 13px 14px;
+      width: 100%; display: flex; align-items: center; gap: 12px;
+      text-align: left; transition: border-color 0.15s;
     }
-    .guidance-card-body { padding: 14px 16px; }
-    .guidance-heading { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 6px; }
-    .guidance-subheading { font-size: 14px; color: var(--muted); line-height: 1.6; }
-    .guidance-img {
-      width: 100%; display: block; max-height: 220px;
-      object-fit: cover; background: var(--card2);
+    .resource-row:active { border-color: var(--green); background: var(--card2); }
+    .resource-row-icon {
+      width: 40px; height: 40px; border-radius: 8px;
+      background: var(--green-dim); border: 1px solid rgba(135,194,50,0.18);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--green);
     }
-    .guidance-img-below { padding: 0 16px 14px; }
-    .guidance-video-btn {
-      display: inline-flex; align-items: center; gap: 7px;
-      margin: 10px 0 0;
-      font-size: 14px; font-weight: 600; color: var(--green);
+    .resource-row-icon svg { width: 20px; height: 20px; }
+    .resource-row-icon.video { background: rgba(96,165,250,0.10); border-color: rgba(96,165,250,0.2); color: var(--blue); }
+    .resource-row-text { flex: 1; min-width: 0; }
+    .resource-row-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .resource-row-sub { font-size: 13px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .resource-row-chev { color: var(--muted); flex-shrink: 0; }
+    .resource-row-chev svg { width: 20px; height: 20px; }
+
+    /* ── IMAGE VIEWER ── */
+    .img-viewer-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .img-viewer-img { width: 100%; display: block; background: var(--card2); max-height: 60vh; object-fit: contain; }
+    .img-viewer-info { padding: 20px 16px 32px; }
+    .img-viewer-title { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 10px; }
+    .img-viewer-sub { font-size: 15px; color: var(--muted); line-height: 1.6; }
+    .share-btn {
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green); border-radius: 8px; transition: background 0.1s;
     }
-    .guidance-video-btn svg { width: 16px; height: 16px; }
+    .share-btn:active { background: var(--green-dim); }
+    .share-btn svg { width: 22px; height: 22px; }
 
     /* ── FILTERS ── */
     .filters-wrap {
@@ -396,13 +413,52 @@
       <div class="bar-title" id="stageDetailTitle"></div>
     </div>
   </div>
-  <div class="filters-wrap">
+  <div class="filters-wrap" style="padding-bottom:8px">
     <div class="filter-row" id="stageCodeFilter"></div>
-    <div class="filter-row" id="stageTypeFilter"></div>
   </div>
-  <div class="scroll-content" style="padding-top:12px">
-    <div id="guidanceList" class="guidance-section"></div>
-    <div id="stageGameList" class="game-list"></div>
+  <div class="scroll-content" style="padding-top:8px">
+    <div id="sectionPlayerPathways" class="stage-section" hidden>
+      <div class="section-label" style="margin-bottom:10px">Player Pathways</div>
+      <div id="listPlayerPathways" class="resource-list"></div>
+    </div>
+    <div id="sectionSampleSessions" class="stage-section" hidden>
+      <div class="section-label" style="margin-bottom:10px">Sample Sessions</div>
+      <div id="listSampleSessions" class="resource-list"></div>
+    </div>
+    <div id="sectionSkills" class="stage-section" hidden>
+      <div class="section-label" style="margin-bottom:10px">Skills</div>
+      <div id="listSkills" class="game-list"></div>
+    </div>
+    <div id="sectionGamesAndDrills" class="stage-section" hidden>
+      <div class="section-label" style="margin-bottom:10px">Games &amp; Drills</div>
+      <div id="listGamesAndDrills" class="game-list"></div>
+    </div>
+    <div id="stageEmptyState" class="empty-state" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+      <p>No resources match this filter.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── IMAGE VIEWER ── -->
+<div id="imageViewerScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="navBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div style="min-width:0;flex:1">
+      <div class="bar-title" id="imageViewerTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    </div>
+    <button class="share-btn" onclick="shareCurrentImage()" title="Share">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
+  </div>
+  <div class="img-viewer-scroll">
+    <img id="imageViewerImg" class="img-viewer-img" src="" alt="" onerror="this.style.display='none'">
+    <div class="img-viewer-info">
+      <div class="img-viewer-title" id="imageViewerHeading"></div>
+      <div class="img-viewer-sub" id="imageViewerSubheading"></div>
+    </div>
   </div>
 </div>
 
@@ -507,11 +563,11 @@ if (IS_WEBVIEW && WV_REFRESH) {
 let allGames        = [];
 let allPathways     = [];   // [{pathway_type_id, pathway_name}]
 let pathwayStages   = [];   // [{pathway_stage_id, pathway_stage, pathway_stage_desc, pathway_ages, pathway_display_seq}]
-let stageDetails    = [];   // [{pathway_stage_details_id, detail_heading, detail_subheading, image_link, video_link, code_text}]
+let stageDetails    = [];   // [{pathway_stage_details_id, detail_heading, detail_subheading, image_link, video_link, detail_category, code_text}]
 let selectedStageObj   = null;
 let selectedCodeText   = 'All';
-let selectedType       = 'All';
 let _detailOrigin      = 'gamesScreen';  // which list screen to return to from detailScreen
+let _currentImageViewer = null;
 
 // Fallback state
 let selectedFallbackStageId = null;
@@ -545,6 +601,9 @@ window.addEventListener('popstate', () => {
   switch (_currentScreen) {
     case 'detailScreen':
       showScreen(_detailOrigin, false);
+      break;
+    case 'imageViewerScreen':
+      showScreen('stageDetailScreen', false);
       break;
     case 'stageDetailScreen':
       showScreen('pathwayScreen', false);
@@ -740,7 +799,7 @@ function renderPathwayBanner(pathwayName) {
   $('pathwayBanner').innerHTML = `
     ${crestHtml}
     <div class="pathway-banner-text">
-      <div class="pathway-banner-club" style="color:${primary}">${esc(clubInfo.name)}</div>
+      <div class="pathway-banner-club">${esc(clubInfo.name)}</div>
       <div class="pathway-banner-name">${esc(pathwayName)}</div>
     </div>`;
 }
@@ -787,7 +846,7 @@ async function openStageDetail(stageId) {
   try {
     const { data, error } = await sb
       .from('pathway_stage_details')
-      .select('pathway_stage_details_id, detail_heading, detail_subheading, image_link, video_link, detail_code_id, event_codes(event_code)')
+      .select('pathway_stage_details_id, detail_heading, detail_subheading, image_link, video_link, detail_code_id, detail_category, event_codes(event_code)')
       .eq('pathway_stage_id', stageId);
 
     if (error) throw error;
@@ -809,124 +868,130 @@ async function openStageDetail(stageId) {
   }
 }
 
-function getStageCodeOptions() {
+function renderStageDetailFilters() {
   const ageSet = new Set((selectedStageObj.pathway_ages || []).map(a => a.toLowerCase()));
-  const stageGames = allGames.filter(g =>
-    (g.game_age || []).some(a => ageSet.has(a.toLowerCase()))
-  );
+  const stageGames = allGames.filter(g => (g.game_age || []).some(a => ageSet.has(a.toLowerCase())));
   const codeSet = new Set();
   stageDetails.forEach(d => { if (d.code_text) codeSet.add(d.code_text); });
   stageGames.forEach(g => (g.game_code || []).forEach(c => codeSet.add(c)));
-  return ['All', ...Array.from(codeSet).sort()];
-}
-
-function getStageTypeOptions() {
-  const ageSet = new Set((selectedStageObj.pathway_ages || []).map(a => a.toLowerCase()));
-  const stageGames = allGames.filter(g =>
-    (g.game_age || []).some(a => ageSet.has(a.toLowerCase()))
-  );
-  const typeSet = new Set();
-  stageGames.forEach(g => (g.game_type || []).forEach(t => typeSet.add(t)));
-  const order = ['Games', 'Warmups', 'Drill'];
-  return ['All', ...order.filter(t => typeSet.has(t))];
-}
-
-function renderStageDetailFilters() {
-  const codes = getStageCodeOptions();
+  const codes = ['All', ...Array.from(codeSet).sort()];
   $('stageCodeFilter').innerHTML = codes.map(c =>
     `<button class="filter-chip${c === selectedCodeText ? ' active' : ''}" onclick="setStageCode('${esc(c)}')">${esc(c)}</button>`
   ).join('');
-
-  const types = getStageTypeOptions();
-  $('stageTypeFilter').innerHTML = types.length > 1 ? types.map(t =>
-    `<button class="filter-chip${t === selectedType ? ' active' : ''}" onclick="setStageType('${esc(t)}')">${esc(t)}</button>`
-  ).join('') : '';
 }
 
 function setStageCode(code) { selectedCodeText = code; renderStageDetailFilters(); renderStageDetailContent(); }
-function setStageType(type) { selectedType = type;     renderStageDetailFilters(); renderStageDetailContent(); }
 
-function getFilteredDetails() {
-  if (selectedCodeText === 'All') return stageDetails;
-  return stageDetails.filter(d => d.code_text === selectedCodeText || d.code_text === null);
+function _filteredDetails(category) {
+  return stageDetails.filter(d =>
+    d.detail_category === category &&
+    (selectedCodeText === 'All' || d.code_text === selectedCodeText || d.code_text === null)
+  );
 }
 
-function getFilteredStageGames() {
+function _filteredStageGames() {
   const ageSet = new Set((selectedStageObj.pathway_ages || []).map(a => a.toLowerCase()));
   return allGames.filter(g => {
     if (!(g.game_age || []).some(a => ageSet.has(a.toLowerCase()))) return false;
     if (selectedCodeText !== 'All' && !(g.game_code || []).includes(selectedCodeText)) return false;
-    if (selectedType !== 'All' && !(g.game_type || []).includes(selectedType)) return false;
     if (!hasContent(g)) return false;
     return true;
   });
 }
 
-function renderStageDetailContent() {
-  const details = getFilteredDetails();
-  const games   = getFilteredStageGames();
+function _detailRowHtml(d) {
+  const hasImg = !!d.image_link;
+  const hasVid = !!d.video_link;
+  const iconHtml = hasVid
+    ? `<div class="resource-row-icon video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>`
+    : `<div class="resource-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+  return `<button class="resource-row" onclick="openImageViewer(${d.pathway_stage_details_id})">
+    ${iconHtml}
+    <div class="resource-row-text">
+      <div class="resource-row-title">${esc(d.detail_heading)}</div>
+      ${d.detail_subheading ? `<div class="resource-row-sub">${esc(d.detail_subheading)}</div>` : ''}
+    </div>
+    <div class="resource-row-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+  </button>`;
+}
 
-  // Guidance cards
-  if (details.length) {
-    $('guidanceList').innerHTML = `
-      <div class="section-label" style="margin-bottom:10px">Stage guidance</div>
-      ${details.map(d => {
-        const imgHtml = d.image_link
-          ? `<img class="guidance-img" src="${esc(d.image_link)}" alt="${esc(d.detail_heading)}" onerror="this.style.display='none'">`
-          : '';
-        const videoHtml = d.video_link
-          ? `<button class="guidance-video-btn" onclick="openExternal('${esc(d.video_link)}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Watch video
-            </button>`
-          : '';
-        return `<div class="guidance-card">
-          ${imgHtml}
-          <div class="guidance-card-body">
-            <div class="guidance-heading">${esc(d.detail_heading)}</div>
-            ${d.detail_subheading ? `<div class="guidance-subheading">${esc(d.detail_subheading)}</div>` : ''}
-            ${videoHtml}
-          </div>
-        </div>`;
-      }).join('')}`;
-  } else {
-    $('guidanceList').innerHTML = '';
+function _gameRowHtml(g) {
+  const pt = primaryType(g.game_type);
+  const fav = isFav(g.game_id);
+  const skills = (g.game_skill || []).slice(0, 2);
+  return `<div class="game-card" style="cursor:pointer" onclick="showDetail(${g.game_id})">
+    <div class="type-dot${pt !== 'game' ? ' ' + pt : ''}"></div>
+    <div class="game-info">
+      <div class="game-name">${esc(g.game_name)}</div>
+      <div class="game-tags">
+        ${(g.game_type || []).map(t => `<span class="gtag ${pt !== 'game' ? pt : ''}">${esc(t)}</span>`).join('')}
+        ${skills.map(s => `<span class="gtag skill">${esc(s)}</span>`).join('')}
+      </div>
+    </div>
+    <button class="heart-btn${fav ? ' fav' : ''}" data-gid="${g.game_id}" onclick="toggleFavFromCard(event,${g.game_id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+  </div>`;
+}
+
+function renderStageDetailContent() {
+  const ppItems  = _filteredDetails('Player Pathways');
+  const ssItems  = _filteredDetails('Sample Sessions');
+  const allStageGames = _filteredStageGames();
+  const skillGames    = allStageGames.filter(g => (g.game_type || []).includes('Drill'));
+  const gamesDrills   = allStageGames.filter(g => !(g.game_type || []).includes('Drill'));
+
+  function renderSection(sectionId, listId, items, renderFn) {
+    const sec = $(sectionId);
+    if (!items.length) { sec.hidden = true; return; }
+    sec.hidden = false;
+    $(listId).innerHTML = items.map(renderFn).join('');
   }
 
-  // Game cards
-  if (games.length) {
-    $('stageGameList').innerHTML = `
-      <div class="section-label" style="margin:${details.length ? '12px' : '0'} 0 10px">Practice resources</div>
-      ${games.map(g => {
-        const pt = primaryType(g.game_type);
-        const fav = isFav(g.game_id);
-        const skills = (g.game_skill || []).slice(0, 2);
-        return `<div class="game-card" style="cursor:pointer" onclick="showDetail(${g.game_id})">
-          <div class="type-dot${pt !== 'game' ? ' ' + pt : ''}"></div>
-          <div class="game-info">
-            <div class="game-name">${esc(g.game_name)}</div>
-            <div class="game-tags">
-              ${(g.game_type || []).map(t => `<span class="gtag ${pt !== 'game' ? pt : ''}">${esc(t)}</span>`).join('')}
-              ${skills.map(s => `<span class="gtag skill">${esc(s)}</span>`).join('')}
-            </div>
-          </div>
-          <button class="heart-btn${fav ? ' fav' : ''}" data-gid="${g.game_id}" onclick="toggleFavFromCard(event,${g.game_id})">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </button>
-        </div>`;
-      }).join('')}`;
+  renderSection('sectionPlayerPathways', 'listPlayerPathways', ppItems,  _detailRowHtml);
+  renderSection('sectionSampleSessions', 'listSampleSessions', ssItems,  _detailRowHtml);
+  renderSection('sectionSkills',         'listSkills',         skillGames, _gameRowHtml);
+  renderSection('sectionGamesAndDrills', 'listGamesAndDrills', gamesDrills, _gameRowHtml);
+
+  const anyContent = ppItems.length || ssItems.length || skillGames.length || gamesDrills.length;
+  $('stageEmptyState').hidden = !!anyContent;
+}
+
+function openImageViewer(detailId) {
+  const d = stageDetails.find(x => x.pathway_stage_details_id === detailId);
+  if (!d) return;
+  _currentImageViewer = d;
+
+  $('imageViewerTitle').textContent   = d.detail_heading;
+  $('imageViewerHeading').textContent = d.detail_heading;
+  $('imageViewerSubheading').textContent = d.detail_subheading || '';
+  $('imageViewerSubheading').hidden = !d.detail_subheading;
+
+  const img = $('imageViewerImg');
+  if (d.image_link) {
+    img.src   = d.image_link;
+    img.alt   = d.detail_heading;
+    img.style.display = '';
   } else {
-    const noGames = selectedCodeText !== 'All' || selectedType !== 'All'
-      ? 'No resources match this filter.'
-      : 'No practice resources for this stage yet.';
-    $('stageGameList').innerHTML = details.length ? '' :
-      `<div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
-        <p>${noGames}</p>
-      </div>`;
-    if (details.length && !games.length) {
-      $('stageGameList').innerHTML = `<div class="empty-state" style="padding:20px 0"><p style="font-size:14px">${noGames}</p></div>`;
+    img.style.display = 'none';
+  }
+
+  showScreen('imageViewerScreen');
+}
+
+async function shareCurrentImage() {
+  if (!_currentImageViewer) return;
+  const url   = _currentImageViewer.image_link || window.location.href;
+  const title = _currentImageViewer.detail_heading;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      showToast('Link copied');
     }
+  } catch (e) {
+    if (e.name !== 'AbortError') showToast('Could not share');
   }
 }
 
