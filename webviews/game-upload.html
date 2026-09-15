@@ -673,29 +673,108 @@
   // ── Review screen ──────────────────────────────────────────────────────────
 
   function showReview(data) {
-    document.getElementById('rvName').value       = data.game_name       || '';
-    document.getElementById('rvSetup').value      = data.game_setup      || '';
-    document.getElementById('rvHowTo').value      = data.game_how_to_play || '';
-    document.getElementById('rvVariations').value = data.game_variations  || '';
-    document.getElementById('rvTeaching').value   = data.game_teaching_points || '';
+    document.getElementById('rvName').value       = data.game_name            || '';
+    document.getElementById('rvSetup').value      = data.game_setup           || '';
+    document.getElementById('rvHowTo').value      = data.game_how_to_play     || '';
+    document.getElementById('rvVariations').value = data.game_variations       || '';
+    document.getElementById('rvTeaching').value   = data.game_teaching_points  || '';
 
-    renderDiagram(data.diagram_svg);
+    renderDiagramFromLayout(data.diagram_layout);
     autoResizeAll();
     showScreen('screenReview');
   }
 
-  function renderDiagram(svgString) {
+  // ── Diagram renderer ───────────────────────────────────────────────────────
+  // Converts Gemini's zone-based layout JSON into a clean SVG.
+  // Zones: tl/tc/tr, ul/uc/ur, ml/mc/mr, ll/lc/lr, bl/bc/br
+
+  const ZONE_POS = {
+    tl:{x:75, y:65},  tc:{x:160,y:65},  tr:{x:245,y:65},
+    ul:{x:75, y:130}, uc:{x:160,y:130}, ur:{x:245,y:130},
+    ml:{x:75, y:195}, mc:{x:160,y:195}, mr:{x:245,y:195},
+    ll:{x:75, y:260}, lc:{x:160,y:260}, lr:{x:245,y:260},
+    bl:{x:75, y:325}, bc:{x:160,y:325}, br:{x:245,y:325},
+  };
+
+  function renderDiagramFromLayout(layout) {
     const inner = document.getElementById('diagramInner');
-    if (!svgString || typeof svgString !== 'string' || !svgString.includes('<svg')) {
+    if (!layout || !layout.players) {
       inner.innerHTML = '<div class="diagram-error">No diagram generated</div>';
       return;
     }
-    // Swap single-quoted attributes back to double quotes for browser rendering
-    // (Claude uses single quotes to avoid JSON escaping)
-    const normalised = svgString
-      .replace(/(<[a-zA-Z][^>]*?)(\s[a-zA-Z:_-]+=)'([^']*)'/g,
-               (_, tag, attr, val) => `${tag}${attr}"${val}"`);
-    inner.innerHTML = normalised;
+
+    const W = 320, H = 420;
+    const PR = 14; // player circle radius
+
+    // Build position lookup: "p1" → {x,y},  "c1" → {x,y}
+    const pos = {};
+    (layout.players || []).forEach(p => {
+      pos[`p${p.id}`] = ZONE_POS[p.zone] || ZONE_POS.mc;
+    });
+    (layout.cones || []).forEach(c => {
+      pos[`c${c.id}`] = ZONE_POS[c.zone] || ZONE_POS.bc;
+    });
+
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+<defs>
+  <marker id="m-pass" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0,8 3,0 6" fill="#5cb85c"/>
+  </marker>
+  <marker id="m-run" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <polygon points="0 0,8 3,0 6" fill="#888"/>
+  </marker>
+</defs>
+<rect x="20" y="20" width="280" height="355" rx="8" fill="#2c5f2e" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+<line x1="30" y1="197" x2="290" y2="197" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="7,5"/>`;
+
+    // Arrows (drawn first so they sit under players/cones)
+    (layout.moves || []).forEach(mv => {
+      const a = pos[mv.from], b = pos[mv.to];
+      if (!a || !b) return;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 5) return;
+      const ux = dx/len, uy = dy/len;
+      const x1 = (a.x + ux*(PR+3)).toFixed(1);
+      const y1 = (a.y + uy*(PR+3)).toFixed(1);
+      const x2 = (b.x - ux*(PR+6)).toFixed(1);
+      const y2 = (b.y - uy*(PR+6)).toFixed(1);
+      const isPass = mv.type === 'pass' || mv.type === 'kick';
+      if (isPass) {
+        s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#5cb85c" stroke-width="2" marker-end="url(#m-pass)"/>`;
+      } else {
+        s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#888" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#m-run)"/>`;
+      }
+    });
+
+    // Cones (orange diamonds)
+    (layout.cones || []).forEach(c => {
+      const p = pos[`c${c.id}`];
+      if (!p) return;
+      const sz = 9;
+      s += `<polygon points="${p.x},${p.y-sz} ${p.x+sz},${p.y} ${p.x},${p.y+sz} ${p.x-sz},${p.y}" fill="#f07023" stroke="#c05010" stroke-width="1"/>`;
+    });
+
+    // Players (white circles with number)
+    (layout.players || []).forEach(p => {
+      const pt = pos[`p${p.id}`];
+      if (!pt) return;
+      s += `<circle cx="${pt.x}" cy="${pt.y}" r="${PR}" fill="white" stroke="#1a1a1a" stroke-width="1.5"/>`;
+      s += `<text x="${pt.x}" y="${pt.y}" font-size="11" font-family="sans-serif" text-anchor="middle" dominant-baseline="central" fill="#111">${p.label || p.id}</text>`;
+    });
+
+    // Legend
+    const ly = H - 32;
+    s += `
+<line x1="22" y1="${ly}" x2="44" y2="${ly}" stroke="#5cb85c" stroke-width="2" marker-end="url(#m-pass)"/>
+<text x="49" y="${ly+4}" font-size="10" font-family="sans-serif" fill="#aaa">Pass</text>
+<line x1="90" y1="${ly}" x2="112" y2="${ly}" stroke="#888" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#m-run)"/>
+<text x="117" y="${ly+4}" font-size="10" font-family="sans-serif" fill="#aaa">Run</text>
+<polygon points="163,${ly-7} 170,${ly} 163,${ly+7} 156,${ly}" fill="#f07023"/>
+<text x="175" y="${ly+4}" font-size="10" font-family="sans-serif" fill="#aaa">Cone</text>
+</svg>`;
+
+    inner.innerHTML = s;
   }
 
   function autoResizeAll() {

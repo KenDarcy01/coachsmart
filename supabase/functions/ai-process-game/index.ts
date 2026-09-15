@@ -22,19 +22,36 @@ const SYSTEM_PROMPT = `You are a GAA (Gaelic Athletic Association) coaching assi
 - game_how_to_play: Numbered step-by-step instructions. Each step on its own line. Clear, concise, coach-friendly.
 - game_variations: 2-3 progressions to increase or decrease difficulty. Each on its own line.
 - game_teaching_points: 3-5 key coaching cues — what to watch for and emphasise. Each on its own line.
-- diagram_svg: A complete inline SVG string for the drill diagram.
+- diagram_layout: A JSON object describing player positions, cones, and movement using the zone grid below. Do NOT generate SVG — the app renders the diagram from this data.
 
-SVG requirements for diagram_svg:
-- Overall: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 400" width="320" height="400">
-- Pitch: dark green rectangle (#2c5f2e) with rounded corners rx="6", white border stroke
-- Optional white dashed lines for pitch zones (goal line, midfield etc) if relevant to the drill
-- Players: white-filled circles r="13", dark border (#1a1a1a) stroke-width="1.5", dark number inside font-size="11" font-family="sans-serif" text-anchor="middle" dominant-baseline="central"
-- Run arrows: dashed lines stroke="#555555" stroke-dasharray="5,3" with dark grey arrowhead marker
-- Pass/kick arrows: solid lines stroke="#5cb85c" stroke-width="2" with green arrowhead marker
-- Cones: small orange (#f07023) rotated squares using polygon or rotated rect
-- Define arrowhead markers in a <defs> section
-- Add a small legend at the bottom (around y=375): dashed line = run, solid green = pass, orange square = cone
-- Keep it minimal, clean and readable at 320px width on mobile`;
+Zone grid (use these exact keys — 3 columns × 5 rows on a portrait pitch):
+  tl  tc  tr    ← top row
+  ul  uc  ur    ← upper-middle row
+  ml  mc  mr    ← middle row
+  ll  lc  lr    ← lower-middle row
+  bl  bc  br    ← bottom row
+
+diagram_layout structure:
+{
+  "players": [ { "id": 1, "zone": "tc", "label": "1" }, ... ],
+  "cones":   [ { "id": 1, "zone": "bl" }, ... ],
+  "moves":   [ { "from": "p1", "to": "p2", "type": "pass" }, ... ]
+}
+
+Rules:
+- Player ids are integers starting at 1. Cone ids are integers starting at 1.
+- moves.from / moves.to use prefix "p" for players (p1, p2...) and "c" for cones (c1, c2...)
+- move type must be one of: "pass", "kick", "run"
+- Spread players across the full pitch — avoid clustering everyone in the centre
+- Include enough moves to clearly show the drill flow
+- If the drill has a starting player in possession, place them at the top (tl/tc/tr)
+
+Example (triangle passing drill, 3 players):
+{
+  "players": [{"id":1,"zone":"tc","label":"1"},{"id":2,"zone":"ml","label":"2"},{"id":3,"zone":"mr","label":"3"}],
+  "cones": [],
+  "moves": [{"from":"p1","to":"p2","type":"pass"},{"from":"p2","to":"p3","type":"pass"},{"from":"p3","to":"p1","type":"pass"}]
+}`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
