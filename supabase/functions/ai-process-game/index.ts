@@ -15,23 +15,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are a GAA (Gaelic Athletic Association) coaching assistant. Process the coaching drill and return a JSON object with exactly these fields:
+// ── Call 1: interpret the drill, clean the text, produce a precise spatial description ──
+const TEXT_PROMPT = `You are a GAA (Gaelic Athletic Association) coaching assistant.
+Process the coaching drill and return a JSON object with exactly these fields:
 
 - game_name: Short clear drill name, 3-6 words
 - game_setup: Setup instructions. Each point on its own line. Include number of players, equipment (cones, balls), and pitch area dimensions.
 - game_how_to_play: Numbered step-by-step instructions. Each step on its own line. Clear, concise, coach-friendly.
 - game_variations: 2-3 progressions to increase or decrease difficulty. Each on its own line.
 - game_teaching_points: 3-5 key coaching cues — what to watch for and emphasise. Each on its own line.
-- diagram_layout: A JSON object describing player positions, cones, and movement using the zone grid below. Do NOT generate SVG — the app renders the diagram from this data.
+- spatial_description: A precise overhead-view description of the drill layout for diagram purposes.
+  Write it as a clear, unambiguous spatial narrative:
+  - Describe each player's starting position using compass-style language: top-centre, middle-left, bottom-right etc.
+  - Describe each cone's position the same way.
+  - Then describe every movement: who passes to whom, who runs where, in sequence.
+  - Be explicit: "Player 1 starts at the top-centre holding the ball. Player 2 is at the middle-left.
+    Player 3 is at the middle-right. Two cones are placed at the bottom-left and bottom-right.
+    Player 1 hand-passes to Player 2. Player 2 runs towards the bottom-left cone."
+  - Do not describe tactics or teaching points here — only positions and movements.`;
 
-Zone grid (use these exact keys — 3 columns × 5 rows on a portrait pitch):
+// ── Call 2: translate the precise spatial description into a zone layout ──
+const LAYOUT_PROMPT = `You are converting a GAA drill spatial description into a structured zone layout JSON.
+
+Zone grid — use ONLY these exact zone keys (3 columns × 5 rows on a portrait pitch):
   tl  tc  tr    ← top row
   ul  uc  ur    ← upper-middle row
   ml  mc  mr    ← middle row
   ll  lc  lr    ← lower-middle row
   bl  bc  br    ← bottom row
 
-diagram_layout structure:
+Return ONLY this JSON structure (nothing else):
 {
   "players": [ { "id": 1, "zone": "tc", "label": "1" }, ... ],
   "cones":   [ { "id": 1, "zone": "bl" }, ... ],
@@ -40,18 +53,72 @@ diagram_layout structure:
 
 Rules:
 - Player ids are integers starting at 1. Cone ids are integers starting at 1.
-- moves.from / moves.to use prefix "p" for players (p1, p2...) and "c" for cones (c1, c2...)
-- move type must be one of: "pass", "kick", "run"
-- Spread players across the full pitch — avoid clustering everyone in the centre
-- Include enough moves to clearly show the drill flow
-- If the drill has a starting player in possession, place them at the top (tl/tc/tr)
+- moves.from and moves.to use prefix "p" for players (p1, p2...) and "c" for cones (c1, c2...)
+- move type must be exactly one of: "pass", "kick", "run"
+- Spread players across the full pitch — avoid clustering in the centre zones
+- Every player and cone mentioned in the description must appear in the output`;
 
-Example (triangle passing drill, 3 players):
-{
-  "players": [{"id":1,"zone":"tc","label":"1"},{"id":2,"zone":"ml","label":"2"},{"id":3,"zone":"mr","label":"3"}],
-  "cones": [],
-  "moves": [{"from":"p1","to":"p2","type":"pass"},{"from":"p2","to":"p3","type":"pass"},{"from":"p3","to":"p1","type":"pass"}]
-}`;
+// ── Shared Gemini caller with retry ──────────────────────────────────────────
+
+async function callGemini(
+  apiKey: string,
+  systemPrompt: string,
+  parts: any[],
+  jsonMode = true,
+): Promise<string> {
+  const body = JSON.stringify({
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ parts }],
+    generationConfig: {
+      maxOutputTokens: 8192,
+      temperature: 0.3,
+      ...(jsonMode ? { responseMimeType: "application/json" } : {}),
+    },
+  });
+
+  let res: Response | null = null;
+  let errText = "";
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    if (res.ok) break;
+    errText = await res.text();
+    const retryable = res.status === 503 || res.status === 429;
+    console.warn(`Gemini attempt ${attempt} failed (${res.status}):`, errText.slice(0, 200));
+    if (!retryable || attempt === 3) break;
+    await new Promise(r => setTimeout(r, attempt * 1500));
+  }
+
+  if (!res!.ok) {
+    console.error("Gemini API error:", errText);
+    throw new Error(`Gemini API error ${res!.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const data = await res!.json();
+  const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
+
+  if (!text) {
+    const reason = data.candidates?.[0]?.finishReason || "unknown";
+    throw new Error(`Gemini returned empty response (finishReason: ${reason})`);
+  }
+
+  return text;
+}
+
+function parseJson(raw: string): any {
+  const cleaned = raw
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  return JSON.parse(cleaned);
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -76,85 +143,54 @@ serve(async (req) => {
     }
 
     const contextText = [
-      game_name?.trim()  ? `Drill name (suggestion): ${game_name.trim()}` : null,
-      game_type?.trim()  ? `Game type: ${game_type.trim()}` : null,
-      game_age?.length   ? `Age group: ${(Array.isArray(game_age) ? game_age : [game_age]).join(", ")}` : null,
+      game_name?.trim()   ? `Drill name (suggestion): ${game_name.trim()}` : null,
+      game_type?.trim()   ? `Game type: ${game_type.trim()}` : null,
+      game_age?.length    ? `Age group: ${(Array.isArray(game_age) ? game_age : [game_age]).join(", ")}` : null,
       description?.trim() ? `Coach's notes:\n${description.trim()}` : null,
     ].filter(Boolean).join("\n");
 
-    const parts: any[] = [];
-
+    const call1Parts: any[] = [];
     if (image_base64 && image_mime_type) {
-      parts.push({ inline_data: { mime_type: image_mime_type, data: image_base64 } });
+      call1Parts.push({ inline_data: { mime_type: image_mime_type, data: image_base64 } });
     }
+    call1Parts.push({ text: contextText || "Process this coaching drill." });
 
-    parts.push({ text: contextText || "Process this coaching drill and create a clean diagram." });
-
-    const geminiBody = JSON.stringify({
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [{ parts }],
-      generationConfig: {
-        maxOutputTokens: 8192,
-        temperature: 0.3,
-        responseMimeType: "application/json",
-      },
-    });
-
-    // Retry up to 3 times on transient errors (503 overload, 429 rate limit)
-    let geminiRes: Response | null = null;
-    let errText = "";
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: geminiBody,
-      });
-      if (geminiRes.ok) break;
-      errText = await geminiRes.text();
-      const retryable = geminiRes.status === 503 || geminiRes.status === 429;
-      console.warn(`Gemini attempt ${attempt} failed (${geminiRes.status}):`, errText.slice(0, 200));
-      if (!retryable || attempt === 3) break;
-      await new Promise(r => setTimeout(r, attempt * 1500));
-    }
-
-    if (!geminiRes!.ok) {
-      console.error("Gemini API error:", errText);
-      return new Response(JSON.stringify({ error: "AI processing failed", detail: errText.slice(0, 200) }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const geminiData = await geminiRes!.json();
-    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    if (!rawText) {
-      const reason = geminiData.candidates?.[0]?.finishReason || "unknown";
-      console.error("Empty Gemini response. Finish reason:", reason, JSON.stringify(geminiData).slice(0, 300));
-      return new Response(JSON.stringify({ error: "AI returned empty response", reason }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // responseMimeType: "application/json" means rawText should already be valid JSON,
-    // but strip fences defensively in case the model wraps it anyway.
-    const jsonText = rawText
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
-
-    let parsed: any;
+    // ── Call 1: clean text + spatial description ──────────────────────────────
+    let call1Result: any;
     try {
-      parsed = JSON.parse(jsonText);
-    } catch {
-      console.error("JSON parse failed. Raw:", jsonText.slice(0, 600));
-      return new Response(
-        JSON.stringify({ error: "AI returned invalid JSON", raw: jsonText.slice(0, 400) }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      const raw = await callGemini(apiKey, TEXT_PROMPT, call1Parts);
+      call1Result = parseJson(raw);
+    } catch (err) {
+      console.error("Call 1 failed:", err);
+      return new Response(JSON.stringify({ error: "AI processing failed", detail: String(err).slice(0, 200) }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(JSON.stringify({ success: true, data: parsed }), {
+    // ── Call 2: spatial description → zone layout ─────────────────────────────
+    let diagramLayout: any = null;
+    const spatialDesc = call1Result.spatial_description?.trim();
+
+    if (spatialDesc) {
+      try {
+        const raw = await callGemini(apiKey, LAYOUT_PROMPT, [{ text: spatialDesc }]);
+        diagramLayout = parseJson(raw);
+      } catch (err) {
+        // Non-fatal — return the text fields without a diagram rather than failing
+        console.warn("Call 2 (layout) failed:", err);
+      }
+    }
+
+    const result = {
+      game_name:            call1Result.game_name            || "",
+      game_setup:           call1Result.game_setup           || "",
+      game_how_to_play:     call1Result.game_how_to_play     || "",
+      game_variations:      call1Result.game_variations       || "",
+      game_teaching_points: call1Result.game_teaching_points  || "",
+      diagram_layout:       diagramLayout,
+    };
+
+    return new Response(JSON.stringify({ success: true, data: result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
