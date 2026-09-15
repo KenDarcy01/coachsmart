@@ -73,29 +73,41 @@ serve(async (req) => {
 
     parts.push({ text: contextText || "Process this coaching drill and create a clean diagram." });
 
-    const geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ parts }],
-        generationConfig: {
-          maxOutputTokens: 4096,
-          temperature: 0.3,
-          responseMimeType: "application/json",
-        },
-      }),
+    const geminiBody = JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ parts }],
+      generationConfig: {
+        maxOutputTokens: 4096,
+        temperature: 0.3,
+        responseMimeType: "application/json",
+      },
     });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
+    // Retry up to 3 times on transient errors (503 overload, 429 rate limit)
+    let geminiRes: Response | null = null;
+    let errText = "";
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: geminiBody,
+      });
+      if (geminiRes.ok) break;
+      errText = await geminiRes.text();
+      const retryable = geminiRes.status === 503 || geminiRes.status === 429;
+      console.warn(`Gemini attempt ${attempt} failed (${geminiRes.status}):`, errText.slice(0, 200));
+      if (!retryable || attempt === 3) break;
+      await new Promise(r => setTimeout(r, attempt * 1500));
+    }
+
+    if (!geminiRes!.ok) {
       console.error("Gemini API error:", errText);
       return new Response(JSON.stringify({ error: "AI processing failed", detail: errText.slice(0, 200) }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const geminiData = await geminiRes.json();
+    const geminiData = await geminiRes!.json();
     const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!rawText) {
