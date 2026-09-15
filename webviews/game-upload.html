@@ -200,6 +200,22 @@
       color: var(--text); outline: none;
     }
 
+    /* ── MIC BUTTON ── */
+    .notes-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .notes-label-row .field-label { margin-bottom: 0; }
+    .mic-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+      background: var(--card2); border: 1.5px solid var(--border); color: var(--muted);
+      transition: all 0.2s;
+    }
+    .mic-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .mic-btn.recording {
+      background: rgba(239,68,68,0.12); border-color: var(--red); color: var(--red);
+      animation: mic-pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes mic-pulse { 0%,100% { opacity:1; } 50% { opacity:0.55; } }
+
     /* ── TOAST ── */
     .toast {
       position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -265,7 +281,16 @@
 
     <!-- Notes -->
     <div>
-      <div class="field-label">Your Notes <span>*</span></div>
+      <div class="notes-label-row">
+        <div class="field-label">Your Notes <span>*</span></div>
+        <button id="micBtn" class="mic-btn" onclick="toggleSpeech()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="12" rx="3"/>
+            <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
+          </svg>
+          <span id="micLabel">Speak</span>
+        </button>
+      </div>
       <textarea id="inpNotes" class="text-input" rows="6"
         placeholder="Describe the drill in your own words — players, cones, movement, rules, objective. Rough is fine, AI will clean it up."></textarea>
     </div>
@@ -378,6 +403,74 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  // ── Speech recognition ────────────────────────────────────────────────────
+
+  let _recognition   = null;
+  let _isRecording   = false;
+  let _baseNotes     = '';
+
+  function toggleSpeech() {
+    if (_isRecording) { stopSpeech(); return; }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showToast('Speech not supported on this browser', 'error'); return; }
+
+    _recognition = new SR();
+    _recognition.lang = 'en-IE';
+    _recognition.continuous = true;
+    _recognition.interimResults = false;
+
+    // Capture whatever is already in the textarea so we append to it
+    const ta = document.getElementById('inpNotes');
+    _baseNotes = ta.value;
+    if (_baseNotes && !_baseNotes.endsWith(' ') && !_baseNotes.endsWith('\n')) _baseNotes += ' ';
+
+    _recognition.onresult = (e) => {
+      let added = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) added += e.results[i][0].transcript + ' ';
+      }
+      _baseNotes += added;
+      document.getElementById('inpNotes').value = _baseNotes.trimStart();
+    };
+
+    _recognition.onerror = (e) => {
+      if (e.error === 'not-allowed') showToast('Microphone permission denied', 'error');
+      else if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error');
+      stopSpeech();
+    };
+
+    // On iOS Safari recognition ends after each phrase — restart while still recording
+    _recognition.onend = () => {
+      if (_isRecording) {
+        try { _recognition.start(); } catch { stopSpeech(); }
+      }
+    };
+
+    try {
+      _recognition.start();
+      _isRecording = true;
+      _updateMicBtn();
+    } catch (err) {
+      showToast('Could not start microphone', 'error');
+    }
+  }
+
+  function stopSpeech() {
+    _isRecording = false;
+    if (_recognition) { try { _recognition.stop(); } catch {} _recognition = null; }
+    _updateMicBtn();
+  }
+
+  function _updateMicBtn() {
+    const btn   = document.getElementById('micBtn');
+    const label = document.getElementById('micLabel');
+    btn.classList.toggle('recording', _isRecording);
+    label.textContent = _isRecording ? 'Stop' : 'Speak';
+  }
+
+  // ── Supabase config ────────────────────────────────────────────────────────
+
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
   const EDGE_FN_URL       = SUPABASE_URL + '/functions/v1/ai-process-game';
