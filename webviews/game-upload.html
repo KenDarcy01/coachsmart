@@ -93,9 +93,52 @@
       background: var(--green-dim); border-color: var(--green); color: var(--green);
     }
 
-    /* ── IMAGE UPLOAD ── */
+    /* ── MEDIA TABS (Sketch / Photo) ── */
+    .media-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+    .media-tab {
+      flex: 1; padding: 9px 0; border-radius: 10px; font-size: 14px; font-weight: 600;
+      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
+      transition: all 0.15s;
+    }
+    .media-tab.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .media-panel { display: none; }
+    .media-panel.active { display: block; }
+
+    /* ── CANVAS SKETCHPAD ── */
+    .sketch-wrap {
+      border-radius: var(--radius); overflow: hidden;
+      border: 1.5px solid var(--border);
+    }
+    #sketchCanvas {
+      display: block; width: 100%; height: 260px;
+      touch-action: none; cursor: crosshair;
+    }
+    .sketch-toolbar {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--card2); padding: 8px 10px;
+      border-top: 1px solid var(--border);
+    }
+    .tool-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .tool-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .tool-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .sketch-spacer { flex: 1; }
+    .tool-icon-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
+      flex-shrink: 0;
+    }
+    .tool-icon-btn svg { width: 15px; height: 15px; }
+    .tool-icon-btn:active { opacity: 0.6; }
+
+    /* ── PHOTO UPLOAD ── */
     .image-zone {
-      width: 100%; min-height: 140px; border-radius: var(--radius);
+      width: 100%; min-height: 120px; border-radius: var(--radius);
       border: 2px dashed var(--border);
       background: var(--card); cursor: pointer;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -103,13 +146,10 @@
       position: relative; overflow: hidden;
     }
     .image-zone:active { border-color: var(--green); }
-    .image-zone svg { width: 32px; height: 32px; opacity: 0.5; }
+    .image-zone svg { width: 28px; height: 28px; opacity: 0.5; }
     .image-zone .zone-label { font-size: 14px; }
     .image-zone .zone-sub   { font-size: 12px; opacity: 0.6; }
-    .image-preview {
-      width: 100%; height: 200px; object-fit: cover;
-      border-radius: calc(var(--radius) - 2px);
-    }
+    .image-preview { width: 100%; height: 180px; object-fit: cover; border-radius: calc(var(--radius) - 2px); }
     #fileInput { display: none; }
     .remove-img {
       position: absolute; top: 8px; right: 8px;
@@ -295,19 +335,55 @@
         placeholder="Describe the drill in your own words — players, cones, movement, rules, objective. Rough is fine, AI will clean it up."></textarea>
     </div>
 
-    <!-- Image Upload -->
+    <!-- Sketch / Photo -->
     <div>
       <div class="field-label">Sketch / Photo <span title="optional">(optional)</span></div>
-      <div class="image-zone" id="imageZone" onclick="triggerFileInput()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <circle cx="8.5" cy="8.5" r="1.5"/>
-          <path d="M21 15l-5-5L5 21"/>
-        </svg>
-        <span class="zone-label">Tap to add a sketch or photo</span>
-        <span class="zone-sub">Whiteboard, paper — anything works</span>
+      <div class="media-tabs">
+        <button class="media-tab active" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
+        <button class="media-tab" onclick="switchMediaTab('photo', this)">📷 Photo</button>
       </div>
-      <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)"/>
+
+      <!-- Sketch panel -->
+      <div id="panelSketch" class="media-panel active">
+        <div class="sketch-wrap">
+          <canvas id="sketchCanvas"></canvas>
+          <div class="sketch-toolbar">
+            <button id="toolDraw" class="tool-btn active" onclick="setSketchTool('draw', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+              Draw
+            </button>
+            <button id="toolPlayer" class="tool-btn" onclick="setSketchTool('player', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>
+              Player
+            </button>
+            <button id="toolCone" class="tool-btn" onclick="setSketchTool('cone', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,3 22,21 2,21"/></svg>
+              Cone
+            </button>
+            <div class="sketch-spacer"></div>
+            <button class="tool-icon-btn" onclick="undoSketch()" title="Undo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+            </button>
+            <button class="tool-icon-btn" onclick="clearSketch()" title="Clear">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Photo panel -->
+      <div id="panelPhoto" class="media-panel">
+        <div class="image-zone" id="imageZone" onclick="triggerFileInput()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <span class="zone-label">Tap to add a sketch or photo</span>
+          <span class="zone-sub">Whiteboard, paper — anything works</span>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)"/>
+      </div>
     </div>
 
   </div>
@@ -469,6 +545,192 @@
     label.textContent = _isRecording ? 'Stop' : 'Speak';
   }
 
+  // ── Canvas sketchpad ───────────────────────────────────────────────────────
+
+  let _activeMediaTab = 'sketch';
+  let _sketchTool     = 'draw';
+  let _isDrawing      = false;
+  let _hasDrawn       = false;
+  let _undoStack      = [];   // array of ImageData snapshots
+  let _stampCounter   = 1;    // label counter for player stamps
+  let _sketchCtx      = null;
+  let _sketchCanvas   = null;
+
+  function initSketchCanvas() {
+    _sketchCanvas = document.getElementById('sketchCanvas');
+    if (!_sketchCanvas) return;
+    _sketchCtx = _sketchCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = _sketchCanvas.getBoundingClientRect();
+    _sketchCanvas.width  = rect.width  * dpr;
+    _sketchCanvas.height = rect.height * dpr;
+    _sketchCtx.scale(dpr, dpr);
+    _fillSketchBackground();
+
+    // Mouse events
+    _sketchCanvas.addEventListener('mousedown',  _sketchStart);
+    _sketchCanvas.addEventListener('mousemove',  _sketchMove);
+    _sketchCanvas.addEventListener('mouseup',    _sketchEnd);
+    _sketchCanvas.addEventListener('mouseleave', _sketchEnd);
+
+    // Touch events
+    _sketchCanvas.addEventListener('touchstart',  _sketchStartT, { passive: false });
+    _sketchCanvas.addEventListener('touchmove',   _sketchMoveT,  { passive: false });
+    _sketchCanvas.addEventListener('touchend',    _sketchEnd);
+    _sketchCanvas.addEventListener('touchcancel', _sketchEnd);
+  }
+
+  function _fillSketchBackground() {
+    const r = _sketchCanvas.getBoundingClientRect();
+    _sketchCtx.fillStyle = '#1a2d1a';
+    _sketchCtx.fillRect(0, 0, r.width, r.height);
+    // centre line
+    _sketchCtx.strokeStyle = 'rgba(255,255,255,0.12)';
+    _sketchCtx.lineWidth = 1;
+    _sketchCtx.setLineDash([8, 6]);
+    _sketchCtx.beginPath();
+    _sketchCtx.moveTo(0, r.height / 2);
+    _sketchCtx.lineTo(r.width, r.height / 2);
+    _sketchCtx.stroke();
+    _sketchCtx.setLineDash([]);
+  }
+
+  function _canvasPos(e) {
+    const rect = _sketchCanvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function _saveUndo() {
+    const r = _sketchCanvas.getBoundingClientRect();
+    _undoStack.push(_sketchCtx.getImageData(0, 0, _sketchCanvas.width, _sketchCanvas.height));
+    if (_undoStack.length > 30) _undoStack.shift();
+  }
+
+  function _sketchStart(e) {
+    const pt = _canvasPos(e);
+    _saveUndo();
+    if (_sketchTool === 'draw') {
+      _isDrawing = true;
+      _sketchCtx.beginPath();
+      _sketchCtx.moveTo(pt.x, pt.y);
+      _sketchCtx.strokeStyle = '#fff';
+      _sketchCtx.lineWidth = 2.5;
+      _sketchCtx.lineCap = 'round';
+      _sketchCtx.lineJoin = 'round';
+      _sketchCtx.setLineDash([]);
+    } else {
+      _stampAt(pt.x, pt.y);
+      _hasDrawn = true;
+    }
+  }
+
+  function _sketchMove(e) {
+    if (!_isDrawing) return;
+    const pt = _canvasPos(e);
+    _sketchCtx.lineTo(pt.x, pt.y);
+    _sketchCtx.stroke();
+    _hasDrawn = true;
+  }
+
+  function _sketchEnd() {
+    _isDrawing = false;
+  }
+
+  function _sketchStartT(e) {
+    e.preventDefault();
+    if (e.touches.length !== 1) return;
+    _sketchStart(e.touches[0]);
+  }
+
+  function _sketchMoveT(e) {
+    e.preventDefault();
+    if (e.touches.length !== 1) return;
+    _sketchMove(e.touches[0]);
+  }
+
+  function _stampAt(x, y) {
+    if (_sketchTool === 'player') {
+      _sketchCtx.beginPath();
+      _sketchCtx.arc(x, y, 14, 0, Math.PI * 2);
+      _sketchCtx.fillStyle = 'white';
+      _sketchCtx.fill();
+      _sketchCtx.strokeStyle = '#333';
+      _sketchCtx.lineWidth = 1.5;
+      _sketchCtx.setLineDash([]);
+      _sketchCtx.stroke();
+      _sketchCtx.fillStyle = '#111';
+      _sketchCtx.font = 'bold 13px sans-serif';
+      _sketchCtx.textAlign = 'center';
+      _sketchCtx.textBaseline = 'middle';
+      _sketchCtx.fillText(String(_stampCounter++), x, y);
+    } else if (_sketchTool === 'cone') {
+      const sz = 10;
+      _sketchCtx.beginPath();
+      _sketchCtx.moveTo(x, y - sz);
+      _sketchCtx.lineTo(x + sz, y + sz);
+      _sketchCtx.lineTo(x - sz, y + sz);
+      _sketchCtx.closePath();
+      _sketchCtx.fillStyle = '#f07023';
+      _sketchCtx.fill();
+      _sketchCtx.strokeStyle = '#c05010';
+      _sketchCtx.lineWidth = 1;
+      _sketchCtx.setLineDash([]);
+      _sketchCtx.stroke();
+    }
+  }
+
+  function setSketchTool(tool, btn) {
+    _sketchTool = tool;
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function undoSketch() {
+    if (!_undoStack.length) return;
+    _sketchCtx.putImageData(_undoStack.pop(), 0, 0);
+    _hasDrawn = _undoStack.length > 0;
+  }
+
+  function clearSketch() {
+    _undoStack = [];
+    _stampCounter = 1;
+    _hasDrawn = false;
+    _fillSketchBackground();
+  }
+
+  function switchMediaTab(tab, btn) {
+    _activeMediaTab = tab;
+    document.querySelectorAll('.media-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panelSketch').classList.toggle('active', tab === 'sketch');
+    document.getElementById('panelPhoto').classList.toggle('active', tab === 'photo');
+    if (tab === 'sketch' && !_sketchCtx) initSketchCanvas();
+  }
+
+  function getSketchPng() {
+    return new Promise((resolve) => {
+      const dpr = window.devicePixelRatio || 1;
+      const w = _sketchCanvas.width  / dpr;
+      const h = _sketchCanvas.height / dpr;
+      const offscreen = document.createElement('canvas');
+      offscreen.width  = Math.round(w);
+      offscreen.height = Math.round(h);
+      const ctx = offscreen.getContext('2d');
+      ctx.drawImage(_sketchCanvas, 0, 0, _sketchCanvas.width, _sketchCanvas.height, 0, 0, offscreen.width, offscreen.height);
+      offscreen.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = e => resolve({
+          base64:   e.target.result.split(',')[1],
+          mimeType: 'image/png',
+        });
+        reader.readAsDataURL(blob);
+      }, 'image/png');
+    });
+  }
+
+  // Init sketch canvas on load (it's visible by default)
+  window.addEventListener('load', () => initSketchCanvas());
+
   // ── Supabase config ────────────────────────────────────────────────────────
 
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
@@ -603,7 +865,19 @@
     const notes = document.getElementById('inpNotes').value.trim();
     const type  = document.getElementById('inpType').value;
 
-    if (!notes && !_imageBase64) {
+    // Resolve image: sketch tab → export canvas if drawn; photo tab → use uploaded file
+    let imgBase64    = null;
+    let imgMimeType  = null;
+    if (_activeMediaTab === 'sketch' && _hasDrawn) {
+      const png    = await getSketchPng();
+      imgBase64    = png.base64;
+      imgMimeType  = png.mimeType;
+    } else if (_activeMediaTab === 'photo') {
+      imgBase64    = _imageBase64;
+      imgMimeType  = _imageMimeType;
+    }
+
+    if (!notes && !imgBase64) {
       showToast('Add some notes or a sketch first', 'error'); return;
     }
     if (!type) {
@@ -611,12 +885,12 @@
     }
 
     const payload = {
-      game_name:    document.getElementById('inpName').value.trim() || null,
-      game_type:    type,
-      game_age:     getSelectedAges(),
-      description:  notes,
-      image_base64: _imageBase64   || undefined,
-      image_mime_type: _imageMimeType || undefined,
+      game_name:       document.getElementById('inpName').value.trim() || null,
+      game_type:       type,
+      game_age:        getSelectedAges(),
+      description:     notes,
+      image_base64:    imgBase64    || undefined,
+      image_mime_type: imgMimeType  || undefined,
     };
     _lastPayload = payload;
 
