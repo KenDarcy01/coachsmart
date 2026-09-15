@@ -570,7 +570,9 @@
     });
     const json = await res.json();
     if (!res.ok || !json.success) {
-      throw new Error(json.error || 'Unknown error');
+      const detail = json.detail ? ` — ${json.detail}` : '';
+      console.error('Edge function error:', json);
+      throw new Error((json.error || 'Unknown error') + detail);
     }
     return json;
   }
