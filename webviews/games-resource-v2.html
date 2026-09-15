@@ -1121,7 +1121,7 @@ function showDetail(gameId) {
   const g = allGames.find(x => x.game_id === gameId);
   if (!g) return;
   _currentDetailGameId = g.game_id;
-  $('detailHeart').hidden = isSkillGame(g);
+  $('detailHeart').style.display = isSkillGame(g) ? 'none' : '';
   $('detailTitle').textContent = g.game_name;
   const parts = ['<div class="detail-body">'];
   parts.push(`<div class="media-row"><button class="media-btn pdf" onclick="exportGamePdf(${g.game_id})">
