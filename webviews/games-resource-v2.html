@@ -1216,17 +1216,7 @@ async function boot() {
       return;
     }
 
-    // Load games
-    const { data: gamesData, error: gamesErr } = await sb.from('games').select(
-      'game_id,game_name,game_age,game_code,game_type,game_skill,' +
-      'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
-      'game_pdf,game_video,game_image,club_id'
-    );
-    if (gamesErr) console.warn('games:', gamesErr.message);
-    allGames = gamesData || [];
-    loadFavouritesFromDB();
-
-    // Look up user → default_club
+    // Look up user → default_club first (needed to filter club-specific games)
     const userId = _jwtUserId();
     let defaultClub = null;
     if (userId) {
@@ -1234,15 +1224,35 @@ async function boot() {
       defaultClub = uData?.default_club || null;
     }
 
+    // Load games, club info and pathways in parallel
+    const gamesQuery = sb.from('games').select(
+      'game_id,game_name,game_age,game_code,game_type,game_skill,' +
+      'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
+      'game_pdf,game_video,game_image,club_id'
+    );
+    // Only return public games + this club's games (never another club's)
     if (defaultClub) {
-      // Load club info and pathways in parallel
-      const [, linksResult] = await Promise.all([
+      gamesQuery.or(`club_id.is.null,club_id.eq.${defaultClub}`);
+    } else {
+      gamesQuery.is('club_id', null);
+    }
+
+    const fetchPromises = [gamesQuery, loadFavouritesFromDB()];
+    if (defaultClub) {
+      fetchPromises.push(
         loadClubInfo(defaultClub),
         sb.from('club_pathway_link')
           .select('pathway_types(pathway_type_id, pathway_name)')
-          .eq('club_id', defaultClub),
-      ]);
+          .eq('club_id', defaultClub)
+      );
+    }
+    const [gamesResult, , , linksResult] = await Promise.all(fetchPromises);
 
+    const { data: gamesData, error: gamesErr } = gamesResult;
+    if (gamesErr) console.warn('games:', gamesErr.message);
+    allGames = gamesData || [];
+
+    if (defaultClub && linksResult) {
       allPathways = ((linksResult.data || [])
         .map(l => l.pathway_types)
         .filter(Boolean));
