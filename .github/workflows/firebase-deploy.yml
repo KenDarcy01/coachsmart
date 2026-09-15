@@ -30,6 +30,7 @@ jobs:
           channelId: live
           projectId: coach-smart-new-mpqa5l
           target: main
+          firebaseToolsVersion: "14.10.0"
 
       - name: Deploy website-alt
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -39,3 +40,4 @@ jobs:
           channelId: live
           projectId: coach-smart-new-mpqa5l
           target: website-alt
+          firebaseToolsVersion: "14.10.0"
