@@ -77,7 +77,7 @@ serve(async (req) => {
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ parts }],
       generationConfig: {
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
         temperature: 0.3,
         responseMimeType: "application/json",
       },
