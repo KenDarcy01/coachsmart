@@ -236,11 +236,11 @@ serve(async (req) => {
       });
     }
 
-    // ── Call 2: spatial description → zone layout ─────────────────────────────
+    // ── Call 2: spatial description → zone layout (skipped for doc mode) ────────
     let diagramLayout: any = null;
     const spatialDesc = call1Result.spatial_description?.trim();
 
-    if (spatialDesc) {
+    if (!isDocMode && spatialDesc) {
       try {
         const raw = await callGemini(apiKey, LAYOUT_PROMPT, [{ text: spatialDesc }]);
         diagramLayout = parseJson(raw);

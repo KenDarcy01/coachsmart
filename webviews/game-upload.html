@@ -235,7 +235,7 @@
       width: 100%; background: transparent; border: none;
       padding: 12px 14px; font-size: 15px; color: var(--text);
       line-height: 1.55; outline: none; resize: none;
-      min-height: 80px;
+      overflow: hidden; min-height: 60px;
     }
     .review-field input {
       width: 100%; background: transparent; border: none;
@@ -546,10 +546,10 @@
   <div class="review-body">
 
     <!-- SVG Diagram -->
-    <div class="diagram-card">
+    <div class="diagram-card" id="diagramCard">
       <div class="diagram-header">
         <span>Diagram</span>
-        <button class="regen-btn" onclick="regenDiagram()">Regenerate</button>
+        <button class="regen-btn" id="regenBtn" onclick="regenDiagram()">Regenerate</button>
       </div>
       <div class="diagram-inner" id="diagramInner">
         <div class="diagram-error">No diagram generated</div>
@@ -565,25 +565,25 @@
     <!-- Setup -->
     <div class="review-field">
       <div class="review-field-header">Setup</div>
-      <textarea id="rvSetup" rows="5" placeholder="Setup instructions…"></textarea>
+      <textarea id="rvSetup" placeholder="Setup instructions…" oninput="autoResize(this)"></textarea>
     </div>
 
     <!-- How to Play -->
     <div class="review-field">
       <div class="review-field-header">How to Play</div>
-      <textarea id="rvHowTo" rows="6" placeholder="Step-by-step instructions…"></textarea>
+      <textarea id="rvHowTo" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
     </div>
 
     <!-- Variations -->
     <div class="review-field">
       <div class="review-field-header">Variations</div>
-      <textarea id="rvVariations" rows="4" placeholder="Progressions and variations…"></textarea>
+      <textarea id="rvVariations" placeholder="Progressions and variations…" oninput="autoResize(this)"></textarea>
     </div>
 
     <!-- Teaching Points -->
     <div class="review-field">
       <div class="review-field-header">Teaching Points</div>
-      <textarea id="rvTeaching" rows="4" placeholder="Key coaching cues…"></textarea>
+      <textarea id="rvTeaching" placeholder="Key coaching cues…" oninput="autoResize(this)"></textarea>
     </div>
 
   </div>
@@ -862,11 +862,12 @@
   const EDGE_FN_URL       = SUPABASE_URL + '/functions/v1/ai-process-game';
   const WV_TOKEN          = new URLSearchParams(window.location.search).get('token') || '';
 
-  let _imageBase64   = null;
-  let _imageMimeType = null;
-  let _lastPayload   = null;  // kept so "Regenerate" can re-call without re-uploading
-  let _entryMode     = 'create'; // 'create' | 'convert'
-  let _docFile       = null;
+  let _imageBase64        = null;
+  let _imageMimeType      = null;
+  let _lastPayload        = null;
+  let _entryMode          = 'create'; // 'create' | 'convert'
+  let _docFile            = null;
+  let _docExtractedImage  = null; // data URL of first image found in uploaded doc
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
 
@@ -952,7 +953,23 @@
         if (t) text += t + '\n\n';
       }
     }
-    return { type: 'text', text: text.replace(/\s+/g, ' ').trim() };
+
+    // Extract first embedded image (PNG/JPEG) from the media folder
+    const mediaPrefix = ext === 'pptx' ? 'ppt/media/' : 'word/media/';
+    const mediaEntry = Object.keys(zip.files)
+      .filter(n => n.startsWith(mediaPrefix) && /\.(png|jpe?g|gif|webp)$/i.test(n) && !zip.files[n].dir)
+      .sort()[0];
+    let imageDataUrl = null;
+    if (mediaEntry) {
+      const blob = await zip.file(mediaEntry).async('blob');
+      imageDataUrl = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    return { type: 'text', text: text.replace(/\s+/g, ' ').trim(), imageDataUrl };
   }
 
   async function processDocument() {
@@ -968,6 +985,7 @@
       showToast('No readable text found in document', 'error');
       return;
     }
+    _docExtractedImage = extracted.imageDataUrl || null;
     const payload = extracted.type === 'pdf'
       ? { document_base64: extracted.base64, document_mime_type: extracted.mimeType }
       : { document_text: extracted.text };
@@ -1202,14 +1220,44 @@
 
   // ── Review screen ──────────────────────────────────────────────────────────
 
-  function showReview(data) {
-    document.getElementById('rvName').value       = data.game_name            || '';
-    document.getElementById('rvSetup').value      = data.game_setup           || '';
-    document.getElementById('rvHowTo').value      = data.game_how_to_play     || '';
-    document.getElementById('rvVariations').value = data.game_variations       || '';
-    document.getElementById('rvTeaching').value   = data.game_teaching_points  || '';
+  function formatAsBullets(text) {
+    if (!text) return '';
+    return text.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0)
+      .map(l => {
+        l = l.replace(/^[\d]+[.)]\s+/, '').replace(/^[-*•–]\s*/, '').trim();
+        return l ? '• ' + l : '';
+      })
+      .filter(l => l)
+      .join('\n');
+  }
 
-    renderDiagramFromLayout(data.diagram_layout);
+  function showReview(data) {
+    document.getElementById('rvName').value       = data.game_name || '';
+    document.getElementById('rvSetup').value      = formatAsBullets(data.game_setup);
+    document.getElementById('rvHowTo').value      = formatAsBullets(data.game_how_to_play);
+    document.getElementById('rvVariations').value = formatAsBullets(data.game_variations);
+    document.getElementById('rvTeaching').value   = formatAsBullets(data.game_teaching_points);
+
+    const diagramCard = document.getElementById('diagramCard');
+    const regenBtn    = document.getElementById('regenBtn');
+    const inner       = document.getElementById('diagramInner');
+
+    if (_entryMode === 'convert') {
+      regenBtn.style.display = 'none';
+      if (_docExtractedImage) {
+        diagramCard.style.display = '';
+        inner.innerHTML = `<img src="${_docExtractedImage}" style="max-width:100%;border-radius:6px;" alt="Document diagram"/>`;
+      } else {
+        diagramCard.style.display = 'none';
+      }
+    } else {
+      regenBtn.style.display = '';
+      diagramCard.style.display = '';
+      renderDiagramFromLayout(data.diagram_layout);
+    }
+
     autoResizeAll();
     showScreen('screenReview');
   }
@@ -1307,11 +1355,13 @@
     inner.innerHTML = s;
   }
 
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = (el.scrollHeight + 4) + 'px';
+  }
+
   function autoResizeAll() {
-    document.querySelectorAll('.review-field textarea').forEach(ta => {
-      ta.style.height = 'auto';
-      ta.style.height = (ta.scrollHeight + 4) + 'px';
-    });
+    document.querySelectorAll('.review-field textarea').forEach(autoResize);
   }
 
   // ── Save (placeholder) ─────────────────────────────────────────────────────
