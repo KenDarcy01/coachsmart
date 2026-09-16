@@ -117,27 +117,31 @@
       touch-action: none; cursor: crosshair;
     }
     .sketch-toolbar {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
       background: var(--card2); padding: 8px 10px;
       border-top: 1px solid var(--border);
     }
     .tool-btn {
-      display: flex; align-items: center; gap: 5px;
-      padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 7px 8px; border-radius: 8px; font-size: 13px; font-weight: 600;
       background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
-      transition: all 0.15s; flex-shrink: 0;
+      transition: all 0.15s; flex: 1; min-width: calc(25% - 6px);
     }
     .tool-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
     .tool-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-    .sketch-spacer { flex: 1; }
-    .tool-icon-btn {
-      width: 34px; height: 34px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
-      flex-shrink: 0;
+    .tool-btn-action { color: var(--muted); }
+    .tool-btn-action:active { opacity: 0.6; }
+
+    /* Text input overlay */
+    #sketchTextOverlay {
+      position: fixed; z-index: 200; display: none;
     }
-    .tool-icon-btn svg { width: 15px; height: 15px; }
-    .tool-icon-btn:active { opacity: 0.6; }
+    #sketchTextInput {
+      background: rgba(30,34,43,0.97); border: 1.5px solid var(--green);
+      border-radius: 8px; color: var(--text); font-size: 16px; font-weight: 600;
+      padding: 8px 12px; outline: none; min-width: 160px; max-width: 240px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
 
     /* ── PHOTO UPLOAD ── */
     .image-zone {
@@ -446,15 +450,31 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/></svg>
               Arrow
             </button>
-            <div class="sketch-spacer"></div>
-            <button class="tool-icon-btn" onclick="undoSketch()" title="Undo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+            <button id="toolText" class="tool-btn" onclick="setSketchTool('text', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+              Text
             </button>
-            <button class="tool-icon-btn" onclick="clearSketch()" title="Clear">
+            <button id="toolSelect" class="tool-btn" onclick="setSketchTool('select', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-7 1-4 7z"/></svg>
+              Select
+            </button>
+            <button class="tool-btn tool-btn-action" onclick="undoSketch()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+              Undo
+            </button>
+            <button class="tool-btn tool-btn-action" onclick="clearSketch()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+              Clear
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Text input overlay for sketch tool -->
+      <div id="sketchTextOverlay">
+        <input id="sketchTextInput" type="text" placeholder="Type label…"
+          onkeydown="if(event.key==='Enter'){_commitText();}else if(event.key==='Escape'){_cancelText();}"
+          onblur="_commitText()"/>
       </div>
 
       <!-- Photo panel -->
@@ -675,57 +695,131 @@
 
   // ── Canvas sketchpad ───────────────────────────────────────────────────────
 
-  let _activeMediaTab   = 'sketch';
-  let _sketchTool       = 'draw';
-  let _isDrawing        = false;
-  let _isArrowDragging  = false;
-  let _arrowStart       = null;
-  let _dragSnapshot     = null;
-  let _hasDrawn         = false;
-  let _undoStack        = [];
-  let _stampCounter     = 1;
-  let _sketchCtx        = null;
-  let _sketchCanvas     = null;
+  let _activeMediaTab  = 'sketch';
+  let _sketchTool      = 'draw';
+  let _isDrawing       = false;
+  let _isArrowDragging = false;
+  let _arrowStart      = null;
+  let _hasDrawn        = false;
+  let _undoStack       = [];
+  let _stampCounter    = 1;
+  let _sketchCtx       = null;
+  let _sketchCanvas    = null;
+  let _freehandCanvas  = null;  // offscreen: freehand strokes only (transparent bg)
+  let _freehandCtx     = null;
+  let _elements        = [];    // player / cone / arrow / text objects
+  let _nextElId        = 1;
+  let _selectedId      = null;
+  let _isDraggingEl    = false;
+  let _dragStartPt     = null;
+  let _dragOrigEl      = null;
+  let _lastPt          = null;  // last mouse/touch position (for arrow end)
+  let _textPos         = null;
 
   function initSketchCanvas() {
     _sketchCanvas = document.getElementById('sketchCanvas');
-    if (!_sketchCanvas) return;
-    if (_sketchCtx) return; // already initialised
+    if (!_sketchCanvas || _sketchCtx) return;
     const rect = _sketchCanvas.getBoundingClientRect();
-    if (!rect.width) return; // not visible yet — selectMode will retry via rAF
-    _sketchCtx = _sketchCanvas.getContext('2d');
+    if (!rect.width) return;
     const dpr = window.devicePixelRatio || 1;
-    _sketchCanvas.width  = rect.width  * dpr;
-    _sketchCanvas.height = rect.height * dpr;
+    const W = Math.round(rect.width * dpr), H = Math.round(rect.height * dpr);
+    _sketchCanvas.width = W; _sketchCanvas.height = H;
+    _sketchCtx = _sketchCanvas.getContext('2d');
     _sketchCtx.scale(dpr, dpr);
-    _fillSketchBackground();
-
-    // Mouse events
+    _freehandCanvas = document.createElement('canvas');
+    _freehandCanvas.width = W; _freehandCanvas.height = H;
+    _freehandCtx = _freehandCanvas.getContext('2d');
+    _freehandCtx.scale(dpr, dpr);
+    _renderCanvas();
     _sketchCanvas.addEventListener('mousedown',  _sketchStart);
     _sketchCanvas.addEventListener('mousemove',  _sketchMove);
     _sketchCanvas.addEventListener('mouseup',    _sketchEnd);
     _sketchCanvas.addEventListener('mouseleave', _sketchEnd);
-
-    // Touch events
     _sketchCanvas.addEventListener('touchstart',  _sketchStartT, { passive: false });
     _sketchCanvas.addEventListener('touchmove',   _sketchMoveT,  { passive: false });
     _sketchCanvas.addEventListener('touchend',    _sketchEnd);
     _sketchCanvas.addEventListener('touchcancel', _sketchEnd);
   }
 
-  function _fillSketchBackground() {
-    const r = _sketchCanvas.getBoundingClientRect();
-    _sketchCtx.fillStyle = '#1a2d1a';
-    _sketchCtx.fillRect(0, 0, r.width, r.height);
-    // centre line
-    _sketchCtx.strokeStyle = 'rgba(255,255,255,0.12)';
-    _sketchCtx.lineWidth = 1;
-    _sketchCtx.setLineDash([8, 6]);
-    _sketchCtx.beginPath();
-    _sketchCtx.moveTo(0, r.height / 2);
-    _sketchCtx.lineTo(r.width, r.height / 2);
-    _sketchCtx.stroke();
-    _sketchCtx.setLineDash([]);
+  function _renderCanvas() {
+    if (!_sketchCtx) return;
+    const ctx = _sketchCtx;
+    const r   = _sketchCanvas.getBoundingClientRect();
+    ctx.fillStyle = '#1a2d1a';
+    ctx.fillRect(0, 0, r.width, r.height);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(0, r.height / 2); ctx.lineTo(r.width, r.height / 2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (_freehandCanvas) ctx.drawImage(_freehandCanvas, 0, 0, r.width, r.height);
+    _elements.forEach(el => _drawElement(el, el.id === _selectedId));
+  }
+
+  function _drawElement(el, sel) {
+    const ctx = _sketchCtx;
+    ctx.save();
+    if (el.type === 'player') {
+      ctx.beginPath(); ctx.arc(el.x, el.y, 14, 0, Math.PI*2);
+      ctx.fillStyle = 'white'; ctx.fill();
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
+      ctx.fillStyle = '#111'; ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(el.label), el.x, el.y);
+    } else if (el.type === 'cone') {
+      const sz = 10;
+      ctx.beginPath(); ctx.moveTo(el.x, el.y-sz); ctx.lineTo(el.x+sz, el.y+sz); ctx.lineTo(el.x-sz, el.y+sz); ctx.closePath();
+      ctx.fillStyle = '#f07023'; ctx.fill();
+      ctx.strokeStyle = '#c05010'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
+    } else if (el.type === 'arrow') {
+      _drawArrow(el.x1, el.y1, el.x2, el.y2);
+    } else if (el.type === 'text') {
+      ctx.fillStyle = '#fff'; ctx.font = `bold ${el.fs||16}px sans-serif`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(el.text, el.x, el.y);
+    }
+    if (sel) {
+      const bb = _elBBox(el);
+      ctx.strokeStyle = '#87C232'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
+      ctx.strokeRect(bb.x - 6, bb.y - 6, bb.w + 12, bb.h + 12);
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
+  function _elBBox(el) {
+    if (el.type === 'player') return { x: el.x-16, y: el.y-16, w: 32, h: 32 };
+    if (el.type === 'cone')   return { x: el.x-12, y: el.y-14, w: 24, h: 24 };
+    if (el.type === 'arrow') {
+      const x0=Math.min(el.x1,el.x2), y0=Math.min(el.y1,el.y2);
+      return { x:x0, y:y0, w:Math.abs(el.x2-el.x1)||8, h:Math.abs(el.y2-el.y1)||8 };
+    }
+    if (el.type === 'text') {
+      _sketchCtx.font = `bold ${el.fs||16}px sans-serif`;
+      const m = _sketchCtx.measureText(el.text);
+      return { x: el.x, y: el.y, w: m.width, h: (el.fs||16)+4 };
+    }
+    return { x: el.x-10, y: el.y-10, w: 20, h: 20 };
+  }
+
+  function _hitTest(x, y) {
+    for (let i = _elements.length-1; i >= 0; i--) {
+      const el = _elements[i];
+      if (el.type === 'player' && Math.hypot(x-el.x, y-el.y) < 20) return el;
+      if (el.type === 'cone'   && Math.hypot(x-el.x, y-el.y) < 18) return el;
+      if (el.type === 'arrow'  && _distSeg(x,y,el.x1,el.y1,el.x2,el.y2) < 14) return el;
+      if (el.type === 'text') {
+        const bb = _elBBox(el);
+        if (x>=bb.x-4&&x<=bb.x+bb.w+4&&y>=bb.y-4&&y<=bb.y+bb.h+4) return el;
+      }
+    }
+    return null;
+  }
+
+  function _distSeg(px,py,ax,ay,bx,by) {
+    const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy;
+    if (!l2) return Math.hypot(px-ax, py-ay);
+    const t = Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/l2));
+    return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
   }
 
   function _canvasPos(e) {
@@ -734,146 +828,160 @@
   }
 
   function _saveUndo() {
-    const r = _sketchCanvas.getBoundingClientRect();
-    _undoStack.push(_sketchCtx.getImageData(0, 0, _sketchCanvas.width, _sketchCanvas.height));
+    _undoStack.push({
+      freehand: _freehandCtx.getImageData(0, 0, _freehandCanvas.width, _freehandCanvas.height),
+      elements: JSON.parse(JSON.stringify(_elements)),
+      counter:  _stampCounter,
+    });
     if (_undoStack.length > 30) _undoStack.shift();
   }
 
   function _sketchStart(e) {
     const pt = _canvasPos(e);
+    _lastPt = pt;
+
+    if (_sketchTool === 'select') {
+      const hit = _hitTest(pt.x, pt.y);
+      if (hit) {
+        if (_selectedId !== hit.id) { _saveUndo(); _selectedId = hit.id; _renderCanvas(); }
+        _isDraggingEl = true; _dragStartPt = pt;
+        _dragOrigEl = JSON.parse(JSON.stringify(hit));
+      } else if (_selectedId !== null) {
+        _selectedId = null; _renderCanvas();
+      }
+      return;
+    }
+    if (_sketchTool === 'text') { _showTextInput(pt); return; }
+
+    _saveUndo();
     if (_sketchTool === 'draw') {
-      _saveUndo();
       _isDrawing = true;
-      _sketchCtx.beginPath();
-      _sketchCtx.moveTo(pt.x, pt.y);
-      _sketchCtx.strokeStyle = '#fff';
-      _sketchCtx.lineWidth = 2.5;
-      _sketchCtx.lineCap = 'round';
-      _sketchCtx.lineJoin = 'round';
-      _sketchCtx.setLineDash([]);
+      for (const ctx of [_sketchCtx, _freehandCtx]) {
+        ctx.beginPath(); ctx.moveTo(pt.x, pt.y);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.setLineDash([]);
+      }
     } else if (_sketchTool === 'arrow') {
-      _saveUndo();
-      _arrowStart    = pt;
-      _dragSnapshot  = _sketchCtx.getImageData(0, 0, _sketchCanvas.width, _sketchCanvas.height);
-      _isArrowDragging = true;
-    } else {
-      _saveUndo();
-      _stampAt(pt.x, pt.y);
-      _hasDrawn = true;
+      _arrowStart = pt; _isArrowDragging = true;
+    } else if (_sketchTool === 'player') {
+      _elements.push({ id: _nextElId++, type: 'player', x: pt.x, y: pt.y, label: _stampCounter++ });
+      _hasDrawn = true; _renderCanvas();
+    } else if (_sketchTool === 'cone') {
+      _elements.push({ id: _nextElId++, type: 'cone', x: pt.x, y: pt.y });
+      _hasDrawn = true; _renderCanvas();
     }
   }
 
   function _sketchMove(e) {
     const pt = _canvasPos(e);
+    _lastPt = pt;
+    if (_isDraggingEl && _dragStartPt && _dragOrigEl) {
+      const dx = pt.x - _dragStartPt.x, dy = pt.y - _dragStartPt.y;
+      const el = _elements.find(x => x.id === _selectedId);
+      if (el) {
+        if (el.type === 'arrow') {
+          el.x1 = _dragOrigEl.x1+dx; el.y1 = _dragOrigEl.y1+dy;
+          el.x2 = _dragOrigEl.x2+dx; el.y2 = _dragOrigEl.y2+dy;
+        } else { el.x = _dragOrigEl.x+dx; el.y = _dragOrigEl.y+dy; }
+        _renderCanvas();
+      }
+      return;
+    }
     if (_isDrawing) {
-      _sketchCtx.lineTo(pt.x, pt.y);
-      _sketchCtx.stroke();
+      for (const ctx of [_sketchCtx, _freehandCtx]) { ctx.lineTo(pt.x, pt.y); ctx.stroke(); }
       _hasDrawn = true;
     } else if (_isArrowDragging && _arrowStart) {
-      _sketchCtx.putImageData(_dragSnapshot, 0, 0);
-      _drawArrow(_arrowStart.x, _arrowStart.y, pt.x, pt.y);
+      _renderCanvas(); _drawArrow(_arrowStart.x, _arrowStart.y, pt.x, pt.y);
     }
   }
 
-  function _sketchEnd(e) {
-    if (_isArrowDragging) {
+  function _sketchEnd() {
+    if (_isDraggingEl) { _isDraggingEl = false; _hasDrawn = true; _dragStartPt = null; _dragOrigEl = null; return; }
+    if (_isDrawing) { _isDrawing = false; _hasDrawn = true; _renderCanvas(); return; }
+    if (_isArrowDragging && _arrowStart) {
       _isArrowDragging = false;
-      _hasDrawn = true;
+      const end = _lastPt || _arrowStart;
+      if (Math.hypot(end.x-_arrowStart.x, end.y-_arrowStart.y) > 8) {
+        _elements.push({ id: _nextElId++, type:'arrow', x1:_arrowStart.x, y1:_arrowStart.y, x2:end.x, y2:end.y });
+        _hasDrawn = true;
+      } else { _undoStack.pop(); }
+      _arrowStart = null; _renderCanvas();
     }
-    _isDrawing = false;
-    _arrowStart = null;
-    _dragSnapshot = null;
   }
 
   function _drawArrow(x1, y1, x2, y2) {
-    const dx = x2 - x1, dy = y2 - y1;
-    const len = Math.hypot(dx, dy);
+    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
     if (len < 6) return;
-    const headLen = 14;
-    const angle = Math.atan2(dy, dx);
-    const tipX  = x2, tipY = y2;
-    const shaftX = tipX - Math.cos(angle) * (headLen * 0.55);
-    const shaftY = tipY - Math.sin(angle) * (headLen * 0.55);
-
-    _sketchCtx.strokeStyle = '#87C232';
-    _sketchCtx.fillStyle   = '#87C232';
-    _sketchCtx.lineWidth   = 2.5;
-    _sketchCtx.lineCap     = 'round';
-    _sketchCtx.setLineDash([]);
-
-    _sketchCtx.beginPath();
-    _sketchCtx.moveTo(x1, y1);
-    _sketchCtx.lineTo(shaftX, shaftY);
-    _sketchCtx.stroke();
-
-    _sketchCtx.beginPath();
-    _sketchCtx.moveTo(tipX, tipY);
-    _sketchCtx.lineTo(tipX - headLen * Math.cos(angle - Math.PI / 6), tipY - headLen * Math.sin(angle - Math.PI / 6));
-    _sketchCtx.lineTo(tipX - headLen * Math.cos(angle + Math.PI / 6), tipY - headLen * Math.sin(angle + Math.PI / 6));
-    _sketchCtx.closePath();
-    _sketchCtx.fill();
+    const headLen=14, angle=Math.atan2(dy,dx);
+    const shaftX=x2-Math.cos(angle)*(headLen*0.55), shaftY=y2-Math.sin(angle)*(headLen*0.55);
+    _sketchCtx.strokeStyle='#87C232'; _sketchCtx.fillStyle='#87C232';
+    _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
+    _sketchCtx.beginPath(); _sketchCtx.moveTo(x1,y1); _sketchCtx.lineTo(shaftX,shaftY); _sketchCtx.stroke();
+    _sketchCtx.beginPath(); _sketchCtx.moveTo(x2,y2);
+    _sketchCtx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
+    _sketchCtx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
+    _sketchCtx.closePath(); _sketchCtx.fill();
   }
 
-  function _sketchStartT(e) {
-    e.preventDefault();
-    if (e.touches.length !== 1) return;
-    _sketchStart(e.touches[0]);
+  function _sketchStartT(e) { e.preventDefault(); if (e.touches.length===1) _sketchStart(e.touches[0]); }
+  function _sketchMoveT(e)  { e.preventDefault(); if (e.touches.length===1) _sketchMove(e.touches[0]); }
+
+  // ── Text input overlay ─────────────────────────────────────────────────────
+
+  function _showTextInput(pt) {
+    _textPos = pt;
+    const rect = _sketchCanvas.getBoundingClientRect();
+    const ov = document.getElementById('sketchTextOverlay');
+    ov.style.left = (rect.left + pt.x) + 'px';
+    ov.style.top  = (rect.top  + pt.y - 28) + 'px';
+    ov.style.display = 'block';
+    const inp = document.getElementById('sketchTextInput');
+    inp.value = '';
+    setTimeout(() => inp.focus(), 40);
   }
 
-  function _sketchMoveT(e) {
-    e.preventDefault();
-    if (e.touches.length !== 1) return;
-    _sketchMove(e.touches[0]);
-  }
-
-  function _stampAt(x, y) {
-    if (_sketchTool === 'player') {
-      _sketchCtx.beginPath();
-      _sketchCtx.arc(x, y, 14, 0, Math.PI * 2);
-      _sketchCtx.fillStyle = 'white';
-      _sketchCtx.fill();
-      _sketchCtx.strokeStyle = '#333';
-      _sketchCtx.lineWidth = 1.5;
-      _sketchCtx.setLineDash([]);
-      _sketchCtx.stroke();
-      _sketchCtx.fillStyle = '#111';
-      _sketchCtx.font = 'bold 13px sans-serif';
-      _sketchCtx.textAlign = 'center';
-      _sketchCtx.textBaseline = 'middle';
-      _sketchCtx.fillText(String(_stampCounter++), x, y);
-    } else if (_sketchTool === 'cone') {
-      const sz = 10;
-      _sketchCtx.beginPath();
-      _sketchCtx.moveTo(x, y - sz);
-      _sketchCtx.lineTo(x + sz, y + sz);
-      _sketchCtx.lineTo(x - sz, y + sz);
-      _sketchCtx.closePath();
-      _sketchCtx.fillStyle = '#f07023';
-      _sketchCtx.fill();
-      _sketchCtx.strokeStyle = '#c05010';
-      _sketchCtx.lineWidth = 1;
-      _sketchCtx.setLineDash([]);
-      _sketchCtx.stroke();
+  function _commitText() {
+    const inp  = document.getElementById('sketchTextInput');
+    const text = inp.value.trim();
+    document.getElementById('sketchTextOverlay').style.display = 'none';
+    inp.value = '';
+    if (text && _textPos) {
+      _saveUndo();
+      _elements.push({ id: _nextElId++, type: 'text', x: _textPos.x, y: _textPos.y, text, fs: 16 });
+      _hasDrawn = true; _renderCanvas();
     }
+    _textPos = null;
+  }
+
+  function _cancelText() {
+    document.getElementById('sketchTextOverlay').style.display = 'none';
+    document.getElementById('sketchTextInput').value = '';
+    _textPos = null;
   }
 
   function setSketchTool(tool, btn) {
     _sketchTool = tool;
+    _selectedId = null;
+    _renderCanvas();
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
 
   function undoSketch() {
     if (!_undoStack.length) return;
-    _sketchCtx.putImageData(_undoStack.pop(), 0, 0);
-    _hasDrawn = _undoStack.length > 0;
+    const state = _undoStack.pop();
+    _freehandCtx.clearRect(0, 0, _freehandCanvas.width, _freehandCanvas.height);
+    if (state.freehand) _freehandCtx.putImageData(state.freehand, 0, 0);
+    _elements = state.elements; _stampCounter = state.counter; _selectedId = null;
+    _hasDrawn = _undoStack.length > 0 || _elements.length > 0;
+    _renderCanvas();
   }
 
   function clearSketch() {
-    _undoStack = [];
-    _stampCounter = 1;
-    _hasDrawn = false;
-    _fillSketchBackground();
+    _undoStack = []; _stampCounter = 1; _hasDrawn = false;
+    _elements = []; _nextElId = 1; _selectedId = null;
+    if (_freehandCtx) _freehandCtx.clearRect(0, 0, _freehandCanvas.width, _freehandCanvas.height);
+    _renderCanvas();
   }
 
   function switchMediaTab(tab, btn) {
@@ -886,21 +994,17 @@
   }
 
   function getSketchPng() {
+    if (_textPos) _commitText(); // commit any pending text
+    _selectedId = null; _renderCanvas(); // deselect before export
     return new Promise((resolve) => {
       const dpr = window.devicePixelRatio || 1;
-      const w = _sketchCanvas.width  / dpr;
-      const h = _sketchCanvas.height / dpr;
-      const offscreen = document.createElement('canvas');
-      offscreen.width  = Math.round(w);
-      offscreen.height = Math.round(h);
-      const ctx = offscreen.getContext('2d');
-      ctx.drawImage(_sketchCanvas, 0, 0, _sketchCanvas.width, _sketchCanvas.height, 0, 0, offscreen.width, offscreen.height);
-      offscreen.toBlob(blob => {
+      const w = _sketchCanvas.width / dpr, h = _sketchCanvas.height / dpr;
+      const off = document.createElement('canvas');
+      off.width = Math.round(w); off.height = Math.round(h);
+      off.getContext('2d').drawImage(_sketchCanvas, 0, 0, _sketchCanvas.width, _sketchCanvas.height, 0, 0, off.width, off.height);
+      off.toBlob(blob => {
         const reader = new FileReader();
-        reader.onload = e => resolve({
-          base64:   e.target.result.split(',')[1],
-          mimeType: 'image/png',
-        });
+        reader.onload = e => resolve({ base64: e.target.result.split(',')[1], mimeType: 'image/png' });
         reader.readAsDataURL(blob);
       }, 'image/png');
     });
