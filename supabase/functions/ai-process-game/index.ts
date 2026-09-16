@@ -34,6 +34,33 @@ Process the coaching drill and return a JSON object with exactly these fields:
     Player 1 hand-passes to Player 2. Player 2 runs towards the bottom-left cone."
   - Do not describe tactics or teaching points here — only positions and movements.`;
 
+// ── Call 0: suitability check for uploaded documents ─────────────────────
+const SUITABILITY_PROMPT = `You are a GAA coaching content moderator. A coach has uploaded a document to convert into a structured game or drill record.
+
+Review the content and decide: does this document contain a GAA or sports coaching game, drill, or session plan?
+
+Return ONLY this JSON:
+{
+  "suitable": true,
+  "reason": "one sentence explaining your decision",
+  "title_hint": "name of the main game or drill if identifiable, otherwise null"
+}
+
+A document IS suitable if it contains:
+- A specific game or drill with setup instructions or rules
+- A training session plan with coaching activities
+- An exercise with objectives or teaching points
+- Session notes that describe how to run games or drills
+
+A document is NOT suitable if it is:
+- An invoice, receipt, contract or financial document
+- A personal letter, email or chat log unrelated to coaching
+- A fixture list, results sheet, or squad list with no drill content
+- A general presentation unrelated to sports or coaching
+- Entirely off-topic
+
+Set "suitable": false and explain in "reason" if not suitable.`;
+
 // ── Call 2: translate the precise spatial description into a zone layout ──
 const LAYOUT_PROMPT = `You are converting a GAA drill spatial description into a structured zone layout JSON.
 
@@ -127,10 +154,15 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { image_base64, image_mime_type, description, game_type, game_age, game_name } = body;
+    const {
+      image_base64, image_mime_type, description, game_type, game_age, game_name,
+      document_text, document_base64, document_mime_type,
+    } = body;
 
-    if (!description?.trim() && !image_base64) {
-      return new Response(JSON.stringify({ error: "Provide a description or image" }), {
+    const isDocMode = !!(document_text || document_base64);
+
+    if (!isDocMode && !description?.trim() && !image_base64) {
+      return new Response(JSON.stringify({ error: "Provide a description, image, or document" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -142,16 +174,53 @@ serve(async (req) => {
       });
     }
 
+    // ── Document mode: suitability check first ────────────────────────────────
+    let docTitleHint: string | null = null;
+    if (isDocMode) {
+      const suitParts: any[] = [];
+      if (document_base64 && document_mime_type) {
+        suitParts.push({ inline_data: { mime_type: document_mime_type, data: document_base64 } });
+        suitParts.push({ text: "Review this document for coaching suitability." });
+      } else {
+        suitParts.push({ text: `Document content:\n\n${document_text}` });
+      }
+
+      let suitResult: any = { suitable: true };
+      try {
+        const raw = await callGemini(apiKey, SUITABILITY_PROMPT, suitParts);
+        suitResult = parseJson(raw);
+      } catch (err) {
+        console.warn("Suitability check failed — proceeding:", err);
+      }
+
+      if (!suitResult.suitable) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            suitable: false,
+            reason: suitResult.reason || "This document does not appear to contain a coaching game or drill.",
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      docTitleHint = suitResult.title_hint || null;
+    }
+
+    // ── Build Call 1 parts ────────────────────────────────────────────────────
     const contextText = [
-      game_name?.trim()   ? `Drill name (suggestion): ${game_name.trim()}` : null,
+      (docTitleHint || game_name?.trim()) ? `Drill name (suggestion): ${docTitleHint || game_name!.trim()}` : null,
       game_type?.trim()   ? `Game type: ${game_type.trim()}` : null,
       game_age?.length    ? `Age group: ${(Array.isArray(game_age) ? game_age : [game_age]).join(", ")}` : null,
-      description?.trim() ? `Coach's notes:\n${description.trim()}` : null,
+      !isDocMode && description?.trim() ? `Coach's notes:\n${description.trim()}` : null,
+      isDocMode && document_text ? `Document content:\n${document_text}` : null,
     ].filter(Boolean).join("\n");
 
     const call1Parts: any[] = [];
-    if (image_base64 && image_mime_type) {
+    if (!isDocMode && image_base64 && image_mime_type) {
       call1Parts.push({ inline_data: { mime_type: image_mime_type, data: image_base64 } });
+    }
+    if (isDocMode && document_base64 && document_mime_type) {
+      call1Parts.push({ inline_data: { mime_type: document_mime_type, data: document_base64 } });
     }
     call1Parts.push({ text: contextText || "Process this coaching drill." });
 

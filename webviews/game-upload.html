@@ -7,6 +7,7 @@
   <style>html,body{background:#111418 !important;}</style>
   <title>Add Game</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
     :root {
       --green:    #87C232;
@@ -271,14 +272,95 @@
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.success { border-color: var(--green); color: var(--green); }
     .toast.error   { border-color: var(--red); color: var(--red); }
+
+    /* ── MODE SELECT ── */
+    .mode-intro { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 4px; }
+    .mode-card {
+      width: 100%; background: var(--card); border-radius: var(--radius);
+      border: 1.5px solid var(--border); padding: 18px 16px;
+      display: flex; align-items: center; gap: 14px; text-align: left;
+      transition: border-color 0.15s, background 0.1s;
+    }
+    .mode-card:active { background: var(--card2); border-color: var(--green); }
+    .mode-card-icon {
+      width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+      background: var(--green-dim); border: 1px solid rgba(135,194,50,0.2);
+      display: flex; align-items: center; justify-content: center; color: var(--green);
+    }
+    .mode-card-icon svg { width: 24px; height: 24px; }
+    .mode-card-body { flex: 1; min-width: 0; }
+    .mode-card-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .mode-card-desc { font-size: 13px; color: var(--muted); line-height: 1.45; }
+    .mode-card-chev { color: var(--muted); flex-shrink: 0; }
+    .mode-card-chev svg { width: 20px; height: 20px; }
+
+    /* ── DOC UPLOAD ── */
+    .doc-zone {
+      width: 100%; min-height: 140px; border-radius: var(--radius);
+      border: 2px dashed var(--border); background: var(--card); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; color: var(--muted); transition: border-color 0.15s; padding: 24px 16px;
+    }
+    .doc-zone:active { border-color: var(--green); }
+    .doc-zone.has-file { border-style: solid; border-color: var(--green); background: var(--green-dim); }
+    .doc-zone svg { width: 32px; height: 32px; opacity: 0.5; }
+    .doc-zone.has-file svg { opacity: 1; color: var(--green); }
+    .doc-zone-label { font-size: 14px; font-weight: 500; }
+    .doc-zone-sub { font-size: 12px; opacity: 0.6; }
+    .doc-file-name { font-size: 14px; font-weight: 600; color: var(--text); text-align: center; word-break: break-all; }
+    .doc-clear-btn {
+      font-size: 12px; color: var(--muted); background: var(--card2);
+      border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; margin-top: 4px;
+    }
+    .unsuitable-banner {
+      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--radius); padding: 14px 16px; display: none;
+    }
+    .unsuitable-banner.show { display: block; }
+    .unsuitable-title { font-size: 14px; font-weight: 600; color: var(--red); margin-bottom: 4px; }
+    .unsuitable-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
   </style>
 </head>
 <body>
 
-<!-- ── SCREEN 1: UPLOAD ─────────────────────────────────────────────────── -->
-<div id="screenUpload" class="screen active">
+<!-- ── SCREEN 0: MODE SELECT ─────────────────────────────────────────────── -->
+<div id="screenMode" class="screen active">
   <div class="top-bar">
     <button class="back-btn" onclick="goBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="top-bar-title">Add Game / Drill</div>
+  </div>
+  <div class="form-body">
+    <div class="mode-intro">How would you like to add a game or drill?</div>
+    <button class="mode-card" onclick="selectMode('create')">
+      <div class="mode-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </div>
+      <div class="mode-card-body">
+        <div class="mode-card-title">Create from scratch</div>
+        <div class="mode-card-desc">Describe your drill in your own words, sketch it out, or speak it — AI will structure it for you.</div>
+      </div>
+      <div class="mode-card-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </button>
+    <button class="mode-card" onclick="selectMode('convert')">
+      <div class="mode-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <div class="mode-card-body">
+        <div class="mode-card-title">Convert a document</div>
+        <div class="mode-card-desc">Upload an existing PPTX, DOCX or PDF session plan — AI will extract and structure the content.</div>
+      </div>
+      <div class="mode-card-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </button>
+  </div>
+</div>
+
+
+<!-- ── SCREEN 1: UPLOAD ─────────────────────────────────────────────────── -->
+<div id="screenUpload" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('screenMode')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="top-bar-title">New Game / Drill</div>
@@ -400,10 +482,54 @@
 </div>
 
 
+<!-- ── SCREEN 1b: DOC UPLOAD ──────────────────────────────────────────────── -->
+<div id="screenDocUpload" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('screenMode')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="top-bar-title">Convert Document</div>
+  </div>
+  <div class="form-body">
+
+    <div class="field-label">Document</div>
+    <div class="doc-zone" id="docZone" onclick="document.getElementById('docFileInput').click()">
+      <div id="docZoneEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <div class="doc-zone-label">Tap to select a document</div>
+        <div class="doc-zone-sub">PPTX · DOCX · PDF</div>
+      </div>
+      <div id="docZoneSelected" style="display:none; flex-direction:column; align-items:center; gap:8px; width:100%">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="doc-file-name" id="docFileName"></div>
+        <button class="doc-clear-btn" onclick="clearDocFile(event)">Remove</button>
+      </div>
+    </div>
+    <input type="file" id="docFileInput" accept=".docx,.pptx,.pdf" onchange="handleDocFileSelect(this)" style="display:none"/>
+
+    <div id="unsuitable" class="unsuitable-banner">
+      <div class="unsuitable-title">Document not suitable</div>
+      <div class="unsuitable-text" id="unsuitableText"></div>
+    </div>
+
+    <div style="font-size:13px; color:var(--muted); line-height:1.6; background:var(--card); border-radius:var(--radius); padding:14px 16px; border:1px solid var(--border);">
+      Upload a coaching session plan, game description, or drill document. The AI will check the content and extract the game details automatically.
+    </div>
+
+  </div>
+  <div class="sticky-footer">
+    <button class="btn-primary" id="convertBtn" onclick="processDocument()" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.7"/></svg>
+      Convert with AI
+    </button>
+  </div>
+</div>
+
+
 <!-- ── SCREEN 2: PROCESSING ─────────────────────────────────────────────── -->
 <div id="screenProcessing" class="screen">
   <div class="spinner"></div>
-  <div class="processing-title">Analysing your drill…</div>
+  <div class="processing-title" id="processingTitle">Analysing your drill…</div>
   <div class="processing-status" id="processingStatus">Reading your notes</div>
 </div>
 
@@ -739,6 +865,8 @@
   let _imageBase64   = null;
   let _imageMimeType = null;
   let _lastPayload   = null;  // kept so "Regenerate" can re-call without re-uploading
+  let _entryMode     = 'create'; // 'create' | 'convert'
+  let _docFile       = null;
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
 
@@ -753,7 +881,135 @@
     else { history.back(); }
   }
 
-  function backToUpload() { showScreen('screenUpload'); }
+  function backToUpload() {
+    showScreen(_entryMode === 'convert' ? 'screenDocUpload' : 'screenUpload');
+  }
+
+  function selectMode(mode) {
+    _entryMode = mode;
+    showScreen(mode === 'convert' ? 'screenDocUpload' : 'screenUpload');
+  }
+
+  // ── Document upload ────────────────────────────────────────────────────────
+
+  function handleDocFileSelect(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    _docFile = file;
+    document.getElementById('docZoneEmpty').style.display = 'none';
+    const sel = document.getElementById('docZoneSelected');
+    sel.style.display = 'flex';
+    document.getElementById('docFileName').textContent = file.name;
+    document.getElementById('docZone').classList.add('has-file');
+    document.getElementById('convertBtn').disabled = false;
+    document.getElementById('unsuitable').classList.remove('show');
+  }
+
+  function clearDocFile(e) {
+    e.stopPropagation();
+    _docFile = null;
+    document.getElementById('docZoneEmpty').style.display = '';
+    document.getElementById('docZoneSelected').style.display = 'none';
+    document.getElementById('docZone').classList.remove('has-file');
+    document.getElementById('convertBtn').disabled = true;
+    document.getElementById('docFileInput').value = '';
+    document.getElementById('unsuitable').classList.remove('show');
+  }
+
+  async function extractDocText(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve({
+          type: 'pdf',
+          base64: e.target.result.split(',')[1],
+          mimeType: 'application/pdf',
+        });
+        reader.readAsDataURL(file);
+      });
+    }
+    if (!window.JSZip) throw new Error('ZIP library not loaded — please reload and try again');
+    const zip = await window.JSZip.loadAsync(file);
+    let text = '';
+    if (ext === 'docx') {
+      const f = zip.file('word/document.xml');
+      if (f) {
+        const xml = await f.async('string');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        const ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        text = Array.from(doc.getElementsByTagNameNS(ns, 't')).map(n => n.textContent).join(' ');
+      }
+    } else if (ext === 'pptx') {
+      const names = Object.keys(zip.files)
+        .filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n))
+        .sort((a, b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
+      for (const name of names) {
+        const xml = await zip.file(name).async('string');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        const ns = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+        const t = Array.from(doc.getElementsByTagNameNS(ns, 't')).map(n => n.textContent).join(' ').trim();
+        if (t) text += t + '\n\n';
+      }
+    }
+    return { type: 'text', text: text.replace(/\s+/g, ' ').trim() };
+  }
+
+  async function processDocument() {
+    if (!_docFile) { showToast('Select a document first', 'error'); return; }
+    let extracted;
+    try {
+      extracted = await extractDocText(_docFile);
+    } catch (err) {
+      showToast('Could not read document: ' + (err.message || 'Unknown error'), 'error');
+      return;
+    }
+    if (extracted.type === 'text' && !extracted.text) {
+      showToast('No readable text found in document', 'error');
+      return;
+    }
+    const payload = extracted.type === 'pdf'
+      ? { document_base64: extracted.base64, document_mime_type: extracted.mimeType }
+      : { document_text: extracted.text };
+
+    document.getElementById('processingTitle').textContent = 'Analysing your document…';
+    showScreen('screenProcessing');
+    startStatusCycle();
+
+    try {
+      const res = await fetch(EDGE_FN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      stopStatusCycle();
+
+      if (res.status === 422 && json.suitable === false) {
+        showScreen('screenDocUpload');
+        document.getElementById('unsuitableText').textContent =
+          json.reason || 'This document does not appear to contain a coaching drill.';
+        document.getElementById('unsuitable').classList.add('show');
+        return;
+      }
+
+      if (!res.ok || !json.success) {
+        showScreen('screenDocUpload');
+        showToast('Error: ' + (json.error || 'AI processing failed'), 'error');
+        return;
+      }
+
+      showReview(json.data);
+    } catch (err) {
+      stopStatusCycle();
+      showScreen('screenDocUpload');
+      showToast('Error: ' + (err.message || 'Unknown error'), 'error');
+    }
+  }
 
   // ── Age chip toggle ────────────────────────────────────────────────────────
 
@@ -893,6 +1149,7 @@
     };
     _lastPayload = payload;
 
+    document.getElementById('processingTitle').textContent = 'Analysing your drill…';
     showScreen('screenProcessing');
     startStatusCycle();
 
