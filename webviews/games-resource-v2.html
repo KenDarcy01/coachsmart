@@ -199,9 +199,28 @@
 
     /* ── IMAGE VIEWER ── */
     .img-viewer-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; }
+    .img-viewer-wrap {
+      border-radius: 12px; overflow: hidden;
+      transform-origin: center center;
+      transition: transform 0.12s ease;
+      will-change: transform;
+    }
+    .img-viewer-wrap.img-pressing {
+      transform: scale(0.96);
+      transition: transform 0.1s ease;
+    }
+    @keyframes img-bounce {
+      0%   { transform: scale(0.96); }
+      45%  { transform: scale(1.06); }
+      72%  { transform: scale(0.98); }
+      100% { transform: scale(1); }
+    }
+    .img-viewer-wrap.img-bouncing {
+      animation: img-bounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
     .img-viewer-img {
       width: 100%; display: block; background: var(--card2);
-      max-height: 65vh; object-fit: contain; border-radius: 12px;
+      max-height: 65vh; object-fit: contain;
       touch-action: none; user-select: none;
       transform-origin: center center; will-change: transform;
     }
@@ -486,7 +505,9 @@
     </button>
   </div>
   <div class="img-viewer-scroll">
-    <img id="imageViewerImg" class="img-viewer-img" src="" alt="" onerror="this.style.display='none'">
+    <div id="imageViewerImgWrap" class="img-viewer-wrap">
+      <img id="imageViewerImg" class="img-viewer-img" src="" alt="" onerror="this.style.display='none'">
+    </div>
     <div class="img-zoom-hint" id="zoomHint">Pinch to zoom · Double-tap to zoom in · Hold to share</div>
     <div class="img-viewer-info">
       <div class="img-viewer-title" id="imageViewerHeading"></div>
@@ -1008,6 +1029,8 @@ function initImageZoom() {
   function _cancelLongPress() {
     if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
     _longPressOrigin = null;
+    const wrap = $('imageViewerImgWrap');
+    if (wrap) wrap.classList.remove('img-pressing', 'img-bouncing');
   }
 
   img.addEventListener('touchstart', (e) => {
@@ -1035,10 +1058,18 @@ function initImageZoom() {
         _panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: _zoomTX, ty: _zoomTY };
       } else {
         // Start long-press detection (only when not zoomed)
+        const wrap = $('imageViewerImgWrap');
+        if (wrap) wrap.classList.add('img-pressing');
         _longPressOrigin = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         _longPressTimer = setTimeout(() => {
           _longPressTimer = null;
           _longPressOrigin = null;
+          const w = $('imageViewerImgWrap');
+          if (w) {
+            w.classList.remove('img-pressing');
+            w.classList.add('img-bouncing');
+            w.addEventListener('animationend', () => w.classList.remove('img-bouncing'), { once: true });
+          }
           shareCurrentImage();
         }, 550);
       }
@@ -1074,6 +1105,8 @@ function initImageZoom() {
     if (e.touches.length === 0) {
       _panStart = null;
       if (_zoomScale < 1.05) { _zoomScale = 1; _zoomTX = 0; _zoomTY = 0; img.style.transform = ''; }
+      const wrap = $('imageViewerImgWrap');
+      if (wrap) wrap.classList.remove('img-pressing');
     }
   });
 }
