@@ -577,11 +577,11 @@
   <div class="sticky-footer">
     <div class="dual-footer">
       <button class="btn-secondary" onclick="previewGame()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
         </svg>
-        Preview
+        Save as Draft
       </button>
       <button class="btn-primary" id="processBtn" onclick="processWithAI()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -729,7 +729,7 @@
         <polyline points="17 21 17 13 7 13 7 21"/>
         <polyline points="7 3 7 8 15 8"/>
       </svg>
-      Save as Draft
+      Save
     </button>
   </div>
 </div>
@@ -1190,6 +1190,7 @@
   let _docExtractedImage  = null; // data URL of first image found in uploaded doc
   let _docImgBase64       = null; // base64 of image uploaded on the convert→image tab
   let _docImgMimeType     = null;
+  let _reviewImage        = null; // {base64, mimeType} of sketch/photo carried into review
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
 
@@ -1337,6 +1338,7 @@
       if (!_docImgBase64) { showToast('Select an image first', 'error'); return; }
       _entryMode = 'create'; // show AI diagram in review
       _docExtractedImage = null;
+      _reviewImage = { base64: _docImgBase64, mimeType: _docImgMimeType };
       _lastPayload = { image_base64: _docImgBase64, image_mime_type: _docImgMimeType };
       document.getElementById('processingTitle').textContent = 'Analysing your image…';
       showScreen('screenProcessing');
@@ -1516,7 +1518,7 @@
 
   // ── Main process flow ──────────────────────────────────────────────────────
 
-  function previewGame() {
+  async function previewGame() {
     const name       = document.getElementById('inpName').value.trim();
     const setup      = document.getElementById('inpSetup').value.trim();
     const howTo      = document.getElementById('inpHowTo').value.trim();
@@ -1524,6 +1526,16 @@
     const teaching   = document.getElementById('inpTeaching').value.trim();
     if (!setup) { showToast('Setup is required', 'error'); return; }
     if (!howTo) { showToast('How to Play is required', 'error'); return; }
+
+    // Capture sketch or photo so it displays and saves with the draft
+    _reviewImage = null;
+    if (_activeMediaTab === 'sketch' && _hasDrawn) {
+      const png = await getSketchPng();
+      _reviewImage = { base64: png.base64, mimeType: png.mimeType };
+    } else if (_activeMediaTab === 'photo' && _imageBase64) {
+      _reviewImage = { base64: _imageBase64, mimeType: _imageMimeType };
+    }
+
     showReview({
       game_name:            name,
       game_setup:           setup,
@@ -1579,6 +1591,9 @@
     if (!description && !imgBase64) {
       showToast('Fill in at least one field or add a sketch', 'error'); return;
     }
+
+    // Store sketch/photo to display and save with the draft
+    _reviewImage = imgBase64 ? { base64: imgBase64, mimeType: imgMimeType } : null;
 
     const payload = {
       game_name:       document.getElementById('inpName').value.trim() || null,
@@ -1667,18 +1682,32 @@
     const regenBtn    = document.getElementById('regenBtn');
     const inner       = document.getElementById('diagramInner');
 
+    const imgTag = (src, alt) =>
+      `<img src="${src}" style="max-width:100%;border-radius:6px;" alt="${alt}"/>`;
+
     if (_entryMode === 'convert') {
       regenBtn.style.display = 'none';
-      if (_docExtractedImage) {
+      const docImg = _docExtractedImage || (_reviewImage ? `data:${_reviewImage.mimeType};base64,${_reviewImage.base64}` : null);
+      if (docImg) {
         diagramCard.style.display = '';
-        inner.innerHTML = `<img src="${_docExtractedImage}" style="max-width:100%;border-radius:6px;" alt="Document diagram"/>`;
+        inner.innerHTML = imgTag(docImg, 'Document image');
       } else {
         diagramCard.style.display = 'none';
       }
     } else {
-      regenBtn.style.display = '';
-      diagramCard.style.display = '';
-      renderDiagramFromLayout(data.diagram_layout);
+      if (data.diagram_layout) {
+        regenBtn.style.display = '';
+        diagramCard.style.display = '';
+        renderDiagramFromLayout(data.diagram_layout);
+      } else if (_reviewImage) {
+        regenBtn.style.display = 'none';
+        diagramCard.style.display = '';
+        inner.innerHTML = imgTag(`data:${_reviewImage.mimeType};base64,${_reviewImage.base64}`, 'Sketch');
+      } else {
+        regenBtn.style.display = '';
+        diagramCard.style.display = '';
+        inner.innerHTML = '<div class="diagram-error">No diagram generated</div>';
+      }
     }
 
     autoResizeAll();
@@ -1790,7 +1819,20 @@
   // ── Save (placeholder) ─────────────────────────────────────────────────────
 
   function saveGame() {
-    showToast('Save to DB coming soon — review the output above', 'success');
+    const data = {
+      game_name:            document.getElementById('rvName').value.trim(),
+      game_setup:           document.getElementById('rvSetup').value.trim(),
+      game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
+      game_variations:      document.getElementById('rvVariations').value.trim(),
+      game_teaching_points: document.getElementById('rvTeaching').value.trim(),
+      image_base64:         _reviewImage?.base64    || null,
+      image_mime_type:      _reviewImage?.mimeType  || null,
+    };
+    if (window.FlutterBridge) {
+      window.FlutterBridge.postMessage(JSON.stringify({ action: 'save_draft', data }));
+    } else {
+      showToast('Draft saved', 'success');
+    }
   }
 
   // ── Toast ──────────────────────────────────────────────────────────────────
