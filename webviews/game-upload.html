@@ -442,6 +442,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,3 22,21 2,21"/></svg>
               Cone
             </button>
+            <button id="toolArrow" class="tool-btn" onclick="setSketchTool('arrow', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/></svg>
+              Arrow
+            </button>
             <div class="sketch-spacer"></div>
             <button class="tool-icon-btn" onclick="undoSketch()" title="Undo">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
@@ -671,21 +675,26 @@
 
   // ── Canvas sketchpad ───────────────────────────────────────────────────────
 
-  let _activeMediaTab = 'sketch';
-  let _sketchTool     = 'draw';
-  let _isDrawing      = false;
-  let _hasDrawn       = false;
-  let _undoStack      = [];   // array of ImageData snapshots
-  let _stampCounter   = 1;    // label counter for player stamps
-  let _sketchCtx      = null;
-  let _sketchCanvas   = null;
+  let _activeMediaTab   = 'sketch';
+  let _sketchTool       = 'draw';
+  let _isDrawing        = false;
+  let _isArrowDragging  = false;
+  let _arrowStart       = null;
+  let _dragSnapshot     = null;
+  let _hasDrawn         = false;
+  let _undoStack        = [];
+  let _stampCounter     = 1;
+  let _sketchCtx        = null;
+  let _sketchCanvas     = null;
 
   function initSketchCanvas() {
     _sketchCanvas = document.getElementById('sketchCanvas');
     if (!_sketchCanvas) return;
+    if (_sketchCtx) return; // already initialised
+    const rect = _sketchCanvas.getBoundingClientRect();
+    if (!rect.width) return; // not visible yet — selectMode will retry via rAF
     _sketchCtx = _sketchCanvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const rect = _sketchCanvas.getBoundingClientRect();
     _sketchCanvas.width  = rect.width  * dpr;
     _sketchCanvas.height = rect.height * dpr;
     _sketchCtx.scale(dpr, dpr);
@@ -732,8 +741,8 @@
 
   function _sketchStart(e) {
     const pt = _canvasPos(e);
-    _saveUndo();
     if (_sketchTool === 'draw') {
+      _saveUndo();
       _isDrawing = true;
       _sketchCtx.beginPath();
       _sketchCtx.moveTo(pt.x, pt.y);
@@ -742,22 +751,67 @@
       _sketchCtx.lineCap = 'round';
       _sketchCtx.lineJoin = 'round';
       _sketchCtx.setLineDash([]);
+    } else if (_sketchTool === 'arrow') {
+      _saveUndo();
+      _arrowStart    = pt;
+      _dragSnapshot  = _sketchCtx.getImageData(0, 0, _sketchCanvas.width, _sketchCanvas.height);
+      _isArrowDragging = true;
     } else {
+      _saveUndo();
       _stampAt(pt.x, pt.y);
       _hasDrawn = true;
     }
   }
 
   function _sketchMove(e) {
-    if (!_isDrawing) return;
     const pt = _canvasPos(e);
-    _sketchCtx.lineTo(pt.x, pt.y);
-    _sketchCtx.stroke();
-    _hasDrawn = true;
+    if (_isDrawing) {
+      _sketchCtx.lineTo(pt.x, pt.y);
+      _sketchCtx.stroke();
+      _hasDrawn = true;
+    } else if (_isArrowDragging && _arrowStart) {
+      _sketchCtx.putImageData(_dragSnapshot, 0, 0);
+      _drawArrow(_arrowStart.x, _arrowStart.y, pt.x, pt.y);
+    }
   }
 
-  function _sketchEnd() {
+  function _sketchEnd(e) {
+    if (_isArrowDragging) {
+      _isArrowDragging = false;
+      _hasDrawn = true;
+    }
     _isDrawing = false;
+    _arrowStart = null;
+    _dragSnapshot = null;
+  }
+
+  function _drawArrow(x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 6) return;
+    const headLen = 14;
+    const angle = Math.atan2(dy, dx);
+    const tipX  = x2, tipY = y2;
+    const shaftX = tipX - Math.cos(angle) * (headLen * 0.55);
+    const shaftY = tipY - Math.sin(angle) * (headLen * 0.55);
+
+    _sketchCtx.strokeStyle = '#87C232';
+    _sketchCtx.fillStyle   = '#87C232';
+    _sketchCtx.lineWidth   = 2.5;
+    _sketchCtx.lineCap     = 'round';
+    _sketchCtx.setLineDash([]);
+
+    _sketchCtx.beginPath();
+    _sketchCtx.moveTo(x1, y1);
+    _sketchCtx.lineTo(shaftX, shaftY);
+    _sketchCtx.stroke();
+
+    _sketchCtx.beginPath();
+    _sketchCtx.moveTo(tipX, tipY);
+    _sketchCtx.lineTo(tipX - headLen * Math.cos(angle - Math.PI / 6), tipY - headLen * Math.sin(angle - Math.PI / 6));
+    _sketchCtx.lineTo(tipX - headLen * Math.cos(angle + Math.PI / 6), tipY - headLen * Math.sin(angle + Math.PI / 6));
+    _sketchCtx.closePath();
+    _sketchCtx.fill();
   }
 
   function _sketchStartT(e) {
@@ -852,8 +906,7 @@
     });
   }
 
-  // Init sketch canvas on load (it's visible by default)
-  window.addEventListener('load', () => initSketchCanvas());
+  // Canvas is inside a hidden screen; init happens in selectMode once the screen is visible.
 
   // ── Supabase config ────────────────────────────────────────────────────────
 
@@ -889,6 +942,9 @@
   function selectMode(mode) {
     _entryMode = mode;
     showScreen(mode === 'convert' ? 'screenDocUpload' : 'screenUpload');
+    if (mode === 'create') {
+      requestAnimationFrame(() => initSketchCanvas());
+    }
   }
 
   // ── Document upload ────────────────────────────────────────────────────────
