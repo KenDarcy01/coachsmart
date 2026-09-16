@@ -80,6 +80,9 @@ class _NativeWebViewState extends State<NativeWebView> {
               case 'complete':
                 widget.onComplete?.call();
                 break;
+              case 'refreshBadge':
+                refreshAppBadge();
+                break;
             }
           },
         )

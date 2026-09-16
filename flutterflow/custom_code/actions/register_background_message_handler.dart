@@ -562,6 +562,14 @@ Future<void> _handleNewNotification(
 // 7. BADGE
 // ---------------------------------------------------------------------------
 
+// Public entry-point called by NativeWebView when the notifications webview
+// posts a 'refreshBadge' FlutterBridge message.
+Future<void> refreshAppBadge() async {
+  if (_activeSupabase != null && _activeUserId != null) {
+    await _updateBadge(_activeSupabase!, _activeUserId!);
+  }
+}
+
 Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
   if (kIsWeb) {
     _logWarn('Badge update skipped — not supported on web');
