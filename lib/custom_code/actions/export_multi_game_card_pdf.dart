@@ -110,7 +110,9 @@ Future<String?> exportMultiGameCardPdf(
       pw.MultiPage(
         pageFormat: pageFormat,
         margin: pw.EdgeInsets.zero,
-        header: (_) => pw.SizedBox(),
+        header: (context) => pw.SizedBox(
+          height: context.pageNumber > 1 ? 24 : 0,
+        ),
         footer: (context) => _mgPdfFooter(_mgSanitise(clubName), primary,
             secondary, third, hPad, hasThird, bodyFont, bodyFontBold),
         build: (context) {
@@ -240,13 +242,13 @@ Future<pw.ImageProvider?> _mgPdfImage(Uint8List? bytes) async {
 
 String _mgSanitise(String text) {
   return text
-      .replaceAll('\u2018', "'")
-      .replaceAll('\u2019', "'")
-      .replaceAll('\u201c', '"')
-      .replaceAll('\u201d', '"')
-      .replaceAll('\u2013', '-')
-      .replaceAll('\u2014', '-')
-      .replaceAll('\u2026', '...');
+      .replaceAll(''', "'")
+      .replaceAll(''', "'")
+      .replaceAll('"', '"')
+      .replaceAll('"', '"')
+      .replaceAll('–', '-')
+      .replaceAll('—', '-')
+      .replaceAll('…', '...');
 }
 
 Future<double?> _mgImageRatio(Uint8List bytes) async {

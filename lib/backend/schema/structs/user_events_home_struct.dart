@@ -23,6 +23,7 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
     int? userTeamCount,
     bool? showAdvert,
     bool? isGaaMember,
+    bool? clubPathway,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _clubs = clubs,
         _events = events,
@@ -38,6 +39,7 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
         _userTeamCount = userTeamCount,
         _showAdvert = showAdvert,
         _isGaaMember = isGaaMember,
+        _clubPathway = clubPathway,
         super(firestoreUtilData);
 
   // "clubs" field.
@@ -159,6 +161,13 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
 
   bool hasIsGaaMember() => _isGaaMember != null;
 
+  // "club_pathway" field.
+  bool? _clubPathway;
+  bool get clubPathway => _clubPathway ?? false;
+  set clubPathway(bool? val) => _clubPathway = val;
+
+  bool hasClubPathway() => _clubPathway != null;
+
   static UserEventsHomeStruct fromMap(Map<String, dynamic> data) =>
       UserEventsHomeStruct(
         clubs: getStructList(
@@ -184,6 +193,7 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
         userTeamCount: castToType<int>(data['user_team_count']),
         showAdvert: data['show_advert'] as bool?,
         isGaaMember: data['is_gaa_member'] as bool?,
+        clubPathway: data['club_pathway'] as bool?,
       );
 
   static UserEventsHomeStruct? maybeFromMap(dynamic data) => data is Map
@@ -205,6 +215,7 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
         'user_team_count': _userTeamCount,
         'show_advert': _showAdvert,
         'is_gaa_member': _isGaaMember,
+        'club_pathway': _clubPathway,
       }.withoutNulls;
 
   @override
@@ -266,6 +277,10 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
         ),
         'is_gaa_member': serializeParam(
           _isGaaMember,
+          ParamType.bool,
+        ),
+        'club_pathway': serializeParam(
+          _clubPathway,
           ParamType.bool,
         ),
       }.withoutNulls;
@@ -345,6 +360,11 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
           ParamType.bool,
           false,
         ),
+        clubPathway: deserializeParam(
+          data['club_pathway'],
+          ParamType.bool,
+          false,
+        ),
       );
 
   @override
@@ -367,7 +387,8 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
         listEquality.equals(userTeams, other.userTeams) &&
         userTeamCount == other.userTeamCount &&
         showAdvert == other.showAdvert &&
-        isGaaMember == other.isGaaMember;
+        isGaaMember == other.isGaaMember &&
+        clubPathway == other.clubPathway;
   }
 
   @override
@@ -385,7 +406,8 @@ class UserEventsHomeStruct extends FFFirebaseStruct {
         userTeams,
         userTeamCount,
         showAdvert,
-        isGaaMember
+        isGaaMember,
+        clubPathway
       ]);
 }
 
@@ -401,6 +423,7 @@ UserEventsHomeStruct createUserEventsHomeStruct({
   int? userTeamCount,
   bool? showAdvert,
   bool? isGaaMember,
+  bool? clubPathway,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -418,6 +441,7 @@ UserEventsHomeStruct createUserEventsHomeStruct({
       userTeamCount: userTeamCount,
       showAdvert: showAdvert,
       isGaaMember: isGaaMember,
+      clubPathway: clubPathway,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,

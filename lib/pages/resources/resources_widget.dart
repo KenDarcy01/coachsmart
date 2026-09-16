@@ -102,7 +102,7 @@ class _ResourcesWidgetState extends State<ResourcesWidget> {
               width: double.infinity,
               height: double.infinity,
               url:
-                  'https://coach-smart-new-mpqa5l.web.app/webviews/games-resource.html?token=${currentJwtToken}',
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/games-resource-v2.html?token=${currentJwtToken}',
               onPageReady: () async {},
               onComplete: () async {},
               onLogout: () async {

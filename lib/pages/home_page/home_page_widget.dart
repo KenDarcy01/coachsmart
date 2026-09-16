@@ -57,6 +57,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           currentUserUid,
         ),
       );
+      logFirebaseEvent('HomePage_custom_action');
+      await actions.updateUserPlatform();
       logFirebaseEvent('HomePage_update_page_state');
       _model.varSelectedClub = 0;
       logFirebaseEvent('HomePage_update_page_state');
@@ -2150,17 +2152,27 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                   onTap: () async {
                                     logFirebaseEvent(
                                         'HOME_PAGE_PAGE_Container_4q289tp4_ON_TAP');
-                                    logFirebaseEvent('Container_navigate_to');
+                                    if (FFAppState()
+                                            .homePageEvents
+                                            .clubPathway ==
+                                        true) {
+                                      logFirebaseEvent('Container_navigate_to');
 
-                                    context.pushNamed(
-                                      ResourcesWidget.routeName,
-                                      queryParameters: {
-                                        'currentAuthToken': serializeParam(
-                                          currentJwtToken,
-                                          ParamType.String,
-                                        ),
-                                      }.withoutNulls,
-                                    );
+                                      context.pushNamed(
+                                        ResourcesWidget.routeName,
+                                        queryParameters: {
+                                          'currentAuthToken': serializeParam(
+                                            currentJwtToken,
+                                            ParamType.String,
+                                          ),
+                                        }.withoutNulls,
+                                      );
+                                    } else {
+                                      logFirebaseEvent('Container_navigate_to');
+
+                                      context
+                                          .pushNamed(GamesAgesWidget.routeName);
+                                    }
                                   },
                                   child: Container(
                                     width: 100.0,
