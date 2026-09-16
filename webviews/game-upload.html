@@ -450,6 +450,14 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/></svg>
               Arrow
             </button>
+            <button id="toolLine" class="tool-btn" onclick="setSketchTool('line', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/></svg>
+              Line
+            </button>
+            <button id="toolArc" class="tool-btn" onclick="setSketchTool('arc', this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 Q12 4 19 19"/></svg>
+              Arc
+            </button>
             <button id="toolText" class="tool-btn" onclick="setSketchTool('text', this)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
               Text
@@ -772,6 +780,13 @@
       ctx.strokeStyle = '#c05010'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
     } else if (el.type === 'arrow') {
       _drawArrow(el.x1, el.y1, el.x2, el.y2);
+    } else if (el.type === 'line') {
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+    } else if (el.type === 'arc') {
+      const cp = _arcControlPoint(el.x1, el.y1, el.x2, el.y2);
+      ctx.strokeStyle = '#87C232'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.quadraticCurveTo(cp.x, cp.y, el.x2, el.y2); ctx.stroke();
     } else if (el.type === 'text') {
       ctx.fillStyle = '#fff'; ctx.font = `bold ${el.fs||16}px sans-serif`;
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
@@ -789,9 +804,15 @@
   function _elBBox(el) {
     if (el.type === 'player') return { x: el.x-16, y: el.y-16, w: 32, h: 32 };
     if (el.type === 'cone')   return { x: el.x-12, y: el.y-14, w: 24, h: 24 };
-    if (el.type === 'arrow') {
+    if (el.type === 'arrow' || el.type === 'line') {
       const x0=Math.min(el.x1,el.x2), y0=Math.min(el.y1,el.y2);
       return { x:x0, y:y0, w:Math.abs(el.x2-el.x1)||8, h:Math.abs(el.y2-el.y1)||8 };
+    }
+    if (el.type === 'arc') {
+      const cp = _arcControlPoint(el.x1, el.y1, el.x2, el.y2);
+      const x0=Math.min(el.x1,el.x2,cp.x), y0=Math.min(el.y1,el.y2,cp.y);
+      const x1=Math.max(el.x1,el.x2,cp.x), y1=Math.max(el.y1,el.y2,cp.y);
+      return { x:x0, y:y0, w:x1-x0||8, h:y1-y0||8 };
     }
     if (el.type === 'text') {
       _sketchCtx.font = `bold ${el.fs||16}px sans-serif`;
@@ -807,6 +828,8 @@
       if (el.type === 'player' && Math.hypot(x-el.x, y-el.y) < 20) return el;
       if (el.type === 'cone'   && Math.hypot(x-el.x, y-el.y) < 18) return el;
       if (el.type === 'arrow'  && _distSeg(x,y,el.x1,el.y1,el.x2,el.y2) < 14) return el;
+      if (el.type === 'line'   && _distSeg(x,y,el.x1,el.y1,el.x2,el.y2) < 14) return el;
+      if (el.type === 'arc') { const cp=_arcControlPoint(el.x1,el.y1,el.x2,el.y2); if (_distBezier(x,y,el.x1,el.y1,cp.x,cp.y,el.x2,el.y2) < 14) return el; }
       if (el.type === 'text') {
         const bb = _elBBox(el);
         if (x>=bb.x-4&&x<=bb.x+bb.w+4&&y>=bb.y-4&&y<=bb.y+bb.h+4) return el;
@@ -820,6 +843,21 @@
     if (!l2) return Math.hypot(px-ax, py-ay);
     const t = Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/l2));
     return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
+  }
+
+  function _arcControlPoint(x1, y1, x2, y2) {
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1;
+    return { x: mx - (dy/len)*len*0.35, y: my + (dx/len)*len*0.35 };
+  }
+
+  function _distBezier(px, py, x1, y1, cx, cy, x2, y2) {
+    let minD = Infinity;
+    for (let t=0; t<=1; t+=0.05) {
+      const mt=1-t, bx=mt*mt*x1+2*mt*t*cx+t*t*x2, by=mt*mt*y1+2*mt*t*cy+t*t*y2;
+      minD = Math.min(minD, Math.hypot(px-bx, py-by));
+    }
+    return minD;
   }
 
   function _canvasPos(e) {
@@ -861,7 +899,7 @@
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5;
         ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.setLineDash([]);
       }
-    } else if (_sketchTool === 'arrow') {
+    } else if (_sketchTool === 'arrow' || _sketchTool === 'line' || _sketchTool === 'arc') {
       _arrowStart = pt; _isArrowDragging = true;
     } else if (_sketchTool === 'player') {
       _elements.push({ id: _nextElId++, type: 'player', x: pt.x, y: pt.y, label: _stampCounter++ });
@@ -891,7 +929,16 @@
       for (const ctx of [_sketchCtx, _freehandCtx]) { ctx.lineTo(pt.x, pt.y); ctx.stroke(); }
       _hasDrawn = true;
     } else if (_isArrowDragging && _arrowStart) {
-      _renderCanvas(); _drawArrow(_arrowStart.x, _arrowStart.y, pt.x, pt.y);
+      _renderCanvas();
+      if (_sketchTool === 'arrow') { _drawArrow(_arrowStart.x, _arrowStart.y, pt.x, pt.y); }
+      else if (_sketchTool === 'line') {
+        _sketchCtx.strokeStyle='#fff'; _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
+        _sketchCtx.beginPath(); _sketchCtx.moveTo(_arrowStart.x,_arrowStart.y); _sketchCtx.lineTo(pt.x,pt.y); _sketchCtx.stroke();
+      } else if (_sketchTool === 'arc') {
+        const cp=_arcControlPoint(_arrowStart.x,_arrowStart.y,pt.x,pt.y);
+        _sketchCtx.strokeStyle='#87C232'; _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
+        _sketchCtx.beginPath(); _sketchCtx.moveTo(_arrowStart.x,_arrowStart.y); _sketchCtx.quadraticCurveTo(cp.x,cp.y,pt.x,pt.y); _sketchCtx.stroke();
+      }
     }
   }
 
@@ -902,7 +949,8 @@
       _isArrowDragging = false;
       const end = _lastPt || _arrowStart;
       if (Math.hypot(end.x-_arrowStart.x, end.y-_arrowStart.y) > 8) {
-        _elements.push({ id: _nextElId++, type:'arrow', x1:_arrowStart.x, y1:_arrowStart.y, x2:end.x, y2:end.y });
+        const type = (_sketchTool === 'line' || _sketchTool === 'arc') ? _sketchTool : 'arrow';
+        _elements.push({ id: _nextElId++, type, x1:_arrowStart.x, y1:_arrowStart.y, x2:end.x, y2:end.y });
         _hasDrawn = true;
       } else { _undoStack.pop(); }
       _arrowStart = null; _renderCanvas();
