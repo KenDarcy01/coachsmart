@@ -785,7 +785,7 @@
       ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
     } else if (el.type === 'arc') {
       const cp = _arcControlPoint(el.x1, el.y1, el.x2, el.y2);
-      ctx.strokeStyle = '#87C232'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
       ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.quadraticCurveTo(cp.x, cp.y, el.x2, el.y2); ctx.stroke();
     } else if (el.type === 'text') {
       ctx.fillStyle = '#fff'; ctx.font = `bold ${el.fs||16}px sans-serif`;
@@ -936,7 +936,7 @@
         _sketchCtx.beginPath(); _sketchCtx.moveTo(_arrowStart.x,_arrowStart.y); _sketchCtx.lineTo(pt.x,pt.y); _sketchCtx.stroke();
       } else if (_sketchTool === 'arc') {
         const cp=_arcControlPoint(_arrowStart.x,_arrowStart.y,pt.x,pt.y);
-        _sketchCtx.strokeStyle='#87C232'; _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
+        _sketchCtx.strokeStyle='#fff'; _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
         _sketchCtx.beginPath(); _sketchCtx.moveTo(_arrowStart.x,_arrowStart.y); _sketchCtx.quadraticCurveTo(cp.x,cp.y,pt.x,pt.y); _sketchCtx.stroke();
       }
     }
