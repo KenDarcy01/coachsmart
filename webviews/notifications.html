@@ -381,7 +381,8 @@ async function onTap(id, linkPage) {
     n.is_read = true;
     if (row) row.classList.remove('unread');
     updateHeader();
-    rpc('mark_notification_read', { p_notification_id: id, p_user_id: WV_USER }).catch(() => {});
+    rpc('mark_notification_read', { p_notification_id: id }).catch(() => {});
+    try { FlutterBridge.postMessage('refreshBadge'); } catch(_) {}
   }
 
   if (linkPage) {
@@ -398,6 +399,7 @@ async function onMarkAll() {
   document.querySelectorAll('.row.unread').forEach(el => el.classList.remove('unread'));
   updateHeader();
   rpc('mark_all_notifications_read', { p_user_id: WV_USER }).catch(() => {});
+  try { FlutterBridge.postMessage('refreshBadge'); } catch(_) {}
 }
 
 /* ── Skeleton ─────────────────────────────────────────────── */
