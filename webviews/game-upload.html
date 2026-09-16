@@ -76,7 +76,7 @@
     .text-input:focus { border-color: var(--green); }
     .text-input::placeholder { color: var(--muted); }
 
-    textarea.text-input { resize: none; min-height: 120px; line-height: 1.5; }
+    textarea.text-input { resize: none; min-height: 80px; line-height: 1.5; }
 
     select.text-input {
       appearance: none;
@@ -323,6 +323,46 @@
     .unsuitable-banner.show { display: block; }
     .unsuitable-title { font-size: 14px; font-weight: 600; color: var(--red); margin-bottom: 4px; }
     .unsuitable-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    /* ── DUAL FOOTER ── */
+    .dual-footer { display: flex; gap: 10px; }
+    .btn-secondary {
+      flex: 1; padding: 15px; border-radius: var(--radius);
+      background: var(--card); color: var(--text); font-size: 16px; font-weight: 700;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.15s;
+    }
+    .btn-secondary:active { opacity: 0.7; }
+    .dual-footer .btn-primary { flex: 1.6; }
+
+    /* ── PER-FIELD SPEAK ── */
+    .field-header-row {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+    }
+    .field-header-row .field-label { margin-bottom: 0; }
+    .field-speak-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      background: var(--card2); border: 1.5px solid var(--border); color: var(--muted);
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .field-speak-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+    .field-speak-btn.recording {
+      background: rgba(239,68,68,0.12); border-color: var(--red); color: var(--red);
+      animation: mic-pulse 1.4s ease-in-out infinite;
+    }
+
+    /* ── CONVERT TABS ── */
+    .convert-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .convert-tab {
+      flex: 1; padding: 9px 0; border-radius: 10px; font-size: 14px; font-weight: 600;
+      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
+      transition: all 0.15s;
+    }
+    .convert-tab.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .convert-panel { display: none; }
+    .convert-panel.active { display: block; }
   </style>
 </head>
 <body>
@@ -405,20 +445,52 @@
       </div>
     </div>
 
-    <!-- Notes -->
+    <!-- Setup -->
     <div>
-      <div class="notes-label-row">
-        <div class="field-label">Your Notes <span>*</span></div>
-        <button id="micBtn" class="mic-btn" onclick="toggleSpeech()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="2" width="6" height="12" rx="3"/>
-            <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
-          </svg>
-          <span id="micLabel">Speak</span>
+      <div class="field-header-row">
+        <div class="field-label">Setup <span title="optional">(optional)</span></div>
+        <button class="field-speak-btn" onclick="toggleFieldSpeech('inpSetup', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          <span>Speak</span>
         </button>
       </div>
-      <textarea id="inpNotes" class="text-input" rows="6"
-        placeholder="Describe the drill in your own words — players, cones, movement, rules, objective. Rough is fine, AI will clean it up."></textarea>
+      <textarea id="inpSetup" class="text-input" placeholder="Players, cones, pitch area, equipment…" oninput="autoResize(this)"></textarea>
+    </div>
+
+    <!-- How to Play -->
+    <div>
+      <div class="field-header-row">
+        <div class="field-label">How to Play <span title="optional">(optional)</span></div>
+        <button class="field-speak-btn" onclick="toggleFieldSpeech('inpHowTo', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          <span>Speak</span>
+        </button>
+      </div>
+      <textarea id="inpHowTo" class="text-input" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
+    </div>
+
+    <!-- Variations -->
+    <div>
+      <div class="field-header-row">
+        <div class="field-label">Variations <span title="optional">(optional)</span></div>
+        <button class="field-speak-btn" onclick="toggleFieldSpeech('inpVariations', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          <span>Speak</span>
+        </button>
+      </div>
+      <textarea id="inpVariations" class="text-input" placeholder="Progressions, easier/harder options…" oninput="autoResize(this)"></textarea>
+    </div>
+
+    <!-- Teaching Points -->
+    <div>
+      <div class="field-header-row">
+        <div class="field-label">Teaching Points <span title="optional">(optional)</span></div>
+        <button class="field-speak-btn" onclick="toggleFieldSpeech('inpTeaching', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          <span>Speak</span>
+        </button>
+      </div>
+      <textarea id="inpTeaching" class="text-input" placeholder="Key coaching cues, what to look for…" oninput="autoResize(this)"></textarea>
     </div>
 
     <!-- Sketch / Photo -->
@@ -503,13 +575,22 @@
   </div>
 
   <div class="sticky-footer">
-    <button class="btn-primary" id="processBtn" onclick="processWithAI()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z" opacity="0.3"/>
-        <path d="M12 6v6l4 2"/>
-      </svg>
-      Process with AI
-    </button>
+    <div class="dual-footer">
+      <button class="btn-secondary" onclick="saveDirectly()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Save
+      </button>
+      <button class="btn-primary" id="processBtn" onclick="processWithAI()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z" opacity="0.3"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        Process with AI
+      </button>
+    </div>
   </div>
 </div>
 
@@ -524,28 +605,49 @@
   </div>
   <div class="form-body">
 
-    <div class="field-label">Document</div>
-    <div class="doc-zone" id="docZone" onclick="document.getElementById('docFileInput').click()">
-      <div id="docZoneEmpty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <div class="doc-zone-label">Tap to select a document</div>
-        <div class="doc-zone-sub">PPTX · DOCX · PDF</div>
-      </div>
-      <div id="docZoneSelected" style="display:none; flex-direction:column; align-items:center; gap:8px; width:100%">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <div class="doc-file-name" id="docFileName"></div>
-        <button class="doc-clear-btn" onclick="clearDocFile(event)">Remove</button>
-      </div>
+    <div class="convert-tabs">
+      <button class="convert-tab active" onclick="switchConvertTab('doc', this)">📄 Document</button>
+      <button class="convert-tab" onclick="switchConvertTab('img', this)">🖼️ Image</button>
     </div>
-    <input type="file" id="docFileInput" accept=".docx,.pptx,.pdf" onchange="handleDocFileSelect(this)" style="display:none"/>
 
-    <div id="unsuitable" class="unsuitable-banner">
+    <!-- Document panel -->
+    <div id="convertPanelDoc" class="convert-panel active">
+      <div class="doc-zone" id="docZone" onclick="document.getElementById('docFileInput').click()">
+        <div id="docZoneEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <div class="doc-zone-label">Tap to select a document</div>
+          <div class="doc-zone-sub">PPTX · DOCX · PDF</div>
+        </div>
+        <div id="docZoneSelected" style="display:none; flex-direction:column; align-items:center; gap:8px; width:100%">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="doc-file-name" id="docFileName"></div>
+          <button class="doc-clear-btn" onclick="clearDocFile(event)">Remove</button>
+        </div>
+      </div>
+      <input type="file" id="docFileInput" accept=".docx,.pptx,.pdf" onchange="handleDocFileSelect(this)" style="display:none"/>
+    </div>
+
+    <!-- Image panel -->
+    <div id="convertPanelImg" class="convert-panel">
+      <div class="image-zone" id="docImgZone" onclick="document.getElementById('docImgInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <path d="M21 15l-5-5L5 21"/>
+        </svg>
+        <span class="zone-label">Tap to upload an image</span>
+        <span class="zone-sub">Photo, whiteboard, printed plan</span>
+      </div>
+      <input type="file" id="docImgInput" accept="image/*" onchange="handleDocImgSelect(this)" style="display:none"/>
+    </div>
+
+    <div id="unsuitable" class="unsuitable-banner" style="margin-top:12px;">
       <div class="unsuitable-title">Document not suitable</div>
       <div class="unsuitable-text" id="unsuitableText"></div>
     </div>
 
     <div style="font-size:13px; color:var(--muted); line-height:1.6; background:var(--card); border-radius:var(--radius); padding:14px 16px; border:1px solid var(--border);">
-      Upload a coaching session plan, game description, or drill document. The AI will check the content and extract the game details automatically.
+      Upload a session plan, game description, drill document, or a photo of a whiteboard/handout. AI will extract and structure the content.
     </div>
 
   </div>
@@ -635,14 +737,26 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── Speech recognition ────────────────────────────────────────────────────
+  // ── Speech recognition (per-field) ──────────────────────────────────────────
 
-  let _recognition   = null;
-  let _isRecording   = false;
-  let _baseNotes     = '';
+  let _recognition      = null;
+  let _isRecording      = false;
+  let _recordingFieldId = null;
+  let _recordingBtn     = null;
+  let _baseText         = '';
 
-  function toggleSpeech() {
-    if (_isRecording) { stopSpeech(); return; }
+  const FILLERS = /\b(um+h?|uh+|eh+|ahh?|mm+|hmm+|err+|y'know|like)\b[\s,]*/gi;
+
+  function _removeFillersAndClean(text) {
+    return text.replace(FILLERS, ' ').replace(/\s{2,}/g, ' ').trim();
+  }
+
+  function toggleFieldSpeech(fieldId, btn) {
+    if (_isRecording) {
+      // If tapping the same button, stop; if a different field, switch
+      stopSpeech();
+      if (_recordingFieldId === fieldId) return;
+    }
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { showToast('Speech not supported on this browser', 'error'); return; }
@@ -652,18 +766,21 @@
     _recognition.continuous = true;
     _recognition.interimResults = false;
 
-    // Capture whatever is already in the textarea so we append to it
-    const ta = document.getElementById('inpNotes');
-    _baseNotes = ta.value;
-    if (_baseNotes && !_baseNotes.endsWith(' ') && !_baseNotes.endsWith('\n')) _baseNotes += ' ';
+    _recordingFieldId = fieldId;
+    _recordingBtn = btn;
+    const ta = document.getElementById(fieldId);
+    _baseText = ta.value;
+    if (_baseText && !_baseText.endsWith(' ') && !_baseText.endsWith('\n')) _baseText += ' ';
 
     _recognition.onresult = (e) => {
       let added = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) added += e.results[i][0].transcript + ' ';
       }
-      _baseNotes += added;
-      document.getElementById('inpNotes').value = _baseNotes.trimStart();
+      _baseText += added;
+      const cleaned = _removeFillersAndClean(_baseText);
+      document.getElementById(_recordingFieldId).value = cleaned;
+      autoResize(document.getElementById(_recordingFieldId));
     };
 
     _recognition.onerror = (e) => {
@@ -672,7 +789,6 @@
       stopSpeech();
     };
 
-    // On iOS Safari recognition ends after each phrase — restart while still recording
     _recognition.onend = () => {
       if (_isRecording) {
         try { _recognition.start(); } catch { stopSpeech(); }
@@ -682,7 +798,8 @@
     try {
       _recognition.start();
       _isRecording = true;
-      _updateMicBtn();
+      btn.classList.add('recording');
+      btn.querySelector('span').textContent = 'Stop';
     } catch (err) {
       showToast('Could not start microphone', 'error');
     }
@@ -691,14 +808,12 @@
   function stopSpeech() {
     _isRecording = false;
     if (_recognition) { try { _recognition.stop(); } catch {} _recognition = null; }
-    _updateMicBtn();
-  }
-
-  function _updateMicBtn() {
-    const btn   = document.getElementById('micBtn');
-    const label = document.getElementById('micLabel');
-    btn.classList.toggle('recording', _isRecording);
-    label.textContent = _isRecording ? 'Stop' : 'Speak';
+    if (_recordingBtn) {
+      _recordingBtn.classList.remove('recording');
+      _recordingBtn.querySelector('span').textContent = 'Speak';
+    }
+    _recordingFieldId = null;
+    _recordingBtn = null;
   }
 
   // ── Canvas sketchpad ───────────────────────────────────────────────────────
@@ -1073,6 +1188,8 @@
   let _entryMode          = 'create'; // 'create' | 'convert'
   let _docFile            = null;
   let _docExtractedImage  = null; // data URL of first image found in uploaded doc
+  let _docImgBase64       = null; // base64 of image uploaded on the convert→image tab
+  let _docImgMimeType     = null;
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
 
@@ -1180,7 +1297,63 @@
     return { type: 'text', text: text.replace(/\s+/g, ' ').trim(), imageDataUrl };
   }
 
+  function handleDocImgSelect(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    compressImage(file).then(({ base64, mimeType }) => {
+      _docImgBase64 = base64;
+      _docImgMimeType = mimeType;
+      const zone = document.getElementById('docImgZone');
+      zone.innerHTML = `
+        <img class="image-preview" src="${URL.createObjectURL(file)}" alt="Preview"/>
+        <button class="remove-img" onclick="clearDocImg(event)">×</button>`;
+      document.getElementById('convertBtn').disabled = false;
+      document.getElementById('unsuitable').classList.remove('show');
+    });
+  }
+
+  function clearDocImg(e) {
+    if (e) e.stopPropagation();
+    _docImgBase64 = null; _docImgMimeType = null;
+    document.getElementById('docImgInput').value = '';
+    const zone = document.getElementById('docImgZone');
+    zone.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <path d="M21 15l-5-5L5 21"/>
+      </svg>
+      <span class="zone-label">Tap to upload an image</span>
+      <span class="zone-sub">Photo, whiteboard, printed plan</span>`;
+    // Only disable if doc tab is also empty
+    if (!_docFile) document.getElementById('convertBtn').disabled = true;
+  }
+
   async function processDocument() {
+    const imgTabActive = document.getElementById('convertPanelImg').classList.contains('active');
+
+    // ── Image tab ──
+    if (imgTabActive) {
+      if (!_docImgBase64) { showToast('Select an image first', 'error'); return; }
+      _entryMode = 'create'; // show AI diagram in review
+      _docExtractedImage = null;
+      _lastPayload = { image_base64: _docImgBase64, image_mime_type: _docImgMimeType };
+      document.getElementById('processingTitle').textContent = 'Analysing your image…';
+      showScreen('screenProcessing');
+      startStatusCycle();
+      try {
+        const result = await callEdgeFunction(_lastPayload);
+        stopStatusCycle();
+        showReview(result.data);
+      } catch (err) {
+        stopStatusCycle();
+        showScreen('screenDocUpload');
+        showToast('Error: ' + (err.message || 'AI processing failed'), 'error');
+      }
+      return;
+    }
+
+    // ── Document tab ──
     if (!_docFile) { showToast('Select a document first', 'error'); return; }
     let extracted;
     try {
@@ -1193,6 +1366,7 @@
       showToast('No readable text found in document', 'error');
       return;
     }
+    _entryMode = 'convert';
     _docExtractedImage = extracted.imageDataUrl || null;
     const payload = extracted.type === 'pdf'
       ? { document_base64: extracted.base64, document_mime_type: extracted.mimeType }
@@ -1342,9 +1516,52 @@
 
   // ── Main process flow ──────────────────────────────────────────────────────
 
+  function saveDirectly() {
+    const name       = document.getElementById('inpName').value.trim();
+    const setup      = document.getElementById('inpSetup').value.trim();
+    const howTo      = document.getElementById('inpHowTo').value.trim();
+    const variations = document.getElementById('inpVariations').value.trim();
+    const teaching   = document.getElementById('inpTeaching').value.trim();
+    if (!name && !setup && !howTo) {
+      showToast('Fill in at least a game name or description', 'error'); return;
+    }
+    showReview({
+      game_name:            name,
+      game_setup:           setup,
+      game_how_to_play:     howTo,
+      game_variations:      variations,
+      game_teaching_points: teaching,
+      diagram_layout:       null,
+    });
+  }
+
+  function switchConvertTab(tab, btn) {
+    document.querySelectorAll('.convert-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('convertPanelDoc').classList.toggle('active', tab === 'doc');
+    document.getElementById('convertPanelImg').classList.toggle('active', tab === 'img');
+    // Re-evaluate convert button state
+    const docReady = tab === 'doc' && _docFile;
+    const imgReady = tab === 'img' && _docImgBase64;
+    document.getElementById('convertBtn').disabled = !(docReady || imgReady);
+  }
+
   async function processWithAI() {
-    const notes = document.getElementById('inpNotes').value.trim();
     const type  = document.getElementById('inpType').value;
+    if (!type) { showToast('Select a game type', 'error'); return; }
+
+    const setup      = document.getElementById('inpSetup').value.trim();
+    const howTo      = document.getElementById('inpHowTo').value.trim();
+    const variations = document.getElementById('inpVariations').value.trim();
+    const teaching   = document.getElementById('inpTeaching').value.trim();
+
+    // Build description from structured fields
+    const parts = [];
+    if (setup)      parts.push(`Setup:\n${setup}`);
+    if (howTo)      parts.push(`How to Play:\n${howTo}`);
+    if (variations) parts.push(`Variations:\n${variations}`);
+    if (teaching)   parts.push(`Teaching Points:\n${teaching}`);
+    const description = parts.join('\n\n');
 
     // Resolve image: sketch tab → export canvas if drawn; photo tab → use uploaded file
     let imgBase64    = null;
@@ -1358,18 +1575,15 @@
       imgMimeType  = _imageMimeType;
     }
 
-    if (!notes && !imgBase64) {
-      showToast('Add some notes or a sketch first', 'error'); return;
-    }
-    if (!type) {
-      showToast('Select a game type', 'error'); return;
+    if (!description && !imgBase64) {
+      showToast('Fill in at least one field or add a sketch', 'error'); return;
     }
 
     const payload = {
       game_name:       document.getElementById('inpName').value.trim() || null,
       game_type:       type,
       game_age:        getSelectedAges(),
-      description:     notes,
+      description:     description || undefined,
       image_base64:    imgBase64    || undefined,
       image_mime_type: imgMimeType  || undefined,
     };
