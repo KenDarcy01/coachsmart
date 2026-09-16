@@ -1106,8 +1106,27 @@ function openImageViewer(detailId) {
 
 async function shareCurrentImage() {
   if (!_currentImageViewer) return;
-  const url   = _currentImageViewer.image_link || window.location.href;
-  const title = _currentImageViewer.detail_heading;
+  const imageUrl = _currentImageViewer.image_link;
+  const title    = _currentImageViewer.detail_heading;
+
+  // Try to share the actual image file (Web Share API level 2)
+  if (imageUrl && navigator.canShare) {
+    try {
+      const res  = await fetch(imageUrl);
+      const blob = await res.blob();
+      const ext  = blob.type.includes('png') ? 'png' : 'jpg';
+      const file = new File([blob], `${title}.${ext}`, { type: blob.type });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ title, files: [file] });
+        return;
+      }
+    } catch (_) {
+      // Fetch or file-share failed — fall through to URL share
+    }
+  }
+
+  // Fallback: share the URL
+  const url = imageUrl || window.location.href;
   try {
     if (navigator.share) {
       await navigator.share({ title, url });

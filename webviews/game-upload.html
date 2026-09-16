@@ -736,6 +736,7 @@
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
   const EDGE_FN_URL       = SUPABASE_URL + '/functions/v1/ai-process-game';
+  const WV_TOKEN          = new URLSearchParams(window.location.search).get('token') || '';
 
   let _imageBase64   = null;
   let _imageMimeType = null;
@@ -930,7 +931,7 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
         'apikey': SUPABASE_ANON_KEY,
       },
       body: JSON.stringify(payload),
