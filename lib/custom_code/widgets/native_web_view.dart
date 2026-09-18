@@ -82,7 +82,7 @@ class _NativeWebViewState extends State<NativeWebView>
 
   void _initController() {
     try {
-      _controller = WebViewController()
+      final ctrl = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.transparent)
         ..addJavaScriptChannel(
@@ -117,9 +117,6 @@ class _NativeWebViewState extends State<NativeWebView>
               case 'complete':
                 widget.onComplete?.call();
                 break;
-              case 'refreshBadge':
-                refreshAppBadge();
-                break;
             }
           },
         )
@@ -131,8 +128,14 @@ class _NativeWebViewState extends State<NativeWebView>
             }
             return NavigationDecision.navigate;
           },
-        ))
-        ..loadRequest(Uri.parse(widget.url));
+        ));
+      _controller = ctrl;
+      // Use async/await so loadRequest is guaranteed to run whether
+      // clearCache succeeds or throws (e.g. on web platform).
+      () async {
+        try { await ctrl.clearCache(); } catch (_) {}
+        if (mounted) ctrl.loadRequest(Uri.parse(widget.url));
+      }();
     } catch (_) {}
   }
 
