@@ -1250,13 +1250,12 @@ function updateInjuryPills() {
 
 function toggleCustomInjuryPicker() {
   const picker = $('customInjuryPicker');
-  if (picker.classList.contains('show')) {
-    picker.classList.remove('show');
-  } else {
-    $('customInjuryInput').value = [5, 10, 15].includes(selectedInjuryMins) ? '' : selectedInjuryMins;
-    picker.classList.add('show');
-    setTimeout(() => $('customInjuryInput').focus(), 50);
-  }
+  if (picker.classList.contains('show')) return;
+  $('customInjuryInput').value = [5, 10, 15].includes(selectedInjuryMins) ? '' : selectedInjuryMins;
+  picker.classList.add('show');
+  document.querySelectorAll('.dur-pill[data-injury]').forEach(p => p.classList.remove('active'));
+  $('customInjuryPill').classList.add('active');
+  setTimeout(() => $('customInjuryInput').focus(), 50);
 }
 
 function onCustomInjuryInput(val) {
@@ -1270,16 +1269,13 @@ function onCustomInjuryInput(val) {
 // ── Custom minutes input ──────────────────────────────────────────────────────
 function toggleCustomPicker() {
   const picker = $('customPicker');
-  const isOpen = picker.classList.contains('show');
-  if (isOpen) {
-    picker.classList.remove('show');
-  } else {
-    const presets = [25, 30, 35];
-    const current = presets.includes(selectedDurationMins) ? '' : selectedDurationMins;
-    $('customMinsInput').value = current;
-    picker.classList.add('show');
-    setTimeout(() => $('customMinsInput').focus(), 50);
-  }
+  if (picker.classList.contains('show')) return;
+  const presets = [25, 30, 35];
+  $('customMinsInput').value = presets.includes(selectedDurationMins) ? '' : selectedDurationMins;
+  picker.classList.add('show');
+  document.querySelectorAll('.dur-pill[data-mins]').forEach(p => p.classList.remove('active'));
+  $('customPill').classList.add('active');
+  setTimeout(() => $('customMinsInput').focus(), 50);
 }
 
 function onCustomMinsInput(val) {
