@@ -1014,29 +1014,22 @@
       exp.width = W; exp.height = H;
       const ctx = exp.getContext('2d');
 
-      // Light background for PDF legibility
-      ctx.fillStyle = '#f0f8e8';
+      // Healthy grass pitch background
+      ctx.fillStyle = '#2e6e16';
       ctx.fillRect(0, 0, W, H);
 
-      // Subtle centre line (matches on-screen pitch guide)
-      ctx.strokeStyle = 'rgba(0,80,0,0.1)';
+      // Subtle centre line
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
       ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
       ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
       ctx.setLineDash([]);
 
-      // Freehand layer — recolour white strokes to dark ink using source-in
+      // Freehand layer drawn as-is (white strokes on pitch green)
       if (_freehandCanvas) {
-        const fhOff = document.createElement('canvas');
-        fhOff.width = W; fhOff.height = H;
-        const fhCtx = fhOff.getContext('2d');
-        fhCtx.drawImage(_freehandCanvas, 0, 0, _freehandCanvas.width, _freehandCanvas.height, 0, 0, W, H);
-        fhCtx.globalCompositeOperation = 'source-in';
-        fhCtx.fillStyle = '#1a3a1a';
-        fhCtx.fillRect(0, 0, W, H);
-        ctx.drawImage(fhOff, 0, 0);
+        ctx.drawImage(_freehandCanvas, 0, 0, _freehandCanvas.width, _freehandCanvas.height, 0, 0, W, H);
       }
 
-      // Re-draw elements with light-mode colours
+      // Re-draw elements with pitch-mode colours
       _elements.forEach(el => {
         ctx.save();
         if (el.type === 'player') {
@@ -1052,16 +1045,16 @@
           ctx.fillStyle = '#f07023'; ctx.fill();
           ctx.strokeStyle = '#c05010'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
         } else if (el.type === 'arrow') {
-          _drawArrow(el.x1, el.y1, el.x2, el.y2, ctx, '#2a7a00');
+          _drawArrow(el.x1, el.y1, el.x2, el.y2, ctx, '#AAEE35');
         } else if (el.type === 'line') {
-          ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
           ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
         } else if (el.type === 'arc') {
           const cp = _arcControlPoint(el.x1, el.y1, el.x2, el.y2);
-          ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
           ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.quadraticCurveTo(cp.x, cp.y, el.x2, el.y2); ctx.stroke();
         } else if (el.type === 'text') {
-          ctx.fillStyle = '#111'; ctx.font = `bold ${el.fs || 16}px sans-serif`;
+          ctx.fillStyle = '#fff'; ctx.font = `bold ${el.fs || 16}px sans-serif`;
           ctx.textAlign = 'left'; ctx.textBaseline = 'top';
           ctx.fillText(el.text, el.x, el.y);
         }
