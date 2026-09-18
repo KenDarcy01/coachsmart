@@ -500,6 +500,7 @@
   </div>
   <div class="filters-wrap" style="padding-bottom:8px">
     <div class="filter-row" id="stageCodeFilter"></div>
+    <div class="filter-row" id="stageTypeFilter"></div>
   </div>
   <div class="scroll-content" style="padding-top:8px">
     <div id="sectionPlayerPathways" class="stage-section" hidden>
@@ -510,13 +511,25 @@
       <div class="section-label" style="margin-bottom:10px">Sample Sessions</div>
       <div id="listSampleSessions" class="resource-list"></div>
     </div>
+    <div id="sectionVideos" class="stage-section" hidden>
+      <div class="section-label" style="margin-bottom:10px">Videos</div>
+      <div id="listVideos" class="game-list"></div>
+    </div>
+    <div id="sectionWarmups" class="stage-section" hidden>
+      <div class="section-label" style="margin-bottom:10px">Warmups</div>
+      <div id="listWarmups" class="game-list"></div>
+    </div>
+    <div id="sectionDrills" class="stage-section" hidden>
+      <div class="section-label" style="margin-bottom:10px">Drills</div>
+      <div id="listDrills" class="game-list"></div>
+    </div>
+    <div id="sectionGames" class="stage-section" hidden>
+      <div class="section-label" style="margin-bottom:10px">Games</div>
+      <div id="listGames" class="game-list"></div>
+    </div>
     <div id="sectionSkills" class="stage-section" hidden>
       <div class="section-label" style="margin-bottom:10px">Skills</div>
       <div id="listSkills" class="game-list"></div>
-    </div>
-    <div id="sectionGamesAndDrills" class="stage-section" hidden>
-      <div class="section-label" style="margin-bottom:10px">Games &amp; Drills</div>
-      <div id="listGamesAndDrills" class="game-list"></div>
     </div>
     <div id="stageEmptyState" class="empty-state" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
@@ -654,6 +667,7 @@ let pathwayStages   = [];   // [{pathway_stage_id, pathway_stage, pathway_stage_
 let stageDetails    = [];   // [{pathway_stage_details_id, detail_heading, detail_subheading, image_link, video_link, detail_category, code_text}]
 let selectedStageObj   = null;
 let selectedCodeText   = 'All';
+let selectedTypeFilter = 'All';
 let _detailOrigin      = 'gamesScreen';  // which list screen to return to from detailScreen
 let _currentImageViewer = null;
 
@@ -738,8 +752,9 @@ function isSkillGame(g) {
 function primaryType(types) {
   if (!types?.length) return 'game';
   const t = types[0].toLowerCase();
-  if (t === 'warmups') return 'warmup';
-  if (t === 'drill')   return 'drill';
+  if (t === 'warmup') return 'warmup';
+  if (t === 'drill')  return 'drill';
+  if (t === 'skill' || t === 'skills') return 'skill';
   return 'game';
 }
 
@@ -914,8 +929,9 @@ async function openStageDetail(stageId) {
   selectedStageObj = pathwayStages.find(s => s.pathway_stage_id === stageId);
   if (!selectedStageObj) return;
 
-  selectedCodeText = 'All';
-  selectedType     = 'All';
+  selectedCodeText   = 'All';
+  selectedTypeFilter = 'All';
+  selectedType       = 'All';
 
   showLoading('Loading stage…');
   try {
@@ -953,9 +969,15 @@ function renderStageDetailFilters() {
   $('stageCodeFilter').innerHTML = codes.map(c =>
     `<button class="filter-chip${c === selectedCodeText ? ' active' : ''}" onclick="setStageCode('${esc(c)}')">${esc(c)}</button>`
   ).join('');
+
+  const types = ['All', 'Videos', 'Warmups', 'Drills', 'Games', 'Skills'];
+  $('stageTypeFilter').innerHTML = types.map(t =>
+    `<button class="filter-chip${t === selectedTypeFilter ? ' active' : ''}" onclick="setStageType('${esc(t)}')">${esc(t)}</button>`
+  ).join('');
 }
 
 function setStageCode(code) { selectedCodeText = code; renderStageDetailFilters(); renderStageDetailContent(); }
+function setStageType(type) { selectedTypeFilter = type; renderStageDetailFilters(); renderStageDetailContent(); }
 
 function _filteredDetails(category) {
   return stageDetails.filter(d =>
@@ -1012,22 +1034,42 @@ function renderStageDetailContent() {
   const ppItems  = _filteredDetails('Player Pathways');
   const ssItems  = _filteredDetails('Sample Sessions');
   const allStageGames = _filteredStageGames();
-  const skillGames    = allStageGames.filter(isSkillGame);
-  const gamesDrills   = allStageGames.filter(g => !isSkillGame(g));
 
-  function renderSection(sectionId, listId, items, renderFn) {
+  const videos  = allStageGames.filter(g => !!g.game_video?.trim());
+  const warmups = allStageGames.filter(g => (g.game_type || []).some(t => t.toLowerCase() === 'warmup'));
+  const drills  = allStageGames.filter(g => (g.game_type || []).some(t => t.toLowerCase() === 'drill'));
+  const skills  = allStageGames.filter(isSkillGame);
+  const games   = allStageGames.filter(g => {
+    const types = (g.game_type || []).map(t => t.toLowerCase());
+    return !types.some(t => t === 'warmup' || t === 'drill' || t === 'skill' || t === 'skills')
+      && !g.game_video?.trim();
+  });
+
+  const tf = selectedTypeFilter;
+  const showVideos  = tf === 'All' || tf === 'Videos';
+  const showWarmups = tf === 'All' || tf === 'Warmups';
+  const showDrills  = tf === 'All' || tf === 'Drills';
+  const showGames   = tf === 'All' || tf === 'Games';
+  const showSkills  = tf === 'All' || tf === 'Skills';
+
+  function renderSection(sectionId, listId, items, renderFn, show) {
     const sec = $(sectionId);
-    if (!items.length) { sec.hidden = true; return; }
+    if (!show || !items.length) { sec.hidden = true; return; }
     sec.hidden = false;
     $(listId).innerHTML = items.map(renderFn).join('');
   }
 
-  renderSection('sectionPlayerPathways', 'listPlayerPathways', ppItems,  _detailRowHtml);
-  renderSection('sectionSampleSessions', 'listSampleSessions', ssItems,  _detailRowHtml);
-  renderSection('sectionSkills',         'listSkills',         skillGames,  g => _gameRowHtml(g, false));
-  renderSection('sectionGamesAndDrills', 'listGamesAndDrills', gamesDrills, g => _gameRowHtml(g, true));
+  renderSection('sectionPlayerPathways', 'listPlayerPathways', ppItems,  _detailRowHtml, true);
+  renderSection('sectionSampleSessions', 'listSampleSessions', ssItems,  _detailRowHtml, true);
+  renderSection('sectionVideos',  'listVideos',  videos,  g => _gameRowHtml(g, true), showVideos);
+  renderSection('sectionWarmups', 'listWarmups', warmups, g => _gameRowHtml(g, true), showWarmups);
+  renderSection('sectionDrills',  'listDrills',  drills,  g => _gameRowHtml(g, true), showDrills);
+  renderSection('sectionGames',   'listGames',   games,   g => _gameRowHtml(g, true), showGames);
+  renderSection('sectionSkills',  'listSkills',  skills,  g => _gameRowHtml(g, false), showSkills);
 
-  const anyContent = ppItems.length || ssItems.length || skillGames.length || gamesDrills.length;
+  const anyContent = ppItems.length || ssItems.length
+    || (showVideos && videos.length) || (showWarmups && warmups.length)
+    || (showDrills && drills.length) || (showGames && games.length) || (showSkills && skills.length);
   $('stageEmptyState').hidden = !!anyContent;
 }
 
