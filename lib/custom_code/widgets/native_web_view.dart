@@ -120,6 +120,9 @@ class _NativeWebViewState extends State<NativeWebView>
             }
           },
         )
+        ..setOnPermissionRequest((PermissionRequest request) {
+          request.grant();
+        })
         ..setNavigationDelegate(NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
             if (request.url.contains('/cs-close')) {
