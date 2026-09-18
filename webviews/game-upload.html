@@ -994,12 +994,15 @@
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
   const EDGE_FN_URL       = SUPABASE_URL + '/functions/v1/ai-process-game';
-  const WV_TOKEN          = new URLSearchParams(window.location.search).get('token') || '';
+  const params            = new URLSearchParams(window.location.search);
+  const WV_TOKEN          = params.get('token')   || '';
+  const WV_CLUB_ID        = parseInt(params.get('club_id') || '0') || null;
 
   let _imageBase64   = null;
   let _imageMimeType = null;
   let _reviewImage   = null; // {base64, mimeType} carried into review
   let _selectedAges  = [];  // age chips captured at createDraft time
+  let _selectedType  = null; // game type captured at createDraft time
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
 
@@ -1129,6 +1132,7 @@
       _reviewImage = { base64: _imageBase64, mimeType: _imageMimeType };
     }
     _selectedAges = ages;
+    _selectedType = document.getElementById('inpType').value || null;
 
     document.getElementById('processingTitle').textContent = 'Polishing your content…';
     document.getElementById('processingStatus').textContent = 'Fixing spelling and formatting';
@@ -1218,24 +1222,50 @@
 
   // ── Save ───────────────────────────────────────────────────────────────────
 
-  function saveGame() {
+  async function saveGame() {
     const name = document.getElementById('rvName').value.trim();
     if (!name) { showToast('Game name is required', 'error'); document.getElementById('rvName').focus(); return; }
     if (!_reviewImage) { showToast('An image (sketch or photo) is required', 'error'); return; }
-    const data = {
-      game_name:            name,
-      game_age:             _selectedAges,
-      game_setup:           document.getElementById('rvSetup').value.trim(),
-      game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
-      game_variations:      document.getElementById('rvVariations').value.trim(),
-      game_teaching_points: document.getElementById('rvTeaching').value.trim(),
-      image_base64:         _reviewImage.base64,
-      image_mime_type:      _reviewImage.mimeType,
-    };
-    if (window.FlutterBridge) {
-      window.FlutterBridge.postMessage(JSON.stringify({ action: 'save_draft', data }));
-    } else {
-      showToast('Draft saved', 'success');
+
+    const saveBtn = document.querySelector('.btn-primary[onclick="saveGame()"]');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+    try {
+      const res = await fetch(EDGE_FN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+          'apikey':        SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          action:               'save_game',
+          game_name:            name,
+          game_age:             _selectedAges,
+          game_type:            _selectedType ? [_selectedType] : null,
+          game_setup:           document.getElementById('rvSetup').value.trim(),
+          game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
+          game_variations:      document.getElementById('rvVariations').value.trim(),
+          game_teaching_points: document.getElementById('rvTeaching').value.trim(),
+          image_base64:         _reviewImage.base64,
+          image_mime_type:      _reviewImage.mimeType,
+          club_id:              WV_CLUB_ID,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Save failed');
+      showToast('Game saved!', 'success');
+      setTimeout(() => {
+        if (window.FlutterBridge) window.FlutterBridge.postMessage('complete');
+        else history.back();
+      }, 1200);
+    } catch (err) {
+      showToast('Error saving: ' + (err.message || 'please try again'), 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save`;
+      }
     }
   }
 
