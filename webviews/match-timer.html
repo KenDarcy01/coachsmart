@@ -1214,12 +1214,12 @@ async function goToSetup(eventId, label, defaultOpposition) {
       .maybeSingle();
 
     if (existing) {
-      $('oppositionInput').value = existing.opposition || '';
+      $('oppositionInput').value = '';
       if (existing.squad_id) squadSelect.value = existing.squad_id;
       const injMins = Math.round((existing.injury_seconds || 600) / 60);
       selectedInjuryMins = (injMins >= 1 && injMins <= 120) ? injMins : 10;
     } else {
-      $('oppositionInput').value = defaultOpposition || '';
+      $('oppositionInput').value = '';
       selectedInjuryMins = 10;
     }
     selectedDurationMins = 30;
