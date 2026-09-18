@@ -721,6 +721,7 @@ const WV_EVENT   = _getParam('event_id')     || _getParam('eventId');
 const WV_TOKEN   = _getParam('token')        || _getParam('currentAuthToken');
 const WV_REFRESH = _getParam('refreshToken') || _getParam('refresh_token');
 const IS_WEBVIEW = !!(WV_EVENT && WV_TOKEN);
+console.log('[CS:match-timer] params — IS_WEBVIEW:', IS_WEBVIEW, 'WV_EVENT:', WV_EVENT, 'token present:', !!WV_TOKEN, 'refresh present:', !!WV_REFRESH);
 
 // Build the Supabase client and a readiness promise.
 // If a refresh token is provided the SDK manages auto-refresh via setSession.
@@ -950,8 +951,11 @@ async function endCurrentPeriod() {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 async function checkAuth() {
+  console.log('[CS:match-timer] checkAuth() — IS_WEBVIEW:', IS_WEBVIEW);
   if (IS_WEBVIEW) { await bootWebview(); return; }
+  console.log('[CS:match-timer] standalone mode — calling getSession()');
   const { data: { session } } = await sb.auth.getSession();
+  console.log('[CS:match-timer] getSession result — session:', !!session);
   if (session) await handleSession(session);
   else showScreen('loginScreen');
   sb.auth.onAuthStateChange((event) => {
@@ -960,6 +964,7 @@ async function checkAuth() {
 }
 
 async function bootWebview() {
+  console.log('[CS:match-timer] bootWebview() — WV_EVENT:', WV_EVENT);
   showLoading('Loading match…');
   try {
     const sessionResult = await _sbReady;
@@ -2015,6 +2020,12 @@ setInterval(async () => {
 }, 30_000);
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+window.onerror = (msg, src, line, col, err) => {
+  console.error('[CS:match-timer] Uncaught error', { msg, src, line, col, err });
+};
+window.addEventListener('unhandledrejection', e => {
+  console.error('[CS:match-timer] Unhandled promise rejection', e.reason);
+});
 checkAuth();
 </script>
 </body>
