@@ -55,12 +55,12 @@ html, body {
 .logo span { color: var(--green); }
 
 .back-btn {
-    display: flex; align-items: center; gap: 5px;
-    background: none; border: none; color: var(--muted);
-    font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
-    cursor: pointer; padding: 4px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+    background: none; border: none; color: var(--text);
+    font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; padding: 6px 2px; flex-shrink: 0;
 }
-.back-btn svg { width: 18px; height: 18px; }
+.back-btn svg { width: 24px; height: 24px; }
 
 /* ── Progress dots ── */
 .progress { display: flex; justify-content: center; gap: 8px; padding: 22px 0 0; flex-shrink: 0; }
@@ -259,7 +259,13 @@ html, body {
      STEP 1 — WHO ARE YOU ADDING?
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-who" class="screen">
-    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="logo-bar">
+        <button class="back-btn" onclick="closeFlow()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Close
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
     <div class="progress">
         <div class="dot active"></div>
         <div class="dot"></div>
@@ -536,7 +542,7 @@ html, body {
         </div>
         <div class="field">
             <label>Club Name</label>
-            <input type="text" id="req-club" placeholder="e.g. Clontarf GAA" autocapitalize="words">
+            <input type="text" id="req-club" placeholder="e.g. Ballytown GAA" autocapitalize="words">
         </div>
         <div class="field">
             <label>County</label>
@@ -585,7 +591,7 @@ html, body {
                 Keep an eye on your inbox — we'll send you your team joining code once everything is ready.
             </span>
         </div>
-        <button class="btn-primary" onclick="finish()" style="margin-top:32px;">Done</button>
+        <button class="btn-primary" onclick="closeFlow()" style="margin-top:32px;">Done</button>
     </div>
 </div>
 
@@ -593,7 +599,13 @@ html, body {
      ALL DONE
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-done" class="screen">
-    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="logo-bar">
+        <button class="back-btn" onclick="closeFlow()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Close
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
     <div class="content centre-content">
         <div class="hero-icon green">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1019,6 +1031,15 @@ function finish() {
         ? "Your request has been sent. You'll receive a notification once the team admin approves it."
         : "Your requests have been sent. You'll receive a notification once the team admin approves them.";
     showScreen('screen-done');
+}
+
+// ── Close flow entirely ───────────────────────────────────────────────
+function closeFlow() {
+    if (window.FlutterBridge) {
+        window.FlutterBridge.postMessage('close');
+    } else {
+        history.back();
+    }
 }
 
 // ── Navigation ────────────────────────────────────────────────────────
