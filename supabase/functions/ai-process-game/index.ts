@@ -305,6 +305,7 @@ serve(async (req) => {
       const {
         game_id, game_name, game_age, game_code, game_skill, game_type,
         game_setup, game_how_to_play, game_variations, game_teaching_points, game_video,
+        image_base64, image_mime_type, game_image_remove,
       } = body;
 
       if (!game_id) {
@@ -354,6 +355,26 @@ serve(async (req) => {
       };
       if (game_video !== undefined) updatePayload.game_video = game_video?.trim() || null;
 
+      // Optional image upload or removal
+      let newImageUrl: string | null | undefined = undefined;
+      if (image_base64 && image_mime_type) {
+        const ext  = image_mime_type === "image/png" ? "png" : "jpg";
+        const path = `games/${user.id}-${Date.now()}.${ext}`;
+        const bytes = Uint8Array.from(atob(image_base64), (c) => c.charCodeAt(0));
+        const { error: uploadErr } = await sb.storage
+          .from("coachsmartimages")
+          .upload(path, bytes, { contentType: image_mime_type });
+        if (!uploadErr) {
+          const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
+          const { data: signed } = await sb.storage.from("coachsmartimages").createSignedUrl(path, TEN_YEARS);
+          newImageUrl = signed?.signedUrl ?? null;
+          updatePayload.game_image = newImageUrl;
+        }
+      } else if (game_image_remove) {
+        newImageUrl = null;
+        updatePayload.game_image = null;
+      }
+
       const { error: updateErr } = await sb.from("games").update(updatePayload).eq("game_id", game_id);
       if (updateErr) {
         return new Response(JSON.stringify({ error: "Update failed: " + updateErr.message }), {
@@ -361,7 +382,9 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ success: true }), {
+      const resp: Record<string, any> = { success: true };
+      if (newImageUrl !== undefined) resp.game_image = newImageUrl;
+      return new Response(JSON.stringify(resp), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

@@ -347,10 +347,13 @@
     .edit-game-btn {
       width: 44px; height: 44px; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      border-radius: 50%; background: none; border: none; cursor: pointer;
-      color: var(--muted); margin-left: 2px;
+      border-radius: 50%; cursor: pointer; margin-left: 2px;
+      color: var(--green);
+      background: var(--green-dim);
+      border: 1.5px solid rgba(135,194,50,0.3);
+      transition: background 0.15s;
     }
-    .edit-game-btn:active { background: var(--green-dim); color: var(--green); }
+    .edit-game-btn:active { background: rgba(135,194,50,0.25); }
     .edit-save-btn {
       font-size: 14px; font-weight: 600; padding: 7px 16px;
       border-radius: 20px; background: var(--green); color: #111418;
@@ -375,7 +378,8 @@
       width: 100%; padding: 10px 12px; box-sizing: border-box;
       border-radius: 10px; border: 1px solid var(--border);
       background: var(--card); color: var(--text); font-size: 15px;
-      resize: vertical; min-height: 80px; font-family: inherit;
+      resize: none; overflow: hidden; min-height: 80px; font-family: inherit;
+      line-height: 1.5;
     }
     .ef-textarea:focus { outline: none; border-color: var(--green); }
     .ef-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -386,6 +390,30 @@
     .ef-chip.active {
       background: var(--green); color: #111418; border-color: var(--green);
     }
+    .ef-img-preview {
+      width: 100%; border-radius: 10px; display: block;
+      max-height: 200px; object-fit: cover;
+    }
+    .ef-img-controls { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .ef-sketch-wrap {
+      border-radius: 10px; overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    #efSketchCanvas {
+      display: block; width: 100%; height: 260px;
+      touch-action: none; cursor: crosshair; background: #1a2d1a;
+    }
+    .ef-sketch-toolbar {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      background: var(--card2); padding: 7px 8px;
+      border-top: 1px solid var(--border);
+    }
+    .ef-tool-btn {
+      padding: 5px 10px; border-radius: 7px; font-size: 12px; font-weight: 600;
+      background: var(--card); border: 1px solid var(--border); color: var(--muted);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .ef-tool-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
 
     /* ── LOADING ── */
     #loadingOverlay {
@@ -690,19 +718,52 @@
       </div>
 
       <label class="ef-label">Setup</label>
-      <textarea id="ef-setup" class="ef-textarea" rows="4" placeholder="Setup instructions…"></textarea>
+      <textarea id="ef-setup" class="ef-textarea" rows="4" placeholder="Setup instructions…" oninput="efAutoResize(this)"></textarea>
 
       <label class="ef-label">How to Play</label>
-      <textarea id="ef-how-to" class="ef-textarea" rows="5" placeholder="Step-by-step instructions…"></textarea>
+      <textarea id="ef-how-to" class="ef-textarea" rows="5" placeholder="Step-by-step instructions…" oninput="efAutoResize(this)"></textarea>
 
       <label class="ef-label">Variations</label>
-      <textarea id="ef-variations" class="ef-textarea" rows="3" placeholder="Progressions…"></textarea>
+      <textarea id="ef-variations" class="ef-textarea" rows="3" placeholder="Progressions…" oninput="efAutoResize(this)"></textarea>
 
       <label class="ef-label">Teaching Points</label>
-      <textarea id="ef-teaching" class="ef-textarea" rows="3" placeholder="Coaching cues…"></textarea>
+      <textarea id="ef-teaching" class="ef-textarea" rows="3" placeholder="Coaching cues…" oninput="efAutoResize(this)"></textarea>
 
       <label class="ef-label">Video URL</label>
       <input type="url" id="ef-video" class="ef-input" placeholder="https://youtube.com/…">
+
+      <label class="ef-label" style="margin-top:14px">Image / Sketch</label>
+      <div id="ef-image-section">
+        <!-- Existing image (shown when game has image) -->
+        <div id="ef-img-current" style="display:none">
+          <img id="ef-img-thumb" class="ef-img-preview" alt="Current image">
+          <div class="ef-img-controls">
+            <button class="ef-chip" onclick="efRemoveImage()">Remove Image</button>
+            <button class="ef-chip" onclick="efShowSketch(true)">Replace with Sketch</button>
+          </div>
+        </div>
+        <!-- No image (shown when no image, or after remove) -->
+        <div id="ef-no-image" style="display:none">
+          <button class="ef-chip" onclick="efShowSketch(false)">Add Sketch</button>
+        </div>
+        <!-- Sketchpad (shown when drawing) -->
+        <div id="ef-sketch-section" style="display:none">
+          <div class="ef-sketch-wrap">
+            <canvas id="efSketchCanvas"></canvas>
+            <div class="ef-sketch-toolbar">
+              <button id="efToolDraw"   class="ef-tool-btn active" onclick="efSetTool('draw',this)">Draw</button>
+              <button id="efToolPlayer" class="ef-tool-btn" onclick="efSetTool('player',this)">Player</button>
+              <button id="efToolCone"   class="ef-tool-btn" onclick="efSetTool('cone',this)">Cone</button>
+              <button id="efToolArrow"  class="ef-tool-btn" onclick="efSetTool('arrow',this)">Arrow</button>
+              <button class="ef-tool-btn" onclick="efUndo()">Undo</button>
+              <button class="ef-tool-btn" onclick="efClearSketch()">Clear</button>
+            </div>
+          </div>
+          <div class="ef-img-controls">
+            <button class="ef-chip" id="efCancelSketch" onclick="efHideSketch()" style="display:none">Cancel</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1533,6 +1594,286 @@ function showDetail(gameId) {
 // ── Edit Game ─────────────────────────────────────────────────────────────────
 const EDGE_FN_URL = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/ai-process-game';
 
+// ── Edit textarea auto-resize ─────────────────────────────────────────────────
+function efAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.max(el.scrollHeight, parseInt(getComputedStyle(el).minHeight)||80) + 'px';
+}
+function efAutoResizeAll() {
+  document.querySelectorAll('.ef-textarea').forEach(efAutoResize);
+}
+
+// ── Edit image / sketch state ─────────────────────────────────────────────────
+let _efTool       = 'draw';
+let _efCtx        = null;
+let _efCanvas     = null;
+let _efFhCanvas   = null;
+let _efFhCtx      = null;
+let _efElements   = [];
+let _efNextId     = 1;
+let _efStampN     = 1;
+let _efUndoStack  = [];
+let _efIsDrawing  = false;
+let _efIsArrow    = false;
+let _efArrowStart = null;
+let _efLastPt     = null;
+let _efHasContent = false;
+let _efImgRemoved = false;
+let _efHadImage   = false;
+let _efListeners  = false;
+
+function efRemoveImage() {
+  _efImgRemoved = true;
+  $('ef-img-current').style.display = 'none';
+  $('ef-no-image').style.display = '';
+}
+
+function efShowSketch(replacing) {
+  const bgUrl = (replacing && _efHadImage && !_efImgRemoved) ? $('ef-img-thumb').src : null;
+  if (replacing) {
+    $('ef-img-current').style.display = 'none';
+    $('efCancelSketch').style.display = '';
+  } else {
+    $('ef-no-image').style.display = 'none';
+    $('efCancelSketch').style.display = 'none';
+  }
+  $('ef-sketch-section').style.display = '';
+  _efCtx = null; // force reinit
+  requestAnimationFrame(() => efInitSketch(bgUrl));
+}
+
+function efHideSketch() {
+  $('ef-sketch-section').style.display = 'none';
+  _efHasContent = false;
+  if (_efHadImage && !_efImgRemoved) {
+    $('ef-img-current').style.display = '';
+  } else {
+    $('ef-no-image').style.display = '';
+  }
+}
+
+function efInitSketch(bgUrl) {
+  _efCanvas = $('efSketchCanvas');
+  if (!_efCanvas) return;
+  const rect = _efCanvas.getBoundingClientRect();
+  if (!rect.width) { setTimeout(() => efInitSketch(bgUrl), 80); return; }
+  const dpr = window.devicePixelRatio || 1;
+  const W = Math.round(rect.width * dpr), H = Math.round(rect.height * dpr);
+  _efCanvas.width = W; _efCanvas.height = H;
+  _efCtx = _efCanvas.getContext('2d');
+  _efCtx.scale(dpr, dpr);
+  _efFhCanvas = document.createElement('canvas');
+  _efFhCanvas.width = W; _efFhCanvas.height = H;
+  _efFhCtx = _efFhCanvas.getContext('2d');
+  _efFhCtx.scale(dpr, dpr);
+  _efHasContent = false;
+  if (bgUrl) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      _efFhCtx.drawImage(img, 0, 0, rect.width, rect.height);
+      _efHasContent = true;
+      _efRender();
+    };
+    img.onerror = () => _efRender();
+    img.src = bgUrl;
+  } else {
+    _efRender();
+  }
+  if (!_efListeners) {
+    _efCanvas.addEventListener('mousedown',  _efStart);
+    _efCanvas.addEventListener('mousemove',  _efMove);
+    _efCanvas.addEventListener('mouseup',    _efEnd);
+    _efCanvas.addEventListener('mouseleave', _efEnd);
+    _efCanvas.addEventListener('touchstart', e => { e.preventDefault(); if (e.touches.length===1) _efStart(e.touches[0]); }, { passive: false });
+    _efCanvas.addEventListener('touchmove',  e => { e.preventDefault(); if (e.touches.length===1) _efMove(e.touches[0]); }, { passive: false });
+    _efCanvas.addEventListener('touchend',   _efEnd);
+    _efListeners = true;
+  }
+}
+
+function _efRender() {
+  if (!_efCtx) return;
+  const r = _efCanvas.getBoundingClientRect();
+  _efCtx.fillStyle = '#1a2d1a';
+  _efCtx.fillRect(0, 0, r.width, r.height);
+  _efCtx.strokeStyle = 'rgba(255,255,255,0.12)';
+  _efCtx.lineWidth = 1; _efCtx.setLineDash([8, 6]);
+  _efCtx.beginPath(); _efCtx.moveTo(0, r.height/2); _efCtx.lineTo(r.width, r.height/2); _efCtx.stroke();
+  _efCtx.setLineDash([]);
+  if (_efFhCanvas) _efCtx.drawImage(_efFhCanvas, 0, 0, r.width, r.height);
+  _efElements.forEach(el => _efDrawEl(el));
+}
+
+function _efDrawEl(el) {
+  const ctx = _efCtx;
+  ctx.save();
+  if (el.type === 'player') {
+    ctx.beginPath(); ctx.arc(el.x, el.y, 14, 0, Math.PI*2);
+    ctx.fillStyle = 'white'; ctx.fill();
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
+    ctx.fillStyle = '#111'; ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(el.label), el.x, el.y);
+  } else if (el.type === 'cone') {
+    const sz = 10;
+    ctx.beginPath(); ctx.moveTo(el.x, el.y-sz); ctx.lineTo(el.x+sz, el.y+sz); ctx.lineTo(el.x-sz, el.y+sz); ctx.closePath();
+    ctx.fillStyle = '#f07023'; ctx.fill();
+    ctx.strokeStyle = '#c05010'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
+  } else if (el.type === 'arrow') {
+    _efDrawArrow(el.x1, el.y1, el.x2, el.y2);
+  }
+  ctx.restore();
+}
+
+function _efDrawArrow(x1, y1, x2, y2) {
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+  if (len < 6) return;
+  const ctx=_efCtx, headLen=14, angle=Math.atan2(dy,dx);
+  const sx=x2-Math.cos(angle)*(headLen*0.55), sy=y2-Math.sin(angle)*(headLen*0.55);
+  ctx.strokeStyle='#AAEE35'; ctx.fillStyle='#AAEE35';
+  ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(sx,sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
+  ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
+  ctx.closePath(); ctx.fill();
+}
+
+function _efPos(e) {
+  const rect = _efCanvas.getBoundingClientRect();
+  return { x: e.clientX-rect.left, y: e.clientY-rect.top };
+}
+
+function _efSaveUndo() {
+  _efUndoStack.push({
+    fh: _efFhCtx.getImageData(0, 0, _efFhCanvas.width, _efFhCanvas.height),
+    els: JSON.parse(JSON.stringify(_efElements)),
+    n: _efStampN,
+  });
+  if (_efUndoStack.length > 20) _efUndoStack.shift();
+}
+
+function _efStart(e) {
+  if (!_efCtx) return;
+  const pt = _efPos(e); _efLastPt = pt; _efSaveUndo();
+  if (_efTool === 'draw') {
+    _efIsDrawing = true;
+    for (const c of [_efCtx, _efFhCtx]) {
+      c.beginPath(); c.moveTo(pt.x, pt.y);
+      c.strokeStyle='#fff'; c.lineWidth=2.5; c.lineCap='round'; c.lineJoin='round'; c.setLineDash([]);
+    }
+  } else if (_efTool === 'arrow') {
+    _efArrowStart = pt; _efIsArrow = true;
+  } else if (_efTool === 'player') {
+    _efElements.push({ id:_efNextId++, type:'player', x:pt.x, y:pt.y, label:_efStampN++ });
+    _efHasContent = true; _efRender();
+  } else if (_efTool === 'cone') {
+    _efElements.push({ id:_efNextId++, type:'cone', x:pt.x, y:pt.y });
+    _efHasContent = true; _efRender();
+  }
+}
+
+function _efMove(e) {
+  if (!_efCtx) return;
+  const pt = _efPos(e); _efLastPt = pt;
+  if (_efIsDrawing) {
+    for (const c of [_efCtx, _efFhCtx]) { c.lineTo(pt.x, pt.y); c.stroke(); }
+    _efHasContent = true;
+  } else if (_efIsArrow && _efArrowStart) {
+    _efRender(); _efDrawArrow(_efArrowStart.x, _efArrowStart.y, pt.x, pt.y);
+  }
+}
+
+function _efEnd() {
+  if (_efIsDrawing) { _efIsDrawing = false; _efHasContent = true; _efRender(); return; }
+  if (_efIsArrow && _efArrowStart) {
+    _efIsArrow = false;
+    const end = _efLastPt || _efArrowStart;
+    if (Math.hypot(end.x-_efArrowStart.x, end.y-_efArrowStart.y) > 8) {
+      _efElements.push({ id:_efNextId++, type:'arrow', x1:_efArrowStart.x, y1:_efArrowStart.y, x2:end.x, y2:end.y });
+      _efHasContent = true;
+    } else { _efUndoStack.pop(); }
+    _efArrowStart = null; _efRender();
+  }
+}
+
+function efSetTool(tool, btn) {
+  _efTool = tool;
+  document.querySelectorAll('.ef-tool-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function efUndo() {
+  if (!_efUndoStack.length || !_efCtx) return;
+  const s = _efUndoStack.pop();
+  _efFhCtx.clearRect(0, 0, _efFhCanvas.width, _efFhCanvas.height);
+  if (s.fh) _efFhCtx.putImageData(s.fh, 0, 0);
+  _efElements = s.els; _efStampN = s.n;
+  _efHasContent = _efUndoStack.length > 0 || _efElements.length > 0;
+  _efRender();
+}
+
+function efClearSketch() {
+  if (!_efCtx) return;
+  _efUndoStack = []; _efStampN = 1; _efHasContent = false;
+  _efElements = []; _efNextId = 1;
+  _efFhCtx.clearRect(0, 0, _efFhCanvas.width, _efFhCanvas.height);
+  _efRender();
+}
+
+function efGetSketchPng() {
+  return new Promise(resolve => {
+    if (!_efCanvas || !_efCtx) { resolve(null); return; }
+    const dpr = window.devicePixelRatio || 1;
+    const W = Math.round(_efCanvas.width/dpr), H = Math.round(_efCanvas.height/dpr);
+    const exp = document.createElement('canvas');
+    exp.width = W; exp.height = H;
+    const ctx = exp.getContext('2d');
+    ctx.fillStyle = '#2e6e16'; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (_efFhCanvas) ctx.drawImage(_efFhCanvas, 0, 0, _efFhCanvas.width, _efFhCanvas.height, 0, 0, W, H);
+    _efElements.forEach(el => {
+      ctx.save();
+      if (el.type === 'player') {
+        ctx.beginPath(); ctx.arc(el.x, el.y, 14, 0, Math.PI*2);
+        ctx.fillStyle='white'; ctx.fill();
+        ctx.strokeStyle='#333'; ctx.lineWidth=1.5; ctx.setLineDash([]); ctx.stroke();
+        ctx.fillStyle='#111'; ctx.font='bold 13px sans-serif';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(String(el.label), el.x, el.y);
+      } else if (el.type === 'cone') {
+        const sz=10;
+        ctx.beginPath(); ctx.moveTo(el.x,el.y-sz); ctx.lineTo(el.x+sz,el.y+sz); ctx.lineTo(el.x-sz,el.y+sz); ctx.closePath();
+        ctx.fillStyle='#f07023'; ctx.fill();
+        ctx.strokeStyle='#c05010'; ctx.lineWidth=1; ctx.setLineDash([]); ctx.stroke();
+      } else if (el.type === 'arrow') {
+        const dx=el.x2-el.x1, dy=el.y2-el.y1, len=Math.hypot(dx,dy);
+        if (len >= 6) {
+          const headLen=14, angle=Math.atan2(dy,dx);
+          const sx=el.x2-Math.cos(angle)*(headLen*0.55), sy=el.y2-Math.sin(angle)*(headLen*0.55);
+          ctx.strokeStyle='#AAEE35'; ctx.fillStyle='#AAEE35';
+          ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.setLineDash([]);
+          ctx.beginPath(); ctx.moveTo(el.x1,el.y1); ctx.lineTo(sx,sy); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(el.x2,el.y2);
+          ctx.lineTo(el.x2-headLen*Math.cos(angle-Math.PI/6), el.y2-headLen*Math.sin(angle-Math.PI/6));
+          ctx.lineTo(el.x2-headLen*Math.cos(angle+Math.PI/6), el.y2-headLen*Math.sin(angle+Math.PI/6));
+          ctx.closePath(); ctx.fill();
+        }
+      }
+      ctx.restore();
+    });
+    exp.toBlob(blob => {
+      const reader = new FileReader();
+      reader.onload = e => resolve({ base64: e.target.result.split(',')[1], mimeType: 'image/png' });
+      reader.readAsDataURL(blob);
+    }, 'image/png');
+  });
+}
+
 function toggleEditChip(el, group) {
   const container = el.closest('.ef-chips');
   if (group === 'type') {
@@ -1544,12 +1885,21 @@ function toggleEditChip(el, group) {
 function openEditGame(gameId) {
   const g = allGames.find(x => x.game_id === gameId);
   if (!g) return;
+
+  // Reset sketch state
+  _efCtx = null; _efCanvas = null; _efFhCanvas = null; _efFhCtx = null;
+  _efElements = []; _efNextId = 1; _efStampN = 1; _efUndoStack = [];
+  _efIsDrawing = false; _efIsArrow = false; _efArrowStart = null;
+  _efHasContent = false; _efImgRemoved = false; _efListeners = false;
+  _efHadImage = !!g.game_image?.trim();
+
   $('ef-name').value       = g.game_name || '';
   $('ef-setup').value      = g.game_setup || '';
   $('ef-how-to').value     = g.game_how_to_play || '';
   $('ef-variations').value = g.game_variations || '';
   $('ef-teaching').value   = g.game_teaching_points || '';
   $('ef-video').value      = g.game_video || '';
+
   const sports = (g.game_code || []).map(s => s.toLowerCase());
   document.querySelectorAll('#ef-sport-chips .ef-chip').forEach(c => {
     c.classList.toggle('active', sports.includes(c.dataset.val.toLowerCase()));
@@ -1558,7 +1908,20 @@ function openEditGame(gameId) {
   document.querySelectorAll('#ef-type-chips .ef-chip').forEach(c => {
     c.classList.toggle('active', types.includes(c.dataset.val.toLowerCase()));
   });
+
+  // Image/sketch section
+  $('ef-sketch-section').style.display = 'none';
+  if (_efHadImage) {
+    $('ef-img-thumb').src = g.game_image;
+    $('ef-img-current').style.display = '';
+    $('ef-no-image').style.display = 'none';
+  } else {
+    $('ef-img-current').style.display = 'none';
+    $('ef-no-image').style.display = '';
+  }
+
   showScreen('editGameScreen');
+  requestAnimationFrame(efAutoResizeAll);
 }
 
 async function saveEditGame() {
@@ -1575,6 +1938,33 @@ async function saveEditGame() {
     } catch (_) {}
     const selectedSports = [...document.querySelectorAll('#ef-sport-chips .ef-chip.active')].map(c => c.dataset.val);
     const selectedTypes  = [...document.querySelectorAll('#ef-type-chips .ef-chip.active')].map(c => c.dataset.val);
+
+    // Resolve image changes
+    let imageBase64 = null, imageMimeType = null, imageRemove = false;
+    if (_efHasContent && _efCtx) {
+      const png = await efGetSketchPng();
+      if (png) { imageBase64 = png.base64; imageMimeType = png.mimeType; }
+    } else if (_efImgRemoved) {
+      imageRemove = true;
+    }
+
+    const payload = {
+      action:               'update_game',
+      game_id:              g.game_id,
+      game_name:            $('ef-name').value.trim(),
+      game_code:            selectedSports,
+      game_type:            selectedTypes,
+      game_skill:           g.game_skill,
+      game_age:             g.game_age,
+      game_setup:           $('ef-setup').value.trim(),
+      game_how_to_play:     $('ef-how-to').value.trim(),
+      game_variations:      $('ef-variations').value.trim(),
+      game_teaching_points: $('ef-teaching').value.trim(),
+      game_video:           $('ef-video').value.trim(),
+    };
+    if (imageBase64)  { payload.image_base64 = imageBase64; payload.image_mime_type = imageMimeType; }
+    else if (imageRemove) { payload.game_image_remove = true; }
+
     const res = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: {
@@ -1582,23 +1972,11 @@ async function saveEditGame() {
         'Authorization': 'Bearer ' + authToken,
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4',
       },
-      body: JSON.stringify({
-        action:               'update_game',
-        game_id:              g.game_id,
-        game_name:            $('ef-name').value.trim(),
-        game_code:            selectedSports,
-        game_type:            selectedTypes,
-        game_skill:           g.game_skill,
-        game_age:             g.game_age,
-        game_setup:           $('ef-setup').value.trim(),
-        game_how_to_play:     $('ef-how-to').value.trim(),
-        game_variations:      $('ef-variations').value.trim(),
-        game_teaching_points: $('ef-teaching').value.trim(),
-        game_video:           $('ef-video').value.trim(),
-      }),
+      body: JSON.stringify(payload),
     });
     const json = await res.json();
     if (!res.ok || !json.success) throw new Error(json.error || 'Save failed');
+
     // Update local allGames so the detail view reflects the change immediately
     Object.assign(g, {
       game_name:            $('ef-name').value.trim(),
@@ -1610,6 +1988,9 @@ async function saveEditGame() {
       game_teaching_points: $('ef-teaching').value.trim(),
       game_video:           $('ef-video').value.trim(),
     });
+    if (json.game_image !== undefined) g.game_image = json.game_image;
+    else if (imageRemove) g.game_image = null;
+
     showDetail(g.game_id);  // re-render detail screen
     history.replaceState({ screen: 'detailScreen' }, '');
     _currentScreen = 'detailScreen';
