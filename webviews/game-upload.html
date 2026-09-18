@@ -297,7 +297,7 @@
 
     <!-- Name -->
     <div>
-      <div class="field-label">Game Name <span title="optional">(optional)</span></div>
+      <div class="field-label">Game Name <span>*</span></div>
       <input id="inpName" class="text-input" type="text" placeholder="e.g. Kick Pass Relay"/>
     </div>
 
@@ -315,7 +315,7 @@
 
     <!-- Age Group -->
     <div>
-      <div class="field-label">Age Group <span title="optional">(optional)</span></div>
+      <div class="field-label">Age Group <span>*</span></div>
       <div class="chip-row" id="ageChips">
         <button class="age-chip" data-age="U6"    onclick="toggleAge(this)">U6</button>
         <button class="age-chip" data-age="U8"    onclick="toggleAge(this)">U8</button>
@@ -999,6 +999,7 @@
   let _imageBase64   = null;
   let _imageMimeType = null;
   let _reviewImage   = null; // {base64, mimeType} carried into review
+  let _selectedAges  = [];  // age chips captured at createDraft time
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
 
@@ -1104,19 +1105,30 @@
   // ── Create Draft ───────────────────────────────────────────────────────────
 
   async function createDraft() {
+    const gameName = document.getElementById('inpName').value.trim();
+    if (!gameName) { showToast('Game name is required', 'error'); document.getElementById('inpName').focus(); return; }
+    const ages = getSelectedAges();
+    if (!ages.length) { showToast('Select at least one age group', 'error'); return; }
     const setup = document.getElementById('inpSetup').value.trim();
     const howTo = document.getElementById('inpHowTo').value.trim();
     if (!setup) { showToast('Setup is required', 'error'); return; }
     if (!howTo) { showToast('How to Play is required', 'error'); return; }
 
-    // Capture sketch or photo
+    // Capture sketch or photo — one is required
+    const hasSketch = _activeMediaTab === 'sketch' && _hasDrawn;
+    const hasPhoto  = _activeMediaTab === 'photo'  && !!_imageBase64;
+    if (!hasSketch && !hasPhoto) {
+      showToast('Add a sketch or photo before continuing', 'error');
+      return;
+    }
     _reviewImage = null;
-    if (_activeMediaTab === 'sketch' && _hasDrawn) {
+    if (hasSketch) {
       const png = await getSketchPng();
       _reviewImage = { base64: png.base64, mimeType: png.mimeType };
-    } else if (_activeMediaTab === 'photo' && _imageBase64) {
+    } else {
       _reviewImage = { base64: _imageBase64, mimeType: _imageMimeType };
     }
+    _selectedAges = ages;
 
     document.getElementById('processingTitle').textContent = 'Polishing your content…';
     document.getElementById('processingStatus').textContent = 'Fixing spelling and formatting';
@@ -1205,14 +1217,18 @@
   // ── Save ───────────────────────────────────────────────────────────────────
 
   function saveGame() {
+    const name = document.getElementById('rvName').value.trim();
+    if (!name) { showToast('Game name is required', 'error'); document.getElementById('rvName').focus(); return; }
+    if (!_reviewImage) { showToast('An image (sketch or photo) is required', 'error'); return; }
     const data = {
-      game_name:            document.getElementById('rvName').value.trim(),
+      game_name:            name,
+      game_age:             _selectedAges,
       game_setup:           document.getElementById('rvSetup').value.trim(),
       game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
       game_variations:      document.getElementById('rvVariations').value.trim(),
       game_teaching_points: document.getElementById('rvTeaching').value.trim(),
-      image_base64:         _reviewImage?.base64   || null,
-      image_mime_type:      _reviewImage?.mimeType || null,
+      image_base64:         _reviewImage.base64,
+      image_mime_type:      _reviewImage.mimeType,
     };
     if (window.FlutterBridge) {
       window.FlutterBridge.postMessage(JSON.stringify({ action: 'save_draft', data }));
