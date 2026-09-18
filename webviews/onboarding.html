@@ -303,13 +303,13 @@ html, body {
     </div>
     <div class="content">
         <div class="step-label">Step 2 of 3</div>
-        <div class="screen-title" id="who-title">Who are you joining a team as?</div>
+        <div class="screen-title" id="who-title">How would you like to get started?</div>
         <div class="screen-sub" id="who-sub">Choose one to continue.</div>
 
         <button class="choice-card" onclick="selectMyself()">
             <div class="choice-icon">🏃</div>
             <div>
-                <div class="choice-label">Myself</div>
+                <div class="choice-label">Join as myself</div>
                 <div class="choice-sub">I play or coach on this team</div>
             </div>
         </button>
@@ -317,7 +317,7 @@ html, body {
         <button class="choice-card" onclick="selectSomeoneElse()">
             <div class="choice-icon">👨‍👧</div>
             <div>
-                <div class="choice-label">Someone else</div>
+                <div class="choice-label">Register someone else</div>
                 <div class="choice-sub">My child or another family member</div>
             </div>
         </button>
@@ -325,8 +325,8 @@ html, body {
         <button class="choice-card" onclick="selectNewTeam()" style="border-color:rgba(135,194,50,0.2)">
             <div class="choice-icon">🏟️</div>
             <div>
-                <div class="choice-label">Set up a new club</div>
-                <div class="choice-sub">I want to create a new team on CoachSmart</div>
+                <div class="choice-label">Set up a new team</div>
+                <div class="choice-sub">Request a new team setup on CoachSmart</div>
             </div>
         </button>
     </div>
@@ -347,9 +347,10 @@ html, body {
         <div class="dot done"></div>
         <div class="dot done"></div>
         <div class="dot active"></div>
+        <div class="dot"></div>
     </div>
     <div class="content">
-        <div class="step-label">Step 3 of 3</div>
+        <div class="step-label">Step 3 of 4</div>
         <div class="screen-title">What is their name?</div>
         <div class="screen-sub">Enter their name exactly as it appears, or will appear, on the team roster.</div>
         <div class="field">
@@ -385,9 +386,10 @@ html, body {
         <div class="dot done"></div>
         <div class="dot done"></div>
         <div class="dot active"></div>
+        <div class="dot"></div>
     </div>
     <div class="content">
-        <div class="step-label">Step 3 of 3</div>
+        <div class="step-label">Step 3 of 4</div>
         <div class="screen-title">Use their member code</div>
         <div class="screen-sub">Another parent or team admin can share this unique code with you. Enter it below to find the member.</div>
         <div class="field">
@@ -586,9 +588,14 @@ html, body {
         </button>
         <div class="logo">COACH<span>SMART</span></div>
     </div>
+    <div class="progress">
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+    </div>
     <div class="content">
-        <div class="step-label">New Club Request</div>
-        <div class="screen-title">Set up your club on CoachSmart</div>
+        <div class="step-label no-step">New Team Request</div>
+        <div class="screen-title">Set up your team on CoachSmart</div>
         <div class="screen-sub">Fill in the details below and our team will be in touch within 24 hours to get everything set up for you.</div>
 
         <div class="field">
@@ -927,6 +934,7 @@ function selectMyself() {
         isMyself:  true
     };
     el('code-for-name').textContent = registering.firstName + ' ' + registering.lastName;
+    setProgress('screen-code', 3, 3);
     showScreen('screen-code');
 }
 
@@ -955,6 +963,7 @@ function confirmTheirName() {
     err.textContent = '';
     registering = { firstName, lastName, isMyself: false };
     el('code-for-name').textContent = firstName + ' ' + lastName;
+    setProgress('screen-code', 4, 4);
     showScreen('screen-code');
 }
 
@@ -1182,8 +1191,8 @@ function addAnother() {
     el('their-last').value   = '';
     el('their-error').textContent = '';
     resetCodeScreen();
-    el('who-title').textContent = 'Add another person?';
-    el('who-sub').textContent   = 'Who would you like to register next?';
+    el('who-title').textContent = 'Register another person?';
+    el('who-sub').textContent   = 'Choose how you\'d like to continue.';
     showScreen('screen-who');
 }
 
@@ -1292,6 +1301,23 @@ async function submitTeamRequest() {
 
 // ── Helpers ───────────────────────────────────────────────────────────
 function el(id) { return document.getElementById(id); }
+
+function setProgress(screenId, total, current) {
+    const screen = el(screenId);
+    if (!screen) return;
+    const prog = screen.querySelector('.progress');
+    if (!prog) return;
+    let html = '';
+    for (let i = 1; i <= total; i++) {
+        const cls = i < current ? 'dot done' : i === current ? 'dot active' : 'dot';
+        html += `<div class="${cls}"></div>`;
+    }
+    prog.innerHTML = html;
+    const label = screen.querySelector('.step-label');
+    if (label && !label.classList.contains('no-step')) {
+        label.textContent = `Step ${current} of ${total}`;
+    }
+}
 function setLoading(btn, loading, label) {
     btn.disabled    = loading;
     btn.textContent = label;
