@@ -1964,9 +1964,10 @@ async function finaliseStats() {
   showToast('Stats saved');
   // Reset timer only — preserve match_stats_details so the chart retains the data
   await doReset(false);
-  // Immediately create a fresh active session so any subsequent scores don't
-  // corrupt the finalised one (matchStatsRow still pointed to the old id)
-  await upsertMatchStats(timerRow?.opposition || '', timerRow?.squad_id || null);
+  // Null out matchStatsRow so the old finalised id is never reused.
+  // A fresh active row is created when the user next opens the timer via openTimer().
+  matchStatsRow = null;
+  if (broadcastChannel) { sb.removeChannel(broadcastChannel); broadcastChannel = null; }
   scoreCounts = {};
   updateScoreDisplay();
 }
