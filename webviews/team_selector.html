@@ -40,6 +40,15 @@
     }
     .screen.active { display: block; }
 
+    /* ── CLOSE BUTTON ── */
+    .wv-close-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer;
+      color: var(--text); font-size: 15px; font-weight: 600;
+      padding: 6px 2px;
+    }
+    .wv-close-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+
     /* ── SHARED HEADER ── */
     .top-bar {
       background: var(--card); border-bottom: 3px solid var(--green);
@@ -209,6 +218,10 @@
 <!-- PITCH SCREEN -->
 <div class="screen active" id="pitchScreen">
   <div class="top-bar">
+    <button class="wv-close-btn" onclick="closeFlow()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Close
+    </button>
     <div>
       <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
       <div class="bar-sub">Team Selector</div>
@@ -323,6 +336,14 @@
 </div>
 
 <script>
+function closeFlow() {
+  if (window.FlutterBridge) {
+    window.FlutterBridge.postMessage('close');
+  } else {
+    history.back();
+  }
+}
+
 const SB  = 'https://gyfporsbdftvtakdvukt.supabase.co';
 const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
 let userToken = null;

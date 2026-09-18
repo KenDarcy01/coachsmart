@@ -399,8 +399,18 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 
-    /* ── WEBVIEW MODE — hide header bar, event banner, and orphaned back button ── */
-    .webview .top-bar { display: none !important; }
+    /* ── WEBVIEW CLOSE BUTTON ── */
+    .wv-close-btn {
+      display: none; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer;
+      color: var(--text); font-size: 15px; font-weight: 600;
+      padding: 6px 2px;
+    }
+    .wv-close-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+
+    /* ── WEBVIEW MODE — hide sign-out, show close button, hide orphaned elements ── */
+    .webview .sign-out-btn { display: none; }
+    .webview .wv-close-btn { display: flex; }
     .webview #setupScreen .back-btn { display: none; }
     .webview #timerScreen .sub-bar  { display: none; }
 
@@ -494,6 +504,10 @@
 <!-- ── SELECTOR ── -->
 <div id="selectorScreen" class="screen">
   <div class="top-bar">
+    <button class="wv-close-btn" onclick="closeFlow()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Close
+    </button>
     <div>
       <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
       <div class="bar-sub">Match Timer</div>
@@ -528,6 +542,10 @@
 <!-- ── SETUP ── -->
 <div id="setupScreen" class="screen">
   <div class="top-bar">
+    <button class="wv-close-btn" onclick="closeFlow()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Close
+    </button>
     <div>
       <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
       <div class="bar-sub">Match Timer</div>
@@ -593,6 +611,10 @@
 <!-- ── TIMER ── -->
 <div id="timerScreen" class="screen">
   <div class="top-bar">
+    <button class="wv-close-btn" onclick="closeFlow()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Close
+    </button>
     <div>
       <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
       <div class="bar-sub">Match Timer</div>
@@ -1036,6 +1058,14 @@ async function doLogin() {
   $('loginBtn').textContent = 'Sign In';
   $('loginBtn').disabled    = false;
   await handleSession(data.session);
+}
+
+function closeFlow() {
+  if (window.FlutterBridge) {
+    window.FlutterBridge.postMessage('close');
+  } else {
+    history.back();
+  }
 }
 
 async function doLogout() {
