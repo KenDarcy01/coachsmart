@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 
 // Model is read from a Supabase secret so it can be updated without a code deploy.
 // To change: supabase secrets set GEMINI_MODEL=gemini-x.y-flash && supabase functions deploy ai-process-game
-const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash";
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const corsHeaders = {
