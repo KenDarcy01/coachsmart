@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 
 // Requires GEMINI_API_KEY set as a Supabase secret:
 //   supabase secrets set GEMINI_API_KEY=AIza...
@@ -199,6 +200,83 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { action } = body;
+
+    // ── save_game: upload image + insert into games table ─────────────────────
+    if (action === "save_game") {
+      const SUPABASE_URL      = Deno.env.get("SUPABASE_URL")!;
+      const SERVICE_ROLE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+      // Verify the caller's JWT
+      const authHeader = req.headers.get("Authorization") || "";
+      const jwt = authHeader.replace(/^Bearer\s+/i, "");
+      const { data: { user }, error: userErr } = await sb.auth.getUser(jwt);
+      if (userErr || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const {
+        game_name, game_age, game_type, game_setup, game_how_to_play,
+        game_variations, game_teaching_points, image_base64, image_mime_type, club_id,
+      } = body;
+
+      if (!game_name?.trim()) {
+        return new Response(JSON.stringify({ error: "game_name is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Upload image to Storage if provided
+      let imageUrl: string | null = null;
+      if (image_base64 && image_mime_type) {
+        const ext  = image_mime_type === "image/png" ? "png" : "jpg";
+        const path = `games/${user.id}-${Date.now()}.${ext}`;
+        const bytes = Uint8Array.from(atob(image_base64), (c) => c.charCodeAt(0));
+        const { error: uploadErr } = await sb.storage
+          .from("coachsmartimages")
+          .upload(path, bytes, { contentType: image_mime_type });
+        if (uploadErr) {
+          console.error("Image upload failed:", uploadErr);
+        } else {
+          const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
+          const { data: signed } = await sb.storage
+            .from("coachsmartimages")
+            .createSignedUrl(path, TEN_YEARS);
+          imageUrl = signed?.signedUrl ?? null;
+        }
+      }
+
+      const toArr = (v: any) => Array.isArray(v) ? v : (v ? [v] : null);
+
+      const { data: game, error: insertErr } = await sb
+        .from("games")
+        .insert({
+          game_name:            game_name.trim(),
+          game_age:             toArr(game_age),
+          game_type:            toArr(game_type),
+          game_setup:           game_setup?.trim()           || null,
+          game_how_to_play:     game_how_to_play?.trim()     || null,
+          game_variations:      game_variations?.trim()      || null,
+          game_teaching_points: game_teaching_points?.trim() || null,
+          game_image:           imageUrl,
+          club_id:              club_id ?? null,
+        })
+        .select("game_id")
+        .single();
+
+      if (insertErr) {
+        console.error("Game insert failed:", insertErr);
+        return new Response(JSON.stringify({ error: "Failed to save game: " + insertErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, game_id: game.game_id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
