@@ -380,6 +380,39 @@
     .error-msg { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 300px; }
     .error-msg strong { color: var(--text); display: block; margin-bottom: 6px; font-size: 16px; }
 
+    /* ── COACH NOTES ── */
+    .notes-textarea {
+      width: 100%;
+      min-height: 120px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+      display: block;
+    }
+    .notes-textarea:focus { border-color: rgba(135,194,50,0.5); }
+    .notes-textarea::placeholder { color: var(--muted); }
+    .notes-save-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 8px; min-height: 24px;
+    }
+    .notes-hint { font-size: 12px; color: var(--muted); }
+    .notes-save-btn {
+      font-size: 13px; font-weight: 600;
+      padding: 6px 16px; border-radius: 8px;
+      background: var(--green); color: #111418;
+      transition: opacity 0.15s;
+    }
+    .notes-save-btn:disabled { opacity: 0.45; pointer-events: none; }
+    .notes-save-btn:active { opacity: 0.8; }
+
     /* ── PRINT CARD ── */
     #printCard { display: none; }
     @media print {
@@ -1333,10 +1366,23 @@ function showDetail(gameId) {
       : extBtn;
     parts.push(`<div class="d-section"><div class="d-section-label">Video</div>${videoHtml}</div>`);
   }
+  if (IS_WEBVIEW) {
+    parts.push(`<div class="d-section" style="padding-bottom:16px">
+      <div class="d-section-label">My Notes</div>
+      <textarea class="notes-textarea" id="coachNotesArea"
+        placeholder="Add your private coaching notes for this drill…"
+        oninput="_noteChanged()" onblur="if(_coachNoteDirty&&_currentDetailGameId!=null)saveCoachNote(_currentDetailGameId)"></textarea>
+      <div class="notes-save-row">
+        <span class="notes-hint" id="coachNotesHint"></span>
+        <button class="notes-save-btn" id="coachNotesSaveBtn" onclick="saveCoachNote(_currentDetailGameId)">Save</button>
+      </div>
+    </div>`);
+  }
   parts.push('</div>');
   $('detailContent').innerHTML = parts.join('');
   showScreen('detailScreen');
   updateDetailHeart();
+  if (IS_WEBVIEW) loadCoachNote(g.game_id);
 }
 
 async function exportGamePdf(gameId) {
@@ -1373,6 +1419,65 @@ async function exportGamePdf(gameId) {
     showToast('Could not generate PDF — please try again');
   } finally {
     if (btn) { btn.textContent = origText; btn.disabled = false; }
+  }
+}
+
+// ── Coach Notes ───────────────────────────────────────────────────────────────
+let _coachNoteDirty = false;
+let _coachNoteSaveTimer = null;
+
+function _noteChanged() {
+  _coachNoteDirty = true;
+  _setNoteHint('Unsaved changes');
+  clearTimeout(_coachNoteSaveTimer);
+  _coachNoteSaveTimer = setTimeout(() => {
+    if (_currentDetailGameId != null) saveCoachNote(_currentDetailGameId);
+  }, 2000);
+}
+
+function _setNoteHint(msg) {
+  const h = $('coachNotesHint');
+  if (h) h.textContent = msg;
+}
+
+async function loadCoachNote(gameId) {
+  const ta = $('coachNotesArea');
+  if (!ta) return;
+  _setNoteHint('');
+  try {
+    const { data, error } = await sb
+      .from('game_coach_notes')
+      .select('notes')
+      .eq('game_id', gameId)
+      .maybeSingle();
+    if (error) { console.warn('loadCoachNote:', error.message); return; }
+    ta.value = data?.notes || '';
+    _coachNoteDirty = false;
+  } catch (e) { console.warn('loadCoachNote:', e); }
+}
+
+async function saveCoachNote(gameId) {
+  const ta = $('coachNotesArea');
+  if (!ta) return;
+  const userId = _jwtUserId();
+  if (!userId) return;
+  const btn = $('coachNotesSaveBtn');
+  if (btn) btn.disabled = true;
+  clearTimeout(_coachNoteSaveTimer);
+  const notes = ta.value;
+  try {
+    const { error } = await sb
+      .from('game_coach_notes')
+      .upsert({ game_id: gameId, user_id: userId, notes }, { onConflict: 'game_id,user_id' });
+    if (error) throw error;
+    _coachNoteDirty = false;
+    _setNoteHint('Saved');
+    setTimeout(() => { if (!_coachNoteDirty) _setNoteHint(''); }, 2500);
+  } catch (e) {
+    console.warn('saveCoachNote:', e);
+    _setNoteHint('Could not save');
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
