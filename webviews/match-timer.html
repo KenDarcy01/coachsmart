@@ -166,16 +166,6 @@
     }
     .setup-open-btn:hover { opacity: 0.88; }
 
-    /* Sub-bar for back nav */
-    .sub-bar {
-      background: var(--card2); border-bottom: 1px solid var(--border);
-      padding: 0 16px; height: 40px; flex-shrink: 0;
-      display: flex; align-items: center; gap: 10px;
-    }
-    .back-btn { font-size: 12px; color: var(--muted); transition: color 0.15s; }
-    .back-btn:hover { color: var(--green); }
-    .sub-bar-label { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sub-bar-label strong { color: var(--text); }
 
     /* ── TIMER SCREEN ── */
     #timerScreen { background: var(--dark); }
@@ -413,7 +403,6 @@
     .webview .sign-out-btn { display: none; }
     .webview .wv-close-btn { display: flex; }
     .webview #setupScreen .back-btn { display: none; }
-    .webview #timerScreen .sub-bar  { display: none; }
 
     /* ── INSTALL PROMPT ── */
     .install-overlay {
@@ -545,10 +534,6 @@
       <button class="sign-out-btn" onclick="doLogout()">Sign out</button>
     </div>
   </div>
-  <div class="sub-bar">
-    <button class="back-btn" onclick="showScreen('selectorScreen')">&#8592; Events</button>
-    <div class="sub-bar-label" id="setupEventLabel"></div>
-  </div>
   <div class="setup-body">
     <div class="setup-field" id="squadField" style="display:none">
       <div class="setup-label">Squad</div>
@@ -608,10 +593,6 @@
     <div class="bar-right">
       <button class="sign-out-btn" onclick="doLogout()">Sign out</button>
     </div>
-  </div>
-  <div class="sub-bar">
-    <button class="back-btn" onclick="goToSetup()">&#8592; Setup</button>
-    <div class="sub-bar-label" id="timerEventLabel"></div>
   </div>
   <div class="timer-body" id="timerBody">
     <button id="configBackBtn" onclick="goToSetup()">&#8592; Setup</button>
