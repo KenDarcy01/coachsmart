@@ -56,11 +56,11 @@ html, body {
 
 .back-btn {
     display: flex; align-items: center; gap: 6px;
-    background: none; border: none; color: var(--text);
-    font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    background: none; border: none; color: var(--green);
+    font-size: 17px; font-weight: 700; font-family: 'DM Sans', sans-serif;
     cursor: pointer; padding: 6px 2px; flex-shrink: 0;
 }
-.back-btn svg { width: 24px; height: 24px; }
+.back-btn svg { width: 28px; height: 28px; }
 
 /* ── Progress dots ── */
 .progress { display: flex; justify-content: center; gap: 8px; padding: 22px 0 0; flex-shrink: 0; }
@@ -612,11 +612,11 @@ html, body {
 
         <div class="field">
             <label>Your Name</label>
-            <div class="field-pre" id="req-name-display"></div>
+            <input type="text" id="req-name-display" placeholder="e.g. Joe Bloggs" autocapitalize="words">
         </div>
         <div class="field">
             <label>Your Email</label>
-            <div class="field-pre" id="req-email-display"></div>
+            <input type="email" id="req-email-display" placeholder="e.g. joe@example.com">
         </div>
         <div class="field">
             <label>Club Name</label>
@@ -1291,8 +1291,8 @@ function goBack() {
 function selectNewTeam() {
     const name  = ((currentUser?.first_name || '') + ' ' + (currentUser?.last_name || '')).trim();
     const email = session?.user?.email || '';
-    el('req-name-display').textContent  = name  || '—';
-    el('req-email-display').textContent = email || '—';
+    el('req-name-display').value  = name  || '';
+    el('req-email-display').value = email || '';
     el('req-club').value        = '';
     el('req-county').value      = '';
     el('req-notes').value       = '';
@@ -1310,8 +1310,8 @@ async function submitTeamRequest() {
     if (!club)   { err.textContent = 'Please enter your club name.'; return; }
     if (!county) { err.textContent = 'Please select your county.'; return; }
 
-    const name  = ((currentUser?.first_name || '') + ' ' + (currentUser?.last_name || '')).trim();
-    const email = session?.user?.email || '';
+    const name  = el('req-name-display').value.trim() || ((currentUser?.first_name || '') + ' ' + (currentUser?.last_name || '')).trim();
+    const email = el('req-email-display').value.trim() || session?.user?.email || '';
 
     setLoading(btn, true, 'Sending…');
     err.textContent = '';
