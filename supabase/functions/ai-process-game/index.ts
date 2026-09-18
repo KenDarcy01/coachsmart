@@ -34,6 +34,50 @@ Process the coaching drill and return a JSON object with exactly these fields:
     Player 1 hand-passes to Player 2. Player 2 runs towards the bottom-left cone."
   - Do not describe tactics or teaching points here — only positions and movements.`;
 
+// ── Polish action: fix spelling/grammar/formatting only ──────────────────────
+const POLISH_PROMPT = `You are a GAA coaching content editor.
+
+You will receive fields from a coaching drill that a coach has typed out. Your job is to:
+- Fix spelling mistakes, grammar, and punctuation
+- Format each field with bullet points or numbered lists where appropriate for readability
+- Do NOT change the meaning, add new content, or rewrite the substance
+- Keep the coach's own words and style — just clean them up
+
+Return ONLY a JSON object with exactly these fields (all strings):
+{
+  "game_name": "...",
+  "game_setup": "...",
+  "game_how_to_play": "...",
+  "game_variations": "...",
+  "game_teaching_points": "..."
+}
+
+If a field is null or empty, return an empty string for it.
+Use line breaks (\\n) between bullet points and numbered steps.`;
+
+// ── Rewrite action: fuller AI rewrite in coaching language ───────────────────
+const REWRITE_PROMPT = `You are an expert GAA coaching content writer.
+
+You will receive fields from a coaching drill. Your job is to rewrite them as a polished, professional coaching resource:
+- Rewrite in clear, coach-friendly language suitable for GAA coaches at all levels
+- Format game_setup as a bulleted list covering players, equipment, and area
+- Format game_how_to_play as a numbered step-by-step sequence
+- Format game_variations as a short bulleted list of progressions (easier and harder options)
+- Format game_teaching_points as a bulleted list of coaching cues — what to look for and emphasise
+- Improve clarity and structure while keeping all the key content and intent from the original
+- Generate a concise, descriptive game_name (3-6 words) if the original is vague or missing
+
+Return ONLY a JSON object with exactly these fields (all strings):
+{
+  "game_name": "...",
+  "game_setup": "...",
+  "game_how_to_play": "...",
+  "game_variations": "...",
+  "game_teaching_points": "..."
+}
+
+Use line breaks (\\n) between bullet points and numbered steps.`;
+
 // ── Call 0: suitability check for uploaded documents ─────────────────────
 const SUITABILITY_PROMPT = `You are a GAA coaching content moderator. A coach has uploaded a document to convert into a structured game or drill record.
 
@@ -154,6 +198,61 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
+    const { action } = body;
+
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Polish / Rewrite actions ──────────────────────────────────────────────
+    if (action === "polish" || action === "rewrite") {
+      const {
+        game_name, game_setup, game_how_to_play, game_variations, game_teaching_points,
+      } = body;
+
+      if (!game_setup?.trim() && !game_how_to_play?.trim()) {
+        return new Response(JSON.stringify({ error: "Provide at least game_setup or game_how_to_play" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const inputText = [
+        game_name?.trim()            ? `Game name: ${game_name.trim()}` : null,
+        game_setup?.trim()           ? `Setup:\n${game_setup.trim()}` : null,
+        game_how_to_play?.trim()     ? `How to play:\n${game_how_to_play.trim()}` : null,
+        game_variations?.trim()      ? `Variations:\n${game_variations.trim()}` : null,
+        game_teaching_points?.trim() ? `Teaching points:\n${game_teaching_points.trim()}` : null,
+      ].filter(Boolean).join("\n\n");
+
+      const prompt = action === "polish" ? POLISH_PROMPT : REWRITE_PROMPT;
+
+      let result: any;
+      try {
+        const raw = await callGemini(apiKey, prompt, [{ text: inputText }]);
+        result = parseJson(raw);
+      } catch (err) {
+        console.error(`${action} action failed:`, err);
+        return new Response(JSON.stringify({ error: "AI processing failed", detail: String(err).slice(0, 200) }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: {
+          game_name:            result.game_name            || "",
+          game_setup:           result.game_setup           || "",
+          game_how_to_play:     result.game_how_to_play     || "",
+          game_variations:      result.game_variations      || "",
+          game_teaching_points: result.game_teaching_points || "",
+        },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── Legacy image/document processing ─────────────────────────────────────
     const {
       image_base64, image_mime_type, description, game_type, game_age, game_name,
       document_text, document_base64, document_mime_type,
@@ -164,13 +263,6 @@ serve(async (req) => {
     if (!isDocMode && !description?.trim() && !image_base64) {
       return new Response(JSON.stringify({ error: "Provide a description, image, or document" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
