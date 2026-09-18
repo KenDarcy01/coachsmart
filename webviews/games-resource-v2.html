@@ -1136,15 +1136,14 @@ function renderStageDetailContent() {
   const ssItems  = _filteredDetails('Sample Sessions');
   const allStageGames = _filteredStageGames();
 
-  const isVideoGame = g => (g.game_type || []).some(t => t.toLowerCase() === 'video') || !!g.game_video?.trim();
+  const isVideoGame = g => (g.game_type || []).some(t => t.toLowerCase() === 'video');
   const videos  = allStageGames.filter(isVideoGame);
   const warmups = allStageGames.filter(g => (g.game_type || []).some(t => t.toLowerCase() === 'warmup'));
   const drills  = allStageGames.filter(g => (g.game_type || []).some(t => t.toLowerCase() === 'drill'));
   const skills  = allStageGames.filter(isSkillGame);
   const games   = allStageGames.filter(g => {
     const types = (g.game_type || []).map(t => t.toLowerCase());
-    return !types.some(t => t === 'warmup' || t === 'drill' || t === 'skill' || t === 'skills' || t === 'video')
-      && !g.game_video?.trim();
+    return !types.some(t => t === 'warmup' || t === 'drill' || t === 'skill' || t === 'skills' || t === 'video');
   });
 
   const tf = selectedTypeFilter;
