@@ -218,8 +218,9 @@ serve(async (req) => {
       }
 
       const {
-        game_name, game_age, game_type, game_setup, game_how_to_play,
-        game_variations, game_teaching_points, image_base64, image_mime_type, club_id,
+        game_name, game_age, game_code, game_skill, game_type,
+        game_setup, game_how_to_play, game_variations, game_teaching_points,
+        image_base64, image_mime_type, club_id,
       } = body;
 
       if (!game_name?.trim()) {
@@ -255,6 +256,8 @@ serve(async (req) => {
         .insert({
           game_name:            game_name.trim(),
           game_age:             toArr(game_age),
+          game_code:            toArr(game_code),
+          game_skill:           toArr(game_skill),
           game_type:            toArr(game_type),
           game_setup:           game_setup?.trim()           || null,
           game_how_to_play:     game_how_to_play?.trim()     || null,
