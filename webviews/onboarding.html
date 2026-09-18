@@ -701,8 +701,10 @@ function decodeJwt(token) {
 
 // ── Init ──────────────────────────────────────────────────────────────
 async function init() {
+    console.log('[CS:onboarding] init() start, url:', window.location.href.split('?')[0]);
     const params = new URLSearchParams(window.location.search);
     const at = params.get('access_token') || params.get('token') || params.get('currentAuthToken');
+    console.log('[CS:onboarding] access_token present:', !!at);
 
     // If FlutterFlow passes an access token, inject it as the Authorization
     // header so every Supabase call uses it — no refresh token needed.
@@ -713,31 +715,45 @@ async function init() {
 
     if (at) {
         const payload = decodeJwt(at);
+        console.log('[CS:onboarding] JWT decoded — sub:', payload?.sub, 'exp:', payload?.exp, 'expired:', payload?.exp ? payload.exp < Date.now()/1000 : 'n/a');
         if (payload?.sub) {
             session = { user: { id: payload.sub, email: payload.email || '' }, access_token: at };
         }
     }
 
     if (!session) {
+        console.log('[CS:onboarding] No token param — trying sb.auth.getSession()');
         const { data } = await sb.auth.getSession();
         session = data?.session || null;
+        console.log('[CS:onboarding] getSession result — session:', !!session);
     }
 
     document.getElementById('loading').style.display = 'none';
 
-    if (!session) { showScreen('screen-login'); return; }
+    if (!session) {
+        console.warn('[CS:onboarding] No session — showing login screen');
+        showScreen('screen-login');
+        return;
+    }
 
+    console.log('[CS:onboarding] Session OK — calling loadUser()');
     await loadUser();
 }
 
 async function loadUser() {
+    console.log('[CS:onboarding] loadUser() — querying users for id:', session.user.id);
     const { data, error } = await sb
         .from('users')
         .select('user_id, first_name, last_name')
         .eq('user_id', session.user.id)
         .maybeSingle();
+    console.log('[CS:onboarding] loadUser() result — data:', !!data, 'error:', error?.message || null);
 
-    if (error) { showScreen('screen-login'); return; }
+    if (error) {
+        console.error('[CS:onboarding] loadUser() error — falling back to login', error);
+        showScreen('screen-login');
+        return;
+    }
 
     // No public.users record yet — new user, go straight to name entry
     if (!data) {
@@ -1248,9 +1264,12 @@ function returnToApp() {
 
 // ── Navigation ────────────────────────────────────────────────────────
 function showScreen(id, push = true) {
+    console.log('[CS:onboarding] showScreen:', id);
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(id);
-    if (target) { target.classList.add('active'); window.scrollTo(0, 0); }
+    if (!target) { console.error('[CS:onboarding] showScreen — element not found:', id); return; }
+    target.classList.add('active');
+    window.scrollTo(0, 0);
     if (push) {
         if (screenHistory[screenHistory.length - 1] !== id) screenHistory.push(id);
     }
@@ -1345,7 +1364,16 @@ function setLoading(btn, loading, label) {
     btn.textContent = label;
 }
 
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', () => {
+    console.log('[CS:onboarding] DOMContentLoaded — calling init()');
+    window.onerror = (msg, src, line, col, err) => {
+        console.error('[CS:onboarding] Uncaught error', { msg, src, line, col, err });
+    };
+    window.addEventListener('unhandledrejection', e => {
+        console.error('[CS:onboarding] Unhandled promise rejection', e.reason);
+    });
+    init().catch(e => console.error('[CS:onboarding] init() threw', e));
+});
 </script>
 </body>
 </html>

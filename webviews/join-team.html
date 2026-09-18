@@ -641,8 +641,10 @@ function decodeJwt(token) {
 
 // ── Init ──────────────────────────────────────────────────────────────
 async function init() {
+    console.log('[CS:join-team] init() start, url:', window.location.href.split('?')[0]);
     const params = new URLSearchParams(window.location.search);
     const at = params.get('access_token');
+    console.log('[CS:join-team] access_token present:', !!at);
 
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth:   { persistSession: false, autoRefreshToken: false },
@@ -651,31 +653,45 @@ async function init() {
 
     if (at) {
         const payload = decodeJwt(at);
+        console.log('[CS:join-team] JWT decoded — sub:', payload?.sub, 'exp:', payload?.exp, 'expired:', payload?.exp ? payload.exp < Date.now()/1000 : 'n/a');
         if (payload?.sub) {
             session = { user: { id: payload.sub, email: payload.email || '' }, access_token: at };
         }
     }
 
     if (!session) {
+        console.log('[CS:join-team] No token param — trying sb.auth.getSession()');
         const { data } = await sb.auth.getSession();
         session = data?.session || null;
+        console.log('[CS:join-team] getSession result — session:', !!session);
     }
 
     document.getElementById('loading').style.display = 'none';
 
-    if (!session) { showScreen('screen-login'); return; }
+    if (!session) {
+        console.warn('[CS:join-team] No session — showing login screen');
+        showScreen('screen-login');
+        return;
+    }
 
+    console.log('[CS:join-team] Session OK — calling loadUser()');
     await loadUser();
 }
 
 async function loadUser() {
+    console.log('[CS:join-team] loadUser() — querying users for id:', session.user.id);
     const { data, error } = await sb
         .from('users')
         .select('user_id, first_name, last_name')
         .eq('user_id', session.user.id)
         .maybeSingle();
+    console.log('[CS:join-team] loadUser() result — data:', !!data, 'error:', error?.message || null);
 
-    if (error || !data) { showScreen('screen-login'); return; }
+    if (error || !data) {
+        console.warn('[CS:join-team] loadUser() failed — error:', error?.message, 'data:', data);
+        showScreen('screen-login');
+        return;
+    }
 
     currentUser = data;
     showScreen('screen-who');
@@ -1044,9 +1060,12 @@ function closeFlow() {
 
 // ── Navigation ────────────────────────────────────────────────────────
 function showScreen(id, push = true) {
+    console.log('[CS:join-team] showScreen:', id);
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(id);
-    if (target) { target.classList.add('active'); window.scrollTo(0, 0); }
+    if (!target) { console.error('[CS:join-team] showScreen — element not found:', id); return; }
+    target.classList.add('active');
+    window.scrollTo(0, 0);
     if (push) {
         if (screenHistory[screenHistory.length - 1] !== id) screenHistory.push(id);
     } else {
@@ -1070,7 +1089,16 @@ function setLoading(btn, loading, label) {
     btn.textContent = label;
 }
 
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', () => {
+    console.log('[CS:join-team] DOMContentLoaded — calling init()');
+    window.onerror = (msg, src, line, col, err) => {
+        console.error('[CS:join-team] Uncaught error', { msg, src, line, col, err });
+    };
+    window.addEventListener('unhandledrejection', e => {
+        console.error('[CS:join-team] Unhandled promise rejection', e.reason);
+    });
+    init().catch(e => console.error('[CS:join-team] init() threw', e));
+});
 </script>
 </body>
 </html>
