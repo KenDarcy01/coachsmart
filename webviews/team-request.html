@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#111418"/>
+  <style>html,body{background:#111418 !important;}</style>
+  <title>Request a Team</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --green:     #87C232;
+      --green-dim: rgba(135,194,50,0.12);
+      --dark:      #111418;
+      --card:      #1E222B;
+      --card2:     #252A35;
+      --border:    rgba(255,255,255,0.07);
+      --text:      #E7EBEE;
+      --muted:     #6B7280;
+      --red:       #EF4444;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; -webkit-text-size-adjust: none; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); font-size: 16px; overscroll-behavior: none; }
+    ::-webkit-scrollbar { display: none; }
+    * { -ms-overflow-style: none; scrollbar-width: none; }
+    button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+
+    /* ── SCREENS ── */
+    .screen { display: none; width: 100%; min-height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── TOP BAR ── */
+    .top-bar {
+      background: var(--card);
+      border-bottom: 3px solid var(--green);
+      padding: 0 16px;
+      height: 60px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .back-btn {
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green); flex-shrink: 0;
+      border-radius: 8px; transition: background 0.1s;
+    }
+    .back-btn:active { background: var(--green-dim); }
+    .back-btn svg { width: 34px; height: 34px; }
+    .bar-wordmark { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+    .bar-wordmark span { color: var(--green); }
+
+    /* ── SCROLL CONTENT ── */
+    .scroll-content { flex: 1; overflow-y: auto; padding: 20px 16px 40px; -webkit-overflow-scrolling: touch; }
+
+    /* ── INTRO ── */
+    .intro-block {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 18px 16px; margin-bottom: 24px;
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .intro-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--green-dim); border: 1px solid rgba(135,194,50,0.2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--green);
+    }
+    .intro-icon svg { width: 20px; height: 20px; }
+    .intro-text { flex: 1; }
+    .intro-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .intro-body { font-size: 14px; color: var(--muted); line-height: 1.55; }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 18px; }
+    .field-label {
+      font-size: 12px; font-weight: 700;
+      color: var(--muted); letter-spacing: 1.2px;
+      text-transform: uppercase; margin-bottom: 8px; display: block;
+    }
+    .field-label .req { color: var(--green); margin-left: 2px; }
+    .field-input, .field-select, .field-textarea {
+      width: 100%; background: var(--card);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px; color: var(--text);
+      outline: none; transition: border-color 0.15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    .field-input:focus, .field-select:focus, .field-textarea:focus {
+      border-color: rgba(135,194,50,0.5);
+    }
+    .field-input::placeholder, .field-textarea::placeholder { color: var(--muted); }
+    .field-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }
+    .field-select option { background: #1E222B; color: var(--text); }
+    .field-textarea { resize: none; min-height: 100px; line-height: 1.55; }
+    .field-error { font-size: 13px; color: var(--red); margin-top: 6px; display: none; }
+    .field-error.show { display: block; }
+    .field-input.err, .field-select.err, .field-textarea.err { border-color: var(--red); }
+
+    /* ── SUBMIT BUTTON ── */
+    .submit-btn {
+      width: 100%; padding: 15px;
+      background: var(--green); border-radius: 12px;
+      font-size: 16px; font-weight: 700; color: #111418;
+      transition: opacity 0.15s; margin-top: 8px;
+    }
+    .submit-btn:active { opacity: 0.85; }
+    .submit-btn:disabled { opacity: 0.45; pointer-events: none; }
+
+    /* ── PROCESSING ── */
+    #screenProcessing {
+      align-items: center; justify-content: center; gap: 16px;
+      background: var(--dark);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(135,194,50,0.2);
+      border-top-color: var(--green); border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .processing-text { font-size: 15px; color: var(--muted); }
+
+    /* ── CONFIRMED ── */
+    #screenConfirmed {
+      align-items: center; justify-content: center;
+      background: var(--dark); padding: 32px 24px;
+      text-align: center;
+    }
+    .confirmed-icon {
+      width: 72px; height: 72px; border-radius: 20px;
+      background: var(--green-dim); border: 1px solid rgba(135,194,50,0.25);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green); margin: 0 auto 24px;
+    }
+    .confirmed-icon svg { width: 36px; height: 36px; }
+    .confirmed-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 12px; line-height: 1.2; }
+    .confirmed-body { font-size: 15px; color: var(--muted); line-height: 1.65; max-width: 300px; margin: 0 auto 32px; }
+    .confirmed-body strong { color: var(--text); }
+    .close-btn {
+      padding: 14px 40px; border-radius: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: 15px; font-weight: 600; color: var(--text);
+      transition: background 0.15s;
+    }
+    .close-btn:active { background: var(--card2); }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 18px;
+      font-size: 13px; font-weight: 500; color: var(--text);
+      z-index: 300; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap; max-width: 90vw; text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.err { border-color: rgba(239,68,68,0.4); color: #fca5a5; }
+  </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ── FORM ── -->
+<div id="screenForm" class="screen active">
+  <div class="top-bar">
+    <button class="back-btn" onclick="closeView()" title="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="bar-wordmark" style="flex:1">Coach<span>Smart</span></div>
+  </div>
+  <div class="scroll-content">
+
+    <div class="intro-block">
+      <div class="intro-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="intro-text">
+        <div class="intro-title">Get your club set up</div>
+        <div class="intro-body">Fill in your details below and the CoachSmart team will get in touch to set up your club and team within 24 hours.</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="inpName">Your name <span class="req">*</span></label>
+      <input class="field-input" id="inpName" type="text" placeholder="e.g. Seán Murphy" autocomplete="name"/>
+      <div class="field-error" id="errName">Please enter your name</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="inpClub">Club name <span class="req">*</span></label>
+      <input class="field-input" id="inpClub" type="text" placeholder="e.g. Clontarf GAA" autocomplete="organization"/>
+      <div class="field-error" id="errClub">Please enter your club name</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="inpCounty">County <span class="req">*</span></label>
+      <select class="field-select" id="inpCounty">
+        <option value="">Select county…</option>
+        <option>Antrim</option><option>Armagh</option><option>Carlow</option>
+        <option>Cavan</option><option>Clare</option><option>Cork</option>
+        <option>Derry</option><option>Donegal</option><option>Down</option>
+        <option>Dublin</option><option>Fermanagh</option><option>Galway</option>
+        <option>Kerry</option><option>Kildare</option><option>Kilkenny</option>
+        <option>Laois</option><option>Leitrim</option><option>Limerick</option>
+        <option>Longford</option><option>Louth</option><option>Mayo</option>
+        <option>Meath</option><option>Monaghan</option><option>Offaly</option>
+        <option>Roscommon</option><option>Sligo</option><option>Tipperary</option>
+        <option>Tyrone</option><option>Waterford</option><option>Westmeath</option>
+        <option>Wexford</option><option>Wicklow</option>
+      </select>
+      <div class="field-error" id="errCounty">Please select your county</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="inpEmail">Email address <span class="req">*</span></label>
+      <input class="field-input" id="inpEmail" type="email" placeholder="e.g. coach@myclub.ie" autocomplete="email" inputmode="email"/>
+      <div class="field-error" id="errEmail">Please enter a valid email address</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="inpNotes">Anything else? <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <textarea class="field-textarea" id="inpNotes" placeholder="e.g. number of teams, age groups, any questions…"></textarea>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitRequest()">Send Request</button>
+
+  </div>
+</div>
+
+<!-- ── PROCESSING ── -->
+<div id="screenProcessing" class="screen">
+  <div class="spinner"></div>
+  <div class="processing-text">Sending your request…</div>
+</div>
+
+<!-- ── CONFIRMED ── -->
+<div id="screenConfirmed" class="screen">
+  <div class="confirmed-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <div class="confirmed-title">Request received!</div>
+  <div class="confirmed-body">
+    The <strong>CoachSmart team</strong> will be in touch at your email address within 24 hours to get your club set up.
+  </div>
+  <button class="close-btn" onclick="closeView()">Close</button>
+</div>
+
+<script>
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const EDGE_FN_URL = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/request-new-team';
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function closeView() {
+  if (window.FlutterBridge) {
+    window.FlutterBridge.postMessage('close');
+  } else {
+    history.back();
+  }
+}
+
+let _toast;
+function showToast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', isErr);
+  t.classList.add('show');
+  clearTimeout(_toast);
+  _toast = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function _val(id) { return document.getElementById(id).value.trim(); }
+
+function _setErr(fieldId, errId, show) {
+  const inp = document.getElementById(fieldId);
+  const err = document.getElementById(errId);
+  inp.classList.toggle('err', show);
+  err.classList.toggle('show', show);
+  return show;
+}
+
+function validate() {
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_val('inpEmail'));
+  const e1 = _setErr('inpName',   'errName',   !_val('inpName'));
+  const e2 = _setErr('inpClub',   'errClub',   !_val('inpClub'));
+  const e3 = _setErr('inpCounty', 'errCounty', !_val('inpCounty'));
+  const e4 = _setErr('inpEmail',  'errEmail',  !emailOk);
+  return !(e1 || e2 || e3 || e4);
+}
+
+async function submitRequest() {
+  if (!validate()) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  showScreen('screenProcessing');
+
+  try {
+    const res = await fetch(EDGE_FN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        name:      _val('inpName'),
+        club_name: _val('inpClub'),
+        county:    _val('inpCounty'),
+        email:     _val('inpEmail'),
+        notes:     _val('inpNotes') || null,
+      }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(json.error || 'Something went wrong');
+    }
+
+    showScreen('screenConfirmed');
+  } catch (err) {
+    showScreen('screenForm');
+    btn.disabled = false;
+    showToast(err.message || 'Could not send request — please try again', true);
+  }
+}
+</script>
+</body>
+</html>
