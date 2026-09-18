@@ -20,7 +20,7 @@ const corsHeaders = {
 const TEXT_PROMPT = `You are a GAA (Gaelic Athletic Association) coaching assistant.
 Process the coaching drill and return a JSON object with exactly these fields:
 
-- game_name: Short clear drill name, 3-6 words
+- game_name: Short clear drill name, 3-6 words, 25 characters or fewer where possible
 - game_setup: Setup instructions. Each point on its own line. Include number of players, equipment (cones, balls), and pitch area dimensions.
 - game_how_to_play: Numbered step-by-step instructions. Each step on its own line. Clear, concise, coach-friendly.
 - game_variations: 2-3 progressions to increase or decrease difficulty. Each on its own line.
@@ -43,6 +43,7 @@ You will receive fields from a coaching drill that a coach has typed out. Your j
 - Format each field with bullet points or numbered lists where appropriate for readability
 - Do NOT change the meaning, add new content, or rewrite the substance
 - Keep the coach's own words and style — just clean them up
+- If game_name is over 25 characters, shorten it while preserving the meaning
 
 Return ONLY a JSON object with exactly these fields (all strings):
 {
@@ -66,7 +67,7 @@ You will receive fields from a coaching drill. Your job is to rewrite them as a 
 - Format game_variations as a short bulleted list of progressions (easier and harder options)
 - Format game_teaching_points as a bulleted list of coaching cues — what to look for and emphasise
 - Improve clarity and structure while keeping all the key content and intent from the original
-- Generate a concise, descriptive game_name (3-6 words) if the original is vague or missing
+- Generate a concise, descriptive game_name (3-6 words, 25 characters or fewer) if the original is vague or missing; shorten any existing name that exceeds 25 characters
 
 Return ONLY a JSON object with exactly these fields (all strings):
 {

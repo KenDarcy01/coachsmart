@@ -745,7 +745,7 @@
     }
     if (sel) {
       const bb = _elBBox(el);
-      ctx.strokeStyle = '#87C232'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
+      ctx.strokeStyle = '#AAEE35'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
       ctx.strokeRect(bb.x - 6, bb.y - 6, bb.w + 12, bb.h + 12);
       ctx.setLineDash([]);
     }
@@ -908,18 +908,20 @@
     }
   }
 
-  function _drawArrow(x1, y1, x2, y2) {
+  function _drawArrow(x1, y1, x2, y2, ctx, color) {
+    ctx   = ctx   || _sketchCtx;
+    color = color || '#AAEE35';
     const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
     if (len < 6) return;
     const headLen=14, angle=Math.atan2(dy,dx);
     const shaftX=x2-Math.cos(angle)*(headLen*0.55), shaftY=y2-Math.sin(angle)*(headLen*0.55);
-    _sketchCtx.strokeStyle='#87C232'; _sketchCtx.fillStyle='#87C232';
-    _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
-    _sketchCtx.beginPath(); _sketchCtx.moveTo(x1,y1); _sketchCtx.lineTo(shaftX,shaftY); _sketchCtx.stroke();
-    _sketchCtx.beginPath(); _sketchCtx.moveTo(x2,y2);
-    _sketchCtx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
-    _sketchCtx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
-    _sketchCtx.closePath(); _sketchCtx.fill();
+    ctx.strokeStyle=color; ctx.fillStyle=color;
+    ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(shaftX,shaftY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
+    ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
+    ctx.closePath(); ctx.fill();
   }
 
   function _sketchStartT(e) { e.preventDefault(); if (e.touches.length===1) _sketchStart(e.touches[0]); }
@@ -999,11 +1001,67 @@
     _selectedId = null; _renderCanvas();
     return new Promise((resolve) => {
       const dpr = window.devicePixelRatio || 1;
-      const w = _sketchCanvas.width / dpr, h = _sketchCanvas.height / dpr;
-      const off = document.createElement('canvas');
-      off.width = Math.round(w); off.height = Math.round(h);
-      off.getContext('2d').drawImage(_sketchCanvas, 0, 0, _sketchCanvas.width, _sketchCanvas.height, 0, 0, off.width, off.height);
-      off.toBlob(blob => {
+      const W = Math.round(_sketchCanvas.width / dpr);
+      const H = Math.round(_sketchCanvas.height / dpr);
+      const exp = document.createElement('canvas');
+      exp.width = W; exp.height = H;
+      const ctx = exp.getContext('2d');
+
+      // Light background for PDF legibility
+      ctx.fillStyle = '#f0f8e8';
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle centre line (matches on-screen pitch guide)
+      ctx.strokeStyle = 'rgba(0,80,0,0.1)';
+      ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Freehand layer — recolour white strokes to dark ink using source-in
+      if (_freehandCanvas) {
+        const fhOff = document.createElement('canvas');
+        fhOff.width = W; fhOff.height = H;
+        const fhCtx = fhOff.getContext('2d');
+        fhCtx.drawImage(_freehandCanvas, 0, 0, _freehandCanvas.width, _freehandCanvas.height, 0, 0, W, H);
+        fhCtx.globalCompositeOperation = 'source-in';
+        fhCtx.fillStyle = '#1a3a1a';
+        fhCtx.fillRect(0, 0, W, H);
+        ctx.drawImage(fhOff, 0, 0);
+      }
+
+      // Re-draw elements with light-mode colours
+      _elements.forEach(el => {
+        ctx.save();
+        if (el.type === 'player') {
+          ctx.beginPath(); ctx.arc(el.x, el.y, 14, 0, Math.PI * 2);
+          ctx.fillStyle = 'white'; ctx.fill();
+          ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
+          ctx.fillStyle = '#111'; ctx.font = 'bold 13px sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(String(el.label), el.x, el.y);
+        } else if (el.type === 'cone') {
+          const sz = 10;
+          ctx.beginPath(); ctx.moveTo(el.x, el.y - sz); ctx.lineTo(el.x + sz, el.y + sz); ctx.lineTo(el.x - sz, el.y + sz); ctx.closePath();
+          ctx.fillStyle = '#f07023'; ctx.fill();
+          ctx.strokeStyle = '#c05010'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
+        } else if (el.type === 'arrow') {
+          _drawArrow(el.x1, el.y1, el.x2, el.y2, ctx, '#2a7a00');
+        } else if (el.type === 'line') {
+          ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+          ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+        } else if (el.type === 'arc') {
+          const cp = _arcControlPoint(el.x1, el.y1, el.x2, el.y2);
+          ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+          ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.quadraticCurveTo(cp.x, cp.y, el.x2, el.y2); ctx.stroke();
+        } else if (el.type === 'text') {
+          ctx.fillStyle = '#111'; ctx.font = `bold ${el.fs || 16}px sans-serif`;
+          ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+          ctx.fillText(el.text, el.x, el.y);
+        }
+        ctx.restore();
+      });
+
+      exp.toBlob(blob => {
         const reader = new FileReader();
         reader.onload = e => resolve({ base64: e.target.result.split(',')[1], mimeType: 'image/png' });
         reader.readAsDataURL(blob);
