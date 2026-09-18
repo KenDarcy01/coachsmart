@@ -218,10 +218,14 @@ serve(async (req) => {
         });
       }
 
+      // Look up user's default_club server-side
+      const { data: userData } = await sb.from("users").select("default_club").eq("user_id", user.id).maybeSingle();
+      const defaultClub = userData?.default_club ?? null;
+
       const {
         game_name, game_age, game_code, game_skill, game_type,
         game_setup, game_how_to_play, game_variations, game_teaching_points,
-        image_base64, image_mime_type, club_id,
+        image_base64, image_mime_type, game_video,
       } = body;
 
       if (!game_name?.trim()) {
@@ -265,7 +269,8 @@ serve(async (req) => {
           game_variations:      game_variations?.trim()      || null,
           game_teaching_points: game_teaching_points?.trim() || null,
           game_image:           imageUrl,
-          club_id:              club_id ?? null,
+          game_video:           game_video?.trim() || null,
+          club_id:              defaultClub,
         })
         .select("game_id")
         .single();
