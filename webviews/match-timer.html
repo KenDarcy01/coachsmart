@@ -1195,15 +1195,33 @@ async function goToSetup(eventId, label, defaultOpposition) {
     if (existing) {
       $('oppositionInput').value = existing.opposition || '';
       if (existing.squad_id) squadSelect.value = existing.squad_id;
+      const durMins = Math.round((existing.duration_seconds || 1800) / 60);
+      selectedDurationMins = (durMins >= 1 && durMins <= 120) ? durMins : 30;
       const injMins = Math.round((existing.injury_seconds || 600) / 60);
       selectedInjuryMins = (injMins >= 1 && injMins <= 120) ? injMins : 10;
     } else {
       $('oppositionInput').value = '';
+      selectedDurationMins = 30;
       selectedInjuryMins = 10;
     }
-    selectedDurationMins = 30;
     updateDurationPills();
     updateInjuryPills();
+
+    // If a custom value is active, show its picker so the input is visible
+    const durPresets = [25, 30, 35];
+    if (!durPresets.includes(selectedDurationMins)) {
+      $('customMinsInput').value = selectedDurationMins;
+      $('customPicker').classList.add('show');
+    } else {
+      $('customPicker').classList.remove('show');
+    }
+    const injPresets = [5, 10, 15];
+    if (!injPresets.includes(selectedInjuryMins)) {
+      $('customInjuryInput').value = selectedInjuryMins;
+      $('customInjuryPicker').classList.add('show');
+    } else {
+      $('customInjuryPicker').classList.remove('show');
+    }
 
     hideLoading();
     showScreen('setupScreen');
