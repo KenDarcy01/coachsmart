@@ -969,8 +969,7 @@ async function bootWebview() {
       await upsertMatchStats(existing.opposition || '', existing.squad_id);
       await loadScoreCounts();
       const oppPart = existing.opposition ? ` vs ${existing.opposition}` : '';
-      $('timerEventLabel').innerHTML = `<strong>${currentEventLabel}${esc(oppPart)}</strong>`;
-      $('awayLabel').textContent     = existing.opposition || 'Opp';
+      $('awayLabel').textContent = existing.opposition || 'Opp';
       wasInInjuryTime = isInInjuryTime(timerRow);
       renderScorePanel();
       updateScoreDisplay();
@@ -1160,7 +1159,6 @@ async function goToSetup(eventId, label, defaultOpposition) {
     currentEventLabel = label;
   }
 
-  $('setupEventLabel').innerHTML = `<strong>${currentEventLabel}</strong>`;
   showLoading('Loading setup…');
 
   try {
@@ -1316,8 +1314,6 @@ async function openTimer() {
     await loadScoreCounts();
     hideLoading();
 
-    const oppPart = opposition ? ` vs ${opposition}` : '';
-    $('timerEventLabel').innerHTML = `<strong>${currentEventLabel}${esc(oppPart)}</strong>`;
     wasInInjuryTime = isInInjuryTime(timerRow);
     currentHalf = timerRow.current_half || 1;
     $('awayLabel').textContent = timerRow.opposition || 'Opp';
