@@ -304,13 +304,20 @@
     <!-- Type -->
     <div>
       <div class="field-label">Type <span>*</span></div>
-      <select id="inpType" class="text-input">
+      <select id="inpType" class="text-input" onchange="onTypeChange()">
         <option value="">Select type…</option>
         <option value="Game">Game</option>
         <option value="Drill">Drill</option>
         <option value="Skill">Skill</option>
         <option value="Warmup">Warmup</option>
+        <option value="Video">Video</option>
       </select>
+    </div>
+
+    <!-- Video Link -->
+    <div>
+      <div class="field-label">Video Link <span id="videoLinkReq" title="optional">(optional)</span></div>
+      <input id="inpVideoUrl" class="text-input" type="url" placeholder="https://youtube.com/watch?v=…"/>
     </div>
 
     <!-- Age Group -->
@@ -1088,6 +1095,7 @@
   let _selectedType   = null; // game type captured at createDraft time
   let _selectedSports = [];  // sport chips (game_code)
   let _selectedSkills = [];  // skill chips (game_skill)
+  let _videoUrl       = null; // video link captured at createDraft time
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
 
@@ -1100,6 +1108,20 @@
   function goBack() {
     if (window.FlutterBridge) { window.FlutterBridge.postMessage('back'); }
     else { history.back(); }
+  }
+
+  // ── Type change handler ────────────────────────────────────────────────────
+
+  function onTypeChange() {
+    const type = document.getElementById('inpType').value;
+    const req  = document.getElementById('videoLinkReq');
+    if (type === 'Video') {
+      req.textContent = '*';
+      req.title = '';
+    } else {
+      req.textContent = '(optional)';
+      req.title = 'optional';
+    }
   }
 
   // ── Age chip toggle ────────────────────────────────────────────────────────
@@ -1231,6 +1253,12 @@
     _selectedSports = sports;
     _selectedSkills = getSelectedSkills();
     _selectedType   = document.getElementById('inpType').value || null;
+    _videoUrl       = document.getElementById('inpVideoUrl').value.trim() || null;
+    if (_selectedType === 'Video' && !_videoUrl) {
+      showToast('Video Link is required for Video type', 'error');
+      document.getElementById('inpVideoUrl').focus();
+      return;
+    }
 
     document.getElementById('processingTitle').textContent = 'Polishing your content…';
     document.getElementById('processingStatus').textContent = 'Fixing spelling and formatting';
@@ -1351,7 +1379,7 @@
           game_teaching_points: document.getElementById('rvTeaching').value.trim(),
           image_base64:         _reviewImage.base64,
           image_mime_type:      _reviewImage.mimeType,
-          club_id:              WV_CLUB_ID,
+          game_video:           _videoUrl,
         }),
       });
       const json = await res.json();
