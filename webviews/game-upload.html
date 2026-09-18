@@ -328,6 +328,31 @@
       </div>
     </div>
 
+    <!-- Sport -->
+    <div>
+      <div class="field-label">Sport <span>*</span></div>
+      <div class="chip-row" id="sportChips">
+        <button class="age-chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
+        <button class="age-chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
+        <button class="age-chip" data-sport="Camogie"  onclick="toggleChip(this)">Camogie</button>
+      </div>
+    </div>
+
+    <!-- Skills (optional) -->
+    <div>
+      <div class="field-label">Skills <span title="optional">(optional)</span></div>
+      <div class="chip-row" id="skillChips">
+        <button class="age-chip" data-skill="Handpass"  onclick="toggleChip(this)">Handpass</button>
+        <button class="age-chip" data-skill="Kick Pass"  onclick="toggleChip(this)">Kick Pass</button>
+        <button class="age-chip" data-skill="Catching"  onclick="toggleChip(this)">Catching</button>
+        <button class="age-chip" data-skill="Solo"      onclick="toggleChip(this)">Solo</button>
+        <button class="age-chip" data-skill="Shooting"  onclick="toggleChip(this)">Shooting</button>
+        <button class="age-chip" data-skill="Tackling"  onclick="toggleChip(this)">Tackling</button>
+        <button class="age-chip" data-skill="Blocking"  onclick="toggleChip(this)">Blocking</button>
+        <button class="age-chip" data-skill="Fielding"  onclick="toggleChip(this)">Fielding</button>
+      </div>
+    </div>
+
     <!-- Setup -->
     <div>
       <div class="field-header-row">
@@ -1001,8 +1026,10 @@
   let _imageBase64   = null;
   let _imageMimeType = null;
   let _reviewImage   = null; // {base64, mimeType} carried into review
-  let _selectedAges  = [];  // age chips captured at createDraft time
-  let _selectedType  = null; // game type captured at createDraft time
+  let _selectedAges   = [];  // age chips captured at createDraft time
+  let _selectedType   = null; // game type captured at createDraft time
+  let _selectedSports = [];  // sport chips (game_code)
+  let _selectedSkills = [];  // skill chips (game_skill)
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
 
@@ -1020,9 +1047,16 @@
   // ── Age chip toggle ────────────────────────────────────────────────────────
 
   function toggleAge(el) { el.classList.toggle('selected'); }
+  function toggleChip(el) { el.classList.toggle('selected'); }
 
   function getSelectedAges() {
-    return [...document.querySelectorAll('.age-chip.selected')].map(c => c.dataset.age);
+    return [...document.querySelectorAll('#ageChips .age-chip.selected')].map(c => c.dataset.age);
+  }
+  function getSelectedSports() {
+    return [...document.querySelectorAll('#sportChips .age-chip.selected')].map(c => c.dataset.sport);
+  }
+  function getSelectedSkills() {
+    return [...document.querySelectorAll('#skillChips .age-chip.selected')].map(c => c.dataset.skill);
   }
 
   // ── Image handling ─────────────────────────────────────────────────────────
@@ -1112,6 +1146,8 @@
     if (!gameName) { showToast('Game name is required', 'error'); document.getElementById('inpName').focus(); return; }
     const ages = getSelectedAges();
     if (!ages.length) { showToast('Select at least one age group', 'error'); return; }
+    const sports = getSelectedSports();
+    if (!sports.length) { showToast('Select at least one sport', 'error'); return; }
     const setup = document.getElementById('inpSetup').value.trim();
     const howTo = document.getElementById('inpHowTo').value.trim();
     if (!setup) { showToast('Setup is required', 'error'); return; }
@@ -1131,8 +1167,10 @@
     } else {
       _reviewImage = { base64: _imageBase64, mimeType: _imageMimeType };
     }
-    _selectedAges = ages;
-    _selectedType = document.getElementById('inpType').value || null;
+    _selectedAges   = ages;
+    _selectedSports = sports;
+    _selectedSkills = getSelectedSkills();
+    _selectedType   = document.getElementById('inpType').value || null;
 
     document.getElementById('processingTitle').textContent = 'Polishing your content…';
     document.getElementById('processingStatus').textContent = 'Fixing spelling and formatting';
@@ -1242,6 +1280,8 @@
           action:               'save_game',
           game_name:            name,
           game_age:             _selectedAges,
+          game_code:            _selectedSports,
+          game_skill:           _selectedSkills.length ? _selectedSkills : null,
           game_type:            _selectedType ? [_selectedType] : null,
           game_setup:           document.getElementById('rvSetup').value.trim(),
           game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
