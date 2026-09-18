@@ -42,12 +42,13 @@
 
     /* ── CLOSE BUTTON ── */
     .wv-close-btn {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; justify-content: center;
+      width: 48px; height: 48px; flex-shrink: 0;
       background: none; border: none; cursor: pointer;
-      color: var(--text); font-size: 15px; font-weight: 600;
-      padding: 6px 2px;
+      color: var(--green); border-radius: 8px; transition: background 0.1s;
     }
-    .wv-close-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+    .wv-close-btn:active { background: var(--green-dim); }
+    .wv-close-btn svg { width: 34px; height: 34px; }
 
     /* ── SHARED HEADER ── */
     .top-bar {
@@ -220,7 +221,6 @@
   <div class="top-bar">
     <button class="wv-close-btn" onclick="closeFlow()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      Close
     </button>
     <div>
       <div class="wordmark"><span class="g">COACH</span><span class="gr">SMART</span></div>
