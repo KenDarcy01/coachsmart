@@ -1184,6 +1184,7 @@
         game_how_to_play:     howTo,
         game_variations:      document.getElementById('inpVariations').value.trim() || null,
         game_teaching_points: document.getElementById('inpTeaching').value.trim() || null,
+        game_code:            _selectedSports,
       });
       showReview(result);
     } catch (err) {
@@ -1207,6 +1208,7 @@
         game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
         game_variations:      document.getElementById('rvVariations').value.trim() || null,
         game_teaching_points: document.getElementById('rvTeaching').value.trim() || null,
+        game_code:            _selectedSports,
       });
       populateReviewFields(result);
       requestAnimationFrame(autoResizeAll);

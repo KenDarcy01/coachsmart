@@ -281,6 +281,85 @@ serve(async (req) => {
       });
     }
 
+    // ── update_game: update text fields of a club-owned game ─────────────────
+    if (action === "update_game") {
+      const SUPABASE_URL      = Deno.env.get("SUPABASE_URL")!;
+      const SERVICE_ROLE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+      const authHeader = req.headers.get("Authorization") || "";
+      const jwt = authHeader.replace(/^Bearer\s+/i, "");
+      const { data: { user }, error: userErr } = await sb.auth.getUser(jwt);
+      if (userErr || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const {
+        game_id, game_name, game_age, game_code, game_skill, game_type,
+        game_setup, game_how_to_play, game_variations, game_teaching_points, game_video,
+      } = body;
+
+      if (!game_id) {
+        return new Response(JSON.stringify({ error: "game_id is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify the game belongs to a club and the user is a member of that club
+      const { data: gameRow } = await sb.from("games").select("club_id").eq("game_id", game_id).maybeSingle();
+      if (!gameRow?.club_id) {
+        return new Response(JSON.stringify({ error: "Forbidden: only club-owned games can be edited" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: userMembers } = await sb.from("user_member_link").select("member_id").eq("user_id", user.id);
+      const memberIds = (userMembers || []).map((m: any) => m.member_id);
+      if (!memberIds.length) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: teamLinks } = await sb.from("member_team_link").select("team_id").in("member_id", memberIds);
+      const teamIds = (teamLinks || []).map((t: any) => t.team_id);
+      const { count: clubCount } = await sb.from("teams").select("*", { count: "exact", head: true })
+        .in("team_id", teamIds).eq("club_id", gameRow.club_id);
+
+      if (!clubCount) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const toArr = (v: any) => Array.isArray(v) ? v : (v ? [v] : null);
+      const updatePayload: Record<string, any> = {
+        game_name:            game_name?.trim() || null,
+        game_age:             toArr(game_age),
+        game_code:            toArr(game_code),
+        game_skill:           toArr(game_skill),
+        game_type:            toArr(game_type),
+        game_setup:           game_setup?.trim()           || null,
+        game_how_to_play:     game_how_to_play?.trim()     || null,
+        game_variations:      game_variations?.trim()      || null,
+        game_teaching_points: game_teaching_points?.trim() || null,
+      };
+      if (game_video !== undefined) updatePayload.game_video = game_video?.trim() || null;
+
+      const { error: updateErr } = await sb.from("games").update(updatePayload).eq("game_id", game_id);
+      if (updateErr) {
+        return new Response(JSON.stringify({ error: "Update failed: " + updateErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
@@ -291,7 +370,7 @@ serve(async (req) => {
     // ── Polish / Rewrite actions ──────────────────────────────────────────────
     if (action === "polish" || action === "rewrite") {
       const {
-        game_name, game_setup, game_how_to_play, game_variations, game_teaching_points,
+        game_name, game_setup, game_how_to_play, game_variations, game_teaching_points, game_code,
       } = body;
 
       if (!game_setup?.trim() && !game_how_to_play?.trim()) {
@@ -300,7 +379,21 @@ serve(async (req) => {
         });
       }
 
+      const codes = (Array.isArray(game_code) ? game_code : game_code ? [game_code] : []) as string[];
+      const hasFootball = codes.some(c => c.toLowerCase() === "football");
+      const hasHurling  = codes.some(c => c.toLowerCase() === "hurling" || c.toLowerCase() === "camogie");
+      let sportLine = "";
+      if (hasFootball && hasHurling) {
+        sportLine = "Sport: Multiple codes. Use 'football' or 'sliotar' as appropriate when referring to the ball.";
+      } else if (hasFootball) {
+        sportLine = "Sport: Football. Use 'football' when referring to the ball.";
+      } else if (hasHurling) {
+        const label = codes.filter(c => c.toLowerCase() === "hurling" || c.toLowerCase() === "camogie").join("/");
+        sportLine = `Sport: ${label}. Use 'sliotar' when referring to the ball.`;
+      }
+
       const inputText = [
+        sportLine                    ? sportLine : null,
         game_name?.trim()            ? `Game name: ${game_name.trim()}` : null,
         game_setup?.trim()           ? `Setup:\n${game_setup.trim()}` : null,
         game_how_to_play?.trim()     ? `How to play:\n${game_how_to_play.trim()}` : null,
