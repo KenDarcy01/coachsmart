@@ -203,6 +203,29 @@ html, body {
 .centre-content { padding-top: 48px; }
 .centre-content .screen-title { text-align: center; }
 .centre-content .screen-sub   { text-align: center; }
+
+/* ── Select + Textarea (new team request) ── */
+.field select, .field textarea {
+    width: 100%; padding: 14px 16px;
+    border-radius: 10px; background: var(--card2);
+    border: 1.5px solid var(--border); color: var(--text);
+    font-size: 16px; font-family: 'DM Sans', sans-serif;
+    -webkit-appearance: none; outline: none; transition: border-color 0.15s;
+}
+.field select:focus, .field textarea:focus { border-color: var(--green); }
+.field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px;
+}
+.field select option { background: #1E222B; color: var(--text); }
+.field textarea { resize: none; min-height: 90px; line-height: 1.55; }
+.field textarea::placeholder { color: var(--muted); }
+.field-pre {
+    width: 100%; padding: 13px 16px;
+    border-radius: 10px; background: rgba(255,255,255,0.04);
+    border: 1.5px solid var(--border); color: var(--muted);
+    font-size: 16px; font-family: 'DM Sans', sans-serif;
+}
 </style>
 </head>
 <body>
@@ -242,14 +265,14 @@ html, body {
         <div class="dot"></div>
     </div>
     <div class="content">
-        <div class="step-label">Step 1 of 2</div>
-        <div class="screen-title" id="who-title">Who are you joining a team as?</div>
+        <div class="step-label">What would you like to do?</div>
+        <div class="screen-title" id="who-title">Join or set up a team</div>
         <div class="screen-sub" id="who-sub">Choose one to continue.</div>
 
         <button class="choice-card" onclick="selectMyself()">
             <div class="choice-icon">🏃</div>
             <div>
-                <div class="choice-label">Myself</div>
+                <div class="choice-label">Join as myself</div>
                 <div class="choice-sub">I play or coach on this team</div>
             </div>
         </button>
@@ -257,8 +280,16 @@ html, body {
         <button class="choice-card" onclick="selectSomeoneElse()">
             <div class="choice-icon">👨‍👧</div>
             <div>
-                <div class="choice-label">Someone else</div>
+                <div class="choice-label">Register someone else</div>
                 <div class="choice-sub">My child or another family member</div>
+            </div>
+        </button>
+
+        <button class="choice-card" onclick="selectNewTeam()" style="border-color:rgba(135,194,50,0.2)">
+            <div class="choice-icon">🏟️</div>
+            <div>
+                <div class="choice-label">Set up a new team</div>
+                <div class="choice-sub">Request a new team setup on CoachSmart</div>
             </div>
         </button>
     </div>
@@ -480,6 +511,85 @@ html, body {
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════
+     NEW TEAM REQUEST FORM
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-new-team" class="screen">
+    <div class="logo-bar">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            Back
+        </button>
+        <div class="logo">COACH<span>SMART</span></div>
+    </div>
+    <div class="content">
+        <div class="step-label no-step">New Team Request</div>
+        <div class="screen-title">Set up your team on CoachSmart</div>
+        <div class="screen-sub">Fill in the details below and our team will be in touch within 24 hours to get everything set up for you.</div>
+
+        <div class="field">
+            <label>Your Name</label>
+            <div class="field-pre" id="req-name-display"></div>
+        </div>
+        <div class="field">
+            <label>Your Email</label>
+            <div class="field-pre" id="req-email-display"></div>
+        </div>
+        <div class="field">
+            <label>Club Name</label>
+            <input type="text" id="req-club" placeholder="e.g. Clontarf GAA" autocapitalize="words">
+        </div>
+        <div class="field">
+            <label>County</label>
+            <select id="req-county">
+                <option value="">Select county…</option>
+                <option>Antrim</option><option>Armagh</option><option>Carlow</option>
+                <option>Cavan</option><option>Clare</option><option>Cork</option>
+                <option>Derry</option><option>Donegal</option><option>Down</option>
+                <option>Dublin</option><option>Fermanagh</option><option>Galway</option>
+                <option>Kerry</option><option>Kildare</option><option>Kilkenny</option>
+                <option>Laois</option><option>Leitrim</option><option>Limerick</option>
+                <option>Longford</option><option>Louth</option><option>Mayo</option>
+                <option>Meath</option><option>Monaghan</option><option>Offaly</option>
+                <option>Roscommon</option><option>Sligo</option><option>Tipperary</option>
+                <option>Tyrone</option><option>Waterford</option><option>Westmeath</option>
+                <option>Wexford</option><option>Wicklow</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Anything else? <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optional)</span></label>
+            <textarea id="req-notes" placeholder="e.g. number of teams, age groups, any questions…"></textarea>
+        </div>
+
+        <button class="btn-primary" id="req-submit-btn" onclick="submitTeamRequest()">Send Request</button>
+        <div class="error-msg" id="req-error"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     NEW TEAM REQUEST SENT
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-new-team-sent" class="screen">
+    <div class="logo-bar"><div class="logo">COACH<span>SMART</span></div></div>
+    <div class="content centre-content">
+        <div class="hero-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        </div>
+        <div class="screen-title">Request received!</div>
+        <div class="screen-sub" style="margin-top:12px;">
+            The <strong style="color:var(--text)">CoachSmart team</strong> will be in touch at
+            <strong id="req-sent-email" style="color:var(--text)"></strong>
+            within 24 hours to get your team set up.
+            <span style="display:block;margin-top:14px;font-size:13px;color:var(--muted);">
+                Keep an eye on your inbox — we'll send you your team joining code once everything is ready.
+            </span>
+        </div>
+        <button class="btn-primary" onclick="finish()" style="margin-top:32px;">Done</button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
      ALL DONE
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-done" class="screen">
@@ -530,7 +640,7 @@ async function init() {
     if (at) {
         const payload = decodeJwt(at);
         if (payload?.sub) {
-            session = { user: { id: payload.sub }, access_token: at };
+            session = { user: { id: payload.sub, email: payload.email || '' }, access_token: at };
         }
     }
 
@@ -846,9 +956,62 @@ function addAnother() {
     el('their-last').value   = '';
     el('their-error').textContent = '';
     resetCodeScreen();
-    el('who-title').textContent = 'Add another person?';
-    el('who-sub').textContent   = 'Who would you like to join next?';
+    el('who-title').textContent = 'Register another person?';
+    el('who-sub').textContent   = 'Choose how you\'d like to continue.';
     showScreen('screen-who');
+}
+
+// ── New Team Request ──────────────────────────────────────────────────
+function selectNewTeam() {
+    const name  = ((currentUser?.first_name || '') + ' ' + (currentUser?.last_name || '')).trim();
+    const email = session?.user?.email || '';
+    el('req-name-display').textContent  = name  || '—';
+    el('req-email-display').textContent = email || '—';
+    el('req-club').value        = '';
+    el('req-county').value      = '';
+    el('req-notes').value       = '';
+    el('req-error').textContent = '';
+    showScreen('screen-new-team');
+}
+
+async function submitTeamRequest() {
+    const club   = el('req-club').value.trim();
+    const county = el('req-county').value.trim();
+    const notes  = el('req-notes').value.trim();
+    const btn    = el('req-submit-btn');
+    const err    = el('req-error');
+
+    if (!club)   { err.textContent = 'Please enter your club name.'; return; }
+    if (!county) { err.textContent = 'Please select your county.'; return; }
+
+    const name  = ((currentUser?.first_name || '') + ' ' + (currentUser?.last_name || '')).trim();
+    const email = session?.user?.email || '';
+
+    setLoading(btn, true, 'Sending…');
+    err.textContent = '';
+
+    try {
+        const res = await fetch(
+            SUPABASE_URL + '/functions/v1/request-new-team',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + (session?.access_token || SUPABASE_ANON_KEY),
+                },
+                body: JSON.stringify({ name, email, club_name: club, county, notes: notes || null }),
+            }
+        );
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || 'Something went wrong');
+        el('req-sent-email').textContent = email || 'your email address';
+        showScreen('screen-new-team-sent');
+    } catch (e) {
+        err.textContent = e.message || 'Could not send request — please try again.';
+    } finally {
+        setLoading(btn, false, 'Send Request');
+    }
 }
 
 function finish() {
