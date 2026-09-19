@@ -597,10 +597,30 @@
 
   function toggleFieldSpeech(fieldId, btn) {
     if (_isRecording) {
-      stopSpeech();
-      if (_recordingFieldId === fieldId) return;
+      const wasSameField = _recordingFieldId === fieldId;
+      if (window.FlutterBridge) {
+        window.FlutterBridge.postMessage('stopSpeech');
+      } else {
+        stopSpeech();
+      }
+      if (wasSameField) return;
     }
 
+    _recordingFieldId = fieldId;
+    _recordingBtn     = btn;
+    const ta = document.getElementById(fieldId);
+    _baseText = ta.value;
+    if (_baseText && !_baseText.endsWith(' ') && !_baseText.endsWith('\n')) _baseText += ' ';
+
+    if (window.FlutterBridge) {
+      _isRecording = true;
+      btn.classList.add('recording');
+      btn.querySelector('span').textContent = 'Stop';
+      window.FlutterBridge.postMessage('startSpeech:' + fieldId);
+      return;
+    }
+
+    // Web / desktop fallback — webkitSpeechRecognition
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { showToast('Speech not supported on this browser', 'error'); return; }
 
@@ -608,12 +628,6 @@
     _recognition.lang = 'en-IE';
     _recognition.continuous = true;
     _recognition.interimResults = false;
-
-    _recordingFieldId = fieldId;
-    _recordingBtn = btn;
-    const ta = document.getElementById(fieldId);
-    _baseText = ta.value;
-    if (_baseText && !_baseText.endsWith(' ') && !_baseText.endsWith('\n')) _baseText += ' ';
 
     _recognition.onresult = (e) => {
       let added = '';
@@ -658,6 +672,32 @@
     _recordingFieldId = null;
     _recordingBtn = null;
   }
+
+  // ── Flutter native speech callbacks ──────────────────────────────────────────
+  // Called by Flutter with each final transcription chunk
+  window.receiveSpeechResult = function(fieldId, text) {
+    _baseText += text + ' ';
+    const cleaned = _removeFillersAndClean(_baseText);
+    const ta = document.getElementById(fieldId);
+    if (ta) { ta.value = cleaned; autoResize(ta); }
+  };
+
+  // Called by Flutter when recognition ends (pause / done)
+  window.onSpeechDone = function() {
+    _isRecording = false;
+    if (_recordingBtn) {
+      _recordingBtn.classList.remove('recording');
+      _recordingBtn.querySelector('span').textContent = 'Speak';
+    }
+    _recordingFieldId = null;
+    _recordingBtn = null;
+  };
+
+  // Called by Flutter on recognition error
+  window.onSpeechError = function(msg) {
+    showToast(msg || 'Voice input failed', 'error');
+    window.onSpeechDone();
+  };
 
   // ── Canvas sketchpad ───────────────────────────────────────────────────────
 
