@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 class NativeWebView extends StatefulWidget {
   const NativeWebView({
@@ -41,18 +42,85 @@ class NativeWebView extends StatefulWidget {
 class _NativeWebViewState extends State<NativeWebView>
     with WidgetsBindingObserver {
   WebViewController? _controller;
+  final SpeechToText _speech = SpeechToText();
+  bool _speechAvailable = false;
+  String? _speechFieldId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initController();
+    _initSpeech();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    if (_speech.isListening) _speech.stop();
     super.dispose();
+  }
+
+  Future<void> _initSpeech() async {
+    try {
+      _speechAvailable = await _speech.initialize(
+        onError: (error) {
+          if (_speechFieldId == null) return;
+          _controller?.runJavaScript(
+            'window.onSpeechError(${jsonEncode(error.errorMsg)})',
+          );
+          _speechFieldId = null;
+        },
+        onStatus: (status) {
+          if ((status == 'done' || status == 'notListening') &&
+              _speechFieldId != null) {
+            _controller?.runJavaScript('window.onSpeechDone()');
+            _speechFieldId = null;
+          }
+        },
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _startSpeech(String fieldId) async {
+    if (!_speechAvailable) {
+      _controller?.runJavaScript(
+        'window.onSpeechError(${jsonEncode("Speech recognition not available on this device")})',
+      );
+      return;
+    }
+    if (_speech.isListening) await _speech.stop();
+    _speechFieldId = fieldId;
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          if (result.finalResult && result.recognizedWords.isNotEmpty) {
+            final fid = _speechFieldId;
+            if (fid == null) return;
+            _controller?.runJavaScript(
+              'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(result.recognizedWords)})',
+            );
+          }
+        },
+        localeId: 'en_IE',
+        pauseFor: const Duration(seconds: 4),
+        cancelOnError: false,
+      );
+    } catch (_) {
+      _controller?.runJavaScript(
+        'window.onSpeechError(${jsonEncode("Could not start microphone")})',
+      );
+      _speechFieldId = null;
+    }
+  }
+
+  Future<void> _stopSpeech() async {
+    final fid = _speechFieldId;
+    _speechFieldId = null;
+    try { await _speech.stop(); } catch (_) {}
+    if (fid != null) {
+      _controller?.runJavaScript('window.onSpeechDone()');
+    }
   }
 
   // When the app returns to the foreground, check whether the WebView's
@@ -89,6 +157,14 @@ class _NativeWebViewState extends State<NativeWebView>
           'FlutterBridge',
           onMessageReceived: (JavaScriptMessage msg) {
             final message = msg.message;
+            if (message.startsWith('startSpeech:')) {
+              _startSpeech(message.substring('startSpeech:'.length));
+              return;
+            }
+            if (message == 'stopSpeech') {
+              _stopSpeech();
+              return;
+            }
             if (message.startsWith('openUrl:')) {
               final url = message.substring('openUrl:'.length);
               try {
