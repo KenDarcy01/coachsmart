@@ -267,6 +267,20 @@
     }
     .btn-save:hover { background: var(--green-dim); }
 
+    /* ── CONNECTION STATE BANNER ── */
+    .conn-banner {
+      display: none; align-items: center; gap: 6px;
+      padding: 5px 16px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .conn-banner.show { display: flex; }
+    .conn-banner.offline { background: rgba(239,68,68,0.12); color: var(--red); border-bottom: 1px solid rgba(239,68,68,0.25); }
+    .conn-banner.reconnecting { background: rgba(245,158,11,0.12); color: var(--amber); border-bottom: 1px solid rgba(245,158,11,0.25); }
+    .conn-banner.expired { background: rgba(239,68,68,0.18); color: var(--red); border-bottom: 1px solid rgba(239,68,68,0.35); }
+    .conn-banner-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .conn-banner.reconnecting .conn-banner-dot { animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
     /* ── OFFLINE QUEUE INDICATOR ── */
     .queue-indicator {
       display: none; align-items: center; gap: 6px;
@@ -594,6 +608,10 @@
       <button class="sign-out-btn" onclick="doLogout()">Sign out</button>
     </div>
   </div>
+  <div id="connBanner" class="conn-banner">
+    <div class="conn-banner-dot"></div>
+    <span id="connBannerText"></span>
+  </div>
   <div class="timer-body" id="timerBody">
     <button id="configBackBtn" onclick="goToSetup()">&#8592; Setup</button>
     <div class="timer-status paused" id="timerStatus">Paused</div>
@@ -697,12 +715,30 @@ let sb, _sbReady;
 if (IS_WEBVIEW && WV_REFRESH) {
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
   _sbReady = sb.auth.setSession({ access_token: WV_TOKEN, refresh_token: WV_REFRESH });
+  // When the SDK silently auto-refreshes the access token (~60s before expiry),
+  // re-establish the Realtime channel so it reconnects with the new JWT.
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'TOKEN_REFRESHED' && matchStatsRow) setupBroadcast();
+  });
 } else if (IS_WEBVIEW) {
+  // Static-token path: access_token expires after 1 hour and cannot be refreshed
+  // from here. Flutter should pass 'refreshToken' in the URL to use the
+  // auto-refresh path above. Until then, warn before expiry so the user knows.
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${WV_TOKEN}` } },
     auth: { persistSession: false },
   });
   _sbReady = Promise.resolve(null);
+  try {
+    const payload = JSON.parse(atob(WV_TOKEN.split('.')[1]));
+    const expiresIn = (payload.exp * 1000) - Date.now();
+    if (expiresIn > 5 * 60 * 1000) {
+      setTimeout(() => showToast('Session expiring in 5 min — save and re-open if match continues'), expiresIn - 5 * 60 * 1000);
+    }
+    if (expiresIn > 0) {
+      setTimeout(() => { showToast('Session expired — please re-open the scorekeeper'); setConnState('expired'); }, expiresIn);
+    }
+  } catch (_) {}
 } else {
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   _sbReady = Promise.resolve(null);
@@ -899,6 +935,9 @@ async function endCurrentPeriod() {
   } else {
     matchEnded = true;
     triggerFinalWhistle();
+    // Auto-save after the final-whistle animation so users don't have to find the
+    // second button. Same 1800ms delay as the auto-end path in tick().
+    setTimeout(() => finaliseStats(), 1800);
   }
   updateTimerUI();
   // Broadcast actual elapsed (not cap) so the chart axis doesn't jump to the
@@ -1388,12 +1427,18 @@ async function doStart() {
   updateTimerUI();
   broadcastTimerState();
   // Persist to DB in the background
-  const { error } = await sb
+  let { error } = await sb
     .from('match_timer')
     .update({ started_at: now, status: 'running' })
     .eq('event_id', currentEventId)
     .eq('user_id', currentUser.id);
-  if (error) { showToast('Timer running — sync will retry on reconnect'); }
+  if (error) {
+    await _reinitSb();
+    ({ error } = await sb.from('match_timer')
+      .update({ started_at: now, status: 'running' })
+      .eq('event_id', currentEventId).eq('user_id', currentUser.id));
+    if (error) showToast('Timer running — sync will retry');
+  }
 }
 
 async function doPause() {
@@ -1406,12 +1451,18 @@ async function doPause() {
   updateTimerUI();
   broadcastTimerState();
   // Persist to DB in the background
-  const { error } = await sb
+  let { error } = await sb
     .from('match_timer')
     .update({ elapsed_seconds: banked, started_at: null, status: 'paused' })
     .eq('event_id', currentEventId)
     .eq('user_id', currentUser.id);
-  if (error) { showToast('Paused — sync will retry on reconnect'); }
+  if (error) {
+    await _reinitSb();
+    ({ error } = await sb.from('match_timer')
+      .update({ elapsed_seconds: banked, started_at: null, status: 'paused' })
+      .eq('event_id', currentEventId).eq('user_id', currentUser.id));
+    if (error) showToast('Paused — sync will retry');
+  }
 }
 
 function showResetModal()  { $('resetModal').classList.add('show'); }
@@ -1953,6 +2004,24 @@ async function finaliseStats() {
 
 // ── Connectivity ─────────────────────────────────────────────────────────────
 
+function setConnState(state) {
+  const banner = $('connBanner');
+  if (!banner) return;
+  banner.className = 'conn-banner';
+  if (state === 'offline') {
+    banner.classList.add('show', 'offline');
+    $('connBannerText').textContent = 'Offline — scores saving locally';
+  } else if (state === 'reconnecting') {
+    banner.classList.add('show', 'reconnecting');
+    $('connBannerText').textContent = 'Reconnecting…';
+  } else if (state === 'expired') {
+    banner.classList.add('show', 'expired');
+    $('connBannerText').textContent = 'Session expired — please re-open the scorekeeper';
+  } else {
+    // 'online' — hide the banner
+  }
+}
+
 // Re-initialise the Supabase client after a connectivity gap.
 // The static-token path recreates the client to get fresh underlying
 // connections; the refresh-token path calls refreshSession instead.
@@ -1973,17 +2042,18 @@ async function _reinitSb() {
 }
 
 window.addEventListener('offline', () => {
-  showToast('Connection lost — scores will be queued');
+  setConnState('offline');
 });
 
 window.addEventListener('online', async () => {
-  showToast('Connection restored — syncing…');
+  setConnState('reconnecting');
   await _reinitSb();
   const remaining = await flushQueue();
-  showToast(remaining === 0 ? 'Scores synced ✓' : `${remaining} score${remaining !== 1 ? 's' : ''} still offline`);
+  setConnState('online');
+  showToast(remaining === 0 ? 'Back online ✓' : `${remaining} score${remaining !== 1 ? 's' : ''} still queued`);
 });
 
-// Periodic health-check every 30 s — catches cases where the 'online' browser
+// Periodic health-check every 10 s — catches cases where the 'online' browser
 // event does not fire reliably inside a Flutter WebView, and detects a dead
 // broadcast channel even when no scores are queued.
 setInterval(async () => {
@@ -1992,10 +2062,16 @@ setInterval(async () => {
   let q;
   try { q = JSON.parse(localStorage.getItem(queueKey()) || '[]'); } catch (_) { q = []; }
   if (channelDead || q.length) {
+    setConnState('reconnecting');
     await _reinitSb();          // reinits client + calls setupBroadcast if matchStatsRow set
-    if (q.length) await flushQueue();
+    if (q.length) {
+      const remaining = await flushQueue();
+      if (remaining === 0) setConnState('online');
+    } else {
+      setConnState('online');
+    }
   }
-}, 30_000);
+}, 10_000);
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 window.onerror = (msg, src, line, col, err) => {
