@@ -772,6 +772,8 @@ const $ = id => document.getElementById(id);
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
+  if (id === 'timerScreen') _acquireWakeLock();
+  else _releaseWakeLock();
 }
 
 function showLoading(msg = 'Loading…') { $('loadingText').textContent = msg; $('loadingOverlay').classList.add('show'); }
@@ -2003,6 +2005,32 @@ async function finaliseStats() {
 }
 
 // ── Connectivity ─────────────────────────────────────────────────────────────
+
+// ── Screen wake lock ─────────────────────────────────────────────────────────
+// Prevents the screen dimming or locking while the timer is active.
+// Uses the W3C Screen Wake Lock API (supported in WKWebView on iOS 16.4+).
+
+let _wakeLock = null;
+
+async function _acquireWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    _wakeLock = await navigator.wakeLock.request('screen');
+    _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+  } catch (_) {}
+}
+
+function _releaseWakeLock() {
+  if (_wakeLock) { try { _wakeLock.release(); } catch (_) {} _wakeLock = null; }
+}
+
+// Re-acquire after the app returns to foreground (iOS releases it on background).
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && _wakeLock === null) {
+    const timerActive = $('timerScreen')?.classList.contains('active');
+    if (timerActive) _acquireWakeLock();
+  }
+});
 
 function setConnState(state) {
   const banner = $('connBanner');
