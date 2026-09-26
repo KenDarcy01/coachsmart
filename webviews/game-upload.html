@@ -600,6 +600,7 @@
       const wasSameField = _recordingFieldId === fieldId;
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
+        stopSpeech(); // reset UI immediately — onSpeechDone() from Flutter becomes a no-op
       } else {
         stopSpeech();
       }

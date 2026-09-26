@@ -103,7 +103,7 @@ class _NativeWebViewState extends State<NativeWebView>
           }
         },
         localeId: 'en_IE',
-        pauseFor: const Duration(seconds: 4),
+        pauseFor: const Duration(seconds: 8),
         cancelOnError: false,
       );
     } catch (_) {
