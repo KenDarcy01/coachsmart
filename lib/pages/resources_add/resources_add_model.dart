@@ -1,9 +1,8 @@
 import '/flutter_flow/flutter_flow_util.dart';
-import '/index.dart';
-import 'resources_widget.dart' show ResourcesWidget;
+import 'resources_add_widget.dart' show ResourcesAddWidget;
 import 'package:flutter/material.dart';
 
-class ResourcesModel extends FlutterFlowModel<ResourcesWidget> {
+class ResourcesAddModel extends FlutterFlowModel<ResourcesAddWidget> {
   ///  Local state fields for this page.
 
   bool varPageLoaded = true;

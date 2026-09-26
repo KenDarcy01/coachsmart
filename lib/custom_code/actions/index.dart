@@ -21,3 +21,4 @@ export 'export_multi_game_card_pdf.dart' show exportMultiGameCardPdf;
 export 'check_and_navigate_pending.dart' show checkAndNavigatePending;
 export 'setup_notification_listener.dart' show setupNotificationListener;
 export 'update_user_platform.dart' show updateUserPlatform;
+export 'get_current_refresh_token.dart' show getCurrentRefreshToken;

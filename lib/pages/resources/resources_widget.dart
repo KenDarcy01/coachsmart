@@ -1,10 +1,13 @@
 import '/auth/supabase_auth/auth_util.dart';
+import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
+import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'resources_model.dart';
 export 'resources_model.dart';
 
@@ -60,6 +63,8 @@ class _ResourcesWidgetState extends State<ResourcesWidget> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<FFAppState>();
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -89,7 +94,43 @@ class _ResourcesWidgetState extends State<ResourcesWidget> {
                       FlutterFlowTheme.of(context).headlineMedium.fontStyle,
                 ),
           ),
-          actions: [],
+          actions: [
+            Visibility(
+              visible: FFAppState().homePageEvents.highestRoleLevel >= 100,
+              child: Column(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Padding(
+                    padding:
+                        EdgeInsetsDirectional.fromSTEB(0.0, 5.0, 15.0, 0.0),
+                    child: FlutterFlowIconButton(
+                      borderRadius: 8.0,
+                      buttonSize: 40.0,
+                      icon: Icon(
+                        Icons.add,
+                        color: FlutterFlowTheme.of(context).coachSmartGreen,
+                        size: 30.0,
+                      ),
+                      onPressed: () async {
+                        logFirebaseEvent('RESOURCES_PAGE_add_ICN_ON_TAP');
+                        logFirebaseEvent('IconButton_navigate_to');
+
+                        context.pushNamed(
+                          ResourcesAddWidget.routeName,
+                          queryParameters: {
+                            'currentAuthToken': serializeParam(
+                              currentJwtToken,
+                              ParamType.String,
+                            ),
+                          }.withoutNulls,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           centerTitle: true,
           elevation: 2.0,
         ),

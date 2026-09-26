@@ -18,6 +18,11 @@ class DropDownMenuEditModel extends FlutterFlowModel<DropDownMenuEditWidget> {
   void updateReminderEmailListAtIndex(int index, Function(String) updateFn) =>
       reminderEmailList[index] = updateFn(reminderEmailList[index]);
 
+  ///  State fields for stateful widgets in this component.
+
+  // Stores action output result for [Custom Action - getCurrentRefreshToken] action in convertComponent widget.
+  String? outputRefreshToken;
+
   @override
   void initState(BuildContext context) {}
 

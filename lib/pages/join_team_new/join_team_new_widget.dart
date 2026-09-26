@@ -1,7 +1,4 @@
 import '/auth/supabase_auth/auth_util.dart';
-import '/backend/api_requests/api_calls.dart';
-import '/backend/schema/structs/index.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
@@ -54,37 +51,6 @@ class _JoinTeamNewWidgetState extends State<JoinTeamNewWidget> {
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primaryText,
           automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderColor: Colors.transparent,
-            borderRadius: 30.0,
-            borderWidth: 1.0,
-            buttonSize: 60.0,
-            icon: Icon(
-              Icons.chevron_left,
-              color: Color(0xFF87C232),
-              size: 40.0,
-            ),
-            onPressed: () async {
-              logFirebaseEvent('JOIN_TEAM_NEW_chevron_left_ICN_ON_TAP');
-              logFirebaseEvent('IconButton_backend_call');
-              _model.apiTeamSummary = await GetUserTeamSummaryCall.call(
-                supabaseJWTtoken: currentJwtToken,
-                pUserId: currentUserUid,
-              );
-
-              if ((_model.apiTeamSummary?.succeeded ?? true)) {
-                logFirebaseEvent('IconButton_update_app_state');
-                FFAppState().userTeamSummary =
-                    UserTeamSummaryStruct.maybeFromMap(
-                        (_model.apiTeamSummary?.jsonBody ?? ''))!;
-                safeSetState(() {});
-              }
-              logFirebaseEvent('IconButton_navigate_back');
-              context.pop();
-
-              safeSetState(() {});
-            },
-          ),
           title: Text(
             'Join Team',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
@@ -119,7 +85,11 @@ class _JoinTeamNewWidgetState extends State<JoinTeamNewWidget> {
                   'https://coach-smart-new-mpqa5l.web.app/webviews/join-team.html?access_token=${currentJwtToken}',
               onPageReady: () async {},
               onComplete: () async {},
-              onLogout: () async {},
+              onLogout: () async {
+                logFirebaseEvent('JOIN_TEAM_NEW_Container_i7hhstvc_CALLBAC');
+                logFirebaseEvent('NativeWebView_navigate_back');
+                context.safePop();
+              },
             ),
           ),
         ),

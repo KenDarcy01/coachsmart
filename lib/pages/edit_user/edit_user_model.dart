@@ -35,6 +35,8 @@ class EditUserModel extends FlutterFlowModel<EditUserWidget> {
   // State field(s) for DropDown widget.
   int? dropDownValue;
   FormFieldController<int>? dropDownValueController;
+  // Stores action output result for [Backend Call - API (deleteUser)] action in Button widget.
+  ApiCallResponse? apiResultDeleteUser;
 
   @override
   void initState(BuildContext context) {}

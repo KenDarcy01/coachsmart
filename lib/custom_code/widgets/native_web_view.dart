@@ -38,14 +38,51 @@ class NativeWebView extends StatefulWidget {
   State<NativeWebView> createState() => _NativeWebViewState();
 }
 
-class _NativeWebViewState extends State<NativeWebView> {
+class _NativeWebViewState extends State<NativeWebView>
+    with WidgetsBindingObserver {
   WebViewController? _controller;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initController();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // When the app returns to the foreground, check whether the WebView's
+  // content process is still alive. On iOS the OS can kill the WKWebView
+  // renderer while the app is backgrounded; on Android the same can happen
+  // to the WebView renderer. A dead process leaves a blank screen with no
+  // way to recover from inside the page, so we detect it here and reload.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkAndReloadIfDead();
+    }
+  }
+
+  Future<void> _checkAndReloadIfDead() async {
+    final ctrl = _controller;
+    if (ctrl == null) return;
     try {
-      _controller = WebViewController()
+      // A live process returns '1'; a dead process throws a PlatformException.
+      await ctrl.runJavaScriptReturningResult('1');
+    } catch (_) {
+      try {
+        ctrl.loadRequest(Uri.parse(widget.url));
+      } catch (_) {}
+    }
+  }
+
+  void _initController() {
+    try {
+      final ctrl = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.transparent)
         ..addJavaScriptChannel(
@@ -91,8 +128,14 @@ class _NativeWebViewState extends State<NativeWebView> {
             }
             return NavigationDecision.navigate;
           },
-        ))
-        ..loadRequest(Uri.parse(widget.url));
+        ));
+      _controller = ctrl;
+      () async {
+        try {
+          await ctrl.clearCache();
+        } catch (_) {}
+        if (mounted) ctrl.loadRequest(Uri.parse(widget.url));
+      }();
     } catch (_) {}
   }
 

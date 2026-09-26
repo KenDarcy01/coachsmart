@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:google_fonts/google_fonts.dart';
@@ -24,6 +26,11 @@ Future<String> supabaseLogin(String email, String password) async {
     );
     return '';
   } on AuthException catch (e) {
+    // Banned accounts (soft-deleted) get a clear message rather than
+    // falling through to the "incorrect password" path.
+    if (e.message.toLowerCase().contains('banned')) {
+      return 'This account has been deleted. Please contact support if you believe this is an error.';
+    }
     try {
       final exists = await Supabase.instance.client
           .rpc('check_email_exists', params: {'p_email': email});

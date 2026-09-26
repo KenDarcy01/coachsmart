@@ -8,6 +8,7 @@ import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import '/custom_code/actions/index.dart' as actions;
 import '/index.dart';
 import 'package:aligned_dialog/aligned_dialog.dart';
 import 'package:flutter/material.dart';
@@ -76,6 +77,8 @@ class _NotificationsWidgetState extends State<NotificationsWidget> {
         pUserId: currentUserUid,
       );
 
+      logFirebaseEvent('Notifications_custom_action');
+      await actions.updateAppBadge();
       if ((_model.apiMarkAllNotificationAsRead?.succeeded ?? true)) {
         logFirebaseEvent('Notifications_backend_call');
         _model.apiUserNotificationsRead = await GetUserNotificationsCall.call(
@@ -142,6 +145,8 @@ class _NotificationsWidgetState extends State<NotificationsWidget> {
               logFirebaseEvent('IconButton_update_app_state');
               FFAppState().homePageEvents = UserEventsHomeStruct.maybeFromMap(
                   (_model.outputUpdatedEvents?.jsonBody ?? ''))!;
+              logFirebaseEvent('IconButton_custom_action');
+              await actions.updateAppBadge();
               logFirebaseEvent('IconButton_navigate_back');
               context.safePop();
 

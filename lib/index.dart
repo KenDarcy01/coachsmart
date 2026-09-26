@@ -61,3 +61,4 @@ export '/pages/create_team_new/create_team_new_widget.dart'
 export '/pages/event_details/event_details_widget.dart' show EventDetailsWidget;
 export '/pages/home_page/home_page_widget.dart' show HomePageWidget;
 export '/pages/resources/resources_widget.dart' show ResourcesWidget;
+export '/pages/resources_add/resources_add_widget.dart' show ResourcesAddWidget;

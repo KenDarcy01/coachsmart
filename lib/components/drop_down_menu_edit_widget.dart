@@ -1,6 +1,7 @@
 import '/auth/supabase_auth/auth_util.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/actions/index.dart' as actions;
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -265,6 +266,9 @@ class _DropDownMenuEditWidgetState extends State<DropDownMenuEditWidget> {
                   onTap: () async {
                     logFirebaseEvent(
                         'DROP_DOWN_MENU_EDIT_convertComponent_ON_');
+                    logFirebaseEvent('convertComponent_custom_action');
+                    _model.outputRefreshToken =
+                        await actions.getCurrentRefreshToken();
                     logFirebaseEvent('convertComponent_navigate_to');
 
                     context.pushNamed(
@@ -282,12 +286,18 @@ class _DropDownMenuEditWidgetState extends State<DropDownMenuEditWidget> {
                           currentJwtToken,
                           ParamType.String,
                         ),
+                        'refreshToken': serializeParam(
+                          _model.outputRefreshToken,
+                          ParamType.String,
+                        ),
                       }.withoutNulls,
                     );
 
                     logFirebaseEvent(
                         'convertComponent_close_dialog_drawer_etc');
                     Navigator.pop(context);
+
+                    safeSetState(() {});
                   },
                   child: Container(
                     width: double.infinity,

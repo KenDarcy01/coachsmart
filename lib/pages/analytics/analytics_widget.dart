@@ -122,7 +122,11 @@ class _AnalyticsWidgetState extends State<AnalyticsWidget> {
                   'https://coach-smart-new-mpqa5l.web.app/webviews/dashboard-app.html?token=${currentJwtToken}',
               onPageReady: () async {},
               onComplete: () async {},
-              onLogout: () async {},
+              onLogout: () async {
+                logFirebaseEvent('ANALYTICS_Container_lqd5k5iz_CALLBACK');
+                logFirebaseEvent('NativeWebView_navigate_back');
+                context.safePop();
+              },
             ),
           ),
         ),

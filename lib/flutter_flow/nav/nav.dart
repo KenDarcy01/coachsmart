@@ -495,6 +495,10 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   'currentAuthToken',
                   ParamType.String,
                 ),
+                refreshToken: params.getParam(
+                  'refreshToken',
+                  ParamType.String,
+                ),
               ),
             ),
             FFRoute(
@@ -582,6 +586,16 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               name: ResourcesWidget.routeName,
               path: ResourcesWidget.routePath,
               builder: (context, params) => ResourcesWidget(
+                currentAuthToken: params.getParam(
+                  'currentAuthToken',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: ResourcesAddWidget.routeName,
+              path: ResourcesAddWidget.routePath,
+              builder: (context, params) => ResourcesAddWidget(
                 currentAuthToken: params.getParam(
                   'currentAuthToken',
                   ParamType.String,

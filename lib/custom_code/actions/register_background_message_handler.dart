@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'index.dart'; // Imports other custom actions
 
 import '/backend/api_requests/api_calls.dart';
+import 'index.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -22,6 +23,7 @@ import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ---------------------------------------------------------------------------
 // DEBUG LOGGER
@@ -91,9 +93,15 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
       _CooldownManager.activate();
       _refreshNavigatorContext();
       if (_activeSupabase != null && _activeUserId != null) {
-        // Refresh OS badge and in-app notification count on every foreground.
+        // 1. Restart the Realtime stream — iOS kills the WebSocket when the
+        //    app is backgrounded; cancel the old subscription and open a fresh
+        //    one so new notifications are caught going forward.
+        _startNotificationStream(_activeSupabase!, _activeUserId!);
+        // 2. Refresh home events so the in-app notification count reflects
+        //    anything that arrived while the app was backgrounded.
+        _refreshHomeEvents(_activeSupabase!, _activeUserId!);
+        // 3. Sync the OS app-icon badge.
         _updateBadge(_activeSupabase!, _activeUserId!);
-        _refreshHomePageCount(_activeSupabase!, _activeUserId!);
       }
     }
   }
@@ -168,13 +176,9 @@ Future<void> _initFirebase() async {
     } else {
       _log('Firebase already initialised — skipping');
     }
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
       _logStep('FCM', 'Token refreshed → ${newToken.substring(0, 16)}...');
       FFAppState().fcmToken = newToken;
-      // Persist the rotated token to the database if a user is signed in.
-      if (_activeSupabase != null && _activeUserId != null) {
-        await _saveFcmToken(_activeSupabase!, _activeUserId!, newToken);
-      }
     });
     _log('FCM token refresh listener attached ✓');
   } catch (e) {
@@ -183,27 +187,7 @@ Future<void> _initFirebase() async {
 }
 
 // ---------------------------------------------------------------------------
-// 3. FCM TOKEN HELPER
-// ---------------------------------------------------------------------------
-
-Future<void> _saveFcmToken(
-  SupabaseClient supabase,
-  String userId,
-  String token,
-) async {
-  _logStep('FCM', 'Saving token to users table...');
-  try {
-    await supabase
-        .from('users')
-        .update({'fcm_token': token}).eq('user_id', userId);
-    _log('FCM token saved to DB ✓');
-  } catch (e) {
-    _logError('Failed to save FCM token', e);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 4. MARK READ HELPER
+// 3. MARK READ HELPER
 // ---------------------------------------------------------------------------
 
 Future<void> _markNotificationRead(
@@ -223,46 +207,166 @@ Future<void> _markNotificationRead(
 }
 
 // ---------------------------------------------------------------------------
-// 4. NAVIGATION — both push and banner taps go to Notifications page
+// 4. NAVIGATION HELPERS
 // ---------------------------------------------------------------------------
 
 Future<void> _navigateFromPushLink(String linkPage) async {
-  final String destination = (linkPage.isNotEmpty) ? linkPage : 'Notifications';
-  _logStep('Navigate', 'Push tap — navigating to $destination');
-  _refreshNavigatorContext();
-  if (_navigatorContext == null || !_navigatorContext!.mounted) {
-    _logError('Navigator context not available for push navigation');
+  if (linkPage.isEmpty) {
+    _logWarn('navigateFromPushLink — linkPage is empty, skipping');
     return;
   }
+  _logStep('Navigate', 'Push link: $linkPage');
+
+  if (kIsWeb) {
+    final String webUrl = linkPage.startsWith('coachsmartv2://coachsmartv2.com')
+        ? linkPage.replaceFirst(
+            'coachsmartv2://coachsmartv2.com',
+            'https://my.coachsmart.app',
+          )
+        : linkPage;
+    _logStep('Navigate', 'Web — launching: $webUrl');
+    try {
+      final Uri uri = Uri.parse(webUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        _log('Web push navigation launched ✓');
+      } else {
+        _logError('canLaunchUrl returned false for: $webUrl');
+      }
+    } catch (e) {
+      _logError('Web push navigation threw', e);
+    }
+    return;
+  }
+
   try {
-    _navigatorContext!.pushNamed(destination);
-    _log('Push navigated to $destination ✓');
+    final Uri uri = Uri.parse(linkPage);
+    final String? eventIdStr = uri.queryParameters['eventID'];
+    final int? eventId = eventIdStr != null ? int.tryParse(eventIdStr) : null;
+    _logStep('Navigate', 'Parsed — path=${uri.path} | eventId=$eventId');
+    if (eventId == null) {
+      _logError('Could not parse eventID from push link: $linkPage');
+      return;
+    }
+    _refreshNavigatorContext();
+    if (_navigatorContext == null || !_navigatorContext!.mounted) {
+      _logError('Navigator context not available for push navigation');
+      return;
+    }
+    _navigatorContext!.pushNamed(
+      'EventDetails',
+      queryParameters: {
+        'eventID': eventId.toString(),
+        'fromSearch': 'false',
+      },
+    );
+    _log('Push navigated to EventDetails with eventId=$eventId ✓');
   } catch (e) {
-    _logError('Push navigation threw', e);
+    _logError('Native push navigation threw', e);
   }
 }
 
 Future<void> _navigateFromBannerLink(String linkPage) async {
-  final String destination = (linkPage.isNotEmpty) ? linkPage : 'Notifications';
-  _logStep('BannerNav', 'Banner tap — navigating to $destination');
-  _refreshNavigatorContext();
-  if (_navigatorContext == null || !_navigatorContext!.mounted) {
-    _logError('Navigator context not available for banner navigation');
+  if (linkPage.isEmpty) {
+    _logWarn('navigateFromBannerLink — linkPage is empty, skipping');
     return;
   }
+  _logStep('BannerNav', 'Banner link: $linkPage');
+
+  if (kIsWeb) {
+    final String webUrl = linkPage.startsWith('coachsmartv2://coachsmartv2.com')
+        ? linkPage.replaceFirst(
+            'coachsmartv2://coachsmartv2.com',
+            'https://my.coachsmart.app',
+          )
+        : linkPage;
+    _logStep('BannerNav', 'Web — launching: $webUrl');
+    try {
+      final Uri uri = Uri.parse(webUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        _log('Web banner navigation launched ✓');
+      } else {
+        _logError('canLaunchUrl returned false for: $webUrl');
+      }
+    } catch (e) {
+      _logError('Web banner navigation threw', e);
+    }
+    return;
+  }
+
   try {
-    _navigatorContext!.pushNamed(destination);
-    _log('Banner navigated to $destination ✓');
+    final Uri uri = Uri.parse(linkPage);
+    final String? eventIdStr = uri.queryParameters['eventID'];
+    final int? eventId = eventIdStr != null ? int.tryParse(eventIdStr) : null;
+    _logStep('BannerNav', 'Parsed — path=${uri.path} | eventId=$eventId');
+    if (eventId == null) {
+      _logError('Could not parse eventID from banner link: $linkPage');
+      return;
+    }
+    _refreshNavigatorContext();
+    if (_navigatorContext == null || !_navigatorContext!.mounted) {
+      _logError('Navigator context not available for banner navigation');
+      return;
+    }
+    _navigatorContext!.pushNamed(
+      'EventDetails',
+      queryParameters: {
+        'eventID': eventId.toString(),
+        'fromSearch': 'false',
+      },
+    );
+    _log('Banner navigated to EventDetails with eventId=$eventId ✓');
   } catch (e) {
-    _logError('Banner navigation threw', e);
+    _logError('Native banner navigation threw', e);
   }
 }
 
 // ---------------------------------------------------------------------------
-// 5. SUPABASE STREAM — new notification delivery
+// 5. HOME EVENTS REFRESH
+//
+// Called on app resume so FFAppState().homePageEvents (and therefore the
+// in-app unread notification count) reflects any notifications that arrived
+// while the app was backgrounded — independently of whether the Realtime
+// stream fired or whether is_delivered/age filters would have blocked the
+// normal _handleNewNotification path.
+// ---------------------------------------------------------------------------
+
+Future<void> _refreshHomeEvents(
+  SupabaseClient supabase,
+  String userId,
+) async {
+  _logStep('Resume', 'Refreshing home events for user=$userId');
+  try {
+    final String? jwtToken = supabase.auth.currentSession?.accessToken;
+    if (jwtToken == null) {
+      _logWarn('Resume refresh — JWT null, skipping home events update');
+      return;
+    }
+    final apiResult = await GetUserHomeEventsCall.call(
+      pUserId: userId,
+      supabaseJWTtoken: jwtToken,
+    );
+    if (apiResult.succeeded && apiResult.jsonBody != null) {
+      FFAppState().update(() {
+        FFAppState().homePageEvents =
+            UserEventsHomeStruct.fromMap(apiResult.jsonBody);
+      });
+      _log('Home events refreshed on resume ✓');
+    } else {
+      _logWarn('Resume refresh — API call did not succeed');
+    }
+  } catch (e) {
+    _logError('Home events refresh on resume failed', e);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 6. SUPABASE STREAM
 // ---------------------------------------------------------------------------
 
 final Set<String> _processedNotificationIds = {};
+
 StreamSubscription<List<Map<String, dynamic>>>? _notificationSubscription;
 
 void cancelNotificationStream() {
@@ -319,8 +423,8 @@ Future<void> _startNotificationStream(
           }
 
           if (alert['is_delivered'] == true) {
-            _logWarn('Skipping — notification $alertId already '
-                'delivered via another channel');
+            _logWarn(
+                'Skipping — notification $alertId already delivered via another channel');
             return;
           }
 
@@ -347,8 +451,8 @@ Future<void> _startNotificationStream(
 
           _processedNotificationIds.add(alertId);
           _log('Notification $alertId added to processed set ✓');
-          _log('Notification $alertId passed all checks — handling');
 
+          _log('Notification $alertId passed all checks — handling');
           await _handleNewNotification(supabase, userId, alert);
         },
         onError: (error) {
@@ -357,95 +461,6 @@ Future<void> _startNotificationStream(
       );
 
   _log('Notification stream active ✓');
-}
-
-// ---------------------------------------------------------------------------
-// 5b. READ-SYNC CHANNEL — refreshes home badge when is_read changes
-// ---------------------------------------------------------------------------
-
-RealtimeChannel? _readSyncChannel;
-
-void _cancelReadSyncChannel() {
-  if (_readSyncChannel != null) {
-    _readSyncChannel!.unsubscribe();
-    _readSyncChannel = null;
-    _log('Read-sync channel cancelled ✓');
-  }
-}
-
-void _startReadSyncChannel(SupabaseClient supabase, String userId) {
-  _cancelReadSyncChannel();
-  _logStep('ReadSync', 'Opening postgres_changes channel for user: $userId');
-
-  _readSyncChannel = supabase
-      .channel('notification-read-sync-$userId')
-      .onPostgresChanges(
-        event: PostgresChangeEvent.update,
-        schema: 'public',
-        table: 'notifications',
-        filter: PostgresChangeFilter(
-          type: PostgresChangeFilterType.eq,
-          column: 'recipient_user_id',
-          value: userId,
-        ),
-        callback: (PostgresChangePayload payload) async {
-          final newRow = payload.newRecord;
-          final String rowId = newRow['id']?.toString() ?? 'unknown';
-          final bool isRead = newRow['is_read'] == true;
-
-          _logStep('ReadSync', 'UPDATE received — id=$rowId | is_read=$isRead');
-
-          if (!isRead) {
-            _logStep('ReadSync',
-                'is_read=false — not a read event, skipping home refresh');
-            return;
-          }
-
-          _logStep(
-              'ReadSync', 'is_read=true — refreshing home badge and events...');
-
-          await _updateBadge(supabase, userId);
-          await _refreshHomePageCount(supabase, userId);
-        },
-      )
-      .subscribe((status, [error]) {
-    _logStep('ReadSync', 'Channel status: $status');
-    if (error != null) _logError('ReadSync channel error', error);
-  });
-
-  _log('Read-sync channel active ✓');
-}
-
-// ---------------------------------------------------------------------------
-// 6. HOME PAGE COUNT REFRESH
-//
-// Queries unread notifications and updates FFAppState.notificationBadgeCount.
-// This is a simple int App State variable — FlutterFlow generates context.watch
-// for widgets bound to it, so they auto-rebuild when this value changes.
-// Called on app resume, read-sync events, banner tap, and init.
-// ---------------------------------------------------------------------------
-
-Future<void> _refreshHomePageCount(
-  SupabaseClient supabase,
-  String userId,
-) async {
-  _logStep('HomeCount', 'Querying unread count for user=$userId...');
-  try {
-    final rows = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('recipient_user_id', userId)
-        .eq('is_read', false);
-    final int count = (rows as List).length;
-    // update() calls notifyListeners() — widgets using context.watch<FFAppState>()
-    // will rebuild automatically (e.g. the NotificationBadge custom widget).
-    FFAppState().update(() {
-      FFAppState().homePageEvents.unreadNotifications = count;
-    });
-    _log('homePageEvents.unreadNotifications updated → $count ✓');
-  } catch (e) {
-    _logError('_refreshHomePageCount failed', e);
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -532,8 +547,9 @@ Future<void> _handleNewNotification(
     _logError('GetUserHomeEventsCall threw an exception', e);
   }
 
-  // Mark is_delivered=true BEFORE updating badge so the badge query
-  // sees the correct delivered state.
+  _logStep('Handler', 'Proceeding to badge update...');
+  await _updateBadge(supabase, userId);
+
   try {
     await supabase
         .from('notifications')
@@ -542,9 +558,6 @@ Future<void> _handleNewNotification(
   } catch (e) {
     _logError('Failed to mark $alertId as is_delivered=true', e);
   }
-
-  _logStep('Handler', 'Proceeding to badge update...');
-  await _updateBadge(supabase, userId);
 
   if (_CooldownManager.isActive) {
     _logWarn('Cooldown still active — popup suppressed for $alertId');
@@ -559,6 +572,12 @@ Future<void> _handleNewNotification(
 // ---------------------------------------------------------------------------
 // 8. BADGE
 // ---------------------------------------------------------------------------
+
+Future<void> refreshAppBadge() async {
+  if (_activeSupabase != null && _activeUserId != null) {
+    await _updateBadge(_activeSupabase!, _activeUserId!);
+  }
+}
 
 Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
   if (kIsWeb) {
@@ -603,6 +622,7 @@ Future<void> _showPopup(
   OverlayState? overlay;
   String overlaySource = 'none';
 
+  // Strategy 1 — NavigatorState.overlay (the navigator's own overlay).
   try {
     if (_navigatorState != null && _navigatorState!.mounted) {
       final OverlayState? o = _navigatorState!.overlay;
@@ -621,6 +641,7 @@ Future<void> _showPopup(
     _logError('Strategy 1 (navigatorState.overlay) threw', e);
   }
 
+  // Strategy 2 — root navigator via focusManager context.
   if (overlay == null) {
     try {
       final BuildContext? fc =
@@ -644,6 +665,7 @@ Future<void> _showPopup(
     }
   }
 
+  // Strategy 3 — fresh tree walk to re-acquire NavigatorState.
   if (overlay == null) {
     try {
       _logStep('Popup', 'Strategy 3 — refreshing NavigatorState from tree...');
@@ -874,7 +896,8 @@ class _SlickBannerState extends State<_SlickBanner>
         'begin — instance #${widget.instanceId} | '
             'title="${widget.title}" | '
             'teamName="${widget.teamName}" | '
-            'notificationId="${widget.notificationId}"');
+            'notificationId="${widget.notificationId}" | '
+            'linkPage="${widget.linkPage}"');
 
     _ctrl = AnimationController(
       vsync: this,
@@ -967,16 +990,17 @@ class _SlickBannerState extends State<_SlickBanner>
             'linkPage="${widget.linkPage}"');
     HapticFeedback.selectionClick();
 
-    await _animateOut();
+    await Future.wait([
+      _markNotificationRead(widget.supabase, widget.notificationId),
+      _animateOut(),
+    ]);
 
-    if (_activeSupabase != null && _activeUserId != null) {
-      await _updateBadge(_activeSupabase!, _activeUserId!);
-      await _refreshHomePageCount(_activeSupabase!, _activeUserId!);
+    if (widget.linkPage.isNotEmpty) {
+      _i('tap', 'navigating after dismiss');
+      await _navigateFromBannerLink(widget.linkPage);
+    } else {
+      _iWarn('tap — linkPage is empty, no navigation');
     }
-
-    // Always navigate to Notifications regardless of linkPage content.
-    _i('tap', 'navigating to Notifications');
-    await _navigateFromBannerLink(widget.linkPage);
   }
 
   @override
@@ -1159,7 +1183,7 @@ class _SlickBannerState extends State<_SlickBanner>
                                               ),
                                               SizedBox(width: 3),
                                               Text(
-                                                'Tap to view notifications',
+                                                'Tap to open event',
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   color: Color(0xFF87C232),
@@ -1222,40 +1246,7 @@ Future<void> registerBackgroundMessageHandler() async {
     _activeSupabase = supabase;
     _activeUserId = currentUser.id;
 
-    // Fetch and persist the current FCM token on every app start.
-    // On a fresh install the token changes; this ensures the DB is always current.
     if (!kIsWeb) {
-      try {
-        final String? currentToken =
-            await FirebaseMessaging.instance.getToken();
-        if (currentToken != null) {
-          FFAppState().fcmToken = currentToken;
-          await _saveFcmToken(supabase, currentUser.id, currentToken);
-        } else {
-          _logWarn('getToken() returned null — push notifications unavailable');
-        }
-      } catch (e) {
-        _logError('Failed to fetch FCM token on startup', e);
-      }
-    }
-
-    if (!kIsWeb) {
-      // Cold start — app was killed, user tapped the notification.
-      final RemoteMessage? initialMessage =
-          await FirebaseMessaging.instance.getInitialMessage();
-      if (initialMessage != null) {
-        _logStep('ColdStart',
-            'getInitialMessage fired | data=${initialMessage.data}');
-        final String? notificationId = initialMessage.data['notification_id'];
-        final String? linkPage = initialMessage.data['link_page'];
-        if (notificationId != null && notificationId.isNotEmpty) {
-          await _updateBadge(supabase, currentUser.id);
-          await _refreshHomePageCount(supabase, currentUser.id);
-        }
-        await _navigateFromPushLink(linkPage ?? '');
-      }
-
-      // Background tap — app was in background, user taps system notification.
       FirebaseMessaging.onMessageOpenedApp
           .listen((RemoteMessage message) async {
         _logStep('PushTap', 'onMessageOpenedApp fired | data=${message.data}');
@@ -1264,24 +1255,48 @@ Future<void> registerBackgroundMessageHandler() async {
         _logStep(
             'PushTap', 'notificationId=$notificationId | linkPage=$linkPage');
         if (notificationId != null && notificationId.isNotEmpty) {
-          await _updateBadge(supabase, currentUser.id);
-          await _refreshHomePageCount(supabase, currentUser.id);
+          await _markNotificationRead(supabase, notificationId);
         } else {
           _logWarn('PushTap — notification_id missing from FCM data payload');
         }
-        // Navigate to Notifications regardless of the link_page value.
-        await _navigateFromPushLink(linkPage ?? '');
+        if (linkPage != null && linkPage.isNotEmpty) {
+          _logStep('PushTap', 'Navigating: $linkPage');
+          await _navigateFromPushLink(linkPage);
+        } else {
+          _logWarn('PushTap — link_page missing from FCM data payload');
+        }
       });
       _log('onMessageOpenedApp listener registered ✓');
+
+      final RemoteMessage? initialMessage =
+          await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) {
+        _logStep(
+            'PushTap',
+            'getInitialMessage — app launched from terminated state | '
+                'data=${initialMessage.data}');
+        final String? notificationId = initialMessage.data['notification_id'];
+        final String? linkPage = initialMessage.data['link_page'];
+        if (notificationId != null && notificationId.isNotEmpty) {
+          await _markNotificationRead(supabase, notificationId);
+        }
+        if (linkPage != null && linkPage.isNotEmpty) {
+          _logStep(
+              'InitialMessage', 'Delaying 500ms then navigating: $linkPage');
+          await Future.delayed(const Duration(milliseconds: 500));
+          await _navigateFromPushLink(linkPage);
+        }
+      } else {
+        _logStep(
+            'Init', 'getInitialMessage — no initial message (normal launch)');
+      }
     }
 
     _refreshNavigatorContext();
 
     await _startNotificationStream(supabase, currentUser.id);
-    _startReadSyncChannel(supabase, currentUser.id);
 
     await _updateBadge(supabase, currentUser.id);
-    await _refreshHomePageCount(supabase, currentUser.id);
 
     _log('registerBackgroundMessageHandler COMPLETE ✓');
   });

@@ -685,7 +685,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         mainAxisSize: MainAxisSize.max,
                                         children: [
                                           Text(
-                                            'v2.1.8',
+                                            'v2.1.10',
                                             style: FlutterFlowTheme.of(context)
                                                 .titleSmall
                                                 .override(

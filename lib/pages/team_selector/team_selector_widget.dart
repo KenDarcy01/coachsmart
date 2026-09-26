@@ -1,4 +1,3 @@
-import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
@@ -78,22 +77,6 @@ class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
         appBar: AppBar(
           backgroundColor: FlutterFlowTheme.of(context).primaryText,
           automaticallyImplyLeading: false,
-          leading: FlutterFlowIconButton(
-            borderColor: Colors.transparent,
-            borderRadius: 30.0,
-            borderWidth: 1.0,
-            buttonSize: 60.0,
-            icon: Icon(
-              Icons.chevron_left,
-              color: Color(0xFF87C232),
-              size: 40.0,
-            ),
-            onPressed: () async {
-              logFirebaseEvent('TEAM_SELECTOR_chevron_left_ICN_ON_TAP');
-              logFirebaseEvent('IconButton_navigate_back');
-              context.safePop();
-            },
-          ),
           title: Text(
             'Team Selector',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
@@ -128,7 +111,11 @@ class _TeamSelectorWidgetState extends State<TeamSelectorWidget> {
                   'https://coach-smart-new-mpqa5l.web.app/webviews/team_selector.html?teamId=${widget.teamId?.toString()}&eventId=${widget.eventId?.toString()}&squadId=${widget.squadId?.toString()}&token=${widget.currentAuthToken}',
               onPageReady: () async {},
               onComplete: () async {},
-              onLogout: () async {},
+              onLogout: () async {
+                logFirebaseEvent('TEAM_SELECTOR_Container_lbrvho98_CALLBAC');
+                logFirebaseEvent('NativeWebView_navigate_back');
+                context.safePop();
+              },
             ),
           ),
         ),

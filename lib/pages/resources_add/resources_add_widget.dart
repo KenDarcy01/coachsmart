@@ -1,54 +1,50 @@
+import '/auth/supabase_auth/auth_util.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'match_score_model.dart';
-export 'match_score_model.dart';
+import 'resources_add_model.dart';
+export 'resources_add_model.dart';
 
-class MatchScoreWidget extends StatefulWidget {
-  const MatchScoreWidget({
+class ResourcesAddWidget extends StatefulWidget {
+  const ResourcesAddWidget({
     super.key,
-    required this.eventId,
-    required this.teamId,
     required this.currentAuthToken,
-    required this.refreshToken,
   });
 
-  final int? eventId;
-  final int? teamId;
   final String? currentAuthToken;
-  final String? refreshToken;
 
-  static String routeName = 'MatchScore';
-  static String routePath = 'matchScore';
+  static String routeName = 'ResourcesAdd';
+  static String routePath = 'resourcesAdd';
 
   @override
-  State<MatchScoreWidget> createState() => _MatchScoreWidgetState();
+  State<ResourcesAddWidget> createState() => _ResourcesAddWidgetState();
 }
 
-class _MatchScoreWidgetState extends State<MatchScoreWidget> {
-  late MatchScoreModel _model;
+class _ResourcesAddWidgetState extends State<ResourcesAddWidget> {
+  late ResourcesAddModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => MatchScoreModel());
+    _model = createModel(context, () => ResourcesAddModel());
 
-    logFirebaseEvent('screen_view', parameters: {'screen_name': 'MatchScore'});
+    logFirebaseEvent('screen_view',
+        parameters: {'screen_name': 'ResourcesAdd'});
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      logFirebaseEvent('MATCH_SCORE_MatchScore_ON_INIT_STATE');
-      logFirebaseEvent('MatchScore_wait__delay');
+      logFirebaseEvent('RESOURCES_ADD_ResourcesAdd_ON_INIT_STATE');
+      logFirebaseEvent('ResourcesAdd_wait__delay');
       await Future.delayed(
         Duration(
-          milliseconds: 1000,
+          milliseconds: 4000,
         ),
       );
-      logFirebaseEvent('MatchScore_update_page_state');
+      logFirebaseEvent('ResourcesAdd_update_page_state');
       _model.varPageLoaded = false;
       safeSetState(() {});
     });
@@ -77,7 +73,7 @@ class _MatchScoreWidgetState extends State<MatchScoreWidget> {
           backgroundColor: FlutterFlowTheme.of(context).primaryText,
           automaticallyImplyLeading: false,
           title: Text(
-            'Match Score',
+            'Add a Resource',
             style: FlutterFlowTheme.of(context).headlineMedium.override(
                   font: GoogleFonts.interTight(
                     fontWeight:
@@ -107,11 +103,11 @@ class _MatchScoreWidgetState extends State<MatchScoreWidget> {
               width: double.infinity,
               height: double.infinity,
               url:
-                  'https://coach-smart-new-mpqa5l.web.app/webviews/match-timer.html?eventId=${widget.eventId?.toString()}&currentAuthToken=${widget.currentAuthToken}&refreshToken=${widget.refreshToken}',
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/game-upload.html?token=${currentJwtToken}',
               onPageReady: () async {},
               onComplete: () async {},
               onLogout: () async {
-                logFirebaseEvent('MATCH_SCORE_Container_cebrok0m_CALLBACK');
+                logFirebaseEvent('RESOURCES_ADD_Container_e7exjlyp_CALLBAC');
                 logFirebaseEvent('NativeWebView_navigate_back');
                 context.safePop();
               },

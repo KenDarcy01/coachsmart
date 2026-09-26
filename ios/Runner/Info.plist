@@ -53,6 +53,8 @@
     <string>Coachsmart users may want to use their photo library to upload them to the app</string>
     <key>PermissionGroupNotification</key>
     <string>Allow CoachSmart permission to send push notifications</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Required when recording audio for drills and match reports</string>
     <key>LSApplicationQueriesSchemes</key>
     <array>
       <string>comgooglemaps</string>
@@ -78,6 +80,10 @@
       <string>remote-notification</string>
     </array>
     <!-- End of UIBackgroundModes -->
+    <!-- Start of NSSpeechRecognitionUsageDescription -->
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Required for voice dictation when adding drills</string>
+    <!-- End of NSSpeechRecognitionUsageDescription -->
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
     <key>UIMainStoryboardFile</key>
