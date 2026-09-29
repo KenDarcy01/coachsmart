@@ -363,8 +363,9 @@ async function buildPdf(games: GameData[], club: ClubData, isMobile = false): Pr
 
     // Game image (between setup and how to play)
     if (gameImg) {
-      const ratio    = gameImg.width / gameImg.height;
-      const ABS_MAX_H  = 250; // keeps image in proportion with surrounding text
+      const ratio      = gameImg.width / gameImg.height;
+      const isPortrait = gameImg.width < gameImg.height;
+      const ABS_MAX_H  = isPortrait ? 370 : 250; // portrait needs more vertical room
       const IMG_INDENT = 40;  // pull in from each side of the content column
       const IMG_MAX_W  = CW - IMG_INDENT * 2;
 
