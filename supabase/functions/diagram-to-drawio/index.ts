@@ -50,13 +50,14 @@ ARROWS / MOVEMENT LINES:
   - Ball pass (dashed): edgeStyle=none;curved=1;html=1;endArrow=open;endFill=0;dashed=1;strokeColor=#ffffff;strokeWidth=2;
   - curved=1 is MANDATORY on every edge — it smooths sharp corners into smooth arcs
 - EDGE LABELS: Do NOT put any label text in the edge mxCell value. Leave value="" on all edge cells.
-  Instead, for each labelled arrow, add a SEPARATE text cell positioned ~10px to the side of the arrow's midpoint:
+  Instead, for each labelled arrow, add a SEPARATE text cell positioned ~5px to the side of the arrow's midpoint:
   style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;"
-  The text cell is a vertex (vertex="1") with a small geometry (width=80, height=20) placed beside — never on — the arrow line.
+  The text cell is a vertex (vertex="1") with geometry width=120, height=20 (wide enough for multi-word labels like "Kick pass") placed beside — never on — the arrow line.
 
 COORDINATES:
 - Map the image layout onto an 800×600 coordinate space
 - Place the background rectangle at x=0, y=0, width=800, height=600
+- PADDING: keep ALL shapes and arrow endpoints within the inner safe area: x between 60 and 740, y between 60 and 540. Nothing should be closer than 60px to any edge of the diagram.
 
 EXAMPLE STRUCTURE:
 <mxGraphModel background="#4CAF50"><root>
