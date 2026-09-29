@@ -1420,7 +1420,10 @@
           const h = parseFloat(geo.getAttribute('height') || '0');
           const val = cell.getAttribute('value') || '';
 
-          if (style.includes('ellipse')) {
+          if (style.includes('gaa_goalpost')) {
+            _renderGoalpost(ctx, x, y, w, h);
+
+          } else if (style.includes('ellipse')) {
             const cx = x + w/2, cy = y + h/2, rx = w/2, ry = h/2;
             const isBlue = style.includes('1565C0') || style.includes('42A5F5') || style.includes('0D47A1');
             ctx.save();
@@ -1550,6 +1553,61 @@
       ctx.lineTo(x2 - hLen * Math.cos(angle + Math.PI/7), y2 - hLen * Math.sin(angle + Math.PI/7));
       ctx.stroke();
     }
+    ctx.restore();
+  }
+
+  function _renderGoalpost(ctx, x, y, w, h) {
+    const postThick = Math.max(3, Math.min(6, w * 0.045));
+    const cbY      = y + h * 0.55;   // crossbar at 55% down from top
+    const goalH    = y + h - cbY;    // height of goal area below crossbar
+    const sInset   = w * 0.10;       // stanchion inset from uprights
+    const sRise    = goalH * 0.38;   // how far above crossbar stanchion tops sit
+    const backBarY = cbY - sRise;
+
+    ctx.save();
+
+    // Subtle goal-area fill
+    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.fillRect(x, cbY, w, goalH);
+
+    // Net grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([]);
+    const cols = Math.max(4, Math.round(w / 14));
+    const rows = Math.max(3, Math.round(goalH / 12));
+    for (let i = 1; i < cols; i++) {
+      const nx = x + (w / cols) * i;
+      ctx.beginPath(); ctx.moveTo(nx, cbY); ctx.lineTo(nx, y + h); ctx.stroke();
+    }
+    for (let i = 1; i < rows; i++) {
+      const ny = cbY + (goalH / rows) * i;
+      ctx.beginPath(); ctx.moveTo(x, ny); ctx.lineTo(x + w, ny); ctx.stroke();
+    }
+
+    // Back stanchions (perspective depth)
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = Math.max(1.5, postThick * 0.55);
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x,     cbY); ctx.lineTo(x + sInset,     backBarY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + w, cbY); ctx.lineTo(x + w - sInset, backBarY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + sInset, backBarY); ctx.lineTo(x + w - sInset, backBarY); ctx.stroke();
+
+    // Main structure — white posts, crossbar and ground line
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth   = postThick;
+    ctx.lineCap     = 'square';
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur  = 4;
+    ctx.setLineDash([]);
+
+    ctx.beginPath(); ctx.moveTo(x,     y);     ctx.lineTo(x,     y + h); ctx.stroke(); // left upright
+    ctx.beginPath(); ctx.moveTo(x + w, y);     ctx.lineTo(x + w, y + h); ctx.stroke(); // right upright
+    ctx.beginPath(); ctx.moveTo(x,     cbY);   ctx.lineTo(x + w, cbY);   ctx.stroke(); // crossbar
+    ctx.shadowBlur = 0;
+    ctx.lineWidth  = postThick * 0.7;
+    ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.stroke();    // ground line
+
     ctx.restore();
   }
 

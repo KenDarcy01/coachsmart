@@ -42,6 +42,15 @@ CONES (triangles):
 - Style: triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FF6D00;gradientColor=#FFAB40;gradientDirection=north;strokeColor=#E65100;shadow=1;
 - Cones are orange with gradient and shadow — this is how real GAA training cones look.
 
+GAA GOALPOSTS (H shapes):
+- If you see a shape that looks like the letter "H" — two vertical uprights connected by a horizontal crossbar — output it as a single GOALPOST vertex. Do NOT draw it as individual lines or rectangles.
+- Style: gaa_goalpost;whiteSpace=wrap;html=1;
+- Geometry: x/y = top-left corner of the H. width = distance between the outer edges of the two uprights. height = full height from the top of the uprights down to the implied ground level (include the goal area below the crossbar — total height should be roughly 1.8× the height of the uprights above the crossbar).
+- Typical size on a full pitch: width=90–130, height=70–100. Scale to match the drawn H proportionally.
+- The crossbar in the drawn H sits at approximately 55% down from the top of the shape.
+- There may be 0, 1, or 2 goalposts in a diagram (at one or both ends of the pitch). A goalpost at the top of a portrait pitch has y near the top padding; one at the bottom has y near the bottom padding.
+- GOALPOSTS ARE OBSTACLES: arrows must route around them with at least 5px clearance.
+
 ARROWS / MOVEMENT LINES — SMART STRAIGHT vs CURVED:
 - Examine each line in the original image carefully before choosing a style:
   - STRAIGHT LINE: if the line in the image appears straight or nearly straight (less than a noticeable arc), use NO waypoints and NO curved style: edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
