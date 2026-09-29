@@ -209,6 +209,7 @@
 
 <script>
   const FUNCTION_URL = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/diagram-to-drawio';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
 
   const dropzone  = document.getElementById('dropzone');
   const fileinput = document.getElementById('fileinput');
@@ -274,7 +275,11 @@
 
       const res = await fetch(FUNCTION_URL, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        },
         body: JSON.stringify({ image_base64: b64, media_type: mime }),
       });
 
