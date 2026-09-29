@@ -13,62 +13,55 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PROMPT = `You are an expert at converting handwritten or hand-drawn GAA (Gaelic Athletic Association) coaching diagrams into draw.io (mxGraph) XML.
+const PROMPT = `You are an expert at converting handwritten or hand-drawn GAA (Gaelic Athletic Association) coaching diagrams into polished draw.io (mxGraph) XML.
 
 Analyse the image carefully and produce valid draw.io XML using these EXACT visual rules:
 
 OUTPUT FORMAT:
 - Output ONLY raw XML — no markdown fences, no explanation, nothing before or after the XML
-- Start your response with exactly: <mxGraphModel background="#4CAF50"
+- Start your response with exactly: <mxGraphModel background="#2E7D32"
 - Include mxCell id="0" and id="1" parent="0" as the two root cells
 
-BACKGROUND:
-- Set background="#4CAF50" on the mxGraphModel element (grass green)
-- Add a large filled rectangle as the FIRST cell covering the full diagram area:
-  style="fillColor=#4CAF50;strokeColor=none;" vertex="1"
+CANVAS SIZE — ALWAYS 600×600 SQUARE:
+- The diagram is always exactly 600×600. Set background="#2E7D32" on mxGraphModel.
+- First cell: background rectangle x=0, y=0, width=600, height=600, style="fillColor=#2E7D32;strokeColor=none;"
+- PADDING: all shapes and arrow endpoints must sit within x: 60–540, y: 60–540. Nothing closer than 60px to any edge.
+- Scale all positions from the original image proportionally into this 600×600 space.
 
-PLAYERS (circles/blobs):
-- Render each player as an ellipse, width=44, height=44
-- Style base: ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;
-- TEAM COLOURS — this is critical: if two players share the same number or label, one belongs to each team. Alternate red vs blue to tell them apart.
-  - Home team / first team seen: fillColor=#CC0000;fontColor=#ffffff;strokeColor=#990000;
-  - Away team / opponent (same number as a home player): fillColor=#1565C0;fontColor=#ffffff;strokeColor=#0D47A1;
-  - If only one team visible, use red for all players.
+PLAYERS (circles):
+- Ellipse, width=46, height=46
+- Home team: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;"
+- Away team (same number = opposite team): style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;"
+- If only one team visible, use home (red) style for all.
 
 CONES (triangles):
-- Render each cone as a triangle, width=30, height=34
-- Style: triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#555555;
-- direction=north is MANDATORY — without it cones point sideways, not upward
+- Triangle, width=28, height=32, direction=north (MANDATORY)
+- Style: triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FF6D00;gradientColor=#FFAB40;gradientDirection=north;strokeColor=#E65100;shadow=1;
+- Cones are orange with gradient and shadow — this is how real GAA training cones look.
 
-ARROWS / MOVEMENT LINES:
-- Use floating edges (NO source or target attributes on the mxCell)
-- Position each edge's start point ~20px away from the edge of the origin shape, and end point ~20px away from the edge of the destination shape — arrows must NOT touch or overlap any circle or triangle
-- For curved/arc paths, include intermediate waypoints in an Array as="points" — these become bezier control points with curved=1
-- The edge cell's mxGeometry must include sourcePoint and targetPoint as child elements
-- Arrow styles:
-  - Player run (solid): edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;
-  - Ball pass (dashed): edgeStyle=none;curved=1;html=1;endArrow=open;endFill=0;dashed=1;strokeColor=#ffffff;strokeWidth=2;
-  - curved=1 is MANDATORY on every edge — it smooths sharp corners into smooth arcs
-- EDGE LABELS: Do NOT put any label text in the edge mxCell value. Leave value="" on all edge cells.
-  Instead, for each labelled arrow, add a SEPARATE text cell positioned ~5px to the side of the arrow's midpoint:
-  style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;"
-  The text cell is a vertex (vertex="1") with geometry width=120, height=20 (wide enough for multi-word labels like "Kick pass") placed beside — never on — the arrow line.
+ARROWS / MOVEMENT LINES — SMART STRAIGHT vs CURVED:
+- Examine each line in the original image carefully before choosing a style:
+  - STRAIGHT LINE: if the line in the image appears straight or nearly straight (less than a noticeable arc), use NO waypoints and NO curved style: edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
+  - CURVED LINE: only if the line in the original has a clear visible curve/arc, use curved=1 with 1–2 intermediate waypoints that follow the arc: edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
+  - DASHED (ball pass/kick): edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 4;strokeColor=#ffffff;strokeWidth=2.5;
+- All edges are floating (NO source or target attributes). Use sourcePoint and targetPoint in mxGeometry.
+- Start/end points must be ~18px away from shape edges — arrows must not touch circles or triangles.
 
-COORDINATES:
-- Map the image layout onto an 800×600 coordinate space
-- Place the background rectangle at x=0, y=0, width=800, height=600
-- PADDING: keep ALL shapes and arrow endpoints within the inner safe area: x between 60 and 740, y between 60 and 540. Nothing should be closer than 60px to any edge of the diagram.
+EDGE LABELS — NEVER ON THE LINE:
+- Leave value="" on every edge cell.
+- For each labelled arrow, create a SEPARATE text vertex placed 5px to the side of the arrow's midpoint:
+  style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;"
+  width=120, height=20. Offset perpendicular to the line direction, never overlapping it.
 
 EXAMPLE STRUCTURE:
-<mxGraphModel background="#4CAF50"><root>
+<mxGraphModel background="#2E7D32"><root>
 <mxCell id="0"/>
 <mxCell id="1" parent="0"/>
-<mxCell id="2" value="" style="fillColor=#4CAF50;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="800" height="600" as="geometry"/></mxCell>
-<mxCell id="3" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;fillColor=#CC0000;fontColor=#ffffff;strokeColor=#990000;" vertex="1" parent="1"><mxGeometry x="378" y="50" width="44" height="44" as="geometry"/></mxCell>
-<mxCell id="4" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;fillColor=#1565C0;fontColor=#ffffff;strokeColor=#0D47A1;" vertex="1" parent="1"><mxGeometry x="378" y="300" width="44" height="44" as="geometry"/></mxCell>
-<mxCell id="5" value="" style="triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#555555;" vertex="1" parent="1"><mxGeometry x="200" y="200" width="30" height="34" as="geometry"/></mxCell>
-<mxCell id="6" value="" style="edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="400" y="114" as="sourcePoint"/><mxPoint x="400" y="280" as="targetPoint"/><Array as="points"><mxPoint x="350" y="197"/></Array></mxGeometry></mxCell>
-<mxCell id="7" value="Solo" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="310" y="187" width="60" height="20" as="geometry"/></mxCell>
+<mxCell id="2" value="" style="fillColor=#2E7D32;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="600" height="600" as="geometry"/></mxCell>
+<mxCell id="3" value="2" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="277" y="80" width="46" height="46" as="geometry"/></mxCell>
+<mxCell id="4" value="" style="triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FF6D00;gradientColor=#FFAB40;gradientDirection=north;strokeColor=#E65100;shadow=1;" vertex="1" parent="1"><mxGeometry x="286" y="70" width="28" height="32" as="geometry"/></mxCell>
+<mxCell id="5" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="144" as="sourcePoint"/><mxPoint x="300" y="290" as="targetPoint"/></mxGeometry></mxCell>
+<mxCell id="6" value="Solo" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="308" y="212" width="120" height="20" as="geometry"/></mxCell>
 </root></mxGraphModel>`;
 
 serve(async (req) => {
