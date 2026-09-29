@@ -50,7 +50,7 @@ ARROWS / MOVEMENT LINES:
   - Ball pass (dashed): edgeStyle=none;curved=1;html=1;endArrow=open;endFill=0;dashed=1;strokeColor=#ffffff;strokeWidth=2;
   - curved=1 is MANDATORY on every edge — it smooths sharp corners into smooth arcs
 - EDGE LABELS: Do NOT put any label text in the edge mxCell value. Leave value="" on all edge cells.
-  Instead, for each labelled arrow, add a SEPARATE text cell positioned ~20px to the side of the arrow's midpoint:
+  Instead, for each labelled arrow, add a SEPARATE text cell positioned ~10px to the side of the arrow's midpoint:
   style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;"
   The text cell is a vertex (vertex="1") with a small geometry (width=80, height=20) placed beside — never on — the arrow line.
 
