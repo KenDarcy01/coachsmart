@@ -22,11 +22,14 @@ OUTPUT FORMAT:
 - Start your response with exactly: <mxGraphModel background="#2E7D32"
 - Include mxCell id="0" and id="1" parent="0" as the two root cells
 
-CANVAS SIZE — ALWAYS 600×600 SQUARE:
-- The diagram is always exactly 600×600. Set background="#2E7D32" on mxGraphModel.
-- First cell: background rectangle x=0, y=0, width=600, height=600, style="fillColor=#2E7D32;strokeColor=none;"
-- PADDING: all shapes and arrow endpoints must sit within x: 60–540, y: 60–540. Nothing closer than 60px to any edge.
-- Scale all positions from the original image proportionally into this 600×600 space.
+CANVAS SIZE — MATCH THE CONTENT:
+- Analyse the overall shape of the content in the image and choose the canvas that best fits:
+  - SQUARE drill (content roughly equal width and height): width=600, height=600
+  - PORTRAIT pitch (content taller than wide — e.g. full pitch with goals at top and bottom): width=500, height=700
+  - LANDSCAPE pitch (content wider than tall — e.g. half-pitch or sideline view): width=720, height=480
+- Set background="#2E7D32" on the mxGraphModel element and use the chosen width/height for the background rectangle.
+- PADDING: all shapes and arrow endpoints must stay at least 60px from every edge. Safe area is x: 60 to (width−60), y: 60 to (height−60).
+- Scale all positions from the original image proportionally to fill the chosen canvas.
 
 PLAYERS (circles):
 - Ellipse, width=46, height=46
