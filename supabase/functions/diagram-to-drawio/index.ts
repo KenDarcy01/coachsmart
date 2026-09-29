@@ -13,22 +13,55 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PROMPT = `You are an expert at converting handwritten or hand-drawn diagrams into draw.io (mxGraph) XML.
+const PROMPT = `You are an expert at converting handwritten or hand-drawn GAA (Gaelic Athletic Association) coaching diagrams into draw.io (mxGraph) XML.
 
-Analyse the image carefully and produce valid draw.io XML that faithfully recreates the diagram.
+Analyse the image carefully and produce valid draw.io XML using these EXACT visual rules:
 
-Rules:
-- Output ONLY the raw mxGraphModel XML — no markdown, no code fences, no explanation
-- Start your response with exactly: <mxGraphModel
-- Use vertex="1" cells for shapes/nodes and edge="1" cells for arrows/connections
-- Preserve approximate positions, sizes, labels, and shapes from the original
-- For GAA coaching diagrams: players are circles (ellipse style), cones are triangles (triangle style), arrows show movement/passes
-- Use sensible x/y coordinates based on the image layout (treat image as roughly 800x600)
-- Every edge must have source and target attributes pointing to valid cell ids
+OUTPUT FORMAT:
+- Output ONLY raw XML — no markdown fences, no explanation, nothing before or after the XML
+- Start your response with exactly: <mxGraphModel background="#4CAF50"
 - Include mxCell id="0" and id="1" parent="0" as the two root cells
 
-Example structure:
-<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="2" value="Player 1" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="40" height="40" as="geometry"/></mxCell></root></mxGraphModel>`;
+BACKGROUND:
+- Set background="#4CAF50" on the mxGraphModel element (grass green)
+- Add a large filled rectangle as the FIRST cell covering the full diagram area:
+  style="fillColor=#4CAF50;strokeColor=none;" vertex="1"
+
+PLAYERS (circles/blobs):
+- Render each player as an ellipse, width=44, height=44
+- Style base: ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;
+- TEAM COLOURS — this is critical: if two players share the same number or label, one belongs to each team. Alternate red vs blue to tell them apart.
+  - Home team / first team seen: fillColor=#CC0000;fontColor=#ffffff;strokeColor=#990000;
+  - Away team / opponent (same number as a home player): fillColor=#1565C0;fontColor=#ffffff;strokeColor=#0D47A1;
+  - If only one team visible, use red for all players.
+
+CONES (triangles):
+- Render each cone as a triangle, width=30, height=30
+- Style: triangle;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#555555;
+
+ARROWS / MOVEMENT LINES:
+- Use floating edges (NO source or target attributes on the mxCell)
+- Position each edge's start point ~20px away from the edge of the origin shape, and end point ~20px away from the edge of the destination shape — arrows must NOT touch or overlap any circle or triangle
+- Use an Array of mxPoint inside mxGeometry to define the path: <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="..." y="..."/></Array></mxGeometry>
+- The edge cell's mxGeometry must also include sourcePoint and targetPoint as child elements: <mxPoint x="..." y="..." as="sourcePoint"/> and <mxPoint x="..." y="..." as="targetPoint"/>
+- Arrow styles:
+  - Player run (solid): edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;
+  - Ball pass (dashed): edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;strokeColor=#ffffff;strokeWidth=2;
+  - If unsure, use the solid run style
+
+COORDINATES:
+- Map the image layout onto an 800×600 coordinate space
+- Place the background rectangle at x=0, y=0, width=800, height=600
+
+EXAMPLE STRUCTURE:
+<mxGraphModel background="#4CAF50"><root>
+<mxCell id="0"/>
+<mxCell id="1" parent="0"/>
+<mxCell id="2" value="" style="fillColor=#4CAF50;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="800" height="600" as="geometry"/></mxCell>
+<mxCell id="3" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;fillColor=#CC0000;fontColor=#ffffff;strokeColor=#990000;" vertex="1" parent="1"><mxGeometry x="378" y="50" width="44" height="44" as="geometry"/></mxCell>
+<mxCell id="4" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;fillColor=#1565C0;fontColor=#ffffff;strokeColor=#0D47A1;" vertex="1" parent="1"><mxGeometry x="378" y="300" width="44" height="44" as="geometry"/></mxCell>
+<mxCell id="5" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="400" y="114" as="sourcePoint"/><mxPoint x="400" y="280" as="targetPoint"/></mxGeometry></mxCell>
+</root></mxGraphModel>`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
