@@ -36,8 +36,9 @@ PLAYERS (circles/blobs):
   - If only one team visible, use red for all players.
 
 CONES (triangles):
-- Render each cone as a triangle, width=30, height=30
-- Style: triangle;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#555555;
+- Render each cone as a triangle, width=30, height=34
+- Style: triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#555555;
+- direction=north is MANDATORY — without it cones point sideways, not upward
 
 ARROWS / MOVEMENT LINES:
 - Use floating edges (NO source or target attributes on the mxCell)
@@ -60,7 +61,8 @@ EXAMPLE STRUCTURE:
 <mxCell id="2" value="" style="fillColor=#4CAF50;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="800" height="600" as="geometry"/></mxCell>
 <mxCell id="3" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;fillColor=#CC0000;fontColor=#ffffff;strokeColor=#990000;" vertex="1" parent="1"><mxGeometry x="378" y="50" width="44" height="44" as="geometry"/></mxCell>
 <mxCell id="4" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;fillColor=#1565C0;fontColor=#ffffff;strokeColor=#0D47A1;" vertex="1" parent="1"><mxGeometry x="378" y="300" width="44" height="44" as="geometry"/></mxCell>
-<mxCell id="5" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="400" y="114" as="sourcePoint"/><mxPoint x="400" y="280" as="targetPoint"/></mxGeometry></mxCell>
+<mxCell id="5" value="" style="triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#555555;" vertex="1" parent="1"><mxGeometry x="200" y="200" width="30" height="34" as="geometry"/></mxCell>
+<mxCell id="6" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="400" y="114" as="sourcePoint"/><mxPoint x="400" y="280" as="targetPoint"/></mxGeometry></mxCell>
 </root></mxGraphModel>`;
 
 serve(async (req) => {
