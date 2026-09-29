@@ -2098,6 +2098,39 @@ async function saveCoachNote(gameId) {
   }
 }
 
+// ── Refresh games (called on visibilitychange and after game save) ─────────────
+async function refreshGames() {
+  if (!_myClubId && !IS_WEBVIEW) return;
+  try {
+    const gamesQuery = sb.from('games').select(
+      'game_id,game_name,game_age,game_code,game_type,game_skill,' +
+      'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
+      'game_pdf,game_video,game_image,club_id'
+    );
+    if (_myClubId) {
+      gamesQuery.or(`club_id.is.null,club_id.eq.${_myClubId}`);
+    } else {
+      gamesQuery.is('club_id', null);
+    }
+    const { data, error } = await gamesQuery;
+    if (error) { console.warn('refreshGames:', error.message); return; }
+    allGames = data || [];
+
+    // Re-render whichever list screen is currently visible
+    const s = _currentScreen;
+    if (s === 'stageScreen')       renderStages();
+    else if (s === 'pathwayScreen') renderPathwayStages();
+    else if (s === 'stageDetailScreen') renderStageDetailContent();
+    else if (s === 'gamesScreen')   { renderFallbackFilters(); renderFallbackGameList(); }
+  } catch (e) {
+    console.warn('refreshGames error:', e);
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshGames();
+});
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 async function boot() {
   showLoading('Loading resources…');
