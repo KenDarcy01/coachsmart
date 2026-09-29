@@ -322,9 +322,9 @@
   }
 
   function openInDrawio() {
-    const xml = xmlOut.value;
-    const encoded = encodeURIComponent(xml);
-    window.open('https://app.diagrams.net/?url=data:text/xml,' + encoded, '_blank');
+    const inner = xmlOut.value;
+    const mxfile = `<mxfile host="diagram-converter" version="1.0"><diagram name="Diagram" id="diagram1">${inner}</diagram></mxfile>`;
+    window.open('https://app.diagrams.net/#xml=' + encodeURIComponent(mxfile), '_blank');
   }
 
   function downloadXml() {
