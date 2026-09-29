@@ -363,29 +363,31 @@ async function buildPdf(games: GameData[], club: ClubData, isMobile = false): Pr
 
     // Game image (between setup and how to play)
     if (gameImg) {
-      const ratio = gameImg.width / gameImg.height;
-      const ABS_MAX_H = 520;
+      const ratio    = gameImg.width / gameImg.height;
+      const ABS_MAX_H  = 400; // keeps image in proportion with surrounding text
+      const IMG_INDENT = 20;  // pull in from each side of the content column
+      const IMG_MAX_W  = CW - IMG_INDENT * 2;
 
-      curY += 10; // top padding
+      curY += 16; // top padding
 
       // If very little space remains, start a fresh page for a better layout
-      let availH = PH - curY - FOOTER_ZONE - 24;
+      let availH = PH - curY - FOOTER_ZONE - 28;
       if (availH < 180) {
         newPage(false);
-        availH = PH - curY - FOOTER_ZONE - 24;
+        availH = PH - curY - FOOTER_ZONE - 28;
       }
 
       // Scale to fit: width-first, then clamp height to available space
-      let imgW = CW;
+      let imgW = IMG_MAX_W;
       let imgH = imgW / ratio;
       const maxH = Math.min(ABS_MAX_H, availH);
       if (imgH > maxH) { imgH = maxH; imgW = imgH * ratio; }
-      // Guard: if aspect ratio somehow pushes width over CW after height clamp
-      if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
+      // Guard: aspect ratio edge case
+      if (imgW > IMG_MAX_W) { imgW = IMG_MAX_W; imgH = imgW / ratio; }
 
       const imgX = ML + (CW - imgW) / 2;
       currentPage.drawImage(gameImg, { x: imgX, y: PH - curY - imgH, width: imgW, height: imgH });
-      curY += imgH + 24;
+      curY += imgH + 28; // bottom padding
     }
 
     if (game.game_how_to_play?.trim()) {
