@@ -204,6 +204,7 @@
   <textarea id="xml-out" readonly></textarea>
   <div class="btn-row">
     <button class="btn" id="open-drawio-btn" onclick="openInDrawio()">Open in draw.io</button>
+    <button class="btn btn-secondary" id="download-btn" onclick="downloadXml()">Download .drawio</button>
   </div>
 </div>
 
@@ -324,6 +325,18 @@
     const xml = xmlOut.value;
     const encoded = encodeURIComponent(xml);
     window.open('https://app.diagrams.net/?url=data:text/xml,' + encoded, '_blank');
+  }
+
+  function downloadXml() {
+    const inner = xmlOut.value;
+    const mxfile = `<mxfile host="diagram-converter" version="1.0">\n  <diagram name="Diagram" id="diagram1">\n    ${inner}\n  </diagram>\n</mxfile>`;
+    const blob = new Blob([mxfile], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagram.drawio';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 </script>
 </body>
