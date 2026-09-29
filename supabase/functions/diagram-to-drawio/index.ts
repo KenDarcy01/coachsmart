@@ -122,21 +122,36 @@ serve(async (req) => {
     const claudeData = await claudeRes.json();
     const rawText: string = claudeData?.content?.[0]?.text ?? "";
 
-    // Extract mxGraphModel XML robustly
+    // Extract mxGraphModel XML — multiple fallback strategies
     let xml = rawText.trim();
-    if (xml.startsWith("```")) {
-      xml = xml.replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim();
-    }
-    const modelMatch = xml.match(/<mxGraphModel[\s\S]*<\/mxGraphModel>/);
-    if (modelMatch) {
-      xml = modelMatch[0];
-    } else if (xml.includes("<mxCell")) {
-      xml = `<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>${xml}</root></mxGraphModel>`;
+
+    // Strip XML declaration if present
+    xml = xml.replace(/^<\?xml[^?]*\?>\s*/i, "");
+
+    // Strip markdown code fences (``` or ~~~, with optional language tag)
+    xml = xml.replace(/^(`{3,}|~{3,})[a-z]*\n?/i, "").replace(/\n?(`{3,}|~{3,})$/i, "").trim();
+
+    // Strategy 1: find <mxGraphModel...>...</mxGraphModel>
+    const fullMatch = xml.match(/<mxGraphModel[\s\S]*?<\/mxGraphModel>/);
+    if (fullMatch) {
+      xml = fullMatch[0];
     } else {
-      return new Response(JSON.stringify({ error: "Could not extract mxGraphModel from response", raw: rawText }), {
-        status: 422,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
+      // Strategy 2: <mxGraphModel present but closing tag missing (truncation) — close it
+      const openMatch = xml.match(/<mxGraphModel[\s\S]*/);
+      if (openMatch) {
+        xml = openMatch[0];
+        if (!xml.includes("</root>")) xml += "</root>";
+        if (!xml.endsWith("</mxGraphModel>")) xml += "</mxGraphModel>";
+      } else if (xml.includes("<mxCell")) {
+        // Strategy 3: bare mxCell content — wrap it
+        xml = `<mxGraphModel background="#4CAF50"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${xml}</root></mxGraphModel>`;
+      } else {
+        // Nothing recognisable — return raw so the UI can show it
+        return new Response(JSON.stringify({ error: "Could not extract mxGraphModel from response", raw: rawText }), {
+          status: 422,
+          headers: { ...corsHeaders, "content-type": "application/json" },
+        });
+      }
     }
 
     return new Response(JSON.stringify({ xml }), {
