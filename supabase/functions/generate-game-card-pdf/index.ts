@@ -364,12 +364,26 @@ async function buildPdf(games: GameData[], club: ClubData, isMobile = false): Pr
     // Game image (between setup and how to play)
     if (gameImg) {
       const ratio = gameImg.width / gameImg.height;
+      const ABS_MAX_H = 520;
+
+      curY += 10; // top padding
+
+      // If very little space remains, start a fresh page for a better layout
+      let availH = PH - curY - FOOTER_ZONE - 24;
+      if (availH < 180) {
+        newPage(false);
+        availH = PH - curY - FOOTER_ZONE - 24;
+      }
+
+      // Scale to fit: width-first, then clamp height to available space
       let imgW = CW;
       let imgH = imgW / ratio;
-      if (imgH > 380) { imgH = 220; imgW = imgH * ratio; }
+      const maxH = Math.min(ABS_MAX_H, availH);
+      if (imgH > maxH) { imgH = maxH; imgW = imgH * ratio; }
+      // Guard: if aspect ratio somehow pushes width over CW after height clamp
+      if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
+
       const imgX = ML + (CW - imgW) / 2;
-      curY += 10;
-      ensureSpace(imgH + 28);
       currentPage.drawImage(gameImg, { x: imgX, y: PH - curY - imgH, width: imgW, height: imgH });
       curY += imgH + 24;
     }
