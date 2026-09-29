@@ -286,9 +286,9 @@
 
       const data = await res.json();
       if (!res.ok || data.error) {
-        if (res.status === 422 && data.raw) {
-          // Show the raw Claude response so we can see what it returned
-          xmlOut.value = data.raw;
+        if (res.status === 422) {
+          // Show raw Claude response for debugging (may be empty)
+          xmlOut.value = data.raw != null ? (data.raw || '(Claude returned empty text)') : '(no raw field in response)';
           resultCard.style.display = 'block';
           openBtn.style.display = 'none';
           document.getElementById('download-btn').style.display = 'none';

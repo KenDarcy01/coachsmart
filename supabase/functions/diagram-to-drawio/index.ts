@@ -120,7 +120,14 @@ serve(async (req) => {
     }
 
     const claudeData = await claudeRes.json();
-    const rawText: string = claudeData?.content?.[0]?.text ?? "";
+    console.log("Claude stop_reason:", claudeData?.stop_reason);
+    console.log("Claude content blocks:", JSON.stringify(claudeData?.content?.map((c: any) => ({ type: c.type, len: c.text?.length }))));
+
+    // Extract text from the first text-type content block
+    const rawText: string = (claudeData?.content ?? [])
+      .filter((c: any) => c.type === "text")
+      .map((c: any) => c.text ?? "")
+      .join("") ?? "";
 
     // Extract mxGraphModel XML — multiple fallback strategies
     let xml = rawText.trim();
