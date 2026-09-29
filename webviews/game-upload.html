@@ -412,12 +412,12 @@
     <div>
       <div class="field-label">Sketch / Photo <span title="optional">(optional)</span></div>
       <div class="media-tabs">
-        <button class="media-tab active" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
-        <button class="media-tab" onclick="switchMediaTab('photo', this)">📐 Diagram</button>
+        <button class="media-tab" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
+        <button class="media-tab active" onclick="switchMediaTab('photo', this)">📐 Diagram</button>
       </div>
 
       <!-- Sketch panel -->
-      <div id="panelSketch" class="media-panel active">
+      <div id="panelSketch" class="media-panel">
         <div class="sketch-wrap">
           <canvas id="sketchCanvas"></canvas>
           <div class="sketch-toolbar">
@@ -473,7 +473,7 @@
       </div>
 
       <!-- Diagram / Convert panel -->
-      <div id="panelPhoto" class="media-panel">
+      <div id="panelPhoto" class="media-panel active">
         <div class="image-zone" id="imageZone" onclick="triggerFileInput()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -487,9 +487,8 @@
 
         <!-- Convert button — shown after a photo is selected -->
         <div id="convertSection" style="display:none;margin-top:10px;">
-          <button class="btn-secondary" id="convertDiagramBtn" onclick="convertDiagram()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            Convert to draw.io
+          <button class="btn-primary" id="convertDiagramBtn" onclick="convertDiagram()">
+            Convert sketch to image
           </button>
           <div id="convertStatus" style="font-size:12px;color:var(--text-secondary);margin-top:6px;"></div>
         </div>
@@ -728,7 +727,7 @@
 
   // ── Canvas sketchpad ───────────────────────────────────────────────────────
 
-  let _activeMediaTab  = 'sketch';
+  let _activeMediaTab  = 'photo';
   let _sketchTool      = 'draw';
   let _isDrawing       = false;
   let _isArrowDragging = false;
@@ -1271,13 +1270,35 @@
 
   const _CONVERT_MSGS = [
     'Scanning your diagram…',
-    'Identifying shapes…',
+    'Detecting shapes…',
+    'Identifying players…',
+    'Locating cones…',
+    'Reading player positions…',
+    'Tracing your arrows…',
     'Mapping the layout…',
+    'Measuring spacing…',
+    'Analysing movement paths…',
+    'Checking line angles…',
+    'Detecting formation…',
+    'Placing elements…',
+    'Scaling the pitch…',
+    'Aligning shapes…',
+    'Connecting movement lines…',
+    'Calibrating positions…',
+    'Mapping player routes…',
+    'Structuring formation…',
+    'Smoothing curved lines…',
+    'Adjusting spacing…',
+    'Rendering pitch outline…',
+    'Verifying shape placement…',
+    'Refining positions…',
+    'Checking arrow directions…',
     'Placing players and cones…',
     'Drawing movement lines…',
-    'Calculating positions…',
-    'Building diagram…',
-    'Finalising…',
+    'Processing diagram…',
+    'Optimising layout…',
+    'Adding final details…',
+    'Almost ready…',
   ];
   let _statusInterval = null;
   let _statusMsgIdx   = 0;
@@ -1286,8 +1307,10 @@
     _statusMsgIdx = 0;
     el.textContent = _CONVERT_MSGS[0];
     _statusInterval = setInterval(() => {
-      _statusMsgIdx = (_statusMsgIdx + 1) % _CONVERT_MSGS.length;
-      el.textContent = _CONVERT_MSGS[_statusMsgIdx];
+      if (_statusMsgIdx < _CONVERT_MSGS.length - 1) {
+        _statusMsgIdx++;
+        el.textContent = _CONVERT_MSGS[_statusMsgIdx];
+      }
     }, 2000);
   }
 
@@ -1334,7 +1357,7 @@
       status.textContent = 'Error: ' + (err.message || 'please try again');
       status.style.color = 'var(--red)';
       btn.disabled = false;
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Convert to draw.io`;
+      btn.textContent = 'Convert sketch to image';
     }
   }
 
