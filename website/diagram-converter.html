@@ -286,8 +286,16 @@
 
       const data = await res.json();
       if (!res.ok || data.error) {
+        if (res.status === 422 && data.raw) {
+          // Show the raw Claude response so we can see what it returned
+          xmlOut.value = data.raw;
+          resultCard.style.display = 'block';
+          openBtn.style.display = 'none';
+          document.getElementById('download-btn').style.display = 'none';
+        }
         throw new Error(data.error || `HTTP ${res.status}`);
       }
+      document.getElementById('download-btn').style.display = '';
 
       xmlOut.value = data.xml;
       resultCard.style.display = 'block';
