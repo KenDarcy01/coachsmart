@@ -43,12 +43,16 @@ CONES (triangles):
 ARROWS / MOVEMENT LINES:
 - Use floating edges (NO source or target attributes on the mxCell)
 - Position each edge's start point ~20px away from the edge of the origin shape, and end point ~20px away from the edge of the destination shape — arrows must NOT touch or overlap any circle or triangle
-- Use an Array of mxPoint inside mxGeometry to define the path: <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="..." y="..."/></Array></mxGeometry>
-- The edge cell's mxGeometry must also include sourcePoint and targetPoint as child elements: <mxPoint x="..." y="..." as="sourcePoint"/> and <mxPoint x="..." y="..." as="targetPoint"/>
+- For curved/arc paths, include intermediate waypoints in an Array as="points" — these become bezier control points with curved=1
+- The edge cell's mxGeometry must include sourcePoint and targetPoint as child elements
 - Arrow styles:
-  - Player run (solid): edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;
-  - Ball pass (dashed): edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;strokeColor=#ffffff;strokeWidth=2;
-  - If unsure, use the solid run style
+  - Player run (solid): edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;
+  - Ball pass (dashed): edgeStyle=none;curved=1;html=1;endArrow=open;endFill=0;dashed=1;strokeColor=#ffffff;strokeWidth=2;
+  - curved=1 is MANDATORY on every edge — it smooths sharp corners into smooth arcs
+- EDGE LABELS: Do NOT put any label text in the edge mxCell value. Leave value="" on all edge cells.
+  Instead, for each labelled arrow, add a SEPARATE text cell positioned ~20px to the side of the arrow's midpoint:
+  style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;"
+  The text cell is a vertex (vertex="1") with a small geometry (width=80, height=20) placed beside — never on — the arrow line.
 
 COORDINATES:
 - Map the image layout onto an 800×600 coordinate space
@@ -62,7 +66,8 @@ EXAMPLE STRUCTURE:
 <mxCell id="3" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;fillColor=#CC0000;fontColor=#ffffff;strokeColor=#990000;" vertex="1" parent="1"><mxGeometry x="378" y="50" width="44" height="44" as="geometry"/></mxCell>
 <mxCell id="4" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=14;fontStyle=1;fillColor=#1565C0;fontColor=#ffffff;strokeColor=#0D47A1;" vertex="1" parent="1"><mxGeometry x="378" y="300" width="44" height="44" as="geometry"/></mxCell>
 <mxCell id="5" value="" style="triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#555555;" vertex="1" parent="1"><mxGeometry x="200" y="200" width="30" height="34" as="geometry"/></mxCell>
-<mxCell id="6" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="400" y="114" as="sourcePoint"/><mxPoint x="400" y="280" as="targetPoint"/></mxGeometry></mxCell>
+<mxCell id="6" value="" style="edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="400" y="114" as="sourcePoint"/><mxPoint x="400" y="280" as="targetPoint"/><Array as="points"><mxPoint x="350" y="197"/></Array></mxGeometry></mxCell>
+<mxCell id="7" value="Solo" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="310" y="187" width="60" height="20" as="geometry"/></mxCell>
 </root></mxGraphModel>`;
 
 serve(async (req) => {
