@@ -413,7 +413,7 @@
       <div class="field-label">Sketch / Photo <span title="optional">(optional)</span></div>
       <div class="media-tabs">
         <button class="media-tab active" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
-        <button class="media-tab" onclick="switchMediaTab('photo', this)">📷 Photo</button>
+        <button class="media-tab" onclick="switchMediaTab('photo', this)">📐 Diagram</button>
       </div>
 
       <!-- Sketch panel -->
@@ -472,7 +472,7 @@
           onblur="_commitText()"/>
       </div>
 
-      <!-- Photo panel -->
+      <!-- Diagram / Convert panel -->
       <div id="panelPhoto" class="media-panel">
         <div class="image-zone" id="imageZone" onclick="triggerFileInput()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -480,10 +480,30 @@
             <circle cx="8.5" cy="8.5" r="1.5"/>
             <path d="M21 15l-5-5L5 21"/>
           </svg>
-          <span class="zone-label">Tap to add a sketch or photo</span>
+          <span class="zone-label">Tap to upload your hand-drawn diagram</span>
           <span class="zone-sub">Whiteboard, paper — anything works</span>
         </div>
         <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)"/>
+
+        <!-- Convert button — shown after a photo is selected -->
+        <div id="convertSection" style="display:none;margin-top:10px;">
+          <button class="btn-secondary" id="convertDiagramBtn" onclick="convertDiagram()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            Convert to draw.io
+          </button>
+          <div id="convertStatus" style="font-size:12px;color:var(--text-secondary);margin-top:6px;"></div>
+        </div>
+
+        <!-- draw.io result — shown after successful conversion -->
+        <div id="diagramResultSection" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">draw.io XML — ready to use</div>
+          <textarea id="diagramXmlOut" readonly style="width:100%;font-family:monospace;font-size:11px;line-height:1.4;background:var(--surface2,#f4f4f4);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);resize:none;height:80px;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            <button class="btn-secondary" style="font-size:13px;padding:7px 12px;" onclick="copyDiagramXml()">Copy XML</button>
+            <button class="btn-secondary" style="font-size:13px;padding:7px 12px;" onclick="downloadDiagramXml()">Download .drawio</button>
+            <button class="btn-secondary" style="font-size:13px;padding:7px 12px;" onclick="openDiagramInDrawio()">Open in draw.io</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1200,6 +1220,10 @@
       _imageBase64   = base64;
       _imageMimeType = mimeType;
       showImagePreview(URL.createObjectURL(file));
+      // Show convert section and reset any previous result
+      document.getElementById('convertSection').style.display = '';
+      document.getElementById('diagramResultSection').style.display = 'none';
+      document.getElementById('convertStatus').textContent = '';
     });
   }
 
@@ -1245,9 +1269,71 @@
         <circle cx="8.5" cy="8.5" r="1.5"/>
         <path d="M21 15l-5-5L5 21"/>
       </svg>
-      <span class="zone-label">Tap to add a sketch or photo</span>
+      <span class="zone-label">Tap to upload your hand-drawn diagram</span>
       <span class="zone-sub">Whiteboard, paper — anything works</span>`;
     document.getElementById('fileInput').value = '';
+    document.getElementById('convertSection').style.display = 'none';
+    document.getElementById('diagramResultSection').style.display = 'none';
+  }
+
+  // ── Diagram converter ───────────────────────────────────────────────────────
+
+  const DIAGRAM_FN_URL = SUPABASE_URL + '/functions/v1/diagram-to-drawio';
+  let _diagramXml = '';
+
+  async function convertDiagram() {
+    if (!_imageBase64) return;
+    const btn    = document.getElementById('convertDiagramBtn');
+    const status = document.getElementById('convertStatus');
+    btn.disabled = true;
+    btn.textContent = 'Converting…';
+    status.textContent = 'Sending to Claude…';
+    document.getElementById('diagramResultSection').style.display = 'none';
+
+    try {
+      const res = await fetch(DIAGRAM_FN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+          'apikey':        SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ image_base64: _imageBase64, media_type: _imageMimeType || 'image/jpeg' }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Conversion failed');
+
+      _diagramXml = data.xml;
+      document.getElementById('diagramXmlOut').value = _diagramXml;
+      document.getElementById('diagramResultSection').style.display = '';
+      status.textContent = 'Converted ✓';
+    } catch (err) {
+      status.textContent = 'Error: ' + (err.message || 'please try again');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Convert to draw.io`;
+    }
+  }
+
+  function copyDiagramXml() {
+    if (!_diagramXml) return;
+    navigator.clipboard.writeText(_diagramXml).then(() => showToast('Copied to clipboard', 'success'));
+  }
+
+  function downloadDiagramXml() {
+    if (!_diagramXml) return;
+    const mxfile = `<mxfile host="coachsmart" version="1.0">\n  <diagram name="Diagram" id="diagram1">\n    ${_diagramXml}\n  </diagram>\n</mxfile>`;
+    const blob = new Blob([mxfile], { type: 'application/xml' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'diagram.drawio'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function openDiagramInDrawio() {
+    if (!_diagramXml) return;
+    const mxfile = `<mxfile host="coachsmart" version="1.0"><diagram name="Diagram" id="diagram1">${_diagramXml}</diagram></mxfile>`;
+    window.open('https://app.diagrams.net/#xml=' + encodeURIComponent(mxfile), '_blank');
   }
 
   // ── Edge function caller ───────────────────────────────────────────────────
