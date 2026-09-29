@@ -155,7 +155,7 @@
     .image-zone svg { width: 28px; height: 28px; opacity: 0.5; }
     .image-zone .zone-label { font-size: 14px; }
     .image-zone .zone-sub   { font-size: 12px; opacity: 0.6; }
-    .image-preview { width: 100%; height: 180px; object-fit: cover; border-radius: calc(var(--radius) - 2px); }
+    .image-preview { width: 100%; height: auto; max-height: 350px; object-fit: contain; border-radius: calc(var(--radius) - 2px); display: block; }
     #fileInput { display: none; }
     .remove-img {
       position: absolute; top: 8px; right: 8px;
@@ -494,16 +494,6 @@
           <div id="convertStatus" style="font-size:12px;color:var(--text-secondary);margin-top:6px;"></div>
         </div>
 
-        <!-- draw.io result — shown after successful conversion -->
-        <div id="diagramResultSection" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
-          <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">draw.io XML — ready to use</div>
-          <textarea id="diagramXmlOut" readonly style="width:100%;font-family:monospace;font-size:11px;line-height:1.4;background:var(--surface2,#f4f4f4);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);resize:none;height:80px;"></textarea>
-          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-            <button class="btn-secondary" style="font-size:13px;padding:7px 12px;" onclick="copyDiagramXml()">Copy XML</button>
-            <button class="btn-secondary" style="font-size:13px;padding:7px 12px;" onclick="downloadDiagramXml()">Download .drawio</button>
-            <button class="btn-secondary" style="font-size:13px;padding:7px 12px;" onclick="openDiagramInDrawio()">Open in draw.io</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1220,10 +1210,10 @@
       _imageBase64   = base64;
       _imageMimeType = mimeType;
       showImagePreview(URL.createObjectURL(file));
-      // Show convert section and reset any previous result
+      // Show convert section
       document.getElementById('convertSection').style.display = '';
-      document.getElementById('diagramResultSection').style.display = 'none';
       document.getElementById('convertStatus').textContent = '';
+      document.getElementById('convertDiagramBtn').style.display = '';
     });
   }
 
@@ -1273,13 +1263,37 @@
       <span class="zone-sub">Whiteboard, paper — anything works</span>`;
     document.getElementById('fileInput').value = '';
     document.getElementById('convertSection').style.display = 'none';
-    document.getElementById('diagramResultSection').style.display = 'none';
   }
 
   // ── Diagram converter ───────────────────────────────────────────────────────
 
   const DIAGRAM_FN_URL = SUPABASE_URL + '/functions/v1/diagram-to-drawio';
-  let _diagramXml = '';
+
+  const _CONVERT_MSGS = [
+    'Scanning your diagram…',
+    'Identifying shapes…',
+    'Mapping the layout…',
+    'Placing players and cones…',
+    'Drawing movement lines…',
+    'Calculating positions…',
+    'Building diagram…',
+    'Finalising…',
+  ];
+  let _statusInterval = null;
+  let _statusMsgIdx   = 0;
+
+  function _startRotatingStatus(el) {
+    _statusMsgIdx = 0;
+    el.textContent = _CONVERT_MSGS[0];
+    _statusInterval = setInterval(() => {
+      _statusMsgIdx = (_statusMsgIdx + 1) % _CONVERT_MSGS.length;
+      el.textContent = _CONVERT_MSGS[_statusMsgIdx];
+    }, 2000);
+  }
+
+  function _stopRotatingStatus() {
+    if (_statusInterval) { clearInterval(_statusInterval); _statusInterval = null; }
+  }
 
   async function convertDiagram() {
     if (!_imageBase64) return;
@@ -1287,8 +1301,7 @@
     const status = document.getElementById('convertStatus');
     btn.disabled = true;
     btn.textContent = 'Converting…';
-    status.textContent = 'Sending to Claude…';
-    document.getElementById('diagramResultSection').style.display = 'none';
+    _startRotatingStatus(status);
 
     try {
       const res = await fetch(DIAGRAM_FN_URL, {
@@ -1303,37 +1316,218 @@
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Conversion failed');
 
-      _diagramXml = data.xml;
-      document.getElementById('diagramXmlOut').value = _diagramXml;
-      document.getElementById('diagramResultSection').style.display = '';
-      status.textContent = 'Converted ✓';
+      _stopRotatingStatus();
+      status.textContent = 'Rendering…';
+
+      const png = await renderMxGraphToPng(data.xml);
+      // Replace the raw photo with the rendered diagram PNG
+      _imageBase64   = png.base64;
+      _imageMimeType = 'image/png';
+      showImagePreview(png.dataUrl);
+
+      // Hide convert button — already done
+      btn.style.display = 'none';
+      status.textContent = 'Diagram ready ✓';
+      status.style.color = 'var(--green)';
     } catch (err) {
+      _stopRotatingStatus();
       status.textContent = 'Error: ' + (err.message || 'please try again');
-    } finally {
+      status.style.color = 'var(--red)';
       btn.disabled = false;
       btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Convert to draw.io`;
     }
   }
 
-  function copyDiagramXml() {
-    if (!_diagramXml) return;
-    navigator.clipboard.writeText(_diagramXml).then(() => showToast('Copied to clipboard', 'success'));
+  // ── mxGraph XML → Canvas PNG renderer ─────────────────────────────────────
+
+  function renderMxGraphToPng(xmlString) {
+    return new Promise((resolve, reject) => {
+      try {
+        const parser = new DOMParser();
+        const doc    = parser.parseFromString(xmlString, 'application/xml');
+        const cells  = Array.from(doc.querySelectorAll('mxCell'));
+
+        // Canvas dimensions from the background rectangle
+        let cW = 600, cH = 600;
+        for (const cell of cells) {
+          const style = cell.getAttribute('style') || '';
+          if (cell.getAttribute('vertex') === '1' && style.includes('fillColor=#2E7D32')) {
+            const geo = cell.querySelector('mxGeometry');
+            if (geo) {
+              cW = parseFloat(geo.getAttribute('width'))  || 600;
+              cH = parseFloat(geo.getAttribute('height')) || 600;
+            }
+            break;
+          }
+        }
+
+        const scale  = window.devicePixelRatio || 2;
+        const canvas = document.createElement('canvas');
+        canvas.width  = cW * scale;
+        canvas.height = cH * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+
+        // Green pitch background
+        ctx.fillStyle = '#2E7D32';
+        ctx.fillRect(0, 0, cW, cH);
+
+        // Subtle halfway line
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath(); ctx.moveTo(0, cH / 2); ctx.lineTo(cW, cH / 2); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Edges first (behind shapes)
+        for (const cell of cells) {
+          if (cell.getAttribute('edge') === '1') _renderEdge(ctx, cell);
+        }
+
+        // Shapes on top
+        for (const cell of cells) {
+          if (cell.getAttribute('vertex') !== '1') continue;
+          const style = cell.getAttribute('style') || '';
+          const geo   = cell.querySelector('mxGeometry');
+          if (!geo || style.includes('fillColor=#2E7D32')) continue;
+
+          const x = parseFloat(geo.getAttribute('x') || '0');
+          const y = parseFloat(geo.getAttribute('y') || '0');
+          const w = parseFloat(geo.getAttribute('width')  || '0');
+          const h = parseFloat(geo.getAttribute('height') || '0');
+          const val = cell.getAttribute('value') || '';
+
+          if (style.includes('ellipse')) {
+            const cx = x + w/2, cy = y + h/2, rx = w/2, ry = h/2;
+            const isBlue = style.includes('1565C0') || style.includes('42A5F5') || style.includes('0D47A1');
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 7;
+            const grad = ctx.createRadialGradient(cx - rx*0.25, cy - ry*0.25, rx*0.05, cx, cy, rx);
+            if (isBlue) {
+              grad.addColorStop(0, '#42A5F5'); grad.addColorStop(1, '#1565C0');
+            } else {
+              grad.addColorStop(0, '#EF5350'); grad.addColorStop(1, '#C62828');
+            }
+            ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            ctx.fillStyle = grad; ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = isBlue ? '#0D47A1' : '#B71C1C'; ctx.lineWidth = 2; ctx.stroke();
+            if (val) {
+              ctx.fillStyle = '#fff';
+              ctx.font = `bold ${Math.max(10, Math.round(w * 0.36))}px -apple-system,sans-serif`;
+              ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+              ctx.fillText(val, cx, cy);
+            }
+            ctx.restore();
+
+          } else if (style.includes('triangle')) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 5;
+            const grad = ctx.createLinearGradient(x, y + h, x, y);
+            grad.addColorStop(0, '#FF6D00'); grad.addColorStop(1, '#FFAB40');
+            ctx.beginPath();
+            ctx.moveTo(x + w/2, y);     // apex
+            ctx.lineTo(x + w,   y + h); // bottom-right
+            ctx.lineTo(x,       y + h); // bottom-left
+            ctx.closePath();
+            ctx.fillStyle = grad; ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#E65100'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.restore();
+
+          } else if (style.includes('text;')) {
+            const fontSize = parseInt(style.match(/fontSize=(\d+)/)?.[1] || '12');
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${fontSize}px -apple-system,sans-serif`;
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText(val, x, y + h / 2);
+            ctx.restore();
+          }
+        }
+
+        canvas.toBlob(blob => {
+          const reader = new FileReader();
+          reader.onload = e => {
+            const dataUrl = e.target.result;
+            resolve({ dataUrl, base64: dataUrl.split(',')[1] });
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        }, 'image/png');
+
+      } catch (err) { reject(err); }
+    });
   }
 
-  function downloadDiagramXml() {
-    if (!_diagramXml) return;
-    const mxfile = `<mxfile host="coachsmart" version="1.0">\n  <diagram name="Diagram" id="diagram1">\n    ${_diagramXml}\n  </diagram>\n</mxfile>`;
-    const blob = new Blob([mxfile], { type: 'application/xml' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = 'diagram.drawio'; a.click();
-    URL.revokeObjectURL(url);
-  }
+  function _renderEdge(ctx, cell) {
+    const geo = cell.querySelector('mxGeometry');
+    if (!geo) return;
+    const srcPt = geo.querySelector('mxPoint[as="sourcePoint"]');
+    const tgtPt = geo.querySelector('mxPoint[as="targetPoint"]');
+    if (!srcPt || !tgtPt) return;
 
-  function openDiagramInDrawio() {
-    if (!_diagramXml) return;
-    const mxfile = `<mxfile host="coachsmart" version="1.0"><diagram name="Diagram" id="diagram1">${_diagramXml}</diagram></mxfile>`;
-    window.open('https://app.diagrams.net/#xml=' + encodeURIComponent(mxfile), '_blank');
+    const x1 = parseFloat(srcPt.getAttribute('x') || '0');
+    const y1 = parseFloat(srcPt.getAttribute('y') || '0');
+    const x2 = parseFloat(tgtPt.getAttribute('x') || '0');
+    const y2 = parseFloat(tgtPt.getAttribute('y') || '0');
+    const style    = cell.getAttribute('style') || '';
+    const isDashed = style.includes('dashed=1');
+    const isCurved = style.includes('curved=1');
+
+    // Waypoints
+    const wptArr   = geo.querySelector('Array[as="points"]');
+    const waypoints = wptArr
+      ? Array.from(wptArr.querySelectorAll('mxPoint')).map(p => ({
+          x: parseFloat(p.getAttribute('x') || '0'),
+          y: parseFloat(p.getAttribute('y') || '0'),
+        }))
+      : [];
+
+    ctx.save();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth   = 2.5;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+    ctx.setLineDash(isDashed ? [8, 4] : []);
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+
+    if (isCurved && waypoints.length > 0) {
+      if (waypoints.length === 1) {
+        ctx.quadraticCurveTo(waypoints[0].x, waypoints[0].y, x2, y2);
+      } else {
+        ctx.bezierCurveTo(waypoints[0].x, waypoints[0].y, waypoints[waypoints.length-1].x, waypoints[waypoints.length-1].y, x2, y2);
+      }
+    } else {
+      for (const wp of waypoints) ctx.lineTo(wp.x, wp.y);
+      ctx.lineTo(x2, y2);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrowhead
+    const fromX = waypoints.length > 0 ? waypoints[waypoints.length-1].x : x1;
+    const fromY = waypoints.length > 0 ? waypoints[waypoints.length-1].y : y1;
+    const angle  = Math.atan2(y2 - fromY, x2 - fromX);
+    const hLen   = 13;
+    if (!isDashed) {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - hLen * Math.cos(angle - Math.PI/7), y2 - hLen * Math.sin(angle - Math.PI/7));
+      ctx.lineTo(x2 - hLen * Math.cos(angle + Math.PI/7), y2 - hLen * Math.sin(angle + Math.PI/7));
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x2 - hLen * Math.cos(angle - Math.PI/7), y2 - hLen * Math.sin(angle - Math.PI/7));
+      ctx.lineTo(x2, y2);
+      ctx.lineTo(x2 - hLen * Math.cos(angle + Math.PI/7), y2 - hLen * Math.sin(angle + Math.PI/7));
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // ── Edge function caller ───────────────────────────────────────────────────
