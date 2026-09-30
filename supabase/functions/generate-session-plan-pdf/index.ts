@@ -177,7 +177,6 @@ function buildPdfTitle(event: EventData): string {
   if (event.team_name) parts.push(event.team_name);
   const typeCode = [event.event_code, event.event_type].filter(Boolean).join(" ");
   if (typeCode) parts.push(typeCode);
-  if (event.event_date) parts.push(formatDate(event.event_date));
   return parts.join(" - ") || "Session Plan";
 }
 
@@ -266,7 +265,7 @@ async function buildSessionPlanPdf(
   const THIRD_STRIPE  = thirdRgb ? 3 : 0;
   const STRIPE_H      = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
 
-  const META_ROW_H    = 26;
+  const META_ROW_H    = plan.weather?.summary ? 44 : 26;
   const FOOTER_RULE_Y = MB + 14;
   const FOOTER_TEXT_Y = MB;
   const FOOTER_ZONE   = MB + 30;
@@ -367,19 +366,22 @@ async function buildSessionPlanPdf(
   }
 
   function drawMetaRow(page: any, topY: number) {
-    // Light background bar
     page.drawRectangle({ x: 0, y: PH - topY - META_ROW_H, width: PW, height: META_ROW_H, color: lightBg });
 
     const parts: string[] = [];
     if (event.squad_name) parts.push(event.squad_name + (event.squad_grade ? ` · ${event.squad_grade}` : ""));
-    if (event.event_date)  parts.push(formatDate(event.event_date));
     if (plan.total_duration_mins) parts.push(`${plan.total_duration_mins} mins`);
     if (plan.player_count) parts.push(`${plan.player_count} players`);
     if (plan.coach_count)  parts.push(`${plan.coach_count} coaches`);
 
-    const metaStr = parts.join("   |   ");
-    const textY   = PH - topY - META_ROW_H / 2 - SMALL_FONT_S / 2;
-    page.drawText(metaStr, { x: ML, y: textY, size: SMALL_FONT_S, font: notoReg, color: mutedText });
+    const line1Y = PH - topY - (plan.weather?.summary ? 14 : META_ROW_H / 2 - SMALL_FONT_S / 2);
+    page.drawText(parts.join("   |   "), { x: ML, y: line1Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
+
+    if (plan.weather?.summary) {
+      const weatherStr = plan.weather.summary;
+      const line2Y = line1Y - SMALL_FONT_S - 4;
+      page.drawText(weatherStr, { x: ML, y: line2Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
+    }
   }
 
   function newPage(isFirst: boolean) {

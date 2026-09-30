@@ -199,22 +199,22 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Plan screen ──────────────────────────────────────────────────────── */
-    .plan-content { padding-bottom: 80px; }
+    .plan-content { padding-bottom: 90px; }
 
     /* Weather */
     .weather-banner {
       display: flex; align-items: flex-start; gap: 10px;
-      background: var(--surface-2);
-      padding: 12px 16px;
+      padding: 8px 16px 12px;
     }
     .weather-icon  { font-size: 22px; flex-shrink: 0; line-height: 1; }
     .weather-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 3px; }
     .weather-text  { font-size: 13px; color: var(--text); line-height: 1.45; }
 
-    /* Stat cards */
+    /* Stats + weather unified section */
+    .stats-section { background: var(--surface-2); margin-top: 0; }
     .stat-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-      padding: 14px 16px 4px;
+      padding: 12px 16px 8px;
     }
     .stat-card {
       background: var(--surface); border: 1px solid var(--border);
@@ -240,8 +240,16 @@
       font-size: 12px; font-weight: 500; color: var(--muted);
     }
 
-    /* Back to setup chip */
-    .setup-chip-row { padding: 10px 16px 14px; }
+    /* Back to setup chip + location row */
+    .setup-chip-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px 8px;
+    }
+    .location-chip {
+      font-size: 13px; font-weight: 500; color: var(--muted);
+      display: flex; align-items: center; gap: 4px;
+      max-width: 55%; text-align: right; line-height: 1.3;
+    }
     .setup-chip {
       display: inline-flex; align-items: center; gap: 5px;
       background: var(--surface); border: 1.5px solid var(--border);
@@ -309,12 +317,40 @@
       font-size: 13px; color: var(--muted); line-height: 1.45;
     }
     .variation-row strong { font-weight: 600; color: var(--muted); flex-shrink: 0; }
-    .player-note {
-      display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; padding: 7px 10px;
-      background: rgba(251,191,36,0.07); border-radius: 8px; border-left: 2px solid #f59e0b;
-      font-size: 12px; color: #fcd34d; line-height: 1.4;
-    }
     .drill-gap { height: 10px; }
+
+    /* Inline editable fields */
+    [data-path] {
+      outline: none; border-radius: 4px;
+      transition: background 0.15s;
+    }
+    [data-path]:focus {
+      background: rgba(135,194,50,0.08);
+      box-shadow: 0 0 0 1.5px rgba(135,194,50,0.3);
+    }
+
+    /* Feedback bar */
+    .feedback-bar {
+      margin: 20px 16px 0;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+    }
+    .feedback-hdr {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px;
+    }
+    .feedback-input {
+      width: 100%; box-sizing: border-box;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px;
+      color: var(--text); font-family: inherit; font-size: 13px;
+      line-height: 1.5; resize: vertical; min-height: 68px;
+    }
+    .feedback-input::placeholder { color: var(--muted); }
+    .feedback-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
+    .feedback-actions {
+      display: flex; gap: 8px; margin-top: 10px;
+    }
 
     /* ── Action bar ───────────────────────────────────────────────────────── */
     .action-bar {
@@ -491,6 +527,7 @@
   let _eventMeta = null;
   let _squadName = null;
   let _currentPlanId = null;
+  let _currentPlan   = null;
 
   const HEADERS = {
     'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
@@ -705,7 +742,7 @@
   }
 
   // ── Generate ────────────────────────────────────────────────────────────────
-  async function generatePlan() {
+  async function generatePlan(feedback = '') {
     // Collect ordered, checked game_ids from the DOM
     const items = [...$('favList').querySelectorAll('.fav-item')];
     const game_ids = items
@@ -718,10 +755,9 @@
     $('actionBar').style.display = 'none';
 
     try {
-      const res = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'generate', event_id: EVENT_ID, user_id: USER_ID, duration_mins: _dur, game_ids }),
-      });
+      const body = { action: 'generate', event_id: EVENT_ID, user_id: USER_ID, duration_mins: _dur, game_ids };
+      if (feedback) body.feedback = feedback;
+      const res = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
       const data = await res.json();
 
       if (data.error === 'no_favourites') { showEmpty(); return; }
@@ -735,76 +771,124 @@
     } catch { showError('Network error. Please try again.'); }
   }
 
+  async function regenerateWithFeedback() {
+    const feedback = ($('feedbackText')?.value || '').trim();
+    const btn = $('regenFeedbackBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; }
+    await generatePlan(feedback);
+    if (btn) { btn.disabled = false; btn.textContent = 'Regenerate'; }
+  }
+
+  function collectEdits() {
+    if (!_currentPlan) return null;
+    const plan = JSON.parse(JSON.stringify(_currentPlan));
+    document.querySelectorAll('[data-path]').forEach(el => {
+      const keys = el.dataset.path.split('.');
+      let obj = plan;
+      for (let i = 0; i < keys.length - 1; i++) {
+        const k = isNaN(keys[i]) ? keys[i] : +keys[i];
+        if (obj == null || obj[k] == null) return;
+        obj = obj[k];
+      }
+      const last = keys[keys.length - 1];
+      obj[isNaN(last) ? last : +last] = el.innerText.trim();
+    });
+    return plan;
+  }
+
+  async function savePlan() {
+    const plan = collectEdits();
+    if (!plan || !_currentPlanId) return;
+    const btn = $('saveBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const res = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'update_plan', event_id: EVENT_ID, user_id: USER_ID, plan_id: _currentPlanId, plan_json: plan }),
+      });
+      if ((await res.json()).ok) { _currentPlan = plan; showToast('Saved ✓'); }
+      else showToast('Save failed');
+    } catch { showToast('Save failed'); }
+    if (btn) { btn.disabled = false; btn.textContent = 'Save edits'; }
+  }
+
   // ── Plan rendering ───────────────────────────────────────────────────────────
   function renderPlan(plan, squadName) {
+    _currentPlan = plan;
     const out = [];
 
-    // Back to Setup chip
+    // Chip row: Back to Setup (left) + location (right)
+    const locLabel = _eventMeta?.location_name
+      ? `<div class="location-chip">📍 ${esc(_eventMeta.location_name)}</div>` : '';
     out.push(`<div class="setup-chip-row">
       <button class="setup-chip" onclick="showSetup()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Back to Setup
       </button>
+      ${locLabel}
     </div>`);
 
-    // Stat cards
-    out.push(`<div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-value">${plan.player_count ?? 0}</div>
-        <div class="stat-label">Players</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${plan.coach_count ?? 0}</div>
-        <div class="stat-label">Coaches</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${plan.total_duration_mins ?? _dur}</div>
-        <div class="stat-label">Minutes</div>
-      </div>
-    </div>`);
-
-    // Weather (below stats)
-    if (plan.weather) {
+    // Stats + weather in one grey section
+    const weatherHtml = plan.weather ? (() => {
       const w = plan.weather;
       const icon = w.precip_pct >= 60 ? '🌧' : w.temp_c < 5 ? '🥶' : w.temp_c < 12 ? '🌤' : '☀️';
-      out.push(`<div class="weather-banner">
+      return `<div class="weather-banner">
         <div class="weather-icon">${icon}</div>
         <div><div class="weather-label">Weather Forecast</div><div class="weather-text">${esc(w.summary)}</div></div>
-      </div>`);
-    }
-    const pills = [];
-    if (squadName) pills.push(`<div class="meta-pill">🏷 ${esc(squadName)}</div>`);
-    if (_eventMeta?.location_name) pills.push(`<div class="meta-pill">📍 ${esc(_eventMeta.location_name)}</div>`);
-    if (pills.length) out.push(`<div class="meta-pills">${pills.join('')}</div>`);
+      </div>`;
+    })() : '';
+    out.push(`<div class="stats-section">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-value">${plan.player_count ?? 0}</div><div class="stat-label">Players</div></div>
+        <div class="stat-card"><div class="stat-value">${plan.coach_count ?? 0}</div><div class="stat-label">Coaches</div></div>
+        <div class="stat-card"><div class="stat-value">${plan.total_duration_mins ?? _dur}</div><div class="stat-label">Minutes</div></div>
+      </div>
+      ${weatherHtml}
+    </div>`);
 
-    // Focus (session title as labelled section)
+    // Squad pill (location now in chip row)
+    if (squadName) out.push(`<div class="meta-pills"><div class="meta-pill">🏷 ${esc(squadName)}</div></div>`);
+
+    // Focus
     if (plan.session_title) {
       out.push(sectionHdr('FOCUS', null, 'drill'));
-      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px"><div class="drill-name" style="font-size:15px">${esc(plan.session_title)}</div></div></div>`);
+      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px">
+        <div class="drill-name" style="font-size:15px" contenteditable="true" data-path="session_title">${esc(plan.session_title)}</div>
+      </div></div>`);
     }
 
     // Objective
     if (plan.session_objective) {
-      out.push(`<div class="objective-block">${esc(plan.session_objective)}</div>`);
+      out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
     }
 
     // Warm-up
     if (plan.warm_up) {
       out.push(sectionHdr('WARM UP', plan.warm_up.duration_mins, 'warm'));
-      out.push(phaseCard(plan.warm_up, null, null, null));
+      out.push(phaseCard(plan.warm_up, null, null, null, 'warm_up'));
     }
 
     // Drills
     (plan.drills || []).forEach((d, i) => {
       out.push(sectionHdr(`DRILL ${i + 1}`, d.duration_mins, 'drill'));
-      out.push(phaseCard(d, d.game_name, i + 1, d.game_image));
+      out.push(phaseCard(d, d.game_name, i + 1, d.game_image, `drills.${i}`));
     });
 
     // Cool-down
     if (plan.cool_down) {
       out.push(sectionHdr('COOL DOWN', plan.cool_down.duration_mins, 'cool'));
-      out.push(phaseCard(plan.cool_down, null, null, null));
+      out.push(phaseCard(plan.cool_down, null, null, null, 'cool_down'));
     }
+
+    // Feedback + save bar
+    out.push(`<div class="feedback-bar">
+      <div class="feedback-hdr">Refine this plan</div>
+      <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…"></textarea>
+      <div class="feedback-actions">
+        <button class="btn btn-outline" id="saveBtn" onclick="savePlan()">Save edits</button>
+        <button class="btn btn-primary" id="regenFeedbackBtn" onclick="regenerateWithFeedback()">Regenerate</button>
+      </div>
+    </div>`);
 
     out.push('<div class="drill-gap"></div>');
     $('planContent').innerHTML = out.join('');
@@ -820,7 +904,7 @@
     </div>`;
   }
 
-  function phaseCard(phase, gameName, drillNum, gameImage) {
+  function phaseCard(phase, gameName, drillNum, gameImage, pathPrefix) {
     const nameBar = (gameName || drillNum)
       ? `<div class="drill-name-bar">
           ${drillNum ? `<div class="drill-num">${drillNum}</div>` : ''}
@@ -836,17 +920,17 @@
       .map(pt => `<div class="cp-item"><span class="cp-dot">•</span><span>${esc(pt)}</span></div>`)
       .join('');
 
-    const variation  = phase.variation
+    const variation = phase.variation
       ? `<div class="variation-row"><strong>Variation:</strong> ${esc(phase.variation)}</div>` : '';
-    const playerNote = phase.player_count_note
-      ? `<div class="player-note">💡 ${esc(phase.player_count_note)}</div>` : '';
+
+    const descAttr = pathPrefix ? ` contenteditable="true" data-path="${pathPrefix}.description"` : '';
 
     return `<div class="phase-card">
       ${nameBar}${imgTag}
       <div class="card-body">
-        <div class="card-desc">${esc(phase.description || '')}</div>
+        <div class="card-desc"${descAttr}>${esc(phase.description || '')}</div>
         ${pts.length ? `<div class="cp-label">Coaching Points</div>${pts}` : ''}
-        ${playerNote}${variation}
+        ${variation}
       </div>
     </div>`;
   }
