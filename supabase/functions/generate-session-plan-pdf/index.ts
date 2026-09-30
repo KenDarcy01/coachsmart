@@ -587,7 +587,7 @@ async function buildSessionPlanPdf(
 
         if (drillImg) {
           const ratio = drillImg.width / drillImg.height;
-          const IDEAL_H = 220;
+          const IDEAL_H = 270;
           const MIN_H = 160;
           let imgW = CW;
           let imgH = Math.min(imgW / ratio, IDEAL_H);
