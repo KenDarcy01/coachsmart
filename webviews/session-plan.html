@@ -501,9 +501,13 @@
 
 <!-- Action bar (shown over plan screen) -->
 <div id="actionBar" class="action-bar" style="display:none">
-  <button class="btn btn-primary btn-full" onclick="exportPlan()" id="exportBtn">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Export PDF
+  <button class="btn btn-outline" onclick="exportPlan('a4')" id="exportBtnPrint">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Print
+  </button>
+  <button class="btn btn-primary" onclick="exportPlan('mobile')" id="exportBtnShare">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+    Share
   </button>
 </div>
 
@@ -992,12 +996,12 @@
   }
 
   // ── Export ──────────────────────────────────────────────────────────────────
-  async function exportPlan() {
+  async function exportPlan(format = 'mobile') {
     if (!_currentPlanId) { showToast('No plan to export'); return; }
-    const btn = $('exportBtn');
-    const origHtml = btn.innerHTML;
-    btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
-    btn.disabled = true;
+    const btn = $(format === 'a4' ? 'exportBtnPrint' : 'exportBtnShare');
+    const origHtml = btn ? btn.innerHTML : '';
+    const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
+    if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
 
     // Auto-save any inline edits before generating the PDF
     try {
@@ -1016,6 +1020,7 @@
           plan_id:  _currentPlanId,
           user_id:  USER_ID,
           platform: IS_WEBVIEW ? 'mobile' : 'web',
+          format,
         }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Server error'); }
@@ -1034,8 +1039,7 @@
       console.error('exportPlan:', e);
       showToast('Could not generate PDF — please try again');
     } finally {
-      btn.innerHTML = origHtml;
-      btn.disabled = false;
+      if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
     }
   }
 
