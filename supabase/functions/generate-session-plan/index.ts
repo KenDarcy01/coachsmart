@@ -47,6 +47,10 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
   "session_title": "string (3–8 words describing the session theme)",
   "session_objective": "string (1–2 sentences: what skill or quality players will develop — NO weather information)",
   "total_duration_mins": number,
+  "pre_session": null | {
+    "duration_mins": number,
+    "description": "string — activity before the warm-up (e.g. team briefing, video review, tactical talk)"
+  },
   "warm_up": {
     "duration_mins": number,
     "description": "string (how to run the warm-up with this group)",
@@ -64,11 +68,16 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
   "cool_down": {
     "duration_mins": number,
     "description": "string"
+  },
+  "post_session": null | {
+    "duration_mins": number,
+    "description": "string — activity after the cool-down (e.g. team meeting, debrief, match review)"
   }
 }
 
 Rules:
-- warm_up.duration_mins + all drills duration_mins + cool_down.duration_mins must equal total_duration_mins exactly
+- (pre_session?.duration_mins ?? 0) + warm_up.duration_mins + all drills duration_mins + cool_down.duration_mins + (post_session?.duration_mins ?? 0) must equal total_duration_mins exactly
+- pre_session and post_session must be null unless the coach explicitly requests such an activity
 - Use the games in the ORDER given — do not reorder them
 - Use the EXACT game name from the input in each drill — do not paraphrase or rename
 - Adapt each drill to the given player count; note modifications if needed
