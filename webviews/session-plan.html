@@ -781,6 +781,17 @@
   }
 
   async function regenerateWithFeedback() {
+    // Auto-save any inline edits before regenerating
+    const edited = collectEdits();
+    if (edited && _currentPlanId) {
+      try {
+        await fetch(EDGE_FN, {
+          method: 'POST', headers: HEADERS,
+          body: JSON.stringify({ action: 'update_plan', event_id: EVENT_ID, user_id: USER_ID, plan_id: _currentPlanId, plan_json: edited }),
+        });
+        _currentPlan = edited;
+      } catch { /* continue anyway */ }
+    }
     const feedback = ($('feedbackText')?.value || '').trim();
     const btn = $('regenFeedbackBtn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; }

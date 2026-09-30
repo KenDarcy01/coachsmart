@@ -57,7 +57,6 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
       "game_name": "string (use the exact game name from the input)",
       "duration_mins": number,
       "description": "string (how to run this game with the given player count)",
-      "player_count_note": "string or null (note if count needs adjustment, otherwise null)",
       "coaching_points": ["string — 2 to 4 short, actionable coaching cues"],
       "variation": "string or null"
     }
@@ -75,7 +74,8 @@ Rules:
 - Adapt each drill to the given player count; note modifications if needed
 - Coaching points must be short and actionable
 - Use GAA language: "football" for football code, "sliotar" and "hurl" for hurling/camogie
-- If weather is poor, include appropriate warm-up modifications
+- Weather is provided for context only — do NOT mention it anywhere in the plan text; it is displayed separately
+- Do NOT include player count adjustment notes; adapt the description directly for the given numbers
 - Warm-up must be at least 10 minutes; cool-down at least 5 minutes`;
 
 // ── Weather helpers ───────────────────────────────────────────────────────────
@@ -459,7 +459,7 @@ serve(async (req) => {
       });
     }
 
-    // Enrich drills with game images
+    // Enrich drills with game images; strip unwanted fields
     const imageByName: Record<string, string | null> = {};
     for (const f of favLinks) {
       const g = (f as any).games;
@@ -467,6 +467,7 @@ serve(async (req) => {
     }
     for (const drill of (planJson.drills || [])) {
       drill.game_image = imageByName[drill.game_name] ?? null;
+      delete drill.player_count_note;
     }
 
     planJson.player_count = playerCount;
