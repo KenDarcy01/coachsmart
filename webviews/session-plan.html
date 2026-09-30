@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Session Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg:         #0f1319;
+      --surface:    #181e28;
+      --surface-2:  #1e2737;
+      --accent:     #87C232;
+      --accent-dim: rgba(135,194,50,0.12);
+      --text:       #e4e9f0;
+      --muted:      #7a8899;
+      --border:     rgba(255,255,255,0.07);
+      --radius:     12px;
+      --header-h:   70px;
+      --bar-h:      68px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────────── */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 2px solid var(--accent);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: var(--header-h);
+    }
+
+    .club-crest {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      object-fit: contain;
+      background: var(--surface-2);
+      flex-shrink: 0;
+    }
+
+    .club-initials {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .header-text   { flex: 1; min-width: 0; }
+    .header-club   { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-event  { font-size: 15px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 1px 0; }
+    .header-date   { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Main scroll area ─────────────────────────────────────────────────── */
+    .main-content { padding-bottom: calc(var(--bar-h) + 20px); }
+
+    /* ── Weather banner ───────────────────────────────────────────────────── */
+    .weather-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--surface-2);
+      border-left: 3px solid var(--accent);
+      padding: 12px 16px;
+    }
+
+    .weather-icon  { font-size: 22px; flex-shrink: 0; line-height: 1; }
+    .weather-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 3px; }
+    .weather-text  { font-size: 13px; color: var(--text); line-height: 1.45; }
+
+    /* ── Session meta chips ───────────────────────────────────────────────── */
+    .session-meta { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px 4px; }
+
+    .meta-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 11px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .meta-chip .ci { font-size: 14px; }
+
+    /* ── Session objective ────────────────────────────────────────────────── */
+    .objective-block {
+      margin: 14px 16px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(135,194,50,0.18);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      font-size: 14px;
+      font-style: italic;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    /* ── Section headers ──────────────────────────────────────────────────── */
+    .section-hdr {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 14px 16px 7px;
+    }
+
+    .s-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .s-dot-warm   { background: #f59e0b; }
+    .s-dot-drill  { background: var(--accent); }
+    .s-dot-cool   { background: #60a5fa; }
+
+    .s-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+    .s-dur {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* ── Phase cards ──────────────────────────────────────────────────────── */
+    .phase-card {
+      margin: 0 16px 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .drill-name-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px 9px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .drill-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .drill-name { font-size: 14px; font-weight: 600; color: var(--text); }
+
+    .card-body { padding: 11px 14px 13px; }
+
+    .card-desc {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.55;
+      margin-bottom: 11px;
+      white-space: pre-line;
+    }
+
+    .cp-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    .cp-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 5px;
+      line-height: 1.45;
+    }
+
+    .cp-dot {
+      color: var(--accent);
+      font-size: 17px;
+      line-height: 1.15;
+      flex-shrink: 0;
+    }
+
+    .variation-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: var(--surface-2);
+      border-radius: 8px;
+      border-left: 2px solid var(--muted);
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .variation-row strong { font-weight: 600; color: var(--muted); flex-shrink: 0; }
+
+    .player-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 7px 10px;
+      background: rgba(251,191,36,0.07);
+      border-radius: 8px;
+      border-left: 2px solid #f59e0b;
+      font-size: 12px;
+      color: #fcd34d;
+      line-height: 1.4;
+    }
+
+    .drill-gap { height: 10px; }
+
+    /* ── Action bar ───────────────────────────────────────────────────────── */
+    .action-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      gap: 10px;
+      padding: 10px 16px max(10px, env(safe-area-inset-bottom));
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: opacity 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:active { opacity: 0.7; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+
+    /* ── State screens ────────────────────────────────────────────────────── */
+    .state-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 32px;
+      text-align: center;
+      min-height: calc(100vh - var(--header-h));
+    }
+
+    .state-icon  { font-size: 48px; margin-bottom: 16px; }
+    .state-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .state-body  { font-size: 14px; color: var(--muted); line-height: 1.55; max-width: 290px; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Print ────────────────────────────────────────────────────────────── */
+    @media print {
+      .app-header  { position: static; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .action-bar  { display: none !important; }
+      .main-content { padding-bottom: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <img id="clubCrest" class="club-crest" src="" alt="" style="display:none">
+  <div id="clubInitials" class="club-initials" style="display:none"></div>
+  <div class="header-text">
+    <div id="hdrClub"  class="header-club"></div>
+    <div id="hdrEvent" class="header-event">Session Plan</div>
+    <div id="hdrDate"  class="header-date"></div>
+  </div>
+</header>
+
+<div id="mainContent" class="main-content"></div>
+
+<div id="actionBar" class="action-bar" style="display:none">
+  <button class="btn btn-outline" onclick="confirmRegenerate()">🔄 Regenerate</button>
+  <button class="btn btn-primary"  onclick="window.print()">🖨️ Print / Share</button>
+</div>
+
+<script>
+  const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+  const EDGE_FN           = SUPABASE_URL + '/functions/v1/generate-session-plan';
+
+  const p        = new URLSearchParams(window.location.search);
+  const WV_TOKEN = p.get('token')    || '';
+  const EVENT_ID = parseInt(p.get('event_id') || '0') || 0;
+  const USER_ID  = p.get('user_id') || '';
+  const DURATION = parseInt(p.get('duration') || '90') || 90;
+
+  const HEADERS = {
+    'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+    'apikey':        SUPABASE_ANON_KEY,
+    'Content-Type':  'application/json',
+  };
+
+  // ── DOM helpers ────────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+
+  function setHtml(id, v) { const e = $(id); if (e) e.innerHTML = v; }
+  function show(id)        { const e = $(id); if (e) e.style.display = ''; }
+  function hide(id)        { const e = $(id); if (e) e.style.display = 'none'; }
+
+  function esc(s) {
+    return String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/\n/g,'<br>');
+  }
+
+  // ── Branding ───────────────────────────────────────────────────────────────
+  function applyBranding(b) {
+    if (!b) return;
+    const accent = (b.primary_colour || '#87C232').trim();
+    document.documentElement.style.setProperty('--accent', accent);
+    try {
+      const r = parseInt(accent.slice(1,3),16);
+      const g = parseInt(accent.slice(3,5),16);
+      const bl = parseInt(accent.slice(5,7),16);
+      if (!isNaN(r + g + bl)) {
+        document.documentElement.style.setProperty('--accent-dim', `rgba(${r},${g},${bl},0.12)`);
+      }
+    } catch(_) {}
+    setHtml('hdrClub', esc(b.club_name || ''));
+    if (b.crest) {
+      const img = $('clubCrest');
+      img.src = b.crest;
+      img.onerror = () => { hide('clubCrest'); showInitials(b.club_name); };
+      img.style.display = '';
+    } else {
+      showInitials(b.club_name);
+    }
+  }
+
+  function showInitials(name) {
+    hide('clubCrest');
+    const words = (name || 'CS').trim().split(/\s+/);
+    const ini   = words.length >= 2
+      ? words[0][0].toUpperCase() + words[1][0].toUpperCase()
+      : (words[0] || 'CS').slice(0,2).toUpperCase();
+    const d = $('clubInitials');
+    d.textContent = ini;
+    d.style.display = 'flex';
+  }
+
+  // ── Event meta ─────────────────────────────────────────────────────────────
+  function applyEventMeta(meta, squadName) {
+    if (!meta) return;
+    setHtml('hdrEvent', esc(meta.title || 'Session Plan'));
+    const parts = [];
+    if (meta.date_time) {
+      const d    = new Date(meta.date_time);
+      const day  = d.toLocaleDateString('en-IE', { weekday:'short', day:'numeric', month:'short' });
+      const time = d.toLocaleTimeString('en-IE', { hour:'numeric', minute:'2-digit', hour12:true });
+      parts.push(day + ' · ' + time);
+    }
+    parts.push(DURATION + ' min');
+    if (squadName) parts.push(squadName);
+    setHtml('hdrDate', parts.map(esc).join(' · '));
+  }
+
+  // ── State screens ──────────────────────────────────────────────────────────
+  function showLoading(msg) {
+    hide('actionBar');
+    $('mainContent').innerHTML = `
+      <div class="state-screen">
+        <div class="spinner"></div>
+        <div class="state-title">${esc(msg)}</div>
+        <div class="state-body">This usually takes 10–15 seconds.</div>
+      </div>`;
+  }
+
+  function showEmpty() {
+    hide('actionBar');
+    $('mainContent').innerHTML = `
+      <div class="state-screen">
+        <div class="state-icon">⭐</div>
+        <div class="state-title">No Favourite Games</div>
+        <div class="state-body">Head to the Games Library and add some favourites, then come back to generate your session plan.</div>
+      </div>`;
+  }
+
+  function showGeneratePrompt() {
+    hide('actionBar');
+    $('mainContent').innerHTML = `
+      <div class="state-screen">
+        <div class="state-icon">📋</div>
+        <div class="state-title">Ready to Generate</div>
+        <div class="state-body">Your session plan will be built from your favourite games and this event's context.</div>
+        <button class="btn btn-primary" style="margin-top:24px;max-width:260px;width:100%"
+          onclick="generatePlan()">✨ Generate Session Plan</button>
+      </div>`;
+  }
+
+  function showError(msg) {
+    hide('actionBar');
+    $('mainContent').innerHTML = `
+      <div class="state-screen">
+        <div class="state-icon">⚠️</div>
+        <div class="state-title">Something went wrong</div>
+        <div class="state-body">${esc(msg)}</div>
+        <button class="btn btn-outline" style="margin-top:20px;max-width:180px;width:100%"
+          onclick="boot()">Try Again</button>
+      </div>`;
+  }
+
+  // ── Weather icon picker ────────────────────────────────────────────────────
+  function wxIcon(precip, temp) {
+    if (precip >= 70) return '🌧️';
+    if (precip >= 40) return '🌦️';
+    if (temp  <  5)   return '🥶';
+    if (temp  > 20)   return '☀️';
+    return '⛅';
+  }
+
+  // ── Plan renderer ──────────────────────────────────────────────────────────
+  function renderPlan(plan, squadName) {
+    const out = [];
+
+    // Weather
+    if (plan.weather?.summary) {
+      const icon = wxIcon(plan.weather.precip_pct ?? 0, plan.weather.temp_c ?? 15);
+      out.push(`
+        <div class="weather-banner">
+          <span class="weather-icon">${icon}</span>
+          <div>
+            <div class="weather-label">Weather Forecast</div>
+            <div class="weather-text">${esc(plan.weather.summary)}</div>
+          </div>
+        </div>`);
+    }
+
+    // Meta chips
+    const chips = [];
+    if (plan.player_count) chips.push(`<div class="meta-chip"><span class="ci">👥</span>${plan.player_count} Players</div>`);
+    if (plan.coach_count)  chips.push(`<div class="meta-chip"><span class="ci">👨‍🏫</span>${plan.coach_count} Coaches</div>`);
+    if (squadName)         chips.push(`<div class="meta-chip"><span class="ci">🏃</span>${esc(squadName)}</div>`);
+    chips.push(`<div class="meta-chip"><span class="ci">⏱</span>${plan.total_duration_mins || DURATION} min</div>`);
+    out.push(`<div class="session-meta">${chips.join('')}</div>`);
+
+    // Objective
+    if (plan.session_objective) {
+      out.push(`<div class="objective-block">${esc(plan.session_objective)}</div>`);
+    }
+
+    // Warm-up
+    if (plan.warm_up) {
+      out.push(sectionHdr('WARM UP', plan.warm_up.duration_mins, 's-dot-warm'));
+      out.push(phaseCard(plan.warm_up, null, null));
+    }
+
+    // Drills
+    (plan.drills || []).forEach((d, i) => {
+      out.push(sectionHdr(`DRILL ${i + 1}`, d.duration_mins, 's-dot-drill'));
+      out.push(phaseCard(d, d.game_name, i + 1));
+    });
+
+    // Cool-down
+    if (plan.cool_down) {
+      out.push(sectionHdr('COOL DOWN', plan.cool_down.duration_mins, 's-dot-cool'));
+      out.push(phaseCard(plan.cool_down, null, null));
+    }
+
+    out.push('<div style="height:8px"></div>');
+
+    $('mainContent').innerHTML = out.join('');
+    show('actionBar');
+  }
+
+  function sectionHdr(label, dur, dotCls) {
+    return `
+      <div class="section-hdr">
+        <div class="s-dot ${esc(dotCls)}"></div>
+        <div class="s-label">${esc(label)}</div>
+        ${dur ? `<div class="s-dur">${dur} min</div>` : ''}
+      </div>`;
+  }
+
+  function phaseCard(phase, gameName, num) {
+    const nameBar = gameName ? `
+      <div class="drill-name-bar">
+        ${num ? `<div class="drill-num">${num}</div>` : ''}
+        <div class="drill-name">${esc(gameName)}</div>
+      </div>` : '';
+
+    const pts = (phase.coaching_points || [])
+      .map(pt => `<div class="cp-item"><span class="cp-dot">•</span>${esc(pt)}</div>`)
+      .join('');
+
+    const variation = phase.variation
+      ? `<div class="variation-row"><strong>Variation:</strong><span>${esc(phase.variation)}</span></div>`
+      : '';
+
+    const playerNote = phase.player_count_note
+      ? `<div class="player-note">💡 ${esc(phase.player_count_note)}</div>`
+      : '';
+
+    return `
+      <div class="phase-card">
+        ${nameBar}
+        <div class="card-body">
+          <div class="card-desc">${esc(phase.description || '')}</div>
+          ${pts.length ? `<div class="cp-label">Coaching Points</div>${pts}` : ''}
+          ${playerNote}
+          ${variation}
+        </div>
+      </div>
+      <div class="drill-gap"></div>`;
+  }
+
+  // ── API calls ──────────────────────────────────────────────────────────────
+  async function callEdge(payload) {
+    const res  = await fetch(EDGE_FN, { method:'POST', headers:HEADERS, body:JSON.stringify(payload) });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  }
+
+  async function boot() {
+    if (!EVENT_ID || !USER_ID) { showError('Missing event or user information.'); return; }
+    showLoading('Loading…');
+    try {
+      const { ok, data } = await callEdge({ action:'get', event_id:EVENT_ID, user_id:USER_ID });
+      if (!ok) { showError(data.error || 'Failed to load event.'); return; }
+      applyBranding(data.branding);
+      applyEventMeta(data.event, data.squad_name);
+      if (!data.has_favourites) { showEmpty(); return; }
+      if (data.plan)             { renderPlan(data.plan, data.squad_name); return; }
+      showGeneratePrompt();
+    } catch(_) {
+      showError('Network error. Please check your connection and try again.');
+    }
+  }
+
+  async function generatePlan() {
+    showLoading('Generating your session plan…');
+    try {
+      const { ok, data } = await callEdge({
+        action:       'generate',
+        event_id:     EVENT_ID,
+        user_id:      USER_ID,
+        duration_mins: DURATION,
+      });
+      if (data.error === 'no_favourites') { showEmpty(); return; }
+      if (!ok || !data.plan) { showError(data.message || data.error || 'Generation failed. Please try again.'); return; }
+      applyBranding(data.branding);
+      applyEventMeta(data.event, data.squad_name);
+      renderPlan(data.plan, data.squad_name);
+    } catch(_) {
+      showError('Network error. Please try again.');
+    }
+  }
+
+  function confirmRegenerate() {
+    if (confirm('Generate a new session plan? The current plan will be replaced.')) generatePlan();
+  }
+
+  boot();
+</script>
+</body>
+</html>
