@@ -587,15 +587,25 @@ async function buildSessionPlanPdf(
 
         if (drillImg) {
           const ratio = drillImg.width / drillImg.height;
-          const ABS_MAX_H = 340;
+          const IDEAL_H = 220;
+          const MIN_H = 160;
           let imgW = CW;
-          let imgH = imgW / ratio;
-          if (imgH > ABS_MAX_H) { imgH = ABS_MAX_H; imgW = imgH * ratio; }
-          if (imgW > CW)        { imgW = CW;         imgH = imgW / ratio; }
+          let imgH = Math.min(imgW / ratio, IDEAL_H);
+          imgW = imgH * ratio;
+          if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
 
           curY += 8;
-          // If very little vertical space remains, start a new page
-          if (PH - curY - FOOTER_ZONE < imgH + 20) newPage(false);
+          const spaceAvail = PH - curY - FOOTER_ZONE - 20;
+          if (spaceAvail < imgH) {
+            if (spaceAvail >= MIN_H) {
+              imgH = spaceAvail; imgW = imgH * ratio;
+              if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
+            } else {
+              newPage(false);
+              imgH = IDEAL_H; imgW = imgH * ratio;
+              if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
+            }
+          }
 
           const imgX = ML + (CW - imgW) / 2;
           currentPage.drawImage(drillImg, { x: imgX, y: PH - curY - imgH, width: imgW, height: imgH });

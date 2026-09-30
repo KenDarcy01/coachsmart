@@ -54,13 +54,6 @@
     }
     .back-btn:active { background: var(--accent-dim); }
     .back-btn svg { width: 34px; height: 34px; }
-    .header-title {
-      flex: 1; min-width: 0;
-      font-size: 13px; font-weight: 600; color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      opacity: 0; transition: opacity 0.2s;
-    }
-    .header-title.visible { opacity: 1; }
 
     /* ── Screens ──────────────────────────────────────────────────────────── */
     .screen {
@@ -236,8 +229,11 @@
       font-size: 11px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 0.06em; color: var(--muted);
     }
-    .squad-pill {
-      margin: 4px 16px 0;
+    .meta-pills {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 6px 16px 0;
+    }
+    .meta-pill {
       display: inline-flex; align-items: center; gap: 5px;
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 20px; padding: 4px 11px;
@@ -245,7 +241,7 @@
     }
 
     /* Back to setup chip */
-    .setup-chip-row { padding: 10px 16px 0; }
+    .setup-chip-row { padding: 10px 16px 14px; }
     .setup-chip {
       display: inline-flex; align-items: center; gap: 5px;
       background: var(--surface); border: 1.5px solid var(--border);
@@ -391,7 +387,6 @@
   <button class="back-btn" onclick="closeSession()" title="Close">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
-  <div class="header-title" id="headerTitle"></div>
 </header>
 
 <!-- Loading -->
@@ -496,33 +491,6 @@
   let _eventMeta = null;
   let _squadName = null;
   let _currentPlanId = null;
-
-  function buildEventTitle(meta) {
-    if (!meta) return '';
-    const parts = [];
-    if (meta.team_name) parts.push(meta.team_name);
-    const typeCode = [meta.event_code, meta.event_type].filter(Boolean).join(' ');
-    if (typeCode) parts.push(typeCode);
-    if (meta.date_time) {
-      try {
-        const d = new Date(meta.date_time);
-        const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const hh = String(d.getHours()).padStart(2,'0');
-        const mm = String(d.getMinutes()).padStart(2,'0');
-        parts.push(`${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}, ${hh}:${mm}`);
-      } catch (_) {}
-    }
-    return parts.join(' - ');
-  }
-
-  function setHeaderTitle(meta) {
-    const el = $('headerTitle');
-    if (!el) return;
-    const t = buildEventTitle(meta);
-    el.textContent = t;
-    el.classList.toggle('visible', !!t);
-  }
 
   const HEADERS = {
     'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
@@ -804,7 +772,10 @@
         <div class="stat-label">Minutes</div>
       </div>
     </div>`);
-    if (squadName) out.push(`<div class="squad-pill">🏷 ${esc(squadName)}</div>`);
+    const pills = [];
+    if (squadName) pills.push(`<div class="meta-pill">🏷 ${esc(squadName)}</div>`);
+    if (_eventMeta?.location_name) pills.push(`<div class="meta-pill">📍 ${esc(_eventMeta.location_name)}</div>`);
+    if (pills.length) out.push(`<div class="meta-pills">${pills.join('')}</div>`);
 
     // Focus (session title as labelled section)
     if (plan.session_title) {
