@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
