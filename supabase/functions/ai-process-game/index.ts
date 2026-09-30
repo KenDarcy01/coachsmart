@@ -35,19 +35,24 @@ Process the coaching drill and return a JSON object with exactly these fields:
     Player 1 hand-passes to Player 2. Player 2 runs towards the bottom-left cone."
   - Do not describe tactics or teaching points here — only positions and movements.`;
 
-// ── split_voice: parse a spoken description into structured drill fields ─────
+// ── split_voice: parse a spoken description (+ optional diagram) into structured drill fields ─────
 const SPLIT_VOICE_PROMPT = `You are a GAA (Gaelic Athletic Association) coaching assistant.
 
-A coach has described a game or drill by speaking aloud. Extract and structure the content into these four fields:
+A coach has described a game or drill by speaking aloud. A diagram or sketch image may also be provided — if so, use it to understand the spatial layout and player positions.
 
+Extract and structure the content into exactly these fields:
+
+- game_name: A short, descriptive name for the drill (3–6 words, 25 characters or fewer).
 - game_setup: Setup instructions — number of players, equipment (cones, balls), pitch area, starting positions.
 - game_how_to_play: Numbered step-by-step instructions for how the drill or game works.
-- game_variations: Progressions to make the drill easier or harder. If none mentioned, suggest 2 sensible ones based on the drill.
-- game_teaching_points: Key coaching cues and points to watch for. If none mentioned, suggest 3 relevant ones based on the drill.
+- game_variations: Progressions to make the drill easier or harder. If none mentioned, suggest 2 sensible ones.
+- game_teaching_points: Key coaching cues and points to watch for. If none mentioned, suggest 3 relevant ones.
+- suggested_ages: JSON array of age groups this drill suits. Choose from: ["U6","U8","U10","U12","U14","U16","U18","Adult"].
+- suggested_sport: The most likely sport — exactly one of "Football", "Hurling", or "Camogie". Infer from context if not stated.
+- suggested_skills: JSON array of skills this drill develops. Choose from: ["Handpass","Kick Pass","Catching","Solo","Shooting","Tackling","Blocking","Fielding"].
 
-Return ONLY a JSON object with exactly these four fields (all strings). Use line breaks (\\n) between numbered steps and bullet points.
-
-If any field is not clearly covered in the description, use your GAA coaching knowledge to generate sensible content based on what was described.`;
+Return ONLY a JSON object with exactly these eight fields. Use line breaks (\\n) between numbered steps and bullet points.
+If any field is not clearly covered, use your GAA coaching knowledge to generate sensible content.`;
 
 // ── Polish action: fix spelling/grammar/formatting only ──────────────────────
 const POLISH_PROMPT = `You are a GAA coaching content editor.
@@ -410,9 +415,9 @@ serve(async (req) => {
       });
     }
 
-    // ── split_voice: voice transcript → structured drill fields ─────────────────
+    // ── split_voice: voice transcript (+ optional diagram) → structured drill fields ──
     if (action === "split_voice") {
-      const { voice_transcript, game_code } = body;
+      const { voice_transcript, game_code, image_base64, image_mime_type } = body;
       if (!voice_transcript?.trim()) {
         return new Response(JSON.stringify({ error: "voice_transcript is required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -437,9 +442,16 @@ serve(async (req) => {
         `Coach's spoken description:\n${voice_transcript.trim()}`,
       ].filter(Boolean).join("\n\n");
 
+      // Include diagram/sketch as a multimodal input if provided
+      const parts: any[] = [];
+      if (image_base64 && image_mime_type) {
+        parts.push({ inlineData: { mimeType: image_mime_type, data: image_base64 } });
+      }
+      parts.push({ text: inputText });
+
       let result: any;
       try {
-        const raw = await callGemini(apiKey, SPLIT_VOICE_PROMPT, [{ text: inputText }]);
+        const raw = await callGemini(apiKey, SPLIT_VOICE_PROMPT, parts);
         result = parseJson(raw);
       } catch (err) {
         console.error("split_voice failed:", err);
@@ -451,10 +463,14 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         data: {
+          game_name:            result.game_name            || "",
           game_setup:           result.game_setup           || "",
           game_how_to_play:     result.game_how_to_play     || "",
           game_variations:      result.game_variations      || "",
           game_teaching_points: result.game_teaching_points || "",
+          suggested_ages:       Array.isArray(result.suggested_ages)   ? result.suggested_ages   : [],
+          suggested_sport:      typeof result.suggested_sport === "string" ? result.suggested_sport : null,
+          suggested_skills:     Array.isArray(result.suggested_skills) ? result.suggested_skills : [],
         },
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
