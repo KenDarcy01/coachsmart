@@ -35,6 +35,20 @@ Process the coaching drill and return a JSON object with exactly these fields:
     Player 1 hand-passes to Player 2. Player 2 runs towards the bottom-left cone."
   - Do not describe tactics or teaching points here — only positions and movements.`;
 
+// ── split_voice: parse a spoken description into structured drill fields ─────
+const SPLIT_VOICE_PROMPT = `You are a GAA (Gaelic Athletic Association) coaching assistant.
+
+A coach has described a game or drill by speaking aloud. Extract and structure the content into these four fields:
+
+- game_setup: Setup instructions — number of players, equipment (cones, balls), pitch area, starting positions.
+- game_how_to_play: Numbered step-by-step instructions for how the drill or game works.
+- game_variations: Progressions to make the drill easier or harder. If none mentioned, suggest 2 sensible ones based on the drill.
+- game_teaching_points: Key coaching cues and points to watch for. If none mentioned, suggest 3 relevant ones based on the drill.
+
+Return ONLY a JSON object with exactly these four fields (all strings). Use line breaks (\\n) between numbered steps and bullet points.
+
+If any field is not clearly covered in the description, use your GAA coaching knowledge to generate sensible content based on what was described.`;
+
 // ── Polish action: fix spelling/grammar/formatting only ──────────────────────
 const POLISH_PROMPT = `You are a GAA coaching content editor.
 
@@ -394,6 +408,55 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ── split_voice: voice transcript → structured drill fields ─────────────────
+    if (action === "split_voice") {
+      const { voice_transcript, game_code } = body;
+      if (!voice_transcript?.trim()) {
+        return new Response(JSON.stringify({ error: "voice_transcript is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const codes = (Array.isArray(game_code) ? game_code : game_code ? [game_code] : []) as string[];
+      const hasFootball = codes.some(c => c.toLowerCase() === "football");
+      const hasHurling  = codes.some(c => c.toLowerCase() === "hurling" || c.toLowerCase() === "camogie");
+      let sportLine = "";
+      if (hasFootball && hasHurling) {
+        sportLine = "Sport: Multiple codes.";
+      } else if (hasFootball) {
+        sportLine = "Sport: Football. Use 'football' when referring to the ball.";
+      } else if (hasHurling) {
+        const label = codes.filter(c => c.toLowerCase() === "hurling" || c.toLowerCase() === "camogie").join("/");
+        sportLine = `Sport: ${label}. Use 'sliotar' when referring to the ball.`;
+      }
+
+      const inputText = [
+        sportLine || null,
+        `Coach's spoken description:\n${voice_transcript.trim()}`,
+      ].filter(Boolean).join("\n\n");
+
+      let result: any;
+      try {
+        const raw = await callGemini(apiKey, SPLIT_VOICE_PROMPT, [{ text: inputText }]);
+        result = parseJson(raw);
+      } catch (err) {
+        console.error("split_voice failed:", err);
+        return new Response(JSON.stringify({ error: "AI processing failed", detail: String(err).slice(0, 200) }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: {
+          game_setup:           result.game_setup           || "",
+          game_how_to_play:     result.game_how_to_play     || "",
+          game_variations:      result.game_variations      || "",
+          game_teaching_points: result.game_teaching_points || "",
+        },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ── Polish / Rewrite actions ──────────────────────────────────────────────

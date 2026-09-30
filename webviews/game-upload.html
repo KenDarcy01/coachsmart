@@ -267,6 +267,75 @@
     }
     @keyframes mic-pulse { 0%,100% { opacity:1; } 50% { opacity:0.55; } }
 
+    /* ── VOICE / TEXT MODE TOGGLE ── */
+    .mode-toggle {
+      display: flex; border-radius: var(--radius);
+      background: var(--card); border: 1.5px solid var(--border); overflow: hidden;
+    }
+    .mode-btn {
+      flex: 1; padding: 11px 0; font-size: 14px; font-weight: 600;
+      color: var(--muted); display: flex; align-items: center; justify-content: center;
+      gap: 7px; transition: all 0.18s;
+    }
+    .mode-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .mode-btn.active { background: var(--green-dim); color: var(--green); }
+    .mode-btn:not(:last-child) { border-right: 1.5px solid var(--border); }
+
+    /* ── LARGE MIC BUTTON ── */
+    .mic-container {
+      display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 8px 0;
+    }
+    .voice-instruction {
+      font-size: 14px; line-height: 1.6; color: var(--muted); text-align: center;
+    }
+    .mic-btn {
+      width: 88px; height: 88px; border-radius: 50%;
+      background: var(--card); border: 2.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); transition: border-color 0.18s, background 0.18s, color 0.18s;
+      flex-shrink: 0; -webkit-user-select: none; user-select: none; touch-action: none;
+    }
+    .mic-btn svg { width: 36px; height: 36px; }
+    .mic-btn.recording {
+      background: rgba(239,68,68,0.14); border-color: var(--red); color: var(--red);
+      animation: mic-ring 1.2s ease-out infinite;
+    }
+    @keyframes mic-ring {
+      0%   { box-shadow: 0 0 0 0   rgba(239,68,68,0.4); }
+      70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0);   }
+      100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);   }
+    }
+
+    /* ── VOICE WAVEFORM ── */
+    .voice-wave {
+      display: flex; align-items: center; gap: 5px; height: 36px;
+      opacity: 0; transition: opacity 0.25s; pointer-events: none;
+    }
+    .voice-wave.active { opacity: 1; }
+    .voice-wave span {
+      display: block; width: 4px; background: var(--green);
+      border-radius: 4px; min-height: 4px;
+      animation: wave-bar 1.1s ease-in-out infinite;
+    }
+    .voice-wave span:nth-child(1) { animation-delay: 0s;    }
+    .voice-wave span:nth-child(2) { animation-delay: 0.15s; }
+    .voice-wave span:nth-child(3) { animation-delay: 0.30s; }
+    .voice-wave span:nth-child(4) { animation-delay: 0.45s; }
+    .voice-wave span:nth-child(5) { animation-delay: 0.60s; }
+    @keyframes wave-bar { 0%, 100% { height: 4px; } 50% { height: 28px; } }
+
+    /* ── TRANSCRIPT PREVIEW ── */
+    .transcript-preview {
+      min-height: 56px; padding: 12px 14px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 14px; line-height: 1.55;
+      color: var(--text); word-break: break-word;
+    }
+    .transcript-preview:empty::before {
+      content: "Your transcription will appear here…"; color: var(--muted);
+    }
+    .mode-panel { display: flex; flex-direction: column; gap: 16px; }
+
     /* ── TOAST ── */
     .toast {
       position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -295,125 +364,12 @@
 
   <div class="form-body">
 
-    <!-- Name -->
-    <div>
-      <div class="field-label">Game Name <span>*</span></div>
-      <input id="inpName" class="text-input" type="text" placeholder="e.g. Kick Pass Relay"/>
-    </div>
-
-    <!-- Type -->
-    <div>
-      <div class="field-label">Type <span>*</span></div>
-      <select id="inpType" class="text-input" onchange="onTypeChange()">
-        <option value="">Select type…</option>
-        <option value="Game">Game</option>
-        <option value="Drill">Drill</option>
-        <option value="Skill">Skill</option>
-        <option value="Warmup">Warmup</option>
-        <option value="Video">Video</option>
-      </select>
-    </div>
-
-    <!-- Video Link -->
-    <div>
-      <div class="field-label">Video Link <span id="videoLinkReq" title="optional">(optional)</span></div>
-      <input id="inpVideoUrl" class="text-input" type="url" placeholder="https://youtube.com/watch?v=…"/>
-    </div>
-
-    <!-- Age Group -->
-    <div>
-      <div class="field-label">Age Group <span>*</span></div>
-      <div class="chip-row" id="ageChips">
-        <button class="age-chip" data-age="U6"    onclick="toggleAge(this)">U6</button>
-        <button class="age-chip" data-age="U8"    onclick="toggleAge(this)">U8</button>
-        <button class="age-chip" data-age="U10"   onclick="toggleAge(this)">U10</button>
-        <button class="age-chip" data-age="U12"   onclick="toggleAge(this)">U12</button>
-        <button class="age-chip" data-age="U14"   onclick="toggleAge(this)">U14</button>
-        <button class="age-chip" data-age="U16"   onclick="toggleAge(this)">U16</button>
-        <button class="age-chip" data-age="U18"   onclick="toggleAge(this)">U18</button>
-        <button class="age-chip" data-age="Adult" onclick="toggleAge(this)">Adult</button>
-      </div>
-    </div>
-
-    <!-- Sport -->
-    <div>
-      <div class="field-label">Sport <span>*</span></div>
-      <div class="chip-row" id="sportChips">
-        <button class="age-chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
-        <button class="age-chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
-        <button class="age-chip" data-sport="Camogie"  onclick="toggleChip(this)">Camogie</button>
-      </div>
-    </div>
-
-    <!-- Skills (optional) -->
-    <div>
-      <div class="field-label">Skills <span title="optional">(optional)</span></div>
-      <div class="chip-row" id="skillChips">
-        <button class="age-chip" data-skill="Handpass"  onclick="toggleChip(this)">Handpass</button>
-        <button class="age-chip" data-skill="Kick Pass"  onclick="toggleChip(this)">Kick Pass</button>
-        <button class="age-chip" data-skill="Catching"  onclick="toggleChip(this)">Catching</button>
-        <button class="age-chip" data-skill="Solo"      onclick="toggleChip(this)">Solo</button>
-        <button class="age-chip" data-skill="Shooting"  onclick="toggleChip(this)">Shooting</button>
-        <button class="age-chip" data-skill="Tackling"  onclick="toggleChip(this)">Tackling</button>
-        <button class="age-chip" data-skill="Blocking"  onclick="toggleChip(this)">Blocking</button>
-        <button class="age-chip" data-skill="Fielding"  onclick="toggleChip(this)">Fielding</button>
-      </div>
-    </div>
-
-    <!-- Setup -->
-    <div>
-      <div class="field-header-row">
-        <div class="field-label">Setup <span>*</span></div>
-        <button class="field-speak-btn" onclick="toggleFieldSpeech('inpSetup', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          <span>Speak</span>
-        </button>
-      </div>
-      <textarea id="inpSetup" class="text-input" placeholder="Players, cones, pitch area, equipment…" oninput="autoResize(this)"></textarea>
-    </div>
-
-    <!-- How to Play -->
-    <div>
-      <div class="field-header-row">
-        <div class="field-label">How to Play <span>*</span></div>
-        <button class="field-speak-btn" onclick="toggleFieldSpeech('inpHowTo', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          <span>Speak</span>
-        </button>
-      </div>
-      <textarea id="inpHowTo" class="text-input" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
-    </div>
-
-    <!-- Variations -->
-    <div>
-      <div class="field-header-row">
-        <div class="field-label">Variations <span title="optional">(optional)</span></div>
-        <button class="field-speak-btn" onclick="toggleFieldSpeech('inpVariations', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          <span>Speak</span>
-        </button>
-      </div>
-      <textarea id="inpVariations" class="text-input" placeholder="Progressions, easier/harder options…" oninput="autoResize(this)"></textarea>
-    </div>
-
-    <!-- Teaching Points -->
-    <div>
-      <div class="field-header-row">
-        <div class="field-label">Teaching Points <span title="optional">(optional)</span></div>
-        <button class="field-speak-btn" onclick="toggleFieldSpeech('inpTeaching', this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          <span>Speak</span>
-        </button>
-      </div>
-      <textarea id="inpTeaching" class="text-input" placeholder="Key coaching cues, what to look for…" oninput="autoResize(this)"></textarea>
-    </div>
-
-    <!-- Sketch / Photo -->
+    <!-- Sketch / Photo ─ AT TOP ─ Diagram left, Sketch right -->
     <div>
       <div class="field-label">Sketch / Photo <span title="optional">(optional)</span></div>
       <div class="media-tabs">
-        <button class="media-tab" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
         <button class="media-tab active" onclick="switchMediaTab('photo', this)">📐 Diagram</button>
+        <button class="media-tab" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
       </div>
 
       <!-- Sketch panel -->
@@ -494,6 +450,150 @@
         </div>
 
       </div>
+    </div>
+
+    <!-- Name -->
+    <div>
+      <div class="field-label">Game Name <span>*</span></div>
+      <input id="inpName" class="text-input" type="text" placeholder="e.g. Kick Pass Relay"/>
+    </div>
+
+    <!-- Type -->
+    <div>
+      <div class="field-label">Type <span>*</span></div>
+      <select id="inpType" class="text-input" onchange="onTypeChange()">
+        <option value="">Select type…</option>
+        <option value="Game">Game</option>
+        <option value="Drill">Drill</option>
+        <option value="Skill">Skill</option>
+        <option value="Warmup">Warmup</option>
+        <option value="Video">Video</option>
+      </select>
+    </div>
+
+    <!-- Video Link -->
+    <div>
+      <div class="field-label">Video Link <span id="videoLinkReq" title="optional">(optional)</span></div>
+      <input id="inpVideoUrl" class="text-input" type="url" placeholder="https://youtube.com/watch?v=…"/>
+    </div>
+
+    <!-- Age Group -->
+    <div>
+      <div class="field-label">Age Group <span>*</span></div>
+      <div class="chip-row" id="ageChips">
+        <button class="age-chip" data-age="U6"    onclick="toggleAge(this)">U6</button>
+        <button class="age-chip" data-age="U8"    onclick="toggleAge(this)">U8</button>
+        <button class="age-chip" data-age="U10"   onclick="toggleAge(this)">U10</button>
+        <button class="age-chip" data-age="U12"   onclick="toggleAge(this)">U12</button>
+        <button class="age-chip" data-age="U14"   onclick="toggleAge(this)">U14</button>
+        <button class="age-chip" data-age="U16"   onclick="toggleAge(this)">U16</button>
+        <button class="age-chip" data-age="U18"   onclick="toggleAge(this)">U18</button>
+        <button class="age-chip" data-age="Adult" onclick="toggleAge(this)">Adult</button>
+      </div>
+    </div>
+
+    <!-- Sport -->
+    <div>
+      <div class="field-label">Sport <span>*</span></div>
+      <div class="chip-row" id="sportChips">
+        <button class="age-chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
+        <button class="age-chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
+        <button class="age-chip" data-sport="Camogie"  onclick="toggleChip(this)">Camogie</button>
+      </div>
+    </div>
+
+    <!-- Skills (optional) -->
+    <div>
+      <div class="field-label">Skills <span title="optional">(optional)</span></div>
+      <div class="chip-row" id="skillChips">
+        <button class="age-chip" data-skill="Handpass"  onclick="toggleChip(this)">Handpass</button>
+        <button class="age-chip" data-skill="Kick Pass" onclick="toggleChip(this)">Kick Pass</button>
+        <button class="age-chip" data-skill="Catching"  onclick="toggleChip(this)">Catching</button>
+        <button class="age-chip" data-skill="Solo"      onclick="toggleChip(this)">Solo</button>
+        <button class="age-chip" data-skill="Shooting"  onclick="toggleChip(this)">Shooting</button>
+        <button class="age-chip" data-skill="Tackling"  onclick="toggleChip(this)">Tackling</button>
+        <button class="age-chip" data-skill="Blocking"  onclick="toggleChip(this)">Blocking</button>
+        <button class="age-chip" data-skill="Fielding"  onclick="toggleChip(this)">Fielding</button>
+      </div>
+    </div>
+
+    <!-- Voice / Text mode toggle -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeVoice" onclick="setInputMode('voice')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+        Voice
+      </button>
+      <button class="mode-btn" id="modeText" onclick="setInputMode('text')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Text
+      </button>
+    </div>
+
+    <!-- Voice panel -->
+    <div id="voicePanel" class="mode-panel">
+      <p class="voice-instruction">Describe the game or drill in detail — cover setup, how to play, any variations, and key coaching points. Hold the button below to record.</p>
+      <div class="mic-container">
+        <div id="voiceWave" class="voice-wave" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <button id="micBtn" class="mic-btn" aria-label="Hold to record">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+        </button>
+      </div>
+      <div id="voiceTranscript" class="transcript-preview"></div>
+      <button id="createWithAiBtn" class="btn-primary" onclick="createWithVoiceAI()" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Create with AI
+      </button>
+    </div>
+
+    <!-- Text panel -->
+    <div id="textPanel" class="mode-panel" style="display:none">
+
+      <div>
+        <div class="field-header-row">
+          <div class="field-label">Setup <span>*</span></div>
+          <button class="field-speak-btn" onclick="toggleFieldSpeech('inpSetup', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+            <span>Speak</span>
+          </button>
+        </div>
+        <textarea id="inpSetup" class="text-input" placeholder="Players, cones, pitch area, equipment…" oninput="autoResize(this)"></textarea>
+      </div>
+
+      <div>
+        <div class="field-header-row">
+          <div class="field-label">How to Play <span>*</span></div>
+          <button class="field-speak-btn" onclick="toggleFieldSpeech('inpHowTo', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+            <span>Speak</span>
+          </button>
+        </div>
+        <textarea id="inpHowTo" class="text-input" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
+      </div>
+
+      <div>
+        <div class="field-header-row">
+          <div class="field-label">Variations <span title="optional">(optional)</span></div>
+          <button class="field-speak-btn" onclick="toggleFieldSpeech('inpVariations', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+            <span>Speak</span>
+          </button>
+        </div>
+        <textarea id="inpVariations" class="text-input" placeholder="Progressions, easier/harder options…" oninput="autoResize(this)"></textarea>
+      </div>
+
+      <div>
+        <div class="field-header-row">
+          <div class="field-label">Teaching Points <span title="optional">(optional)</span></div>
+          <button class="field-speak-btn" onclick="toggleFieldSpeech('inpTeaching', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+            <span>Speak</span>
+          </button>
+        </div>
+        <textarea id="inpTeaching" class="text-input" placeholder="Key coaching cues, what to look for…" oninput="autoResize(this)"></textarea>
+      </div>
+
     </div>
 
   </div>
@@ -590,6 +690,131 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  // ── Input mode toggle (Voice / Text) ─────────────────────────────────────────
+
+  let _inputMode        = 'voice';
+  let _voiceTranscript  = '';
+  let _isVoiceRecording = false;
+
+  function setInputMode(mode) {
+    _inputMode = mode;
+    document.getElementById('voicePanel').style.display = mode === 'voice' ? '' : 'none';
+    document.getElementById('textPanel').style.display  = mode === 'text'  ? '' : 'none';
+    document.getElementById('modeVoice').classList.toggle('active', mode === 'voice');
+    document.getElementById('modeText').classList.toggle('active',  mode === 'text');
+    if (mode === 'text') {
+      requestAnimationFrame(() => {
+        document.querySelectorAll('#textPanel textarea').forEach(autoResize);
+      });
+    }
+  }
+
+  // ── Voice mode: hold-to-record mic button ─────────────────────────────────────
+
+  function _initMicButton() {
+    const btn = document.getElementById('micBtn');
+    if (!btn) return;
+
+    function start(e) {
+      e.preventDefault();
+      if (_isVoiceRecording) return;
+      _isVoiceRecording = true;
+      _voiceTranscript  = '';
+      _baseVoiceText    = '';
+      document.getElementById('voiceTranscript').textContent = '';
+      document.getElementById('createWithAiBtn').disabled = true;
+      btn.classList.add('recording');
+      document.getElementById('voiceWave').classList.add('active');
+
+      if (window.FlutterBridge) {
+        window.FlutterBridge.postMessage('startSpeech:voice_input');
+      } else {
+        _startWebVoiceSpeech();
+      }
+    }
+
+    function stop() {
+      if (!_isVoiceRecording) return;
+      if (window.FlutterBridge) {
+        window.FlutterBridge.postMessage('stopSpeech');
+      } else {
+        _stopWebVoiceSpeech();
+      }
+    }
+
+    btn.addEventListener('pointerdown',  start, { passive: false });
+    btn.addEventListener('pointerup',    stop);
+    btn.addEventListener('pointerleave', stop);
+    btn.addEventListener('touchstart',   start, { passive: false });
+    btn.addEventListener('touchend',     stop);
+    btn.addEventListener('touchcancel',  stop);
+  }
+
+  let _voiceWebRecognition = null;
+  let _baseVoiceText       = '';
+
+  function _startWebVoiceSpeech() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showToast('Speech not supported on this browser', 'error'); _resetVoiceState(); return; }
+    _voiceWebRecognition = new SR();
+    _voiceWebRecognition.lang = 'en-IE';
+    _voiceWebRecognition.continuous = true;
+    _voiceWebRecognition.interimResults = false;
+    _voiceWebRecognition.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) _baseVoiceText += e.results[i][0].transcript + ' ';
+      }
+      _voiceTranscript = _removeFillersAndClean(_baseVoiceText);
+      document.getElementById('voiceTranscript').textContent = _voiceTranscript;
+    };
+    _voiceWebRecognition.onerror = (e) => {
+      if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error');
+      _resetVoiceState();
+    };
+    _voiceWebRecognition.onend = () => { if (_isVoiceRecording) _resetVoiceState(); };
+    try { _voiceWebRecognition.start(); } catch { _resetVoiceState(); }
+  }
+
+  function _stopWebVoiceSpeech() {
+    if (_voiceWebRecognition) { try { _voiceWebRecognition.stop(); } catch {} _voiceWebRecognition = null; }
+    _resetVoiceState();
+  }
+
+  function _resetVoiceState() {
+    _isVoiceRecording = false;
+    const btn = document.getElementById('micBtn');
+    if (btn) btn.classList.remove('recording');
+    document.getElementById('voiceWave').classList.remove('active');
+    document.getElementById('createWithAiBtn').disabled = !_voiceTranscript.trim();
+  }
+
+  async function createWithVoiceAI() {
+    const transcript = _voiceTranscript.trim();
+    if (!transcript) return;
+
+    const btn = document.getElementById('createWithAiBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing…';
+
+    try {
+      const result = await callEdgeFunction({
+        action:           'split_voice',
+        voice_transcript: transcript,
+        game_code:        getSelectedSports(),
+      });
+      document.getElementById('inpSetup').value      = result.game_setup           || '';
+      document.getElementById('inpHowTo').value      = result.game_how_to_play     || '';
+      document.getElementById('inpVariations').value = result.game_variations      || '';
+      document.getElementById('inpTeaching').value   = result.game_teaching_points || '';
+      setInputMode('text');
+      showToast('Draft ready — review and edit', 'success');
+    } catch (err) {
+      showToast('Error: ' + (err.message || 'AI failed'), 'error');
+      btn.disabled = !_voiceTranscript.trim();
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Create with AI`;
+    }
+  }
+
   // ── Speech recognition (per-field) ──────────────────────────────────────────
 
   let _recognition      = null;
@@ -685,6 +910,13 @@
   // ── Flutter native speech callbacks ──────────────────────────────────────────
   // Called by Flutter with each final transcription chunk
   window.receiveSpeechResult = function(fieldId, text) {
+    if (fieldId === 'voice_input') {
+      _voiceTranscript += text + ' ';
+      const cleaned = _removeFillersAndClean(_voiceTranscript);
+      _voiceTranscript = cleaned;
+      document.getElementById('voiceTranscript').textContent = cleaned;
+      return;
+    }
     _baseText += text + ' ';
     const cleaned = _removeFillersAndClean(_baseText);
     const ta = document.getElementById(fieldId);
@@ -693,6 +925,10 @@
 
   // Called by Flutter when recognition ends (pause / done)
   window.onSpeechDone = function() {
+    if (_isVoiceRecording) {
+      _resetVoiceState();
+      return;
+    }
     _isRecording = false;
     if (_recordingBtn) {
       _recordingBtn.classList.remove('recording');
@@ -1118,8 +1354,8 @@
     });
   }
 
-  // Init canvas on page load (sketch panel is visible by default)
-  requestAnimationFrame(() => initSketchCanvas());
+  // Init canvas on page load and wire up mic button
+  requestAnimationFrame(() => { initSketchCanvas(); _initMicButton(); });
 
   // ── Supabase / Edge function config ───────────────────────────────────────
 
@@ -1637,13 +1873,9 @@
     if (!setup) { showToast('Setup is required', 'error'); return; }
     if (!howTo) { showToast('How to Play is required', 'error'); return; }
 
-    // Capture sketch or photo — one is required
+    // Capture sketch or photo (optional)
     const hasSketch = _activeMediaTab === 'sketch' && _hasDrawn;
     const hasPhoto  = _activeMediaTab === 'photo'  && !!_imageBase64;
-    if (!hasSketch && !hasPhoto) {
-      showToast('Add a sketch or photo before continuing', 'error');
-      return;
-    }
     _reviewImage = null;
     if (hasSketch) {
       const png = await getSketchPng();
@@ -1755,7 +1987,6 @@
   async function saveGame() {
     const name = document.getElementById('rvName').value.trim();
     if (!name) { showToast('Game name is required', 'error'); document.getElementById('rvName').focus(); return; }
-    if (!_reviewImage) { showToast('An image (sketch or photo) is required', 'error'); return; }
 
     const saveBtn = document.querySelector('.btn-primary[onclick="saveGame()"]');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
