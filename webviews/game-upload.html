@@ -605,12 +605,9 @@
   }
 
   function toggleFieldSpeech(fieldId, btn) {
-    console.log('[Speech] toggleFieldSpeech | fieldId=' + fieldId + ' | isRecording=' + _isRecording + ' | FlutterBridge=' + (!!window.FlutterBridge));
     if (_isRecording) {
       const wasSameField = _recordingFieldId === fieldId;
-      console.log('[Speech] already recording | wasSameField=' + wasSameField + ' | recordingFieldId=' + _recordingFieldId);
       if (window.FlutterBridge) {
-        console.log('[Speech] → posting stopSpeech to FlutterBridge');
         window.FlutterBridge.postMessage('stopSpeech');
         stopSpeech(); // reset UI immediately — onSpeechDone() from Flutter becomes a no-op
       } else {
@@ -624,10 +621,8 @@
     const ta = document.getElementById(fieldId);
     _baseText = ta.value;
     if (_baseText && !_baseText.endsWith(' ') && !_baseText.endsWith('\n')) _baseText += ' ';
-    console.log('[Speech] baseText set | length=' + _baseText.length);
 
     if (window.FlutterBridge) {
-      console.log('[Speech] → posting startSpeech:' + fieldId + ' to FlutterBridge');
       _isRecording = true;
       btn.classList.add('recording');
       btn.querySelector('span').textContent = 'Stop';
@@ -637,21 +632,18 @@
 
     // Web / desktop fallback — webkitSpeechRecognition
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    console.log('[Speech] web path | SpeechRecognition available=' + (!!SR));
     if (!SR) { showToast('Speech not supported on this browser', 'error'); return; }
 
     _recognition = new SR();
     _recognition.lang = 'en-IE';
     _recognition.continuous = true;
     _recognition.interimResults = false;
-    console.log('[Speech] SpeechRecognition created | lang=en-IE');
 
     _recognition.onresult = (e) => {
       let added = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) added += e.results[i][0].transcript + ' ';
       }
-      console.log('[Speech] onresult | added="' + added.trim() + '" | baseText now="' + (_baseText + added).trim() + '"');
       _baseText += added;
       const cleaned = _removeFillersAndClean(_baseText);
       document.getElementById(_recordingFieldId).value = cleaned;
@@ -659,33 +651,28 @@
     };
 
     _recognition.onerror = (e) => {
-      console.log('[Speech] onerror | error=' + e.error + ' | message=' + (e.message || 'none'));
       if (e.error === 'not-allowed') showToast('Microphone permission denied', 'error');
       else if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error');
       stopSpeech();
     };
 
     _recognition.onend = () => {
-      console.log('[Speech] onend | isRecording=' + _isRecording);
       if (_isRecording) {
-        try { _recognition.start(); console.log('[Speech] restarted after onend'); } catch(err) { console.log('[Speech] restart threw: ' + err); stopSpeech(); }
+        try { _recognition.start(); } catch(err) { stopSpeech(); }
       }
     };
 
     try {
       _recognition.start();
-      console.log('[Speech] recognition.start() called ✓');
       _isRecording = true;
       btn.classList.add('recording');
       btn.querySelector('span').textContent = 'Stop';
     } catch (err) {
-      console.log('[Speech] recognition.start() threw | err=' + err);
       showToast('Could not start microphone', 'error');
     }
   }
 
   function stopSpeech() {
-    console.log('[Speech] stopSpeech | isRecording=' + _isRecording);
     _isRecording = false;
     if (_recognition) { try { _recognition.stop(); } catch {} _recognition = null; }
     if (_recordingBtn) {
@@ -699,7 +686,6 @@
   // ── Flutter native speech callbacks ──────────────────────────────────────────
   // Called by Flutter with each final transcription chunk
   window.receiveSpeechResult = function(fieldId, text) {
-    console.log('[Speech] receiveSpeechResult | fieldId=' + fieldId + ' | text="' + text + '"');
     _baseText += text + ' ';
     const cleaned = _removeFillersAndClean(_baseText);
     const ta = document.getElementById(fieldId);
@@ -708,7 +694,6 @@
 
   // Called by Flutter when recognition ends (pause / done)
   window.onSpeechDone = function() {
-    console.log('[Speech] onSpeechDone | isRecording=' + _isRecording);
     _isRecording = false;
     if (_recordingBtn) {
       _recordingBtn.classList.remove('recording');
@@ -720,7 +705,6 @@
 
   // Called by Flutter on recognition error
   window.onSpeechError = function(msg) {
-    console.log('[Speech] onSpeechError | msg=' + msg);
     showToast(msg || 'Voice input failed', 'error');
     window.onSpeechDone();
   };
