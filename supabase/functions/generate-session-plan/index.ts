@@ -140,7 +140,7 @@ async function fetchWeather(
   } catch { return null; }
 }
 
-// ── Member counting — squad-aware ─────────────────────────────────────────────
+// ── Member counting — all team/squad members (fallback) ───────────────────────
 async function countMembers(sb: any, teamId: number, squadId: number | null) {
   let playerCount = 0, coachCount = 0;
 
@@ -155,33 +155,69 @@ async function countMembers(sb: any, teamId: number, squadId: number | null) {
   }
 
   if (squadId) {
-    // Get member_ids for this squad, then fetch their roles via member_team_link
     const { data: squadLinks } = await sb
       .from("member_squad_link")
       .select("member_id")
       .eq("squad_id", squadId);
-
     const memberIds = (squadLinks || []).map((s: any) => s.member_id);
     if (memberIds.length > 0) {
       const { data: members } = await sb
         .from("member_team_link")
         .select("member_id, member_team_role_link!inner(roles!inner(role_level))")
-        .eq("team_id", teamId)
-        .eq("status", "active")
-        .in("member_id", memberIds);
+        .eq("team_id", teamId).eq("status", "active").in("member_id", memberIds);
       await countFromMemberList(members || []);
     }
   } else {
     const { data: members } = await sb
       .from("member_team_link")
       .select("member_id, member_team_role_link!inner(roles!inner(role_level))")
-      .eq("team_id", teamId)
-      .eq("status", "active");
+      .eq("team_id", teamId).eq("status", "active");
     await countFromMemberList(members || []);
   }
 
   if (playerCount === 0 && coachCount === 0) playerCount = 15;
   return { playerCount, coachCount };
+}
+
+// ── Member counting — accepted attendees only (primary) ───────────────────────
+async function countAcceptedAttendees(sb: any, eventId: number, teamId: number, squadId: number | null) {
+  const { data: attendance } = await sb
+    .from("event_attendance")
+    .select("member_id, response_id, created_at")
+    .eq("event_id", eventId);
+
+  if (attendance && attendance.length > 0) {
+    // Deduplicate: keep the latest response per member
+    const latestByMember = new Map<string, { response_id: number; created_at: string }>();
+    for (const a of attendance) {
+      const existing = latestByMember.get(a.member_id);
+      if (!existing || a.created_at > existing.created_at) {
+        latestByMember.set(a.member_id, { response_id: a.response_id, created_at: a.created_at });
+      }
+    }
+    const acceptedIds = [...latestByMember.entries()]
+      .filter(([, v]) => v.response_id === 3)
+      .map(([mid]) => mid);
+
+    if (acceptedIds.length > 0) {
+      const { data: members } = await sb
+        .from("member_team_link")
+        .select("member_id, member_team_role_link!inner(roles!inner(role_level))")
+        .eq("team_id", teamId).eq("status", "active").in("member_id", acceptedIds);
+
+      let playerCount = 0, coachCount = 0;
+      for (const m of members || []) {
+        const levels: number[] = ((m.member_team_role_link || []) as any[])
+          .map((r: any) => r.roles?.role_level).filter((v: any) => v != null);
+        if (levels.includes(30)) coachCount++;
+        else playerCount++;
+      }
+      if (playerCount > 0 || coachCount > 0) return { playerCount, coachCount };
+    }
+  }
+
+  // No attendance responses yet — fall back to total team/squad count
+  return countMembers(sb, teamId, squadId);
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -245,13 +281,31 @@ serve(async (req) => {
     const squad = (event.squads as any) || null;
     const teamId = (event.teams as any)?.team_id ?? event.team_id;
 
-    const branding = {
-      club_name:        club.club_name        || "",
-      crest:            club.crest            || null,
-      primary_colour:   club.primary_colour   || "#87C232",
-      secondary_colour: club.secondary_colour || null,
-      third_colour:     club.third_colour     || null,
-    };
+    // Branding from user's default_club (not the event's club chain)
+    const { data: userRow } = await sb.from("users").select("default_club").eq("id", user_id).maybeSingle();
+    let branding: Record<string, any>;
+    if (userRow?.default_club) {
+      const { data: uClub } = await sb
+        .from("clubs")
+        .select("club_name, crest, primary_colour, secondary_colour, third_colour")
+        .eq("club_id", userRow.default_club)
+        .maybeSingle();
+      branding = {
+        club_name:        uClub?.club_name        || club.club_name || "",
+        crest:            uClub?.crest            || club.crest || null,
+        primary_colour:   uClub?.primary_colour   || club.primary_colour || "#87C232",
+        secondary_colour: uClub?.secondary_colour || null,
+        third_colour:     uClub?.third_colour     || null,
+      };
+    } else {
+      branding = {
+        club_name:        club.club_name        || "",
+        crest:            club.crest            || null,
+        primary_colour:   club.primary_colour   || "#87C232",
+        secondary_colour: club.secondary_colour || null,
+        third_colour:     club.third_colour     || null,
+      };
+    }
     const eventMeta = {
       title:         event.event_title    || "Training Session",
       date_time:     event.event_date_time,
@@ -337,8 +391,8 @@ serve(async (req) => {
     const notesByGame: Record<number, string> = {};
     for (const n of notes || []) notesByGame[n.game_id] = n.notes;
 
-    // Member counts — squad-aware fix
-    const { playerCount, coachCount } = await countMembers(sb, teamId, event.squad_id ?? null);
+    // Member counts — accepted attendees only, squad-aware fallback
+    const { playerCount, coachCount } = await countAcceptedAttendees(sb, event_id, teamId, event.squad_id ?? null);
 
     // Weather
     const weather = await fetchWeather(event.location_pin, event.location_name, event.event_date_time, club.county ?? null);
