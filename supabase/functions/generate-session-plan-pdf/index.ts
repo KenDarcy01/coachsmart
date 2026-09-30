@@ -217,6 +217,7 @@ function buildPdfTitle(event: EventData): string {
 async function buildSessionPlanPdf(
   plan: PlanJson,
   event: EventData,
+  format: "a4" | "mobile" = "a4",
 ): Promise<Uint8Array> {
 
   const club = event.club;
@@ -262,14 +263,15 @@ async function buildSessionPlanPdf(
   const notoReg        = await embedOrFallback(notoRegBytes,        StandardFonts.Helvetica);
   const notoBold       = await embedOrFallback(notoBoldBytes,       StandardFonts.HelveticaBold);
 
-  // ── Page dimensions (A4 portrait) ──
-  const PW = 595;
-  const PH = 842;
-  const ML = 28;
-  const MR = 28;
-  const MT = 20;
-  const MB = 20;
-  const CW = PW - ML - MR;
+  // ── Page dimensions ──
+  const isMobile   = format === "mobile";
+  const PW         = isMobile ? 390 : 595;
+  const PH         = isMobile ? 780 : 842;
+  const ML         = isMobile ?  14 :  28;
+  const MR         = isMobile ?  14 :  28;
+  const MT         = isMobile ?  16 :  20;
+  const MB         = isMobile ?  16 :  20;
+  const CW         = PW - ML - MR;
 
   // ── Club crest ──
   const crestBytes = club.crest ? await fetchImageBytes(club.crest) : null;
@@ -283,10 +285,10 @@ async function buildSessionPlanPdf(
   }
 
   // ── Layout constants ──
-  const CREST_SIZE      = 64;
-  const HEADER_PAD      = 12;
-  const CLUB_FONT_S     = 14;
-  const TITLE_FONT_S    = 18;
+  const CREST_SIZE      = isMobile ?  44 :  64;
+  const HEADER_PAD      = isMobile ?  10 :  12;
+  const CLUB_FONT_S     = isMobile ?  12 :  14;
+  const TITLE_FONT_S    = isMobile ?  14 :  18;
   const RULE_H          = 1;
   const TEXT_BLOCK_H    = CLUB_FONT_S + 8 + RULE_H + 8 + TITLE_FONT_S;
   const headerContentH  = Math.max(CREST_SIZE, TEXT_BLOCK_H);
@@ -297,20 +299,22 @@ async function buildSessionPlanPdf(
   const THIRD_STRIPE  = thirdRgb ? 3 : 0;
   const STRIPE_H      = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
 
-  const META_ROW_H    = plan.weather?.summary ? 48 : 30;
+  const META_ROW_H    = plan.weather?.summary ? (isMobile ? 42 : 48) : (isMobile ? 26 : 30);
   const FOOTER_RULE_Y = MB + 14;
   const FOOTER_TEXT_Y = MB;
-  const FOOTER_ZONE   = MB + 30;
+  const FOOTER_ZONE   = MB + (isMobile ? 24 : 30);
 
-  const SECTION_ROW_H   = 28;
+  const SECTION_ROW_H   = isMobile ? 26 : 28;
   const SECTION_DOT_R   = 4;
   const SECTION_FONT_S  = 11;
-  const DRILL_NAME_S    = 12;
+  const DRILL_NAME_S    = isMobile ? 11 : 12;
   const BODY_FONT_S     = 11;
-  const SMALL_FONT_S    = 10;
+  const SMALL_FONT_S    = isMobile ?  9 : 10;
   const LINE_H          = 17;
-  const BODY_LEFT       = ML + 12;
-  const BODY_W          = CW - 12;
+  const BODY_LEFT       = ML + (isMobile ? 10 : 12);
+  const BODY_W          = CW - (isMobile ? 10 : 12);
+  const IDEAL_IMG_H     = isMobile ? 210 : 270;
+  const MIN_IMG_H       = isMobile ? 100 : 160;
 
   // ── Mutable page state ──
   let currentPage: any = null;
@@ -633,22 +637,20 @@ async function buildSessionPlanPdf(
 
         if (drillImg) {
           const ratio = drillImg.width / drillImg.height;
-          const IDEAL_H = 270;
-          const MIN_H = 160;
           let imgW = CW;
-          let imgH = Math.min(imgW / ratio, IDEAL_H);
+          let imgH = Math.min(imgW / ratio, IDEAL_IMG_H);
           imgW = imgH * ratio;
           if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
 
           curY += 8;
           const spaceAvail = PH - curY - FOOTER_ZONE - 20;
           if (spaceAvail < imgH) {
-            if (spaceAvail >= MIN_H) {
+            if (spaceAvail >= MIN_IMG_H) {
               imgH = spaceAvail; imgW = imgH * ratio;
               if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
             } else {
               newPage(false);
-              imgH = IDEAL_H; imgW = imgH * ratio;
+              imgH = IDEAL_IMG_H; imgW = imgH * ratio;
               if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
             }
           }
@@ -742,7 +744,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { plan_id, user_id } = body;
+    const { plan_id, user_id, format = "a4" } = body;
     if (!plan_id) {
       return new Response(JSON.stringify({ error: "Missing plan_id" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -851,7 +853,7 @@ serve(async (req) => {
     }
 
     // ── Build PDF ──
-    const pdfBytes = await buildSessionPlanPdf(plan, eventData);
+    const pdfBytes = await buildSessionPlanPdf(plan, eventData, format === "mobile" ? "mobile" : "a4");
 
     // Chunked base64 — avoids stack overflow on large PDFs
     let b64 = "";
@@ -864,7 +866,7 @@ serve(async (req) => {
     const datePart = eventData.event_date
       ? eventData.event_date.slice(0, 10)
       : new Date().toISOString().slice(0, 10);
-    const filename = `session-plan-${datePart}.pdf`;
+    const filename = `session-plan-${format === "mobile" ? "share" : "print"}-${datePart}.pdf`;
 
     return new Response(JSON.stringify({ pdf: base64, filename }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
