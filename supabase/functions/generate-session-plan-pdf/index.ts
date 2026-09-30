@@ -753,9 +753,9 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { plan_id, user_id, format = "a4" } = body;
-    if (!plan_id) {
-      return new Response(JSON.stringify({ error: "Missing plan_id" }), {
+    const { plan_id, plan_json: bodyPlanJson, user_id, format = "a4" } = body;
+    if (!plan_id && !bodyPlanJson) {
+      return new Response(JSON.stringify({ error: "Missing plan_id or plan_json" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -765,52 +765,69 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ── Fetch session plan ──
-    const { data: planRow, error: planErr } = await supabase
-      .from("session_plans")
-      .select("plan_json, event_id, created_by")
-      .eq("plan_id", plan_id)
-      .maybeSingle();
+    let planJsonResolved: any;
+    let planEventId: number | null = null;
+    let planCreatedBy: string | null = null;
 
-    if (planErr || !planRow) {
-      return new Response(JSON.stringify({ error: "Session plan not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (plan_id) {
+      // ── Fetch session plan from DB ──
+      const { data: planRow, error: planErr } = await supabase
+        .from("session_plans")
+        .select("plan_json, event_id, created_by")
+        .eq("plan_id", plan_id)
+        .maybeSingle();
+
+      if (planErr || !planRow) {
+        return new Response(JSON.stringify({ error: "Session plan not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      planJsonResolved = planRow.plan_json;
+      planEventId      = planRow.event_id;
+      planCreatedBy    = planRow.created_by;
+    } else {
+      // plan_json passed directly (e.g. from favourites screen — no event)
+      planJsonResolved = bodyPlanJson;
     }
 
-    // ── Fetch event + team + club + squad ──
-    const { data: eventRow, error: eventErr } = await supabase
-      .from("events")
-      .select(`
-        event_title,
-        event_date_time,
-        teams!inner (
-          team_name,
-          team_female,
-          clubs!inner (
-            club_name,
-            crest,
-            primary_colour,
-            secondary_colour,
-            third_colour
-          )
-        ),
-        squads (
-          squad_name,
-          grade
-        ),
-        event_types!events_event_type_id_fkey(event_type),
-        event_codes!events_event_code_id_fkey(event_code)
-      `)
-      .eq("event_id", planRow.event_id)
-      .maybeSingle();
+    // ── Fetch event data (only when a plan_id linked to an event is present) ──
+    let eventRow: any = null;
+    if (planEventId) {
+      const { data: er, error: eventErr } = await supabase
+        .from("events")
+        .select(`
+          event_title,
+          event_date_time,
+          teams!inner (
+            team_name,
+            team_female,
+            clubs!inner (
+              club_name,
+              crest,
+              primary_colour,
+              secondary_colour,
+              third_colour
+            )
+          ),
+          squads (
+            squad_name,
+            grade
+          ),
+          event_types!events_event_type_id_fkey(event_type),
+          event_codes!events_event_code_id_fkey(event_code)
+        `)
+        .eq("event_id", planEventId)
+        .maybeSingle();
+      if (eventErr) console.warn("Event fetch error (continuing with defaults):", eventErr);
+      eventRow = er;
+    }
 
     // Build EventData — gracefully handle missing relations
-    const clubRaw   = (eventRow as any)?.teams?.clubs;
-    const squadRaw  = (eventRow as any)?.squads;
+    const clubRaw   = eventRow?.teams?.clubs;
+    const squadRaw  = eventRow?.squads;
 
     // Prefer user's default_club branding over the event's club chain
-    const resolvedUserId = user_id || planRow.created_by;
+    const resolvedUserId = user_id || planCreatedBy;
     let userClubRaw: Record<string, any> | null = null;
     if (resolvedUserId) {
       const { data: userRow } = await supabase
@@ -837,24 +854,20 @@ serve(async (req) => {
       third_colour:     src?.third_colour     || null,
     };
 
-    const teamFemale = (eventRow as any)?.teams?.team_female === true;
+    const teamFemale = eventRow?.teams?.team_female === true;
     const eventData: EventData = {
-      event_title: eventRow?.event_title      || null,
-      event_date:  (eventRow as any)?.event_date_time || null,
-      squad_name:  squadRaw?.squad_name   || null,
-      squad_grade: squadRaw?.grade        || null,
-      team_name:   (eventRow as any)?.teams?.team_name || null,
-      event_type:  applyCamogie((eventRow as any)?.event_types?.event_type || null, teamFemale),
-      event_code:  applyCamogie((eventRow as any)?.event_codes?.event_code || null, teamFemale),
+      event_title: eventRow?.event_title                || null,
+      event_date:  eventRow?.event_date_time            || null,
+      squad_name:  squadRaw?.squad_name                 || null,
+      squad_grade: squadRaw?.grade                      || null,
+      team_name:   eventRow?.teams?.team_name           || null,
+      event_type:  applyCamogie(eventRow?.event_types?.event_type || null, teamFemale),
+      event_code:  applyCamogie(eventRow?.event_codes?.event_code || null, teamFemale),
       team_female: teamFemale,
       club,
     };
 
-    if (eventErr) {
-      console.warn("Event fetch error (continuing with defaults):", eventErr);
-    }
-
-    const plan = planRow.plan_json as PlanJson;
+    const plan = planJsonResolved as PlanJson;
     if (!plan) {
       return new Response(JSON.stringify({ error: "plan_json is empty" }), {
         status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
