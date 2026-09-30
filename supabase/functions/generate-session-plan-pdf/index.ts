@@ -88,6 +88,23 @@ async function fetchImageBytes(url: string): Promise<Uint8Array | null> {
 function isJpeg(b: Uint8Array) { return b[0] === 0xff && b[1] === 0xd8; }
 function isPng(b: Uint8Array)  { return b[0] === 0x89 && b[1] === 0x50; }
 
+// ─── Weather text stripper ────────────────────────────────────────────────────
+
+function stripWeatherFromObjective(text: string): string {
+  if (!text) return text;
+  return text
+    .split('\n')
+    .map(line => {
+      if (/^Weather:/i.test(line.trim())) return '';
+      const idx = line.search(/\.\s+Weather:/i);
+      if (idx !== -1) return line.slice(0, idx + 1).trim();
+      return line;
+    })
+    .filter(l => l.trim() !== '')
+    .join('\n')
+    .trim();
+}
+
 // ─── Text helpers ─────────────────────────────────────────────────────────────
 
 function safeName(s: string) {
@@ -168,13 +185,22 @@ interface EventData {
   team_name: string | null;
   event_type: string | null;
   event_code: string | null;
+  team_female: boolean;
   club: ClubData;
+}
+
+function applyCamogie(s: string | null, teamFemale: boolean): string | null {
+  if (!s || !teamFemale) return s;
+  return s.replace(/\bHurling\b/g, 'Camogie').replace(/\bhurling\b/g, 'camogie');
 }
 
 function buildPdfTitle(event: EventData): string {
   const parts: string[] = [];
   if (event.team_name) parts.push(event.team_name);
-  const typeCode = [event.event_code, event.event_type].filter(Boolean).join(" ");
+  const typeCode = [
+    applyCamogie(event.event_code, event.team_female),
+    applyCamogie(event.event_type, event.team_female),
+  ].filter(Boolean).join(" ");
   if (typeCode) parts.push(typeCode);
   return parts.join(" - ") || "Session Plan";
 }
@@ -273,9 +299,9 @@ async function buildSessionPlanPdf(
   const SECTION_DOT_R   = 4;
   const SECTION_FONT_S  = 11;
   const DRILL_NAME_S    = 12;
-  const BODY_FONT_S     = 10;
-  const SMALL_FONT_S    = 9;
-  const LINE_H          = 16;
+  const BODY_FONT_S     = 11;
+  const SMALL_FONT_S    = 10;
+  const LINE_H          = 17;
   const BODY_LEFT       = ML + 12;
   const BODY_W          = CW - 12;
 
@@ -541,8 +567,9 @@ async function buildSessionPlanPdf(
   }
 
   // Objective (italic-style via regular font + muted colour, slightly indented)
-  if (plan.session_objective?.trim()) {
-    const objLines = wrapText(plan.session_objective, notoReg, BODY_FONT_S + 1, CW - 16);
+  const cleanObjective = stripWeatherFromObjective(plan.session_objective ?? '');
+  if (cleanObjective.trim()) {
+    const objLines = wrapText(cleanObjective, notoReg, BODY_FONT_S + 1, CW - 16);
     for (const line of objLines) {
       ensureSpace(BODY_FONT_S + 8);
       currentPage.drawText(line, {
@@ -552,17 +579,6 @@ async function buildSessionPlanPdf(
       curY += BODY_FONT_S + 8;
     }
     curY += 8;
-  }
-
-  // Weather
-  if (plan.weather?.summary?.trim()) {
-    ensureSpace(SMALL_FONT_S + 10);
-    const weatherStr = `Weather: ${plan.weather.summary}`;
-    currentPage.drawText(weatherStr, {
-      x: ML + 8, y: PH - curY - SMALL_FONT_S,
-      size: SMALL_FONT_S, font: notoReg, color: mutedText,
-    });
-    curY += SMALL_FONT_S + 10;
   }
 
   curY += 4; // breathing room before sections
@@ -736,6 +752,7 @@ serve(async (req) => {
         event_date_time,
         teams!inner (
           team_name,
+          team_female,
           clubs!inner (
             club_name,
             crest,
@@ -786,14 +803,16 @@ serve(async (req) => {
       third_colour:     src?.third_colour     || null,
     };
 
+    const teamFemale = (eventRow as any)?.teams?.team_female === true;
     const eventData: EventData = {
       event_title: eventRow?.event_title      || null,
       event_date:  (eventRow as any)?.event_date_time || null,
       squad_name:  squadRaw?.squad_name   || null,
       squad_grade: squadRaw?.grade        || null,
       team_name:   (eventRow as any)?.teams?.team_name || null,
-      event_type:  (eventRow as any)?.event_types?.event_type || null,
-      event_code:  (eventRow as any)?.event_codes?.event_code || null,
+      event_type:  applyCamogie((eventRow as any)?.event_types?.event_type || null, teamFemale),
+      event_code:  applyCamogie((eventRow as any)?.event_codes?.event_code || null, teamFemale),
+      team_female: teamFemale,
       club,
     };
 

@@ -965,6 +965,16 @@
     btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
     btn.disabled = true;
 
+    // Auto-save any inline edits before generating the PDF
+    try {
+      const edited = collectEdits();
+      if (edited && _currentPlanId) {
+        await fetch(EDGE_FN, { method: 'POST', headers: HEADERS,
+          body: JSON.stringify({ action: 'update_plan', event_id: EVENT_ID, user_id: USER_ID, plan_id: _currentPlanId, plan_json: edited }) });
+        _currentPlan = edited;
+      }
+    } catch { /* continue to PDF generation even if save fails */ }
+
     try {
       const res = await fetch(PDF_FN, {
         method: 'POST', headers: HEADERS,
