@@ -717,9 +717,18 @@
     const btn = document.getElementById('micBtn');
     if (!btn) return;
 
+    // Prevent iOS long-press context menu / text selection stealing the gesture
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+
     function start(e) {
       e.preventDefault();
       if (_isVoiceRecording) return;
+
+      // setPointerCapture routes ALL subsequent pointer events (including
+      // pointerup/pointercancel) back to this element even if the finger
+      // moves off the button or the OS tries to grab the gesture.
+      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+
       _isVoiceRecording = true;
       _voiceTranscript  = '';
       _baseVoiceText    = '';
@@ -748,12 +757,11 @@
       }
     }
 
-    btn.addEventListener('pointerdown',  start, { passive: false });
-    btn.addEventListener('pointerup',    stop);
-    btn.addEventListener('pointerleave', stop);
-    btn.addEventListener('touchstart',   start, { passive: false });
-    btn.addEventListener('touchend',     stop);
-    btn.addEventListener('touchcancel',  stop);
+    // Use pointer events only — touch events overlap and cause double-firing.
+    // pointercancel handles cases where the OS cancels the gesture mid-hold.
+    btn.addEventListener('pointerdown',   start, { passive: false });
+    btn.addEventListener('pointerup',     stop);
+    btn.addEventListener('pointercancel', stop);
   }
 
   let _voiceWebRecognition = null;
