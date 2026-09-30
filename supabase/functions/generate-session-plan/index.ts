@@ -45,7 +45,7 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
 
 {
   "session_title": "string (3–8 words describing the session theme)",
-  "session_objective": "string (1–2 sentences: what skill or quality players will develop)",
+  "session_objective": "string (1–2 sentences: what skill or quality players will develop — NO weather information)",
   "total_duration_mins": number,
   "warm_up": {
     "duration_mins": number,
@@ -74,9 +74,25 @@ Rules:
 - Adapt each drill to the given player count; note modifications if needed
 - Coaching points must be short and actionable
 - Use GAA language: "football" for football code, "sliotar" and "hurl" for hurling/camogie
-- Weather is provided for context only — do NOT mention it anywhere in the plan text; it is displayed separately
+- CRITICAL: Weather is provided for context only — do NOT include weather data or weather text ANYWHERE in the output JSON, not in session_objective, not in descriptions, not in coaching_points, not anywhere. Weather is shown separately.
 - Do NOT include player count adjustment notes; adapt the description directly for the given numbers
 - Warm-up must be at least 10 minutes; cool-down at least 5 minutes`;
+
+// ── Weather text stripper (safety net for Gemini non-compliance) ──────────────
+function stripWeatherFromObjective(text: string): string {
+  if (!text) return text;
+  return text
+    .split('\n')
+    .map(line => {
+      if (/^Weather:/i.test(line.trim())) return '';
+      const idx = line.search(/\.\s+Weather:/i);
+      if (idx !== -1) return line.slice(0, idx + 1).trim();
+      return line;
+    })
+    .filter(l => l.trim() !== '')
+    .join('\n')
+    .trim();
+}
 
 // ── Weather helpers ───────────────────────────────────────────────────────────
 function parseLatLng(pin: string | null): { lat: number; lng: number } | null {
@@ -262,7 +278,7 @@ serve(async (req) => {
         event_id, event_title, event_date_time, event_details,
         location_pin, location_name, squad_id, team_id,
         teams!events_team_id_fkey(
-          team_id, team_name,
+          team_id, team_name, team_female,
           clubs!teams_club_id_fkey(
             club_id, club_name, crest, county,
             primary_colour, secondary_colour, third_colour
@@ -279,12 +295,18 @@ serve(async (req) => {
       status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-    const club      = (event.teams as any)?.clubs || {};
-    const squad     = (event.squads as any) || null;
-    const teamId    = (event.teams as any)?.team_id ?? event.team_id;
-    const teamName  = (event.teams as any)?.team_name ?? null;
-    const eventType = (event as any).event_types?.event_type ?? null;
-    const eventCode = (event as any).event_codes?.event_code ?? null;
+    const club       = (event.teams as any)?.clubs || {};
+    const squad      = (event.squads as any) || null;
+    const teamId     = (event.teams as any)?.team_id ?? event.team_id;
+    const teamName   = (event.teams as any)?.team_name ?? null;
+    const teamFemale = (event.teams as any)?.team_female === true;
+    const eventType  = (event as any).event_types?.event_type ?? null;
+    const eventCode  = (event as any).event_codes?.event_code ?? null;
+
+    function applyCamogie(s: string | null): string | null {
+      if (!s || !teamFemale) return s;
+      return s.replace(/\bHurling\b/g, 'Camogie').replace(/\bhurling\b/g, 'camogie');
+    }
 
     // Branding from user's default_club (not the event's club chain)
     const { data: userRow } = await sb.from("users").select("default_club").eq("user_id", user_id).maybeSingle();
@@ -316,8 +338,8 @@ serve(async (req) => {
       date_time:     event.event_date_time,
       location_name: event.location_name  || null,
       team_name:     teamName,
-      event_type:    eventType,
-      event_code:    eventCode,
+      event_type:    applyCamogie(eventType),
+      event_code:    applyCamogie(eventCode),
     };
 
     // ── GET: return existing active plan + favourites list ────────────────────
@@ -440,7 +462,8 @@ serve(async (req) => {
       `Players: ${playerCount}`,
       `Coaches/managers: ${coachCount}`,
       squad?.squad_name ? `Squad: ${squad.squad_name}${squad.grade ? ` (${squad.grade})` : ""}` : null,
-      weather ? `Weather forecast: ${weather.summary}` : null,
+      teamFemale ? `Sport code: Camogie — use "Camogie" not "Hurling", "hurl/camán" for the stick, "sliotar" for the ball` : null,
+      weather ? `Weather forecast (for context only — do NOT include in plan text): ${weather.summary}` : null,
       event.event_details?.trim() ? `Coach's session notes: ${event.event_details.trim()}` : null,
       feedback?.trim() ? `\nCoach's feedback on the previous plan (please address this):\n${feedback.trim()}` : null,
       `\nGames to use (in this order):\n\n${gamesText}`,
@@ -457,6 +480,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "AI generation failed", detail: String(err).slice(0, 200) }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Strip weather from session_objective (safety net for Gemini non-compliance)
+    if (planJson.session_objective) {
+      planJson.session_objective = stripWeatherFromObjective(planJson.session_objective);
     }
 
     // Enrich drills with game images; strip unwanted fields
