@@ -130,19 +130,33 @@
       color: var(--muted); flex-shrink: 0;
       touch-action: none; cursor: grab;
       display: flex; align-items: center; justify-content: center;
-      width: 28px; height: 36px;
+      width: 36px; height: 44px;
+      transition: color 0.15s;
     }
-    .drag-handle:active { cursor: grabbing; }
-    .drag-handle svg { width: 18px; height: 18px; }
+    .drag-handle:active { cursor: grabbing; color: var(--accent); }
+    .drag-handle svg { width: 22px; height: 22px; }
 
     .fav-check-wrap {
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; width: 24px; height: 24px;
+      flex-shrink: 0; width: 32px; height: 32px;
     }
     .fav-check {
-      width: 18px; height: 18px;
-      accent-color: var(--accent);
-      cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      width: 22px; height: 22px; border-radius: 5px;
+      border: 2px solid var(--accent);
+      background: transparent;
+      cursor: pointer; flex-shrink: 0;
+      position: relative;
+      transition: background 0.15s;
+    }
+    .fav-check:checked { background: var(--accent); }
+    .fav-check:checked::after {
+      content: '';
+      position: absolute; left: 5px; top: 1px;
+      width: 8px; height: 12px;
+      border: 2.5px solid rgba(0,0,0,0.65);
+      border-top: none; border-left: none;
+      transform: rotate(45deg);
     }
 
     .fav-thumb {
@@ -394,33 +408,62 @@
     .sheet-header {
       background: var(--surface); border-bottom: 3px solid var(--accent);
       padding: 0 16px; height: 60px;
-      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0;
     }
     .sheet-back {
       display: flex; align-items: center; gap: 4px;
       color: var(--accent); font-size: 16px; font-weight: 600;
     }
     .sheet-back svg { width: 28px; height: 28px; }
+    .sheet-heart-btn {
+      color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; border-radius: 10px;
+      transition: background 0.1s, color 0.1s; flex-shrink: 0;
+    }
+    .sheet-heart-btn.is-fav { color: #e05555; }
+    .sheet-heart-btn:active { background: rgba(224,85,85,0.12); }
+    .sheet-heart-btn svg { width: 24px; height: 24px; }
     .sheet-body {
       flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
     }
     .sheet-game-img {
-      width: 100%; height: auto; display: block;
+      width: calc(100% - 32px); height: auto; display: block;
+      margin: 16px; border-radius: 12px; object-fit: cover;
     }
     .sheet-section {
       padding: 14px 16px 0;
     }
     .sheet-section-label {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px;
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
     }
     .sheet-section-text {
-      font-size: 14px; color: var(--text); line-height: 1.6; white-space: pre-line;
+      font-size: 15px; color: var(--text); line-height: 1.65; white-space: pre-line;
     }
     .sheet-game-title {
       font-size: 20px; font-weight: 700; color: var(--text);
-      padding: 16px 16px 0;
+      padding: 16px 16px 4px;
     }
+    .sheet-actions {
+      padding: 12px 16px 0;
+    }
+    .coach-notes-section {
+      padding: 14px 16px 0;
+    }
+    .coach-notes-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
+    }
+    .coach-notes-input {
+      width: 100%; box-sizing: border-box;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+      color: var(--text); font-family: inherit; font-size: 14px;
+      line-height: 1.55; resize: none; overflow: hidden; min-height: 80px;
+    }
+    .coach-notes-input::placeholder { color: var(--muted); }
+    .coach-notes-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
 
     /* ── Toast ────────────────────────────────────────────────────────────── */
     #toast {
@@ -501,11 +544,7 @@
 
 <!-- Action bar (shown over plan screen) -->
 <div id="actionBar" class="action-bar" style="display:none">
-  <button class="btn btn-outline" onclick="exportPlan('a4')" id="exportBtnPrint">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-    Print
-  </button>
-  <button class="btn btn-primary" onclick="exportPlan('mobile')" id="exportBtnShare">
+  <button class="btn btn-primary btn-full" onclick="exportPlan('mobile')" id="exportBtn">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
     Share
   </button>
@@ -517,6 +556,9 @@
     <button class="sheet-back" onclick="closeSheet()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Back
+    </button>
+    <button class="sheet-heart-btn" id="sheetHeartBtn" onclick="toggleFavFromSheet()">
+      <svg id="sheetHeartSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
     </button>
   </div>
   <div class="sheet-body" id="sheetBody"></div>
@@ -543,6 +585,7 @@
   let _squadName = null;
   let _currentPlanId = null;
   let _currentPlan   = null;
+  let _currentSheetGameId = null;
 
   const HEADERS = {
     'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
@@ -665,7 +708,7 @@
 
       item.innerHTML = `
         <div class="drag-handle">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.5"/><circle cx="16" cy="5" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="2.2"/><circle cx="16" cy="5" r="2.2"/><circle cx="8" cy="12" r="2.2"/><circle cx="16" cy="12" r="2.2"/><circle cx="8" cy="19" r="2.2"/><circle cx="16" cy="19" r="2.2"/></svg>
         </div>
         <div class="fav-check-wrap">
           <input type="checkbox" class="fav-check" checked>
@@ -714,8 +757,10 @@
 
   // ── Game detail sheet ────────────────────────────────────────────────────────
   async function openGameSheet(gameId) {
+    _currentSheetGameId = gameId;
     const sheet = $('gameSheet');
     $('sheetBody').innerHTML = '<div class="state-screen"><div class="spinner"></div></div>';
+    updateSheetHeart();
     sheet.classList.add('open');
 
     try {
@@ -740,20 +785,130 @@
         </div>`;
       }
 
+      const coachNoteVal = data.coach_note || '';
+
       $('sheetBody').innerHTML = `
-        ${imgHtml}
         <div class="sheet-game-title">${esc(g.game_name)}</div>
-        ${section('How to Play', g.game_how_to_play)}
+        <div class="sheet-actions">
+          <button class="btn btn-outline btn-full" id="gameCardPdfBtn" onclick="exportGameCardPdf(${Number(gameId)})">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Export Game Card
+          </button>
+        </div>
         ${section('Setup', g.game_setup)}
-        ${section('Teaching Points', g.game_teaching_points)}
+        ${imgHtml}
+        ${section('How to Play', g.game_how_to_play)}
         ${section('Variations', g.game_variations)}
+        ${section('Teaching Points', g.game_teaching_points)}
+        <div class="coach-notes-section">
+          <div class="coach-notes-label">Coach Notes</div>
+          <textarea id="coachNotesInput" class="coach-notes-input" placeholder="Add your coaching notes for this game…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(coachNoteVal)}</textarea>
+          <div style="margin-top:8px">
+            <button class="btn btn-outline" id="saveNoteBtn" onclick="saveCoachNote()">Save Note</button>
+          </div>
+        </div>
         <div style="height:24px"></div>`;
+
+      const ta = $('coachNotesInput');
+      if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
     } catch {
       $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Could not load game details</div></div>';
     }
   }
 
-  function closeSheet() { $('gameSheet').classList.remove('open'); }
+  function updateSheetHeart() {
+    const btn = $('sheetHeartBtn');
+    const svg = $('sheetHeartSvg');
+    if (!btn || !_currentSheetGameId) return;
+    const isFav = _favs.some(f => f.game_id === _currentSheetGameId);
+    btn.classList.toggle('is-fav', isFav);
+    if (svg) svg.setAttribute('fill', isFav ? 'currentColor' : 'none');
+  }
+
+  async function toggleFavFromSheet() {
+    if (!_currentSheetGameId) return;
+    const isFav = _favs.some(f => f.game_id === _currentSheetGameId);
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/toggle_user_game_link', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ p_game_id: _currentSheetGameId }),
+      });
+      if (res.ok) {
+        if (isFav) {
+          _favs = _favs.filter(f => f.game_id !== _currentSheetGameId);
+          const item = $('favList')?.querySelector(`[data-gid="${_currentSheetGameId}"]`);
+          if (item) item.remove();
+          showToast('Removed from favourites');
+          if (!$('favList')?.children.length) { closeSheet(); showEmpty(); return; }
+        } else {
+          showToast('Added to favourites');
+        }
+        updateSheetHeart();
+      } else {
+        showToast('Could not update favourites');
+      }
+    } catch {
+      showToast('Network error');
+    }
+  }
+
+  async function saveCoachNote() {
+    const input = $('coachNotesInput');
+    if (!input || !_currentSheetGameId) return;
+    const note = input.value.trim();
+    const btn = $('saveNoteBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const res = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'save_coach_note', event_id: EVENT_ID, user_id: USER_ID, game_id: _currentSheetGameId, note }),
+      });
+      const d = await res.json();
+      if (d.ok) showToast('Note saved ✓');
+      else showToast('Could not save note');
+    } catch {
+      showToast('Network error');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Note'; }
+  }
+
+  async function exportGameCardPdf(gameId) {
+    const btn = $('gameCardPdfBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
+    if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
+    try {
+      const res = await fetch(SUPABASE_URL + '/functions/v1/generate-game-card-pdf', {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ game_id: gameId, user_id: USER_ID, event_id: EVENT_ID }),
+      });
+      if (!res.ok) throw new Error('Server error');
+      const { pdf, filename } = await res.json();
+      if (IS_WEBVIEW) {
+        FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
+      } else {
+        const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
+        const blob  = new Blob([bytes], { type: 'application/pdf' });
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    } catch {
+      showToast('Could not generate PDF — please try again');
+    }
+    if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+  }
+
+  function closeSheet() {
+    $('gameSheet').classList.remove('open');
+    _currentSheetGameId = null;
+  }
 
   // ── Setup screen ────────────────────────────────────────────────────────────
   function showSetup() {
@@ -998,7 +1153,7 @@
   // ── Export ──────────────────────────────────────────────────────────────────
   async function exportPlan(format = 'mobile') {
     if (!_currentPlanId) { showToast('No plan to export'); return; }
-    const btn = $(format === 'a4' ? 'exportBtnPrint' : 'exportBtnShare');
+    const btn = $('exportBtn');
     const origHtml = btn ? btn.innerHTML : '';
     const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
     if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
