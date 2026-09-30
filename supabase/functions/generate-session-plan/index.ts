@@ -72,7 +72,8 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
   "post_session": null | {
     "duration_mins": number,
     "description": "string — activity after the cool-down (e.g. team meeting, debrief, match review)"
-  }
+  },
+  "_refusal": null | "string — a short plain-language explanation of why this request cannot be fulfilled"
 }
 
 Rules:
@@ -85,7 +86,10 @@ Rules:
 - Use GAA language: "football" for football code, "sliotar" and "hurl" for hurling/camogie
 - CRITICAL: Weather is provided for context only — do NOT include weather data or weather text ANYWHERE in the output JSON, not in session_objective, not in descriptions, not in coaching_points, not anywhere. Weather is shown separately.
 - Do NOT include player count adjustment notes; adapt the description directly for the given numbers
-- Warm-up must be at least 10 minutes; cool-down at least 5 minutes`;
+- Warm-up must be at least 10 minutes; cool-down at least 5 minutes
+- If the coach's feedback asks to include a game that is NOT in the provided games list, set "_refusal" to a short explanation and keep all other fields at sensible defaults (do not change the existing plan)
+- If the request is physically impossible (e.g., would require more time than the session allows), set "_refusal" to explain why
+- If the request is reasonable and achievable, always attempt it and leave "_refusal" as null`;
 
 // ── Weather text stripper (safety net for Gemini non-compliance) ──────────────
 function stripWeatherFromObjective(text: string): string {
@@ -488,6 +492,13 @@ serve(async (req) => {
       console.error("Gemini failed:", err);
       return new Response(JSON.stringify({ error: "AI generation failed", detail: String(err).slice(0, 200) }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // If Gemini declined the request, return refusal without saving a new plan
+    if (planJson._refusal) {
+      return new Response(JSON.stringify({ refusal: planJson._refusal, branding, event: eventMeta }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
