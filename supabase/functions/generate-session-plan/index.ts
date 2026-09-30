@@ -282,7 +282,7 @@ serve(async (req) => {
     const teamId = (event.teams as any)?.team_id ?? event.team_id;
 
     // Branding from user's default_club (not the event's club chain)
-    const { data: userRow } = await sb.from("users").select("default_club").eq("id", user_id).maybeSingle();
+    const { data: userRow } = await sb.from("users").select("default_club").eq("user_id", user_id).maybeSingle();
     let branding: Record<string, any>;
     if (userRow?.default_club) {
       const { data: uClub } = await sb
