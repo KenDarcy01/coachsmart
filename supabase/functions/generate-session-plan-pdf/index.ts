@@ -166,7 +166,19 @@ interface EventData {
   event_date: string | null;
   squad_name: string | null;
   squad_grade: string | null;
+  team_name: string | null;
+  event_type: string | null;
+  event_code: string | null;
   club: ClubData;
+}
+
+function buildPdfTitle(event: EventData): string {
+  const parts: string[] = [];
+  if (event.team_name) parts.push(event.team_name);
+  const typeCode = [event.event_code, event.event_type].filter(Boolean).join(" ");
+  if (typeCode) parts.push(typeCode);
+  if (event.event_date) parts.push(formatDate(event.event_date));
+  return parts.join(" - ") || "Session Plan";
 }
 
 // ─── PDF builder ──────────────────────────────────────────────────────────────
@@ -375,7 +387,7 @@ async function buildSessionPlanPdf(
     drawFooter(page);
 
     if (isFirst) {
-      drawPageHeader(page, plan.session_title || "Session Plan");
+      drawPageHeader(page, buildPdfTitle(event));
       const headerTotal = HEADER_H + STRIPE_H;
       drawMetaRow(page, headerTotal);
       curY = headerTotal + META_ROW_H + 8;
@@ -507,14 +519,11 @@ async function buildSessionPlanPdf(
 
   newPage(true);
 
-  // Session title (larger, below meta row)
-  const sessionTitle = plan.session_title || "Session Plan";
-  ensureSpace(DRILL_NAME_S + 8 + 6);
-  currentPage.drawText(sessionTitle, {
-    x: ML, y: PH - curY - DRILL_NAME_S,
-    size: 13, font: notoBold, color: darkText,
-  });
-  curY += 13 + 10;
+  // FOCUS section (was session_title)
+  if (plan.session_title?.trim()) {
+    drawSectionHeader("FOCUS", null, accentRgb);
+    drawText(plan.session_title, notoBold, BODY_FONT_S + 1, darkText, 0, 6);
+  }
 
   // Objective (italic-style via regular font + muted colour, slightly indented)
   if (plan.session_objective?.trim()) {
@@ -578,7 +587,7 @@ async function buildSessionPlanPdf(
 
         if (drillImg) {
           const ratio = drillImg.width / drillImg.height;
-          const ABS_MAX_H = 200;
+          const ABS_MAX_H = 340;
           let imgW = CW;
           let imgH = imgW / ratio;
           if (imgH > ABS_MAX_H) { imgH = ABS_MAX_H; imgW = imgH * ratio; }
@@ -711,6 +720,7 @@ serve(async (req) => {
         event_title,
         event_date,
         teams!inner (
+          team_name,
           clubs!inner (
             club_name,
             crest,
@@ -722,7 +732,9 @@ serve(async (req) => {
         squads (
           squad_name,
           grade
-        )
+        ),
+        event_types!events_event_type_id_fkey(event_type),
+        event_codes!events_event_code_id_fkey(event_code)
       `)
       .eq("event_id", planRow.event_id)
       .maybeSingle();
@@ -764,6 +776,9 @@ serve(async (req) => {
       event_date:  eventRow?.event_date   || null,
       squad_name:  squadRaw?.squad_name   || null,
       squad_grade: squadRaw?.grade        || null,
+      team_name:   (eventRow as any)?.teams?.team_name || null,
+      event_type:  (eventRow as any)?.event_types?.event_type || null,
+      event_code:  (eventRow as any)?.event_codes?.event_code || null,
       club,
     };
 

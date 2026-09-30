@@ -268,7 +268,9 @@ serve(async (req) => {
             primary_colour, secondary_colour, third_colour
           )
         ),
-        squads!events_squad_id_fkey(squad_name, grade)
+        squads!events_squad_id_fkey(squad_name, grade),
+        event_types!events_event_type_id_fkey(event_type),
+        event_codes!events_event_code_id_fkey(event_code)
       `)
       .eq("event_id", event_id)
       .single();
@@ -277,9 +279,12 @@ serve(async (req) => {
       status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-    const club  = (event.teams as any)?.clubs || {};
-    const squad = (event.squads as any) || null;
-    const teamId = (event.teams as any)?.team_id ?? event.team_id;
+    const club      = (event.teams as any)?.clubs || {};
+    const squad     = (event.squads as any) || null;
+    const teamId    = (event.teams as any)?.team_id ?? event.team_id;
+    const teamName  = (event.teams as any)?.team_name ?? null;
+    const eventType = (event as any).event_types?.event_type ?? null;
+    const eventCode = (event as any).event_codes?.event_code ?? null;
 
     // Branding from user's default_club (not the event's club chain)
     const { data: userRow } = await sb.from("users").select("default_club").eq("user_id", user_id).maybeSingle();
@@ -310,6 +315,9 @@ serve(async (req) => {
       title:         event.event_title    || "Training Session",
       date_time:     event.event_date_time,
       location_name: event.location_name  || null,
+      team_name:     teamName,
+      event_type:    eventType,
+      event_code:    eventCode,
     };
 
     // ── GET: return existing active plan + favourites list ────────────────────
