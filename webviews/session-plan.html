@@ -222,12 +222,17 @@
       display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
     .stat-value {
-      font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1;
+      font-size: 46px; font-weight: 700; color: var(--accent); line-height: 1;
       font-variant-numeric: tabular-nums;
     }
     .stat-label {
-      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 0.06em; color: var(--muted);
+    }
+    .plan-title {
+      padding: 0 16px 12px;
+      font-size: 15px; font-weight: 600; color: var(--text);
+      line-height: 1.3;
     }
     .meta-pills {
       display: flex; flex-wrap: wrap; gap: 6px;
@@ -746,6 +751,24 @@
         Back to Setup
       </button>
     </div>`);
+
+    // Event title
+    if (_eventMeta) {
+      const m = _eventMeta;
+      const parts = [];
+      if (m.team_name) parts.push(m.team_name);
+      const codeType = [m.event_code, m.event_type].filter(Boolean).join(' ');
+      if (codeType) parts.push(codeType);
+      if (m.date_time) {
+        try {
+          const d = new Date(m.date_time);
+          const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          parts.push(`${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`);
+        } catch (_) {}
+      }
+      if (parts.length) out.push(`<div class="plan-title">${esc(parts.join(' - '))}</div>`);
+    }
 
     // Weather
     if (plan.weather) {
