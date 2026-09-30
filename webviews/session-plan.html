@@ -884,6 +884,12 @@
       out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
     }
 
+    // Pre-session (optional)
+    if (plan.pre_session) {
+      out.push(sectionHdr('PRE-SESSION', plan.pre_session.duration_mins, 'warm'));
+      out.push(phaseCard(plan.pre_session, null, null, null, 'pre_session'));
+    }
+
     // Warm-up
     if (plan.warm_up) {
       out.push(sectionHdr('WARM UP', plan.warm_up.duration_mins, 'warm'));
@@ -900,6 +906,12 @@
     if (plan.cool_down) {
       out.push(sectionHdr('COOL DOWN', plan.cool_down.duration_mins, 'cool'));
       out.push(phaseCard(plan.cool_down, null, null, null, 'cool_down'));
+    }
+
+    // Post-session (optional)
+    if (plan.post_session) {
+      out.push(sectionHdr('POST-SESSION', plan.post_session.duration_mins, 'cool'));
+      out.push(phaseCard(plan.post_session, null, null, null, 'post_session'));
     }
 
     // Feedback + save bar

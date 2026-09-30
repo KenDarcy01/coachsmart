@@ -157,6 +157,11 @@ interface WarmupCooldown {
   coaching_points?: string[];
 }
 
+interface OptionalBlock {
+  duration_mins: number;
+  description: string;
+}
+
 interface PlanJson {
   session_title: string;
   session_objective: string;
@@ -164,9 +169,11 @@ interface PlanJson {
   player_count: number;
   coach_count: number;
   weather?: { summary: string };
+  pre_session?: OptionalBlock | null;
   warm_up: WarmupCooldown;
   drills: DrillData[];
   cool_down: WarmupCooldown;
+  post_session?: OptionalBlock | null;
 }
 
 interface ClubData {
@@ -583,6 +590,14 @@ async function buildSessionPlanPdf(
 
   curY += 4; // breathing room before sections
 
+  // ── PRE-SESSION (optional) ────────────────────────────────────────────────────
+
+  if (plan.pre_session?.description?.trim()) {
+    drawSectionHeader("PRE-SESSION", plan.pre_session.duration_mins ?? null, accentRgb);
+    drawText(plan.pre_session.description, notoReg, BODY_FONT_S, darkText, 0, 4);
+    curY += 6;
+  }
+
   // ── WARM UP ──────────────────────────────────────────────────────────────────
 
   if (plan.warm_up) {
@@ -686,6 +701,14 @@ async function buildSessionPlanPdf(
     if ((plan.cool_down as any).coaching_points?.length) {
       drawBulletList((plan.cool_down as any).coaching_points, accentRgb);
     }
+    curY += 6;
+  }
+
+  // ── POST-SESSION (optional) ───────────────────────────────────────────────────
+
+  if (plan.post_session?.description?.trim()) {
+    drawSectionHeader("POST-SESSION", plan.post_session.duration_mins ?? null, accentRgb);
+    drawText(plan.post_session.description, notoReg, BODY_FONT_S, darkText, 0, 4);
   }
 
   return doc.save();
