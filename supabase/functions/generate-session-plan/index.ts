@@ -87,6 +87,8 @@ Rules:
 - CRITICAL: Weather is provided for context only — do NOT include weather data or weather text ANYWHERE in the output JSON, not in session_objective, not in descriptions, not in coaching_points, not anywhere. Weather is shown separately.
 - Do NOT include player count adjustment notes; adapt the description directly for the given numbers
 - Warm-up must be at least 10 minutes; cool-down at least 5 minutes
+- When Drill mode is STATION ROTATION: describe each drill as a simultaneous station; open each drill description by explaining how to split the group and how rotation works (e.g. "Split the group into X stations, rotating every Y minutes"); warm-up and cool-down descriptions must address the full group collectively
+- When Drill mode is SEQUENTIAL: describe each drill for the full group performing it together
 - If the coach's feedback asks to include a game that is NOT in the provided games list, set "_refusal" to a short explanation and keep all other fields at sensible defaults (do not change the existing plan)
 - If the request is physically impossible (e.g., would require more time than the session allows), set "_refusal" to explain why
 - If the request is reasonable and achievable, always attempt it and leave "_refusal" as null`;
@@ -275,7 +277,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, plan_id, plan_json } = body;
+    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, plan_id, plan_json, rotate_stations = true } = body;
 
     if (!event_id || !user_id) {
       return new Response(JSON.stringify({ error: "event_id and user_id are required" }), {
@@ -518,6 +520,9 @@ serve(async (req) => {
       `Session duration: ${duration_mins} minutes`,
       `Players: ${playerCount}`,
       `Coaches/managers: ${coachCount}`,
+      rotate_stations
+        ? `Drill mode: STATION ROTATION — players are split into groups across the drill stations; not everyone does the same activity at once; each group rotates through all stations at equal time intervals; warm-up and cool-down are collective activities for the full group`
+        : `Drill mode: SEQUENTIAL — all players perform each drill together before moving to the next`,
       squad?.squad_name ? `Squad: ${squad.squad_name}${squad.grade ? ` (${squad.grade})` : ""}` : null,
       teamFemale ? `Sport code: Camogie — use "Camogie" not "Hurling", "hurl/camán" for the stick, "sliotar" for the ball` : null,
       weather ? `Weather forecast (for context only — do NOT include in plan text): ${weather.summary}` : null,
