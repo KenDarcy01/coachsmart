@@ -278,10 +278,10 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, plan_id, plan_json, rotate_stations = true } = body;
+    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, plan_id, plan_json, rotate_stations = true, player_count: bodyPlayerCount } = body;
 
-    if (!event_id || !user_id) {
-      return new Response(JSON.stringify({ error: "event_id and user_id are required" }), {
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "user_id is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -331,44 +331,66 @@ serve(async (req) => {
       });
     }
 
-    // ── Fetch event + team + club ─────────────────────────────────────────────
-    const { data: event, error: eventErr } = await sb
-      .from("events")
-      .select(`
-        event_id, event_title, event_date_time, event_details,
-        location_pin, location_name, squad_id, team_id,
-        teams!events_team_id_fkey(
-          team_id, team_name, team_female,
-          clubs!teams_club_id_fkey(
-            club_id, club_name, crest, county,
-            primary_colour, secondary_colour, third_colour
-          )
-        ),
-        squads!events_squad_id_fkey(squad_name, grade),
-        event_types!events_event_type_id_fkey(event_type),
-        event_codes!events_event_code_id_fkey(event_code)
-      `)
-      .eq("event_id", event_id)
-      .single();
+    // ── Fetch event + team + club (only when event_id provided) ─────────────────
+    let clubData: Record<string, any> = {};
+    let squad: Record<string, any> | null = null;
+    let teamId: number | null = null;
+    let teamName: string | null = null;
+    let teamFemale = false;
+    let eventLocationPin: any = null;
+    let eventLocationName: string | null = null;
+    let eventDateTime: string | null = null;
+    let eventDetails: string | null = null;
+    let eventSquadId: number | null = null;
+    let eventTypeStr: string | null = null;
+    let eventCodeStr: string | null = null;
+    let eventTitle: string | null = null;
 
-    if (eventErr || !event) return new Response(JSON.stringify({ error: "Event not found" }), {
-      status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (event_id) {
+      const { data: event, error: eventErr } = await sb
+        .from("events")
+        .select(`
+          event_id, event_title, event_date_time, event_details,
+          location_pin, location_name, squad_id, team_id,
+          teams!events_team_id_fkey(
+            team_id, team_name, team_female,
+            clubs!teams_club_id_fkey(
+              club_id, club_name, crest, county,
+              primary_colour, secondary_colour, third_colour
+            )
+          ),
+          squads!events_squad_id_fkey(squad_name, grade),
+          event_types!events_event_type_id_fkey(event_type),
+          event_codes!events_event_code_id_fkey(event_code)
+        `)
+        .eq("event_id", event_id)
+        .single();
 
-    const club       = (event.teams as any)?.clubs || {};
-    const squad      = (event.squads as any) || null;
-    const teamId     = (event.teams as any)?.team_id ?? event.team_id;
-    const teamName   = (event.teams as any)?.team_name ?? null;
-    const teamFemale = (event.teams as any)?.team_female === true;
-    const eventType  = (event as any).event_types?.event_type ?? null;
-    const eventCode  = (event as any).event_codes?.event_code ?? null;
+      if (eventErr || !event) return new Response(JSON.stringify({ error: "Event not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      clubData          = (event.teams as any)?.clubs || {};
+      squad             = (event.squads as any) || null;
+      teamId            = (event.teams as any)?.team_id ?? event.team_id;
+      teamName          = (event.teams as any)?.team_name ?? null;
+      teamFemale        = (event.teams as any)?.team_female === true;
+      eventTypeStr      = (event as any).event_types?.event_type ?? null;
+      eventCodeStr      = (event as any).event_codes?.event_code ?? null;
+      eventLocationPin  = event.location_pin;
+      eventLocationName = event.location_name || null;
+      eventDateTime     = event.event_date_time;
+      eventDetails      = event.event_details?.trim() || null;
+      eventSquadId      = event.squad_id ?? null;
+      eventTitle        = event.event_title || null;
+    }
 
     function applyCamogie(s: string | null): string | null {
       if (!s || !teamFemale) return s;
       return s.replace(/\bHurling\b/g, 'Camogie').replace(/\bhurling\b/g, 'camogie');
     }
 
-    // Branding from user's default_club (not the event's club chain)
+    // Branding from user's default_club
     const { data: userRow } = await sb.from("users").select("default_club").eq("user_id", user_id).maybeSingle();
     let branding: Record<string, any>;
     if (userRow?.default_club) {
@@ -378,40 +400,45 @@ serve(async (req) => {
         .eq("club_id", userRow.default_club)
         .maybeSingle();
       branding = {
-        club_name:        uClub?.club_name        || club.club_name || "",
-        crest:            uClub?.crest            || club.crest || null,
-        primary_colour:   uClub?.primary_colour   || club.primary_colour || "#87C232",
+        club_name:        uClub?.club_name        || clubData.club_name || "",
+        crest:            uClub?.crest            || clubData.crest || null,
+        primary_colour:   uClub?.primary_colour   || clubData.primary_colour || "#87C232",
         secondary_colour: uClub?.secondary_colour || null,
         third_colour:     uClub?.third_colour     || null,
       };
     } else {
       branding = {
-        club_name:        club.club_name        || "",
-        crest:            club.crest            || null,
-        primary_colour:   club.primary_colour   || "#87C232",
-        secondary_colour: club.secondary_colour || null,
-        third_colour:     club.third_colour     || null,
+        club_name:        clubData.club_name        || "",
+        crest:            clubData.crest            || null,
+        primary_colour:   clubData.primary_colour   || "#87C232",
+        secondary_colour: clubData.secondary_colour || null,
+        third_colour:     clubData.third_colour     || null,
       };
     }
-    const eventMeta = {
-      title:         event.event_title    || "Training Session",
-      date_time:     event.event_date_time,
-      location_name: event.location_name  || null,
+
+    const eventMeta = event_id ? {
+      title:         eventTitle || "Training Session",
+      date_time:     eventDateTime,
+      location_name: eventLocationName,
       team_name:     teamName,
-      event_type:    applyCamogie(eventType),
-      event_code:    applyCamogie(eventCode),
-    };
+      event_type:    applyCamogie(eventTypeStr),
+      event_code:    applyCamogie(eventCodeStr),
+    } : null;
 
     // ── GET: return existing active plan + favourites list ────────────────────
     if (action === "get") {
+      const planPromise = event_id
+        ? sb.from("session_plans")
+            .select("plan_id, plan_json, created_at")
+            .eq("event_id", event_id)
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null });
+
       const [planResult, favResult] = await Promise.all([
-        sb.from("session_plans")
-          .select("plan_id, plan_json, created_at")
-          .eq("event_id", event_id)
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+        planPromise,
         sb.from("user_game_link")
           .select("position, games!inner(game_id, game_name, game_image)")
           .eq("user_id", user_id)
@@ -478,6 +505,7 @@ serve(async (req) => {
       }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+
     // Filter + reorder by game_ids if provided (from intro screen selection/ordering)
     let favLinks = allFavLinks;
     if (game_ids && Array.isArray(game_ids) && game_ids.length > 0) {
@@ -498,11 +526,19 @@ serve(async (req) => {
     const notesByGame: Record<number, string> = {};
     for (const n of notes || []) notesByGame[n.game_id] = n.notes;
 
-    // Member counts — accepted attendees only, squad-aware fallback
-    const { playerCount, coachCount } = await countAcceptedAttendees(sb, event_id, teamId, event.squad_id ?? null);
+    // Member counts — use accepted attendees if event is known, else body param or default
+    let playerCount: number, coachCount: number;
+    if (event_id && teamId) {
+      ({ playerCount, coachCount } = await countAcceptedAttendees(sb, event_id, teamId, eventSquadId));
+    } else {
+      playerCount = bodyPlayerCount ?? 15;
+      coachCount  = 0;
+    }
 
-    // Weather
-    const weather = await fetchWeather(event.location_pin, event.location_name, event.event_date_time, club.county ?? null, eventType);
+    // Weather — only when we have event context
+    const weather = event_id
+      ? await fetchWeather(eventLocationPin, eventLocationName, eventDateTime, (clubData as any).county ?? null, eventTypeStr)
+      : null;
 
     // Build Gemini prompt
     const gamesText = favLinks.map((f: any) => {
@@ -524,10 +560,10 @@ serve(async (req) => {
       rotate_stations
         ? `Drill mode: STATION ROTATION — players are split into groups across the drill stations; not everyone does the same activity at once; each group rotates through all stations at equal time intervals; warm-up and cool-down are collective activities for the full group`
         : `Drill mode: SEQUENTIAL — all players perform each drill together before moving to the next`,
-      squad?.squad_name ? `Squad: ${squad.squad_name}${squad.grade ? ` (${squad.grade})` : ""}` : null,
+      squad?.squad_name ? `Squad: ${squad.squad_name}${(squad as any).grade ? ` (${(squad as any).grade})` : ""}` : null,
       teamFemale ? `Sport code: Camogie — use "Camogie" not "Hurling", "hurl/camán" for the stick, "sliotar" for the ball` : null,
       weather ? `Weather forecast (for context only — do NOT include in plan text): ${weather.summary}` : null,
-      event.event_details?.trim() ? `Coach's session notes: ${event.event_details.trim()}` : null,
+      eventDetails ? `Coach's session notes: ${eventDetails}` : null,
       feedback?.trim() ? `\nCoach's feedback on the previous plan (please address this):\n${feedback.trim()}` : null,
       `\nGames to use (in this order):\n\n${gamesText}`,
     ].filter(Boolean).join("\n");
@@ -547,7 +583,7 @@ serve(async (req) => {
 
     // If Gemini declined the request, return refusal without saving a new plan
     if (planJson._refusal) {
-      return new Response(JSON.stringify({ refusal: planJson._refusal, branding, event: eventMeta }), {
+      return new Response(JSON.stringify({ refusal: planJson._refusal, branding, event: eventMeta ?? null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -572,26 +608,30 @@ serve(async (req) => {
     planJson.coach_count  = coachCount;
     if (weather) planJson.weather = weather;
 
-    // Save (deactivate old plans first)
-    await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
-    const { data: saved, error: saveErr } = await sb
-      .from("session_plans")
-      .insert({ event_id, created_by: user_id, plan_json: planJson, is_active: true })
-      .select("plan_id")
-      .single();
+    // Save (deactivate old plans first) — only when linked to an event
+    let savedPlanId: string | null = null;
+    if (event_id) {
+      await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
+      const { data: saved, error: saveErr } = await sb
+        .from("session_plans")
+        .insert({ event_id, created_by: user_id, plan_json: planJson, is_active: true })
+        .select("plan_id")
+        .single();
 
-    if (saveErr) {
-      console.error("Save failed:", saveErr);
-      return new Response(JSON.stringify({ error: "Failed to save plan: " + saveErr.message }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (saveErr) {
+        console.error("Save failed:", saveErr);
+        return new Response(JSON.stringify({ error: "Failed to save plan: " + saveErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      savedPlanId = saved.plan_id;
     }
 
     return new Response(JSON.stringify({
-      plan_id:    saved.plan_id,
+      plan_id:    savedPlanId,
       plan:       planJson,
       branding,
-      event:      eventMeta,
+      event:      eventMeta ?? null,
       squad_name: squad?.squad_name ?? null,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 

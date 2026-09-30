@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Favourites</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg:         #0f1319;
+      --surface:    #181e28;
+      --surface-2:  #1e2737;
+      --accent:     #87C232;
+      --accent-dim: rgba(135,194,50,0.12);
+      --text:       #e4e9f0;
+      --muted:      #7a8899;
+      --border:     rgba(255,255,255,0.07);
+      --radius:     12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body { display: flex; flex-direction: column; }
+
+    /* ── Header ───────────────────────────────────────────────────────────── */
+    .app-header {
+      background: var(--surface);
+      border-bottom: 3px solid var(--accent);
+      padding: 0 16px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .back-btn {
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent); flex-shrink: 0; border-radius: 8px;
+      transition: background 0.1s;
+    }
+    .back-btn:active { background: var(--accent-dim); }
+    .back-btn svg { width: 34px; height: 34px; }
+
+    /* ── Screens ──────────────────────────────────────────────────────────── */
+    .screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .screen.active { display: flex; }
+    .scroll-content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Setup screen ─────────────────────────────────────────────────────── */
+    .setup-section {
+      margin: 12px 16px 0;
+    }
+    .setup-section-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
+    }
+
+    /* Duration picker */
+    .dur-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dur-label { flex: 1; font-size: 14px; font-weight: 500; color: var(--text); }
+    .dur-ctrl { display: flex; align-items: center; gap: 10px; }
+    .dur-step {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--surface-2); color: var(--text);
+      font-size: 20px; font-weight: 400;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s;
+    }
+    .dur-step:active { background: var(--accent-dim); }
+    .dur-val { font-size: 16px; font-weight: 700; color: var(--accent); min-width: 52px; text-align: center; }
+
+    /* Favourites list */
+    .fav-list-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .fav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+      -webkit-user-select: none;
+      position: relative;
+    }
+    .fav-item:last-child { border-bottom: none; }
+    .fav-item.is-dragging {
+      opacity: 0.45;
+      background: var(--surface-2);
+    }
+
+    .drag-handle {
+      color: var(--muted); flex-shrink: 0;
+      touch-action: none; cursor: grab;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 44px;
+      transition: color 0.15s;
+    }
+    .drag-handle:active { cursor: grabbing; color: var(--accent); }
+    .drag-handle svg { width: 22px; height: 22px; }
+
+    .fav-check-wrap {
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; width: 32px; height: 32px;
+    }
+    .fav-check {
+      appearance: none; -webkit-appearance: none;
+      width: 22px; height: 22px; border-radius: 5px;
+      border: 2px solid var(--accent);
+      background: transparent;
+      cursor: pointer; flex-shrink: 0;
+      position: relative;
+      transition: background 0.15s;
+    }
+    .fav-check:checked { background: var(--accent); }
+    .fav-check:checked::after {
+      content: '';
+      position: absolute; left: 5px; top: 1px;
+      width: 8px; height: 12px;
+      border: 2.5px solid rgba(0,0,0,0.65);
+      border-top: none; border-left: none;
+      transform: rotate(45deg);
+    }
+
+    .fav-thumb {
+      width: 46px; height: 46px; border-radius: 8px;
+      object-fit: cover; flex-shrink: 0;
+      background: var(--surface-2);
+    }
+    .fav-thumb-placeholder {
+      width: 46px; height: 46px; border-radius: 8px;
+      background: var(--surface-2); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .fav-thumb-placeholder svg { width: 22px; height: 22px; color: var(--muted); }
+
+    .fav-name {
+      flex: 1; min-width: 0;
+      font-size: 14px; font-weight: 500; color: var(--text);
+      cursor: pointer;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .fav-name:active { opacity: 0.6; }
+
+    .heart-btn {
+      flex-shrink: 0;
+      color: #e05555;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 8px;
+      transition: background 0.1s;
+    }
+    .heart-btn:active { background: rgba(224,85,85,0.12); }
+    .heart-btn svg { width: 20px; height: 20px; }
+
+    /* Toggle switch */
+    .toggle-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .toggle-row {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .toggle-label {
+      flex: 1; font-size: 14px; font-weight: 500; color: var(--text);
+    }
+    .toggle-explainer {
+      margin-top: 8px;
+      font-size: 12px; color: var(--muted); line-height: 1.5;
+    }
+    .toggle-switch {
+      position: relative; width: 46px; height: 28px; flex-shrink: 0; cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: var(--surface-2); border-radius: 14px;
+      border: 1.5px solid var(--border);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 20px; height: 20px; border-radius: 50%;
+      left: 3px; top: 50%; transform: translateY(-50%);
+      background: var(--muted);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--accent); border-color: var(--accent);
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translate(18px, -50%);
+      background: rgba(0,0,0,0.65);
+    }
+
+    /* Setup bottom bar */
+    .setup-bar {
+      padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      gap: 10px;
+    }
+
+    /* ── State screens ────────────────────────────────────────────────────── */
+    .state-screen {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 60px 32px; text-align: center;
+    }
+    .state-icon  { font-size: 48px; margin-bottom: 16px; }
+    .state-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .state-body  { font-size: 14px; color: var(--muted); line-height: 1.55; max-width: 290px; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.75s linear infinite; margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Plan screen ──────────────────────────────────────────────────────── */
+    .plan-content { padding-bottom: 90px; }
+
+    /* Stats section */
+    .stats-section { background: var(--surface-2); margin-top: 6px; }
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      padding: 12px 16px 12px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .stat-value {
+      font-size: 46px; font-weight: 700; color: var(--accent); line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-label {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted);
+    }
+
+    /* Back to setup chip */
+    .setup-chip-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px 8px;
+    }
+    .setup-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 20px; padding: 5px 12px 5px 8px;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      transition: color 0.1s, border-color 0.1s;
+    }
+    .setup-chip:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+    .setup-chip svg { width: 14px; height: 14px; color: var(--accent); }
+
+    .btn-primary .spinner {
+      border-color: rgba(0,0,0,0.2);
+      border-top-color: rgba(0,0,0,0.55);
+    }
+
+    /* Objective */
+    .objective-block {
+      margin: 14px 16px;
+      background: var(--accent-dim); border: 1px solid rgba(135,194,50,0.18);
+      border-radius: var(--radius); padding: 12px 14px;
+      font-size: 14px; font-style: italic; color: var(--text); line-height: 1.55;
+    }
+
+    /* Section headers */
+    .section-hdr {
+      display: flex; align-items: center; gap: 9px; padding: 20px 16px 7px;
+    }
+    .s-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .s-dot-warm  { background: #f59e0b; }
+    .s-dot-drill { background: var(--accent); }
+    .s-dot-cool  { background: #60a5fa; }
+    .s-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .s-dur   { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 10px; }
+
+    /* Phase cards */
+    .phase-card {
+      margin: 0 16px 10px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .drill-name-bar {
+      display: flex; align-items: center; gap: 8px; padding: 10px 14px 9px;
+      border-bottom: 1px solid var(--border);
+    }
+    .drill-num {
+      width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff;
+      font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .drill-name { font-size: 14px; font-weight: 600; color: var(--text); }
+
+    .game-image {
+      width: 100%; height: auto; display: block;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-body { padding: 11px 14px 13px; }
+    .card-desc { font-size: 14px; color: var(--text); line-height: 1.55; margin-bottom: 11px; white-space: pre-line; }
+    .cp-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 7px; }
+    .cp-item { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; color: var(--text); margin-bottom: 5px; line-height: 1.45; }
+    .cp-dot  { color: var(--accent); font-size: 17px; line-height: 1.15; flex-shrink: 0; }
+    .variation-row {
+      display: flex; gap: 6px; margin-top: 10px; padding: 8px 10px;
+      background: var(--surface-2); border-radius: 8px; border-left: 2px solid var(--muted);
+      font-size: 13px; color: var(--muted); line-height: 1.45;
+    }
+    .variation-row strong { font-weight: 600; color: var(--muted); flex-shrink: 0; }
+    .drill-gap { height: 10px; }
+
+    /* Inline editable fields */
+    [data-path] {
+      outline: none; border-radius: 4px; cursor: text;
+      border: 1px dashed rgba(135,194,50,0.28);
+      padding: 3px 6px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    [data-path]:focus {
+      background: rgba(135,194,50,0.08);
+      border-color: rgba(135,194,50,0.55);
+      border-style: solid;
+    }
+    .edit-hint {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 16px 0;
+      font-size: 11px; color: var(--muted); opacity: 0.7;
+    }
+    .edit-hint svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+    /* Station setup card */
+    .station-setup-card {
+      margin: 0 16px 10px;
+      background: var(--surface-2);
+      border: 1px solid rgba(135,194,50,0.22);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius); padding: 12px 14px;
+      font-size: 14px; color: var(--text); line-height: 1.6;
+    }
+
+    /* Feedback bar */
+    .feedback-bar {
+      margin: 20px 16px 0;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+    }
+    .feedback-hdr {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px;
+    }
+    .feedback-input {
+      width: 100%; box-sizing: border-box;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px;
+      color: var(--text); font-family: inherit; font-size: 13px;
+      line-height: 1.5; resize: none; overflow: hidden; min-height: 68px;
+    }
+    .feedback-input::placeholder { color: var(--muted); }
+    .feedback-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
+    .feedback-actions {
+      display: flex; gap: 8px; margin-top: 10px;
+    }
+    .refusal-notice {
+      display: none;
+      background: rgba(220,120,0,0.12); border: 1px solid rgba(220,120,0,0.35);
+      border-radius: 8px; padding: 9px 12px; margin-bottom: 10px;
+      font-size: 13px; color: #e8a040; line-height: 1.45;
+    }
+
+    /* ── Action bar ───────────────────────────────────────────────────────── */
+    .action-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; display: flex; gap: 10px;
+      padding: 10px 16px max(10px, env(safe-area-inset-bottom));
+      background: var(--surface); border-top: 1px solid var(--border); z-index: 100;
+    }
+    .btn {
+      flex: 1; height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      font-family: inherit; cursor: pointer; border: none;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: opacity 0.15s; -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active  { opacity: 0.7; }
+    .btn-primary { background: var(--accent); color: rgba(0,0,0,0.65); }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+    .btn-full { width: 100%; }
+
+    /* ── Game detail sheet ────────────────────────────────────────────────── */
+    .sheet {
+      position: fixed; inset: 0;
+      background: var(--bg); z-index: 300;
+      display: none; flex-direction: column;
+    }
+    .sheet.open { display: flex; }
+    .sheet-header {
+      background: var(--surface); border-bottom: 3px solid var(--accent);
+      padding: 0 16px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0;
+    }
+    .sheet-back {
+      display: flex; align-items: center; gap: 4px;
+      color: var(--accent); font-size: 16px; font-weight: 600;
+    }
+    .sheet-back svg { width: 28px; height: 28px; }
+    .sheet-heart-btn {
+      color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; border-radius: 10px;
+      transition: background 0.1s, color 0.1s; flex-shrink: 0;
+    }
+    .sheet-heart-btn.is-fav { color: #e05555; }
+    .sheet-heart-btn:active { background: rgba(224,85,85,0.12); }
+    .sheet-heart-btn svg { width: 24px; height: 24px; }
+    .sheet-body {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
+    .sheet-game-img {
+      width: calc(100% - 32px); height: auto; display: block;
+      margin: 16px; border-radius: 12px; object-fit: cover;
+    }
+    .sheet-section {
+      padding: 14px 16px 0;
+    }
+    .sheet-section-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
+    }
+    .sheet-section-text {
+      font-size: 15px; color: var(--text); line-height: 1.65; white-space: pre-line;
+    }
+    .sheet-game-title {
+      font-size: 20px; font-weight: 700; color: var(--text);
+      padding: 16px 16px 4px;
+    }
+    .sheet-actions {
+      padding: 12px 16px 0;
+    }
+    .coach-notes-section {
+      padding: 14px 16px 0;
+    }
+    .coach-notes-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
+    }
+    .coach-notes-input {
+      width: 100%; box-sizing: border-box;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+      color: var(--text); font-family: inherit; font-size: 14px;
+      line-height: 1.55; resize: none; overflow: hidden; min-height: 80px;
+    }
+    .coach-notes-input::placeholder { color: var(--muted); }
+    .coach-notes-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
+
+    /* ── Toast ────────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: #333; color: #fff; font-size: 13px; padding: 8px 16px;
+      border-radius: 20px; opacity: 0; transition: opacity 0.2s; z-index: 999;
+      pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <button class="back-btn" onclick="closeSession()" title="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+</header>
+
+<!-- Loading -->
+<div id="loadingScreen" class="screen active">
+  <div class="state-screen">
+    <div class="spinner"></div>
+    <div class="state-body" id="loadingText">Loading…</div>
+  </div>
+</div>
+
+<!-- Empty (no favourites) -->
+<div id="emptyScreen" class="screen">
+  <div class="state-screen">
+    <div class="state-icon">⭐</div>
+    <div class="state-title">No Favourites Yet</div>
+    <div class="state-body">Head to the Games Library and add some favourites, then come back here to generate your session plan or share game cards.</div>
+  </div>
+</div>
+
+<!-- Error -->
+<div id="errorScreen" class="screen">
+  <div class="state-screen">
+    <div class="state-icon">⚠️</div>
+    <div class="state-title">Something went wrong</div>
+    <div class="state-body" id="errorText"></div>
+  </div>
+</div>
+
+<!-- Setup screen -->
+<div id="setupScreen" class="screen">
+  <div class="scroll-content" style="padding-bottom:12px">
+    <div class="setup-section" style="margin-top:16px">
+      <div class="setup-section-label">Session Duration</div>
+      <div class="dur-card">
+        <div class="dur-label">Length of session</div>
+        <div class="dur-ctrl">
+          <button class="dur-step" onclick="adjustDur(-5)">−</button>
+          <div class="dur-val"><span id="durVal">60</span> min</div>
+          <button class="dur-step" onclick="adjustDur(+5)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="setup-section" style="margin-top:16px">
+      <div class="setup-section-label">Player Count</div>
+      <div class="dur-card">
+        <div class="dur-label">Number of players</div>
+        <div class="dur-ctrl">
+          <button class="dur-step" onclick="adjustPlayers(-1)">−</button>
+          <div class="dur-val"><span id="playerVal">15</span></div>
+          <button class="dur-step" onclick="adjustPlayers(+1)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="setup-section" style="margin-top:16px">
+      <div class="setup-section-label">Session Format</div>
+      <div class="toggle-card">
+        <div class="toggle-row">
+          <div class="toggle-label">Rotate through stations</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="rotateToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="toggle-explainer">When on, players are split across the drill stations and rotate at intervals — not everyone performs the same activity at the same time. Warm-up and cool-down remain collective.</div>
+      </div>
+    </div>
+    <div class="setup-section" style="margin-top:16px">
+      <div class="setup-section-label">Games — drag to reorder · tap to view · uncheck to skip</div>
+      <div class="fav-list-card" id="favList"></div>
+    </div>
+  </div>
+  <div class="setup-bar">
+    <button class="btn btn-outline" id="shareGamesBtn" onclick="shareGamesPdf()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Share Games
+    </button>
+    <button class="btn btn-primary" id="generateBtn" onclick="generatePlan()">
+      Generate Plan
+    </button>
+  </div>
+</div>
+
+<!-- Plan screen -->
+<div id="planScreen" class="screen">
+  <div class="scroll-content">
+    <div class="plan-content" id="planContent"></div>
+  </div>
+</div>
+
+<!-- Action bar (shown over plan screen) -->
+<div id="actionBar" class="action-bar" style="display:none">
+  <button class="btn btn-primary btn-full" onclick="exportPlan()" id="exportBtn">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+    Share Plan
+  </button>
+</div>
+
+<!-- Game detail sheet -->
+<div id="gameSheet" class="sheet">
+  <div class="sheet-header">
+    <button class="sheet-back" onclick="closeSheet()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+    <button class="sheet-heart-btn" id="sheetHeartBtn" onclick="toggleFavFromSheet()">
+      <svg id="sheetHeartSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+  const EDGE_FN           = SUPABASE_URL + '/functions/v1/generate-session-plan';
+  const PDF_FN            = SUPABASE_URL + '/functions/v1/generate-session-plan-pdf';
+  const GAME_CARD_PDF_FN  = SUPABASE_URL + '/functions/v1/generate-game-card-pdf';
+
+  const qp       = new URLSearchParams(window.location.search);
+  const WV_TOKEN = qp.get('token')    || '';
+  const USER_ID  = qp.get('user_id') || '';
+  const IS_WEBVIEW = (function() { try { return typeof FlutterBridge !== 'undefined'; } catch(_) { return false; } })();
+
+  let _dur      = parseInt(qp.get('duration') || '60') || 60;
+  let _players  = 15;
+  let _favs     = [];
+  let _branding = null;
+  let _currentPlan   = null;
+  let _currentSheetGameId = null;
+  let _rotateStations = true;
+
+  const HEADERS = {
+    'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+    'apikey':        SUPABASE_ANON_KEY,
+    'Content-Type':  'application/json',
+  };
+
+  // ── Utilities ───────────────────────────────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function closeSession() {
+    if (IS_WEBVIEW) FlutterBridge.postMessage('close');
+    else history.back();
+  }
+  function showScreen(id) {
+    ['loadingScreen','emptyScreen','errorScreen','setupScreen','planScreen'].forEach(s => {
+      const el = $(s);
+      if (el) el.classList.toggle('active', s === id);
+    });
+  }
+  function showLoading(msg) { $('loadingText').textContent = msg || 'Loading…'; showScreen('loadingScreen'); }
+  function showEmpty()      { showScreen('emptyScreen'); }
+  function showError(msg)   { $('errorText').textContent = msg; showScreen('errorScreen'); }
+
+  function hideRefusal() {
+    const n = $('refusalNotice');
+    if (n) n.style.display = 'none';
+  }
+
+  let _toastTimer;
+  function showToast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function adjustDur(delta) {
+    _dur = Math.max(15, Math.min(180, _dur + delta));
+    $('durVal').textContent = _dur;
+  }
+
+  function adjustPlayers(delta) {
+    _players = Math.max(1, Math.min(60, _players + delta));
+    $('playerVal').textContent = _players;
+  }
+
+  // ── Drag-to-reorder (touch + mouse) ─────────────────────────────────────────
+  let _drag = null;
+
+  function _doDragMove(clientX, clientY) {
+    const list = $('favList');
+    if (!list) return;
+    const others = [...list.querySelectorAll('.fav-item')].filter(el => el !== _drag.el);
+    let insertRef = null;
+    for (const item of others) {
+      const r = item.getBoundingClientRect();
+      if (clientY < r.top + r.height / 2) { insertRef = item; break; }
+    }
+    if (insertRef) list.insertBefore(_drag.el, insertRef);
+    else list.appendChild(_drag.el);
+  }
+
+  function _endDrag() {
+    if (!_drag) return;
+    _drag.el.classList.remove('is-dragging');
+    _drag = null;
+  }
+
+  function initDragHandle(handle) {
+    handle.addEventListener('touchstart', e => {
+      const item = handle.closest('.fav-item');
+      if (!item) return;
+      e.preventDefault();
+      _drag = { el: item };
+      item.classList.add('is-dragging');
+    }, { passive: false });
+
+    handle.addEventListener('mousedown', e => {
+      const item = handle.closest('.fav-item');
+      if (!item) return;
+      e.preventDefault();
+      _drag = { el: item };
+      item.classList.add('is-dragging');
+    });
+  }
+
+  document.addEventListener('touchmove', e => {
+    if (!_drag) return;
+    e.preventDefault();
+    _doDragMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  document.addEventListener('touchend', _endDrag);
+  document.addEventListener('mousemove', e => { if (!_drag) return; _doDragMove(e.clientX, e.clientY); });
+  document.addEventListener('mouseup', _endDrag);
+
+  // ── Favourites list rendering ───────────────────────────────────────────────
+  function renderFavList(favs) {
+    const list = $('favList');
+    list.innerHTML = '';
+    if (!favs || favs.length === 0) {
+      list.innerHTML = '<div style="padding:20px 16px;font-size:14px;color:var(--muted);text-align:center">No favourites found</div>';
+      return;
+    }
+    favs.forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'fav-item';
+      item.dataset.gid = f.game_id;
+
+      const imgHtml = f.game_image
+        ? `<img class="fav-thumb" src="${esc(f.game_image)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          + `<div class="fav-thumb-placeholder" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`
+        : `<div class="fav-thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+
+      item.innerHTML = `
+        <div class="drag-handle">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="2.2"/><circle cx="16" cy="5" r="2.2"/><circle cx="8" cy="12" r="2.2"/><circle cx="16" cy="12" r="2.2"/><circle cx="8" cy="19" r="2.2"/><circle cx="16" cy="19" r="2.2"/></svg>
+        </div>
+        <div class="fav-check-wrap">
+          <input type="checkbox" class="fav-check" checked>
+        </div>
+        ${imgHtml}
+        <div class="fav-name">${esc(f.game_name)}</div>
+        <button class="heart-btn" title="Remove from favourites">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>`;
+
+      initDragHandle(item.querySelector('.drag-handle'));
+      item.querySelector('.fav-name').addEventListener('click', () => openGameSheet(f.game_id));
+      item.querySelector('.heart-btn').addEventListener('click', () => unfavourite(f.game_id, item));
+
+      list.appendChild(item);
+    });
+  }
+
+  // ── Get checked game_ids in DOM order ──────────────────────────────────────
+  function checkedGameIds() {
+    return [...$('favList').querySelectorAll('.fav-item')]
+      .filter(el => el.querySelector('.fav-check')?.checked)
+      .map(el => parseInt(el.dataset.gid));
+  }
+
+  // ── Unfavourite ─────────────────────────────────────────────────────────────
+  async function unfavourite(gameId, itemEl) {
+    itemEl.style.opacity = '0.4';
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/toggle_user_game_link', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ p_game_id: gameId }),
+      });
+      if (res.ok) {
+        itemEl.remove();
+        _favs = _favs.filter(f => f.game_id !== gameId);
+        if ($('favList').children.length === 0) showEmpty();
+      } else {
+        itemEl.style.opacity = '';
+        showToast('Could not remove favourite — try again');
+      }
+    } catch {
+      itemEl.style.opacity = '';
+      showToast('Network error');
+    }
+  }
+
+  // ── Share Games PDF ─────────────────────────────────────────────────────────
+  async function shareGamesPdf() {
+    const game_ids = checkedGameIds();
+    if (game_ids.length === 0) { showToast('Select at least one game'); return; }
+
+    const btn = $('shareGamesBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(255,255,255,0.2);border-top-color:#e4e9f0"></div>';
+    if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
+
+    try {
+      const res = await fetch(GAME_CARD_PDF_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ game_ids, user_id: USER_ID }),
+      });
+      if (!res.ok) throw new Error('Server error');
+      const { pdf, filename } = await res.json();
+      if (IS_WEBVIEW) {
+        FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
+      } else {
+        const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
+        const blob  = new Blob([bytes], { type: 'application/pdf' });
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    } catch {
+      showToast('Could not generate PDF — please try again');
+    }
+    if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+  }
+
+  // ── Game detail sheet ────────────────────────────────────────────────────────
+  async function openGameSheet(gameId) {
+    _currentSheetGameId = gameId;
+    const sheet = $('gameSheet');
+    $('sheetBody').innerHTML = '<div class="state-screen"><div class="spinner"></div></div>';
+    updateSheetHeart();
+    sheet.classList.add('open');
+
+    try {
+      const res = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_game', user_id: USER_ID, game_id: gameId }),
+      });
+      const data = await res.json();
+      const g = data.game;
+      if (!g) { $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Game not found</div></div>'; return; }
+
+      const imgSrc = g.game_details_image || g.game_image;
+      const imgHtml = imgSrc
+        ? `<img class="sheet-game-img" src="${esc(imgSrc)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+        : '';
+
+      function section(label, text) {
+        if (!text?.trim()) return '';
+        return `<div class="sheet-section">
+          <div class="sheet-section-label">${esc(label)}</div>
+          <div class="sheet-section-text">${esc(text.trim())}</div>
+        </div>`;
+      }
+
+      const coachNoteVal = data.coach_note || '';
+
+      $('sheetBody').innerHTML = `
+        <div class="sheet-game-title">${esc(g.game_name)}</div>
+        <div class="sheet-actions">
+          <button class="btn btn-outline btn-full" id="gameCardPdfBtn" onclick="exportGameCardPdf(${Number(gameId)})">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Export Game Card
+          </button>
+        </div>
+        ${section('Setup', g.game_setup)}
+        ${imgHtml}
+        ${section('How to Play', g.game_how_to_play)}
+        ${section('Variations', g.game_variations)}
+        ${section('Teaching Points', g.game_teaching_points)}
+        <div class="coach-notes-section">
+          <div class="coach-notes-label">Coach Notes</div>
+          <textarea id="coachNotesInput" class="coach-notes-input" placeholder="Add your coaching notes for this game…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(coachNoteVal)}</textarea>
+          <div style="margin-top:8px">
+            <button class="btn btn-outline" id="saveNoteBtn" onclick="saveCoachNote()">Save Note</button>
+          </div>
+        </div>
+        <div style="height:24px"></div>`;
+
+      const ta = $('coachNotesInput');
+      if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+    } catch {
+      $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Could not load game details</div></div>';
+    }
+  }
+
+  function updateSheetHeart() {
+    const btn = $('sheetHeartBtn');
+    const svg = $('sheetHeartSvg');
+    if (!btn || !_currentSheetGameId) return;
+    const isFav = _favs.some(f => f.game_id === _currentSheetGameId);
+    btn.classList.toggle('is-fav', isFav);
+    if (svg) svg.setAttribute('fill', isFav ? 'currentColor' : 'none');
+  }
+
+  async function toggleFavFromSheet() {
+    if (!_currentSheetGameId) return;
+    const isFav = _favs.some(f => f.game_id === _currentSheetGameId);
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/toggle_user_game_link', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ p_game_id: _currentSheetGameId }),
+      });
+      if (res.ok) {
+        if (isFav) {
+          _favs = _favs.filter(f => f.game_id !== _currentSheetGameId);
+          const item = $('favList')?.querySelector(`[data-gid="${_currentSheetGameId}"]`);
+          if (item) item.remove();
+          showToast('Removed from favourites');
+          if (!$('favList')?.children.length) { closeSheet(); showEmpty(); return; }
+        } else {
+          showToast('Added to favourites');
+        }
+        updateSheetHeart();
+      } else {
+        showToast('Could not update favourites');
+      }
+    } catch {
+      showToast('Network error');
+    }
+  }
+
+  async function saveCoachNote() {
+    const input = $('coachNotesInput');
+    if (!input || !_currentSheetGameId) return;
+    const note = input.value.trim();
+    const btn = $('saveNoteBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const res = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'save_coach_note', user_id: USER_ID, game_id: _currentSheetGameId, note }),
+      });
+      const d = await res.json();
+      if (d.ok) showToast('Note saved ✓');
+      else showToast('Could not save note');
+    } catch {
+      showToast('Network error');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Note'; }
+  }
+
+  async function exportGameCardPdf(gameId) {
+    const btn = $('gameCardPdfBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
+    if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
+    try {
+      const res = await fetch(GAME_CARD_PDF_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ game_id: gameId, user_id: USER_ID }),
+      });
+      if (!res.ok) throw new Error('Server error');
+      const { pdf, filename } = await res.json();
+      if (IS_WEBVIEW) {
+        FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
+      } else {
+        const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
+        const blob  = new Blob([bytes], { type: 'application/pdf' });
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    } catch {
+      showToast('Could not generate PDF — please try again');
+    }
+    if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+  }
+
+  function closeSheet() {
+    $('gameSheet').classList.remove('open');
+    _currentSheetGameId = null;
+  }
+
+  // ── Setup screen ────────────────────────────────────────────────────────────
+  function showSetup() {
+    $('actionBar').style.display = 'none';
+    showScreen('setupScreen');
+  }
+
+  // ── Generate ────────────────────────────────────────────────────────────────
+  async function generatePlan(feedback = '') {
+    const game_ids = checkedGameIds();
+    if (game_ids.length === 0) { showToast('Select at least one game'); return; }
+
+    _rotateStations = $('rotateToggle')?.checked ?? true;
+    showLoading('Generating your session plan…');
+    $('actionBar').style.display = 'none';
+
+    try {
+      const reqBody = {
+        action: 'generate',
+        user_id: USER_ID,
+        duration_mins: _dur,
+        player_count: _players,
+        game_ids,
+        rotate_stations: _rotateStations,
+      };
+      if (feedback) reqBody.feedback = feedback;
+      const res = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(reqBody) });
+      const data = await res.json();
+
+      if (data.error === 'no_favourites') { showEmpty(); return; }
+
+      if (data.refusal) {
+        showScreen('planScreen');
+        $('actionBar').style.display = 'flex';
+        const notice = $('refusalNotice');
+        if (notice) { notice.textContent = data.refusal; notice.style.display = 'block'; }
+        return;
+      }
+
+      if (!res.ok || !data.plan) { showError(data.message || data.error || 'Generation failed. Please try again.'); return; }
+
+      _branding    = data.branding;
+      _currentPlan = data.plan;
+      renderPlan(data.plan);
+    } catch { showError('Network error. Please try again.'); }
+  }
+
+  async function regenerateWithFeedback() {
+    const feedback = ($('feedbackText')?.value || '').trim();
+    const btn = $('regenFeedbackBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; }
+    await generatePlan(feedback);
+    if (btn) { btn.disabled = false; btn.textContent = 'Regenerate'; }
+  }
+
+  function collectEdits() {
+    if (!_currentPlan) return null;
+    const plan = JSON.parse(JSON.stringify(_currentPlan));
+    document.querySelectorAll('[data-path]').forEach(el => {
+      const keys = el.dataset.path.split('.');
+      let obj = plan;
+      for (let i = 0; i < keys.length - 1; i++) {
+        const k = isNaN(keys[i]) ? keys[i] : +keys[i];
+        if (obj == null || obj[k] == null) return;
+        obj = obj[k];
+      }
+      const last = keys[keys.length - 1];
+      obj[isNaN(last) ? last : +last] = el.innerText.trim();
+    });
+    return plan;
+  }
+
+  // ── Plan rendering ───────────────────────────────────────────────────────────
+  function renderPlan(plan) {
+    _currentPlan = plan;
+    const out = [];
+
+    out.push(`<div class="setup-chip-row">
+      <button class="setup-chip" onclick="showSetup()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Setup
+      </button>
+    </div>`);
+
+    out.push(`<div class="edit-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Tap any text below to edit
+    </div>`);
+
+    out.push(`<div class="stats-section">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-value">${plan.player_count ?? _players}</div><div class="stat-label">Players</div></div>
+        <div class="stat-card"><div class="stat-value">${plan.coach_count ?? 0}</div><div class="stat-label">Coaches</div></div>
+        <div class="stat-card"><div class="stat-value">${plan.total_duration_mins ?? _dur}</div><div class="stat-label">Minutes</div></div>
+      </div>
+    </div>`);
+
+    if (plan.session_title) {
+      out.push(sectionHdr('FOCUS', null, 'drill'));
+      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px">
+        <div class="drill-name" style="font-size:15px" contenteditable="true" data-path="session_title">${esc(plan.session_title)}</div>
+      </div></div>`);
+    }
+
+    if (plan.session_objective) {
+      out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
+    }
+
+    if (plan.pre_session) {
+      out.push(sectionHdr('PRE-SESSION', plan.pre_session.duration_mins, 'warm'));
+      out.push(phaseCard(plan.pre_session, null, null, null, 'pre_session'));
+    }
+
+    if (plan.warm_up) {
+      out.push(sectionHdr('WARM UP', plan.warm_up.duration_mins, 'warm'));
+      out.push(phaseCard(plan.warm_up, null, null, null, 'warm_up'));
+    }
+
+    if (plan.station_setup?.trim()) {
+      out.push(sectionHdr('STATION SETUP', null, 'drill'));
+      out.push(`<div class="station-setup-card">${esc(plan.station_setup.trim())}</div>`);
+    }
+
+    (plan.drills || []).forEach((d, i) => {
+      out.push(sectionHdr(`DRILL ${i + 1}`, d.duration_mins, 'drill'));
+      out.push(phaseCard(d, d.game_name, i + 1, d.game_image, `drills.${i}`));
+    });
+
+    if (plan.cool_down) {
+      out.push(sectionHdr('COOL DOWN', plan.cool_down.duration_mins, 'cool'));
+      out.push(phaseCard(plan.cool_down, null, null, null, 'cool_down'));
+    }
+
+    if (plan.post_session) {
+      out.push(sectionHdr('POST-SESSION', plan.post_session.duration_mins, 'cool'));
+      out.push(phaseCard(plan.post_session, null, null, null, 'post_session'));
+    }
+
+    out.push(`<div class="feedback-bar">
+      <div class="feedback-hdr">Refine this plan</div>
+      <div id="refusalNotice" class="refusal-notice"></div>
+      <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';hideRefusal()"></textarea>
+      <div class="feedback-actions">
+        <button class="btn btn-primary" id="regenFeedbackBtn" onclick="regenerateWithFeedback()">Regenerate</button>
+      </div>
+    </div>`);
+
+    out.push('<div class="drill-gap"></div>');
+    $('planContent').innerHTML = out.join('');
+    showScreen('planScreen');
+    $('actionBar').style.display = 'flex';
+  }
+
+  function sectionHdr(label, dur, type) {
+    return `<div class="section-hdr">
+      <div class="s-dot s-dot-${type}"></div>
+      <div class="s-label">${esc(label)}</div>
+      ${dur ? `<div class="s-dur">${dur} min</div>` : ''}
+    </div>`;
+  }
+
+  function phaseCard(phase, gameName, drillNum, gameImage, pathPrefix) {
+    const nameBar = (gameName || drillNum)
+      ? `<div class="drill-name-bar">
+          ${drillNum ? `<div class="drill-num">${drillNum}</div>` : ''}
+          ${gameName ? `<div class="drill-name">${esc(gameName)}</div>` : ''}
+        </div>`
+      : '';
+
+    const imgTag = gameImage
+      ? `<img class="game-image" src="${esc(gameImage)}" alt="${esc(gameName || '')}" loading="lazy" onerror="this.style.display='none'">`
+      : '';
+
+    const pts = (phase.coaching_points || [])
+      .map(pt => `<div class="cp-item"><span class="cp-dot">•</span><span>${esc(pt)}</span></div>`)
+      .join('');
+
+    const variation = phase.variation
+      ? `<div class="variation-row"><strong>Variation:</strong> ${esc(phase.variation)}</div>` : '';
+
+    const descAttr = pathPrefix ? ` contenteditable="true" data-path="${pathPrefix}.description"` : '';
+
+    return `<div class="phase-card">
+      ${nameBar}${imgTag}
+      <div class="card-body">
+        <div class="card-desc"${descAttr}>${esc(phase.description || '')}</div>
+        ${pts.length ? `<div class="cp-label">Coaching Points</div>${pts}` : ''}
+        ${variation}
+      </div>
+    </div>`;
+  }
+
+  // ── Export Plan PDF ─────────────────────────────────────────────────────────
+  async function exportPlan() {
+    if (!_currentPlan) { showToast('No plan to export'); return; }
+    const btn = $('exportBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
+    if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
+
+    const planToExport = collectEdits() || _currentPlan;
+
+    try {
+      const res = await fetch(PDF_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({
+          plan_json: planToExport,
+          user_id:   USER_ID,
+          format:    'mobile',
+        }),
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Server error'); }
+      const { pdf, filename } = await res.json();
+      if (IS_WEBVIEW) {
+        FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
+      } else {
+        const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
+        const blob  = new Blob([bytes], { type: 'application/pdf' });
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    } catch (e) {
+      showToast('Could not generate PDF — please try again');
+    } finally {
+      if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+    }
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────────────────────
+  async function boot() {
+    if (!USER_ID) { showError('Missing user information.'); return; }
+    showLoading('Loading…');
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get', user_id: USER_ID }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'Failed to load.'); return; }
+
+      _branding  = data.branding;
+      _favs      = data.favourites || [];
+      if (_favs.length === 0) { showEmpty(); return; }
+
+      $('durVal').textContent    = _dur;
+      $('playerVal').textContent = _players;
+      renderFavList(_favs);
+      showSetup();
+    } catch { showError('Network error. Please check your connection and try again.'); }
+  }
+
+  boot();
+</script>
+</body>
+</html>
