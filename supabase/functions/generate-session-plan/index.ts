@@ -226,7 +226,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, event_id, user_id, duration_mins = 60, game_ids } = body;
+    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, plan_id, plan_json } = body;
 
     if (!event_id || !user_id) {
       return new Response(JSON.stringify({ error: "event_id and user_id are required" }), {
@@ -354,6 +354,23 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── UPDATE_PLAN: save edited plan_json ────────────────────────────────────
+    if (action === "update_plan") {
+      if (!plan_id || !plan_json) return new Response(JSON.stringify({ error: "plan_id and plan_json required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const { error: upErr } = await sb.from("session_plans")
+        .update({ plan_json })
+        .eq("plan_id", plan_id)
+        .eq("created_by", user_id);
+      if (upErr) return new Response(JSON.stringify({ error: upErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── GENERATE ──────────────────────────────────────────────────────────────
     if (action !== "generate") return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -425,6 +442,7 @@ serve(async (req) => {
       squad?.squad_name ? `Squad: ${squad.squad_name}${squad.grade ? ` (${squad.grade})` : ""}` : null,
       weather ? `Weather forecast: ${weather.summary}` : null,
       event.event_details?.trim() ? `Coach's session notes: ${event.event_details.trim()}` : null,
+      feedback?.trim() ? `\nCoach's feedback on the previous plan (please address this):\n${feedback.trim()}` : null,
       `\nGames to use (in this order):\n\n${gamesText}`,
     ].filter(Boolean).join("\n");
 
