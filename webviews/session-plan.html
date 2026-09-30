@@ -32,18 +32,19 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── CoachSmart header (always shown in app, hidden in print) ──────────── */
+    /* ── Header (always shown in app, hidden in print) ─────────────────────── */
     .app-header {
       position: sticky;
       top: 0;
       z-index: 100;
       background: var(--surface);
-      border-bottom: 2px solid var(--accent);
+      border-bottom: 3px solid var(--accent);
       padding: 0 16px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 10px;
       height: var(--header-h);
+      flex-shrink: 0;
     }
 
     .back-btn {
@@ -56,32 +57,8 @@
     .back-btn:active { background: var(--accent-dim); }
     .back-btn svg { width: 34px; height: 34px; }
 
-    .cs-logo {
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-    }
-
-    .cs-logo .coach { color: var(--muted); }
-    .cs-logo .smart { color: var(--accent); }
-
-    .header-right { text-align: right; min-width: 0; }
-
-    .hdr-event {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 200px;
-    }
-
-    .hdr-date {
-      font-size: 11px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
+    .bar-wordmark { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+    .bar-wordmark span { color: var(--accent); }
 
     /* ── Main scroll area ─────────────────────────────────────────────────── */
     .main-content { padding-bottom: calc(var(--bar-h) + 20px); }
@@ -339,11 +316,7 @@
   <button class="back-btn" onclick="closeSession()" title="Close">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
-  <div class="cs-logo"><span class="coach">COACH</span><span class="smart">SMART</span></div>
-  <div class="header-right">
-    <div id="hdrEvent" class="hdr-event">Session Plan</div>
-    <div id="hdrDate"  class="hdr-date"></div>
-  </div>
+  <div class="bar-wordmark">Coach<span>Smart</span></div>
 </header>
 
 <div id="mainContent" class="main-content"></div>
@@ -372,7 +345,7 @@
     if (IS_WEBVIEW) {
       FlutterBridge.postMessage('close');
     } else {
-      window.location.href = '/cs-close.html';
+      history.back();
     }
   }
 
@@ -406,17 +379,7 @@
       .replace(/"/g,'&quot;');
   }
 
-  // ── Event meta (header right side only) ───────────────────────────────────
-  function applyEventMeta(meta, squadName) {
-    if (!meta) return;
-    setHtml('hdrEvent', esc(meta.title || 'Session Plan'));
-    if (meta.date_time) {
-      const d    = new Date(meta.date_time);
-      const day  = d.toLocaleDateString('en-IE', { weekday:'short', day:'numeric', month:'short' });
-      const time = d.toLocaleTimeString('en-IE', { hour:'numeric', minute:'2-digit', hour12:true });
-      setHtml('hdrDate', esc(day + ' · ' + time));
-    }
-  }
+  function applyEventMeta() {}
 
   // ── State screens ──────────────────────────────────────────────────────────
   function showLoading(msg) {
