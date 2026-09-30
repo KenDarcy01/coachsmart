@@ -289,13 +289,14 @@
       font-size: 14px; line-height: 1.6; color: var(--muted); text-align: center;
     }
     .mic-btn {
-      width: 88px; height: 88px; border-radius: 50%;
+      width: 100%; height: 72px; border-radius: 36px;
       background: var(--card); border: 2.5px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--muted); transition: border-color 0.18s, background 0.18s, color 0.18s;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      color: var(--muted); font-size: 16px; font-weight: 600;
+      transition: border-color 0.18s, background 0.18s, color 0.18s;
       flex-shrink: 0; -webkit-user-select: none; user-select: none; touch-action: none;
     }
-    .mic-btn svg { width: 36px; height: 36px; }
+    .mic-btn svg { width: 28px; height: 28px; flex-shrink: 0; }
     .mic-btn.recording {
       background: rgba(239,68,68,0.14); border-color: var(--red); color: var(--red);
       animation: mic-ring 1.2s ease-out infinite;
@@ -538,6 +539,7 @@
         </div>
         <button id="micBtn" class="mic-btn" aria-label="Hold to record">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          <span id="micBtnLabel">Hold to Record</span>
         </button>
       </div>
       <div id="voiceTranscript" class="transcript-preview"></div>
@@ -724,6 +726,8 @@
       document.getElementById('voiceTranscript').textContent = '';
       document.getElementById('createWithAiBtn').disabled = true;
       btn.classList.add('recording');
+      const lbl = document.getElementById('micBtnLabel');
+      if (lbl) lbl.textContent = 'Recording…';
       document.getElementById('voiceWave').classList.add('active');
 
       if (window.FlutterBridge) {
@@ -735,6 +739,8 @@
 
     function stop() {
       if (!_isVoiceRecording) return;
+      const lbl = document.getElementById('micBtnLabel');
+      if (lbl) lbl.textContent = 'Hold to Record';
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
       } else {
@@ -759,13 +765,19 @@
     _voiceWebRecognition = new SR();
     _voiceWebRecognition.lang = 'en-IE';
     _voiceWebRecognition.continuous = true;
-    _voiceWebRecognition.interimResults = false;
+    _voiceWebRecognition.interimResults = true;
     _voiceWebRecognition.onresult = (e) => {
+      let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) _baseVoiceText += e.results[i][0].transcript + ' ';
+        if (e.results[i].isFinal) {
+          _baseVoiceText += e.results[i][0].transcript + ' ';
+        } else {
+          interim += e.results[i][0].transcript;
+        }
       }
       _voiceTranscript = _removeFillersAndClean(_baseVoiceText);
-      document.getElementById('voiceTranscript').textContent = _voiceTranscript;
+      const display = (_voiceTranscript + (interim ? ' ' + interim : '')).trim();
+      document.getElementById('voiceTranscript').textContent = display || _voiceTranscript;
     };
     _voiceWebRecognition.onerror = (e) => {
       if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error');
@@ -784,6 +796,8 @@
     _isVoiceRecording = false;
     const btn = document.getElementById('micBtn');
     if (btn) btn.classList.remove('recording');
+    const lbl = document.getElementById('micBtnLabel');
+    if (lbl) lbl.textContent = 'Hold to Record';
     document.getElementById('voiceWave').classList.remove('active');
     document.getElementById('createWithAiBtn').disabled = !_voiceTranscript.trim();
   }
@@ -921,6 +935,13 @@
     const cleaned = _removeFillersAndClean(_baseText);
     const ta = document.getElementById(fieldId);
     if (ta) { ta.value = cleaned; autoResize(ta); }
+  };
+
+  // Called by Flutter with each interim (partial) word during voice_input hold.
+  // Shows accumulated finals + current partial so the user sees text in real time.
+  window.onVoiceInterim = function(partialText) {
+    const combined = (_voiceTranscript ? _voiceTranscript + ' ' : '') + partialText;
+    document.getElementById('voiceTranscript').textContent = combined.trim();
   };
 
   // Called by Flutter when recognition ends (pause / done)
