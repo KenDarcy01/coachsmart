@@ -367,7 +367,7 @@
 
     <!-- Sketch / Photo ─ AT TOP ─ Diagram left, Sketch right -->
     <div>
-      <div class="field-label">Sketch / Photo <span title="optional">(optional)</span></div>
+      <div class="field-label">Sketch / Photo <span>*</span></div>
       <div class="media-tabs">
         <button class="media-tab active" onclick="switchMediaTab('photo', this)">📐 Diagram</button>
         <button class="media-tab" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
@@ -1895,9 +1895,14 @@
     if (!setup) { showToast('Setup is required', 'error'); return; }
     if (!howTo) { showToast('How to Play is required', 'error'); return; }
 
-    // Capture sketch or photo (optional)
+    // Capture sketch or photo (required)
     const hasSketch = _activeMediaTab === 'sketch' && _hasDrawn;
     const hasPhoto  = _activeMediaTab === 'photo'  && !!_imageBase64;
+    if (!hasSketch && !hasPhoto) {
+      showToast('A diagram or sketch is required', 'error');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     _reviewImage = null;
     if (hasSketch) {
       const png = await getSketchPng();
