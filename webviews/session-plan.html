@@ -360,6 +360,12 @@
     .feedback-actions {
       display: flex; gap: 8px; margin-top: 10px;
     }
+    .refusal-notice {
+      display: none;
+      background: rgba(220,120,0,0.12); border: 1px solid rgba(220,120,0,0.35);
+      border-radius: 8px; padding: 9px 12px; margin-bottom: 10px;
+      font-size: 13px; color: #e8a040; line-height: 1.45;
+    }
 
     /* ── Action bar ───────────────────────────────────────────────────────── */
     .action-bar {
@@ -558,6 +564,11 @@
   function showLoading(msg) { $('loadingText').textContent = msg || 'Loading…'; showScreen('loadingScreen'); }
   function showEmpty()      { showScreen('emptyScreen'); }
   function showError(msg)   { $('errorText').textContent = msg; showScreen('errorScreen'); }
+
+  function hideRefusal() {
+    const n = $('refusalNotice');
+    if (n) n.style.display = 'none';
+  }
 
   let _toastTimer;
   function showToast(msg) {
@@ -766,6 +777,16 @@
       const data = await res.json();
 
       if (data.error === 'no_favourites') { showEmpty(); return; }
+
+      if (data.refusal) {
+        // Gemini declined — keep current plan visible, show the reason
+        showScreen('planScreen');
+        $('actionBar').style.display = 'flex';
+        const notice = $('refusalNotice');
+        if (notice) { notice.textContent = data.refusal; notice.style.display = 'block'; }
+        return;
+      }
+
       if (!res.ok || !data.plan) { showError(data.message || data.error || 'Generation failed. Please try again.'); return; }
 
       _branding      = data.branding;
@@ -917,7 +938,8 @@
     // Feedback + save bar
     out.push(`<div class="feedback-bar">
       <div class="feedback-hdr">Refine this plan</div>
-      <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+      <div id="refusalNotice" class="refusal-notice"></div>
+      <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';hideRefusal()"></textarea>
       <div class="feedback-actions">
         <button class="btn btn-outline" id="saveBtn" onclick="savePlan()">Save edits</button>
         <button class="btn btn-primary" id="regenFeedbackBtn" onclick="regenerateWithFeedback()">Regenerate</button>
