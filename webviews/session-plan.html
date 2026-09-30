@@ -905,8 +905,6 @@
       _eventMeta = data.event;
       _squadName = data.squad_name;
       _favs      = data.favourites || [];
-      setHeaderTitle(_eventMeta);
-
       if (_favs.length === 0) { showEmpty(); return; }
 
       // Render setup screen with favourites
