@@ -44,6 +44,7 @@ class _NativeWebViewState extends State<NativeWebView>
   WebViewController? _controller;
   final SpeechToText _speech = SpeechToText();
   bool _speechAvailable = false;
+  bool _speechInitialized = false;
   String? _speechFieldId;
 
   @override
@@ -51,7 +52,8 @@ class _NativeWebViewState extends State<NativeWebView>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initController();
-    _initSpeech();
+    // Speech is initialized lazily on first use to avoid requesting
+    // microphone permission on pages that don't need it.
   }
 
   @override
@@ -62,6 +64,7 @@ class _NativeWebViewState extends State<NativeWebView>
   }
 
   Future<void> _initSpeech() async {
+    _speechInitialized = true;
     try {
       _speechAvailable = await _speech.initialize(
         onError: (error) {
@@ -83,6 +86,9 @@ class _NativeWebViewState extends State<NativeWebView>
   }
 
   Future<void> _startSpeech(String fieldId) async {
+    if (!_speechInitialized) {
+      await _initSpeech();
+    }
     if (!_speechAvailable) {
       _controller?.runJavaScript(
         'window.onSpeechError(${jsonEncode("Speech recognition not available on this device")})',
