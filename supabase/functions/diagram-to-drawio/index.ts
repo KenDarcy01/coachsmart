@@ -60,8 +60,8 @@ ARROWS / MOVEMENT LINES — SMART STRAIGHT vs CURVED:
 - All edges are floating (NO source or target attributes). Use sourcePoint and targetPoint in mxGeometry.
 - Start/end points must be ~18px away from shape edges — arrows must not touch circles or triangles.
 - CONES AND CIRCLES ARE OBSTACLES: arrows must NEVER pass through or overlap any cone or circle.
-  - If an arrow travels TO a cone or circle, end it 5px from the shape's edge.
-  - If an arrow passes NEAR a cone or circle but does not target it, route the arrow AROUND the shape with at least 5px clearance — add waypoints to steer clear. An arrow that crosses over a shape is always wrong.
+  - If an arrow travels TO a cone or circle, end it 10px from the shape's edge.
+  - If an arrow passes NEAR a cone or circle but does not target it, route the arrow AROUND the shape with at least 10px clearance — add waypoints to steer clear. An arrow that crosses over a shape is always wrong.
 
 EDGE LABELS — NEVER ON THE LINE:
 - Leave value="" on every edge cell.
