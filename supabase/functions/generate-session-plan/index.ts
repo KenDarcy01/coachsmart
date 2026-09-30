@@ -131,6 +131,7 @@ async function geocodeName(name: string): Promise<{ lat: number; lng: number } |
 async function fetchWeather(
   locationPin: string | null, locationName: string | null,
   eventDateTime: string | null, county: string | null,
+  eventType: string | null,
 ): Promise<{ summary: string; temp_c: number; precip_pct: number; wind_kmh: number } | null> {
   if (!eventDateTime) return null;
   const eventDate = new Date(eventDateTime);
@@ -155,14 +156,33 @@ async function fetchWeather(
     const temp   = Math.round(d.hourly.temperature_2m[idx] ?? 10);
     const precip = Math.round(d.hourly.precipitation_probability[idx] ?? 0);
     const wind   = Math.round(d.hourly.windspeed_10m[idx] ?? 0);
+
+    const isFootball = /football/i.test(eventType ?? "");
+
     const cues: string[] = [];
-    if      (temp < 5)     cues.push("very cold — base layers and gloves essential");
-    else if (temp < 10)    cues.push("cold — warm layers and gloves recommended");
-    else if (temp < 15)    cues.push("cool — light layers advised");
-    if      (precip >= 70) cues.push("heavy rain likely — waterproofs required");
-    else if (precip >= 40) cues.push("rain possible — waterproofs recommended");
-    if      (wind >= 50)   cues.push("very windy — adjust kicking drills");
-    else if (wind >= 30)   cues.push("breezy conditions");
+
+    // Cold / hot
+    if      (temp < 5)  cues.push("very cold — warm base layers and windproofs essential");
+    else if (temp < 10) cues.push("cold — warm layers recommended");
+    else if (temp < 15) cues.push("cool — light layers advised");
+
+    if (temp >= 20 && precip < 30) cues.push("warm — bring extra water and wear sunscreen");
+
+    // Rain (sport-specific)
+    if (precip >= 70) {
+      cues.push(isFootball
+        ? "heavy rain likely — waterproofs required, football gloves essential"
+        : "heavy rain likely — waterproofs required");
+    } else if (precip >= 40) {
+      cues.push(isFootball
+        ? "rain likely — football gloves recommended, waterproofs advised"
+        : "rain possible — waterproofs recommended");
+    }
+
+    // Wind
+    if      (wind >= 50) cues.push("very windy — adjust kicking drills");
+    else if (wind >= 30) cues.push("breezy conditions");
+
     const summary = `${temp}°C · ${precip}% rain · ${wind}km/h wind` +
       (cues.length ? ` — ${cues.join(", ")}` : " — good conditions for training");
     return { summary, temp_c: temp, precip_pct: precip, wind_kmh: wind };
@@ -455,7 +475,7 @@ serve(async (req) => {
     const { playerCount, coachCount } = await countAcceptedAttendees(sb, event_id, teamId, event.squad_id ?? null);
 
     // Weather
-    const weather = await fetchWeather(event.location_pin, event.location_name, event.event_date_time, club.county ?? null);
+    const weather = await fetchWeather(event.location_pin, event.location_name, event.event_date_time, club.county ?? null, eventType);
 
     // Build Gemini prompt
     const gamesText = favLinks.map((f: any) => {
