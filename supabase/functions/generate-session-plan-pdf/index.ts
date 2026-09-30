@@ -679,7 +679,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { plan_id } = body;
+    const { plan_id, user_id } = body;
     if (!plan_id) {
       return new Response(JSON.stringify({ error: "Missing plan_id" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -731,12 +731,32 @@ serve(async (req) => {
     const clubRaw   = (eventRow as any)?.teams?.clubs;
     const squadRaw  = (eventRow as any)?.squads;
 
+    // Prefer user's default_club branding over the event's club chain
+    const resolvedUserId = user_id || planRow.created_by;
+    let userClubRaw: Record<string, any> | null = null;
+    if (resolvedUserId) {
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("default_club")
+        .eq("user_id", resolvedUserId)
+        .maybeSingle();
+      if (userRow?.default_club) {
+        const { data: uc } = await supabase
+          .from("clubs")
+          .select("club_name, crest, primary_colour, secondary_colour, third_colour")
+          .eq("club_id", userRow.default_club)
+          .maybeSingle();
+        userClubRaw = uc;
+      }
+    }
+
+    const src = userClubRaw || clubRaw;
     const club: ClubData = {
-      club_name:        clubRaw?.club_name        || "CoachSmart",
-      crest:            clubRaw?.crest            || null,
-      primary_colour:   clubRaw?.primary_colour   || "#2d7a00",
-      secondary_colour: clubRaw?.secondary_colour || "#ffd700",
-      third_colour:     clubRaw?.third_colour     || null,
+      club_name:        src?.club_name        || "CoachSmart",
+      crest:            src?.crest            || null,
+      primary_colour:   src?.primary_colour   || "#2d7a00",
+      secondary_colour: src?.secondary_colour || "#ffd700",
+      third_colour:     src?.third_colour     || null,
     };
 
     const eventData: EventData = {

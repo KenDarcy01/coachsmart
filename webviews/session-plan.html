@@ -54,8 +54,6 @@
     }
     .back-btn:active { background: var(--accent-dim); }
     .back-btn svg { width: 34px; height: 34px; }
-    .bar-wordmark { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
-    .bar-wordmark span { color: var(--accent); }
 
     /* ── Screens ──────────────────────────────────────────────────────────── */
     .screen {
@@ -239,16 +237,23 @@
       font-size: 12px; font-weight: 500; color: var(--muted);
     }
 
-    /* Back to setup bar */
-    .back-to-setup-bar {
-      padding: 8px 16px;
-    }
-    .back-to-setup-btn {
+    /* Back to setup chip */
+    .setup-chip-row { padding: 10px 16px 0; }
+    .setup-chip {
       display: inline-flex; align-items: center; gap: 5px;
-      color: var(--accent); font-size: 13px; font-weight: 600;
-      padding: 6px 0; border-radius: 8px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 20px; padding: 5px 12px 5px 8px;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      transition: color 0.1s, border-color 0.1s;
     }
-    .back-to-setup-btn svg { width: 16px; height: 16px; }
+    .setup-chip:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+    .setup-chip svg { width: 14px; height: 14px; color: var(--accent); }
+
+    /* Spinner inside primary button needs dark colours */
+    .btn-primary .spinner {
+      border-color: rgba(0,0,0,0.2);
+      border-top-color: rgba(0,0,0,0.55);
+    }
 
     /* Objective */
     .objective-block {
@@ -379,7 +384,6 @@
   <button class="back-btn" onclick="closeSession()" title="Close">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
-  <div class="bar-wordmark">Coach<span>Smart</span></div>
 </header>
 
 <!-- Loading -->
@@ -527,15 +531,17 @@
   let _drag = null;
 
   function _doDragMove(clientX, clientY) {
-    _drag.el.style.display = 'none';
-    const below = document.elementFromPoint(clientX, clientY);
-    _drag.el.style.display = '';
-    const target = below?.closest('.fav-item');
-    if (target && target !== _drag.el) {
-      const rect = target.getBoundingClientRect();
-      if (clientY < rect.top + rect.height / 2) target.parentNode.insertBefore(_drag.el, target);
-      else target.parentNode.insertBefore(_drag.el, target.nextSibling);
+    const list = $('favList');
+    if (!list) return;
+    // Use each item's midpoint — no hide/show, works for both up and down
+    const others = [...list.querySelectorAll('.fav-item')].filter(el => el !== _drag.el);
+    let insertRef = null;
+    for (const item of others) {
+      const r = item.getBoundingClientRect();
+      if (clientY < r.top + r.height / 2) { insertRef = item; break; }
     }
+    if (insertRef) list.insertBefore(_drag.el, insertRef);
+    else list.appendChild(_drag.el);
   }
 
   function _endDrag() {
@@ -730,9 +736,9 @@
   function renderPlan(plan, squadName) {
     const out = [];
 
-    // Back to Setup button
-    out.push(`<div class="back-to-setup-bar">
-      <button class="back-to-setup-btn" onclick="showSetup()">
+    // Back to Setup chip
+    out.push(`<div class="setup-chip-row">
+      <button class="setup-chip" onclick="showSetup()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Back to Setup
       </button>
@@ -838,7 +844,7 @@
     if (!_currentPlanId) { showToast('No plan to export'); return; }
     const btn = $('exportBtn');
     const origHtml = btn.innerHTML;
-    btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0"></div>';
+    btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
     btn.disabled = true;
 
     try {
