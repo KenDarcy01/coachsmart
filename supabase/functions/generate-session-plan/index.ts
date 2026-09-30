@@ -67,7 +67,7 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
   },
   "drills": [
     {
-      "game_name": "string",
+      "game_name": "string (use the exact game name from the input)",
       "duration_mins": number,
       "description": "string (how to run this game with the given player count)",
       "player_count_note": "string or null (note if count needs adjustment, otherwise null)",
@@ -84,6 +84,7 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
 Rules:
 - warm_up.duration_mins + all drills duration_mins + cool_down.duration_mins must equal total_duration_mins exactly
 - Order drills from simplest to most complex — build progressively
+- Use the EXACT game name from the input in each drill — do not paraphrase or rename
 - Adapt each drill to the given player count; note modifications if needed
 - Coaching points must be short and actionable (what to watch for, what to emphasise)
 - Use GAA language: "football" for football code, "sliotar" and "hurl" for hurling/camogie
@@ -125,6 +126,7 @@ async function fetchWeather(
   locationPin: string | null,
   locationName: string | null,
   eventDateTime: string | null,
+  county: string | null,
 ): Promise<{ summary: string; temp_c: number; precip_pct: number; wind_kmh: number } | null> {
   if (!eventDateTime) return null;
 
@@ -132,8 +134,10 @@ async function fetchWeather(
   const daysAhead = (eventDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
   if (daysAhead < -1 || daysAhead > 16) return null;
 
+  // Try coords from location_pin → geocode location_name → geocode county (Ireland fallback)
   let coords = parseLatLng(locationPin);
   if (!coords && locationName) coords = await geocodeName(locationName);
+  if (!coords && county)       coords = await geocodeName(`${county}, Ireland`);
   if (!coords) return null;
 
   try {
@@ -146,23 +150,22 @@ async function fetchWeather(
     if (!res.ok) return null;
     const d = await res.json();
 
-    // Find the hour block matching the event start time
-    const targetHour = eventDate.toISOString().slice(0, 13); // e.g. "2026-10-15T18"
+    const targetHour = eventDate.toISOString().slice(0, 13);
     const idx = (d.hourly?.time || []).findIndex((t: string) => t.startsWith(targetHour));
     if (idx === -1) return null;
 
-    const temp    = Math.round(d.hourly.temperature_2m[idx] ?? 10);
-    const precip  = Math.round(d.hourly.precipitation_probability[idx] ?? 0);
-    const wind    = Math.round(d.hourly.windspeed_10m[idx] ?? 0);
+    const temp   = Math.round(d.hourly.temperature_2m[idx] ?? 10);
+    const precip = Math.round(d.hourly.precipitation_probability[idx] ?? 0);
+    const wind   = Math.round(d.hourly.windspeed_10m[idx] ?? 0);
 
     const cues: string[] = [];
-    if      (temp < 5)    cues.push("very cold — base layers and gloves essential");
-    else if (temp < 10)   cues.push("cold — warm layers and gloves recommended");
-    else if (temp < 15)   cues.push("cool — light layers advised");
+    if      (temp < 5)     cues.push("very cold — base layers and gloves essential");
+    else if (temp < 10)    cues.push("cold — warm layers and gloves recommended");
+    else if (temp < 15)    cues.push("cool — light layers advised");
     if      (precip >= 70) cues.push("heavy rain likely — waterproofs required");
     else if (precip >= 40) cues.push("rain possible — waterproofs recommended");
-    if      (wind >= 50)  cues.push("very windy — adjust kicking drills");
-    else if (wind >= 30)  cues.push("breezy conditions");
+    if      (wind >= 50)   cues.push("very windy — adjust kicking drills");
+    else if (wind >= 30)   cues.push("breezy conditions");
 
     const summary = `${temp}°C · ${precip}% rain · ${wind}km/h wind` +
       (cues.length ? ` — ${cues.join(", ")}` : " — good conditions for training");
@@ -177,7 +180,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, event_id, user_id, duration_mins = 90 } = body;
+    const { action, event_id, user_id, duration_mins = 60 } = body;
 
     if (!event_id || !user_id) {
       return new Response(JSON.stringify({ error: "event_id and user_id are required" }), {
@@ -189,7 +192,7 @@ serve(async (req) => {
     const SERVICE_ROLE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-    // ── Fetch event + team + club (needed for all actions) ────────────────────
+    // ── Fetch event + team + club ─────────────────────────────────────────────
     const { data: event, error: eventErr } = await sb
       .from("events")
       .select(`
@@ -198,7 +201,7 @@ serve(async (req) => {
         teams!events_team_id_fkey(
           team_id, team_name,
           clubs!teams_club_id_fkey(
-            club_id, club_name, crest,
+            club_id, club_name, crest, county,
             primary_colour, secondary_colour, third_colour
           )
         ),
@@ -213,8 +216,8 @@ serve(async (req) => {
       });
     }
 
-    const club    = (event.teams as any)?.clubs || {};
-    const squad   = (event.squads as any) || null;
+    const club  = (event.teams as any)?.clubs || {};
+    const squad = (event.squads as any) || null;
 
     const branding = {
       club_name:        club.club_name        || "",
@@ -225,9 +228,9 @@ serve(async (req) => {
     };
 
     const eventMeta = {
-      title:         event.event_title   || "Training Session",
+      title:         event.event_title    || "Training Session",
       date_time:     event.event_date_time,
-      location_name: event.location_name || null,
+      location_name: event.location_name  || null,
     };
 
     // ── GET: return existing active plan ──────────────────────────────────────
@@ -246,11 +249,11 @@ serve(async (req) => {
       ]);
 
       return new Response(JSON.stringify({
-        plan_id:       planResult.data?.plan_id  ?? null,
-        plan:          planResult.data?.plan_json ?? null,
+        plan_id:        planResult.data?.plan_id  ?? null,
+        plan:           planResult.data?.plan_json ?? null,
         branding,
-        event:         eventMeta,
-        squad_name:    squad?.squad_name ?? null,
+        event:          eventMeta,
+        squad_name:     squad?.squad_name ?? null,
         has_favourites: (favResult.count ?? 0) > 0,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -269,10 +272,16 @@ serve(async (req) => {
       });
     }
 
-    // Fetch favourite games for this user
+    // Fetch favourite games (including image URL for display)
     const { data: favLinks } = await sb
       .from("user_game_link")
-      .select(`position, games!inner(game_id, game_name, game_setup, game_how_to_play, game_variations, game_teaching_points)`)
+      .select(`
+        position,
+        games!inner(
+          game_id, game_name, game_image,
+          game_setup, game_how_to_play, game_variations, game_teaching_points
+        )
+      `)
       .eq("user_id", user_id)
       .order("position");
 
@@ -295,11 +304,11 @@ serve(async (req) => {
     const notesByGame: Record<number, string> = {};
     for (const n of notes || []) notesByGame[n.game_id] = n.notes;
 
-    // Count players and coaches on this team/squad
+    // Count players (role_level = 10) and coaches (role_level = 30) on this team/squad
     const teamId = (event.teams as any)?.team_id ?? event.team_id;
     let memberQuery: any = sb
       .from("member_team_link")
-      .select("member_id, member_team_role_link!inner(roles!inner(role_grade))")
+      .select("member_id, member_team_role_link!inner(roles!inner(role_level))")
       .eq("team_id", teamId)
       .eq("status", "active");
     if (event.squad_id) memberQuery = memberQuery.eq("squad_id", event.squad_id);
@@ -307,19 +316,25 @@ serve(async (req) => {
     const { data: members } = await memberQuery;
     let playerCount = 0, coachCount = 0;
     for (const m of members || []) {
-      const grades: number[] = ((m.member_team_role_link || []) as any[])
-        .map((r: any) => r.roles?.role_grade).filter(Boolean);
-      if (grades.includes(100)) coachCount++;
-      else playerCount++;
+      const levels: number[] = ((m.member_team_role_link || []) as any[])
+        .map((r: any) => r.roles?.role_level)
+        .filter((v: any) => v !== null && v !== undefined);
+      if (levels.includes(30)) coachCount++;
+      else playerCount++; // role_level 10 = player, or unset = assume player
     }
     if (playerCount === 0 && coachCount === 0) playerCount = 15;
 
-    // Fetch weather in parallel with no blocking
-    const weather = await fetchWeather(event.location_pin, event.location_name, event.event_date_time);
+    // Fetch weather — fallback chain: location_pin → location_name → club county
+    const weather = await fetchWeather(
+      event.location_pin,
+      event.location_name,
+      event.event_date_time,
+      club.county ?? null,
+    );
 
-    // Build the prompt context
+    // Build Gemini prompt context
     const gamesText = favLinks.map((f: any) => {
-      const g = f.games;
+      const g    = f.games;
       const note = notesByGame[g.game_id];
       return [
         `Game: ${g.game_name}`,
@@ -354,7 +369,16 @@ serve(async (req) => {
       });
     }
 
-    // Attach weather to plan JSON for storage
+    // Enrich drills with game images by matching on exact game name
+    const imageByName: Record<string, string | null> = {};
+    for (const f of favLinks) {
+      const g = (f as any).games;
+      if (g?.game_name) imageByName[g.game_name] = g.game_image || null;
+    }
+    for (const drill of (planJson.drills || [])) {
+      drill.game_image = imageByName[drill.game_name] ?? null;
+    }
+
     // Attach context metadata so the template can display them when loading from DB
     planJson.player_count = playerCount;
     planJson.coach_count  = coachCount;
@@ -377,11 +401,11 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      plan_id:       saved.plan_id,
-      plan:          planJson,
+      plan_id:        saved.plan_id,
+      plan:           planJson,
       branding,
-      event:         eventMeta,
-      squad_name:    squad?.squad_name ?? null,
+      event:          eventMeta,
+      squad_name:     squad?.squad_name ?? null,
       has_favourites: true,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
