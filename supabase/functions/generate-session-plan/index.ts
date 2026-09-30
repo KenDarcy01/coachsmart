@@ -293,15 +293,39 @@ serve(async (req) => {
       if (!game_id) return new Response(JSON.stringify({ error: "game_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      const { data: game, error: gameErr } = await sb
-        .from("games")
-        .select("game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points, game_details_image")
-        .eq("game_id", game_id)
-        .single();
+      const [{ data: game, error: gameErr }, { data: noteRow }] = await Promise.all([
+        sb.from("games")
+          .select("game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points, game_details_image")
+          .eq("game_id", game_id)
+          .single(),
+        sb.from("game_coach_notes")
+          .select("notes")
+          .eq("game_id", game_id)
+          .eq("user_id", user_id)
+          .maybeSingle(),
+      ]);
       if (gameErr || !game) return new Response(JSON.stringify({ error: "Game not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      return new Response(JSON.stringify({ game }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ game, coach_note: noteRow?.notes ?? null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── save_coach_note: upsert a coach's personal note for a game ────────────
+    if (action === "save_coach_note") {
+      const { game_id, note } = body;
+      if (!game_id) return new Response(JSON.stringify({ error: "game_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const { error: upsertErr } = await sb.from("game_coach_notes")
+        .upsert({ user_id, game_id, notes: note ?? "" }, { onConflict: "user_id,game_id" });
+      if (upsertErr) return new Response(JSON.stringify({ error: upsertErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ── Fetch event + team + club ─────────────────────────────────────────────

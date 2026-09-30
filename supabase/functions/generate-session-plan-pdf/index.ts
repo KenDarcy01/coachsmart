@@ -287,8 +287,8 @@ async function buildSessionPlanPdf(
   // ── Layout constants ──
   const CREST_SIZE      = isMobile ?  44 :  64;
   const HEADER_PAD      = isMobile ?  10 :  12;
-  const CLUB_FONT_S     = isMobile ?  12 :  14;
-  const TITLE_FONT_S    = isMobile ?  14 :  18;
+  const CLUB_FONT_S     = isMobile ?  16 :  20;
+  const TITLE_FONT_S    = isMobile ?  12 :  14;
   const RULE_H          = 1;
   const TEXT_BLOCK_H    = CLUB_FONT_S + 8 + RULE_H + 8 + TITLE_FONT_S;
   const headerContentH  = Math.max(CREST_SIZE, TEXT_BLOCK_H);
