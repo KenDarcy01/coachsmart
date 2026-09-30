@@ -757,11 +757,16 @@
       }
     }
 
-    // Use pointer events only — touch events overlap and cause double-firing.
-    // pointercancel handles cases where the OS cancels the gesture mid-hold.
+    // Primary: pointer events with capture (modern approach).
     btn.addEventListener('pointerdown',   start, { passive: false });
     btn.addEventListener('pointerup',     stop);
     btn.addEventListener('pointercancel', stop);
+
+    // Fallback: if Flutter's gesture arena wins after a hold it can cut off
+    // pointer events to the WebView entirely. Document-level touchend catches
+    // the finger-lift in that case.
+    document.addEventListener('touchend',    stop, { passive: true });
+    document.addEventListener('touchcancel', stop, { passive: true });
   }
 
   let _voiceWebRecognition = null;

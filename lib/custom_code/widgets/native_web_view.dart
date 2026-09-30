@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import 'dart:convert';
+import 'package:flutter/gestures.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -357,7 +358,16 @@ class _NativeWebViewState extends State<NativeWebView>
     return SizedBox(
       width: widget.width ?? double.infinity,
       height: widget.height ?? double.infinity,
-      child: WebViewWidget(controller: ctrl),
+      // EagerGestureRecognizer wins the Flutter gesture arena immediately,
+      // preventing parent widgets from stealing touch events mid-hold.
+      // Without this, holds longer than ~500 ms lose their touchend/pointerup
+      // to Flutter's scroll/pan recognizer, leaving JS stuck in recording state.
+      child: WebViewWidget(
+        controller: ctrl,
+        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+          Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()),
+        },
+      ),
     );
   }
 }
