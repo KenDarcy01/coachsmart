@@ -55,7 +55,7 @@ ARROWS / MOVEMENT LINES — SMART STRAIGHT vs CURVED:
 - Examine each line in the original image carefully before choosing a style:
   - STRAIGHT LINE: if the line in the image appears straight or nearly straight (less than a noticeable arc), use NO waypoints and NO curved style: edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
   - SIMPLE CURVE (C-shape): the line bends in ONE direction only — use curved=1 with 1–2 intermediate waypoints: edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
-  - S-CURVE / WAVE (sinusoidal): the line changes direction at least once mid-path, creating an S-shape, wave, or weave — use curved=1 with 5–8 intermediate waypoints spaced evenly along the full path, placing a waypoint at every peak, trough, and inflection point. More waypoints produce smoother rendered curves. Same style as simple curve: edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
+  - S-CURVE / WAVE (sinusoidal): the line changes direction at least once mid-path, creating an S-shape, wave, or weave — use curved=1 with 3–5 intermediate waypoints spaced evenly along the full path, placing a waypoint at every peak, trough, and inflection point. Same style as simple curve: edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
   - DASHED (ball pass/kick): edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 4;strokeColor=#ffffff;strokeWidth=2.5;
 - All edges are floating (NO source or target attributes). Use sourcePoint and targetPoint in mxGeometry.
 - Start/end points must be ~18px away from shape edges — arrows must not touch circles or triangles.
