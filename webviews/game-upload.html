@@ -455,13 +455,13 @@
 
     <!-- Name -->
     <div>
-      <div class="field-label">Game Name <span>*</span></div>
+      <div class="field-label">Game Name</div>
       <input id="inpName" class="text-input" type="text" placeholder="e.g. Kick Pass Relay"/>
     </div>
 
     <!-- Type -->
     <div>
-      <div class="field-label">Type <span>*</span></div>
+      <div class="field-label">Type</div>
       <select id="inpType" class="text-input" onchange="onTypeChange()">
         <option value="">Select type…</option>
         <option value="Game">Game</option>
@@ -480,7 +480,7 @@
 
     <!-- Age Group -->
     <div>
-      <div class="field-label">Age Group <span>*</span></div>
+      <div class="field-label">Age Group</div>
       <div class="chip-row" id="ageChips">
         <button class="age-chip" data-age="U6"    onclick="toggleAge(this)">U6</button>
         <button class="age-chip" data-age="U8"    onclick="toggleAge(this)">U8</button>
@@ -495,7 +495,7 @@
 
     <!-- Sport -->
     <div>
-      <div class="field-label">Sport <span>*</span></div>
+      <div class="field-label">Sport</div>
       <div class="chip-row" id="sportChips">
         <button class="age-chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
         <button class="age-chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
@@ -554,7 +554,7 @@
 
       <div>
         <div class="field-header-row">
-          <div class="field-label">Setup <span>*</span></div>
+          <div class="field-label">Setup</div>
           <button class="field-speak-btn" onclick="toggleFieldSpeech('inpSetup', this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
             <span>Speak</span>
@@ -565,7 +565,7 @@
 
       <div>
         <div class="field-header-row">
-          <div class="field-label">How to Play <span>*</span></div>
+          <div class="field-label">How to Play</div>
           <button class="field-speak-btn" onclick="toggleFieldSpeech('inpHowTo', this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
             <span>Speak</span>
@@ -802,6 +802,16 @@
     document.getElementById('createWithAiBtn').disabled = !_voiceTranscript.trim();
   }
 
+  // Pre-select chips in a chip row by matching against an array of values.
+  function _preselectChips(containerId, dataKey, values) {
+    if (!values || !values.length) return;
+    const lower = values.map(v => String(v).toLowerCase());
+    document.querySelectorAll('#' + containerId + ' .age-chip').forEach(chip => {
+      const val = (chip.dataset[dataKey] || '').toLowerCase();
+      if (val) chip.classList.toggle('selected', lower.includes(val));
+    });
+  }
+
   async function createWithVoiceAI() {
     const transcript = _voiceTranscript.trim();
     if (!transcript) return;
@@ -811,17 +821,44 @@
     btn.textContent = 'Processing…';
 
     try {
-      const result = await callEdgeFunction({
+      // Include the current sketch or uploaded photo so Gemini can "see" the diagram
+      const payload = {
         action:           'split_voice',
         voice_transcript: transcript,
         game_code:        getSelectedSports(),
-      });
+      };
+      if (_activeMediaTab === 'sketch' && _hasDrawn) {
+        const png = await getSketchPng();
+        payload.image_base64    = png.base64;
+        payload.image_mime_type = 'image/png';
+      } else if (_activeMediaTab === 'photo' && _imageBase64) {
+        payload.image_base64    = _imageBase64;
+        payload.image_mime_type = _imageMimeType || 'image/jpeg';
+      }
+
+      const result = await callEdgeFunction(payload);
+
+      // Pre-fill text fields
       document.getElementById('inpSetup').value      = result.game_setup           || '';
       document.getElementById('inpHowTo').value      = result.game_how_to_play     || '';
       document.getElementById('inpVariations').value = result.game_variations      || '';
       document.getElementById('inpTeaching').value   = result.game_teaching_points || '';
+
+      // AI-suggested name (only fill if field is currently blank)
+      if (result.game_name && !document.getElementById('inpName').value.trim()) {
+        document.getElementById('inpName').value = result.game_name;
+      }
+
+      // AI-suggested age groups, sport, skills
+      if (result.suggested_ages?.length)  _preselectChips('ageChips',   'age',   result.suggested_ages);
+      if (result.suggested_sport)         _preselectChips('sportChips', 'sport', [result.suggested_sport]);
+      if (result.suggested_skills?.length) _preselectChips('skillChips', 'skill', result.suggested_skills);
+
       setInputMode('text');
-      showToast('Draft ready — review and edit', 'success');
+      requestAnimationFrame(() => {
+        document.querySelectorAll('#textPanel textarea').forEach(autoResize);
+      });
+      showToast('Draft ready — review and adjust', 'success');
     } catch (err) {
       showToast('Error: ' + (err.message || 'AI failed'), 'error');
       btn.disabled = !_voiceTranscript.trim();
