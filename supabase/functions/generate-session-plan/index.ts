@@ -56,6 +56,7 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
     "description": "string (how to run the warm-up with this group)",
     "coaching_points": ["string"]
   },
+  "station_setup": null | "string — one paragraph explaining how to split the group across the stations and the rotation interval (populate only when Drill mode is STATION ROTATION; must be null when SEQUENTIAL)",
   "drills": [
     {
       "game_name": "string (use the exact game name from the input)",
@@ -87,8 +88,8 @@ Rules:
 - CRITICAL: Weather is provided for context only — do NOT include weather data or weather text ANYWHERE in the output JSON, not in session_objective, not in descriptions, not in coaching_points, not anywhere. Weather is shown separately.
 - Do NOT include player count adjustment notes; adapt the description directly for the given numbers
 - Warm-up must be at least 10 minutes; cool-down at least 5 minutes
-- When Drill mode is STATION ROTATION: describe each drill as a simultaneous station; open each drill description by explaining how to split the group and how rotation works (e.g. "Split the group into X stations, rotating every Y minutes"); warm-up and cool-down descriptions must address the full group collectively
-- When Drill mode is SEQUENTIAL: describe each drill for the full group performing it together
+- When Drill mode is STATION ROTATION: populate `station_setup` with a single paragraph describing how to split the group across the stations and the rotation interval; describe each drill as the station activity only — do NOT repeat split or rotation instructions inside individual drill descriptions; warm-up and cool-down descriptions must address the full group collectively
+- When Drill mode is SEQUENTIAL: `station_setup` must be null; describe each drill for the full group performing it together
 - If the coach's feedback asks to include a game that is NOT in the provided games list, set "_refusal" to a short explanation and keep all other fields at sensible defaults (do not change the existing plan)
 - If the request is physically impossible (e.g., would require more time than the session allows), set "_refusal" to explain why
 - If the request is reasonable and achievable, always attempt it and leave "_refusal" as null`;

@@ -171,6 +171,7 @@ interface PlanJson {
   weather?: { summary: string };
   pre_session?: OptionalBlock | null;
   warm_up: WarmupCooldown;
+  station_setup?: string | null;
   drills: DrillData[];
   cool_down: WarmupCooldown;
   post_session?: OptionalBlock | null;
@@ -613,6 +614,14 @@ async function buildSessionPlanPdf(
     if (plan.warm_up.coaching_points?.length) {
       drawBulletList(plan.warm_up.coaching_points, accentRgb);
     }
+    curY += 6;
+  }
+
+  // ── STATION SETUP (rotation mode only) ───────────────────────────────────────
+
+  if (plan.station_setup?.trim()) {
+    drawSectionHeader("STATION SETUP", null, accentRgb);
+    drawText(plan.station_setup, notoReg, BODY_FONT_S, darkText, 0, 4);
     curY += 6;
   }
 
