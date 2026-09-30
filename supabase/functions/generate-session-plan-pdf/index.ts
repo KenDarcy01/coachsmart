@@ -306,11 +306,11 @@ async function buildSessionPlanPdf(
 
   const SECTION_ROW_H   = isMobile ? 26 : 28;
   const SECTION_DOT_R   = 4;
-  const SECTION_FONT_S  = 11;
-  const DRILL_NAME_S    = isMobile ? 11 : 12;
-  const BODY_FONT_S     = 11;
-  const SMALL_FONT_S    = isMobile ?  9 : 10;
-  const LINE_H          = 17;
+  const SECTION_FONT_S  = isMobile ? 12 : 11;
+  const DRILL_NAME_S    = 12;
+  const BODY_FONT_S     = isMobile ? 12 : 11;
+  const SMALL_FONT_S    = 10;
+  const LINE_H          = isMobile ? 18 : 17;
   const BODY_LEFT       = ML + (isMobile ? 10 : 12);
   const BODY_W          = CW - (isMobile ? 10 : 12);
   const IDEAL_IMG_H     = isMobile ? 210 : 270;
