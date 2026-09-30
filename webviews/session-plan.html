@@ -394,6 +394,16 @@
     }
     .edit-hint svg { width: 11px; height: 11px; flex-shrink: 0; }
 
+    /* Station setup card */
+    .station-setup-card {
+      margin: 0 16px 10px;
+      background: var(--surface-2);
+      border: 1px solid rgba(135,194,50,0.22);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius); padding: 12px 14px;
+      font-size: 14px; color: var(--text); line-height: 1.6;
+    }
+
     /* Feedback bar */
     .feedback-bar {
       margin: 20px 16px 0;
@@ -1131,6 +1141,12 @@
     if (plan.warm_up) {
       out.push(sectionHdr('WARM UP', plan.warm_up.duration_mins, 'warm'));
       out.push(phaseCard(plan.warm_up, null, null, null, 'warm_up'));
+    }
+
+    // Station setup (rotation mode only)
+    if (plan.station_setup?.trim()) {
+      out.push(sectionHdr('STATION SETUP', null, 'drill'));
+      out.push(`<div class="station-setup-card">${esc(plan.station_setup.trim())}</div>`);
     }
 
     // Drills
