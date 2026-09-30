@@ -46,6 +46,7 @@ class _NativeWebViewState extends State<NativeWebView>
   bool _speechAvailable = false;
   bool _speechInitialized = false;
   String? _speechFieldId;
+  String _lastRecognizedWords = '';
 
   @override
   void initState() {
@@ -77,8 +78,17 @@ class _NativeWebViewState extends State<NativeWebView>
         onStatus: (status) {
           if ((status == 'done' || status == 'notListening') &&
               _speechFieldId != null) {
-            _controller?.runJavaScript('window.onSpeechDone()');
+            final fid = _speechFieldId;
+            final words = _lastRecognizedWords;
             _speechFieldId = null;
+            _lastRecognizedWords = '';
+            if (words.isNotEmpty) {
+              _controller?.runJavaScript(
+                'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
+              );
+            } else {
+              _controller?.runJavaScript('window.onSpeechDone()');
+            }
           }
         },
       );
@@ -97,12 +107,18 @@ class _NativeWebViewState extends State<NativeWebView>
     }
     if (_speech.isListening) await _speech.stop();
     _speechFieldId = fieldId;
+    _lastRecognizedWords = '';
     try {
       await _speech.listen(
         onResult: (result) {
+          if (result.recognizedWords.isNotEmpty) {
+            _lastRecognizedWords = result.recognizedWords;
+          }
           if (result.finalResult && result.recognizedWords.isNotEmpty) {
             final fid = _speechFieldId;
             if (fid == null) return;
+            _speechFieldId = null;
+            _lastRecognizedWords = '';
             _controller?.runJavaScript(
               'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(result.recognizedWords)})',
             );
@@ -121,10 +137,18 @@ class _NativeWebViewState extends State<NativeWebView>
 
   Future<void> _stopSpeech() async {
     final fid = _speechFieldId;
+    final words = _lastRecognizedWords;
     _speechFieldId = null;
+    _lastRecognizedWords = '';
     try { await _speech.stop(); } catch (_) {}
     if (fid != null) {
-      _controller?.runJavaScript('window.onSpeechDone()');
+      if (words.isNotEmpty) {
+        _controller?.runJavaScript(
+          'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
+        );
+      } else {
+        _controller?.runJavaScript('window.onSpeechDone()');
+      }
     }
   }
 
