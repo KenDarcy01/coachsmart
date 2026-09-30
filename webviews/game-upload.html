@@ -1521,20 +1521,19 @@
     ctx.moveTo(x1, y1);
 
     if (isCurved && waypoints.length > 0) {
-      // Uniform Catmull-Rom spline — smooth curve passing through every waypoint
-      // tension=5 (vs standard 6) gives slightly looser, more flowing curves
-      const pts = [{x: x1, y: y1}, ...waypoints, {x: x2, y: y2}];
-      for (let i = 0; i < pts.length - 1; i++) {
-        const p0 = pts[Math.max(0, i - 1)];
-        const p1 = pts[i];
-        const p2 = pts[i + 1];
-        const p3 = pts[Math.min(pts.length - 1, i + 2)];
-        ctx.bezierCurveTo(
-          p1.x + (p2.x - p0.x) / 5, p1.y + (p2.y - p0.y) / 5,
-          p2.x - (p3.x - p1.x) / 5, p2.y - (p3.y - p1.y) / 5,
-          p2.x, p2.y
-        );
+      // Chaikin subdivision — 3 iterations corner-cuts the waypoint polygon
+      // into ~33 points, producing a smooth curve with no kinks at inflections
+      let pts = [{x: x1, y: y1}, ...waypoints, {x: x2, y: y2}];
+      for (let k = 0; k < 3; k++) {
+        const next = [pts[0]];
+        for (let i = 0; i < pts.length - 1; i++) {
+          next.push({ x: 0.75*pts[i].x + 0.25*pts[i+1].x, y: 0.75*pts[i].y + 0.25*pts[i+1].y });
+          next.push({ x: 0.25*pts[i].x + 0.75*pts[i+1].x, y: 0.25*pts[i].y + 0.75*pts[i+1].y });
+        }
+        next.push(pts[pts.length - 1]);
+        pts = next;
       }
+      for (const p of pts) ctx.lineTo(p.x, p.y);
     } else {
       for (const wp of waypoints) ctx.lineTo(wp.x, wp.y);
       ctx.lineTo(x2, y2);
