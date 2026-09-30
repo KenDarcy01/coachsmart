@@ -131,7 +131,6 @@ interface DrillData {
   description: string;
   coaching_points: string[];
   variation?: string;
-  player_count_note?: string;
   game_image?: string;
 }
 
@@ -265,7 +264,7 @@ async function buildSessionPlanPdf(
   const THIRD_STRIPE  = thirdRgb ? 3 : 0;
   const STRIPE_H      = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
 
-  const META_ROW_H    = plan.weather?.summary ? 44 : 26;
+  const META_ROW_H    = plan.weather?.summary ? 48 : 30;
   const FOOTER_RULE_Y = MB + 14;
   const FOOTER_TEXT_Y = MB;
   const FOOTER_ZONE   = MB + 30;
@@ -368,19 +367,33 @@ async function buildSessionPlanPdf(
   function drawMetaRow(page: any, topY: number) {
     page.drawRectangle({ x: 0, y: PH - topY - META_ROW_H, width: PW, height: META_ROW_H, color: lightBg });
 
+    const VPAD = 10;
     const parts: string[] = [];
     if (event.squad_name) parts.push(event.squad_name + (event.squad_grade ? ` · ${event.squad_grade}` : ""));
     if (plan.total_duration_mins) parts.push(`${plan.total_duration_mins} mins`);
     if (plan.player_count) parts.push(`${plan.player_count} players`);
     if (plan.coach_count)  parts.push(`${plan.coach_count} coaches`);
 
-    const line1Y = PH - topY - (plan.weather?.summary ? 14 : META_ROW_H / 2 - SMALL_FONT_S / 2);
+    const line1Y = PH - topY - VPAD - SMALL_FONT_S;
     page.drawText(parts.join("   |   "), { x: ML, y: line1Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
 
+    // Session date/time right-aligned on line 1
+    if (event.event_date) {
+      try {
+        const d = new Date(event.event_date);
+        const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+        const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        const hh = String(d.getHours()).padStart(2,"0");
+        const mm = String(d.getMinutes()).padStart(2,"0");
+        const dateStr = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}, ${hh}:${mm}`;
+        const dateW = notoReg.widthOfTextAtSize(dateStr, SMALL_FONT_S);
+        page.drawText(dateStr, { x: PW - MR - dateW, y: line1Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
+      } catch { /* skip */ }
+    }
+
     if (plan.weather?.summary) {
-      const weatherStr = plan.weather.summary;
-      const line2Y = line1Y - SMALL_FONT_S - 4;
-      page.drawText(weatherStr, { x: ML, y: line2Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
+      const line2Y = line1Y - VPAD - SMALL_FONT_S;
+      page.drawText(plan.weather.summary, { x: ML, y: line2Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
     }
   }
 
@@ -641,16 +654,6 @@ async function buildSessionPlanPdf(
       });
       curY += SMALL_FONT_S + 4;
       drawText(drill.variation, notoReg, SMALL_FONT_S, mutedText, 8, 4);
-    }
-
-    // Player count note
-    if (drill.player_count_note?.trim()) {
-      ensureSpace(SMALL_FONT_S + 8);
-      currentPage.drawText(drill.player_count_note, {
-        x: BODY_LEFT, y: PH - curY - SMALL_FONT_S,
-        size: SMALL_FONT_S, font: notoReg, color: amberText,
-      });
-      curY += SMALL_FONT_S + 8;
     }
 
     curY += 6;
