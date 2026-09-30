@@ -47,6 +47,10 @@ class _NativeWebViewState extends State<NativeWebView>
   bool _speechInitialized = false;
   String? _speechFieldId;
   String _lastRecognizedWords = '';
+  // True while the user is physically holding the voice-input mic button.
+  // Lets onStatus distinguish an auto-stop (e.g. iOS 60-second limit) from a
+  // deliberate button release so we can restart in the former case.
+  bool _voiceHoldActive = false;
 
   @override
   void initState() {
@@ -74,23 +78,62 @@ class _NativeWebViewState extends State<NativeWebView>
             'window.onSpeechError(${jsonEncode(error.errorMsg)})',
           );
           _speechFieldId = null;
+          _voiceHoldActive = false;
         },
         onStatus: (status) {
           if ((status == 'done' || status == 'notListening') &&
               _speechFieldId != null) {
-            final fid = _speechFieldId;
-            final words = _lastRecognizedWords;
-            _speechFieldId = null;
-            _lastRecognizedWords = '';
-            if (words.isNotEmpty) {
-              _controller?.runJavaScript(
-                'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
-              );
+            if (_speechFieldId == 'voice_input' && _voiceHoldActive) {
+              // iOS caps each recognition session at ~60 s. Restart
+              // transparently while the button is still held.
+              _lastRecognizedWords = '';
+              _restartVoiceListen();
             } else {
-              _controller?.runJavaScript('window.onSpeechDone()');
+              final fid = _speechFieldId;
+              final words = _lastRecognizedWords;
+              _speechFieldId = null;
+              _lastRecognizedWords = '';
+              if (words.isNotEmpty) {
+                _controller?.runJavaScript(
+                  'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
+                );
+              } else {
+                _controller?.runJavaScript('window.onSpeechDone()');
+              }
             }
           }
         },
+      );
+    } catch (_) {}
+  }
+
+  // Called when iOS forces a session end while the hold button is still down.
+  Future<void> _restartVoiceListen() async {
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          if (result.recognizedWords.isNotEmpty) {
+            _lastRecognizedWords = result.recognizedWords;
+          }
+          // Stream interim words for real-time display.
+          if (!result.finalResult && result.recognizedWords.isNotEmpty) {
+            _controller?.runJavaScript(
+              'window.onVoiceInterim(${jsonEncode(result.recognizedWords)})',
+            );
+          }
+          // Deliver each final chunk but keep _speechFieldId so we keep
+          // receiving results while the button is held.
+          if (result.finalResult && result.recognizedWords.isNotEmpty) {
+            _lastRecognizedWords = '';
+            _controller?.runJavaScript(
+              'window.receiveSpeechResult("voice_input", ${jsonEncode(result.recognizedWords)})',
+            );
+          }
+        },
+        pauseFor: const Duration(seconds: 30),
+        listenFor: const Duration(minutes: 2),
+        partialResults: true,
+        cancelOnError: false,
       );
     } catch (_) {}
   }
@@ -108,34 +151,91 @@ class _NativeWebViewState extends State<NativeWebView>
     if (_speech.isListening) await _speech.stop();
     _speechFieldId = fieldId;
     _lastRecognizedWords = '';
-    try {
-      await _speech.listen(
-        onResult: (result) {
-          if (result.recognizedWords.isNotEmpty) {
-            _lastRecognizedWords = result.recognizedWords;
-          }
-          if (result.finalResult && result.recognizedWords.isNotEmpty) {
-            final fid = _speechFieldId;
-            if (fid == null) return;
-            _speechFieldId = null;
-            _lastRecognizedWords = '';
-            _controller?.runJavaScript(
-              'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(result.recognizedWords)})',
-            );
-          }
-        },
-        pauseFor: const Duration(seconds: 4),
-        cancelOnError: false,
-      );
-    } catch (_) {
-      _controller?.runJavaScript(
-        'window.onSpeechError(${jsonEncode("Could not start microphone")})',
-      );
-      _speechFieldId = null;
+
+    if (fieldId == 'voice_input') {
+      _voiceHoldActive = true;
+      try {
+        await _speech.listen(
+          onResult: (result) {
+            if (result.recognizedWords.isNotEmpty) {
+              _lastRecognizedWords = result.recognizedWords;
+            }
+            // Stream interim words for real-time display.
+            if (!result.finalResult && result.recognizedWords.isNotEmpty) {
+              _controller?.runJavaScript(
+                'window.onVoiceInterim(${jsonEncode(result.recognizedWords)})',
+              );
+            }
+            // Deliver each final chunk. Keep _speechFieldId set so we
+            // continue receiving results while the button is held.
+            if (result.finalResult && result.recognizedWords.isNotEmpty) {
+              _lastRecognizedWords = '';
+              _controller?.runJavaScript(
+                'window.receiveSpeechResult("voice_input", ${jsonEncode(result.recognizedWords)})',
+              );
+            }
+          },
+          pauseFor: const Duration(seconds: 30),
+          listenFor: const Duration(minutes: 2),
+          partialResults: true,
+          cancelOnError: false,
+        );
+      } catch (_) {
+        _controller?.runJavaScript(
+          'window.onSpeechError(${jsonEncode("Could not start microphone")})',
+        );
+        _speechFieldId = null;
+        _voiceHoldActive = false;
+      }
+    } else {
+      // Per-field speech: longer pause than the old 4 s so a thinking pause
+      // does not cut off mid-sentence, but still auto-stops eventually.
+      try {
+        await _speech.listen(
+          onResult: (result) {
+            if (result.recognizedWords.isNotEmpty) {
+              _lastRecognizedWords = result.recognizedWords;
+            }
+            if (result.finalResult && result.recognizedWords.isNotEmpty) {
+              final fid = _speechFieldId;
+              if (fid == null) return;
+              _speechFieldId = null;
+              _lastRecognizedWords = '';
+              _controller?.runJavaScript(
+                'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(result.recognizedWords)})',
+              );
+            }
+          },
+          pauseFor: const Duration(seconds: 10),
+          cancelOnError: false,
+        );
+      } catch (_) {
+        _controller?.runJavaScript(
+          'window.onSpeechError(${jsonEncode("Could not start microphone")})',
+        );
+        _speechFieldId = null;
+      }
     }
   }
 
   Future<void> _stopSpeech() async {
+    if (_speechFieldId == 'voice_input') {
+      // Button released: mark hold as over so onStatus won't restart.
+      _voiceHoldActive = false;
+      final words = _lastRecognizedWords;
+      _speechFieldId = null;
+      _lastRecognizedWords = '';
+      try { await _speech.stop(); } catch (_) {}
+      // Deliver any partial words that hadn't reached a finalResult yet.
+      if (words.isNotEmpty) {
+        _controller?.runJavaScript(
+          'window.receiveSpeechResult("voice_input", ${jsonEncode(words)})',
+        );
+      }
+      _controller?.runJavaScript('window.onSpeechDone()');
+      return;
+    }
+
     final fid = _speechFieldId;
     final words = _lastRecognizedWords;
     _speechFieldId = null;
