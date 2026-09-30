@@ -321,13 +321,22 @@
 
     /* Inline editable fields */
     [data-path] {
-      outline: none; border-radius: 4px;
-      transition: background 0.15s;
+      outline: none; border-radius: 4px; cursor: text;
+      border: 1px dashed rgba(135,194,50,0.28);
+      padding: 3px 6px; margin: -3px -6px;
+      transition: background 0.15s, border-color 0.15s;
     }
     [data-path]:focus {
       background: rgba(135,194,50,0.08);
-      box-shadow: 0 0 0 1.5px rgba(135,194,50,0.3);
+      border-color: rgba(135,194,50,0.55);
+      border-style: solid;
     }
+    .edit-hint {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 16px 0;
+      font-size: 11px; color: var(--muted); opacity: 0.7;
+    }
+    .edit-hint svg { width: 11px; height: 11px; flex-shrink: 0; }
 
     /* Feedback bar */
     .feedback-bar {
@@ -344,7 +353,7 @@
       background: var(--bg); border: 1px solid var(--border);
       border-radius: 8px; padding: 9px 12px;
       color: var(--text); font-family: inherit; font-size: 13px;
-      line-height: 1.5; resize: vertical; min-height: 68px;
+      line-height: 1.5; resize: none; overflow: hidden; min-height: 68px;
     }
     .feedback-input::placeholder { color: var(--muted); }
     .feedback-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
@@ -828,6 +837,12 @@
       ${locLabel}
     </div>`);
 
+    // Edit hint
+    out.push(`<div class="edit-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Tap any text below to edit
+    </div>`);
+
     // Stats + weather in one grey section
     const weatherHtml = plan.weather ? (() => {
       const w = plan.weather;
@@ -883,7 +898,7 @@
     // Feedback + save bar
     out.push(`<div class="feedback-bar">
       <div class="feedback-hdr">Refine this plan</div>
-      <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…"></textarea>
+      <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
       <div class="feedback-actions">
         <button class="btn btn-outline" id="saveBtn" onclick="savePlan()">Save edits</button>
         <button class="btn btn-primary" id="regenFeedbackBtn" onclick="regenerateWithFeedback()">Regenerate</button>
