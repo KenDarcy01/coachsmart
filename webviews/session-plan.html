@@ -54,6 +54,13 @@
     }
     .back-btn:active { background: var(--accent-dim); }
     .back-btn svg { width: 34px; height: 34px; }
+    .header-title {
+      flex: 1; min-width: 0;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .header-title.visible { opacity: 1; }
 
     /* ── Screens ──────────────────────────────────────────────────────────── */
     .screen {
@@ -204,7 +211,7 @@
     /* Weather */
     .weather-banner {
       display: flex; align-items: flex-start; gap: 10px;
-      background: var(--surface-2); border-top: 3px solid var(--accent);
+      background: var(--surface-2);
       padding: 12px 16px;
     }
     .weather-icon  { font-size: 22px; flex-shrink: 0; line-height: 1; }
@@ -222,7 +229,7 @@
       display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
     .stat-value {
-      font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1;
+      font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1;
       font-variant-numeric: tabular-nums;
     }
     .stat-label {
@@ -326,7 +333,7 @@
       transition: opacity 0.15s; -webkit-tap-highlight-color: transparent;
     }
     .btn:active  { opacity: 0.7; }
-    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary { background: var(--accent); color: rgba(0,0,0,0.65); }
     .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
     .btn-full { width: 100%; }
 
@@ -384,6 +391,7 @@
   <button class="back-btn" onclick="closeSession()" title="Close">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
+  <div class="header-title" id="headerTitle"></div>
 </header>
 
 <!-- Loading -->
@@ -488,6 +496,33 @@
   let _eventMeta = null;
   let _squadName = null;
   let _currentPlanId = null;
+
+  function buildEventTitle(meta) {
+    if (!meta) return '';
+    const parts = [];
+    if (meta.team_name) parts.push(meta.team_name);
+    const typeCode = [meta.event_code, meta.event_type].filter(Boolean).join(' ');
+    if (typeCode) parts.push(typeCode);
+    if (meta.date_time) {
+      try {
+        const d = new Date(meta.date_time);
+        const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const hh = String(d.getHours()).padStart(2,'0');
+        const mm = String(d.getMinutes()).padStart(2,'0');
+        parts.push(`${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}, ${hh}:${mm}`);
+      } catch (_) {}
+    }
+    return parts.join(' - ');
+  }
+
+  function setHeaderTitle(meta) {
+    const el = $('headerTitle');
+    if (!el) return;
+    const t = buildEventTitle(meta);
+    el.textContent = t;
+    el.classList.toggle('visible', !!t);
+  }
 
   const HEADERS = {
     'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
@@ -771,6 +806,12 @@
     </div>`);
     if (squadName) out.push(`<div class="squad-pill">🏷 ${esc(squadName)}</div>`);
 
+    // Focus (session title as labelled section)
+    if (plan.session_title) {
+      out.push(sectionHdr('FOCUS', null, 'drill'));
+      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px"><div class="drill-name" style="font-size:15px">${esc(plan.session_title)}</div></div></div>`);
+    }
+
     // Objective
     if (plan.session_objective) {
       out.push(`<div class="objective-block">${esc(plan.session_objective)}</div>`);
@@ -893,6 +934,7 @@
       _eventMeta = data.event;
       _squadName = data.squad_name;
       _favs      = data.favourites || [];
+      setHeaderTitle(_eventMeta);
 
       if (_favs.length === 0) { showEmpty(); return; }
 
