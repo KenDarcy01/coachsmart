@@ -728,7 +728,7 @@ serve(async (req) => {
       .from("events")
       .select(`
         event_title,
-        event_date,
+        event_date_time,
         teams!inner (
           team_name,
           clubs!inner (
@@ -782,8 +782,8 @@ serve(async (req) => {
     };
 
     const eventData: EventData = {
-      event_title: eventRow?.event_title  || null,
-      event_date:  eventRow?.event_date   || null,
+      event_title: eventRow?.event_title      || null,
+      event_date:  (eventRow as any)?.event_date_time || null,
       squad_name:  squadRaw?.squad_name   || null,
       squad_grade: squadRaw?.grade        || null,
       team_name:   (eventRow as any)?.teams?.team_name || null,
