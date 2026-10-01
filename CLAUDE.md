@@ -1,5 +1,14 @@
 # CoachSmart — AI Session Briefing
 
+## Branding
+| Token | Hex |
+|---|---|
+| Green (primary accent) | `#87c232` |
+| Black (dark background) | `#14181b` |
+| Black (card/surface) | `#1e222b` |
+| White (text/foreground) | `#f1f4f8` |
+| Grey (muted text) | `#a1a1a2` |
+
 ## What This App Is
 CoachSmart is a **GAA (Gaelic Athletic Association) coaching management app** for ~1,000 active users. It manages events, attendance, car pools, match squads, match reports, team rosters, notifications, and payments for GAA clubs across Ireland.
 
