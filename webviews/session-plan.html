@@ -1497,12 +1497,11 @@
       if (!_spIsRecording) return;
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
-        // Keep recording visual active — Flutter is still finalising the transcript.
-        // onSpeechDone will reset state and trigger regeneration.
+        _resetSpVoiceState();
         _spAutoRevise = true;
         clearTimeout(_spAutoReviseTimeout);
         _spAutoReviseTimeout = setTimeout(() => {
-          if (_spAutoRevise) { _spAutoRevise = false; _resetSpVoiceState(); regenerateWithFeedback(); }
+          if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
         }, 8000);
       } else _stopSpWebSpeech();
     }
