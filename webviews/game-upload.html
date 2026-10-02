@@ -17,14 +17,14 @@
       --border:   rgba(255,255,255,0.08);
       --border-d: rgba(255,255,255,0.18);
       --text:     #E7EBEE;
-      --muted:    #6B7280;
+      --muted:    #a1a1a2;
       --red:      #EF4444;
       --radius:   12px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; -webkit-text-size-adjust: none; }
     body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text);
-           font-size: 16px; overscroll-behavior: none; }
+           font-size: 17px; overscroll-behavior: none; }
     ::-webkit-scrollbar { display: none; }
     * { -ms-overflow-style: none; scrollbar-width: none; }
     button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
@@ -58,12 +58,12 @@
       display: flex; flex-direction: column; gap: 24px;
     }
     .field-label {
-      font-size: 12px; font-weight: 600; text-transform: uppercase;
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
     }
     .field-label .req { color: var(--red); margin-left: 2px; }
     .field-label .opt { color: var(--muted); font-weight: 400; text-transform: none;
-      letter-spacing: 0; font-size: 11px; margin-left: 4px; }
+      letter-spacing: 0; font-size: 12px; margin-left: 4px; }
 
     /* ── MEDIA TABS (Photo / Sketch) ── */
     .media-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -244,7 +244,7 @@
 
     /* ── FEEDBACK SECTION ── */
     .feedback-section { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 4px; }
-    .feedback-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .feedback-label { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
     .fb-revise-btn {
       width: 100%; padding: 13px; border-radius: var(--radius);
       background: var(--card); border: 1.5px solid var(--border);
@@ -259,7 +259,7 @@
 
     .draft-field { border: 1.5px dashed var(--border-d); border-radius: var(--radius); background: var(--card); overflow: hidden; transition: border-color 0.18s; }
     .draft-field:focus-within { border-color: var(--green); border-style: solid; }
-    .draft-field-label { padding: 9px 14px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .draft-field-label { padding: 9px 14px 4px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
     .draft-field textarea { width: 100%; background: transparent; border: none; padding: 4px 14px 12px; font-size: 15px; color: var(--text); line-height: 1.55; outline: none; resize: none; overflow: hidden; min-height: 48px; }
     .draft-field input { width: 100%; background: transparent; border: none; padding: 4px 14px 12px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; }
     .draft-field input::placeholder, .draft-field textarea::placeholder { color: var(--muted); }
@@ -482,7 +482,7 @@
     </div>
 
     <div class="draft-field">
-      <div class="draft-field-label">Video Link <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></div>
+      <div class="draft-field-label">Video Link <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px">(optional)</span></div>
       <input id="rvVideoUrl" type="url" placeholder="https://youtube.com/watch?v=…"/>
     </div>
 
@@ -561,7 +561,7 @@
   </div>
   <div style="padding:16px;display:flex;flex-direction:column;gap:6px;">
 
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Circles</div>
+    <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Circles</div>
     <div class="help-row">
       <svg width="60" height="36" viewBox="0 0 60 36"><circle cx="14" cy="18" r="13" fill="#C62828" stroke="#B71C1C" stroke-width="2"/><text x="14" y="23" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="-apple-system,sans-serif">3</text><circle cx="46" cy="18" r="13" fill="#1565C0" stroke="#0D47A1" stroke-width="2"/><text x="46" y="23" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="-apple-system,sans-serif">12</text></svg>
       <div><div class="help-title">Numbered circle = Player</div><div class="help-sub">Side by side, numbers sum to 15 → opponents (3 &amp; 12, 6 &amp; 9…)<br>Side by side, same number → drill opponents<br>Single team spread out → all red</div></div>
@@ -575,7 +575,7 @@
       <div><div class="help-title">Empty circle = Football</div><div class="help-sub">Small circle, no label</div></div>
     </div>
 
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Other shapes</div>
+    <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Other shapes</div>
     <div class="help-row">
       <svg width="36" height="36" viewBox="0 0 36 36"><polygon points="18,6 32,30 4,30" fill="#FF6D00" stroke="#E65100" stroke-width="1.5"/></svg>
       <div><div class="help-title">Triangle = Cone</div><div class="help-sub">Renders as an orange cone</div></div>
@@ -585,7 +585,7 @@
       <div><div class="help-title">H shape = Goalposts</div><div class="help-sub">Two uprights and a crossbar</div></div>
     </div>
 
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Lines &amp; arrows</div>
+    <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Lines &amp; arrows</div>
     <div class="help-row">
       <svg width="36" height="36" viewBox="0 0 36 36"><line x1="4" y1="18" x2="26" y2="18" stroke="#fff" stroke-width="2.5"/><polygon points="36,18 24,13 24,23" fill="#fff"/></svg>
       <div><div class="help-title">Solid arrow = Player run</div><div class="help-sub">Straight, curved, or wavy</div></div>
