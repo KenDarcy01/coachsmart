@@ -531,11 +531,11 @@
       </div>
       <div id="fbTextPanel" class="mode-panel" style="display:none">
         <textarea id="fbInput" class="text-desc" placeholder="Describe what to change — e.g. 'make the setup shorter', 'add a U10 variation', 'focus more on kicking'…" oninput="autoResize(this)"></textarea>
+        <button class="fb-revise-btn" id="fbReviseBtn" onclick="reviseDraft()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg>
+          Revise Draft
+        </button>
       </div>
-      <button class="fb-revise-btn" id="fbReviseBtn" onclick="reviseDraft()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg>
-        Revise Draft
-      </button>
     </div>
 
   </div>
@@ -1008,6 +1008,7 @@
   let _fbTranscript   = '';
   let _fbIsRecording  = false;
   let _fbDescMode     = 'voice';
+  let _fbAutoRevise   = false;
 
   function setFbMode(mode) {
     _fbDescMode = mode;
@@ -1024,7 +1025,8 @@
       : _fbTranscript.trim();
     if (!feedback) { showToast('Add some feedback first', 'error'); return; }
     const btn = document.getElementById('fbReviseBtn');
-    btn.disabled = true; btn.textContent = 'Revising…';
+    if (btn) { btn.disabled = true; btn.textContent = 'Revising…'; }
+    else { showToast('Revising…'); }
     try {
       const result = await callEdgeFunction({
         action:               'revise_with_feedback',
@@ -1044,8 +1046,7 @@
     } catch (err) {
       showToast('Error: ' + (err.message || 'AI failed'), 'error');
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg> Revise Draft`;
+      if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg> Revise Draft`; }
     }
   }
 
@@ -1182,7 +1183,10 @@
   window.onVoiceInterim = function(p) {
     document.getElementById('voiceTranscript').textContent = ((_voiceTranscript ? _voiceTranscript + ' ' : '') + p).trim();
   };
-  window.onSpeechDone  = () => { _resetVoiceState(); _resetFbVoiceState(); };
+  window.onSpeechDone  = () => {
+    _resetVoiceState(); _resetFbVoiceState();
+    if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
+  };
   window.onSpeechError = (msg) => { showToast(msg || 'Voice input failed', 'error'); _resetVoiceState(); _resetFbVoiceState(); };
 
   // ── Feedback mic button ────────────────────────────────────────────────────
@@ -1203,7 +1207,7 @@
     }
     function stop() {
       if (!_fbIsRecording) return;
-      if (window.FlutterBridge) { window.FlutterBridge.postMessage('stopSpeech'); _resetFbVoiceState(); }
+      if (window.FlutterBridge) { window.FlutterBridge.postMessage('stopSpeech'); _resetFbVoiceState(); _fbAutoRevise = true; }
       else _stopFbWebSpeech();
     }
     btn.addEventListener('pointerdown',   start, { passive: false });
@@ -1232,7 +1236,7 @@
       if (el) el.textContent = (_fbTranscript + (interim ? ' ' + interim : '')).trim() || _fbTranscript;
     };
     _fbWebRecognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetFbVoiceState(); };
-    _fbWebRecognition.onend = () => { if (_fbIsRecording) _resetFbVoiceState(); };
+    _fbWebRecognition.onend = () => { const wasRecording = _fbIsRecording; _resetFbVoiceState(); if (wasRecording) reviseDraft(); };
     try { _fbWebRecognition.start(); } catch { _resetFbVoiceState(); }
   }
   function _stopFbWebSpeech() {
