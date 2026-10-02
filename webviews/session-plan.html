@@ -576,9 +576,9 @@
     .fb-voice-wave span:nth-child(5) { animation-delay: 0.60s; }
     @keyframes fbSpWave { 0%,100%{height:4px} 50%{height:22px} }
     .fb-transcript {
-      min-height: 36px; padding: 8px 10px;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: 8px; font-size: 13px; line-height: 1.5;
+      min-height: 44px; padding: 10px 14px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius, 12px); font-size: 14px; line-height: 1.55;
       color: var(--text); word-break: break-word;
     }
     .fb-transcript:empty::before { content: "Your feedback will appear here…"; color: var(--muted); }
@@ -753,7 +753,8 @@
   }
 
   let _toastTimer;
-  function showToast(msg, type='', duration=2500) {
+  function showToast(msg, type='', duration) {
+    if (duration === undefined) duration = (type === 'error') ? 5000 : 2500;
     const t = $('toast');
     clearTimeout(_toastTimer);
     $('toastMsg').textContent = msg;
@@ -1283,9 +1284,6 @@
           <button class="btn btn-primary" id="regenFeedbackBtn" onclick="regenerateWithFeedback()">Regenerate</button>
         </div>
       </div>
-      <div id="spFbVoiceActions" class="feedback-actions" style="margin-top:10px">
-        <button class="btn btn-outline" onclick="savePlan()">Save edits</button>
-      </div>
     </div>`);
 
     out.push(`<div class="share-row">
@@ -1321,21 +1319,39 @@
       ? `<img class="game-image" src="${esc(gameImage)}" alt="${esc(gameName || '')}" loading="lazy" onerror="this.style.display='none'">`
       : '';
 
-    const pts = (phase.coaching_points || [])
-      .map(pt => `<div class="cp-item"><span class="cp-dot">•</span><span>${esc(pt)}</span></div>`)
-      .join('');
+    const p = pathPrefix;
 
-    const variation = phase.variation
-      ? `<div class="variation-row"><strong>Variation:</strong> ${esc(phase.variation)}</div>` : '';
+    // Setup
+    const setupHtml = phase.setup?.trim()
+      ? `<div class="cp-label">Setup</div>
+         <div class="card-desc"${p ? ` contenteditable="true" data-path="${p}.setup"` : ''}>${esc(phase.setup.trim())}</div>`
+      : '';
 
-    const descAttr = pathPrefix ? ` contenteditable="true" data-path="${pathPrefix}.description"` : '';
+    // How to play (description)
+    const descHtml = phase.description?.trim()
+      ? `<div class="cp-label">How to Play</div>
+         <div class="card-desc"${p ? ` contenteditable="true" data-path="${p}.description"` : ''}>${esc(phase.description.trim())}</div>`
+      : '';
+
+    // Coaching points — each bullet individually editable
+    const pts = (phase.coaching_points || []);
+    const ptsHtml = pts.length
+      ? `<div class="cp-label">Coaching Points</div>` +
+        pts.map((pt, idx) =>
+          `<div class="cp-item"><span class="cp-dot">•</span><span${p ? ` contenteditable="true" data-path="${p}.coaching_points.${idx}"` : ''}>${esc(pt)}</span></div>`
+        ).join('')
+      : '';
+
+    // Variations
+    const varHtml = phase.variation?.trim()
+      ? `<div class="cp-label">Variations</div>
+         <div class="card-desc"${p ? ` contenteditable="true" data-path="${p}.variation"` : ''}>${esc(phase.variation.trim())}</div>`
+      : '';
 
     return `<div class="phase-card">
       ${nameBar}${imgTag}
       <div class="card-body">
-        <div class="card-desc"${descAttr}>${esc(phase.description || '')}</div>
-        ${pts.length ? `<div class="cp-label">Coaching Points</div>${pts}` : ''}
-        ${variation}
+        ${setupHtml}${descHtml}${ptsHtml}${varHtml}
       </div>
     </div>`;
   }
