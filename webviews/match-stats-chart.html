@@ -472,6 +472,8 @@ let oppLabel              = 'Opp';
 let waitingChannel        = null;
 let waitingPoll           = null;
 let pickerPoll            = null;
+let _refreshScheduled     = false;  // debounce — prevents concurrent RPC calls
+let _lastRefreshAt        = 0;      // epoch ms of last successful refresh
 
 let chartState = {
   sortedEvents: [], usLine: [], oppLine: [],
@@ -584,10 +586,19 @@ async function loadSessionById(id) {
 
 async function selectSession(id) { showLoading(); await loadSessionById(id); }
 
+// scheduleRefresh debounces concurrent triggers (broadcast + postgres_changes can
+// fire together for the same score event). Only one RPC goes out per 300 ms window.
+function scheduleRefresh() {
+  if (_refreshScheduled) return;
+  _refreshScheduled = true;
+  setTimeout(() => { _refreshScheduled = false; refreshSession(); }, 300);
+}
+
 async function refreshSession() {
   if (!currentSessionId) return;
   const { data, error } = await sb.rpc('get_match_stats_session', { p_match_stats_id: currentSessionId });
   if (!error && data && data.match_stats_id) {
+    _lastRefreshAt = Date.now();
     const prevTimer = timelineData?.timer;
     timelineData = data;
     // Preserve a broadcast-anchored timer reference (receiver's own clock) rather than
@@ -653,16 +664,16 @@ function subscribeRealtime(matchStatsId) {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'match_stats_details' },
         payload => {
           const rowId = payload.new?.match_stats_id ?? payload.old?.match_stats_id;
-          if (rowId === matchStatsId) refreshSession();
+          if (rowId === matchStatsId) scheduleRefresh();
         })
     // Timer status via postgres_changes — fallback if broadcast isn't received
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_timer' },
         payload => {
           if (timerEventId && payload.new?.event_id && payload.new.event_id !== timerEventId) return;
-          refreshSession();
+          scheduleRefresh();
         })
     // Timer state via Broadcast — bypasses RLS, fires immediately on scorekeeper action.
-    // broadcastTimerState() is also called after every score entry, so refreshSession()
+    // broadcastTimerState() is also called after every score entry, so scheduleRefresh()
     // here is what keeps scores live — match_stats_details postgres_changes is unreliable
     // if the table isn't in the realtime publication.
     .on('broadcast', { event: 'timer_state' }, ({ payload }) => {
@@ -675,23 +686,29 @@ function subscribeRealtime(matchStatsId) {
         : payload;
       timelineData.timer = { ...(timelineData.timer || {}), ...timerUpdate };
       startLiveTimer();
-      refreshSession();
+      scheduleRefresh();
     })
     .subscribe(status => {
-      if (status === 'SUBSCRIBED') { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
-      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling();
+      if (status === 'SUBSCRIBED') startPolling(10000);  // heartbeat alongside realtime — catches zombie WebSocket
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') startPolling(5000);
     });
 
   // Fall back to polling if realtime doesn't connect within 3 s
-  setTimeout(() => { if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling(); }, 3000);
+  setTimeout(() => { if (!realtimeChannel || realtimeChannel.state !== 'joined') startPolling(5000); }, 3000);
 }
 
-function startPolling() {
-  if (pollTimer) return;
-  // Poll every 5 s for live matches, 30 s for finalised ones
-  const interval = (timelineData && !timelineData.finalised_at) ? 5000 : 30000;
-  pollTimer = setInterval(refreshSession, interval);
+function startPolling(interval) {
+  if (pollTimer) clearInterval(pollTimer);
+  const ms = interval ?? ((timelineData && !timelineData.finalised_at) ? 5000 : 30000);
+  pollTimer = setInterval(scheduleRefresh, ms);
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && currentSessionId) {
+    scheduleRefresh();
+    subscribeRealtime(currentSessionId);
+  }
+});
 
 // ── Live timer ────────────────────────────────────────────────────────────
 function fmtMmSs(s) {
