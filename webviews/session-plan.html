@@ -1099,7 +1099,10 @@
     } catch { showError('Network error. Please try again.'); }
   }
 
+  let _isRegenerating = false;
   async function regenerateWithFeedback() {
+    if (_isRegenerating) return;
+    _isRegenerating = true;
     // Auto-save any inline edits before regenerating
     const edited = collectEdits();
     if (edited && _currentPlanId) {
@@ -1116,11 +1119,16 @@
       : ($('feedbackText')?.value || '').trim();
     if (!feedback) {
       showToast(_spDescMode === 'voice' ? 'Nothing recorded — hold the mic and speak' : 'Add some feedback first', 'error');
+      _isRegenerating = false;
       return;
     }
     const btn = $('regenFeedbackBtn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; }
-    await generatePlan(feedback);
+    try {
+      await generatePlan(feedback);
+    } finally {
+      _isRegenerating = false;
+    }
     clearToast();
     if (btn) { btn.disabled = false; btn.textContent = 'Regenerate'; }
     _spTranscript = '';
@@ -1546,12 +1554,10 @@
       if (el) el.textContent = _spTranscript;
     } else if (_prevReceiveSpeechResult) { _prevReceiveSpeechResult(fieldId, text); }
   };
-  const _prevSpeechDone = window.onSpeechDone;
   window.onSpeechDone = function() {
     clearTimeout(_spAutoReviseTimeout);
     _resetSpVoiceState();
     if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
-    else if (_prevSpeechDone) { _prevSpeechDone(); }
   };
   const _prevSpeechError = window.onSpeechError;
   window.onSpeechError = function(msg) {
