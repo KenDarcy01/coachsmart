@@ -1537,14 +1537,14 @@
   }
 
   // Wire up FlutterBridge speech callbacks
-  const _prevVoiceResult = window.onVoiceResult;
-  window.onVoiceResult = function(fieldId, text) {
+  const _prevReceiveSpeechResult = window.receiveSpeechResult;
+  window.receiveSpeechResult = function(fieldId, text) {
     if (fieldId === 'sp_feedback') {
       _spTranscript += text + ' ';
       _spTranscript = _spTranscript.trim();
       const el = $('spFbTranscript');
       if (el) el.textContent = _spTranscript;
-    } else if (_prevVoiceResult) { _prevVoiceResult(fieldId, text); }
+    } else if (_prevReceiveSpeechResult) { _prevReceiveSpeechResult(fieldId, text); }
   };
   const _prevSpeechDone = window.onSpeechDone;
   window.onSpeechDone = function() {
