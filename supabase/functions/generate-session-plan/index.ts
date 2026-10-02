@@ -580,55 +580,25 @@ serve(async (req) => {
         });
       }
 
-      // Apply DB overrides (same as generate)
+      // Restore game_image only — do NOT override content fields (description,
+      // coaching_points, setup, variation) because Gemini just revised those.
       const { data: revFavLinks } = await sb
         .from("user_game_link")
-        .select(`position, games!inner(game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points)`)
+        .select(`position, games!inner(game_name, game_image)`)
         .eq("user_id", user_id)
         .order("position");
 
-      const gameByName: Record<string, any> = {};
+      const imgByName: Record<string, string | null> = {};
       for (const f of (revFavLinks || [])) {
         const g = (f as any).games;
-        if (g?.game_name) gameByName[g.game_name] = g;
-      }
-
-      function parseCoachingPoints(text: string): string[] {
-        return text.split(/\n|(?:^|\s)[•·–\-]\s/)
-          .map((s: string) => s.replace(/^[•·–\-]\s*/, "").trim())
-          .filter((s: string) => s.length > 2);
+        if (g?.game_name) imgByName[g.game_name] = g.game_image ?? null;
       }
 
       for (const drill of (planJson.drills || [])) {
-        const g = gameByName[drill.game_name];
-        if (g) {
-          drill.game_image = g.game_image ?? null;
-          drill.setup      = g.game_setup?.trim() || null;
-          if (g.game_how_to_play?.trim()) drill.description = g.game_how_to_play.trim();
-          if (g.game_teaching_points?.trim()) drill.coaching_points = parseCoachingPoints(g.game_teaching_points);
-          drill.variation = g.game_variations?.trim() || null;
-        }
+        if (drill.game_name in imgByName) drill.game_image = imgByName[drill.game_name];
       }
-      if (planJson.warm_up) {
-        const g = gameByName[planJson.warm_up.game_name];
-        if (g) {
-          planJson.warm_up.game_image = g.game_image || null;
-          planJson.warm_up.setup      = g.game_setup?.trim() || null;
-          if (g.game_how_to_play?.trim()) planJson.warm_up.description = g.game_how_to_play.trim();
-          if (g.game_teaching_points?.trim()) planJson.warm_up.coaching_points = parseCoachingPoints(g.game_teaching_points);
-          planJson.warm_up.variation  = g.game_variations?.trim() || null;
-        }
-      }
-      if (planJson.cool_down) {
-        const g = gameByName[planJson.cool_down.game_name];
-        if (g) {
-          planJson.cool_down.game_image = g.game_image || null;
-          planJson.cool_down.setup      = g.game_setup?.trim() || null;
-          if (g.game_how_to_play?.trim()) planJson.cool_down.description = g.game_how_to_play.trim();
-          if (g.game_teaching_points?.trim()) planJson.cool_down.coaching_points = parseCoachingPoints(g.game_teaching_points);
-          planJson.cool_down.variation  = g.game_variations?.trim() || null;
-        }
-      }
+      if (planJson.warm_up?.game_name in imgByName) planJson.warm_up.game_image = imgByName[planJson.warm_up.game_name];
+      if (planJson.cool_down?.game_name in imgByName) planJson.cool_down.game_image = imgByName[planJson.cool_down.game_name];
 
       // Save as new active plan
       let savedPlanId: string | null = null;
