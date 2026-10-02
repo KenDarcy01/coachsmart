@@ -31,11 +31,15 @@ CANVAS SIZE — MATCH THE CONTENT:
 - PADDING: all shapes and arrow endpoints must stay at least 60px from every edge. Safe area is x: 60 to (width−60), y: 60 to (height−60).
 - Scale all positions from the original image proportionally to fill the chosen canvas.
 
-PLAYERS (circles):
+PLAYERS / COACHES (circles):
 - Ellipse, width=46, height=46
-- Home team: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;"
-- Away team (same number = opposite team): style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;"
-- If only one team visible, use home (red) style for all.
+- All players and coaches use the same black style: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;"
+- Do NOT use red or blue for players — every player/coach circle is black.
+
+FOOTBALLS (ball):
+- If a ball or football symbol appears in the diagram, render it as a small ellipse: width=24, height=24
+- Style: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#333333;shadow=1;"
+- Value="" (no label on the ball).
 
 CONES (triangles):
 - Triangle, width=28, height=32, direction=north (MANDATORY)
@@ -74,7 +78,7 @@ EXAMPLE STRUCTURE:
 <mxCell id="0"/>
 <mxCell id="1" parent="0"/>
 <mxCell id="2" value="" style="fillColor=#2E7D32;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="600" height="600" as="geometry"/></mxCell>
-<mxCell id="3" value="2" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="277" y="80" width="46" height="46" as="geometry"/></mxCell>
+<mxCell id="3" value="2" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="277" y="80" width="46" height="46" as="geometry"/></mxCell>
 <mxCell id="4" value="" style="triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FF6D00;gradientColor=#FFAB40;gradientDirection=north;strokeColor=#E65100;shadow=1;" vertex="1" parent="1"><mxGeometry x="286" y="70" width="28" height="32" as="geometry"/></mxCell>
 <mxCell id="5" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="144" as="sourcePoint"/><mxPoint x="300" y="290" as="targetPoint"/></mxGeometry></mxCell>
 <mxCell id="6" value="Solo" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="308" y="212" width="120" height="20" as="geometry"/></mxCell>
