@@ -1062,20 +1062,21 @@
 
   // ── Generate ────────────────────────────────────────────────────────────────
   async function generatePlan(feedback = '') {
-    // Collect ordered, checked game_ids from the DOM
+    const isRevision = !!(feedback && _currentPlan);
+
+    // Collect ordered, checked game_ids from the DOM (only needed for fresh generate)
     const items = [...$('favList').querySelectorAll('.fav-item')];
     const game_ids = items
       .filter(el => el.querySelector('.fav-check')?.checked)
       .map(el => parseInt(el.dataset.gid));
 
-    if (game_ids.length === 0) { showToast('Select at least one game'); return; }
+    if (!isRevision && game_ids.length === 0) { showToast('Select at least one game'); return; }
 
     _rotateStations = $('rotateToggle')?.checked ?? true;
     clearToast();
-    showLoading('Generating your session plan…');
+    showLoading(isRevision ? 'Updating your session plan…' : 'Generating your session plan…');
 
     try {
-      const isRevision = !!(feedback && _currentPlan);
       const body = isRevision
         ? { action: 'revise_plan', event_id: EVENT_ID, user_id: USER_ID, feedback, existing_plan: _currentPlan }
         : { action: 'generate', event_id: EVENT_ID, user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
