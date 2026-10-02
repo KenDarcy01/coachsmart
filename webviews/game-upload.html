@@ -1006,9 +1006,10 @@
 
   // ── Revise with feedback ───────────────────────────────────────────────────
   let _fbTranscript   = '';
-  let _fbIsRecording  = false;
-  let _fbDescMode     = 'voice';
-  let _fbAutoRevise   = false;
+  let _fbIsRecording        = false;
+  let _fbDescMode           = 'voice';
+  let _fbAutoRevise         = false;
+  let _fbAutoReviseTimeout  = null;
 
   function setFbMode(mode) {
     _fbDescMode = mode;
@@ -1184,6 +1185,7 @@
     document.getElementById('voiceTranscript').textContent = ((_voiceTranscript ? _voiceTranscript + ' ' : '') + p).trim();
   };
   window.onSpeechDone  = () => {
+    clearTimeout(_fbAutoReviseTimeout);
     _resetVoiceState(); _resetFbVoiceState();
     if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
   };
@@ -1207,8 +1209,17 @@
     }
     function stop() {
       if (!_fbIsRecording) return;
-      if (window.FlutterBridge) { window.FlutterBridge.postMessage('stopSpeech'); _resetFbVoiceState(); _fbAutoRevise = true; }
-      else _stopFbWebSpeech();
+      if (window.FlutterBridge) {
+        window.FlutterBridge.postMessage('stopSpeech');
+        _resetFbVoiceState();
+        _fbAutoRevise = true;
+        const el = document.getElementById('fbTranscript');
+        if (el) el.textContent = 'Processing voice…';
+        clearTimeout(_fbAutoReviseTimeout);
+        _fbAutoReviseTimeout = setTimeout(() => {
+          if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
+        }, 8000);
+      } else _stopFbWebSpeech();
     }
     btn.addEventListener('pointerdown',   start, { passive: false });
     btn.addEventListener('pointerup',     stop);
