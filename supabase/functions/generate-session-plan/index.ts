@@ -659,6 +659,7 @@ serve(async (req) => {
       const g = gameByName[drill.game_name];
       drill.game_image = g?.game_image ?? null;
       if (g) {
+        drill.setup      = g.game_setup?.trim() || null;
         if (g.game_how_to_play?.trim()) drill.description = g.game_how_to_play.trim();
         if (g.game_teaching_points?.trim()) drill.coaching_points = parseCoachingPoints(g.game_teaching_points);
         drill.variation = g.game_variations?.trim() || null;
@@ -671,9 +672,10 @@ serve(async (req) => {
       const g = warmupGame.games;
       planJson.warm_up.game_name  = g.game_name;
       planJson.warm_up.game_image = g.game_image || null;
+      planJson.warm_up.setup      = g.game_setup?.trim() || null;
       if (g.game_how_to_play?.trim()) planJson.warm_up.description = g.game_how_to_play.trim();
-      else if (g.game_setup?.trim())  planJson.warm_up.description = g.game_setup.trim();
       if (g.game_teaching_points?.trim()) planJson.warm_up.coaching_points = parseCoachingPoints(g.game_teaching_points);
+      planJson.warm_up.variation  = g.game_variations?.trim() || null;
     }
 
     // Override cool-down with exact DB text when a cooldown game was selected
@@ -681,9 +683,10 @@ serve(async (req) => {
       const g = cooldownGame.games;
       planJson.cool_down.game_name  = g.game_name;
       planJson.cool_down.game_image = g.game_image || null;
+      planJson.cool_down.setup      = g.game_setup?.trim() || null;
       if (g.game_how_to_play?.trim()) planJson.cool_down.description = g.game_how_to_play.trim();
-      else if (g.game_setup?.trim())  planJson.cool_down.description = g.game_setup.trim();
       if (g.game_teaching_points?.trim()) planJson.cool_down.coaching_points = parseCoachingPoints(g.game_teaching_points);
+      planJson.cool_down.variation  = g.game_variations?.trim() || null;
     }
 
     planJson.player_count = playerCount;
