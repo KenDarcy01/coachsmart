@@ -151,7 +151,7 @@
       transition: border-color 0.18s, background 0.18s, color 0.18s;
       flex-shrink: 0; -webkit-user-select: none; user-select: none; touch-action: none;
     }
-    .mic-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+    .mic-btn svg { width: 24px; height: 24px; flex-shrink: 0; transform: rotate(90deg); }
     .mic-btn.recording {
       background: rgba(239,68,68,0.14); border-color: var(--red); color: var(--red);
       animation: mic-ring 1.2s ease-out infinite;
@@ -247,6 +247,7 @@
     .draft-field textarea { width: 100%; background: transparent; border: none; padding: 4px 14px 12px; font-size: 15px; color: var(--text); line-height: 1.55; outline: none; resize: none; overflow: hidden; min-height: 48px; }
     .draft-field input { width: 100%; background: transparent; border: none; padding: 4px 14px 12px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; }
     .draft-field input::placeholder, .draft-field textarea::placeholder { color: var(--muted); }
+    .draft-field select { width: 100%; background: transparent; border: none; padding: 4px 14px 12px; font-size: 15px; color: var(--text); outline: none; -webkit-appearance: none; appearance: none; }
 
     /* ── TOAST ── */
     .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -282,7 +283,7 @@
       <!-- Photo panel -->
       <div id="panelPhoto" class="media-panel active">
         <div id="imagesGrid"></div>
-        <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFilesSelected(this)"/>
+        <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFilesSelected(this)"/>
       </div>
 
       <!-- Sketch panel -->
@@ -363,65 +364,6 @@
       </div>
     </div>
 
-    <!-- Type -->
-    <div>
-      <div class="field-label">Type</div>
-      <select id="inpType" class="text-input" onchange="onTypeChange()">
-        <option value="">Select type…</option>
-        <option value="Game">Game</option>
-        <option value="Drill">Drill</option>
-        <option value="Skill">Skill</option>
-        <option value="Warmup">Warmup</option>
-        <option value="Video">Video</option>
-      </select>
-    </div>
-
-    <!-- Video Link -->
-    <div>
-      <div class="field-label">Video Link <span id="videoLinkReq" class="opt">(optional)</span></div>
-      <input id="inpVideoUrl" class="text-input" type="url" placeholder="https://youtube.com/watch?v=…"/>
-    </div>
-
-    <!-- Age Group -->
-    <div>
-      <div class="field-label">Age Group</div>
-      <div class="chip-row" id="ageChips">
-        <button class="chip" data-age="U6"    onclick="toggleChip(this)">U6</button>
-        <button class="chip" data-age="U8"    onclick="toggleChip(this)">U8</button>
-        <button class="chip" data-age="U10"   onclick="toggleChip(this)">U10</button>
-        <button class="chip" data-age="U12"   onclick="toggleChip(this)">U12</button>
-        <button class="chip" data-age="U14"   onclick="toggleChip(this)">U14</button>
-        <button class="chip" data-age="U16"   onclick="toggleChip(this)">U16</button>
-        <button class="chip" data-age="U18"   onclick="toggleChip(this)">U18</button>
-        <button class="chip" data-age="Adult" onclick="toggleChip(this)">Adult</button>
-      </div>
-    </div>
-
-    <!-- Sport -->
-    <div>
-      <div class="field-label">Sport</div>
-      <div class="chip-row" id="sportChips">
-        <button class="chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
-        <button class="chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
-        <button class="chip" data-sport="Camogie"  onclick="toggleChip(this)">Camogie</button>
-      </div>
-    </div>
-
-    <!-- Skills -->
-    <div>
-      <div class="field-label">Skills <span class="opt">(optional)</span></div>
-      <div class="chip-row" id="skillChips">
-        <button class="chip" data-skill="Handpass"  onclick="toggleChip(this)">Handpass</button>
-        <button class="chip" data-skill="Kick Pass" onclick="toggleChip(this)">Kick Pass</button>
-        <button class="chip" data-skill="Catching"  onclick="toggleChip(this)">Catching</button>
-        <button class="chip" data-skill="Solo"      onclick="toggleChip(this)">Solo</button>
-        <button class="chip" data-skill="Shooting"  onclick="toggleChip(this)">Shooting</button>
-        <button class="chip" data-skill="Tackling"  onclick="toggleChip(this)">Tackling</button>
-        <button class="chip" data-skill="Blocking"  onclick="toggleChip(this)">Blocking</button>
-        <button class="chip" data-skill="Fielding"  onclick="toggleChip(this)">Fielding</button>
-      </div>
-    </div>
-
   </div>
 
   <div class="sticky-footer">
@@ -473,6 +415,60 @@
     <div class="draft-field">
       <div class="draft-field-label">Teaching Points</div>
       <textarea id="rvTeaching" placeholder="Key coaching cues…" oninput="autoResize(this)"></textarea>
+    </div>
+
+    <div class="draft-field">
+      <div class="draft-field-label">Type</div>
+      <select id="rvType">
+        <option value="">Select type…</option>
+        <option value="Game">Game</option>
+        <option value="Drill">Drill</option>
+        <option value="Skill">Skill</option>
+        <option value="Warmup">Warmup</option>
+        <option value="Video">Video</option>
+      </select>
+    </div>
+
+    <div class="draft-field">
+      <div class="draft-field-label">Video Link <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></div>
+      <input id="rvVideoUrl" type="url" placeholder="https://youtube.com/watch?v=…"/>
+    </div>
+
+    <div>
+      <div class="field-label" style="margin-bottom:10px">Age Group</div>
+      <div class="chip-row" id="ageChips">
+        <button class="chip" data-age="U6"    onclick="toggleChip(this)">U6</button>
+        <button class="chip" data-age="U8"    onclick="toggleChip(this)">U8</button>
+        <button class="chip" data-age="U10"   onclick="toggleChip(this)">U10</button>
+        <button class="chip" data-age="U12"   onclick="toggleChip(this)">U12</button>
+        <button class="chip" data-age="U14"   onclick="toggleChip(this)">U14</button>
+        <button class="chip" data-age="U16"   onclick="toggleChip(this)">U16</button>
+        <button class="chip" data-age="U18"   onclick="toggleChip(this)">U18</button>
+        <button class="chip" data-age="Adult" onclick="toggleChip(this)">Adult</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="field-label" style="margin-bottom:10px">Code</div>
+      <div class="chip-row" id="sportChips">
+        <button class="chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
+        <button class="chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
+        <button class="chip" data-sport="Camogie"  onclick="toggleChip(this)">Camogie</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="field-label" style="margin-bottom:10px">Skills <span class="opt">(optional)</span></div>
+      <div class="chip-row" id="skillChips">
+        <button class="chip" data-skill="Handpass"  onclick="toggleChip(this)">Handpass</button>
+        <button class="chip" data-skill="Kick Pass" onclick="toggleChip(this)">Kick Pass</button>
+        <button class="chip" data-skill="Catching"  onclick="toggleChip(this)">Catching</button>
+        <button class="chip" data-skill="Solo"      onclick="toggleChip(this)">Solo</button>
+        <button class="chip" data-skill="Shooting"  onclick="toggleChip(this)">Shooting</button>
+        <button class="chip" data-skill="Tackling"  onclick="toggleChip(this)">Tackling</button>
+        <button class="chip" data-skill="Blocking"  onclick="toggleChip(this)">Blocking</button>
+        <button class="chip" data-skill="Fielding"  onclick="toggleChip(this)">Fielding</button>
+      </div>
     </div>
   </div>
 
@@ -701,17 +697,6 @@
       sourceImg = { base64: _uploadedImages[0].base64, mimeType: _uploadedImages[0].mimeType };
     }
 
-    _selectedAges   = getSelectedAges();
-    _selectedSports = getSelectedSports();
-    _selectedSkills = getSelectedSkills();
-    _selectedType   = document.getElementById('inpType').value || null;
-    _videoUrl       = document.getElementById('inpVideoUrl').value.trim() || null;
-    if (_selectedType === 'Video' && !_videoUrl) {
-      showToast('Video Link is required for Video type', 'error');
-      document.getElementById('inpVideoUrl').focus();
-      return;
-    }
-
     showScreen('screenProcessing');
     setStatus('Standardising your diagram…', 'Converting to a consistent look and size');
 
@@ -738,7 +723,7 @@
     const payload = {
       action:           'split_voice',
       voice_transcript: description,
-      game_code:        _selectedSports,
+      game_code:        [],
       images:           imageArray,
     };
 
@@ -788,7 +773,7 @@
         game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
         game_variations:      document.getElementById('rvVariations').value.trim() || null,
         game_teaching_points: document.getElementById('rvTeaching').value.trim() || null,
-        game_code:            _selectedSports,
+        game_code:            getSelectedSports(),
       });
       populateReviewFields(result);
       requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
@@ -813,17 +798,17 @@
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
         body: JSON.stringify({
           action: 'save_game', game_name: name,
-          game_age:             _selectedAges,
-          game_code:            _selectedSports,
-          game_skill:           _selectedSkills.length ? _selectedSkills : null,
-          game_type:            _selectedType ? [_selectedType] : null,
+          game_age:             getSelectedAges(),
+          game_code:            getSelectedSports(),
+          game_skill:           getSelectedSkills().length ? getSelectedSkills() : null,
+          game_type:            document.getElementById('rvType').value ? [document.getElementById('rvType').value] : null,
           game_setup:           document.getElementById('rvSetup').value.trim(),
           game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
           game_variations:      document.getElementById('rvVariations').value.trim(),
           game_teaching_points: document.getElementById('rvTeaching').value.trim(),
           image_base64:         _reviewImage?.base64   || null,
           image_mime_type:      _reviewImage?.mimeType || null,
-          game_video:           _videoUrl,
+          game_video:           document.getElementById('rvVideoUrl').value.trim() || null,
         }),
       });
       const json = await res.json();
