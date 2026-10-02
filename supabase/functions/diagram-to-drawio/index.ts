@@ -103,6 +103,47 @@ EXAMPLE STRUCTURE:
 <mxCell id="6" value="Solo" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="308" y="212" width="120" height="20" as="geometry"/></mxCell>
 </root></mxGraphModel>`;
 
+const STYLE_FOOTBALL = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#555555;shadow=0;`;
+const STYLE_COACH    = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;`;
+const STYLE_HOME     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;`;
+const STYLE_AWAY     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;`;
+
+// Rewrite every ellipse cell's style based purely on its value attribute.
+// The model reads labels correctly but consistently picks wrong colours — fix deterministically here.
+function fixCircleStyles(xml: string): string {
+  // Match the full <mxCell ...>...</mxCell> block for ellipse vertices
+  return xml.replace(
+    /(<mxCell[^>]*\bstyle="[^"]*\bellipse\b[^"]*"[^>]*>)([\s\S]*?)(<\/mxCell>)/g,
+    (full, openTag, inner, closeTag) => {
+      const valueMatch = openTag.match(/\bvalue="([^"]*)"/);
+      const value = (valueMatch ? valueMatch[1] : "").trim();
+
+      let newStyle: string;
+      let newInner = inner;
+
+      if (value === "" || value === "·" || value === "•" || value === ".") {
+        // Empty or dot → football (white), resize to 24×24
+        newStyle = STYLE_FOOTBALL;
+        newInner = inner
+          .replace(/\bwidth="\d+(\.\d+)?"/, 'width="24"')
+          .replace(/\bheight="\d+(\.\d+)?"/, 'height="24"');
+      } else if (/^c$/i.test(value)) {
+        // Letter C → coach (black)
+        newStyle = STYLE_COACH;
+      } else {
+        // Number → player; keep existing red/blue, only fix if model used wrong colour
+        const isRed  = openTag.includes("#C62828") || openTag.includes("#B71C1C");
+        const isBlue = openTag.includes("#1565C0") || openTag.includes("#0D47A1");
+        if (isRed || isBlue) return full; // already correct
+        newStyle = STYLE_HOME;
+      }
+
+      const newOpenTag = openTag.replace(/\bstyle="[^"]*"/, `style="${newStyle}"`);
+      return newOpenTag + newInner + closeTag;
+    }
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -200,6 +241,9 @@ serve(async (req) => {
         });
       }
     }
+
+    // Post-process: enforce correct ellipse styles by value — never trust the model's colour choice.
+    xml = fixCircleStyles(xml);
 
     return new Response(JSON.stringify({ xml }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
