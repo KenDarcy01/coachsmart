@@ -180,17 +180,6 @@
       color: var(--text); word-break: break-word;
     }
     .transcript-preview:empty::before { content: "Your description will appear here…"; color: var(--muted); }
-    .transcript-preview.revising {
-      display: flex; align-items: center; gap: 10px;
-      color: var(--muted); font-size: 14px; border-color: var(--green);
-    }
-    .transcript-preview.revising::after {
-      content: ''; flex-shrink: 0;
-      width: 16px; height: 16px; border-radius: 50%;
-      border: 2px solid var(--border); border-top-color: var(--green);
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
     .text-desc {
       width: 100%; background: var(--card); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 12px 14px;
@@ -1035,15 +1024,13 @@
     const feedback = _fbDescMode === 'text'
       ? (document.getElementById('fbInput').value.trim() || '')
       : _fbTranscript.trim();
-    if (!feedback) { showToast('Add some feedback first', 'error'); return; }
-    const btn = document.getElementById('fbReviseBtn');
-    const transcriptEl = document.getElementById('fbTranscript');
-    if (btn) {
-      btn.disabled = true; btn.textContent = 'Revising…';
-    } else if (transcriptEl) {
-      transcriptEl.textContent = 'Revising draft…';
-      transcriptEl.classList.add('revising');
+    if (!feedback) {
+      showToast(_fbDescMode === 'voice' ? 'Nothing recorded — hold the mic and speak' : 'Add some feedback first', 'error');
+      return;
     }
+    const btn = document.getElementById('fbReviseBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Revising…'; }
+    else { showToast('Revising draft…', 'success', 0); }
     try {
       const result = await callEdgeFunction({
         action:               'revise_with_feedback',
@@ -1057,12 +1044,13 @@
       populateReviewFields(result);
       requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
       document.getElementById('fbInput').value = '';
-      if (transcriptEl) { transcriptEl.textContent = ''; transcriptEl.classList.remove('revising'); }
+      document.getElementById('fbTranscript').textContent = '';
       _fbTranscript = '';
-      showToast('Draft revised', 'success');
+      clearToast();
+      showToast('Draft revised ✓', 'success');
     } catch (err) {
-      if (transcriptEl) transcriptEl.classList.remove('revising');
-      showToast('Error: ' + (err.message || 'AI failed'), 'error');
+      clearToast();
+      showToast('Revision failed — please try again', 'error');
     } finally {
       if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg> Revise Draft`; }
     }
@@ -1230,8 +1218,6 @@
         window.FlutterBridge.postMessage('stopSpeech');
         _resetFbVoiceState();
         _fbAutoRevise = true;
-        const el = document.getElementById('fbTranscript');
-        if (el) el.textContent = 'Processing voice…';
         clearTimeout(_fbAutoReviseTimeout);
         _fbAutoReviseTimeout = setTimeout(() => {
           if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
@@ -1755,10 +1741,16 @@
     setTimeout(()=>{ sheet.style.display='none'; bd.style.display='none'; }, 310);
   }
 
-  function showToast(msg, type='') {
-    const t=document.getElementById('toast');
-    t.textContent=msg; t.className='toast'+(type?' '+type:''); t.classList.add('show');
-    setTimeout(()=>t.classList.remove('show'), 2800);
+  let _toastTimer = null;
+  function showToast(msg, type='', duration=2800) {
+    const t = document.getElementById('toast');
+    clearTimeout(_toastTimer);
+    t.textContent = msg; t.className = 'toast' + (type ? ' ' + type : ''); t.classList.add('show');
+    if (duration > 0) _toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+  }
+  function clearToast() {
+    clearTimeout(_toastTimer);
+    document.getElementById('toast').classList.remove('show');
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
