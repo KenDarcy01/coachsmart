@@ -1211,6 +1211,8 @@
     btn.addEventListener('pointerdown',   start, { passive: false });
     btn.addEventListener('pointerup',     stop);
     btn.addEventListener('pointercancel', stop);
+    document.addEventListener('touchend',    stop, { passive: true });
+    document.addEventListener('touchcancel', stop, { passive: true });
   }
   let _fbWebRecognition = null;
   function _startFbWebSpeech() {
