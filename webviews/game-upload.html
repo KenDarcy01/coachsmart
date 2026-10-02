@@ -1569,12 +1569,42 @@
         const ctx=canvas.getContext('2d');
         ctx.scale(scale,scale);
         ctx.fillStyle='#2E7D32'; ctx.fillRect(0,0,OUT,OUT);
-        ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1; ctx.setLineDash([8,6]);
-        ctx.beginPath(); ctx.moveTo(0,OUT/2); ctx.lineTo(OUT,OUT/2); ctx.stroke(); ctx.setLineDash([]);
         // Uniform scale preserves aspect ratio — non-square diagrams no longer squash circles into ovals
         const s=Math.min(OUT/cW,OUT/cH);
         const offX=(OUT-cW*s)/2, offY=(OUT-cH*s)/2;
-        for (const cell of cells) { if (cell.getAttribute('edge')==='1') _renderEdge(ctx, cell, s, offX, offY); }
+        // --- Pitch feature detection ---
+        let pitchLineCount=0, pitchArcCount=0;
+        let goalCX=OUT/2, goalLineY=offY, goalAtBottom=false, foundGoalpost=false;
+        for (const cell of cells) {
+          const cStyle=cell.getAttribute('style')||'';
+          if (cell.getAttribute('edge')==='1' && cStyle.includes('endArrow=none')) {
+            if(cStyle.includes('curved=1')) pitchArcCount++; else pitchLineCount++;
+          }
+          if (!foundGoalpost && cell.getAttribute('vertex')==='1' && cStyle.includes('gaa_goalpost')) {
+            const geo=cell.querySelector('mxGeometry');
+            if(geo){
+              const gx=parseFloat(geo.getAttribute('x')||'0')*s+offX, gw=parseFloat(geo.getAttribute('width')||'0')*s;
+              const gy=parseFloat(geo.getAttribute('y')||'0')*s+offY, gh=parseFloat(geo.getAttribute('height')||'0')*s;
+              goalCX=gx+gw/2; goalAtBottom=gy+gh/2>OUT/2;
+              goalLineY=goalAtBottom?gy+gh:gy; foundGoalpost=true;
+            }
+          }
+        }
+        if (!foundGoalpost) { goalLineY=goalAtBottom?OUT-offY:offY; }
+        // --- Render standardized pitch if pitch markings detected; else draw faint midfield guide ---
+        if (pitchLineCount>0||pitchArcCount>0) {
+          _renderStandardPitch(ctx, OUT, goalCX, goalLineY, goalAtBottom, pitchLineCount, pitchArcCount);
+        } else {
+          ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1; ctx.setLineDash([8,6]);
+          ctx.beginPath(); ctx.moveTo(0,OUT/2); ctx.lineTo(OUT,OUT/2); ctx.stroke(); ctx.setLineDash([]);
+        }
+        // --- Render movement edges (pitch markings drawn above — skip endArrow=none) ---
+        for (const cell of cells) {
+          if (cell.getAttribute('edge')==='1') {
+            const cStyle=cell.getAttribute('style')||'';
+            if (!cStyle.includes('endArrow=none')) _renderEdge(ctx, cell, s, offX, offY);
+          }
+        }
         for (const cell of cells) {
           if (cell.getAttribute('vertex')!=='1') continue;
           const style=cell.getAttribute('style')||'', geo=cell.querySelector('mxGeometry');
@@ -1663,6 +1693,34 @@
     const angle=Math.atan2(y2-fy,x2-fx), hLen=13;
     if(!isDashed){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.closePath();ctx.fill();}
     else{ctx.strokeStyle=lineColor;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.stroke();}
+    ctx.restore();
+  }
+
+  function _renderStandardPitch(ctx, OUT, goalCX, goalLineY, goalAtBottom, lineCount, arcCount) {
+    const pad=30;
+    const pLeft=pad, pRight=OUT-pad, pTop=pad, pBottom=OUT-pad;
+    const pW=pRight-pLeft, pH=pBottom-pTop;
+    const glY=goalAtBottom?pBottom:pTop;
+    // Clamp goalCX within inner 60% of pitch width
+    const gcX=Math.max(pLeft+pW*0.2, Math.min(pRight-pW*0.2, goalCX));
+    ctx.save();
+    ctx.strokeStyle='rgba(255,255,255,0.6)';
+    ctx.lineWidth=1.5;
+    ctx.setLineDash([]);
+    ctx.lineCap='round';
+    // Pitch boundary
+    ctx.beginPath(); ctx.rect(pLeft,pTop,pW,pH); ctx.stroke();
+    // Zone lines — GAA proportions from goal line (small rect≈7.7%, 13m≈20%, 20m≈30.8%, 45m≈69.2%)
+    const allRatios=[0.077,0.200,0.308,0.692];
+    const useRatios=lineCount>=4?allRatios:lineCount===3?allRatios.slice(1):lineCount===2?allRatios.slice(1,3):allRatios.slice(1,2);
+    for(const ratio of useRatios){
+      const y=goalAtBottom?pBottom-ratio*pH:pTop+ratio*pH;
+      ctx.beginPath(); ctx.moveTo(pLeft,y); ctx.lineTo(pRight,y); ctx.stroke();
+    }
+    // Arcs curve INTO the pitch from the goal line
+    // ctx.arc(x,y,r,π,0,anticlockwise): false=lower semicircle (goal at top), true=upper (goal at bottom)
+    if(arcCount>=1){ ctx.beginPath(); ctx.arc(gcX,glY,pW*0.20,Math.PI,0,goalAtBottom); ctx.stroke(); }
+    if(arcCount>=2){ ctx.beginPath(); ctx.arc(gcX,glY,pW*0.38,Math.PI,0,goalAtBottom); ctx.stroke(); }
     ctx.restore();
   }
 
