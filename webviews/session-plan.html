@@ -520,11 +520,59 @@
     /* ── Toast ────────────────────────────────────────────────────────────── */
     #toast {
       position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: #333; color: #fff; font-size: 13px; padding: 8px 16px;
+      background: var(--surface-2); color: var(--text); font-size: 13px; padding: 8px 16px;
       border-radius: 20px; opacity: 0; transition: opacity 0.2s; z-index: 999;
-      pointer-events: none; white-space: nowrap;
+      pointer-events: none; white-space: nowrap; border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 7px;
     }
     #toast.show { opacity: 1; }
+    #toast.success { border-color: var(--accent); color: var(--accent); }
+    #toast.error   { border-color: #dc3232; color: #dc3232; }
+    .sp-toast-spinner {
+      width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid rgba(135,194,50,0.3); border-top-color: var(--accent);
+      animation: spToastSpin 0.7s linear infinite; display: none;
+    }
+    #toast.spinning .sp-toast-spinner { display: block; }
+    @keyframes spToastSpin { to { transform: rotate(360deg); } }
+
+    /* ── Feedback voice/text toggle ── */
+    .fb-mode-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+    .fb-mode-btn {
+      flex: 1; height: 34px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      font-family: inherit; cursor: pointer; border: 1px solid var(--border);
+      background: var(--bg); color: var(--muted);
+      display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s;
+    }
+    .fb-mode-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .fb-mode-btn.active { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
+    .fb-voice-instruction { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
+    .fb-mic-wrap { display: flex; justify-content: center; margin: 4px 0 8px; }
+    .fb-mic-btn {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--surface-2); border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); cursor: pointer; transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fb-mic-btn.recording {
+      background: rgba(220,50,50,0.12); border-color: #dc3232; color: #dc3232; border-radius: 12px;
+    }
+    .fb-voice-wave { display: flex; align-items: center; justify-content: center; gap: 3px; height: 20px; margin-bottom: 8px; }
+    .fb-voice-wave span { width: 3px; background: var(--muted); border-radius: 3px; height: 5px; }
+    .fb-voice-wave.active span { animation: fbSpWave 0.6s ease-in-out infinite alternate; }
+    .fb-voice-wave.active span:nth-child(2) { animation-delay: 0.1s; }
+    .fb-voice-wave.active span:nth-child(3) { animation-delay: 0.2s; }
+    .fb-voice-wave.active span:nth-child(4) { animation-delay: 0.3s; }
+    .fb-voice-wave.active span:nth-child(5) { animation-delay: 0.4s; }
+    @keyframes fbSpWave { from { height: 4px; } to { height: 16px; } }
+    .fb-transcript {
+      min-height: 36px; padding: 8px 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; line-height: 1.5;
+      color: var(--text); word-break: break-word;
+    }
+    .fb-transcript:empty::before { content: "Your feedback will appear here…"; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -629,7 +677,7 @@
   <div class="sheet-body" id="sheetBody"></div>
 </div>
 
-<div id="toast"></div>
+<div id="toast"><span class="sp-toast-spinner"></span><span id="toastMsg"></span></div>
 
 <script>
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
@@ -684,11 +732,20 @@
   }
 
   let _toastTimer;
-  function showToast(msg) {
+  function showToast(msg, type='', duration=2500) {
     const t = $('toast');
-    t.textContent = msg; t.classList.add('show');
     clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    $('toastMsg').textContent = msg;
+    const sticky = duration === 0;
+    t.className = sticky ? 'spinning' : '';
+    if (type) t.classList.add(type);
+    t.classList.add('show');
+    if (!sticky) _toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+  }
+  function clearToast() {
+    clearTimeout(_toastTimer);
+    const t = $('toast');
+    t.classList.remove('show', 'spinning');
   }
 
   function adjustDur(delta) {
@@ -1035,11 +1092,21 @@
         _currentPlan = edited;
       } catch { /* continue anyway */ }
     }
-    const feedback = ($('feedbackText')?.value || '').trim();
+    const feedback = _spDescMode === 'voice'
+      ? _spTranscript.trim()
+      : ($('feedbackText')?.value || '').trim();
+    if (!feedback) {
+      showToast(_spDescMode === 'voice' ? 'Nothing recorded — hold the mic and speak' : 'Add some feedback first', 'error');
+      return;
+    }
     const btn = $('regenFeedbackBtn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; }
     await generatePlan(feedback);
+    clearToast();
     if (btn) { btn.disabled = false; btn.textContent = 'Regenerate'; }
+    _spTranscript = '';
+    const transcriptEl = $('spFbTranscript');
+    if (transcriptEl) transcriptEl.textContent = '';
   }
 
   function collectEdits() {
@@ -1171,10 +1238,35 @@
     out.push(`<div class="feedback-bar">
       <div class="feedback-hdr">Refine this plan</div>
       <div id="refusalNotice" class="refusal-notice"></div>
-      <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';hideRefusal()"></textarea>
-      <div class="feedback-actions">
-        <button class="btn btn-outline" id="saveBtn" onclick="savePlan()">Save edits</button>
-        <button class="btn btn-primary" id="regenFeedbackBtn" onclick="regenerateWithFeedback()">Regenerate</button>
+      <div class="fb-mode-toggle">
+        <button class="fb-mode-btn active" id="spFbModeVoice" onclick="setSpFbMode('voice')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          Voice
+        </button>
+        <button class="fb-mode-btn" id="spFbModeText" onclick="setSpFbMode('text')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Type
+        </button>
+      </div>
+      <div id="spFbVoicePanel">
+        <p class="fb-voice-instruction">Hold to describe what you'd like changed — the AI will revise the plan based on your notes.</p>
+        <div id="spFbVoiceWave" class="fb-voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="fb-mic-wrap">
+          <button id="spFbMicBtn" class="fb-mic-btn" aria-label="Hold to record feedback">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          </button>
+        </div>
+        <div id="spFbTranscript" class="fb-transcript"></div>
+      </div>
+      <div id="spFbTextPanel" style="display:none">
+        <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';hideRefusal()"></textarea>
+        <div class="feedback-actions" style="margin-top:10px">
+          <button class="btn btn-outline" id="saveBtn" onclick="savePlan()">Save edits</button>
+          <button class="btn btn-primary" id="regenFeedbackBtn" onclick="regenerateWithFeedback()">Regenerate</button>
+        </div>
+      </div>
+      <div id="spFbVoiceActions" class="feedback-actions" style="margin-top:10px">
+        <button class="btn btn-outline" onclick="savePlan()">Save edits</button>
       </div>
     </div>`);
 
@@ -1182,6 +1274,7 @@
     $('planContent').innerHTML = out.join('');
     showScreen('planScreen');
     $('actionBar').style.display = 'flex';
+    requestAnimationFrame(_initSpMicButton);
   }
 
   function sectionHdr(label, dur, type) {
@@ -1304,6 +1397,119 @@
   }
 
   boot();
+
+  // ── Session plan feedback voice/text ─────────────────────────────────────
+  let _spIsRecording       = false;
+  let _spTranscript        = '';
+  let _spDescMode          = 'voice';
+  let _spAutoRevise        = false;
+  let _spAutoReviseTimeout = null;
+  let _spWebRecognition    = null;
+
+  function setSpFbMode(mode) {
+    _spDescMode = mode;
+    const vp = $('spFbVoicePanel'), tp = $('spFbTextPanel'), va = $('spFbVoiceActions');
+    if (!vp) return;
+    vp.style.display = mode === 'voice' ? '' : 'none';
+    tp.style.display  = mode === 'text'  ? '' : 'none';
+    if (va) va.style.display = mode === 'voice' ? '' : 'none';
+    $('spFbModeVoice')?.classList.toggle('active', mode === 'voice');
+    $('spFbModeText')?.classList.toggle('active',  mode === 'text');
+  }
+
+  function _initSpMicButton() {
+    const btn = $('spFbMicBtn');
+    if (!btn) return;
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+    function start(e) {
+      e.preventDefault();
+      if (_spIsRecording) return;
+      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      _spIsRecording = true; _spTranscript = '';
+      $('spFbTranscript').textContent = '';
+      btn.classList.add('recording');
+      $('spFbVoiceWave').classList.add('active');
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+      else _startSpWebSpeech();
+    }
+    function stop() {
+      if (!_spIsRecording) return;
+      if (window.FlutterBridge) {
+        window.FlutterBridge.postMessage('stopSpeech');
+        _resetSpVoiceState();
+        _spAutoRevise = true;
+        showToast('Regenerating plan…', 'success', 0);
+        clearTimeout(_spAutoReviseTimeout);
+        _spAutoReviseTimeout = setTimeout(() => {
+          if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
+        }, 8000);
+      } else _stopSpWebSpeech();
+    }
+    btn.addEventListener('pointerdown',   start, { passive: false });
+    btn.addEventListener('pointerup',     stop);
+    btn.addEventListener('pointercancel', stop);
+    document.addEventListener('touchend',    stop, { passive: true });
+    document.addEventListener('touchcancel', stop, { passive: true });
+  }
+
+  function _resetSpVoiceState() {
+    _spIsRecording = false;
+    $('spFbMicBtn')?.classList.remove('recording');
+    $('spFbVoiceWave')?.classList.remove('active');
+  }
+
+  function _startSpWebSpeech() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showToast('Speech not supported on this browser', 'error'); _resetSpVoiceState(); return; }
+    _spWebRecognition = new SR();
+    _spWebRecognition.lang = 'en-IE';
+    _spWebRecognition.continuous = true;
+    _spWebRecognition.interimResults = true;
+    let base = '';
+    _spWebRecognition.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) base += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
+      }
+      _spTranscript = base.trim();
+      const el = $('spFbTranscript');
+      if (el) el.textContent = (_spTranscript + (interim ? ' ' + interim : '')).trim() || _spTranscript;
+    };
+    _spWebRecognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetSpVoiceState(); };
+    _spWebRecognition.onend = () => { const was = _spIsRecording; _resetSpVoiceState(); if (was) regenerateWithFeedback(); };
+    try { _spWebRecognition.start(); } catch { _resetSpVoiceState(); }
+  }
+
+  function _stopSpWebSpeech() {
+    if (_spWebRecognition) { try { _spWebRecognition.stop(); } catch {} _spWebRecognition = null; }
+    _resetSpVoiceState();
+  }
+
+  // Wire up FlutterBridge speech callbacks
+  const _prevVoiceResult = window.onVoiceResult;
+  window.onVoiceResult = function(fieldId, text) {
+    if (fieldId === 'sp_feedback') {
+      _spTranscript += text + ' ';
+      _spTranscript = _spTranscript.trim();
+      const el = $('spFbTranscript');
+      if (el) el.textContent = _spTranscript;
+    } else if (_prevVoiceResult) { _prevVoiceResult(fieldId, text); }
+  };
+  const _prevSpeechDone = window.onSpeechDone;
+  window.onSpeechDone = function() {
+    clearTimeout(_spAutoReviseTimeout);
+    _resetSpVoiceState();
+    if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
+    else if (_prevSpeechDone) { _prevSpeechDone(); }
+  };
+  const _prevSpeechError = window.onSpeechError;
+  window.onSpeechError = function(msg) {
+    clearToast();
+    showToast(msg || 'Voice input failed', 'error');
+    _resetSpVoiceState();
+    if (_prevSpeechError) { _prevSpeechError(msg); }
+  };
 </script>
 </body>
 </html>
