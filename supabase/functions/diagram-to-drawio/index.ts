@@ -26,12 +26,29 @@ Each circle must be classified by reading its label. This classification is MAND
     fillColor=#1a1a1a (BLACK), strokeColor=#000000, width=46, height=46, value="C"
     *** A coach circle is ALWAYS black with white text. Never red or blue. ***
 
-  • Circle label is a NUMBER → PLAYER
-    Home team (or only team): fillColor=#C62828 (RED), strokeColor=#B71C1C, width=46, height=46
-    Away team:                 fillColor=#1565C0 (BLUE), strokeColor=#0D47A1, width=46, height=46
+  • Circle label is a NUMBER → PLAYER — determine HOME (red) or AWAY (blue) using STEP 1B below.
 
 Apply this in strict order: empty/dot → white football · "C" → black coach · number → red/blue player.
-Do not skip this step. Do not let position on the pitch or proximity to other shapes override it.
+Do not skip this step.
+
+STEP 1B — TEAM DETECTION (run this BEFORE assigning any player colours):
+Scan ALL numbered circles together and apply the FIRST matching rule:
+
+  RULE A — PAIRS THAT SUM TO 15 (matchplay opponents):
+    If two numbered circles are drawn side by side or very close together AND their numbers add up to 15
+    (valid pairs: 1&14, 2&13, 3&12, 4&11, 5&10, 6&9, 7&8), they are OPPONENTS.
+    Lower number → HOME (red). Higher number → AWAY (blue).
+    Apply this to every such pair found. Any number not in a summing pair → HOME (red).
+
+  RULE B — IDENTICAL NUMBER PAIRS (drill / rondo opponents):
+    If two circles share the same number and are drawn side by side, they are OPPONENTS.
+    Left or top circle → HOME (red). Right or bottom circle → AWAY (blue).
+
+  RULE C — GOALKEEPER ALONE (matchplay):
+    If there is a circle labelled "1" with no circle beside it, it is a goalkeeper → HOME (red).
+
+  RULE D — SINGLE TEAM (no pairing detected):
+    If none of the above rules apply, all numbered circles belong to one team → all HOME (red).
 
 STEP 2 — OUTPUT FORMAT:
 - Output ONLY raw XML — no markdown fences, no explanation, nothing before or after the XML
@@ -77,8 +94,13 @@ GAA GOALPOSTS (H shapes):
 PITCH LINES — MUST BE IDENTIFIED BEFORE MOVEMENT LINES:
 - A pitch line is a long straight line that spans the full width (or full length) of the playing area and separates zones. Examples: the end line, 13m line, 20m line, 45m line, halfway line, sidelines.
 - Pitch lines have NO arrowhead and NO dash. Output them as: edgeStyle=none;html=1;endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;
-- The D-shaped arc in front of the goal and the centre circle arc are also pitch markings — output them as curved edges with endArrow=none using the same style.
 - DO NOT mistake pitch lines for movement arrows. If a line spans the full width with no clear start/end player, it is a pitch line.
+
+PITCH ARCS (curved pitch markings — also endArrow=none, same style as pitch lines):
+- SMALL D-ARC: the small semicircle directly in front of the goal (~13m radius). Always present when a goalpost is shown.
+- CENTRE CIRCLE / MIDFIELD ARC: the arc at the centre of the pitch.
+- 2-POINTER ARC: a larger sweeping arc further out from the goal than the D-arc. This is a GAA-specific marking and may not always be present. If you see two concentric arcs in front of a goalpost — a smaller inner one (the D) and a larger outer one — the outer arc is the 2-pointer arc. Output both.
+All arcs: curved edges with endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;
 
 ARROWS / MOVEMENT LINES — SMART STRAIGHT vs CURVED:
 - Examine each line in the original image carefully before choosing a style:
