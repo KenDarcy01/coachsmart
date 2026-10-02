@@ -92,7 +92,8 @@ Rules:
 - When Drill mode is SEQUENTIAL: "station_setup" must be null; describe each drill for the full group performing it together
 - If the coach's feedback asks to include a game that is NOT in the provided games list, set "_refusal" to a short explanation and keep all other fields at sensible defaults (do not change the existing plan)
 - If the request is physically impossible (e.g., would require more time than the session allows), set "_refusal" to explain why
-- If the request is reasonable and achievable, always attempt it and leave "_refusal" as null`;
+- If the request is reasonable and achievable, always attempt it and leave "_refusal" as null
+- When an existing plan is provided under "EXISTING PLAN TO REVISE", treat it as the base — keep everything that the feedback does not ask to change, and modify only what is explicitly requested. Preserve game names, order and structure unless the feedback changes them`;
 
 // ── Weather text stripper (safety net for Gemini non-compliance) ──────────────
 function stripWeatherFromObjective(text: string): string {
@@ -278,7 +279,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, plan_id, plan_json, rotate_stations = true, player_count: bodyPlayerCount } = body;
+    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, existing_plan, plan_id, plan_json, rotate_stations = true, player_count: bodyPlayerCount } = body;
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id is required" }), {
@@ -610,7 +611,8 @@ serve(async (req) => {
       })(),
       weather ? `Weather forecast (for context only — do NOT include in plan text): ${weather.summary}` : null,
       eventDetails ? `Coach's session notes: ${eventDetails}` : null,
-      feedback?.trim() ? `\nCoach's feedback on the previous plan (please address this):\n${feedback.trim()}` : null,
+      feedback?.trim() ? `\nCoach's feedback — apply these changes to the plan:\n${feedback.trim()}` : null,
+      (feedback?.trim() && existing_plan) ? `\nEXISTING PLAN TO REVISE:\n${JSON.stringify(existing_plan, null, 2)}` : null,
       warmupGame ? `\nWarm-up game — allocate at least 10 minutes for the warm_up section:\n${buildGameText(warmupGame)}` : null,
       cooldownGame ? `\nCool-down game — allocate at least 5 minutes for the cool_down section:\n${buildGameText(cooldownGame)}` : null,
       drillGames.length > 0 ? `\nGames to use as drills (in this order):\n\n${gamesText}` : null,
