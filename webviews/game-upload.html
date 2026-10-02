@@ -640,6 +640,22 @@
   let _selectedType    = null;
   let _videoUrl        = null;
 
+  // ── Wake lock (keep screen on while AI is processing) ─────────────────────
+  let _wakeLock = null;
+  async function _acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try { _wakeLock = await navigator.wakeLock.request('screen');
+      _wakeLock.addEventListener('release', () => { _wakeLock = null; }); } catch (_) {}
+  }
+  function _releaseWakeLock() {
+    if (_wakeLock) { try { _wakeLock.release(); } catch (_) {} _wakeLock = null; }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && _wakeLock === null) {
+      if (document.getElementById('screenProcessing').classList.contains('active')) _acquireWakeLock();
+    }
+  });
+
   // ── Screen helpers ─────────────────────────────────────────────────────────
   let _processingTimer = null;
   let _processingStart = 0;
@@ -883,6 +899,7 @@
 
     showScreen('screenProcessing');
     setStatus('Creating your draft…', 'Reading your diagram…');
+    _acquireWakeLock();
 
     // Build image array for AI (use original image)
     const imageArray = [{ base64: sourceImg.base64, mimeType: sourceImg.mimeType }];
@@ -928,8 +945,10 @@
       if (aiResult.suggested_ages?.length)   _preselectChips('ageChips',   'age',   aiResult.suggested_ages);
       if (aiResult.suggested_sport)          _preselectChips('sportChips', 'sport', [aiResult.suggested_sport]);
       if (aiResult.suggested_skills?.length) _preselectChips('skillChips', 'skill', aiResult.suggested_skills);
+      _releaseWakeLock();
       showReview(aiResult, null);
     } catch (err) {
+      _releaseWakeLock();
       showScreen('screenCreate');
       showToast('Error: ' + (err.message || 'AI failed'), 'error');
     }
