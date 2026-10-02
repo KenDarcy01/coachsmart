@@ -585,13 +585,17 @@ serve(async (req) => {
       squad?.squad_name ? `Squad: ${squad.squad_name}${(squad as any).grade ? ` (${(squad as any).grade})` : ""}` : null,
       (() => {
         const code = (eventCodeStr || "").toLowerCase();
-        if (teamFemale || code.includes("camogie"))
+        // Code takes priority over teamFemale — Ladies Football is Football, not Camogie
+        if (code.includes("camogie"))
           return `Sport code: Camogie — always write "Camogie" not "Hurling", use "hurl" or "camán" for the stick, "sliotar" for the ball; never reference football or Gaelic football`;
         if (code.includes("hurling"))
           return `Sport code: Hurling — always write "hurling" not "football", use "hurl" for the stick, "sliotar" for the ball; never reference football or Gaelic football`;
-        if (code.includes("football") || code.includes("ladies"))
-          return `Sport code: Gaelic Football — always write "football" not "hurling", use football terminology throughout (hand-pass, kick-pass, scoring, football); never reference hurling, sliotar, or hurl`;
-        return eventCodeStr ? `Sport code: ${eventCodeStr}` : null;
+        if (code.includes("football") || code.includes("ladies") || code.includes("lgfa"))
+          return `Sport code: Gaelic Football — always write "football" not "hurling", use football terminology throughout (hand-pass, kick-pass, scoring); never reference hurling, sliotar, or hurl`;
+        // No code on event — fall back to team gender only as a last resort
+        if (teamFemale)
+          return `Sport code: Camogie — always write "Camogie" not "Hurling", use "hurl" or "camán" for the stick, "sliotar" for the ball`;
+        return null;
       })(),
       weather ? `Weather forecast (for context only — do NOT include in plan text): ${weather.summary}` : null,
       eventDetails ? `Coach's session notes: ${eventDetails}` : null,

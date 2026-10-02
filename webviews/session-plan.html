@@ -712,9 +712,28 @@
       if (el) el.classList.toggle('active', s === id);
     });
   }
-  function showLoading(msg) { $('loadingText').textContent = msg || 'Loading…'; showScreen('loadingScreen'); }
-  function showEmpty()      { showScreen('emptyScreen'); }
-  function showError(msg)   { $('errorText').textContent = msg; showScreen('errorScreen'); }
+  let _wakeLock = null;
+  async function _acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try { _wakeLock = await navigator.wakeLock.request('screen');
+      _wakeLock.addEventListener('release', () => { _wakeLock = null; }); } catch (_) {}
+  }
+  function _releaseWakeLock() {
+    if (_wakeLock) { try { _wakeLock.release(); } catch (_) {} _wakeLock = null; }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && _wakeLock === null) {
+      if ($('loadingScreen')?.classList.contains('active')) _acquireWakeLock();
+    }
+  });
+
+  function showLoading(msg) {
+    $('loadingText').textContent = msg || 'Loading…';
+    showScreen('loadingScreen');
+    if (msg && msg.toLowerCase().includes('generating')) _acquireWakeLock();
+  }
+  function showEmpty()    { _releaseWakeLock(); showScreen('emptyScreen'); }
+  function showError(msg) { _releaseWakeLock(); $('errorText').textContent = msg; showScreen('errorScreen'); }
 
   function hideRefusal() {
     const n = $('refusalNotice');
@@ -1266,6 +1285,7 @@
     out.push('<div class="drill-gap"></div>');
     $('planContent').innerHTML = out.join('');
     showScreen('planScreen');
+    _releaseWakeLock();
     requestAnimationFrame(_initSpMicButton);
   }
 
