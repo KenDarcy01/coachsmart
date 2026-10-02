@@ -50,8 +50,9 @@ Extract and structure the content into exactly these fields:
 - suggested_ages: JSON array of age groups this drill suits. Choose from: ["U6","U8","U10","U12","U14","U16","U18","Adult"].
 - suggested_sport: The most likely sport — exactly one of "Football", "Hurling", or "Camogie". Infer from context if not stated.
 - suggested_skills: JSON array of skills this drill develops. Choose from: ["Handpass","Kick Pass","Catching","Solo","Shooting","Tackling","Blocking","Fielding"].
+- suggested_type: The single best category for this activity — exactly one of "Game", "Drill", "Skill", "Warmup", "Video". Use "Game" for competitive small-sided games or tag games; "Drill" for repetitive technique practice with movement patterns; "Skill" for isolated individual technique work (e.g. kicking at a target, soloing relay); "Warmup" for low-intensity openers; "Video" only if the content is purely a video resource.
 
-Return ONLY a JSON object with exactly these eight fields. Use line breaks (\\n) between numbered steps and bullet points.
+Return ONLY a JSON object with exactly these nine fields. Use line breaks (\\n) between numbered steps and bullet points.
 If any field is not clearly covered, use your GAA coaching knowledge to generate sensible content.`;
 
 // ── Polish action: fix spelling/grammar/formatting only ──────────────────────
@@ -485,6 +486,7 @@ serve(async (req) => {
           suggested_ages:       Array.isArray(result.suggested_ages)   ? result.suggested_ages   : [],
           suggested_sport:      typeof result.suggested_sport === "string" ? result.suggested_sport : null,
           suggested_skills:     Array.isArray(result.suggested_skills) ? result.suggested_skills : [],
+          suggested_type:       typeof result.suggested_type  === "string" ? result.suggested_type  : null,
         },
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

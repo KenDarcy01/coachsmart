@@ -767,6 +767,7 @@
 
       _reviewImage = (stdResult?.base64 && !stdResult?._err) ? stdResult : sourceImg;
 
+      if (aiResult.suggested_type)           document.getElementById('rvType').value = aiResult.suggested_type;
       if (aiResult.suggested_ages?.length)   _preselectChips('ageChips',   'age',   aiResult.suggested_ages);
       if (aiResult.suggested_sport)          _preselectChips('sportChips', 'sport', [aiResult.suggested_sport]);
       if (aiResult.suggested_skills?.length) _preselectChips('skillChips', 'skill', aiResult.suggested_skills);
