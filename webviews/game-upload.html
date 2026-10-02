@@ -664,9 +664,8 @@
   }
 
   // ── Diagram standardisation ────────────────────────────────────────────────
-  // Converts any uploaded photo OR sketch PNG into the consistent mxGraph diagram style.
-  // Non-blocking: falls back to the original if conversion fails or times out.
   async function standardiseDiagram(img) {
+    let errMsg = 'unknown';
     try {
       const res = await fetch(DIAGRAM_FN_URL, {
         method: 'POST',
@@ -678,11 +677,17 @@
         body: JSON.stringify({ image_base64: img.base64, media_type: img.mimeType }),
       });
       const data = await res.json();
-      if (!res.ok || data.error || !data.xml) return null;
+      if (!res.ok || data.error || !data.xml) {
+        errMsg = `HTTP ${res.status}: ${data?.error || data?.detail || 'no xml returned'}`;
+        console.warn('[diagram-to-drawio] failed —', errMsg, data);
+        return { _err: errMsg };
+      }
       const png = await renderMxGraphToPng(data.xml);
       return { base64: png.base64, mimeType: 'image/png' };
-    } catch {
-      return null;
+    } catch(e) {
+      errMsg = e?.message || 'network error';
+      console.warn('[diagram-to-drawio] exception —', errMsg);
+      return { _err: errMsg };
     }
   }
 
@@ -703,12 +708,13 @@
     setStatus('Standardising your diagram…', 'Converting to a consistent look and size');
 
     // Standardise the primary image — always run this for uniform DB look/feel
-    const standardised = await Promise.race([
+    const stdResult = await Promise.race([
       standardiseDiagram(sourceImg),
-      new Promise(r => setTimeout(() => r(null), 20000)),
+      new Promise(r => setTimeout(() => r({ _err: 'timeout after 20s' }), 20000)),
     ]);
+    const standardised = stdResult?._err ? null : stdResult;
     _reviewImage = standardised || sourceImg;
-    if (!standardised) setStatus('Creating your draft…', 'Using original image — diagram standardisation timed out');
+    if (!standardised) setStatus('Creating your draft…', `Diagram standardisation failed: ${stdResult?._err}`);
 
     setStatus('Creating your draft…', 'AI is reading your diagram and description');
 
