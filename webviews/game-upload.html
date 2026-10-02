@@ -516,10 +516,27 @@
   let _videoUrl        = null;
 
   // ── Screen helpers ─────────────────────────────────────────────────────────
+  let _processingTimer = null;
+  let _processingStart = 0;
+
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     window.scrollTo(0, 0);
+    if (id === 'screenProcessing') {
+      _processingStart = Date.now();
+      clearInterval(_processingTimer);
+      _processingTimer = setInterval(() => {
+        const s = Math.floor((Date.now() - _processingStart) / 1000);
+        const mm = String(Math.floor(s / 60)).padStart(1, '0');
+        const ss = String(s % 60).padStart(2, '0');
+        const el = document.getElementById('processingEta');
+        if (el) el.textContent = s < 60 ? `${s}s elapsed — usually takes 30–60 seconds` : `${mm}:${ss} elapsed`;
+      }, 1000);
+    } else {
+      clearInterval(_processingTimer);
+      _processingTimer = null;
+    }
   }
   function goBack() {
     if (window.FlutterBridge) window.FlutterBridge.postMessage('close');
@@ -708,7 +725,7 @@
     }
 
     showScreen('screenProcessing');
-    setStatus('Creating your draft…', 'Reading your diagram…', 'Usually takes 30–60 seconds');
+    setStatus('Creating your draft…', 'Reading your diagram…');
 
     // Build image array for AI (use original image)
     const imageArray = [{ base64: sourceImg.base64, mimeType: sourceImg.mimeType }];
@@ -734,14 +751,14 @@
 
     const aiPromise = callEdgeFunction(payload).then(r => {
       aiResult = r;
-      setStatus('Creating your draft…', stdResult === null ? 'Standardising diagram…' : 'Almost done…', stdResult === null ? 'Usually takes 30–60 seconds' : '');
+      setStatus('Creating your draft…', stdResult === null ? 'Standardising diagram…' : 'Almost done…');
     }).catch(e => {
       aiErr = e;
     });
 
     const stdPromise = standardiseDiagram(sourceImg).then(r => {
       stdResult = r;
-      setStatus('Creating your draft…', aiResult === null ? 'Reading your diagram…' : 'Almost done…', aiResult === null ? 'Usually takes 30–60 seconds' : '');
+      setStatus('Creating your draft…', aiResult === null ? 'Reading your diagram…' : 'Almost done…');
     });
 
     try {
