@@ -1030,7 +1030,6 @@
     }
     const btn = document.getElementById('fbReviseBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Revising…'; }
-    else { showToast('Revising draft…', 'success', 0); }
     try {
       const result = await callEdgeFunction({
         action:               'revise_with_feedback',
@@ -1218,6 +1217,7 @@
         window.FlutterBridge.postMessage('stopSpeech');
         _resetFbVoiceState();
         _fbAutoRevise = true;
+        showToast('Revising draft…', 'success', 0);
         clearTimeout(_fbAutoReviseTimeout);
         _fbAutoReviseTimeout = setTimeout(() => {
           if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
