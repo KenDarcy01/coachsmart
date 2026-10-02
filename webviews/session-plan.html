@@ -1073,8 +1073,13 @@
     if (!isRevision && game_ids.length === 0) { showToast('Select at least one game'); return; }
 
     _rotateStations = $('rotateToggle')?.checked ?? true;
-    clearToast();
-    showLoading(isRevision ? 'Updating your session plan…' : 'Generating your session plan…');
+
+    if (isRevision) {
+      // Stay on plan screen — toast from stop() is already showing, no loading screen
+    } else {
+      clearToast();
+      showLoading('Generating your session plan…');
+    }
 
     try {
       const body = isRevision
@@ -1086,21 +1091,29 @@
       if (data.error === 'no_favourites') { showEmpty(); return; }
 
       if (data.refusal) {
-        // Gemini declined — keep current plan visible, show the reason
         showScreen('planScreen');
         const notice = $('refusalNotice');
         if (notice) { notice.textContent = data.refusal; notice.style.display = 'block'; }
+        clearToast();
         return;
       }
 
-      if (!res.ok || !data.plan) { showError(data.message || data.error || 'Generation failed. Please try again.'); return; }
+      if (!res.ok || !data.plan) {
+        if (isRevision) showToast(data.message || data.error || 'Update failed. Please try again.', 'error');
+        else showError(data.message || data.error || 'Generation failed. Please try again.');
+        return;
+      }
 
       _branding      = data.branding;
       _eventMeta     = data.event;
       _squadName     = data.squad_name;
       _currentPlanId = data.plan_id;
       renderPlan(data.plan, data.squad_name);
-    } catch { showError('Network error. Please try again.'); }
+      if (isRevision) { clearToast(); showToast('Plan updated ✓', 'success'); }
+    } catch {
+      if (isRevision) showToast('Update failed — please try again', 'error');
+      else showError('Network error. Please try again.');
+    }
   }
 
   let _isRegenerating = false;
@@ -1127,14 +1140,13 @@
       return;
     }
     const btn = $('regenFeedbackBtn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Revising…'; }
     try {
       await generatePlan(feedback);
     } finally {
       _isRegenerating = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Regenerate'; }
     }
-    clearToast();
-    if (btn) { btn.disabled = false; btn.textContent = 'Regenerate'; }
     _spTranscript = '';
     const transcriptEl = $('spFbTranscript');
     if (transcriptEl) transcriptEl.textContent = '';
