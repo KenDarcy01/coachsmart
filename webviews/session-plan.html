@@ -1498,6 +1498,7 @@
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
         _resetSpVoiceState();
+        showToast('Regenerating plan…', 'success', 0);
         _spAutoRevise = true;
         clearTimeout(_spAutoReviseTimeout);
         _spAutoReviseTimeout = setTimeout(() => {
