@@ -21,7 +21,6 @@
       --red:      #EF4444;
       --radius:   12px;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; -webkit-text-size-adjust: none; }
     body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text);
@@ -31,7 +30,6 @@
     button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
     textarea, input, select { font: inherit; color: inherit; }
 
-    /* ── SCREENS ── */
     .screen { display: none; width: 100%; min-height: 100vh; flex-direction: column; }
     .screen.active { display: flex; }
 
@@ -49,7 +47,6 @@
       display: flex; align-items: center; justify-content: center;
       width: 48px; height: 48px; border-radius: 8px;
       color: var(--green); flex-shrink: 0;
-      transition: background 0.1s;
     }
     .back-btn:active { background: var(--green-dim); }
     .back-btn svg { width: 34px; height: 34px; }
@@ -60,37 +57,26 @@
       padding: 20px 16px 120px;
       display: flex; flex-direction: column; gap: 24px;
     }
-
     .field-label {
       font-size: 12px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
     }
     .field-label .req { color: var(--red); margin-left: 2px; }
-    .field-label .opt {
-      color: var(--muted); font-weight: 400; text-transform: none;
-      letter-spacing: 0; font-size: 11px; margin-left: 4px;
-    }
-    .field-hint {
-      font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.5;
-    }
+    .field-label .opt { color: var(--muted); font-weight: 400; text-transform: none;
+      letter-spacing: 0; font-size: 11px; margin-left: 4px; }
 
-    .text-input {
-      width: 100%; background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 12px 14px;
-      color: var(--text); font-size: 15px; outline: none;
-      transition: border-color 0.15s;
+    /* ── MEDIA TABS (Photo / Sketch) ── */
+    .media-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .media-tab {
+      flex: 1; padding: 10px 0; border-radius: 10px; font-size: 14px; font-weight: 600;
+      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
+      transition: all 0.15s;
     }
-    .text-input:focus { border-color: var(--green); }
-    .text-input::placeholder { color: var(--muted); }
+    .media-tab.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .media-panel { display: none; }
+    .media-panel.active { display: block; }
 
-    select.text-input {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 12px center;
-      padding-right: 36px;
-    }
-
-    /* ── IMAGE UPLOAD ── */
+    /* ── PHOTO UPLOAD ── */
     .img-add-zone {
       width: 100%; min-height: 160px; border-radius: var(--radius);
       border: 2px dashed var(--border-d);
@@ -102,59 +88,61 @@
     .img-add-zone svg { width: 32px; height: 32px; opacity: 0.45; }
     .img-add-zone .zone-label { font-size: 15px; font-weight: 500; color: var(--text); }
     .img-add-zone .zone-sub   { font-size: 13px; }
-
-    /* Grid of uploaded images */
-    .images-grid { display: flex; flex-direction: column; gap: 10px; }
-
-    .img-primary {
-      position: relative; border-radius: var(--radius); overflow: hidden;
-      border: 1.5px solid var(--border);
-    }
-    .img-primary img {
-      display: block; width: 100%; max-height: 320px; object-fit: contain;
-      background: var(--card2);
-    }
-    .img-extras {
-      display: flex; gap: 8px; flex-wrap: wrap;
-    }
-    .img-thumb {
-      position: relative; width: 80px; height: 80px;
-      border-radius: 8px; overflow: hidden; border: 1.5px solid var(--border);
-      flex-shrink: 0;
-    }
+    .img-primary { position: relative; border-radius: var(--radius); overflow: hidden; border: 1.5px solid var(--border); }
+    .img-primary img { display: block; width: 100%; max-height: 320px; object-fit: contain; background: var(--card2); }
+    .img-extras { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .img-thumb { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--border); flex-shrink: 0; }
     .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .img-remove {
-      position: absolute; top: 4px; right: 4px;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: rgba(0,0,0,0.65); color: #fff;
-      font-size: 15px; line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .img-add-sm {
-      width: 80px; height: 80px; border-radius: 8px;
-      border: 1.5px dashed var(--border-d);
-      background: var(--card); color: var(--muted);
-      font-size: 28px; font-weight: 300;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
+    .img-remove { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(0,0,0,0.65); color: #fff; font-size: 15px; line-height: 1;
+      display: flex; align-items: center; justify-content: center; }
+    .img-add-sm { width: 80px; height: 80px; border-radius: 8px; border: 1.5px dashed var(--border-d);
+      background: var(--card); color: var(--muted); font-size: 28px; font-weight: 300;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .img-add-sm:active { border-color: var(--green); color: var(--green); }
+
+    /* ── SKETCHPAD ── */
+    .sketch-wrap { border-radius: var(--radius); overflow: hidden; border: 1.5px solid var(--border); }
+    #sketchCanvas { display: block; width: 100%; height: 480px; touch-action: none; cursor: crosshair; }
+    .sketch-toolbar {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+      background: var(--card2); padding: 8px 10px;
+      border-top: 1px solid var(--border);
+    }
+    .tool-btn {
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 7px 8px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
+      transition: all 0.15s; flex: 1; min-width: calc(25% - 6px);
+    }
+    .tool-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .tool-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .tool-btn-action { color: var(--muted); }
+    .tool-btn-action:active { opacity: 0.6; }
+    #sketchTextOverlay { position: fixed; z-index: 200; display: none; }
+    #sketchTextInput {
+      background: rgba(30,34,43,0.97); border: 1.5px solid var(--green);
+      border-radius: 8px; color: var(--text); font-size: 16px; font-weight: 600;
+      padding: 8px 12px; outline: none; min-width: 160px; max-width: 240px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
 
     /* ── CHIPS ── */
     .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
-    .chip {
-      padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
-      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
-      transition: all 0.15s;
-    }
-    .chip.selected {
-      background: var(--green-dim); border-color: var(--green); color: var(--green);
-    }
+    .chip { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+      background: var(--card); border: 1.5px solid var(--border); color: var(--muted); transition: all 0.15s; }
+    .chip.selected { background: var(--green-dim); border-color: var(--green); color: var(--green); }
 
-    /* ── VOICE ── */
-    .voice-instruction {
-      font-size: 14px; line-height: 1.6; color: var(--muted);
-    }
+    /* ── DESCRIPTION (Voice / Text mode) ── */
+    .mode-toggle { display: flex; border-radius: var(--radius); background: var(--card); border: 1.5px solid var(--border); overflow: hidden; margin-bottom: 14px; }
+    .mode-btn { flex: 1; padding: 11px 0; font-size: 14px; font-weight: 600; color: var(--muted);
+      display: flex; align-items: center; justify-content: center; gap: 7px; transition: all 0.18s; }
+    .mode-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .mode-btn.active { background: var(--green-dim); color: var(--green); }
+    .mode-btn:not(:last-child) { border-right: 1.5px solid var(--border); }
+    .mode-panel { display: flex; flex-direction: column; gap: 12px; }
+
+    .voice-instruction { font-size: 14px; line-height: 1.6; color: var(--muted); }
     .mic-btn {
       width: 100%; height: 68px; border-radius: 34px;
       background: var(--card); border: 2.5px solid var(--border);
@@ -173,30 +161,45 @@
       70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0);   }
       100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);   }
     }
-    .voice-wave {
-      display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px;
-      opacity: 0; transition: opacity 0.25s; pointer-events: none; margin-bottom: 4px;
-    }
+    .voice-wave { display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px;
+      opacity: 0; transition: opacity 0.25s; pointer-events: none; }
     .voice-wave.active { opacity: 1; }
-    .voice-wave span {
-      display: block; width: 4px; background: var(--green);
-      border-radius: 4px; min-height: 4px;
-      animation: wave-bar 1.1s ease-in-out infinite;
-    }
-    .voice-wave span:nth-child(1) { animation-delay: 0s;    }
-    .voice-wave span:nth-child(2) { animation-delay: 0.15s; }
-    .voice-wave span:nth-child(3) { animation-delay: 0.30s; }
-    .voice-wave span:nth-child(4) { animation-delay: 0.45s; }
-    .voice-wave span:nth-child(5) { animation-delay: 0.60s; }
-    @keyframes wave-bar { 0%, 100% { height: 4px; } 50% { height: 22px; } }
+    .voice-wave span { display: block; width: 4px; background: var(--green); border-radius: 4px; min-height: 4px;
+      animation: wave-bar 1.1s ease-in-out infinite; }
+    .voice-wave span:nth-child(1){animation-delay:0s}
+    .voice-wave span:nth-child(2){animation-delay:.15s}
+    .voice-wave span:nth-child(3){animation-delay:.30s}
+    .voice-wave span:nth-child(4){animation-delay:.45s}
+    .voice-wave span:nth-child(5){animation-delay:.60s}
+    @keyframes wave-bar { 0%,100%{height:4px}50%{height:22px} }
     .transcript-preview {
       min-height: 44px; padding: 10px 14px;
       background: var(--card); border: 1px solid var(--border);
       border-radius: var(--radius); font-size: 14px; line-height: 1.55;
       color: var(--text); word-break: break-word;
     }
-    .transcript-preview:empty::before {
-      content: "Your description will appear here…"; color: var(--muted);
+    .transcript-preview:empty::before { content: "Your description will appear here…"; color: var(--muted); }
+    .text-desc {
+      width: 100%; background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 14px;
+      color: var(--text); font-size: 15px; outline: none;
+      resize: none; min-height: 100px; line-height: 1.55;
+    }
+    .text-desc:focus { border-color: var(--green); }
+    .text-desc::placeholder { color: var(--muted); }
+
+    /* ── OTHER INPUTS ── */
+    .text-input {
+      width: 100%; background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 14px;
+      color: var(--text); font-size: 15px; outline: none; transition: border-color 0.15s;
+    }
+    .text-input:focus { border-color: var(--green); }
+    .text-input::placeholder { color: var(--muted); }
+    select.text-input {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
     }
 
     /* ── STICKY FOOTER ── */
@@ -225,77 +228,31 @@
     .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
     .dual-footer .btn-primary { flex: 1.6; }
 
-    /* ── PROCESSING SCREEN ── */
-    #screenProcessing {
-      align-items: center; justify-content: center;
-      gap: 24px; text-align: center; padding: 24px;
-    }
-    .spinner {
-      width: 56px; height: 56px;
-      border: 3px solid var(--border);
-      border-top-color: var(--green);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
+    /* ── PROCESSING ── */
+    #screenProcessing { align-items: center; justify-content: center; gap: 24px; text-align: center; padding: 24px; }
+    .spinner { width: 56px; height: 56px; border: 3px solid var(--border); border-top-color: var(--green);
+      border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .processing-title { font-size: 18px; font-weight: 600; }
     .processing-status { font-size: 14px; color: var(--muted); max-width: 260px; line-height: 1.5; }
 
-    /* ── DRAFT / REVIEW SCREEN ── */
-    .review-body {
-      flex: 1; overflow-y: auto;
-      padding: 16px 16px 140px;
-      display: flex; flex-direction: column; gap: 14px;
-    }
+    /* ── DRAFT SCREEN ── */
+    .review-body { flex: 1; overflow-y: auto; padding: 16px 16px 140px; display: flex; flex-direction: column; gap: 14px; }
+    .draft-image { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+    .draft-image img { display: block; width: 100%; max-height: 280px; object-fit: contain; background: var(--card2); }
 
-    /* Draft image card */
-    .draft-image {
-      border-radius: var(--radius); overflow: hidden;
-      border: 1px solid var(--border);
-    }
-    .draft-image img { display: block; width: 100%; max-height: 260px; object-fit: contain; background: var(--card2); }
-
-    /* Draft editable fields */
-    .draft-field {
-      border: 1.5px dashed var(--border-d);
-      border-radius: var(--radius);
-      background: var(--card);
-      overflow: hidden;
-      transition: border-color 0.18s;
-    }
-    .draft-field:focus-within {
-      border-color: var(--green);
-      border-style: solid;
-    }
-    .draft-field-label {
-      padding: 9px 14px 4px;
-      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--muted);
-    }
-    .draft-field textarea {
-      width: 100%; background: transparent; border: none;
-      padding: 4px 14px 12px; font-size: 15px; color: var(--text);
-      line-height: 1.55; outline: none; resize: none;
-      overflow: hidden; min-height: 48px;
-    }
-    .draft-field input {
-      width: 100%; background: transparent; border: none;
-      padding: 4px 14px 12px; font-size: 16px; font-weight: 600;
-      color: var(--text); outline: none;
-    }
-    .draft-field input::placeholder,
-    .draft-field textarea::placeholder { color: var(--muted); }
+    .draft-field { border: 1.5px dashed var(--border-d); border-radius: var(--radius); background: var(--card); overflow: hidden; transition: border-color 0.18s; }
+    .draft-field:focus-within { border-color: var(--green); border-style: solid; }
+    .draft-field-label { padding: 9px 14px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .draft-field textarea { width: 100%; background: transparent; border: none; padding: 4px 14px 12px; font-size: 15px; color: var(--text); line-height: 1.55; outline: none; resize: none; overflow: hidden; min-height: 48px; }
+    .draft-field input { width: 100%; background: transparent; border: none; padding: 4px 14px 12px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; }
+    .draft-field input::placeholder, .draft-field textarea::placeholder { color: var(--muted); }
 
     /* ── TOAST ── */
-    .toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: var(--card2); color: var(--text);
-      padding: 10px 20px; border-radius: 20px;
-      font-size: 14px; font-weight: 500;
-      opacity: 0; transition: all 0.25s; pointer-events: none;
-      white-space: nowrap; border: 1px solid var(--border);
-      z-index: 100;
-    }
+    .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--card2); color: var(--text); padding: 10px 20px; border-radius: 20px;
+      font-size: 14px; font-weight: 500; opacity: 0; transition: all 0.25s; pointer-events: none;
+      white-space: nowrap; border: 1px solid var(--border); z-index: 100; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.success { border-color: var(--green); color: var(--green); }
     .toast.error   { border-color: var(--red);   color: var(--red); }
@@ -314,26 +271,96 @@
 
   <div class="form-body">
 
-    <!-- Images — mandatory -->
+    <!-- ── Step 1: Image (Photo or Sketch) ── -->
     <div>
-      <div class="field-label">Photos / Diagrams <span class="req">*</span></div>
-      <p class="field-hint">Add photos of your drill — diagrams, sketches, handwritten notes</p>
-      <div id="imagesGrid"></div>
-      <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFilesSelected(this)"/>
+      <div class="field-label">Diagram / Sketch <span class="req">*</span></div>
+      <div class="media-tabs">
+        <button class="media-tab active" onclick="switchMediaTab('photo', this)">📷 Photo</button>
+        <button class="media-tab" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
+      </div>
+
+      <!-- Photo panel -->
+      <div id="panelPhoto" class="media-panel active">
+        <div id="imagesGrid"></div>
+        <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFilesSelected(this)"/>
+      </div>
+
+      <!-- Sketch panel -->
+      <div id="panelSketch" class="media-panel">
+        <div class="sketch-wrap">
+          <canvas id="sketchCanvas"></canvas>
+          <div class="sketch-toolbar">
+            <button id="toolDraw"   class="tool-btn active"   onclick="setSketchTool('draw',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg> Draw
+            </button>
+            <button id="toolPlayer" class="tool-btn" onclick="setSketchTool('player',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg> Player
+            </button>
+            <button id="toolCone"   class="tool-btn" onclick="setSketchTool('cone',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,3 22,21 2,21"/></svg> Cone
+            </button>
+            <button id="toolArrow"  class="tool-btn" onclick="setSketchTool('arrow',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/></svg> Arrow
+            </button>
+            <button id="toolLine"   class="tool-btn" onclick="setSketchTool('line',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/></svg> Line
+            </button>
+            <button id="toolArc"    class="tool-btn" onclick="setSketchTool('arc',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 Q12 4 19 19"/></svg> Arc
+            </button>
+            <button id="toolText"   class="tool-btn" onclick="setSketchTool('text',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg> Text
+            </button>
+            <button id="toolSelect" class="tool-btn" onclick="setSketchTool('select',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-7 1-4 7z"/></svg> Select
+            </button>
+            <button class="tool-btn tool-btn-action" onclick="undoSketch()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg> Undo
+            </button>
+            <button class="tool-btn tool-btn-action" onclick="clearSketch()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg> Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text overlay for sketch tool -->
+      <div id="sketchTextOverlay">
+        <input id="sketchTextInput" type="text" placeholder="Type label…"
+          onkeydown="if(event.key==='Enter'){_commitText();}else if(event.key==='Escape'){_cancelText();}"
+          onblur="_commitText()"/>
+      </div>
     </div>
 
-    <!-- Voice — optional -->
+    <!-- ── Step 2: Description (Voice or Text) ── -->
     <div>
-      <div class="field-label">Voice description <span class="opt">(optional)</span></div>
-      <p class="voice-instruction" style="margin-bottom:14px">Hold the button and describe the game or drill — setup, how to play, variations, coaching points.</p>
-      <div id="voiceWave" class="voice-wave" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span>
+      <div class="field-label">Description <span class="opt">(optional)</span></div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="modeVoice" onclick="setDescMode('voice')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          Voice
+        </button>
+        <button class="mode-btn" id="modeText" onclick="setDescMode('text')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Type
+        </button>
       </div>
-      <button id="micBtn" class="mic-btn" aria-label="Hold to record" style="margin-bottom:12px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-        <span id="micBtnLabel">Hold to Record</span>
-      </button>
-      <div id="voiceTranscript" class="transcript-preview"></div>
+
+      <!-- Voice panel -->
+      <div id="voicePanel" class="mode-panel">
+        <p class="voice-instruction">Hold to describe the drill — setup, how to play, variations, coaching points. AI will read any text already visible in your image.</p>
+        <div id="voiceWave" class="voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        <button id="micBtn" class="mic-btn" aria-label="Hold to record">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          <span id="micBtnLabel">Hold to Record</span>
+        </button>
+        <div id="voiceTranscript" class="transcript-preview"></div>
+      </div>
+
+      <!-- Text panel -->
+      <div id="textPanel" class="mode-panel" style="display:none">
+        <textarea id="inpDescription" class="text-desc" placeholder="Describe the drill — setup, how to play, variations, coaching points…" oninput="autoResize(this)"></textarea>
+      </div>
     </div>
 
     <!-- Type -->
@@ -350,7 +377,7 @@
     </div>
 
     <!-- Video Link -->
-    <div id="videoLinkRow">
+    <div>
       <div class="field-label">Video Link <span id="videoLinkReq" class="opt">(optional)</span></div>
       <input id="inpVideoUrl" class="text-input" type="url" placeholder="https://youtube.com/watch?v=…"/>
     </div>
@@ -409,8 +436,8 @@
 <!-- ── SCREEN 2: PROCESSING ───────────────────────────────────────────────── -->
 <div id="screenProcessing" class="screen">
   <div class="spinner"></div>
-  <div class="processing-title" id="processingTitle">Analysing your content…</div>
-  <div class="processing-status" id="processingStatus">Reading images and building your draft</div>
+  <div class="processing-title" id="processingTitle">Standardising your diagram…</div>
+  <div class="processing-status" id="processingStatus">Converting to a consistent style</div>
 </div>
 
 
@@ -424,58 +451,39 @@
   </div>
 
   <div class="review-body">
-
-    <!-- Primary diagram image -->
     <div class="draft-image" id="rvImageCard" style="display:none">
       <div id="rvImageInner"></div>
     </div>
-
-    <!-- Game Name -->
     <div class="draft-field">
       <div class="draft-field-label">Game Name</div>
       <input id="rvName" type="text" placeholder="Game name…"/>
     </div>
-
-    <!-- Setup -->
     <div class="draft-field">
       <div class="draft-field-label">Setup</div>
       <textarea id="rvSetup" placeholder="Setup instructions…" oninput="autoResize(this)"></textarea>
     </div>
-
-    <!-- How to Play -->
     <div class="draft-field">
       <div class="draft-field-label">How to Play</div>
       <textarea id="rvHowTo" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
     </div>
-
-    <!-- Variations -->
     <div class="draft-field">
       <div class="draft-field-label">Variations</div>
       <textarea id="rvVariations" placeholder="Progressions and variations…" oninput="autoResize(this)"></textarea>
     </div>
-
-    <!-- Teaching Points -->
     <div class="draft-field">
       <div class="draft-field-label">Teaching Points</div>
       <textarea id="rvTeaching" placeholder="Key coaching cues…" oninput="autoResize(this)"></textarea>
     </div>
-
   </div>
 
   <div class="sticky-footer">
     <div class="dual-footer">
       <button class="btn-secondary" id="improveBtn" onclick="improveWithAI()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-        </svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         Improve
       </button>
       <button class="btn-primary" onclick="saveGame()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-          <polyline points="17 21 17 13 7 13 7 21"/>
-          <polyline points="7 3 7 8 15 8"/>
-        </svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Save
       </button>
     </div>
@@ -488,18 +496,19 @@
   // ── Config ────────────────────────────────────────────────────────────────
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
-  const EDGE_FN_URL       = SUPABASE_URL + '/functions/v1/ai-process-game';
-  const DIAGRAM_FN_URL    = SUPABASE_URL + '/functions/v1/diagram-to-drawio';
-  const params            = new URLSearchParams(window.location.search);
-  const WV_TOKEN          = params.get('token')   || '';
-  const WV_CLUB_ID        = parseInt(params.get('club_id') || '0') || null;
+  const EDGE_FN_URL    = SUPABASE_URL + '/functions/v1/ai-process-game';
+  const DIAGRAM_FN_URL = SUPABASE_URL + '/functions/v1/diagram-to-drawio';
+  const params     = new URLSearchParams(window.location.search);
+  const WV_TOKEN   = params.get('token')   || '';
 
   // ── State ─────────────────────────────────────────────────────────────────
+  let _activeMediaTab  = 'photo';
   let _uploadedImages  = [];   // [{base64, mimeType, objectUrl}]
-  let _reviewImage     = null; // {base64, mimeType} — primary image for save
   let _voiceTranscript = '';
   let _baseVoiceText   = '';
   let _isVoiceRecording = false;
+  let _descMode        = 'voice';
+  let _reviewImage     = null; // {base64, mimeType} — standardised primary image
   let _selectedAges    = [];
   let _selectedSports  = [];
   let _selectedSkills  = [];
@@ -517,52 +526,75 @@
     else history.back();
   }
   function setStatus(title, sub) {
-    document.getElementById('processingTitle').textContent = title;
-    if (sub) document.getElementById('processingStatus').textContent = sub;
+    document.getElementById('processingTitle').textContent  = title;
+    document.getElementById('processingStatus').textContent = sub || '';
   }
 
   // ── Chip helpers ──────────────────────────────────────────────────────────
   function toggleChip(el) { el.classList.toggle('selected'); }
-  function getSelectedChips(containerId, dataKey) {
-    return [...document.querySelectorAll('#' + containerId + ' .chip.selected')].map(c => c.dataset[dataKey]);
+  function getSelectedChips(cid, key) {
+    return [...document.querySelectorAll('#' + cid + ' .chip.selected')].map(c => c.dataset[key]);
   }
   function getSelectedAges()   { return getSelectedChips('ageChips',   'age'); }
   function getSelectedSports() { return getSelectedChips('sportChips', 'sport'); }
   function getSelectedSkills() { return getSelectedChips('skillChips', 'skill'); }
-  function _preselectChips(containerId, dataKey, values) {
+  function _preselectChips(cid, key, values) {
     if (!values?.length) return;
     const lower = values.map(v => String(v).toLowerCase());
-    document.querySelectorAll('#' + containerId + ' .chip').forEach(chip => {
-      const val = (chip.dataset[dataKey] || '').toLowerCase();
-      if (val) chip.classList.toggle('selected', lower.includes(val));
+    document.querySelectorAll('#' + cid + ' .chip').forEach(c => {
+      const v = (c.dataset[key] || '').toLowerCase();
+      if (v) c.classList.toggle('selected', lower.includes(v));
     });
   }
 
-  // ── Type change ──────────────────────────────────────────────────────────
+  // ── Type / Video ──────────────────────────────────────────────────────────
   function onTypeChange() {
     const type = document.getElementById('inpType').value;
     const req  = document.getElementById('videoLinkReq');
-    if (type === 'Video') {
-      req.textContent = '*'; req.className = 'req';
-    } else {
-      req.textContent = '(optional)'; req.className = 'opt';
-    }
+    if (type === 'Video') { req.textContent = '*'; req.className = 'req'; }
+    else                  { req.textContent = '(optional)'; req.className = 'opt'; }
   }
 
-  // ── Image upload ──────────────────────────────────────────────────────────
+  // ── Description mode toggle ───────────────────────────────────────────────
+  function setDescMode(mode) {
+    _descMode = mode;
+    document.getElementById('voicePanel').style.display = mode === 'voice' ? '' : 'none';
+    document.getElementById('textPanel').style.display  = mode === 'text'  ? '' : 'none';
+    document.getElementById('modeVoice').classList.toggle('active', mode === 'voice');
+    document.getElementById('modeText').classList.toggle('active',  mode === 'text');
+    if (mode === 'text') requestAnimationFrame(() => autoResize(document.getElementById('inpDescription')));
+  }
+
+  // ── Media tab switch ──────────────────────────────────────────────────────
+  function switchMediaTab(tab, btn) {
+    _activeMediaTab = tab;
+    document.querySelectorAll('.media-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panelPhoto').classList.toggle('active',  tab === 'photo');
+    document.getElementById('panelSketch').classList.toggle('active', tab === 'sketch');
+    if (tab === 'sketch' && !_sketchCtx) requestAnimationFrame(initSketchCanvas);
+    _updateCreateBtn();
+  }
+
+  function _updateCreateBtn() {
+    const hasPhoto  = _activeMediaTab === 'photo'  && _uploadedImages.length > 0;
+    const hasSketch = _activeMediaTab === 'sketch' && _hasDrawn;
+    document.getElementById('createDraftBtn').disabled = !(hasPhoto || hasSketch);
+  }
+
+  // ── Photo upload ──────────────────────────────────────────────────────────
   function triggerImagePicker() { document.getElementById('fileInput').click(); }
 
   function handleFilesSelected(input) {
     const files = [...(input.files || [])];
     if (!files.length) return;
     const remaining = 4 - _uploadedImages.length;
-    const toProcess = files.slice(0, remaining);
-    let pending = toProcess.length;
-    toProcess.forEach(file => {
+    let pending = Math.min(files.length, remaining);
+    if (!pending) return;
+    files.slice(0, pending).forEach(file => {
       compressImage(file).then(({ base64, mimeType }) => {
         _uploadedImages.push({ base64, mimeType, objectUrl: URL.createObjectURL(file) });
-        pending--;
-        if (pending === 0) renderImageGrid();
+        if (--pending === 0) { renderImageGrid(); _updateCreateBtn(); }
       });
     });
     input.value = '';
@@ -572,6 +604,7 @@
     URL.revokeObjectURL(_uploadedImages[idx]?.objectUrl);
     _uploadedImages.splice(idx, 1);
     renderImageGrid();
+    _updateCreateBtn();
   }
 
   function renderImageGrid() {
@@ -585,7 +618,7 @@
             <path d="M21 15l-5-5L5 21"/>
           </svg>
           <span class="zone-label">Tap to add photo</span>
-          <span class="zone-sub">Diagrams, sketches, handwritten notes</span>
+          <span class="zone-sub">Diagrams, whiteboard, handwritten notes</span>
         </div>`;
     } else {
       let html = `<div class="img-primary">
@@ -595,10 +628,8 @@
       if (_uploadedImages.length > 1 || _uploadedImages.length < 4) {
         html += `<div class="img-extras">`;
         for (let i = 1; i < _uploadedImages.length; i++) {
-          html += `<div class="img-thumb">
-            <img src="${_uploadedImages[i].objectUrl}" alt="Image ${i+1}"/>
-            <button class="img-remove" onclick="removeImage(${i})">×</button>
-          </div>`;
+          html += `<div class="img-thumb"><img src="${_uploadedImages[i].objectUrl}" alt="Image ${i+1}"/>
+            <button class="img-remove" onclick="removeImage(${i})">×</button></div>`;
         }
         if (_uploadedImages.length < 4) {
           html += `<button class="img-add-sm" onclick="triggerImagePicker()">+</button>`;
@@ -607,7 +638,6 @@
       }
       grid.innerHTML = html;
     }
-    document.getElementById('createDraftBtn').disabled = _uploadedImages.length === 0;
   }
 
   function compressImage(file) {
@@ -635,8 +665,10 @@
     });
   }
 
-  // ── Diagram auto-standardise (non-blocking) ────────────────────────────────
-  async function tryStandardiseDiagram(img) {
+  // ── Diagram standardisation ────────────────────────────────────────────────
+  // Converts any uploaded photo OR sketch PNG into the consistent mxGraph diagram style.
+  // Non-blocking: falls back to the original if conversion fails or times out.
+  async function standardiseDiagram(img) {
     try {
       const res = await fetch(DIAGRAM_FN_URL, {
         method: 'POST',
@@ -658,9 +690,15 @@
 
   // ── Create Draft ──────────────────────────────────────────────────────────
   async function createDraft() {
-    if (_uploadedImages.length === 0) {
-      showToast('Add at least one photo to continue', 'error');
-      return;
+    // Gather the source image
+    let sourceImg = null;
+    if (_activeMediaTab === 'sketch') {
+      if (!_hasDrawn) { showToast('Draw something first', 'error'); return; }
+      const png = await getSketchPng();
+      sourceImg = { base64: png.base64, mimeType: 'image/png' };
+    } else {
+      if (!_uploadedImages.length) { showToast('Add at least one photo to continue', 'error'); return; }
+      sourceImg = { base64: _uploadedImages[0].base64, mimeType: _uploadedImages[0].mimeType };
     }
 
     _selectedAges   = getSelectedAges();
@@ -675,41 +713,40 @@
     }
 
     showScreen('screenProcessing');
-    setStatus('Standardising diagram…', 'Converting your image for a consistent look');
+    setStatus('Standardising your diagram…', 'Converting to a consistent look and size');
 
-    // Try diagram standardisation on the primary image (12 s timeout)
-    let primaryImg = { base64: _uploadedImages[0].base64, mimeType: _uploadedImages[0].mimeType };
-    try {
-      const standardised = await Promise.race([
-        tryStandardiseDiagram(primaryImg),
-        new Promise(r => setTimeout(() => r(null), 12000)),
-      ]);
-      if (standardised) primaryImg = standardised;
-    } catch { /* keep original */ }
-    _reviewImage = primaryImg;
+    // Standardise the primary image — always run this for uniform DB look/feel
+    const standardised = await Promise.race([
+      standardiseDiagram(sourceImg),
+      new Promise(r => setTimeout(() => r(null), 20000)),
+    ]);
+    _reviewImage = standardised || sourceImg; // fall back to original if it fails
 
-    setStatus('Creating your draft…', 'Reading images and generating content');
+    setStatus('Creating your draft…', 'AI is reading your diagram and description');
 
-    // Build image array: standardised primary + any additional originals
-    const imageArray = [
-      { base64: primaryImg.base64, mimeType: primaryImg.mimeType },
-      ..._uploadedImages.slice(1).map(i => ({ base64: i.base64, mimeType: i.mimeType })),
-    ];
+    // Build context: all uploaded images (for photo mode) plus standardised primary
+    const imageArray = [{ base64: _reviewImage.base64, mimeType: _reviewImage.mimeType }];
+    if (_activeMediaTab === 'photo' && _uploadedImages.length > 1) {
+      _uploadedImages.slice(1).forEach(i => imageArray.push({ base64: i.base64, mimeType: i.mimeType }));
+    }
+
+    // Gather description: voice transcript or typed text
+    const description = _descMode === 'text'
+      ? (document.getElementById('inpDescription').value.trim() || '')
+      : _voiceTranscript.trim();
 
     const payload = {
       action:           'split_voice',
-      voice_transcript: _voiceTranscript.trim() || '',
+      voice_transcript: description,
       game_code:        _selectedSports,
       images:           imageArray,
     };
 
     try {
       const result = await callEdgeFunction(payload);
-
       if (result.suggested_ages?.length)   _preselectChips('ageChips',   'age',   result.suggested_ages);
       if (result.suggested_sport)          _preselectChips('sportChips', 'sport', [result.suggested_sport]);
       if (result.suggested_skills?.length) _preselectChips('skillChips', 'skill', result.suggested_skills);
-
       showReview(result);
     } catch (err) {
       showScreen('screenCreate');
@@ -717,7 +754,7 @@
     }
   }
 
-  // ── Review screen ──────────────────────────────────────────────────────────
+  // ── Review / Draft screen ─────────────────────────────────────────────────
   function populateReviewFields(data) {
     document.getElementById('rvName').value       = data.game_name            || '';
     document.getElementById('rvSetup').value      = data.game_setup           || '';
@@ -725,7 +762,6 @@
     document.getElementById('rvVariations').value = data.game_variations      || '';
     document.getElementById('rvTeaching').value   = data.game_teaching_points || '';
   }
-
   function showReview(data) {
     populateReviewFields(data);
     const card  = document.getElementById('rvImageCard');
@@ -737,14 +773,13 @@
       card.style.display = 'none';
     }
     showScreen('screenReview');
-    requestAnimationFrame(autoResizeAll);
+    requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
   }
 
   // ── Improve with AI ────────────────────────────────────────────────────────
   async function improveWithAI() {
     const btn = document.getElementById('improveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Improving…';
+    btn.disabled = true; btn.textContent = 'Improving…';
     try {
       const result = await callEdgeFunction({
         action:               'rewrite',
@@ -756,7 +791,7 @@
         game_code:            _selectedSports,
       });
       populateReviewFields(result);
-      requestAnimationFrame(autoResizeAll);
+      requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
       showToast('Content improved', 'success');
     } catch (err) {
       showToast('Error: ' + (err.message || 'AI failed'), 'error');
@@ -770,21 +805,14 @@
   async function saveGame() {
     const name = document.getElementById('rvName').value.trim();
     if (!name) { showToast('Game name is required', 'error'); document.getElementById('rvName').focus(); return; }
-
     const saveBtn = document.querySelector('.btn-primary[onclick="saveGame()"]');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
-
     try {
       const res = await fetch(EDGE_FN_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
-          'apikey': SUPABASE_ANON_KEY,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
         body: JSON.stringify({
-          action:               'save_game',
-          game_name:            name,
+          action: 'save_game', game_name: name,
           game_age:             _selectedAges,
           game_code:            _selectedSports,
           game_skill:           _selectedSkills.length ? _selectedSkills : null,
@@ -793,18 +821,15 @@
           game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
           game_variations:      document.getElementById('rvVariations').value.trim(),
           game_teaching_points: document.getElementById('rvTeaching').value.trim(),
-          image_base64:         _reviewImage?.base64    || null,
-          image_mime_type:      _reviewImage?.mimeType  || null,
+          image_base64:         _reviewImage?.base64   || null,
+          image_mime_type:      _reviewImage?.mimeType || null,
           game_video:           _videoUrl,
         }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Save failed');
       showToast('Game saved!', 'success');
-      setTimeout(() => {
-        if (window.FlutterBridge) window.FlutterBridge.postMessage('complete');
-        else history.back();
-      }, 1200);
+      setTimeout(() => { if (window.FlutterBridge) window.FlutterBridge.postMessage('complete'); else history.back(); }, 1200);
     } catch (err) {
       showToast('Error saving: ' + (err.message || 'please try again'), 'error');
     } finally {
@@ -819,56 +844,37 @@
   async function callEdgeFunction(payload) {
     const res = await fetch(EDGE_FN_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
-        'apikey': SUPABASE_ANON_KEY,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
       body: JSON.stringify(payload),
     });
     const json = await res.json();
-    if (!res.ok || !json.success) {
-      const msg = json.error || 'AI processing failed';
-      const detail = json.detail ? ` (${json.detail})` : '';
-      throw new Error(msg + detail);
-    }
+    if (!res.ok || !json.success) throw new Error((json.error || 'AI processing failed') + (json.detail ? ` (${json.detail})` : ''));
     return json.data;
   }
 
-  // ── Voice: hold-to-record mic button ──────────────────────────────────────
+  // ── Voice recording ────────────────────────────────────────────────────────
   function _initMicButton() {
     const btn = document.getElementById('micBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
-
     function start(e) {
       e.preventDefault();
       if (_isVoiceRecording) return;
       try { btn.setPointerCapture(e.pointerId); } catch (_) {}
-      _isVoiceRecording = true;
-      _voiceTranscript  = '';
-      _baseVoiceText    = '';
+      _isVoiceRecording = true; _voiceTranscript = ''; _baseVoiceText = '';
       document.getElementById('voiceTranscript').textContent = '';
       btn.classList.add('recording');
       document.getElementById('micBtnLabel').textContent = 'Recording…';
       document.getElementById('voiceWave').classList.add('active');
-      if (window.FlutterBridge) {
-        window.FlutterBridge.postMessage('startSpeech:voice_input');
-      } else {
-        _startWebVoiceSpeech();
-      }
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
+      else _startWebVoiceSpeech();
     }
-
     function stop() {
       if (!_isVoiceRecording) return;
       document.getElementById('micBtnLabel').textContent = 'Hold to Record';
-      if (window.FlutterBridge) {
-        window.FlutterBridge.postMessage('stopSpeech');
-      } else {
-        _stopWebVoiceSpeech();
-      }
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
+      else _stopWebVoiceSpeech();
     }
-
     btn.addEventListener('pointerdown',   start, { passive: false });
     btn.addEventListener('pointerup',     stop);
     btn.addEventListener('pointercancel', stop);
@@ -877,7 +883,6 @@
   }
 
   let _voiceWebRecognition = null;
-
   function _startWebVoiceSpeech() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { showToast('Speech not supported on this browser', 'error'); _resetVoiceState(); return; }
@@ -888,29 +893,20 @@
     _voiceWebRecognition.onresult = (e) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          _baseVoiceText += e.results[i][0].transcript + ' ';
-        } else {
-          interim += e.results[i][0].transcript;
-        }
+        if (e.results[i].isFinal) _baseVoiceText += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
       }
       _voiceTranscript = _removeFillersAndClean(_baseVoiceText);
-      const display = (_voiceTranscript + (interim ? ' ' + interim : '')).trim();
-      document.getElementById('voiceTranscript').textContent = display || _voiceTranscript;
+      document.getElementById('voiceTranscript').textContent = (_voiceTranscript + (interim ? ' ' + interim : '')).trim() || _voiceTranscript;
     };
-    _voiceWebRecognition.onerror = (e) => {
-      if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error');
-      _resetVoiceState();
-    };
+    _voiceWebRecognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetVoiceState(); };
     _voiceWebRecognition.onend = () => { if (_isVoiceRecording) _resetVoiceState(); };
     try { _voiceWebRecognition.start(); } catch { _resetVoiceState(); }
   }
-
   function _stopWebVoiceSpeech() {
     if (_voiceWebRecognition) { try { _voiceWebRecognition.stop(); } catch {} _voiceWebRecognition = null; }
     _resetVoiceState();
   }
-
   function _resetVoiceState() {
     _isVoiceRecording = false;
     const btn = document.getElementById('micBtn');
@@ -919,97 +915,388 @@
     if (lbl) lbl.textContent = 'Hold to Record';
     document.getElementById('voiceWave').classList.remove('active');
   }
-
   const FILLERS = /\b(um+h?|uh+|eh+|ahh?|mm+|hmm+|err+|y'know|like)\b[\s,]*/gi;
-  function _removeFillersAndClean(text) {
-    return text.replace(FILLERS, ' ').replace(/\s{2,}/g, ' ').trim();
-  }
+  function _removeFillersAndClean(text) { return text.replace(FILLERS, ' ').replace(/\s{2,}/g, ' ').trim(); }
 
-  // Flutter native speech callbacks
   window.receiveSpeechResult = function(fieldId, text) {
     if (fieldId === 'voice_input') {
       _voiceTranscript += text + ' ';
-      const cleaned = _removeFillersAndClean(_voiceTranscript);
-      _voiceTranscript = cleaned;
-      document.getElementById('voiceTranscript').textContent = cleaned;
+      _voiceTranscript = _removeFillersAndClean(_voiceTranscript);
+      document.getElementById('voiceTranscript').textContent = _voiceTranscript;
     }
   };
-  window.onVoiceInterim = function(partialText) {
-    const combined = (_voiceTranscript ? _voiceTranscript + ' ' : '') + partialText;
-    document.getElementById('voiceTranscript').textContent = combined.trim();
+  window.onVoiceInterim = function(p) {
+    document.getElementById('voiceTranscript').textContent = ((_voiceTranscript ? _voiceTranscript + ' ' : '') + p).trim();
   };
-  window.onSpeechDone = function() {
-    _resetVoiceState();
-  };
-  window.onSpeechError = function(msg) {
-    showToast(msg || 'Voice input failed', 'error');
-    _resetVoiceState();
-  };
+  window.onSpeechDone  = () => _resetVoiceState();
+  window.onSpeechError = (msg) => { showToast(msg || 'Voice input failed', 'error'); _resetVoiceState(); };
 
-  // ── Auto-resize textareas ──────────────────────────────────────────────────
-  function autoResize(el) {
-    el.style.height = 'auto';
-    el.style.height = (el.scrollHeight + 4) + 'px';
-  }
-  function autoResizeAll() {
-    document.querySelectorAll('.review-body textarea').forEach(autoResize);
+  // ── Canvas sketchpad ───────────────────────────────────────────────────────
+  let _sketchTool      = 'draw';
+  let _isDrawing       = false;
+  let _isArrowDragging = false;
+  let _arrowStart      = null;
+  let _hasDrawn        = false;
+  let _undoStack       = [];
+  let _stampCounter    = 1;
+  let _sketchCtx       = null;
+  let _sketchCanvas    = null;
+  let _freehandCanvas  = null;
+  let _freehandCtx     = null;
+  let _elements        = [];
+  let _nextElId        = 1;
+  let _selectedId      = null;
+  let _isDraggingEl    = false;
+  let _dragStartPt     = null;
+  let _dragOrigEl      = null;
+  let _lastPt          = null;
+  let _textPos         = null;
+
+  function initSketchCanvas() {
+    _sketchCanvas = document.getElementById('sketchCanvas');
+    if (!_sketchCanvas || _sketchCtx) return;
+    const rect = _sketchCanvas.getBoundingClientRect();
+    if (!rect.width) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = Math.round(rect.width * dpr), H = Math.round(rect.height * dpr);
+    _sketchCanvas.width = W; _sketchCanvas.height = H;
+    _sketchCtx = _sketchCanvas.getContext('2d');
+    _sketchCtx.scale(dpr, dpr);
+    _freehandCanvas = document.createElement('canvas');
+    _freehandCanvas.width = W; _freehandCanvas.height = H;
+    _freehandCtx = _freehandCanvas.getContext('2d');
+    _freehandCtx.scale(dpr, dpr);
+    _renderCanvas();
+    _sketchCanvas.addEventListener('mousedown',   _sketchStart);
+    _sketchCanvas.addEventListener('mousemove',   _sketchMove);
+    _sketchCanvas.addEventListener('mouseup',     _sketchEnd);
+    _sketchCanvas.addEventListener('mouseleave',  _sketchEnd);
+    _sketchCanvas.addEventListener('touchstart',  _sketchStartT, { passive: false });
+    _sketchCanvas.addEventListener('touchmove',   _sketchMoveT,  { passive: false });
+    _sketchCanvas.addEventListener('touchend',    _sketchEnd);
+    _sketchCanvas.addEventListener('touchcancel', _sketchEnd);
   }
 
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast' + (type ? ' ' + type : '');
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2800);
+  function _renderCanvas() {
+    if (!_sketchCtx) return;
+    const ctx = _sketchCtx, r = _sketchCanvas.getBoundingClientRect();
+    ctx.fillStyle = '#1a2d1a'; ctx.fillRect(0, 0, r.width, r.height);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(0, r.height/2); ctx.lineTo(r.width, r.height/2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (_freehandCanvas) ctx.drawImage(_freehandCanvas, 0, 0, r.width, r.height);
+    _elements.forEach(el => _drawElement(el, el.id === _selectedId));
   }
 
-  // ── mxGraph XML → Canvas PNG renderer ─────────────────────────────────────
+  function _drawElement(el, sel) {
+    const ctx = _sketchCtx;
+    ctx.save();
+    if (el.type === 'player') {
+      ctx.beginPath(); ctx.arc(el.x, el.y, 14, 0, Math.PI*2);
+      ctx.fillStyle = 'white'; ctx.fill(); ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
+      ctx.fillStyle = '#111'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(el.label), el.x, el.y);
+    } else if (el.type === 'cone') {
+      const sz = 10;
+      ctx.beginPath(); ctx.moveTo(el.x, el.y-sz); ctx.lineTo(el.x+sz, el.y+sz); ctx.lineTo(el.x-sz, el.y+sz); ctx.closePath();
+      ctx.fillStyle = '#f07023'; ctx.fill(); ctx.strokeStyle = '#c05010'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
+    } else if (el.type === 'arrow') {
+      _drawArrow(el.x1, el.y1, el.x2, el.y2);
+    } else if (el.type === 'line') {
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+    } else if (el.type === 'arc') {
+      const cp = _arcCP(el.x1, el.y1, el.x2, el.y2);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.quadraticCurveTo(cp.x, cp.y, el.x2, el.y2); ctx.stroke();
+    } else if (el.type === 'text') {
+      ctx.fillStyle = '#fff'; ctx.font = `bold ${el.fs||16}px sans-serif`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(el.text, el.x, el.y);
+    }
+    if (sel) {
+      const bb = _elBBox(el);
+      ctx.strokeStyle = '#AAEE35'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
+      ctx.strokeRect(bb.x-6, bb.y-6, bb.w+12, bb.h+12); ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
+  function _elBBox(el) {
+    if (el.type === 'player') return { x: el.x-16, y: el.y-16, w: 32, h: 32 };
+    if (el.type === 'cone')   return { x: el.x-12, y: el.y-14, w: 24, h: 24 };
+    if (el.type === 'arrow' || el.type === 'line') {
+      const x0=Math.min(el.x1,el.x2), y0=Math.min(el.y1,el.y2);
+      return { x:x0, y:y0, w:Math.abs(el.x2-el.x1)||8, h:Math.abs(el.y2-el.y1)||8 };
+    }
+    if (el.type === 'arc') {
+      const cp=_arcCP(el.x1,el.y1,el.x2,el.y2);
+      const x0=Math.min(el.x1,el.x2,cp.x), y0=Math.min(el.y1,el.y2,cp.y);
+      return { x:x0, y:y0, w:Math.max(el.x1,el.x2,cp.x)-x0||8, h:Math.max(el.y1,el.y2,cp.y)-y0||8 };
+    }
+    if (el.type === 'text') {
+      _sketchCtx.font = `bold ${el.fs||16}px sans-serif`;
+      const m = _sketchCtx.measureText(el.text);
+      return { x: el.x, y: el.y, w: m.width, h: (el.fs||16)+4 };
+    }
+    return { x: el.x-10, y: el.y-10, w: 20, h: 20 };
+  }
+
+  function _hitTest(x, y) {
+    for (let i = _elements.length-1; i >= 0; i--) {
+      const el = _elements[i];
+      if (el.type === 'player' && Math.hypot(x-el.x, y-el.y) < 20) return el;
+      if (el.type === 'cone'   && Math.hypot(x-el.x, y-el.y) < 18) return el;
+      if (el.type === 'arrow'  && _distSeg(x,y,el.x1,el.y1,el.x2,el.y2) < 14) return el;
+      if (el.type === 'line'   && _distSeg(x,y,el.x1,el.y1,el.x2,el.y2) < 14) return el;
+      if (el.type === 'arc') { const cp=_arcCP(el.x1,el.y1,el.x2,el.y2); if (_distBezier(x,y,el.x1,el.y1,cp.x,cp.y,el.x2,el.y2)<14) return el; }
+      if (el.type === 'text') { const bb=_elBBox(el); if (x>=bb.x-4&&x<=bb.x+bb.w+4&&y>=bb.y-4&&y<=bb.y+bb.h+4) return el; }
+    }
+    return null;
+  }
+
+  function _distSeg(px,py,ax,ay,bx,by) {
+    const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy;
+    if (!l2) return Math.hypot(px-ax, py-ay);
+    const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/l2));
+    return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
+  }
+  function _arcCP(x1,y1,x2,y2) {
+    const mx=(x1+x2)/2, my=(y1+y2)/2, dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1;
+    return { x:mx-(dy/len)*len*0.35, y:my+(dx/len)*len*0.35 };
+  }
+  function _distBezier(px,py,x1,y1,cx,cy,x2,y2) {
+    let m=Infinity;
+    for (let t=0;t<=1;t+=0.05){const mt=1-t,bx=mt*mt*x1+2*mt*t*cx+t*t*x2,by=mt*mt*y1+2*mt*t*cy+t*t*y2;m=Math.min(m,Math.hypot(px-bx,py-by));}
+    return m;
+  }
+  function _canvasPos(e) { const r=_sketchCanvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  function _saveUndo() {
+    _undoStack.push({ freehand:_freehandCtx.getImageData(0,0,_freehandCanvas.width,_freehandCanvas.height), elements:JSON.parse(JSON.stringify(_elements)), counter:_stampCounter });
+    if (_undoStack.length > 30) _undoStack.shift();
+  }
+
+  function _sketchStart(e) {
+    const pt = _canvasPos(e); _lastPt = pt;
+    if (_sketchTool === 'select') {
+      const hit = _hitTest(pt.x, pt.y);
+      if (hit) {
+        if (_selectedId !== hit.id) { _saveUndo(); _selectedId = hit.id; _renderCanvas(); }
+        _isDraggingEl = true; _dragStartPt = pt; _dragOrigEl = JSON.parse(JSON.stringify(hit));
+      } else if (_selectedId !== null) { _selectedId = null; _renderCanvas(); }
+      return;
+    }
+    if (_sketchTool === 'text') { _showTextInput(pt); return; }
+    _saveUndo();
+    if (_sketchTool === 'draw') {
+      _isDrawing = true;
+      for (const ctx of [_sketchCtx, _freehandCtx]) {
+        ctx.beginPath(); ctx.moveTo(pt.x, pt.y);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.setLineDash([]);
+      }
+    } else if (_sketchTool === 'arrow' || _sketchTool === 'line' || _sketchTool === 'arc') {
+      _arrowStart = pt; _isArrowDragging = true;
+    } else if (_sketchTool === 'player') {
+      _elements.push({ id:_nextElId++, type:'player', x:pt.x, y:pt.y, label:_stampCounter++ });
+      _hasDrawn = true; _renderCanvas(); _updateCreateBtn();
+    } else if (_sketchTool === 'cone') {
+      _elements.push({ id:_nextElId++, type:'cone', x:pt.x, y:pt.y });
+      _hasDrawn = true; _renderCanvas(); _updateCreateBtn();
+    }
+  }
+
+  function _sketchMove(e) {
+    const pt = _canvasPos(e); _lastPt = pt;
+    if (_isDraggingEl && _dragStartPt && _dragOrigEl) {
+      const dx=pt.x-_dragStartPt.x, dy=pt.y-_dragStartPt.y;
+      const el=_elements.find(x=>x.id===_selectedId);
+      if (el) {
+        if (el.type==='arrow'||el.type==='line'||el.type==='arc') { el.x1=_dragOrigEl.x1+dx; el.y1=_dragOrigEl.y1+dy; el.x2=_dragOrigEl.x2+dx; el.y2=_dragOrigEl.y2+dy; }
+        else { el.x=_dragOrigEl.x+dx; el.y=_dragOrigEl.y+dy; }
+        _renderCanvas();
+      }
+      return;
+    }
+    if (_isDrawing) {
+      for (const ctx of [_sketchCtx, _freehandCtx]) { ctx.lineTo(pt.x, pt.y); ctx.stroke(); }
+      _hasDrawn = true;
+    } else if (_isArrowDragging && _arrowStart) {
+      _renderCanvas();
+      if (_sketchTool === 'arrow') { _drawArrow(_arrowStart.x, _arrowStart.y, pt.x, pt.y); }
+      else if (_sketchTool === 'line') {
+        _sketchCtx.strokeStyle='#fff'; _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
+        _sketchCtx.beginPath(); _sketchCtx.moveTo(_arrowStart.x,_arrowStart.y); _sketchCtx.lineTo(pt.x,pt.y); _sketchCtx.stroke();
+      } else {
+        const cp=_arcCP(_arrowStart.x,_arrowStart.y,pt.x,pt.y);
+        _sketchCtx.strokeStyle='#fff'; _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
+        _sketchCtx.beginPath(); _sketchCtx.moveTo(_arrowStart.x,_arrowStart.y); _sketchCtx.quadraticCurveTo(cp.x,cp.y,pt.x,pt.y); _sketchCtx.stroke();
+      }
+    }
+  }
+
+  function _sketchEnd() {
+    if (_isDraggingEl) { _isDraggingEl=false; _hasDrawn=true; _dragStartPt=null; _dragOrigEl=null; _updateCreateBtn(); return; }
+    if (_isDrawing) { _isDrawing=false; _hasDrawn=true; _renderCanvas(); _updateCreateBtn(); return; }
+    if (_isArrowDragging && _arrowStart) {
+      _isArrowDragging = false;
+      const end = _lastPt || _arrowStart;
+      if (Math.hypot(end.x-_arrowStart.x, end.y-_arrowStart.y) > 8) {
+        const type = (_sketchTool==='line'||_sketchTool==='arc') ? _sketchTool : 'arrow';
+        _elements.push({ id:_nextElId++, type, x1:_arrowStart.x, y1:_arrowStart.y, x2:end.x, y2:end.y });
+        _hasDrawn = true; _updateCreateBtn();
+      } else { _undoStack.pop(); }
+      _arrowStart = null; _renderCanvas();
+    }
+  }
+
+  function _drawArrow(x1, y1, x2, y2, ctx, color) {
+    ctx=ctx||_sketchCtx; color=color||'#AAEE35';
+    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+    if (len < 6) return;
+    const headLen=14, angle=Math.atan2(dy,dx), shaftX=x2-Math.cos(angle)*(headLen*0.55), shaftY=y2-Math.sin(angle)*(headLen*0.55);
+    ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(shaftX,shaftY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
+    ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
+    ctx.closePath(); ctx.fill();
+  }
+
+  function _sketchStartT(e) { e.preventDefault(); if (e.touches.length===1) _sketchStart(e.touches[0]); }
+  function _sketchMoveT(e)  { e.preventDefault(); if (e.touches.length===1) _sketchMove(e.touches[0]); }
+
+  function _showTextInput(pt) {
+    _textPos = pt;
+    const rect=_sketchCanvas.getBoundingClientRect(), ov=document.getElementById('sketchTextOverlay');
+    ov.style.left=(rect.left+pt.x)+'px'; ov.style.top=(rect.top+pt.y-28)+'px'; ov.style.display='block';
+    const inp=document.getElementById('sketchTextInput'); inp.value='';
+    setTimeout(() => inp.focus(), 40);
+  }
+  function _commitText() {
+    const inp=document.getElementById('sketchTextInput'), text=inp.value.trim();
+    document.getElementById('sketchTextOverlay').style.display='none'; inp.value='';
+    if (text && _textPos) {
+      _saveUndo(); _elements.push({ id:_nextElId++, type:'text', x:_textPos.x, y:_textPos.y, text, fs:16 });
+      _hasDrawn=true; _renderCanvas(); _updateCreateBtn();
+    }
+    _textPos=null;
+  }
+  function _cancelText() { document.getElementById('sketchTextOverlay').style.display='none'; document.getElementById('sketchTextInput').value=''; _textPos=null; }
+
+  function setSketchTool(tool, btn) {
+    _sketchTool=tool; _selectedId=null; _renderCanvas();
+    document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+  }
+  function undoSketch() {
+    if (!_undoStack.length) return;
+    const state=_undoStack.pop();
+    _freehandCtx.clearRect(0,0,_freehandCanvas.width,_freehandCanvas.height);
+    if (state.freehand) _freehandCtx.putImageData(state.freehand, 0, 0);
+    _elements=state.elements; _stampCounter=state.counter; _selectedId=null;
+    _hasDrawn=_undoStack.length>0||_elements.length>0; _renderCanvas(); _updateCreateBtn();
+  }
+  function clearSketch() {
+    _undoStack=[]; _stampCounter=1; _hasDrawn=false; _elements=[]; _nextElId=1; _selectedId=null;
+    if (_freehandCtx) _freehandCtx.clearRect(0,0,_freehandCanvas.width,_freehandCanvas.height);
+    _renderCanvas(); _updateCreateBtn();
+  }
+
+  // Export sketch to a 600×600 PNG (consistent with mxGraph output dimensions)
+  function getSketchPng() {
+    if (_textPos) _commitText();
+    _selectedId=null; _renderCanvas();
+    return new Promise((resolve) => {
+      const dpr=window.devicePixelRatio||1;
+      const srcW=Math.round(_sketchCanvas.width/dpr), srcH=Math.round(_sketchCanvas.height/dpr);
+      // Render at 600×600 for uniform DB image dimensions
+      const OUT=600;
+      const exp=document.createElement('canvas'); exp.width=OUT; exp.height=OUT;
+      const ctx=exp.getContext('2d');
+      ctx.fillStyle='#2e6e16'; ctx.fillRect(0,0,OUT,OUT);
+      ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1; ctx.setLineDash([8,6]);
+      ctx.beginPath(); ctx.moveTo(0,OUT/2); ctx.lineTo(OUT,OUT/2); ctx.stroke(); ctx.setLineDash([]);
+      if (_freehandCanvas) ctx.drawImage(_freehandCanvas,0,0,_freehandCanvas.width,_freehandCanvas.height,0,0,OUT,OUT);
+      const scaleX=OUT/srcW, scaleY=OUT/srcH;
+      _elements.forEach(el => {
+        ctx.save();
+        const scale=(scaleX+scaleY)/2;
+        if (el.type==='player') {
+          const sx=el.x*scaleX, sy=el.y*scaleY;
+          ctx.beginPath(); ctx.arc(sx,sy,14*scale,0,Math.PI*2);
+          ctx.fillStyle='white'; ctx.fill(); ctx.strokeStyle='#333'; ctx.lineWidth=1.5; ctx.setLineDash([]); ctx.stroke();
+          ctx.fillStyle='#111'; ctx.font=`bold ${Math.round(13*scale)}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText(String(el.label),sx,sy);
+        } else if (el.type==='cone') {
+          const sx=el.x*scaleX, sy=el.y*scaleY, sz=10*scale;
+          ctx.beginPath(); ctx.moveTo(sx,sy-sz); ctx.lineTo(sx+sz,sy+sz); ctx.lineTo(sx-sz,sy+sz); ctx.closePath();
+          ctx.fillStyle='#f07023'; ctx.fill(); ctx.strokeStyle='#c05010'; ctx.lineWidth=1; ctx.setLineDash([]); ctx.stroke();
+        } else if (el.type==='arrow') {
+          _drawArrow(el.x1*scaleX,el.y1*scaleY,el.x2*scaleX,el.y2*scaleY,ctx,'#AAEE35');
+        } else if (el.type==='line') {
+          ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=2.5*scale; ctx.lineCap='round'; ctx.setLineDash([]);
+          ctx.beginPath(); ctx.moveTo(el.x1*scaleX,el.y1*scaleY); ctx.lineTo(el.x2*scaleX,el.y2*scaleY); ctx.stroke();
+        } else if (el.type==='arc') {
+          const cp=_arcCP(el.x1,el.y1,el.x2,el.y2);
+          ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=2.5*scale; ctx.lineCap='round'; ctx.setLineDash([]);
+          ctx.beginPath(); ctx.moveTo(el.x1*scaleX,el.y1*scaleY); ctx.quadraticCurveTo(cp.x*scaleX,cp.y*scaleY,el.x2*scaleX,el.y2*scaleY); ctx.stroke();
+        } else if (el.type==='text') {
+          ctx.fillStyle='#fff'; ctx.font=`bold ${Math.round((el.fs||16)*scale)}px sans-serif`;
+          ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText(el.text,el.x*scaleX,el.y*scaleY);
+        }
+        ctx.restore();
+      });
+      exp.toBlob(blob => {
+        const reader=new FileReader();
+        reader.onload=e=>resolve({ base64:e.target.result.split(',')[1], mimeType:'image/png' });
+        reader.readAsDataURL(blob);
+      }, 'image/png');
+    });
+  }
+
+  // ── mxGraph XML → Canvas PNG renderer (600×600 output) ─────────────────────
   function renderMxGraphToPng(xmlString) {
     return new Promise((resolve, reject) => {
       try {
-        const parser = new DOMParser();
-        const doc    = parser.parseFromString(xmlString, 'application/xml');
-        const cells  = Array.from(doc.querySelectorAll('mxCell'));
-        let cW = 600, cH = 600;
+        const parser=new DOMParser(), doc=parser.parseFromString(xmlString,'application/xml');
+        const cells=Array.from(doc.querySelectorAll('mxCell'));
+        let cW=600, cH=600;
         for (const cell of cells) {
-          const style = cell.getAttribute('style') || '';
-          if (cell.getAttribute('vertex') === '1' && style.includes('fillColor=#2E7D32')) {
-            const geo = cell.querySelector('mxGeometry');
-            if (geo) { cW = parseFloat(geo.getAttribute('width')) || 600; cH = parseFloat(geo.getAttribute('height')) || 600; }
+          const style=cell.getAttribute('style')||'';
+          if (cell.getAttribute('vertex')==='1'&&style.includes('fillColor=#2E7D32')) {
+            const geo=cell.querySelector('mxGeometry');
+            if (geo){cW=parseFloat(geo.getAttribute('width'))||600;cH=parseFloat(geo.getAttribute('height'))||600;}
             break;
           }
         }
-        const scale  = window.devicePixelRatio || 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = cW * scale; canvas.height = cH * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.scale(scale, scale);
-        ctx.fillStyle = '#2E7D32'; ctx.fillRect(0, 0, cW, cH);
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
-        ctx.beginPath(); ctx.moveTo(0, cH / 2); ctx.lineTo(cW, cH / 2); ctx.stroke(); ctx.setLineDash([]);
-        for (const cell of cells) { if (cell.getAttribute('edge') === '1') _renderEdge(ctx, cell); }
+        // Always output at 600×600 for uniform image dimensions
+        const OUT=600, scale=window.devicePixelRatio||2;
+        const canvas=document.createElement('canvas');
+        canvas.width=OUT*scale; canvas.height=OUT*scale;
+        const ctx=canvas.getContext('2d');
+        ctx.scale(scale,scale);
+        ctx.fillStyle='#2E7D32'; ctx.fillRect(0,0,OUT,OUT);
+        ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1; ctx.setLineDash([8,6]);
+        ctx.beginPath(); ctx.moveTo(0,OUT/2); ctx.lineTo(OUT,OUT/2); ctx.stroke(); ctx.setLineDash([]);
+        const sx=OUT/cW, sy=OUT/cH;
+        for (const cell of cells) { if (cell.getAttribute('edge')==='1') _renderEdge(ctx, cell, sx, sy); }
         for (const cell of cells) {
-          if (cell.getAttribute('vertex') !== '1') continue;
-          const style = cell.getAttribute('style') || '';
-          const geo   = cell.querySelector('mxGeometry');
-          if (!geo || style.includes('fillColor=#2E7D32')) continue;
-          const x = parseFloat(geo.getAttribute('x') || '0'), y = parseFloat(geo.getAttribute('y') || '0');
-          const w = parseFloat(geo.getAttribute('width') || '0'), h = parseFloat(geo.getAttribute('height') || '0');
-          const val = cell.getAttribute('value') || '';
-          if (style.includes('gaa_goalpost')) {
-            _renderGoalpost(ctx, x, y, w, h);
-          } else if (style.includes('ellipse')) {
-            const cx = x+w/2, cy = y+h/2, rx = w/2, ry = h/2;
-            const isBlue = style.includes('1565C0') || style.includes('42A5F5') || style.includes('0D47A1');
-            ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 7;
-            const grad = ctx.createRadialGradient(cx-rx*0.25, cy-ry*0.25, rx*0.05, cx, cy, rx);
-            if (isBlue) { grad.addColorStop(0,'#42A5F5'); grad.addColorStop(1,'#1565C0'); }
-            else        { grad.addColorStop(0,'#EF5350'); grad.addColorStop(1,'#C62828'); }
-            ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
-            ctx.fillStyle = grad; ctx.fill(); ctx.shadowBlur = 0;
-            ctx.strokeStyle = isBlue ? '#0D47A1' : '#B71C1C'; ctx.lineWidth = 2; ctx.stroke();
-            if (val) { ctx.fillStyle='#fff'; ctx.font=`bold ${Math.max(10,Math.round(w*0.36))}px -apple-system,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(val,cx,cy); }
+          if (cell.getAttribute('vertex')!=='1') continue;
+          const style=cell.getAttribute('style')||'', geo=cell.querySelector('mxGeometry');
+          if (!geo||style.includes('fillColor=#2E7D32')) continue;
+          const x=parseFloat(geo.getAttribute('x')||'0')*sx, y=parseFloat(geo.getAttribute('y')||'0')*sy;
+          const w=parseFloat(geo.getAttribute('width')||'0')*sx, h=parseFloat(geo.getAttribute('height')||'0')*sy;
+          const val=cell.getAttribute('value')||'';
+          if (style.includes('gaa_goalpost')) { _renderGoalpost(ctx,x,y,w,h); }
+          else if (style.includes('ellipse')) {
+            const cx=x+w/2,cy=y+h/2,rx=w/2,ry=h/2;
+            const isBlue=style.includes('1565C0')||style.includes('42A5F5')||style.includes('0D47A1');
+            ctx.save(); ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=7;
+            const grad=ctx.createRadialGradient(cx-rx*0.25,cy-ry*0.25,rx*0.05,cx,cy,rx);
+            if(isBlue){grad.addColorStop(0,'#42A5F5');grad.addColorStop(1,'#1565C0');}
+            else{grad.addColorStop(0,'#EF5350');grad.addColorStop(1,'#C62828');}
+            ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
+            ctx.fillStyle=grad; ctx.fill(); ctx.shadowBlur=0;
+            ctx.strokeStyle=isBlue?'#0D47A1':'#B71C1C'; ctx.lineWidth=2; ctx.stroke();
+            if(val){ctx.fillStyle='#fff';ctx.font=`bold ${Math.max(10,Math.round(w*0.36))}px -apple-system,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(val,cx,cy);}
             ctx.restore();
           } else if (style.includes('triangle')) {
             ctx.save(); ctx.shadowColor='rgba(0,0,0,0.4)'; ctx.shadowBlur=5;
@@ -1017,52 +1304,53 @@
             ctx.beginPath(); ctx.moveTo(x+w/2,y); ctx.lineTo(x+w,y+h); ctx.lineTo(x,y+h); ctx.closePath();
             ctx.fillStyle=grad; ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#E65100'; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
           } else if (style.includes('text;')) {
-            const fontSize=parseInt(style.match(/fontSize=(\d+)/)?.[1]||'12');
-            ctx.save(); ctx.fillStyle='#ffffff'; ctx.font=`bold ${fontSize}px -apple-system,sans-serif`;
+            const fs=parseInt(style.match(/fontSize=(\d+)/)?.[1]||'12');
+            ctx.save(); ctx.fillStyle='#ffffff'; ctx.font=`bold ${fs}px -apple-system,sans-serif`;
             ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(val,x,y+h/2); ctx.restore();
           }
         }
-        canvas.toBlob(blob => {
-          const reader = new FileReader();
-          reader.onload = e => { const d=e.target.result; resolve({ dataUrl:d, base64:d.split(',')[1] }); };
-          reader.onerror = reject; reader.readAsDataURL(blob);
-        }, 'image/png');
-      } catch (err) { reject(err); }
+        canvas.toBlob(blob=>{
+          const reader=new FileReader();
+          reader.onload=e=>{const d=e.target.result;resolve({dataUrl:d,base64:d.split(',')[1]});};
+          reader.onerror=reject; reader.readAsDataURL(blob);
+        },'image/png');
+      } catch(err){reject(err);}
     });
   }
 
-  function _renderEdge(ctx, cell) {
-    const geo=cell.querySelector('mxGeometry'); if (!geo) return;
+  function _renderEdge(ctx, cell, sx, sy) {
+    sx=sx||1; sy=sy||1;
+    const geo=cell.querySelector('mxGeometry'); if(!geo) return;
     const srcPt=geo.querySelector('mxPoint[as="sourcePoint"]'), tgtPt=geo.querySelector('mxPoint[as="targetPoint"]');
-    if (!srcPt||!tgtPt) return;
-    const x1=parseFloat(srcPt.getAttribute('x')||'0'), y1=parseFloat(srcPt.getAttribute('y')||'0');
-    const x2=parseFloat(tgtPt.getAttribute('x')||'0'), y2=parseFloat(tgtPt.getAttribute('y')||'0');
+    if(!srcPt||!tgtPt) return;
+    const x1=parseFloat(srcPt.getAttribute('x')||'0')*sx, y1=parseFloat(srcPt.getAttribute('y')||'0')*sy;
+    const x2=parseFloat(tgtPt.getAttribute('x')||'0')*sx, y2=parseFloat(tgtPt.getAttribute('y')||'0')*sy;
     const style=cell.getAttribute('style')||'', isDashed=style.includes('dashed=1'), isCurved=style.includes('curved=1');
     const wptArr=geo.querySelector('Array[as="points"]');
-    const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0'),y:parseFloat(p.getAttribute('y')||'0')})):[];
+    const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0')*sx,y:parseFloat(p.getAttribute('y')||'0')*sy})):[];
     ctx.save(); ctx.strokeStyle='#ffffff'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed?[8,4]:[]);
     ctx.beginPath(); ctx.moveTo(x1,y1);
-    if (isCurved && waypoints.length>0) {
+    if (isCurved&&waypoints.length>0) {
       let pts=[{x:x1,y:y1},...waypoints,{x:x2,y:y2}];
-      for (let k=0;k<3;k++){const next=[pts[0]];for(let i=0;i<pts.length-1;i++){next.push({x:0.75*pts[i].x+0.25*pts[i+1].x,y:0.75*pts[i].y+0.25*pts[i+1].y});next.push({x:0.25*pts[i].x+0.75*pts[i+1].x,y:0.25*pts[i].y+0.75*pts[i+1].y});}next.push(pts[pts.length-1]);pts=next;}
+      for(let k=0;k<3;k++){const n=[pts[0]];for(let i=0;i<pts.length-1;i++){n.push({x:.75*pts[i].x+.25*pts[i+1].x,y:.75*pts[i].y+.25*pts[i+1].y});n.push({x:.25*pts[i].x+.75*pts[i+1].x,y:.25*pts[i].y+.75*pts[i+1].y});}n.push(pts[pts.length-1]);pts=n;}
       for(const p of pts)ctx.lineTo(p.x,p.y);
     } else { for(const wp of waypoints)ctx.lineTo(wp.x,wp.y); ctx.lineTo(x2,y2); }
     ctx.stroke(); ctx.setLineDash([]);
-    const fromX=waypoints.length>0?waypoints[waypoints.length-1].x:x1, fromY=waypoints.length>0?waypoints[waypoints.length-1].y:y1;
-    const angle=Math.atan2(y2-fromY,x2-fromX), hLen=13;
-    if (!isDashed){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.closePath();ctx.fill();}
+    const fx=waypoints.length>0?waypoints[waypoints.length-1].x:x1, fy=waypoints.length>0?waypoints[waypoints.length-1].y:y1;
+    const angle=Math.atan2(y2-fy,x2-fx), hLen=13;
+    if(!isDashed){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.closePath();ctx.fill();}
     else{ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.stroke();}
     ctx.restore();
   }
 
   function _renderGoalpost(ctx, x, y, w, h) {
-    const postThick=Math.max(3,Math.min(6,w*0.045)), cbY=y+h*0.55, goalH=y+h-cbY, sInset=w*0.10, sRise=goalH*0.38, backBarY=cbY-sRise;
+    const postThick=Math.max(3,Math.min(6,w*0.045)),cbY=y+h*0.55,goalH=y+h-cbY,sInset=w*.10,sRise=goalH*.38,backBarY=cbY-sRise;
     ctx.save(); ctx.fillStyle='rgba(0,0,0,0.20)'; ctx.fillRect(x,cbY,w,goalH);
     ctx.strokeStyle='rgba(255,255,255,0.28)'; ctx.lineWidth=0.8; ctx.setLineDash([]);
-    const cols=Math.max(4,Math.round(w/14)), rows=Math.max(3,Math.round(goalH/12));
-    for(let i=1;i<cols;i++){const nx=x+(w/cols)*i; ctx.beginPath();ctx.moveTo(nx,cbY);ctx.lineTo(nx,y+h);ctx.stroke();}
-    for(let i=1;i<rows;i++){const ny=cbY+(goalH/rows)*i; ctx.beginPath();ctx.moveTo(x,ny);ctx.lineTo(x+w,ny);ctx.stroke();}
-    ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=Math.max(1.5,postThick*0.55); ctx.lineCap='round';
+    const cols=Math.max(4,Math.round(w/14)),rows=Math.max(3,Math.round(goalH/12));
+    for(let i=1;i<cols;i++){const nx=x+(w/cols)*i;ctx.beginPath();ctx.moveTo(nx,cbY);ctx.lineTo(nx,y+h);ctx.stroke();}
+    for(let i=1;i<rows;i++){const ny=cbY+(goalH/rows)*i;ctx.beginPath();ctx.moveTo(x,ny);ctx.lineTo(x+w,ny);ctx.stroke();}
+    ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=Math.max(1.5,postThick*.55); ctx.lineCap='round';
     ctx.beginPath();ctx.moveTo(x,cbY);ctx.lineTo(x+sInset,backBarY);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x+w,cbY);ctx.lineTo(x+w-sInset,backBarY);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x+sInset,backBarY);ctx.lineTo(x+w-sInset,backBarY);ctx.stroke();
@@ -1071,9 +1359,17 @@
     ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+h);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x+w,y);ctx.lineTo(x+w,y+h);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x,cbY);ctx.lineTo(x+w,cbY);ctx.stroke();
-    ctx.shadowBlur=0; ctx.lineWidth=postThick*0.7;
+    ctx.shadowBlur=0; ctx.lineWidth=postThick*.7;
     ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x+w,y+h);ctx.stroke();
     ctx.restore();
+  }
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+  function autoResize(el) { el.style.height='auto'; el.style.height=(el.scrollHeight+4)+'px'; }
+  function showToast(msg, type='') {
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.className='toast'+(type?' '+type:''); t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2800);
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
