@@ -274,10 +274,16 @@
     .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
       background: var(--card2); color: var(--text); padding: 10px 20px; border-radius: 20px;
       font-size: 14px; font-weight: 500; opacity: 0; transition: all 0.25s; pointer-events: none;
-      white-space: nowrap; border: 1px solid var(--border); z-index: 100; }
+      white-space: nowrap; border: 1px solid var(--border); z-index: 100;
+      display: flex; align-items: center; gap: 8px; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.success { border-color: var(--green); color: var(--green); }
     .toast.error   { border-color: var(--red);   color: var(--red); }
+    .toast-spinner { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid rgba(135,194,50,0.3); border-top-color: var(--green);
+      animation: toastSpin 0.7s linear infinite; display: none; }
+    .toast.spinning .toast-spinner { display: block; }
+    @keyframes toastSpin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -615,7 +621,7 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast"><span class="toast-spinner" id="toastSpinner"></span><span id="toastMsg"></span></div>
 
 <script>
   // ── Config ────────────────────────────────────────────────────────────────
@@ -1745,12 +1751,16 @@
   function showToast(msg, type='', duration=2800) {
     const t = document.getElementById('toast');
     clearTimeout(_toastTimer);
-    t.textContent = msg; t.className = 'toast' + (type ? ' ' + type : ''); t.classList.add('show');
-    if (duration > 0) _toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+    document.getElementById('toastMsg').textContent = msg;
+    const sticky = duration === 0;
+    t.className = 'toast' + (type ? ' ' + type : '') + (sticky ? ' spinning' : '');
+    t.classList.add('show');
+    if (!sticky) _toastTimer = setTimeout(() => t.classList.remove('show'), duration);
   }
   function clearToast() {
     clearTimeout(_toastTimer);
-    document.getElementById('toast').classList.remove('show');
+    const t = document.getElementById('toast');
+    t.classList.remove('show', 'spinning');
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
