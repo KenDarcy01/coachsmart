@@ -1071,6 +1071,7 @@
     if (game_ids.length === 0) { showToast('Select at least one game'); return; }
 
     _rotateStations = $('rotateToggle')?.checked ?? true;
+    clearToast();
     showLoading('Generating your session plan…');
 
     try {
