@@ -705,20 +705,9 @@
     }
 
     showScreen('screenProcessing');
-    setStatus('Creating your draft…', 'AI is reading your diagram and description');
+    setStatus('Creating your draft…', 'Reading your diagram…');
 
-    // Fire standardisation in the background — don't block the AI field extraction.
-    // When it finishes it will update the image on the draft screen in place.
-    _reviewImage = sourceImg;
-    standardiseDiagram(sourceImg).then(stdResult => {
-      if (!stdResult?._err && stdResult?.base64) {
-        _reviewImage = stdResult;
-        const img = document.querySelector('#rvImageInner img');
-        if (img) img.src = `data:${stdResult.mimeType};base64,${stdResult.base64}`;
-      }
-    });
-
-    // Build image array for AI (use original image — Gemini reads it fine)
+    // Build image array for AI (use original image)
     const imageArray = [{ base64: sourceImg.base64, mimeType: sourceImg.mimeType }];
     if (_activeMediaTab === 'photo' && _uploadedImages.length > 1) {
       _uploadedImages.slice(1).forEach(i => imageArray.push({ base64: i.base64, mimeType: i.mimeType }));
@@ -736,12 +725,32 @@
       images:           imageArray,
     };
 
+    // Run AI field extraction and diagram standardisation in parallel.
+    // Update status as each finishes. Draft opens only when both are done.
+    let aiResult = null, stdResult = null, aiErr = null;
+
+    const aiPromise = callEdgeFunction(payload).then(r => {
+      aiResult = r;
+      setStatus('Creating your draft…', stdResult === null ? 'Standardising diagram…' : 'Almost done…');
+    }).catch(e => {
+      aiErr = e;
+    });
+
+    const stdPromise = standardiseDiagram(sourceImg).then(r => {
+      stdResult = r;
+      setStatus('Creating your draft…', aiResult === null ? 'Reading your diagram…' : 'Almost done…');
+    });
+
     try {
-      const result = await callEdgeFunction(payload);
-      if (result.suggested_ages?.length)   _preselectChips('ageChips',   'age',   result.suggested_ages);
-      if (result.suggested_sport)          _preselectChips('sportChips', 'sport', [result.suggested_sport]);
-      if (result.suggested_skills?.length) _preselectChips('skillChips', 'skill', result.suggested_skills);
-      showReview(result, null);
+      await Promise.all([aiPromise, stdPromise]);
+      if (aiErr) throw aiErr;
+
+      _reviewImage = (stdResult?.base64 && !stdResult?._err) ? stdResult : sourceImg;
+
+      if (aiResult.suggested_ages?.length)   _preselectChips('ageChips',   'age',   aiResult.suggested_ages);
+      if (aiResult.suggested_sport)          _preselectChips('sportChips', 'sport', [aiResult.suggested_sport]);
+      if (aiResult.suggested_skills?.length) _preselectChips('skillChips', 'skill', aiResult.suggested_skills);
+      showReview(aiResult, null);
     } catch (err) {
       showScreen('screenCreate');
       showToast('Error: ' + (err.message || 'AI failed'), 'error');
