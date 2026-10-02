@@ -711,10 +711,19 @@
     // When it finishes it will update the image on the draft screen in place.
     _reviewImage = sourceImg;
     standardiseDiagram(sourceImg).then(stdResult => {
-      if (!stdResult?._err && stdResult?.base64) {
+      if (stdResult?._err) {
+        showToast('STD failed: ' + stdResult._err, 'error');
+      } else if (!stdResult?.base64) {
+        showToast('STD: no base64 in result', 'error');
+      } else {
+        showToast('STD ok — updating image', 'success');
         _reviewImage = stdResult;
         const img = document.querySelector('#rvImageInner img');
-        if (img) img.src = `data:${stdResult.mimeType};base64,${stdResult.base64}`;
+        if (img) {
+          img.src = `data:${stdResult.mimeType};base64,${stdResult.base64}`;
+        } else {
+          showToast('STD: img element not found', 'error');
+        }
       }
     });
 
