@@ -505,7 +505,7 @@ serve(async (req) => {
     // Fetch all favourite games
     const { data: allFavLinks } = await sb
       .from("user_game_link")
-      .select(`position, games!inner(game_id, game_name, game_image, game_code, game_setup, game_how_to_play, game_variations, game_teaching_points)`)
+      .select(`position, games!inner(game_id, game_name, game_image, game_code, game_type, game_setup, game_how_to_play, game_variations, game_teaching_points)`)
       .eq("user_id", user_id)
       .order("position");
 
@@ -562,8 +562,16 @@ serve(async (req) => {
       ? await fetchWeather(eventLocationPin, eventLocationName, eventDateTime, (clubData as any).county ?? null, eventTypeStr)
       : null;
 
-    // Build Gemini prompt
-    const gamesText = favLinks.map((f: any) => {
+    // Separate warmup/cooldown games from drill games
+    const warmupGame = favLinks.find((f: any) =>
+      ((f.games?.game_type || []) as string[]).some((t: string) => /^warmup$/i.test(t))
+    );
+    const cooldownGame = favLinks.find((f: any) =>
+      ((f.games?.game_type || []) as string[]).some((t: string) => /^(cooldown|cool.?down)$/i.test(t))
+    );
+    const drillGames = favLinks.filter((f: any) => f !== warmupGame && f !== cooldownGame);
+
+    function buildGameText(f: any): string {
       const g = f.games, note = notesByGame[g.game_id];
       return [
         `Game: ${g.game_name}`,
@@ -573,8 +581,11 @@ serve(async (req) => {
         g.game_teaching_points?.trim() ? `Teaching points: ${g.game_teaching_points.trim()}` : null,
         note?.trim()                   ? `Coach's personal notes: ${note.trim()}` : null,
       ].filter(Boolean).join("\n");
-    }).join("\n\n---\n\n");
+    }
 
+    const gamesText = drillGames.map(buildGameText).join("\n\n---\n\n");
+
+    // Build Gemini prompt
     const context = [
       `Session duration: ${duration_mins} minutes`,
       `Players: ${playerCount}`,
@@ -585,14 +596,14 @@ serve(async (req) => {
       squad?.squad_name ? `Squad: ${squad.squad_name}${(squad as any).grade ? ` (${(squad as any).grade})` : ""}` : null,
       (() => {
         const code = (eventCodeStr || "").toLowerCase();
-        // Code takes priority over teamFemale — Ladies Football is Football, not Camogie
-        if (code.includes("camogie"))
+        // Female + hurling = camogie; female + football = ladies football (still football)
+        if (code.includes("camogie") || (teamFemale && code.includes("hurling")))
           return `Sport code: Camogie — always write "Camogie" not "Hurling", use "hurl" or "camán" for the stick, "sliotar" for the ball; never reference football or Gaelic football`;
         if (code.includes("hurling"))
           return `Sport code: Hurling — always write "hurling" not "football", use "hurl" for the stick, "sliotar" for the ball; never reference football or Gaelic football`;
         if (code.includes("football") || code.includes("ladies") || code.includes("lgfa"))
           return `Sport code: Gaelic Football — always write "football" not "hurling", use football terminology throughout (hand-pass, kick-pass, scoring); never reference hurling, sliotar, or hurl`;
-        // No code on event — fall back to team gender only as a last resort
+        // No code — fall back to gender as last resort
         if (teamFemale)
           return `Sport code: Camogie — always write "Camogie" not "Hurling", use "hurl" or "camán" for the stick, "sliotar" for the ball`;
         return null;
@@ -600,7 +611,9 @@ serve(async (req) => {
       weather ? `Weather forecast (for context only — do NOT include in plan text): ${weather.summary}` : null,
       eventDetails ? `Coach's session notes: ${eventDetails}` : null,
       feedback?.trim() ? `\nCoach's feedback on the previous plan (please address this):\n${feedback.trim()}` : null,
-      `\nGames to use (in this order):\n\n${gamesText}`,
+      warmupGame ? `\nWarm-up game — allocate at least 10 minutes for the warm_up section:\n${buildGameText(warmupGame)}` : null,
+      cooldownGame ? `\nCool-down game — allocate at least 5 minutes for the cool_down section:\n${buildGameText(cooldownGame)}` : null,
+      drillGames.length > 0 ? `\nGames to use as drills (in this order):\n\n${gamesText}` : null,
     ].filter(Boolean).join("\n");
 
     console.log("Generating — players:", playerCount, "coaches:", coachCount, "games:", favLinks.length, "duration:", duration_mins);
@@ -628,15 +641,49 @@ serve(async (req) => {
       planJson.session_objective = stripWeatherFromObjective(planJson.session_objective);
     }
 
-    // Enrich drills with game images; strip unwanted fields
-    const imageByName: Record<string, string | null> = {};
+    // Build lookup of DB game data by name
+    const gameByName: Record<string, any> = {};
     for (const f of favLinks) {
       const g = (f as any).games;
-      if (g?.game_name) imageByName[g.game_name] = g.game_image || null;
+      if (g?.game_name) gameByName[g.game_name] = g;
     }
+
+    function parseCoachingPoints(text: string): string[] {
+      return text.split(/\n|(?:^|\s)[•·–\-]\s/)
+        .map((s: string) => s.replace(/^[•·–\-]\s*/, '').trim())
+        .filter((s: string) => s.length > 2);
+    }
+
+    // Override drill content with exact DB text; add images; strip AI fields
     for (const drill of (planJson.drills || [])) {
-      drill.game_image = imageByName[drill.game_name] ?? null;
+      const g = gameByName[drill.game_name];
+      drill.game_image = g?.game_image ?? null;
+      if (g) {
+        if (g.game_how_to_play?.trim()) drill.description = g.game_how_to_play.trim();
+        if (g.game_teaching_points?.trim()) drill.coaching_points = parseCoachingPoints(g.game_teaching_points);
+        drill.variation = g.game_variations?.trim() || null;
+      }
       delete drill.player_count_note;
+    }
+
+    // Override warm-up with exact DB text when a warmup game was selected
+    if (warmupGame && planJson.warm_up) {
+      const g = warmupGame.games;
+      planJson.warm_up.game_name  = g.game_name;
+      planJson.warm_up.game_image = g.game_image || null;
+      if (g.game_how_to_play?.trim()) planJson.warm_up.description = g.game_how_to_play.trim();
+      else if (g.game_setup?.trim())  planJson.warm_up.description = g.game_setup.trim();
+      if (g.game_teaching_points?.trim()) planJson.warm_up.coaching_points = parseCoachingPoints(g.game_teaching_points);
+    }
+
+    // Override cool-down with exact DB text when a cooldown game was selected
+    if (cooldownGame && planJson.cool_down) {
+      const g = cooldownGame.games;
+      planJson.cool_down.game_name  = g.game_name;
+      planJson.cool_down.game_image = g.game_image || null;
+      if (g.game_how_to_play?.trim()) planJson.cool_down.description = g.game_how_to_play.trim();
+      else if (g.game_setup?.trim())  planJson.cool_down.description = g.game_setup.trim();
+      if (g.game_teaching_points?.trim()) planJson.cool_down.coaching_points = parseCoachingPoints(g.game_teaching_points);
     }
 
     planJson.player_count = playerCount;
