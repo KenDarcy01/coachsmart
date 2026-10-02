@@ -37,6 +37,19 @@ async function callGemini(apiKey: string, systemPrompt: string, parts: any[]): P
   return text;
 }
 
+// ── Revise-plan prompt ────────────────────────────────────────────────────────
+const REVISE_PLAN_PROMPT = `You are an expert GAA (Gaelic Athletic Association) coaching assistant helping a coach refine an existing session plan.
+
+You will receive the current plan as JSON and a piece of coach feedback. Your job is to apply the feedback:
+- Change ONLY what the feedback asks for — do not rewrite or regenerate anything else from scratch
+- Keep all game_name values exactly as they are
+- Keep all descriptions, coaching_points, setup, and variation values exactly as they are unless the feedback explicitly asks to change them
+- If timing is adjusted, redistribute durations so they still sum to total_duration_mins exactly
+- Use the sport terminology and language already in the plan
+- If the request is impossible (not enough time, game not in plan), set "_refusal" to a short explanation; otherwise "_refusal" must be null
+
+Return ONLY valid JSON in the exact same schema as the input plan — no markdown fences, no explanation.`;
+
 // ── System prompt ─────────────────────────────────────────────────────────────
 const SESSION_PLAN_PROMPT = `You are an expert GAA (Gaelic Athletic Association) coaching assistant.
 
@@ -491,6 +504,108 @@ serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ── REVISE_PLAN: apply coach feedback to existing plan ───────────────────
+    if (action === "revise_plan") {
+      if (!existing_plan || !feedback?.trim()) {
+        return new Response(JSON.stringify({ error: "existing_plan and feedback are required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const apiKey = Deno.env.get("GEMINI_API_KEY");
+      if (!apiKey) return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      const inputText = `Existing plan:\n${JSON.stringify(existing_plan, null, 2)}\n\nCoach feedback: ${feedback.trim()}`;
+
+      let planJson: any;
+      try {
+        const raw = await callGemini(apiKey, REVISE_PLAN_PROMPT, [{ text: inputText }]);
+        planJson = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim());
+      } catch (err) {
+        console.error("revise_plan Gemini failed:", err);
+        return new Response(JSON.stringify({ error: "AI revision failed", detail: String(err).slice(0, 200) }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (planJson._refusal) {
+        return new Response(JSON.stringify({ refusal: planJson._refusal, branding, event: eventMeta ?? null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Apply DB overrides (same as generate)
+      const { data: revFavLinks } = await sb
+        .from("user_game_link")
+        .select(`position, games!inner(game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points)`)
+        .eq("user_id", user_id)
+        .order("position");
+
+      const gameByName: Record<string, any> = {};
+      for (const f of (revFavLinks || [])) {
+        const g = (f as any).games;
+        if (g?.game_name) gameByName[g.game_name] = g;
+      }
+
+      function parseCoachingPoints(text: string): string[] {
+        return text.split(/\n|(?:^|\s)[•·–\-]\s/)
+          .map((s: string) => s.replace(/^[•·–\-]\s*/, "").trim())
+          .filter((s: string) => s.length > 2);
+      }
+
+      for (const drill of (planJson.drills || [])) {
+        const g = gameByName[drill.game_name];
+        if (g) {
+          drill.game_image = g.game_image ?? null;
+          drill.setup      = g.game_setup?.trim() || null;
+          if (g.game_how_to_play?.trim()) drill.description = g.game_how_to_play.trim();
+          if (g.game_teaching_points?.trim()) drill.coaching_points = parseCoachingPoints(g.game_teaching_points);
+          drill.variation = g.game_variations?.trim() || null;
+        }
+      }
+      if (planJson.warm_up) {
+        const g = gameByName[planJson.warm_up.game_name];
+        if (g) {
+          planJson.warm_up.game_image = g.game_image || null;
+          planJson.warm_up.setup      = g.game_setup?.trim() || null;
+          if (g.game_how_to_play?.trim()) planJson.warm_up.description = g.game_how_to_play.trim();
+          if (g.game_teaching_points?.trim()) planJson.warm_up.coaching_points = parseCoachingPoints(g.game_teaching_points);
+          planJson.warm_up.variation  = g.game_variations?.trim() || null;
+        }
+      }
+      if (planJson.cool_down) {
+        const g = gameByName[planJson.cool_down.game_name];
+        if (g) {
+          planJson.cool_down.game_image = g.game_image || null;
+          planJson.cool_down.setup      = g.game_setup?.trim() || null;
+          if (g.game_how_to_play?.trim()) planJson.cool_down.description = g.game_how_to_play.trim();
+          if (g.game_teaching_points?.trim()) planJson.cool_down.coaching_points = parseCoachingPoints(g.game_teaching_points);
+          planJson.cool_down.variation  = g.game_variations?.trim() || null;
+        }
+      }
+
+      // Save as new active plan
+      let savedPlanId: string | null = null;
+      if (event_id) {
+        await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
+        const { data: saved } = await sb
+          .from("session_plans")
+          .insert({ event_id, created_by: user_id, plan_json: planJson, is_active: true })
+          .select("plan_id").single();
+        savedPlanId = saved?.plan_id ?? null;
+      }
+
+      return new Response(JSON.stringify({
+        plan_id:    savedPlanId,
+        plan:       planJson,
+        branding,
+        event:      eventMeta ?? null,
+        squad_name: squad?.squad_name ?? null,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ── GENERATE ──────────────────────────────────────────────────────────────

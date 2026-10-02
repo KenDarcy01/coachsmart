@@ -1075,9 +1075,10 @@
     showLoading('Generating your session plan…');
 
     try {
-      const body = { action: 'generate', event_id: EVENT_ID, user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
-      if (feedback) body.feedback = feedback;
-      if (feedback && _currentPlan) body.existing_plan = _currentPlan;
+      const isRevision = !!(feedback && _currentPlan);
+      const body = isRevision
+        ? { action: 'revise_plan', event_id: EVENT_ID, user_id: USER_ID, feedback, existing_plan: _currentPlan }
+        : { action: 'generate', event_id: EVENT_ID, user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
       const res = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
       const data = await res.json();
 
@@ -1496,12 +1497,12 @@
       if (!_spIsRecording) return;
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
-        _resetSpVoiceState();
+        // Keep recording visual active — Flutter is still finalising the transcript.
+        // onSpeechDone will reset state and trigger regeneration.
         _spAutoRevise = true;
-        showToast('Regenerating plan…', 'success', 0);
         clearTimeout(_spAutoReviseTimeout);
         _spAutoReviseTimeout = setTimeout(() => {
-          if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
+          if (_spAutoRevise) { _spAutoRevise = false; _resetSpVoiceState(); regenerateWithFeedback(); }
         }, 8000);
       } else _stopSpWebSpeech();
     }
