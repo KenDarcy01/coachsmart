@@ -143,15 +143,16 @@
     .mode-panel { display: flex; flex-direction: column; gap: 12px; }
 
     .voice-instruction { font-size: 14px; line-height: 1.6; color: var(--muted); }
+    .mic-btn-wrap { display: flex; justify-content: center; }
     .mic-btn {
-      width: 100%; height: 68px; border-radius: 34px;
+      width: 140px; height: 200px; border-radius: 70px;
       background: var(--card); border: 2.5px solid var(--border);
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      color: var(--muted); font-size: 16px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
       transition: border-color 0.18s, background 0.18s, color 0.18s;
       flex-shrink: 0; -webkit-user-select: none; user-select: none; touch-action: none;
     }
-    .mic-btn svg { width: 24px; height: 24px; flex-shrink: 0; transform: rotate(90deg); }
+    .mic-btn svg { width: 56px; height: 56px; flex-shrink: 0; }
     .mic-btn.recording {
       background: rgba(239,68,68,0.14); border-color: var(--red); color: var(--red);
       animation: mic-ring 1.2s ease-out infinite;
@@ -351,10 +352,11 @@
       <div id="voicePanel" class="mode-panel">
         <p class="voice-instruction">Hold to describe the drill — setup, how to play, variations, coaching points. AI will read any text already visible in your image.</p>
         <div id="voiceWave" class="voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-        <button id="micBtn" class="mic-btn" aria-label="Hold to record">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          <span id="micBtnLabel">Hold to Record</span>
-        </button>
+        <div class="mic-btn-wrap">
+          <button id="micBtn" class="mic-btn" aria-label="Hold to record">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          </button>
+        </div>
         <div id="voiceTranscript" class="transcript-preview"></div>
       </div>
 
@@ -849,14 +851,14 @@
       _isVoiceRecording = true; _voiceTranscript = ''; _baseVoiceText = '';
       document.getElementById('voiceTranscript').textContent = '';
       btn.classList.add('recording');
-      document.getElementById('micBtnLabel').textContent = 'Recording…';
+      const _lbl = document.getElementById('micBtnLabel'); if (_lbl) _lbl.textContent = 'Recording…';
       document.getElementById('voiceWave').classList.add('active');
       if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
       else _startWebVoiceSpeech();
     }
     function stop() {
       if (!_isVoiceRecording) return;
-      document.getElementById('micBtnLabel').textContent = 'Hold to Record';
+      const _lbl2 = document.getElementById('micBtnLabel'); if (_lbl2) _lbl2.textContent = 'Hold to Record';
       if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
       else _stopWebVoiceSpeech();
     }
@@ -896,8 +898,7 @@
     _isVoiceRecording = false;
     const btn = document.getElementById('micBtn');
     if (btn) btn.classList.remove('recording');
-    const lbl = document.getElementById('micBtnLabel');
-    if (lbl) lbl.textContent = 'Hold to Record';
+    const lbl = document.getElementById('micBtnLabel'); if (lbl) lbl.textContent = 'Hold to Record';
     document.getElementById('voiceWave').classList.remove('active');
   }
   const FILLERS = /\b(um+h?|uh+|eh+|ahh?|mm+|hmm+|err+|y'know|like)\b[\s,]*/gi;
