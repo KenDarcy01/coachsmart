@@ -74,12 +74,19 @@ GAA GOALPOSTS (H shapes):
 - There may be 0, 1, or 2 goalposts in a diagram (at one or both ends of the pitch). A goalpost at the top of a portrait pitch has y near the top padding; one at the bottom has y near the bottom padding.
 - GOALPOSTS ARE OBSTACLES: arrows must route around them with at least 5px clearance.
 
+PITCH LINES — MUST BE IDENTIFIED BEFORE MOVEMENT LINES:
+- A pitch line is a long straight line that spans the full width (or full length) of the playing area and separates zones. Examples: the end line, 13m line, 20m line, 45m line, halfway line, sidelines.
+- Pitch lines have NO arrowhead and NO dash. Output them as: edgeStyle=none;html=1;endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;
+- The D-shaped arc in front of the goal and the centre circle arc are also pitch markings — output them as curved edges with endArrow=none using the same style.
+- DO NOT mistake pitch lines for movement arrows. If a line spans the full width with no clear start/end player, it is a pitch line.
+
 ARROWS / MOVEMENT LINES — SMART STRAIGHT vs CURVED:
 - Examine each line in the original image carefully before choosing a style:
   - STRAIGHT LINE: if the line in the image appears straight or nearly straight (less than a noticeable arc), use NO waypoints and NO curved style: edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
   - SIMPLE CURVE (C-shape): the line bends in ONE direction only — use curved=1 with 1–2 intermediate waypoints: edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
   - S-CURVE / WAVE (sinusoidal): the line changes direction at least once mid-path, creating an S-shape, wave, or weave — use curved=1 with 3–5 intermediate waypoints spaced evenly along the full path, placing a waypoint at every peak, trough, and inflection point. Same style as simple curve: edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;
-  - DASHED (ball pass/kick): edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 4;strokeColor=#ffffff;strokeWidth=2.5;
+  - DASHED WITH ARROW (ball pass/kick — rendered in yellow): edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 4;strokeColor=#FFD700;strokeWidth=2.5;
+  - DASHED WITHOUT ARROW: do not use — all dashed movement lines must have an arrowhead.
 - All edges are floating (NO source or target attributes). Use sourcePoint and targetPoint in mxGeometry.
 - Start/end points must be ~18px away from shape edges — arrows must not touch circles or triangles.
 - CONES AND CIRCLES ARE OBSTACLES: arrows must NEVER pass through or overlap any cone or circle.
