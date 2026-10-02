@@ -1637,7 +1637,22 @@
     const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0')*s+offX,y:parseFloat(p.getAttribute('y')||'0')*s+offY})):[];
     ctx.save(); ctx.strokeStyle=lineColor; ctx.lineWidth=lineWidth; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed&&hasArrow?[8,4]:[]);
     ctx.beginPath(); ctx.moveTo(x1,y1);
-    if (isCurved&&waypoints.length>0) {
+    if (!hasArrow && isCurved && waypoints.length>0) {
+      // Pitch marking arc — fit a perfect circle through start, midpoint waypoint, end
+      const allPts=[{x:x1,y:y1},...waypoints,{x:x2,y:y2}];
+      const p1=allPts[0], pm=allPts[Math.floor(allPts.length/2)], p2=allPts[allPts.length-1];
+      const ax=p2.x-p1.x, ay=p2.y-p1.y, bx=pm.x-p1.x, by=pm.y-p1.y;
+      const D=2*(ax*by-ay*bx);
+      if(Math.abs(D)>0.01){
+        const ux=(by*(ax*ax+ay*ay)-ay*(bx*bx+by*by))/D;
+        const uy=(ax*(bx*bx+by*by)-bx*(ax*ax+ay*ay))/D;
+        const acx=p1.x+ux, acy=p1.y+uy, r=Math.sqrt(ux*ux+uy*uy);
+        const a1=Math.atan2(p1.y-acy,p1.x-acx), a2=Math.atan2(p2.y-acy,p2.x-acx);
+        const cross=(pm.x-p1.x)*(p2.y-pm.y)-(pm.y-p1.y)*(p2.x-pm.x);
+        ctx.arc(acx,acy,r,a1,a2,cross>=0);
+      } else { ctx.lineTo(x2,y2); }
+    } else if (isCurved&&waypoints.length>0) {
+      // Movement arrow — chaikin smoothing
       let pts=[{x:x1,y:y1},...waypoints,{x:x2,y:y2}];
       for(let k=0;k<3;k++){const n=[pts[0]];for(let i=0;i<pts.length-1;i++){n.push({x:.75*pts[i].x+.25*pts[i+1].x,y:.75*pts[i].y+.25*pts[i+1].y});n.push({x:.25*pts[i].x+.75*pts[i+1].x,y:.25*pts[i].y+.75*pts[i+1].y});}n.push(pts[pts.length-1]);pts=n;}
       for(const p of pts)ctx.lineTo(p.x,p.y);
