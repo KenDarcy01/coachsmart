@@ -77,6 +77,27 @@ Return ONLY a JSON object with exactly these fields (all strings):
 If a field is null or empty, return an empty string for it.
 Use line breaks (\\n) between bullet points and numbered steps.`;
 
+// ── Revise-with-feedback action ───────────────────────────────────────────────
+const REVISE_FEEDBACK_PROMPT = `You are an expert GAA coaching content writer helping a coach revise a drill or game description.
+
+You will receive the current draft fields and a piece of feedback from the coach. Your job is to apply the feedback to improve the draft:
+- Make only the changes the feedback asks for — do not rewrite everything from scratch
+- Keep the coach's own style and language where it is already good
+- If the feedback is vague (e.g. "make it shorter"), apply that to the whole draft proportionally
+- Maintain clear, coach-friendly language suitable for GAA coaches at all levels
+- Keep game_name concise (3–6 words, 25 characters or fewer)
+
+Return ONLY a JSON object with exactly these five fields (all strings):
+{
+  "game_name": "...",
+  "game_setup": "...",
+  "game_how_to_play": "...",
+  "game_variations": "...",
+  "game_teaching_points": "..."
+}
+
+Use line breaks (\\n) between bullet points and numbered steps. If a field is empty, return an empty string.`;
+
 // ── Rewrite action: fuller AI rewrite in coaching language ───────────────────
 const REWRITE_PROMPT = `You are an expert GAA coaching content writer.
 
@@ -487,6 +508,48 @@ serve(async (req) => {
           suggested_sport:      typeof result.suggested_sport === "string" ? result.suggested_sport : null,
           suggested_skills:     Array.isArray(result.suggested_skills) ? result.suggested_skills : [],
           suggested_type:       typeof result.suggested_type  === "string" ? result.suggested_type  : null,
+        },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── Revise with feedback ──────────────────────────────────────────────────
+    if (action === "revise_with_feedback") {
+      const { game_name, game_setup, game_how_to_play, game_variations, game_teaching_points, feedback } = body;
+
+      if (!feedback?.trim()) {
+        return new Response(JSON.stringify({ error: "feedback is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const inputText = [
+        game_name?.trim()            ? `Game name: ${game_name.trim()}` : null,
+        game_setup?.trim()           ? `Setup:\n${game_setup.trim()}` : null,
+        game_how_to_play?.trim()     ? `How to play:\n${game_how_to_play.trim()}` : null,
+        game_variations?.trim()      ? `Variations:\n${game_variations.trim()}` : null,
+        game_teaching_points?.trim() ? `Teaching points:\n${game_teaching_points.trim()}` : null,
+        `\nCoach feedback: ${feedback.trim()}`,
+      ].filter(Boolean).join("\n\n");
+
+      let result: any;
+      try {
+        const raw = await callGemini(apiKey, REVISE_FEEDBACK_PROMPT, [{ text: inputText }]);
+        result = parseJson(raw);
+      } catch (err) {
+        console.error("revise_with_feedback failed:", err);
+        return new Response(JSON.stringify({ error: "AI processing failed", detail: String(err).slice(0, 200) }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: {
+          game_name:            result.game_name            || "",
+          game_setup:           result.game_setup           || "",
+          game_how_to_play:     result.game_how_to_play     || "",
+          game_variations:      result.game_variations      || "",
+          game_teaching_points: result.game_teaching_points || "",
         },
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

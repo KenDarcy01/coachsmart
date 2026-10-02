@@ -239,7 +239,32 @@
     .processing-eta { font-size: 13px; color: var(--muted); opacity: 0.6; margin-top: 4px; }
 
     /* ── DRAFT SCREEN ── */
-    .review-body { flex: 1; overflow-y: auto; padding: 16px 16px 140px; display: flex; flex-direction: column; gap: 14px; }
+    .review-body { flex: 1; overflow-y: auto; padding: 16px 16px 220px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── FEEDBACK SECTION ── */
+    .feedback-section { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 4px; }
+    .feedback-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .feedback-row { display: flex; gap: 10px; align-items: flex-start; }
+    .fb-mic-btn {
+      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      background: var(--card); border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); transition: border-color 0.18s, background 0.18s, color 0.18s;
+      -webkit-user-select: none; user-select: none; touch-action: none;
+    }
+    .fb-mic-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .fb-mic-btn.recording { background: rgba(239,68,68,0.14); border-color: var(--red); color: var(--red); animation: mic-ring 1.2s ease-out infinite; }
+    #fbInput { flex: 1; min-height: 46px; max-height: 160px; resize: none; }
+    .fb-transcript { font-size: 13px; color: var(--muted); min-height: 0; line-height: 1.5; }
+    .fb-revise-btn {
+      width: 100%; padding: 13px; border-radius: var(--radius);
+      background: var(--card); border: 1.5px solid var(--border);
+      color: var(--text); font-size: 15px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.15s;
+    }
+    .fb-revise-btn:active { opacity: 0.7; }
+    .fb-revise-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .draft-image { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
     .draft-image img { display: block; width: 100%; max-height: 280px; object-fit: contain; background: var(--card2); }
 
@@ -478,6 +503,22 @@
     <div class="draft-field">
       <div class="draft-field-label">Teaching Points</div>
       <textarea id="rvTeaching" placeholder="Key coaching cues…" oninput="autoResize(this)"></textarea>
+    </div>
+
+    <!-- Feedback section -->
+    <div class="feedback-section">
+      <div class="feedback-label">Revise with feedback</div>
+      <div class="feedback-row">
+        <button id="fbMicBtn" class="fb-mic-btn" aria-label="Hold to record feedback">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+        </button>
+        <textarea id="fbInput" placeholder="Hold mic or type — e.g. 'make the setup shorter', 'add a U10 variation', 'focus more on kicking'…" oninput="autoResize(this)"></textarea>
+      </div>
+      <div id="fbTranscript" class="fb-transcript"></div>
+      <button class="fb-revise-btn" id="fbReviseBtn" onclick="reviseDraft()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg>
+        Revise Draft
+      </button>
     </div>
 
   </div>
@@ -828,6 +869,40 @@
     }
   }
 
+  // ── Revise with feedback ───────────────────────────────────────────────────
+  let _fbTranscript   = '';
+  let _fbIsRecording  = false;
+
+  async function reviseDraft() {
+    const typed = document.getElementById('fbInput').value.trim();
+    const feedback = typed || _fbTranscript.trim();
+    if (!feedback) { showToast('Add some feedback first', 'error'); return; }
+    const btn = document.getElementById('fbReviseBtn');
+    btn.disabled = true; btn.textContent = 'Revising…';
+    try {
+      const result = await callEdgeFunction({
+        action:               'revise_with_feedback',
+        game_name:            document.getElementById('rvName').value.trim(),
+        game_setup:           document.getElementById('rvSetup').value.trim(),
+        game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
+        game_variations:      document.getElementById('rvVariations').value.trim(),
+        game_teaching_points: document.getElementById('rvTeaching').value.trim(),
+        feedback,
+      });
+      populateReviewFields(result);
+      requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
+      document.getElementById('fbInput').value = '';
+      document.getElementById('fbTranscript').textContent = '';
+      _fbTranscript = '';
+      showToast('Draft revised', 'success');
+    } catch (err) {
+      showToast('Error: ' + (err.message || 'AI failed'), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg> Revise Draft`;
+    }
+  }
+
   // ── Save ───────────────────────────────────────────────────────────────────
   async function saveGame() {
     const name = document.getElementById('rvName').value.trim();
@@ -951,13 +1026,75 @@
       _voiceTranscript += text + ' ';
       _voiceTranscript = _removeFillersAndClean(_voiceTranscript);
       document.getElementById('voiceTranscript').textContent = _voiceTranscript;
+    } else if (fieldId === 'fb_input') {
+      _fbTranscript += text + ' ';
+      _fbTranscript = _removeFillersAndClean(_fbTranscript);
+      const el = document.getElementById('fbTranscript');
+      if (el) el.textContent = _fbTranscript;
     }
   };
   window.onVoiceInterim = function(p) {
     document.getElementById('voiceTranscript').textContent = ((_voiceTranscript ? _voiceTranscript + ' ' : '') + p).trim();
   };
-  window.onSpeechDone  = () => _resetVoiceState();
-  window.onSpeechError = (msg) => { showToast(msg || 'Voice input failed', 'error'); _resetVoiceState(); };
+  window.onSpeechDone  = () => { _resetVoiceState(); _resetFbVoiceState(); };
+  window.onSpeechError = (msg) => { showToast(msg || 'Voice input failed', 'error'); _resetVoiceState(); _resetFbVoiceState(); };
+
+  // ── Feedback mic button ────────────────────────────────────────────────────
+  function _initFbMicButton() {
+    const btn = document.getElementById('fbMicBtn');
+    if (!btn) return;
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+    function start(e) {
+      e.preventDefault();
+      if (_fbIsRecording) return;
+      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      _fbIsRecording = true; _fbTranscript = '';
+      document.getElementById('fbTranscript').textContent = '';
+      btn.classList.add('recording');
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
+      else _startFbWebSpeech();
+    }
+    function stop() {
+      if (!_fbIsRecording) return;
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
+      else _stopFbWebSpeech();
+    }
+    btn.addEventListener('pointerdown',   start, { passive: false });
+    btn.addEventListener('pointerup',     stop);
+    btn.addEventListener('pointercancel', stop);
+  }
+  let _fbWebRecognition = null;
+  function _startFbWebSpeech() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showToast('Speech not supported on this browser', 'error'); _resetFbVoiceState(); return; }
+    _fbWebRecognition = new SR();
+    _fbWebRecognition.lang = 'en-IE';
+    _fbWebRecognition.continuous = true;
+    _fbWebRecognition.interimResults = true;
+    let baseFb = '';
+    _fbWebRecognition.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) baseFb += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
+      }
+      _fbTranscript = _removeFillersAndClean(baseFb);
+      const el = document.getElementById('fbTranscript');
+      if (el) el.textContent = (_fbTranscript + (interim ? ' ' + interim : '')).trim() || _fbTranscript;
+    };
+    _fbWebRecognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetFbVoiceState(); };
+    _fbWebRecognition.onend = () => { if (_fbIsRecording) _resetFbVoiceState(); };
+    try { _fbWebRecognition.start(); } catch { _resetFbVoiceState(); }
+  }
+  function _stopFbWebSpeech() {
+    if (_fbWebRecognition) { try { _fbWebRecognition.stop(); } catch {} _fbWebRecognition = null; }
+    _resetFbVoiceState();
+  }
+  function _resetFbVoiceState() {
+    _fbIsRecording = false;
+    const btn = document.getElementById('fbMicBtn');
+    if (btn) btn.classList.remove('recording');
+  }
 
   // ── Canvas sketchpad ───────────────────────────────────────────────────────
   let _sketchTool      = 'draw';
@@ -1401,6 +1538,7 @@
   // ── Init ───────────────────────────────────────────────────────────────────
   renderImageGrid();
   requestAnimationFrame(_initMicButton);
+  requestAnimationFrame(_initFbMicButton);
 </script>
 </body>
 </html>
