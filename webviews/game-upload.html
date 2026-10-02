@@ -714,7 +714,7 @@
     ]);
     const standardised = stdResult?._err ? null : stdResult;
     _reviewImage = standardised || sourceImg;
-    if (!standardised) setStatus('Creating your draft…', `Diagram standardisation failed: ${stdResult?._err}`);
+    const _stdErr = standardised ? null : (stdResult?._err || 'unknown error');
 
     setStatus('Creating your draft…', 'AI is reading your diagram and description');
 
@@ -741,7 +741,7 @@
       if (result.suggested_ages?.length)   _preselectChips('ageChips',   'age',   result.suggested_ages);
       if (result.suggested_sport)          _preselectChips('sportChips', 'sport', [result.suggested_sport]);
       if (result.suggested_skills?.length) _preselectChips('skillChips', 'skill', result.suggested_skills);
-      showReview(result);
+      showReview(result, _stdErr);
     } catch (err) {
       showScreen('screenCreate');
       showToast('Error: ' + (err.message || 'AI failed'), 'error');
@@ -756,7 +756,7 @@
     document.getElementById('rvVariations').value = data.game_variations      || '';
     document.getElementById('rvTeaching').value   = data.game_teaching_points || '';
   }
-  function showReview(data) {
+  function showReview(data, stdErr) {
     populateReviewFields(data);
     const card  = document.getElementById('rvImageCard');
     const inner = document.getElementById('rvImageInner');
@@ -768,6 +768,9 @@
     }
     showScreen('screenReview');
     requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
+    if (stdErr) {
+      setTimeout(() => showToast('Diagram AI: ' + stdErr, 'error'), 400);
+    }
   }
 
   // ── Improve with AI ────────────────────────────────────────────────────────
