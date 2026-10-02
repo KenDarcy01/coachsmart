@@ -1600,7 +1600,8 @@
               const gx=parseFloat(geo.getAttribute('x')||'0')*s+offX, gw=parseFloat(geo.getAttribute('width')||'0')*s;
               const gy=parseFloat(geo.getAttribute('y')||'0')*s+offY, gh=parseFloat(geo.getAttribute('height')||'0')*s;
               goalCX=gx+gw/2; goalAtBottom=gy+gh/2>OUT/2;
-              goalLineY=goalAtBottom?gy+gh:gy; foundGoalpost=true;
+              // Goal LINE is at the base of the posts — bottom of the rect for goal-at-top, top for goal-at-bottom
+              goalLineY=goalAtBottom?gy:gy+gh; foundGoalpost=true;
             }
           }
         }
@@ -1611,6 +1612,11 @@
           pTop=Math.min(pTop,e.y1,e.y2); pBottom=Math.max(pBottom,e.y1,e.y2);
         }
         if (!isFinite(pLeft)) { pLeft=offX; pRight=OUT-offX; pTop=offY; pBottom=OUT-offY; }
+        // Extend boundary to include the goal line so goalpost + arc sit inside the pitch rectangle
+        if (foundGoalpost) {
+          if (goalAtBottom) pBottom=Math.max(pBottom,goalLineY);
+          else pTop=Math.min(pTop,goalLineY);
+        }
         if (!foundGoalpost) { goalCX=(pLeft+pRight)/2; goalLineY=goalAtBottom?pBottom:pTop; }
         // Count only horizontal edges as zone lines (sidelines are vertical)
         const horizLineCount=pitchEdges.filter(e=>Math.abs(e.y2-e.y1)<Math.abs(e.x2-e.x1)).length;
