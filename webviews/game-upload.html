@@ -1205,7 +1205,7 @@
     }
     function stop() {
       if (!_fbIsRecording) return;
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
+      if (window.FlutterBridge) { window.FlutterBridge.postMessage('stopSpeech'); _resetFbVoiceState(); }
       else _stopFbWebSpeech();
     }
     btn.addEventListener('pointerdown',   start, { passive: false });
