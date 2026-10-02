@@ -1491,14 +1491,16 @@
         ctx.fillStyle='#2E7D32'; ctx.fillRect(0,0,OUT,OUT);
         ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1; ctx.setLineDash([8,6]);
         ctx.beginPath(); ctx.moveTo(0,OUT/2); ctx.lineTo(OUT,OUT/2); ctx.stroke(); ctx.setLineDash([]);
-        const sx=OUT/cW, sy=OUT/cH;
-        for (const cell of cells) { if (cell.getAttribute('edge')==='1') _renderEdge(ctx, cell, sx, sy); }
+        // Uniform scale preserves aspect ratio — non-square diagrams no longer squash circles into ovals
+        const s=Math.min(OUT/cW,OUT/cH);
+        const offX=(OUT-cW*s)/2, offY=(OUT-cH*s)/2;
+        for (const cell of cells) { if (cell.getAttribute('edge')==='1') _renderEdge(ctx, cell, s, offX, offY); }
         for (const cell of cells) {
           if (cell.getAttribute('vertex')!=='1') continue;
           const style=cell.getAttribute('style')||'', geo=cell.querySelector('mxGeometry');
           if (!geo||style.includes('fillColor=#2E7D32')) continue;
-          const x=parseFloat(geo.getAttribute('x')||'0')*sx, y=parseFloat(geo.getAttribute('y')||'0')*sy;
-          const w=parseFloat(geo.getAttribute('width')||'0')*sx, h=parseFloat(geo.getAttribute('height')||'0')*sy;
+          const x=parseFloat(geo.getAttribute('x')||'0')*s+offX, y=parseFloat(geo.getAttribute('y')||'0')*s+offY;
+          const w=parseFloat(geo.getAttribute('width')||'0')*s, h=parseFloat(geo.getAttribute('height')||'0')*s;
           const val=cell.getAttribute('value')||'';
           if (style.includes('gaa_goalpost')) { _renderGoalpost(ctx,x,y,w,h); }
           else if (style.includes('ellipse')) {
@@ -1539,16 +1541,16 @@
     });
   }
 
-  function _renderEdge(ctx, cell, sx, sy) {
-    sx=sx||1; sy=sy||1;
+  function _renderEdge(ctx, cell, s, offX, offY) {
+    s=s||1; offX=offX||0; offY=offY||0;
     const geo=cell.querySelector('mxGeometry'); if(!geo) return;
     const srcPt=geo.querySelector('mxPoint[as="sourcePoint"]'), tgtPt=geo.querySelector('mxPoint[as="targetPoint"]');
     if(!srcPt||!tgtPt) return;
-    const x1=parseFloat(srcPt.getAttribute('x')||'0')*sx, y1=parseFloat(srcPt.getAttribute('y')||'0')*sy;
-    const x2=parseFloat(tgtPt.getAttribute('x')||'0')*sx, y2=parseFloat(tgtPt.getAttribute('y')||'0')*sy;
+    const x1=parseFloat(srcPt.getAttribute('x')||'0')*s+offX, y1=parseFloat(srcPt.getAttribute('y')||'0')*s+offY;
+    const x2=parseFloat(tgtPt.getAttribute('x')||'0')*s+offX, y2=parseFloat(tgtPt.getAttribute('y')||'0')*s+offY;
     const style=cell.getAttribute('style')||'', isDashed=style.includes('dashed=1'), isCurved=style.includes('curved=1');
     const wptArr=geo.querySelector('Array[as="points"]');
-    const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0')*sx,y:parseFloat(p.getAttribute('y')||'0')*sy})):[];
+    const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0')*s+offX,y:parseFloat(p.getAttribute('y')||'0')*s+offY})):[];
     ctx.save(); ctx.strokeStyle='#ffffff'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed?[8,4]:[]);
     ctx.beginPath(); ctx.moveTo(x1,y1);
     if (isCurved&&waypoints.length>0) {
