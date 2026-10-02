@@ -26,29 +26,17 @@ Each circle must be classified by reading its label. This classification is MAND
     fillColor=#1a1a1a (BLACK), strokeColor=#000000, width=46, height=46, value="C"
     *** A coach circle is ALWAYS black with white text. Never red or blue. ***
 
-  • Circle label is a NUMBER → PLAYER — determine HOME (red) or AWAY (blue) using STEP 1B below.
+  • Circle label is a NUMBER → PLAYER
+    Use visual judgment to decide HOME (red) or AWAY (blue):
+    - If all players clearly form one team's formation spread across the pitch → all HOME (red)
+    - If players appear in opponent pairs drawn close together, assign HOME (red) to one and AWAY (blue) to the other
+    - GAA convention: player 3 marks player 12 (3+12=15), 6 marks 9 (6+9=15), 7 marks 8, etc.
+      If you see pairs drawn side by side where the numbers sum to 15, they are opponents.
+    - In drills, the same number may appear twice (two circles labelled "4") — they are drill opponents.
+    - When in doubt, default to all HOME (red).
 
 Apply this in strict order: empty/dot → white football · "C" → black coach · number → red/blue player.
 Do not skip this step.
-
-STEP 1B — TEAM DETECTION (run this BEFORE assigning any player colours):
-Scan ALL numbered circles together and apply the FIRST matching rule:
-
-  RULE A — PAIRS THAT SUM TO 15 (matchplay opponents):
-    If two numbered circles are drawn side by side or very close together AND their numbers add up to 15
-    (valid pairs: 1&14, 2&13, 3&12, 4&11, 5&10, 6&9, 7&8), they are OPPONENTS.
-    Lower number → HOME (red). Higher number → AWAY (blue).
-    Apply this to every such pair found. Any number not in a summing pair → HOME (red).
-
-  RULE B — IDENTICAL NUMBER PAIRS (drill / rondo opponents):
-    If two circles share the same number and are drawn side by side, they are OPPONENTS.
-    Left or top circle → HOME (red). Right or bottom circle → AWAY (blue).
-
-  RULE C — GOALKEEPER ALONE (matchplay):
-    If there is a circle labelled "1" with no circle beside it, it is a goalkeeper → HOME (red).
-
-  RULE D — SINGLE TEAM (no pairing detected):
-    If none of the above rules apply, all numbered circles belong to one team → all HOME (red).
 
 STEP 2 — OUTPUT FORMAT:
 - Output ONLY raw XML — no markdown fences, no explanation, nothing before or after the XML
