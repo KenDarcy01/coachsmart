@@ -118,12 +118,12 @@ function fixCircleStyles(xml: string): string {
     const value = (m ? m[1] : "").trim();
 
     let newStyle: string | null = null;
-    if (/^c$/i.test(value)) {
-      newStyle = STYLE_COACH;    // "C" → black coach
-    } else if (value === "" || value === "." || value === "·" || value === "•") {
+    if (value === "" || value === "." || value === "·" || value === "•") {
       newStyle = STYLE_FOOTBALL; // empty / dot → white football
+    } else if (!/^\d+$/.test(value)) {
+      newStyle = STYLE_COACH;    // any non-numeric label (C, Coach, etc.) → black coach
     }
-    // numbered players: leave style as-is
+    // pure numbers = players — leave style as-is
 
     if (newStyle === null) return tag;
     return tag.replace(/\bstyle="[^"]*"/, `style="${newStyle}"`);

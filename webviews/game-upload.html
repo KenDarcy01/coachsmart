@@ -244,18 +244,6 @@
     /* ── FEEDBACK SECTION ── */
     .feedback-section { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 4px; }
     .feedback-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-    .feedback-row { display: flex; gap: 10px; align-items: flex-start; }
-    .fb-mic-btn {
-      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
-      background: var(--card); border: 2px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--muted); transition: border-color 0.18s, background 0.18s, color 0.18s;
-      -webkit-user-select: none; user-select: none; touch-action: none;
-    }
-    .fb-mic-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
-    .fb-mic-btn.recording { background: rgba(239,68,68,0.14); border-color: var(--red); color: var(--red); animation: mic-ring 1.2s ease-out infinite; }
-    #fbInput { flex: 1; min-height: 46px; max-height: 160px; resize: none; }
-    .fb-transcript { font-size: 13px; color: var(--muted); min-height: 0; line-height: 1.5; }
     .fb-revise-btn {
       width: 100%; padding: 13px; border-radius: var(--radius);
       background: var(--card); border: 1.5px solid var(--border);
@@ -508,13 +496,29 @@
     <!-- Feedback section -->
     <div class="feedback-section">
       <div class="feedback-label">Revise with feedback</div>
-      <div class="feedback-row">
-        <button id="fbMicBtn" class="fb-mic-btn" aria-label="Hold to record feedback">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="fbModeVoice" onclick="setFbMode('voice')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          Voice
         </button>
-        <textarea id="fbInput" placeholder="Hold mic or type — e.g. 'make the setup shorter', 'add a U10 variation', 'focus more on kicking'…" oninput="autoResize(this)"></textarea>
+        <button class="mode-btn" id="fbModeText" onclick="setFbMode('text')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Type
+        </button>
       </div>
-      <div id="fbTranscript" class="fb-transcript"></div>
+      <div id="fbVoicePanel" class="mode-panel">
+        <p class="voice-instruction">Hold to describe what you'd like changed — the AI will revise the draft text based on your notes.</p>
+        <div id="fbVoiceWave" class="voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="mic-btn-wrap">
+          <button id="fbMicBtn" class="mic-btn" aria-label="Hold to record feedback">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          </button>
+        </div>
+        <div id="fbTranscript" class="transcript-preview"></div>
+      </div>
+      <div id="fbTextPanel" class="mode-panel" style="display:none">
+        <textarea id="fbInput" class="text-desc" placeholder="Describe what to change — e.g. 'make the setup shorter', 'add a U10 variation', 'focus more on kicking'…" oninput="autoResize(this)"></textarea>
+      </div>
       <button class="fb-revise-btn" id="fbReviseBtn" onclick="reviseDraft()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg>
         Revise Draft
@@ -724,6 +728,37 @@
     });
   }
 
+  // ── Client-side circle style enforcer ─────────────────────────────────────
+  // Belt-and-suspenders fix: runs AFTER the edge function's server-side fixer.
+  // DOMParser is more reliable than regex against mxGraph XML.
+  function fixCircleStylesClient(xml) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'text/xml');
+      if (doc.querySelector('parsererror')) return xml;
+      const STYLE_FOOTBALL = 'ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#555555;shadow=0;';
+      const STYLE_COACH    = 'ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;';
+      doc.querySelectorAll('mxCell').forEach(cell => {
+        const style = cell.getAttribute('style') || '';
+        if (!style.includes('ellipse')) return;
+        const value = (cell.getAttribute('value') || '').trim();
+        if (/^\d+$/.test(value)) return; // numbered player — leave colour as-is
+        if (value === '' || value === '.' || value === '·' || value === '•') {
+          cell.setAttribute('style', STYLE_FOOTBALL);
+          const geo = cell.querySelector('mxGeometry');
+          if (geo) { geo.setAttribute('width', '24'); geo.setAttribute('height', '24'); }
+        } else {
+          // Any non-numeric label (C, Coach, etc.) → black coach
+          cell.setAttribute('style', STYLE_COACH);
+        }
+      });
+      return new XMLSerializer().serializeToString(doc);
+    } catch (e) {
+      console.warn('[fixCircleStylesClient] failed —', e?.message);
+      return xml;
+    }
+  }
+
   // ── Diagram standardisation ────────────────────────────────────────────────
   async function standardiseDiagram(img) {
     let errMsg = 'unknown';
@@ -743,7 +778,8 @@
         console.warn('[diagram-to-drawio] failed —', errMsg, data);
         return { _err: errMsg };
       }
-      const png = await renderMxGraphToPng(data.xml);
+      const fixedXml = fixCircleStylesClient(data.xml);
+      const png = await renderMxGraphToPng(fixedXml);
       return { base64: png.base64, mimeType: 'image/png' };
     } catch(e) {
       errMsg = e?.message || 'network error';
@@ -872,10 +908,21 @@
   // ── Revise with feedback ───────────────────────────────────────────────────
   let _fbTranscript   = '';
   let _fbIsRecording  = false;
+  let _fbDescMode     = 'voice';
+
+  function setFbMode(mode) {
+    _fbDescMode = mode;
+    document.getElementById('fbVoicePanel').style.display = mode === 'voice' ? '' : 'none';
+    document.getElementById('fbTextPanel').style.display  = mode === 'text'  ? '' : 'none';
+    document.getElementById('fbModeVoice').classList.toggle('active', mode === 'voice');
+    document.getElementById('fbModeText').classList.toggle('active',  mode === 'text');
+    if (mode === 'text') requestAnimationFrame(() => autoResize(document.getElementById('fbInput')));
+  }
 
   async function reviseDraft() {
-    const typed = document.getElementById('fbInput').value.trim();
-    const feedback = typed || _fbTranscript.trim();
+    const feedback = _fbDescMode === 'text'
+      ? (document.getElementById('fbInput').value.trim() || '')
+      : _fbTranscript.trim();
     if (!feedback) { showToast('Add some feedback first', 'error'); return; }
     const btn = document.getElementById('fbReviseBtn');
     btn.disabled = true; btn.textContent = 'Revising…';
@@ -1051,6 +1098,7 @@
       _fbIsRecording = true; _fbTranscript = '';
       document.getElementById('fbTranscript').textContent = '';
       btn.classList.add('recording');
+      document.getElementById('fbVoiceWave').classList.add('active');
       if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
       else _startFbWebSpeech();
     }
@@ -1094,6 +1142,8 @@
     _fbIsRecording = false;
     const btn = document.getElementById('fbMicBtn');
     if (btn) btn.classList.remove('recording');
+    const wave = document.getElementById('fbVoiceWave');
+    if (wave) wave.classList.remove('active');
   }
 
   // ── Canvas sketchpad ───────────────────────────────────────────────────────
