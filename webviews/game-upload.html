@@ -705,21 +705,21 @@
     }
 
     showScreen('screenProcessing');
-    setStatus('Standardising your diagram…', 'Converting to a consistent look and size');
-
-    // Standardise the primary image — always run this for uniform DB look/feel
-    const stdResult = await Promise.race([
-      standardiseDiagram(sourceImg),
-      new Promise(r => setTimeout(() => r({ _err: 'timeout after 20s' }), 20000)),
-    ]);
-    const standardised = stdResult?._err ? null : stdResult;
-    _reviewImage = standardised || sourceImg;
-    const _stdErr = standardised ? null : (stdResult?._err || 'unknown error');
-
     setStatus('Creating your draft…', 'AI is reading your diagram and description');
 
-    // Build context: all uploaded images (for photo mode) plus standardised primary
-    const imageArray = [{ base64: _reviewImage.base64, mimeType: _reviewImage.mimeType }];
+    // Fire standardisation in the background — don't block the AI field extraction.
+    // When it finishes it will update the image on the draft screen in place.
+    _reviewImage = sourceImg;
+    standardiseDiagram(sourceImg).then(stdResult => {
+      if (!stdResult?._err && stdResult?.base64) {
+        _reviewImage = stdResult;
+        const img = document.querySelector('#rvImageInner img');
+        if (img) img.src = `data:${stdResult.mimeType};base64,${stdResult.base64}`;
+      }
+    });
+
+    // Build image array for AI (use original image — Gemini reads it fine)
+    const imageArray = [{ base64: sourceImg.base64, mimeType: sourceImg.mimeType }];
     if (_activeMediaTab === 'photo' && _uploadedImages.length > 1) {
       _uploadedImages.slice(1).forEach(i => imageArray.push({ base64: i.base64, mimeType: i.mimeType }));
     }
@@ -741,7 +741,7 @@
       if (result.suggested_ages?.length)   _preselectChips('ageChips',   'age',   result.suggested_ages);
       if (result.suggested_sport)          _preselectChips('sportChips', 'sport', [result.suggested_sport]);
       if (result.suggested_skills?.length) _preselectChips('skillChips', 'skill', result.suggested_skills);
-      showReview(result, _stdErr);
+      showReview(result, null);
     } catch (err) {
       showScreen('screenCreate');
       showToast('Error: ' + (err.message || 'AI failed'), 'error');
