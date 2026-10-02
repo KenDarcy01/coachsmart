@@ -433,11 +433,8 @@
       font-size: 13px; color: #e8a040; line-height: 1.45;
     }
 
-    /* ── Action bar ───────────────────────────────────────────────────────── */
-    .action-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; display: flex; gap: 10px;
-      padding: 10px 16px max(10px, env(safe-area-inset-bottom));
-      background: var(--surface); border-top: 1px solid var(--border); z-index: 100;
+    .share-row {
+      margin: 16px 16px 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     }
     .btn {
       flex: 1; height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600;
@@ -655,13 +652,6 @@
   </div>
 </div>
 
-<!-- Action bar (shown over plan screen) -->
-<div id="actionBar" class="action-bar" style="display:none">
-  <button class="btn btn-primary btn-full" onclick="exportPlan('mobile')" id="exportBtn">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-    Share
-  </button>
-</div>
 
 <!-- Game detail sheet -->
 <div id="gameSheet" class="sheet">
@@ -1051,7 +1041,6 @@
 
     _rotateStations = $('rotateToggle')?.checked ?? true;
     showLoading('Generating your session plan…');
-    $('actionBar').style.display = 'none';
 
     try {
       const body = { action: 'generate', event_id: EVENT_ID, user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
@@ -1064,7 +1053,6 @@
       if (data.refusal) {
         // Gemini declined — keep current plan visible, show the reason
         showScreen('planScreen');
-        $('actionBar').style.display = 'flex';
         const notice = $('refusalNotice');
         if (notice) { notice.textContent = data.refusal; notice.style.display = 'block'; }
         return;
@@ -1270,10 +1258,15 @@
       </div>
     </div>`);
 
+    out.push(`<div class="share-row">
+      <button class="btn btn-primary btn-full" onclick="exportPlan('mobile')" id="exportBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        Share
+      </button>
+    </div>`);
     out.push('<div class="drill-gap"></div>');
     $('planContent').innerHTML = out.join('');
     showScreen('planScreen');
-    $('actionBar').style.display = 'flex';
     requestAnimationFrame(_initSpMicButton);
   }
 
@@ -1379,8 +1372,18 @@
       _branding  = data.branding;
       _eventMeta = data.event;
       _squadName = data.squad_name;
-      _favs      = data.favourites || [];
+      _favs = data.favourites || [];
       if (_favs.length === 0) { showEmpty(); return; }
+
+      // Filter favourites by event code when known (fallback to all if no match)
+      const eventCode = (_eventMeta?.event_code || '').toLowerCase().replace(/\s/g, '');
+      if (eventCode) {
+        const filtered = _favs.filter(f => {
+          const codes = (f.game_code || []).map(c => c.toLowerCase().replace(/\s/g, ''));
+          return codes.length === 0 || codes.some(c => eventCode.includes(c) || c.includes(eventCode));
+        });
+        if (filtered.length > 0) _favs = filtered;
+      }
 
       // Render setup screen with favourites
       $('durVal').textContent = _dur;
