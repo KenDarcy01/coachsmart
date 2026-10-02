@@ -1649,7 +1649,7 @@
         const acx=p1.x+ux, acy=p1.y+uy, r=Math.sqrt(ux*ux+uy*uy);
         const a1=Math.atan2(p1.y-acy,p1.x-acx), a2=Math.atan2(p2.y-acy,p2.x-acx);
         const cross=(pm.x-p1.x)*(p2.y-pm.y)-(pm.y-p1.y)*(p2.x-pm.x);
-        ctx.arc(acx,acy,r,a1,a2,cross>=0);
+        ctx.arc(acx,acy,r,a1,a2,cross<0); // canvas y-axis is inverted vs standard math
       } else { ctx.lineTo(x2,y2); }
     } else if (isCurved&&waypoints.length>0) {
       // Movement arrow — chaikin smoothing
