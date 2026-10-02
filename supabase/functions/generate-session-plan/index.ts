@@ -38,17 +38,29 @@ async function callGemini(apiKey: string, systemPrompt: string, parts: any[]): P
 }
 
 // ── Revise-plan prompt ────────────────────────────────────────────────────────
-const REVISE_PLAN_PROMPT = `You are an expert GAA (Gaelic Athletic Association) coaching assistant helping a coach refine an existing session plan.
+const REVISE_PLAN_PROMPT = `You are an expert GAA (Gaelic Athletic Association) coaching assistant helping a coach refine an existing training session plan.
 
-You will receive the current plan as JSON and a piece of coach feedback. Your job is to apply the feedback:
-- Change ONLY what the feedback asks for — do not rewrite or regenerate anything else from scratch
-- Keep all game_name values exactly as they are
-- Keep all descriptions, coaching_points, setup, and variation values exactly as they are unless the feedback explicitly asks to change them
+Make ONLY the changes the feedback asks for — do not rewrite or regenerate anything from scratch. Keep the coach's language, descriptions, and structure where it is already good.
+
+Rules:
 - If timing is adjusted, redistribute durations so they still sum to total_duration_mins exactly
-- Use the sport terminology and language already in the plan
-- If the request is impossible (not enough time, game not in plan), set "_refusal" to a short explanation; otherwise "_refusal" must be null
+- Keep all game_name values exactly as they are (do not rename drills)
+- If the feedback is vague (e.g. "more time on passing"), apply it sensibly
+- If the request is impossible, set "_refusal" to a short explanation; otherwise "_refusal" must be null
 
-Return ONLY valid JSON in the exact same schema as the input plan — no markdown fences, no explanation.`;
+Return ONLY valid JSON matching EXACTLY this schema — no markdown fences, no explanation:
+{
+  "session_title": "string",
+  "session_objective": "string",
+  "total_duration_mins": number,
+  "pre_session": null | { "duration_mins": number, "description": "string" },
+  "warm_up": { "duration_mins": number, "description": "string", "coaching_points": ["string"] },
+  "station_setup": null | "string",
+  "drills": [{ "game_name": "string", "duration_mins": number, "description": "string", "coaching_points": ["string"], "variation": "string | null" }],
+  "cool_down": { "duration_mins": number, "description": "string" },
+  "post_session": null | { "duration_mins": number, "description": "string" },
+  "_refusal": null | "string"
+}`;
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 const SESSION_PLAN_PROMPT = `You are an expert GAA (Gaelic Athletic Association) coaching assistant.
@@ -519,7 +531,37 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-      const inputText = `Existing plan:\n${JSON.stringify(existing_plan, null, 2)}\n\nCoach feedback: ${feedback.trim()}`;
+      function buildPlanText(plan: any): string {
+        const sections: string[] = [];
+        sections.push(`Session title: ${plan.session_title}`);
+        sections.push(`Session objective: ${plan.session_objective}`);
+        sections.push(`Total duration: ${plan.total_duration_mins} mins`);
+        if (plan.pre_session) {
+          sections.push(`Pre-session (${plan.pre_session.duration_mins} mins):\n${plan.pre_session.description}`);
+        }
+        const wu = plan.warm_up;
+        if (wu) {
+          const pts = (wu.coaching_points || []).map((p: string) => `• ${p}`).join('\n');
+          sections.push(`Warm-up (${wu.duration_mins} mins):\n${wu.description}${pts ? '\nCoaching points:\n' + pts : ''}`);
+        }
+        if (plan.station_setup) sections.push(`Station setup: ${plan.station_setup}`);
+        for (let i = 0; i < (plan.drills || []).length; i++) {
+          const d = plan.drills[i];
+          const pts = (d.coaching_points || []).map((p: string) => `• ${p}`).join('\n');
+          let s = `Drill ${i + 1}: ${d.game_name} (${d.duration_mins} mins):\n${d.description}`;
+          if (pts) s += `\nCoaching points:\n${pts}`;
+          if (d.variation) s += `\nVariation: ${d.variation}`;
+          sections.push(s);
+        }
+        const cd = plan.cool_down;
+        if (cd) sections.push(`Cool-down (${cd.duration_mins} mins):\n${cd.description}`);
+        if (plan.post_session) {
+          sections.push(`Post-session (${plan.post_session.duration_mins} mins):\n${plan.post_session.description}`);
+        }
+        return sections.join('\n\n');
+      }
+
+      const inputText = buildPlanText(existing_plan) + `\n\nCoach feedback: ${feedback.trim()}`;
 
       let planJson: any;
       try {
