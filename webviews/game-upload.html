@@ -264,6 +264,13 @@
     .draft-field input::placeholder, .draft-field textarea::placeholder { color: var(--muted); }
     .draft-field select { width: 100%; background: transparent; border: none; padding: 4px 14px 12px; font-size: 15px; color: var(--text); outline: none; -webkit-appearance: none; appearance: none; }
 
+    /* ── DRAWING HELP SHEET ── */
+    .help-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .help-row:last-of-type { border-bottom: none; }
+    .help-row svg { flex-shrink: 0; }
+    .help-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .help-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
     /* ── TOAST ── */
     .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
       background: var(--card2); color: var(--text); padding: 10px 20px; border-radius: 20px;
@@ -289,7 +296,13 @@
 
     <!-- ── Step 1: Image (Photo or Sketch) ── -->
     <div>
-      <div class="field-label">Diagram / Sketch <span class="req">*</span></div>
+      <div class="field-label" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Diagram / Sketch <span class="req">*</span></span>
+        <button onclick="openDrawingHelp()" style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--muted);background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:4px 10px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          How to draw
+        </button>
+      </div>
       <div class="media-tabs">
         <button class="media-tab active" onclick="switchMediaTab('photo', this)">📷 Photo</button>
         <button class="media-tab" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
@@ -532,6 +545,69 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       Save
     </button>
+  </div>
+</div>
+
+<!-- ── DRAWING HELP BOTTOM SHEET ──────────────────────────────────────────── -->
+<div id="drawingHelpBackdrop" onclick="closeDrawingHelp()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;"></div>
+<div id="drawingHelpSheet" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:201;background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--border);max-height:88vh;overflow-y:auto;padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);">
+  <div style="position:sticky;top:0;background:var(--card);padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:1;">
+    <div style="font-size:17px;font-weight:700;">How to draw your diagram</div>
+    <button onclick="closeDrawingHelp()" style="width:32px;height:32px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;color:var(--muted);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:6px;">
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Circles</div>
+    <div class="help-row">
+      <svg width="36" height="36" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" fill="#C62828" stroke="#B71C1C" stroke-width="2"/><text x="18" y="23" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="-apple-system,sans-serif">3</text></svg>
+      <div><div class="help-title">Numbered circle = Player</div><div class="help-sub">Your team → red &nbsp;·&nbsp; Opposition → blue</div></div>
+    </div>
+    <div class="help-row">
+      <svg width="36" height="36" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" fill="#1a1a1a" stroke="#000" stroke-width="2"/><text x="18" y="23" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="-apple-system,sans-serif">C</text></svg>
+      <div><div class="help-title">Circle with C = Coach</div><div class="help-sub">Renders as a black circle</div></div>
+    </div>
+    <div class="help-row">
+      <svg width="36" height="36" viewBox="0 0 36 36"><circle cx="18" cy="18" r="10" fill="#fff" stroke="#555" stroke-width="2"/></svg>
+      <div><div class="help-title">Empty circle = Football</div><div class="help-sub">Small circle, no label</div></div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Other shapes</div>
+    <div class="help-row">
+      <svg width="36" height="36" viewBox="0 0 36 36"><polygon points="18,6 32,30 4,30" fill="#FF6D00" stroke="#E65100" stroke-width="1.5"/></svg>
+      <div><div class="help-title">Triangle = Cone</div><div class="help-sub">Renders as an orange cone</div></div>
+    </div>
+    <div class="help-row">
+      <svg width="36" height="36" viewBox="0 0 36 36"><line x1="10" y1="4" x2="10" y2="32" stroke="#fff" stroke-width="2.5"/><line x1="26" y1="4" x2="26" y2="32" stroke="#fff" stroke-width="2.5"/><line x1="10" y1="18" x2="26" y2="18" stroke="#fff" stroke-width="2.5"/></svg>
+      <div><div class="help-title">H shape = Goalposts</div><div class="help-sub">Two uprights and a crossbar</div></div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Lines &amp; arrows</div>
+    <div class="help-row">
+      <svg width="36" height="36" viewBox="0 0 36 36"><line x1="4" y1="18" x2="26" y2="18" stroke="#fff" stroke-width="2.5"/><polygon points="36,18 24,13 24,23" fill="#fff"/></svg>
+      <div><div class="help-title">Solid arrow = Player run</div><div class="help-sub">Straight, curved, or wavy</div></div>
+    </div>
+    <div class="help-row">
+      <svg width="36" height="36" viewBox="0 0 36 36"><line x1="4" y1="18" x2="26" y2="18" stroke="#FFD700" stroke-width="2.5" stroke-dasharray="6 4"/><polyline points="24,13 36,18 24,23" fill="none" stroke="#FFD700" stroke-width="2"/></svg>
+      <div><div class="help-title">Dashed arrow = Kick / Pass</div><div class="help-sub">Renders in yellow</div></div>
+    </div>
+    <div class="help-row">
+      <svg width="36" height="36" viewBox="0 0 36 36"><line x1="4" y1="18" x2="32" y2="18" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/></svg>
+      <div><div class="help-title">Pitch line = Zone boundary</div><div class="help-sub">Long line spanning full width — no arrowhead</div></div>
+    </div>
+
+    <div style="background:var(--card2);border-radius:10px;padding:12px 14px;margin-top:8px;">
+      <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;">Tips for best results</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;">
+        • Keep circles clearly round and label them legibly<br>
+        • Use numbered circles for players — matchstick figures won't be recognised<br>
+        • Draw arrows that clearly start and end at shapes<br>
+        • Pitch zone lines should span the full width of the playing area<br>
+        • One team uses one set of numbers, opposition uses a different set
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1549,9 +1625,13 @@
     const x1=parseFloat(srcPt.getAttribute('x')||'0')*s+offX, y1=parseFloat(srcPt.getAttribute('y')||'0')*s+offY;
     const x2=parseFloat(tgtPt.getAttribute('x')||'0')*s+offX, y2=parseFloat(tgtPt.getAttribute('y')||'0')*s+offY;
     const style=cell.getAttribute('style')||'', isDashed=style.includes('dashed=1'), isCurved=style.includes('curved=1');
+    const hasArrow=!style.includes('endArrow=none');
+    // Dashed + arrowhead = kick → yellow. Pitch lines (no arrow) = faint white.
+    const lineColor = isDashed && hasArrow ? '#FFD700' : isDashed ? 'rgba(255,255,255,0.45)' : '#ffffff';
+    const lineWidth = !hasArrow ? 1.5 : 2.5;
     const wptArr=geo.querySelector('Array[as="points"]');
     const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0')*s+offX,y:parseFloat(p.getAttribute('y')||'0')*s+offY})):[];
-    ctx.save(); ctx.strokeStyle='#ffffff'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed?[8,4]:[]);
+    ctx.save(); ctx.strokeStyle=lineColor; ctx.lineWidth=lineWidth; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed&&hasArrow?[8,4]:[]);
     ctx.beginPath(); ctx.moveTo(x1,y1);
     if (isCurved&&waypoints.length>0) {
       let pts=[{x:x1,y:y1},...waypoints,{x:x2,y:y2}];
@@ -1559,10 +1639,11 @@
       for(const p of pts)ctx.lineTo(p.x,p.y);
     } else { for(const wp of waypoints)ctx.lineTo(wp.x,wp.y); ctx.lineTo(x2,y2); }
     ctx.stroke(); ctx.setLineDash([]);
+    if (!hasArrow) { ctx.restore(); return; } // pitch line — no arrowhead
     const fx=waypoints.length>0?waypoints[waypoints.length-1].x:x1, fy=waypoints.length>0?waypoints[waypoints.length-1].y:y1;
     const angle=Math.atan2(y2-fy,x2-fx), hLen=13;
     if(!isDashed){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.closePath();ctx.fill();}
-    else{ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.stroke();}
+    else{ctx.strokeStyle=lineColor;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.stroke();}
     ctx.restore();
   }
 
@@ -1589,6 +1670,19 @@
 
   // ── Utilities ──────────────────────────────────────────────────────────────
   function autoResize(el) { el.style.height='auto'; el.style.height=(el.scrollHeight+4)+'px'; }
+
+  // ── Drawing help sheet ─────────────────────────────────────────────────────
+  function openDrawingHelp() {
+    const sheet=document.getElementById('drawingHelpSheet'), bd=document.getElementById('drawingHelpBackdrop');
+    sheet.style.display='block'; bd.style.display='block';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ sheet.style.transform='translateY(0)'; bd.style.opacity='1'; }));
+  }
+  function closeDrawingHelp() {
+    const sheet=document.getElementById('drawingHelpSheet'), bd=document.getElementById('drawingHelpBackdrop');
+    sheet.style.transform='translateY(100%)';
+    setTimeout(()=>{ sheet.style.display='none'; bd.style.display='none'; }, 310);
+  }
+
   function showToast(msg, type='') {
     const t=document.getElementById('toast');
     t.textContent=msg; t.className='toast'+(type?' '+type:''); t.classList.add('show');
