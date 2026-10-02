@@ -1077,6 +1077,7 @@
     try {
       const body = { action: 'generate', event_id: EVENT_ID, user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
       if (feedback) body.feedback = feedback;
+      if (feedback && _currentPlan) body.existing_plan = _currentPlan;
       const res = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
       const data = await res.json();
 
