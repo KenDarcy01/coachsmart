@@ -236,6 +236,7 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .processing-title { font-size: 18px; font-weight: 600; }
     .processing-status { font-size: 14px; color: var(--muted); max-width: 260px; line-height: 1.5; }
+    .processing-eta { font-size: 13px; color: var(--muted); opacity: 0.6; margin-top: 4px; }
 
     /* ── DRAFT SCREEN ── */
     .review-body { flex: 1; overflow-y: auto; padding: 16px 16px 140px; display: flex; flex-direction: column; gap: 14px; }
@@ -380,8 +381,9 @@
 <!-- ── SCREEN 2: PROCESSING ───────────────────────────────────────────────── -->
 <div id="screenProcessing" class="screen">
   <div class="spinner"></div>
-  <div class="processing-title" id="processingTitle">Standardising your diagram…</div>
-  <div class="processing-status" id="processingStatus">Converting to a consistent style</div>
+  <div class="processing-title" id="processingTitle">Creating your draft…</div>
+  <div class="processing-status" id="processingStatus">Reading your diagram…</div>
+  <div class="processing-eta" id="processingEta"></div>
 </div>
 
 
@@ -523,9 +525,10 @@
     if (window.FlutterBridge) window.FlutterBridge.postMessage('close');
     else history.back();
   }
-  function setStatus(title, sub) {
+  function setStatus(title, sub, eta) {
     document.getElementById('processingTitle').textContent  = title;
     document.getElementById('processingStatus').textContent = sub || '';
+    document.getElementById('processingEta').textContent    = eta != null ? eta : '';
   }
 
   // ── Chip helpers ──────────────────────────────────────────────────────────
@@ -705,7 +708,7 @@
     }
 
     showScreen('screenProcessing');
-    setStatus('Creating your draft…', 'Reading your diagram…');
+    setStatus('Creating your draft…', 'Reading your diagram…', 'Usually takes 30–60 seconds');
 
     // Build image array for AI (use original image)
     const imageArray = [{ base64: sourceImg.base64, mimeType: sourceImg.mimeType }];
@@ -731,14 +734,14 @@
 
     const aiPromise = callEdgeFunction(payload).then(r => {
       aiResult = r;
-      setStatus('Creating your draft…', stdResult === null ? 'Standardising diagram…' : 'Almost done…');
+      setStatus('Creating your draft…', stdResult === null ? 'Standardising diagram…' : 'Almost done…', stdResult === null ? 'Usually takes 30–60 seconds' : '');
     }).catch(e => {
       aiErr = e;
     });
 
     const stdPromise = standardiseDiagram(sourceImg).then(r => {
       stdResult = r;
-      setStatus('Creating your draft…', aiResult === null ? 'Reading your diagram…' : 'Almost done…');
+      setStatus('Creating your draft…', aiResult === null ? 'Reading your diagram…' : 'Almost done…', aiResult === null ? 'Usually takes 30–60 seconds' : '');
     });
 
     try {

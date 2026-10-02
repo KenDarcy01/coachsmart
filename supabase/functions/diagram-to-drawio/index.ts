@@ -31,21 +31,26 @@ CANVAS SIZE — MATCH THE CONTENT:
 - PADDING: all shapes and arrow endpoints must stay at least 60px from every edge. Safe area is x: 60 to (width−60), y: 60 to (height−60).
 - Scale all positions from the original image proportionally to fill the chosen canvas.
 
-PLAYERS (numbered circles):
-- Ellipse, width=46, height=46
-- Home team: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;"
-- Away team (opposite team): style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;"
-- If only one team visible, use home (red) style for all numbered players.
+CIRCLES — READ THE LABEL FIRST, THEN CHOOSE THE STYLE:
+For every circle in the image, inspect what is written inside it before deciding which style to use:
 
-COACHES (circles labelled "C"):
-- A circle containing the letter "C" is a coach, not a player. Ellipse, width=46, height=46
-- Style: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;"
-- Value="C"
+1. FOOTBALL — circle is empty OR contains only a dot (no letter, no number):
+   - Ellipse, width=24, height=24, value=""
+   - style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#555555;shadow=0;"
+   - MUST be white fill. Do not use red, blue, or black for a football.
 
-FOOTBALLS (empty circles — no letter or number inside):
-- A plain circle with no label is a football/ball. Ellipse, width=24, height=24
-- Style: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#555555;shadow=0;"
-- Value="" (no label)
+2. COACH — circle contains the letter "C" (upper or lower case):
+   - Ellipse, width=46, height=46, value="C"
+   - style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;"
+   - MUST be black fill with white "C". Do not use red or blue for a coach.
+
+3. PLAYER — circle contains a number (1, 2, 3 …):
+   - Ellipse, width=46, height=46, value="{number}"
+   - Home team: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;"
+   - Away team: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;"
+   - If only one team is visible, use home (red) for all numbered players.
+
+DECISION RULE — apply in order: empty/dot → football (white); letter C → coach (black); number → player (red/blue).
 
 CONES (triangles):
 - Triangle, width=28, height=32, direction=north (MANDATORY)
