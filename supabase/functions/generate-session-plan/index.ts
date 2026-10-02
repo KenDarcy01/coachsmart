@@ -84,7 +84,7 @@ Rules:
 - Use the EXACT game name from the input in each drill — do not paraphrase or rename
 - Adapt each drill to the given player count; note modifications if needed
 - Coaching points must be short and actionable
-- Use GAA language: "football" for football code, "sliotar" and "hurl" for hurling/camogie
+- Use the sport code supplied in the context throughout — never mix football and hurling/camogie language; if the code is Football use football terminology only; if Hurling/Camogie use sliotar/hurl and never mention football
 - CRITICAL: Weather is provided for context only — do NOT include weather data or weather text ANYWHERE in the output JSON, not in session_objective, not in descriptions, not in coaching_points, not anywhere. Weather is shown separately.
 - Do NOT include player count adjustment notes; adapt the description directly for the given numbers
 - Warm-up must be at least 10 minutes; cool-down at least 5 minutes
@@ -440,15 +440,27 @@ serve(async (req) => {
       const [planResult, favResult] = await Promise.all([
         planPromise,
         sb.from("user_game_link")
-          .select("position, games!inner(game_id, game_name, game_image)")
+          .select("position, games!inner(game_id, game_name, game_image, game_code)")
           .eq("user_id", user_id)
           .order("position"),
       ]);
 
-      const favourites = (favResult.data || []).map((f: any) => ({
+      // Filter by event code if known; fall back to all when no match
+      let favRows = (favResult.data || []);
+      if (eventCodeStr) {
+        const code = eventCodeStr.toLowerCase();
+        const filtered = favRows.filter((f: any) => {
+          const codes: string[] = (f.games?.game_code || []).map((c: string) => c.toLowerCase());
+          return codes.length === 0 || codes.some(c => code.includes(c) || c.includes(code));
+        });
+        if (filtered.length > 0) favRows = filtered;
+      }
+
+      const favourites = favRows.map((f: any) => ({
         game_id:    f.games.game_id,
         game_name:  f.games.game_name,
         game_image: f.games.game_image || null,
+        game_code:  f.games.game_code  || [],
         position:   f.position,
       }));
 
@@ -493,7 +505,7 @@ serve(async (req) => {
     // Fetch all favourite games
     const { data: allFavLinks } = await sb
       .from("user_game_link")
-      .select(`position, games!inner(game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points)`)
+      .select(`position, games!inner(game_id, game_name, game_image, game_code, game_setup, game_how_to_play, game_variations, game_teaching_points)`)
       .eq("user_id", user_id)
       .order("position");
 
@@ -511,9 +523,19 @@ serve(async (req) => {
     if (game_ids && Array.isArray(game_ids) && game_ids.length > 0) {
       const idOrder = game_ids.map(Number);
       favLinks = idOrder
-        .map(id => allFavLinks.find((f: any) => f.games?.game_id === id))
+        .map(id => allFavLinks!.find((f: any) => f.games?.game_id === id))
         .filter(Boolean) as typeof allFavLinks;
-      if (favLinks.length === 0) favLinks = allFavLinks;
+      if (!favLinks || favLinks.length === 0) favLinks = allFavLinks;
+    }
+
+    // Filter by event code if known; fall back to all when no match
+    if (eventCodeStr && favLinks) {
+      const code = eventCodeStr.toLowerCase();
+      const filtered = favLinks.filter((f: any) => {
+        const codes: string[] = (f.games?.game_code || []).map((c: string) => c.toLowerCase());
+        return codes.length === 0 || codes.some((c: string) => code.includes(c) || c.includes(code));
+      });
+      if (filtered.length > 0) favLinks = filtered;
     }
 
     // Coach notes
@@ -561,7 +583,16 @@ serve(async (req) => {
         ? `Drill mode: STATION ROTATION — players are split into groups across the drill stations; not everyone does the same activity at once; each group rotates through all stations at equal time intervals; warm-up and cool-down are collective activities for the full group`
         : `Drill mode: SEQUENTIAL — all players perform each drill together before moving to the next`,
       squad?.squad_name ? `Squad: ${squad.squad_name}${(squad as any).grade ? ` (${(squad as any).grade})` : ""}` : null,
-      teamFemale ? `Sport code: Camogie — use "Camogie" not "Hurling", "hurl/camán" for the stick, "sliotar" for the ball` : null,
+      (() => {
+        const code = (eventCodeStr || "").toLowerCase();
+        if (teamFemale || code.includes("camogie"))
+          return `Sport code: Camogie — always write "Camogie" not "Hurling", use "hurl" or "camán" for the stick, "sliotar" for the ball; never reference football or Gaelic football`;
+        if (code.includes("hurling"))
+          return `Sport code: Hurling — always write "hurling" not "football", use "hurl" for the stick, "sliotar" for the ball; never reference football or Gaelic football`;
+        if (code.includes("football") || code.includes("ladies"))
+          return `Sport code: Gaelic Football — always write "football" not "hurling", use football terminology throughout (hand-pass, kick-pass, scoring, football); never reference hurling, sliotar, or hurl`;
+        return eventCodeStr ? `Sport code: ${eventCodeStr}` : null;
+      })(),
       weather ? `Weather forecast (for context only — do NOT include in plan text): ${weather.summary}` : null,
       eventDetails ? `Coach's session notes: ${eventDetails}` : null,
       feedback?.trim() ? `\nCoach's feedback on the previous plan (please address this):\n${feedback.trim()}` : null,
