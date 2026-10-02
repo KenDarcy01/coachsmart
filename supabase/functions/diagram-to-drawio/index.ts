@@ -111,37 +111,23 @@ const STYLE_AWAY     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;
 // Rewrite every ellipse cell's style based purely on its value attribute.
 // The model reads labels correctly but consistently picks wrong colours — fix deterministically here.
 function fixCircleStyles(xml: string): string {
-  // Match the full <mxCell ...>...</mxCell> block for ellipse vertices
-  return xml.replace(
-    /(<mxCell[^>]*\bstyle="[^"]*\bellipse\b[^"]*"[^>]*>)([\s\S]*?)(<\/mxCell>)/g,
-    (full, openTag, inner, closeTag) => {
-      const valueMatch = openTag.match(/\bvalue="([^"]*)"/);
-      const value = (valueMatch ? valueMatch[1] : "").trim();
+  return xml.replace(/<mxCell\b[^>]+>/g, (tag) => {
+    if (!/\bstyle="[^"]*\bellipse\b/.test(tag)) return tag; // not an ellipse, skip
 
-      let newStyle: string;
-      let newInner = inner;
+    const m = tag.match(/\bvalue="([^"]*)"/);
+    const value = (m ? m[1] : "").trim();
 
-      if (value === "" || value === "·" || value === "•" || value === ".") {
-        // Empty or dot → football (white), resize to 24×24
-        newStyle = STYLE_FOOTBALL;
-        newInner = inner
-          .replace(/\bwidth="\d+(\.\d+)?"/, 'width="24"')
-          .replace(/\bheight="\d+(\.\d+)?"/, 'height="24"');
-      } else if (/^c$/i.test(value)) {
-        // Letter C → coach (black)
-        newStyle = STYLE_COACH;
-      } else {
-        // Number → player; keep existing red/blue, only fix if model used wrong colour
-        const isRed  = openTag.includes("#C62828") || openTag.includes("#B71C1C");
-        const isBlue = openTag.includes("#1565C0") || openTag.includes("#0D47A1");
-        if (isRed || isBlue) return full; // already correct
-        newStyle = STYLE_HOME;
-      }
-
-      const newOpenTag = openTag.replace(/\bstyle="[^"]*"/, `style="${newStyle}"`);
-      return newOpenTag + newInner + closeTag;
+    let newStyle: string | null = null;
+    if (/^c$/i.test(value)) {
+      newStyle = STYLE_COACH;    // "C" → black coach
+    } else if (value === "" || value === "." || value === "·" || value === "•") {
+      newStyle = STYLE_FOOTBALL; // empty / dot → white football
     }
-  );
+    // numbered players: leave style as-is
+
+    if (newStyle === null) return tag;
+    return tag.replace(/\bstyle="[^"]*"/, `style="${newStyle}"`);
+  });
 }
 
 serve(async (req) => {
@@ -243,7 +229,9 @@ serve(async (req) => {
     }
 
     // Post-process: enforce correct ellipse styles by value — never trust the model's colour choice.
+    const xmlBefore = xml;
     xml = fixCircleStyles(xml);
+    console.log("fixCircleStyles changed:", xml !== xmlBefore, "| coach cells:", (xml.match(/fillColor=#1a1a1a/g) || []).length, "| football cells:", (xml.match(/fillColor=#ffffff/g) || []).length);
 
     return new Response(JSON.stringify({ xml }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
