@@ -395,32 +395,15 @@
   </div>
 
   <div class="review-body">
+
+    <!-- Image -->
     <div class="draft-image" id="rvImageCard" style="display:none">
       <div id="rvImageInner"></div>
     </div>
-    <div class="draft-field">
-      <div class="draft-field-label">Game Name</div>
-      <input id="rvName" type="text" placeholder="Game name…"/>
-    </div>
-    <div class="draft-field">
-      <div class="draft-field-label">Setup</div>
-      <textarea id="rvSetup" placeholder="Setup instructions…" oninput="autoResize(this)"></textarea>
-    </div>
-    <div class="draft-field">
-      <div class="draft-field-label">How to Play</div>
-      <textarea id="rvHowTo" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
-    </div>
-    <div class="draft-field">
-      <div class="draft-field-label">Variations</div>
-      <textarea id="rvVariations" placeholder="Progressions and variations…" oninput="autoResize(this)"></textarea>
-    </div>
-    <div class="draft-field">
-      <div class="draft-field-label">Teaching Points</div>
-      <textarea id="rvTeaching" placeholder="Key coaching cues…" oninput="autoResize(this)"></textarea>
-    </div>
 
+    <!-- Metadata (directly under image) -->
     <div class="draft-field">
-      <div class="draft-field-label">Type</div>
+      <div class="draft-field-label">Type <span style="color:var(--red)">*</span></div>
       <select id="rvType">
         <option value="">Select type…</option>
         <option value="Game">Game</option>
@@ -429,11 +412,6 @@
         <option value="Warmup">Warmup</option>
         <option value="Video">Video</option>
       </select>
-    </div>
-
-    <div class="draft-field">
-      <div class="draft-field-label">Video Link <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></div>
-      <input id="rvVideoUrl" type="url" placeholder="https://youtube.com/watch?v=…"/>
     </div>
 
     <div>
@@ -451,7 +429,7 @@
     </div>
 
     <div>
-      <div class="field-label" style="margin-bottom:10px">Code</div>
+      <div class="field-label" style="margin-bottom:10px">Code <span style="color:var(--red)">*</span></div>
       <div class="chip-row" id="sportChips">
         <button class="chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
         <button class="chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
@@ -472,19 +450,41 @@
         <button class="chip" data-skill="Fielding"  onclick="toggleChip(this)">Fielding</button>
       </div>
     </div>
+
+    <div class="draft-field">
+      <div class="draft-field-label">Video Link <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></div>
+      <input id="rvVideoUrl" type="url" placeholder="https://youtube.com/watch?v=…"/>
+    </div>
+
+    <!-- Detail -->
+    <div class="draft-field">
+      <div class="draft-field-label">Game Name <span style="color:var(--red)">*</span></div>
+      <input id="rvName" type="text" placeholder="Game name…"/>
+    </div>
+    <div class="draft-field">
+      <div class="draft-field-label">Setup</div>
+      <textarea id="rvSetup" placeholder="Setup instructions…" oninput="autoResize(this)"></textarea>
+    </div>
+    <div class="draft-field">
+      <div class="draft-field-label">How to Play</div>
+      <textarea id="rvHowTo" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
+    </div>
+    <div class="draft-field">
+      <div class="draft-field-label">Variations</div>
+      <textarea id="rvVariations" placeholder="Progressions and variations…" oninput="autoResize(this)"></textarea>
+    </div>
+    <div class="draft-field">
+      <div class="draft-field-label">Teaching Points</div>
+      <textarea id="rvTeaching" placeholder="Key coaching cues…" oninput="autoResize(this)"></textarea>
+    </div>
+
   </div>
 
   <div class="sticky-footer">
-    <div class="dual-footer">
-      <button class="btn-secondary" id="improveBtn" onclick="improveWithAI()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        Improve
-      </button>
-      <button class="btn-primary" onclick="saveGame()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save
-      </button>
-    </div>
+    <button class="btn-primary" onclick="saveGame()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Save
+    </button>
   </div>
 </div>
 
@@ -707,7 +707,8 @@
       standardiseDiagram(sourceImg),
       new Promise(r => setTimeout(() => r(null), 20000)),
     ]);
-    _reviewImage = standardised || sourceImg; // fall back to original if it fails
+    _reviewImage = standardised || sourceImg;
+    if (!standardised) setStatus('Creating your draft…', 'Using original image — diagram standardisation timed out');
 
     setStatus('Creating your draft…', 'AI is reading your diagram and description');
 
@@ -792,6 +793,8 @@
   async function saveGame() {
     const name = document.getElementById('rvName').value.trim();
     if (!name) { showToast('Game name is required', 'error'); document.getElementById('rvName').focus(); return; }
+    if (!document.getElementById('rvType').value) { showToast('Please select a Type', 'error'); document.getElementById('rvType').focus(); return; }
+    if (!getSelectedSports().length) { showToast('Please select a Code (Football / Hurling / Camogie)', 'error'); return; }
     const saveBtn = document.querySelector('.btn-primary[onclick="saveGame()"]');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
     try {
