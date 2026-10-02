@@ -409,7 +409,7 @@
   <div class="processing-title" id="processingTitle">Creating your draft…</div>
   <div class="processing-status" id="processingStatus">Reading your diagram…</div>
   <div class="processing-eta" id="processingEta"></div>
-  <div class="processing-warning">Keep this screen open until complete</div>
+  <div class="processing-warning">This takes 60–90 seconds — keep this screen open</div>
 </div>
 
 
@@ -672,7 +672,7 @@
         const mm = String(Math.floor(s / 60)).padStart(1, '0');
         const ss = String(s % 60).padStart(2, '0');
         const el = document.getElementById('processingEta');
-        if (el) el.textContent = s < 60 ? `${s}s elapsed — usually takes 30–60 seconds` : `${mm}:${ss} elapsed`;
+        if (el) el.textContent = s < 90 ? `${s}s elapsed — usually takes 60–90 seconds` : `${mm}:${ss} elapsed — almost there…`;
       }, 1000);
     } else {
       clearInterval(_processingTimer);
