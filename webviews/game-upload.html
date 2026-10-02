@@ -180,6 +180,17 @@
       color: var(--text); word-break: break-word;
     }
     .transcript-preview:empty::before { content: "Your description will appear here…"; color: var(--muted); }
+    .transcript-preview.revising {
+      display: flex; align-items: center; gap: 10px;
+      color: var(--muted); font-size: 14px; border-color: var(--green);
+    }
+    .transcript-preview.revising::after {
+      content: ''; flex-shrink: 0;
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid var(--border); border-top-color: var(--green);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .text-desc {
       width: 100%; background: var(--card); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 12px 14px;
@@ -1026,8 +1037,13 @@
       : _fbTranscript.trim();
     if (!feedback) { showToast('Add some feedback first', 'error'); return; }
     const btn = document.getElementById('fbReviseBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Revising…'; }
-    else { showToast('Revising…'); }
+    const transcriptEl = document.getElementById('fbTranscript');
+    if (btn) {
+      btn.disabled = true; btn.textContent = 'Revising…';
+    } else if (transcriptEl) {
+      transcriptEl.textContent = 'Revising draft…';
+      transcriptEl.classList.add('revising');
+    }
     try {
       const result = await callEdgeFunction({
         action:               'revise_with_feedback',
@@ -1041,10 +1057,11 @@
       populateReviewFields(result);
       requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
       document.getElementById('fbInput').value = '';
-      document.getElementById('fbTranscript').textContent = '';
+      if (transcriptEl) { transcriptEl.textContent = ''; transcriptEl.classList.remove('revising'); }
       _fbTranscript = '';
       showToast('Draft revised', 'success');
     } catch (err) {
+      if (transcriptEl) transcriptEl.classList.remove('revising');
       showToast('Error: ' + (err.message || 'AI failed'), 'error');
     } finally {
       if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg> Revise Draft`; }
