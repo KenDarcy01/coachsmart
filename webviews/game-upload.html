@@ -1307,11 +1307,9 @@
             ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(val,x,y+h/2); ctx.restore();
           }
         }
-        canvas.toBlob(blob=>{
-          const reader=new FileReader();
-          reader.onload=e=>{const d=e.target.result;resolve({dataUrl:d,base64:d.split(',')[1]});};
-          reader.onerror=reject; reader.readAsDataURL(blob);
-        },'image/png');
+        // toDataURL works on detached canvases (toBlob can silently fail on iOS WKWebView)
+        const dataUrl = canvas.toDataURL('image/png');
+        resolve({ dataUrl, base64: dataUrl.split(',')[1] });
       } catch(err){reject(err);}
     });
   }
