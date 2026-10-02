@@ -15,6 +15,7 @@
       --card:     #1E222B;
       --card2:    #252A35;
       --border:   rgba(255,255,255,0.08);
+      --border-d: rgba(255,255,255,0.18);
       --text:     #E7EBEE;
       --muted:    #6B7280;
       --red:      #EF4444;
@@ -56,15 +57,22 @@
     /* ── FORM BODY ── */
     .form-body {
       flex: 1; overflow-y: auto;
-      padding: 16px 16px 120px;
-      display: flex; flex-direction: column; gap: 20px;
+      padding: 20px 16px 120px;
+      display: flex; flex-direction: column; gap: 24px;
     }
 
     .field-label {
       font-size: 12px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
     }
-    .field-label span { color: var(--red); margin-left: 2px; }
+    .field-label .req { color: var(--red); margin-left: 2px; }
+    .field-label .opt {
+      color: var(--muted); font-weight: 400; text-transform: none;
+      letter-spacing: 0; font-size: 11px; margin-left: 4px;
+    }
+    .field-hint {
+      font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.5;
+    }
 
     .text-input {
       width: 100%; background: var(--card); border: 1px solid var(--border);
@@ -75,8 +83,6 @@
     .text-input:focus { border-color: var(--green); }
     .text-input::placeholder { color: var(--muted); }
 
-    textarea.text-input { resize: none; min-height: 140px; line-height: 1.5; overflow: hidden; }
-
     select.text-input {
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
@@ -84,84 +90,113 @@
       padding-right: 36px;
     }
 
-    /* ── AGE CHIPS ── */
+    /* ── IMAGE UPLOAD ── */
+    .img-add-zone {
+      width: 100%; min-height: 160px; border-radius: var(--radius);
+      border: 2px dashed var(--border-d);
+      background: var(--card); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; color: var(--muted); transition: border-color 0.15s, background 0.15s;
+    }
+    .img-add-zone:active { border-color: var(--green); background: var(--green-dim); }
+    .img-add-zone svg { width: 32px; height: 32px; opacity: 0.45; }
+    .img-add-zone .zone-label { font-size: 15px; font-weight: 500; color: var(--text); }
+    .img-add-zone .zone-sub   { font-size: 13px; }
+
+    /* Grid of uploaded images */
+    .images-grid { display: flex; flex-direction: column; gap: 10px; }
+
+    .img-primary {
+      position: relative; border-radius: var(--radius); overflow: hidden;
+      border: 1.5px solid var(--border);
+    }
+    .img-primary img {
+      display: block; width: 100%; max-height: 320px; object-fit: contain;
+      background: var(--card2);
+    }
+    .img-extras {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .img-thumb {
+      position: relative; width: 80px; height: 80px;
+      border-radius: 8px; overflow: hidden; border: 1.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .img-remove {
+      position: absolute; top: 4px; right: 4px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(0,0,0,0.65); color: #fff;
+      font-size: 15px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .img-add-sm {
+      width: 80px; height: 80px; border-radius: 8px;
+      border: 1.5px dashed var(--border-d);
+      background: var(--card); color: var(--muted);
+      font-size: 28px; font-weight: 300;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .img-add-sm:active { border-color: var(--green); color: var(--green); }
+
+    /* ── CHIPS ── */
     .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
-    .age-chip {
+    .chip {
       padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
       background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
       transition: all 0.15s;
     }
-    .age-chip.selected {
+    .chip.selected {
       background: var(--green-dim); border-color: var(--green); color: var(--green);
     }
 
-    /* ── MEDIA TABS (Sketch / Photo) ── */
-    .media-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
-    .media-tab {
-      flex: 1; padding: 9px 0; border-radius: 10px; font-size: 14px; font-weight: 600;
-      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
-      transition: all 0.15s;
+    /* ── VOICE ── */
+    .voice-instruction {
+      font-size: 14px; line-height: 1.6; color: var(--muted);
     }
-    .media-tab.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
-    .media-panel { display: none; }
-    .media-panel.active { display: block; }
-
-    /* ── CANVAS SKETCHPAD ── */
-    .sketch-wrap {
-      border-radius: var(--radius); overflow: hidden;
-      border: 1.5px solid var(--border);
+    .mic-btn {
+      width: 100%; height: 68px; border-radius: 34px;
+      background: var(--card); border: 2.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      color: var(--muted); font-size: 16px; font-weight: 600;
+      transition: border-color 0.18s, background 0.18s, color 0.18s;
+      flex-shrink: 0; -webkit-user-select: none; user-select: none; touch-action: none;
     }
-    #sketchCanvas {
-      display: block; width: 100%; height: 520px;
-      touch-action: none; cursor: crosshair;
+    .mic-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+    .mic-btn.recording {
+      background: rgba(239,68,68,0.14); border-color: var(--red); color: var(--red);
+      animation: mic-ring 1.2s ease-out infinite;
     }
-    .sketch-toolbar {
-      display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
-      background: var(--card2); padding: 8px 10px;
-      border-top: 1px solid var(--border);
+    @keyframes mic-ring {
+      0%   { box-shadow: 0 0 0 0   rgba(239,68,68,0.4); }
+      70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0);   }
+      100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);   }
     }
-    .tool-btn {
-      display: flex; align-items: center; justify-content: center; gap: 5px;
-      padding: 7px 8px; border-radius: 8px; font-size: 13px; font-weight: 600;
-      background: var(--card); border: 1.5px solid var(--border); color: var(--muted);
-      transition: all 0.15s; flex: 1; min-width: calc(25% - 6px);
+    .voice-wave {
+      display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px;
+      opacity: 0; transition: opacity 0.25s; pointer-events: none; margin-bottom: 4px;
     }
-    .tool-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
-    .tool-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-    .tool-btn-action { color: var(--muted); }
-    .tool-btn-action:active { opacity: 0.6; }
-
-    /* Text input overlay */
-    #sketchTextOverlay {
-      position: fixed; z-index: 200; display: none;
+    .voice-wave.active { opacity: 1; }
+    .voice-wave span {
+      display: block; width: 4px; background: var(--green);
+      border-radius: 4px; min-height: 4px;
+      animation: wave-bar 1.1s ease-in-out infinite;
     }
-    #sketchTextInput {
-      background: rgba(30,34,43,0.97); border: 1.5px solid var(--green);
-      border-radius: 8px; color: var(--text); font-size: 16px; font-weight: 600;
-      padding: 8px 12px; outline: none; min-width: 160px; max-width: 240px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    .voice-wave span:nth-child(1) { animation-delay: 0s;    }
+    .voice-wave span:nth-child(2) { animation-delay: 0.15s; }
+    .voice-wave span:nth-child(3) { animation-delay: 0.30s; }
+    .voice-wave span:nth-child(4) { animation-delay: 0.45s; }
+    .voice-wave span:nth-child(5) { animation-delay: 0.60s; }
+    @keyframes wave-bar { 0%, 100% { height: 4px; } 50% { height: 22px; } }
+    .transcript-preview {
+      min-height: 44px; padding: 10px 14px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 14px; line-height: 1.55;
+      color: var(--text); word-break: break-word;
     }
-
-    /* ── PHOTO UPLOAD ── */
-    .image-zone {
-      width: 100%; min-height: 120px; border-radius: var(--radius);
-      border: 2px dashed var(--border);
-      background: var(--card); cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 8px; color: var(--muted); transition: border-color 0.15s;
-      position: relative; overflow: hidden;
-    }
-    .image-zone:active { border-color: var(--green); }
-    .image-zone svg { width: 28px; height: 28px; opacity: 0.5; }
-    .image-zone .zone-label { font-size: 14px; }
-    .image-zone .zone-sub   { font-size: 12px; opacity: 0.6; }
-    .image-preview { width: 100%; height: auto; max-height: 350px; object-fit: contain; border-radius: calc(var(--radius) - 2px); display: block; }
-    #fileInput { display: none; }
-    .remove-img {
-      position: absolute; top: 8px; right: 8px;
-      background: rgba(0,0,0,0.6); border-radius: 50%;
-      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-      color: #fff; font-size: 16px; line-height: 1;
+    .transcript-preview:empty::before {
+      content: "Your description will appear here…"; color: var(--muted);
     }
 
     /* ── STICKY FOOTER ── */
@@ -178,8 +213,6 @@
     }
     .btn-primary:active { opacity: 0.8; }
     .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* ── DUAL FOOTER ── */
     .dual-footer { display: flex; gap: 10px; }
     .btn-secondary {
       flex: 1; padding: 15px; border-radius: var(--radius);
@@ -189,6 +222,7 @@
       transition: opacity 0.15s;
     }
     .btn-secondary:active { opacity: 0.7; }
+    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
     .dual-footer .btn-primary { flex: 1.6; }
 
     /* ── PROCESSING SCREEN ── */
@@ -207,135 +241,50 @@
     .processing-title { font-size: 18px; font-weight: 600; }
     .processing-status { font-size: 14px; color: var(--muted); max-width: 260px; line-height: 1.5; }
 
-    /* ── REVIEW SCREEN ── */
+    /* ── DRAFT / REVIEW SCREEN ── */
     .review-body {
       flex: 1; overflow-y: auto;
       padding: 16px 16px 140px;
-      display: flex; flex-direction: column; gap: 16px;
+      display: flex; flex-direction: column; gap: 14px;
     }
 
-    /* Image card */
-    .image-card {
-      background: var(--card); border-radius: var(--radius);
-      border: 1px solid var(--border); overflow: hidden;
+    /* Draft image card */
+    .draft-image {
+      border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border);
     }
-    .image-card-header {
-      padding: 10px 14px; border-bottom: 1px solid var(--border);
-      font-size: 12px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.07em; color: var(--muted);
-    }
-    .image-card-inner { padding: 12px; }
-    .image-card-inner img { max-width: 100%; border-radius: 6px; display: block; }
+    .draft-image img { display: block; width: 100%; max-height: 260px; object-fit: contain; background: var(--card2); }
 
-    /* Review field cards */
-    .review-field {
-      background: var(--card); border-radius: var(--radius);
-      border: 1px solid var(--border); overflow: hidden;
+    /* Draft editable fields */
+    .draft-field {
+      border: 1.5px dashed var(--border-d);
+      border-radius: var(--radius);
+      background: var(--card);
+      overflow: hidden;
+      transition: border-color 0.18s;
     }
-    .review-field-header {
-      padding: 10px 14px; border-bottom: 1px solid var(--border);
-      font-size: 12px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.07em; color: var(--muted);
+    .draft-field:focus-within {
+      border-color: var(--green);
+      border-style: solid;
     }
-    .review-field textarea {
+    .draft-field-label {
+      padding: 9px 14px 4px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .draft-field textarea {
       width: 100%; background: transparent; border: none;
-      padding: 12px 14px; font-size: 15px; color: var(--text);
+      padding: 4px 14px 12px; font-size: 15px; color: var(--text);
       line-height: 1.55; outline: none; resize: none;
-      overflow: hidden; min-height: 60px;
+      overflow: hidden; min-height: 48px;
     }
-    .review-field input {
+    .draft-field input {
       width: 100%; background: transparent; border: none;
-      padding: 12px 14px; font-size: 16px; font-weight: 600;
+      padding: 4px 14px 12px; font-size: 16px; font-weight: 600;
       color: var(--text); outline: none;
     }
-
-    /* ── PER-FIELD SPEAK ── */
-    .field-header-row {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
-    }
-    .field-header-row .field-label { margin-bottom: 0; }
-    .field-speak-btn {
-      display: flex; align-items: center; gap: 5px;
-      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
-      background: var(--card2); border: 1.5px solid var(--border); color: var(--muted);
-      transition: all 0.2s; flex-shrink: 0;
-    }
-    .field-speak-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
-    .field-speak-btn.recording {
-      background: rgba(239,68,68,0.12); border-color: var(--red); color: var(--red);
-      animation: mic-pulse 1.4s ease-in-out infinite;
-    }
-    @keyframes mic-pulse { 0%,100% { opacity:1; } 50% { opacity:0.55; } }
-
-    /* ── VOICE / TEXT MODE TOGGLE ── */
-    .mode-toggle {
-      display: flex; border-radius: var(--radius);
-      background: var(--card); border: 1.5px solid var(--border); overflow: hidden;
-    }
-    .mode-btn {
-      flex: 1; padding: 11px 0; font-size: 14px; font-weight: 600;
-      color: var(--muted); display: flex; align-items: center; justify-content: center;
-      gap: 7px; transition: all 0.18s;
-    }
-    .mode-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
-    .mode-btn.active { background: var(--green-dim); color: var(--green); }
-    .mode-btn:not(:last-child) { border-right: 1.5px solid var(--border); }
-
-    /* ── LARGE MIC BUTTON ── */
-    .mic-container {
-      display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 8px 0;
-    }
-    .voice-instruction {
-      font-size: 14px; line-height: 1.6; color: var(--muted); text-align: center;
-    }
-    .mic-btn {
-      width: 100%; height: 72px; border-radius: 36px;
-      background: var(--card); border: 2.5px solid var(--border);
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      color: var(--muted); font-size: 16px; font-weight: 600;
-      transition: border-color 0.18s, background 0.18s, color 0.18s;
-      flex-shrink: 0; -webkit-user-select: none; user-select: none; touch-action: none;
-    }
-    .mic-btn svg { width: 28px; height: 28px; flex-shrink: 0; }
-    .mic-btn.recording {
-      background: rgba(239,68,68,0.14); border-color: var(--red); color: var(--red);
-      animation: mic-ring 1.2s ease-out infinite;
-    }
-    @keyframes mic-ring {
-      0%   { box-shadow: 0 0 0 0   rgba(239,68,68,0.4); }
-      70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0);   }
-      100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);   }
-    }
-
-    /* ── VOICE WAVEFORM ── */
-    .voice-wave {
-      display: flex; align-items: center; gap: 5px; height: 36px;
-      opacity: 0; transition: opacity 0.25s; pointer-events: none;
-    }
-    .voice-wave.active { opacity: 1; }
-    .voice-wave span {
-      display: block; width: 4px; background: var(--green);
-      border-radius: 4px; min-height: 4px;
-      animation: wave-bar 1.1s ease-in-out infinite;
-    }
-    .voice-wave span:nth-child(1) { animation-delay: 0s;    }
-    .voice-wave span:nth-child(2) { animation-delay: 0.15s; }
-    .voice-wave span:nth-child(3) { animation-delay: 0.30s; }
-    .voice-wave span:nth-child(4) { animation-delay: 0.45s; }
-    .voice-wave span:nth-child(5) { animation-delay: 0.60s; }
-    @keyframes wave-bar { 0%, 100% { height: 4px; } 50% { height: 28px; } }
-
-    /* ── TRANSCRIPT PREVIEW ── */
-    .transcript-preview {
-      min-height: 56px; padding: 12px 14px;
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--radius); font-size: 14px; line-height: 1.55;
-      color: var(--text); word-break: break-word;
-    }
-    .transcript-preview:empty::before {
-      content: "Your transcription will appear here…"; color: var(--muted);
-    }
-    .mode-panel { display: flex; flex-direction: column; gap: 16px; }
+    .draft-field input::placeholder,
+    .draft-field textarea::placeholder { color: var(--muted); }
 
     /* ── TOAST ── */
     .toast {
@@ -349,12 +298,12 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.success { border-color: var(--green); color: var(--green); }
-    .toast.error   { border-color: var(--red); color: var(--red); }
+    .toast.error   { border-color: var(--red);   color: var(--red); }
   </style>
 </head>
 <body>
 
-<!-- ── SCREEN 1: INPUT FORM ──────────────────────────────────────────────── -->
+<!-- ── SCREEN 1: UPLOAD ───────────────────────────────────────────────────── -->
 <div id="screenCreate" class="screen active">
   <div class="top-bar">
     <button class="back-btn" onclick="goBack()">
@@ -365,98 +314,26 @@
 
   <div class="form-body">
 
-    <!-- Sketch / Photo ─ AT TOP ─ Diagram left, Sketch right -->
+    <!-- Images — mandatory -->
     <div>
-      <div class="field-label">Sketch / Photo <span>*</span></div>
-      <div class="media-tabs">
-        <button class="media-tab active" onclick="switchMediaTab('photo', this)">📐 Diagram</button>
-        <button class="media-tab" onclick="switchMediaTab('sketch', this)">✏️ Sketch</button>
-      </div>
-
-      <!-- Sketch panel -->
-      <div id="panelSketch" class="media-panel">
-        <div class="sketch-wrap">
-          <canvas id="sketchCanvas"></canvas>
-          <div class="sketch-toolbar">
-            <button id="toolDraw" class="tool-btn active" onclick="setSketchTool('draw', this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-              Draw
-            </button>
-            <button id="toolPlayer" class="tool-btn" onclick="setSketchTool('player', this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>
-              Player
-            </button>
-            <button id="toolCone" class="tool-btn" onclick="setSketchTool('cone', this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,3 22,21 2,21"/></svg>
-              Cone
-            </button>
-            <button id="toolArrow" class="tool-btn" onclick="setSketchTool('arrow', this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/></svg>
-              Arrow
-            </button>
-            <button id="toolLine" class="tool-btn" onclick="setSketchTool('line', this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/></svg>
-              Line
-            </button>
-            <button id="toolArc" class="tool-btn" onclick="setSketchTool('arc', this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 Q12 4 19 19"/></svg>
-              Arc
-            </button>
-            <button id="toolText" class="tool-btn" onclick="setSketchTool('text', this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-              Text
-            </button>
-            <button id="toolSelect" class="tool-btn" onclick="setSketchTool('select', this)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-7 1-4 7z"/></svg>
-              Select
-            </button>
-            <button class="tool-btn tool-btn-action" onclick="undoSketch()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-              Undo
-            </button>
-            <button class="tool-btn tool-btn-action" onclick="clearSketch()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-              Clear
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Text input overlay for sketch tool -->
-      <div id="sketchTextOverlay">
-        <input id="sketchTextInput" type="text" placeholder="Type label…"
-          onkeydown="if(event.key==='Enter'){_commitText();}else if(event.key==='Escape'){_cancelText();}"
-          onblur="_commitText()"/>
-      </div>
-
-      <!-- Diagram / Convert panel -->
-      <div id="panelPhoto" class="media-panel active">
-        <div class="image-zone" id="imageZone" onclick="triggerFileInput()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <path d="M21 15l-5-5L5 21"/>
-          </svg>
-          <span class="zone-label">Tap to upload your hand-drawn diagram</span>
-          <span class="zone-sub">Whiteboard, paper — anything works</span>
-        </div>
-        <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)"/>
-
-        <!-- Convert button — shown after a photo is selected -->
-        <div id="convertSection" style="display:none;margin-top:10px;">
-          <button class="btn-primary" id="convertDiagramBtn" onclick="convertDiagram()">
-            Convert sketch to image
-          </button>
-          <div id="convertStatus" style="font-size:12px;color:var(--text-secondary);margin-top:6px;"></div>
-        </div>
-
-      </div>
+      <div class="field-label">Photos / Diagrams <span class="req">*</span></div>
+      <p class="field-hint">Add photos of your drill — diagrams, sketches, handwritten notes</p>
+      <div id="imagesGrid"></div>
+      <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFilesSelected(this)"/>
     </div>
 
-    <!-- Name -->
+    <!-- Voice — optional -->
     <div>
-      <div class="field-label">Game Name</div>
-      <input id="inpName" class="text-input" type="text" placeholder="e.g. Kick Pass Relay"/>
+      <div class="field-label">Voice description <span class="opt">(optional)</span></div>
+      <p class="voice-instruction" style="margin-bottom:14px">Hold the button and describe the game or drill — setup, how to play, variations, coaching points.</p>
+      <div id="voiceWave" class="voice-wave" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <button id="micBtn" class="mic-btn" aria-label="Hold to record" style="margin-bottom:12px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+        <span id="micBtnLabel">Hold to Record</span>
+      </button>
+      <div id="voiceTranscript" class="transcript-preview"></div>
     </div>
 
     <!-- Type -->
@@ -473,8 +350,8 @@
     </div>
 
     <!-- Video Link -->
-    <div>
-      <div class="field-label">Video Link <span id="videoLinkReq" title="optional">(optional)</span></div>
+    <div id="videoLinkRow">
+      <div class="field-label">Video Link <span id="videoLinkReq" class="opt">(optional)</span></div>
       <input id="inpVideoUrl" class="text-input" type="url" placeholder="https://youtube.com/watch?v=…"/>
     </div>
 
@@ -482,14 +359,14 @@
     <div>
       <div class="field-label">Age Group</div>
       <div class="chip-row" id="ageChips">
-        <button class="age-chip" data-age="U6"    onclick="toggleAge(this)">U6</button>
-        <button class="age-chip" data-age="U8"    onclick="toggleAge(this)">U8</button>
-        <button class="age-chip" data-age="U10"   onclick="toggleAge(this)">U10</button>
-        <button class="age-chip" data-age="U12"   onclick="toggleAge(this)">U12</button>
-        <button class="age-chip" data-age="U14"   onclick="toggleAge(this)">U14</button>
-        <button class="age-chip" data-age="U16"   onclick="toggleAge(this)">U16</button>
-        <button class="age-chip" data-age="U18"   onclick="toggleAge(this)">U18</button>
-        <button class="age-chip" data-age="Adult" onclick="toggleAge(this)">Adult</button>
+        <button class="chip" data-age="U6"    onclick="toggleChip(this)">U6</button>
+        <button class="chip" data-age="U8"    onclick="toggleChip(this)">U8</button>
+        <button class="chip" data-age="U10"   onclick="toggleChip(this)">U10</button>
+        <button class="chip" data-age="U12"   onclick="toggleChip(this)">U12</button>
+        <button class="chip" data-age="U14"   onclick="toggleChip(this)">U14</button>
+        <button class="chip" data-age="U16"   onclick="toggleChip(this)">U16</button>
+        <button class="chip" data-age="U18"   onclick="toggleChip(this)">U18</button>
+        <button class="chip" data-age="Adult" onclick="toggleChip(this)">Adult</button>
       </div>
     </div>
 
@@ -497,130 +374,47 @@
     <div>
       <div class="field-label">Sport</div>
       <div class="chip-row" id="sportChips">
-        <button class="age-chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
-        <button class="age-chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
-        <button class="age-chip" data-sport="Camogie"  onclick="toggleChip(this)">Camogie</button>
+        <button class="chip" data-sport="Football" onclick="toggleChip(this)">Football</button>
+        <button class="chip" data-sport="Hurling"  onclick="toggleChip(this)">Hurling</button>
+        <button class="chip" data-sport="Camogie"  onclick="toggleChip(this)">Camogie</button>
       </div>
     </div>
 
-    <!-- Skills (optional) -->
+    <!-- Skills -->
     <div>
-      <div class="field-label">Skills <span title="optional">(optional)</span></div>
+      <div class="field-label">Skills <span class="opt">(optional)</span></div>
       <div class="chip-row" id="skillChips">
-        <button class="age-chip" data-skill="Handpass"  onclick="toggleChip(this)">Handpass</button>
-        <button class="age-chip" data-skill="Kick Pass" onclick="toggleChip(this)">Kick Pass</button>
-        <button class="age-chip" data-skill="Catching"  onclick="toggleChip(this)">Catching</button>
-        <button class="age-chip" data-skill="Solo"      onclick="toggleChip(this)">Solo</button>
-        <button class="age-chip" data-skill="Shooting"  onclick="toggleChip(this)">Shooting</button>
-        <button class="age-chip" data-skill="Tackling"  onclick="toggleChip(this)">Tackling</button>
-        <button class="age-chip" data-skill="Blocking"  onclick="toggleChip(this)">Blocking</button>
-        <button class="age-chip" data-skill="Fielding"  onclick="toggleChip(this)">Fielding</button>
+        <button class="chip" data-skill="Handpass"  onclick="toggleChip(this)">Handpass</button>
+        <button class="chip" data-skill="Kick Pass" onclick="toggleChip(this)">Kick Pass</button>
+        <button class="chip" data-skill="Catching"  onclick="toggleChip(this)">Catching</button>
+        <button class="chip" data-skill="Solo"      onclick="toggleChip(this)">Solo</button>
+        <button class="chip" data-skill="Shooting"  onclick="toggleChip(this)">Shooting</button>
+        <button class="chip" data-skill="Tackling"  onclick="toggleChip(this)">Tackling</button>
+        <button class="chip" data-skill="Blocking"  onclick="toggleChip(this)">Blocking</button>
+        <button class="chip" data-skill="Fielding"  onclick="toggleChip(this)">Fielding</button>
       </div>
-    </div>
-
-    <!-- Voice / Text mode toggle -->
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="modeVoice" onclick="setInputMode('voice')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-        Voice
-      </button>
-      <button class="mode-btn" id="modeText" onclick="setInputMode('text')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        Text
-      </button>
-    </div>
-
-    <!-- Voice panel -->
-    <div id="voicePanel" class="mode-panel">
-      <p class="voice-instruction">Describe the game or drill in detail — cover setup, how to play, any variations, and key coaching points. Hold the button below to record.</p>
-      <div class="mic-container">
-        <div id="voiceWave" class="voice-wave" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <button id="micBtn" class="mic-btn" aria-label="Hold to record">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          <span id="micBtnLabel">Hold to Record</span>
-        </button>
-      </div>
-      <div id="voiceTranscript" class="transcript-preview"></div>
-      <button id="createWithAiBtn" class="btn-primary" onclick="createWithVoiceAI()" disabled>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        Create with AI
-      </button>
-    </div>
-
-    <!-- Text panel -->
-    <div id="textPanel" class="mode-panel" style="display:none">
-
-      <div>
-        <div class="field-header-row">
-          <div class="field-label">Setup</div>
-          <button class="field-speak-btn" onclick="toggleFieldSpeech('inpSetup', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-            <span>Speak</span>
-          </button>
-        </div>
-        <textarea id="inpSetup" class="text-input" placeholder="Players, cones, pitch area, equipment…" oninput="autoResize(this)"></textarea>
-      </div>
-
-      <div>
-        <div class="field-header-row">
-          <div class="field-label">How to Play</div>
-          <button class="field-speak-btn" onclick="toggleFieldSpeech('inpHowTo', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-            <span>Speak</span>
-          </button>
-        </div>
-        <textarea id="inpHowTo" class="text-input" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
-      </div>
-
-      <div>
-        <div class="field-header-row">
-          <div class="field-label">Variations <span title="optional">(optional)</span></div>
-          <button class="field-speak-btn" onclick="toggleFieldSpeech('inpVariations', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-            <span>Speak</span>
-          </button>
-        </div>
-        <textarea id="inpVariations" class="text-input" placeholder="Progressions, easier/harder options…" oninput="autoResize(this)"></textarea>
-      </div>
-
-      <div>
-        <div class="field-header-row">
-          <div class="field-label">Teaching Points <span title="optional">(optional)</span></div>
-          <button class="field-speak-btn" onclick="toggleFieldSpeech('inpTeaching', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-            <span>Speak</span>
-          </button>
-        </div>
-        <textarea id="inpTeaching" class="text-input" placeholder="Key coaching cues, what to look for…" oninput="autoResize(this)"></textarea>
-      </div>
-
     </div>
 
   </div>
 
   <div class="sticky-footer">
-    <button class="btn-primary" onclick="createDraft()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z" opacity="0.3"/>
-        <path d="M12 6v6l4 2"/>
-      </svg>
+    <button id="createDraftBtn" class="btn-primary" onclick="createDraft()" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       Create Draft
     </button>
   </div>
 </div>
 
 
-<!-- ── SCREEN 2: PROCESSING ──────────────────────────────────────────────── -->
+<!-- ── SCREEN 2: PROCESSING ───────────────────────────────────────────────── -->
 <div id="screenProcessing" class="screen">
   <div class="spinner"></div>
-  <div class="processing-title" id="processingTitle">Polishing your content…</div>
-  <div class="processing-status" id="processingStatus">Fixing spelling and formatting</div>
+  <div class="processing-title" id="processingTitle">Analysing your content…</div>
+  <div class="processing-status" id="processingStatus">Reading images and building your draft</div>
 </div>
 
 
-<!-- ── SCREEN 3: REVIEW & EDIT ────────────────────────────────────────────── -->
+<!-- ── SCREEN 3: DRAFT ────────────────────────────────────────────────────── -->
 <div id="screenReview" class="screen">
   <div class="top-bar">
     <button class="back-btn" onclick="showScreen('screenCreate')">
@@ -631,39 +425,38 @@
 
   <div class="review-body">
 
-    <!-- Sketch / Photo (shown only if provided) -->
-    <div class="image-card" id="rvImageCard" style="display:none">
-      <div class="image-card-header">Diagram / Photo</div>
-      <div class="image-card-inner" id="rvImageInner"></div>
+    <!-- Primary diagram image -->
+    <div class="draft-image" id="rvImageCard" style="display:none">
+      <div id="rvImageInner"></div>
     </div>
 
     <!-- Game Name -->
-    <div class="review-field">
-      <div class="review-field-header">Game Name</div>
-      <input id="rvName" type="text" placeholder="Game name"/>
+    <div class="draft-field">
+      <div class="draft-field-label">Game Name</div>
+      <input id="rvName" type="text" placeholder="Game name…"/>
     </div>
 
     <!-- Setup -->
-    <div class="review-field">
-      <div class="review-field-header">Setup</div>
+    <div class="draft-field">
+      <div class="draft-field-label">Setup</div>
       <textarea id="rvSetup" placeholder="Setup instructions…" oninput="autoResize(this)"></textarea>
     </div>
 
     <!-- How to Play -->
-    <div class="review-field">
-      <div class="review-field-header">How to Play</div>
+    <div class="draft-field">
+      <div class="draft-field-label">How to Play</div>
       <textarea id="rvHowTo" placeholder="Step-by-step instructions…" oninput="autoResize(this)"></textarea>
     </div>
 
     <!-- Variations -->
-    <div class="review-field">
-      <div class="review-field-header">Variations</div>
+    <div class="draft-field">
+      <div class="draft-field-label">Variations</div>
       <textarea id="rvVariations" placeholder="Progressions and variations…" oninput="autoResize(this)"></textarea>
     </div>
 
     <!-- Teaching Points -->
-    <div class="review-field">
-      <div class="review-field-header">Teaching Points</div>
+    <div class="draft-field">
+      <div class="draft-field-label">Teaching Points</div>
       <textarea id="rvTeaching" placeholder="Key coaching cues…" oninput="autoResize(this)"></textarea>
     </div>
 
@@ -675,7 +468,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
         </svg>
-        Improve with AI
+        Improve
       </button>
       <button class="btn-primary" onclick="saveGame()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -692,53 +485,373 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ── Input mode toggle (Voice / Text) ─────────────────────────────────────────
+  // ── Config ────────────────────────────────────────────────────────────────
+  const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+  const EDGE_FN_URL       = SUPABASE_URL + '/functions/v1/ai-process-game';
+  const DIAGRAM_FN_URL    = SUPABASE_URL + '/functions/v1/diagram-to-drawio';
+  const params            = new URLSearchParams(window.location.search);
+  const WV_TOKEN          = params.get('token')   || '';
+  const WV_CLUB_ID        = parseInt(params.get('club_id') || '0') || null;
 
-  let _inputMode        = 'voice';
-  let _voiceTranscript  = '';
+  // ── State ─────────────────────────────────────────────────────────────────
+  let _uploadedImages  = [];   // [{base64, mimeType, objectUrl}]
+  let _reviewImage     = null; // {base64, mimeType} — primary image for save
+  let _voiceTranscript = '';
+  let _baseVoiceText   = '';
   let _isVoiceRecording = false;
+  let _selectedAges    = [];
+  let _selectedSports  = [];
+  let _selectedSkills  = [];
+  let _selectedType    = null;
+  let _videoUrl        = null;
 
-  function setInputMode(mode) {
-    _inputMode = mode;
-    document.getElementById('voicePanel').style.display = mode === 'voice' ? '' : 'none';
-    document.getElementById('textPanel').style.display  = mode === 'text'  ? '' : 'none';
-    document.getElementById('modeVoice').classList.toggle('active', mode === 'voice');
-    document.getElementById('modeText').classList.toggle('active',  mode === 'text');
-    if (mode === 'text') {
-      requestAnimationFrame(() => {
-        document.querySelectorAll('#textPanel textarea').forEach(autoResize);
-      });
+  // ── Screen helpers ─────────────────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  function goBack() {
+    if (window.FlutterBridge) window.FlutterBridge.postMessage('close');
+    else history.back();
+  }
+  function setStatus(title, sub) {
+    document.getElementById('processingTitle').textContent = title;
+    if (sub) document.getElementById('processingStatus').textContent = sub;
+  }
+
+  // ── Chip helpers ──────────────────────────────────────────────────────────
+  function toggleChip(el) { el.classList.toggle('selected'); }
+  function getSelectedChips(containerId, dataKey) {
+    return [...document.querySelectorAll('#' + containerId + ' .chip.selected')].map(c => c.dataset[dataKey]);
+  }
+  function getSelectedAges()   { return getSelectedChips('ageChips',   'age'); }
+  function getSelectedSports() { return getSelectedChips('sportChips', 'sport'); }
+  function getSelectedSkills() { return getSelectedChips('skillChips', 'skill'); }
+  function _preselectChips(containerId, dataKey, values) {
+    if (!values?.length) return;
+    const lower = values.map(v => String(v).toLowerCase());
+    document.querySelectorAll('#' + containerId + ' .chip').forEach(chip => {
+      const val = (chip.dataset[dataKey] || '').toLowerCase();
+      if (val) chip.classList.toggle('selected', lower.includes(val));
+    });
+  }
+
+  // ── Type change ──────────────────────────────────────────────────────────
+  function onTypeChange() {
+    const type = document.getElementById('inpType').value;
+    const req  = document.getElementById('videoLinkReq');
+    if (type === 'Video') {
+      req.textContent = '*'; req.className = 'req';
+    } else {
+      req.textContent = '(optional)'; req.className = 'opt';
     }
   }
 
-  // ── Voice mode: hold-to-record mic button ─────────────────────────────────────
+  // ── Image upload ──────────────────────────────────────────────────────────
+  function triggerImagePicker() { document.getElementById('fileInput').click(); }
 
+  function handleFilesSelected(input) {
+    const files = [...(input.files || [])];
+    if (!files.length) return;
+    const remaining = 4 - _uploadedImages.length;
+    const toProcess = files.slice(0, remaining);
+    let pending = toProcess.length;
+    toProcess.forEach(file => {
+      compressImage(file).then(({ base64, mimeType }) => {
+        _uploadedImages.push({ base64, mimeType, objectUrl: URL.createObjectURL(file) });
+        pending--;
+        if (pending === 0) renderImageGrid();
+      });
+    });
+    input.value = '';
+  }
+
+  function removeImage(idx) {
+    URL.revokeObjectURL(_uploadedImages[idx]?.objectUrl);
+    _uploadedImages.splice(idx, 1);
+    renderImageGrid();
+  }
+
+  function renderImageGrid() {
+    const grid = document.getElementById('imagesGrid');
+    if (_uploadedImages.length === 0) {
+      grid.innerHTML = `
+        <div class="img-add-zone" onclick="triggerImagePicker()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <span class="zone-label">Tap to add photo</span>
+          <span class="zone-sub">Diagrams, sketches, handwritten notes</span>
+        </div>`;
+    } else {
+      let html = `<div class="img-primary">
+        <img src="${_uploadedImages[0].objectUrl}" alt="Primary image"/>
+        <button class="img-remove" onclick="removeImage(0)">×</button>
+      </div>`;
+      if (_uploadedImages.length > 1 || _uploadedImages.length < 4) {
+        html += `<div class="img-extras">`;
+        for (let i = 1; i < _uploadedImages.length; i++) {
+          html += `<div class="img-thumb">
+            <img src="${_uploadedImages[i].objectUrl}" alt="Image ${i+1}"/>
+            <button class="img-remove" onclick="removeImage(${i})">×</button>
+          </div>`;
+        }
+        if (_uploadedImages.length < 4) {
+          html += `<button class="img-add-sm" onclick="triggerImagePicker()">+</button>`;
+        }
+        html += `</div>`;
+      }
+      grid.innerHTML = html;
+    }
+    document.getElementById('createDraftBtn').disabled = _uploadedImages.length === 0;
+  }
+
+  function compressImage(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX = 1024;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else       { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(blob => {
+          const reader = new FileReader();
+          reader.onload = e => resolve({ base64: e.target.result.split(',')[1], mimeType: 'image/jpeg' });
+          reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.8);
+      };
+      img.src = url;
+    });
+  }
+
+  // ── Diagram auto-standardise (non-blocking) ────────────────────────────────
+  async function tryStandardiseDiagram(img) {
+    try {
+      const res = await fetch(DIAGRAM_FN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ image_base64: img.base64, media_type: img.mimeType }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error || !data.xml) return null;
+      const png = await renderMxGraphToPng(data.xml);
+      return { base64: png.base64, mimeType: 'image/png' };
+    } catch {
+      return null;
+    }
+  }
+
+  // ── Create Draft ──────────────────────────────────────────────────────────
+  async function createDraft() {
+    if (_uploadedImages.length === 0) {
+      showToast('Add at least one photo to continue', 'error');
+      return;
+    }
+
+    _selectedAges   = getSelectedAges();
+    _selectedSports = getSelectedSports();
+    _selectedSkills = getSelectedSkills();
+    _selectedType   = document.getElementById('inpType').value || null;
+    _videoUrl       = document.getElementById('inpVideoUrl').value.trim() || null;
+    if (_selectedType === 'Video' && !_videoUrl) {
+      showToast('Video Link is required for Video type', 'error');
+      document.getElementById('inpVideoUrl').focus();
+      return;
+    }
+
+    showScreen('screenProcessing');
+    setStatus('Standardising diagram…', 'Converting your image for a consistent look');
+
+    // Try diagram standardisation on the primary image (12 s timeout)
+    let primaryImg = { base64: _uploadedImages[0].base64, mimeType: _uploadedImages[0].mimeType };
+    try {
+      const standardised = await Promise.race([
+        tryStandardiseDiagram(primaryImg),
+        new Promise(r => setTimeout(() => r(null), 12000)),
+      ]);
+      if (standardised) primaryImg = standardised;
+    } catch { /* keep original */ }
+    _reviewImage = primaryImg;
+
+    setStatus('Creating your draft…', 'Reading images and generating content');
+
+    // Build image array: standardised primary + any additional originals
+    const imageArray = [
+      { base64: primaryImg.base64, mimeType: primaryImg.mimeType },
+      ..._uploadedImages.slice(1).map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+    ];
+
+    const payload = {
+      action:           'split_voice',
+      voice_transcript: _voiceTranscript.trim() || '',
+      game_code:        _selectedSports,
+      images:           imageArray,
+    };
+
+    try {
+      const result = await callEdgeFunction(payload);
+
+      if (result.suggested_ages?.length)   _preselectChips('ageChips',   'age',   result.suggested_ages);
+      if (result.suggested_sport)          _preselectChips('sportChips', 'sport', [result.suggested_sport]);
+      if (result.suggested_skills?.length) _preselectChips('skillChips', 'skill', result.suggested_skills);
+
+      showReview(result);
+    } catch (err) {
+      showScreen('screenCreate');
+      showToast('Error: ' + (err.message || 'AI failed'), 'error');
+    }
+  }
+
+  // ── Review screen ──────────────────────────────────────────────────────────
+  function populateReviewFields(data) {
+    document.getElementById('rvName').value       = data.game_name            || '';
+    document.getElementById('rvSetup').value      = data.game_setup           || '';
+    document.getElementById('rvHowTo').value      = data.game_how_to_play     || '';
+    document.getElementById('rvVariations').value = data.game_variations      || '';
+    document.getElementById('rvTeaching').value   = data.game_teaching_points || '';
+  }
+
+  function showReview(data) {
+    populateReviewFields(data);
+    const card  = document.getElementById('rvImageCard');
+    const inner = document.getElementById('rvImageInner');
+    if (_reviewImage) {
+      inner.innerHTML = `<img src="data:${_reviewImage.mimeType};base64,${_reviewImage.base64}" alt="Diagram"/>`;
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+    showScreen('screenReview');
+    requestAnimationFrame(autoResizeAll);
+  }
+
+  // ── Improve with AI ────────────────────────────────────────────────────────
+  async function improveWithAI() {
+    const btn = document.getElementById('improveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Improving…';
+    try {
+      const result = await callEdgeFunction({
+        action:               'rewrite',
+        game_name:            document.getElementById('rvName').value.trim() || null,
+        game_setup:           document.getElementById('rvSetup').value.trim(),
+        game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
+        game_variations:      document.getElementById('rvVariations').value.trim() || null,
+        game_teaching_points: document.getElementById('rvTeaching').value.trim() || null,
+        game_code:            _selectedSports,
+      });
+      populateReviewFields(result);
+      requestAnimationFrame(autoResizeAll);
+      showToast('Content improved', 'success');
+    } catch (err) {
+      showToast('Error: ' + (err.message || 'AI failed'), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Improve`;
+    }
+  }
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+  async function saveGame() {
+    const name = document.getElementById('rvName').value.trim();
+    if (!name) { showToast('Game name is required', 'error'); document.getElementById('rvName').focus(); return; }
+
+    const saveBtn = document.querySelector('.btn-primary[onclick="saveGame()"]');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+    try {
+      const res = await fetch(EDGE_FN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          action:               'save_game',
+          game_name:            name,
+          game_age:             _selectedAges,
+          game_code:            _selectedSports,
+          game_skill:           _selectedSkills.length ? _selectedSkills : null,
+          game_type:            _selectedType ? [_selectedType] : null,
+          game_setup:           document.getElementById('rvSetup').value.trim(),
+          game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
+          game_variations:      document.getElementById('rvVariations').value.trim(),
+          game_teaching_points: document.getElementById('rvTeaching').value.trim(),
+          image_base64:         _reviewImage?.base64    || null,
+          image_mime_type:      _reviewImage?.mimeType  || null,
+          game_video:           _videoUrl,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Save failed');
+      showToast('Game saved!', 'success');
+      setTimeout(() => {
+        if (window.FlutterBridge) window.FlutterBridge.postMessage('complete');
+        else history.back();
+      }, 1200);
+    } catch (err) {
+      showToast('Error saving: ' + (err.message || 'please try again'), 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save`;
+      }
+    }
+  }
+
+  // ── Edge function caller ───────────────────────────────────────────────────
+  async function callEdgeFunction(payload) {
+    const res = await fetch(EDGE_FN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      const msg = json.error || 'AI processing failed';
+      const detail = json.detail ? ` (${json.detail})` : '';
+      throw new Error(msg + detail);
+    }
+    return json.data;
+  }
+
+  // ── Voice: hold-to-record mic button ──────────────────────────────────────
   function _initMicButton() {
     const btn = document.getElementById('micBtn');
     if (!btn) return;
-
-    // Prevent iOS long-press context menu / text selection stealing the gesture
     btn.addEventListener('contextmenu', e => e.preventDefault());
 
     function start(e) {
       e.preventDefault();
       if (_isVoiceRecording) return;
-
-      // setPointerCapture routes ALL subsequent pointer events (including
-      // pointerup/pointercancel) back to this element even if the finger
-      // moves off the button or the OS tries to grab the gesture.
       try { btn.setPointerCapture(e.pointerId); } catch (_) {}
-
       _isVoiceRecording = true;
       _voiceTranscript  = '';
       _baseVoiceText    = '';
       document.getElementById('voiceTranscript').textContent = '';
-      document.getElementById('createWithAiBtn').disabled = true;
       btn.classList.add('recording');
-      const lbl = document.getElementById('micBtnLabel');
-      if (lbl) lbl.textContent = 'Recording…';
+      document.getElementById('micBtnLabel').textContent = 'Recording…';
       document.getElementById('voiceWave').classList.add('active');
-
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('startSpeech:voice_input');
       } else {
@@ -748,8 +861,7 @@
 
     function stop() {
       if (!_isVoiceRecording) return;
-      const lbl = document.getElementById('micBtnLabel');
-      if (lbl) lbl.textContent = 'Hold to Record';
+      document.getElementById('micBtnLabel').textContent = 'Hold to Record';
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
       } else {
@@ -757,20 +869,14 @@
       }
     }
 
-    // Primary: pointer events with capture (modern approach).
     btn.addEventListener('pointerdown',   start, { passive: false });
     btn.addEventListener('pointerup',     stop);
     btn.addEventListener('pointercancel', stop);
-
-    // Fallback: if Flutter's gesture arena wins after a hold it can cut off
-    // pointer events to the WebView entirely. Document-level touchend catches
-    // the finger-lift in that case.
     document.addEventListener('touchend',    stop, { passive: true });
     document.addEventListener('touchcancel', stop, { passive: true });
   }
 
   let _voiceWebRecognition = null;
-  let _baseVoiceText       = '';
 
   function _startWebVoiceSpeech() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -812,1304 +918,44 @@
     const lbl = document.getElementById('micBtnLabel');
     if (lbl) lbl.textContent = 'Hold to Record';
     document.getElementById('voiceWave').classList.remove('active');
-    document.getElementById('createWithAiBtn').disabled = !_voiceTranscript.trim();
   }
-
-  // Pre-select chips in a chip row by matching against an array of values.
-  function _preselectChips(containerId, dataKey, values) {
-    if (!values || !values.length) return;
-    const lower = values.map(v => String(v).toLowerCase());
-    document.querySelectorAll('#' + containerId + ' .age-chip').forEach(chip => {
-      const val = (chip.dataset[dataKey] || '').toLowerCase();
-      if (val) chip.classList.toggle('selected', lower.includes(val));
-    });
-  }
-
-  async function createWithVoiceAI() {
-    const transcript = _voiceTranscript.trim();
-    if (!transcript) return;
-
-    const btn = document.getElementById('createWithAiBtn');
-    btn.disabled = true;
-    btn.textContent = 'Processing…';
-
-    try {
-      // Include the current sketch or uploaded photo so Gemini can "see" the diagram
-      const payload = {
-        action:           'split_voice',
-        voice_transcript: transcript,
-        game_code:        getSelectedSports(),
-      };
-      if (_activeMediaTab === 'sketch' && _hasDrawn) {
-        const png = await getSketchPng();
-        payload.image_base64    = png.base64;
-        payload.image_mime_type = 'image/png';
-      } else if (_activeMediaTab === 'photo' && _imageBase64) {
-        payload.image_base64    = _imageBase64;
-        payload.image_mime_type = _imageMimeType || 'image/jpeg';
-      }
-
-      const result = await callEdgeFunction(payload);
-
-      // Pre-fill text fields
-      document.getElementById('inpSetup').value      = result.game_setup           || '';
-      document.getElementById('inpHowTo').value      = result.game_how_to_play     || '';
-      document.getElementById('inpVariations').value = result.game_variations      || '';
-      document.getElementById('inpTeaching').value   = result.game_teaching_points || '';
-
-      // AI-suggested name (only fill if field is currently blank)
-      if (result.game_name && !document.getElementById('inpName').value.trim()) {
-        document.getElementById('inpName').value = result.game_name;
-      }
-
-      // AI-suggested age groups, sport, skills
-      if (result.suggested_ages?.length)  _preselectChips('ageChips',   'age',   result.suggested_ages);
-      if (result.suggested_sport)         _preselectChips('sportChips', 'sport', [result.suggested_sport]);
-      if (result.suggested_skills?.length) _preselectChips('skillChips', 'skill', result.suggested_skills);
-
-      setInputMode('text');
-      requestAnimationFrame(() => {
-        document.querySelectorAll('#textPanel textarea').forEach(autoResize);
-      });
-      showToast('Draft ready — review and adjust', 'success');
-    } catch (err) {
-      showToast('Error: ' + (err.message || 'AI failed'), 'error');
-      btn.disabled = !_voiceTranscript.trim();
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Create with AI`;
-    }
-  }
-
-  // ── Speech recognition (per-field) ──────────────────────────────────────────
-
-  let _recognition      = null;
-  let _isRecording      = false;
-  let _recordingFieldId = null;
-  let _recordingBtn     = null;
-  let _baseText         = '';
 
   const FILLERS = /\b(um+h?|uh+|eh+|ahh?|mm+|hmm+|err+|y'know|like)\b[\s,]*/gi;
-
   function _removeFillersAndClean(text) {
     return text.replace(FILLERS, ' ').replace(/\s{2,}/g, ' ').trim();
   }
 
-  function toggleFieldSpeech(fieldId, btn) {
-    if (_isRecording) {
-      const wasSameField = _recordingFieldId === fieldId;
-      if (window.FlutterBridge) {
-        window.FlutterBridge.postMessage('stopSpeech');
-      } else {
-        stopSpeech();
-      }
-      if (wasSameField) return;
-    }
-
-    _recordingFieldId = fieldId;
-    _recordingBtn     = btn;
-    const ta = document.getElementById(fieldId);
-    _baseText = ta.value;
-    if (_baseText && !_baseText.endsWith(' ') && !_baseText.endsWith('\n')) _baseText += ' ';
-
-    if (window.FlutterBridge) {
-      _isRecording = true;
-      btn.classList.add('recording');
-      btn.querySelector('span').textContent = 'Stop';
-      window.FlutterBridge.postMessage('startSpeech:' + fieldId);
-      return;
-    }
-
-    // Web / desktop fallback — webkitSpeechRecognition
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { showToast('Speech not supported on this browser', 'error'); return; }
-
-    _recognition = new SR();
-    _recognition.lang = 'en-IE';
-    _recognition.continuous = true;
-    _recognition.interimResults = false;
-
-    _recognition.onresult = (e) => {
-      let added = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) added += e.results[i][0].transcript + ' ';
-      }
-      _baseText += added;
-      const cleaned = _removeFillersAndClean(_baseText);
-      document.getElementById(_recordingFieldId).value = cleaned;
-      autoResize(document.getElementById(_recordingFieldId));
-    };
-
-    _recognition.onerror = (e) => {
-      if (e.error === 'not-allowed') showToast('Microphone permission denied', 'error');
-      else if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error');
-      stopSpeech();
-    };
-
-    _recognition.onend = () => {
-      if (_isRecording) {
-        try { _recognition.start(); } catch(err) { stopSpeech(); }
-      }
-    };
-
-    try {
-      _recognition.start();
-      _isRecording = true;
-      btn.classList.add('recording');
-      btn.querySelector('span').textContent = 'Stop';
-    } catch (err) {
-      showToast('Could not start microphone', 'error');
-    }
-  }
-
-  function stopSpeech() {
-    _isRecording = false;
-    if (_recognition) { try { _recognition.stop(); } catch {} _recognition = null; }
-    if (_recordingBtn) {
-      _recordingBtn.classList.remove('recording');
-      _recordingBtn.querySelector('span').textContent = 'Speak';
-    }
-    _recordingFieldId = null;
-    _recordingBtn = null;
-  }
-
-  // ── Flutter native speech callbacks ──────────────────────────────────────────
-  // Called by Flutter with each final transcription chunk
+  // Flutter native speech callbacks
   window.receiveSpeechResult = function(fieldId, text) {
     if (fieldId === 'voice_input') {
       _voiceTranscript += text + ' ';
       const cleaned = _removeFillersAndClean(_voiceTranscript);
       _voiceTranscript = cleaned;
       document.getElementById('voiceTranscript').textContent = cleaned;
-      return;
     }
-    _baseText += text + ' ';
-    const cleaned = _removeFillersAndClean(_baseText);
-    const ta = document.getElementById(fieldId);
-    if (ta) { ta.value = cleaned; autoResize(ta); }
   };
-
-  // Called by Flutter with each interim (partial) word during voice_input hold.
-  // Shows accumulated finals + current partial so the user sees text in real time.
   window.onVoiceInterim = function(partialText) {
     const combined = (_voiceTranscript ? _voiceTranscript + ' ' : '') + partialText;
     document.getElementById('voiceTranscript').textContent = combined.trim();
   };
-
-  // Called by Flutter when recognition ends (pause / done)
   window.onSpeechDone = function() {
-    if (_isVoiceRecording) {
-      _resetVoiceState();
-      return;
-    }
-    _isRecording = false;
-    if (_recordingBtn) {
-      _recordingBtn.classList.remove('recording');
-      _recordingBtn.querySelector('span').textContent = 'Speak';
-    }
-    _recordingFieldId = null;
-    _recordingBtn = null;
+    _resetVoiceState();
   };
-
-  // Called by Flutter on recognition error
   window.onSpeechError = function(msg) {
     showToast(msg || 'Voice input failed', 'error');
-    window.onSpeechDone();
+    _resetVoiceState();
   };
 
-  // ── Canvas sketchpad ───────────────────────────────────────────────────────
-
-  let _activeMediaTab  = 'photo';
-  let _sketchTool      = 'draw';
-  let _isDrawing       = false;
-  let _isArrowDragging = false;
-  let _arrowStart      = null;
-  let _hasDrawn        = false;
-  let _undoStack       = [];
-  let _stampCounter    = 1;
-  let _sketchCtx       = null;
-  let _sketchCanvas    = null;
-  let _freehandCanvas  = null;
-  let _freehandCtx     = null;
-  let _elements        = [];
-  let _nextElId        = 1;
-  let _selectedId      = null;
-  let _isDraggingEl    = false;
-  let _dragStartPt     = null;
-  let _dragOrigEl      = null;
-  let _lastPt          = null;
-  let _textPos         = null;
-
-  function initSketchCanvas() {
-    _sketchCanvas = document.getElementById('sketchCanvas');
-    if (!_sketchCanvas || _sketchCtx) return;
-    const rect = _sketchCanvas.getBoundingClientRect();
-    if (!rect.width) return;
-    const dpr = window.devicePixelRatio || 1;
-    const W = Math.round(rect.width * dpr), H = Math.round(rect.height * dpr);
-    _sketchCanvas.width = W; _sketchCanvas.height = H;
-    _sketchCtx = _sketchCanvas.getContext('2d');
-    _sketchCtx.scale(dpr, dpr);
-    _freehandCanvas = document.createElement('canvas');
-    _freehandCanvas.width = W; _freehandCanvas.height = H;
-    _freehandCtx = _freehandCanvas.getContext('2d');
-    _freehandCtx.scale(dpr, dpr);
-    _renderCanvas();
-    _sketchCanvas.addEventListener('mousedown',  _sketchStart);
-    _sketchCanvas.addEventListener('mousemove',  _sketchMove);
-    _sketchCanvas.addEventListener('mouseup',    _sketchEnd);
-    _sketchCanvas.addEventListener('mouseleave', _sketchEnd);
-    _sketchCanvas.addEventListener('touchstart',  _sketchStartT, { passive: false });
-    _sketchCanvas.addEventListener('touchmove',   _sketchMoveT,  { passive: false });
-    _sketchCanvas.addEventListener('touchend',    _sketchEnd);
-    _sketchCanvas.addEventListener('touchcancel', _sketchEnd);
-  }
-
-  function _renderCanvas() {
-    if (!_sketchCtx) return;
-    const ctx = _sketchCtx;
-    const r   = _sketchCanvas.getBoundingClientRect();
-    ctx.fillStyle = '#1a2d1a';
-    ctx.fillRect(0, 0, r.width, r.height);
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
-    ctx.beginPath(); ctx.moveTo(0, r.height / 2); ctx.lineTo(r.width, r.height / 2); ctx.stroke();
-    ctx.setLineDash([]);
-    if (_freehandCanvas) ctx.drawImage(_freehandCanvas, 0, 0, r.width, r.height);
-    _elements.forEach(el => _drawElement(el, el.id === _selectedId));
-  }
-
-  function _drawElement(el, sel) {
-    const ctx = _sketchCtx;
-    ctx.save();
-    if (el.type === 'player') {
-      ctx.beginPath(); ctx.arc(el.x, el.y, 14, 0, Math.PI*2);
-      ctx.fillStyle = 'white'; ctx.fill();
-      ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
-      ctx.fillStyle = '#111'; ctx.font = 'bold 13px sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(String(el.label), el.x, el.y);
-    } else if (el.type === 'cone') {
-      const sz = 10;
-      ctx.beginPath(); ctx.moveTo(el.x, el.y-sz); ctx.lineTo(el.x+sz, el.y+sz); ctx.lineTo(el.x-sz, el.y+sz); ctx.closePath();
-      ctx.fillStyle = '#f07023'; ctx.fill();
-      ctx.strokeStyle = '#c05010'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
-    } else if (el.type === 'arrow') {
-      _drawArrow(el.x1, el.y1, el.x2, el.y2);
-    } else if (el.type === 'line') {
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
-      ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
-    } else if (el.type === 'arc') {
-      const cp = _arcControlPoint(el.x1, el.y1, el.x2, el.y2);
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
-      ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.quadraticCurveTo(cp.x, cp.y, el.x2, el.y2); ctx.stroke();
-    } else if (el.type === 'text') {
-      ctx.fillStyle = '#fff'; ctx.font = `bold ${el.fs||16}px sans-serif`;
-      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      ctx.fillText(el.text, el.x, el.y);
-    }
-    if (sel) {
-      const bb = _elBBox(el);
-      ctx.strokeStyle = '#AAEE35'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
-      ctx.strokeRect(bb.x - 6, bb.y - 6, bb.w + 12, bb.h + 12);
-      ctx.setLineDash([]);
-    }
-    ctx.restore();
-  }
-
-  function _elBBox(el) {
-    if (el.type === 'player') return { x: el.x-16, y: el.y-16, w: 32, h: 32 };
-    if (el.type === 'cone')   return { x: el.x-12, y: el.y-14, w: 24, h: 24 };
-    if (el.type === 'arrow' || el.type === 'line') {
-      const x0=Math.min(el.x1,el.x2), y0=Math.min(el.y1,el.y2);
-      return { x:x0, y:y0, w:Math.abs(el.x2-el.x1)||8, h:Math.abs(el.y2-el.y1)||8 };
-    }
-    if (el.type === 'arc') {
-      const cp = _arcControlPoint(el.x1, el.y1, el.x2, el.y2);
-      const x0=Math.min(el.x1,el.x2,cp.x), y0=Math.min(el.y1,el.y2,cp.y);
-      const x1=Math.max(el.x1,el.x2,cp.x), y1=Math.max(el.y1,el.y2,cp.y);
-      return { x:x0, y:y0, w:x1-x0||8, h:y1-y0||8 };
-    }
-    if (el.type === 'text') {
-      _sketchCtx.font = `bold ${el.fs||16}px sans-serif`;
-      const m = _sketchCtx.measureText(el.text);
-      return { x: el.x, y: el.y, w: m.width, h: (el.fs||16)+4 };
-    }
-    return { x: el.x-10, y: el.y-10, w: 20, h: 20 };
-  }
-
-  function _hitTest(x, y) {
-    for (let i = _elements.length-1; i >= 0; i--) {
-      const el = _elements[i];
-      if (el.type === 'player' && Math.hypot(x-el.x, y-el.y) < 20) return el;
-      if (el.type === 'cone'   && Math.hypot(x-el.x, y-el.y) < 18) return el;
-      if (el.type === 'arrow'  && _distSeg(x,y,el.x1,el.y1,el.x2,el.y2) < 14) return el;
-      if (el.type === 'line'   && _distSeg(x,y,el.x1,el.y1,el.x2,el.y2) < 14) return el;
-      if (el.type === 'arc') { const cp=_arcControlPoint(el.x1,el.y1,el.x2,el.y2); if (_distBezier(x,y,el.x1,el.y1,cp.x,cp.y,el.x2,el.y2) < 14) return el; }
-      if (el.type === 'text') {
-        const bb = _elBBox(el);
-        if (x>=bb.x-4&&x<=bb.x+bb.w+4&&y>=bb.y-4&&y<=bb.y+bb.h+4) return el;
-      }
-    }
-    return null;
-  }
-
-  function _distSeg(px,py,ax,ay,bx,by) {
-    const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy;
-    if (!l2) return Math.hypot(px-ax, py-ay);
-    const t = Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/l2));
-    return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
-  }
-
-  function _arcControlPoint(x1, y1, x2, y2) {
-    const mx=(x1+x2)/2, my=(y1+y2)/2;
-    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1;
-    return { x: mx - (dy/len)*len*0.35, y: my + (dx/len)*len*0.35 };
-  }
-
-  function _distBezier(px, py, x1, y1, cx, cy, x2, y2) {
-    let minD = Infinity;
-    for (let t=0; t<=1; t+=0.05) {
-      const mt=1-t, bx=mt*mt*x1+2*mt*t*cx+t*t*x2, by=mt*mt*y1+2*mt*t*cy+t*t*y2;
-      minD = Math.min(minD, Math.hypot(px-bx, py-by));
-    }
-    return minD;
-  }
-
-  function _canvasPos(e) {
-    const rect = _sketchCanvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
-  function _saveUndo() {
-    _undoStack.push({
-      freehand: _freehandCtx.getImageData(0, 0, _freehandCanvas.width, _freehandCanvas.height),
-      elements: JSON.parse(JSON.stringify(_elements)),
-      counter:  _stampCounter,
-    });
-    if (_undoStack.length > 30) _undoStack.shift();
-  }
-
-  function _sketchStart(e) {
-    const pt = _canvasPos(e);
-    _lastPt = pt;
-
-    if (_sketchTool === 'select') {
-      const hit = _hitTest(pt.x, pt.y);
-      if (hit) {
-        if (_selectedId !== hit.id) { _saveUndo(); _selectedId = hit.id; _renderCanvas(); }
-        _isDraggingEl = true; _dragStartPt = pt;
-        _dragOrigEl = JSON.parse(JSON.stringify(hit));
-      } else if (_selectedId !== null) {
-        _selectedId = null; _renderCanvas();
-      }
-      return;
-    }
-    if (_sketchTool === 'text') { _showTextInput(pt); return; }
-
-    _saveUndo();
-    if (_sketchTool === 'draw') {
-      _isDrawing = true;
-      for (const ctx of [_sketchCtx, _freehandCtx]) {
-        ctx.beginPath(); ctx.moveTo(pt.x, pt.y);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.setLineDash([]);
-      }
-    } else if (_sketchTool === 'arrow' || _sketchTool === 'line' || _sketchTool === 'arc') {
-      _arrowStart = pt; _isArrowDragging = true;
-    } else if (_sketchTool === 'player') {
-      _elements.push({ id: _nextElId++, type: 'player', x: pt.x, y: pt.y, label: _stampCounter++ });
-      _hasDrawn = true; _renderCanvas();
-    } else if (_sketchTool === 'cone') {
-      _elements.push({ id: _nextElId++, type: 'cone', x: pt.x, y: pt.y });
-      _hasDrawn = true; _renderCanvas();
-    }
-  }
-
-  function _sketchMove(e) {
-    const pt = _canvasPos(e);
-    _lastPt = pt;
-    if (_isDraggingEl && _dragStartPt && _dragOrigEl) {
-      const dx = pt.x - _dragStartPt.x, dy = pt.y - _dragStartPt.y;
-      const el = _elements.find(x => x.id === _selectedId);
-      if (el) {
-        if (el.type === 'arrow' || el.type === 'line' || el.type === 'arc') {
-          el.x1 = _dragOrigEl.x1+dx; el.y1 = _dragOrigEl.y1+dy;
-          el.x2 = _dragOrigEl.x2+dx; el.y2 = _dragOrigEl.y2+dy;
-        } else { el.x = _dragOrigEl.x+dx; el.y = _dragOrigEl.y+dy; }
-        _renderCanvas();
-      }
-      return;
-    }
-    if (_isDrawing) {
-      for (const ctx of [_sketchCtx, _freehandCtx]) { ctx.lineTo(pt.x, pt.y); ctx.stroke(); }
-      _hasDrawn = true;
-    } else if (_isArrowDragging && _arrowStart) {
-      _renderCanvas();
-      if (_sketchTool === 'arrow') { _drawArrow(_arrowStart.x, _arrowStart.y, pt.x, pt.y); }
-      else if (_sketchTool === 'line') {
-        _sketchCtx.strokeStyle='#fff'; _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
-        _sketchCtx.beginPath(); _sketchCtx.moveTo(_arrowStart.x,_arrowStart.y); _sketchCtx.lineTo(pt.x,pt.y); _sketchCtx.stroke();
-      } else if (_sketchTool === 'arc') {
-        const cp=_arcControlPoint(_arrowStart.x,_arrowStart.y,pt.x,pt.y);
-        _sketchCtx.strokeStyle='#fff'; _sketchCtx.lineWidth=2.5; _sketchCtx.lineCap='round'; _sketchCtx.setLineDash([]);
-        _sketchCtx.beginPath(); _sketchCtx.moveTo(_arrowStart.x,_arrowStart.y); _sketchCtx.quadraticCurveTo(cp.x,cp.y,pt.x,pt.y); _sketchCtx.stroke();
-      }
-    }
-  }
-
-  function _sketchEnd() {
-    if (_isDraggingEl) { _isDraggingEl = false; _hasDrawn = true; _dragStartPt = null; _dragOrigEl = null; return; }
-    if (_isDrawing) { _isDrawing = false; _hasDrawn = true; _renderCanvas(); return; }
-    if (_isArrowDragging && _arrowStart) {
-      _isArrowDragging = false;
-      const end = _lastPt || _arrowStart;
-      if (Math.hypot(end.x-_arrowStart.x, end.y-_arrowStart.y) > 8) {
-        const type = (_sketchTool === 'line' || _sketchTool === 'arc') ? _sketchTool : 'arrow';
-        _elements.push({ id: _nextElId++, type, x1:_arrowStart.x, y1:_arrowStart.y, x2:end.x, y2:end.y });
-        _hasDrawn = true;
-      } else { _undoStack.pop(); }
-      _arrowStart = null; _renderCanvas();
-    }
-  }
-
-  function _drawArrow(x1, y1, x2, y2, ctx, color) {
-    ctx   = ctx   || _sketchCtx;
-    color = color || '#AAEE35';
-    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
-    if (len < 6) return;
-    const headLen=14, angle=Math.atan2(dy,dx);
-    const shaftX=x2-Math.cos(angle)*(headLen*0.55), shaftY=y2-Math.sin(angle)*(headLen*0.55);
-    ctx.strokeStyle=color; ctx.fillStyle=color;
-    ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(shaftX,shaftY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x2,y2);
-    ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
-    ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
-    ctx.closePath(); ctx.fill();
-  }
-
-  function _sketchStartT(e) { e.preventDefault(); if (e.touches.length===1) _sketchStart(e.touches[0]); }
-  function _sketchMoveT(e)  { e.preventDefault(); if (e.touches.length===1) _sketchMove(e.touches[0]); }
-
-  // ── Text input overlay ─────────────────────────────────────────────────────
-
-  function _showTextInput(pt) {
-    _textPos = pt;
-    const rect = _sketchCanvas.getBoundingClientRect();
-    const ov = document.getElementById('sketchTextOverlay');
-    ov.style.left = (rect.left + pt.x) + 'px';
-    ov.style.top  = (rect.top  + pt.y - 28) + 'px';
-    ov.style.display = 'block';
-    const inp = document.getElementById('sketchTextInput');
-    inp.value = '';
-    setTimeout(() => inp.focus(), 40);
-  }
-
-  function _commitText() {
-    const inp  = document.getElementById('sketchTextInput');
-    const text = inp.value.trim();
-    document.getElementById('sketchTextOverlay').style.display = 'none';
-    inp.value = '';
-    if (text && _textPos) {
-      _saveUndo();
-      _elements.push({ id: _nextElId++, type: 'text', x: _textPos.x, y: _textPos.y, text, fs: 16 });
-      _hasDrawn = true; _renderCanvas();
-    }
-    _textPos = null;
-  }
-
-  function _cancelText() {
-    document.getElementById('sketchTextOverlay').style.display = 'none';
-    document.getElementById('sketchTextInput').value = '';
-    _textPos = null;
-  }
-
-  function setSketchTool(tool, btn) {
-    _sketchTool = tool;
-    _selectedId = null;
-    _renderCanvas();
-    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-
-  function undoSketch() {
-    if (!_undoStack.length) return;
-    const state = _undoStack.pop();
-    _freehandCtx.clearRect(0, 0, _freehandCanvas.width, _freehandCanvas.height);
-    if (state.freehand) _freehandCtx.putImageData(state.freehand, 0, 0);
-    _elements = state.elements; _stampCounter = state.counter; _selectedId = null;
-    _hasDrawn = _undoStack.length > 0 || _elements.length > 0;
-    _renderCanvas();
-  }
-
-  function clearSketch() {
-    _undoStack = []; _stampCounter = 1; _hasDrawn = false;
-    _elements = []; _nextElId = 1; _selectedId = null;
-    if (_freehandCtx) _freehandCtx.clearRect(0, 0, _freehandCanvas.width, _freehandCanvas.height);
-    _renderCanvas();
-  }
-
-  function switchMediaTab(tab, btn) {
-    _activeMediaTab = tab;
-    document.querySelectorAll('.media-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('panelSketch').classList.toggle('active', tab === 'sketch');
-    document.getElementById('panelPhoto').classList.toggle('active', tab === 'photo');
-    if (tab === 'sketch' && !_sketchCtx) {
-      requestAnimationFrame(() => initSketchCanvas());
-    }
-  }
-
-  function getSketchPng() {
-    if (_textPos) _commitText();
-    _selectedId = null; _renderCanvas();
-    return new Promise((resolve) => {
-      const dpr = window.devicePixelRatio || 1;
-      const W = Math.round(_sketchCanvas.width / dpr);
-      const H = Math.round(_sketchCanvas.height / dpr);
-      const exp = document.createElement('canvas');
-      exp.width = W; exp.height = H;
-      const ctx = exp.getContext('2d');
-
-      // Healthy grass pitch background
-      ctx.fillStyle = '#2e6e16';
-      ctx.fillRect(0, 0, W, H);
-
-      // Subtle centre line
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
-      ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Freehand layer drawn as-is (white strokes on pitch green)
-      if (_freehandCanvas) {
-        ctx.drawImage(_freehandCanvas, 0, 0, _freehandCanvas.width, _freehandCanvas.height, 0, 0, W, H);
-      }
-
-      // Re-draw elements with pitch-mode colours
-      _elements.forEach(el => {
-        ctx.save();
-        if (el.type === 'player') {
-          ctx.beginPath(); ctx.arc(el.x, el.y, 14, 0, Math.PI * 2);
-          ctx.fillStyle = 'white'; ctx.fill();
-          ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
-          ctx.fillStyle = '#111'; ctx.font = 'bold 13px sans-serif';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(String(el.label), el.x, el.y);
-        } else if (el.type === 'cone') {
-          const sz = 10;
-          ctx.beginPath(); ctx.moveTo(el.x, el.y - sz); ctx.lineTo(el.x + sz, el.y + sz); ctx.lineTo(el.x - sz, el.y + sz); ctx.closePath();
-          ctx.fillStyle = '#f07023'; ctx.fill();
-          ctx.strokeStyle = '#c05010'; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
-        } else if (el.type === 'arrow') {
-          _drawArrow(el.x1, el.y1, el.x2, el.y2, ctx, '#AAEE35');
-        } else if (el.type === 'line') {
-          ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
-          ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
-        } else if (el.type === 'arc') {
-          const cp = _arcControlPoint(el.x1, el.y1, el.x2, el.y2);
-          ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
-          ctx.beginPath(); ctx.moveTo(el.x1, el.y1); ctx.quadraticCurveTo(cp.x, cp.y, el.x2, el.y2); ctx.stroke();
-        } else if (el.type === 'text') {
-          ctx.fillStyle = '#fff'; ctx.font = `bold ${el.fs || 16}px sans-serif`;
-          ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-          ctx.fillText(el.text, el.x, el.y);
-        }
-        ctx.restore();
-      });
-
-      exp.toBlob(blob => {
-        const reader = new FileReader();
-        reader.onload = e => resolve({ base64: e.target.result.split(',')[1], mimeType: 'image/png' });
-        reader.readAsDataURL(blob);
-      }, 'image/png');
-    });
-  }
-
-  // Init canvas on page load and wire up mic button
-  requestAnimationFrame(() => { initSketchCanvas(); _initMicButton(); });
-
-  // ── Supabase / Edge function config ───────────────────────────────────────
-
-  const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
-  const EDGE_FN_URL       = SUPABASE_URL + '/functions/v1/ai-process-game';
-  const params            = new URLSearchParams(window.location.search);
-  const WV_TOKEN          = params.get('token')   || '';
-  const WV_CLUB_ID        = parseInt(params.get('club_id') || '0') || null;
-
-  let _imageBase64   = null;
-  let _imageMimeType = null;
-  let _reviewImage   = null; // {base64, mimeType} carried into review
-  let _selectedAges   = [];  // age chips captured at createDraft time
-  let _selectedType   = null; // game type captured at createDraft time
-  let _selectedSports = [];  // sport chips (game_code)
-  let _selectedSkills = [];  // skill chips (game_skill)
-  let _videoUrl       = null; // video link captured at createDraft time
-
-  // ── Screen helpers ─────────────────────────────────────────────────────────
-
-  function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    window.scrollTo(0, 0);
-  }
-
-  function goBack() {
-    if (window.FlutterBridge) { window.FlutterBridge.postMessage('close'); }
-    else { history.back(); }
-  }
-
-  // ── Type change handler ────────────────────────────────────────────────────
-
-  function onTypeChange() {
-    const type = document.getElementById('inpType').value;
-    const req  = document.getElementById('videoLinkReq');
-    if (type === 'Video') {
-      req.textContent = '*';
-      req.title = '';
-    } else {
-      req.textContent = '(optional)';
-      req.title = 'optional';
-    }
-  }
-
-  // ── Age chip toggle ────────────────────────────────────────────────────────
-
-  function toggleAge(el) { el.classList.toggle('selected'); }
-  function toggleChip(el) { el.classList.toggle('selected'); }
-
-  function getSelectedAges() {
-    return [...document.querySelectorAll('#ageChips .age-chip.selected')].map(c => c.dataset.age);
-  }
-  function getSelectedSports() {
-    return [...document.querySelectorAll('#sportChips .age-chip.selected')].map(c => c.dataset.sport);
-  }
-  function getSelectedSkills() {
-    return [...document.querySelectorAll('#skillChips .age-chip.selected')].map(c => c.dataset.skill);
-  }
-
-  // ── Image handling ─────────────────────────────────────────────────────────
-
-  function triggerFileInput() { document.getElementById('fileInput').click(); }
-
-  function handleFileSelect(input) {
-    const file = input.files?.[0];
-    if (!file) return;
-    compressImage(file).then(({ base64, mimeType }) => {
-      _imageBase64   = base64;
-      _imageMimeType = mimeType;
-      showImagePreview(URL.createObjectURL(file));
-      // Show convert section
-      document.getElementById('convertSection').style.display = '';
-      document.getElementById('convertStatus').textContent = '';
-      document.getElementById('convertDiagramBtn').style.display = '';
-    });
-  }
-
-  function compressImage(file) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const MAX = 1024;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-          else       { w = Math.round(w * MAX / h); h = MAX; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        canvas.toBlob(blob => {
-          const reader = new FileReader();
-          reader.onload = e => resolve({ base64: e.target.result.split(',')[1], mimeType: 'image/jpeg' });
-          reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.8);
-      };
-      img.src = url;
-    });
-  }
-
-  function showImagePreview(objectUrl) {
-    const zone = document.getElementById('imageZone');
-    zone.innerHTML = `
-      <img class="image-preview" src="${objectUrl}" alt="Preview"/>
-      <button class="remove-img" onclick="removeImage(event)">×</button>`;
-  }
-
-  function removeImage(e) {
-    e.stopPropagation();
-    _imageBase64 = null; _imageMimeType = null;
-    const zone = document.getElementById('imageZone');
-    zone.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <circle cx="8.5" cy="8.5" r="1.5"/>
-        <path d="M21 15l-5-5L5 21"/>
-      </svg>
-      <span class="zone-label">Tap to upload your hand-drawn diagram</span>
-      <span class="zone-sub">Whiteboard, paper — anything works</span>`;
-    document.getElementById('fileInput').value = '';
-    document.getElementById('convertSection').style.display = 'none';
-  }
-
-  // ── Diagram converter ───────────────────────────────────────────────────────
-
-  const DIAGRAM_FN_URL = SUPABASE_URL + '/functions/v1/diagram-to-drawio';
-
-  const _CONVERT_MSGS = [
-    'Scanning your diagram…',
-    'Detecting shapes…',
-    'Identifying players…',
-    'Locating cones…',
-    'Reading player positions…',
-    'Tracing your arrows…',
-    'Mapping the layout…',
-    'Measuring spacing…',
-    'Analysing movement paths…',
-    'Checking line angles…',
-    'Detecting formation…',
-    'Placing elements…',
-    'Scaling the pitch…',
-    'Aligning shapes…',
-    'Connecting movement lines…',
-    'Calibrating positions…',
-    'Mapping player routes…',
-    'Structuring formation…',
-    'Smoothing curved lines…',
-    'Adjusting spacing…',
-    'Rendering pitch outline…',
-    'Verifying shape placement…',
-    'Refining positions…',
-    'Checking arrow directions…',
-    'Placing players and cones…',
-    'Drawing movement lines…',
-    'Processing diagram…',
-    'Optimising layout…',
-    'Adding final details…',
-    'Almost ready…',
-  ];
-  let _statusInterval = null;
-  let _statusMsgIdx   = 0;
-
-  function _startRotatingStatus(el) {
-    _statusMsgIdx = 0;
-    el.textContent = _CONVERT_MSGS[0];
-    _statusInterval = setInterval(() => {
-      if (_statusMsgIdx < _CONVERT_MSGS.length - 1) {
-        _statusMsgIdx++;
-        el.textContent = _CONVERT_MSGS[_statusMsgIdx];
-      }
-    }, 2000);
-  }
-
-  function _stopRotatingStatus() {
-    if (_statusInterval) { clearInterval(_statusInterval); _statusInterval = null; }
-  }
-
-  async function convertDiagram() {
-    if (!_imageBase64) return;
-    const btn    = document.getElementById('convertDiagramBtn');
-    const status = document.getElementById('convertStatus');
-    btn.disabled = true;
-    btn.textContent = 'Converting…';
-    _startRotatingStatus(status);
-
-    try {
-      const res = await fetch(DIAGRAM_FN_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
-          'apikey':        SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ image_base64: _imageBase64, media_type: _imageMimeType || 'image/jpeg' }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Conversion failed');
-
-      _stopRotatingStatus();
-      status.textContent = 'Rendering…';
-
-      const png = await renderMxGraphToPng(data.xml);
-      // Replace the raw photo with the rendered diagram PNG
-      _imageBase64   = png.base64;
-      _imageMimeType = 'image/png';
-      showImagePreview(png.dataUrl);
-
-      // Hide convert button — already done
-      btn.style.display = 'none';
-      status.textContent = 'Diagram ready ✓';
-      status.style.color = 'var(--green)';
-    } catch (err) {
-      _stopRotatingStatus();
-      status.textContent = 'Error: ' + (err.message || 'please try again');
-      status.style.color = 'var(--red)';
-      btn.disabled = false;
-      btn.textContent = 'Convert sketch to image';
-    }
-  }
-
-  // ── mxGraph XML → Canvas PNG renderer ─────────────────────────────────────
-
-  function renderMxGraphToPng(xmlString) {
-    return new Promise((resolve, reject) => {
-      try {
-        const parser = new DOMParser();
-        const doc    = parser.parseFromString(xmlString, 'application/xml');
-        const cells  = Array.from(doc.querySelectorAll('mxCell'));
-
-        // Canvas dimensions from the background rectangle
-        let cW = 600, cH = 600;
-        for (const cell of cells) {
-          const style = cell.getAttribute('style') || '';
-          if (cell.getAttribute('vertex') === '1' && style.includes('fillColor=#2E7D32')) {
-            const geo = cell.querySelector('mxGeometry');
-            if (geo) {
-              cW = parseFloat(geo.getAttribute('width'))  || 600;
-              cH = parseFloat(geo.getAttribute('height')) || 600;
-            }
-            break;
-          }
-        }
-
-        const scale  = window.devicePixelRatio || 2;
-        const canvas = document.createElement('canvas');
-        canvas.width  = cW * scale;
-        canvas.height = cH * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.scale(scale, scale);
-
-        // Green pitch background
-        ctx.fillStyle = '#2E7D32';
-        ctx.fillRect(0, 0, cW, cH);
-
-        // Subtle halfway line
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([8, 6]);
-        ctx.beginPath(); ctx.moveTo(0, cH / 2); ctx.lineTo(cW, cH / 2); ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Edges first (behind shapes)
-        for (const cell of cells) {
-          if (cell.getAttribute('edge') === '1') _renderEdge(ctx, cell);
-        }
-
-        // Shapes on top
-        for (const cell of cells) {
-          if (cell.getAttribute('vertex') !== '1') continue;
-          const style = cell.getAttribute('style') || '';
-          const geo   = cell.querySelector('mxGeometry');
-          if (!geo || style.includes('fillColor=#2E7D32')) continue;
-
-          const x = parseFloat(geo.getAttribute('x') || '0');
-          const y = parseFloat(geo.getAttribute('y') || '0');
-          const w = parseFloat(geo.getAttribute('width')  || '0');
-          const h = parseFloat(geo.getAttribute('height') || '0');
-          const val = cell.getAttribute('value') || '';
-
-          if (style.includes('gaa_goalpost')) {
-            _renderGoalpost(ctx, x, y, w, h);
-
-          } else if (style.includes('ellipse')) {
-            const cx = x + w/2, cy = y + h/2, rx = w/2, ry = h/2;
-            const isBlue = style.includes('1565C0') || style.includes('42A5F5') || style.includes('0D47A1');
-            ctx.save();
-            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 7;
-            const grad = ctx.createRadialGradient(cx - rx*0.25, cy - ry*0.25, rx*0.05, cx, cy, rx);
-            if (isBlue) {
-              grad.addColorStop(0, '#42A5F5'); grad.addColorStop(1, '#1565C0');
-            } else {
-              grad.addColorStop(0, '#EF5350'); grad.addColorStop(1, '#C62828');
-            }
-            ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-            ctx.fillStyle = grad; ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = isBlue ? '#0D47A1' : '#B71C1C'; ctx.lineWidth = 2; ctx.stroke();
-            if (val) {
-              ctx.fillStyle = '#fff';
-              ctx.font = `bold ${Math.max(10, Math.round(w * 0.36))}px -apple-system,sans-serif`;
-              ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-              ctx.fillText(val, cx, cy);
-            }
-            ctx.restore();
-
-          } else if (style.includes('triangle')) {
-            ctx.save();
-            ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 5;
-            const grad = ctx.createLinearGradient(x, y + h, x, y);
-            grad.addColorStop(0, '#FF6D00'); grad.addColorStop(1, '#FFAB40');
-            ctx.beginPath();
-            ctx.moveTo(x + w/2, y);     // apex
-            ctx.lineTo(x + w,   y + h); // bottom-right
-            ctx.lineTo(x,       y + h); // bottom-left
-            ctx.closePath();
-            ctx.fillStyle = grad; ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = '#E65100'; ctx.lineWidth = 1.5; ctx.stroke();
-            ctx.restore();
-
-          } else if (style.includes('text;')) {
-            const fontSize = parseInt(style.match(/fontSize=(\d+)/)?.[1] || '12');
-            ctx.save();
-            ctx.fillStyle = '#ffffff';
-            ctx.font = `bold ${fontSize}px -apple-system,sans-serif`;
-            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-            ctx.fillText(val, x, y + h / 2);
-            ctx.restore();
-          }
-        }
-
-        canvas.toBlob(blob => {
-          const reader = new FileReader();
-          reader.onload = e => {
-            const dataUrl = e.target.result;
-            resolve({ dataUrl, base64: dataUrl.split(',')[1] });
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        }, 'image/png');
-
-      } catch (err) { reject(err); }
-    });
-  }
-
-  function _renderEdge(ctx, cell) {
-    const geo = cell.querySelector('mxGeometry');
-    if (!geo) return;
-    const srcPt = geo.querySelector('mxPoint[as="sourcePoint"]');
-    const tgtPt = geo.querySelector('mxPoint[as="targetPoint"]');
-    if (!srcPt || !tgtPt) return;
-
-    const x1 = parseFloat(srcPt.getAttribute('x') || '0');
-    const y1 = parseFloat(srcPt.getAttribute('y') || '0');
-    const x2 = parseFloat(tgtPt.getAttribute('x') || '0');
-    const y2 = parseFloat(tgtPt.getAttribute('y') || '0');
-    const style    = cell.getAttribute('style') || '';
-    const isDashed = style.includes('dashed=1');
-    const isCurved = style.includes('curved=1');
-
-    // Waypoints
-    const wptArr   = geo.querySelector('Array[as="points"]');
-    const waypoints = wptArr
-      ? Array.from(wptArr.querySelectorAll('mxPoint')).map(p => ({
-          x: parseFloat(p.getAttribute('x') || '0'),
-          y: parseFloat(p.getAttribute('y') || '0'),
-        }))
-      : [];
-
-    ctx.save();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth   = 2.5;
-    ctx.lineCap     = 'round';
-    ctx.lineJoin    = 'round';
-    ctx.setLineDash(isDashed ? [8, 4] : []);
-
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-
-    if (isCurved && waypoints.length > 0) {
-      // Chaikin subdivision — 3 iterations corner-cuts the waypoint polygon
-      // into ~33 points, producing a smooth curve with no kinks at inflections
-      let pts = [{x: x1, y: y1}, ...waypoints, {x: x2, y: y2}];
-      for (let k = 0; k < 3; k++) {
-        const next = [pts[0]];
-        for (let i = 0; i < pts.length - 1; i++) {
-          next.push({ x: 0.75*pts[i].x + 0.25*pts[i+1].x, y: 0.75*pts[i].y + 0.25*pts[i+1].y });
-          next.push({ x: 0.25*pts[i].x + 0.75*pts[i+1].x, y: 0.25*pts[i].y + 0.75*pts[i+1].y });
-        }
-        next.push(pts[pts.length - 1]);
-        pts = next;
-      }
-      for (const p of pts) ctx.lineTo(p.x, p.y);
-    } else {
-      for (const wp of waypoints) ctx.lineTo(wp.x, wp.y);
-      ctx.lineTo(x2, y2);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Arrowhead
-    const fromX = waypoints.length > 0 ? waypoints[waypoints.length-1].x : x1;
-    const fromY = waypoints.length > 0 ? waypoints[waypoints.length-1].y : y1;
-    const angle  = Math.atan2(y2 - fromY, x2 - fromX);
-    const hLen   = 13;
-    if (!isDashed) {
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.moveTo(x2, y2);
-      ctx.lineTo(x2 - hLen * Math.cos(angle - Math.PI/7), y2 - hLen * Math.sin(angle - Math.PI/7));
-      ctx.lineTo(x2 - hLen * Math.cos(angle + Math.PI/7), y2 - hLen * Math.sin(angle + Math.PI/7));
-      ctx.closePath(); ctx.fill();
-    } else {
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x2 - hLen * Math.cos(angle - Math.PI/7), y2 - hLen * Math.sin(angle - Math.PI/7));
-      ctx.lineTo(x2, y2);
-      ctx.lineTo(x2 - hLen * Math.cos(angle + Math.PI/7), y2 - hLen * Math.sin(angle + Math.PI/7));
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function _renderGoalpost(ctx, x, y, w, h) {
-    const postThick = Math.max(3, Math.min(6, w * 0.045));
-    const cbY      = y + h * 0.55;   // crossbar at 55% down from top
-    const goalH    = y + h - cbY;    // height of goal area below crossbar
-    const sInset   = w * 0.10;       // stanchion inset from uprights
-    const sRise    = goalH * 0.38;   // how far above crossbar stanchion tops sit
-    const backBarY = cbY - sRise;
-
-    ctx.save();
-
-    // Subtle goal-area fill
-    ctx.fillStyle = 'rgba(0,0,0,0.20)';
-    ctx.fillRect(x, cbY, w, goalH);
-
-    // Net grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
-    ctx.lineWidth = 0.8;
-    ctx.setLineDash([]);
-    const cols = Math.max(4, Math.round(w / 14));
-    const rows = Math.max(3, Math.round(goalH / 12));
-    for (let i = 1; i < cols; i++) {
-      const nx = x + (w / cols) * i;
-      ctx.beginPath(); ctx.moveTo(nx, cbY); ctx.lineTo(nx, y + h); ctx.stroke();
-    }
-    for (let i = 1; i < rows; i++) {
-      const ny = cbY + (goalH / rows) * i;
-      ctx.beginPath(); ctx.moveTo(x, ny); ctx.lineTo(x + w, ny); ctx.stroke();
-    }
-
-    // Back stanchions (perspective depth)
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = Math.max(1.5, postThick * 0.55);
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(x,     cbY); ctx.lineTo(x + sInset,     backBarY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x + w, cbY); ctx.lineTo(x + w - sInset, backBarY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x + sInset, backBarY); ctx.lineTo(x + w - sInset, backBarY); ctx.stroke();
-
-    // Main structure — white posts, crossbar and ground line
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth   = postThick;
-    ctx.lineCap     = 'square';
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur  = 4;
-    ctx.setLineDash([]);
-
-    ctx.beginPath(); ctx.moveTo(x,     y);     ctx.lineTo(x,     y + h); ctx.stroke(); // left upright
-    ctx.beginPath(); ctx.moveTo(x + w, y);     ctx.lineTo(x + w, y + h); ctx.stroke(); // right upright
-    ctx.beginPath(); ctx.moveTo(x,     cbY);   ctx.lineTo(x + w, cbY);   ctx.stroke(); // crossbar
-    ctx.shadowBlur = 0;
-    ctx.lineWidth  = postThick * 0.7;
-    ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.stroke();    // ground line
-
-    ctx.restore();
-  }
-
-  // ── Edge function caller ───────────────────────────────────────────────────
-
-  async function callEdgeFunction(payload) {
-    const res = await fetch(EDGE_FN_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify(payload),
-    });
-    const json = await res.json();
-    if (!res.ok || !json.success) {
-      const msg = json.error || 'AI processing failed';
-      const detail = json.detail ? ` (${json.detail})` : '';
-      throw new Error(msg + detail);
-    }
-    return json.data;
-  }
-
-  // ── Create Draft ───────────────────────────────────────────────────────────
-
-  async function createDraft() {
-    const gameName = document.getElementById('inpName').value.trim();
-    if (!gameName) { showToast('Game name is required', 'error'); document.getElementById('inpName').focus(); return; }
-    const ages = getSelectedAges();
-    if (!ages.length) { showToast('Select at least one age group', 'error'); return; }
-    const sports = getSelectedSports();
-    if (!sports.length) { showToast('Select at least one sport', 'error'); return; }
-    const setup = document.getElementById('inpSetup').value.trim();
-    const howTo = document.getElementById('inpHowTo').value.trim();
-    if (!setup) { showToast('Setup is required', 'error'); return; }
-    if (!howTo) { showToast('How to Play is required', 'error'); return; }
-
-    // Capture sketch or photo (required)
-    const hasSketch = _activeMediaTab === 'sketch' && _hasDrawn;
-    const hasPhoto  = _activeMediaTab === 'photo'  && !!_imageBase64;
-    if (!hasSketch && !hasPhoto) {
-      showToast('A diagram or sketch is required', 'error');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    _reviewImage = null;
-    if (hasSketch) {
-      const png = await getSketchPng();
-      _reviewImage = { base64: png.base64, mimeType: png.mimeType };
-    } else {
-      _reviewImage = { base64: _imageBase64, mimeType: _imageMimeType };
-    }
-    _selectedAges   = ages;
-    _selectedSports = sports;
-    _selectedSkills = getSelectedSkills();
-    _selectedType   = document.getElementById('inpType').value || null;
-    _videoUrl       = document.getElementById('inpVideoUrl').value.trim() || null;
-    if (_selectedType === 'Video' && !_videoUrl) {
-      showToast('Video Link is required for Video type', 'error');
-      document.getElementById('inpVideoUrl').focus();
-      return;
-    }
-
-    document.getElementById('processingTitle').textContent = 'Polishing your content…';
-    document.getElementById('processingStatus').textContent = 'Fixing spelling and formatting';
-    showScreen('screenProcessing');
-
-    try {
-      const result = await callEdgeFunction({
-        action:               'polish',
-        game_name:            document.getElementById('inpName').value.trim() || null,
-        game_setup:           setup,
-        game_how_to_play:     howTo,
-        game_variations:      document.getElementById('inpVariations').value.trim() || null,
-        game_teaching_points: document.getElementById('inpTeaching').value.trim() || null,
-        game_code:            _selectedSports,
-      });
-      showReview(result);
-    } catch (err) {
-      showScreen('screenCreate');
-      showToast('Error: ' + (err.message || 'AI processing failed'), 'error');
-    }
-  }
-
-  // ── Improve with AI ────────────────────────────────────────────────────────
-
-  async function improveWithAI() {
-    const btn = document.getElementById('improveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Improving…';
-
-    try {
-      const result = await callEdgeFunction({
-        action:               'rewrite',
-        game_name:            document.getElementById('rvName').value.trim() || null,
-        game_setup:           document.getElementById('rvSetup').value.trim(),
-        game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
-        game_variations:      document.getElementById('rvVariations').value.trim() || null,
-        game_teaching_points: document.getElementById('rvTeaching').value.trim() || null,
-        game_code:            _selectedSports,
-      });
-      populateReviewFields(result);
-      requestAnimationFrame(autoResizeAll);
-      showToast('Content improved', 'success');
-    } catch (err) {
-      showToast('Error: ' + (err.message || 'AI failed'), 'error');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Improve with AI`;
-    }
-  }
-
-  // ── Review screen ──────────────────────────────────────────────────────────
-
-  function populateReviewFields(data) {
-    document.getElementById('rvName').value       = data.game_name            || '';
-    document.getElementById('rvSetup').value      = data.game_setup           || '';
-    document.getElementById('rvHowTo').value      = data.game_how_to_play     || '';
-    document.getElementById('rvVariations').value = data.game_variations      || '';
-    document.getElementById('rvTeaching').value   = data.game_teaching_points || '';
-  }
-
-  function showReview(data) {
-    populateReviewFields(data);
-
-    // Show image if we have one
-    const card  = document.getElementById('rvImageCard');
-    const inner = document.getElementById('rvImageInner');
-    if (_reviewImage) {
-      inner.innerHTML = `<img src="data:${_reviewImage.mimeType};base64,${_reviewImage.base64}" alt="Sketch/Photo"/>`;
-      card.style.display = '';
-    } else {
-      card.style.display = 'none';
-    }
-
-    showScreen('screenReview');
-    // Resize after the screen is visible so scrollHeight is accurate
-    requestAnimationFrame(autoResizeAll);
-  }
-
   // ── Auto-resize textareas ──────────────────────────────────────────────────
-
   function autoResize(el) {
     el.style.height = 'auto';
     el.style.height = (el.scrollHeight + 4) + 'px';
   }
-
   function autoResizeAll() {
-    document.querySelectorAll('.review-field textarea').forEach(autoResize);
-  }
-
-  // ── Save ───────────────────────────────────────────────────────────────────
-
-  async function saveGame() {
-    const name = document.getElementById('rvName').value.trim();
-    if (!name) { showToast('Game name is required', 'error'); document.getElementById('rvName').focus(); return; }
-
-    const saveBtn = document.querySelector('.btn-primary[onclick="saveGame()"]');
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
-
-    try {
-      const res = await fetch(EDGE_FN_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
-          'apikey':        SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          action:               'save_game',
-          game_name:            name,
-          game_age:             _selectedAges,
-          game_code:            _selectedSports,
-          game_skill:           _selectedSkills.length ? _selectedSkills : null,
-          game_type:            _selectedType ? [_selectedType] : null,
-          game_setup:           document.getElementById('rvSetup').value.trim(),
-          game_how_to_play:     document.getElementById('rvHowTo').value.trim(),
-          game_variations:      document.getElementById('rvVariations').value.trim(),
-          game_teaching_points: document.getElementById('rvTeaching').value.trim(),
-          image_base64:         _reviewImage.base64,
-          image_mime_type:      _reviewImage.mimeType,
-          game_video:           _videoUrl,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Save failed');
-      showToast('Game saved!', 'success');
-      setTimeout(() => {
-        if (window.FlutterBridge) window.FlutterBridge.postMessage('complete');
-        else history.back();
-      }, 1200);
-    } catch (err) {
-      showToast('Error saving: ' + (err.message || 'please try again'), 'error');
-    } finally {
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save`;
-      }
-    }
+    document.querySelectorAll('.review-body textarea').forEach(autoResize);
   }
 
   // ── Toast ──────────────────────────────────────────────────────────────────
-
   function showToast(msg, type = '') {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -2117,6 +963,122 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2800);
   }
+
+  // ── mxGraph XML → Canvas PNG renderer ─────────────────────────────────────
+  function renderMxGraphToPng(xmlString) {
+    return new Promise((resolve, reject) => {
+      try {
+        const parser = new DOMParser();
+        const doc    = parser.parseFromString(xmlString, 'application/xml');
+        const cells  = Array.from(doc.querySelectorAll('mxCell'));
+        let cW = 600, cH = 600;
+        for (const cell of cells) {
+          const style = cell.getAttribute('style') || '';
+          if (cell.getAttribute('vertex') === '1' && style.includes('fillColor=#2E7D32')) {
+            const geo = cell.querySelector('mxGeometry');
+            if (geo) { cW = parseFloat(geo.getAttribute('width')) || 600; cH = parseFloat(geo.getAttribute('height')) || 600; }
+            break;
+          }
+        }
+        const scale  = window.devicePixelRatio || 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = cW * scale; canvas.height = cH * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+        ctx.fillStyle = '#2E7D32'; ctx.fillRect(0, 0, cW, cH);
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.setLineDash([8, 6]);
+        ctx.beginPath(); ctx.moveTo(0, cH / 2); ctx.lineTo(cW, cH / 2); ctx.stroke(); ctx.setLineDash([]);
+        for (const cell of cells) { if (cell.getAttribute('edge') === '1') _renderEdge(ctx, cell); }
+        for (const cell of cells) {
+          if (cell.getAttribute('vertex') !== '1') continue;
+          const style = cell.getAttribute('style') || '';
+          const geo   = cell.querySelector('mxGeometry');
+          if (!geo || style.includes('fillColor=#2E7D32')) continue;
+          const x = parseFloat(geo.getAttribute('x') || '0'), y = parseFloat(geo.getAttribute('y') || '0');
+          const w = parseFloat(geo.getAttribute('width') || '0'), h = parseFloat(geo.getAttribute('height') || '0');
+          const val = cell.getAttribute('value') || '';
+          if (style.includes('gaa_goalpost')) {
+            _renderGoalpost(ctx, x, y, w, h);
+          } else if (style.includes('ellipse')) {
+            const cx = x+w/2, cy = y+h/2, rx = w/2, ry = h/2;
+            const isBlue = style.includes('1565C0') || style.includes('42A5F5') || style.includes('0D47A1');
+            ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 7;
+            const grad = ctx.createRadialGradient(cx-rx*0.25, cy-ry*0.25, rx*0.05, cx, cy, rx);
+            if (isBlue) { grad.addColorStop(0,'#42A5F5'); grad.addColorStop(1,'#1565C0'); }
+            else        { grad.addColorStop(0,'#EF5350'); grad.addColorStop(1,'#C62828'); }
+            ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+            ctx.fillStyle = grad; ctx.fill(); ctx.shadowBlur = 0;
+            ctx.strokeStyle = isBlue ? '#0D47A1' : '#B71C1C'; ctx.lineWidth = 2; ctx.stroke();
+            if (val) { ctx.fillStyle='#fff'; ctx.font=`bold ${Math.max(10,Math.round(w*0.36))}px -apple-system,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(val,cx,cy); }
+            ctx.restore();
+          } else if (style.includes('triangle')) {
+            ctx.save(); ctx.shadowColor='rgba(0,0,0,0.4)'; ctx.shadowBlur=5;
+            const grad=ctx.createLinearGradient(x,y+h,x,y); grad.addColorStop(0,'#FF6D00'); grad.addColorStop(1,'#FFAB40');
+            ctx.beginPath(); ctx.moveTo(x+w/2,y); ctx.lineTo(x+w,y+h); ctx.lineTo(x,y+h); ctx.closePath();
+            ctx.fillStyle=grad; ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#E65100'; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+          } else if (style.includes('text;')) {
+            const fontSize=parseInt(style.match(/fontSize=(\d+)/)?.[1]||'12');
+            ctx.save(); ctx.fillStyle='#ffffff'; ctx.font=`bold ${fontSize}px -apple-system,sans-serif`;
+            ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(val,x,y+h/2); ctx.restore();
+          }
+        }
+        canvas.toBlob(blob => {
+          const reader = new FileReader();
+          reader.onload = e => { const d=e.target.result; resolve({ dataUrl:d, base64:d.split(',')[1] }); };
+          reader.onerror = reject; reader.readAsDataURL(blob);
+        }, 'image/png');
+      } catch (err) { reject(err); }
+    });
+  }
+
+  function _renderEdge(ctx, cell) {
+    const geo=cell.querySelector('mxGeometry'); if (!geo) return;
+    const srcPt=geo.querySelector('mxPoint[as="sourcePoint"]'), tgtPt=geo.querySelector('mxPoint[as="targetPoint"]');
+    if (!srcPt||!tgtPt) return;
+    const x1=parseFloat(srcPt.getAttribute('x')||'0'), y1=parseFloat(srcPt.getAttribute('y')||'0');
+    const x2=parseFloat(tgtPt.getAttribute('x')||'0'), y2=parseFloat(tgtPt.getAttribute('y')||'0');
+    const style=cell.getAttribute('style')||'', isDashed=style.includes('dashed=1'), isCurved=style.includes('curved=1');
+    const wptArr=geo.querySelector('Array[as="points"]');
+    const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0'),y:parseFloat(p.getAttribute('y')||'0')})):[];
+    ctx.save(); ctx.strokeStyle='#ffffff'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed?[8,4]:[]);
+    ctx.beginPath(); ctx.moveTo(x1,y1);
+    if (isCurved && waypoints.length>0) {
+      let pts=[{x:x1,y:y1},...waypoints,{x:x2,y:y2}];
+      for (let k=0;k<3;k++){const next=[pts[0]];for(let i=0;i<pts.length-1;i++){next.push({x:0.75*pts[i].x+0.25*pts[i+1].x,y:0.75*pts[i].y+0.25*pts[i+1].y});next.push({x:0.25*pts[i].x+0.75*pts[i+1].x,y:0.25*pts[i].y+0.75*pts[i+1].y});}next.push(pts[pts.length-1]);pts=next;}
+      for(const p of pts)ctx.lineTo(p.x,p.y);
+    } else { for(const wp of waypoints)ctx.lineTo(wp.x,wp.y); ctx.lineTo(x2,y2); }
+    ctx.stroke(); ctx.setLineDash([]);
+    const fromX=waypoints.length>0?waypoints[waypoints.length-1].x:x1, fromY=waypoints.length>0?waypoints[waypoints.length-1].y:y1;
+    const angle=Math.atan2(y2-fromY,x2-fromX), hLen=13;
+    if (!isDashed){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.closePath();ctx.fill();}
+    else{ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.stroke();}
+    ctx.restore();
+  }
+
+  function _renderGoalpost(ctx, x, y, w, h) {
+    const postThick=Math.max(3,Math.min(6,w*0.045)), cbY=y+h*0.55, goalH=y+h-cbY, sInset=w*0.10, sRise=goalH*0.38, backBarY=cbY-sRise;
+    ctx.save(); ctx.fillStyle='rgba(0,0,0,0.20)'; ctx.fillRect(x,cbY,w,goalH);
+    ctx.strokeStyle='rgba(255,255,255,0.28)'; ctx.lineWidth=0.8; ctx.setLineDash([]);
+    const cols=Math.max(4,Math.round(w/14)), rows=Math.max(3,Math.round(goalH/12));
+    for(let i=1;i<cols;i++){const nx=x+(w/cols)*i; ctx.beginPath();ctx.moveTo(nx,cbY);ctx.lineTo(nx,y+h);ctx.stroke();}
+    for(let i=1;i<rows;i++){const ny=cbY+(goalH/rows)*i; ctx.beginPath();ctx.moveTo(x,ny);ctx.lineTo(x+w,ny);ctx.stroke();}
+    ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=Math.max(1.5,postThick*0.55); ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x,cbY);ctx.lineTo(x+sInset,backBarY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+w,cbY);ctx.lineTo(x+w-sInset,backBarY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+sInset,backBarY);ctx.lineTo(x+w-sInset,backBarY);ctx.stroke();
+    ctx.strokeStyle='#ffffff'; ctx.lineWidth=postThick; ctx.lineCap='square';
+    ctx.shadowColor='rgba(0,0,0,0.4)'; ctx.shadowBlur=4; ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+h);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+w,y);ctx.lineTo(x+w,y+h);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,cbY);ctx.lineTo(x+w,cbY);ctx.stroke();
+    ctx.shadowBlur=0; ctx.lineWidth=postThick*0.7;
+    ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x+w,y+h);ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  renderImageGrid();
+  requestAnimationFrame(_initMicButton);
 </script>
 </body>
 </html>

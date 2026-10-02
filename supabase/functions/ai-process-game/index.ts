@@ -415,11 +415,24 @@ serve(async (req) => {
       });
     }
 
-    // ── split_voice: voice transcript (+ optional diagram) → structured drill fields ──
+    // ── split_voice: voice transcript (+ optional images) → structured drill fields ──
     if (action === "split_voice") {
-      const { voice_transcript, game_code, image_base64, image_mime_type } = body;
-      if (!voice_transcript?.trim()) {
-        return new Response(JSON.stringify({ error: "voice_transcript is required" }), {
+      const { voice_transcript, game_code, image_base64, image_mime_type, images } = body;
+
+      // Accept either new `images` array or legacy single image fields
+      const imageList: Array<{base64: string; mimeType: string}> = [];
+      if (Array.isArray(images) && images.length > 0) {
+        for (const img of images) {
+          if (img.base64 && img.mimeType) imageList.push({ base64: img.base64, mimeType: img.mimeType });
+        }
+      } else if (image_base64 && image_mime_type) {
+        imageList.push({ base64: image_base64, mimeType: image_mime_type });
+      }
+
+      // Require at least one image or a non-empty voice transcript
+      const hasContent = imageList.length > 0 || voice_transcript?.trim();
+      if (!hasContent) {
+        return new Response(JSON.stringify({ error: "Provide at least one image or a voice transcript" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -437,15 +450,16 @@ serve(async (req) => {
         sportLine = `Sport: ${label}. Use 'sliotar' when referring to the ball.`;
       }
 
-      const inputText = [
-        sportLine || null,
-        `Coach's spoken description:\n${voice_transcript.trim()}`,
-      ].filter(Boolean).join("\n\n");
+      const descLine = voice_transcript?.trim()
+        ? `Coach's spoken description:\n${voice_transcript.trim()}`
+        : "Analyse the image(s) to determine the drill structure and coaching content.";
 
-      // Include diagram/sketch as a multimodal input if provided
+      const inputText = [sportLine || null, descLine].filter(Boolean).join("\n\n");
+
+      // Build multimodal parts: all images first, then the text prompt
       const parts: any[] = [];
-      if (image_base64 && image_mime_type) {
-        parts.push({ inlineData: { mimeType: image_mime_type, data: image_base64 } });
+      for (const img of imageList) {
+        parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
       }
       parts.push({ text: inputText });
 
