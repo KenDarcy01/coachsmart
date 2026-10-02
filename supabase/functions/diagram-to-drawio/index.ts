@@ -15,42 +15,50 @@ const corsHeaders = {
 
 const PROMPT = `You are an expert at converting handwritten or hand-drawn GAA (Gaelic Athletic Association) coaching diagrams into polished draw.io (mxGraph) XML.
 
-Analyse the image carefully and produce valid draw.io XML using these EXACT visual rules:
+STEP 1 — BEFORE ANYTHING ELSE, SCAN EVERY CIRCLE IN THE IMAGE AND CLASSIFY IT:
+Each circle must be classified by reading its label. This classification is MANDATORY and OVERRIDES any assumption about team colour or position on the pitch.
 
-OUTPUT FORMAT:
+  • Circle label is EMPTY or contains only a small dot → FOOTBALL
+    fillColor=#ffffff (WHITE), strokeColor=#555555, width=24, height=24, value=""
+    *** A football is ALWAYS white. Never red, never blue, never black. ***
+
+  • Circle label is the letter C (or c) → COACH
+    fillColor=#1a1a1a (BLACK), strokeColor=#000000, width=46, height=46, value="C"
+    *** A coach circle is ALWAYS black with white text. Never red or blue. ***
+
+  • Circle label is a NUMBER → PLAYER
+    Home team (or only team): fillColor=#C62828 (RED), strokeColor=#B71C1C, width=46, height=46
+    Away team:                 fillColor=#1565C0 (BLUE), strokeColor=#0D47A1, width=46, height=46
+
+Apply this in strict order: empty/dot → white football · "C" → black coach · number → red/blue player.
+Do not skip this step. Do not let position on the pitch or proximity to other shapes override it.
+
+STEP 2 — OUTPUT FORMAT:
 - Output ONLY raw XML — no markdown fences, no explanation, nothing before or after the XML
 - Start your response with exactly: <mxGraphModel background="#2E7D32"
 - Include mxCell id="0" and id="1" parent="0" as the two root cells
 
-CANVAS SIZE — MATCH THE CONTENT:
-- Analyse the overall shape of the content in the image and choose the canvas that best fits:
-  - SQUARE drill (content roughly equal width and height): width=600, height=600
-  - PORTRAIT pitch (content taller than wide — e.g. full pitch with goals at top and bottom): width=500, height=700
-  - LANDSCAPE pitch (content wider than tall — e.g. half-pitch or sideline view): width=720, height=480
+STEP 3 — CANVAS SIZE:
+- SQUARE drill (content roughly equal width and height): width=600, height=600
+- PORTRAIT pitch (content taller than wide): width=500, height=700
+- LANDSCAPE pitch (content wider than tall): width=720, height=480
 - Set background="#2E7D32" on the mxGraphModel element and use the chosen width/height for the background rectangle.
-- PADDING: all shapes and arrow endpoints must stay at least 60px from every edge. Safe area is x: 60 to (width−60), y: 60 to (height−60).
+- PADDING: all shapes and arrow endpoints must stay at least 60px from every edge.
 - Scale all positions from the original image proportionally to fill the chosen canvas.
 
-CIRCLES — READ THE LABEL FIRST, THEN CHOOSE THE STYLE:
-For every circle in the image, inspect what is written inside it before deciding which style to use:
+STEP 4 — FULL STYLE DEFINITIONS (use these exact strings):
 
-1. FOOTBALL — circle is empty OR contains only a dot (no letter, no number):
-   - Ellipse, width=24, height=24, value=""
-   - style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#555555;shadow=0;"
-   - MUST be white fill. Do not use red, blue, or black for a football.
+FOOTBALL (empty circle / dot):
+  style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#555555;shadow=0;"
 
-2. COACH — circle contains the letter "C" (upper or lower case):
-   - Ellipse, width=46, height=46, value="C"
-   - style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;"
-   - MUST be black fill with white "C". Do not use red or blue for a coach.
+COACH (letter C):
+  style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;"
 
-3. PLAYER — circle contains a number (1, 2, 3 …):
-   - Ellipse, width=46, height=46, value="{number}"
-   - Home team: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;"
-   - Away team: style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;"
-   - If only one team is visible, use home (red) for all numbered players.
+PLAYER home (red):
+  style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;"
 
-DECISION RULE — apply in order: empty/dot → football (white); letter C → coach (black); number → player (red/blue).
+PLAYER away (blue):
+  style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;"
 
 CONES (triangles):
 - Triangle, width=28, height=32, direction=north (MANDATORY)
