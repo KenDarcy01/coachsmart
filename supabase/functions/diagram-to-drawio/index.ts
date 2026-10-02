@@ -15,6 +15,9 @@ const corsHeaders = {
 
 const PROMPT = `You are an expert at converting handwritten or hand-drawn GAA (Gaelic Athletic Association) coaching diagrams into polished draw.io (mxGraph) XML.
 
+CRITICAL — COMPLETENESS RULE:
+Scan the ENTIRE image from top to bottom before you begin writing XML. Every single circle, cone, arrow and pitch marking you can see MUST appear in the output — including elements near the halfway line or at the far end of the pitch. Do NOT stop generating until every element from the original image is represented. Missing even one player, football or coach is an error.
+
 STEP 1 — BEFORE ANYTHING ELSE, SCAN EVERY CIRCLE IN THE IMAGE AND CLASSIFY IT:
 Each circle must be classified by reading its label. This classification is MANDATORY and OVERRIDES any assumption about team colour or position on the pitch.
 
@@ -80,7 +83,7 @@ GAA GOALPOSTS (H shapes):
 - GOALPOSTS ARE OBSTACLES: arrows must route around them with at least 5px clearance.
 
 PITCH LINES — MUST BE IDENTIFIED BEFORE MOVEMENT LINES:
-- A pitch line is a long straight line that spans the full width (or full length) of the playing area and separates zones. Examples: the end line, 13m line, 20m line, 45m line, halfway line, sidelines.
+- A pitch line is a long straight line that spans the full width (or full length) of the playing area and separates zones. Examples: the end line, 14m line, 21m line, 45m line, 65m line, halfway line, sidelines.
 - Pitch lines have NO arrowhead and NO dash. Output them as: edgeStyle=none;html=1;endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;
 - DO NOT mistake pitch lines for movement arrows. If a line spans the full width with no clear start/end player, it is a pitch line.
 
@@ -179,7 +182,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 8192,
+        max_tokens: 16000,
         messages: [
           {
             role: "user",
