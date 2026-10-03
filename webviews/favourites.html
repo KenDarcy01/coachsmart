@@ -618,6 +618,122 @@
       line-height: 1.6;
     }
     .plans-empty-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+
+    /* ── My Plans sub-tabs ────────────────────────────────────────────────── */
+    .sub-tab-bar {
+      display: flex; gap: 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0; background: var(--bg);
+    }
+    .sub-tab-btn {
+      flex: 1; padding: 10px 8px 8px;
+      font-size: 12px; font-weight: 600;
+      color: var(--muted); border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s; text-align: center;
+    }
+    .sub-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .sub-tab-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--accent); color: rgba(0,0,0,0.7);
+      border-radius: 10px; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; margin-left: 5px; min-width: 18px;
+    }
+
+    /* ── Share chip on plan card ──────────────────────────────────────────── */
+    .plan-share-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 10px;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+      transition: color 0.1s, border-color 0.1s;
+    }
+    .plan-share-btn:active { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Shared-with-me card extras ───────────────────────────────────────── */
+    .share-from { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 2px; }
+    .share-message { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; }
+    .share-new-badge {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 2px 7px; border-radius: 20px;
+      background: rgba(135,194,50,0.2); color: var(--accent); flex-shrink: 0;
+    }
+
+    /* ── Plan detail overlay ──────────────────────────────────────────────── */
+    .plan-detail-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      display: none; flex-direction: column;
+      background: var(--bg);
+    }
+    .plan-detail-overlay.open { display: flex; }
+    .plan-detail-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 56px;
+      display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0;
+    }
+    .plan-detail-title { font-size: 15px; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .plan-detail-close {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+    }
+    .plan-detail-action {
+      background: var(--surface-2); border: none;
+      padding: 7px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* ── Share sheet ──────────────────────────────────────────────────────── */
+    .share-sheet {
+      position: fixed; inset: 0; z-index: 200;
+      display: none; flex-direction: column;
+      background: var(--bg);
+    }
+    .share-sheet.open { display: flex; }
+    .share-sheet-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px; height: 56px;
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .share-sheet-title { font-size: 15px; font-weight: 600; flex: 1; }
+    .share-sheet-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .share-message-input {
+      width: 100%; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font: inherit; font-size: 14px;
+      padding: 12px 14px; resize: none; min-height: 72px;
+      margin-bottom: 16px;
+    }
+    .share-message-input::placeholder { color: var(--muted); }
+    .recipient-list { display: flex; flex-direction: column; gap: 8px; }
+    .recipient-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 16px;
+      cursor: pointer; transition: border-color 0.1s;
+    }
+    .recipient-row.selected { border-color: var(--accent); background: var(--accent-dim); }
+    .recipient-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--surface-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: var(--accent);
+      flex-shrink: 0;
+    }
+    .recipient-name { font-size: 14px; font-weight: 600; flex: 1; }
+    .recipient-check {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background 0.1s, border-color 0.1s;
+    }
+    .recipient-row.selected .recipient-check {
+      background: var(--accent); border-color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -635,8 +751,49 @@
 
 <!-- My Plans screen -->
 <div id="myPlansScreen" class="screen">
-  <div class="scroll-content">
+  <div class="sub-tab-bar">
+    <button class="sub-tab-btn active" id="subTabMine" onclick="switchSubTab('mine')">My Plans</button>
+    <button class="sub-tab-btn" id="subTabShared" onclick="switchSubTab('shared')">
+      Shared with Me<span class="sub-tab-badge" id="sharedBadge" style="display:none">0</span>
+    </button>
+  </div>
+  <div class="scroll-content" id="minePlansPanel">
     <div class="plans-list" id="plansList"></div>
+  </div>
+  <div class="scroll-content" id="sharedPlansPanel" style="display:none">
+    <div class="plans-list" id="sharedList"></div>
+  </div>
+</div>
+
+<!-- Plan detail overlay (read-only, shown from My Plans or Shared) -->
+<div id="planDetailOverlay" class="plan-detail-overlay">
+  <div class="plan-detail-header">
+    <button class="plan-detail-close" onclick="closePlanDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="plan-detail-title" id="planDetailTitle">Plan</div>
+    <button class="plan-detail-action" id="planDetailShareBtn" onclick="openShareSheetForCurrent()" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Share
+    </button>
+  </div>
+  <div class="scroll-content">
+    <div id="planDetailContent"></div>
+  </div>
+</div>
+
+<!-- Share sheet (pick recipient + message) -->
+<div id="shareSheet" class="share-sheet">
+  <div class="share-sheet-header">
+    <button class="plan-detail-close" onclick="closeShareSheet()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="share-sheet-title">Share Plan</div>
+    <button class="plan-detail-action" id="shareSendBtn" onclick="sendShare()" disabled>Send</button>
+  </div>
+  <div class="share-sheet-body">
+    <textarea id="shareMessageInput" class="share-message-input" placeholder="Add a message (optional) — e.g. 'This worked brilliantly on Tuesday'"></textarea>
+    <div id="recipientList" class="recipient-list"></div>
   </div>
 </div>
 
@@ -792,6 +949,11 @@
       const el = $(s);
       if (el) el.classList.toggle('active', s === id);
     });
+    // Always hide overlays when navigating away
+    if (id !== 'myPlansScreen') {
+      $('planDetailOverlay').classList.remove('open');
+      $('shareSheet').classList.remove('open');
+    }
   }
   function showLoading(msg) { $('tabBar').style.display = 'none'; $('loadingText').textContent = msg || 'Loading…'; showScreen('loadingScreen'); }
   function showEmpty()      { $('tabBar').style.display = 'none'; showScreen('emptyScreen'); }
@@ -808,7 +970,13 @@
       showScreen('setupScreen');
     } else {
       showScreen('myPlansScreen');
+      _activeSubTab = 'mine';
+      $('subTabMine').classList.add('active');
+      $('subTabShared').classList.remove('active');
+      $('minePlansPanel').style.display   = '';
+      $('sharedPlansPanel').style.display = 'none';
       loadUserPlans();
+      loadPendingShareCount();
     }
   }
 
@@ -832,13 +1000,17 @@
           const date = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
           const badge = p.event_id ? `<span class="plan-card-badge">Event</span>` : `<span class="plan-card-badge">Library</span>`;
           const meta  = p.event_title ? `${p.event_title} · ${date}` : date;
-          return `<div class="plan-card">
+          return `<div class="plan-card" style="cursor:pointer" onclick="openPlanDetail(${p.plan_id}, false)">
             <div class="plan-card-body">
               <div class="plan-card-title">${esc(p.session_title)}</div>
               <div class="plan-card-meta">${esc(meta)}</div>
             </div>
             ${badge}
-            <button class="plan-load-btn" onclick="loadPlan(${p.plan_id})">Load</button>
+            <button class="plan-share-btn" onclick="event.stopPropagation();openPlanDetailThenShare(${p.plan_id})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share
+            </button>
+            <button class="plan-load-btn" onclick="event.stopPropagation();loadPlan(${p.plan_id})">Load</button>
           </div>`;
         }).join('');
       }
@@ -862,11 +1034,348 @@
       _currentPlanId = data.plan_id;
       renderPlan(data.plan);
       showTabBar();
-      // Stay on My Plans tab context but show the plan
       _activeTab = 'my';
       $('tabNew').classList.remove('active');
       $('tabMy').classList.add('active');
     } catch { showError('Network error. Please try again.'); }
+  }
+
+  // ── Pending share badge ──────────────────────────────────────────────────────
+  async function loadPendingShareCount() {
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_received_shares', user_id: USER_ID }),
+      });
+      const data = await res.json();
+      const pending = (data.shares || []).filter(s => s.status === 'pending');
+      const badge = $('sharedBadge');
+      if (badge) {
+        if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = ''; }
+        else badge.style.display = 'none';
+      }
+    } catch { /* silent */ }
+  }
+
+  // ── Sub-tabs (My Plans / Shared with Me) ────────────────────────────────────
+  let _activeSubTab = 'mine';
+  function switchSubTab(tab) {
+    _activeSubTab = tab;
+    $('subTabMine').classList.toggle('active', tab === 'mine');
+    $('subTabShared').classList.toggle('active', tab === 'shared');
+    $('minePlansPanel').style.display   = tab === 'mine'   ? '' : 'none';
+    $('sharedPlansPanel').style.display = tab === 'shared' ? '' : 'none';
+    if (tab === 'shared') loadReceivedShares();
+    else loadUserPlans();
+  }
+
+  // ── Plan detail overlay ──────────────────────────────────────────────────────
+  let _detailPlanId   = null;
+  let _detailOpenShare = false;
+
+  async function openPlanDetail(planId, autoShare) {
+    _detailPlanId    = planId;
+    _detailOpenShare = !!autoShare;
+    $('planDetailTitle').textContent = 'Loading…';
+    $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center"><div class="spinner"></div></div>';
+    $('planDetailShareBtn').style.display = 'none';
+    $('planDetailOverlay').classList.add('open');
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_plan', plan_id: planId, user_id: USER_ID }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.plan) {
+        $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--muted)">Failed to load plan</div>';
+        return;
+      }
+      $('planDetailTitle').textContent = data.plan.session_title || 'Plan';
+      $('planDetailContent').innerHTML = renderPlanReadOnly(data.plan);
+      $('planDetailShareBtn').style.display = '';
+      if (_detailOpenShare) { _detailOpenShare = false; openShareSheet(); }
+    } catch {
+      $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--muted)">Network error</div>';
+    }
+  }
+
+  function openPlanDetailThenShare(planId) {
+    openPlanDetail(planId, true);
+  }
+
+  function closePlanDetail() {
+    $('planDetailOverlay').classList.remove('open');
+    _detailPlanId = null;
+  }
+
+  function openShareSheetForCurrent() {
+    if (!_detailPlanId) return;
+    openShareSheet();
+  }
+
+  // ── Share sheet ──────────────────────────────────────────────────────────────
+  let _selectedRecipientId = null;
+  let _shareForPlanId      = null;
+
+  async function openShareSheet() {
+    _shareForPlanId      = _detailPlanId;
+    _selectedRecipientId = null;
+    $('shareMessageInput').value = '';
+    $('shareSendBtn').disabled = true;
+    $('recipientList').innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted)">Loading coaches…</div>';
+    $('shareSheet').classList.add('open');
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_share_recipients', user_id: USER_ID }),
+      });
+      const data = await res.json();
+      const recipients = data.recipients || [];
+      if (recipients.length === 0) {
+        $('recipientList').innerHTML = '<div style="padding:24px 16px;text-align:center;color:var(--muted);font-size:14px">No other coaches found in your club</div>';
+        return;
+      }
+      $('recipientList').innerHTML = recipients.map(r => {
+        const initials = (r.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        return `<div class="recipient-row" id="rec-${esc(r.user_id)}" onclick="toggleRecipient('${esc(r.user_id)}')">
+          <div class="recipient-avatar">${esc(initials)}</div>
+          <div class="recipient-name">${esc(r.name)}</div>
+          <div class="recipient-check">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>`;
+      }).join('');
+    } catch {
+      $('recipientList').innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted)">Could not load coaches</div>';
+    }
+  }
+
+  function toggleRecipient(userId) {
+    if (_selectedRecipientId === userId) {
+      _selectedRecipientId = null;
+    } else {
+      if (_selectedRecipientId) {
+        const prev = $(`rec-${_selectedRecipientId}`);
+        if (prev) prev.classList.remove('selected');
+      }
+      _selectedRecipientId = userId;
+    }
+    const row = $(`rec-${userId}`);
+    if (row) row.classList.toggle('selected', _selectedRecipientId === userId);
+    $('shareSendBtn').disabled = !_selectedRecipientId;
+  }
+
+  function closeShareSheet() {
+    $('shareSheet').classList.remove('open');
+    _selectedRecipientId = null;
+    _shareForPlanId      = null;
+  }
+
+  async function sendShare() {
+    if (!_selectedRecipientId || !_shareForPlanId) return;
+    const btn = $('shareSendBtn');
+    btn.disabled  = true;
+    btn.textContent = 'Sending…';
+    try {
+      const planRes  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_plan', plan_id: _shareForPlanId, user_id: USER_ID }),
+      });
+      const planData = await planRes.json();
+      if (!planRes.ok || !planData.plan) { showToast('Could not load plan to share', 'error'); return; }
+
+      const shareRes = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({
+          action:      'share_plan',
+          user_id:     USER_ID,
+          to_user_id:  _selectedRecipientId,
+          plan_json:   planData.plan,
+          message:     $('shareMessageInput').value.trim() || null,
+        }),
+      });
+      const shareData = await shareRes.json();
+      if (!shareRes.ok) { showToast(shareData.error || 'Share failed', 'error'); return; }
+      closeShareSheet();
+      showToast('Plan shared ✓', 'success');
+    } catch {
+      showToast('Network error', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send';
+    }
+  }
+
+  // ── Received shares ──────────────────────────────────────────────────────────
+  let _sharesLoading = false;
+  async function loadReceivedShares() {
+    const list = $('sharedList');
+    if (_sharesLoading) return;
+    _sharesLoading = true;
+    list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Loading…</div></div>';
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_received_shares', user_id: USER_ID }),
+      });
+      const data = await res.json();
+      const shares = data.shares || [];
+      // Hide badge if none pending
+      const pending = shares.filter(s => s.status === 'pending');
+      const badge = $('sharedBadge');
+      if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = ''; }
+      else badge.style.display = 'none';
+
+      if (shares.length === 0) {
+        list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No shared plans yet</div>When a coach shares a plan with you, it will appear here.</div>';
+        return;
+      }
+      list.innerHTML = shares.map(s => {
+        const date    = new Date(s.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+        const fromName = s.from_name || 'A coach';
+        const isNew   = s.status === 'pending';
+        const msgHtml = s.message ? `<div class="share-message">"${esc(s.message)}"</div>` : '';
+        const newBadge = isNew ? `<span class="share-new-badge">New</span>` : '';
+        return `<div class="plan-card" style="flex-direction:column;align-items:stretch;gap:10px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div class="plan-card-body" style="flex:1">
+              <div class="share-from">From ${esc(fromName)}</div>
+              <div class="plan-card-title">${esc(s.session_title)}</div>
+              <div class="plan-card-meta">${esc(date)}</div>
+              ${msgHtml}
+            </div>
+            ${newBadge}
+          </div>
+          ${isNew ? `<div style="display:flex;gap:8px">
+            <button class="plan-load-btn" style="flex:1" onclick="viewReceivedShare(${s.share_id})">View</button>
+            <button class="plan-load-btn" style="flex:1;color:var(--accent)" onclick="acceptShare(${s.share_id})">Save to Library</button>
+            <button class="plan-load-btn" style="flex:1;color:var(--muted)" onclick="dismissShare(${s.share_id})">Dismiss</button>
+          </div>` : `<div style="display:flex;gap:8px">
+            <button class="plan-load-btn" style="flex:1" onclick="viewReceivedShare(${s.share_id})">View</button>
+          </div>`}
+        </div>`;
+      }).join('');
+    } catch {
+      list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection and try again.</div>';
+    } finally {
+      _sharesLoading = false;
+    }
+  }
+
+  async function viewReceivedShare(shareId) {
+    $('planDetailTitle').textContent = 'Loading…';
+    $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center"><div class="spinner"></div></div>';
+    $('planDetailShareBtn').style.display = 'none';
+    $('planDetailOverlay').classList.add('open');
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_shared_plan', share_id: shareId, user_id: USER_ID }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.plan) {
+        $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--muted)">Failed to load plan</div>';
+        return;
+      }
+      $('planDetailTitle').textContent = data.plan.session_title || 'Shared Plan';
+      $('planDetailContent').innerHTML = renderPlanReadOnly(data.plan);
+    } catch {
+      $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--muted)">Network error</div>';
+    }
+  }
+
+  async function acceptShare(shareId) {
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'accept_share', share_id: shareId, user_id: USER_ID }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Could not save plan', 'error'); return; }
+      showToast('Plan saved to your library ✓', 'success');
+      _sharesLoading = false;
+      loadReceivedShares();
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  async function dismissShare(shareId) {
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'dismiss_share', share_id: shareId, user_id: USER_ID }),
+      });
+      if (!res.ok) { showToast('Could not dismiss', 'error'); return; }
+      _sharesLoading = false;
+      loadReceivedShares();
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  // ── Read-only plan renderer (used in detail overlay) ─────────────────────────
+  function renderPlanReadOnly(p) {
+    const out = [];
+    function roSectionHdr(label, dur, type) {
+      return `<div class="section-hdr">
+        <div class="s-dot s-dot-${type}"></div>
+        <div class="s-label">${esc(label)}</div>
+        ${dur ? `<div class="s-dur">${dur} min</div>` : ''}
+      </div>`;
+    }
+    function roPhaseCard(phase, gameName, drillNum, gameImage) {
+      const nameBar = (gameName || drillNum)
+        ? `<div class="drill-name-bar">
+            ${drillNum ? `<div class="drill-num">${drillNum}</div>` : ''}
+            ${gameName ? `<div class="drill-name">${esc(gameName)}</div>` : ''}
+          </div>`
+        : '';
+      const imgTag = gameImage
+        ? `<img class="game-image" src="${esc(gameImage)}" alt="${esc(gameName || '')}" loading="lazy" onerror="this.style.display='none'">`
+        : '';
+      const setupHtml = phase.setup?.trim()
+        ? `<div class="cp-label">Setup</div><div class="card-desc">${esc(phase.setup.trim())}</div>` : '';
+      const descHtml = phase.description?.trim()
+        ? `<div class="cp-label">How to Play</div><div class="card-desc">${esc(phase.description.trim())}</div>` : '';
+      const pts = (phase.coaching_points || []);
+      const ptsHtml = pts.length
+        ? `<div class="cp-label">Coaching Points</div>` +
+          pts.map(pt => `<div class="cp-item"><span class="cp-dot">•</span><span>${esc(pt)}</span></div>`).join('')
+        : '';
+      const varHtml = phase.variation?.trim()
+        ? `<div class="cp-label">Variations</div><div class="card-desc">${esc(phase.variation.trim())}</div>` : '';
+      return `<div class="phase-card">${nameBar}${imgTag}<div class="card-body">${setupHtml}${descHtml}${ptsHtml}${varHtml}</div></div>`;
+    }
+    if (p.session_title) {
+      out.push(roSectionHdr('FOCUS', null, 'drill'));
+      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px"><div class="drill-name" style="font-size:15px">${esc(p.session_title)}</div></div></div>`);
+    }
+    if (p.session_objective) {
+      out.push(`<div class="objective-block">${esc(p.session_objective)}</div>`);
+    }
+    if (p.pre_session) {
+      out.push(roSectionHdr('PRE-SESSION', p.pre_session.duration_mins, 'warm'));
+      out.push(roPhaseCard(p.pre_session));
+    }
+    if (p.warm_up) {
+      out.push(roSectionHdr('WARM UP', p.warm_up.duration_mins, 'warm'));
+      out.push(roPhaseCard(p.warm_up));
+    }
+    if (p.station_setup?.trim()) {
+      out.push(roSectionHdr('STATION SETUP', null, 'drill'));
+      out.push(`<div class="station-setup-card">${esc(p.station_setup.trim())}</div>`);
+    }
+    (p.drills || []).forEach((d, i) => {
+      out.push(roSectionHdr(`DRILL ${i + 1}`, d.duration_mins, 'drill'));
+      out.push(roPhaseCard(d, d.game_name, i + 1, d.game_image));
+    });
+    if (p.cool_down) {
+      out.push(roSectionHdr('COOL DOWN', p.cool_down.duration_mins, 'cool'));
+      out.push(roPhaseCard(p.cool_down));
+    }
+    if (p.post_session) {
+      out.push(roSectionHdr('POST-SESSION', p.post_session.duration_mins, 'cool'));
+      out.push(roPhaseCard(p.post_session));
+    }
+    out.push('<div class="drill-gap"></div>');
+    return out.join('');
   }
 
   function hideRefusal() {
