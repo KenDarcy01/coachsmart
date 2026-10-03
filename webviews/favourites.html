@@ -558,6 +558,66 @@
       color: var(--text); word-break: break-word;
     }
     .fb-transcript:empty::before { content: "Your feedback will appear here…"; color: var(--muted); }
+
+    /* ── Tab bar ──────────────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 8px 10px;
+      font-size: 13px; font-weight: 600;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      text-align: center;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── My Plans screen ─────────────────────────────────────────────────── */
+    .plans-list { padding: 12px 16px 80px; display: flex; flex-direction: column; gap: 10px; }
+    .plan-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .plan-card-body { flex: 1; min-width: 0; }
+    .plan-card-title {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .plan-card-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .plan-card-badge {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 2px 7px; border-radius: 20px;
+      background: var(--accent-dim); color: var(--accent); flex-shrink: 0;
+    }
+    .plan-load-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px; font-weight: 600;
+      color: var(--text);
+      flex-shrink: 0;
+      transition: background 0.1s;
+    }
+    .plan-load-btn:active { background: var(--accent-dim); }
+    .plans-empty {
+      text-align: center;
+      padding: 60px 32px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .plans-empty-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -567,6 +627,18 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
 </header>
+
+<div class="tab-bar" id="tabBar" style="display:none">
+  <button class="tab-btn active" id="tabNew" onclick="switchTab('new')">New Plan</button>
+  <button class="tab-btn" id="tabMy" onclick="switchTab('my')">My Plans</button>
+</div>
+
+<!-- My Plans screen -->
+<div id="myPlansScreen" class="screen">
+  <div class="scroll-content">
+    <div class="plans-list" id="plansList"></div>
+  </div>
+</div>
 
 <!-- Loading -->
 <div id="loadingScreen" class="screen active">
@@ -716,14 +788,86 @@
     else history.back();
   }
   function showScreen(id) {
-    ['loadingScreen','emptyScreen','errorScreen','setupScreen','planScreen'].forEach(s => {
+    ['loadingScreen','emptyScreen','errorScreen','setupScreen','planScreen','myPlansScreen'].forEach(s => {
       const el = $(s);
       if (el) el.classList.toggle('active', s === id);
     });
   }
-  function showLoading(msg) { $('loadingText').textContent = msg || 'Loading…'; showScreen('loadingScreen'); }
-  function showEmpty()      { showScreen('emptyScreen'); }
-  function showError(msg)   { $('errorText').textContent = msg; showScreen('errorScreen'); }
+  function showLoading(msg) { $('tabBar').style.display = 'none'; $('loadingText').textContent = msg || 'Loading…'; showScreen('loadingScreen'); }
+  function showEmpty()      { $('tabBar').style.display = 'none'; showScreen('emptyScreen'); }
+  function showError(msg)   { $('tabBar').style.display = 'none'; $('errorText').textContent = msg; showScreen('errorScreen'); }
+  function showTabBar()     { $('tabBar').style.display = 'flex'; }
+
+  let _activeTab = 'new';
+  function switchTab(tab) {
+    _activeTab = tab;
+    $('tabNew').classList.toggle('active', tab === 'new');
+    $('tabMy').classList.toggle('active',  tab === 'my');
+    $('actionBar').style.display = 'none';
+    if (tab === 'new') {
+      showScreen('setupScreen');
+    } else {
+      showScreen('myPlansScreen');
+      loadUserPlans();
+    }
+  }
+
+  let _plansLoading = false;
+  async function loadUserPlans() {
+    const list = $('plansList');
+    if (_plansLoading) return;
+    _plansLoading = true;
+    list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Loading…</div></div>';
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_user_plans', user_id: USER_ID }),
+      });
+      const data = await res.json();
+      const plans = data.plans || [];
+      if (plans.length === 0) {
+        list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No saved plans yet</div>Generate your first plan on the New Plan tab — it will be saved here automatically.</div>';
+      } else {
+        list.innerHTML = plans.map(p => {
+          const date = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+          const badge = p.event_id ? `<span class="plan-card-badge">Event</span>` : `<span class="plan-card-badge">Library</span>`;
+          const meta  = p.event_title ? `${p.event_title} · ${date}` : date;
+          return `<div class="plan-card">
+            <div class="plan-card-body">
+              <div class="plan-card-title">${esc(p.session_title)}</div>
+              <div class="plan-card-meta">${esc(meta)}</div>
+            </div>
+            ${badge}
+            <button class="plan-load-btn" onclick="loadPlan(${p.plan_id})">Load</button>
+          </div>`;
+        }).join('');
+      }
+    } catch {
+      list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection and try again.</div>';
+    } finally {
+      _plansLoading = false;
+    }
+  }
+
+  async function loadPlan(planId) {
+    showLoading('Loading plan…');
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_plan', plan_id: planId, user_id: USER_ID }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.plan) { showError(data.error || 'Failed to load plan.'); return; }
+      _branding      = data.branding;
+      _currentPlanId = data.plan_id;
+      renderPlan(data.plan);
+      showTabBar();
+      // Stay on My Plans tab context but show the plan
+      _activeTab = 'my';
+      $('tabNew').classList.remove('active');
+      $('tabMy').classList.add('active');
+    } catch { showError('Network error. Please try again.'); }
+  }
 
   function hideRefusal() {
     const n = $('refusalNotice');
@@ -1068,6 +1212,10 @@
   // ── Setup screen ────────────────────────────────────────────────────────────
   function showSetup() {
     $('actionBar').style.display = 'none';
+    showTabBar();
+    _activeTab = 'new';
+    $('tabNew').classList.add('active');
+    $('tabMy').classList.remove('active');
     showScreen('setupScreen');
   }
 
@@ -1263,6 +1411,7 @@
 
     out.push('<div class="drill-gap"></div>');
     $('planContent').innerHTML = out.join('');
+    showTabBar();
     showScreen('planScreen');
     $('actionBar').style.display = 'flex';
     requestAnimationFrame(_initSpMicButton);
@@ -1375,6 +1524,8 @@
       showSetup();
     } catch { showError('Network error. Please check your connection and try again.'); }
   }
+
+  async function showSetupFallback() { showEmpty(); }
 
   boot();
 

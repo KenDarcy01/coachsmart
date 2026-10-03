@@ -582,6 +582,83 @@
       color: var(--text); word-break: break-word;
     }
     .fb-transcript:empty::before { content: "Your feedback will appear here…"; color: var(--muted); }
+
+    /* ── Attach plan section ──────────────────────────────────────────────── */
+    .attach-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 16px 16px 0;
+    }
+    .attach-divider::before, .attach-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .attach-divider span {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .attach-btn {
+      margin: 12px 16px 0;
+      width: calc(100% - 32px);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px;
+      background: var(--surface-2);
+      border: 1px dashed rgba(135,194,50,0.4);
+      border-radius: var(--radius);
+      color: var(--accent);
+      font-size: 14px; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .attach-btn:active { background: var(--accent-dim); }
+
+    /* ── Plan picker sheet ────────────────────────────────────────────────── */
+    .picker-sheet {
+      position: fixed; inset: 0; z-index: 200;
+      display: none; flex-direction: column;
+      background: var(--bg);
+    }
+    .picker-sheet.open { display: flex; }
+    .picker-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 56px;
+      display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0;
+    }
+    .picker-title { font-size: 16px; font-weight: 600; flex: 1; }
+    .picker-close {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); border-radius: 8px;
+    }
+    .picker-list { flex: 1; overflow-y: auto; padding: 12px 16px 40px; display: flex; flex-direction: column; gap: 10px; }
+    .picker-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .picker-card-body { flex: 1; min-width: 0; }
+    .picker-card-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .picker-card-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .picker-card-badge {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 2px 7px; border-radius: 20px;
+      background: var(--accent-dim); color: var(--accent); flex-shrink: 0;
+    }
+    .picker-use-btn {
+      background: var(--accent);
+      color: rgba(0,0,0,0.7);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .picker-empty {
+      text-align: center; padding: 60px 32px;
+      color: var(--muted); font-size: 14px; line-height: 1.6;
+    }
+    .picker-empty-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -650,11 +727,28 @@
       <div class="fav-list-card" id="favList"></div>
     </div>
   </div>
+  <div class="attach-divider"><span>or</span></div>
+  <button class="attach-btn" onclick="openPlanPicker()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+    Attach a Saved Plan
+  </button>
+  <div style="height:80px"></div>
   <div class="setup-bar">
     <button class="btn btn-primary btn-full" id="generateBtn" onclick="generatePlan()">
       Generate Session Plan
     </button>
   </div>
+</div>
+
+<!-- Plan picker sheet -->
+<div id="planPickerSheet" class="picker-sheet">
+  <div class="picker-header">
+    <button class="picker-close" onclick="closePlanPicker()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="picker-title">Saved Plans</div>
+  </div>
+  <div class="picker-list" id="pickerList"></div>
 </div>
 
 <!-- Plan screen -->
@@ -1058,6 +1152,86 @@
   // ── Setup screen ────────────────────────────────────────────────────────────
   function showSetup() {
     showScreen('setupScreen');
+  }
+
+  // ── Plan picker ───────────────────────────────────────────────────────────────
+  let _pickerLoading = false;
+
+  function openPlanPicker() {
+    $('planPickerSheet').classList.add('open');
+    if (!_pickerLoading) loadPickerPlans();
+  }
+
+  function closePlanPicker() {
+    $('planPickerSheet').classList.remove('open');
+  }
+
+  async function loadPickerPlans() {
+    _pickerLoading = true;
+    const list = $('pickerList');
+    list.innerHTML = '<div class="picker-empty"><div class="picker-empty-title">Loading…</div></div>';
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_user_plans', user_id: USER_ID }),
+      });
+      const data = await res.json();
+      const plans = data.plans || [];
+      if (plans.length === 0) {
+        list.innerHTML = '<div class="picker-empty"><div class="picker-empty-title">No saved plans yet</div>Generate plans in the Favourites section — they\'ll appear here to attach to events.</div>';
+      } else {
+        list.innerHTML = plans.map(p => {
+          const date  = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+          const badge = p.event_id ? `<span class="picker-card-badge">Event</span>` : `<span class="picker-card-badge">Library</span>`;
+          const meta  = p.event_title ? `${esc(p.event_title)} · ${date}` : date;
+          return `<div class="picker-card">
+            <div class="picker-card-body">
+              <div class="picker-card-title">${esc(p.session_title)}</div>
+              <div class="picker-card-meta">${meta}</div>
+            </div>
+            ${badge}
+            <button class="picker-use-btn" onclick="attachPlan(${p.plan_id})">Use</button>
+          </div>`;
+        }).join('');
+      }
+    } catch {
+      list.innerHTML = '<div class="picker-empty"><div class="picker-empty-title">Failed to load</div>Check your connection and try again.</div>';
+    } finally {
+      _pickerLoading = false;
+    }
+  }
+
+  async function attachPlan(planId) {
+    closePlanPicker();
+    showLoading('Loading plan…');
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_plan', plan_id: planId, user_id: USER_ID }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.plan) { showError(data.error || 'Failed to load plan.'); return; }
+
+      _branding      = data.branding || _branding;
+      _currentPlanId = null;
+      renderPlan(data.plan, _squadName);
+
+      // Save a copy as this event's active plan via the edge function
+      if (EVENT_ID) {
+        const saveRes = await fetch(EDGE_FN, {
+          method: 'POST', headers: HEADERS,
+          body: JSON.stringify({
+            action: 'attach_plan',
+            event_id: EVENT_ID,
+            user_id: USER_ID,
+            plan_json: data.plan,
+          }),
+        });
+        const saveData = await saveRes.json();
+        _currentPlanId = saveData.plan_id ?? null;
+      }
+      showToast('Plan attached ✓', 'success');
+    } catch { showError('Network error. Please try again.'); }
   }
 
   // ── Generate ────────────────────────────────────────────────────────────────
