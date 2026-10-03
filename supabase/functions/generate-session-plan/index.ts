@@ -501,13 +501,97 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── GET_USER_PLANS: return user's saved plan library ─────────────────────
+    if (action === "get_user_plans") {
+      const { data: plans, error: plansErr } = await sb
+        .from("session_plans")
+        .select("plan_id, session_title, created_at, event_id")
+        .eq("created_by", user_id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (plansErr) return new Response(JSON.stringify({ error: plansErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      // For event-linked plans, fetch event titles in one query
+      const eventIds = (plans || []).map(p => p.event_id).filter(Boolean);
+      let eventTitleMap: Record<number, string> = {};
+      if (eventIds.length > 0) {
+        const { data: events } = await sb
+          .from("events")
+          .select("event_id, event_title, event_date_time")
+          .in("event_id", eventIds);
+        for (const e of (events || [])) {
+          eventTitleMap[e.event_id] = e.event_title || "Training Session";
+        }
+      }
+
+      const result = (plans || []).map(p => ({
+        plan_id:       p.plan_id,
+        session_title: p.session_title || (p.event_id ? eventTitleMap[p.event_id] : null) || "Untitled Plan",
+        created_at:    p.created_at,
+        event_id:      p.event_id ?? null,
+        event_title:   p.event_id ? (eventTitleMap[p.event_id] ?? null) : null,
+      }));
+
+      return new Response(JSON.stringify({ plans: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── GET_PLAN: load a single plan by plan_id ───────────────────────────────
+    if (action === "get_plan") {
+      const { plan_id: loadId } = body;
+      if (!loadId) return new Response(JSON.stringify({ error: "plan_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const { data: planRow, error: planErr } = await sb
+        .from("session_plans")
+        .select("plan_id, plan_json, session_title, event_id")
+        .eq("plan_id", loadId)
+        .eq("created_by", user_id)
+        .single();
+      if (planErr || !planRow) return new Response(JSON.stringify({ error: "Plan not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      return new Response(JSON.stringify({
+        plan_id:       planRow.plan_id,
+        plan:          planRow.plan_json,
+        session_title: planRow.session_title,
+        event_id:      planRow.event_id ?? null,
+        branding,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── ATTACH_PLAN: copy a library plan as the active plan for an event ─────
+    if (action === "attach_plan") {
+      if (!event_id || !plan_json) return new Response(JSON.stringify({ error: "event_id and plan_json required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const attachTitle: string = (plan_json as any).session_title || "Training Session";
+      await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
+      const { data: saved, error: attachErr } = await sb
+        .from("session_plans")
+        .insert({ event_id, created_by: user_id, plan_json, session_title: attachTitle, is_active: true })
+        .select("plan_id").single();
+      if (attachErr) return new Response(JSON.stringify({ error: attachErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      return new Response(JSON.stringify({ ok: true, plan_id: saved?.plan_id ?? null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── UPDATE_PLAN: save edited plan_json ────────────────────────────────────
     if (action === "update_plan") {
       if (!plan_id || !plan_json) return new Response(JSON.stringify({ error: "plan_id and plan_json required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+      const upTitle: string = (plan_json as any)?.session_title || undefined;
       const { error: upErr } = await sb.from("session_plans")
-        .update({ plan_json })
+        .update({ plan_json, ...(upTitle ? { session_title: upTitle } : {}) })
         .eq("plan_id", plan_id)
         .eq("created_by", user_id);
       if (upErr) return new Response(JSON.stringify({ error: upErr.message }), {
@@ -600,13 +684,22 @@ serve(async (req) => {
       if (planJson.warm_up?.game_name in imgByName) planJson.warm_up.game_image = imgByName[planJson.warm_up.game_name];
       if (planJson.cool_down?.game_name in imgByName) planJson.cool_down.game_image = imgByName[planJson.cool_down.game_name];
 
-      // Save as new active plan
+      // Save revised plan — event-linked plans deactivate old version first;
+      // favourites plans always insert as a new library entry (Option B: keep history)
+      const sessionTitle: string = planJson.session_title || "Training Session";
       let savedPlanId: string | null = null;
       if (event_id) {
         await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
         const { data: saved } = await sb
           .from("session_plans")
-          .insert({ event_id, created_by: user_id, plan_json: planJson, is_active: true })
+          .insert({ event_id, created_by: user_id, plan_json: planJson, session_title: sessionTitle, is_active: true })
+          .select("plan_id").single();
+        savedPlanId = saved?.plan_id ?? null;
+      } else {
+        // Favourites revision — save as new active library entry
+        const { data: saved } = await sb
+          .from("session_plans")
+          .insert({ created_by: user_id, plan_json: planJson, session_title: sessionTitle, is_active: true })
           .select("plan_id").single();
         savedPlanId = saved?.plan_id ?? null;
       }
@@ -822,13 +915,14 @@ serve(async (req) => {
     planJson.coach_count  = coachCount;
     if (weather) planJson.weather = weather;
 
-    // Save (deactivate old plans first) — only when linked to an event
+    // Save plan — event-linked: deactivate old then insert; favourites: insert new library entry
+    const genSessionTitle: string = planJson.session_title || "Training Session";
     let savedPlanId: string | null = null;
     if (event_id) {
       await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
       const { data: saved, error: saveErr } = await sb
         .from("session_plans")
-        .insert({ event_id, created_by: user_id, plan_json: planJson, is_active: true })
+        .insert({ event_id, created_by: user_id, plan_json: planJson, session_title: genSessionTitle, is_active: true })
         .select("plan_id")
         .single();
 
@@ -839,6 +933,14 @@ serve(async (req) => {
         });
       }
       savedPlanId = saved.plan_id;
+    } else {
+      // Favourites — always save as a new library entry
+      const { data: saved } = await sb
+        .from("session_plans")
+        .insert({ created_by: user_id, plan_json: planJson, session_title: genSessionTitle, is_active: true })
+        .select("plan_id")
+        .single();
+      savedPlanId = saved?.plan_id ?? null;
     }
 
     return new Response(JSON.stringify({
