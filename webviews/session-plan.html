@@ -1260,35 +1260,70 @@
 
   function renderPlanReadOnly(p) {
     const out = [];
-    function fmtDur(m) { return m ? `${m} min` : ''; }
-    function pts(arr) {
-      if (!arr || !arr.length) return '';
-      return `<ul style="margin:6px 0 0 0;padding-left:18px">${arr.map(pt => `<li style="font-size:13px;color:var(--muted);margin-bottom:3px">${esc(pt)}</li>`).join('')}</ul>`;
-    }
-    function card(label, dur, body, coaching, variation, setup) {
-      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-          <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--accent)">${esc(label)}</div>
-          <div style="font-size:12px;color:var(--muted)">${esc(fmtDur(dur))}</div>
-        </div>
-        ${setup ? `<div style="font-size:13px;color:var(--muted);margin-bottom:6px">${esc(setup)}</div>` : ''}
-        <div style="font-size:14px;line-height:1.55">${esc(body)}</div>
-        ${pts(coaching)}
-        ${variation ? `<div style="font-size:13px;color:var(--muted);margin-top:6px;font-style:italic">Variation: ${esc(variation)}</div>` : ''}
+    function roSectionHdr(label, dur, type) {
+      return `<div class="section-hdr">
+        <div class="s-dot s-dot-${type}"></div>
+        <div class="s-label">${esc(label)}</div>
+        ${dur ? `<div class="s-dur">${dur} min</div>` : ''}
       </div>`;
     }
-    out.push(`<div style="padding:0 16px">`);
-    out.push(`<div style="font-size:16px;font-weight:700;margin-bottom:4px;padding-top:4px">${esc(p.session_title || '')}</div>`);
-    out.push(`<div style="font-size:13px;color:var(--muted);margin-bottom:16px">${esc(p.session_objective || '')}</div>`);
-    if (p.pre_session) out.push(card('Pre-session', p.pre_session.duration_mins, p.pre_session.description));
-    if (p.warm_up) out.push(card('Warm-up', p.warm_up.duration_mins, p.warm_up.description, p.warm_up.coaching_points));
-    if (p.station_setup) out.push(`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:10px;font-size:13px;color:var(--muted)">${esc(p.station_setup)}</div>`);
-    for (const d of (p.drills || [])) {
-      out.push(card(d.game_name, d.duration_mins, d.description, d.coaching_points, d.variation, d.setup));
+    function roPhaseCard(phase, gameName, drillNum, gameImage) {
+      const nameBar = (gameName || drillNum)
+        ? `<div class="drill-name-bar">
+            ${drillNum ? `<div class="drill-num">${drillNum}</div>` : ''}
+            ${gameName ? `<div class="drill-name">${esc(gameName)}</div>` : ''}
+          </div>`
+        : '';
+      const imgTag = gameImage
+        ? `<img class="game-image" src="${esc(gameImage)}" alt="${esc(gameName || '')}" loading="lazy" onerror="this.style.display='none'">`
+        : '';
+      const setupHtml = phase.setup?.trim()
+        ? `<div class="cp-label">Setup</div><div class="card-desc">${esc(phase.setup.trim())}</div>` : '';
+      const descHtml = phase.description?.trim()
+        ? `<div class="cp-label">How to Play</div><div class="card-desc">${esc(phase.description.trim())}</div>` : '';
+      const pts = (phase.coaching_points || []);
+      const ptsHtml = pts.length
+        ? `<div class="cp-label">Coaching Points</div>` +
+          pts.map(pt => `<div class="cp-item"><span class="cp-dot">•</span><span>${esc(pt)}</span></div>`).join('')
+        : '';
+      const varHtml = phase.variation?.trim()
+        ? `<div class="cp-label">Variations</div><div class="card-desc">${esc(phase.variation.trim())}</div>` : '';
+      return `<div class="phase-card">${nameBar}${imgTag}<div class="card-body">${setupHtml}${descHtml}${ptsHtml}${varHtml}</div></div>`;
     }
-    if (p.cool_down) out.push(card('Cool-down', p.cool_down.duration_mins, p.cool_down.description, p.cool_down.coaching_points));
-    if (p.post_session) out.push(card('Post-session', p.post_session.duration_mins, p.post_session.description));
-    out.push(`</div>`);
+
+    out.push(`<div style="padding:0 4px">`);
+    if (p.session_title) {
+      out.push(roSectionHdr('FOCUS', null, 'drill'));
+      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px"><div class="drill-name" style="font-size:15px">${esc(p.session_title)}</div></div></div>`);
+    }
+    if (p.session_objective) {
+      out.push(`<div class="objective-block">${esc(p.session_objective)}</div>`);
+    }
+    if (p.pre_session) {
+      out.push(roSectionHdr('PRE-SESSION', p.pre_session.duration_mins, 'warm'));
+      out.push(roPhaseCard(p.pre_session));
+    }
+    if (p.warm_up) {
+      out.push(roSectionHdr('WARM UP', p.warm_up.duration_mins, 'warm'));
+      out.push(roPhaseCard(p.warm_up));
+    }
+    if (p.station_setup?.trim()) {
+      out.push(roSectionHdr('STATION SETUP', null, 'drill'));
+      out.push(`<div class="station-setup-card">${esc(p.station_setup.trim())}</div>`);
+    }
+    (p.drills || []).forEach((d, i) => {
+      out.push(roSectionHdr(`DRILL ${i + 1}`, d.duration_mins, 'drill'));
+      out.push(roPhaseCard(d, d.game_name, i + 1, d.game_image));
+    });
+    if (p.cool_down) {
+      out.push(roSectionHdr('COOL DOWN', p.cool_down.duration_mins, 'cool'));
+      out.push(roPhaseCard(p.cool_down));
+    }
+    if (p.post_session) {
+      out.push(roSectionHdr('POST-SESSION', p.post_session.duration_mins, 'cool'));
+      out.push(roPhaseCard(p.post_session));
+    }
+    out.push(`<div class="drill-gap"></div></div>`);
     return out.join('');
   }
 

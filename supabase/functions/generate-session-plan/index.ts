@@ -501,6 +501,235 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── GET_SHARE_RECIPIENTS: coaches in same club(s) as this user ───────────
+    if (action === "get_share_recipients") {
+      // Find club(s) this user belongs to via member → team → club
+      const { data: memberRows } = await sb
+        .from("user_member_link")
+        .select("member_id")
+        .eq("user_id", user_id);
+      const memberIds = (memberRows || []).map((r: any) => r.member_id);
+
+      if (memberIds.length === 0) {
+        return new Response(JSON.stringify({ recipients: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get club ids this user's members belong to (via member_team_link → teams)
+      const { data: teamLinks } = await sb
+        .from("member_team_link")
+        .select("teams!inner(team_id, club_id)")
+        .in("member_id", memberIds);
+      const clubIds = [...new Set((teamLinks || []).map((r: any) => r.teams?.club_id).filter(Boolean))];
+
+      if (clubIds.length === 0) {
+        return new Response(JSON.stringify({ recipients: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Find all teams in those clubs
+      const { data: clubTeams } = await sb
+        .from("teams")
+        .select("team_id")
+        .in("club_id", clubIds);
+      const teamIds = (clubTeams || []).map((t: any) => t.team_id);
+
+      // Find admin members on those teams (role_grade = 100)
+      const { data: adminLinks } = await sb
+        .from("member_team_role_link")
+        .select(`
+          members!inner(member_id, user_id, first_name, last_name),
+          roles!inner(role_grade)
+        `)
+        .in("team_id", teamIds)
+        .eq("roles.role_grade", 100);
+
+      // Collect unique user_ids (excluding self, excluding members with no user)
+      const seen = new Set<string>([user_id]);
+      const recipients: { user_id: string; name: string }[] = [];
+      for (const row of (adminLinks || [])) {
+        const m = (row as any).members;
+        if (!m?.user_id || seen.has(m.user_id)) continue;
+        seen.add(m.user_id);
+        recipients.push({
+          user_id: m.user_id,
+          name: [m.first_name, m.last_name].filter(Boolean).join(" ") || "Unknown Coach",
+        });
+      }
+      recipients.sort((a, b) => a.name.localeCompare(b.name));
+
+      return new Response(JSON.stringify({ recipients }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── SHARE_PLAN: send a plan to another coach ──────────────────────────────
+    if (action === "share_plan") {
+      const { to_user_id, plan_json: sharePlanJson, message: shareMessage } = body;
+      if (!to_user_id || !sharePlanJson) return new Response(JSON.stringify({ error: "to_user_id and plan_json required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const shareTitle: string = (sharePlanJson as any).session_title || "Training Session";
+
+      const { data: shareRow, error: shareErr } = await sb
+        .from("plan_shares")
+        .insert({ from_user_id: user_id, to_user_id, plan_json: sharePlanJson, session_title: shareTitle, message: shareMessage || null })
+        .select("share_id").single();
+
+      if (shareErr) return new Response(JSON.stringify({ error: shareErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      // Look up sender's name for the notification
+      const { data: senderRow } = await sb
+        .from("members")
+        .select("first_name, last_name")
+        .eq("user_id", user_id)
+        .maybeSingle();
+      const senderName = senderRow
+        ? [senderRow.first_name, senderRow.last_name].filter(Boolean).join(" ")
+        : "A coach";
+
+      // Send in-app notification to recipient
+      const notifBody = shareMessage?.trim()
+        ? `${senderName} shared a plan: "${shareTitle}" — ${shareMessage.trim()}`
+        : `${senderName} shared a plan with you: "${shareTitle}"`;
+      await sb.from("notifications").insert({
+        user_id: to_user_id,
+        notification_title: "Session Plan Shared",
+        notification_body:  notifBody,
+        notification_type:  "plan_share",
+        reference_id:       shareRow?.share_id?.toString() ?? null,
+        is_read:            false,
+      }).catch(() => {/* non-critical */});
+
+      return new Response(JSON.stringify({ ok: true, share_id: shareRow?.share_id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── GET_RECEIVED_SHARES: inbox of plans shared with this user ─────────────
+    if (action === "get_received_shares") {
+      const { data: shares, error: sharesErr } = await sb
+        .from("plan_shares")
+        .select("share_id, session_title, message, status, created_at, from_user_id")
+        .eq("to_user_id", user_id)
+        .neq("status", "dismissed")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (sharesErr) return new Response(JSON.stringify({ error: sharesErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      // Enrich with sender names
+      const fromIds = [...new Set((shares || []).map(s => s.from_user_id))];
+      let nameMap: Record<string, string> = {};
+      if (fromIds.length > 0) {
+        const { data: senderMembers } = await sb
+          .from("members")
+          .select("user_id, first_name, last_name")
+          .in("user_id", fromIds);
+        for (const m of (senderMembers || [])) {
+          if (m.user_id) nameMap[m.user_id] = [m.first_name, m.last_name].filter(Boolean).join(" ") || "Unknown Coach";
+        }
+      }
+
+      const result = (shares || []).map(s => ({
+        share_id:      s.share_id,
+        session_title: s.session_title,
+        message:       s.message ?? null,
+        status:        s.status,
+        created_at:    s.created_at,
+        from_name:     nameMap[s.from_user_id] ?? "Unknown Coach",
+      }));
+
+      return new Response(JSON.stringify({ shares: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── GET_SHARED_PLAN: load plan_json for a received share ─────────────────
+    if (action === "get_shared_plan") {
+      const { share_id } = body;
+      if (!share_id) return new Response(JSON.stringify({ error: "share_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const { data: shareRow, error: shareErr } = await sb
+        .from("plan_shares")
+        .select("share_id, plan_json, session_title, message, from_user_id, status")
+        .eq("share_id", share_id)
+        .eq("to_user_id", user_id)
+        .single();
+      if (shareErr || !shareRow) return new Response(JSON.stringify({ error: "Share not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      const { data: senderMember } = await sb
+        .from("members")
+        .select("first_name, last_name")
+        .eq("user_id", shareRow.from_user_id)
+        .maybeSingle();
+      const fromName = senderMember
+        ? [senderMember.first_name, senderMember.last_name].filter(Boolean).join(" ")
+        : "Unknown Coach";
+
+      return new Response(JSON.stringify({
+        share_id:      shareRow.share_id,
+        plan:          shareRow.plan_json,
+        session_title: shareRow.session_title,
+        message:       shareRow.message ?? null,
+        from_name:     fromName,
+        status:        shareRow.status,
+        branding,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── ACCEPT_SHARE: copy plan into recipient's library ──────────────────────
+    if (action === "accept_share") {
+      const { share_id } = body;
+      if (!share_id) return new Response(JSON.stringify({ error: "share_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      const { data: shareRow, error: shareErr } = await sb
+        .from("plan_shares")
+        .select("plan_json, session_title")
+        .eq("share_id", share_id)
+        .eq("to_user_id", user_id)
+        .single();
+      if (shareErr || !shareRow) return new Response(JSON.stringify({ error: "Share not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      // Insert as new library plan for recipient
+      const { data: saved } = await sb
+        .from("session_plans")
+        .insert({ created_by: user_id, plan_json: shareRow.plan_json, session_title: shareRow.session_title, is_active: true })
+        .select("plan_id").single();
+
+      // Mark share as accepted
+      await sb.from("plan_shares").update({ status: "accepted" }).eq("share_id", share_id);
+
+      return new Response(JSON.stringify({ ok: true, plan_id: saved?.plan_id ?? null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── DISMISS_SHARE: remove from inbox without saving ───────────────────────
+    if (action === "dismiss_share") {
+      const { share_id } = body;
+      if (!share_id) return new Response(JSON.stringify({ error: "share_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      await sb.from("plan_shares").update({ status: "dismissed" }).eq("share_id", share_id).eq("to_user_id", user_id);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── GET_USER_PLANS: return user's saved plan library ─────────────────────
     if (action === "get_user_plans") {
       const { data: plans, error: plansErr } = await sb
