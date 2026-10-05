@@ -1119,10 +1119,13 @@
     const btn = document.getElementById('micBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
+    let _capturedPointerId = null;
     function start(e) {
       e.preventDefault();
       if (_isVoiceRecording) return;
-      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      if (e.pointerType !== 'touch') {
+        try { btn.setPointerCapture(e.pointerId); _capturedPointerId = e.pointerId; } catch (_) {}
+      }
       _isVoiceRecording = true; _voiceTranscript = ''; _baseVoiceText = '';
       document.getElementById('voiceTranscript').textContent = '';
       btn.classList.add('recording');
@@ -1132,6 +1135,10 @@
       else _startWebVoiceSpeech();
     }
     function stop() {
+      if (_capturedPointerId !== null) {
+        try { btn.releasePointerCapture(_capturedPointerId); } catch (_) {}
+        _capturedPointerId = null;
+      }
       if (!_isVoiceRecording) return;
       const _lbl2 = document.getElementById('micBtnLabel'); if (_lbl2) _lbl2.textContent = 'Hold to Record';
       if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
@@ -1206,10 +1213,13 @@
     const btn = document.getElementById('fbMicBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
+    let _fbCapturedPointerId = null;
     function start(e) {
       e.preventDefault();
       if (_fbIsRecording) return;
-      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      if (e.pointerType !== 'touch') {
+        try { btn.setPointerCapture(e.pointerId); _fbCapturedPointerId = e.pointerId; } catch (_) {}
+      }
       _fbIsRecording = true; _fbTranscript = '';
       document.getElementById('fbTranscript').textContent = '';
       btn.classList.add('recording');
@@ -1218,6 +1228,10 @@
       else _startFbWebSpeech();
     }
     function stop() {
+      if (_fbCapturedPointerId !== null) {
+        try { btn.releasePointerCapture(_fbCapturedPointerId); } catch (_) {}
+        _fbCapturedPointerId = null;
+      }
       if (!_fbIsRecording) return;
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
