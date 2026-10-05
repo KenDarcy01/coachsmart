@@ -385,7 +385,7 @@
         <p class="voice-instruction">Hold to describe the drill — setup, how to play, variations, coaching points. AI will read any text already visible in your image.</p>
         <div id="voiceWave" class="voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
         <div class="mic-btn-wrap">
-          <button id="micBtn" class="mic-btn" aria-label="Hold to record">
+          <button id="micBtn" class="mic-btn" aria-label="Tap to record">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           </button>
         </div>
@@ -529,7 +529,7 @@
         <p class="voice-instruction">Hold to describe what you'd like changed — the AI will revise the draft text based on your notes.</p>
         <div id="fbVoiceWave" class="voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
         <div class="mic-btn-wrap">
-          <button id="fbMicBtn" class="mic-btn" aria-label="Hold to record feedback">
+          <button id="fbMicBtn" class="mic-btn" aria-label="Tap to record feedback">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           </button>
         </div>
@@ -1119,13 +1119,15 @@
     const btn = document.getElementById('micBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
-    let _capturedPointerId = null;
-    function start(e) {
+    function stop() {
+      if (!_isVoiceRecording) return;
+      const _lbl2 = document.getElementById('micBtnLabel'); if (_lbl2) _lbl2.textContent = 'Tap to Record';
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
+      else _stopWebVoiceSpeech();
+    }
+    btn.addEventListener('pointerdown', e => {
       e.preventDefault();
-      if (_isVoiceRecording) return;
-      if (e.pointerType !== 'touch') {
-        try { btn.setPointerCapture(e.pointerId); _capturedPointerId = e.pointerId; } catch (_) {}
-      }
+      if (_isVoiceRecording) { stop(); return; }
       _isVoiceRecording = true; _voiceTranscript = ''; _baseVoiceText = '';
       document.getElementById('voiceTranscript').textContent = '';
       btn.classList.add('recording');
@@ -1133,21 +1135,8 @@
       document.getElementById('voiceWave').classList.add('active');
       if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
       else _startWebVoiceSpeech();
-    }
-    function stop() {
-      if (_capturedPointerId !== null) {
-        try { btn.releasePointerCapture(_capturedPointerId); } catch (_) {}
-        _capturedPointerId = null;
-      }
-      if (!_isVoiceRecording) return;
-      const _lbl2 = document.getElementById('micBtnLabel'); if (_lbl2) _lbl2.textContent = 'Hold to Record';
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
-      else _stopWebVoiceSpeech();
-    }
-    btn.addEventListener('pointerdown',   start, { passive: false });
-    btn.addEventListener('pointerup',     stop);
+    }, { passive: false });
     btn.addEventListener('pointercancel', stop);
-    document.addEventListener('touchend',    stop, { passive: true });
     document.addEventListener('touchcancel', stop, { passive: true });
   }
 
@@ -1180,7 +1169,7 @@
     _isVoiceRecording = false;
     const btn = document.getElementById('micBtn');
     if (btn) btn.classList.remove('recording');
-    const lbl = document.getElementById('micBtnLabel'); if (lbl) lbl.textContent = 'Hold to Record';
+    const lbl = document.getElementById('micBtnLabel'); if (lbl) lbl.textContent = 'Tap to Record';
     document.getElementById('voiceWave').classList.remove('active');
   }
   const FILLERS = /\b(um+h?|uh+|eh+|ahh?|mm+|hmm+|err+|y'know|like)\b[\s,]*/gi;
@@ -1213,25 +1202,7 @@
     const btn = document.getElementById('fbMicBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
-    let _fbCapturedPointerId = null;
-    function start(e) {
-      e.preventDefault();
-      if (_fbIsRecording) return;
-      if (e.pointerType !== 'touch') {
-        try { btn.setPointerCapture(e.pointerId); _fbCapturedPointerId = e.pointerId; } catch (_) {}
-      }
-      _fbIsRecording = true; _fbTranscript = '';
-      document.getElementById('fbTranscript').textContent = '';
-      btn.classList.add('recording');
-      document.getElementById('fbVoiceWave').classList.add('active');
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
-      else _startFbWebSpeech();
-    }
     function stop() {
-      if (_fbCapturedPointerId !== null) {
-        try { btn.releasePointerCapture(_fbCapturedPointerId); } catch (_) {}
-        _fbCapturedPointerId = null;
-      }
       if (!_fbIsRecording) return;
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
@@ -1244,10 +1215,17 @@
         }, 8000);
       } else _stopFbWebSpeech();
     }
-    btn.addEventListener('pointerdown',   start, { passive: false });
-    btn.addEventListener('pointerup',     stop);
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      if (_fbIsRecording) { stop(); return; }
+      _fbIsRecording = true; _fbTranscript = '';
+      document.getElementById('fbTranscript').textContent = '';
+      btn.classList.add('recording');
+      document.getElementById('fbVoiceWave').classList.add('active');
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
+      else _startFbWebSpeech();
+    }, { passive: false });
     btn.addEventListener('pointercancel', stop);
-    document.addEventListener('touchend',    stop, { passive: true });
     document.addEventListener('touchcancel', stop, { passive: true });
   }
   let _fbWebRecognition = null;
