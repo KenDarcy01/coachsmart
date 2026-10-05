@@ -2060,10 +2060,13 @@
     const btn = $('spFbMicBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
+    let _capturedPointerId = null;
     function start(e) {
       e.preventDefault();
       if (_spIsRecording) return;
-      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      if (e.pointerType !== 'touch') {
+        try { btn.setPointerCapture(e.pointerId); _capturedPointerId = e.pointerId; } catch (_) {}
+      }
       _spIsRecording = true; _spTranscript = '';
       $('spFbTranscript').textContent = '';
       btn.classList.add('recording');
@@ -2072,6 +2075,10 @@
       else _startSpWebSpeech();
     }
     function stop() {
+      if (_capturedPointerId !== null) {
+        try { btn.releasePointerCapture(_capturedPointerId); } catch (_) {}
+        _capturedPointerId = null;
+      }
       if (!_spIsRecording) return;
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
