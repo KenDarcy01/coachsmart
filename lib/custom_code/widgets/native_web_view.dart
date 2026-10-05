@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -291,7 +292,35 @@ class _NativeWebViewState extends State<NativeWebView>
     try {
       final ctrl = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(Colors.transparent)
+        ..setBackgroundColor(Colors.transparent);
+
+      // setOnShowFileSelector is available in webview_flutter >=4.4.0.
+      // Called via dynamic dispatch so FlutterFlow's analyser (which runs
+      // against an older SDK) does not reject it at edit time, while the
+      // actual production build (webview_flutter 4.13.0) resolves it fine.
+      try {
+        (ctrl as dynamic).setOnShowFileSelector((dynamic params) async {
+          try {
+            final picker = ImagePicker();
+            bool multiple = false;
+            try {
+              multiple = params.mode.toString().contains('openMultiple');
+            } catch (_) {}
+            if (multiple) {
+              final images = await picker.pickMultiImage();
+              return images.map((x) => Uri.file(x.path).toString()).toList();
+            } else {
+              final image = await picker.pickImage(source: ImageSource.gallery);
+              if (image == null) return <String>[];
+              return [Uri.file(image.path).toString()];
+            }
+          } catch (_) {
+            return <String>[];
+          }
+        });
+      } catch (_) {}
+
+      ctrl
         ..addJavaScriptChannel(
           'FlutterBridge',
           onMessageReceived: (JavaScriptMessage msg) {
