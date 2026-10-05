@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -99,9 +100,9 @@ class _NativeWebViewState extends State<NativeWebView>
                 _controller?.runJavaScript(
                   'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
                 );
-              } else {
-                _controller?.runJavaScript('window.onSpeechDone()');
               }
+              // Always signal done so JS can reset UI and trigger regeneration.
+              _controller?.runJavaScript('window.onSpeechDone()');
             }
           }
         },
@@ -190,14 +191,17 @@ class _NativeWebViewState extends State<NativeWebView>
         _voiceHoldActive = false;
       }
     } else {
-      // Per-field speech: longer pause than the old 4 s so a thinking pause
-      // does not cut off mid-sentence, but still auto-stops eventually.
+      // Feedback / per-field speech (sp_feedback, fb_input, etc.).
+      // partialResults keeps the Android recognizer active long enough to
+      // capture speech; listenFor prevents an early Android timeout.
       try {
         await _speech.listen(
           onResult: (result) {
             if (result.recognizedWords.isNotEmpty) {
               _lastRecognizedWords = result.recognizedWords;
             }
+            // On a final result, deliver immediately and let onStatus fire
+            // onSpeechDone to reset the JS UI.
             if (result.finalResult && result.recognizedWords.isNotEmpty) {
               final fid = _speechFieldId;
               if (fid == null) return;
@@ -206,9 +210,14 @@ class _NativeWebViewState extends State<NativeWebView>
               _controller?.runJavaScript(
                 'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(result.recognizedWords)})',
               );
+              // Signal done immediately so JS resets and triggers regeneration
+              // without waiting for the onStatus callback.
+              _controller?.runJavaScript('window.onSpeechDone()');
             }
           },
           pauseFor: const Duration(seconds: 10),
+          listenFor: const Duration(minutes: 2),
+          partialResults: true,
           cancelOnError: false,
         );
       } catch (_) {
@@ -248,9 +257,9 @@ class _NativeWebViewState extends State<NativeWebView>
         _controller?.runJavaScript(
           'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
         );
-      } else {
-        _controller?.runJavaScript('window.onSpeechDone()');
       }
+      // Always signal done so JS resets UI and triggers regeneration.
+      _controller?.runJavaScript('window.onSpeechDone()');
     }
   }
 
@@ -284,6 +293,26 @@ class _NativeWebViewState extends State<NativeWebView>
       final ctrl = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.transparent)
+        ..setOnShowFileSelector((FileSelectorParams params) async {
+          // Handle <input type="file"> on Android — silently ignored without this.
+          try {
+            final picker = ImagePicker();
+            final multiple = params.mode == FileSelectorMode.openMultiple;
+            if (multiple) {
+              final images = await picker.pickMultiImage();
+              return images
+                  .map((x) => Uri.file(x.path).toString())
+                  .toList();
+            } else {
+              final image =
+                  await picker.pickImage(source: ImageSource.gallery);
+              if (image == null) return [];
+              return [Uri.file(image.path).toString()];
+            }
+          } catch (_) {
+            return [];
+          }
+        })
         ..addJavaScriptChannel(
           'FlutterBridge',
           onMessageReceived: (JavaScriptMessage msg) {
