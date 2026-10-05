@@ -99,9 +99,9 @@ class _NativeWebViewState extends State<NativeWebView>
                 _controller?.runJavaScript(
                   'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
                 );
-              } else {
-                _controller?.runJavaScript('window.onSpeechDone()');
               }
+              // Always signal done so JS can reset UI and trigger regeneration.
+              _controller?.runJavaScript('window.onSpeechDone()');
             }
           }
         },
@@ -190,14 +190,17 @@ class _NativeWebViewState extends State<NativeWebView>
         _voiceHoldActive = false;
       }
     } else {
-      // Per-field speech: longer pause than the old 4 s so a thinking pause
-      // does not cut off mid-sentence, but still auto-stops eventually.
+      // Feedback / per-field speech (sp_feedback, fb_input, etc.).
+      // partialResults keeps the Android recognizer active long enough to
+      // capture speech; listenFor prevents an early Android timeout.
       try {
         await _speech.listen(
           onResult: (result) {
             if (result.recognizedWords.isNotEmpty) {
               _lastRecognizedWords = result.recognizedWords;
             }
+            // On a final result, deliver immediately and let onStatus fire
+            // onSpeechDone to reset the JS UI.
             if (result.finalResult && result.recognizedWords.isNotEmpty) {
               final fid = _speechFieldId;
               if (fid == null) return;
@@ -206,9 +209,14 @@ class _NativeWebViewState extends State<NativeWebView>
               _controller?.runJavaScript(
                 'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(result.recognizedWords)})',
               );
+              // Signal done immediately so JS resets and triggers regeneration
+              // without waiting for the onStatus callback.
+              _controller?.runJavaScript('window.onSpeechDone()');
             }
           },
           pauseFor: const Duration(seconds: 10),
+          listenFor: const Duration(minutes: 2),
+          partialResults: true,
           cancelOnError: false,
         );
       } catch (_) {
@@ -248,9 +256,9 @@ class _NativeWebViewState extends State<NativeWebView>
         _controller?.runJavaScript(
           'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
         );
-      } else {
-        _controller?.runJavaScript('window.onSpeechDone()');
       }
+      // Always signal done so JS resets UI and triggers regeneration.
+      _controller?.runJavaScript('window.onSpeechDone()');
     }
   }
 
