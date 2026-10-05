@@ -1126,6 +1126,7 @@
       if (!_isVoiceRecording) return;
       if (lbl) lbl.textContent = _isIOS ? 'Hold to Record' : 'Tap to Record';
       if (_isIOS && window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
+      else if (!_isIOS && window.FlutterBridge) { window.FlutterBridge.postMessage('stopSpeech'); _resetVoiceState(); }
       else _stopWebVoiceSpeech();
     }
     function startRecording() {
@@ -1134,7 +1135,7 @@
       btn.classList.add('recording');
       if (lbl) lbl.textContent = 'Recording…';
       document.getElementById('voiceWave').classList.add('active');
-      if (_isIOS && window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
       else _startWebVoiceSpeech();
     }
     if (_isIOS) {
@@ -1223,6 +1224,12 @@
         _fbAutoReviseTimeout = setTimeout(() => {
           if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
         }, 8000);
+      } else if (!_isIOS && window.FlutterBridge) {
+        window.FlutterBridge.postMessage('stopSpeech');
+        _fbAutoRevise = false;
+        _resetFbVoiceState();
+        showToast('Revising draft…', 'success', 0);
+        reviseDraft();
       } else {
         _stopFbWebSpeech();
         showToast('Revising draft…', 'success', 0);
@@ -1234,8 +1241,10 @@
       document.getElementById('fbTranscript').textContent = '';
       btn.classList.add('recording');
       document.getElementById('fbVoiceWave').classList.add('active');
-      if (_isIOS && window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
-      else _startFbWebSpeech();
+      if (window.FlutterBridge) {
+        if (!_isIOS) _fbAutoRevise = true;
+        window.FlutterBridge.postMessage('startSpeech:fb_input');
+      } else _startFbWebSpeech();
     }
     if (_isIOS) {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_fbIsRecording) startRecording(); }, { passive: false });
