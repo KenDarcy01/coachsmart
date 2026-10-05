@@ -955,7 +955,7 @@ serve(async (req) => {
     // Fetch all favourite games
     const { data: allFavLinks } = await sb
       .from("user_game_link")
-      .select(`position, games!inner(game_id, game_name, game_image, game_code, game_type, game_setup, game_how_to_play, game_variations, game_teaching_points)`)
+      .select(`position, games!inner(game_id, game_name, game_image, game_code, game_type, game_setup, game_how_to_play, game_variations, game_teaching_points, game_video)`)
       .eq("user_id", user_id)
       .order("position");
 
@@ -1109,6 +1109,7 @@ serve(async (req) => {
     for (const drill of (planJson.drills || [])) {
       const g = gameByName[drill.game_name];
       drill.game_image = g?.game_image ?? null;
+      drill.game_video = g?.game_video?.trim() || null;
       if (g) {
         drill.setup      = g.game_setup?.trim() || null;
         if (g.game_how_to_play?.trim()) drill.description = g.game_how_to_play.trim();
@@ -1123,6 +1124,7 @@ serve(async (req) => {
       const g = warmupGame.games;
       planJson.warm_up.game_name  = g.game_name;
       planJson.warm_up.game_image = g.game_image || null;
+      planJson.warm_up.game_video = g.game_video?.trim() || null;
       planJson.warm_up.setup      = g.game_setup?.trim() || null;
       if (g.game_how_to_play?.trim()) planJson.warm_up.description = g.game_how_to_play.trim();
       if (g.game_teaching_points?.trim()) planJson.warm_up.coaching_points = parseCoachingPoints(g.game_teaching_points);
@@ -1134,6 +1136,7 @@ serve(async (req) => {
       const g = cooldownGame.games;
       planJson.cool_down.game_name  = g.game_name;
       planJson.cool_down.game_image = g.game_image || null;
+      planJson.cool_down.game_video = g.game_video?.trim() || null;
       planJson.cool_down.setup      = g.game_setup?.trim() || null;
       if (g.game_how_to_play?.trim()) planJson.cool_down.description = g.game_how_to_play.trim();
       if (g.game_teaching_points?.trim()) planJson.cool_down.coaching_points = parseCoachingPoints(g.game_teaching_points);

@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, rgb, PDFFont, StandardFonts } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, rgb, PDFFont, StandardFonts, PDFDict, PDFName, PDFString, PDFArray, PDFNumber } from "npm:pdf-lib@1.17.1";
 import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
 
 const corsHeaders = {
@@ -149,12 +149,16 @@ interface DrillData {
   coaching_points: string[];
   variation?: string;
   game_image?: string;
+  game_video?: string | null;
 }
 
 interface WarmupCooldown {
   duration_mins: number;
   description: string;
   coaching_points?: string[];
+  game_name?: string;
+  game_image?: string | null;
+  game_video?: string | null;
 }
 
 interface OptionalBlock {
@@ -505,6 +509,44 @@ async function buildSessionPlanPdf(
     curY += 4;
   }
 
+  // Draw a video URL as blue underlined text with a clickable PDF link annotation
+  function drawVideoLink(url: string) {
+    if (!url?.trim()) return;
+    const label = "▶ Watch video";
+    const fs    = BODY_FONT_S;
+    const lh    = fs + 8;
+    ensureSpace(lh + 4);
+
+    const textY = PH - curY - fs;
+    const textW = notoReg.widthOfTextAtSize(label, fs);
+    const blue  = rgb(0.10, 0.40, 0.85);
+
+    currentPage.drawText(label, { x: BODY_LEFT, y: textY, size: fs, font: notoReg, color: blue });
+    currentPage.drawLine({
+      start: { x: BODY_LEFT,         y: textY - 1 },
+      end:   { x: BODY_LEFT + textW,  y: textY - 1 },
+      thickness: 0.6, color: blue,
+    });
+
+    try {
+      const ctx   = doc.context;
+      const annot = ctx.obj({
+        Type:    PDFName.of("Annot"),
+        Subtype: PDFName.of("Link"),
+        Rect:    ctx.obj([BODY_LEFT, textY - 2, BODY_LEFT + textW, textY + fs]),
+        Border:  ctx.obj([0, 0, 0]),
+        A: ctx.obj({
+          Type: PDFName.of("Action"),
+          S:    PDFName.of("URI"),
+          URI:  PDFString.of(url.trim()),
+        }),
+      });
+      currentPage.node.addAnnot(annot);
+    } catch { /* skip if annotation api unavailable */ }
+
+    curY += lh + 2;
+  }
+
   // Section header: coloured dot + label + duration right-aligned
   function drawSectionHeader(label: string, durationMins: number | null, color: ReturnType<typeof rgb>) {
     ensureSpace(SECTION_ROW_H + LINE_H + 4);
@@ -608,11 +650,52 @@ async function buildSessionPlanPdf(
   if (plan.warm_up) {
     drawSectionHeader("WARM UP", plan.warm_up.duration_mins ?? null, accentRgb);
 
+    // Warmup game image
+    if (plan.warm_up.game_image) {
+      const imgBytes = await fetchImageBytes(plan.warm_up.game_image);
+      if (imgBytes) {
+        let wuImg: any = null;
+        try {
+          wuImg = isJpeg(imgBytes)
+            ? await doc.embedJpg(imgBytes)
+            : isPng(imgBytes) ? await doc.embedPng(imgBytes) : null;
+        } catch { /* skip */ }
+
+        if (wuImg) {
+          const ratio = wuImg.width / wuImg.height;
+          let imgW = CW;
+          let imgH = Math.min(imgW / ratio, IDEAL_IMG_H);
+          imgW = imgH * ratio;
+          if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
+
+          curY += 8;
+          const spaceAvail = PH - curY - FOOTER_ZONE - 20;
+          if (spaceAvail < imgH) {
+            if (spaceAvail >= MIN_IMG_H) {
+              imgH = spaceAvail; imgW = imgH * ratio;
+              if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
+            } else {
+              newPage(false);
+              imgH = IDEAL_IMG_H; imgW = imgH * ratio;
+              if (imgW > CW) { imgW = CW; imgH = imgW / ratio; }
+            }
+          }
+
+          const imgX = ML + (CW - imgW) / 2;
+          currentPage.drawImage(wuImg, { x: imgX, y: PH - curY - imgH, width: imgW, height: imgH });
+          curY += imgH + 10;
+        }
+      }
+    }
+
     if (plan.warm_up.description?.trim()) {
       drawText(plan.warm_up.description, notoReg, BODY_FONT_S, darkText, 0, 4);
     }
     if (plan.warm_up.coaching_points?.length) {
       drawBulletList(plan.warm_up.coaching_points, accentRgb);
+    }
+    if (plan.warm_up.game_video?.trim()) {
+      drawVideoLink(plan.warm_up.game_video);
     }
     curY += 6;
   }
@@ -698,6 +781,11 @@ async function buildSessionPlanPdf(
       drawText(drill.variation, notoReg, SMALL_FONT_S, mutedText, 8, 4);
     }
 
+    // Video link
+    if (drill.game_video?.trim()) {
+      drawVideoLink(drill.game_video);
+    }
+
     curY += 6;
   }
 
@@ -711,6 +799,9 @@ async function buildSessionPlanPdf(
     }
     if ((plan.cool_down as any).coaching_points?.length) {
       drawBulletList((plan.cool_down as any).coaching_points, accentRgb);
+    }
+    if (plan.cool_down.game_video?.trim()) {
+      drawVideoLink(plan.cool_down.game_video);
     }
     curY += 6;
   }
