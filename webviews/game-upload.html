@@ -1125,7 +1125,7 @@
     function stop() {
       if (!_isVoiceRecording) return;
       if (lbl) lbl.textContent = _isIOS ? 'Hold to Record' : 'Tap to Record';
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
+      if (_isIOS && window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
       else _stopWebVoiceSpeech();
     }
     function startRecording() {
@@ -1134,7 +1134,7 @@
       btn.classList.add('recording');
       if (lbl) lbl.textContent = 'Recording…';
       document.getElementById('voiceWave').classList.add('active');
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
+      if (_isIOS && window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
       else _startWebVoiceSpeech();
     }
     if (_isIOS) {
@@ -1214,7 +1214,7 @@
     btn.addEventListener('contextmenu', e => e.preventDefault());
     function stop() {
       if (!_fbIsRecording) return;
-      if (window.FlutterBridge) {
+      if (_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
         _resetFbVoiceState();
         _fbAutoRevise = true;
@@ -1223,14 +1223,18 @@
         _fbAutoReviseTimeout = setTimeout(() => {
           if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
         }, 8000);
-      } else _stopFbWebSpeech();
+      } else {
+        _stopFbWebSpeech();
+        showToast('Revising draft…', 'success', 0);
+        reviseDraft();
+      }
     }
     function startRecording() {
       _fbIsRecording = true; _fbTranscript = '';
       document.getElementById('fbTranscript').textContent = '';
       btn.classList.add('recording');
       document.getElementById('fbVoiceWave').classList.add('active');
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
+      if (_isIOS && window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
       else _startFbWebSpeech();
     }
     if (_isIOS) {
@@ -1269,8 +1273,8 @@
     try { _fbWebRecognition.start(); } catch { _resetFbVoiceState(); }
   }
   function _stopFbWebSpeech() {
-    if (_fbWebRecognition) { try { _fbWebRecognition.stop(); } catch {} _fbWebRecognition = null; }
     _resetFbVoiceState();
+    if (_fbWebRecognition) { try { _fbWebRecognition.stop(); } catch {} _fbWebRecognition = null; }
   }
   function _resetFbVoiceState() {
     _fbIsRecording = false;

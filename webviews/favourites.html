@@ -2065,7 +2065,7 @@
     if (instr && !_isIOS) instr.textContent = 'Tap to start recording, tap again to stop — the AI will revise the plan based on your notes.';
     function stop() {
       if (!_spIsRecording) return;
-      if (window.FlutterBridge) {
+      if (_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
         _resetSpVoiceState();
         showToast('Updating plan…', 'success', 0);
@@ -2074,14 +2074,18 @@
         _spAutoReviseTimeout = setTimeout(() => {
           if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
         }, 8000);
-      } else _stopSpWebSpeech();
+      } else {
+        _stopSpWebSpeech();
+        showToast('Updating plan…', 'success', 0);
+        regenerateWithFeedback();
+      }
     }
     function startRecording() {
       _spIsRecording = true; _spTranscript = '';
       $('spFbTranscript').textContent = '';
       btn.classList.add('recording');
       $('spFbVoiceWave').classList.add('active');
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+      if (_isIOS && window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:sp_feedback');
       else _startSpWebSpeech();
     }
     if (_isIOS) {
@@ -2127,8 +2131,8 @@
   }
 
   function _stopSpWebSpeech() {
-    if (_spWebRecognition) { try { _spWebRecognition.stop(); } catch {} _spWebRecognition = null; }
     _resetSpVoiceState();
+    if (_spWebRecognition) { try { _spWebRecognition.stop(); } catch {} _spWebRecognition = null; }
   }
 
   const _prevReceiveSpeechResult = window.receiveSpeechResult;
