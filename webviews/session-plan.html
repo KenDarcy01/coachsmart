@@ -1587,10 +1587,10 @@
         </button>
       </div>
       <div id="spFbVoicePanel">
-        <p class="fb-voice-instruction">Hold to describe what you'd like changed — the AI will revise the plan based on your notes.</p>
+        <p class="fb-voice-instruction">Tap to start recording, tap again to stop — the AI will revise the plan based on your notes.</p>
         <div id="spFbVoiceWave" class="fb-voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
         <div class="fb-mic-wrap">
-          <button id="spFbMicBtn" class="fb-mic-btn" aria-label="Hold to record feedback">
+          <button id="spFbMicBtn" class="fb-mic-btn" aria-label="Tap to record feedback">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           </button>
         </div>
@@ -1790,25 +1790,7 @@
     const btn = $('spFbMicBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
-    let _capturedPointerId = null;
-    function start(e) {
-      e.preventDefault();
-      if (_spIsRecording) return;
-      if (e.pointerType !== 'touch') {
-        try { btn.setPointerCapture(e.pointerId); _capturedPointerId = e.pointerId; } catch (_) {}
-      }
-      _spIsRecording = true; _spTranscript = '';
-      $('spFbTranscript').textContent = '';
-      btn.classList.add('recording');
-      $('spFbVoiceWave').classList.add('active');
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:sp_feedback');
-      else _startSpWebSpeech();
-    }
     function stop() {
-      if (_capturedPointerId !== null) {
-        try { btn.releasePointerCapture(_capturedPointerId); } catch (_) {}
-        _capturedPointerId = null;
-      }
       if (!_spIsRecording) return;
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
@@ -1821,10 +1803,17 @@
         }, 8000);
       } else _stopSpWebSpeech();
     }
-    btn.addEventListener('pointerdown',   start, { passive: false });
-    btn.addEventListener('pointerup',     stop);
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      if (_spIsRecording) { stop(); return; }
+      _spIsRecording = true; _spTranscript = '';
+      $('spFbTranscript').textContent = '';
+      btn.classList.add('recording');
+      $('spFbVoiceWave').classList.add('active');
+      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+      else _startSpWebSpeech();
+    }, { passive: false });
     btn.addEventListener('pointercancel', stop);
-    document.addEventListener('touchend',    stop, { passive: true });
     document.addEventListener('touchcancel', stop, { passive: true });
   }
 
