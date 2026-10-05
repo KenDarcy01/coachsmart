@@ -631,6 +631,7 @@
   const DIAGRAM_FN_URL = SUPABASE_URL + '/functions/v1/diagram-to-drawio';
   const params     = new URLSearchParams(window.location.search);
   const WV_TOKEN   = params.get('token')   || '';
+  const _isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // ── State ─────────────────────────────────────────────────────────────────
   let _activeMediaTab  = 'photo';
@@ -1119,25 +1120,34 @@
     const btn = document.getElementById('micBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
+    const lbl = document.getElementById('micBtnLabel');
+    if (lbl) lbl.textContent = _isIOS ? 'Hold to Record' : 'Tap to Record';
     function stop() {
       if (!_isVoiceRecording) return;
-      const _lbl2 = document.getElementById('micBtnLabel'); if (_lbl2) _lbl2.textContent = 'Tap to Record';
+      if (lbl) lbl.textContent = _isIOS ? 'Hold to Record' : 'Tap to Record';
       if (window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
       else _stopWebVoiceSpeech();
     }
-    btn.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      if (_isVoiceRecording) { stop(); return; }
+    function startRecording() {
       _isVoiceRecording = true; _voiceTranscript = ''; _baseVoiceText = '';
       document.getElementById('voiceTranscript').textContent = '';
       btn.classList.add('recording');
-      const _lbl = document.getElementById('micBtnLabel'); if (_lbl) _lbl.textContent = 'Recording…';
+      if (lbl) lbl.textContent = 'Recording…';
       document.getElementById('voiceWave').classList.add('active');
       if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
       else _startWebVoiceSpeech();
-    }, { passive: false });
-    btn.addEventListener('pointercancel', stop);
-    document.addEventListener('touchcancel', stop, { passive: true });
+    }
+    if (_isIOS) {
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_isVoiceRecording) startRecording(); }, { passive: false });
+      btn.addEventListener('pointerup',     stop);
+      btn.addEventListener('pointercancel', stop);
+      document.addEventListener('touchend',    stop, { passive: true });
+      document.addEventListener('touchcancel', stop, { passive: true });
+    } else {
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_isVoiceRecording) stop(); else startRecording(); }, { passive: false });
+      btn.addEventListener('pointercancel', stop);
+      document.addEventListener('touchcancel', stop, { passive: true });
+    }
   }
 
   let _voiceWebRecognition = null;
@@ -1169,7 +1179,7 @@
     _isVoiceRecording = false;
     const btn = document.getElementById('micBtn');
     if (btn) btn.classList.remove('recording');
-    const lbl = document.getElementById('micBtnLabel'); if (lbl) lbl.textContent = 'Tap to Record';
+    const lbl = document.getElementById('micBtnLabel'); if (lbl) lbl.textContent = _isIOS ? 'Hold to Record' : 'Tap to Record';
     document.getElementById('voiceWave').classList.remove('active');
   }
   const FILLERS = /\b(um+h?|uh+|eh+|ahh?|mm+|hmm+|err+|y'know|like)\b[\s,]*/gi;
@@ -1215,18 +1225,25 @@
         }, 8000);
       } else _stopFbWebSpeech();
     }
-    btn.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      if (_fbIsRecording) { stop(); return; }
+    function startRecording() {
       _fbIsRecording = true; _fbTranscript = '';
       document.getElementById('fbTranscript').textContent = '';
       btn.classList.add('recording');
       document.getElementById('fbVoiceWave').classList.add('active');
       if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
       else _startFbWebSpeech();
-    }, { passive: false });
-    btn.addEventListener('pointercancel', stop);
-    document.addEventListener('touchcancel', stop, { passive: true });
+    }
+    if (_isIOS) {
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_fbIsRecording) startRecording(); }, { passive: false });
+      btn.addEventListener('pointerup',     stop);
+      btn.addEventListener('pointercancel', stop);
+      document.addEventListener('touchend',    stop, { passive: true });
+      document.addEventListener('touchcancel', stop, { passive: true });
+    } else {
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_fbIsRecording) stop(); else startRecording(); }, { passive: false });
+      btn.addEventListener('pointercancel', stop);
+      document.addEventListener('touchcancel', stop, { passive: true });
+    }
   }
   let _fbWebRecognition = null;
   function _startFbWebSpeech() {
