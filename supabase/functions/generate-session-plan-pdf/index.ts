@@ -304,7 +304,7 @@ async function buildSessionPlanPdf(
   const THIRD_STRIPE  = thirdRgb ? 3 : 0;
   const STRIPE_H      = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
 
-  const META_ROW_H    = plan.weather?.summary ? (isMobile ? 42 : 48) : (isMobile ? 26 : 30);
+  const META_ROW_H    = plan.weather?.summary ? (isMobile ? 58 : 62) : (isMobile ? 34 : 38);
   const FOOTER_RULE_Y = MB + 14;
   const FOOTER_TEXT_Y = MB;
   const FOOTER_ZONE   = MB + (isMobile ? 24 : 30);
