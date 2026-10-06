@@ -294,12 +294,16 @@ class _NativeWebViewState extends State<NativeWebView>
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.transparent);
 
-      // setOnShowFileSelector is available in webview_flutter >=4.4.0.
-      // Called via dynamic dispatch so FlutterFlow's analyser (which runs
+      // setOnShowFileSelector lives on AndroidWebViewController (the platform
+      // layer), not on WebViewController itself. We call it via dynamic
+      // dispatch on ctrl.platform so the FlutterFlow analyser (which runs
       // against an older SDK) does not reject it at edit time, while the
-      // actual production build (webview_flutter 4.13.0) resolves it fine.
+      // actual production build resolves it correctly on Android at runtime.
+      // On iOS ctrl.platform is WebKitWebViewController which lacks the
+      // method, so the call throws and is silently caught — iOS handles
+      // file inputs natively without needing this hook.
       try {
-        (ctrl as dynamic).setOnShowFileSelector((dynamic params) async {
+        (ctrl.platform as dynamic).setOnShowFileSelector((dynamic params) async {
           try {
             final picker = ImagePicker();
             bool multiple = false;
