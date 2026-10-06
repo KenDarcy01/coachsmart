@@ -883,7 +883,7 @@
       }
       const fixedXml = fixCircleStylesClient(data.xml);
       const png = await renderMxGraphToPng(fixedXml);
-      return { base64: png.base64, mimeType: 'image/png' };
+      return { base64: png.base64, mimeType: 'image/png', game_name: data.game_name || null };
     } catch(e) {
       errMsg = e?.message || 'network error';
       console.warn('[diagram-to-drawio] exception —', errMsg);
@@ -954,6 +954,11 @@
       if (aiResult.suggested_skills?.length) _preselectChips('skillChips', 'skill', aiResult.suggested_skills);
       _releaseWakeLock();
       showReview(aiResult, null);
+      // If the diagram had a clear written title, use it as the game name
+      // (overrides the AI field extraction result which guesses from context)
+      if (stdResult?.game_name) {
+        document.getElementById('rvName').value = stdResult.game_name;
+      }
     } catch (err) {
       _releaseWakeLock();
       showScreen('screenCreate');

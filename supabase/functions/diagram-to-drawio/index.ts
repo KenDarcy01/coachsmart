@@ -15,6 +15,13 @@ const corsHeaders = {
 
 const PROMPT = `You are an expert at converting handwritten or hand-drawn GAA (Gaelic Athletic Association) coaching diagrams into polished draw.io (mxGraph) XML.
 
+PRE-SCAN — TITLE AND INSTRUCTIONS (do this before anything else):
+1. TITLE: Look for a written title or heading — typically larger text, underlined, or placed prominently above or outside the diagram area. If found, this is the game name. It is NOT a diagram element; do NOT render it as a text node in the XML.
+2. INSTRUCTIONS: Look for any written notes, rules, or descriptions around or below the diagram (e.g. "Split into groups of 4", "First team to score wins", "Players start at cones"). These are coaching instructions. Do NOT render them as text nodes in the XML. DO use them as context to inform how you draw the diagram — they may clarify arrow directions, player starting positions, or movement patterns.
+3. Output format: your response must begin with exactly this line:
+   GAME_NAME: <the title if found, or leave blank if none>
+   Then on the next line, start the mxGraphModel XML.
+
 CRITICAL — COMPLETENESS RULE:
 Scan the ENTIRE image from top to bottom before you begin writing XML. Every single circle, cone, arrow and pitch marking you can see MUST appear in the output — including elements near the halfway line or at the far end of the pitch. Do NOT stop generating until every element from the original image is represented. Missing even one player, football or coach is an error.
 
@@ -42,8 +49,9 @@ Apply this in strict order: empty/dot → white football · "C" → black coach 
 Do not skip this step.
 
 STEP 2 — OUTPUT FORMAT:
-- Output ONLY raw XML — no markdown fences, no explanation, nothing before or after the XML
-- Start your response with exactly: <mxGraphModel background="#2E7D32"
+- First line: GAME_NAME: <title or blank> (as described in PRE-SCAN above)
+- Second line onwards: raw XML only — no markdown fences, no explanation
+- Start the XML with exactly: <mxGraphModel background="#2E7D32"
 - Include mxCell id="0" and id="1" parent="0" as the two root cells
 
 STEP 3 — CANVAS SIZE:
@@ -239,6 +247,13 @@ serve(async (req) => {
       .map((c: any) => c.text ?? "")
       .join("") ?? "";
 
+    // Extract game name from the GAME_NAME: prefix line (if present)
+    let gameName: string | null = null;
+    const gameNameMatch = rawText.match(/^GAME_NAME:\s*(.+?)[\r\n]/m);
+    if (gameNameMatch && gameNameMatch[1].trim()) {
+      gameName = gameNameMatch[1].trim();
+    }
+
     // Extract mxGraphModel XML — multiple fallback strategies
     let xml = rawText.trim();
 
@@ -276,7 +291,7 @@ serve(async (req) => {
     xml = fixCircleStyles(xml);
     console.log("fixCircleStyles changed:", xml !== xmlBefore, "| coach cells:", (xml.match(/fillColor=#1a1a1a/g) || []).length, "| football cells:", (xml.match(/fillColor=#ffffff/g) || []).length);
 
-    return new Response(JSON.stringify({ xml }), {
+    return new Response(JSON.stringify({ xml, game_name: gameName }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
   } catch (e: any) {
