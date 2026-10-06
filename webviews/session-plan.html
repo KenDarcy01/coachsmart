@@ -1216,14 +1216,11 @@
       } else {
         list.innerHTML = _pickerPlans.map(p => {
           const date  = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-          const badge = p.event_id ? `<span class="picker-card-badge">Event</span>` : `<span class="picker-card-badge">Library</span>`;
-          const meta  = p.event_title ? `${esc(p.event_title)} · ${date}` : date;
           return `<div class="picker-card" onclick="viewPickerPlan(${p.plan_id})" style="cursor:pointer">
             <div class="picker-card-body">
               <div class="picker-card-title">${esc(p.session_title)}</div>
-              <div class="picker-card-meta">${meta}</div>
+              <div class="picker-card-meta">${date}</div>
             </div>
-            ${badge}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
           </div>`;
         }).join('');
@@ -1333,25 +1330,38 @@
     closePlanPicker();
     showLoading('Attaching plan…');
     try {
-      const res  = await fetch(EDGE_FN, {
+      // 1. Load the library plan
+      const libRes  = await fetch(EDGE_FN, {
         method: 'POST', headers: HEADERS,
         body: JSON.stringify({ action: 'get_plan', plan_id: _pickerSelectedId, user_id: USER_ID }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.plan) { showError(data.error || 'Failed to load plan.'); return; }
+      const libData = await libRes.json();
+      if (!libRes.ok || !libData.plan) { showError(libData.error || 'Failed to load plan.'); return; }
+      _branding = libData.branding || _branding;
 
-      _branding      = data.branding || _branding;
-      _currentPlanId = null;
-      renderPlan(data.plan, _squadName);
+      // 2. Attach (server enriches with player/coach counts, weather, date from the event)
+      const saveRes  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'attach_plan', event_id: EVENT_ID, user_id: USER_ID, plan_json: libData.plan }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) { showError(saveData.error || 'Attach failed.'); return; }
+      _currentPlanId = saveData.plan_id ?? null;
 
-      if (EVENT_ID) {
-        const saveRes = await fetch(EDGE_FN, {
-          method: 'POST', headers: HEADERS,
-          body: JSON.stringify({ action: 'attach_plan', event_id: EVENT_ID, user_id: USER_ID, plan_json: data.plan }),
-        });
-        const saveData = await saveRes.json();
-        _currentPlanId = saveData.plan_id ?? null;
+      // 3. Fetch the DB-saved enriched plan to render with correct player/coach/weather data
+      let planToRender = saveData.plan_json || libData.plan;
+      if (_currentPlanId) {
+        try {
+          const enrichedRes  = await fetch(EDGE_FN, {
+            method: 'POST', headers: HEADERS,
+            body: JSON.stringify({ action: 'get_plan', plan_id: _currentPlanId, user_id: USER_ID }),
+          });
+          const enrichedData = await enrichedRes.json();
+          if (enrichedData.plan) planToRender = enrichedData.plan;
+        } catch { /* keep saveData.plan_json */ }
       }
+
+      renderPlan(planToRender, _squadName);
       showToast('Plan attached ✓', 'success');
     } catch { showError('Network error. Please try again.'); }
   }
