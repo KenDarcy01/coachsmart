@@ -1216,7 +1216,7 @@
       } else {
         list.innerHTML = _pickerPlans.map(p => {
           const date  = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-          return `<div class="picker-card" onclick="viewPickerPlan(${p.plan_id})" style="cursor:pointer">
+          return `<div class="picker-card" onclick="attachPlanFromDetail(${p.plan_id})" style="cursor:pointer">
             <div class="picker-card-body">
               <div class="picker-card-title">${esc(p.session_title)}</div>
               <div class="picker-card-meta">${date}</div>
@@ -1329,15 +1329,16 @@
     return out.join('');
   }
 
-  async function attachPlanFromDetail() {
-    if (!_pickerSelectedId) return;
+  async function attachPlanFromDetail(planId) {
+    const resolvedId = planId || _pickerSelectedId;
+    if (!resolvedId) return;
     closePlanPicker();
     showLoading('Attaching plan…');
     try {
       // 1. Load the library plan
       const libRes  = await fetch(EDGE_FN, {
         method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_plan', plan_id: _pickerSelectedId, user_id: USER_ID }),
+        body: JSON.stringify({ action: 'get_plan', plan_id: resolvedId, user_id: USER_ID }),
       });
       const libData = await libRes.json();
       if (!libRes.ok || !libData.plan) { showError(libData.error || 'Failed to load plan.'); return; }
