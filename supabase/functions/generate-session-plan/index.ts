@@ -1002,6 +1002,21 @@ serve(async (req) => {
       if (planJson.warm_up?.game_name in imgByName) planJson.warm_up.game_image = imgByName[planJson.warm_up.game_name];
       if (planJson.cool_down?.game_name in imgByName) planJson.cool_down.game_image = imgByName[planJson.cool_down.game_name];
 
+      // Gemini doesn't output game_name / game_image / game_video for warm_up or cool_down.
+      // Inherit them from existing_plan so they survive revisions.
+      if (planJson.warm_up && (existing_plan as any)?.warm_up) {
+        const ep = (existing_plan as any).warm_up;
+        if (planJson.warm_up.game_name  == null) planJson.warm_up.game_name  = ep.game_name  ?? null;
+        if (planJson.warm_up.game_image == null) planJson.warm_up.game_image = ep.game_image ?? null;
+        if (planJson.warm_up.game_video == null) planJson.warm_up.game_video = ep.game_video ?? null;
+      }
+      if (planJson.cool_down && (existing_plan as any)?.cool_down) {
+        const ep = (existing_plan as any).cool_down;
+        if (planJson.cool_down.game_name  == null) planJson.cool_down.game_name  = ep.game_name  ?? null;
+        if (planJson.cool_down.game_image == null) planJson.cool_down.game_image = ep.game_image ?? null;
+        if (planJson.cool_down.game_video == null) planJson.cool_down.game_video = ep.game_video ?? null;
+      }
+
       // Save revised plan — event-linked plans deactivate old version first;
       // favourites plans always insert as a new library entry (Option B: keep history)
       const sessionTitle: string = planJson.session_title || "Training Session";
@@ -1103,7 +1118,7 @@ serve(async (req) => {
 
     // Separate warmup/cooldown games from drill games
     const warmupGame = favLinks.find((f: any) =>
-      ((f.games?.game_type || []) as string[]).some((t: string) => /^warmup$/i.test(t))
+      ((f.games?.game_type || []) as string[]).some((t: string) => /^(warmup|warm.?up)$/i.test(t))
     );
     const cooldownGame = favLinks.find((f: any) =>
       ((f.games?.game_type || []) as string[]).some((t: string) => /^(cooldown|cool.?down)$/i.test(t))
