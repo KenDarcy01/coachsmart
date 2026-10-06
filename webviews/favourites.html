@@ -922,6 +922,13 @@
       </div></div>`);
     }
     if (plan.session_objective) out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
+    if (plan.player_count || plan.coach_count) {
+      out.push(`<div class="stat-grid">
+        <div class="stat-card"><div class="stat-value">${plan.player_count ?? '—'}</div><div class="stat-label">Players</div></div>
+        <div class="stat-card"><div class="stat-value">${plan.coach_count ?? '—'}</div><div class="stat-label">Coaches</div></div>
+        <div class="stat-card"><div class="stat-value">${plan.total_duration_mins ?? _dur}</div><div class="stat-label">Mins</div></div>
+      </div>`);
+    }
     if (plan.pre_session) { out.push(sHdr('PRE-SESSION', plan.pre_session.duration_mins, 'warm')); out.push(phaseCard(plan.pre_session, plan.pre_session.game_name || null, null, plan.pre_session.game_image || null, 'pre_session', plan.pre_session.game_video || null)); }
     if (plan.warm_up)     { out.push(sHdr('WARM UP',    plan.warm_up.duration_mins, 'warm'));    out.push(phaseCard(plan.warm_up, plan.warm_up.game_name || null, null, plan.warm_up.game_image || null, 'warm_up', plan.warm_up.game_video || null)); }
     if (plan.station_setup?.trim()) {
@@ -1229,10 +1236,17 @@
     });
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Attach failed', 'error'); return; }
-    clearToast();
-    // Show the enriched plan in draft/edit mode — server returns enriched plan_json
     _currentPlanId = data.plan_id;
-    renderPlan(data.plan_json || planJson);
+    clearToast();
+    // Fetch the DB-saved plan so we show the enriched version (player/coach counts, weather, date)
+    try {
+      const pRes  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_plan', plan_id: data.plan_id, user_id: USER_ID }) });
+      const pData = await pRes.json();
+      renderPlan(pData.plan || data.plan_json || planJson);
+    } catch {
+      renderPlan(data.plan_json || planJson);
+    }
   }
 
   // ── Game detail sheet ──────────────────────────────────────────────────────
