@@ -106,6 +106,29 @@ ARROWS / MOVEMENT LINES — SMART STRAIGHT vs CURVED:
   - If an arrow travels TO a cone or circle, end it 10px from the shape's edge.
   - If an arrow passes NEAR a cone or circle but does not target it, route the arrow AROUND the shape with at least 10px clearance — add waypoints to steer clear. An arrow that crosses over a shape is always wrong.
 
+STEP 5 — UNRECOGNISED OR AMBIGUOUS SHAPES (FALLBACK RULE):
+If a drawn shape does not match any symbol defined above, DO NOT skip it. Use your visual reasoning to infer what it most likely represents in a GAA coaching context, then render it using the closest available style. Common examples:
+  - Matchstick person, stick figure, or human outline → PLAYER (home red style, value="?")
+  - Cone drawn in 3D, as a solid wedge, funnel, or chevron → CONE (triangle style)
+  - Rectangle or shape with a written label → render as a labelled zone using:
+      style="rounded=0;whiteSpace=wrap;html=1;fillColor=#37474F;opacity=80;strokeColor=#90A4AE;strokeWidth=2;fontColor=#ffffff;fontSize=13;fontStyle=1;"
+      Use the written label as the value. Examples:
+        "Wall" → a flat rectangular obstacle (common GAA hurling/camogie training aid — players strike the sliotar against it)
+        "Zone A", "Box", "Grid", "Channel" → training area markers
+        Any other written word or phrase → render as a labelled rectangle at its drawn position
+  - Unlabelled rectangle or shaded box → area marker: style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;opacity=12;strokeColor=#ffffff;strokeWidth=1.5;" value=""
+  - Cross or X mark → position marker: style="text;html=1;fontColor=#ffffff;fontSize=18;fontStyle=1;" value="✕"
+  - Handwritten text or number not inside any circle → text label: style="text;html=1;fontColor=#ffffff;fontSize=13;fontStyle=0;"
+  - Any other identifiable drawn shape → output the best matching mxGraph shape at its approximate position
+Every element visible in the sketch MUST appear in the output — never silently drop anything.
+
+STEP 6 — HURLING AND CAMOGIE ARE THE SAME DRILL:
+If the sketch contains hurling-specific elements — drawn hurls or camáns (long stick shapes), sliotars (small ball, typically not a GAA football), wall-ball setups, or any other hurling equipment — the drill applies equally to camogie. In that case, add a single small text label in the bottom-right corner of the canvas:
+  style="text;html=1;align=right;verticalAlign=bottom;strokeColor=none;fillColor=none;fontColor=#FFD700;fontSize=11;fontStyle=1;"
+  value="Hurling · Camogie"
+  x = canvas_width - 160, y = canvas_height - 28, width=150, height=20
+Do not add this label for football-only drills.
+
 EDGE LABELS — NEVER ON THE LINE:
 - Leave value="" on every edge cell.
 - For each labelled arrow, create a SEPARATE text vertex placed 5px to the side of the arrow's midpoint:
