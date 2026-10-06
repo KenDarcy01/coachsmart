@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
-import '/backend/api_requests/api_calls.dart';
 import 'index.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -20,6 +19,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/services.dart';
@@ -93,14 +93,8 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
       _CooldownManager.activate();
       _refreshNavigatorContext();
       if (_activeSupabase != null && _activeUserId != null) {
-        // 1. Restart the Realtime stream — iOS kills the WebSocket when the
-        //    app is backgrounded; cancel the old subscription and open a fresh
-        //    one so new notifications are caught going forward.
         _startNotificationStream(_activeSupabase!, _activeUserId!);
-        // 2. Refresh home events so the in-app notification count reflects
-        //    anything that arrived while the app was backgrounded.
         _refreshHomeEvents(_activeSupabase!, _activeUserId!);
-        // 3. Sync the OS app-icon badge.
         _updateBadge(_activeSupabase!, _activeUserId!);
       }
     }
@@ -187,7 +181,32 @@ Future<void> _initFirebase() async {
 }
 
 // ---------------------------------------------------------------------------
-// 3. MARK READ HELPER
+// 3. PERMISSIONS
+// ---------------------------------------------------------------------------
+
+Future<void> _requestPermissions() async {
+  if (kIsWeb) {
+    _logWarn('Permission requests skipped — running on web');
+    return;
+  }
+  _logStep('Permissions', 'Requesting notifications, microphone, speech...');
+  try {
+    final results = await [
+      Permission.notification,
+      Permission.microphone,
+      Permission.speech,
+    ].request();
+    results.forEach((permission, status) {
+      _logStep('Permissions', '${permission.toString()} → ${status.name}');
+    });
+    _log('Permission requests complete ✓');
+  } catch (e) {
+    _logError('Permission request threw', e);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4. MARK READ HELPER
 // ---------------------------------------------------------------------------
 
 Future<void> _markNotificationRead(
@@ -207,7 +226,7 @@ Future<void> _markNotificationRead(
 }
 
 // ---------------------------------------------------------------------------
-// 4. NAVIGATION HELPERS
+// 5. NAVIGATION HELPERS
 // ---------------------------------------------------------------------------
 
 Future<void> _navigateFromPushLink(String linkPage) async {
@@ -323,13 +342,7 @@ Future<void> _navigateFromBannerLink(String linkPage) async {
 }
 
 // ---------------------------------------------------------------------------
-// 5. HOME EVENTS REFRESH
-//
-// Called on app resume so FFAppState().homePageEvents (and therefore the
-// in-app unread notification count) reflects any notifications that arrived
-// while the app was backgrounded — independently of whether the Realtime
-// stream fired or whether is_delivered/age filters would have blocked the
-// normal _handleNewNotification path.
+// 6. HOME EVENTS REFRESH
 // ---------------------------------------------------------------------------
 
 Future<void> _refreshHomeEvents(
@@ -338,23 +351,15 @@ Future<void> _refreshHomeEvents(
 ) async {
   _logStep('Resume', 'Refreshing home events for user=$userId');
   try {
-    final String? jwtToken = supabase.auth.currentSession?.accessToken;
-    if (jwtToken == null) {
-      _logWarn('Resume refresh — JWT null, skipping home events update');
-      return;
-    }
-    final apiResult = await GetUserHomeEventsCall.call(
-      pUserId: userId,
-      supabaseJWTtoken: jwtToken,
-    );
-    if (apiResult.succeeded && apiResult.jsonBody != null) {
+    final result = await supabase
+        .rpc('get_user_home_events', params: {'p_user_id': userId});
+    if (result != null) {
       FFAppState().update(() {
-        FFAppState().homePageEvents =
-            UserEventsHomeStruct.fromMap(apiResult.jsonBody);
+        FFAppState().homePageEvents = UserEventsHomeStruct.fromMap(result);
       });
       _log('Home events refreshed on resume ✓');
     } else {
-      _logWarn('Resume refresh — API call did not succeed');
+      _logWarn('Resume refresh — RPC returned null');
     }
   } catch (e) {
     _logError('Home events refresh on resume failed', e);
@@ -362,7 +367,7 @@ Future<void> _refreshHomeEvents(
 }
 
 // ---------------------------------------------------------------------------
-// 6. SUPABASE STREAM
+// 7. SUPABASE STREAM
 // ---------------------------------------------------------------------------
 
 final Set<String> _processedNotificationIds = {};
@@ -464,7 +469,7 @@ Future<void> _startNotificationStream(
 }
 
 // ---------------------------------------------------------------------------
-// 7. HANDLER
+// 8. HANDLER
 // ---------------------------------------------------------------------------
 
 Future<void> _handleNewNotification(
@@ -474,20 +479,6 @@ Future<void> _handleNewNotification(
 ) async {
   final String alertId = alert['id'].toString();
   _logStep('Handler', 'Processing id=$alertId');
-
-  _logStep('Handler', 'Retrieving JWT from Supabase session...');
-  final String? jwtToken = supabase.auth.currentSession?.accessToken;
-
-  if (jwtToken == null) {
-    _logError('JWT token is null — session may have expired. '
-        'Skipping handler for $alertId');
-    return;
-  }
-
-  _logStep(
-      'Handler',
-      'JWT retrieved — length: ${jwtToken.length} chars | '
-          'prefix: ${jwtToken.substring(0, 20)}...');
 
   _logStep(
       'Handler', 'Resolving team name from team_id=${alert['team_id']}...');
@@ -522,29 +513,23 @@ Future<void> _handleNewNotification(
         'using fallback "$teamName"');
   }
 
-  _logStep('Handler', 'Calling GetUserHomeEventsCall for user=$userId...');
+  _logStep('Handler', 'Calling get_user_home_events RPC for user=$userId...');
   try {
-    final apiResult = await GetUserHomeEventsCall.call(
-      pUserId: userId,
-      supabaseJWTtoken: jwtToken,
-    );
-    _logStep(
-        'Handler',
-        'API result — succeeded=${apiResult.succeeded} | '
-            'bodyNull=${apiResult.jsonBody == null}');
-    if (apiResult.succeeded && apiResult.jsonBody != null) {
+    final result = await supabase
+        .rpc('get_user_home_events', params: {'p_user_id': userId});
+    _logStep('Handler', 'RPC result — null=${result == null}');
+    if (result != null) {
       _logStep('Handler', 'Updating FFAppState.homePageEvents...');
       FFAppState().update(() {
-        FFAppState().homePageEvents =
-            UserEventsHomeStruct.fromMap(apiResult.jsonBody);
+        FFAppState().homePageEvents = UserEventsHomeStruct.fromMap(result);
       });
       _log('FFAppState.homePageEvents updated ✓');
     } else {
-      _logWarn('API call did not succeed — home events not refreshed. '
+      _logWarn('RPC returned null — home events not refreshed. '
           'Banner will still show.');
     }
   } catch (e) {
-    _logError('GetUserHomeEventsCall threw an exception', e);
+    _logError('get_user_home_events RPC threw an exception', e);
   }
 
   _logStep('Handler', 'Proceeding to badge update...');
@@ -570,7 +555,7 @@ Future<void> _handleNewNotification(
 }
 
 // ---------------------------------------------------------------------------
-// 8. BADGE
+// 9. BADGE
 // ---------------------------------------------------------------------------
 
 Future<void> refreshAppBadge() async {
@@ -608,7 +593,7 @@ Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
 }
 
 // ---------------------------------------------------------------------------
-// 9. POPUP
+// 10. POPUP
 // ---------------------------------------------------------------------------
 
 Future<void> _showPopup(
@@ -622,7 +607,6 @@ Future<void> _showPopup(
   OverlayState? overlay;
   String overlaySource = 'none';
 
-  // Strategy 1 — NavigatorState.overlay (the navigator's own overlay).
   try {
     if (_navigatorState != null && _navigatorState!.mounted) {
       final OverlayState? o = _navigatorState!.overlay;
@@ -641,7 +625,6 @@ Future<void> _showPopup(
     _logError('Strategy 1 (navigatorState.overlay) threw', e);
   }
 
-  // Strategy 2 — root navigator via focusManager context.
   if (overlay == null) {
     try {
       final BuildContext? fc =
@@ -665,7 +648,6 @@ Future<void> _showPopup(
     }
   }
 
-  // Strategy 3 — fresh tree walk to re-acquire NavigatorState.
   if (overlay == null) {
     try {
       _logStep('Popup', 'Strategy 3 — refreshing NavigatorState from tree...');
@@ -710,7 +692,7 @@ Future<void> _showPopup(
 }
 
 // ---------------------------------------------------------------------------
-// 10. BANNER MANAGER
+// 11. BANNER MANAGER
 // ---------------------------------------------------------------------------
 
 OverlayEntry? _activeBannerEntry;
@@ -806,7 +788,7 @@ void _insertBanner(
 }
 
 // ---------------------------------------------------------------------------
-// 11. BANNER WIDGET
+// 12. BANNER WIDGET
 // ---------------------------------------------------------------------------
 
 class _SlickBanner extends StatefulWidget {
@@ -1229,6 +1211,7 @@ Future<void> registerBackgroundMessageHandler() async {
 
   _initLifecycle();
   await _initFirebase();
+  await _requestPermissions();
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     _logStep('Init', 'Post-frame callback firing...');

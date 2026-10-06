@@ -62,3 +62,7 @@ export '/pages/event_details/event_details_widget.dart' show EventDetailsWidget;
 export '/pages/home_page/home_page_widget.dart' show HomePageWidget;
 export '/pages/resources/resources_widget.dart' show ResourcesWidget;
 export '/pages/resources_add/resources_add_widget.dart' show ResourcesAddWidget;
+export '/pages/session_planner/session_planner_widget.dart'
+    show SessionPlannerWidget;
+export '/pages/favourites_new/favourites_new_widget.dart'
+    show FavouritesNewWidget;

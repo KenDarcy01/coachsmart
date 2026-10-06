@@ -685,7 +685,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         mainAxisSize: MainAxisSize.max,
                                         children: [
                                           Text(
-                                            'v2.1.10',
+                                            'v2.1.13',
                                             style: FlutterFlowTheme.of(context)
                                                 .titleSmall
                                                 .override(
@@ -2237,8 +2237,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         'HOME_PAGE_PAGE_Container_oexycirj_ON_TAP');
                                     logFirebaseEvent('Container_navigate_to');
 
-                                    context
-                                        .pushNamed(FavouritesWidget.routeName);
+                                    context.pushNamed(
+                                        FavouritesNewWidget.routeName);
                                   },
                                   child: Container(
                                     width: 100.0,

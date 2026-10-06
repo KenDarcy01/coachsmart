@@ -30,7 +30,7 @@ class InsertRowCall {
 {
   "values": [
     [
-      "${escapeStringForJson(name)}"
+      ${name == null ? 'null' : '"${escapeStringForJson(name)}"'}
     ]
   ],
   "majorDimension": "ROWS"
@@ -95,9 +95,9 @@ class CopySheetTemplateCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "name": "${escapeStringForJson(sheetName)}",
+  "name": ${sheetName == null ? 'null' : '"${escapeStringForJson(sheetName)}"'},
   "parents": [
-    "${escapeStringForJson(destFolderId)}"
+    ${destFolderId == null ? 'null' : '"${escapeStringForJson(destFolderId)}"'}
   ]
 }''';
     return ApiManager.instance.makeApiCall(
@@ -130,9 +130,9 @@ class SendEmailCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "to": "${escapeStringForJson(recipient)}",
-  "subject": "${escapeStringForJson(subject)}",
-  "body": "${escapeStringForJson(body)}"
+  "to": ${recipient == null ? 'null' : '"${escapeStringForJson(recipient)}"'},
+  "subject": ${subject == null ? 'null' : '"${escapeStringForJson(subject)}"'},
+  "body": ${body == null ? 'null' : '"${escapeStringForJson(body)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'sendEmail',
@@ -165,9 +165,9 @@ class SendPushNotificationCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "userId": "${escapeStringForJson(userId)}",
-  "title": "${escapeStringForJson(title)}",
-  "body": "${escapeStringForJson(body)}"
+  "userId": ${userId == null ? 'null' : '"${escapeStringForJson(userId)}"'},
+  "title": ${title == null ? 'null' : '"${escapeStringForJson(title)}"'},
+  "body": ${body == null ? 'null' : '"${escapeStringForJson(body)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'sendPushNotification',
@@ -199,7 +199,7 @@ class SendEventReminderCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "event_id": "${escapeStringForJson(eventID)}"
+  "event_id": ${eventID == null ? 'null' : '"${escapeStringForJson(eventID)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'sendEventReminder',
@@ -232,7 +232,7 @@ class ExportEdgeFunctionGoogleSheetCall {
     final ffApiRequestBody = '''
 {
   "event_id": ${eventID},
-  "user_email": "${escapeStringForJson(userEmail)}",
+  "user_email": ${userEmail == null ? 'null' : '"${escapeStringForJson(userEmail)}"'},
   "match_squad_id": ${matchSquadId}
 }''';
     return ApiManager.instance.makeApiCall(
@@ -301,9 +301,9 @@ class GetUserEventTeamMembersResponseCall {
     final ffApiRequestBody = '''
 {
   "p_event_id": ${pEventId},
-  "p_user_id": "${escapeStringForJson(pUserId)}",
-  "p_role_grade": "${escapeStringForJson(pRoleGrade)}",
-  "p_role_level": "${escapeStringForJson(pRoleLevel)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'},
+  "p_role_grade": ${pRoleGrade == null ? 'null' : '"${escapeStringForJson(pRoleGrade)}"'},
+  "p_role_level": ${pRoleLevel == null ? 'null' : '"${escapeStringForJson(pRoleLevel)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserEventTeamMembersResponse',
@@ -367,7 +367,7 @@ class GetUserEventsHomePageCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "user_id_param": "${escapeStringForJson(userIdParam)}"
+  "user_id_param": ${userIdParam == null ? 'null' : '"${escapeStringForJson(userIdParam)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserEventsHomePage',
@@ -596,7 +596,7 @@ class GetUserClubsCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserClubs',
@@ -631,8 +631,8 @@ class SendChangeOfAttendanceCall {
 {
   "p_event_id": ${pEventId},
   "p_member_id": ${pMemberId},
-  "p_subject": "${escapeStringForJson(pSubject)}",
-  "p_body": "${escapeStringForJson(pBody)}"
+  "p_subject": ${pSubject == null ? 'null' : '"${escapeStringForJson(pSubject)}"'},
+  "p_body": ${pBody == null ? 'null' : '"${escapeStringForJson(pBody)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'sendChangeOfAttendance',
@@ -672,9 +672,9 @@ class GetEventsListCall {
   "p_team_id": ${pTeamId},
   "p_code_id": ${pCodeId},
   "p_type_id": ${pTypeId},
-  "p_date_from": "${escapeStringForJson(pDateFrom)}",
-  "p_date_to": "${escapeStringForJson(pDateTo)}",
-  "p_opposition": "${escapeStringForJson(pOpposition)}"
+  "p_date_from": ${pDateFrom == null ? 'null' : '"${escapeStringForJson(pDateFrom)}"'},
+  "p_date_to": ${pDateTo == null ? 'null' : '"${escapeStringForJson(pDateTo)}"'},
+  "p_opposition": ${pOpposition == null ? 'null' : '"${escapeStringForJson(pOpposition)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getEventsList',
@@ -707,7 +707,7 @@ class GetUserHomeEventsCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserHomeEvents',
@@ -742,7 +742,7 @@ class GetUserEventDetailsCall {
     final ffApiRequestBody = '''
 {
   "p_event_id": ${pEventId},
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserEventDetails',
@@ -779,10 +779,10 @@ class CreateCheckoutSessionCall {
     final ffApiRequestBody = '''
 {
   "appEventId": ${appEventID},
-  "appUserId": "${escapeStringForJson(appUserID)}",
-  "appSuccessUrl": "${escapeStringForJson(appSuccessUrl)}",
-  "appCancelUrl": "${escapeStringForJson(appCancelUrl)}",
-  "productName": "${escapeStringForJson(productName)}",
+  "appUserId": ${appUserID == null ? 'null' : '"${escapeStringForJson(appUserID)}"'},
+  "appSuccessUrl": ${appSuccessUrl == null ? 'null' : '"${escapeStringForJson(appSuccessUrl)}"'},
+  "appCancelUrl": ${appCancelUrl == null ? 'null' : '"${escapeStringForJson(appCancelUrl)}"'},
+  "productName": ${productName == null ? 'null' : '"${escapeStringForJson(productName)}"'},
   "amount": ${amount}
 }''';
     return ApiManager.instance.makeApiCall(
@@ -851,7 +851,7 @@ class GetUserMembersEventAttendanceCall {
     final ffApiRequestBody = '''
 {
   "p_event_id": ${pEventId},
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserMembersEventAttendance',
@@ -882,7 +882,7 @@ class GetCheckoutSessionDetailsCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "sessionId": "${escapeStringForJson(sessionId)}"
+  "sessionId": ${sessionId == null ? 'null' : '"${escapeStringForJson(sessionId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getCheckoutSessionDetails',
@@ -980,10 +980,10 @@ class CreateCheckoutSessionVersionTwoCall {
     final ffApiRequestBody = '''
 {
   "appEventId": ${appEventID},
-  "appUserId": "${escapeStringForJson(appUserID)}",
-  "appSuccessUrl": "${escapeStringForJson(appSuccessUrl)}",
-  "appCancelUrl": "${escapeStringForJson(appCancelUrl)}",
-  "productName": "${escapeStringForJson(productName)}",
+  "appUserId": ${appUserID == null ? 'null' : '"${escapeStringForJson(appUserID)}"'},
+  "appSuccessUrl": ${appSuccessUrl == null ? 'null' : '"${escapeStringForJson(appSuccessUrl)}"'},
+  "appCancelUrl": ${appCancelUrl == null ? 'null' : '"${escapeStringForJson(appCancelUrl)}"'},
+  "productName": ${productName == null ? 'null' : '"${escapeStringForJson(productName)}"'},
   "amount": ${amount},
   "memberIds": ${memberIds},
   "unitPrice": ${unitPrice}
@@ -1084,7 +1084,7 @@ class ExportToCSVCall {
 {
   "event_id": ${eventId},
   "match_squad_id": ${matchSquadId},
-  "user_email": "${escapeStringForJson(userEmail)}"
+  "user_email": ${userEmail == null ? 'null' : '"${escapeStringForJson(userEmail)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'exportToCSV',
@@ -1120,7 +1120,7 @@ class ExportToXLSCall {
 {
   "event_id": ${eventId},
   "match_squad_id": ${matchSquadId},
-  "user_email": "${escapeStringForJson(userEmail)}"
+  "user_email": ${userEmail == null ? 'null' : '"${escapeStringForJson(userEmail)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'exportToXLS',
@@ -1154,7 +1154,7 @@ class ExportTeamListXLSCall {
     final ffApiRequestBody = '''
 {
   "p_team_id": ${pTeamId},
-  "user_email": "${escapeStringForJson(userEmail)}"
+  "user_email": ${userEmail == null ? 'null' : '"${escapeStringForJson(userEmail)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'exportTeamListXLS',
@@ -1189,7 +1189,7 @@ class GetCarPoolsDetailsCall {
     final ffApiRequestBody = '''
 {
   "p_car_pool_id": ${pCarPoolId},
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getCarPoolsDetails',
@@ -1224,7 +1224,7 @@ class GetEventCarPoolsCall {
     final ffApiRequestBody = '''
 {
   "p_event_id": ${pEventId},
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getEventCarPools',
@@ -1257,7 +1257,7 @@ class GetUserNotificationsCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}",
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'},
   "p_limit": ${pLimit}
 }''';
     return ApiManager.instance.makeApiCall(
@@ -1291,7 +1291,7 @@ class GetUserTeamSummaryCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserTeamSummary',
@@ -1325,7 +1325,7 @@ class GetTeamMembersByRoleCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}",
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'},
   "p_team_id": ${pTeamId}
 }''';
     return ApiManager.instance.makeApiCall(
@@ -1361,9 +1361,9 @@ class CreateNewMemberByCodeCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_first_name": "${escapeStringForJson(pFirstName)}",
-  "p_last_name": "${escapeStringForJson(pLastName)}",
-  "p_joining_code": "${escapeStringForJson(pJoiningCode)}"
+  "p_first_name": ${pFirstName == null ? 'null' : '"${escapeStringForJson(pFirstName)}"'},
+  "p_last_name": ${pLastName == null ? 'null' : '"${escapeStringForJson(pLastName)}"'},
+  "p_joining_code": ${pJoiningCode == null ? 'null' : '"${escapeStringForJson(pJoiningCode)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'createNewMemberByCode',
@@ -1462,7 +1462,7 @@ class GetUserEventCreateDetailCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getUserEventCreateDetail',
@@ -1496,7 +1496,7 @@ class GetUserEventEditDetailCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}",
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'},
   "p_event_id": ${pEventId}
 }''';
     return ApiManager.instance.makeApiCall(
@@ -1531,7 +1531,7 @@ class GetSingleUserEventCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}",
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'},
   "p_event_id": ${pEventId}
 }''';
     return ApiManager.instance.makeApiCall(
@@ -1665,7 +1665,7 @@ class CreateMatchDaySquadFromAttendanceCall {
     final ffApiRequestBody = '''
 {
   "p_event_id": ${pEventId},
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'createMatchDaySquadFromAttendance',
@@ -2077,7 +2077,7 @@ class GetEditUserDataCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'getEditUserData',
@@ -2110,7 +2110,7 @@ class MarkAllNotifcationsReadCall {
   }) async {
     final ffApiRequestBody = '''
 {
-  "p_user_id": "${escapeStringForJson(pUserId)}"
+  "p_user_id": ${pUserId == null ? 'null' : '"${escapeStringForJson(pUserId)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'markAllNotifcationsRead',
@@ -2199,26 +2199,26 @@ class CreateRecurringEventsCall {
 {
   "p_recurring_type": ${pRecurringType},
   "p_num_weeks": ${pNumWeeks},
-  "p_event_title": "${escapeStringForJson(pEventTitle)}",
-  "p_event_date_time": "${escapeStringForJson(pEventDateTime)}",
-  "p_event_date_time_2": "${escapeStringForJson(pEventDateTime2)}",
+  "p_event_title": ${pEventTitle == null ? 'null' : '"${escapeStringForJson(pEventTitle)}"'},
+  "p_event_date_time": ${pEventDateTime == null ? 'null' : '"${escapeStringForJson(pEventDateTime)}"'},
+  "p_event_date_time_2": ${pEventDateTime2 == null ? 'null' : '"${escapeStringForJson(pEventDateTime2)}"'},
   "p_team_id": ${pTeamId},
-  "p_created_by": "${escapeStringForJson(pCreatedBy)}",
+  "p_created_by": ${pCreatedBy == null ? 'null' : '"${escapeStringForJson(pCreatedBy)}"'},
   "p_event_type_id": ${pEventTypeId},
   "p_event_code_id": ${pEventCodeId},
   "p_audience_id": ${pAudienceId},
   "p_squad_id": ${pSquadId},
-  "p_location_name": "${escapeStringForJson(pLocationName)}",
-  "p_location_pin": "${escapeStringForJson(pLocationPin)}",
-  "p_meet_time": "${escapeStringForJson(pMeetTime)}",
-  "p_opposition": "${escapeStringForJson(pOpposition)}",
-  "p_event_details": "${escapeStringForJson(pEventDetails)}",
+  "p_location_name": ${pLocationName == null ? 'null' : '"${escapeStringForJson(pLocationName)}"'},
+  "p_location_pin": ${pLocationPin == null ? 'null' : '"${escapeStringForJson(pLocationPin)}"'},
+  "p_meet_time": ${pMeetTime == null ? 'null' : '"${escapeStringForJson(pMeetTime)}"'},
+  "p_opposition": ${pOpposition == null ? 'null' : '"${escapeStringForJson(pOpposition)}"'},
+  "p_event_details": ${pEventDetails == null ? 'null' : '"${escapeStringForJson(pEventDetails)}"'},
   "p_request_attendance": ${pRequestAttendance},
   "p_notify_admins_changes": ${pNotifyAdminsChanges},
   "p_notify_admins_all": ${pNotifyAdminsAll},
   "p_payment_required": ${pPaymentRequired},
   "p_car_pooling": ${pCarPooling},
-  "p_event_image": "${escapeStringForJson(pEventImage)}"
+  "p_event_image": ${pEventImage == null ? 'null' : '"${escapeStringForJson(pEventImage)}"'}
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'createRecurringEvents',

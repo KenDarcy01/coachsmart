@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:provider/provider.dart';
 import 'game_details_model.dart';
 export 'game_details_model.dart';
@@ -795,214 +796,96 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget>
               if (FFAppState().homePageEvents.highestRoleLevel >= 30)
                 Align(
                   alignment: AlignmentDirectional(0.0, 1.0),
-                  child: Padding(
-                    padding:
-                        EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 20.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Color(0xCF121512),
-                        borderRadius: BorderRadius.circular(24.0),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(
-                            10.0, 10.0, 10.0, 10.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            InkWell(
-                              splashColor: Colors.transparent,
-                              focusColor: Colors.transparent,
-                              hoverColor: Colors.transparent,
-                              highlightColor: Colors.transparent,
-                              onTap: () async {
-                                logFirebaseEvent(
-                                    'GAME_DETAILS_Container_sir5x7hr_ON_TAP');
-                                if (_model.varFavourite == true) {
+                  child: PointerInterceptor(
+                    intercepting: isWeb,
+                    child: Padding(
+                      padding:
+                          EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 20.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Color(0xCF121512),
+                          borderRadius: BorderRadius.circular(24.0),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                              10.0, 10.0, 10.0, 10.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              InkWell(
+                                splashColor: Colors.transparent,
+                                focusColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                onTap: () async {
                                   logFirebaseEvent(
-                                      'Container_update_page_state');
-                                  _model.varFavourite = false;
-                                  safeSetState(() {});
-                                  logFirebaseEvent('Container_backend_call');
-                                  await UserGameLinkTable().delete(
-                                    matchingRows: (rows) => rows
-                                        .eqOrNull(
-                                          'user_id',
-                                          currentUserUid,
-                                        )
-                                        .eqOrNull(
-                                          'game_id',
-                                          widget.gameRow?.gameId,
-                                        ),
-                                  );
-                                } else {
-                                  logFirebaseEvent(
-                                      'Container_update_page_state');
-                                  _model.varFavourite = true;
-                                  safeSetState(() {});
-                                  logFirebaseEvent('Container_backend_call');
-                                  await UserGameLinkTable().insert({
-                                    'user_id': currentUserUid,
-                                    'game_id': widget.gameRow?.gameId,
-                                  });
-                                }
-                              },
-                              child: Container(
-                                width: 90.0,
-                                height: 50.0,
-                                decoration: BoxDecoration(
-                                  color: _model.varFavourite == true
-                                      ? Color(0xFF870000)
-                                      : FlutterFlowTheme.of(context)
-                                          .coachSmartLightBlack,
-                                  borderRadius: BorderRadius.circular(24.0),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.max,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.favorite_sharp,
-                                      color: Color(0xFFFFFCFC),
-                                      size: 20.0,
-                                    ),
-                                    Text(
-                                      'Add',
-                                      style: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .override(
-                                            font: GoogleFonts.inter(
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontStyle,
-                                            ),
-                                            fontSize: 12.0,
-                                            letterSpacing: 0.0,
-                                            fontWeight:
-                                                FlutterFlowTheme.of(context)
-                                                    .bodyMedium
-                                                    .fontWeight,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .bodyMedium
-                                                    .fontStyle,
+                                      'GAME_DETAILS_Container_sir5x7hr_ON_TAP');
+                                  if (_model.varFavourite == true) {
+                                    logFirebaseEvent(
+                                        'Container_update_page_state');
+                                    _model.varFavourite = false;
+                                    safeSetState(() {});
+                                    logFirebaseEvent('Container_backend_call');
+                                    await UserGameLinkTable().delete(
+                                      matchingRows: (rows) => rows
+                                          .eqOrNull(
+                                            'user_id',
+                                            currentUserUid,
+                                          )
+                                          .eqOrNull(
+                                            'game_id',
+                                            widget.gameRow?.gameId,
                                           ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            InkWell(
-                              splashColor: Colors.transparent,
-                              focusColor: Colors.transparent,
-                              hoverColor: Colors.transparent,
-                              highlightColor: Colors.transparent,
-                              onTap: () async {
-                                logFirebaseEvent(
-                                    'GAME_DETAILS_Container_f03esfs9_ON_TAP');
-                                logFirebaseEvent('Container_widget_animation');
-                                if (animationsMap[
-                                        'containerOnActionTriggerAnimation'] !=
-                                    null) {
-                                  safeSetState(
-                                      () => hasContainerTriggered = true);
-                                  SchedulerBinding.instance.addPostFrameCallback(
-                                      (_) async => await animationsMap[
-                                              'containerOnActionTriggerAnimation']!
-                                          .controller
-                                        ..reset()
-                                        ..repeat());
-                                }
-                                logFirebaseEvent('Container_wait__delay');
-                                await Future.delayed(
-                                  Duration(
-                                    milliseconds: 20,
+                                    );
+                                  } else {
+                                    logFirebaseEvent(
+                                        'Container_update_page_state');
+                                    _model.varFavourite = true;
+                                    safeSetState(() {});
+                                    logFirebaseEvent('Container_backend_call');
+                                    await UserGameLinkTable().insert({
+                                      'user_id': currentUserUid,
+                                      'game_id': widget.gameRow?.gameId,
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  width: 90.0,
+                                  height: 50.0,
+                                  decoration: BoxDecoration(
+                                    color: _model.varFavourite == true
+                                        ? Color(0xFF870000)
+                                        : FlutterFlowTheme.of(context)
+                                            .coachSmartLightBlack,
+                                    borderRadius: BorderRadius.circular(24.0),
                                   ),
-                                );
-                                logFirebaseEvent('Container_custom_action');
-                                _model.outputExportGame =
-                                    await actions.exportGameCardPdf(
-                                  widget.gameRow?.gameName,
-                                  widget.gameRow?.gameSetup,
-                                  widget.gameRow?.gameHowToPlay,
-                                  widget.gameRow?.gameVariations,
-                                  widget.gameRow?.gameTeachingPoints,
-                                  widget.gameRow?.gameImage,
-                                  _model.queryClub!.firstOrNull!.clubName!,
-                                  _model.varClubCrest,
-                                  _model.varPrimaryColour,
-                                  _model.varSecondaryColour,
-                                  _model.varThirdColour,
-                                  widget.gameRow?.gameVideo,
-                                );
-                                logFirebaseEvent('Container_widget_animation');
-                                if (animationsMap[
-                                        'containerOnActionTriggerAnimation'] !=
-                                    null) {
-                                  animationsMap[
-                                          'containerOnActionTriggerAnimation']!
-                                      .controller
-                                      .stop();
-                                }
-                                logFirebaseEvent('Container_widget_animation');
-                                if (animationsMap[
-                                        'containerOnActionTriggerAnimation'] !=
-                                    null) {
-                                  animationsMap[
-                                          'containerOnActionTriggerAnimation']!
-                                      .controller
-                                      .reset();
-                                }
-                                if (_model.outputExportGame != null &&
-                                    _model.outputExportGame != '') {
-                                  logFirebaseEvent('Container_show_snack_bar');
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        _model.outputExportGame!,
-                                        style: TextStyle(
-                                          color: FlutterFlowTheme.of(context)
-                                              .primaryText,
-                                        ),
-                                        textAlign: TextAlign.center,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.max,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.favorite_sharp,
+                                        color: Color(0xFFFFFCFC),
+                                        size: 20.0,
                                       ),
-                                      duration: Duration(milliseconds: 4000),
-                                      backgroundColor:
-                                          FlutterFlowTheme.of(context).error,
-                                    ),
-                                  );
-                                }
-
-                                safeSetState(() {});
-                              },
-                              child: Container(
-                                width: 90.0,
-                                height: 50.0,
-                                decoration: BoxDecoration(
-                                  color: Color(0x951E222B),
-                                  borderRadius: BorderRadius.circular(24.0),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.max,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.ios_share_rounded,
-                                      color: FlutterFlowTheme.of(context)
-                                          .alternate,
-                                      size: 20.0,
-                                    ),
-                                    Text(
-                                      'Share',
-                                      style: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .override(
-                                            font: GoogleFonts.inter(
+                                      Text(
+                                        'Add',
+                                        style: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .override(
+                                              font: GoogleFonts.inter(
+                                                fontWeight:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontWeight,
+                                                fontStyle:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontStyle,
+                                              ),
+                                              fontSize: 12.0,
+                                              letterSpacing: 0.0,
                                               fontWeight:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyMedium
@@ -1012,26 +895,151 @@ class _GameDetailsWidgetState extends State<GameDetailsWidget>
                                                       .bodyMedium
                                                       .fontStyle,
                                             ),
-                                            fontSize: 12.0,
-                                            letterSpacing: 0.0,
-                                            fontWeight:
-                                                FlutterFlowTheme.of(context)
-                                                    .bodyMedium
-                                                    .fontWeight,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .bodyMedium
-                                                    .fontStyle,
-                                          ),
-                                    ),
-                                  ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ).animateOnActionTrigger(
-                                animationsMap[
-                                    'containerOnActionTriggerAnimation']!,
-                                hasBeenTriggered: hasContainerTriggered),
-                          ],
+                              InkWell(
+                                splashColor: Colors.transparent,
+                                focusColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                onTap: () async {
+                                  logFirebaseEvent(
+                                      'GAME_DETAILS_Container_f03esfs9_ON_TAP');
+                                  logFirebaseEvent(
+                                      'Container_widget_animation');
+                                  if (animationsMap[
+                                          'containerOnActionTriggerAnimation'] !=
+                                      null) {
+                                    safeSetState(
+                                        () => hasContainerTriggered = true);
+                                    SchedulerBinding.instance.addPostFrameCallback(
+                                        (_) async => await animationsMap[
+                                                'containerOnActionTriggerAnimation']!
+                                            .controller
+                                          ..reset()
+                                          ..repeat());
+                                  }
+                                  logFirebaseEvent('Container_wait__delay');
+                                  await Future.delayed(
+                                    Duration(
+                                      milliseconds: 20,
+                                    ),
+                                  );
+                                  logFirebaseEvent('Container_custom_action');
+                                  _model.outputExportGame =
+                                      await actions.exportGameCardPdf(
+                                    widget.gameRow?.gameName,
+                                    widget.gameRow?.gameSetup,
+                                    widget.gameRow?.gameHowToPlay,
+                                    widget.gameRow?.gameVariations,
+                                    widget.gameRow?.gameTeachingPoints,
+                                    widget.gameRow?.gameImage,
+                                    _model.queryClub!.firstOrNull!.clubName!,
+                                    _model.varClubCrest,
+                                    _model.varPrimaryColour,
+                                    _model.varSecondaryColour,
+                                    _model.varThirdColour,
+                                    widget.gameRow?.gameVideo,
+                                  );
+                                  logFirebaseEvent(
+                                      'Container_widget_animation');
+                                  if (animationsMap[
+                                          'containerOnActionTriggerAnimation'] !=
+                                      null) {
+                                    animationsMap[
+                                            'containerOnActionTriggerAnimation']!
+                                        .controller
+                                        .stop();
+                                  }
+                                  logFirebaseEvent(
+                                      'Container_widget_animation');
+                                  if (animationsMap[
+                                          'containerOnActionTriggerAnimation'] !=
+                                      null) {
+                                    animationsMap[
+                                            'containerOnActionTriggerAnimation']!
+                                        .controller
+                                        .reset();
+                                  }
+                                  if (_model.outputExportGame != null &&
+                                      _model.outputExportGame != '') {
+                                    logFirebaseEvent(
+                                        'Container_show_snack_bar');
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          _model.outputExportGame!,
+                                          style: TextStyle(
+                                            color: FlutterFlowTheme.of(context)
+                                                .primaryText,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        duration: Duration(milliseconds: 4000),
+                                        backgroundColor:
+                                            FlutterFlowTheme.of(context).error,
+                                      ),
+                                    );
+                                  }
+
+                                  safeSetState(() {});
+                                },
+                                child: Container(
+                                  width: 90.0,
+                                  height: 50.0,
+                                  decoration: BoxDecoration(
+                                    color: Color(0x951E222B),
+                                    borderRadius: BorderRadius.circular(24.0),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.max,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.ios_share_rounded,
+                                        color: FlutterFlowTheme.of(context)
+                                            .alternate,
+                                        size: 20.0,
+                                      ),
+                                      Text(
+                                        'Share',
+                                        style: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .override(
+                                              font: GoogleFonts.inter(
+                                                fontWeight:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontWeight,
+                                                fontStyle:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontStyle,
+                                              ),
+                                              fontSize: 12.0,
+                                              letterSpacing: 0.0,
+                                              fontWeight:
+                                                  FlutterFlowTheme.of(context)
+                                                      .bodyMedium
+                                                      .fontWeight,
+                                              fontStyle:
+                                                  FlutterFlowTheme.of(context)
+                                                      .bodyMedium
+                                                      .fontStyle,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ).animateOnActionTrigger(
+                                  animationsMap[
+                                      'containerOnActionTriggerAnimation']!,
+                                  hasBeenTriggered: hasContainerTriggered),
+                            ],
+                          ),
                         ),
                       ),
                     ),

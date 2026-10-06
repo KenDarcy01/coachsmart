@@ -12,9 +12,13 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 class NativeWebView extends StatefulWidget {
   const NativeWebView({
@@ -41,6 +45,12 @@ class NativeWebView extends StatefulWidget {
 class _NativeWebViewState extends State<NativeWebView>
     with WidgetsBindingObserver {
   WebViewController? _controller;
+  final SpeechToText _speech = SpeechToText();
+  bool _speechAvailable = false;
+  bool _speechInitialized = false;
+  String? _speechFieldId;
+  String _lastRecognizedWords = '';
+  bool _voiceHoldActive = false;
 
   @override
   void initState() {
@@ -52,14 +62,186 @@ class _NativeWebViewState extends State<NativeWebView>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    if (_speech.isListening) _speech.stop();
     super.dispose();
   }
 
-  // When the app returns to the foreground, check whether the WebView's
-  // content process is still alive. On iOS the OS can kill the WKWebView
-  // renderer while the app is backgrounded; on Android the same can happen
-  // to the WebView renderer. A dead process leaves a blank screen with no
-  // way to recover from inside the page, so we detect it here and reload.
+  Future<void> _initSpeech() async {
+    _speechInitialized = true;
+    try {
+      _speechAvailable = await _speech.initialize(
+        onError: (error) {
+          if (_speechFieldId == null) return;
+          _controller?.runJavaScript(
+            'window.onSpeechError(${jsonEncode(error.errorMsg)})',
+          );
+          _speechFieldId = null;
+          _voiceHoldActive = false;
+        },
+        onStatus: (status) {
+          if ((status == 'done' || status == 'notListening') &&
+              _speechFieldId != null) {
+            if (_speechFieldId == 'voice_input' && _voiceHoldActive) {
+              _lastRecognizedWords = '';
+              _restartVoiceListen();
+            } else {
+              final fid = _speechFieldId;
+              final words = _lastRecognizedWords;
+              _speechFieldId = null;
+              _lastRecognizedWords = '';
+              if (words.isNotEmpty) {
+                _controller?.runJavaScript(
+                  'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
+                );
+              }
+              _controller?.runJavaScript('window.onSpeechDone()');
+            }
+          }
+        },
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _restartVoiceListen() async {
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          if (result.recognizedWords.isNotEmpty) {
+            _lastRecognizedWords = result.recognizedWords;
+          }
+          if (!result.finalResult && result.recognizedWords.isNotEmpty) {
+            _controller?.runJavaScript(
+              'window.onVoiceInterim(${jsonEncode(result.recognizedWords)})',
+            );
+          }
+          if (result.finalResult && result.recognizedWords.isNotEmpty) {
+            _lastRecognizedWords = '';
+            _controller?.runJavaScript(
+              'window.receiveSpeechResult("voice_input", ${jsonEncode(result.recognizedWords)})',
+            );
+          }
+        },
+        pauseFor: const Duration(seconds: 30),
+        listenFor: const Duration(minutes: 2),
+        partialResults: true,
+        cancelOnError: false,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _startSpeech(String fieldId) async {
+    if (!_speechInitialized) {
+      await _initSpeech();
+    }
+    if (!_speechAvailable) {
+      _controller?.runJavaScript(
+        'window.onSpeechError(${jsonEncode("Speech recognition not available on this device")})',
+      );
+      return;
+    }
+    if (_speech.isListening) await _speech.stop();
+    _speechFieldId = fieldId;
+    _lastRecognizedWords = '';
+
+    if (fieldId == 'voice_input') {
+      _voiceHoldActive = true;
+      try {
+        await _speech.listen(
+          onResult: (result) {
+            if (result.recognizedWords.isNotEmpty) {
+              _lastRecognizedWords = result.recognizedWords;
+            }
+            if (!result.finalResult && result.recognizedWords.isNotEmpty) {
+              _controller?.runJavaScript(
+                'window.onVoiceInterim(${jsonEncode(result.recognizedWords)})',
+              );
+            }
+            if (result.finalResult && result.recognizedWords.isNotEmpty) {
+              _lastRecognizedWords = '';
+              _controller?.runJavaScript(
+                'window.receiveSpeechResult("voice_input", ${jsonEncode(result.recognizedWords)})',
+              );
+            }
+          },
+          pauseFor: const Duration(seconds: 30),
+          listenFor: const Duration(minutes: 2),
+          partialResults: true,
+          cancelOnError: false,
+        );
+      } catch (_) {
+        _controller?.runJavaScript(
+          'window.onSpeechError(${jsonEncode("Could not start microphone")})',
+        );
+        _speechFieldId = null;
+        _voiceHoldActive = false;
+      }
+    } else {
+      try {
+        await _speech.listen(
+          onResult: (result) {
+            if (result.recognizedWords.isNotEmpty) {
+              _lastRecognizedWords = result.recognizedWords;
+            }
+            if (result.finalResult && result.recognizedWords.isNotEmpty) {
+              final fid = _speechFieldId;
+              if (fid == null) return;
+              _speechFieldId = null;
+              _lastRecognizedWords = '';
+              _controller?.runJavaScript(
+                'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(result.recognizedWords)})',
+              );
+              _controller?.runJavaScript('window.onSpeechDone()');
+            }
+          },
+          pauseFor: const Duration(seconds: 10),
+          listenFor: const Duration(minutes: 2),
+          partialResults: true,
+          cancelOnError: false,
+        );
+      } catch (_) {
+        _controller?.runJavaScript(
+          'window.onSpeechError(${jsonEncode("Could not start microphone")})',
+        );
+        _speechFieldId = null;
+      }
+    }
+  }
+
+  Future<void> _stopSpeech() async {
+    if (_speechFieldId == 'voice_input') {
+      _voiceHoldActive = false;
+      final words = _lastRecognizedWords;
+      _speechFieldId = null;
+      _lastRecognizedWords = '';
+      try {
+        await _speech.stop();
+      } catch (_) {}
+      if (words.isNotEmpty) {
+        _controller?.runJavaScript(
+          'window.receiveSpeechResult("voice_input", ${jsonEncode(words)})',
+        );
+      }
+      _controller?.runJavaScript('window.onSpeechDone()');
+      return;
+    }
+
+    final fid = _speechFieldId;
+    final words = _lastRecognizedWords;
+    _speechFieldId = null;
+    _lastRecognizedWords = '';
+    try {
+      await _speech.stop();
+    } catch (_) {}
+    if (fid != null) {
+      if (words.isNotEmpty) {
+        _controller?.runJavaScript(
+          'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
+        );
+      }
+      _controller?.runJavaScript('window.onSpeechDone()');
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -71,7 +253,6 @@ class _NativeWebViewState extends State<NativeWebView>
     final ctrl = _controller;
     if (ctrl == null) return;
     try {
-      // A live process returns '1'; a dead process throws a PlatformException.
       await ctrl.runJavaScriptReturningResult('1');
     } catch (_) {
       try {
@@ -84,11 +265,47 @@ class _NativeWebViewState extends State<NativeWebView>
     try {
       final ctrl = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(Colors.transparent)
+        ..setBackgroundColor(Colors.transparent);
+
+      // setOnShowFileSelector is available in webview_flutter >=4.4.0.
+      // Called via dynamic dispatch so FlutterFlow's analyser (which runs
+      // against an older SDK) does not reject it at edit time, while the
+      // actual production build (webview_flutter 4.13.0) resolves it fine.
+      try {
+        (ctrl as dynamic).setOnShowFileSelector((dynamic params) async {
+          try {
+            final picker = ImagePicker();
+            bool multiple = false;
+            try {
+              multiple = params.mode.toString().contains('openMultiple');
+            } catch (_) {}
+            if (multiple) {
+              final images = await picker.pickMultiImage();
+              return images.map((x) => Uri.file(x.path).toString()).toList();
+            } else {
+              final image = await picker.pickImage(source: ImageSource.gallery);
+              if (image == null) return <String>[];
+              return [Uri.file(image.path).toString()];
+            }
+          } catch (_) {
+            return <String>[];
+          }
+        });
+      } catch (_) {}
+
+      ctrl
         ..addJavaScriptChannel(
           'FlutterBridge',
           onMessageReceived: (JavaScriptMessage msg) {
             final message = msg.message;
+            if (message.startsWith('startSpeech:')) {
+              _startSpeech(message.substring('startSpeech:'.length));
+              return;
+            }
+            if (message == 'stopSpeech') {
+              _stopSpeech();
+              return;
+            }
             if (message.startsWith('openUrl:')) {
               final url = message.substring('openUrl:'.length);
               try {
@@ -97,7 +314,6 @@ class _NativeWebViewState extends State<NativeWebView>
               return;
             }
             if (message.startsWith('sharePdf:')) {
-              // Format: sharePdf:filename.pdf:BASE64DATA
               final rest = message.substring('sharePdf:'.length);
               final sep = rest.indexOf(':');
               if (sep > 0) {
@@ -152,7 +368,12 @@ class _NativeWebViewState extends State<NativeWebView>
     return SizedBox(
       width: widget.width ?? double.infinity,
       height: widget.height ?? double.infinity,
-      child: WebViewWidget(controller: ctrl),
+      child: WebViewWidget(
+        controller: ctrl,
+        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+          Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()),
+        },
+      ),
     );
   }
 }

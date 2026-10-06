@@ -1126,6 +1126,123 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                     ),
                                   ],
                                 ),
+                              if ((UserEventDetailsStruct.maybeFromMap(
+                                              eventDetailsGetUserEventDetailsResponse
+                                                  .jsonBody)
+                                          ?.eventType ==
+                                      'Training') &&
+                                  (UserEventDetailsStruct.maybeFromMap(
+                                              eventDetailsGetUserEventDetailsResponse
+                                                  .jsonBody)!
+                                          .userHighestRoleLevel >=
+                                      100) &&
+                                  (currentUserEmail == 'ken.darcy@gmail.com'))
+                                Column(
+                                  mainAxisSize: MainAxisSize.max,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsetsDirectional.fromSTEB(
+                                          0.0, 10.0, 0.0, 10.0),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.max,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: FFButtonWidget(
+                                              onPressed: () async {
+                                                logFirebaseEvent(
+                                                    'EVENT_DETAILS_PAGE_payNowButton_ON_TAP');
+                                                logFirebaseEvent(
+                                                    'payNowButton_navigate_to');
+
+                                                context.pushNamed(
+                                                  SessionPlannerWidget
+                                                      .routeName,
+                                                  queryParameters: {
+                                                    'pEventId': serializeParam(
+                                                      widget.eventID,
+                                                      ParamType.int,
+                                                    ),
+                                                  }.withoutNulls,
+                                                );
+                                              },
+                                              text: 'AI Session Planner',
+                                              icon: FaIcon(
+                                                FontAwesomeIcons.cloudversify,
+                                                size: 20.0,
+                                              ),
+                                              options: FFButtonOptions(
+                                                width: 170.0,
+                                                height: 40.0,
+                                                padding: EdgeInsetsDirectional
+                                                    .fromSTEB(
+                                                        16.0, 0.0, 16.0, 0.0),
+                                                iconPadding:
+                                                    EdgeInsetsDirectional
+                                                        .fromSTEB(
+                                                            0.0, 0.0, 0.0, 0.0),
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .coachSmartLightBlack,
+                                                textStyle:
+                                                    FlutterFlowTheme.of(context)
+                                                        .titleSmall
+                                                        .override(
+                                                          font: GoogleFonts
+                                                              .interTight(
+                                                            fontWeight:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .titleSmall
+                                                                    .fontWeight,
+                                                            fontStyle:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .titleSmall
+                                                                    .fontStyle,
+                                                          ),
+                                                          color: FlutterFlowTheme
+                                                                  .of(context)
+                                                              .coachSmartGreen,
+                                                          fontSize:
+                                                              isWeb == true
+                                                                  ? 16.0
+                                                                  : 18.0,
+                                                          letterSpacing: 0.0,
+                                                          fontWeight:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .titleSmall
+                                                                  .fontWeight,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .titleSmall
+                                                                  .fontStyle,
+                                                        ),
+                                                elevation: 0.0,
+                                                borderSide: BorderSide(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .coachSmartGreen,
+                                                  width: 1.0,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8.0),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Divider(
+                                      thickness: 1.0,
+                                      color: Color(0xFF585757),
+                                    ),
+                                  ],
+                                ),
                               Row(
                                 mainAxisSize: MainAxisSize.max,
                                 children: [

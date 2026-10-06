@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 
 import 'index.dart'; // Imports other custom actions
 
-import '/backend/api_requests/api_calls.dart';
 import 'index.dart';
 
 import 'dart:async';
@@ -60,9 +59,6 @@ void _sLogBannerState(
 
 // ---------------------------------------------------------------------------
 // BACKGROUND PUSH HANDLER
-// Top-level function required by FCM.
-// Register in main.dart before runApp():
-//   FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
 // ---------------------------------------------------------------------------
 
 @pragma('vm:entry-point')
@@ -507,7 +503,6 @@ Future<void> triggerSlickNotification(
   _sLogStep('triggerSlickNotification',
       'Resolved | title="$resolvedTitle" | body="$resolvedBody"');
 
-  // Fire haptics immediately for responsiveness.
   try {
     await HapticFeedback.mediumImpact();
     _sLogStep('Haptics', 'mediumImpact fired ✓');
@@ -515,16 +510,10 @@ Future<void> triggerSlickNotification(
     _sLogWarn('Haptic feedback failed: $e');
   }
 
-  // Defer overlay work to post-frame. FlutterFlow's realtime callbacks can
-  // fire mid-build-cycle, which causes overlay insertion to fail silently.
-  // addPostFrameCallback guarantees we're outside any build cycle.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     OverlayState? overlay;
     String overlaySource = 'none';
 
-    // Strategy 1 — root navigator overlay.
-    // rootNavigator:true walks to the root Navigator which always has an
-    // overlay, bypassing any nested GoRouter navigators in FlutterFlow.
     if (context.mounted) {
       try {
         final NavigatorState? nav =
@@ -539,7 +528,6 @@ Future<void> triggerSlickNotification(
       }
     }
 
-    // Strategy 2 — Overlay.maybeOf on provided context.
     if (overlay == null && context.mounted) {
       try {
         final OverlayState? o = Overlay.maybeOf(context);
@@ -555,7 +543,6 @@ Future<void> triggerSlickNotification(
       _sLogWarn('Provided context is not mounted — trying fallback');
     }
 
-    // Strategy 3 — primary focus context.
     if (overlay == null) {
       try {
         final BuildContext? fc =
@@ -581,7 +568,6 @@ Future<void> triggerSlickNotification(
 
     _sLog('OverlayState resolved via $overlaySource ✓');
 
-    // Remove any existing banner before inserting a new one.
     if (_activeBannerEntry != null) {
       _sLogStep('Overlay', 'Replacing existing banner');
       _activeDismissTimer?.cancel();
@@ -626,7 +612,5 @@ Future<void> triggerSlickNotification(
     _sLog('Auto-dismiss timer started (4s) for banner #$instanceId ✓');
   });
 
-  // Ensure a frame is scheduled so the postFrameCallback fires even if
-  // the app is idle (no ongoing animations or user interaction).
   WidgetsBinding.instance.scheduleFrame();
 }

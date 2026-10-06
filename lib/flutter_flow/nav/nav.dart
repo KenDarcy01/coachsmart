@@ -601,6 +601,21 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                   ParamType.String,
                 ),
               ),
+            ),
+            FFRoute(
+              name: SessionPlannerWidget.routeName,
+              path: SessionPlannerWidget.routePath,
+              builder: (context, params) => SessionPlannerWidget(
+                pEventId: params.getParam(
+                  'pEventId',
+                  ParamType.int,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: FavouritesNewWidget.routeName,
+              path: FavouritesNewWidget.routePath,
+              builder: (context, params) => FavouritesNewWidget(),
             )
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),
