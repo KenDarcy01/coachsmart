@@ -32,214 +32,44 @@
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
-
     body { display: flex; flex-direction: column; }
 
-    /* ── Header ───────────────────────────────────────────────────────────── */
+    /* ── Header ── */
     .app-header {
       background: var(--surface);
       border-bottom: 3px solid var(--accent);
-      padding: 0 16px;
-      height: 60px;
+      padding: 0 12px 0 8px;
+      height: 56px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
       flex-shrink: 0;
     }
     .back-btn {
-      width: 48px; height: 48px;
+      width: 44px; height: 44px;
       display: flex; align-items: center; justify-content: center;
       color: var(--accent); flex-shrink: 0; border-radius: 8px;
-      transition: background 0.1s;
     }
-    .back-btn:active { background: var(--accent-dim); }
-    .back-btn svg { width: 34px; height: 34px; }
-
-    /* ── Screens ──────────────────────────────────────────────────────────── */
-    .screen {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-      min-height: 0;
-    }
-    .screen.active { display: flex; }
-    .scroll-content {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    /* ── Setup screen ─────────────────────────────────────────────────────── */
-    .setup-section {
-      margin: 12px 16px 0;
-    }
-    .setup-section-label {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
-    }
-
-    /* Duration picker */
-    .dur-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .dur-label { flex: 1; font-size: 14px; font-weight: 500; color: var(--text); }
-    .dur-ctrl { display: flex; align-items: center; gap: 10px; }
-    .dur-step {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: var(--surface-2); color: var(--text);
-      font-size: 20px; font-weight: 400;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.1s;
-    }
-    .dur-step:active { background: var(--accent-dim); }
-    .dur-val { font-size: 16px; font-weight: 700; color: var(--accent); min-width: 52px; text-align: center; }
-
-    /* Favourites list */
-    .fav-list-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-    .fav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      user-select: none;
-      -webkit-user-select: none;
-      position: relative;
-    }
-    .fav-item:last-child { border-bottom: none; }
-    .fav-item.is-dragging {
-      opacity: 0.45;
-      background: var(--surface-2);
-    }
-
-    .drag-handle {
-      color: var(--muted); flex-shrink: 0;
-      touch-action: none; cursor: grab;
-      display: flex; align-items: center; justify-content: center;
-      width: 36px; height: 44px;
-      transition: color 0.15s;
-    }
-    .drag-handle:active { cursor: grabbing; color: var(--accent); }
-    .drag-handle svg { width: 22px; height: 22px; }
-
-    .fav-check-wrap {
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; width: 32px; height: 32px;
-    }
-    .fav-check {
-      appearance: none; -webkit-appearance: none;
-      width: 22px; height: 22px; border-radius: 5px;
-      border: 2px solid var(--accent);
-      background: transparent;
-      cursor: pointer; flex-shrink: 0;
-      position: relative;
-      transition: background 0.15s;
-    }
-    .fav-check:checked { background: var(--accent); }
-    .fav-check:checked::after {
-      content: '';
-      position: absolute; left: 5px; top: 1px;
-      width: 8px; height: 12px;
-      border: 2.5px solid rgba(0,0,0,0.65);
-      border-top: none; border-left: none;
-      transform: rotate(45deg);
-    }
-
-    .fav-thumb {
-      width: 46px; height: 46px; border-radius: 8px;
-      object-fit: cover; flex-shrink: 0;
-      background: var(--surface-2);
-    }
-    .fav-thumb-placeholder {
-      width: 46px; height: 46px; border-radius: 8px;
-      background: var(--surface-2); flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .fav-thumb-placeholder svg { width: 22px; height: 22px; color: var(--muted); }
-
-    .fav-name {
-      flex: 1; min-width: 0;
-      font-size: 14px; font-weight: 500; color: var(--text);
-      cursor: pointer;
+    .back-btn svg { width: 30px; height: 30px; }
+    .header-title {
+      flex: 1; font-size: 15px; font-weight: 600; color: var(--text);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .fav-name:active { opacity: 0.6; }
-
-    .heart-btn {
-      flex-shrink: 0;
-      color: #e05555;
+    .header-icon-btn {
+      width: 38px; height: 38px;
       display: flex; align-items: center; justify-content: center;
-      width: 36px; height: 36px; border-radius: 8px;
-      transition: background 0.1s;
+      color: var(--muted); border-radius: 8px; flex-shrink: 0;
+      transition: color 0.15s, background 0.15s;
     }
-    .heart-btn:active { background: rgba(224,85,85,0.12); }
-    .heart-btn svg { width: 20px; height: 20px; }
+    .header-icon-btn:active { color: var(--accent); background: var(--accent-dim); }
+    .header-icon-btn svg { width: 20px; height: 20px; }
 
-    /* Toggle switch */
-    .toggle-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-    }
-    .toggle-row {
-      display: flex; align-items: center; gap: 12px;
-    }
-    .toggle-label {
-      flex: 1; font-size: 14px; font-weight: 500; color: var(--text);
-    }
-    .toggle-explainer {
-      margin-top: 8px;
-      font-size: 12px; color: var(--muted); line-height: 1.5;
-    }
-    .toggle-switch {
-      position: relative; width: 46px; height: 28px; flex-shrink: 0; cursor: pointer;
-    }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
-    .toggle-slider {
-      position: absolute; inset: 0; cursor: pointer;
-      background: var(--surface-2); border-radius: 14px;
-      border: 1.5px solid var(--border);
-      transition: background 0.2s, border-color 0.2s;
-    }
-    .toggle-slider::before {
-      content: ''; position: absolute;
-      width: 20px; height: 20px; border-radius: 50%;
-      left: 3px; top: 50%; transform: translateY(-50%);
-      background: var(--muted);
-      transition: transform 0.2s, background 0.2s;
-    }
-    .toggle-switch input:checked + .toggle-slider {
-      background: var(--accent); border-color: var(--accent);
-    }
-    .toggle-switch input:checked + .toggle-slider::before {
-      transform: translate(18px, -50%);
-      background: rgba(0,0,0,0.65);
-    }
+    /* ── Screens ── */
+    .screen { flex: 1; display: none; flex-direction: column; overflow: hidden; min-height: 0; }
+    .screen.active { display: flex; }
+    .scroll-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-    /* Setup bottom bar */
-    .setup-bar {
-      padding: 12px 16px max(12px, env(safe-area-inset-bottom));
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-      display: flex;
-      gap: 10px;
-    }
-
-    /* ── State screens ────────────────────────────────────────────────────── */
+    /* ── State screens ── */
     .state-screen {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
@@ -254,164 +84,11 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Plan screen ──────────────────────────────────────────────────────── */
-    .plan-content { padding-bottom: 90px; }
-
-    /* Stats section */
-    .stats-section { background: var(--surface-2); margin-top: 6px; }
-    .stat-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-      padding: 12px 16px 12px;
-    }
-    .stat-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 14px 10px;
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
-    .stat-value {
-      font-size: 46px; font-weight: 700; color: var(--accent); line-height: 1;
-      font-variant-numeric: tabular-nums;
-    }
-    .stat-label {
-      font-size: 13px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--muted);
-    }
-
-    /* Back to setup chip */
-    .setup-chip-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 16px 8px;
-    }
-    .setup-chip {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 20px; padding: 5px 12px 5px 8px;
-      font-size: 12px; font-weight: 600; color: var(--muted);
-      transition: color 0.1s, border-color 0.1s;
-    }
-    .setup-chip:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
-    .setup-chip svg { width: 14px; height: 14px; color: var(--accent); }
-
-    .btn-primary .spinner {
-      border-color: rgba(0,0,0,0.2);
-      border-top-color: rgba(0,0,0,0.55);
-    }
-
-    /* Objective */
-    .objective-block {
-      margin: 14px 16px;
-      background: var(--accent-dim); border: 1px solid rgba(135,194,50,0.18);
-      border-radius: var(--radius); padding: 12px 14px;
-      font-size: 14px; font-style: italic; color: var(--text); line-height: 1.55;
-    }
-
-    /* Section headers */
-    .section-hdr {
-      display: flex; align-items: center; gap: 9px; padding: 20px 16px 7px;
-    }
-    .s-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-    .s-dot-warm  { background: #f59e0b; }
-    .s-dot-drill { background: var(--accent); }
-    .s-dot-cool  { background: #60a5fa; }
-    .s-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .s-dur   { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 10px; }
-
-    /* Phase cards */
-    .phase-card {
-      margin: 0 16px 10px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
-    }
-    .drill-name-bar {
-      display: flex; align-items: center; gap: 8px; padding: 10px 14px 9px;
-      border-bottom: 1px solid var(--border);
-    }
-    .drill-num {
-      width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff;
-      font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .drill-name { font-size: 14px; font-weight: 600; color: var(--text); }
-
-    .game-image {
-      width: 100%; height: auto; display: block;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .card-body { padding: 11px 14px 13px; }
-    .card-desc { font-size: 14px; color: var(--text); line-height: 1.55; margin-bottom: 11px; white-space: pre-line; }
-    .cp-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 7px; }
-    .cp-item { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; color: var(--text); margin-bottom: 5px; line-height: 1.45; }
-    .cp-dot  { color: var(--accent); font-size: 17px; line-height: 1.15; flex-shrink: 0; }
-    .variation-row {
-      display: flex; gap: 6px; margin-top: 10px; padding: 8px 10px;
-      background: var(--surface-2); border-radius: 8px; border-left: 2px solid var(--muted);
-      font-size: 13px; color: var(--muted); line-height: 1.45;
-    }
-    .variation-row strong { font-weight: 600; color: var(--muted); flex-shrink: 0; }
-    .drill-gap { height: 10px; }
-
-    /* Inline editable fields */
-    [data-path] {
-      outline: none; border-radius: 4px; cursor: text;
-      border: 1px dashed rgba(135,194,50,0.28);
-      padding: 3px 6px;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    [data-path]:focus {
-      background: rgba(135,194,50,0.08);
-      border-color: rgba(135,194,50,0.55);
-      border-style: solid;
-    }
-    .edit-hint {
-      display: flex; align-items: center; gap: 5px;
-      padding: 5px 16px 0;
-      font-size: 11px; color: var(--muted); opacity: 0.7;
-    }
-    .edit-hint svg { width: 11px; height: 11px; flex-shrink: 0; }
-
-    /* Station setup card */
-    .station-setup-card {
-      margin: 0 16px 10px;
-      background: var(--surface-2);
-      border: 1px solid rgba(135,194,50,0.22);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--radius); padding: 12px 14px;
-      font-size: 14px; color: var(--text); line-height: 1.6;
-    }
-
-    /* Feedback bar */
-    .feedback-bar {
-      margin: 20px 16px 0;
-      background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 14px;
-    }
-    .feedback-hdr {
-      font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px;
-    }
-    .feedback-input {
-      width: 100%; box-sizing: border-box;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 9px 12px;
-      color: var(--text); font-family: inherit; font-size: 13px;
-      line-height: 1.5; resize: none; overflow: hidden; min-height: 68px;
-    }
-    .feedback-input::placeholder { color: var(--muted); }
-    .feedback-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
-    .feedback-actions {
-      display: flex; gap: 8px; margin-top: 10px;
-    }
-    .refusal-notice {
-      display: none;
-      background: rgba(220,120,0,0.12); border: 1px solid rgba(220,120,0,0.35);
-      border-radius: 8px; padding: 9px 12px; margin-bottom: 10px;
-      font-size: 13px; color: #e8a040; line-height: 1.45;
-    }
-
-    /* ── Action bar ───────────────────────────────────────────────────────── */
-    .action-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; display: flex; gap: 10px;
-      padding: 10px 16px max(10px, env(safe-area-inset-bottom));
-      background: var(--surface); border-top: 1px solid var(--border); z-index: 100;
+    /* ── Bottom bar ── */
+    .bottom-bar {
+      padding: 10px 14px max(10px, env(safe-area-inset-bottom));
+      background: var(--surface); border-top: 1px solid var(--border);
+      flex-shrink: 0; display: flex; gap: 10px;
     }
     .btn {
       flex: 1; height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600;
@@ -422,212 +99,272 @@
     .btn:active  { opacity: 0.7; }
     .btn-primary { background: var(--accent); color: rgba(0,0,0,0.65); }
     .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
-    .btn-full { width: 100%; }
+    .btn-full    { width: 100%; flex: none; }
 
-    /* ── Game detail sheet ────────────────────────────────────────────────── */
-    .sheet {
-      position: fixed; inset: 0;
-      background: var(--bg); z-index: 300;
-      display: none; flex-direction: column;
+    /* ── Favourites list ── */
+    .fav-list { padding: 12px 14px; display: flex; flex-direction: column; gap: 0; }
+    .fav-list-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
     }
-    .sheet.open { display: flex; }
-    .sheet-header {
-      background: var(--surface); border-bottom: 3px solid var(--accent);
-      padding: 0 16px; height: 60px;
-      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0;
+    .fav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      user-select: none; -webkit-user-select: none;
     }
-    .sheet-back {
-      display: flex; align-items: center; gap: 4px;
-      color: var(--accent); font-size: 16px; font-weight: 600;
-    }
-    .sheet-back svg { width: 28px; height: 28px; }
-    .sheet-heart-btn {
-      color: var(--muted);
+    .fav-item:last-child { border-bottom: none; }
+    .fav-item.is-dragging { opacity: 0.4; background: var(--surface-2); }
+
+    .drag-handle {
+      color: var(--muted); flex-shrink: 0; touch-action: none; cursor: grab;
       display: flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px; border-radius: 10px;
-      transition: background 0.1s, color 0.1s; flex-shrink: 0;
+      width: 32px; height: 44px;
     }
-    .sheet-heart-btn.is-fav { color: #e05555; }
-    .sheet-heart-btn:active { background: rgba(224,85,85,0.12); }
-    .sheet-heart-btn svg { width: 24px; height: 24px; }
-    .sheet-body {
-      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    .drag-handle:active { cursor: grabbing; color: var(--accent); }
+    .drag-handle svg { width: 20px; height: 20px; }
+
+    .fav-check {
+      appearance: none; -webkit-appearance: none;
+      width: 20px; height: 20px; border-radius: 4px;
+      border: 2px solid var(--accent); background: transparent;
+      cursor: pointer; flex-shrink: 0; position: relative;
+      transition: background 0.15s;
     }
-    .sheet-game-img {
-      width: calc(100% - 32px); height: auto; display: block;
-      margin: 16px; border-radius: 12px; object-fit: cover;
+    .fav-check:checked { background: var(--accent); }
+    .fav-check:checked::after {
+      content: ''; position: absolute; left: 4px; top: 1px;
+      width: 8px; height: 11px;
+      border: 2.5px solid rgba(0,0,0,0.65);
+      border-top: none; border-left: none;
+      transform: rotate(45deg);
     }
-    .sheet-section {
-      padding: 14px 16px 0;
+
+    .fav-thumb {
+      width: 42px; height: 42px; border-radius: 7px;
+      object-fit: cover; flex-shrink: 0; background: var(--surface-2);
     }
-    .sheet-section-label {
-      font-size: 12px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
+    .fav-thumb-ph {
+      width: 42px; height: 42px; border-radius: 7px;
+      background: var(--surface-2); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
     }
-    .sheet-section-text {
-      font-size: 15px; color: var(--text); line-height: 1.65; white-space: pre-line;
+    .fav-thumb-ph svg { width: 18px; height: 18px; color: var(--muted); }
+
+    .fav-name {
+      flex: 1; min-width: 0;
+      font-size: 13px; font-weight: 500; color: var(--text);
+      cursor: pointer;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .sheet-game-title {
-      font-size: 20px; font-weight: 700; color: var(--text);
-      padding: 16px 16px 4px;
+    .fav-name:active { opacity: 0.6; }
+
+    .heart-btn {
+      flex-shrink: 0; color: #e05555;
+      display: flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: 7px;
+      transition: background 0.1s;
     }
-    .sheet-actions {
-      padding: 12px 16px 0;
+    .heart-btn:active { background: rgba(224,85,85,0.12); }
+    .heart-btn svg { width: 18px; height: 18px; }
+
+    /* ── Setup screen ── */
+    .setup-body { padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+    .field-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
     }
-    .coach-notes-section {
-      padding: 14px 16px 0;
-    }
-    .coach-notes-label {
-      font-size: 12px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
-    }
-    .coach-notes-input {
-      width: 100%; box-sizing: border-box;
+    .stepper-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 10px; padding: 10px 12px;
-      color: var(--text); font-family: inherit; font-size: 14px;
-      line-height: 1.55; resize: none; overflow: hidden; min-height: 80px;
+      border-radius: var(--radius); padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
     }
-    .coach-notes-input::placeholder { color: var(--muted); }
-    .coach-notes-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
+    .stepper-label { flex: 1; font-size: 14px; font-weight: 500; }
+    .stepper-ctrl  { display: flex; align-items: center; gap: 10px; }
+    .stepper-btn {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--surface-2); color: var(--text);
+      font-size: 20px; font-weight: 400;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s;
+    }
+    .stepper-btn:active { background: var(--accent-dim); }
+    .stepper-val { font-size: 16px; font-weight: 700; color: var(--accent); min-width: 52px; text-align: center; }
 
-    /* ── Toast ────────────────────────────────────────────────────────────── */
-    #toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: var(--surface-2); color: var(--text); font-size: 13px; padding: 8px 16px;
-      border-radius: 20px; opacity: 0; transition: opacity 0.2s; z-index: 999;
-      pointer-events: none; white-space: nowrap; border: 1px solid var(--border);
-      display: flex; align-items: center; gap: 7px;
-    }
-    #toast.show { opacity: 1; }
-    #toast.success { border-color: var(--accent); color: var(--accent); }
-    #toast.error   { border-color: #dc3232; color: #dc3232; }
-    .sp-toast-spinner {
-      width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
-      border: 2px solid rgba(135,194,50,0.3); border-top-color: var(--accent);
-      animation: spToastSpin 0.7s linear infinite; display: none;
-    }
-    #toast.spinning .sp-toast-spinner { display: block; }
-    @keyframes spToastSpin { to { transform: rotate(360deg); } }
+    /* ── Plan screen ── */
+    .plan-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 80px; }
 
-    /* ── Feedback voice/text toggle ── */
+    .back-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      margin: 10px 16px 0;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 20px; padding: 5px 12px 5px 8px;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+    }
+    .back-chip svg { width: 13px; height: 13px; color: var(--accent); }
+
+    .edit-hint {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 16px 0; font-size: 11px; color: var(--muted); opacity: 0.7;
+    }
+    .edit-hint svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      padding: 12px 16px;
+      background: var(--surface-2); margin-top: 6px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .stat-value { font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1; font-variant-numeric: tabular-nums; }
+    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+
+    .section-hdr { display: flex; align-items: center; gap: 9px; padding: 18px 16px 6px; }
+    .s-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .s-dot-warm  { background: #f59e0b; }
+    .s-dot-drill { background: var(--accent); }
+    .s-dot-cool  { background: #60a5fa; }
+    .s-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .s-dur   { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 7px; border-radius: 10px; }
+
+    .phase-card {
+      margin: 0 16px 10px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .drill-name-bar {
+      display: flex; align-items: center; gap: 8px; padding: 9px 13px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .drill-num {
+      width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff;
+      font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .drill-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .game-image { width: 100%; height: auto; display: block; border-bottom: 1px solid var(--border); }
+    .card-body  { padding: 10px 13px 12px; }
+    .card-desc  { font-size: 13px; color: var(--text); line-height: 1.55; margin-bottom: 10px; white-space: pre-line; }
+    .cp-label   { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+    .cp-item    { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--text); margin-bottom: 4px; line-height: 1.45; }
+    .cp-dot     { color: var(--accent); font-size: 16px; line-height: 1.15; flex-shrink: 0; }
+    .variation-row {
+      display: flex; gap: 6px; margin-top: 8px; padding: 7px 10px;
+      background: var(--surface-2); border-radius: 7px; border-left: 2px solid var(--muted);
+      font-size: 12px; color: var(--muted); line-height: 1.45;
+    }
+    .objective-block {
+      margin: 12px 16px;
+      background: var(--accent-dim); border: 1px solid rgba(135,194,50,0.18);
+      border-radius: var(--radius); padding: 11px 13px;
+      font-size: 13px; font-style: italic; color: var(--text); line-height: 1.55;
+    }
+    .station-setup-card {
+      margin: 0 16px 10px;
+      background: var(--surface-2); border: 1px solid rgba(135,194,50,0.22);
+      border-left: 3px solid var(--accent); border-radius: var(--radius);
+      padding: 11px 13px; font-size: 13px; color: var(--text); line-height: 1.6;
+    }
+
+    [data-path] {
+      outline: none; border-radius: 4px; cursor: text;
+      border: 1px dashed rgba(135,194,50,0.28); padding: 2px 5px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    [data-path]:focus { background: rgba(135,194,50,0.08); border-color: rgba(135,194,50,0.55); border-style: solid; }
+
+    /* ── Feedback / voice panel ── */
+    .feedback-bar {
+      margin: 18px 16px 0;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+    }
+    .feedback-hdr {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px;
+    }
     .fb-mode-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
     .fb-mode-btn {
-      flex: 1; height: 34px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      flex: 1; height: 32px; border-radius: 7px; font-size: 12px; font-weight: 600;
       font-family: inherit; cursor: pointer; border: 1px solid var(--border);
       background: var(--bg); color: var(--muted);
-      display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s;
     }
-    .fb-mode-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .fb-mode-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
     .fb-mode-btn.active { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
     .fb-voice-instruction { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
     .fb-mic-wrap { display: flex; justify-content: center; margin: 4px 0 8px; }
     .fb-mic-btn {
-      width: 140px; height: 200px; border-radius: 70px;
+      width: 120px; height: 170px; border-radius: 60px;
       background: var(--surface-2); border: 2.5px solid var(--border);
       display: flex; align-items: center; justify-content: center; color: var(--muted);
       transition: border-color 0.18s, background 0.18s, color 0.18s;
       flex-shrink: 0; -webkit-user-select: none; user-select: none; touch-action: none;
       -webkit-tap-highlight-color: transparent; cursor: pointer;
     }
-    .fb-mic-btn svg { width: 56px; height: 56px; flex-shrink: 0; }
+    .fb-mic-btn svg { width: 46px; height: 46px; flex-shrink: 0; }
     .fb-mic-btn.recording {
       background: rgba(220,50,50,0.12); border-color: #dc3232; color: #dc3232;
       animation: fbMicRing 1.2s ease-out infinite;
     }
     @keyframes fbMicRing {
       0%   { box-shadow: 0 0 0 0   rgba(220,50,50,0.4); }
-      70%  { box-shadow: 0 0 0 18px rgba(220,50,50,0);   }
+      70%  { box-shadow: 0 0 0 16px rgba(220,50,50,0);   }
       100% { box-shadow: 0 0 0 0   rgba(220,50,50,0);   }
     }
-    .fb-voice-wave { display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px; margin-bottom: 8px;
-      opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+    .fb-voice-wave {
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      height: 24px; margin-bottom: 8px; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+    }
     .fb-voice-wave.active { opacity: 1; }
-    .fb-voice-wave span { display: block; width: 4px; background: var(--accent); border-radius: 4px; min-height: 4px;
-      animation: fbSpWave 1.1s ease-in-out infinite; }
-    .fb-voice-wave span:nth-child(1) { animation-delay: 0s; }
+    .fb-voice-wave span {
+      display: block; width: 4px; background: var(--accent); border-radius: 4px; min-height: 4px;
+      animation: fbSpWave 1.1s ease-in-out infinite;
+    }
     .fb-voice-wave span:nth-child(2) { animation-delay: 0.15s; }
     .fb-voice-wave span:nth-child(3) { animation-delay: 0.30s; }
     .fb-voice-wave span:nth-child(4) { animation-delay: 0.45s; }
     .fb-voice-wave span:nth-child(5) { animation-delay: 0.60s; }
-    @keyframes fbSpWave { 0%,100%{height:4px} 50%{height:22px} }
+    @keyframes fbSpWave { 0%,100%{height:4px} 50%{height:20px} }
     .fb-transcript {
-      min-height: 44px; padding: 10px 14px;
+      min-height: 40px; padding: 9px 13px;
       background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: var(--radius, 12px); font-size: 14px; line-height: 1.55;
+      border-radius: var(--radius); font-size: 13px; line-height: 1.55;
       color: var(--text); word-break: break-word;
     }
     .fb-transcript:empty::before { content: "Your feedback will appear here…"; color: var(--muted); }
+    .feedback-input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px; color: var(--text);
+      font-family: inherit; font-size: 13px; line-height: 1.5;
+      resize: none; overflow: hidden; min-height: 64px;
+    }
+    .feedback-input::placeholder { color: var(--muted); }
+    .feedback-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
+    .refusal-notice {
+      display: none;
+      background: rgba(220,120,0,0.12); border: 1px solid rgba(220,120,0,0.35);
+      border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;
+      font-size: 12px; color: #e8a040; line-height: 1.45;
+    }
 
-    /* ── Tab bar ──────────────────────────────────────────────────────────── */
-    .tab-bar {
-      display: flex;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
+    /* ── Plan action bar (fixed) ── */
+    .plan-action-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      display: flex; gap: 10px;
+      padding: 10px 14px max(10px, env(safe-area-inset-bottom));
+      background: var(--surface); border-top: 1px solid var(--border); z-index: 100;
     }
-    .tab-btn {
-      flex: 1;
-      padding: 12px 8px 10px;
-      font-size: 13px; font-weight: 600;
-      color: var(--muted);
-      border-bottom: 2px solid transparent;
-      transition: color 0.15s, border-color 0.15s;
-      text-align: center;
-    }
-    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-    /* ── My Plans screen ─────────────────────────────────────────────────── */
-    .plans-list { padding: 12px 16px 80px; display: flex; flex-direction: column; gap: 10px; }
-    .plan-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .plan-card-body { flex: 1; min-width: 0; }
-    .plan-card-title {
-      font-size: 14px; font-weight: 600;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .plan-card-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .plan-card-badge {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; padding: 2px 7px; border-radius: 20px;
-      background: var(--accent-dim); color: var(--accent); flex-shrink: 0;
-    }
-    .plan-load-btn {
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 7px 14px;
-      font-size: 13px; font-weight: 600;
-      color: var(--text);
-      flex-shrink: 0;
-      transition: background 0.1s;
-    }
-    .plan-load-btn:active { background: var(--accent-dim); }
-    .plans-empty {
-      text-align: center;
-      padding: 60px 32px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-    }
-    .plans-empty-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
-
-    /* ── My Plans sub-tabs ────────────────────────────────────────────────── */
+    /* ── My Plans screen ── */
     .sub-tab-bar {
-      display: flex; gap: 0;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0; background: var(--bg);
+      display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--bg);
     }
     .sub-tab-btn {
-      flex: 1; padding: 10px 8px 8px;
-      font-size: 12px; font-weight: 600;
+      flex: 1; padding: 10px 8px 8px; font-size: 12px; font-weight: 600;
       color: var(--muted); border-bottom: 2px solid transparent;
       transition: color 0.15s, border-color 0.15s; text-align: center;
     }
@@ -636,166 +373,117 @@
       display: inline-flex; align-items: center; justify-content: center;
       background: var(--accent); color: rgba(0,0,0,0.7);
       border-radius: 10px; font-size: 10px; font-weight: 700;
-      padding: 1px 6px; margin-left: 5px; min-width: 18px;
+      padding: 1px 5px; margin-left: 4px; min-width: 16px;
     }
 
-    /* ── Share chip on plan card ──────────────────────────────────────────── */
-    .plan-share-btn {
-      background: none; border: 1px solid var(--border);
-      border-radius: 8px; padding: 6px 10px;
-      font-size: 12px; font-weight: 600; color: var(--muted);
-      flex-shrink: 0; display: flex; align-items: center; gap: 5px;
-      transition: color 0.1s, border-color 0.1s;
-    }
-    .plan-share-btn:active { color: var(--accent); border-color: var(--accent); }
-
-    /* ── Shared-with-me card extras ───────────────────────────────────────── */
-    .share-from { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 2px; }
-    .share-message { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; }
-    .share-new-badge {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; padding: 2px 7px; border-radius: 20px;
-      background: rgba(135,194,50,0.2); color: var(--accent); flex-shrink: 0;
-    }
-
-    /* ── Plan detail overlay ──────────────────────────────────────────────── */
-    .plan-detail-overlay {
-      position: fixed; inset: 0; z-index: 100;
-      display: none; flex-direction: column;
-      background: var(--bg);
-    }
-    .plan-detail-overlay.open { display: flex; }
-    .plan-detail-header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 16px;
-      height: 56px;
-      display: flex; align-items: center; gap: 10px;
-      flex-shrink: 0;
-    }
-    .plan-detail-title { font-size: 15px; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .plan-detail-close {
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--muted);
-    }
-    .plan-detail-action {
-      background: var(--surface-2); border: none;
-      padding: 7px 14px; border-radius: 8px;
-      font-size: 13px; font-weight: 600; color: var(--accent);
-      flex-shrink: 0;
-    }
-
-    /* ── Share sheet ──────────────────────────────────────────────────────── */
-    .share-sheet {
-      position: fixed; inset: 0; z-index: 200;
-      display: none; flex-direction: column;
-      background: var(--bg);
-    }
-    .share-sheet.open { display: flex; }
-    .share-sheet-header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 16px; height: 56px;
-      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-    }
-    .share-sheet-title { font-size: 15px; font-weight: 600; flex: 1; }
-    .share-sheet-body { flex: 1; overflow-y: auto; padding: 16px; }
-    .share-message-input {
-      width: 100%; background: var(--surface-2);
-      border: 1px solid var(--border); border-radius: var(--radius);
-      color: var(--text); font: inherit; font-size: 14px;
-      padding: 12px 14px; resize: none; min-height: 72px;
-      margin-bottom: 16px;
-    }
-    .share-message-input::placeholder { color: var(--muted); }
-    .recipient-list { display: flex; flex-direction: column; gap: 8px; }
-    .recipient-row {
-      display: flex; align-items: center; gap: 12px;
+    .plans-list { padding: 12px 14px 90px; display: flex; flex-direction: column; gap: 8px; }
+    .plan-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 12px 16px;
-      cursor: pointer; transition: border-color 0.1s;
+      border-radius: var(--radius); padding: 13px 14px;
     }
-    .recipient-row.selected { border-color: var(--accent); background: var(--accent-dim); }
-    .recipient-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: var(--surface-2);
+    .plan-card-title {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+    }
+    .plan-card-meta  { font-size: 12px; color: var(--muted); }
+    .plan-card-from  { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 2px; }
+    .plan-card-msg   { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 4px; }
+    .plan-card-actions { display: flex; gap: 7px; margin-top: 10px; }
+    .plan-btn {
+      flex: 1; height: 34px; border-radius: 7px; font-size: 12px; font-weight: 600;
+      font-family: inherit; cursor: pointer; border: 1px solid var(--border);
+      background: var(--surface-2); color: var(--text);
       display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: var(--accent);
-      flex-shrink: 0;
+      transition: border-color 0.1s, color 0.1s;
     }
-    .recipient-name { font-size: 14px; font-weight: 600; flex: 1; }
-    .recipient-check {
-      width: 20px; height: 20px; border-radius: 50%;
-      border: 2px solid var(--border);
+    .plan-btn.accent  { color: var(--accent); border-color: rgba(135,194,50,0.3); }
+    .plan-btn.muted   { color: var(--muted); }
+    .plan-btn:active  { opacity: 0.7; }
+    .new-badge {
+      display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; padding: 1px 6px; border-radius: 20px;
+      background: rgba(135,194,50,0.2); color: var(--accent); margin-left: 6px;
+    }
+    .plans-empty {
+      text-align: center; padding: 50px 28px; color: var(--muted); font-size: 13px; line-height: 1.6;
+    }
+    .plans-empty-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+
+    /* ── Game detail sheet ── */
+    .sheet {
+      position: fixed; inset: 0; background: var(--bg); z-index: 300;
+      display: none; flex-direction: column;
+    }
+    .sheet.open { display: flex; }
+    .sheet-header {
+      background: var(--surface); border-bottom: 3px solid var(--accent);
+      padding: 0 14px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0;
+    }
+    .sheet-back { display: flex; align-items: center; gap: 4px; color: var(--accent); font-size: 15px; font-weight: 600; }
+    .sheet-back svg { width: 26px; height: 26px; }
+    .sheet-heart-btn {
+      color: var(--muted);
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: background 0.1s, border-color 0.1s;
+      width: 40px; height: 40px; border-radius: 9px;
+      transition: background 0.1s, color 0.1s; flex-shrink: 0;
     }
-    .recipient-row.selected .recipient-check {
-      background: var(--accent); border-color: var(--accent);
+    .sheet-heart-btn.is-fav { color: #e05555; }
+    .sheet-heart-btn svg { width: 22px; height: 22px; }
+    .sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .sheet-game-img { width: calc(100% - 28px); height: auto; display: block; margin: 14px; border-radius: 10px; }
+    .sheet-game-title { font-size: 18px; font-weight: 700; color: var(--text); padding: 14px 14px 4px; }
+    .sheet-section { padding: 12px 14px 0; }
+    .sheet-section-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 5px;
     }
+    .sheet-section-text { font-size: 14px; color: var(--text); line-height: 1.65; white-space: pre-line; }
+    .sheet-actions { padding: 10px 14px 0; }
+    .coach-notes-section { padding: 12px 14px 0; }
+    .coach-notes-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 5px;
+    }
+    .coach-notes-input {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 9px; padding: 9px 11px; color: var(--text);
+      font-family: inherit; font-size: 13px; line-height: 1.55;
+      resize: none; overflow: hidden; min-height: 72px;
+    }
+    .coach-notes-input::placeholder { color: var(--muted); }
+    .coach-notes-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--surface-2); color: var(--text); font-size: 13px; padding: 8px 16px;
+      border-radius: 20px; opacity: 0; transition: opacity 0.2s; z-index: 999;
+      pointer-events: none; white-space: nowrap; border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 6px;
+    }
+    #toast.show { opacity: 1; }
+    #toast.success { border-color: var(--accent); color: var(--accent); }
+    #toast.error   { border-color: #dc3232; color: #dc3232; }
+    .sp-toast-spin {
+      width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid rgba(135,194,50,0.3); border-top-color: var(--accent);
+      animation: spin 0.7s linear infinite; display: none;
+    }
+    #toast.spinning .sp-toast-spin { display: block; }
   </style>
 </head>
 <body>
 
 <header class="app-header">
-  <button class="back-btn" onclick="closeSession()" title="Close">
+  <button class="back-btn" onclick="navBack()" title="Back">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
+  <div class="header-title" id="headerTitle">Favourites</div>
+  <button class="header-icon-btn" id="myPlansBtn" onclick="showMyPlans()" title="My Plans" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+  </button>
 </header>
-
-<div class="tab-bar" id="tabBar" style="display:none">
-  <button class="tab-btn active" id="tabNew" onclick="switchTab('new')">New Plan</button>
-  <button class="tab-btn" id="tabMy" onclick="switchTab('my')">My Plans</button>
-</div>
-
-<!-- My Plans screen -->
-<div id="myPlansScreen" class="screen">
-  <div class="sub-tab-bar">
-    <button class="sub-tab-btn active" id="subTabMine" onclick="switchSubTab('mine')">My Plans</button>
-    <button class="sub-tab-btn" id="subTabShared" onclick="switchSubTab('shared')">
-      Shared with Me<span class="sub-tab-badge" id="sharedBadge" style="display:none">0</span>
-    </button>
-  </div>
-  <div class="scroll-content" id="minePlansPanel">
-    <div class="plans-list" id="plansList"></div>
-  </div>
-  <div class="scroll-content" id="sharedPlansPanel" style="display:none">
-    <div class="plans-list" id="sharedList"></div>
-  </div>
-</div>
-
-<!-- Plan detail overlay (read-only, shown from My Plans or Shared) -->
-<div id="planDetailOverlay" class="plan-detail-overlay">
-  <div class="plan-detail-header">
-    <button class="plan-detail-close" onclick="closePlanDetail()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div class="plan-detail-title" id="planDetailTitle">Plan</div>
-    <button class="plan-detail-action" id="planDetailShareBtn" onclick="openShareSheetForCurrent()" style="display:none">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      Share
-    </button>
-  </div>
-  <div class="scroll-content">
-    <div id="planDetailContent"></div>
-  </div>
-</div>
-
-<!-- Share sheet (pick recipient + message) -->
-<div id="shareSheet" class="share-sheet">
-  <div class="share-sheet-header">
-    <button class="plan-detail-close" onclick="closeShareSheet()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div class="share-sheet-title">Share Plan</div>
-    <button class="plan-detail-action" id="shareSendBtn" onclick="sendShare()" disabled>Send</button>
-  </div>
-  <div class="share-sheet-body">
-    <textarea id="shareMessageInput" class="share-message-input" placeholder="Add a message (optional) — e.g. 'This worked brilliantly on Tuesday'"></textarea>
-    <div id="recipientList" class="recipient-list"></div>
-  </div>
-</div>
 
 <!-- Loading -->
 <div id="loadingScreen" class="screen active">
@@ -805,12 +493,12 @@
   </div>
 </div>
 
-<!-- Empty (no favourites) -->
+<!-- Empty -->
 <div id="emptyScreen" class="screen">
   <div class="state-screen">
     <div class="state-icon">⭐</div>
     <div class="state-title">No Favourites Yet</div>
-    <div class="state-body">Head to the Games Library and add some favourites, then come back here to generate your session plan or share game cards.</div>
+    <div class="state-body">Head to the Games Library and add some favourites, then come back here.</div>
   </div>
 </div>
 
@@ -823,73 +511,82 @@
   </div>
 </div>
 
-<!-- Setup screen -->
-<div id="setupScreen" class="screen">
-  <div class="scroll-content" style="padding-bottom:12px">
-    <div class="setup-section" style="margin-top:16px">
-      <div class="setup-section-label">Session Duration</div>
-      <div class="dur-card">
-        <div class="dur-label">Length of session</div>
-        <div class="dur-ctrl">
-          <button class="dur-step" onclick="adjustDur(-5)">−</button>
-          <div class="dur-val"><span id="durVal">60</span> min</div>
-          <button class="dur-step" onclick="adjustDur(+5)">+</button>
-        </div>
-      </div>
-    </div>
-    <div class="setup-section" style="margin-top:16px">
-      <div class="setup-section-label">Player Count</div>
-      <div class="dur-card">
-        <div class="dur-label">Number of players</div>
-        <div class="dur-ctrl">
-          <button class="dur-step" onclick="adjustPlayers(-1)">−</button>
-          <div class="dur-val"><span id="playerVal">15</span></div>
-          <button class="dur-step" onclick="adjustPlayers(+1)">+</button>
-        </div>
-      </div>
-    </div>
-    <div class="setup-section" style="margin-top:16px">
-      <div class="setup-section-label">Session Format</div>
-      <div class="toggle-card">
-        <div class="toggle-row">
-          <div class="toggle-label">Rotate through stations</div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="rotateToggle" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="toggle-explainer">When on, players are split across the drill stations and rotate at intervals — not everyone performs the same activity at the same time. Warm-up and cool-down remain collective.</div>
-      </div>
-    </div>
-    <div class="setup-section" style="margin-top:16px">
-      <div class="setup-section-label">Games — drag to reorder · tap to view · uncheck to skip</div>
+<!-- Favourites list screen -->
+<div id="favScreen" class="screen">
+  <div class="scroll-content">
+    <div class="fav-list">
       <div class="fav-list-card" id="favList"></div>
     </div>
   </div>
-  <div class="setup-bar">
-    <button class="btn btn-outline" id="shareGamesBtn" onclick="shareGamesPdf()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-      Share Games
+  <div class="bottom-bar">
+    <button class="btn btn-outline" id="exportGamesBtn" onclick="exportGamesPdf()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Export Games
     </button>
-    <button class="btn btn-primary" id="generateBtn" onclick="generatePlan()">
-      Generate Plan
+    <button class="btn btn-primary" onclick="goSetup()">
+      Build Session Plan
     </button>
+  </div>
+</div>
+
+<!-- Setup screen -->
+<div id="setupScreen" class="screen">
+  <div class="scroll-content">
+    <div class="setup-body">
+      <div>
+        <div class="field-label">Session Duration</div>
+        <div class="stepper-card">
+          <div class="stepper-label">Length of session</div>
+          <div class="stepper-ctrl">
+            <button class="stepper-btn" onclick="adjDur(-5)">−</button>
+            <div class="stepper-val"><span id="durVal">60</span> min</div>
+            <button class="stepper-btn" onclick="adjDur(+5)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn btn-outline" onclick="showFavs()">Back</button>
+    <button class="btn btn-primary" id="generateBtn" onclick="generatePlan()">Generate Plan</button>
   </div>
 </div>
 
 <!-- Plan screen -->
 <div id="planScreen" class="screen">
-  <div class="scroll-content">
-    <div class="plan-content" id="planContent"></div>
+  <div class="plan-scroll" id="planScroll">
+    <div id="planContent"></div>
+  </div>
+  <div class="plan-action-bar" id="planActionBar" style="display:none">
+    <button class="btn btn-outline" id="shareClubBtn" onclick="shareWithClub()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Share with Club
+    </button>
+    <button class="btn btn-primary" id="exportPlanBtn" onclick="exportPlan()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Export PDF
+    </button>
   </div>
 </div>
 
-<!-- Action bar (shown over plan screen) -->
-<div id="actionBar" class="action-bar" style="display:none">
-  <button class="btn btn-primary btn-full" onclick="exportPlan()" id="exportBtn">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-    Share Plan
-  </button>
+<!-- My Plans screen -->
+<div id="myPlansScreen" class="screen">
+  <div class="sub-tab-bar">
+    <button class="sub-tab-btn active" id="subMine"   onclick="subTab('mine')">My Plans</button>
+    <button class="sub-tab-btn"        id="subShared" onclick="subTab('shared')">
+      Shared with Me<span class="sub-tab-badge" id="sharedBadge" style="display:none">0</span>
+    </button>
+  </div>
+  <div class="scroll-content" id="minePlansPanel">
+    <div class="plans-list" id="plansList"></div>
+  </div>
+  <div class="scroll-content" id="sharedPanel" style="display:none">
+    <div class="plans-list" id="sharedList"></div>
+  </div>
+  <!-- "Build new plan" button shown in event-attach mode -->
+  <div class="bottom-bar" id="myPlansBar" style="display:none">
+    <button class="btn btn-primary btn-full" onclick="showFavs()">Build New Plan</button>
+  </div>
 </div>
 
 <!-- Game detail sheet -->
@@ -906,7 +603,7 @@
   <div class="sheet-body" id="sheetBody"></div>
 </div>
 
-<div id="toast"></div>
+<div id="toast"><div class="sp-toast-spin"></div><span id="toastMsg"></span></div>
 
 <script>
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
@@ -918,17 +615,15 @@
   const qp       = new URLSearchParams(window.location.search);
   const WV_TOKEN = qp.get('token')    || '';
   const USER_ID  = qp.get('user_id') || '';
+  const EVENT_ID = qp.get('event_id') || '';  // present when opened from event detail
   const IS_WEBVIEW = (function() { try { return typeof FlutterBridge !== 'undefined'; } catch(_) { return false; } })();
   const _isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  let _dur      = parseInt(qp.get('duration') || '60') || 60;
-  let _players  = 15;
-  let _favs     = [];
-  let _branding = null;
+  let _dur     = parseInt(qp.get('duration') || '60') || 60;
+  let _favs    = [];
   let _currentPlanId = null;
   let _currentPlan   = null;
   let _currentSheetGameId = null;
-  let _rotateStations = true;
 
   const HEADERS = {
     'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
@@ -936,491 +631,97 @@
     'Content-Type':  'application/json',
   };
 
-  // ── Utilities ───────────────────────────────────────────────────────────────
+  // ── Utils ──────────────────────────────────────────────────────────────────
   function $(id) { return document.getElementById(id); }
   function esc(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-  function closeSession() {
-    if (IS_WEBVIEW) FlutterBridge.postMessage('close');
-    else history.back();
-  }
+
   function showScreen(id) {
-    ['loadingScreen','emptyScreen','errorScreen','setupScreen','planScreen','myPlansScreen'].forEach(s => {
+    ['loadingScreen','emptyScreen','errorScreen','favScreen','setupScreen','planScreen','myPlansScreen'].forEach(s => {
       const el = $(s);
       if (el) el.classList.toggle('active', s === id);
     });
-    // Always hide overlays when navigating away
-    if (id !== 'myPlansScreen') {
-      $('planDetailOverlay').classList.remove('open');
-      $('shareSheet').classList.remove('open');
+    $('planActionBar').style.display = (id === 'planScreen') ? 'flex' : 'none';
+  }
+
+  function showLoading(msg) {
+    $('loadingText').textContent = msg || 'Loading…';
+    $('headerTitle').textContent = 'Loading…';
+    showScreen('loadingScreen');
+  }
+  function showEmpty()    { $('headerTitle').textContent = 'Favourites'; $('myPlansBtn').style.display = 'none'; showScreen('emptyScreen'); }
+  function showError(msg) { $('errorText').textContent = msg; showScreen('errorScreen'); }
+
+  function showFavs() {
+    $('headerTitle').textContent = 'Favourites';
+    $('myPlansBtn').style.display = 'flex';
+    showScreen('favScreen');
+  }
+
+  function goSetup() {
+    $('headerTitle').textContent = 'Build Session Plan';
+    $('myPlansBtn').style.display = 'flex';
+    $('durVal').textContent = _dur;
+    showScreen('setupScreen');
+  }
+
+  function showMyPlans() {
+    $('headerTitle').textContent = 'Session Plans';
+    $('myPlansBtn').style.display = 'none';
+    // In event mode show bottom bar with "Build New Plan" button
+    $('myPlansBar').style.display = EVENT_ID ? 'flex' : 'none';
+    showScreen('myPlansScreen');
+    subTab('mine');
+    loadMyPlans();
+    loadSharedBadge();
+  }
+
+  function navBack() {
+    const active = document.querySelector('.screen.active');
+    if (!active) { closeApp(); return; }
+    const id = active.id;
+    if (id === 'favScreen')     { closeApp(); return; }
+    if (id === 'setupScreen')   { showFavs(); return; }
+    if (id === 'planScreen')    { goSetup(); return; }
+    if (id === 'myPlansScreen') {
+      if (EVENT_ID) { closeApp(); return; }
+      showFavs(); return;
     }
-  }
-  function showLoading(msg) { $('tabBar').style.display = 'none'; $('loadingText').textContent = msg || 'Loading…'; showScreen('loadingScreen'); }
-  function showEmpty()      { $('tabBar').style.display = 'none'; showScreen('emptyScreen'); }
-  function showError(msg)   { $('tabBar').style.display = 'none'; $('errorText').textContent = msg; showScreen('errorScreen'); }
-  function showTabBar()     { $('tabBar').style.display = 'flex'; }
-
-  let _activeTab = 'new';
-  function switchTab(tab) {
-    _activeTab = tab;
-    $('tabNew').classList.toggle('active', tab === 'new');
-    $('tabMy').classList.toggle('active',  tab === 'my');
-    $('actionBar').style.display = 'none';
-    if (tab === 'new') {
-      showScreen('setupScreen');
-    } else {
-      showScreen('myPlansScreen');
-      _activeSubTab = 'mine';
-      $('subTabMine').classList.add('active');
-      $('subTabShared').classList.remove('active');
-      $('minePlansPanel').style.display   = '';
-      $('sharedPlansPanel').style.display = 'none';
-      loadUserPlans();
-      loadPendingShareCount();
-    }
+    closeApp();
   }
 
-  let _plansLoading = false;
-  async function loadUserPlans() {
-    const list = $('plansList');
-    if (_plansLoading) return;
-    _plansLoading = true;
-    list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Loading…</div></div>';
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_user_plans', user_id: USER_ID }),
-      });
-      const data = await res.json();
-      const plans = data.plans || [];
-      if (plans.length === 0) {
-        list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No saved plans yet</div>Generate your first plan on the New Plan tab — it will be saved here automatically.</div>';
-      } else {
-        list.innerHTML = plans.map(p => {
-          const date = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-          const badge = p.event_id ? `<span class="plan-card-badge">Event</span>` : `<span class="plan-card-badge">Library</span>`;
-          const meta  = p.event_title ? `${p.event_title} · ${date}` : date;
-          return `<div class="plan-card" style="cursor:pointer" onclick="openPlanDetail(${p.plan_id}, false)">
-            <div class="plan-card-body">
-              <div class="plan-card-title">${esc(p.session_title)}</div>
-              <div class="plan-card-meta">${esc(meta)}</div>
-            </div>
-            ${badge}
-            <button class="plan-share-btn" onclick="event.stopPropagation();openPlanDetailThenShare(${p.plan_id})">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-              Share
-            </button>
-            <button class="plan-load-btn" onclick="event.stopPropagation();loadPlan(${p.plan_id})">Load</button>
-          </div>`;
-        }).join('');
-      }
-    } catch {
-      list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection and try again.</div>';
-    } finally {
-      _plansLoading = false;
-    }
-  }
-
-  async function loadPlan(planId) {
-    showLoading('Loading plan…');
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_plan', plan_id: planId, user_id: USER_ID }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.plan) { showError(data.error || 'Failed to load plan.'); return; }
-      _branding      = data.branding;
-      _currentPlanId = data.plan_id;
-      renderPlan(data.plan);
-      showTabBar();
-      _activeTab = 'my';
-      $('tabNew').classList.remove('active');
-      $('tabMy').classList.add('active');
-    } catch { showError('Network error. Please try again.'); }
-  }
-
-  // ── Pending share badge ──────────────────────────────────────────────────────
-  async function loadPendingShareCount() {
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_received_shares', user_id: USER_ID }),
-      });
-      const data = await res.json();
-      const pending = (data.shares || []).filter(s => s.status === 'pending');
-      const badge = $('sharedBadge');
-      if (badge) {
-        if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = ''; }
-        else badge.style.display = 'none';
-      }
-    } catch { /* silent */ }
-  }
-
-  // ── Sub-tabs (My Plans / Shared with Me) ────────────────────────────────────
-  let _activeSubTab = 'mine';
-  function switchSubTab(tab) {
-    _activeSubTab = tab;
-    $('subTabMine').classList.toggle('active', tab === 'mine');
-    $('subTabShared').classList.toggle('active', tab === 'shared');
-    $('minePlansPanel').style.display   = tab === 'mine'   ? '' : 'none';
-    $('sharedPlansPanel').style.display = tab === 'shared' ? '' : 'none';
-    if (tab === 'shared') loadReceivedShares();
-    else loadUserPlans();
-  }
-
-  // ── Plan detail overlay ──────────────────────────────────────────────────────
-  let _detailPlanId   = null;
-  let _detailOpenShare = false;
-
-  async function openPlanDetail(planId, autoShare) {
-    _detailPlanId    = planId;
-    _detailOpenShare = !!autoShare;
-    $('planDetailTitle').textContent = 'Loading…';
-    $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center"><div class="spinner"></div></div>';
-    $('planDetailShareBtn').style.display = 'none';
-    $('planDetailOverlay').classList.add('open');
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_plan', plan_id: planId, user_id: USER_ID }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.plan) {
-        $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--muted)">Failed to load plan</div>';
-        return;
-      }
-      $('planDetailTitle').textContent = data.plan.session_title || 'Plan';
-      $('planDetailContent').innerHTML = renderPlanReadOnly(data.plan);
-      $('planDetailShareBtn').style.display = '';
-      if (_detailOpenShare) { _detailOpenShare = false; openShareSheet(); }
-    } catch {
-      $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--muted)">Network error</div>';
-    }
-  }
-
-  function openPlanDetailThenShare(planId) {
-    openPlanDetail(planId, true);
-  }
-
-  function closePlanDetail() {
-    $('planDetailOverlay').classList.remove('open');
-    _detailPlanId = null;
-  }
-
-  function openShareSheetForCurrent() {
-    if (!_detailPlanId) return;
-    openShareSheet();
-  }
-
-  // ── Share sheet ──────────────────────────────────────────────────────────────
-  let _selectedRecipientId = null;
-  let _shareForPlanId      = null;
-
-  async function openShareSheet() {
-    _shareForPlanId      = _detailPlanId;
-    _selectedRecipientId = null;
-    $('shareMessageInput').value = '';
-    $('shareSendBtn').disabled = true;
-    $('recipientList').innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted)">Loading coaches…</div>';
-    $('shareSheet').classList.add('open');
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_share_recipients', user_id: USER_ID }),
-      });
-      const data = await res.json();
-      const recipients = data.recipients || [];
-      if (recipients.length === 0) {
-        $('recipientList').innerHTML = '<div style="padding:24px 16px;text-align:center;color:var(--muted);font-size:14px">No other coaches found in your club</div>';
-        return;
-      }
-      $('recipientList').innerHTML = recipients.map(r => {
-        const initials = (r.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-        return `<div class="recipient-row" id="rec-${esc(r.user_id)}" onclick="toggleRecipient('${esc(r.user_id)}')">
-          <div class="recipient-avatar">${esc(initials)}</div>
-          <div class="recipient-name">${esc(r.name)}</div>
-          <div class="recipient-check">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-        </div>`;
-      }).join('');
-    } catch {
-      $('recipientList').innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted)">Could not load coaches</div>';
-    }
-  }
-
-  function toggleRecipient(userId) {
-    if (_selectedRecipientId === userId) {
-      _selectedRecipientId = null;
-    } else {
-      if (_selectedRecipientId) {
-        const prev = $(`rec-${_selectedRecipientId}`);
-        if (prev) prev.classList.remove('selected');
-      }
-      _selectedRecipientId = userId;
-    }
-    const row = $(`rec-${userId}`);
-    if (row) row.classList.toggle('selected', _selectedRecipientId === userId);
-    $('shareSendBtn').disabled = !_selectedRecipientId;
-  }
-
-  function closeShareSheet() {
-    $('shareSheet').classList.remove('open');
-    _selectedRecipientId = null;
-    _shareForPlanId      = null;
-  }
-
-  async function sendShare() {
-    if (!_selectedRecipientId || !_shareForPlanId) return;
-    const btn = $('shareSendBtn');
-    btn.disabled  = true;
-    btn.textContent = 'Sending…';
-    try {
-      const planRes  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_plan', plan_id: _shareForPlanId, user_id: USER_ID }),
-      });
-      const planData = await planRes.json();
-      if (!planRes.ok || !planData.plan) { showToast('Could not load plan to share', 'error'); return; }
-
-      const shareRes = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({
-          action:      'share_plan',
-          user_id:     USER_ID,
-          to_user_id:  _selectedRecipientId,
-          plan_json:   planData.plan,
-          message:     $('shareMessageInput').value.trim() || null,
-        }),
-      });
-      const shareData = await shareRes.json();
-      if (!shareRes.ok) { showToast(shareData.error || 'Share failed', 'error'); return; }
-      closeShareSheet();
-      showToast('Plan shared ✓', 'success');
-    } catch {
-      showToast('Network error', 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Send';
-    }
-  }
-
-  // ── Received shares ──────────────────────────────────────────────────────────
-  let _sharesLoading = false;
-  async function loadReceivedShares() {
-    const list = $('sharedList');
-    if (_sharesLoading) return;
-    _sharesLoading = true;
-    list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Loading…</div></div>';
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_received_shares', user_id: USER_ID }),
-      });
-      const data = await res.json();
-      const shares = data.shares || [];
-      // Hide badge if none pending
-      const pending = shares.filter(s => s.status === 'pending');
-      const badge = $('sharedBadge');
-      if (pending.length > 0) { badge.textContent = pending.length; badge.style.display = ''; }
-      else badge.style.display = 'none';
-
-      if (shares.length === 0) {
-        list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No shared plans yet</div>When a coach shares a plan with you, it will appear here.</div>';
-        return;
-      }
-      list.innerHTML = shares.map(s => {
-        const date    = new Date(s.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-        const fromName = s.from_name || 'A coach';
-        const isNew   = s.status === 'pending';
-        const msgHtml = s.message ? `<div class="share-message">"${esc(s.message)}"</div>` : '';
-        const newBadge = isNew ? `<span class="share-new-badge">New</span>` : '';
-        return `<div class="plan-card" style="flex-direction:column;align-items:stretch;gap:10px">
-          <div style="display:flex;align-items:flex-start;gap:10px">
-            <div class="plan-card-body" style="flex:1">
-              <div class="share-from">From ${esc(fromName)}</div>
-              <div class="plan-card-title">${esc(s.session_title)}</div>
-              <div class="plan-card-meta">${esc(date)}</div>
-              ${msgHtml}
-            </div>
-            ${newBadge}
-          </div>
-          ${isNew ? `<div style="display:flex;gap:8px">
-            <button class="plan-load-btn" style="flex:1" onclick="viewReceivedShare(${s.share_id})">View</button>
-            <button class="plan-load-btn" style="flex:1;color:var(--accent)" onclick="acceptShare(${s.share_id})">Save to Library</button>
-            <button class="plan-load-btn" style="flex:1;color:var(--muted)" onclick="dismissShare(${s.share_id})">Dismiss</button>
-          </div>` : `<div style="display:flex;gap:8px">
-            <button class="plan-load-btn" style="flex:1" onclick="viewReceivedShare(${s.share_id})">View</button>
-          </div>`}
-        </div>`;
-      }).join('');
-    } catch {
-      list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection and try again.</div>';
-    } finally {
-      _sharesLoading = false;
-    }
-  }
-
-  async function viewReceivedShare(shareId) {
-    $('planDetailTitle').textContent = 'Loading…';
-    $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center"><div class="spinner"></div></div>';
-    $('planDetailShareBtn').style.display = 'none';
-    $('planDetailOverlay').classList.add('open');
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_shared_plan', share_id: shareId, user_id: USER_ID }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.plan) {
-        $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--muted)">Failed to load plan</div>';
-        return;
-      }
-      $('planDetailTitle').textContent = data.plan.session_title || 'Shared Plan';
-      $('planDetailContent').innerHTML = renderPlanReadOnly(data.plan);
-    } catch {
-      $('planDetailContent').innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--muted)">Network error</div>';
-    }
-  }
-
-  async function acceptShare(shareId) {
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'accept_share', share_id: shareId, user_id: USER_ID }),
-      });
-      const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Could not save plan', 'error'); return; }
-      showToast('Plan saved to your library ✓', 'success');
-      _sharesLoading = false;
-      loadReceivedShares();
-    } catch { showToast('Network error', 'error'); }
-  }
-
-  async function dismissShare(shareId) {
-    try {
-      const res  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'dismiss_share', share_id: shareId, user_id: USER_ID }),
-      });
-      if (!res.ok) { showToast('Could not dismiss', 'error'); return; }
-      _sharesLoading = false;
-      loadReceivedShares();
-    } catch { showToast('Network error', 'error'); }
-  }
-
-  // ── Read-only plan renderer (used in detail overlay) ─────────────────────────
-  function renderPlanReadOnly(p) {
-    const out = [];
-    function roSectionHdr(label, dur, type) {
-      return `<div class="section-hdr">
-        <div class="s-dot s-dot-${type}"></div>
-        <div class="s-label">${esc(label)}</div>
-        ${dur ? `<div class="s-dur">${dur} min</div>` : ''}
-      </div>`;
-    }
-    function roPhaseCard(phase, gameName, drillNum, gameImage) {
-      const nameBar = (gameName || drillNum)
-        ? `<div class="drill-name-bar">
-            ${drillNum ? `<div class="drill-num">${drillNum}</div>` : ''}
-            ${gameName ? `<div class="drill-name">${esc(gameName)}</div>` : ''}
-          </div>`
-        : '';
-      const imgTag = gameImage
-        ? `<img class="game-image" src="${esc(gameImage)}" alt="${esc(gameName || '')}" loading="lazy" onerror="this.style.display='none'">`
-        : '';
-      const setupHtml = phase.setup?.trim()
-        ? `<div class="cp-label">Setup</div><div class="card-desc">${esc(phase.setup.trim())}</div>` : '';
-      const descHtml = phase.description?.trim()
-        ? `<div class="cp-label">How to Play</div><div class="card-desc">${esc(phase.description.trim())}</div>` : '';
-      const pts = (phase.coaching_points || []);
-      const ptsHtml = pts.length
-        ? `<div class="cp-label">Coaching Points</div>` +
-          pts.map(pt => `<div class="cp-item"><span class="cp-dot">•</span><span>${esc(pt)}</span></div>`).join('')
-        : '';
-      const varHtml = phase.variation?.trim()
-        ? `<div class="cp-label">Variations</div><div class="card-desc">${esc(phase.variation.trim())}</div>` : '';
-      return `<div class="phase-card">${nameBar}${imgTag}<div class="card-body">${setupHtml}${descHtml}${ptsHtml}${varHtml}</div></div>`;
-    }
-    if (p.session_title) {
-      out.push(roSectionHdr('FOCUS', null, 'drill'));
-      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px"><div class="drill-name" style="font-size:15px">${esc(p.session_title)}</div></div></div>`);
-    }
-    if (p.session_objective) {
-      out.push(`<div class="objective-block">${esc(p.session_objective)}</div>`);
-    }
-    if (p.pre_session) {
-      out.push(roSectionHdr('PRE-SESSION', p.pre_session.duration_mins, 'warm'));
-      out.push(roPhaseCard(p.pre_session));
-    }
-    if (p.warm_up) {
-      out.push(roSectionHdr('WARM UP', p.warm_up.duration_mins, 'warm'));
-      out.push(roPhaseCard(p.warm_up));
-    }
-    if (p.station_setup?.trim()) {
-      out.push(roSectionHdr('STATION SETUP', null, 'drill'));
-      out.push(`<div class="station-setup-card">${esc(p.station_setup.trim())}</div>`);
-    }
-    (p.drills || []).forEach((d, i) => {
-      out.push(roSectionHdr(`DRILL ${i + 1}`, d.duration_mins, 'drill'));
-      out.push(roPhaseCard(d, d.game_name, i + 1, d.game_image));
-    });
-    if (p.cool_down) {
-      out.push(roSectionHdr('COOL DOWN', p.cool_down.duration_mins, 'cool'));
-      out.push(roPhaseCard(p.cool_down));
-    }
-    if (p.post_session) {
-      out.push(roSectionHdr('POST-SESSION', p.post_session.duration_mins, 'cool'));
-      out.push(roPhaseCard(p.post_session));
-    }
-    out.push('<div class="drill-gap"></div>');
-    return out.join('');
-  }
-
-  function hideRefusal() {
-    const n = $('refusalNotice');
-    if (n) n.style.display = 'none';
+  function closeApp() {
+    if (IS_WEBVIEW) { try { FlutterBridge.postMessage('close'); } catch(_) {} }
+    else history.back();
   }
 
   let _toastTimer;
   function showToast(msg, type = '', duration) {
-    if (duration === undefined) duration = (type === 'error') ? 5000 : 2500;
-    const t = $('toast');
-    t.innerHTML = '<div class="sp-toast-spinner"></div>' + msg;
+    if (duration === undefined) duration = type === 'error' ? 5000 : 2500;
+    const t = $('toast'), m = $('toastMsg');
+    if (m) m.textContent = msg;
     t.className = 'show' + (type ? ' ' + type : '') + (duration === 0 ? ' spinning' : '');
     clearTimeout(_toastTimer);
-    if (duration > 0) _toastTimer = setTimeout(() => { t.classList.remove('show'); }, duration);
+    if (duration > 0) _toastTimer = setTimeout(() => t.classList.remove('show'), duration);
   }
-  function clearToast() {
-    clearTimeout(_toastTimer);
-    $('toast').classList.remove('show');
-  }
+  function clearToast() { clearTimeout(_toastTimer); $('toast').classList.remove('show'); }
 
-  function adjustDur(delta) {
-    _dur = Math.max(15, Math.min(180, _dur + delta));
-    $('durVal').textContent = _dur;
-  }
+  function adjDur(d) { _dur = Math.max(15, Math.min(180, _dur + d)); $('durVal').textContent = _dur; }
 
-  function adjustPlayers(delta) {
-    _players = Math.max(1, Math.min(60, _players + delta));
-    $('playerVal').textContent = _players;
-  }
-
-  // ── Drag-to-reorder (touch + mouse) ─────────────────────────────────────────
+  // ── Drag-to-reorder ────────────────────────────────────────────────────────
   let _drag = null;
 
-  function _doDragMove(clientX, clientY) {
+  function _doDragMove(cx, cy) {
     const list = $('favList');
     if (!list) return;
     const others = [...list.querySelectorAll('.fav-item')].filter(el => el !== _drag.el);
-    let insertRef = null;
+    let ref = null;
     for (const item of others) {
       const r = item.getBoundingClientRect();
-      if (clientY < r.top + r.height / 2) { insertRef = item; break; }
+      if (cy < r.top + r.height / 2) { ref = item; break; }
     }
-    if (insertRef) list.insertBefore(_drag.el, insertRef);
+    if (ref) list.insertBefore(_drag.el, ref);
     else list.appendChild(_drag.el);
   }
 
@@ -1430,21 +731,14 @@
     _drag = null;
   }
 
-  function initDragHandle(handle) {
+  function initDrag(handle) {
     handle.addEventListener('touchstart', e => {
-      const item = handle.closest('.fav-item');
-      if (!item) return;
-      e.preventDefault();
-      _drag = { el: item };
-      item.classList.add('is-dragging');
+      const item = handle.closest('.fav-item'); if (!item) return;
+      e.preventDefault(); _drag = { el: item }; item.classList.add('is-dragging');
     }, { passive: false });
-
     handle.addEventListener('mousedown', e => {
-      const item = handle.closest('.fav-item');
-      if (!item) return;
-      e.preventDefault();
-      _drag = { el: item };
-      item.classList.add('is-dragging');
+      const item = handle.closest('.fav-item'); if (!item) return;
+      e.preventDefault(); _drag = { el: item }; item.classList.add('is-dragging');
     });
   }
 
@@ -1453,324 +747,125 @@
     e.preventDefault();
     _doDragMove(e.touches[0].clientX, e.touches[0].clientY);
   }, { passive: false });
-
   document.addEventListener('touchend', _endDrag);
   document.addEventListener('mousemove', e => { if (!_drag) return; _doDragMove(e.clientX, e.clientY); });
   document.addEventListener('mouseup', _endDrag);
 
-  // ── Favourites list rendering ───────────────────────────────────────────────
+  // ── Favourites list ────────────────────────────────────────────────────────
   function renderFavList(favs) {
     const list = $('favList');
     list.innerHTML = '';
-    if (!favs || favs.length === 0) {
-      list.innerHTML = '<div style="padding:20px 16px;font-size:14px;color:var(--muted);text-align:center">No favourites found</div>';
+    if (!favs || !favs.length) {
+      list.innerHTML = '<div style="padding:20px 14px;font-size:13px;color:var(--muted);text-align:center">No favourites found</div>';
       return;
     }
     favs.forEach(f => {
       const item = document.createElement('div');
       item.className = 'fav-item';
       item.dataset.gid = f.game_id;
-
       const imgHtml = f.game_image
-        ? `<img class="fav-thumb" src="${esc(f.game_image)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-          + `<div class="fav-thumb-placeholder" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`
-        : `<div class="fav-thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
-
+        ? `<img class="fav-thumb" src="${esc(f.game_image)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+           <div class="fav-thumb-ph" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`
+        : `<div class="fav-thumb-ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
       item.innerHTML = `
         <div class="drag-handle">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="2.2"/><circle cx="16" cy="5" r="2.2"/><circle cx="8" cy="12" r="2.2"/><circle cx="16" cy="12" r="2.2"/><circle cx="8" cy="19" r="2.2"/><circle cx="16" cy="19" r="2.2"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="2"/><circle cx="16" cy="5" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="8" cy="19" r="2"/><circle cx="16" cy="19" r="2"/></svg>
         </div>
-        <div class="fav-check-wrap">
-          <input type="checkbox" class="fav-check" checked>
-        </div>
+        <input type="checkbox" class="fav-check" checked>
         ${imgHtml}
         <div class="fav-name">${esc(f.game_name)}</div>
         <button class="heart-btn" title="Remove from favourites">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>`;
-
-      initDragHandle(item.querySelector('.drag-handle'));
+      initDrag(item.querySelector('.drag-handle'));
       item.querySelector('.fav-name').addEventListener('click', () => openGameSheet(f.game_id));
       item.querySelector('.heart-btn').addEventListener('click', () => unfavourite(f.game_id, item));
-
       list.appendChild(item);
     });
   }
 
-  // ── Get checked game_ids in DOM order ──────────────────────────────────────
   function checkedGameIds() {
     return [...$('favList').querySelectorAll('.fav-item')]
       .filter(el => el.querySelector('.fav-check')?.checked)
       .map(el => parseInt(el.dataset.gid));
   }
 
-  // ── Unfavourite ─────────────────────────────────────────────────────────────
   async function unfavourite(gameId, itemEl) {
     itemEl.style.opacity = '0.4';
     try {
       const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/toggle_user_game_link', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
-          'apikey': SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ p_game_id: gameId }),
       });
       if (res.ok) {
         itemEl.remove();
         _favs = _favs.filter(f => f.game_id !== gameId);
-        if ($('favList').children.length === 0) showEmpty();
-      } else {
-        itemEl.style.opacity = '';
-        showToast('Could not remove favourite — try again');
-      }
-    } catch {
-      itemEl.style.opacity = '';
-      showToast('Network error');
-    }
+        if (!$('favList').children.length) showEmpty();
+      } else { itemEl.style.opacity = ''; showToast('Could not remove — try again'); }
+    } catch { itemEl.style.opacity = ''; showToast('Network error'); }
   }
 
-  // ── Share Games PDF ─────────────────────────────────────────────────────────
-  async function shareGamesPdf() {
+  async function exportGamesPdf() {
     const game_ids = checkedGameIds();
-    if (game_ids.length === 0) { showToast('Select at least one game'); return; }
-
-    const btn = $('shareGamesBtn');
-    const origHtml = btn ? btn.innerHTML : '';
-    const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(255,255,255,0.2);border-top-color:#e4e9f0"></div>';
-    if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
-
+    if (!game_ids.length) { showToast('Select at least one game'); return; }
+    const btn = $('exportGamesBtn');
+    const orig = btn?.innerHTML;
+    const spin = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></div>';
+    if (btn) { btn.innerHTML = spin; btn.disabled = true; }
     try {
-      const res = await fetch(GAME_CARD_PDF_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ game_ids, user_id: USER_ID }),
-      });
+      const res = await fetch(GAME_CARD_PDF_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ game_ids, user_id: USER_ID }) });
       if (!res.ok) throw new Error('Server error');
       const { pdf, filename } = await res.json();
-      if (IS_WEBVIEW) {
-        FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
-      } else {
-        const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
-        const blob  = new Blob([bytes], { type: 'application/pdf' });
-        const url   = URL.createObjectURL(blob);
-        const a     = document.createElement('a');
-        a.href = url; a.download = filename; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      }
-    } catch {
-      showToast('Could not generate PDF — please try again');
-    }
-    if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+      _deliverPdf(pdf, filename);
+    } catch { showToast('Could not generate PDF — please try again'); }
+    if (btn) { btn.innerHTML = orig; btn.disabled = false; }
   }
 
-  // ── Game detail sheet ────────────────────────────────────────────────────────
-  async function openGameSheet(gameId) {
-    _currentSheetGameId = gameId;
-    const sheet = $('gameSheet');
-    $('sheetBody').innerHTML = '<div class="state-screen"><div class="spinner"></div></div>';
-    updateSheetHeart();
-    sheet.classList.add('open');
-
-    try {
-      const res = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_game', user_id: USER_ID, game_id: gameId }),
-      });
-      const data = await res.json();
-      const g = data.game;
-      if (!g) { $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Game not found</div></div>'; return; }
-
-      const imgSrc = g.game_details_image || g.game_image;
-      const imgHtml = imgSrc
-        ? `<img class="sheet-game-img" src="${esc(imgSrc)}" alt="" loading="lazy" onerror="this.style.display='none'">`
-        : '';
-
-      function section(label, text) {
-        if (!text?.trim()) return '';
-        return `<div class="sheet-section">
-          <div class="sheet-section-label">${esc(label)}</div>
-          <div class="sheet-section-text">${esc(text.trim())}</div>
-        </div>`;
-      }
-
-      const coachNoteVal = data.coach_note || '';
-
-      $('sheetBody').innerHTML = `
-        <div class="sheet-game-title">${esc(g.game_name)}</div>
-        <div class="sheet-actions">
-          <button class="btn btn-outline btn-full" id="gameCardPdfBtn" onclick="exportGameCardPdf(${Number(gameId)})">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            Export Game Card
-          </button>
-        </div>
-        ${section('Setup', g.game_setup)}
-        ${imgHtml}
-        ${section('How to Play', g.game_how_to_play)}
-        ${section('Variations', g.game_variations)}
-        ${section('Teaching Points', g.game_teaching_points)}
-        <div class="coach-notes-section">
-          <div class="coach-notes-label">Coach Notes</div>
-          <textarea id="coachNotesInput" class="coach-notes-input" placeholder="Add your coaching notes for this game…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(coachNoteVal)}</textarea>
-          <div style="margin-top:8px">
-            <button class="btn btn-outline" id="saveNoteBtn" onclick="saveCoachNote()">Save Note</button>
-          </div>
-        </div>
-        <div style="height:24px"></div>`;
-
-      const ta = $('coachNotesInput');
-      if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
-    } catch {
-      $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Could not load game details</div></div>';
-    }
-  }
-
-  function updateSheetHeart() {
-    const btn = $('sheetHeartBtn');
-    const svg = $('sheetHeartSvg');
-    if (!btn || !_currentSheetGameId) return;
-    const isFav = _favs.some(f => f.game_id === _currentSheetGameId);
-    btn.classList.toggle('is-fav', isFav);
-    if (svg) svg.setAttribute('fill', isFav ? 'currentColor' : 'none');
-  }
-
-  async function toggleFavFromSheet() {
-    if (!_currentSheetGameId) return;
-    const isFav = _favs.some(f => f.game_id === _currentSheetGameId);
-    try {
-      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/toggle_user_game_link', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
-          'apikey': SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ p_game_id: _currentSheetGameId }),
-      });
-      if (res.ok) {
-        if (isFav) {
-          _favs = _favs.filter(f => f.game_id !== _currentSheetGameId);
-          const item = $('favList')?.querySelector(`[data-gid="${_currentSheetGameId}"]`);
-          if (item) item.remove();
-          showToast('Removed from favourites');
-          if (!$('favList')?.children.length) { closeSheet(); showEmpty(); return; }
-        } else {
-          showToast('Added to favourites');
-        }
-        updateSheetHeart();
-      } else {
-        showToast('Could not update favourites');
-      }
-    } catch {
-      showToast('Network error');
-    }
-  }
-
-  async function saveCoachNote() {
-    const input = $('coachNotesInput');
-    if (!input || !_currentSheetGameId) return;
-    const note = input.value.trim();
-    const btn = $('saveNoteBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-    try {
-      const res = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'save_coach_note', user_id: USER_ID, game_id: _currentSheetGameId, note }),
-      });
-      const d = await res.json();
-      if (d.ok) showToast('Note saved ✓');
-      else showToast('Could not save note');
-    } catch {
-      showToast('Network error');
-    }
-    if (btn) { btn.disabled = false; btn.textContent = 'Save Note'; }
-  }
-
-  async function exportGameCardPdf(gameId) {
-    const btn = $('gameCardPdfBtn');
-    const origHtml = btn ? btn.innerHTML : '';
-    const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
-    if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
-    try {
-      const res = await fetch(GAME_CARD_PDF_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ game_id: gameId, user_id: USER_ID }),
-      });
-      if (!res.ok) throw new Error('Server error');
-      const { pdf, filename } = await res.json();
-      if (IS_WEBVIEW) {
-        FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
-      } else {
-        const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
-        const blob  = new Blob([bytes], { type: 'application/pdf' });
-        const url   = URL.createObjectURL(blob);
-        const a     = document.createElement('a');
-        a.href = url; a.download = filename; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      }
-    } catch {
-      showToast('Could not generate PDF — please try again');
-    }
-    if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
-  }
-
-  function closeSheet() {
-    $('gameSheet').classList.remove('open');
-    _currentSheetGameId = null;
-  }
-
-  // ── Setup screen ────────────────────────────────────────────────────────────
-  function showSetup() {
-    $('actionBar').style.display = 'none';
-    showTabBar();
-    _activeTab = 'new';
-    $('tabNew').classList.add('active');
-    $('tabMy').classList.remove('active');
-    showScreen('setupScreen');
-  }
-
-  // ── Generate / Revise ───────────────────────────────────────────────────────
-  async function generatePlan(feedback = '') {
-    const isRevision = !!(feedback && _currentPlan);
-
-    const game_ids = checkedGameIds();
-    if (!isRevision && game_ids.length === 0) { showToast('Select at least one game'); return; }
-
-    _rotateStations = $('rotateToggle')?.checked ?? true;
-
-    if (isRevision) {
-      // Stay on plan screen — toast from stop() already showing
+  function _deliverPdf(b64, filename) {
+    if (IS_WEBVIEW) {
+      FlutterBridge.postMessage('sharePdf:' + filename + ':' + b64);
     } else {
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const url   = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const a     = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+  }
+
+  // ── Plan generation ────────────────────────────────────────────────────────
+  async function generatePlan(feedback) {
+    const isRevision = !!(feedback && _currentPlan);
+    const game_ids = checkedGameIds();
+    if (!isRevision && !game_ids.length) { showToast('Select at least one game'); return; }
+
+    if (!isRevision) {
       clearToast();
-      $('actionBar').style.display = 'none';
+      $('planActionBar').style.display = 'none';
       showLoading('Generating your session plan…');
     }
 
     try {
       const body = isRevision
         ? { action: 'revise_plan', user_id: USER_ID, feedback, existing_plan: _currentPlan }
-        : { action: 'generate', user_id: USER_ID, duration_mins: _dur, player_count: _players, game_ids, rotate_stations: _rotateStations };
+        : { action: 'generate', user_id: USER_ID, duration_mins: _dur, game_ids };
       const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
       const data = await res.json();
 
       if (data.error === 'no_favourites') { showEmpty(); return; }
-
       if (data.refusal) {
         showScreen('planScreen');
-        $('actionBar').style.display = 'flex';
-        const notice = $('refusalNotice');
-        if (notice) { notice.textContent = data.refusal; notice.style.display = 'block'; }
-        clearToast();
-        return;
+        const n = $('refusalNotice');
+        if (n) { n.textContent = data.refusal; n.style.display = 'block'; }
+        clearToast(); return;
       }
-
       if (!res.ok || !data.plan) {
-        if (isRevision) showToast(data.message || data.error || 'Update failed. Please try again.', 'error');
+        if (isRevision) showToast(data.message || data.error || 'Update failed.', 'error');
         else showError(data.message || data.error || 'Generation failed. Please try again.');
         return;
       }
 
-      _branding      = data.branding;
       _currentPlanId = data.plan_id ?? null;
       renderPlan(data.plan);
       if (isRevision) { clearToast(); showToast('Plan updated ✓', 'success'); }
@@ -1780,29 +875,131 @@
     }
   }
 
-  let _isRegenerating = false;
-  async function regenerateWithFeedback() {
-    if (_isRegenerating) return;
-    _isRegenerating = true;
+  let _isRegen = false;
+  async function regenWithFeedback() {
+    if (_isRegen) return;
+    _isRegen = true;
     const feedback = _spDescMode === 'voice'
       ? _spTranscript.trim()
       : ($('feedbackText')?.value || '').trim();
     if (!feedback) {
-      showToast(_spDescMode === 'voice' ? 'Nothing recorded — hold the mic and speak' : 'Add some feedback first', 'error');
-      _isRegenerating = false;
-      return;
+      showToast(_spDescMode === 'voice' ? 'Nothing recorded — tap the mic and speak' : 'Add some feedback first', 'error');
+      _isRegen = false; return;
     }
-    const btn = $('regenFeedbackBtn');
+    const btn = $('regenBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Revising…'; }
-    try {
-      await generatePlan(feedback);
-    } finally {
-      _isRegenerating = false;
+    try { await generatePlan(feedback); }
+    finally {
+      _isRegen = false;
       if (btn) { btn.disabled = false; btn.textContent = 'Regenerate'; }
     }
     _spTranscript = '';
-    const transcriptEl = $('spFbTranscript');
-    if (transcriptEl) transcriptEl.textContent = '';
+    const el = $('spTranscript');
+    if (el) el.textContent = '';
+  }
+
+  // ── Plan rendering ─────────────────────────────────────────────────────────
+  function renderPlan(plan) {
+    _currentPlan = plan;
+    const out = [];
+
+    out.push(`<button class="back-chip" onclick="goSetup()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to Setup
+    </button>`);
+
+    out.push(`<div class="edit-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Tap any text to edit
+    </div>`);
+
+    out.push(`<div class="stat-grid">
+      <div class="stat-card"><div class="stat-value">${plan.player_count ?? '—'}</div><div class="stat-label">Players</div></div>
+      <div class="stat-card"><div class="stat-value">${plan.coach_count  ?? '—'}</div><div class="stat-label">Coaches</div></div>
+      <div class="stat-card"><div class="stat-value">${plan.total_duration_mins ?? _dur}</div><div class="stat-label">Mins</div></div>
+    </div>`);
+
+    if (plan.session_title) {
+      out.push(sHdr('FOCUS', null, 'drill'));
+      out.push(`<div class="phase-card"><div class="card-body" style="padding:10px 13px">
+        <div class="drill-name" style="font-size:14px" contenteditable="true" data-path="session_title">${esc(plan.session_title)}</div>
+      </div></div>`);
+    }
+    if (plan.session_objective) out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
+    if (plan.pre_session) { out.push(sHdr('PRE-SESSION', plan.pre_session.duration_mins, 'warm')); out.push(phaseCard(plan.pre_session, null, null, null, 'pre_session')); }
+    if (plan.warm_up)     { out.push(sHdr('WARM UP',    plan.warm_up.duration_mins, 'warm'));    out.push(phaseCard(plan.warm_up, null, null, null, 'warm_up')); }
+    if (plan.station_setup?.trim()) {
+      out.push(sHdr('STATION SETUP', null, 'drill'));
+      out.push(`<div class="station-setup-card">${esc(plan.station_setup.trim())}</div>`);
+    }
+    (plan.drills || []).forEach((d, i) => {
+      out.push(sHdr(`DRILL ${i + 1}`, d.duration_mins, 'drill'));
+      out.push(phaseCard(d, d.game_name, i + 1, d.game_image, `drills.${i}`));
+    });
+    if (plan.cool_down)    { out.push(sHdr('COOL DOWN',    plan.cool_down.duration_mins, 'cool'));    out.push(phaseCard(plan.cool_down, null, null, null, 'cool_down')); }
+    if (plan.post_session) { out.push(sHdr('POST-SESSION', plan.post_session.duration_mins, 'cool')); out.push(phaseCard(plan.post_session, null, null, null, 'post_session')); }
+
+    out.push(`<div class="feedback-bar">
+      <div class="feedback-hdr">Refine this plan</div>
+      <div id="refusalNotice" class="refusal-notice"></div>
+      <div class="fb-mode-toggle">
+        <button class="fb-mode-btn active" id="spFbModeVoice" onclick="setFbMode('voice')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg> Voice
+        </button>
+        <button class="fb-mode-btn" id="spFbModeText" onclick="setFbMode('text')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Type
+        </button>
+      </div>
+      <div id="spFbVoicePanel">
+        <p class="fb-voice-instruction" id="spFbInstruction">Hold to describe what you'd like changed — the AI will revise the plan based on your notes.</p>
+        <div id="spFbVoiceWave" class="fb-voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="fb-mic-wrap">
+          <button id="spFbMicBtn" class="fb-mic-btn" aria-label="Tap to record feedback">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+          </button>
+        </div>
+        <div id="spTranscript" class="fb-transcript"></div>
+      </div>
+      <div id="spFbTextPanel" style="display:none">
+        <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+        <div style="margin-top:10px">
+          <button class="btn btn-primary btn-full" id="regenBtn" onclick="regenWithFeedback()">Regenerate</button>
+        </div>
+      </div>
+    </div><div style="height:10px"></div>`);
+
+    $('planContent').innerHTML = out.join('');
+    $('headerTitle').textContent = plan.session_title || 'Session Plan';
+    $('myPlansBtn').style.display = 'flex';
+    showScreen('planScreen');
+    requestAnimationFrame(initMicBtn);
+  }
+
+  function sHdr(label, dur, type) {
+    return `<div class="section-hdr">
+      <div class="s-dot s-dot-${type}"></div>
+      <div class="s-label">${esc(label)}</div>
+      ${dur ? `<div class="s-dur">${dur} min</div>` : ''}
+    </div>`;
+  }
+
+  function phaseCard(phase, gameName, drillNum, gameImage, pp) {
+    const nameBar = (gameName || drillNum)
+      ? `<div class="drill-name-bar">${drillNum ? `<div class="drill-num">${drillNum}</div>` : ''}${gameName ? `<div class="drill-name">${esc(gameName)}</div>` : ''}</div>`
+      : '';
+    const imgTag = gameImage
+      ? `<img class="game-image" src="${esc(gameImage)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : '';
+    const ed = (attr) => pp ? ` contenteditable="true" data-path="${pp}.${attr}"` : '';
+    const setup   = phase.setup?.trim()       ? `<div class="cp-label">Setup</div><div class="card-desc"${ed('setup')}>${esc(phase.setup.trim())}</div>` : '';
+    const desc    = phase.description?.trim() ? `<div class="cp-label">How to Play</div><div class="card-desc"${ed('description')}>${esc(phase.description.trim())}</div>` : '';
+    const pts     = (phase.coaching_points || []);
+    const ptsHtml = pts.length
+      ? `<div class="cp-label">Coaching Points</div>` +
+        pts.map((pt, i) => `<div class="cp-item"><span class="cp-dot">•</span><span${pp ? ` contenteditable="true" data-path="${pp}.coaching_points.${i}"` : ''}>${esc(pt)}</span></div>`).join('')
+      : '';
+    const varHtml = phase.variation?.trim()   ? `<div class="cp-label">Variations</div><div class="card-desc"${ed('variation')}>${esc(phase.variation.trim())}</div>` : '';
+    return `<div class="phase-card">${nameBar}${imgTag}<div class="card-body">${setup}${desc}${ptsHtml}${varHtml}</div></div>`;
   }
 
   function collectEdits() {
@@ -1822,350 +1019,461 @@
     return plan;
   }
 
-  // ── Plan rendering ───────────────────────────────────────────────────────────
-  function renderPlan(plan) {
-    _currentPlan = plan;
-    const out = [];
-
-    out.push(`<div class="setup-chip-row">
-      <button class="setup-chip" onclick="showSetup()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        Back to Setup
-      </button>
-    </div>`);
-
-    out.push(`<div class="edit-hint">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      Tap any text below to edit
-    </div>`);
-
-    out.push(`<div class="stats-section">
-      <div class="stat-grid">
-        <div class="stat-card"><div class="stat-value">${plan.player_count ?? _players}</div><div class="stat-label">Players</div></div>
-        <div class="stat-card"><div class="stat-value">${plan.coach_count ?? 0}</div><div class="stat-label">Coaches</div></div>
-        <div class="stat-card"><div class="stat-value">${plan.total_duration_mins ?? _dur}</div><div class="stat-label">Minutes</div></div>
-      </div>
-    </div>`);
-
-    if (plan.session_title) {
-      out.push(sectionHdr('FOCUS', null, 'drill'));
-      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px">
-        <div class="drill-name" style="font-size:15px" contenteditable="true" data-path="session_title">${esc(plan.session_title)}</div>
-      </div></div>`);
-    }
-
-    if (plan.session_objective) {
-      out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
-    }
-
-    if (plan.pre_session) {
-      out.push(sectionHdr('PRE-SESSION', plan.pre_session.duration_mins, 'warm'));
-      out.push(phaseCard(plan.pre_session, null, null, null, 'pre_session'));
-    }
-
-    if (plan.warm_up) {
-      out.push(sectionHdr('WARM UP', plan.warm_up.duration_mins, 'warm'));
-      out.push(phaseCard(plan.warm_up, null, null, null, 'warm_up'));
-    }
-
-    if (plan.station_setup?.trim()) {
-      out.push(sectionHdr('STATION SETUP', null, 'drill'));
-      out.push(`<div class="station-setup-card">${esc(plan.station_setup.trim())}</div>`);
-    }
-
-    (plan.drills || []).forEach((d, i) => {
-      out.push(sectionHdr(`DRILL ${i + 1}`, d.duration_mins, 'drill'));
-      out.push(phaseCard(d, d.game_name, i + 1, d.game_image, `drills.${i}`));
-    });
-
-    if (plan.cool_down) {
-      out.push(sectionHdr('COOL DOWN', plan.cool_down.duration_mins, 'cool'));
-      out.push(phaseCard(plan.cool_down, null, null, null, 'cool_down'));
-    }
-
-    if (plan.post_session) {
-      out.push(sectionHdr('POST-SESSION', plan.post_session.duration_mins, 'cool'));
-      out.push(phaseCard(plan.post_session, null, null, null, 'post_session'));
-    }
-
-    out.push(`<div class="feedback-bar">
-      <div class="feedback-hdr">Refine this plan</div>
-      <div id="refusalNotice" class="refusal-notice"></div>
-      <div class="fb-mode-toggle">
-        <button class="fb-mode-btn active" id="spFbModeVoice" onclick="setSpFbMode('voice')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          Voice
-        </button>
-        <button class="fb-mode-btn" id="spFbModeText" onclick="setSpFbMode('text')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Type
-        </button>
-      </div>
-      <div id="spFbVoicePanel">
-        <p class="fb-voice-instruction" id="spFbInstruction">Hold to describe what you'd like changed — the AI will revise the plan based on your notes.</p>
-        <div id="spFbVoiceWave" class="fb-voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-        <div class="fb-mic-wrap">
-          <button id="spFbMicBtn" class="fb-mic-btn" aria-label="Tap to record feedback">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          </button>
-        </div>
-        <div id="spFbTranscript" class="fb-transcript"></div>
-      </div>
-      <div id="spFbTextPanel" style="display:none">
-        <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';hideRefusal()"></textarea>
-        <div class="feedback-actions" style="margin-top:10px">
-          <button class="btn btn-primary" id="regenFeedbackBtn" onclick="regenerateWithFeedback()">Regenerate</button>
-        </div>
-      </div>
-    </div>`);
-
-    out.push('<div class="drill-gap"></div>');
-    $('planContent').innerHTML = out.join('');
-    showTabBar();
-    showScreen('planScreen');
-    $('actionBar').style.display = 'flex';
-    requestAnimationFrame(_initSpMicButton);
-  }
-
-  function sectionHdr(label, dur, type) {
-    return `<div class="section-hdr">
-      <div class="s-dot s-dot-${type}"></div>
-      <div class="s-label">${esc(label)}</div>
-      ${dur ? `<div class="s-dur">${dur} min</div>` : ''}
-    </div>`;
-  }
-
-  function phaseCard(phase, gameName, drillNum, gameImage, pathPrefix) {
-    const nameBar = (gameName || drillNum)
-      ? `<div class="drill-name-bar">
-          ${drillNum ? `<div class="drill-num">${drillNum}</div>` : ''}
-          ${gameName ? `<div class="drill-name">${esc(gameName)}</div>` : ''}
-        </div>`
-      : '';
-
-    const imgTag = gameImage
-      ? `<img class="game-image" src="${esc(gameImage)}" alt="${esc(gameName || '')}" loading="lazy" onerror="this.style.display='none'">`
-      : '';
-
-    const p = pathPrefix;
-    const setupHtml = phase.setup?.trim()
-      ? `<div class="cp-label">Setup</div>
-         <div class="card-desc"${p ? ` contenteditable="true" data-path="${p}.setup"` : ''}>${esc(phase.setup.trim())}</div>`
-      : '';
-    const descHtml = phase.description?.trim()
-      ? `<div class="cp-label">How to Play</div>
-         <div class="card-desc"${p ? ` contenteditable="true" data-path="${p}.description"` : ''}>${esc(phase.description.trim())}</div>`
-      : '';
-    const pts = (phase.coaching_points || []);
-    const ptsHtml = pts.length
-      ? `<div class="cp-label">Coaching Points</div>` +
-        pts.map((pt, idx) =>
-          `<div class="cp-item"><span class="cp-dot">•</span><span${p ? ` contenteditable="true" data-path="${p}.coaching_points.${idx}"` : ''}>${esc(pt)}</span></div>`
-        ).join('')
-      : '';
-    const varHtml = phase.variation?.trim()
-      ? `<div class="cp-label">Variations</div>
-         <div class="card-desc"${p ? ` contenteditable="true" data-path="${p}.variation"` : ''}>${esc(phase.variation.trim())}</div>`
-      : '';
-
-    return `<div class="phase-card">
-      ${nameBar}${imgTag}
-      <div class="card-body">${setupHtml}${descHtml}${ptsHtml}${varHtml}</div>
-    </div>`;
-  }
-
-  // ── Export Plan PDF ─────────────────────────────────────────────────────────
-  async function exportPlan() {
-    if (!_currentPlan) { showToast('No plan to export'); return; }
-    const btn = $('exportBtn');
-    const origHtml = btn ? btn.innerHTML : '';
-    const spinner = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
-    if (btn) { btn.innerHTML = spinner; btn.disabled = true; }
-
-    const planToExport = collectEdits() || _currentPlan;
-
-    try {
-      const res = await fetch(PDF_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({
-          plan_json: planToExport,
-          user_id:   USER_ID,
-          format:    'mobile',
-        }),
-      });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Server error'); }
-      const { pdf, filename } = await res.json();
-      if (IS_WEBVIEW) {
-        FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
-      } else {
-        const bytes = Uint8Array.from(atob(pdf), c => c.charCodeAt(0));
-        const blob  = new Blob([bytes], { type: 'application/pdf' });
-        const url   = URL.createObjectURL(blob);
-        const a     = document.createElement('a');
-        a.href = url; a.download = filename; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      }
-    } catch (e) {
-      showToast('Could not generate PDF — please try again');
-    } finally {
-      if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
-    }
-  }
-
-  // ── Boot ─────────────────────────────────────────────────────────────────────
-  async function boot() {
-    if (!USER_ID) { showError('Missing user information.'); return; }
-    showLoading('Loading…');
+  // ── Share with club ────────────────────────────────────────────────────────
+  async function shareWithClub() {
+    if (!_currentPlanId) { showToast('Plan not saved yet — try again', 'error'); return; }
+    const btn = $('shareClubBtn');
+    if (btn) { btn.disabled = true; }
+    showToast('Sharing…', '', 0);
     try {
       const res  = await fetch(EDGE_FN, {
         method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get', user_id: USER_ID }),
+        body: JSON.stringify({ action: 'share_plan_with_club', user_id: USER_ID, plan_id: _currentPlanId }),
       });
       const data = await res.json();
-      if (!res.ok) { showError(data.error || 'Failed to load.'); return; }
-
-      _branding  = data.branding;
-      _favs      = data.favourites || [];
-      if (_favs.length === 0) { showEmpty(); return; }
-
-      $('durVal').textContent    = _dur;
-      $('playerVal').textContent = _players;
-      renderFavList(_favs);
-      showSetup();
-    } catch { showError('Network error. Please check your connection and try again.'); }
+      if (!res.ok) { showToast(data.error || 'Share failed', 'error'); return; }
+      clearToast();
+      if (data.count === 0) showToast('No admin coaches found in your club', 'error');
+      else showToast(`Shared with ${data.count} coach${data.count === 1 ? '' : 'es'} ✓`, 'success');
+    } catch { showToast('Network error', 'error'); }
+    finally { if (btn) btn.disabled = false; }
   }
 
-  async function showSetupFallback() { showEmpty(); }
+  // ── Export plan PDF ────────────────────────────────────────────────────────
+  async function exportPlan() {
+    if (!_currentPlan) { showToast('No plan to export'); return; }
+    const btn = $('exportPlanBtn');
+    const orig = btn?.innerHTML;
+    const spin = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
+    if (btn) { btn.innerHTML = spin; btn.disabled = true; }
+    try {
+      const res = await fetch(PDF_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ plan_json: collectEdits() || _currentPlan, user_id: USER_ID, format: 'mobile' }),
+      });
+      if (!res.ok) throw new Error('Server error');
+      const { pdf, filename } = await res.json();
+      _deliverPdf(pdf, filename);
+    } catch { showToast('Could not generate PDF — please try again'); }
+    if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+  }
 
-  boot();
+  // ── My Plans ───────────────────────────────────────────────────────────────
+  let _subTab = 'mine', _myPlansLoading = false, _sharedLoading = false;
 
-  // ── Session plan feedback voice/text ────────────────────────────────────────
-  let _spIsRecording       = false;
-  let _spTranscript        = '';
-  let _spDescMode          = 'voice';
-  let _spAutoRevise        = false;
-  let _spAutoReviseTimeout = null;
-  let _spWebRecognition    = null;
+  function subTab(tab) {
+    _subTab = tab;
+    $('subMine').classList.toggle('active', tab === 'mine');
+    $('subShared').classList.toggle('active', tab === 'shared');
+    $('minePlansPanel').style.display   = tab === 'mine'   ? '' : 'none';
+    $('sharedPanel').style.display      = tab === 'shared' ? '' : 'none';
+    if (tab === 'mine')   loadMyPlans();
+    if (tab === 'shared') loadSharedPlans();
+  }
 
-  function setSpFbMode(mode) {
+  async function loadMyPlans() {
+    const list = $('plansList');
+    if (_myPlansLoading) return;
+    _myPlansLoading = true;
+    list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Loading…</div></div>';
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_user_plans', user_id: USER_ID }) });
+      const data = await res.json();
+      const plans = data.plans || [];
+      if (!plans.length) {
+        list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No saved plans yet</div>Build your first plan from the Favourites tab.</div>';
+      } else {
+        list.innerHTML = plans.map(p => {
+          const date  = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+          const btns  = EVENT_ID
+            ? `<button class="plan-btn accent" onclick="attachPlan(${p.plan_id})">Attach to Event</button>`
+            : `<button class="plan-btn" onclick="loadPlanView(${p.plan_id})">Load</button>`;
+          return `<div class="plan-card">
+            <div class="plan-card-title">${esc(p.session_title)}</div>
+            <div class="plan-card-meta">${esc(date)}</div>
+            <div class="plan-card-actions">${btns}</div>
+          </div>`;
+        }).join('');
+      }
+    } catch {
+      list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection.</div>';
+    } finally { _myPlansLoading = false; }
+  }
+
+  async function loadSharedPlans() {
+    const list = $('sharedList');
+    if (_sharedLoading) return;
+    _sharedLoading = true;
+    list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Loading…</div></div>';
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_received_shares', user_id: USER_ID }) });
+      const data = await res.json();
+      const shares = data.shares || [];
+      const pending = shares.filter(s => s.status === 'pending');
+      const badge = $('sharedBadge');
+      if (pending.length) { badge.textContent = pending.length; badge.style.display = ''; }
+      else badge.style.display = 'none';
+
+      if (!shares.length) {
+        list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No shared plans yet</div>When a coach shares a plan with you, it will appear here.</div>';
+      } else {
+        list.innerHTML = shares.map(s => {
+          const date  = new Date(s.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+          const isNew = s.status === 'pending';
+          const msg   = s.message ? `<div class="plan-card-msg">"${esc(s.message)}"</div>` : '';
+          const newBadge = isNew ? `<span class="new-badge">New</span>` : '';
+          let btns = `<button class="plan-btn" onclick="viewShare(${s.share_id})">View</button>`;
+          if (EVENT_ID) btns += `<button class="plan-btn accent" onclick="attachShare(${s.share_id})">Attach to Event</button>`;
+          else if (isNew) {
+            btns += `<button class="plan-btn accent" onclick="acceptShare(${s.share_id})">Save</button>`;
+            btns += `<button class="plan-btn muted"  onclick="dismissShare(${s.share_id})">Dismiss</button>`;
+          }
+          return `<div class="plan-card">
+            <div class="plan-card-from">From ${esc(s.from_name)}</div>
+            <div class="plan-card-title">${esc(s.session_title)}${newBadge}</div>
+            <div class="plan-card-meta">${esc(date)}</div>
+            ${msg}
+            <div class="plan-card-actions">${btns}</div>
+          </div>`;
+        }).join('');
+      }
+    } catch {
+      list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection.</div>';
+    } finally { _sharedLoading = false; }
+  }
+
+  async function loadSharedBadge() {
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_received_shares', user_id: USER_ID }) });
+      const data = await res.json();
+      const n = (data.shares || []).filter(s => s.status === 'pending').length;
+      const b = $('sharedBadge');
+      if (n > 0) { b.textContent = n; b.style.display = ''; } else b.style.display = 'none';
+    } catch {}
+  }
+
+  async function loadPlanView(planId) {
+    showLoading('Loading plan…');
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_plan', plan_id: planId, user_id: USER_ID }) });
+      const data = await res.json();
+      if (!res.ok || !data.plan) { showError(data.error || 'Failed to load plan.'); return; }
+      _currentPlanId = data.plan_id;
+      renderPlan(data.plan);
+    } catch { showError('Network error. Please try again.'); }
+  }
+
+  async function viewShare(shareId) {
+    showLoading('Loading…');
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_shared_plan', share_id: shareId, user_id: USER_ID }) });
+      const data = await res.json();
+      if (!res.ok || !data.plan) { showError(data.error || 'Failed to load.'); return; }
+      _currentPlanId = null; // shared plan, not owned — can't share-with-club from here
+      renderPlan(data.plan);
+      $('shareClubBtn').style.display = 'none'; // hide share btn for received plans
+    } catch { showError('Network error.'); }
+  }
+
+  async function acceptShare(shareId) {
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'accept_share', share_id: shareId, user_id: USER_ID }) });
+      if (!res.ok) { showToast('Could not save plan', 'error'); return; }
+      showToast('Saved to your plans ✓', 'success');
+      _sharedLoading = false;
+      loadSharedPlans();
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  async function dismissShare(shareId) {
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'dismiss_share', share_id: shareId, user_id: USER_ID }) });
+      if (!res.ok) { showToast('Could not dismiss', 'error'); return; }
+      _sharedLoading = false;
+      loadSharedPlans();
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  // ── Attach to event ────────────────────────────────────────────────────────
+  async function attachPlan(planId) {
+    if (!EVENT_ID) { showToast('No event context', 'error'); return; }
+    showToast('Attaching…', '', 0);
+    try {
+      const planRes  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_plan', plan_id: planId, user_id: USER_ID }) });
+      const planData = await planRes.json();
+      if (!planRes.ok || !planData.plan) { showToast('Could not load plan', 'error'); return; }
+      await _doAttach(planData.plan);
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  async function attachShare(shareId) {
+    if (!EVENT_ID) { showToast('No event context', 'error'); return; }
+    showToast('Attaching…', '', 0);
+    try {
+      const planRes  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_shared_plan', share_id: shareId, user_id: USER_ID }) });
+      const planData = await planRes.json();
+      if (!planRes.ok || !planData.plan) { showToast('Could not load plan', 'error'); return; }
+      await _doAttach(planData.plan);
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  async function _doAttach(planJson) {
+    const res  = await fetch(EDGE_FN, {
+      method: 'POST', headers: HEADERS,
+      body: JSON.stringify({ action: 'attach_plan', user_id: USER_ID, event_id: EVENT_ID, plan_json: planJson }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Attach failed', 'error'); return; }
+    clearToast();
+    showToast('Plan attached to event ✓', 'success');
+    setTimeout(() => {
+      if (IS_WEBVIEW) { try { FlutterBridge.postMessage('planAttached:' + EVENT_ID); } catch(_) {} }
+      closeApp();
+    }, 1200);
+  }
+
+  // ── Game detail sheet ──────────────────────────────────────────────────────
+  async function openGameSheet(gameId) {
+    _currentSheetGameId = gameId;
+    $('sheetBody').innerHTML = '<div class="state-screen"><div class="spinner"></div></div>';
+    updateSheetHeart();
+    $('gameSheet').classList.add('open');
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_game', user_id: USER_ID, game_id: gameId }) });
+      const data = await res.json();
+      const g = data.game;
+      if (!g) { $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Game not found</div></div>'; return; }
+      const imgSrc = g.game_details_image || g.game_image;
+      const imgHtml = imgSrc ? `<img class="sheet-game-img" src="${esc(imgSrc)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
+      function sec(label, text) {
+        if (!text?.trim()) return '';
+        return `<div class="sheet-section"><div class="sheet-section-label">${esc(label)}</div><div class="sheet-section-text">${esc(text.trim())}</div></div>`;
+      }
+      $('sheetBody').innerHTML = `
+        <div class="sheet-game-title">${esc(g.game_name)}</div>
+        <div class="sheet-actions">
+          <button class="btn btn-outline btn-full" id="gcPdfBtn" onclick="exportGameCardPdf(${Number(gameId)})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Export Game Card
+          </button>
+        </div>
+        ${sec('Setup', g.game_setup)}
+        ${imgHtml}
+        ${sec('How to Play', g.game_how_to_play)}
+        ${sec('Variations', g.game_variations)}
+        ${sec('Teaching Points', g.game_teaching_points)}
+        <div class="coach-notes-section">
+          <div class="coach-notes-label">Coach Notes</div>
+          <textarea id="coachNotesInput" class="coach-notes-input" placeholder="Add your coaching notes for this game…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(data.coach_note || '')}</textarea>
+          <div style="margin-top:8px"><button class="btn btn-outline" id="saveNoteBtn" onclick="saveCoachNote()">Save Note</button></div>
+        </div>
+        <div style="height:24px">`;
+      const ta = $('coachNotesInput');
+      if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+    } catch {
+      $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Could not load game details</div></div>';
+    }
+  }
+
+  function updateSheetHeart() {
+    const btn = $('sheetHeartBtn'), svg = $('sheetHeartSvg');
+    if (!btn || !_currentSheetGameId) return;
+    const isFav = _favs.some(f => f.game_id === _currentSheetGameId);
+    btn.classList.toggle('is-fav', isFav);
+    if (svg) svg.setAttribute('fill', isFav ? 'currentColor' : 'none');
+  }
+
+  async function toggleFavFromSheet() {
+    if (!_currentSheetGameId) return;
+    const isFav = _favs.some(f => f.game_id === _currentSheetGameId);
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/toggle_user_game_link', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_game_id: _currentSheetGameId }),
+      });
+      if (res.ok) {
+        if (isFav) {
+          _favs = _favs.filter(f => f.game_id !== _currentSheetGameId);
+          const item = $('favList')?.querySelector(`[data-gid="${_currentSheetGameId}"]`);
+          if (item) item.remove();
+          showToast('Removed from favourites');
+          if (!$('favList')?.children.length) { closeSheet(); showEmpty(); return; }
+        } else showToast('Added to favourites');
+        updateSheetHeart();
+      } else showToast('Could not update favourites');
+    } catch { showToast('Network error'); }
+  }
+
+  async function saveCoachNote() {
+    const input = $('coachNotesInput');
+    if (!input || !_currentSheetGameId) return;
+    const btn = $('saveNoteBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'save_coach_note', user_id: USER_ID, game_id: _currentSheetGameId, note: input.value.trim() }) });
+      const d = await res.json();
+      if (d.ok) showToast('Note saved ✓'); else showToast('Could not save note');
+    } catch { showToast('Network error'); }
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Note'; }
+  }
+
+  async function exportGameCardPdf(gameId) {
+    const btn = $('gcPdfBtn');
+    const orig = btn?.innerHTML;
+    if (btn) { btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; btn.disabled = true; }
+    try {
+      const res = await fetch(GAME_CARD_PDF_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ game_id: gameId, user_id: USER_ID }) });
+      if (!res.ok) throw new Error();
+      const { pdf, filename } = await res.json();
+      _deliverPdf(pdf, filename);
+    } catch { showToast('Could not generate PDF'); }
+    if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+  }
+
+  function closeSheet() { $('gameSheet').classList.remove('open'); _currentSheetGameId = null; }
+
+  // ── Mic / voice feedback ───────────────────────────────────────────────────
+  let _spIsRecording = false, _spTranscript = '', _spDescMode = 'voice';
+  let _spAutoRevise = false, _spAutoReviseTimeout = null, _spWebRec = null;
+
+  function setFbMode(mode) {
     _spDescMode = mode;
-    const vp = $('spFbVoicePanel'), tp = $('spFbTextPanel');
-    if (!vp) return;
-    vp.style.display = mode === 'voice' ? '' : 'none';
-    tp.style.display  = mode === 'text'  ? '' : 'none';
+    $('spFbVoicePanel').style.display = mode === 'voice' ? '' : 'none';
+    $('spFbTextPanel').style.display  = mode === 'text'  ? '' : 'none';
     $('spFbModeVoice')?.classList.toggle('active', mode === 'voice');
     $('spFbModeText')?.classList.toggle('active',  mode === 'text');
   }
 
-  function _initSpMicButton() {
+  function initMicBtn() {
     const btn = $('spFbMicBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
     const instr = $('spFbInstruction');
     if (instr && !_isIOS) instr.textContent = window.FlutterBridge
       ? 'Tap to start recording. Speak your notes, then pause — the AI will revise the plan.'
-      : 'Tap to start recording, tap again to stop — the AI will revise the plan based on your notes.';
+      : 'Tap to start recording, tap again to stop — the AI will revise the plan.';
+
     function stop() {
       if (!_spIsRecording) return;
       if (_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
-        _resetSpVoiceState();
+        _resetVoice();
         showToast('Updating plan…', 'success', 0);
         _spAutoRevise = true;
         clearTimeout(_spAutoReviseTimeout);
-        _spAutoReviseTimeout = setTimeout(() => {
-          if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
-        }, 8000);
+        _spAutoReviseTimeout = setTimeout(() => { if (_spAutoRevise) { _spAutoRevise = false; regenWithFeedback(); } }, 8000);
       } else if (!_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
         _spAutoRevise = false;
-        _resetSpVoiceState();
+        _resetVoice();
         showToast('Updating plan…', 'success', 0);
-        regenerateWithFeedback();
+        regenWithFeedback();
       } else {
-        _stopSpWebSpeech();
+        _stopWebSpeech();
         showToast('Updating plan…', 'success', 0);
-        regenerateWithFeedback();
+        regenWithFeedback();
       }
     }
-    function startRecording() {
+    function start() {
       _spIsRecording = true; _spTranscript = '';
-      $('spFbTranscript').textContent = '';
+      $('spTranscript').textContent = '';
       btn.classList.add('recording');
       $('spFbVoiceWave').classList.add('active');
       if (window.FlutterBridge) {
         if (!_isIOS) _spAutoRevise = true;
         window.FlutterBridge.postMessage('startSpeech:sp_feedback');
-      } else _startSpWebSpeech();
+      } else _startWebSpeech();
     }
     if (_isIOS) {
-      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_spIsRecording) startRecording(); }, { passive: false });
-      btn.addEventListener('pointerup',     stop);
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_spIsRecording) start(); }, { passive: false });
+      btn.addEventListener('pointerup', stop);
       btn.addEventListener('pointercancel', stop);
-      document.addEventListener('touchend',    stop, { passive: true });
+      document.addEventListener('touchend', stop, { passive: true });
       document.addEventListener('touchcancel', stop, { passive: true });
     } else {
-      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_spIsRecording) stop(); else startRecording(); }, { passive: false });
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_spIsRecording) stop(); else start(); }, { passive: false });
       btn.addEventListener('pointercancel', stop);
       document.addEventListener('touchcancel', stop, { passive: true });
     }
   }
 
-  function _resetSpVoiceState() {
+  function _resetVoice() {
     _spIsRecording = false;
     $('spFbMicBtn')?.classList.remove('recording');
     $('spFbVoiceWave')?.classList.remove('active');
   }
-
-  function _startSpWebSpeech() {
+  function _startWebSpeech() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { showToast('Speech not supported on this browser', 'error'); _resetSpVoiceState(); return; }
-    _spWebRecognition = new SR();
-    _spWebRecognition.lang = 'en-IE';
-    _spWebRecognition.continuous = true;
-    _spWebRecognition.interimResults = true;
+    if (!SR) { showToast('Speech not supported on this browser', 'error'); _resetVoice(); return; }
+    _spWebRec = new SR();
+    _spWebRec.lang = 'en-IE'; _spWebRec.continuous = true; _spWebRec.interimResults = true;
     let base = '';
-    _spWebRecognition.onresult = (e) => {
+    _spWebRec.onresult = (e) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) base += e.results[i][0].transcript + ' ';
         else interim += e.results[i][0].transcript;
       }
       _spTranscript = base.trim();
-      const el = $('spFbTranscript');
+      const el = $('spTranscript');
       if (el) el.textContent = (_spTranscript + (interim ? ' ' + interim : '')).trim() || _spTranscript;
     };
-    _spWebRecognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetSpVoiceState(); };
-    _spWebRecognition.onend = () => { const was = _spIsRecording; _resetSpVoiceState(); if (was) regenerateWithFeedback(); };
-    try { _spWebRecognition.start(); } catch { _resetSpVoiceState(); }
+    _spWebRec.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetVoice(); };
+    _spWebRec.onend   = () => { const was = _spIsRecording; _resetVoice(); if (was) regenWithFeedback(); };
+    try { _spWebRec.start(); } catch { _resetVoice(); }
+  }
+  function _stopWebSpeech() {
+    _resetVoice();
+    if (_spWebRec) { try { _spWebRec.stop(); } catch {} _spWebRec = null; }
   }
 
-  function _stopSpWebSpeech() {
-    _resetSpVoiceState();
-    if (_spWebRecognition) { try { _spWebRecognition.stop(); } catch {} _spWebRecognition = null; }
-  }
-
-  const _prevReceiveSpeechResult = window.receiveSpeechResult;
+  const _prevReceive = window.receiveSpeechResult;
   window.receiveSpeechResult = function(fieldId, text) {
     if (fieldId === 'sp_feedback') {
       _spTranscript += text + ' ';
       _spTranscript = _spTranscript.trim();
-      const el = $('spFbTranscript');
+      const el = $('spTranscript');
       if (el) el.textContent = _spTranscript;
-    } else if (_prevReceiveSpeechResult) { _prevReceiveSpeechResult(fieldId, text); }
+    } else if (_prevReceive) _prevReceive(fieldId, text);
   };
   window.onSpeechDone = function() {
     clearTimeout(_spAutoReviseTimeout);
-    _resetSpVoiceState();
-    if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
+    _resetVoice();
+    if (_spAutoRevise) { _spAutoRevise = false; regenWithFeedback(); }
   };
-  const _prevSpeechError = window.onSpeechError;
+  const _prevSpeechErr = window.onSpeechError;
   window.onSpeechError = function(msg) {
     clearToast();
     showToast(msg || 'Voice input failed', 'error');
-    _resetSpVoiceState();
-    if (_prevSpeechError) _prevSpeechError(msg);
+    _resetVoice();
+    if (_prevSpeechErr) _prevSpeechErr(msg);
   };
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  async function boot() {
+    if (!USER_ID) { showError('Missing user information.'); return; }
+
+    // Event-attach mode: open My Plans directly
+    if (EVENT_ID) {
+      showMyPlans();
+      return;
+    }
+
+    showLoading('Loading…');
+    try {
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get', user_id: USER_ID }) });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'Failed to load.'); return; }
+      _favs = data.favourites || [];
+      if (!_favs.length) { showEmpty(); return; }
+      renderFavList(_favs);
+      $('durVal').textContent = _dur;
+      showFavs();
+    } catch { showError('Network error. Please check your connection and try again.'); }
+  }
+
+  boot();
 </script>
 </body>
 </html>

@@ -610,6 +610,88 @@ serve(async (req) => {
       });
     }
 
+    // ── SHARE_PLAN_WITH_CLUB: broadcast plan to all admin-grade users in club ──
+    if (action === "share_plan_with_club") {
+      if (!plan_id) return new Response(JSON.stringify({ error: "plan_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      const { data: planRow } = await sb
+        .from("session_plans")
+        .select("plan_json, session_title")
+        .eq("plan_id", plan_id)
+        .eq("created_by", user_id)
+        .maybeSingle();
+      if (!planRow) return new Response(JSON.stringify({ error: "Plan not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      // Find user's club(s)
+      const { data: clubMemberRows } = await sb
+        .from("user_member_link").select("member_id").eq("user_id", user_id);
+      const clubMemberIds = (clubMemberRows || []).map((r: any) => r.member_id);
+      if (clubMemberIds.length === 0) return new Response(JSON.stringify({ ok: true, count: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      const { data: clubTeamLinks } = await sb
+        .from("member_team_link").select("teams!inner(team_id, club_id)").in("member_id", clubMemberIds);
+      const clubShareIds = [...new Set((clubTeamLinks || []).map((r: any) => r.teams?.club_id).filter(Boolean))];
+      if (clubShareIds.length === 0) return new Response(JSON.stringify({ ok: true, count: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      const { data: allClubTeams } = await sb.from("teams").select("team_id").in("club_id", clubShareIds);
+      const allClubTeamIds = (allClubTeams || []).map((t: any) => t.team_id);
+
+      const { data: clubAdminLinks } = await sb
+        .from("member_team_role_link")
+        .select(`members!inner(member_id, user_id), roles!inner(role_grade)`)
+        .in("team_id", allClubTeamIds)
+        .eq("roles.role_grade", 100);
+
+      const seenShare = new Set<string>([user_id]);
+      const recipientIds: string[] = [];
+      for (const row of (clubAdminLinks || [])) {
+        const m = (row as any).members;
+        if (!m?.user_id || seenShare.has(m.user_id)) continue;
+        seenShare.add(m.user_id);
+        recipientIds.push(m.user_id);
+      }
+
+      if (recipientIds.length === 0) return new Response(JSON.stringify({ ok: true, count: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      // Sender name for notification body
+      const { data: senderMember } = await sb
+        .from("members").select("first_name, last_name").eq("user_id", user_id).maybeSingle();
+      const senderName = senderMember
+        ? [senderMember.first_name, senderMember.last_name].filter(Boolean).join(" ")
+        : "A coach";
+      const shareTitle: string = planRow.session_title || "Training Session";
+
+      // Insert share record + notification for each recipient
+      await Promise.all(recipientIds.map(async (rid) => {
+        const { data: shareRow } = await sb
+          .from("plan_shares")
+          .insert({ from_user_id: user_id, to_user_id: rid, plan_json: planRow.plan_json, session_title: shareTitle })
+          .select("share_id").maybeSingle();
+        await sb.from("notifications").insert({
+          user_id: rid,
+          notification_title: "Session Plan Shared",
+          notification_body: `${senderName} shared a session plan with you: "${shareTitle}"`,
+          notification_type: "plan_share",
+          reference_id: shareRow?.share_id?.toString() ?? null,
+          is_read: false,
+        }).catch(() => {/* non-critical */});
+      }));
+
+      return new Response(JSON.stringify({ ok: true, count: recipientIds.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── GET_RECEIVED_SHARES: inbox of plans shared with this user ─────────────
     if (action === "get_received_shares") {
       const { data: shares, error: sharesErr } = await sb
