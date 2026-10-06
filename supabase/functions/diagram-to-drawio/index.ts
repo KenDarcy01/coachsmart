@@ -25,7 +25,11 @@ PRE-SCAN — TITLE AND INSTRUCTIONS (do this before anything else):
 CRITICAL — COMPLETENESS RULE:
 Scan the ENTIRE image from top to bottom before you begin writing XML. Every single circle, cone, arrow and pitch marking you can see MUST appear in the output — including elements near the halfway line or at the far end of the pitch. Do NOT stop generating until every element from the original image is represented. Missing even one player, football or coach is an error.
 
-STEP 1 — BEFORE ANYTHING ELSE, SCAN EVERY CIRCLE IN THE IMAGE AND CLASSIFY IT:
+STEP 1 — BEFORE ANYTHING ELSE, SCAN THE IMAGE FOR THESE THREE THINGS IN ORDER:
+
+① TRAINING WALL: Is there a rectangle labelled "Wall" or "WALL"? If yes, it MUST be the first vertex you output — place it at the top of the canvas before any other element. Do not skip it.
+
+② EVERY CIRCLE — classify each one by label:
 Each circle must be classified by reading its label. This classification is MANDATORY and OVERRIDES any assumption about team colour or position on the pitch.
 
   • Circle label is EMPTY or contains only a small dot → FOOTBALL
@@ -46,7 +50,10 @@ Each circle must be classified by reading its label. This classification is MAND
     - When in doubt, default to all HOME (red).
 
 Apply this in strict order: empty/dot → white football · "C" → black coach · number → red/blue player.
-Do not skip this step.
+
+③ TRIANGLES: Count every triangle — each is a cone. Note their positions.
+
+Do not skip any of ①②③.
 
 STEP 2 — OUTPUT FORMAT:
 - First line: GAME_NAME: <title or blank> (as described in PRE-SCAN above)
@@ -95,6 +102,14 @@ PITCH LINES — MUST BE IDENTIFIED BEFORE MOVEMENT LINES:
 - Pitch lines have NO arrowhead and NO dash. Output them as: edgeStyle=none;html=1;endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;
 - DO NOT mistake pitch lines for movement arrows. If a line spans the full width with no clear start/end player, it is a pitch line.
 
+TRAINING WALL (rectangle labelled "Wall" or "WALL"):
+- A physical wall used in hurling/camogie training — players stand in front of it and strike the sliotar against it. It is always a wide, shallow rectangle spanning most of the playing width, placed at the top (or occasionally the bottom) of the diagram.
+- Scan for it BEFORE drawing any arrows — arrows targeting the wall must end at its edge.
+- Style: rounded=0;whiteSpace=wrap;html=1;fillColor=#455A64;strokeColor=#B0BEC5;strokeWidth=3;fontColor=#ffffff;fontSize=16;fontStyle=1;
+- Geometry: span most of the canvas width (typically 80–90% of canvas width), height=44. Position flush with or just inside the top padding.
+- value="WALL"
+- THE WALL IS AN OBSTACLE: all arrows directed toward it must end 8px from its bottom edge. No arrow may pass through or behind it.
+
 PITCH ARCS (curved pitch markings — also endArrow=none, same style as pitch lines):
 - SMALL D-ARC: the small semicircle directly in front of the goal (~13m radius). Always present when a goalpost is shown.
 - CENTRE CIRCLE / MIDFIELD ARC: the arc at the centre of the pitch.
@@ -121,7 +136,6 @@ If a drawn shape does not match any symbol defined above, DO NOT skip it. Use yo
   - Rectangle or shape with a written label → render as a labelled zone using:
       style="rounded=0;whiteSpace=wrap;html=1;fillColor=#37474F;opacity=80;strokeColor=#90A4AE;strokeWidth=2;fontColor=#ffffff;fontSize=13;fontStyle=1;"
       Use the written label as the value. Examples:
-        "Wall" → a flat rectangular obstacle (common GAA hurling/camogie training aid — players strike the sliotar against it)
         "Zone A", "Box", "Grid", "Channel" → training area markers
         Any other written word or phrase → render as a labelled rectangle at its drawn position
   - Unlabelled rectangle or shaded box → area marker: style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;opacity=12;strokeColor=#ffffff;strokeWidth=1.5;" value=""
