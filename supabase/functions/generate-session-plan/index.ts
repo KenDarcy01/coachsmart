@@ -881,11 +881,31 @@ serve(async (req) => {
       if (!event_id || !plan_json) return new Response(JSON.stringify({ error: "event_id and plan_json required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      const attachTitle: string = (plan_json as any).session_title || "Training Session";
+
+      // Enrich the generic template with event-specific context
+      const enriched: Record<string, any> = { ...(plan_json as any) };
+
+      if (teamId) {
+        const { playerCount, coachCount } = await countAcceptedAttendees(sb, event_id, teamId, eventSquadId);
+        enriched.player_count = playerCount;
+        enriched.coach_count  = coachCount;
+      }
+
+      const attachWeather = await fetchWeather(
+        eventLocationPin, eventLocationName, eventDateTime,
+        (clubData as any).county ?? null, eventTypeStr,
+      );
+      if (attachWeather) enriched.weather = attachWeather;
+
+      if (eventDateTime) enriched.date_time = eventDateTime;
+      if (teamName)      enriched.team_name  = teamName;
+      if (eventTitle)    enriched.session_title = eventTitle;
+
+      const attachTitle: string = enriched.session_title || "Training Session";
       await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
       const { data: saved, error: attachErr } = await sb
         .from("session_plans")
-        .insert({ event_id, created_by: user_id, plan_json, session_title: attachTitle, is_active: true })
+        .insert({ event_id, created_by: user_id, plan_json: enriched, session_title: attachTitle, is_active: true })
         .select("plan_id").single();
       if (attachErr) return new Response(JSON.stringify({ error: attachErr.message }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
