@@ -471,7 +471,7 @@ serve(async (req) => {
     // Fetch all games + user's club in parallel
     const [gamesRes, userRes] = await Promise.all([
       supabase.from("games")
-        .select("game_name,game_setup,game_how_to_play,game_variations,game_teaching_points,game_image,game_details_image,game_video")
+        .select("game_id,game_name,game_setup,game_how_to_play,game_variations,game_teaching_points,game_image,game_details_image,game_video")
         .in("game_id", gameIds),
       supabase.from("users")
         .select("default_club")
@@ -509,7 +509,11 @@ serve(async (req) => {
       }
     }
 
-    const pdfBytes = await buildPdf(gamesRes.data as GameData[], clubData, isMobile);
+    // Re-sort to match the caller's requested order (DB .in() returns arbitrary order)
+    const gameMap = new Map((gamesRes.data as any[]).map(g => [String(g.game_id), g]));
+    const orderedGames = gameIds.map(id => gameMap.get(String(id))).filter(Boolean);
+
+    const pdfBytes = await buildPdf(orderedGames as GameData[], clubData, isMobile);
 
     // Chunked base64 — avoids spread-arg stack overflow on large PDFs
     let b64 = '';
