@@ -330,8 +330,8 @@ async function buildSessionPlanPdf(
   const LINE_H          = isMobile ? 18 : 17;
   const BODY_LEFT       = ML + (isMobile ? 10 : 12);
   const BODY_W          = CW - (isMobile ? 10 : 12);
-  const IDEAL_IMG_H     = isMobile ? 210 : 270;
-  const MIN_IMG_H       = isMobile ? 100 : 160;
+  const IDEAL_IMG_H     = isMobile ? 275 : 350;
+  const MIN_IMG_H       = isMobile ? 125 : 205;
 
   // ── Mutable page state ──
   let currentPage: any = null;
