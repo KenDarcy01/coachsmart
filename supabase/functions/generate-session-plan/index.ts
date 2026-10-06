@@ -76,7 +76,7 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
     "duration_mins": number,
     "description": "string — activity before the warm-up (e.g. team briefing, video review, tactical talk)"
   },
-  "warm_up": {
+  "warm_up": null | {
     "duration_mins": number,
     "description": "string (how to run the warm-up with this group)",
     "coaching_points": ["string"]
@@ -91,7 +91,7 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
       "variation": "string or null"
     }
   ],
-  "cool_down": {
+  "cool_down": null | {
     "duration_mins": number,
     "description": "string"
   },
@@ -103,8 +103,10 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
 }
 
 Rules:
-- (pre_session?.duration_mins ?? 0) + warm_up.duration_mins + all drills duration_mins + cool_down.duration_mins + (post_session?.duration_mins ?? 0) must equal total_duration_mins exactly
+- (pre_session?.duration_mins ?? 0) + (warm_up?.duration_mins ?? 0) + all drills duration_mins + (cool_down?.duration_mins ?? 0) + (post_session?.duration_mins ?? 0) must equal total_duration_mins exactly
 - pre_session and post_session must be null unless the coach explicitly requests such an activity
+- warm_up must be null if no warm-up game is provided in the context; if a warm-up game IS provided, include it and allocate at least 10 minutes
+- cool_down must be null if no cool-down game is provided in the context; if a cool-down game IS provided, include it and allocate at least 5 minutes
 - Use the games in the ORDER given — do not reorder them
 - Use the EXACT game name from the input in each drill — do not paraphrase or rename
 - Adapt each drill to the given player count; note modifications if needed
@@ -112,7 +114,6 @@ Rules:
 - Use the sport code supplied in the context throughout — never mix football and hurling/camogie language; if the code is Football use football terminology only; if Hurling/Camogie use sliotar/hurl and never mention football
 - CRITICAL: Weather is provided for context only — do NOT include weather data or weather text ANYWHERE in the output JSON, not in session_objective, not in descriptions, not in coaching_points, not anywhere. Weather is shown separately.
 - Do NOT include player count adjustment notes; adapt the description directly for the given numbers
-- Warm-up must be at least 10 minutes; cool-down at least 5 minutes
 - When Drill mode is STATION ROTATION: populate "station_setup" with a single paragraph describing how to split the group across the stations and the rotation interval; describe each drill as the station activity only — do NOT repeat split or rotation instructions inside individual drill descriptions; warm-up and cool-down descriptions must address the full group collectively
 - When Drill mode is SEQUENTIAL: "station_setup" must be null; describe each drill for the full group performing it together
 - If the coach's feedback asks to include a game that is NOT in the provided games list, set "_refusal" to a short explanation and keep all other fields at sensible defaults (do not change the existing plan)
@@ -1206,6 +1207,10 @@ serve(async (req) => {
       }
       delete drill.player_count_note;
     }
+
+    // Enforce: null out warmup/cooldown if no game was provided (safety net for Gemini non-compliance)
+    if (!warmupGame)   planJson.warm_up   = null;
+    if (!cooldownGame) planJson.cool_down = null;
 
     // Override warm-up with exact DB text when a warmup game was selected
     if (warmupGame && planJson.warm_up) {
