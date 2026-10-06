@@ -246,6 +246,8 @@
     }
     .drill-name { font-size: 13px; font-weight: 600; color: var(--text); }
     .game-image { width: 100%; height: auto; display: block; border-bottom: 1px solid var(--border); }
+    .game-video-wrap { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-bottom: 1px solid var(--border); }
+    .game-video-wrap iframe, .game-video-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
     .card-body  { padding: 10px 13px 12px; }
     .card-desc  { font-size: 13px; color: var(--text); line-height: 1.55; margin-bottom: 10px; white-space: pre-line; }
     .cp-label   { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
@@ -913,12 +915,6 @@
       Tap any text to edit
     </div>`);
 
-    out.push(`<div class="stat-grid">
-      <div class="stat-card"><div class="stat-value">${plan.player_count ?? '—'}</div><div class="stat-label">Players</div></div>
-      <div class="stat-card"><div class="stat-value">${plan.coach_count  ?? '—'}</div><div class="stat-label">Coaches</div></div>
-      <div class="stat-card"><div class="stat-value">${plan.total_duration_mins ?? _dur}</div><div class="stat-label">Mins</div></div>
-    </div>`);
-
     if (plan.session_title) {
       out.push(sHdr('FOCUS', null, 'drill'));
       out.push(`<div class="phase-card"><div class="card-body" style="padding:10px 13px">
@@ -926,18 +922,18 @@
       </div></div>`);
     }
     if (plan.session_objective) out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
-    if (plan.pre_session) { out.push(sHdr('PRE-SESSION', plan.pre_session.duration_mins, 'warm')); out.push(phaseCard(plan.pre_session, null, null, null, 'pre_session')); }
-    if (plan.warm_up)     { out.push(sHdr('WARM UP',    plan.warm_up.duration_mins, 'warm'));    out.push(phaseCard(plan.warm_up, null, null, null, 'warm_up')); }
+    if (plan.pre_session) { out.push(sHdr('PRE-SESSION', plan.pre_session.duration_mins, 'warm')); out.push(phaseCard(plan.pre_session, plan.pre_session.game_name || null, null, plan.pre_session.game_image || null, 'pre_session', plan.pre_session.game_video || null)); }
+    if (plan.warm_up)     { out.push(sHdr('WARM UP',    plan.warm_up.duration_mins, 'warm'));    out.push(phaseCard(plan.warm_up, plan.warm_up.game_name || null, null, plan.warm_up.game_image || null, 'warm_up', plan.warm_up.game_video || null)); }
     if (plan.station_setup?.trim()) {
       out.push(sHdr('STATION SETUP', null, 'drill'));
       out.push(`<div class="station-setup-card">${esc(plan.station_setup.trim())}</div>`);
     }
     (plan.drills || []).forEach((d, i) => {
       out.push(sHdr(`DRILL ${i + 1}`, d.duration_mins, 'drill'));
-      out.push(phaseCard(d, d.game_name, i + 1, d.game_image, `drills.${i}`));
+      out.push(phaseCard(d, d.game_name, i + 1, d.game_image || null, `drills.${i}`, d.game_video || null));
     });
-    if (plan.cool_down)    { out.push(sHdr('COOL DOWN',    plan.cool_down.duration_mins, 'cool'));    out.push(phaseCard(plan.cool_down, null, null, null, 'cool_down')); }
-    if (plan.post_session) { out.push(sHdr('POST-SESSION', plan.post_session.duration_mins, 'cool')); out.push(phaseCard(plan.post_session, null, null, null, 'post_session')); }
+    if (plan.cool_down)    { out.push(sHdr('COOL DOWN',    plan.cool_down.duration_mins, 'cool'));    out.push(phaseCard(plan.cool_down, plan.cool_down.game_name || null, null, plan.cool_down.game_image || null, 'cool_down', plan.cool_down.game_video || null)); }
+    if (plan.post_session) { out.push(sHdr('POST-SESSION', plan.post_session.duration_mins, 'cool')); out.push(phaseCard(plan.post_session, plan.post_session.game_name || null, null, plan.post_session.game_image || null, 'post_session', plan.post_session.game_video || null)); }
 
     out.push(`<div class="feedback-bar">
       <div class="feedback-hdr">Refine this plan</div>
@@ -983,13 +979,22 @@
     </div>`;
   }
 
-  function phaseCard(phase, gameName, drillNum, gameImage, pp) {
+  function phaseCard(phase, gameName, drillNum, gameImage, pp, gameVideo) {
     const nameBar = (gameName || drillNum)
       ? `<div class="drill-name-bar">${drillNum ? `<div class="drill-num">${drillNum}</div>` : ''}${gameName ? `<div class="drill-name">${esc(gameName)}</div>` : ''}</div>`
       : '';
     const imgTag = gameImage
       ? `<img class="game-image" src="${esc(gameImage)}" alt="" loading="lazy" onerror="this.style.display='none'">`
       : '';
+    let videoTag = '';
+    if (gameVideo) {
+      const ytMatch = gameVideo.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+      if (ytMatch) {
+        videoTag = `<div class="game-video-wrap"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`;
+      } else {
+        videoTag = `<div class="game-video-wrap"><video src="${esc(gameVideo)}" controls playsinline preload="metadata"></video></div>`;
+      }
+    }
     const ed = (attr) => pp ? ` contenteditable="true" data-path="${pp}.${attr}"` : '';
     const setup   = phase.setup?.trim()       ? `<div class="cp-label">Setup</div><div class="card-desc"${ed('setup')}>${esc(phase.setup.trim())}</div>` : '';
     const desc    = phase.description?.trim() ? `<div class="cp-label">How to Play</div><div class="card-desc"${ed('description')}>${esc(phase.description.trim())}</div>` : '';
@@ -999,7 +1004,7 @@
         pts.map((pt, i) => `<div class="cp-item"><span class="cp-dot">•</span><span${pp ? ` contenteditable="true" data-path="${pp}.coaching_points.${i}"` : ''}>${esc(pt)}</span></div>`).join('')
       : '';
     const varHtml = phase.variation?.trim()   ? `<div class="cp-label">Variations</div><div class="card-desc"${ed('variation')}>${esc(phase.variation.trim())}</div>` : '';
-    return `<div class="phase-card">${nameBar}${imgTag}<div class="card-body">${setup}${desc}${ptsHtml}${varHtml}</div></div>`;
+    return `<div class="phase-card">${nameBar}${imgTag}${videoTag}<div class="card-body">${setup}${desc}${ptsHtml}${varHtml}</div></div>`;
   }
 
   function collectEdits() {
