@@ -91,10 +91,7 @@ Deno.serve(async (req)=>{
             android: {
               priority: 'high',
               notification: {
-                channel_id: 'high_importance_channel',
                 sound: 'default',
-                priority: 'HIGH',
-                icon: 'ic_launcher',
                 click_action: 'FLUTTER_NOTIFICATION_CLICK'
               }
             },
