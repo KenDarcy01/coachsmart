@@ -77,10 +77,22 @@ async function fetchFontBytes(family: string, weight: number): Promise<Uint8Arra
 async function fetchImageBytes(url: string): Promise<Uint8Array | null> {
   if (!url) return null;
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
+    const headers: Record<string, string> = {};
+    // Supabase storage URLs may require auth; pass service role key if available
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (supabaseUrl && url.startsWith(supabaseUrl)) {
+      headers["Authorization"] = `Bearer ${serviceKey}`;
+      headers["apikey"] = serviceKey;
+    }
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      console.warn(`[image] fetch failed ${res.status} for ${url}`);
+      return null;
+    }
     return new Uint8Array(await res.arrayBuffer());
-  } catch {
+  } catch (e) {
+    console.warn(`[image] fetch error for ${url}:`, e);
     return null;
   }
 }
