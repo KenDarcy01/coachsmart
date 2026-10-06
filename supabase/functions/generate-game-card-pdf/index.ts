@@ -365,15 +365,14 @@ async function buildPdf(games: GameData[], club: ClubData, isMobile = false): Pr
     if (gameImg) {
       const ratio      = gameImg.width / gameImg.height;
       const isPortrait = gameImg.width < gameImg.height;
-      const ABS_MAX_H  = isPortrait ? 370 : 250; // portrait needs more vertical room
-      const IMG_INDENT = 40;  // pull in from each side of the content column
-      const IMG_MAX_W  = CW - IMG_INDENT * 2;
+      const ABS_MAX_H  = isPortrait ? 480 : 325;
+      const IMG_MAX_W  = CW;
 
       curY += 16; // top padding
 
       // If very little space remains, start a fresh page for a better layout
       let availH = PH - curY - FOOTER_ZONE - 28;
-      if (availH < 180) {
+      if (availH < 220) {
         newPage(false);
         availH = PH - curY - FOOTER_ZONE - 28;
       }
