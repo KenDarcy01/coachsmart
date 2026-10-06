@@ -831,12 +831,11 @@ serve(async (req) => {
       });
     }
     const jwt = authHeader.slice(7);
-    let userId: string;
     try {
+      // Validate JWT structure; sub may be absent for anon-key callers —
+      // user_id from the request body is used for any DB lookups.
       const payload = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const decoded = JSON.parse(atob(payload));
-      userId = decoded.sub;
-      if (!userId) throw new Error("No sub");
+      JSON.parse(atob(payload));
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JWT" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
