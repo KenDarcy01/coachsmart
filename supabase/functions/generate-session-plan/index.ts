@@ -812,13 +812,14 @@ serve(async (req) => {
       });
     }
 
-    // ── GET_USER_PLANS: return user's saved plan library ─────────────────────
+    // ── GET_USER_PLANS: return user's saved plan library (no event-linked plans) ─
     if (action === "get_user_plans") {
       const { data: plans, error: plansErr } = await sb
         .from("session_plans")
-        .select("plan_id, session_title, created_at, event_id")
+        .select("plan_id, session_title, created_at")
         .eq("created_by", user_id)
         .eq("is_active", true)
+        .is("event_id", null)           // library only — exclude plans attached to specific events
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -826,25 +827,10 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-      // For event-linked plans, fetch event titles in one query
-      const eventIds = (plans || []).map(p => p.event_id).filter(Boolean);
-      let eventTitleMap: Record<number, string> = {};
-      if (eventIds.length > 0) {
-        const { data: events } = await sb
-          .from("events")
-          .select("event_id, event_title, event_date_time")
-          .in("event_id", eventIds);
-        for (const e of (events || [])) {
-          eventTitleMap[e.event_id] = e.event_title || "Training Session";
-        }
-      }
-
       const result = (plans || []).map(p => ({
         plan_id:       p.plan_id,
-        session_title: p.session_title || (p.event_id ? eventTitleMap[p.event_id] : null) || "Untitled Plan",
+        session_title: p.session_title || "Untitled Plan",
         created_at:    p.created_at,
-        event_id:      p.event_id ?? null,
-        event_title:   p.event_id ? (eventTitleMap[p.event_id] ?? null) : null,
       }));
 
       return new Response(JSON.stringify({ plans: result }), {
@@ -910,7 +896,7 @@ serve(async (req) => {
       if (attachErr) return new Response(JSON.stringify({ error: attachErr.message }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      return new Response(JSON.stringify({ ok: true, plan_id: saved?.plan_id ?? null }), {
+      return new Response(JSON.stringify({ ok: true, plan_id: saved?.plan_id ?? null, plan_json: enriched }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

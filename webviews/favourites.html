@@ -1230,11 +1230,9 @@
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Attach failed', 'error'); return; }
     clearToast();
-    showToast('Plan attached to event ✓', 'success');
-    setTimeout(() => {
-      if (IS_WEBVIEW) { try { FlutterBridge.postMessage('planAttached:' + EVENT_ID); } catch(_) {} }
-      closeApp();
-    }, 1200);
+    // Show the enriched plan in draft/edit mode — server returns enriched plan_json
+    _currentPlanId = data.plan_id;
+    renderPlan(data.plan_json || planJson);
   }
 
   // ── Game detail sheet ──────────────────────────────────────────────────────
