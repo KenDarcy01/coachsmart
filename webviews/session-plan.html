@@ -1301,9 +1301,13 @@
       out.push(roSectionHdr('PRE-SESSION', p.pre_session.duration_mins, 'warm'));
       out.push(roPhaseCard(p.pre_session));
     }
+    if (p.pre_session) {
+      out.push(roSectionHdr('PRE-SESSION', p.pre_session.duration_mins, 'warm'));
+      out.push(roPhaseCard(p.pre_session, p.pre_session.game_name || null, null, p.pre_session.game_image || null));
+    }
     if (p.warm_up) {
       out.push(roSectionHdr('WARM UP', p.warm_up.duration_mins, 'warm'));
-      out.push(roPhaseCard(p.warm_up));
+      out.push(roPhaseCard(p.warm_up, p.warm_up.game_name || null, null, p.warm_up.game_image || null));
     }
     if (p.station_setup?.trim()) {
       out.push(roSectionHdr('STATION SETUP', null, 'drill'));
@@ -1315,11 +1319,11 @@
     });
     if (p.cool_down) {
       out.push(roSectionHdr('COOL DOWN', p.cool_down.duration_mins, 'cool'));
-      out.push(roPhaseCard(p.cool_down));
+      out.push(roPhaseCard(p.cool_down, p.cool_down.game_name || null, null, p.cool_down.game_image || null));
     }
     if (p.post_session) {
       out.push(roSectionHdr('POST-SESSION', p.post_session.duration_mins, 'cool'));
-      out.push(roPhaseCard(p.post_session));
+      out.push(roPhaseCard(p.post_session, p.post_session.game_name || null, null, p.post_session.game_image || null));
     }
     out.push(`<div class="drill-gap"></div></div>`);
     return out.join('');
