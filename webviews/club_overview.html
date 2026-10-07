@@ -26,9 +26,9 @@
             background: var(--card); border-bottom: 1px solid var(--border);
             padding: 20px 40px; display: flex; align-items: center; justify-content: space-between;
         }
-        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 3px; }
+        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 27px; letter-spacing: 3px; }
         .logo span { color: var(--green); }
-        .header-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+        .header-sub { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
 
         .filters-panel {
             background: var(--card); border-bottom: 1px solid var(--border);
@@ -37,10 +37,10 @@
         .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
         .filter-group.wide { min-width: 220px; }
         .filter-group.stretch { flex: 1; min-width: 280px; }
-        .filter-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+        .filter-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
         select, .multi-select-wrap {
             background: var(--card2); color: var(--text); border: 1px solid var(--border);
-            border-radius: 8px; padding: 10px 14px; font-size: 13px;
+            border-radius: 8px; padding: 10px 14px; font-size: 14px;
             font-family: 'DM Sans', sans-serif; cursor: pointer; outline: none; transition: border-color 0.2s;
         }
         select:focus { border-color: var(--green); }
@@ -53,7 +53,7 @@
         }
         .team-pill {
             display: inline-flex; align-items: center; gap: 5px;
-            padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+            padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
             cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
         }
         .team-pill.active { opacity: 1; }
@@ -61,7 +61,7 @@
         .team-pill-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .all-pill {
             display: inline-flex; align-items: center; padding: 3px 10px;
-            border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer;
+            border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
             background: rgba(135,194,50,0.15); color: var(--green); border: 1px solid rgba(135,194,50,0.3);
             transition: all 0.15s;
         }
@@ -69,7 +69,7 @@
 
         .load-btn {
             background: var(--green); color: #111418; border: none; border-radius: 8px;
-            padding: 10px 24px; font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+            padding: 10px 24px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif;
             cursor: pointer; letter-spacing: 0.3px; transition: opacity 0.2s; white-space: nowrap; align-self: flex-end;
         }
         .load-btn:hover { opacity: 0.85; }
@@ -77,7 +77,7 @@
 
         .date-labels { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .date-labels span {
-            font-size: 12px; color: var(--text); font-weight: 500;
+            font-size: 13px; color: var(--text); font-weight: 500;
             background: var(--card2); padding: 3px 8px; border-radius: 5px; border: 1px solid var(--border);
         }
         .slider-wrap { position: relative; height: 24px; display: flex; align-items: center; }
@@ -97,31 +97,31 @@
         .loading { display: flex; align-items: center; justify-content: center; height: 50vh; flex-direction: column; gap: 16px; }
         .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-        .error-box { margin: 40px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 20px 24px; color: #FCA5A5; font-size: 14px; }
+        .loading-text { font-size: 13px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+        .error-box { margin: 40px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 20px 24px; color: #FCA5A5; font-size: 15px; }
 
         .content { padding: 32px 40px; display: none; }
         .content.visible { display: block; }
 
         .placeholder { display: flex; align-items: center; justify-content: center; height: 40vh; flex-direction: column; gap: 12px; color: var(--muted); }
-        .placeholder .big { font-family: 'Bebas Neue', sans-serif; font-size: 72px; color: rgba(255,255,255,0.04); letter-spacing: 4px; }
-        .placeholder p { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
+        .placeholder .big { font-family: 'Bebas Neue', sans-serif; font-size: 73px; color: rgba(255,255,255,0.04); letter-spacing: 4px; }
+        .placeholder p { font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; }
 
         .dashboard { display: flex; flex-direction: column; gap: 24px; }
 
         .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
         .panel-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-        .panel-title { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
-        .panel-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+        .panel-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
+        .panel-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
         .panel-body { padding: 24px; }
 
         /* Leaderboard table */
         .table-wrap { overflow-x: auto; }
         .table-wrap::-webkit-scrollbar { height: 4px; }
         .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
         thead th {
-            padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 500;
+            padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 500;
             text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted);
             background: var(--card2); white-space: nowrap; cursor: pointer; user-select: none; transition: color 0.15s;
         }
@@ -139,11 +139,11 @@
         .rate-wrap { display: flex; align-items: center; gap: 8px; }
         .rate-bar-bg { width: 60px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
         .rate-bar-fill { height: 4px; border-radius: 2px; }
-        .rate-text { font-size: 12px; font-weight: 600; color: var(--amber); min-width: 36px; }
-        .num-green { color: var(--green); font-size: 13px; }
-        .num-red   { color: var(--red); font-size: 13px; }
-        .num-muted { color: var(--muted); font-size: 13px; }
-        .date-muted { font-size: 12px; color: var(--muted); }
+        .rate-text { font-size: 13px; font-weight: 600; color: var(--amber); min-width: 36px; }
+        .num-green { color: var(--green); font-size: 14px; }
+        .num-red   { color: var(--red); font-size: 14px; }
+        .num-muted { color: var(--muted); font-size: 14px; }
+        .date-muted { font-size: 13px; color: var(--muted); }
 
         /* Chart */
         .chart-wrap { position: relative; height: 300px; }
@@ -156,17 +156,17 @@
             padding: 18px; position: relative; overflow: hidden;
         }
         .team-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-        .team-card-name { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+        .team-card-name { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
         .team-card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-        .team-card-stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 2px; }
-        .team-card-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; }
+        .team-card-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 2px; }
+        .team-card-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 27px; line-height: 1; }
         .sparkline-wrap { height: 40px; position: relative; }
 
         /* Single team mode */
         .match-table tbody tr:hover { background: rgba(255,255,255,0.025); }
         .match-badge {
             display: inline-flex; align-items: center; gap: 4px;
-            font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+            font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
         }
         .badge-good { background: rgba(135,194,50,0.12); color: var(--green); }
         .badge-mid  { background: rgba(245,158,11,0.12); color: var(--amber); }
@@ -174,7 +174,7 @@
 
         /* Mode indicator */
         .mode-badge {
-            font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px;
+            font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px;
             padding: 3px 10px; border-radius: 20px; background: rgba(135,194,50,0.12); color: var(--green);
         }
     </style>
@@ -186,7 +186,7 @@
         <div class="logo">COACH<span>SMART</span></div>
         <div class="header-sub">Club Overview Dashboard</div>
     </div>
-    <div id="resultMeta" style="font-size:12px;color:var(--muted);text-align:right;"></div>
+    <div id="resultMeta" style="font-size: 13px;color:var(--muted);text-align:right;"></div>
 </div>
 
 <div class="filters-panel">
@@ -221,7 +221,7 @@
     <div class="filter-group wide">
         <div class="filter-label">Teams</div>
         <div class="multi-select-wrap" id="teamPills">
-            <span style="color:var(--muted);font-size:12px;">Load data first</span>
+            <span style="color:var(--muted);font-size: 13px;">Load data first</span>
         </div>
     </div>
 </div>
@@ -232,7 +232,7 @@
 </div>
 <div class="error-box" id="errorState" style="display:none;">
     <strong>Error loading data.</strong>
-    <div id="errorDetail" style="margin-top:8px;font-size:12px;opacity:0.7;"></div>
+    <div id="errorDetail" style="margin-top:8px;font-size: 13px;opacity:0.7;"></div>
 </div>
 
 <div class="content" id="mainContent">
@@ -419,8 +419,8 @@ async function loadData() {
         renderTeamPills();
 
         document.getElementById('resultMeta').innerHTML=
-            `<div style="color:var(--text);font-size:13px;font-weight:500;">${allTeams.length} Teams</div>
-             <div style="color:var(--muted);font-size:11px;letter-spacing:1px;margin-top:2px;">${code==='__ALL__'?'All Codes':code} · ${type==='__ALL__'?'All Types':type}</div>`;
+            `<div style="color:var(--text);font-size: 14px;font-weight:500;">${allTeams.length} Teams</div>
+             <div style="color:var(--muted);font-size: 12px;letter-spacing:1px;margin-top:2px;">${code==='__ALL__'?'All Codes':code} · ${type==='__ALL__'?'All Types':type}</div>`;
 
         hideLoading();
         document.getElementById('placeholder').style.display='none';
@@ -731,11 +731,11 @@ function buildTeamCards(stats){
                     </div>
                     <div>
                         <div class="team-card-stat-label">Accepted</div>
-                        <div class="team-card-stat-val" style="color:var(--green);font-size:20px;">${s.totalAccepted}</div>
+                        <div class="team-card-stat-val" style="color:var(--green);font-size: 21px;">${s.totalAccepted}</div>
                     </div>
                     <div>
                         <div class="team-card-stat-label">Declined</div>
-                        <div class="team-card-stat-val" style="color:var(--red);font-size:20px;">${s.totalDeclined}</div>
+                        <div class="team-card-stat-val" style="color:var(--red);font-size: 21px;">${s.totalDeclined}</div>
                     </div>
                 </div>
                 <div class="sparkline-wrap"><canvas id="spark_${s.teamName.replace(/\s/g,'_')}"></canvas></div>`;
@@ -794,8 +794,8 @@ function renderSingleTeam(dash,teamName){
                 ].map(st=>`
                     <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;">
                         <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${st.colour};"></div>
-                        <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">${st.label}</div>
-                        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1px;color:${st.colour};line-height:1;">${st.val}</div>
+                        <div style="font-size: 11px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;">${st.label}</div>
+                        <div style="font-family:'Bebas Neue',sans-serif;font-size: 37px;letter-spacing:1px;color:${st.colour};line-height:1;">${st.val}</div>
                     </div>`).join('')}
             </div>
         </div>`;
@@ -879,7 +879,7 @@ function renderSingleTeam(dash,teamName){
                             const badgeCls=rate>=70?'badge-good':rate>=40?'badge-mid':'badge-low';
                             return `<tr>
                                 <td class="date-muted">${fmtDate(ev.date)}</td>
-                                <td style="font-size:13px;">${ev.opposition||'—'}</td>
+                                <td style="font-size: 14px;">${ev.opposition||'—'}</td>
                                 <td>${ev.total}</td>
                                 <td class="num-green">${ev.accepted}</td>
                                 <td class="num-red">${ev.declined}</td>

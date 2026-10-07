@@ -28,7 +28,7 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
       color: var(--text);
-      font-size: 15px;
+      font-size: 16px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
@@ -75,7 +75,7 @@
       margin: 12px 16px 0;
     }
     .setup-section-label {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
     }
 
@@ -89,17 +89,17 @@
       align-items: center;
       gap: 12px;
     }
-    .dur-label { flex: 1; font-size: 14px; font-weight: 500; color: var(--text); }
+    .dur-label { flex: 1; font-size: 15px; font-weight: 500; color: var(--text); }
     .dur-ctrl { display: flex; align-items: center; gap: 10px; }
     .dur-step {
       width: 36px; height: 36px; border-radius: 8px;
       background: var(--surface-2); color: var(--text);
-      font-size: 20px; font-weight: 400;
+      font-size: 21px; font-weight: 400;
       display: flex; align-items: center; justify-content: center;
       transition: background 0.1s;
     }
     .dur-step:active { background: var(--accent-dim); }
-    .dur-val { font-size: 16px; font-weight: 700; color: var(--accent); min-width: 52px; text-align: center; }
+    .dur-val { font-size: 17px; font-weight: 700; color: var(--accent); min-width: 52px; text-align: center; }
 
     /* Favourites list */
     .fav-list-card {
@@ -173,7 +173,7 @@
 
     .fav-name {
       flex: 1; min-width: 0;
-      font-size: 14px; font-weight: 500; color: var(--text);
+      font-size: 15px; font-weight: 500; color: var(--text);
       cursor: pointer;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
@@ -200,11 +200,11 @@
       display: flex; align-items: center; gap: 12px;
     }
     .toggle-label {
-      flex: 1; font-size: 14px; font-weight: 500; color: var(--text);
+      flex: 1; font-size: 15px; font-weight: 500; color: var(--text);
     }
     .toggle-explainer {
       margin-top: 8px;
-      font-size: 12px; color: var(--muted); line-height: 1.5;
+      font-size: 13px; color: var(--muted); line-height: 1.5;
     }
     .toggle-switch {
       position: relative; width: 46px; height: 28px; flex-shrink: 0; cursor: pointer;
@@ -245,9 +245,9 @@
       align-items: center; justify-content: center;
       padding: 60px 32px; text-align: center;
     }
-    .state-icon  { font-size: 48px; margin-bottom: 16px; }
-    .state-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
-    .state-body  { font-size: 14px; color: var(--muted); line-height: 1.55; max-width: 290px; }
+    .state-icon  { font-size: 49px; margin-bottom: 16px; }
+    .state-title { font-size: 19px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .state-body  { font-size: 15px; color: var(--muted); line-height: 1.55; max-width: 290px; }
     .spinner {
       width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent);
       border-radius: 50%; animation: spin 0.75s linear infinite; margin-bottom: 16px;
@@ -262,9 +262,9 @@
       display: flex; align-items: flex-start; gap: 10px;
       padding: 8px 16px 14px;
     }
-    .weather-icon  { font-size: 22px; flex-shrink: 0; line-height: 1; }
-    .weather-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 3px; }
-    .weather-text  { font-size: 13px; color: var(--text); line-height: 1.45; }
+    .weather-icon  { font-size: 23px; flex-shrink: 0; line-height: 1; }
+    .weather-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 3px; }
+    .weather-text  { font-size: 14px; color: var(--text); line-height: 1.45; }
 
     /* Stats + weather unified section */
     .stats-section { background: var(--surface-2); margin-top: 6px; padding-bottom: 10px; }
@@ -278,11 +278,11 @@
       display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
     .stat-value {
-      font-size: 46px; font-weight: 700; color: var(--accent); line-height: 1;
+      font-size: 47px; font-weight: 700; color: var(--accent); line-height: 1;
       font-variant-numeric: tabular-nums;
     }
     .stat-label {
-      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      font-size: 14px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 0.06em; color: var(--muted);
     }
     .meta-pills {
@@ -293,7 +293,7 @@
       display: inline-flex; align-items: center; gap: 5px;
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 20px; padding: 4px 11px;
-      font-size: 12px; font-weight: 500; color: var(--muted);
+      font-size: 13px; font-weight: 500; color: var(--muted);
     }
 
     /* Back to setup chip + location row */
@@ -302,7 +302,7 @@
       padding: 10px 16px 8px;
     }
     .location-chip {
-      font-size: 13px; font-weight: 500; color: var(--muted);
+      font-size: 14px; font-weight: 500; color: var(--muted);
       display: flex; align-items: center; gap: 4px;
       max-width: 55%; text-align: right; line-height: 1.3;
     }
@@ -310,7 +310,7 @@
       display: inline-flex; align-items: center; gap: 5px;
       background: var(--surface); border: 1.5px solid var(--border);
       border-radius: 20px; padding: 5px 12px 5px 8px;
-      font-size: 12px; font-weight: 600; color: var(--muted);
+      font-size: 13px; font-weight: 600; color: var(--muted);
       transition: color 0.1s, border-color 0.1s;
     }
     .setup-chip:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
@@ -327,7 +327,7 @@
       margin: 14px 16px;
       background: var(--accent-dim); border: 1px solid rgba(135,194,50,0.18);
       border-radius: var(--radius); padding: 12px 14px;
-      font-size: 14px; font-style: italic; color: var(--text); line-height: 1.55;
+      font-size: 15px; font-style: italic; color: var(--text); line-height: 1.55;
     }
 
     /* Section headers */
@@ -338,8 +338,8 @@
     .s-dot-warm  { background: #f59e0b; }
     .s-dot-drill { background: var(--accent); }
     .s-dot-cool  { background: #60a5fa; }
-    .s-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .s-dur   { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 10px; }
+    .s-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .s-dur   { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 10px; }
 
     /* Phase cards */
     .phase-card {
@@ -352,9 +352,9 @@
     }
     .drill-num {
       width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff;
-      font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .drill-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .drill-name { font-size: 15px; font-weight: 600; color: var(--text); }
 
     /* Game image — full natural dimensions, no crop */
     .game-image {
@@ -363,14 +363,14 @@
     }
 
     .card-body { padding: 11px 14px 13px; }
-    .card-desc { font-size: 14px; color: var(--text); line-height: 1.55; margin-bottom: 11px; white-space: pre-line; }
-    .cp-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 7px; }
-    .cp-item { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; color: var(--text); margin-bottom: 5px; line-height: 1.45; }
-    .cp-dot  { color: var(--accent); font-size: 17px; line-height: 1.15; flex-shrink: 0; }
+    .card-desc { font-size: 15px; color: var(--text); line-height: 1.55; margin-bottom: 11px; white-space: pre-line; }
+    .cp-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 7px; }
+    .cp-item { display: flex; align-items: flex-start; gap: 7px; font-size: 14px; color: var(--text); margin-bottom: 5px; line-height: 1.45; }
+    .cp-dot  { color: var(--accent); font-size: 18px; line-height: 1.15; flex-shrink: 0; }
     .variation-row {
       display: flex; gap: 6px; margin-top: 10px; padding: 8px 10px;
       background: var(--surface-2); border-radius: 8px; border-left: 2px solid var(--muted);
-      font-size: 13px; color: var(--muted); line-height: 1.45;
+      font-size: 14px; color: var(--muted); line-height: 1.45;
     }
     .variation-row strong { font-weight: 600; color: var(--muted); flex-shrink: 0; }
     .drill-gap { height: 10px; }
@@ -390,7 +390,7 @@
     .edit-hint {
       display: flex; align-items: center; gap: 5px;
       padding: 5px 16px 0;
-      font-size: 11px; color: var(--muted); opacity: 0.7;
+      font-size: 12px; color: var(--muted); opacity: 0.7;
     }
     .edit-hint svg { width: 11px; height: 11px; flex-shrink: 0; }
 
@@ -401,7 +401,7 @@
       border: 1px solid rgba(135,194,50,0.22);
       border-left: 3px solid var(--accent);
       border-radius: var(--radius); padding: 12px 14px;
-      font-size: 14px; color: var(--text); line-height: 1.6;
+      font-size: 15px; color: var(--text); line-height: 1.6;
     }
 
     /* Feedback bar */
@@ -411,14 +411,14 @@
       border-radius: var(--radius); padding: 14px;
     }
     .feedback-hdr {
-      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px;
     }
     .feedback-input {
       width: 100%; box-sizing: border-box;
       background: var(--bg); border: 1px solid var(--border);
       border-radius: 8px; padding: 9px 12px;
-      color: var(--text); font-family: inherit; font-size: 13px;
+      color: var(--text); font-family: inherit; font-size: 14px;
       line-height: 1.5; resize: none; overflow: hidden; min-height: 68px;
     }
     .feedback-input::placeholder { color: var(--muted); }
@@ -430,14 +430,14 @@
       display: none;
       background: rgba(220,120,0,0.12); border: 1px solid rgba(220,120,0,0.35);
       border-radius: 8px; padding: 9px 12px; margin-bottom: 10px;
-      font-size: 13px; color: #e8a040; line-height: 1.45;
+      font-size: 14px; color: #e8a040; line-height: 1.45;
     }
 
     .share-row {
       margin: 16px 16px 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     }
     .btn {
-      flex: 1; height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      flex: 1; height: 44px; border-radius: 10px; font-size: 15px; font-weight: 600;
       font-family: inherit; cursor: pointer; border: none;
       display: flex; align-items: center; justify-content: center; gap: 6px;
       transition: opacity 0.15s; -webkit-tap-highlight-color: transparent;
@@ -461,7 +461,7 @@
     }
     .sheet-back {
       display: flex; align-items: center; gap: 4px;
-      color: var(--accent); font-size: 16px; font-weight: 600;
+      color: var(--accent); font-size: 17px; font-weight: 600;
     }
     .sheet-back svg { width: 28px; height: 28px; }
     .sheet-heart-btn {
@@ -484,14 +484,14 @@
       padding: 14px 16px 0;
     }
     .sheet-section-label {
-      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
     }
     .sheet-section-text {
-      font-size: 15px; color: var(--text); line-height: 1.65; white-space: pre-line;
+      font-size: 16px; color: var(--text); line-height: 1.65; white-space: pre-line;
     }
     .sheet-game-title {
-      font-size: 20px; font-weight: 700; color: var(--text);
+      font-size: 21px; font-weight: 700; color: var(--text);
       padding: 16px 16px 4px;
     }
     .sheet-actions {
@@ -501,14 +501,14 @@
       padding: 14px 16px 0;
     }
     .coach-notes-label {
-      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px;
     }
     .coach-notes-input {
       width: 100%; box-sizing: border-box;
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 10px; padding: 10px 12px;
-      color: var(--text); font-family: inherit; font-size: 14px;
+      color: var(--text); font-family: inherit; font-size: 15px;
       line-height: 1.55; resize: none; overflow: hidden; min-height: 80px;
     }
     .coach-notes-input::placeholder { color: var(--muted); }
@@ -517,7 +517,7 @@
     /* ── Toast ────────────────────────────────────────────────────────────── */
     #toast {
       position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: var(--surface-2); color: var(--text); font-size: 13px; padding: 8px 16px;
+      background: var(--surface-2); color: var(--text); font-size: 14px; padding: 8px 16px;
       border-radius: 20px; opacity: 0; transition: opacity 0.2s; z-index: 999;
       pointer-events: none; white-space: nowrap; border: 1px solid var(--border);
       display: flex; align-items: center; gap: 7px;
@@ -536,14 +536,14 @@
     /* ── Feedback voice/text toggle ── */
     .fb-mode-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
     .fb-mode-btn {
-      flex: 1; height: 34px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      flex: 1; height: 34px; border-radius: 8px; font-size: 13px; font-weight: 600;
       font-family: inherit; cursor: pointer; border: 1px solid var(--border);
       background: var(--bg); color: var(--muted);
       display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s;
     }
     .fb-mode-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
     .fb-mode-btn.active { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
-    .fb-voice-instruction { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
+    .fb-voice-instruction { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
     .fb-mic-wrap { display: flex; justify-content: center; margin: 4px 0 8px; }
     .fb-mic-btn {
       width: 140px; height: 200px; border-radius: 70px;
@@ -578,7 +578,7 @@
     .fb-transcript {
       min-height: 44px; padding: 10px 14px;
       background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: var(--radius, 12px); font-size: 14px; line-height: 1.55;
+      border-radius: var(--radius, 12px); font-size: 15px; line-height: 1.55;
       color: var(--text); word-break: break-word;
     }
     .fb-transcript:empty::before { content: "Your feedback will appear here…"; color: var(--muted); }
@@ -592,7 +592,7 @@
       content: ''; flex: 1; height: 1px; background: var(--border);
     }
     .attach-divider span {
-      font-size: 11px; font-weight: 600; color: var(--muted);
+      font-size: 12px; font-weight: 600; color: var(--muted);
       text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;
     }
     .attach-btn {
@@ -603,7 +603,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       color: var(--text);
-      font-size: 14px; font-weight: 600;
+      font-size: 15px; font-weight: 600;
       transition: background 0.15s;
     }
     .attach-btn svg { color: var(--accent); flex-shrink: 0; }
@@ -624,7 +624,7 @@
       display: flex; align-items: center; gap: 10px;
       flex-shrink: 0;
     }
-    .picker-title { font-size: 16px; font-weight: 600; flex: 1; }
+    .picker-title { font-size: 17px; font-weight: 600; flex: 1; }
     .picker-close {
       width: 36px; height: 36px;
       display: flex; align-items: center; justify-content: center;
@@ -639,10 +639,10 @@
       display: flex; align-items: center; gap: 12px;
     }
     .picker-card-body { flex: 1; min-width: 0; }
-    .picker-card-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .picker-card-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .picker-card-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .picker-card-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .picker-card-badge {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.06em; padding: 2px 7px; border-radius: 20px;
       background: var(--accent-dim); color: var(--accent); flex-shrink: 0;
     }
@@ -651,14 +651,14 @@
       color: rgba(0,0,0,0.7);
       border-radius: 8px;
       padding: 7px 14px;
-      font-size: 13px; font-weight: 700;
+      font-size: 14px; font-weight: 700;
       flex-shrink: 0;
     }
     .picker-empty {
       text-align: center; padding: 60px 32px;
-      color: var(--muted); font-size: 14px; line-height: 1.6;
+      color: var(--muted); font-size: 15px; line-height: 1.6;
     }
-    .picker-empty-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .picker-empty-title { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
     .picker-tabs {
       display: flex; gap: 0;
       background: var(--surface);
@@ -667,7 +667,7 @@
     }
     .picker-tab {
       flex: 1; padding: 10px 0;
-      font-size: 13px; font-weight: 600;
+      font-size: 14px; font-weight: 600;
       color: var(--muted); border-bottom: 2px solid transparent;
       text-align: center; transition: color 0.15s, border-color 0.15s;
     }
@@ -678,8 +678,8 @@
       padding: 14px 16px;
       display: flex; align-items: center; gap: 12px;
     }
-    .share-with-club-label { flex: 1; font-size: 14px; color: var(--text); }
-    .share-with-club-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .share-with-club-label { flex: 1; font-size: 15px; color: var(--text); }
+    .share-with-club-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -979,7 +979,7 @@
     const list = $('favList');
     list.innerHTML = '';
     if (!favs || favs.length === 0) {
-      list.innerHTML = '<div style="padding:20px 16px;font-size:14px;color:var(--muted);text-align:center">No favourites found</div>';
+      list.innerHTML = '<div style="padding:20px 16px;font-size: 15px;color:var(--muted);text-align:center">No favourites found</div>';
       return;
     }
     favs.forEach(f => {
@@ -1356,7 +1356,7 @@
     out.push(`<div style="padding:0 4px">`);
     if (p.session_title) {
       out.push(roSectionHdr('FOCUS', null, 'drill'));
-      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px"><div class="drill-name" style="font-size:15px">${esc(p.session_title)}</div></div></div>`);
+      out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px"><div class="drill-name" style="font-size: 16px">${esc(p.session_title)}</div></div></div>`);
     }
     if (p.session_objective) {
       out.push(`<div class="objective-block">${esc(p.session_objective)}</div>`);
@@ -1614,7 +1614,7 @@
     if (plan.session_title) {
       out.push(sectionHdr('FOCUS', null, 'drill'));
       out.push(`<div class="phase-card"><div class="card-body" style="padding:11px 14px">
-        <div class="drill-name" style="font-size:15px" contenteditable="true" data-path="session_title">${esc(plan.session_title)}</div>
+        <div class="drill-name" style="font-size: 16px" contenteditable="true" data-path="session_title">${esc(plan.session_title)}</div>
       </div></div>`);
     }
 

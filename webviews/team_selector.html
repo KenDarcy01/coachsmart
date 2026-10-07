@@ -26,7 +26,7 @@
     /* ── BASE ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; -webkit-text-size-adjust: none; }
-    body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); font-size: 13px; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); font-size: 14px; }
     button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
 
     /* Two full-screen panels — only one shown at a time */
@@ -56,16 +56,16 @@
       padding: 0 16px; height: 54px;
       display: flex; align-items: center; justify-content: space-between;
     }
-    .wordmark { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; line-height: 1; }
+    .wordmark { font-family: 'Bebas Neue', sans-serif; font-size: 21px; letter-spacing: 3px; line-height: 1; }
     .wordmark .g  { color: #9CA3AF; }
     .wordmark .gr { color: var(--green); }
-    .bar-sub { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+    .bar-sub { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
     .bar-actions { display: flex; gap: 8px; align-items: center; }
     .green-btn {
       display: flex; align-items: center; gap: 6px;
       padding: 0 13px; height: 34px;
       background: var(--green); color: #111418;
-      border-radius: 8px; font-size: 12px; font-weight: 700;
+      border-radius: 8px; font-size: 13px; font-weight: 700;
       white-space: nowrap; transition: opacity 0.15s;
     }
     .green-btn:hover { opacity: 0.85; }
@@ -74,7 +74,7 @@
       display: flex; align-items: center; gap: 5px;
       padding: 0 10px; height: 32px;
       background: var(--green); color: #111418;
-      border-radius: 8px; font-size: 11px; font-weight: 700;
+      border-radius: 8px; font-size: 12px; font-weight: 700;
       white-space: nowrap; transition: opacity 0.15s; flex-shrink: 0;
     }
     .hdr-btn:hover { opacity: 0.85; }
@@ -92,26 +92,26 @@
     }
     #authError.active { display: flex; }
     #authError svg { color: var(--red); }
-    #authError h2 { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; }
-    #authError p { font-size: 13px; color: var(--muted); max-width: 280px; line-height: 1.6; }
+    #authError h2 { font-family: 'Bebas Neue', sans-serif; font-size: 23px; letter-spacing: 2px; }
+    #authError p { font-size: 14px; color: var(--muted); max-width: 280px; line-height: 1.6; }
 
     /* ── PITCH SCREEN ──
        Use JS-measured pixel heights — no flex magic needed */
     #pitchScreen { overflow: hidden; }
     .sub-bar { background: var(--card2); border-bottom: 1px solid var(--border); height: 38px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .event-lbl { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .event-lbl { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .event-lbl strong { color: var(--text); }
     .toolbar { background: var(--card); border-bottom: 1px solid var(--border); height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
     .toolbar::-webkit-scrollbar { display: none; }
-    .tlbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; }
+    .tlbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; }
     .fmts { display: flex; gap: 3px; }
-    .fb { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1.5px solid var(--border); color: var(--muted); background: transparent; transition: all 0.12s; white-space: nowrap; }
+    .fb { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1.5px solid var(--border); color: var(--muted); background: transparent; transition: all 0.12s; white-space: nowrap; }
     .fb.on { background: var(--green); border-color: var(--green); color: #111418; }
     .fb:hover:not(.on) { border-color: var(--green); color: var(--green); }
     .tsep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
     .cols { display: flex; align-items: center; gap: 6px; margin-left: auto; }
     .sw-w { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-    .sw-l { font-size: 7px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    .sw-l { font-size: 8px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
     input[type=color].sw { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; padding: 0; appearance: none; -webkit-appearance: none; overflow: hidden; }
     input[type=color].sw::-webkit-color-swatch-wrapper { padding: 0; }
     input[type=color].sw::-webkit-color-swatch { border: none; border-radius: 50%; }
@@ -120,22 +120,22 @@
     .squad-strip { background: var(--card); border-top: 1px solid var(--border); height: 80px; display: flex; align-items: center; gap: 8px; padding: 0 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; cursor: grab; }
     .squad-strip:active { cursor: grabbing; }
     .squad-strip::-webkit-scrollbar { display: none; }
-    .ss-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; flex-shrink: 0; margin-right: 4px; }
-    .ss-empty { font-size: 11px; color: var(--muted); white-space: nowrap; }
-    .chip { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; display: flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.12s; }
+    .ss-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; flex-shrink: 0; margin-right: 4px; }
+    .ss-empty { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .chip { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; display: flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.12s; }
     .chip.placed { opacity: 0.3; cursor: default; pointer-events: none; }
     .chip:not(.placed):hover { border-color: var(--green); color: var(--green); }
-    .chip .cn { width: 20px; height: 20px; border-radius: 50%; background: var(--green); color: #111418; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .chip .cn { width: 20px; height: 20px; border-radius: 50%; background: var(--green); color: #111418; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
     /* Subs zone — fixed height */
     .subs-zone { background: var(--card); border-top: 1px solid var(--border); height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; }
-    .subs-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; }
+    .subs-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; }
     .ss { width: 36px; height: 40px; border: 1.5px dashed var(--border); border-radius: 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card2); position: relative; flex-shrink: 0; transition: border-color 0.12s; }
     .ss.over { border-color: var(--green); background: var(--green-dim); }
     .ss.full { border-style: solid; border-color: var(--border); }
-    .ss .sn  { font-size: 9px; color: var(--muted); font-weight: 600; }
-    .ss .snm { position: absolute; bottom: -13px; font-size: 7px; color: var(--muted); text-align: center; width: 52px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ss .srm { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; background: var(--red); color: white; border-radius: 50%; font-size: 8px; line-height: 13px; text-align: center; cursor: pointer; display: none; }
+    .ss .sn  { font-size: 10px; color: var(--muted); font-weight: 600; }
+    .ss .snm { position: absolute; bottom: -13px; font-size: 8px; color: var(--muted); text-align: center; width: 52px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ss .srm { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; background: var(--red); color: white; border-radius: 50%; font-size: 9px; line-height: 13px; text-align: center; cursor: pointer; display: none; }
     .ss.full .srm { display: block; }
 
     /* Pitch area — JS sets explicit px height */
@@ -153,28 +153,28 @@
     .pc.has .jb { fill: var(--jc-p, #cc0000); stroke: rgba(255,255,255,0.85); stroke-dasharray: none; }
     .pc.gk.has .jb { fill: var(--jc-g, #ffffff); }
     .pc.over .jb { fill: rgba(255,255,255,0.28); stroke: white; stroke-dasharray: none; }
-    .pn { font-size: 9px; font-weight: 700; color: white; text-align: center; max-width: 68px; white-space: pre-line; word-break: break-word; line-height: 1.25; position: relative; z-index: 2; background: rgba(0,0,0,0.52); padding: 1px 4px; border-radius: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
-    .pl { font-size: 7px; font-weight: 600; color: rgba(255,255,255,0.65); text-shadow: 0 1px 2px rgba(0,0,0,0.6); white-space: nowrap; }
-    .rx { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: var(--red); color: white; font-size: 8px; display: none; align-items: center; justify-content: center; z-index: 10; cursor: pointer; line-height: 1; }
+    .pn { font-size: 10px; font-weight: 700; color: white; text-align: center; max-width: 68px; white-space: pre-line; word-break: break-word; line-height: 1.25; position: relative; z-index: 2; background: rgba(0,0,0,0.52); padding: 1px 4px; border-radius: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
+    .pl { font-size: 8px; font-weight: 600; color: rgba(255,255,255,0.65); text-shadow: 0 1px 2px rgba(0,0,0,0.6); white-space: nowrap; }
+    .rx { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: var(--red); color: white; font-size: 9px; display: none; align-items: center; justify-content: center; z-index: 10; cursor: pointer; line-height: 1; }
     .pc.has:hover .rx { display: flex; }
-    .ptip { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.8); font-size: 9px; padding: 3px 9px; border-radius: 20px; white-space: nowrap; pointer-events: none; backdrop-filter: blur(4px); }
+    .ptip { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.8); font-size: 10px; padding: 3px 9px; border-radius: 20px; white-space: nowrap; pointer-events: none; backdrop-filter: blur(4px); }
 
-    #dg { position: fixed; pointer-events: none; z-index: 9999; background: var(--green); color: #111418; padding: 4px 10px; border-radius: 7px; font-size: 11px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.5); transform: translate(-50%,-50%) scale(1.04); display: none; white-space: nowrap; }
+    #dg { position: fixed; pointer-events: none; z-index: 9999; background: var(--green); color: #111418; padding: 4px 10px; border-radius: 7px; font-size: 12px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.5); transform: translate(-50%,-50%) scale(1.04); display: none; white-space: nowrap; }
     #dg.show { display: block; }
 
     .ppop { position: fixed; z-index: 800; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.65); max-height: 220px; overflow-y: auto; min-width: 170px; }
-    .pp-hdr { padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-    .pp-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 12px; font-size: 11px; text-align: left; color: var(--text); transition: background 0.1s; }
+    .pp-hdr { padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .pp-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 12px; font-size: 12px; text-align: left; color: var(--text); transition: background 0.1s; }
     .pp-item:hover { background: var(--card2); }
-    .pp-av { width: 18px; height: 18px; border-radius: 50%; background: var(--green); color: #111418; font-size: 8px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pp-av { width: 18px; height: 18px; border-radius: 50%; background: var(--green); color: #111418; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
     .lov { position: fixed; inset: 0; background: rgba(17,20,24,0.82); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 500; backdrop-filter: blur(4px); }
     .lov.off { display: none; }
     .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: sp 0.7s linear infinite; }
     @keyframes sp { to { transform: rotate(360deg); } }
-    .lov-t { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .lov-t { font-size: 13px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 
-    #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--text); color: var(--dark); padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 1000; opacity: 0; pointer-events: none; transition: all 0.22s; white-space: nowrap; }
+    #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--text); color: var(--dark); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; z-index: 1000; opacity: 0; pointer-events: none; transition: all 0.22s; white-space: nowrap; }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* ── PDF PREVIEW OVERLAY ── */
