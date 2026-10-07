@@ -2016,7 +2016,7 @@ async function exportGamePdf(gameId) {
     const res = await fetch(SUPABASE_URL + '/functions/v1/generate-game-card-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken, 'apikey': SUPABASE_ANON_KEY },
-      body: JSON.stringify({ game_id: gameId, platform: window.FlutterBridge ? 'mobile' : 'web' }),
+      body: JSON.stringify({ game_id: gameId, user_id: _jwtUserId(), platform: window.FlutterBridge ? 'mobile' : 'web' }),
     });
     if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Server error ' + res.status); }
     const { pdf, filename } = await res.json();
