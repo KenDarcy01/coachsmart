@@ -828,12 +828,8 @@ serve(async (req) => {
           .select("plan_id").single();
         savedPlanId = saved?.plan_id ?? null;
       } else {
-        // Favourites revision — save as new active library entry
-        const { data: saved } = await sb
-          .from("session_plans")
-          .insert({ created_by: user_id, plan_json: planJson, session_title: sessionTitle, is_active: true })
-          .select("plan_id").single();
-        savedPlanId = saved?.plan_id ?? null;
+        // Favourites revision — caller saves explicitly via save_plan; return unsaved draft
+        savedPlanId = null;
       }
 
       return new Response(JSON.stringify({
@@ -843,6 +839,25 @@ serve(async (req) => {
         event:      eventMeta ?? null,
         squad_name: squad?.squad_name ?? null,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── SAVE_PLAN (favourites explicit save) ─────────────────────────────────
+    if (action === "save_plan") {
+      const { plan_json: planJsonToSave } = body;
+      if (!planJsonToSave) return new Response(JSON.stringify({ error: "plan_json required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const saveTitle: string = planJsonToSave.session_title || "Training Session";
+      const { data: saved, error: saveErr } = await sb
+        .from("session_plans")
+        .insert({ created_by: user_id, plan_json: planJsonToSave, session_title: saveTitle, is_active: true })
+        .select("plan_id").single();
+      if (saveErr) return new Response(JSON.stringify({ error: "Failed to save: " + saveErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      return new Response(JSON.stringify({ ok: true, plan_id: saved?.plan_id ?? null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ── GENERATE ──────────────────────────────────────────────────────────────
@@ -1076,13 +1091,8 @@ serve(async (req) => {
       }
       savedPlanId = saved.plan_id;
     } else {
-      // Favourites — always save as a new library entry
-      const { data: saved } = await sb
-        .from("session_plans")
-        .insert({ created_by: user_id, plan_json: planJson, session_title: genSessionTitle, is_active: true })
-        .select("plan_id")
-        .single();
-      savedPlanId = saved?.plan_id ?? null;
+      // Favourites — caller saves explicitly via save_plan; return unsaved draft
+      savedPlanId = null;
     }
 
     return new Response(JSON.stringify({
