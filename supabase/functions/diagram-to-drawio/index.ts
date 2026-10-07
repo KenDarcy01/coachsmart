@@ -27,7 +27,7 @@ Scan the ENTIRE image from top to bottom before you begin writing XML. Every sin
 
 STEP 1 — BEFORE ANYTHING ELSE, SCAN THE IMAGE FOR THESE THREE THINGS IN ORDER:
 
-① TRAINING WALL: Is there a wide, shallow rectangle anywhere in the image whose label contains the word "wall" (case-insensitive — matches "WALL", "Wall", "wall ball", "WALL BALL", etc.)? If yes, it MUST be the first vertex you output — place it at the top of the canvas before any other element. Do not skip it. A partial label match is enough — if the rectangle is clearly a physical wall, render it as TRAINING WALL even if the label also contains other words.
+① TRAINING WALL: Look for EITHER (a) a wide, shallow rectangle whose label contains the word "wall" (case-insensitive — "WALL", "Wall", "wall ball", "WALL BALL", etc.) OR (b) a wide, shallow rectangle or thick bar at the TOP of the diagram that arrows are pointing toward from below (even if it has NO label — the arrow context is enough). If EITHER condition is true, it MUST be the first vertex you output — place it at the top of the canvas before any other element. Do not skip it. An unlabelled wall is still a wall if arrows point up toward it.
 
 ② EVERY CIRCLE — classify each one by label:
 Each circle must be classified by reading its label. This classification is MANDATORY and OVERRIDES any assumption about team colour or position on the pitch.
@@ -102,7 +102,10 @@ PITCH LINES — MUST BE IDENTIFIED BEFORE MOVEMENT LINES:
 - Pitch lines have NO arrowhead and NO dash. Output them as: edgeStyle=none;html=1;endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;
 - DO NOT mistake pitch lines for movement arrows. If a line spans the full width with no clear start/end player, it is a pitch line.
 
-TRAINING WALL (any wide, shallow rectangle whose label contains the word "wall", case-insensitive — "Wall", "WALL", "wall ball", "WALL BALL", etc.):
+TRAINING WALL — detect by EITHER of these conditions (both are equally valid — a wall does not need a label):
+  CONDITION A — labelled: a wide, shallow rectangle whose label contains the word "wall" (case-insensitive — "Wall", "WALL", "wall ball", "WALL BALL", etc.)
+  CONDITION B — unlabelled but contextual: a wide, shallow rectangle or thick bar at the TOP of the diagram that has arrows pointing toward it from below, AND there are no player circles or cones above it
+If EITHER condition is true, render it as a TRAINING WALL.
 - A physical wall used in hurling/camogie training — players stand in front of it and strike the sliotar against it. It is always a wide, shallow rectangle spanning most of the playing width, placed at the top (or occasionally the bottom) of the diagram.
 - Scan for it BEFORE drawing any arrows — arrows targeting the wall must end at its edge.
 - Style: rounded=0;whiteSpace=wrap;html=1;fillColor=#455A64;strokeColor=#B0BEC5;strokeWidth=3;fontColor=#ffffff;fontSize=16;fontStyle=1;
@@ -140,7 +143,8 @@ If a drawn shape does not match any symbol defined above exactly, DO NOT skip it
       Use the written label as the value. Examples:
         "Zone A", "Box", "Grid", "Channel" → training area markers
         Any other written word or phrase → render as a labelled rectangle at its drawn position
-  - Unlabelled rectangle or shaded box → area marker: style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;opacity=12;strokeColor=#ffffff;strokeWidth=1.5;" value=""
+  - Unlabelled wide, shallow rectangle at the TOP of the diagram (especially with arrows pointing at it from below) → TRAINING WALL: use the TRAINING WALL style and value="WALL"
+  - Unlabelled rectangle or shaded box elsewhere → area marker: style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;opacity=12;strokeColor=#ffffff;strokeWidth=1.5;" value=""
   - Cross or X mark → position marker: style="text;html=1;fontColor=#ffffff;fontSize=18;fontStyle=1;" value="✕"
   - Handwritten text or number not inside any circle → text label: style="text;html=1;fontColor=#ffffff;fontSize=13;fontStyle=0;"
   - Any other identifiable drawn shape → output the best matching mxGraph shape at its approximate position
