@@ -1567,16 +1567,19 @@
     _currentPlan = plan;
     const out = [];
 
-    // Chip row: Back to Setup (left) + location (right)
+    // Chip row: back button (left) + location (right)
     const locLabel = _eventMeta?.location_name
       ? `<div class="location-chip">📍 ${esc(_eventMeta.location_name)}</div>` : '';
-    out.push(`<div class="setup-chip-row">
-      <button class="setup-chip" onclick="showSetup()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        Back to Setup
-      </button>
-      ${locLabel}
-    </div>`);
+    const backChip = EVENT_ID
+      ? `<button class="setup-chip" onclick="openPlanPicker()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Change Plan
+        </button>`
+      : `<button class="setup-chip" onclick="showSetup()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Setup
+        </button>`;
+    out.push(`<div class="setup-chip-row">${backChip}${locLabel}</div>`);
 
     // Edit hint
     out.push(`<div class="edit-hint">
@@ -1852,23 +1855,22 @@
         if (filtered.length > 0) _favs = filtered;
       }
 
-      // Hide "Attach a Saved Plan" when there's no event to attach to
-      const attachSection = $('setupAttachSection');
-      if (attachSection) attachSection.style.display = EVENT_ID ? '' : 'none';
-      const attachDivider = $('setupAttachDivider');
-      if (attachDivider) attachDivider.style.display = EVENT_ID ? '' : 'none';
+      // Event mode: skip setup entirely — go straight to picker, or show existing plan
+      if (EVENT_ID) {
+        if (data.plan) {
+          _currentPlanId = data.plan_id;
+          renderPlan(data.plan, data.squad_name);
+        } else {
+          openPlanPicker();
+        }
+        return;
+      }
 
-      // Render setup screen with favourites
+      // Library/generation mode (no EVENT_ID)
+      if (_favs.length === 0) { showEmpty(); return; }
+
       $('durVal').textContent = _dur;
       renderFavList(_favs);
-
-      if (data.plan) {
-        // Existing plan — show it, user can regenerate from setup
-        _currentPlanId = data.plan_id;
-        renderPlan(data.plan, data.squad_name);
-      } else {
-        showSetup();
-      }
     } catch { showError('Network error. Please check your connection and try again.'); }
   }
 

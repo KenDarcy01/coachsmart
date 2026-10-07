@@ -176,6 +176,16 @@
       font-size: 10px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
     }
+    .toggle-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+    .toggle-row { display: flex; align-items: center; gap: 12px; }
+    .toggle-label { flex: 1; font-size: 14px; font-weight: 500; color: var(--text); }
+    .toggle-explainer { margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .toggle-switch { position: relative; width: 46px; height: 28px; flex-shrink: 0; cursor: pointer; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider { position: absolute; inset: 0; cursor: pointer; background: var(--surface-2); border-radius: 14px; border: 1.5px solid var(--border); transition: background 0.2s, border-color 0.2s; }
+    .toggle-slider::before { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; left: 3px; top: 50%; transform: translateY(-50%); background: var(--muted); transition: transform 0.2s, background 0.2s; }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translate(18px, -50%); background: rgba(0,0,0,0.65); }
     .stepper-card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 14px 16px;
@@ -546,6 +556,19 @@
           </div>
         </div>
       </div>
+      <div>
+        <div class="field-label">Session Format</div>
+        <div class="toggle-card">
+          <div class="toggle-row">
+            <div class="toggle-label">Rotate through stations</div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="rotateToggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-explainer">When on, players are split across the drill stations and rotate at intervals — not everyone performs the same activity at the same time. Warm-up and cool-down remain collective.</div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="bottom-bar">
@@ -621,7 +644,8 @@
   const IS_WEBVIEW = (function() { try { return typeof FlutterBridge !== 'undefined'; } catch(_) { return false; } })();
   const _isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  let _dur     = parseInt(qp.get('duration') || '60') || 60;
+  let _dur            = parseInt(qp.get('duration') || '60') || 60;
+  let _rotateStations = true;
   let _favs    = [];
   let _currentPlanId = null;
   let _currentPlan   = null;
@@ -849,9 +873,10 @@
     }
 
     try {
+      _rotateStations = $('rotateToggle')?.checked ?? true;
       const body = isRevision
         ? { action: 'revise_plan', user_id: USER_ID, feedback, existing_plan: _currentPlan }
-        : { action: 'generate', user_id: USER_ID, duration_mins: _dur, game_ids };
+        : { action: 'generate', user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
       const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
       const data = await res.json();
 
