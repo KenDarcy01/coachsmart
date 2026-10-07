@@ -954,7 +954,11 @@
 
       if (aiResult.suggested_type)           document.getElementById('rvType').value = aiResult.suggested_type;
       if (aiResult.suggested_ages?.length)   _preselectChips('ageChips',   'age',   aiResult.suggested_ages);
-      if (aiResult.suggested_sport)          _preselectChips('sportChips', 'sport', [aiResult.suggested_sport]);
+      // Use diagram's suggested_codes (e.g. ["hurling","camogie"]) if available, else fall back to AI sport guess
+      const sportCodes = stdResult?.suggested_codes?.length
+        ? stdResult.suggested_codes
+        : aiResult.suggested_sport ? [aiResult.suggested_sport] : [];
+      if (sportCodes.length) _preselectChips('sportChips', 'sport', sportCodes);
       if (aiResult.suggested_skills?.length) _preselectChips('skillChips', 'skill', aiResult.suggested_skills);
       _releaseWakeLock();
       showReview(aiResult, null);
