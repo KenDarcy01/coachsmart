@@ -531,7 +531,7 @@
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="btn btn-outline" id="exportGamesBtn" onclick="exportGamesPdf()">
+    <button class="btn btn-primary" id="exportGamesBtn" onclick="exportGamesPdf()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
       Export Games
     </button>
@@ -583,7 +583,11 @@
     <div id="planContent"></div>
   </div>
   <div class="plan-action-bar" id="planActionBar" style="display:none">
-    <button class="btn btn-outline" id="shareClubBtn" onclick="shareWithClub()">
+    <button class="btn btn-primary" id="savePlanBtn" onclick="savePlan()" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Save Plan
+    </button>
+    <button class="btn btn-outline" id="shareClubBtn" onclick="shareWithClub()" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       Share with Club
     </button>
@@ -646,6 +650,7 @@
 
   let _dur            = parseInt(qp.get('duration') || '60') || 60;
   let _rotateStations = true;
+  let _isDraft        = false;
   let _favs    = [];
   let _currentPlanId = null;
   let _currentPlan   = null;
@@ -668,7 +673,15 @@
       const el = $(s);
       if (el) el.classList.toggle('active', s === id);
     });
-    $('planActionBar').style.display = (id === 'planScreen') ? 'flex' : 'none';
+    if (id === 'planScreen') { $('planActionBar').style.display = 'flex'; updatePlanActionBar(); }
+    else $('planActionBar').style.display = 'none';
+  }
+
+  function updatePlanActionBar() {
+    const saveBtn  = $('savePlanBtn');
+    const shareBtn = $('shareClubBtn');
+    if (saveBtn)  saveBtn.style.display  = _isDraft ? '' : 'none';
+    if (shareBtn) shareBtn.style.display = _isDraft ? 'none' : '';
   }
 
   function showLoading(msg) {
@@ -894,8 +907,9 @@
       }
 
       _currentPlanId = data.plan_id ?? null;
+      _isDraft = !_currentPlanId;
       renderPlan(data.plan);
-      if (isRevision) { clearToast(); showToast('Plan updated ✓', 'success'); }
+      if (isRevision) { clearToast(); showToast('Plan updated — tap Save when ready', 'success'); }
     } catch {
       if (isRevision) showToast('Update failed — please try again', 'error');
       else showError('Network error. Please try again.');
@@ -1076,9 +1090,31 @@
     finally { if (btn) btn.disabled = false; }
   }
 
+  // ── Save plan ──────────────────────────────────────────────────────────────
+  async function savePlan() {
+    if (!_currentPlan) return;
+    const btn = $('savePlanBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const planToSave = collectEdits() || _currentPlan;
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'save_plan', user_id: USER_ID, plan_json: planToSave }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.plan_id) { showToast(data.error || 'Could not save', 'error'); return; }
+      _currentPlanId = data.plan_id;
+      _isDraft = false;
+      updatePlanActionBar();
+      showToast('Plan saved ✓', 'success');
+    } catch { showToast('Network error — could not save', 'error'); }
+    finally { if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Plan'; } }
+  }
+
   // ── Export plan PDF ────────────────────────────────────────────────────────
   async function exportPlan() {
     if (!_currentPlan) { showToast('No plan to export'); return; }
+    if (_isDraft) showToast('Exporting draft — this plan is not saved yet', 'error');
     const btn = $('exportPlanBtn');
     const orig = btn?.innerHTML;
     const spin = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>';
@@ -1196,6 +1232,7 @@
       const data = await res.json();
       if (!res.ok || !data.plan) { showError(data.error || 'Failed to load plan.'); return; }
       _currentPlanId = data.plan_id;
+      _isDraft = false;
       renderPlan(data.plan);
     } catch { showError('Network error. Please try again.'); }
   }
@@ -1206,9 +1243,9 @@
       const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_shared_plan', share_id: shareId, user_id: USER_ID }) });
       const data = await res.json();
       if (!res.ok || !data.plan) { showError(data.error || 'Failed to load.'); return; }
-      _currentPlanId = null; // shared plan, not owned — can't share-with-club from here
+      _currentPlanId = null;
+      _isDraft = false; // received plan — not a draft, just not shareable
       renderPlan(data.plan);
-      $('shareClubBtn').style.display = 'none'; // hide share btn for received plans
     } catch { showError('Network error.'); }
   }
 
@@ -1262,6 +1299,7 @@
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Attach failed', 'error'); return; }
     _currentPlanId = data.plan_id;
+    _isDraft = false;
     clearToast();
     // Fetch the DB-saved plan so we show the enriched version (player/coach counts, weather, date)
     try {
