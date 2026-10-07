@@ -371,14 +371,19 @@ serve(async (req) => {
     console.log("fixCircleStyles changed:", xml !== xmlBefore, "| coach cells:", (xml.match(/fillColor=#1a1a1a/g) || []).length, "| football cells:", (xml.match(/fillColor=#ffffff/g) || []).length);
 
     // Derive suggested sport codes from the XML itself.
-    // STEP 6 adds value="Hurling · Camogie" when hurling elements are detected — read that back.
-    const isHurling  = /value="Hurling\s*[·•]\s*Camogie"/i.test(xml);
+    // STEP 6 adds value="Hurling · Camogie" when hurling elements are detected — read that back,
+    // then strip the label so it doesn't appear in the rendered diagram image.
+    const isHurling  = /value="Hurling\s*[·•·]\s*Camogie"/i.test(xml);
     const isFootball = !isHurling && /football/i.test(gameName ?? "");
     const suggestedCodes: string[] = isHurling
       ? ["hurling", "camogie"]
       : isFootball
         ? ["football"]
         : [];
+    // Remove the Hurling · Camogie text cell — it was only needed as a detection signal
+    if (isHurling) {
+      xml = xml.replace(/<mxCell[^>]+value="Hurling[^"]*Camogie"[\s\S]*?<\/mxCell>/i, "");
+    }
 
     return new Response(JSON.stringify({ xml, game_name: gameName, suggested_codes: suggestedCodes }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
