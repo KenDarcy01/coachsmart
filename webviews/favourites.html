@@ -346,8 +346,10 @@
       background: var(--surface-2); border: 1px solid var(--border);
       border-radius: var(--radius); font-size: 14px; line-height: 1.55;
       color: var(--text); word-break: break-word;
+      outline: none; cursor: text;
     }
-    .fb-transcript:empty::before { content: "Your feedback will appear here…"; color: var(--muted); }
+    .fb-transcript:focus { border-color: var(--accent); }
+    .fb-transcript:empty::before { content: "Your speech will appear here — tap to edit before submitting…"; color: var(--muted); pointer-events: none; }
     .feedback-input {
       width: 100%; background: var(--bg); border: 1px solid var(--border);
       border-radius: 8px; padding: 9px 12px; color: var(--text);
@@ -590,7 +592,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
               </button>
             </div>
-            <div id="setupTranscript" class="fb-transcript"></div>
+            <div id="setupTranscript" class="fb-transcript" contenteditable="true" spellcheck="true"></div>
           </div>
           <div id="setupFbTextPanel" style="display:none">
             <textarea id="setupNotesText" class="feedback-input" placeholder="Describe session goals, focus areas or any special requirements…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -917,7 +919,7 @@
     try {
       _rotateStations = $('rotateToggle')?.checked ?? true;
       const session_notes = _setupDescMode === 'voice'
-        ? _setupTranscript.trim()
+        ? ($('setupTranscript')?.innerText?.trim() || _setupTranscript.trim())
         : ($('setupNotesText')?.value || '').trim();
       const body = isRevision
         ? { action: 'revise_plan', user_id: USER_ID, feedback, existing_plan: _currentPlan }
@@ -953,7 +955,7 @@
     if (_isRegen) return;
     _isRegen = true;
     const feedback = _spDescMode === 'voice'
-      ? _spTranscript.trim()
+      ? ($('spTranscript')?.innerText?.trim() || _spTranscript.trim())
       : ($('feedbackText')?.value || '').trim();
     if (!feedback) {
       showToast(_spDescMode === 'voice' ? 'Nothing recorded — tap the mic and speak' : 'Add some feedback first', 'error');
@@ -1032,7 +1034,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           </button>
         </div>
-        <div id="spTranscript" class="fb-transcript"></div>
+        <div id="spTranscript" class="fb-transcript" contenteditable="true" spellcheck="true"></div>
       </div>
       <div id="spFbTextPanel" style="display:none">
         <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -1469,7 +1471,8 @@
 
   function initMicBtn() {
     const btn = $('spFbMicBtn');
-    if (!btn) return;
+    if (!btn || btn._spInited) return;
+    btn._spInited = true;
     btn.addEventListener('contextmenu', e => e.preventDefault());
     const instr = $('spFbInstruction');
     if (instr && !_isIOS) instr.textContent = window.FlutterBridge
