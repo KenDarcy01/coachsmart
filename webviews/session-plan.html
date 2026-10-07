@@ -659,6 +659,27 @@
       color: var(--muted); font-size: 14px; line-height: 1.6;
     }
     .picker-empty-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .picker-tabs {
+      display: flex; gap: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .picker-tab {
+      flex: 1; padding: 10px 0;
+      font-size: 13px; font-weight: 600;
+      color: var(--muted); border-bottom: 2px solid transparent;
+      text-align: center; transition: color 0.15s, border-color 0.15s;
+    }
+    .picker-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .share-with-club {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .share-with-club-label { flex: 1; font-size: 14px; color: var(--text); }
+    .share-with-club-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -698,14 +719,14 @@
 <!-- Setup screen -->
 <div id="setupScreen" class="screen">
   <div class="scroll-content" style="padding-bottom:100px">
-    <div class="setup-section" style="margin-top:16px">
+    <div id="setupAttachSection" class="setup-section" style="margin-top:16px">
       <div class="setup-section-label">Saved Plans</div>
       <button class="attach-btn" onclick="openPlanPicker()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
         Attach a Saved Plan
       </button>
     </div>
-    <div class="attach-divider"><span>or generate a new one</span></div>
+    <div id="setupAttachDivider" class="attach-divider"><span>or generate a new one</span></div>
     <div class="setup-section" style="margin-top:16px">
       <div class="setup-section-label">Session Duration</div>
       <div class="dur-card">
@@ -752,7 +773,12 @@
       </button>
       <div class="picker-title">Saved Plans</div>
     </div>
+    <div class="picker-tabs">
+      <button class="picker-tab active" id="pickerTabMine" onclick="switchPickerTab('mine')">My Plans</button>
+      <button class="picker-tab" id="pickerTabClub" onclick="switchPickerTab('club')">Club Plans</button>
+    </div>
     <div class="picker-list" id="pickerList"></div>
+    <div class="picker-list" id="pickerClubList" style="display:none"></div>
   </div>
   <!-- Detail panel -->
   <div id="pickerDetailPanel" style="display:none;flex-direction:column;flex:1;min-height:0">
@@ -1176,9 +1202,12 @@
   }
 
   // ── Plan picker ───────────────────────────────────────────────────────────────
-  let _pickerLoading = false;
-  let _pickerPlans   = [];
-  let _pickerSelectedId = null;
+  let _pickerLoading     = false;
+  let _pickerClubLoading = false;
+  let _pickerPlans       = [];
+  let _pickerClubPlans   = [];
+  let _pickerSelectedId  = null;
+  let _pickerActiveTab   = 'mine';
 
   function openPlanPicker() {
     showPickerList();
@@ -1200,6 +1229,35 @@
     $('pickerDetailPanel').style.display = 'flex';
   }
 
+  function switchPickerTab(tab) {
+    _pickerActiveTab = tab;
+    $('pickerTabMine').classList.toggle('active', tab === 'mine');
+    $('pickerTabClub').classList.toggle('active', tab === 'club');
+    $('pickerList').style.display     = tab === 'mine' ? '' : 'none';
+    $('pickerClubList').style.display = tab === 'club' ? '' : 'none';
+    if (tab === 'club' && !_pickerClubLoading && _pickerClubPlans.length === 0) loadClubPlans();
+  }
+
+  function renderPickerCards(plans, list, isClub) {
+    if (plans.length === 0) {
+      list.innerHTML = isClub
+        ? '<div class="picker-empty"><div class="picker-empty-title">No club plans yet</div>Coaches in your club can share plans — they\'ll appear here once shared.</div>'
+        : '<div class="picker-empty"><div class="picker-empty-title">No saved plans yet</div>Generate plans from your favourites — they\'ll appear here.</div>';
+    } else {
+      list.innerHTML = plans.map(p => {
+        const date = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+        const meta = isClub ? (p.is_own ? 'You · ' : (p.created_by ? p.created_by + ' · ' : '')) + date : date;
+        return `<div class="picker-card" onclick="attachPlanFromDetail('${p.plan_id}')" style="cursor:pointer">
+          <div class="picker-card-body">
+            <div class="picker-card-title">${esc(p.session_title)}</div>
+            <div class="picker-card-meta">${esc(meta)}</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`;
+      }).join('');
+    }
+  }
+
   async function loadPickerPlans() {
     _pickerLoading = true;
     const list = $('pickerList');
@@ -1211,24 +1269,30 @@
       });
       const data = await res.json();
       _pickerPlans = data.plans || [];
-      if (_pickerPlans.length === 0) {
-        list.innerHTML = '<div class="picker-empty"><div class="picker-empty-title">No saved plans yet</div>Generate plans in the Favourites section — they\'ll appear here to attach to events.</div>';
-      } else {
-        list.innerHTML = _pickerPlans.map(p => {
-          const date  = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-          return `<div class="picker-card" onclick="attachPlanFromDetail(${p.plan_id})" style="cursor:pointer">
-            <div class="picker-card-body">
-              <div class="picker-card-title">${esc(p.session_title)}</div>
-              <div class="picker-card-meta">${date}</div>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>`;
-        }).join('');
-      }
+      renderPickerCards(_pickerPlans, list, false);
     } catch {
       list.innerHTML = '<div class="picker-empty"><div class="picker-empty-title">Failed to load</div>Check your connection and try again.</div>';
     } finally {
       _pickerLoading = false;
+    }
+  }
+
+  async function loadClubPlans() {
+    _pickerClubLoading = true;
+    const list = $('pickerClubList');
+    list.innerHTML = '<div class="picker-empty"><div class="picker-empty-title">Loading…</div></div>';
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'get_club_plans', user_id: USER_ID }),
+      });
+      const data = await res.json();
+      _pickerClubPlans = data.plans || [];
+      renderPickerCards(_pickerClubPlans, list, true);
+    } catch {
+      list.innerHTML = '<div class="picker-empty"><div class="picker-empty-title">Failed to load</div>Check your connection and try again.</div>';
+    } finally {
+      _pickerClubLoading = false;
     }
   }
 
@@ -1335,38 +1399,15 @@
     closePlanPicker();
     showLoading('Attaching plan…');
     try {
-      // 1. Load the library plan
-      const libRes  = await fetch(EDGE_FN, {
+      // Server loads plan by plan_id (checking own-plan then club membership), enriches with event context
+      const res  = await fetch(EDGE_FN, {
         method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get_plan', plan_id: resolvedId, user_id: USER_ID }),
+        body: JSON.stringify({ action: 'attach_plan', event_id: EVENT_ID, user_id: USER_ID, plan_id: resolvedId }),
       });
-      const libData = await libRes.json();
-      if (!libRes.ok || !libData.plan) { showError(libData.error || 'Failed to load plan.'); return; }
-      _branding = libData.branding || _branding;
-
-      // 2. Attach (server enriches with player/coach counts, weather, date from the event)
-      const saveRes  = await fetch(EDGE_FN, {
-        method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'attach_plan', event_id: EVENT_ID, user_id: USER_ID, plan_json: libData.plan }),
-      });
-      const saveData = await saveRes.json();
-      if (!saveRes.ok) { showError(saveData.error || 'Attach failed.'); return; }
-      _currentPlanId = saveData.plan_id ?? null;
-
-      // 3. Fetch the DB-saved enriched plan to render with correct player/coach/weather data
-      let planToRender = saveData.plan_json || libData.plan;
-      if (_currentPlanId) {
-        try {
-          const enrichedRes  = await fetch(EDGE_FN, {
-            method: 'POST', headers: HEADERS,
-            body: JSON.stringify({ action: 'get_plan', plan_id: _currentPlanId, user_id: USER_ID }),
-          });
-          const enrichedData = await enrichedRes.json();
-          if (enrichedData.plan) planToRender = enrichedData.plan;
-        } catch { /* keep saveData.plan_json */ }
-      }
-
-      renderPlan(planToRender, _squadName);
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'Attach failed.'); return; }
+      _currentPlanId = data.plan_id ?? null;
+      renderPlan(data.plan_json, _squadName);
       showToast('Plan attached ✓', 'success');
     } catch { showError('Network error. Please try again.'); }
   }
@@ -1480,6 +1521,31 @@
     return plan;
   }
 
+  async function toggleClubShare(shared) {
+    if (!_currentPlanId) return;
+    const toggle = $('clubShareToggle');
+    if (toggle) toggle.disabled = true;
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'set_plan_club', user_id: USER_ID, plan_id: _currentPlanId, shared }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        showToast('Could not update sharing', 'error');
+        if (toggle) toggle.checked = !shared; // revert
+      } else {
+        if (_currentPlan) _currentPlan.club_id = data.club_id ?? null;
+        showToast(shared ? 'Shared with club ✓' : 'Unshared ✓', 'success');
+      }
+    } catch {
+      showToast('Network error', 'error');
+      if (toggle) toggle.checked = !shared;
+    } finally {
+      if (toggle) toggle.disabled = false;
+    }
+  }
+
   async function savePlan() {
     const plan = collectEdits();
     if (!plan || !_currentPlanId) return;
@@ -1527,10 +1593,12 @@
         <div><div class="weather-label">Weather Forecast</div><div class="weather-text">${esc(w.summary)}</div></div>
       </div>`;
     })() : '';
+    const playerStat = plan.player_count != null ? plan.player_count : '—';
+    const coachStat  = plan.coach_count  != null ? plan.coach_count  : '—';
     out.push(`<div class="stats-section">
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-value">${plan.player_count ?? 0}</div><div class="stat-label">Players</div></div>
-        <div class="stat-card"><div class="stat-value">${plan.coach_count ?? 0}</div><div class="stat-label">Coaches</div></div>
+        <div class="stat-card"><div class="stat-value">${playerStat}</div><div class="stat-label">Players</div></div>
+        <div class="stat-card"><div class="stat-value">${coachStat}</div><div class="stat-label">Coaches</div></div>
         <div class="stat-card"><div class="stat-value">${plan.total_duration_mins ?? _dur}</div><div class="stat-label">Minutes</div></div>
       </div>
       ${weatherHtml}
@@ -1620,6 +1688,21 @@
         </div>
       </div>
     </div>`);
+
+    // Share with Club toggle — only in library mode (no event)
+    if (!EVENT_ID && _branding?.club_id) {
+      const isShared = !!(plan.club_id);
+      out.push(`<div class="share-with-club">
+        <div>
+          <div class="share-with-club-label">Share with Club</div>
+          <div class="share-with-club-sub">Make this plan visible to all coaches in your club</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="clubShareToggle" ${isShared ? 'checked' : ''} onchange="toggleClubShare(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`);
+    }
 
     out.push(`<div class="share-row">
       <button class="btn btn-primary btn-full" onclick="exportPlan('mobile')" id="exportBtn">
@@ -1741,20 +1824,22 @@
 
   // ── Boot ─────────────────────────────────────────────────────────────────────
   async function boot() {
-    if (!EVENT_ID || !USER_ID) { showError('Missing event or user information.'); return; }
+    if (!USER_ID) { showError('Missing user information.'); return; }
     showLoading('Loading…');
     try {
       const res  = await fetch(EDGE_FN, {
         method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'get', event_id: EVENT_ID, user_id: USER_ID }),
+        body: JSON.stringify({ action: 'get', event_id: EVENT_ID || undefined, user_id: USER_ID }),
       });
       const data = await res.json();
-      if (!res.ok) { showError(data.error || 'Failed to load event.'); return; }
+      if (!res.ok) { showError(data.error || 'Failed to load.'); return; }
 
       _branding  = data.branding;
       _eventMeta = data.event;
       _squadName = data.squad_name;
       _favs = data.favourites || [];
+
+      // In library mode (no event) we still allow generating plans
       if (_favs.length === 0) { showEmpty(); return; }
 
       // Filter favourites by event code when known (fallback to all if no match)
@@ -1766,6 +1851,12 @@
         });
         if (filtered.length > 0) _favs = filtered;
       }
+
+      // Hide "Attach a Saved Plan" when there's no event to attach to
+      const attachSection = $('setupAttachSection');
+      if (attachSection) attachSection.style.display = EVENT_ID ? '' : 'none';
+      const attachDivider = $('setupAttachDivider');
+      if (attachDivider) attachDivider.style.display = EVENT_ID ? '' : 'none';
 
       // Render setup screen with favourites
       $('durVal').textContent = _dur;

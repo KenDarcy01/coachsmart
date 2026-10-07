@@ -427,6 +427,7 @@ serve(async (req) => {
         .eq("club_id", userRow.default_club)
         .maybeSingle();
       branding = {
+        club_id:          userRow.default_club,
         club_name:        uClub?.club_name        || clubData.club_name || "",
         crest:            uClub?.crest            || clubData.crest || null,
         primary_colour:   uClub?.primary_colour   || clubData.primary_colour || "#87C232",
@@ -435,6 +436,7 @@ serve(async (req) => {
       };
     } else {
       branding = {
+        club_id:          clubData.club_id ?? null,
         club_name:        clubData.club_name        || "",
         crest:            clubData.crest            || null,
         primary_colour:   clubData.primary_colour   || "#87C232",
@@ -502,313 +504,70 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ── GET_SHARE_RECIPIENTS: coaches in same club(s) as this user ───────────
-    if (action === "get_share_recipients") {
-      // Find club(s) this user belongs to via member → team → club
-      const { data: memberRows } = await sb
-        .from("user_member_link")
-        .select("member_id")
-        .eq("user_id", user_id);
-      const memberIds = (memberRows || []).map((r: any) => r.member_id);
-
-      if (memberIds.length === 0) {
-        return new Response(JSON.stringify({ recipients: [] }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Get club ids this user's members belong to (via member_team_link → teams)
-      const { data: teamLinks } = await sb
-        .from("member_team_link")
-        .select("teams!inner(team_id, club_id)")
-        .in("member_id", memberIds);
-      const clubIds = [...new Set((teamLinks || []).map((r: any) => r.teams?.club_id).filter(Boolean))];
-
-      if (clubIds.length === 0) {
-        return new Response(JSON.stringify({ recipients: [] }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Find all teams in those clubs
-      const { data: clubTeams } = await sb
-        .from("teams")
-        .select("team_id")
-        .in("club_id", clubIds);
-      const teamIds = (clubTeams || []).map((t: any) => t.team_id);
-
-      // Find admin members on those teams (role_grade = 100)
-      const { data: adminLinks } = await sb
-        .from("member_team_role_link")
-        .select(`
-          members!inner(member_id, user_id, first_name, last_name),
-          roles!inner(role_grade)
-        `)
-        .in("team_id", teamIds)
-        .eq("roles.role_grade", 100);
-
-      // Collect unique user_ids (excluding self, excluding members with no user)
-      const seen = new Set<string>([user_id]);
-      const recipients: { user_id: string; name: string }[] = [];
-      for (const row of (adminLinks || [])) {
-        const m = (row as any).members;
-        if (!m?.user_id || seen.has(m.user_id)) continue;
-        seen.add(m.user_id);
-        recipients.push({
-          user_id: m.user_id,
-          name: [m.first_name, m.last_name].filter(Boolean).join(" ") || "Unknown Coach",
-        });
-      }
-      recipients.sort((a, b) => a.name.localeCompare(b.name));
-
-      return new Response(JSON.stringify({ recipients }), {
+    // ── GET_CLUB_PLANS: plans shared with the user's club ────────────────────
+    if (action === "get_club_plans") {
+      const { data: cmRows } = await sb.from("user_member_link").select("member_id").eq("user_id", user_id);
+      const cmIds = (cmRows || []).map((r: any) => r.member_id);
+      if (cmIds.length === 0) return new Response(JSON.stringify({ plans: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-
-    // ── SHARE_PLAN: send a plan to another coach ──────────────────────────────
-    if (action === "share_plan") {
-      const { to_user_id, plan_json: sharePlanJson, message: shareMessage } = body;
-      if (!to_user_id || !sharePlanJson) return new Response(JSON.stringify({ error: "to_user_id and plan_json required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-      const shareTitle: string = (sharePlanJson as any).session_title || "Training Session";
-
-      const { data: shareRow, error: shareErr } = await sb
-        .from("plan_shares")
-        .insert({ from_user_id: user_id, to_user_id, plan_json: sharePlanJson, session_title: shareTitle, message: shareMessage || null })
-        .select("share_id").single();
-
-      if (shareErr) return new Response(JSON.stringify({ error: shareErr.message }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-      // Look up sender's name for the notification
-      const { data: senderRow } = await sb
-        .from("members")
-        .select("first_name, last_name")
-        .eq("user_id", user_id)
-        .maybeSingle();
-      const senderName = senderRow
-        ? [senderRow.first_name, senderRow.last_name].filter(Boolean).join(" ")
-        : "A coach";
-
-      // Send in-app notification to recipient
-      const notifBody = shareMessage?.trim()
-        ? `${senderName} shared a plan: "${shareTitle}" — ${shareMessage.trim()}`
-        : `${senderName} shared a plan with you: "${shareTitle}"`;
-      await sb.from("notifications").insert({
-        user_id: to_user_id,
-        notification_title: "Session Plan Shared",
-        notification_body:  notifBody,
-        notification_type:  "plan_share",
-        reference_id:       shareRow?.share_id?.toString() ?? null,
-        is_read:            false,
-      }).catch(() => {/* non-critical */});
-
-      return new Response(JSON.stringify({ ok: true, share_id: shareRow?.share_id }), {
+      const { data: ctLinks } = await sb.from("member_team_link").select("teams!inner(club_id)").in("member_id", cmIds);
+      const cIds = [...new Set((ctLinks || []).map((r: any) => r.teams?.club_id).filter(Boolean))];
+      if (cIds.length === 0) return new Response(JSON.stringify({ plans: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-
-    // ── SHARE_PLAN_WITH_CLUB: broadcast plan to all admin-grade users in club ──
-    if (action === "share_plan_with_club") {
-      if (!plan_id) return new Response(JSON.stringify({ error: "plan_id required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-      const { data: planRow } = await sb
+      const { data: plans, error: cpErr } = await sb
         .from("session_plans")
-        .select("plan_json, session_title")
-        .eq("plan_id", plan_id)
-        .eq("created_by", user_id)
-        .maybeSingle();
-      if (!planRow) return new Response(JSON.stringify({ error: "Plan not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-      // Find user's club(s)
-      const { data: clubMemberRows } = await sb
-        .from("user_member_link").select("member_id").eq("user_id", user_id);
-      const clubMemberIds = (clubMemberRows || []).map((r: any) => r.member_id);
-      if (clubMemberIds.length === 0) return new Response(JSON.stringify({ ok: true, count: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-      const { data: clubTeamLinks } = await sb
-        .from("member_team_link").select("teams!inner(team_id, club_id)").in("member_id", clubMemberIds);
-      const clubShareIds = [...new Set((clubTeamLinks || []).map((r: any) => r.teams?.club_id).filter(Boolean))];
-      if (clubShareIds.length === 0) return new Response(JSON.stringify({ ok: true, count: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-      const { data: allClubTeams } = await sb.from("teams").select("team_id").in("club_id", clubShareIds);
-      const allClubTeamIds = (allClubTeams || []).map((t: any) => t.team_id);
-
-      const { data: clubAdminLinks } = await sb
-        .from("member_team_role_link")
-        .select(`members!inner(member_id, user_id), roles!inner(role_grade)`)
-        .in("team_id", allClubTeamIds)
-        .eq("roles.role_grade", 100);
-
-      const seenShare = new Set<string>([user_id]);
-      const recipientIds: string[] = [];
-      for (const row of (clubAdminLinks || [])) {
-        const m = (row as any).members;
-        if (!m?.user_id || seenShare.has(m.user_id)) continue;
-        seenShare.add(m.user_id);
-        recipientIds.push(m.user_id);
-      }
-
-      if (recipientIds.length === 0) return new Response(JSON.stringify({ ok: true, count: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-      // Sender name for notification body
-      const { data: senderMember } = await sb
-        .from("members").select("first_name, last_name").eq("user_id", user_id).maybeSingle();
-      const senderName = senderMember
-        ? [senderMember.first_name, senderMember.last_name].filter(Boolean).join(" ")
-        : "A coach";
-      const shareTitle: string = planRow.session_title || "Training Session";
-
-      // Insert share record + notification for each recipient
-      await Promise.all(recipientIds.map(async (rid) => {
-        const { data: shareRow } = await sb
-          .from("plan_shares")
-          .insert({ from_user_id: user_id, to_user_id: rid, plan_json: planRow.plan_json, session_title: shareTitle })
-          .select("share_id").maybeSingle();
-        await sb.from("notifications").insert({
-          user_id: rid,
-          notification_title: "Session Plan Shared",
-          notification_body: `${senderName} shared a session plan with you: "${shareTitle}"`,
-          notification_type: "plan_share",
-          reference_id: shareRow?.share_id?.toString() ?? null,
-          is_read: false,
-        }).catch(() => {/* non-critical */});
-      }));
-
-      return new Response(JSON.stringify({ ok: true, count: recipientIds.length }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ── GET_RECEIVED_SHARES: inbox of plans shared with this user ─────────────
-    if (action === "get_received_shares") {
-      const { data: shares, error: sharesErr } = await sb
-        .from("plan_shares")
-        .select("share_id, session_title, message, status, created_at, from_user_id")
-        .eq("to_user_id", user_id)
-        .neq("status", "dismissed")
+        .select("plan_id, session_title, created_at, created_by")
+        .in("club_id", cIds)
+        .eq("is_active", true)
+        .is("event_id", null)
         .order("created_at", { ascending: false })
         .limit(50);
-
-      if (sharesErr) return new Response(JSON.stringify({ error: sharesErr.message }), {
+      if (cpErr) return new Response(JSON.stringify({ error: cpErr.message }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-
-      // Enrich with sender names
-      const fromIds = [...new Set((shares || []).map(s => s.from_user_id))];
-      let nameMap: Record<string, string> = {};
-      if (fromIds.length > 0) {
-        const { data: senderMembers } = await sb
-          .from("members")
-          .select("user_id, first_name, last_name")
-          .in("user_id", fromIds);
-        for (const m of (senderMembers || [])) {
-          if (m.user_id) nameMap[m.user_id] = [m.first_name, m.last_name].filter(Boolean).join(" ") || "Unknown Coach";
+      const creatorIds = [...new Set((plans || []).map((p: any) => p.created_by).filter(Boolean))];
+      const creatorMap: Record<string, string> = {};
+      if (creatorIds.length > 0) {
+        const { data: cm2 } = await sb.from("members").select("user_id, first_name, last_name").in("user_id", creatorIds);
+        for (const m of (cm2 || [])) {
+          if (m.user_id) creatorMap[m.user_id] = [m.first_name, m.last_name].filter(Boolean).join(" ") || "Unknown Coach";
         }
       }
-
-      const result = (shares || []).map(s => ({
-        share_id:      s.share_id,
-        session_title: s.session_title,
-        message:       s.message ?? null,
-        status:        s.status,
-        created_at:    s.created_at,
-        from_name:     nameMap[s.from_user_id] ?? "Unknown Coach",
-      }));
-
-      return new Response(JSON.stringify({ shares: result }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ── GET_SHARED_PLAN: load plan_json for a received share ─────────────────
-    if (action === "get_shared_plan") {
-      const { share_id } = body;
-      if (!share_id) return new Response(JSON.stringify({ error: "share_id required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-      const { data: shareRow, error: shareErr } = await sb
-        .from("plan_shares")
-        .select("share_id, plan_json, session_title, message, from_user_id, status")
-        .eq("share_id", share_id)
-        .eq("to_user_id", user_id)
-        .single();
-      if (shareErr || !shareRow) return new Response(JSON.stringify({ error: "Share not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-
-      const { data: senderMember } = await sb
-        .from("members")
-        .select("first_name, last_name")
-        .eq("user_id", shareRow.from_user_id)
-        .maybeSingle();
-      const fromName = senderMember
-        ? [senderMember.first_name, senderMember.last_name].filter(Boolean).join(" ")
-        : "Unknown Coach";
-
       return new Response(JSON.stringify({
-        share_id:      shareRow.share_id,
-        plan:          shareRow.plan_json,
-        session_title: shareRow.session_title,
-        message:       shareRow.message ?? null,
-        from_name:     fromName,
-        status:        shareRow.status,
-        branding,
+        plans: (plans || []).map((p: any) => ({
+          plan_id:       p.plan_id,
+          session_title: p.session_title || "Untitled Plan",
+          created_at:    p.created_at,
+          created_by:    creatorMap[p.created_by] ?? "Unknown Coach",
+          is_own:        p.created_by === user_id,
+        })),
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ── ACCEPT_SHARE: copy plan into recipient's library ──────────────────────
-    if (action === "accept_share") {
-      const { share_id } = body;
-      if (!share_id) return new Response(JSON.stringify({ error: "share_id required" }), {
+    // ── SET_PLAN_CLUB: share/unshare a library plan with the user's club ──────
+    if (action === "set_plan_club") {
+      const { plan_id: setPlanId, shared } = body;
+      if (!setPlanId) return new Response(JSON.stringify({ error: "plan_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-
-      const { data: shareRow, error: shareErr } = await sb
-        .from("plan_shares")
-        .select("plan_json, session_title")
-        .eq("share_id", share_id)
-        .eq("to_user_id", user_id)
-        .single();
-      if (shareErr || !shareRow) return new Response(JSON.stringify({ error: "Share not found" }), {
+      const { data: planRow } = await sb
+        .from("session_plans").select("plan_id").eq("plan_id", setPlanId).eq("created_by", user_id).maybeSingle();
+      if (!planRow) return new Response(JSON.stringify({ error: "Plan not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-
-      // Insert as new library plan for recipient
-      const { data: saved } = await sb
-        .from("session_plans")
-        .insert({ created_by: user_id, plan_json: shareRow.plan_json, session_title: shareRow.session_title, is_active: true })
-        .select("plan_id").single();
-
-      // Mark share as accepted
-      await sb.from("plan_shares").update({ status: "accepted" }).eq("share_id", share_id);
-
-      return new Response(JSON.stringify({ ok: true, plan_id: saved?.plan_id ?? null }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ── DISMISS_SHARE: remove from inbox without saving ───────────────────────
-    if (action === "dismiss_share") {
-      const { share_id } = body;
-      if (!share_id) return new Response(JSON.stringify({ error: "share_id required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-      await sb.from("plan_shares").update({ status: "dismissed" }).eq("share_id", share_id).eq("to_user_id", user_id);
-      return new Response(JSON.stringify({ ok: true }), {
+      let newClubId: number | null = null;
+      if (shared) {
+        const { data: scMRows } = await sb.from("user_member_link").select("member_id").eq("user_id", user_id);
+        const scMIds = (scMRows || []).map((r: any) => r.member_id);
+        if (scMIds.length > 0) {
+          const { data: scTLinks } = await sb.from("member_team_link").select("teams!inner(club_id)").in("member_id", scMIds).limit(1);
+          newClubId = (scTLinks?.[0] as any)?.teams?.club_id ?? null;
+        }
+      }
+      await sb.from("session_plans").update({ club_id: newClubId }).eq("plan_id", setPlanId);
+      return new Response(JSON.stringify({ ok: true, club_id: newClubId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -865,12 +624,52 @@ serve(async (req) => {
 
     // ── ATTACH_PLAN: copy a library plan as the active plan for an event ─────
     if (action === "attach_plan") {
-      if (!event_id || !plan_json) return new Response(JSON.stringify({ error: "event_id and plan_json required" }), {
+      if (!event_id) return new Response(JSON.stringify({ error: "event_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+      // Resolve plan_json: use provided value or load from DB by plan_id
+      let sourcePlanJson = plan_json as any;
+      if (!sourcePlanJson && plan_id) {
+        // Own plan first
+        let { data: planRow } = await sb
+          .from("session_plans")
+          .select("plan_json, club_id")
+          .eq("plan_id", plan_id)
+          .eq("created_by", user_id)
+          .maybeSingle();
+
+        if (!planRow) {
+          // Club plan — verify user belongs to same club
+          const { data: apCmRows } = await sb.from("user_member_link").select("member_id").eq("user_id", user_id);
+          const apMIds = (apCmRows || []).map((r: any) => r.member_id);
+          if (apMIds.length > 0) {
+            const { data: apTLinks } = await sb.from("member_team_link").select("teams!inner(club_id)").in("member_id", apMIds);
+            const apCIds = [...new Set((apTLinks || []).map((r: any) => r.teams?.club_id).filter(Boolean))];
+            if (apCIds.length > 0) {
+              const { data: cpRow } = await sb
+                .from("session_plans")
+                .select("plan_json")
+                .eq("plan_id", plan_id)
+                .in("club_id", apCIds)
+                .maybeSingle();
+              if (cpRow) planRow = cpRow;
+            }
+          }
+        }
+
+        if (!planRow) return new Response(JSON.stringify({ error: "Plan not found or access denied" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+        sourcePlanJson = planRow.plan_json;
+      }
+
+      if (!sourcePlanJson) return new Response(JSON.stringify({ error: "plan_id or plan_json required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
       // Enrich the generic template with event-specific context
-      const enriched: Record<string, any> = { ...(plan_json as any) };
+      const enriched: Record<string, any> = { ...sourcePlanJson };
 
       if (teamId) {
         const { playerCount, coachCount } = await countAcceptedAttendees(sb, event_id, teamId, eventSquadId);
@@ -1102,13 +901,16 @@ serve(async (req) => {
     const notesByGame: Record<number, string> = {};
     for (const n of notes || []) notesByGame[n.game_id] = n.notes;
 
-    // Member counts — use accepted attendees if event is known, else body param or default
-    let playerCount: number, coachCount: number;
+    // Member counts — use accepted attendees if event is known, body param if provided, else null (library plan)
+    let playerCount: number | null, coachCount: number | null;
     if (event_id && teamId) {
       ({ playerCount, coachCount } = await countAcceptedAttendees(sb, event_id, teamId, eventSquadId));
-    } else {
-      playerCount = bodyPlayerCount ?? 15;
+    } else if (bodyPlayerCount != null) {
+      playerCount = bodyPlayerCount;
       coachCount  = 0;
+    } else {
+      playerCount = null;
+      coachCount  = null;
     }
 
     // Weather — only when we have event context
@@ -1142,8 +944,8 @@ serve(async (req) => {
     // Build Gemini prompt
     const context = [
       `Session duration: ${duration_mins} minutes`,
-      `Players: ${playerCount}`,
-      `Coaches/managers: ${coachCount}`,
+      playerCount != null ? `Players: ${playerCount}` : null,
+      coachCount  != null ? `Coaches/managers: ${coachCount}` : null,
       rotate_stations
         ? `Drill mode: STATION ROTATION — players are split into groups across the drill stations; not everyone does the same activity at once; each group rotates through all stations at equal time intervals; warm-up and cool-down are collective activities for the full group`
         : `Drill mode: SEQUENTIAL — all players perform each drill together before moving to the next`,
@@ -1251,8 +1053,8 @@ serve(async (req) => {
       planJson.cool_down.variation  = g.game_variations?.trim() || null;
     }
 
-    planJson.player_count = playerCount;
-    planJson.coach_count  = coachCount;
+    if (playerCount != null) planJson.player_count = playerCount;
+    if (coachCount  != null) planJson.coach_count  = coachCount;
     if (weather) planJson.weather = weather;
 
     // Save plan — event-linked: deactivate old then insert; favourites: insert new library entry
