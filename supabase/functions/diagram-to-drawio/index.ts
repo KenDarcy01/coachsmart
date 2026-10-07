@@ -314,7 +314,17 @@ serve(async (req) => {
     xml = fixCircleStyles(xml);
     console.log("fixCircleStyles changed:", xml !== xmlBefore, "| coach cells:", (xml.match(/fillColor=#1a1a1a/g) || []).length, "| football cells:", (xml.match(/fillColor=#ffffff/g) || []).length);
 
-    return new Response(JSON.stringify({ xml, game_name: gameName }), {
+    // Derive suggested sport codes from the XML itself.
+    // STEP 6 adds value="Hurling · Camogie" when hurling elements are detected — read that back.
+    const isHurling  = /value="Hurling\s*[·•]\s*Camogie"/i.test(xml);
+    const isFootball = !isHurling && /football/i.test(gameName ?? "");
+    const suggestedCodes: string[] = isHurling
+      ? ["hurling", "camogie"]
+      : isFootball
+        ? ["football"]
+        : [];
+
+    return new Response(JSON.stringify({ xml, game_name: gameName, suggested_codes: suggestedCodes }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
   } catch (e: any) {
