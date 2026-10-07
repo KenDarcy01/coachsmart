@@ -1217,6 +1217,7 @@
 
   function closePlanPicker() {
     $('planPickerSheet').classList.remove('open');
+    if (EVENT_ID && !_currentPlanId) closeSession();
   }
 
   function showPickerList() {
