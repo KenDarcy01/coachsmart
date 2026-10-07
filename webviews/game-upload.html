@@ -1690,8 +1690,34 @@
             ctx.fillStyle=grad; ctx.fill(); ctx.shadowBlur=0; ctx.strokeStyle='#E65100'; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
           } else if (style.includes('text;')) {
             const fs=parseInt(style.match(/fontSize=(\d+)/)?.[1]||'12');
-            ctx.save(); ctx.fillStyle='#ffffff'; ctx.font=`bold ${fs}px -apple-system,sans-serif`;
+            const fcT=style.match(/fontColor=([^;,\s]+)/);
+            ctx.save(); ctx.fillStyle=fcT?fcT[1]:'#ffffff'; ctx.font=`bold ${fs}px -apple-system,sans-serif`;
             ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(val,x,y+h/2); ctx.restore();
+          } else {
+            // Plain rectangle / zone (wall, labelled box, etc.)
+            const fcM=style.match(/fillColor=([^;,\s]+)/);
+            const scM=style.match(/strokeColor=([^;,\s]+)/);
+            const swM=style.match(/strokeWidth=(\d+(?:\.\d+)?)/);
+            const fontColorM=style.match(/fontColor=([^;,\s]+)/);
+            const fsM=style.match(/fontSize=(\d+)/);
+            const opM=style.match(/opacity=(\d+)/);
+            ctx.save();
+            const alpha=opM?parseInt(opM[1])/100:1;
+            ctx.globalAlpha=alpha;
+            ctx.fillStyle=fcM?fcM[1]:'#37474F';
+            ctx.fillRect(x,y,w,h);
+            ctx.globalAlpha=1;
+            ctx.strokeStyle=scM?scM[1]:'#90A4AE';
+            ctx.lineWidth=swM?parseFloat(swM[1]):1.5;
+            ctx.strokeRect(x,y,w,h);
+            if(val){
+              const fs=fsM?parseInt(fsM[1]):13;
+              ctx.fillStyle=fontColorM?fontColorM[1]:'#ffffff';
+              ctx.font=`bold ${fs}px -apple-system,sans-serif`;
+              ctx.textAlign='center'; ctx.textBaseline='middle';
+              ctx.fillText(val,x+w/2,y+h/2);
+            }
+            ctx.restore();
           }
         }
         // toDataURL works on detached canvases (toBlob can silently fail on iOS WKWebView)
