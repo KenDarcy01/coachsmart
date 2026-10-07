@@ -1439,6 +1439,7 @@
 
   // Setup screen voice/text notes
   let _setupIsRecording = false, _setupTranscript = '', _setupDescMode = 'voice', _setupWebRec = null;
+  let _setupAutoFinish = false;
 
   function setFbMode(mode) {
     _spDescMode = mode;
@@ -1557,7 +1558,10 @@
       _setupTranscript = base.trim();
     };
     _setupWebRec.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetSetupVoice(); };
-    _setupWebRec.onend   = () => { _resetSetupVoice(); };
+    _setupWebRec.onend   = () => {
+      _resetSetupVoice();
+      if (_setupTranscript.trim()) showToast('Notes added — tap Generate to build your plan', 'success');
+    };
     try { _setupWebRec.start(); } catch { _resetSetupVoice(); }
   }
   function _stopSetupWebSpeech() {
@@ -1580,6 +1584,7 @@
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
         _resetSetupVoice();
+        _setupAutoFinish = true;
       } else {
         _stopSetupWebSpeech();
       }
@@ -1616,8 +1621,10 @@
     } else if (_prevReceive) _prevReceive(fieldId, text);
   };
   window.onSpeechDone = function() {
-    if (_setupIsRecording) {
-      _resetSetupVoice();
+    if (_setupAutoFinish) {
+      _setupAutoFinish = false;
+      if (_setupTranscript.trim()) showToast('Notes added — tap Generate to build your plan', 'success');
+      else showToast('Nothing recorded — try again or switch to Text', 'error');
       return;
     }
     clearTimeout(_spAutoReviseTimeout);
