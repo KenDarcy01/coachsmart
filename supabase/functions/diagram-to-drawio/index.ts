@@ -182,16 +182,30 @@ const STYLE_COACH    = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;
 const STYLE_HOME     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;`;
 const STYLE_AWAY     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;`;
 
-// If the game name contains "wall" but the model omitted the wall vertex, inject it.
-// This is a post-processing guarantee: wall-ball drills always get the wall shape.
-function ensureWall(xml: string, gameName: string | null): string {
-  if (!gameName || !/wall/i.test(gameName)) return xml;
-  if (/value="WALL"/i.test(xml)) return xml; // model already output it — leave it alone
+// If the drill is a wall-ball drill but the model omitted the wall vertex, inject it.
+// This is a post-processing guarantee — never relies solely on the AI rendering the wall.
+function ensureWall(xml: string, gameName: string | null, rawText: string): string {
+  // Detect wall-ball drill: check extracted game name first, then fall back to scanning raw response
+  const isWallDrill =
+    (gameName && /wall/i.test(gameName)) ||
+    /GAME_NAME:[^\r\n]*wall/i.test(rawText);
 
-  // Read canvas width from the background rect (first geometry at x="0" y="0")
+  console.log("ensureWall check — gameName:", gameName, "| isWallDrill:", isWallDrill);
+  if (!isWallDrill) return xml;
+
+  // Don't add a second wall — check for any cell whose value starts with "wall" (catches WALL, WALL BALL, etc.)
+  if (/value="[Ww][Aa][Ll][Ll]/i.test(xml)) {
+    console.log("ensureWall: wall already present in XML, skipping");
+    return xml;
+  }
+
+  // Extract canvas width — try multiple attribute orderings, fall back to 600
   let canvasWidth = 600;
-  const bgMatch = xml.match(/<mxGeometry\s[^>]*\bx="0"[^>]*\by="0"[^>]*\bwidth="(\d+)"/);
-  if (bgMatch) canvasWidth = parseInt(bgMatch[1]);
+  const wMatch =
+    xml.match(/<mxGeometry[^>]+\bx="0"[^>]+\bwidth="(\d+)"/) ||
+    xml.match(/<mxGeometry[^>]+\bwidth="(\d+)"[^>]+\bx="0"/) ||
+    xml.match(/<mxGeometry[^>]+\bwidth="(\d+)"/);
+  if (wMatch) canvasWidth = parseInt(wMatch[1]);
 
   const wallW = Math.round(canvasWidth * 0.85);
   const wallX = Math.round((canvasWidth - wallW) / 2);
@@ -202,8 +216,22 @@ function ensureWall(xml: string, gameName: string | null): string {
     `<mxGeometry x="${wallX}" y="60" width="${wallW}" height="44" as="geometry"/>` +
     `</mxCell>`;
 
-  // Insert immediately after the root parent cell (id="1")
-  return xml.replace(/(<mxCell\s[^>]*\bid="1"[^>]*\/?>)/, `$1\n${wallCell}`);
+  // Strategy 1: insert after <mxCell id="1" .../>  (self-closing or regular)
+  let result = xml.replace(/(<mxCell[^>]+\bid="1"[^>]*>(?:<\/mxCell>)?)/, `$1\n${wallCell}`);
+  if (result !== xml) {
+    console.log("ensureWall: injected via id=1 strategy, canvasWidth:", canvasWidth);
+    return result;
+  }
+
+  // Strategy 2: insert right after <root>
+  result = xml.replace(/(<root[^>]*>)/, `$1\n${wallCell}`);
+  if (result !== xml) {
+    console.log("ensureWall: injected via <root> fallback, canvasWidth:", canvasWidth);
+    return result;
+  }
+
+  console.log("ensureWall: WARNING — could not find insertion point, wall not added");
+  return xml;
 }
 
 // Rewrite every ellipse cell's style based purely on its value attribute.
@@ -334,9 +362,7 @@ serve(async (req) => {
     }
 
     // Post-process 1: guarantee wall vertex for wall-ball drills regardless of model output.
-    const xmlBeforeWall = xml;
-    xml = ensureWall(xml, gameName);
-    if (xml !== xmlBeforeWall) console.log("ensureWall: injected WALL vertex for game:", gameName);
+    xml = ensureWall(xml, gameName, rawText);
 
     // Post-process 2: enforce correct ellipse styles by value — never trust the model's colour choice.
     const xmlBefore = xml;
