@@ -363,7 +363,7 @@ serve(async (req) => {
     }
 
     // Post-process 1: guarantee wall vertex for wall-ball drills regardless of model output.
-    xml = ensureWall(xml, gameName, rawText);
+    xml = fixWallCell(xml, gameName, rawText);
 
     // Post-process 2: enforce correct ellipse styles by value — never trust the model's colour choice.
     const xmlBefore = xml;
