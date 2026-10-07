@@ -559,11 +559,16 @@ serve(async (req) => {
       });
       let newClubId: number | null = null;
       if (shared) {
-        const { data: scMRows } = await sb.from("user_member_link").select("member_id").eq("user_id", user_id);
-        const scMIds = (scMRows || []).map((r: any) => r.member_id);
-        if (scMIds.length > 0) {
-          const { data: scTLinks } = await sb.from("member_team_link").select("teams!inner(club_id)").in("member_id", scMIds).limit(1);
-          newClubId = (scTLinks?.[0] as any)?.teams?.club_id ?? null;
+        const { data: userRow } = await sb.from("users").select("default_club").eq("user_id", user_id).maybeSingle();
+        if (userRow?.default_club) {
+          newClubId = userRow.default_club;
+        } else {
+          const { data: scMRows } = await sb.from("user_member_link").select("member_id").eq("user_id", user_id);
+          const scMIds = (scMRows || []).map((r: any) => r.member_id);
+          if (scMIds.length > 0) {
+            const { data: scTLinks } = await sb.from("member_team_link").select("teams!inner(club_id)").in("member_id", scMIds).limit(1);
+            newClubId = (scTLinks?.[0] as any)?.teams?.club_id ?? null;
+          }
         }
       }
       await sb.from("session_plans").update({ club_id: newClubId }).eq("plan_id", setPlanId);
