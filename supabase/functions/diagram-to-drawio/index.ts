@@ -16,7 +16,8 @@ const corsHeaders = {
 const PROMPT = `You are an expert at converting handwritten or hand-drawn GAA (Gaelic Athletic Association) coaching diagrams into polished draw.io (mxGraph) XML.
 
 PRE-SCAN — TITLE AND INSTRUCTIONS (do this before anything else):
-1. TITLE: Look for a written title or heading — typically larger text, underlined, or placed prominently above or outside the diagram area. If found, this is the game name. It is NOT a diagram element; do NOT render it as a text node in the XML.
+1. TITLE: Look for a written title or heading — typically larger text, underlined, or placed prominently above or outside the diagram area, with NO box drawn around it. If found, this is the game name. It is NOT a diagram element; do NOT render it as a text node in the XML.
+   CRITICAL DISTINCTION: A rectangle with sides drawn around text (e.g. a box labelled "WALL") is a DIAGRAM ELEMENT — it is never the title, even if the word matches the title. The title is always free-standing text with no enclosing box. If the word "wall" (or any other word) appears both as the title AND inside a drawn rectangle, the rectangle is a training wall that MUST be rendered in the XML.
 2. INSTRUCTIONS: Look for any written notes, rules, or descriptions around or below the diagram (e.g. "Split into groups of 4", "First team to score wins", "Players start at cones"). These are coaching instructions. Do NOT render them as text nodes in the XML. DO use them as context to inform how you draw the diagram — they may clarify arrow directions, player starting positions, or movement patterns.
 3. Output format: your response must begin with exactly this line:
    GAME_NAME: <the title if found, or leave blank if none>
