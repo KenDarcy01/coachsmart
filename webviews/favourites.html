@@ -569,6 +569,34 @@
           <div class="toggle-explainer">When on, players are split across the drill stations and rotate at intervals — not everyone performs the same activity at the same time. Warm-up and cool-down remain collective.</div>
         </div>
       </div>
+      <div>
+        <div class="field-label">Session Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
+        <div class="feedback-bar" style="margin:0">
+          <div class="fb-mode-toggle">
+            <button class="fb-mode-btn active" id="setupFbModeVoice" onclick="setSetupMode('voice')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              Voice
+            </button>
+            <button class="fb-mode-btn" id="setupFbModeText" onclick="setSetupMode('text')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+              Text
+            </button>
+          </div>
+          <div id="setupFbVoicePanel">
+            <p class="fb-voice-instruction" id="setupFbInstruction">Hold to describe session goals, focus areas, or any special requirements — the AI will use these when building the plan.</p>
+            <div id="setupFbVoiceWave" class="fb-voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="fb-mic-wrap">
+              <button id="setupMicBtn" class="fb-mic-btn" aria-label="Hold to record session notes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
+            </div>
+            <div id="setupTranscript" class="fb-transcript"></div>
+          </div>
+          <div id="setupFbTextPanel" style="display:none">
+            <textarea id="setupNotesText" class="feedback-input" placeholder="Describe session goals, focus areas or any special requirements…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="bottom-bar">
@@ -703,6 +731,7 @@
     $('myPlansBtn').style.display = 'flex';
     $('durVal').textContent = _dur;
     showScreen('setupScreen');
+    requestAnimationFrame(initSetupMicBtn);
   }
 
   function showMyPlans() {
@@ -887,9 +916,12 @@
 
     try {
       _rotateStations = $('rotateToggle')?.checked ?? true;
+      const session_notes = _setupDescMode === 'voice'
+        ? _setupTranscript.trim()
+        : ($('setupNotesText')?.value || '').trim();
       const body = isRevision
         ? { action: 'revise_plan', user_id: USER_ID, feedback, existing_plan: _currentPlan }
-        : { action: 'generate', user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
+        : { action: 'generate', user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations, ...(session_notes ? { session_notes } : {}) };
       const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
       const data = await res.json();
 
@@ -1416,12 +1448,23 @@
   let _spIsRecording = false, _spTranscript = '', _spDescMode = 'voice';
   let _spAutoRevise = false, _spAutoReviseTimeout = null, _spWebRec = null;
 
+  // Setup screen voice/text notes
+  let _setupIsRecording = false, _setupTranscript = '', _setupDescMode = 'voice', _setupWebRec = null;
+
   function setFbMode(mode) {
     _spDescMode = mode;
     $('spFbVoicePanel').style.display = mode === 'voice' ? '' : 'none';
     $('spFbTextPanel').style.display  = mode === 'text'  ? '' : 'none';
     $('spFbModeVoice')?.classList.toggle('active', mode === 'voice');
     $('spFbModeText')?.classList.toggle('active',  mode === 'text');
+  }
+
+  function setSetupMode(mode) {
+    _setupDescMode = mode;
+    $('setupFbVoicePanel').style.display = mode === 'voice' ? '' : 'none';
+    $('setupFbTextPanel').style.display  = mode === 'text'  ? '' : 'none';
+    $('setupFbModeVoice')?.classList.toggle('active', mode === 'voice');
+    $('setupFbModeText')?.classList.toggle('active',  mode === 'text');
   }
 
   function initMicBtn() {
@@ -1507,6 +1550,77 @@
     if (_spWebRec) { try { _spWebRec.stop(); } catch {} _spWebRec = null; }
   }
 
+  function _resetSetupVoice() {
+    _setupIsRecording = false;
+    $('setupMicBtn')?.classList.remove('recording');
+    $('setupFbVoiceWave')?.classList.remove('active');
+  }
+  function _startSetupWebSpeech() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { showToast('Speech not supported on this browser', 'error'); _resetSetupVoice(); return; }
+    _setupWebRec = new SR();
+    _setupWebRec.lang = 'en-IE'; _setupWebRec.continuous = true; _setupWebRec.interimResults = true;
+    let base = '';
+    _setupWebRec.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) base += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
+      }
+      _setupTranscript = base.trim();
+      const el = $('setupTranscript');
+      if (el) el.textContent = (_setupTranscript + (interim ? ' ' + interim : '')).trim() || _setupTranscript;
+    };
+    _setupWebRec.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetSetupVoice(); };
+    _setupWebRec.onend   = () => { _resetSetupVoice(); };
+    try { _setupWebRec.start(); } catch { _resetSetupVoice(); }
+  }
+  function _stopSetupWebSpeech() {
+    _resetSetupVoice();
+    if (_setupWebRec) { try { _setupWebRec.stop(); } catch {} _setupWebRec = null; }
+  }
+
+  function initSetupMicBtn() {
+    const btn = $('setupMicBtn');
+    if (!btn || btn._setupInited) return;
+    btn._setupInited = true;
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+    const instr = $('setupFbInstruction');
+    if (instr && !_isIOS) instr.textContent = window.FlutterBridge
+      ? 'Tap to start recording. Speak your session notes, then pause to finish.'
+      : 'Tap to start recording, tap again to stop.';
+
+    function stop() {
+      if (!_setupIsRecording) return;
+      if (window.FlutterBridge) {
+        window.FlutterBridge.postMessage('stopSpeech');
+        _resetSetupVoice();
+      } else {
+        _stopSetupWebSpeech();
+      }
+    }
+    function start() {
+      _setupIsRecording = true; _setupTranscript = '';
+      $('setupTranscript').textContent = '';
+      btn.classList.add('recording');
+      $('setupFbVoiceWave').classList.add('active');
+      if (window.FlutterBridge) {
+        window.FlutterBridge.postMessage('startSpeech:setup_notes');
+      } else _startSetupWebSpeech();
+    }
+    if (_isIOS) {
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_setupIsRecording) start(); }, { passive: false });
+      btn.addEventListener('pointerup', stop);
+      btn.addEventListener('pointercancel', stop);
+      document.addEventListener('touchend', stop, { passive: true });
+      document.addEventListener('touchcancel', stop, { passive: true });
+    } else {
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_setupIsRecording) stop(); else start(); }, { passive: false });
+      btn.addEventListener('pointercancel', stop);
+      document.addEventListener('touchcancel', stop, { passive: true });
+    }
+  }
+
   const _prevReceive = window.receiveSpeechResult;
   window.receiveSpeechResult = function(fieldId, text) {
     if (fieldId === 'sp_feedback') {
@@ -1514,9 +1628,18 @@
       _spTranscript = _spTranscript.trim();
       const el = $('spTranscript');
       if (el) el.textContent = _spTranscript;
+    } else if (fieldId === 'setup_notes') {
+      _setupTranscript += text + ' ';
+      _setupTranscript = _setupTranscript.trim();
+      const el = $('setupTranscript');
+      if (el) el.textContent = _setupTranscript;
     } else if (_prevReceive) _prevReceive(fieldId, text);
   };
   window.onSpeechDone = function() {
+    if (_setupIsRecording) {
+      _resetSetupVoice();
+      return;
+    }
     clearTimeout(_spAutoReviseTimeout);
     _resetVoice();
     if (_spAutoRevise) { _spAutoRevise = false; regenWithFeedback(); }

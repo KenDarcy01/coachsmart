@@ -305,7 +305,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, existing_plan, plan_id, plan_json, rotate_stations = true, player_count: bodyPlayerCount } = body;
+    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, existing_plan, plan_id, plan_json, rotate_stations = true, player_count: bodyPlayerCount, session_notes } = body;
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id is required" }), {
@@ -980,7 +980,7 @@ serve(async (req) => {
         return null;
       })(),
       weather ? `Weather forecast (for context only — do NOT include in plan text): ${weather.summary}` : null,
-      eventDetails ? `Coach's session notes: ${eventDetails}` : null,
+      (session_notes?.trim() || eventDetails) ? `Coach's session notes: ${session_notes?.trim() || eventDetails}` : null,
       feedback?.trim() ? `\nCoach's feedback — apply these changes to the plan:\n${feedback.trim()}` : null,
       (feedback?.trim() && existing_plan) ? `\nEXISTING PLAN TO REVISE:\n${JSON.stringify(existing_plan, null, 2)}` : null,
       warmupGame ? `\nWarm-up game — allocate at least 10 minutes for the warm_up section:\n${buildGameText(warmupGame)}` : null,
