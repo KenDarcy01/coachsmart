@@ -23,11 +23,11 @@ PRE-SCAN — TITLE AND INSTRUCTIONS (do this before anything else):
    Then on the next line, start the mxGraphModel XML.
 
 CRITICAL — COMPLETENESS RULE:
-Scan the ENTIRE image from top to bottom before you begin writing XML. Every single circle, cone, arrow and pitch marking you can see MUST appear in the output — including elements near the halfway line or at the far end of the pitch. Do NOT stop generating until every element from the original image is represented. Missing even one player, football or coach is an error.
+Scan the ENTIRE image from top to bottom before you begin writing XML. Every single circle, cone, arrow, rectangle, wall, and pitch marking you can see MUST appear in the output — including elements near the halfway line or at the far end of the pitch. Do NOT stop generating until every element from the original image is represented. Missing even one player, football, coach, wall, or zone rectangle is an error.
 
 STEP 1 — BEFORE ANYTHING ELSE, SCAN THE IMAGE FOR THESE THREE THINGS IN ORDER:
 
-① TRAINING WALL: Is there a rectangle labelled "Wall" or "WALL"? If yes, it MUST be the first vertex you output — place it at the top of the canvas before any other element. Do not skip it.
+① TRAINING WALL: Is there a wide, shallow rectangle anywhere in the image whose label contains the word "wall" (case-insensitive — matches "WALL", "Wall", "wall ball", "WALL BALL", etc.)? If yes, it MUST be the first vertex you output — place it at the top of the canvas before any other element. Do not skip it. A partial label match is enough — if the rectangle is clearly a physical wall, render it as TRAINING WALL even if the label also contains other words.
 
 ② EVERY CIRCLE — classify each one by label:
 Each circle must be classified by reading its label. This classification is MANDATORY and OVERRIDES any assumption about team colour or position on the pitch.
@@ -102,7 +102,7 @@ PITCH LINES — MUST BE IDENTIFIED BEFORE MOVEMENT LINES:
 - Pitch lines have NO arrowhead and NO dash. Output them as: edgeStyle=none;html=1;endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;
 - DO NOT mistake pitch lines for movement arrows. If a line spans the full width with no clear start/end player, it is a pitch line.
 
-TRAINING WALL (rectangle labelled "Wall" or "WALL"):
+TRAINING WALL (any wide, shallow rectangle whose label contains the word "wall", case-insensitive — "Wall", "WALL", "wall ball", "WALL BALL", etc.):
 - A physical wall used in hurling/camogie training — players stand in front of it and strike the sliotar against it. It is always a wide, shallow rectangle spanning most of the playing width, placed at the top (or occasionally the bottom) of the diagram.
 - Scan for it BEFORE drawing any arrows — arrows targeting the wall must end at its edge.
 - Style: rounded=0;whiteSpace=wrap;html=1;fillColor=#455A64;strokeColor=#B0BEC5;strokeWidth=3;fontColor=#ffffff;fontSize=16;fontStyle=1;
@@ -130,7 +130,9 @@ ARROWS / MOVEMENT LINES — SMART STRAIGHT vs CURVED:
   - If an arrow passes NEAR a cone or circle but does not target it, route the arrow AROUND the shape with at least 10px clearance — add waypoints to steer clear. An arrow that crosses over a shape is always wrong.
 
 STEP 5 — UNRECOGNISED OR AMBIGUOUS SHAPES (FALLBACK RULE):
-If a drawn shape does not match any symbol defined above, DO NOT skip it. Use your visual reasoning to infer what it most likely represents in a GAA coaching context, then render it using the closest available style. Common examples:
+IMPORTANT: This rule applies to ANY shape you have not yet rendered — including shapes you examined in STEP 1 but did not output because you were uncertain. "I checked it but wasn't sure" is not a reason to skip. If ANY visible element in the sketch is not yet in your XML, render it now.
+
+If a drawn shape does not match any symbol defined above exactly, DO NOT skip it. Use your visual reasoning to infer what it most likely represents in a GAA coaching context, then render it using the closest available style. Common examples:
   - Matchstick person, stick figure, or human outline → PLAYER (home red style, value="?")
   - Cone drawn in 3D, as a solid wedge, funnel, or chevron → CONE (triangle style)
   - Rectangle or shape with a written label → render as a labelled zone using:
@@ -143,6 +145,8 @@ If a drawn shape does not match any symbol defined above, DO NOT skip it. Use yo
   - Handwritten text or number not inside any circle → text label: style="text;html=1;fontColor=#ffffff;fontSize=13;fontStyle=0;"
   - Any other identifiable drawn shape → output the best matching mxGraph shape at its approximate position
 Every element visible in the sketch MUST appear in the output — never silently drop anything.
+
+FINAL CHECK — before closing the XML: mentally scan the original image one last time. For each distinct drawn element, ask: "Is this in my XML?" If anything is missing, add it now using STEP 4 or STEP 5. This check exists specifically because strict-rule elements (circles, cones) are easy to render but non-standard shapes (walls, boxes, zones) can be accidentally skipped. Do not finish until the count matches.
 
 STEP 6 — HURLING AND CAMOGIE ARE THE SAME DRILL:
 If the sketch contains hurling-specific elements — drawn hurls or camáns (long stick shapes), sliotars (small ball, typically not a GAA football), wall-ball setups, or any other hurling equipment — the drill applies equally to camogie. In that case, add a single small text label in the bottom-right corner of the canvas:
