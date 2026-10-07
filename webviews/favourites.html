@@ -341,15 +341,6 @@
     .fb-voice-wave span:nth-child(4) { animation-delay: 0.45s; }
     .fb-voice-wave span:nth-child(5) { animation-delay: 0.60s; }
     @keyframes fbSpWave { 0%,100%{height:4px} 50%{height:20px} }
-    .fb-transcript {
-      min-height: 40px; padding: 9px 13px;
-      background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: var(--radius); font-size: 14px; line-height: 1.55;
-      color: var(--text); word-break: break-word;
-      outline: none; cursor: text;
-    }
-    .fb-transcript:focus { border-color: var(--accent); }
-    .fb-transcript:empty::before { content: "Your speech will appear here — tap to edit before submitting…"; color: var(--muted); pointer-events: none; }
     .feedback-input {
       width: 100%; background: var(--bg); border: 1px solid var(--border);
       border-radius: 8px; padding: 9px 12px; color: var(--text);
@@ -592,7 +583,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
               </button>
             </div>
-            <div id="setupTranscript" class="fb-transcript" contenteditable="true" spellcheck="true"></div>
           </div>
           <div id="setupFbTextPanel" style="display:none">
             <textarea id="setupNotesText" class="feedback-input" placeholder="Describe session goals, focus areas or any special requirements…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -919,7 +909,7 @@
     try {
       _rotateStations = $('rotateToggle')?.checked ?? true;
       const session_notes = _setupDescMode === 'voice'
-        ? ($('setupTranscript')?.innerText?.trim() || _setupTranscript.trim())
+        ? _setupTranscript.trim()
         : ($('setupNotesText')?.value || '').trim();
       const body = isRevision
         ? { action: 'revise_plan', user_id: USER_ID, feedback, existing_plan: _currentPlan }
@@ -955,7 +945,7 @@
     if (_isRegen) return;
     _isRegen = true;
     const feedback = _spDescMode === 'voice'
-      ? ($('spTranscript')?.innerText?.trim() || _spTranscript.trim())
+      ? _spTranscript.trim()
       : ($('feedbackText')?.value || '').trim();
     if (!feedback) {
       showToast(_spDescMode === 'voice' ? 'Nothing recorded — tap the mic and speak' : 'Add some feedback first', 'error');
@@ -969,8 +959,6 @@
       if (btn) { btn.disabled = false; btn.textContent = 'Regenerate'; }
     }
     _spTranscript = '';
-    const el = $('spTranscript');
-    if (el) el.textContent = '';
   }
 
   // ── Plan rendering ─────────────────────────────────────────────────────────
@@ -1034,7 +1022,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           </button>
         </div>
-        <div id="spTranscript" class="fb-transcript" contenteditable="true" spellcheck="true"></div>
       </div>
       <div id="spFbTextPanel" style="display:none">
         <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -1502,7 +1489,6 @@
     }
     function start() {
       _spIsRecording = true; _spTranscript = '';
-      $('spTranscript').textContent = '';
       btn.classList.add('recording');
       $('spFbVoiceWave').classList.add('active');
       if (window.FlutterBridge) {
@@ -1541,8 +1527,6 @@
         else interim += e.results[i][0].transcript;
       }
       _spTranscript = base.trim();
-      const el = $('spTranscript');
-      if (el) el.textContent = (_spTranscript + (interim ? ' ' + interim : '')).trim() || _spTranscript;
     };
     _spWebRec.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetVoice(); };
     _spWebRec.onend   = () => { const was = _spIsRecording; _resetVoice(); if (was) regenWithFeedback(); };
@@ -1571,8 +1555,6 @@
         else interim += e.results[i][0].transcript;
       }
       _setupTranscript = base.trim();
-      const el = $('setupTranscript');
-      if (el) el.textContent = (_setupTranscript + (interim ? ' ' + interim : '')).trim() || _setupTranscript;
     };
     _setupWebRec.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetSetupVoice(); };
     _setupWebRec.onend   = () => { _resetSetupVoice(); };
@@ -1604,7 +1586,6 @@
     }
     function start() {
       _setupIsRecording = true; _setupTranscript = '';
-      $('setupTranscript').textContent = '';
       btn.classList.add('recording');
       $('setupFbVoiceWave').classList.add('active');
       if (window.FlutterBridge) {
@@ -1629,13 +1610,9 @@
     if (fieldId === 'sp_feedback') {
       _spTranscript += text + ' ';
       _spTranscript = _spTranscript.trim();
-      const el = $('spTranscript');
-      if (el) el.textContent = _spTranscript;
     } else if (fieldId === 'setup_notes') {
       _setupTranscript += text + ' ';
       _setupTranscript = _setupTranscript.trim();
-      const el = $('setupTranscript');
-      if (el) el.textContent = _setupTranscript;
     } else if (_prevReceive) _prevReceive(fieldId, text);
   };
   window.onSpeechDone = function() {
