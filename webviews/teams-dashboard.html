@@ -28,13 +28,13 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
     padding: 12px 24px; display: flex; align-items: center; gap: 14px;
     position: sticky; top: 0; z-index: 20;
 }
-.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex-shrink: 0; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 23px; letter-spacing: 3px; flex-shrink: 0; }
 .logo span { color: var(--green); }
 .topbar-div { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
-.page-title { font-size: 14px; font-weight: 600; color: var(--muted); }
+.page-title { font-size: 15px; font-weight: 600; color: var(--muted); }
 .topbar select {
     background: var(--card2); border: 1px solid var(--border); color: var(--text);
-    padding: 6px 10px; border-radius: 6px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+    padding: 6px 10px; border-radius: 6px; font-size: 14px; font-family: 'DM Sans', sans-serif;
     cursor: pointer; min-width: 200px;
 }
 .topbar select:focus { outline: none; border-color: var(--green); }
@@ -42,7 +42,7 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 /* Nav pills */
 .nav-pills { display: flex; background: var(--card2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; flex-shrink: 0; margin-left: auto; }
 .nav-pill {
-    padding: 5px 13px; font-size: 12px; font-weight: 500; color: var(--muted);
+    padding: 5px 13px; font-size: 13px; font-weight: 500; color: var(--muted);
     text-decoration: none; border: none; background: transparent; cursor: pointer;
     font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap; display: block;
 }
@@ -55,23 +55,23 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
     padding: 10px 24px 12px; position: sticky; top: 53px; z-index: 19;
     display: flex; flex-direction: column; gap: 10px;
 }
-.fs-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
+.fs-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
 .period-row { display: flex; align-items: center; gap: 10px; }
 .slider-dates { display: flex; justify-content: space-between; margin-bottom: 2px; }
-.slider-dates span { font-size: 11px; font-weight: 500; background: var(--card2); padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); }
+.slider-dates span { font-size: 12px; font-weight: 500; background: var(--card2); padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); }
 .slider-wrap { position: relative; height: 26px; display: flex; align-items: center; flex: 1; min-width: 160px; }
 .slider-track { position: absolute; width: 100%; height: 3px; background: var(--border); border-radius: 2px; }
 .slider-fill  { position: absolute; height: 3px; background: var(--green); border-radius: 2px; }
 input[type=range] { position: absolute; width: 100%; height: 3px; background: transparent; -webkit-appearance: none; pointer-events: none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all; box-shadow: 0 0 0 4px rgba(135,194,50,0.15); }
 input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--green); border: 2px solid var(--dark); cursor: pointer; pointer-events: all; }
-.slider-range-label { font-size: 11px; font-weight: 500; background: var(--card2); padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); white-space: nowrap; flex-shrink: 0; }
+.slider-range-label { font-size: 12px; font-weight: 500; background: var(--card2); padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); white-space: nowrap; flex-shrink: 0; }
 .filter-groups { display: flex; align-items: flex-start; gap: 0; flex-wrap: wrap; }
 .filter-group { display: flex; flex-direction: column; gap: 5px; padding: 0 14px; border-right: 1px solid var(--border); }
 .filter-group:first-child { padding-left: 0; }
 .filter-group:last-child  { border-right: none; }
 .chip-group { display: flex; gap: 5px; flex-wrap: wrap; }
-.s-chip { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--card2); cursor: pointer; transition: all 0.15s; user-select: none; white-space: nowrap; }
+.s-chip { padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: var(--card2); cursor: pointer; transition: all 0.15s; user-select: none; white-space: nowrap; }
 .s-chip:hover { border-color: rgba(255,255,255,0.18); }
 .s-chip.active { background: rgba(135,194,50,0.18); color: var(--green); border-color: rgba(135,194,50,0.45); }
 
@@ -89,23 +89,23 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 }
 .team-card:hover { border-color: rgba(135,194,50,0.4); box-shadow: 0 4px 24px rgba(0,0,0,0.35); }
 .tc-head { padding: 16px 18px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
-.tc-name { font-size: 15px; font-weight: 600; flex: 1; }
-.tc-badge { font-size: 11px; font-weight: 500; color: var(--muted); background: var(--card2); padding: 3px 9px; border-radius: 10px; border: 1px solid var(--border); white-space: nowrap; }
+.tc-name { font-size: 16px; font-weight: 600; flex: 1; }
+.tc-badge { font-size: 12px; font-weight: 500; color: var(--muted); background: var(--card2); padding: 3px 9px; border-radius: 10px; border: 1px solid var(--border); white-space: nowrap; }
 .tc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); padding: 14px 18px; gap: 4px; border-bottom: 1px solid var(--border); }
 .tc-kpi { text-align: center; }
-.tc-kv { font-size: 22px; font-weight: 600; line-height: 1; }
+.tc-kv { font-size: 23px; font-weight: 600; line-height: 1; }
 .tc-kv.green { color: var(--green); }
 .tc-kv.amber { color: var(--amber); }
-.tc-kl { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 5px; }
+.tc-kl { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 5px; }
 .tc-chart-wrap { padding: 14px 16px 10px; height: 190px; }
-.tc-footer { padding: 10px 18px; font-size: 12px; color: var(--muted); text-align: right; border-top: 1px solid var(--border); transition: color 0.15s; }
+.tc-footer { padding: 10px 18px; font-size: 13px; color: var(--muted); text-align: right; border-top: 1px solid var(--border); transition: color 0.15s; }
 .team-card:hover .tc-footer { color: var(--green); }
-.tc-empty { padding: 24px 18px; font-size: 12px; color: var(--muted); text-align: center; border-top: 1px solid var(--border); }
+.tc-empty { padding: 24px 18px; font-size: 13px; color: var(--muted); text-align: center; border-top: 1px solid var(--border); }
 
 .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; gap: 14px; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 15px; }
 
 @media (max-width: 900px) { .teams-grid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) {
@@ -121,7 +121,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
     <div class="logo">Coach<span>Smart</span></div>
     <div class="topbar-div"></div>
     <div class="page-title">Teams Dashboard</div>
-    <span id="ctxLabel" style="display:none;font-size:13px;font-weight:600;"></span>
+    <span id="ctxLabel" style="display:none;font-size: 14px;font-weight:600;"></span>
     <div class="nav-pills">
         <a class="nav-pill" id="navOverview" href="overview-dashboard.html">Overview</a>
         <span class="nav-pill active">Teams</span>
@@ -178,7 +178,7 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 <div class="main">
     <div class="loading-wrap" id="loading" style="display:none;">
         <div class="spinner"></div>
-        <div style="color:var(--muted);font-size:13px;">Loading dashboard…</div>
+        <div style="color:var(--muted);font-size: 14px;">Loading dashboard…</div>
     </div>
     <div id="teamsGrid" class="teams-grid"></div>
     <div class="empty-state" id="emptyState">Select a club above to load the dashboard.</div>

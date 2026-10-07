@@ -51,7 +51,7 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: var(--muted); font-size: 14px; }
+    .loading-text { color: var(--muted); font-size: 15px; }
 
     #errorScreen {
       display: none;
@@ -63,9 +63,9 @@
       padding: 24px;
       text-align: center;
     }
-    .error-icon  { font-size: 32px; }
-    .error-title { font-size: 16px; font-weight: 600; }
-    .error-msg   { font-size: 13px; color: var(--muted); }
+    .error-icon  { font-size: 33px; }
+    .error-title { font-size: 17px; font-weight: 600; }
+    .error-msg   { font-size: 14px; color: var(--muted); }
 
     /* ── Waiting screen ─────────────────────────────────────────────────────── */
     #waitingScreen {
@@ -98,16 +98,16 @@
       50%       { transform: scale(0.86); opacity: 0.7; }
     }
     .waiting-title {
-      font-family: 'Bebas Neue', sans-serif; font-size: 30px;
+      font-family: 'Bebas Neue', sans-serif; font-size: 31px;
       letter-spacing: 3px; color: var(--text); line-height: 1.15; margin-bottom: 14px;
     }
     .waiting-msg {
-      font-size: 14px; color: var(--muted); line-height: 1.65;
+      font-size: 15px; color: var(--muted); line-height: 1.65;
       max-width: 270px; margin-bottom: 28px;
     }
     .waiting-live {
       display: flex; align-items: center; gap: 7px;
-      font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
       color: rgba(135,194,50,0.8); margin-bottom: 40px;
     }
     .waiting-live-dot {
@@ -124,11 +124,11 @@
       padding: 20px 16px 32px;
     }
     .picker-event-label {
-      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
       text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
     }
-    .picker-title    { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-    .picker-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .picker-title    { font-size: 23px; font-weight: 700; margin-bottom: 4px; }
+    .picker-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
     .session-card {
       display: flex; align-items: center; gap: 12px;
       padding: 14px 16px; background: var(--surface);
@@ -141,16 +141,16 @@
     .session-colour-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
     .session-info { flex: 1; min-width: 0; }
     .session-name {
-      font-size: 14px; font-weight: 600;
+      font-size: 15px; font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .session-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .session-meta { font-size: 13px; color: var(--muted); margin-top: 3px; }
     .session-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-    .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 20px; }
+    .badge { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 20px; }
     .badge-mine   { background: rgba(135,194,50,0.15);  color: var(--us);    border: 1px solid rgba(135,194,50,0.3); }
     .badge-final  { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid rgba(100,116,139,0.3); }
     .badge-active { background: rgba(245,158,11,0.12);  color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
-    .session-chevron { color: var(--muted); font-size: 20px; line-height: 1; flex-shrink: 0; }
+    .session-chevron { color: var(--muted); font-size: 21px; line-height: 1; flex-shrink: 0; }
 
     /* ── Main chart screen ──────────────────────────────────────────────────── */
     #chartScreen {
@@ -165,7 +165,7 @@
     /* ── Header ─────────────────────────────────────────────────────────────── */
     .header { padding: 16px 16px 0; }
     .event-label {
-      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
       text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
     }
     .score-board {
@@ -174,19 +174,19 @@
       border-radius: 16px; padding: 14px 20px; gap: 8px;
     }
     .score-team { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
-    .score-team-name { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .score-team-name { font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
     .score-team-name.us  { color: var(--us); }
     .score-team-name.opp { color: var(--opp); }
-    .score-gaa { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 2px; line-height: 1; }
+    .score-gaa { font-family: 'Bebas Neue', sans-serif; font-size: 53px; letter-spacing: 2px; line-height: 1; }
     .score-gaa.us  { color: var(--us); }
     .score-gaa.opp { color: var(--opp); }
-    .score-pts { font-size: 20px; font-weight: 600; color: var(--muted); }
-    .score-vs  { font-size: 16px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+    .score-pts { font-size: 21px; font-weight: 600; color: var(--muted); }
+    .score-vs  { font-size: 17px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
     .score-lead { display: flex; align-items: center; justify-content: center; margin-top: 12px; min-height: 32px; }
     .lead-chip {
       display: inline-flex; align-items: center;
       padding: 5px 16px; border-radius: 20px;
-      font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
+      font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
       border: 1px solid;
     }
     .score-lead.leading  .lead-chip { color: var(--us);    background: rgba(135,194,50,0.1);  border-color: rgba(135,194,50,0.35); }
@@ -203,7 +203,7 @@
       text-align: center;
     }
     .ltc-half {
-      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
       text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
       display: flex; align-items: center; justify-content: center; gap: 6px;
     }
@@ -213,11 +213,11 @@
     }
     .ltc-time {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 64px; letter-spacing: 3px; line-height: 1;
+      font-size: 65px; letter-spacing: 3px; line-height: 1;
       color: var(--text);
     }
     .ltc-sub {
-      font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500;
+      font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 500;
     }
 
     /* ── Chart area ─────────────────────────────────────────────────────────── */
@@ -237,11 +237,11 @@
     #tooltip {
       display: none; position: fixed;
       background: #0f172a; border: 1px solid var(--border);
-      border-radius: 8px; padding: 8px 12px; font-size: 12px;
+      border-radius: 8px; padding: 8px 12px; font-size: 13px;
       color: var(--text); pointer-events: none; z-index: 200;
       min-width: 110px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
     }
-    #tt-min { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+    #tt-min { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
     .tt-row { display: flex; justify-content: space-between; gap: 12px; }
     .tt-label { font-weight: 600; }
     .tt-label.us  { color: var(--us); }
@@ -250,7 +250,7 @@
 
     /* ── Legend ──────────────────────────────────────────────────────────────── */
     .legend { display: flex; justify-content: center; gap: 24px; padding: 8px 16px 4px; }
-    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
     .legend-line { width: 24px; height: 3px; border-radius: 2px; }
     .legend-line.us  { background: var(--us); }
     .legend-line.opp { background: var(--opp); }
@@ -262,10 +262,10 @@
       margin-bottom: 10px;
     }
     .tree-section-label {
-      font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
       text-transform: uppercase; color: var(--muted);
     }
-    .tree-team-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .tree-team-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
     .tree-team-label.us  { color: var(--us); }
     .tree-team-label.opp { color: var(--opp); }
     .tree-wrapper {
@@ -278,13 +278,13 @@
     }
     .tree-wrapper svg { display: block; width: 100%; height: auto; }
     .no-events {
-      text-align: center; color: var(--muted); font-size: 13px; padding: 20px 0;
+      text-align: center; color: var(--muted); font-size: 14px; padding: 20px 0;
     }
 
     /* ── Live indicator ─────────────────────────────────────────────────────── */
     .live-badge {
       display: inline-flex; align-items: center; gap: 5px;
-      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
       text-transform: uppercase; color: #ef4444;
       padding: 2px 8px 2px 6px; border: 1px solid rgba(239,68,68,0.3);
       border-radius: 20px; background: rgba(239,68,68,0.08);
@@ -302,7 +302,7 @@
       display: none; align-items: center; gap: 6px;
       padding: 7px 14px; border-radius: 20px;
       background: #1a2332; border: 1px solid rgba(135,194,50,0.5);
-      color: var(--us); font-size: 12px; font-weight: 700; font-family: inherit;
+      color: var(--us); font-size: 13px; font-weight: 700; font-family: inherit;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
       touch-action: manipulation; white-space: nowrap;
       box-shadow: 0 4px 20px rgba(0,0,0,0.6);

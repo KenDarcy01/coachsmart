@@ -31,10 +31,10 @@ html, body {
     padding: 12px 24px; display: flex; align-items: center; gap: 14px;
     position: sticky; top: 0; z-index: 10;
 }
-.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex-shrink: 0; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 23px; letter-spacing: 3px; flex-shrink: 0; }
 .logo span { color: var(--green); }
 .topbar-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
-.club-name { font-size: 15px; font-weight: 600; flex: 1; }
+.club-name { font-size: 16px; font-weight: 600; flex: 1; }
 
 /* ── Filter strip ─────────────────────────────────────────────────── */
 .filter-strip {
@@ -43,7 +43,7 @@ html, body {
 }
 .slider-dates { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .slider-dates span {
-    font-size: 11px; font-weight: 500; background: var(--card2);
+    font-size: 12px; font-weight: 500; background: var(--card2);
     padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border);
 }
 .slider-wrap { position: relative; height: 26px; display: flex; align-items: center; margin-bottom: 12px; }
@@ -65,7 +65,7 @@ input[type=range]::-moz-range-thumb {
 .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .filter-row select {
     background: var(--card2); color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 500;
+    border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 500;
     font-family: 'DM Sans', sans-serif; cursor: pointer; outline: none;
 }
 .filter-row select:focus { border-color: var(--green); }
@@ -81,13 +81,13 @@ input[type=range]::-moz-range-thumb {
 .team-dropdown.open { display: block; }
 .team-dropdown-item {
     display: flex; align-items: center; gap: 8px;
-    padding: 8px 14px; cursor: pointer; font-size: 13px;
+    padding: 8px 14px; cursor: pointer; font-size: 14px;
 }
 .team-dropdown-item:hover { background: var(--card2); }
 .team-dropdown-item input[type=checkbox] { accent-color: var(--green); width: 14px; height: 14px; cursor: pointer; }
 .team-filter-btn {
     background: var(--card2); color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 500;
+    border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500;
     font-family: 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px;
 }
 .team-filter-btn.on { border-color: var(--amber); color: var(--amber); }
@@ -99,7 +99,7 @@ input[type=range]::-moz-range-thumb {
 /* ── Tabs ─────────────────────────────────────────────────────────── */
 .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
 .tab-btn {
-    padding: 10px 22px; font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
     border: none; background: none; color: var(--muted);
     border-bottom: 2px solid transparent; font-family: 'DM Sans', sans-serif;
     transition: all 0.15s;
@@ -113,12 +113,12 @@ input[type=range]::-moz-range-thumb {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 12px; padding: 16px 14px; text-align: center;
 }
-.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px; line-height: 1; }
+.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 33px; letter-spacing: 1px; line-height: 1; }
 .stat-value.green { color: var(--green); }
 .stat-value.amber { color: var(--amber); }
 .stat-value.red   { color: var(--red); }
-.stat-value.sm    { font-size: 20px; }
-.stat-label { font-size: 9px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 5px; }
+.stat-value.sm    { font-size: 21px; }
+.stat-label { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 5px; }
 
 /* ── Charts grid ──────────────────────────────────────────────────── */
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
@@ -127,7 +127,7 @@ input[type=range]::-moz-range-thumb {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 14px; padding: 18px 16px;
 }
-.chart-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+.chart-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
 .chart-wrap { position: relative; }
 
 /* ── League table ─────────────────────────────────────────────────── */
@@ -136,11 +136,11 @@ input[type=range]::-moz-range-thumb {
     border-radius: 14px; overflow: hidden; margin-bottom: 20px;
 }
 .table-header { padding: 14px 18px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.table-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.table-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 thead th {
-    padding: 10px 14px; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    padding: 10px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase;
     letter-spacing: 1px; color: var(--muted); text-align: left; border-bottom: 1px solid var(--border);
     cursor: pointer; white-space: nowrap; user-select: none;
 }
@@ -151,24 +151,24 @@ thead th.sort-active .sort-arrow { opacity: 1; }
 tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--card2); }
-tbody td { padding: 10px 14px; font-size: 13px; white-space: nowrap; }
+tbody td { padding: 10px 14px; font-size: 14px; white-space: nowrap; }
 .rate-pill {
     display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 11px; font-weight: 700;
+    font-size: 12px; font-weight: 700;
 }
 .rate-pill.green { background: rgba(135,194,50,0.12); color: var(--green); }
 .rate-pill.amber { background: rgba(245,166,35,0.12); color: var(--amber); }
 .rate-pill.red   { background: rgba(224,82,82,0.12);  color: var(--red); }
 .team-badge {
-    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; padding: 2px 8px; border-radius: 10px;
     background: var(--card2); color: var(--muted); display: inline-block;
 }
 
 /* ── Member list ──────────────────────────────────────────────────── */
 .sort-bar { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; flex-wrap: wrap; }
-.sort-label { font-size: 10px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.sort-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 .sort-chip {
-    padding: 5px 11px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    padding: 5px 11px; border-radius: 20px; font-size: 12px; font-weight: 600;
     border: 1px solid var(--border); background: var(--card);
     color: var(--muted); cursor: pointer; white-space: nowrap;
 }
@@ -179,15 +179,15 @@ tbody td { padding: 10px 14px; font-size: 13px; white-space: nowrap; }
     border-radius: 10px; padding: 11px 16px;
     display: flex; align-items: center; gap: 10px;
 }
-.member-name { font-size: 13px; font-weight: 500; min-width: 140px; }
+.member-name { font-size: 14px; font-weight: 500; min-width: 140px; }
 .member-teams { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
 .member-stats { display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
 .member-stat { text-align: center; }
-.member-stat-val { font-size: 13px; font-weight: 600; }
+.member-stat-val { font-size: 14px; font-weight: 600; }
 .member-stat-val.green { color: var(--green); }
 .member-stat-val.amber { color: var(--amber); }
 .member-stat-val.red   { color: var(--red); }
-.member-stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+.member-stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
 
 /* ── Loading / error ──────────────────────────────────────────────── */
 .state-center {
@@ -199,12 +199,12 @@ tbody td { padding: 10px 14px; font-size: 13px; white-space: nowrap; }
     border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.state-text { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.state-text { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 .error-box {
     background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3);
-    border-radius: 10px; padding: 16px; color: #FCA5A5; font-size: 13px;
+    border-radius: 10px; padding: 16px; color: #FCA5A5; font-size: 14px;
 }
-.empty-state { text-align: center; padding: 32px 0; color: var(--muted); font-size: 13px; }
+.empty-state { text-align: center; padding: 32px 0; color: var(--muted); font-size: 14px; }
 </style>
 </head>
 <body>

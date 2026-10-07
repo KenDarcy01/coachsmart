@@ -45,7 +45,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -70,8 +70,8 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.err-icon { font-size: 32px; }
-.err-msg  { color: var(--muted); font-size: 14px; max-width: 260px; }
+.err-icon { font-size: 33px; }
+.err-msg  { color: var(--muted); font-size: 15px; max-width: 260px; }
 
 /* ── Main layout ─────────────────────────────────────────────────────────── */
 #mainScreen { display: none; padding: 16px 16px 40px; }
@@ -87,7 +87,7 @@ body {
 }
 
 .filter-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.9px;
   text-transform: uppercase;
@@ -104,13 +104,13 @@ body {
 }
 .date-range-label .from-label,
 .date-range-label .to-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
 }
 .date-range-label .arrow {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .slider-wrap {
@@ -180,7 +180,7 @@ body {
   flex: 1;
   padding: 6px 0;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   border: 1.5px solid var(--border);
   background: var(--surface-2);
@@ -211,7 +211,7 @@ body {
   flex-shrink: 0;
   padding: 5px 14px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   border: 1.5px solid var(--border);
   background: var(--surface-2);
@@ -234,7 +234,7 @@ body {
   border: 1.5px solid var(--border);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   -webkit-appearance: none;
   appearance: none;
@@ -259,7 +259,7 @@ body {
   box-shadow: var(--shadow);
 }
 .stat-value {
-  font-size: 28px;
+  font-size: 29px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.5px;
@@ -269,14 +269,14 @@ body {
 }
 .stat-value.accent { color: var(--accent); }
 .stat-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--muted);
 }
 .stat-sub {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -289,14 +289,14 @@ body {
   margin-bottom: 10px;
 }
 .section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.7px;
   text-transform: uppercase;
   color: var(--muted);
 }
 .section-count {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -324,12 +324,12 @@ body {
   align-items: baseline;
 }
 .attend-type-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
 }
 .attend-type-count {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -358,7 +358,7 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .legend-dot {
@@ -383,14 +383,14 @@ body {
   gap: 6px;
 }
 .match-date {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--muted);
 }
 .match-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
   line-height: 1.3;
@@ -406,7 +406,7 @@ body {
   align-items: center;
   padding: 3px 10px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   background: var(--surface-2);
   color: var(--text-2);
@@ -418,7 +418,7 @@ body {
   border-color: var(--accent-mid);
 }
 .match-chip.homeaway {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -442,7 +442,7 @@ body {
 .event-row:last-child { border-bottom: none; }
 
 .event-date-col {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -451,11 +451,11 @@ body {
   grid-row: span 2;
   align-self: center;
 }
-.event-date-day { font-size: 15px; font-weight: 800; color: var(--text); line-height: 1; }
+.event-date-day { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1; }
 
 .event-info { overflow: hidden; }
 .event-title-text {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -470,7 +470,7 @@ body {
   margin-top: 2px;
 }
 .event-type-tag {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -481,7 +481,7 @@ body {
   flex-shrink: 0;
   padding: 2px 8px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -498,10 +498,10 @@ body {
   padding: 36px 24px;
   text-align: center;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   gap: 6px;
 }
-.empty-icon { font-size: 28px; opacity: 0.5; }
+.empty-icon { font-size: 29px; opacity: 0.5; }
 
 .section-wrap { margin-bottom: 20px; }
 

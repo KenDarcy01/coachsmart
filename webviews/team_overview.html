@@ -30,9 +30,9 @@
             align-items: center;
             justify-content: space-between;
         }
-        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 3px; }
+        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 27px; letter-spacing: 3px; }
         .logo span { color: var(--green); }
-        .header-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+        .header-sub { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
 
         .filters-panel {
             background: var(--card);
@@ -47,13 +47,13 @@
         .filter-group.wide { min-width: 240px; }
         .filter-group.stretch { flex: 1; min-width: 280px; }
         .filter-label {
-            font-size: 10px; font-weight: 500;
+            font-size: 11px; font-weight: 500;
             text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted);
         }
         select {
             background: var(--card2); color: var(--text);
             border: 1px solid var(--border); border-radius: 8px;
-            padding: 10px 14px; font-size: 13px;
+            padding: 10px 14px; font-size: 14px;
             font-family: 'DM Sans', sans-serif; cursor: pointer; outline: none;
             transition: border-color 0.2s;
         }
@@ -62,7 +62,7 @@
 
         .load-btn {
             background: var(--green); color: #111418; border: none;
-            border-radius: 8px; padding: 10px 24px; font-size: 13px;
+            border-radius: 8px; padding: 10px 24px; font-size: 14px;
             font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer;
             letter-spacing: 0.3px; transition: opacity 0.2s; white-space: nowrap; align-self: flex-end;
         }
@@ -72,7 +72,7 @@
         .export-btn {
             background: transparent; color: var(--green);
             border: 1px solid var(--green); border-radius: 8px;
-            padding: 10px 24px; font-size: 13px; font-weight: 600;
+            padding: 10px 24px; font-size: 14px; font-weight: 600;
             font-family: 'DM Sans', sans-serif; cursor: pointer;
             letter-spacing: 0.3px; transition: all 0.2s; white-space: nowrap; align-self: flex-end;
         }
@@ -81,7 +81,7 @@
 
         .date-labels { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .date-labels span {
-            font-size: 12px; color: var(--text); font-weight: 500;
+            font-size: 13px; color: var(--text); font-weight: 500;
             background: var(--card2); padding: 3px 8px; border-radius: 5px; border: 1px solid var(--border);
         }
         .slider-wrap { position: relative; height: 24px; display: flex; align-items: center; }
@@ -111,11 +111,11 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+        .loading-text { font-size: 13px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
         .error-box {
             margin: 40px; background: rgba(239,68,68,0.1);
             border: 1px solid rgba(239,68,68,0.3); border-radius: 10px;
-            padding: 20px 24px; color: #FCA5A5; font-size: 14px;
+            padding: 20px 24px; color: #FCA5A5; font-size: 15px;
         }
 
         .content { padding: 32px 40px; display: none; }
@@ -126,10 +126,10 @@
             height: 40vh; flex-direction: column; gap: 12px; color: var(--muted);
         }
         .placeholder .big {
-            font-family: 'Bebas Neue', sans-serif; font-size: 72px;
+            font-family: 'Bebas Neue', sans-serif; font-size: 73px;
             color: rgba(255,255,255,0.04); letter-spacing: 4px;
         }
-        .placeholder p { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
+        .placeholder p { font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; }
 
         .table-card {
             background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
@@ -139,16 +139,16 @@
             display: flex; align-items: center; justify-content: space-between;
         }
         .table-title {
-            font-size: 10px; font-weight: 500; text-transform: uppercase;
+            font-size: 11px; font-weight: 500; text-transform: uppercase;
             letter-spacing: 2px; color: var(--muted);
         }
         .table-wrap { overflow-x: auto; }
         .table-wrap::-webkit-scrollbar { height: 4px; }
         .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
         thead th {
-            padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 500;
+            padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 500;
             text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted);
             background: var(--card2); white-space: nowrap;
             cursor: pointer; user-select: none; transition: color 0.15s;
@@ -167,12 +167,12 @@
         .rate-wrap { display: flex; align-items: center; gap: 8px; }
         .rate-bar-bg { width: 60px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
         .rate-bar-fill { height: 4px; border-radius: 2px; background: var(--green); }
-        .rate-text { font-size: 12px; font-weight: 600; color: var(--amber); min-width: 36px; }
+        .rate-text { font-size: 13px; font-weight: 600; color: var(--amber); min-width: 36px; }
 
-        .squad-count { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--text); letter-spacing: 0.5px; }
-        .squad-count.zero { color: var(--muted); font-size: 14px; font-family: 'DM Sans', sans-serif; }
+        .squad-count { font-family: 'Bebas Neue', sans-serif; font-size: 19px; color: var(--text); letter-spacing: 0.5px; }
+        .squad-count.zero { color: var(--muted); font-size: 15px; font-family: 'DM Sans', sans-serif; }
 
-        .num-cell { font-size: 14px; color: var(--text); }
+        .num-cell { font-size: 15px; color: var(--text); }
         .num-cell.green { color: var(--green); }
         .num-cell.red   { color: var(--red); }
         .num-cell.muted { color: var(--muted); }
@@ -185,7 +185,7 @@
         <div class="logo">COACH<span>SMART</span></div>
         <div class="header-sub">Team Overview Dashboard</div>
     </div>
-    <div id="resultMeta" style="font-size:12px; color:var(--muted); text-align:right;"></div>
+    <div id="resultMeta" style="font-size: 13px; color:var(--muted); text-align:right;"></div>
 </div>
 
 <div class="filters-panel">
@@ -236,7 +236,7 @@
 
 <div class="error-box" id="errorState" style="display:none;">
     <strong>Error loading data.</strong>
-    <div id="errorDetail" style="margin-top:8px; font-size:12px; opacity:0.7;"></div>
+    <div id="errorDetail" style="margin-top:8px; font-size: 13px; opacity:0.7;"></div>
 </div>
 
 <div class="content" id="mainContent">
@@ -249,7 +249,7 @@
         <div class="table-card">
             <div class="table-toolbar">
                 <div class="table-title" id="tableTitle">Team Overview</div>
-                <div style="font-size:11px;color:var(--muted);" id="tableSubtitle"></div>
+                <div style="font-size: 12px;color:var(--muted);" id="tableSubtitle"></div>
             </div>
             <div class="table-wrap">
                 <table id="overviewTable">
@@ -416,8 +416,8 @@ async function loadData() {
         initSlider();
 
         document.getElementById('resultMeta').innerHTML =
-            `<div style="color:var(--text);font-size:13px;font-weight:500;">${team}</div>
-             <div style="color:var(--muted);font-size:11px;letter-spacing:1px;margin-top:2px;">${code} · ${type}</div>`;
+            `<div style="color:var(--text);font-size: 14px;font-weight:500;">${team}</div>
+             <div style="color:var(--muted);font-size: 12px;letter-spacing:1px;margin-top:2px;">${code} · ${type}</div>`;
 
         sortCol = 'player';
         sortDir = 'asc';

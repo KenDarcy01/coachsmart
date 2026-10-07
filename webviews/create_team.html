@@ -49,12 +49,12 @@ html, body {
   padding: 20px 20px 0;
   display: flex; align-items: center; gap: 12px; flex-shrink: 0;
 }
-.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; flex: 1; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 23px; letter-spacing: 3px; flex: 1; }
 .logo span { color: var(--green); }
 .back-btn {
   display: flex; align-items: center; gap: 5px;
   background: none; border: none; color: var(--muted);
-  font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif;
   cursor: pointer; padding: 4px; flex-shrink: 0;
 }
 .back-btn svg { width: 18px; height: 18px; }
@@ -70,18 +70,18 @@ html, body {
 
 /* Content */
 .content { flex: 1; padding: 32px 24px 0; max-width: 440px; width: 100%; margin: 0 auto; }
-.step-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
-.screen-title { font-size: 26px; font-weight: 600; line-height: 1.25; margin-bottom: 8px; }
-.screen-sub   { font-size: 14px; color: var(--muted); line-height: 1.65; margin-bottom: 28px; }
+.step-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.screen-title { font-size: 27px; font-weight: 600; line-height: 1.25; margin-bottom: 8px; }
+.screen-sub   { font-size: 15px; color: var(--muted); line-height: 1.65; margin-bottom: 28px; }
 
 /* Inputs */
 .field { margin-bottom: 14px; }
-.field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .field input {
   width: 100%; padding: 14px 16px;
   border-radius: 10px; background: var(--card2);
   border: 1.5px solid var(--border); color: var(--text);
-  font-size: 16px; font-family: 'DM Sans', sans-serif;
+  font-size: 17px; font-family: 'DM Sans', sans-serif;
   -webkit-appearance: none; outline: none; transition: border-color 0.15s;
 }
 .field input:focus { border-color: var(--green); }
@@ -93,8 +93,8 @@ html, body {
   padding: 14px 16px; background: var(--card2);
   border-radius: 10px; border: 1.5px solid var(--border); margin-bottom: 10px;
 }
-.toggle-label { font-size: 15px; font-weight: 500; }
-.toggle-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.toggle-label { font-size: 16px; font-weight: 500; }
+.toggle-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .toggle { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
 .toggle input { opacity: 0; width: 0; height: 0; }
 .toggle-track {
@@ -117,7 +117,7 @@ html, body {
   width: 100%; padding: 12px 16px 12px 40px;
   border-radius: 10px; background: var(--card2);
   border: 1.5px solid var(--border); color: var(--text);
-  font-size: 15px; font-family: 'DM Sans', sans-serif;
+  font-size: 16px; font-family: 'DM Sans', sans-serif;
   -webkit-appearance: none; outline: none; transition: border-color 0.15s;
 }
 #club-search:focus { border-color: var(--green); }
@@ -126,7 +126,7 @@ html, body {
 .club-item {
   padding: 14px 16px; border-bottom: 1px solid var(--border);
   cursor: pointer; transition: background 0.12s;
-  display: flex; align-items: center; justify-content: space-between; font-size: 15px;
+  display: flex; align-items: center; justify-content: space-between; font-size: 16px;
 }
 .club-item:last-child { border-bottom: none; }
 .club-item:active { background: rgba(135,194,50,0.08); }
@@ -143,13 +143,13 @@ html, body {
   transform: rotate(40deg) translate(-1px, -1px);
 }
 .club-item.selected .check-inner { display: block; }
-.clubs-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 14px; }
+.clubs-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 15px; }
 
 /* Buttons */
 .btn-primary {
   width: 100%; padding: 17px; border-radius: 10px;
   background: var(--green); border: none; color: #111;
-  font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  font-size: 16px; font-weight: 700; font-family: 'DM Sans', sans-serif;
   cursor: pointer; margin-top: 8px; transition: opacity 0.15s; -webkit-appearance: none;
 }
 .btn-primary:disabled { opacity: 0.4; cursor: default; }
@@ -157,7 +157,7 @@ html, body {
 .btn-secondary {
   width: 100%; padding: 17px; border-radius: 10px;
   background: transparent; border: 1.5px solid var(--border);
-  color: var(--muted); font-size: 15px; font-weight: 500;
+  color: var(--muted); font-size: 16px; font-weight: 500;
   font-family: 'DM Sans', sans-serif; cursor: pointer;
   margin-top: 10px; transition: opacity 0.15s; -webkit-appearance: none;
 }
@@ -166,7 +166,7 @@ html, body {
 .error-msg {
   background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3);
   border-radius: 8px; padding: 12px 14px;
-  color: var(--red); font-size: 13px; margin-bottom: 14px; display: none;
+  color: var(--red); font-size: 14px; margin-bottom: 14px; display: none;
 }
 
 /* Resume card */
@@ -180,8 +180,8 @@ html, body {
   display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;
 }
 .resume-card .rc-icon svg { width: 28px; height: 28px; color: var(--green); }
-.resume-card .rc-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-.resume-card .rc-sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+.resume-card .rc-title { font-size: 19px; font-weight: 600; margin-bottom: 8px; }
+.resume-card .rc-sub { font-size: 15px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
 
 /* Success */
 .success-icon {
@@ -198,20 +198,20 @@ html, body {
   margin-bottom: 16px; width: 100%; position: relative; user-select: none;
 }
 .team-code-box:active { border-color: var(--green); }
-.code-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
-.code-value { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 8px; color: var(--green); line-height: 1; }
-.code-hint { font-size: 12px; color: var(--muted); margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.code-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.code-value { font-family: 'Bebas Neue', sans-serif; font-size: 53px; letter-spacing: 8px; color: var(--green); line-height: 1; }
+.code-hint { font-size: 13px; color: var(--muted); margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 5px; }
 .copied-badge {
   position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
   background: var(--green); color: #111;
-  font-size: 12px; font-weight: 700; padding: 4px 14px;
+  font-size: 13px; font-weight: 700; padding: 4px 14px;
   border-radius: 20px; opacity: 0; transition: opacity 0.2s; white-space: nowrap; pointer-events: none;
 }
 .copied-badge.show { opacity: 1; }
 
 .share-note {
   background: var(--card); border-radius: 10px; padding: 14px 16px;
-  font-size: 13px; color: var(--muted); line-height: 1.6;
+  font-size: 14px; color: var(--muted); line-height: 1.6;
   display: flex; gap: 10px; align-items: flex-start; margin-bottom: 20px; width: 100%;
 }
 .share-note .wa-icon { flex-shrink: 0; margin-top: 1px; }
