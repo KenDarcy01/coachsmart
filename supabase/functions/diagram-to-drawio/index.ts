@@ -182,22 +182,17 @@ const STYLE_COACH    = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;
 const STYLE_HOME     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;`;
 const STYLE_AWAY     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;`;
 
-// If the drill is a wall-ball drill but the model omitted the wall vertex, inject it.
-// This is a post-processing guarantee — never relies solely on the AI rendering the wall.
-function ensureWall(xml: string, gameName: string | null, rawText: string): string {
-  // Detect wall-ball drill: check extracted game name first, then fall back to scanning raw response
+// For wall-ball drills: ALWAYS replace whatever the model output for the wall
+// with a correctly-styled, correctly-positioned wall vertex.
+// The model consistently generates the wall with wrong style or wrong position —
+// so we never trust its wall cell; we always overwrite it.
+function fixWallCell(xml: string, gameName: string | null, rawText: string): string {
   const isWallDrill =
     (gameName && /wall/i.test(gameName)) ||
     /GAME_NAME:[^\r\n]*wall/i.test(rawText);
 
-  console.log("ensureWall check — gameName:", gameName, "| isWallDrill:", isWallDrill);
+  console.log("fixWallCell — gameName:", gameName, "| isWallDrill:", isWallDrill);
   if (!isWallDrill) return xml;
-
-  // Don't add a second wall — check for any cell whose value starts with "wall" (catches WALL, WALL BALL, etc.)
-  if (/value="[Ww][Aa][Ll][Ll]/i.test(xml)) {
-    console.log("ensureWall: wall already present in XML, skipping");
-    return xml;
-  }
 
   // Extract canvas width — try multiple attribute orderings, fall back to 600
   let canvasWidth = 600;
@@ -209,28 +204,34 @@ function ensureWall(xml: string, gameName: string | null, rawText: string): stri
 
   const wallW = Math.round(canvasWidth * 0.85);
   const wallX = Math.round((canvasWidth - wallW) / 2);
+  const wallStyle = "rounded=0;whiteSpace=wrap;html=1;fillColor=#455A64;strokeColor=#B0BEC5;strokeWidth=3;fontColor=#ffffff;fontSize=16;fontStyle=1;";
   const wallCell =
-    `<mxCell id="wall1" value="WALL" ` +
-    `style="rounded=0;whiteSpace=wrap;html=1;fillColor=#455A64;strokeColor=#B0BEC5;strokeWidth=3;fontColor=#ffffff;fontSize=16;fontStyle=1;" ` +
-    `vertex="1" parent="1">` +
+    `<mxCell id="wall1" value="WALL" style="${wallStyle}" vertex="1" parent="1">` +
     `<mxGeometry x="${wallX}" y="60" width="${wallW}" height="44" as="geometry"/>` +
     `</mxCell>`;
 
-  // Strategy 1: insert after <mxCell id="1" .../>  (self-closing or regular)
+  // Replace an existing wall cell (model output with wrong style/position)
+  const existingWall = /<mxCell[^>]+value="[Ww][Aa][Ll][Ll][^"]*"[\s\S]*?<\/mxCell>/;
+  if (existingWall.test(xml)) {
+    console.log("fixWallCell: replacing model's wall cell with correct style, canvasWidth:", canvasWidth);
+    return xml.replace(existingWall, wallCell);
+  }
+
+  // No wall cell at all — inject after id="1"
   let result = xml.replace(/(<mxCell[^>]+\bid="1"[^>]*>(?:<\/mxCell>)?)/, `$1\n${wallCell}`);
   if (result !== xml) {
-    console.log("ensureWall: injected via id=1 strategy, canvasWidth:", canvasWidth);
+    console.log("fixWallCell: injected new wall via id=1, canvasWidth:", canvasWidth);
     return result;
   }
 
-  // Strategy 2: insert right after <root>
+  // Last resort: insert after <root>
   result = xml.replace(/(<root[^>]*>)/, `$1\n${wallCell}`);
   if (result !== xml) {
-    console.log("ensureWall: injected via <root> fallback, canvasWidth:", canvasWidth);
+    console.log("fixWallCell: injected new wall via <root>, canvasWidth:", canvasWidth);
     return result;
   }
 
-  console.log("ensureWall: WARNING — could not find insertion point, wall not added");
+  console.log("fixWallCell: WARNING — could not find insertion point");
   return xml;
 }
 
