@@ -182,6 +182,30 @@ const STYLE_COACH    = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;
 const STYLE_HOME     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#C62828;gradientColor=#EF5350;gradientDirection=north;strokeColor=#B71C1C;shadow=1;fontColor=#ffffff;`;
 const STYLE_AWAY     = `ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1565C0;gradientColor=#42A5F5;gradientDirection=north;strokeColor=#0D47A1;shadow=1;fontColor=#ffffff;`;
 
+// If the game name contains "wall" but the model omitted the wall vertex, inject it.
+// This is a post-processing guarantee: wall-ball drills always get the wall shape.
+function ensureWall(xml: string, gameName: string | null): string {
+  if (!gameName || !/wall/i.test(gameName)) return xml;
+  if (/value="WALL"/i.test(xml)) return xml; // model already output it — leave it alone
+
+  // Read canvas width from the background rect (first geometry at x="0" y="0")
+  let canvasWidth = 600;
+  const bgMatch = xml.match(/<mxGeometry\s[^>]*\bx="0"[^>]*\by="0"[^>]*\bwidth="(\d+)"/);
+  if (bgMatch) canvasWidth = parseInt(bgMatch[1]);
+
+  const wallW = Math.round(canvasWidth * 0.85);
+  const wallX = Math.round((canvasWidth - wallW) / 2);
+  const wallCell =
+    `<mxCell id="wall1" value="WALL" ` +
+    `style="rounded=0;whiteSpace=wrap;html=1;fillColor=#455A64;strokeColor=#B0BEC5;strokeWidth=3;fontColor=#ffffff;fontSize=16;fontStyle=1;" ` +
+    `vertex="1" parent="1">` +
+    `<mxGeometry x="${wallX}" y="60" width="${wallW}" height="44" as="geometry"/>` +
+    `</mxCell>`;
+
+  // Insert immediately after the root parent cell (id="1")
+  return xml.replace(/(<mxCell\s[^>]*\bid="1"[^>]*\/?>)/, `$1\n${wallCell}`);
+}
+
 // Rewrite every ellipse cell's style based purely on its value attribute.
 // The model reads labels correctly but consistently picks wrong colours — fix deterministically here.
 function fixCircleStyles(xml: string): string {
@@ -309,7 +333,12 @@ serve(async (req) => {
       }
     }
 
-    // Post-process: enforce correct ellipse styles by value — never trust the model's colour choice.
+    // Post-process 1: guarantee wall vertex for wall-ball drills regardless of model output.
+    const xmlBeforeWall = xml;
+    xml = ensureWall(xml, gameName);
+    if (xml !== xmlBeforeWall) console.log("ensureWall: injected WALL vertex for game:", gameName);
+
+    // Post-process 2: enforce correct ellipse styles by value — never trust the model's colour choice.
     const xmlBefore = xml;
     xml = fixCircleStyles(xml);
     console.log("fixCircleStyles changed:", xml !== xmlBefore, "| coach cells:", (xml.match(/fillColor=#1a1a1a/g) || []).length, "| football cells:", (xml.match(/fillColor=#ffffff/g) || []).length);
