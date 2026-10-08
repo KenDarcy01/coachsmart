@@ -421,6 +421,15 @@ async function buildSessionPlanPdf(
     }
   }
 
+  function drawRoundedRect(page: any, x: number, y: number, w: number, h: number, r: number, fillColor: any) {
+    page.drawRectangle({ x: x + r, y,        width: w - 2 * r, height: h,       color: fillColor });
+    page.drawRectangle({ x,        y: y + r,  width: w,         height: h - 2*r, color: fillColor });
+    page.drawEllipse({ x: x + r,     y: y + r,     xScale: r, yScale: r, color: fillColor });
+    page.drawEllipse({ x: x + w - r, y: y + r,     xScale: r, yScale: r, color: fillColor });
+    page.drawEllipse({ x: x + r,     y: y + h - r, xScale: r, yScale: r, color: fillColor });
+    page.drawEllipse({ x: x + w - r, y: y + h - r, xScale: r, yScale: r, color: fillColor });
+  }
+
   function drawMetaRow(page: any, topY: number) {
     const stripBottom = PH - topY - META_ROW_H;
     page.drawRectangle({ x: 0, y: stripBottom, width: PW, height: META_ROW_H, color: lightBg });
@@ -445,13 +454,13 @@ async function buildSessionPlanPdf(
 
       for (let i = 0; i < n; i++) {
         const cx = ML + i * (cardW + GAP);
-        // Card background — very light grey so it reads as a card against the white page
-        page.drawRectangle({ x: cx, y: cardBottom, width: cardW, height: STAT_CARD_H, color: rgb(0.96, 0.96, 0.96) });
-        // Accent top bar — 5px for more presence
+        // Rounded card background — darker grey for clear card definition
+        drawRoundedRect(page, cx, cardBottom, cardW, STAT_CARD_H, 4, rgb(0.88, 0.88, 0.88));
+        // Accent top bar (plain rect — 4px radius is barely visible at 5px height)
         page.drawRectangle({ x: cx, y: cardTop - 5, width: cardW, height: 5, color: accentRgb });
 
         // Value — centred, large
-        const valSize = isMobile ? 18 : 20;
+        const valSize = isMobile ? 20 : 22;
         const valStr  = stats[i].value;
         // Truncate if too wide for the card
         let displayVal = valStr;
