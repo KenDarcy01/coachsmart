@@ -316,10 +316,34 @@ async function buildSessionPlanPdf(
   const THIRD_STRIPE  = thirdRgb ? 3 : 0;
   const STRIPE_H      = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
 
-  const STAT_CARD_H   = isMobile ? 58 : 66;
+  const STAT_CARD_H   = isMobile ? 72 : 82;
   const STAT_CARD_PAD = isMobile ? 10 : 12;
-  const WEATHER_STRIP = isMobile ? 22 : 24;
-  const META_ROW_H    = STAT_CARD_H + STAT_CARD_PAD * 2 + (plan.weather?.summary ? WEATHER_STRIP : 0);
+  const SMALL_FONT_S  = 10; // needed early for weather line measurement
+  const WEATHER_LINE_H = isMobile ? 14 : 15;
+  const WEATHER_PAD    = isMobile ?  7 :  8;
+
+  // Pre-wrap weather text so META_ROW_H can account for actual line count
+  const weatherLines: string[] = [];
+  if (plan.weather?.summary) {
+    const rawWeather = plan.weather.summary.replace(/[\s—\-]+$/, "").trim();
+    const words = rawWeather.split(/\s+/);
+    let line = "";
+    for (const word of words) {
+      const test = line ? line + " " + word : word;
+      if (notoReg.widthOfTextAtSize(test, SMALL_FONT_S) <= CW) {
+        line = test;
+      } else {
+        if (line) weatherLines.push(line);
+        line = word;
+      }
+    }
+    if (line) weatherLines.push(line);
+  }
+
+  const WEATHER_STRIP = weatherLines.length > 0
+    ? WEATHER_PAD + weatherLines.length * WEATHER_LINE_H + WEATHER_PAD
+    : 0;
+  const META_ROW_H    = STAT_CARD_H + STAT_CARD_PAD * 2 + WEATHER_STRIP;
   const FOOTER_RULE_Y = MB + 14;
   const FOOTER_TEXT_Y = MB;
   const FOOTER_ZONE   = MB + (isMobile ? 24 : 30);
@@ -329,7 +353,7 @@ async function buildSessionPlanPdf(
   const SECTION_FONT_S  = isMobile ? 12 : 11;
   const DRILL_NAME_S    = 12;
   const BODY_FONT_S     = isMobile ? 12 : 11;
-  const SMALL_FONT_S    = 10;
+  // SMALL_FONT_S already defined above (needed for weather pre-wrap)
   const LINE_H          = isMobile ? 18 : 17;
   const BODY_LEFT       = ML + (isMobile ? 10 : 12);
   const BODY_W          = CW - (isMobile ? 10 : 12);
@@ -460,7 +484,7 @@ async function buildSessionPlanPdf(
         page.drawRectangle({ x: cx, y: cardTop - 5, width: cardW, height: 5, color: accentRgb });
 
         // Value — centred, large
-        const valSize = isMobile ? 20 : 22;
+        const valSize = isMobile ? 26 : 28;
         const valStr  = stats[i].value;
         // Truncate if too wide for the card
         let displayVal = valStr;
@@ -509,20 +533,19 @@ async function buildSessionPlanPdf(
     }
 
     // Weather strip — sits at the very bottom of the meta row
-    if (plan.weather?.summary) {
+    if (weatherLines.length > 0) {
       page.drawLine({
         start: { x: ML,      y: stripBottom + WEATHER_STRIP },
         end:   { x: PW - MR, y: stripBottom + WEATHER_STRIP },
         thickness: 0.5, color: grey,
       });
-      let weatherText = plan.weather.summary.replace(/[\s—\-]+$/, "").trim();
-      while (weatherText.length > 4 && notoReg.widthOfTextAtSize(weatherText, SMALL_FONT_S) > CW) {
-        weatherText = weatherText.slice(0, -4) + "…";
+      for (let wl = 0; wl < weatherLines.length; wl++) {
+        const lineY = stripBottom + WEATHER_PAD + (weatherLines.length - 1 - wl) * WEATHER_LINE_H + 2;
+        page.drawText(weatherLines[wl], {
+          x: ML, y: lineY,
+          size: SMALL_FONT_S, font: notoReg, color: mutedText,
+        });
       }
-      page.drawText(weatherText, {
-        x: ML, y: stripBottom + 7,
-        size: SMALL_FONT_S, font: notoReg, color: mutedText,
-      });
     }
   }
 
