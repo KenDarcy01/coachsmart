@@ -316,7 +316,10 @@ async function buildSessionPlanPdf(
   const THIRD_STRIPE  = thirdRgb ? 3 : 0;
   const STRIPE_H      = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
 
-  const META_ROW_H    = plan.weather?.summary ? (isMobile ? 58 : 62) : (isMobile ? 34 : 38);
+  const STAT_CARD_H   = isMobile ? 46 : 54;
+  const STAT_CARD_PAD = isMobile ?  8 : 10;
+  const WEATHER_STRIP = isMobile ? 20 : 22;
+  const META_ROW_H    = STAT_CARD_H + STAT_CARD_PAD * 2 + (plan.weather?.summary ? WEATHER_STRIP : 0);
   const FOOTER_RULE_Y = MB + 14;
   const FOOTER_TEXT_Y = MB;
   const FOOTER_ZONE   = MB + (isMobile ? 24 : 30);
@@ -419,35 +422,93 @@ async function buildSessionPlanPdf(
   }
 
   function drawMetaRow(page: any, topY: number) {
-    page.drawRectangle({ x: 0, y: PH - topY - META_ROW_H, width: PW, height: META_ROW_H, color: lightBg });
+    const stripBottom = PH - topY - META_ROW_H;
+    page.drawRectangle({ x: 0, y: stripBottom, width: PW, height: META_ROW_H, color: lightBg });
 
-    const VPAD = 10;
-    const parts: string[] = [];
-    if (event.squad_name) parts.push(event.squad_name + (event.squad_grade ? ` · ${event.squad_grade}` : ""));
-    if (plan.total_duration_mins) parts.push(`${plan.total_duration_mins} mins`);
-    if (plan.player_count) parts.push(`${plan.player_count} players`);
-    if (plan.coach_count)  parts.push(`${plan.coach_count} coaches`);
-
-    const line1Y = PH - topY - VPAD - SMALL_FONT_S;
-    page.drawText(parts.join("   |   "), { x: ML, y: line1Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
-
-    // Session date/time right-aligned on line 1
-    if (event.event_date) {
-      try {
-        const d = new Date(event.event_date);
-        const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-        const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        const hh = String(d.getHours()).padStart(2,"0");
-        const mm = String(d.getMinutes()).padStart(2,"0");
-        const dateStr = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}, ${hh}:${mm}`;
-        const dateW = notoReg.widthOfTextAtSize(dateStr, SMALL_FONT_S);
-        page.drawText(dateStr, { x: PW - MR - dateW, y: line1Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
-      } catch { /* skip */ }
+    // Build stat cards
+    const stats: { value: string; label: string }[] = [];
+    if (plan.total_duration_mins) stats.push({ value: String(plan.total_duration_mins), label: "MINS" });
+    if (plan.player_count)        stats.push({ value: String(plan.player_count),         label: "PLAYERS" });
+    if (plan.coach_count)         stats.push({ value: String(plan.coach_count),           label: "COACHES" });
+    if (event.squad_name) {
+      const squadLabel = event.squad_name + (event.squad_grade ? ` · ${event.squad_grade}` : "");
+      stats.push({ value: squadLabel, label: "SQUAD" });
     }
 
+    if (stats.length > 0) {
+      const n        = stats.length;
+      const GAP      = 6;
+      const cardW    = (CW - (n - 1) * GAP) / n;
+      // Cards sit above the weather strip (if any)
+      const cardBottom = stripBottom + (plan.weather?.summary ? WEATHER_STRIP : 0) + STAT_CARD_PAD;
+      const cardTop    = cardBottom + STAT_CARD_H;
+
+      for (let i = 0; i < n; i++) {
+        const cx = ML + i * (cardW + GAP);
+        // White card background
+        page.drawRectangle({ x: cx, y: cardBottom, width: cardW, height: STAT_CARD_H, color: rgb(1, 1, 1) });
+        // Accent top bar
+        page.drawRectangle({ x: cx, y: cardTop - 4, width: cardW, height: 4, color: accentRgb });
+
+        // Value — centred, large
+        const valSize = isMobile ? 14 : 16;
+        const valStr  = stats[i].value;
+        // Truncate if too wide for the card
+        let displayVal = valStr;
+        while (displayVal.length > 2 && montserratBold.widthOfTextAtSize(displayVal, valSize) > cardW - 8) {
+          displayVal = displayVal.slice(0, -3) + "…";
+        }
+        const valW = montserratBold.widthOfTextAtSize(displayVal, valSize);
+        page.drawText(displayVal, {
+          x: cx + (cardW - valW) / 2,
+          y: cardBottom + STAT_CARD_H / 2,
+          size: valSize, font: montserratBold, color: darkText,
+        });
+
+        // Label — centred, small, near bottom
+        const lblSize = 7;
+        const lblW    = notoReg.widthOfTextAtSize(stats[i].label, lblSize);
+        page.drawText(stats[i].label, {
+          x: cx + (cardW - lblW) / 2,
+          y: cardBottom + 5,
+          size: lblSize, font: notoReg, color: mutedText,
+        });
+      }
+
+      // Date — right-aligned, vertically centred with cards
+      if (event.event_date) {
+        try {
+          const d = new Date(event.event_date);
+          const days   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          const hh = String(d.getHours()).padStart(2,"0");
+          const mm = String(d.getMinutes()).padStart(2,"0");
+          const dateStr = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}  ${hh}:${mm}`;
+          const dateW   = notoReg.widthOfTextAtSize(dateStr, SMALL_FONT_S);
+          // Only show if it fits to the right of the last card without overlapping
+          const lastCardRight = ML + (n - 1) * (cardW + GAP) + cardW;
+          if (PW - MR - dateW > lastCardRight + 8) {
+            page.drawText(dateStr, {
+              x: PW - MR - dateW,
+              y: cardBottom + STAT_CARD_H / 2,
+              size: SMALL_FONT_S, font: notoReg, color: mutedText,
+            });
+          }
+        } catch { /* skip */ }
+      }
+    }
+
+    // Weather strip — sits at the very bottom of the meta row
     if (plan.weather?.summary) {
-      const line2Y = line1Y - VPAD - SMALL_FONT_S;
-      page.drawText(plan.weather.summary, { x: ML, y: line2Y, size: SMALL_FONT_S, font: notoReg, color: mutedText });
+      page.drawLine({
+        start: { x: ML,      y: stripBottom + WEATHER_STRIP },
+        end:   { x: PW - MR, y: stripBottom + WEATHER_STRIP },
+        thickness: 0.5, color: grey,
+      });
+      page.drawText(plan.weather.summary, {
+        x: ML, y: stripBottom + 6,
+        size: SMALL_FONT_S, font: notoReg, color: mutedText,
+      });
     }
   }
 
@@ -725,6 +786,7 @@ async function buildSessionPlanPdf(
   for (let i = 0; i < (plan.drills ?? []).length; i++) {
     const drill = plan.drills[i];
 
+    if (i > 0) newPage(false);
     drawSectionHeader(`DRILL ${i + 1}`, drill.duration_mins ?? null, accentRgb);
     drawDrillName(i + 1, drill.game_name);
 
