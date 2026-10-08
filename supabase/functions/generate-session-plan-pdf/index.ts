@@ -492,19 +492,26 @@ async function buildSessionPlanPdf(
           displayVal = displayVal.slice(0, -3) + "…";
         }
         const valW = montserratBold.widthOfTextAtSize(displayVal, valSize);
-        // Position value in upper portion of card, leaving room for label
         const lblSize = 8;
+        const ACCENT_BAR = 5;
+        const usableH = STAT_CARD_H - ACCENT_BAR;
+        // Centre the text group (value + gap + label) vertically in usable area
+        const textGroupH = valSize + 5 + lblSize;
+        const groupBottom = cardBottom + (usableH - textGroupH) / 2;
+        const valY = groupBottom + lblSize + 5;
+        const lblY = groupBottom + 1;
+
         page.drawText(displayVal, {
           x: cx + (cardW - valW) / 2,
-          y: cardBottom + lblSize + 10,
+          y: valY,
           size: valSize, font: montserratBold, color: darkText,
         });
 
-        // Label — centred, small, near bottom
-        const lblW    = notoReg.widthOfTextAtSize(stats[i].label, lblSize);
+        // Label — centred, small, below value
+        const lblW = notoReg.widthOfTextAtSize(stats[i].label, lblSize);
         page.drawText(stats[i].label, {
           x: cx + (cardW - lblW) / 2,
-          y: cardBottom + 6,
+          y: lblY,
           size: lblSize, font: notoReg, color: mutedText,
         });
       }
