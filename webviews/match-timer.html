@@ -201,7 +201,7 @@
 
     .timer-display {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(78px, 21vw, 116px);
+      font-size: clamp(72px, 19vw, 96px);
       letter-spacing: 6px; line-height: 1;
       color: var(--text); transition: color 0.3s;
       user-select: none; -webkit-user-select: none;
@@ -242,15 +242,15 @@
     .btn-pause { background: var(--amber); color: #111418; }
     .btn-pause:hover { opacity: 0.88; }
     .btn-secondary {
-      width: 100%; padding: 14px; border-radius: 14px;
-      font-size: 14px; font-weight: 600; letter-spacing: 0.5px;
+      width: 100%; padding: 17px; border-radius: 14px;
+      font-size: 16px; font-weight: 600; letter-spacing: 0.5px;
       border: 1.5px solid var(--border); color: var(--muted);
       text-transform: uppercase; transition: all 0.15s;
     }
     .btn-secondary:hover { border-color: var(--red); color: var(--red); }
     .btn-end-period {
-      width: 100%; padding: 14px; border-radius: 14px;
-      font-size: 14px; font-weight: 600; letter-spacing: 0.5px;
+      width: 100%; padding: 17px; border-radius: 14px;
+      font-size: 16px; font-weight: 600; letter-spacing: 0.5px;
       border: 1.5px solid var(--amber); color: var(--amber);
       text-transform: uppercase; transition: all 0.15s; background: transparent;
       touch-action: manipulation; -webkit-tap-highlight-color: transparent;
@@ -259,8 +259,8 @@
     .btn-end-period:active { background: rgba(245,158,11,0.22); }
 
     .btn-save {
-      width: 100%; padding: 14px; border-radius: 14px;
-      font-size: 14px; font-weight: 600; letter-spacing: 0.5px;
+      width: 100%; padding: 17px; border-radius: 14px;
+      font-size: 16px; font-weight: 600; letter-spacing: 0.5px;
       border: 1.5px solid var(--green); color: var(--green);
       text-transform: uppercase; transition: all 0.15s; background: transparent;
       touch-action: manipulation; -webkit-tap-highlight-color: transparent;
@@ -300,13 +300,13 @@
     }
     .score-col { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .score-divider { width: 1px; background: var(--border); flex-shrink: 0; margin: 10px 0; }
-    .score-team { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
-    .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 33px; letter-spacing: 3px; color: var(--text); line-height: 1; }
-    .score-total { font-size: 17px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+    .score-team { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+    .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 3px; color: var(--text); line-height: 1; }
+    .score-total { font-size: 19px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
     .score-rows { display: flex; flex-direction: column; gap: 5px; width: 100%; }
     .score-row {
       display: flex; align-items: stretch; border-radius: 10px;
-      overflow: hidden; border: 1px solid var(--border); height: 48px;
+      overflow: hidden; border: 1px solid rgba(255,255,255,0.13); height: 58px;
     }
 
     /* Score margin summary */
@@ -319,40 +319,42 @@
     .score-summary.level    { background: rgba(107,114,128,0.12); color: var(--muted); }
     /* Left = big tap to add */
     .score-add {
-      flex: 1; display: flex; align-items: center; padding: 0 10px; gap: 8px;
-      background: var(--card2); cursor: pointer; transition: background 0.12s; user-select: none;
+      flex: 1; display: flex; align-items: center; padding: 0 12px; gap: 8px;
+      background: rgba(135,194,50,0.07); cursor: pointer; transition: background 0.12s; user-select: none;
       -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .score-add:hover  { background: rgba(135,194,50,0.10); }
-    .score-add:active { background: rgba(135,194,50,0.22); }
-    .score-add.two-pt:hover  { background: rgba(245,158,11,0.10); }
-    .score-add.two-pt:active { background: rgba(245,158,11,0.22); }
+    .score-add:hover  { background: rgba(135,194,50,0.14); }
+    .score-add:active { background: rgba(135,194,50,0.26); }
+    .score-add.two-pt { background: rgba(245,158,11,0.07); }
+    .score-add.two-pt:hover  { background: rgba(245,158,11,0.14); }
+    .score-add.two-pt:active { background: rgba(245,158,11,0.26); }
     .score-type {
-      font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      font-size: 15px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
       color: var(--muted); flex-shrink: 0;
     }
     .score-type.two-pt { color: var(--amber); }
     .score-count {
-      font-family: 'Bebas Neue', sans-serif; font-size: 27px; letter-spacing: 1px;
+      font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px;
       color: var(--text); flex: 1; text-align: right; line-height: 1;
     }
     .score-add-icon {
-      font-size: 21px; font-weight: 300; color: var(--muted); flex-shrink: 0; line-height: 1;
+      font-size: 24px; font-weight: 300; color: var(--green); flex-shrink: 0; line-height: 1;
     }
+    .score-add.two-pt .score-add-icon { color: var(--amber); }
     /* Right = narrow strip to subtract */
     .score-sub {
-      width: 42px; display: flex; align-items: center; justify-content: center;
-      background: var(--card); border-left: 1px solid var(--border);
-      cursor: pointer; font-size: 21px; font-weight: 300; color: var(--muted);
+      width: 52px; display: flex; align-items: center; justify-content: center;
+      background: rgba(239,68,68,0.07); border-left: 1px solid rgba(239,68,68,0.2);
+      cursor: pointer; font-size: 26px; font-weight: 300; color: rgba(239,68,68,0.65);
       transition: all 0.12s; flex-shrink: 0;
       -webkit-tap-highlight-color: transparent;
     }
-    .score-sub:hover  { background: rgba(239,68,68,0.12); color: var(--red); }
-    .score-sub:active { background: rgba(239,68,68,0.25); }
+    .score-sub:hover  { background: rgba(239,68,68,0.16); color: var(--red); }
+    .score-sub:active { background: rgba(239,68,68,0.28); }
 
     /* Category label dividers inside score panels */
     .score-cat-label {
-      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1.5px; color: var(--muted);
       padding: 7px 4px 2px; border-top: 1px solid var(--border); margin-top: 4px;
     }
