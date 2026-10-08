@@ -316,9 +316,9 @@ async function buildSessionPlanPdf(
   const THIRD_STRIPE  = thirdRgb ? 3 : 0;
   const STRIPE_H      = WHITE_STRIPE + SEC_STRIPE + THIRD_STRIPE;
 
-  const STAT_CARD_H   = isMobile ? 46 : 54;
-  const STAT_CARD_PAD = isMobile ?  8 : 10;
-  const WEATHER_STRIP = isMobile ? 20 : 22;
+  const STAT_CARD_H   = isMobile ? 58 : 66;
+  const STAT_CARD_PAD = isMobile ? 10 : 12;
+  const WEATHER_STRIP = isMobile ? 22 : 24;
   const META_ROW_H    = STAT_CARD_H + STAT_CARD_PAD * 2 + (plan.weather?.summary ? WEATHER_STRIP : 0);
   const FOOTER_RULE_Y = MB + 14;
   const FOOTER_TEXT_Y = MB;
@@ -445,32 +445,33 @@ async function buildSessionPlanPdf(
 
       for (let i = 0; i < n; i++) {
         const cx = ML + i * (cardW + GAP);
-        // White card background
-        page.drawRectangle({ x: cx, y: cardBottom, width: cardW, height: STAT_CARD_H, color: rgb(1, 1, 1) });
-        // Accent top bar
-        page.drawRectangle({ x: cx, y: cardTop - 4, width: cardW, height: 4, color: accentRgb });
+        // Card background — very light grey so it reads as a card against the white page
+        page.drawRectangle({ x: cx, y: cardBottom, width: cardW, height: STAT_CARD_H, color: rgb(0.96, 0.96, 0.96) });
+        // Accent top bar — 5px for more presence
+        page.drawRectangle({ x: cx, y: cardTop - 5, width: cardW, height: 5, color: accentRgb });
 
         // Value — centred, large
-        const valSize = isMobile ? 14 : 16;
+        const valSize = isMobile ? 18 : 20;
         const valStr  = stats[i].value;
         // Truncate if too wide for the card
         let displayVal = valStr;
-        while (displayVal.length > 2 && montserratBold.widthOfTextAtSize(displayVal, valSize) > cardW - 8) {
+        while (displayVal.length > 2 && montserratBold.widthOfTextAtSize(displayVal, valSize) > cardW - 10) {
           displayVal = displayVal.slice(0, -3) + "…";
         }
         const valW = montserratBold.widthOfTextAtSize(displayVal, valSize);
+        // Position value in upper portion of card, leaving room for label
+        const lblSize = 8;
         page.drawText(displayVal, {
           x: cx + (cardW - valW) / 2,
-          y: cardBottom + STAT_CARD_H / 2,
+          y: cardBottom + lblSize + 10,
           size: valSize, font: montserratBold, color: darkText,
         });
 
         // Label — centred, small, near bottom
-        const lblSize = 7;
         const lblW    = notoReg.widthOfTextAtSize(stats[i].label, lblSize);
         page.drawText(stats[i].label, {
           x: cx + (cardW - lblW) / 2,
-          y: cardBottom + 5,
+          y: cardBottom + 6,
           size: lblSize, font: notoReg, color: mutedText,
         });
       }
@@ -505,8 +506,12 @@ async function buildSessionPlanPdf(
         end:   { x: PW - MR, y: stripBottom + WEATHER_STRIP },
         thickness: 0.5, color: grey,
       });
-      page.drawText(plan.weather.summary, {
-        x: ML, y: stripBottom + 6,
+      let weatherText = plan.weather.summary.replace(/[\s—\-]+$/, "").trim();
+      while (weatherText.length > 4 && notoReg.widthOfTextAtSize(weatherText, SMALL_FONT_S) > CW) {
+        weatherText = weatherText.slice(0, -4) + "…";
+      }
+      page.drawText(weatherText, {
+        x: ML, y: stripBottom + 7,
         size: SMALL_FONT_S, font: notoReg, color: mutedText,
       });
     }
@@ -786,7 +791,7 @@ async function buildSessionPlanPdf(
   for (let i = 0; i < (plan.drills ?? []).length; i++) {
     const drill = plan.drills[i];
 
-    if (i > 0) newPage(false);
+    if (i > 0 || plan.warm_up) newPage(false);
     drawSectionHeader(`DRILL ${i + 1}`, drill.duration_mins ?? null, accentRgb);
     drawDrillName(i + 1, drill.game_name);
 
