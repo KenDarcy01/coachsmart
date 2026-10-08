@@ -454,6 +454,14 @@ async function buildSessionPlanPdf(
     page.drawEllipse({ x: x + w - r, y: y + h - r, xScale: r, yScale: r, color: fillColor });
   }
 
+  // Rounds bottom corners only — used to overlay the grey card body on top of a full rounded accent card
+  function drawRoundedRectBottom(page: any, x: number, y: number, w: number, h: number, r: number, fillColor: any) {
+    page.drawRectangle({ x: x + r, y,       width: w - 2 * r, height: h,       color: fillColor });
+    page.drawRectangle({ x,        y: y + r, width: w,         height: h - r,   color: fillColor });
+    page.drawEllipse({ x: x + r,     y: y + r, xScale: r, yScale: r, color: fillColor });
+    page.drawEllipse({ x: x + w - r, y: y + r, xScale: r, yScale: r, color: fillColor });
+  }
+
   function drawMetaRow(page: any, topY: number) {
     const stripBottom = PH - topY - META_ROW_H;
     page.drawRectangle({ x: 0, y: stripBottom, width: PW, height: META_ROW_H, color: lightBg });
@@ -478,10 +486,10 @@ async function buildSessionPlanPdf(
 
       for (let i = 0; i < n; i++) {
         const cx = ML + i * (cardW + GAP);
-        // Rounded card background — darker grey for clear card definition
-        drawRoundedRect(page, cx, cardBottom, cardW, STAT_CARD_H, 4, rgb(0.88, 0.88, 0.88));
-        // Accent top bar (plain rect — 4px radius is barely visible at 5px height)
-        page.drawRectangle({ x: cx, y: cardTop - 5, width: cardW, height: 5, color: accentRgb });
+        // Accent colour fills the full card (establishes rounded top corners)
+        drawRoundedRect(page, cx, cardBottom, cardW, STAT_CARD_H, 4, accentRgb);
+        // Grey body overlaid with flat top / rounded bottom — reveals accent as 5px bar at top
+        drawRoundedRectBottom(page, cx, cardBottom, cardW, STAT_CARD_H - 5, 4, rgb(0.88, 0.88, 0.88));
 
         // Value — centred, large
         const valSize = isMobile ? 26 : 28;
