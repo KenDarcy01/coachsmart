@@ -441,8 +441,12 @@
     .plans-list { padding: 12px 14px 90px; display: flex; flex-direction: column; gap: 8px; }
     .plan-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 13px 14px;
+      border-radius: var(--radius); padding: 13px 14px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
+    .plan-card-row { display: flex; align-items: center; gap: 8px; }
+    .plan-card-info { flex: 1; min-width: 0; }
+    .plan-chevron { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
     .plan-card-title {
       font-size: 15px; font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
@@ -1322,15 +1326,20 @@
           const date   = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
           const badge  = p.club_id ? '<span class="plan-club-badge">Club Plan</span>' : '';
           const action = `<div class="swipe-action s-deactivate"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Deactivate</span></div>`;
-          const btns = EVENT_ID
-            ? `<button class="plan-btn accent" onclick="attachPlan(${p.plan_id})">Attach to Event</button>`
-            : `<button class="plan-btn" onclick="loadPlanView(${p.plan_id})">Open</button>`;
+          const attachBtn = EVENT_ID
+            ? `<div class="plan-card-actions"><button class="plan-btn accent" onclick="event.stopPropagation();attachPlan(${p.plan_id})">Attach to Event</button></div>`
+            : '';
           return `<div class="swipe-wrap" data-plan-id="${p.plan_id}" data-shared="${p.club_id ? '1' : '0'}">
             ${action}
-            <div class="plan-card">
-              <div class="plan-card-title">${esc(p.session_title)}</div>
-              <div class="plan-card-meta">${esc(date)}${badge}</div>
-              <div class="plan-card-actions">${btns}</div>
+            <div class="plan-card" onclick="loadPlanView(${p.plan_id})">
+              <div class="plan-card-row">
+                <div class="plan-card-info">
+                  <div class="plan-card-title">${esc(p.session_title)}${badge}</div>
+                  <div class="plan-card-meta">${esc(date)}</div>
+                </div>
+                <svg class="plan-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              ${attachBtn}
             </div>
           </div>`;
         }).join('');
@@ -1483,24 +1492,35 @@
         list.innerHTML = plans.map(p => {
           const date       = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
           const fromLine   = p.is_own ? '' : `<div class="plan-card-from">From ${esc(p.created_by)}</div>`;
-          const btns       = EVENT_ID
-            ? `<button class="plan-btn accent" onclick="attachPlan(${p.plan_id})">Attach to Event</button>`
-            : `<button class="plan-btn" onclick="loadPlanView(${p.plan_id})">Open</button>`;
+          const attachBtn = EVENT_ID
+            ? `<div class="plan-card-actions"><button class="plan-btn accent" onclick="event.stopPropagation();attachPlan(${p.plan_id})">Attach to Event</button></div>`
+            : '';
+          const chevron = `<svg class="plan-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
           if (p.is_own) {
             return `<div class="swipe-wrap" data-plan-id="${p.plan_id}">
               <div class="swipe-action s-remove-club"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg><span>Remove<br>from Club</span></div>
-              <div class="plan-card">
-                <div class="plan-card-title">${esc(p.session_title)}</div>
-                <div class="plan-card-meta">${esc(date)}</div>
-                <div class="plan-card-actions">${btns}</div>
+              <div class="plan-card" onclick="loadPlanView(${p.plan_id})">
+                <div class="plan-card-row">
+                  <div class="plan-card-info">
+                    <div class="plan-card-title">${esc(p.session_title)}</div>
+                    <div class="plan-card-meta">${esc(date)}</div>
+                  </div>
+                  ${chevron}
+                </div>
+                ${attachBtn}
               </div>
             </div>`;
           } else {
-            return `<div class="plan-card">
+            return `<div class="plan-card" onclick="loadPlanView(${p.plan_id})">
               ${fromLine}
-              <div class="plan-card-title">${esc(p.session_title)}</div>
-              <div class="plan-card-meta">${esc(date)}</div>
-              <div class="plan-card-actions">${btns}</div>
+              <div class="plan-card-row">
+                <div class="plan-card-info">
+                  <div class="plan-card-title">${esc(p.session_title)}</div>
+                  <div class="plan-card-meta">${esc(date)}</div>
+                </div>
+                ${chevron}
+              </div>
+              ${attachBtn}
             </div>`;
           }
         }).join('');
