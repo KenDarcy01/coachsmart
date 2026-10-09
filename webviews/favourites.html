@@ -421,22 +421,6 @@
       background: var(--surface); border-top: 1px solid var(--border); z-index: 100;
     }
 
-    /* ── Export FAB ── */
-    .plan-export-fab {
-      position: fixed; right: 16px;
-      bottom: calc(64px + max(18px, env(safe-area-inset-bottom)));
-      z-index: 102;
-      display: flex; align-items: center; gap: 7px;
-      background: var(--accent); color: rgba(0,0,0,0.7);
-      border: none; border-radius: 28px; padding: 12px 18px 12px 14px;
-      font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
-      box-shadow: 0 4px 18px rgba(135,194,50,0.4);
-      transition: opacity 0.15s, transform 0.15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .plan-export-fab:active { opacity: 0.8; transform: scale(0.96); }
-    .plan-export-fab svg { width: 17px; height: 17px; flex-shrink: 0; }
-
     /* ── My Plans screen ── */
     .sub-tab-bar {
       display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--bg);
@@ -741,11 +725,6 @@
   <div class="sheet-body" id="sheetBody"></div>
 </div>
 
-<button class="plan-export-fab" id="exportClubFab" onclick="shareWithClub()" style="display:none">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-  Export
-</button>
-
 <div class="confirm-overlay" id="confirmOverlay" style="display:none" onclick="closeConfirm(event)">
   <div class="confirm-sheet">
     <div class="confirm-sheet-title" id="confirmTitle">Remove this plan?</div>
@@ -801,16 +780,16 @@
       if (el) el.classList.toggle('active', s === id);
     });
     if (id === 'planScreen') { $('planActionBar').style.display = 'flex'; updatePlanActionBar(); }
-    else { $('planActionBar').style.display = 'none'; const fab = $('exportClubFab'); if (fab) fab.style.display = 'none'; }
+    else $('planActionBar').style.display = 'none';
   }
 
   function updatePlanActionBar() {
-    const saveBtn   = $('savePlanBtn');
-    const removeBtn = $('removeClubBtn');
-    const fab       = $('exportClubFab');
-    if (saveBtn)    saveBtn.style.display   = (_isDraft && _currentPlanIsOwn) ? '' : 'none';
-    if (removeBtn)  removeBtn.style.display = (_currentPlanIsOwn && !_isDraft && _isSharedWithClub)  ? '' : 'none';
-    if (fab)        fab.style.display       = (_currentPlanIsOwn && !_isDraft && !_isSharedWithClub) ? '' : 'none';
+    const saveBtn       = $('savePlanBtn');
+    const shareBtn      = $('shareClubBtn');
+    const removeBtn     = $('removeClubBtn');
+    if (saveBtn)    saveBtn.style.display    = (_isDraft && _currentPlanIsOwn) ? '' : 'none';
+    if (shareBtn)   shareBtn.style.display   = (_currentPlanIsOwn && !_isDraft && !_isSharedWithClub) ? '' : 'none';
+    if (removeBtn)  removeBtn.style.display  = (_currentPlanIsOwn && !_isDraft && _isSharedWithClub)  ? '' : 'none';
   }
 
   function showLoading(msg) {
