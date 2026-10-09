@@ -877,7 +877,7 @@ serve(async (req) => {
       });
       const isNotes = context === "session_notes";
       const sysPrompt = isNotes
-        ? `You are a GAA coaching assistant. A coach has spoken session notes via voice. Return ONLY valid JSON: {"interpreted": "clean paraphrase in one or two sentences, removing filler words and speech artefacts"}. Do not add any information the coach did not say.`
+        ? `You are a GAA coaching assistant. A coach has spoken session notes via voice. Preserve EVERY specific instruction they mentioned — do not summarise, merge, or omit any requirement. Remove only filler words and speech artefacts. Do not add any information the coach did not say. Return ONLY valid JSON: {"interpreted": "<full clear paraphrase with all instructions intact>"}`
         : `You are a GAA coaching assistant. A coach has spoken an instruction to revise their training session plan. Return ONLY valid JSON: {"interpreted": "single clear specific instruction, removing filler words and speech artefacts"}. Do not add any information the coach did not say.`;
       try {
         const raw = await callGemini(apiKey, sysPrompt, [{ text: `Coach said: "${transcript.trim()}"` }]);
