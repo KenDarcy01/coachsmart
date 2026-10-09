@@ -469,7 +469,7 @@ async function buildSessionPlanPdf(
   function drawMetaRow(page: any, topY: number) {
     if (META_ROW_H === 0) return;
     const stripBottom = PH - topY - META_ROW_H;
-    page.drawRectangle({ x: 0, y: stripBottom, width: PW, height: META_ROW_H, color: lightBg });
+    page.drawRectangle({ x: 0, y: stripBottom, width: PW, height: META_ROW_H, color: primaryRgb, opacity: 0.4 });
 
     if (!showStatCards) {
       // No stat cards — fall through to weather-only rendering below
