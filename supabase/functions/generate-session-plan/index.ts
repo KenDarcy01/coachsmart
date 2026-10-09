@@ -865,6 +865,33 @@ serve(async (req) => {
       });
     }
 
+    // ── INTERPRET_VOICE: clean raw speech transcript via AI ──────────────────
+    if (action === "interpret_voice") {
+      const { transcript, context } = body;
+      if (!transcript?.trim()) return new Response(JSON.stringify({ error: "transcript required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const apiKey = Deno.env.get("GEMINI_API_KEY");
+      if (!apiKey) return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const isNotes = context === "session_notes";
+      const sysPrompt = isNotes
+        ? `You are a GAA coaching assistant. A coach has spoken session notes via voice. Return ONLY a clean, concise paraphrase in plain English — one or two sentences maximum. Remove filler words and speech artefacts. Do not add any information the coach did not say.`
+        : `You are a GAA coaching assistant. A coach has spoken an instruction to revise their training session plan. Return ONLY a single clear, specific instruction in plain English — one sentence. Remove filler words and speech artefacts. Do not add any information the coach did not say.`;
+      try {
+        const raw = await callGemini(apiKey, sysPrompt, [{ text: `Coach said: "${transcript.trim()}"` }]);
+        const interpreted = raw.replace(/^["'`]|["'`]$/g, "").trim();
+        return new Response(JSON.stringify({ interpreted }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        return new Response(JSON.stringify({ error: "Interpretation failed" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // ── GENERATE ──────────────────────────────────────────────────────────────
     if (action !== "generate") return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
