@@ -354,6 +354,14 @@
       -webkit-tap-highlight-color: transparent; cursor: pointer;
     }
     .fb-mic-btn svg { width: 46px; height: 46px; flex-shrink: 0; }
+    .fb-mic-btn.preparing {
+      background: rgba(135,194,50,0.10); border-color: var(--accent); color: var(--accent);
+      animation: fbMicPrepare 1s ease-in-out infinite;
+    }
+    @keyframes fbMicPrepare {
+      0%, 100% { opacity: 0.6; }
+      50%      { opacity: 1; }
+    }
     .fb-mic-btn.recording {
       background: rgba(220,50,50,0.12); border-color: #dc3232; color: #dc3232;
       animation: fbMicRing 1.2s ease-out infinite;
@@ -1520,9 +1528,13 @@
     btn._spInited = true;
     btn.addEventListener('contextmenu', e => e.preventDefault());
     const instr = $('spFbInstruction');
-    if (instr && !_isIOS) instr.textContent = window.FlutterBridge
-      ? 'Tap to start recording. Speak your notes, then pause — the AI will revise the plan.'
-      : 'Tap to start recording, tap again to stop — the AI will revise the plan.';
+    if (instr) {
+      if (_isIOS && window.FlutterBridge)
+        instr.textContent = 'Press and hold. Wait for red, then speak. Release when done.';
+      else if (!_isIOS) instr.textContent = window.FlutterBridge
+        ? 'Tap to start recording. Speak your notes, then pause — the AI will revise the plan.'
+        : 'Tap to start recording, tap again to stop — the AI will revise the plan.';
+    }
 
     function stop() {
       if (!_spIsRecording) return;
@@ -1531,7 +1543,7 @@
         _resetVoice();
         _spPendingInterpret = true;
         clearTimeout(_spAutoReviseTimeout);
-        _spAutoReviseTimeout = setTimeout(() => { if (_spPendingInterpret) { _spPendingInterpret = false; interpretVoice('sp', _spTranscript); } }, 8000);
+        _spAutoReviseTimeout = setTimeout(() => { if (_spPendingInterpret) { _spPendingInterpret = false; interpretVoice('sp', _spTranscript); } }, 1500);
       } else if (!_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
         _spPendingInterpret = false;
@@ -1544,19 +1556,27 @@
     }
     function start() {
       _spIsRecording = true; _spTranscript = '';
-      btn.classList.add('recording');
-      $('spFbVoiceWave').classList.add('active');
-      if (window.FlutterBridge) {
-        if (!_isIOS) _spAutoRevise = true;
+      if (_isIOS && window.FlutterBridge) {
+        btn.classList.add('preparing');
         window.FlutterBridge.postMessage('startSpeech:sp_feedback');
-      } else _startWebSpeech();
+        setTimeout(() => {
+          if (_spIsRecording) {
+            btn.classList.remove('preparing');
+            btn.classList.add('recording');
+            $('spFbVoiceWave').classList.add('active');
+          }
+        }, 2000);
+      } else {
+        btn.classList.add('recording');
+        $('spFbVoiceWave').classList.add('active');
+        if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+        else _startWebSpeech();
+      }
     }
     if (_isIOS) {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_spIsRecording) start(); }, { passive: false });
       btn.addEventListener('pointerup', stop);
       btn.addEventListener('pointercancel', stop);
-      document.addEventListener('touchend', stop, { passive: true });
-      document.addEventListener('touchcancel', stop, { passive: true });
     } else {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_spIsRecording) stop(); else start(); }, { passive: false });
       btn.addEventListener('pointercancel', stop);
@@ -1566,7 +1586,7 @@
 
   function _resetVoice() {
     _spIsRecording = false;
-    $('spFbMicBtn')?.classList.remove('recording');
+    $('spFbMicBtn')?.classList.remove('recording', 'preparing');
     $('spFbVoiceWave')?.classList.remove('active');
   }
   function _startWebSpeech() {
@@ -1594,7 +1614,7 @@
 
   function _resetSetupVoice() {
     _setupIsRecording = false;
-    $('setupMicBtn')?.classList.remove('recording');
+    $('setupMicBtn')?.classList.remove('recording', 'preparing');
     $('setupFbVoiceWave')?.classList.remove('active');
   }
   function _startSetupWebSpeech() {
@@ -1629,9 +1649,13 @@
     btn._setupInited = true;
     btn.addEventListener('contextmenu', e => e.preventDefault());
     const instr = $('setupFbInstruction');
-    if (instr && !_isIOS) instr.textContent = window.FlutterBridge
-      ? 'Tap to start recording. Speak your session notes, then pause to finish.'
-      : 'Tap to start recording, tap again to stop.';
+    if (instr) {
+      if (_isIOS && window.FlutterBridge)
+        instr.textContent = 'Press and hold. Wait for red, then speak. Release when done.';
+      else if (!_isIOS) instr.textContent = window.FlutterBridge
+        ? 'Tap to start recording. Speak your session notes, then pause to finish.'
+        : 'Tap to start recording, tap again to stop.';
+    }
 
     function stop() {
       if (!_setupIsRecording) return;
@@ -1639,24 +1663,40 @@
         window.FlutterBridge.postMessage('stopSpeech');
         _resetSetupVoice();
         _setupAutoFinish = true;
+        setTimeout(() => {
+          if (_setupAutoFinish) {
+            _setupAutoFinish = false;
+            if (_setupTranscript.trim()) interpretVoice('setup', _setupTranscript);
+            else showToast('Nothing recorded — try again or switch to Text', 'error');
+          }
+        }, 1500);
       } else {
         _stopSetupWebSpeech();
       }
     }
     function start() {
       _setupIsRecording = true; _setupTranscript = '';
-      btn.classList.add('recording');
-      $('setupFbVoiceWave').classList.add('active');
-      if (window.FlutterBridge) {
+      if (_isIOS && window.FlutterBridge) {
+        btn.classList.add('preparing');
         window.FlutterBridge.postMessage('startSpeech:setup_notes');
-      } else _startSetupWebSpeech();
+        setTimeout(() => {
+          if (_setupIsRecording) {
+            btn.classList.remove('preparing');
+            btn.classList.add('recording');
+            $('setupFbVoiceWave').classList.add('active');
+          }
+        }, 2000);
+      } else {
+        btn.classList.add('recording');
+        $('setupFbVoiceWave').classList.add('active');
+        if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:setup_notes');
+        else _startSetupWebSpeech();
+      }
     }
     if (_isIOS) {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_setupIsRecording) start(); }, { passive: false });
       btn.addEventListener('pointerup', stop);
       btn.addEventListener('pointercancel', stop);
-      document.addEventListener('touchend', stop, { passive: true });
-      document.addEventListener('touchcancel', stop, { passive: true });
     } else {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_setupIsRecording) stop(); else start(); }, { passive: false });
       btn.addEventListener('pointercancel', stop);
