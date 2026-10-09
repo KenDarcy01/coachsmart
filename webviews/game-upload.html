@@ -1202,7 +1202,7 @@
     function startRecording() {
       _isVoiceRecording = true; _voiceTranscript = ''; _baseVoiceText = '';
       const vt = document.getElementById('voiceTranscript');
-      vt.textContent = ''; vt.style.display = '';
+      vt.textContent = ''; vt.style.display = 'none';
       const card = document.getElementById('voiceInterpretCard');
       if (card) card.style.display = 'none';
       if (_isIOS && window.FlutterBridge) {
@@ -1259,7 +1259,6 @@
         else interim += e.results[i][0].transcript;
       }
       _voiceTranscript = _removeFillersAndClean(_baseVoiceText);
-      document.getElementById('voiceTranscript').textContent = (_voiceTranscript + (interim ? ' ' + interim : '')).trim() || _voiceTranscript;
     };
     _voiceWebRecognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetVoiceState(); };
     _voiceWebRecognition.onend = () => { if (_isVoiceRecording) _resetVoiceState(); };
@@ -1347,17 +1346,12 @@
     if (fieldId === 'voice_input') {
       _voiceTranscript += text + ' ';
       _voiceTranscript = _removeFillersAndClean(_voiceTranscript);
-      document.getElementById('voiceTranscript').textContent = _voiceTranscript;
     } else if (fieldId === 'fb_input') {
       _fbTranscript += text + ' ';
       _fbTranscript = _removeFillersAndClean(_fbTranscript);
-      const el = document.getElementById('fbTranscript');
-      if (el) el.textContent = _fbTranscript;
     }
   };
-  window.onVoiceInterim = function(p) {
-    document.getElementById('voiceTranscript').textContent = ((_voiceTranscript ? _voiceTranscript + ' ' : '') + p).trim();
-  };
+  window.onVoiceInterim = function() {};
   window.onSpeechDone = function() {
     try { localStorage.setItem('cs_mic_warmed', '1'); } catch {}
     clearTimeout(_voiceAutoReviseTimeout);
@@ -1397,7 +1391,7 @@
     function startRecording() {
       _fbIsRecording = true; _fbTranscript = '';
       const ft = document.getElementById('fbTranscript');
-      ft.textContent = ''; ft.style.display = '';
+      ft.textContent = ''; ft.style.display = 'none';
       const card = document.getElementById('fbInterpretCard');
       if (card) card.style.display = 'none';
       if (_isIOS && window.FlutterBridge) {
@@ -1453,8 +1447,6 @@
         else interim += e.results[i][0].transcript;
       }
       _fbTranscript = _removeFillersAndClean(baseFb);
-      const el = document.getElementById('fbTranscript');
-      if (el) el.textContent = (_fbTranscript + (interim ? ' ' + interim : '')).trim() || _fbTranscript;
     };
     _fbWebRecognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetFbVoiceState(); };
     _fbWebRecognition.onend = () => { const wasRecording = _fbIsRecording; _resetFbVoiceState(); if (wasRecording) reviseDraft(); };

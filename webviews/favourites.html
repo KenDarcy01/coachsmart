@@ -965,8 +965,35 @@
   }
 
   // ── Plan generation ────────────────────────────────────────────────────────
+  function _deepGet(obj, keys) {
+    let cur = obj;
+    for (const k of keys) { if (cur == null) return undefined; cur = cur[isNaN(k) ? k : +k]; }
+    return cur;
+  }
+  function _deepSet(obj, keys, val) {
+    let cur = obj;
+    for (let i = 0; i < keys.length - 1; i++) { const k = isNaN(keys[i]) ? keys[i] : +keys[i]; if (cur == null || cur[k] == null) return; cur = cur[k]; }
+    const last = keys[keys.length - 1]; cur[isNaN(last) ? last : +last] = val;
+  }
+  function _restoreUserEdits(priorPlan, priorEdits) {
+    document.querySelectorAll('[data-path]').forEach(el => {
+      const keys     = el.dataset.path.split('.');
+      const priorAi  = _deepGet(priorPlan,   keys);
+      const userEdit = _deepGet(priorEdits,  keys);
+      const newAi    = _deepGet(_currentPlan, keys);
+      if (priorAi !== undefined && userEdit !== undefined && String(userEdit) !== String(priorAi) && String(newAi) === String(priorAi)) {
+        el.textContent = userEdit;
+        _deepSet(_currentPlan, keys, userEdit);
+      }
+    });
+    const titleEl = document.querySelector('[data-path="session_title"]');
+    if (titleEl) $('headerTitle').textContent = titleEl.textContent.trim() || 'Session Plan';
+  }
+
   async function generatePlan(feedback) {
     const isRevision = !!(feedback && _currentPlan);
+    const _priorPlan  = isRevision ? JSON.parse(JSON.stringify(_currentPlan)) : null;
+    const _priorEdits = isRevision ? collectEdits() : null;
     const game_ids = checkedGameIds();
     if (!isRevision && !game_ids.length) { showToast('Select at least one game'); return; }
 
@@ -1000,6 +1027,7 @@
       _currentPlanId = data.plan_id ?? null;
       _isDraft = !_currentPlanId;
       renderPlan(data.plan);
+      if (isRevision && _priorPlan && _priorEdits) _restoreUserEdits(_priorPlan, _priorEdits);
       if (isRevision) { clearToast(); showToast('Plan updated — tap Save when ready', 'success'); }
     } catch {
       if (isRevision) showToast('Update failed — please try again', 'error');
