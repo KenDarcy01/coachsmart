@@ -162,6 +162,17 @@
       70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0);   }
       100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);   }
     }
+    .mic-btn.preparing {
+      background: rgba(245,160,0,0.10); border-color: #f5a000; color: #f5a000;
+      animation: micPrepare 1s ease-in-out infinite;
+    }
+    @keyframes micPrepare { 0%,100%{opacity:0.6} 50%{opacity:1} }
+    .interpret-card { margin: 10px 0 4px; background: var(--card2); border: 1.5px solid var(--green); border-radius: var(--radius); padding: 12px 14px; }
+    .interpret-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--green); margin-bottom: 6px; }
+    .interpret-text  { font-size: 14px; color: var(--text); line-height: 1.45; margin-bottom: 10px; }
+    .interpret-actions { display: flex; gap: 8px; }
+    .interpret-actions .btn-secondary { flex: 1; padding: 11px; font-size: 15px; }
+    .interpret-actions .btn-primary   { flex: 1; padding: 11px; font-size: 15px; }
     .voice-wave { display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px;
       opacity: 0; transition: opacity 0.25s; pointer-events: none; }
     .voice-wave.active { opacity: 1; }
@@ -390,6 +401,14 @@
           </button>
         </div>
         <div id="voiceTranscript" class="transcript-preview"></div>
+        <div id="voiceInterpretCard" class="interpret-card" style="display:none">
+          <div class="interpret-label">I understood:</div>
+          <div id="voiceInterpretText" class="interpret-text"></div>
+          <div class="interpret-actions">
+            <button class="btn-secondary" onclick="cancelVoiceInterpret()">Try again</button>
+            <button class="btn-primary" onclick="confirmVoiceInterpret()">Confirm</button>
+          </div>
+        </div>
       </div>
 
       <!-- Text panel -->
@@ -534,6 +553,14 @@
           </button>
         </div>
         <div id="fbTranscript" class="transcript-preview"></div>
+        <div id="fbInterpretCard" class="interpret-card" style="display:none">
+          <div class="interpret-label">I understood:</div>
+          <div id="fbInterpretText" class="interpret-text"></div>
+          <div class="interpret-actions">
+            <button class="btn-secondary" onclick="cancelFbInterpret()">Try again</button>
+            <button class="btn-primary" onclick="confirmFbInterpret()">Confirm</button>
+          </div>
+        </div>
       </div>
       <div id="fbTextPanel" class="mode-panel" style="display:none">
         <textarea id="fbInput" class="text-desc" placeholder="Describe what to change — e.g. 'make the setup shorter', 'add a U10 variation', 'focus more on kicking'…" oninput="autoResize(this)"></textarea>
@@ -633,6 +660,7 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
   const EDGE_FN_URL    = SUPABASE_URL + '/functions/v1/ai-process-game';
   const DIAGRAM_FN_URL = SUPABASE_URL + '/functions/v1/diagram-to-drawio';
+  const INTERPRET_FN   = SUPABASE_URL + '/functions/v1/generate-session-plan';
   const params     = new URLSearchParams(window.location.search);
   const WV_TOKEN   = params.get('token')   || '';
   const _isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -1025,11 +1053,16 @@
   }
 
   // ── Revise with feedback ───────────────────────────────────────────────────
-  let _fbTranscript   = '';
-  let _fbIsRecording        = false;
-  let _fbDescMode           = 'voice';
-  let _fbAutoRevise         = false;
-  let _fbAutoReviseTimeout  = null;
+  let _fbTranscript          = '';
+  let _fbIsRecording         = false;
+  let _fbDescMode            = 'voice';
+  let _fbPendingInterpret    = false;
+  let _interpretedFb         = '';
+  let _fbAutoReviseTimeout   = null;
+  let _voicePendingInterpret = false;
+  let _interpretedVoice      = '';
+  let _voiceAutoReviseTimeout = null;
+  let _warmupFired = false;
 
   function setFbMode(mode) {
     _fbDescMode = mode;
@@ -1038,6 +1071,19 @@
     document.getElementById('fbModeVoice').classList.toggle('active', mode === 'voice');
     document.getElementById('fbModeText').classList.toggle('active',  mode === 'text');
     if (mode === 'text') requestAnimationFrame(() => autoResize(document.getElementById('fbInput')));
+  }
+
+  function _warmupMic() {
+    if (_warmupFired || !_isIOS || !window.FlutterBridge) return;
+    try { if (!localStorage.getItem('cs_mic_warmed')) return; } catch { return; }
+    _warmupFired = true;
+    setTimeout(() => {
+      if (_isVoiceRecording || _fbIsRecording) return;
+      window.FlutterBridge.postMessage('startSpeech:warmup_init');
+      setTimeout(() => {
+        if (!_isVoiceRecording && !_fbIsRecording) window.FlutterBridge.postMessage('stopSpeech');
+      }, 400);
+    }, 600);
   }
 
   async function reviseDraft() {
@@ -1133,23 +1179,55 @@
     const btn = document.getElementById('micBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
-    const lbl = document.getElementById('micBtnLabel');
-    if (lbl) lbl.textContent = _isIOS ? 'Hold to Record' : 'Tap to Record';
     function stop() {
       if (!_isVoiceRecording) return;
-      if (lbl) lbl.textContent = _isIOS ? 'Hold to Record' : 'Tap to Record';
-      if (_isIOS && window.FlutterBridge) window.FlutterBridge.postMessage('stopSpeech');
-      else if (!_isIOS && window.FlutterBridge) { window.FlutterBridge.postMessage('stopSpeech'); _resetVoiceState(); }
-      else _stopWebVoiceSpeech();
+      _isVoiceRecording = false;
+      if (_isIOS && window.FlutterBridge) {
+        window.FlutterBridge.postMessage('stopSpeech');
+        _voicePendingInterpret = true;
+        clearTimeout(_voiceAutoReviseTimeout);
+        _voiceAutoReviseTimeout = setTimeout(() => {
+          if (_voicePendingInterpret) { _voicePendingInterpret = false; _interpretVoice('voice', _voiceTranscript); }
+        }, 1500);
+      } else if (!_isIOS && window.FlutterBridge) {
+        window.FlutterBridge.postMessage('stopSpeech');
+        _voicePendingInterpret = false;
+        _resetVoiceState();
+        _interpretVoice('voice', _voiceTranscript);
+      } else {
+        _stopWebVoiceSpeech();
+        _interpretVoice('voice', _voiceTranscript);
+      }
     }
     function startRecording() {
       _isVoiceRecording = true; _voiceTranscript = ''; _baseVoiceText = '';
       document.getElementById('voiceTranscript').textContent = '';
-      btn.classList.add('recording');
-      if (lbl) lbl.textContent = 'Recording…';
-      document.getElementById('voiceWave').classList.add('active');
-      if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
-      else _startWebVoiceSpeech();
+      const card = document.getElementById('voiceInterpretCard');
+      if (card) card.style.display = 'none';
+      if (_isIOS && window.FlutterBridge) {
+        let warmed = false;
+        try { warmed = !!localStorage.getItem('cs_mic_warmed'); } catch {}
+        if (warmed) {
+          btn.classList.add('recording');
+          document.getElementById('voiceWave').classList.add('active');
+          window.FlutterBridge.postMessage('startSpeech:voice_input');
+        } else {
+          btn.classList.add('preparing');
+          window.FlutterBridge.postMessage('startSpeech:voice_input');
+          setTimeout(() => {
+            if (_isVoiceRecording) {
+              btn.classList.remove('preparing');
+              btn.classList.add('recording');
+              document.getElementById('voiceWave').classList.add('active');
+            }
+          }, 2000);
+        }
+      } else {
+        btn.classList.add('recording');
+        document.getElementById('voiceWave').classList.add('active');
+        if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:voice_input');
+        else _startWebVoiceSpeech();
+      }
     }
     if (_isIOS) {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_isVoiceRecording) startRecording(); }, { passive: false });
@@ -1162,6 +1240,7 @@
       btn.addEventListener('pointercancel', stop);
       document.addEventListener('touchcancel', stop, { passive: true });
     }
+    _warmupMic();
   }
 
   let _voiceWebRecognition = null;
@@ -1192,12 +1271,71 @@
   function _resetVoiceState() {
     _isVoiceRecording = false;
     const btn = document.getElementById('micBtn');
-    if (btn) btn.classList.remove('recording');
-    const lbl = document.getElementById('micBtnLabel'); if (lbl) lbl.textContent = _isIOS ? 'Hold to Record' : 'Tap to Record';
+    if (btn) btn.classList.remove('recording', 'preparing');
     document.getElementById('voiceWave').classList.remove('active');
   }
   const FILLERS = /\b(um+h?|uh+|eh+|ahh?|mm+|hmm+|err+|y'know|like)\b[\s,]*/gi;
   function _removeFillersAndClean(text) { return text.replace(FILLERS, ' ').replace(/\s{2,}/g, ' ').trim(); }
+
+  async function _interpretVoice(which, transcript) {
+    if (!transcript.trim()) { showToast('Nothing recorded — try again', 'error'); return; }
+    showToast('Interpreting…', 'success', 0);
+    const context = which === 'fb' ? 'plan_feedback' : 'session_notes';
+    try {
+      const res = await fetch(INTERPRET_FN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: 'interpret_voice', transcript, context }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Interpret failed');
+      let interpreted = json.interpreted || json.data?.interpreted || transcript;
+      try { const p = JSON.parse(interpreted); interpreted = p.interpreted || interpreted; } catch {}
+      clearToast();
+      if (which === 'fb') {
+        _interpretedFb = interpreted;
+        const card = document.getElementById('fbInterpretCard');
+        document.getElementById('fbInterpretText').textContent = interpreted;
+        if (card) { card.style.display = ''; requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' })); }
+      } else {
+        _interpretedVoice = interpreted;
+        const card = document.getElementById('voiceInterpretCard');
+        document.getElementById('voiceInterpretText').textContent = interpreted;
+        if (card) { card.style.display = ''; requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' })); }
+      }
+    } catch (err) {
+      clearToast();
+      showToast('Could not interpret — try again', 'error');
+    }
+  }
+
+  function confirmVoiceInterpret() {
+    _voiceTranscript = _interpretedVoice;
+    document.getElementById('voiceTranscript').textContent = _voiceTranscript;
+    const card = document.getElementById('voiceInterpretCard');
+    if (card) card.style.display = 'none';
+    showToast('Description confirmed', 'success');
+  }
+  function cancelVoiceInterpret() {
+    _interpretedVoice = '';
+    const card = document.getElementById('voiceInterpretCard');
+    if (card) card.style.display = 'none';
+  }
+
+  function confirmFbInterpret() {
+    _fbTranscript = _interpretedFb;
+    const el = document.getElementById('fbTranscript');
+    if (el) el.textContent = _fbTranscript;
+    const card = document.getElementById('fbInterpretCard');
+    if (card) card.style.display = 'none';
+    _interpretedFb = '';
+    reviseDraft();
+  }
+  function cancelFbInterpret() {
+    _interpretedFb = '';
+    const card = document.getElementById('fbInterpretCard');
+    if (card) card.style.display = 'none';
+  }
 
   window.receiveSpeechResult = function(fieldId, text) {
     if (fieldId === 'voice_input') {
@@ -1214,10 +1352,14 @@
   window.onVoiceInterim = function(p) {
     document.getElementById('voiceTranscript').textContent = ((_voiceTranscript ? _voiceTranscript + ' ' : '') + p).trim();
   };
-  window.onSpeechDone  = () => {
+  window.onSpeechDone = function() {
+    try { localStorage.setItem('cs_mic_warmed', '1'); } catch {}
+    clearTimeout(_voiceAutoReviseTimeout);
     clearTimeout(_fbAutoReviseTimeout);
-    _resetVoiceState(); _resetFbVoiceState();
-    if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
+    _resetVoiceState();
+    _resetFbVoiceState();
+    if (_voicePendingInterpret) { _voicePendingInterpret = false; _interpretVoice('voice', _voiceTranscript); }
+    else if (_fbPendingInterpret) { _fbPendingInterpret = false; _interpretVoice('fb', _fbTranscript); }
   };
   window.onSpeechError = (msg) => { showToast(msg || 'Voice input failed', 'error'); _resetVoiceState(); _resetFbVoiceState(); };
 
@@ -1228,36 +1370,53 @@
     btn.addEventListener('contextmenu', e => e.preventDefault());
     function stop() {
       if (!_fbIsRecording) return;
+      _fbIsRecording = false;
       if (_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
-        _resetFbVoiceState();
-        _fbAutoRevise = true;
-        showToast('Revising draft…', 'success', 0);
+        _fbPendingInterpret = true;
         clearTimeout(_fbAutoReviseTimeout);
         _fbAutoReviseTimeout = setTimeout(() => {
-          if (_fbAutoRevise) { _fbAutoRevise = false; reviseDraft(); }
-        }, 8000);
+          if (_fbPendingInterpret) { _fbPendingInterpret = false; _interpretVoice('fb', _fbTranscript); }
+        }, 1500);
       } else if (!_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
-        _fbAutoRevise = false;
+        _fbPendingInterpret = false;
         _resetFbVoiceState();
-        showToast('Revising draft…', 'success', 0);
-        reviseDraft();
+        _interpretVoice('fb', _fbTranscript);
       } else {
         _stopFbWebSpeech();
-        showToast('Revising draft…', 'success', 0);
-        reviseDraft();
+        _interpretVoice('fb', _fbTranscript);
       }
     }
     function startRecording() {
       _fbIsRecording = true; _fbTranscript = '';
       document.getElementById('fbTranscript').textContent = '';
-      btn.classList.add('recording');
-      document.getElementById('fbVoiceWave').classList.add('active');
-      if (window.FlutterBridge) {
-        if (!_isIOS) _fbAutoRevise = true;
-        window.FlutterBridge.postMessage('startSpeech:fb_input');
-      } else _startFbWebSpeech();
+      const card = document.getElementById('fbInterpretCard');
+      if (card) card.style.display = 'none';
+      if (_isIOS && window.FlutterBridge) {
+        let warmed = false;
+        try { warmed = !!localStorage.getItem('cs_mic_warmed'); } catch {}
+        if (warmed) {
+          btn.classList.add('recording');
+          document.getElementById('fbVoiceWave').classList.add('active');
+          window.FlutterBridge.postMessage('startSpeech:fb_input');
+        } else {
+          btn.classList.add('preparing');
+          window.FlutterBridge.postMessage('startSpeech:fb_input');
+          setTimeout(() => {
+            if (_fbIsRecording) {
+              btn.classList.remove('preparing');
+              btn.classList.add('recording');
+              document.getElementById('fbVoiceWave').classList.add('active');
+            }
+          }, 2000);
+        }
+      } else {
+        btn.classList.add('recording');
+        document.getElementById('fbVoiceWave').classList.add('active');
+        if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:fb_input');
+        else _startFbWebSpeech();
+      }
     }
     if (_isIOS) {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_fbIsRecording) startRecording(); }, { passive: false });
@@ -1301,7 +1460,7 @@
   function _resetFbVoiceState() {
     _fbIsRecording = false;
     const btn = document.getElementById('fbMicBtn');
-    if (btn) btn.classList.remove('recording');
+    if (btn) btn.classList.remove('recording', 'preparing');
     const wave = document.getElementById('fbVoiceWave');
     if (wave) wave.classList.remove('active');
   }
