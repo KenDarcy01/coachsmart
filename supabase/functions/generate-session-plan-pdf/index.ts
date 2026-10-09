@@ -343,7 +343,11 @@ async function buildSessionPlanPdf(
   const WEATHER_STRIP = weatherLines.length > 0
     ? WEATHER_PAD + weatherLines.length * WEATHER_LINE_H + WEATHER_PAD
     : 0;
-  const META_ROW_H    = STAT_CARD_H + STAT_CARD_PAD * 2 + WEATHER_STRIP;
+  // Only show stat cards when the plan is linked to an event
+  const showStatCards = !!(event.event_title || event.team_name || event.squad_name);
+  const META_ROW_H    = showStatCards
+    ? STAT_CARD_H + STAT_CARD_PAD * 2 + WEATHER_STRIP
+    : WEATHER_STRIP;
   const FOOTER_RULE_Y = MB + 14;
   const FOOTER_TEXT_Y = MB;
   const FOOTER_ZONE   = MB + (isMobile ? 24 : 30);
@@ -463,9 +467,13 @@ async function buildSessionPlanPdf(
   }
 
   function drawMetaRow(page: any, topY: number) {
+    if (META_ROW_H === 0) return;
     const stripBottom = PH - topY - META_ROW_H;
     page.drawRectangle({ x: 0, y: stripBottom, width: PW, height: META_ROW_H, color: lightBg });
 
+    if (!showStatCards) {
+      // No stat cards — fall through to weather-only rendering below
+    } else {
     // Build stat cards
     const stats: { value: string; label: string }[] = [];
     if (plan.total_duration_mins) stats.push({ value: String(plan.total_duration_mins), label: "MINS" });
@@ -546,6 +554,7 @@ async function buildSessionPlanPdf(
         } catch { /* skip */ }
       }
     }
+    } // end showStatCards
 
     // Weather strip — sits at the very bottom of the meta row
     if (weatherLines.length > 0) {
