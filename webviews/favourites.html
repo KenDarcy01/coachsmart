@@ -1727,11 +1727,12 @@
       $('setupInterpretCard').style.display = 'none';
       _setupTranscript = _interpretedSetup;
       _interpretedSetup = '';
-      showToast('Notes added — tap Generate to build your plan', 'success');
+      generatePlan();
     } else {
       $('spFbInterpretCard').style.display = 'none';
       _spTranscript = _interpretedSp;
       _interpretedSp = '';
+      showToast('Updating plan…', 'success', 0);
       regenWithFeedback();
     }
   }

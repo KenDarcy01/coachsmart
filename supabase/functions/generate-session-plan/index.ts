@@ -877,11 +877,17 @@ serve(async (req) => {
       });
       const isNotes = context === "session_notes";
       const sysPrompt = isNotes
-        ? `You are a GAA coaching assistant. A coach has spoken session notes via voice. Return ONLY a clean, concise paraphrase in plain English — one or two sentences maximum. Remove filler words and speech artefacts. Do not add any information the coach did not say.`
-        : `You are a GAA coaching assistant. A coach has spoken an instruction to revise their training session plan. Return ONLY a single clear, specific instruction in plain English — one sentence. Remove filler words and speech artefacts. Do not add any information the coach did not say.`;
+        ? `You are a GAA coaching assistant. A coach has spoken session notes via voice. Return ONLY valid JSON: {"interpreted": "clean paraphrase in one or two sentences, removing filler words and speech artefacts"}. Do not add any information the coach did not say.`
+        : `You are a GAA coaching assistant. A coach has spoken an instruction to revise their training session plan. Return ONLY valid JSON: {"interpreted": "single clear specific instruction, removing filler words and speech artefacts"}. Do not add any information the coach did not say.`;
       try {
         const raw = await callGemini(apiKey, sysPrompt, [{ text: `Coach said: "${transcript.trim()}"` }]);
-        const interpreted = raw.replace(/^["'`]|["'`]$/g, "").trim();
+        let interpreted: string;
+        try {
+          const parsed = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim());
+          interpreted = parsed.interpreted || String(parsed);
+        } catch {
+          interpreted = raw.replace(/^["'`]|["'`]$/g, "").trim();
+        }
         return new Response(JSON.stringify({ interpreted }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
