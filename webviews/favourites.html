@@ -64,6 +64,19 @@
     .header-icon-btn:active { color: var(--accent); background: var(--accent-dim); }
     .header-icon-btn svg { width: 20px; height: 20px; }
 
+    /* My Plans prominent pill button */
+    .my-plans-pill {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--accent-dim); border: 1.5px solid var(--accent);
+      border-radius: 20px; padding: 5px 11px 5px 8px;
+      color: var(--accent); font-size: 13px; font-weight: 700;
+      font-family: inherit; cursor: pointer; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .my-plans-pill:active { opacity: 0.7; background: rgba(135,194,50,0.22); }
+    .my-plans-pill svg { width: 15px; height: 15px; flex-shrink: 0; }
+
     /* ── Screens ── */
     .screen { flex: 1; display: none; flex-direction: column; overflow: hidden; min-height: 0; }
     .screen.active { display: flex; }
@@ -565,8 +578,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   <div class="header-title" id="headerTitle">Favourites</div>
-  <button class="header-icon-btn" id="myPlansBtn" onclick="showMyPlans()" title="My Plans" style="display:none">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+  <button class="my-plans-pill" id="myPlansBtn" onclick="showMyPlans()" title="My Plans" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    My Plans
   </button>
 </header>
 
@@ -713,7 +727,7 @@
     <div class="confirm-sheet-body"  id="confirmBody">This plan will be deactivated and removed from your library.</div>
     <div class="confirm-sheet-btns">
       <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
-      <button class="btn" id="confirmActionBtn" style="background:#d63031;color:#fff;border:none" onclick="_confirmAction()">Remove</button>
+      <button class="btn" id="confirmActionBtn" style="background:#d63031;color:#fff;border:none" onclick="_confirmAction()">Deactivate</button>
     </div>
   </div>
 </div>
@@ -1422,8 +1436,9 @@
     const isShared = wrap.dataset.shared === '1';
     $('confirmTitle').textContent = 'Deactivate this plan?';
     $('confirmBody').textContent  = isShared
-      ? 'This plan is currently shared with your club. Deactivating it will also remove it from the club feed.'
-      : 'This plan will be removed from your library. This cannot be undone.';
+      ? 'This plan is shared with your club. Deactivating will permanently remove it from your library and from your club\'s feed. This cannot be undone.'
+      : 'This plan will be permanently removed from your library. This cannot be undone.';
+    $('confirmActionBtn').textContent = 'Deactivate';
     _confirmCb = async () => {
       closeConfirm();
       showToast('Removing…', '', 0);
