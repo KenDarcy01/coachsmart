@@ -1491,7 +1491,7 @@
       } else {
         list.innerHTML = plans.map(p => {
           const date       = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-          const fromLine   = p.is_own ? '' : `<div class="plan-card-from">From ${esc(p.created_by)}</div>`;
+          const fromLine   = p.is_own ? `<div class="plan-card-from">You</div>` : `<div class="plan-card-from">From ${esc(p.created_by)}</div>`;
           const attachBtn = EVENT_ID
             ? `<div class="plan-card-actions"><button class="plan-btn accent" onclick="event.stopPropagation();attachPlan(${p.plan_id})">Attach to Event</button></div>`
             : '';
@@ -1500,6 +1500,7 @@
             return `<div class="swipe-wrap" data-plan-id="${p.plan_id}">
               <div class="swipe-action s-remove-club"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg><span>Remove<br>from Club</span></div>
               <div class="plan-card" onclick="loadPlanView(${p.plan_id})">
+                ${fromLine}
                 <div class="plan-card-row">
                   <div class="plan-card-info">
                     <div class="plan-card-title">${esc(p.session_title)}</div>
