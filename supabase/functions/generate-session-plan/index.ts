@@ -582,7 +582,7 @@ serve(async (req) => {
     if (action === "get_user_plans") {
       const { data: plans, error: plansErr } = await sb
         .from("session_plans")
-        .select("plan_id, session_title, created_at")
+        .select("plan_id, session_title, created_at, club_id")
         .eq("created_by", user_id)
         .eq("is_active", true)
         .is("event_id", null)           // library only — exclude plans attached to specific events
@@ -597,6 +597,7 @@ serve(async (req) => {
         plan_id:       p.plan_id,
         session_title: p.session_title || "Untitled Plan",
         created_at:    p.created_at,
+        club_id:       p.club_id ?? null,
       }));
 
       return new Response(JSON.stringify({ plans: result }), {
@@ -612,7 +613,7 @@ serve(async (req) => {
       });
       const { data: planRow, error: planErr } = await sb
         .from("session_plans")
-        .select("plan_id, plan_json, session_title, event_id")
+        .select("plan_id, plan_json, session_title, event_id, club_id")
         .eq("plan_id", loadId)
         .eq("created_by", user_id)
         .single();
@@ -624,8 +625,28 @@ serve(async (req) => {
         plan:          planRow.plan_json,
         session_title: planRow.session_title,
         event_id:      planRow.event_id ?? null,
+        club_id:       planRow.club_id ?? null,
         branding,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── DEACTIVATE_PLAN: soft-delete a library plan ───────────────────────────
+    if (action === "deactivate_plan") {
+      const { plan_id: dpId } = body;
+      if (!dpId) return new Response(JSON.stringify({ error: "plan_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const { error: deactivateErr } = await sb
+        .from("session_plans")
+        .update({ is_active: false })
+        .eq("plan_id", dpId)
+        .eq("created_by", user_id);
+      if (deactivateErr) return new Response(JSON.stringify({ error: deactivateErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ── ATTACH_PLAN: copy a library plan as the active plan for an event ─────
