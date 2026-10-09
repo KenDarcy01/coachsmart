@@ -448,6 +448,42 @@
     .plan-btn.accent  { color: var(--accent); border-color: rgba(135,194,50,0.3); }
     .plan-btn.muted   { color: var(--muted); }
     .plan-btn:active  { opacity: 0.7; }
+
+    /* ── Swipe-to-action cards ── */
+    .swipe-wrap { position: relative; border-radius: var(--radius); overflow: hidden; }
+    .swipe-action {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 88px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0.03em;
+      text-align: center; cursor: pointer;
+    }
+    .swipe-action svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .swipe-action.s-deactivate  { background: #d63031; }
+    .swipe-action.s-remove-club { background: #d63031; }
+    .swipe-wrap .plan-card {
+      position: relative; z-index: 1; will-change: transform;
+      -webkit-user-select: none; user-select: none;
+    }
+    /* Club badge */
+    .plan-club-badge {
+      display: inline-flex; align-items: center; gap: 3px; vertical-align: middle;
+      font-size: 11px; font-weight: 600; color: var(--accent);
+      background: rgba(135,194,50,0.12); border-radius: 20px; padding: 1px 7px; margin-left: 6px;
+    }
+    /* Deactivate confirm sheet */
+    .confirm-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 200; display: flex; align-items: flex-end;
+    }
+    .confirm-sheet {
+      width: 100%; background: var(--surface); border-radius: 18px 18px 0 0;
+      padding: 22px 16px calc(16px + env(safe-area-inset-bottom));
+    }
+    .confirm-sheet-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .confirm-sheet-body  { font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+    .confirm-sheet-btns  { display: flex; gap: 10px; }
+    .confirm-sheet-btns .btn { flex: 1; }
+
     .new-badge {
       display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.05em; padding: 1px 6px; border-radius: 20px;
@@ -632,6 +668,10 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       Add to Club
     </button>
+    <button class="btn btn-outline" id="removeClubBtn" onclick="removeFromClub()" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+      Remove from Club
+    </button>
   </div>
 </div>
 
@@ -669,6 +709,17 @@
   <div class="sheet-body" id="sheetBody"></div>
 </div>
 
+<div class="confirm-overlay" id="confirmOverlay" style="display:none" onclick="closeConfirm(event)">
+  <div class="confirm-sheet">
+    <div class="confirm-sheet-title" id="confirmTitle">Remove this plan?</div>
+    <div class="confirm-sheet-body"  id="confirmBody">This plan will be deactivated and removed from your library.</div>
+    <div class="confirm-sheet-btns">
+      <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
+      <button class="btn" id="confirmActionBtn" style="background:#d63031;color:#fff;border:none" onclick="_confirmAction()">Remove</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"><div class="sp-toast-spin"></div><span id="toastMsg"></span></div>
 
 <script>
@@ -687,7 +738,8 @@
 
   let _dur            = parseInt(qp.get('duration') || '60') || 60;
   let _rotateStations = true;
-  let _isDraft        = false;
+  let _isDraft           = false;
+  let _isSharedWithClub  = false;
   let _favs    = [];
   let _currentPlanId = null;
   let _currentPlan   = null;
@@ -715,10 +767,12 @@
   }
 
   function updatePlanActionBar() {
-    const saveBtn  = $('savePlanBtn');
-    const shareBtn = $('shareClubBtn');
-    if (saveBtn)  saveBtn.style.display  = _isDraft ? '' : 'none';
-    if (shareBtn) shareBtn.style.display = _isDraft ? 'none' : '';
+    const saveBtn       = $('savePlanBtn');
+    const shareBtn      = $('shareClubBtn');
+    const removeBtn     = $('removeClubBtn');
+    if (saveBtn)    saveBtn.style.display    = _isDraft ? '' : 'none';
+    if (shareBtn)   shareBtn.style.display   = (!_isDraft && !_isSharedWithClub) ? '' : 'none';
+    if (removeBtn)  removeBtn.style.display  = (!_isDraft && _isSharedWithClub)  ? '' : 'none';
   }
 
   function showLoading(msg) {
@@ -1130,7 +1184,28 @@
       const data = await res.json();
       if (!res.ok || !data.ok) { clearToast(); showToast(data.error || 'Share failed', 'error'); return; }
       clearToast();
-      showToast(data.club_id ? 'Shared with your club ✓' : 'No club found on your account', data.club_id ? 'success' : 'error');
+      if (data.club_id) { _isSharedWithClub = true; updatePlanActionBar(); showToast('Shared with your club ✓', 'success'); }
+      else showToast('No club found on your account', 'error');
+    } catch { clearToast(); showToast('Network error', 'error'); }
+    finally { if (btn) btn.disabled = false; }
+  }
+
+  async function removeFromClub() {
+    if (!_currentPlanId) return;
+    const btn = $('removeClubBtn');
+    if (btn) btn.disabled = true;
+    showToast('Removing…', '', 0);
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'set_plan_club', user_id: USER_ID, plan_id: _currentPlanId, shared: false }),
+      });
+      const data = await res.json();
+      clearToast();
+      if (!res.ok || !data.ok) { showToast(data.error || 'Could not remove', 'error'); return; }
+      _isSharedWithClub = false;
+      updatePlanActionBar();
+      showToast('Removed from club ✓', 'success');
     } catch { clearToast(); showToast('Network error', 'error'); }
     finally { if (btn) btn.disabled = false; }
   }
@@ -1150,6 +1225,7 @@
       if (!res.ok || !data.plan_id) { showToast(data.error || 'Could not save', 'error'); return; }
       _currentPlanId = data.plan_id;
       _isDraft = false;
+      _isSharedWithClub = false;
       updatePlanActionBar();
       showToast('Plan saved ✓', 'success');
     } catch { showToast('Network error — could not save', 'error'); }
@@ -1202,21 +1278,137 @@
         list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No saved plans yet</div>Build your first plan from the Favourites tab.</div>';
       } else {
         list.innerHTML = plans.map(p => {
-          const date  = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-          const btns  = EVENT_ID
+          const date   = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+          const badge  = p.club_id ? '<span class="plan-club-badge">Shared with Club</span>' : '';
+          const action = p.club_id
+            ? `<div class="swipe-action s-remove-club"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg><span>Remove<br>from Club</span></div>`
+            : `<div class="swipe-action s-deactivate"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Deactivate</span></div>`;
+          const btns = EVENT_ID
             ? `<button class="plan-btn accent" onclick="attachPlan(${p.plan_id})">Attach to Event</button>`
-            : `<button class="plan-btn" onclick="loadPlanView(${p.plan_id})">Load</button>`;
-          return `<div class="plan-card">
-            <div class="plan-card-title">${esc(p.session_title)}</div>
-            <div class="plan-card-meta">${esc(date)}</div>
-            <div class="plan-card-actions">${btns}</div>
+            : `<button class="plan-btn" onclick="loadPlanView(${p.plan_id})">Open</button>`;
+          return `<div class="swipe-wrap" data-plan-id="${p.plan_id}" data-shared="${p.club_id ? '1' : '0'}">
+            ${action}
+            <div class="plan-card">
+              <div class="plan-card-title">${esc(p.session_title)}</div>
+              <div class="plan-card-meta">${esc(date)}${badge}</div>
+              <div class="plan-card-actions">${btns}</div>
+            </div>
           </div>`;
         }).join('');
+        _initSwipeCards();
       }
     } catch {
       list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection.</div>';
     } finally { _myPlansLoading = false; }
   }
+
+  // ── Swipe-to-action ────────────────────────────────────────────────────────
+  function _initSwipeCards() {
+    const REVEAL = 88, THRESH = 44;
+    document.querySelectorAll('#plansList .swipe-wrap').forEach(wrap => {
+      const card = wrap.querySelector('.plan-card');
+      const act  = wrap.querySelector('.swipe-action');
+      if (!card || !act) return;
+      let sx = 0, sy = 0, dx = 0, tracking = false, opened = false;
+      card.addEventListener('touchstart', e => {
+        sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+        dx = 0; tracking = true;
+        card.style.transition = 'none';
+      }, { passive: true });
+      card.addEventListener('touchmove', e => {
+        if (!tracking) return;
+        const curDx = e.touches[0].clientX - sx;
+        const curDy = e.touches[0].clientY - sy;
+        if (!opened && Math.abs(curDy) > Math.abs(curDx) && Math.abs(dx) < 5) { tracking = false; return; }
+        dx = opened ? Math.min(0, curDx - REVEAL) : Math.min(0, curDx);
+        dx = Math.max(dx, -REVEAL);
+        card.style.transform = `translateX(${dx}px)`;
+      }, { passive: true });
+      card.addEventListener('touchend', () => {
+        if (!tracking) return; tracking = false;
+        card.style.transition = 'transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)';
+        if (dx < -THRESH) { card.style.transform = `translateX(-${REVEAL}px)`; opened = true; }
+        else              { card.style.transform = 'translateX(0)';              opened = false; }
+      });
+      act.addEventListener('click', () => {
+        const planId   = +wrap.dataset.planId;
+        const isShared = wrap.dataset.shared === '1';
+        if (isShared) _removeFromClubCard(planId, wrap, card);
+        else          _showDeactivateConfirm(planId, wrap, card);
+      });
+    });
+    // Tap elsewhere closes any open card
+    document.addEventListener('touchstart', e => {
+      document.querySelectorAll('#plansList .swipe-wrap').forEach(w => {
+        if (!w.contains(e.target)) {
+          const c = w.querySelector('.plan-card');
+          if (c) { c.style.transition = 'transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)'; c.style.transform = 'translateX(0)'; }
+        }
+      });
+    }, { passive: true });
+  }
+
+  async function _removeFromClubCard(planId, wrap, card) {
+    card.style.transition = 'transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)';
+    card.style.transform = 'translateX(0)';
+    showToast('Removing…', '', 0);
+    try {
+      const res  = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'set_plan_club', user_id: USER_ID, plan_id: planId, shared: false }),
+      });
+      const data = await res.json();
+      clearToast();
+      if (!res.ok || !data.ok) { showToast(data.error || 'Could not remove', 'error'); return; }
+      // Update card in-place: remove badge, swap action to deactivate
+      const badge = wrap.querySelector('.plan-club-badge');
+      if (badge) badge.remove();
+      const act = wrap.querySelector('.swipe-action');
+      if (act) {
+        act.className = 'swipe-action s-deactivate';
+        act.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Deactivate</span>';
+      }
+      wrap.dataset.shared = '0';
+      showToast('Removed from club ✓', 'success');
+    } catch { clearToast(); showToast('Network error', 'error'); }
+  }
+
+  let _confirmCb = null;
+  function _showDeactivateConfirm(planId, wrap, card) {
+    card.style.transition = 'transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)';
+    card.style.transform = 'translateX(0)';
+    const isShared = wrap.dataset.shared === '1';
+    $('confirmTitle').textContent = 'Deactivate this plan?';
+    $('confirmBody').textContent  = isShared
+      ? 'This plan is currently shared with your club. Deactivating it will also remove it from the club feed.'
+      : 'This plan will be removed from your library. This cannot be undone.';
+    _confirmCb = async () => {
+      closeConfirm();
+      showToast('Removing…', '', 0);
+      try {
+        const res  = await fetch(EDGE_FN, {
+          method: 'POST', headers: HEADERS,
+          body: JSON.stringify({ action: 'deactivate_plan', user_id: USER_ID, plan_id: planId }),
+        });
+        const data = await res.json();
+        clearToast();
+        if (!res.ok || !data.ok) { showToast(data.error || 'Could not deactivate', 'error'); return; }
+        wrap.remove();
+        const list = $('plansList');
+        if (list && !list.querySelector('.swipe-wrap')) {
+          list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No saved plans yet</div>Build your first plan from the Favourites tab.</div>';
+        }
+        showToast('Plan removed ✓', 'success');
+      } catch { clearToast(); showToast('Network error', 'error'); }
+    };
+    $('confirmOverlay').style.display = '';
+  }
+  function closeConfirm(e) {
+    if (e && e.target !== $('confirmOverlay')) return;
+    $('confirmOverlay').style.display = 'none';
+    _confirmCb = null;
+  }
+  function _confirmAction() { if (_confirmCb) _confirmCb(); }
 
   async function loadSharedPlans() {
     const list = $('sharedList');
@@ -1278,6 +1470,7 @@
       if (!res.ok || !data.plan) { showError(data.error || 'Failed to load plan.'); return; }
       _currentPlanId = data.plan_id;
       _isDraft = false;
+      _isSharedWithClub = !!(data.club_id);
       renderPlan(data.plan);
     } catch { showError('Network error. Please try again.'); }
   }
