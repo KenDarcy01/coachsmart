@@ -1571,17 +1571,26 @@
     function start() {
       _spIsRecording = true; _spTranscript = '';
       if (_isIOS && window.FlutterBridge) {
-        btn.classList.add('preparing');
-        if (instr) instr.textContent = 'Starting up… keep holding';
-        window.FlutterBridge.postMessage('startSpeech:sp_feedback');
-        setTimeout(() => {
-          if (_spIsRecording) {
-            btn.classList.remove('preparing');
-            btn.classList.add('recording');
-            $('spFbVoiceWave').classList.add('active');
-            if (instr) instr.textContent = 'Recording — release when done';
-          }
-        }, 2000);
+        let _warmed = false;
+        try { _warmed = !!localStorage.getItem('cs_mic_warmed'); } catch {}
+        if (_warmed) {
+          btn.classList.add('recording');
+          $('spFbVoiceWave').classList.add('active');
+          if (instr) instr.textContent = 'Recording — release when done';
+          window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+        } else {
+          btn.classList.add('preparing');
+          if (instr) instr.textContent = 'Starting up… keep holding';
+          window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+          setTimeout(() => {
+            if (_spIsRecording) {
+              btn.classList.remove('preparing');
+              btn.classList.add('recording');
+              $('spFbVoiceWave').classList.add('active');
+              if (instr) instr.textContent = 'Recording — release when done';
+            }
+          }, 2000);
+        }
       } else {
         btn.classList.add('recording');
         $('spFbVoiceWave').classList.add('active');
@@ -1695,17 +1704,26 @@
     function start() {
       _setupIsRecording = true; _setupTranscript = '';
       if (_isIOS && window.FlutterBridge) {
-        btn.classList.add('preparing');
-        if (instr) instr.textContent = 'Starting up… keep holding';
-        window.FlutterBridge.postMessage('startSpeech:setup_notes');
-        setTimeout(() => {
-          if (_setupIsRecording) {
-            btn.classList.remove('preparing');
-            btn.classList.add('recording');
-            $('setupFbVoiceWave').classList.add('active');
-            if (instr) instr.textContent = 'Recording — release when done';
-          }
-        }, 2000);
+        let _warmed = false;
+        try { _warmed = !!localStorage.getItem('cs_mic_warmed'); } catch {}
+        if (_warmed) {
+          btn.classList.add('recording');
+          $('setupFbVoiceWave').classList.add('active');
+          if (instr) instr.textContent = 'Recording — release when done';
+          window.FlutterBridge.postMessage('startSpeech:setup_notes');
+        } else {
+          btn.classList.add('preparing');
+          if (instr) instr.textContent = 'Starting up… keep holding';
+          window.FlutterBridge.postMessage('startSpeech:setup_notes');
+          setTimeout(() => {
+            if (_setupIsRecording) {
+              btn.classList.remove('preparing');
+              btn.classList.add('recording');
+              $('setupFbVoiceWave').classList.add('active');
+              if (instr) instr.textContent = 'Recording — release when done';
+            }
+          }, 2000);
+        }
       } else {
         btn.classList.add('recording');
         $('setupFbVoiceWave').classList.add('active');
