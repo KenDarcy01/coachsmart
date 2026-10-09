@@ -1506,6 +1506,19 @@
   let _setupIsRecording = false, _setupTranscript = '', _setupDescMode = 'voice', _setupWebRec = null;
   let _setupAutoFinish = false;
 
+  // Pre-warm iOS speech engine after first successful use
+  let _warmupFired = false;
+  function _warmupMic() {
+    if (_warmupFired || !_isIOS || !window.FlutterBridge) return;
+    try { if (!localStorage.getItem('cs_mic_warmed')) return; } catch { return; }
+    _warmupFired = true;
+    setTimeout(() => {
+      if (_spIsRecording || _setupIsRecording) return;
+      window.FlutterBridge.postMessage('startSpeech:warmup_init');
+      setTimeout(() => { if (!_spIsRecording && !_setupIsRecording) window.FlutterBridge.postMessage('stopSpeech'); }, 400);
+    }, 600);
+  }
+
   function setFbMode(mode) {
     _spDescMode = mode;
     $('spFbVoicePanel').style.display = mode === 'voice' ? '' : 'none';
@@ -1585,6 +1598,7 @@
       btn.addEventListener('pointercancel', stop);
       document.addEventListener('touchcancel', stop, { passive: true });
     }
+    _warmupMic();
   }
 
   function _resetVoice() {
@@ -1708,6 +1722,7 @@
       btn.addEventListener('pointercancel', stop);
       document.addEventListener('touchcancel', stop, { passive: true });
     }
+    _warmupMic();
   }
 
   const _prevReceive = window.receiveSpeechResult;
@@ -1721,6 +1736,7 @@
     } else if (_prevReceive) _prevReceive(fieldId, text);
   };
   window.onSpeechDone = function() {
+    try { localStorage.setItem('cs_mic_warmed', '1'); } catch {}
     if (_setupAutoFinish) {
       _setupAutoFinish = false;
       if (_setupTranscript.trim()) interpretVoice('setup', _setupTranscript);
