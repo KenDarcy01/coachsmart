@@ -1111,7 +1111,7 @@
         obj = obj[k];
       }
       const last = keys[keys.length - 1];
-      obj[isNaN(last) ? last : +last] = el.innerText.trim();
+      obj[isNaN(last) ? last : +last] = el.textContent.trim();
     });
     return plan;
   }
