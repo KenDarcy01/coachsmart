@@ -16,7 +16,7 @@ async function callGemini(apiKey: string, systemPrompt: string, parts: any[]): P
   const body = JSON.stringify({
     system_instruction: { parts: [{ text: systemPrompt }] },
     contents: [{ parts }],
-    generationConfig: { maxOutputTokens: 4096, temperature: 0.4, responseMimeType: "application/json" },
+    generationConfig: { maxOutputTokens: 8192, temperature: 0.4, responseMimeType: "application/json" },
   });
   let res: Response | null = null, errText = "";
   for (let attempt = 1; attempt <= 3; attempt++) {
