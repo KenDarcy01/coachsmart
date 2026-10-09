@@ -221,6 +221,23 @@
     }
     .edit-hint svg { width: 11px; height: 11px; flex-shrink: 0; }
 
+    .interpret-card {
+      margin: 10px 0 4px;
+      background: var(--surface);
+      border: 1.5px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+    .interpret-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--accent); margin-bottom: 6px;
+    }
+    .interpret-text {
+      font-size: 14px; color: var(--text); line-height: 1.45; margin-bottom: 10px;
+    }
+    .interpret-actions { display: flex; gap: 8px; }
+    .interpret-actions .btn { flex: 1; }
+
     .plan-name-card {
       margin: 10px 16px 6px;
       background: var(--surface);
@@ -601,6 +618,14 @@
               <button id="setupMicBtn" class="fb-mic-btn" aria-label="Hold to record session notes">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
               </button>
+            </div>
+            <div id="setupInterpretCard" class="interpret-card" style="display:none">
+              <div class="interpret-label">I understood:</div>
+              <div id="setupInterpretText" class="interpret-text"></div>
+              <div class="interpret-actions">
+                <button class="btn btn-outline" onclick="cancelInterpret('setup')">Try again</button>
+                <button class="btn btn-primary" onclick="confirmInterpret('setup')">Use this</button>
+              </div>
             </div>
           </div>
           <div id="setupFbTextPanel" style="display:none">
@@ -1045,6 +1070,14 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           </button>
         </div>
+        <div id="spFbInterpretCard" class="interpret-card" style="display:none">
+          <div class="interpret-label">I understood:</div>
+          <div id="spFbInterpretText" class="interpret-text"></div>
+          <div class="interpret-actions">
+            <button class="btn btn-outline" onclick="cancelInterpret('sp')">Try again</button>
+            <button class="btn btn-primary" onclick="confirmInterpret('sp')">Confirm</button>
+          </div>
+        </div>
       </div>
       <div id="spFbTextPanel" style="display:none">
         <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -1458,7 +1491,8 @@
 
   // ── Mic / voice feedback ───────────────────────────────────────────────────
   let _spIsRecording = false, _spTranscript = '', _spDescMode = 'voice';
-  let _spAutoRevise = false, _spAutoReviseTimeout = null, _spWebRec = null;
+  let _spPendingInterpret = false, _spAutoReviseTimeout = null, _spWebRec = null;
+  let _interpretedSp = '', _interpretedSetup = '';
 
   // Setup screen voice/text notes
   let _setupIsRecording = false, _setupTranscript = '', _setupDescMode = 'voice', _setupWebRec = null;
@@ -1495,20 +1529,17 @@
       if (_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
         _resetVoice();
-        showToast('Updating plan…', 'success', 0);
-        _spAutoRevise = true;
+        _spPendingInterpret = true;
         clearTimeout(_spAutoReviseTimeout);
-        _spAutoReviseTimeout = setTimeout(() => { if (_spAutoRevise) { _spAutoRevise = false; regenWithFeedback(); } }, 8000);
+        _spAutoReviseTimeout = setTimeout(() => { if (_spPendingInterpret) { _spPendingInterpret = false; interpretVoice('sp', _spTranscript); } }, 8000);
       } else if (!_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
-        _spAutoRevise = false;
+        _spPendingInterpret = false;
         _resetVoice();
-        showToast('Updating plan…', 'success', 0);
-        regenWithFeedback();
+        interpretVoice('sp', _spTranscript);
       } else {
         _stopWebSpeech();
-        showToast('Updating plan…', 'success', 0);
-        regenWithFeedback();
+        interpretVoice('sp', _spTranscript);
       }
     }
     function start() {
@@ -1553,7 +1584,7 @@
       _spTranscript = base.trim();
     };
     _spWebRec.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetVoice(); };
-    _spWebRec.onend   = () => { const was = _spIsRecording; _resetVoice(); if (was) regenWithFeedback(); };
+    _spWebRec.onend   = () => { const was = _spIsRecording; _resetVoice(); if (was) interpretVoice('sp', _spTranscript); };
     try { _spWebRec.start(); } catch { _resetVoice(); }
   }
   function _stopWebSpeech() {
@@ -1583,7 +1614,7 @@
     _setupWebRec.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetSetupVoice(); };
     _setupWebRec.onend   = () => {
       _resetSetupVoice();
-      if (_setupTranscript.trim()) showToast('Notes added — tap Generate to build your plan', 'success');
+      if (_setupTranscript.trim()) interpretVoice('setup', _setupTranscript);
     };
     try { _setupWebRec.start(); } catch { _resetSetupVoice(); }
   }
@@ -1646,13 +1677,13 @@
   window.onSpeechDone = function() {
     if (_setupAutoFinish) {
       _setupAutoFinish = false;
-      if (_setupTranscript.trim()) showToast('Notes added — tap Generate to build your plan', 'success');
+      if (_setupTranscript.trim()) interpretVoice('setup', _setupTranscript);
       else showToast('Nothing recorded — try again or switch to Text', 'error');
       return;
     }
     clearTimeout(_spAutoReviseTimeout);
     _resetVoice();
-    if (_spAutoRevise) { _spAutoRevise = false; regenWithFeedback(); }
+    if (_spPendingInterpret) { _spPendingInterpret = false; interpretVoice('sp', _spTranscript); }
   };
   const _prevSpeechErr = window.onSpeechError;
   window.onSpeechError = function(msg) {
@@ -1661,6 +1692,61 @@
     _resetVoice();
     if (_prevSpeechErr) _prevSpeechErr(msg);
   };
+
+  // ── Voice interpretation ──────────────────────────────────────────────────
+  async function interpretVoice(which, transcript) {
+    if (!transcript.trim()) { showToast('Nothing recorded — try again', 'error'); return; }
+    showToast('Interpreting…', 'success', 0);
+    try {
+      const res = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({
+          action: 'interpret_voice',
+          user_id: USER_ID,
+          transcript: transcript.trim(),
+          context: which === 'setup' ? 'session_notes' : 'plan_feedback',
+        }),
+      });
+      const data = await res.json();
+      clearToast();
+      if (!res.ok || !data.interpreted) { showToast('Could not interpret — try again', 'error'); return; }
+      if (which === 'setup') {
+        _interpretedSetup = data.interpreted;
+        $('setupInterpretText').textContent = data.interpreted;
+        $('setupInterpretCard').style.display = '';
+      } else {
+        _interpretedSp = data.interpreted;
+        $('spFbInterpretText').textContent = data.interpreted;
+        $('spFbInterpretCard').style.display = '';
+      }
+    } catch { clearToast(); showToast('Network error — try again', 'error'); }
+  }
+
+  function confirmInterpret(which) {
+    if (which === 'setup') {
+      $('setupInterpretCard').style.display = 'none';
+      _setupTranscript = _interpretedSetup;
+      _interpretedSetup = '';
+      showToast('Notes added — tap Generate to build your plan', 'success');
+    } else {
+      $('spFbInterpretCard').style.display = 'none';
+      _spTranscript = _interpretedSp;
+      _interpretedSp = '';
+      regenWithFeedback();
+    }
+  }
+
+  function cancelInterpret(which) {
+    if (which === 'setup') {
+      $('setupInterpretCard').style.display = 'none';
+      _interpretedSetup = '';
+      _setupTranscript = '';
+    } else {
+      $('spFbInterpretCard').style.display = 'none';
+      _interpretedSp = '';
+      _spTranscript = '';
+    }
+  }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   async function boot() {
