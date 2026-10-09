@@ -555,6 +555,11 @@
       -webkit-tap-highlight-color: transparent; cursor: pointer;
     }
     .fb-mic-btn svg { width: 56px; height: 56px; flex-shrink: 0; }
+    .fb-mic-btn.preparing {
+      background: rgba(245,160,0,0.10); border-color: #f5a000; color: #f5a000;
+      animation: fbMicPrepare 1s ease-in-out infinite;
+    }
+    @keyframes fbMicPrepare { 0%,100%{opacity:0.6} 50%{opacity:1} }
     .fb-mic-btn.recording {
       background: rgba(220,50,50,0.12); border-color: #dc3232; color: #dc3232;
       animation: fbMicRing 1.2s ease-out infinite;
@@ -564,6 +569,14 @@
       70%  { box-shadow: 0 0 0 18px rgba(220,50,50,0);   }
       100% { box-shadow: 0 0 0 0   rgba(220,50,50,0);   }
     }
+    .interpret-card {
+      margin: 10px 0 4px; background: var(--surface-2);
+      border: 1.5px solid var(--accent); border-radius: var(--radius, 12px); padding: 12px 14px;
+    }
+    .interpret-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 6px; }
+    .interpret-text  { font-size: 14px; color: var(--text); line-height: 1.45; margin-bottom: 10px; }
+    .interpret-actions { display: flex; gap: 8px; }
+    .interpret-actions .btn { flex: 1; }
     .fb-voice-wave { display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px; margin-bottom: 8px;
       opacity: 0; transition: opacity 0.25s; pointer-events: none; }
     .fb-voice-wave.active { opacity: 1; }
@@ -1683,6 +1696,14 @@
           </button>
         </div>
         <div id="spFbTranscript" class="fb-transcript"></div>
+        <div id="spInterpretCard" class="interpret-card" style="display:none">
+          <div class="interpret-label">I understood:</div>
+          <div id="spInterpretText" class="interpret-text"></div>
+          <div class="interpret-actions">
+            <button class="btn btn-outline" onclick="cancelSpInterpret()">Try again</button>
+            <button class="btn btn-primary" onclick="confirmSpInterpret()">Confirm</button>
+          </div>
+        </div>
       </div>
       <div id="spFbTextPanel" style="display:none">
         <textarea id="feedbackText" class="feedback-input" placeholder="e.g. 15 mins on the warm-up, add more possession drills…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';hideRefusal()"></textarea>
@@ -1881,9 +1902,10 @@
   let _spIsRecording       = false;
   let _spTranscript        = '';
   let _spDescMode          = 'voice';
-  let _spAutoRevise        = false;
+  let _spPendingInterpret  = false;
   let _spAutoReviseTimeout = null;
   let _spWebRecognition    = null;
+  let _interpretedSp       = '';
 
   function setSpFbMode(mode) {
     _spDescMode = mode;
@@ -1896,63 +1918,96 @@
     $('spFbModeText')?.classList.toggle('active',  mode === 'text');
   }
 
+  let _warmupFired = false;
+  function _warmupMic() {
+    if (_warmupFired || !_isIOS || !window.FlutterBridge) return;
+    try { if (!localStorage.getItem('cs_mic_warmed')) return; } catch { return; }
+    _warmupFired = true;
+    setTimeout(() => {
+      if (_spIsRecording) return;
+      window.FlutterBridge.postMessage('startSpeech:warmup_init');
+      setTimeout(() => { if (!_spIsRecording) window.FlutterBridge.postMessage('stopSpeech'); }, 400);
+    }, 600);
+  }
+
   function _initSpMicButton() {
     const btn = $('spFbMicBtn');
     if (!btn) return;
     btn.addEventListener('contextmenu', e => e.preventDefault());
     const instr = $('spFbInstruction');
-    if (instr && !_isIOS) instr.textContent = window.FlutterBridge
-      ? 'Tap to start recording. Speak your notes, then pause — the AI will revise the plan.'
-      : 'Tap to start recording, tap again to stop — the AI will revise the plan based on your notes.';
+    if (instr) {
+      if (_isIOS && window.FlutterBridge)
+        instr.textContent = 'Press and hold. Wait for red, then speak. Release when done.';
+      else if (!_isIOS) instr.textContent = window.FlutterBridge
+        ? 'Tap to start recording. Speak your notes, then pause — the AI will revise the plan.'
+        : 'Tap to start recording, tap again to stop — the AI will revise the plan based on your notes.';
+    }
     function stop() {
       if (!_spIsRecording) return;
       if (_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
         _resetSpVoiceState();
-        showToast('Regenerating plan…', 'success', 0);
-        _spAutoRevise = true;
+        if (instr) instr.textContent = 'Press and hold. Wait for red, then speak. Release when done.';
+        _spPendingInterpret = true;
         clearTimeout(_spAutoReviseTimeout);
-        _spAutoReviseTimeout = setTimeout(() => {
-          if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
-        }, 8000);
+        _spAutoReviseTimeout = setTimeout(() => { if (_spPendingInterpret) { _spPendingInterpret = false; _interpretSp(); } }, 1500);
       } else if (!_isIOS && window.FlutterBridge) {
         window.FlutterBridge.postMessage('stopSpeech');
-        _spAutoRevise = false;
+        _spPendingInterpret = false;
         _resetSpVoiceState();
-        showToast('Regenerating plan…', 'success', 0);
-        regenerateWithFeedback();
+        _interpretSp();
       } else {
         _stopSpWebSpeech();
-        showToast('Regenerating plan…', 'success', 0);
-        regenerateWithFeedback();
+        _interpretSp();
       }
     }
     function startRecording() {
       _spIsRecording = true; _spTranscript = '';
       $('spFbTranscript').textContent = '';
-      btn.classList.add('recording');
-      $('spFbVoiceWave').classList.add('active');
-      if (window.FlutterBridge) {
-        if (!_isIOS) _spAutoRevise = true;
-        window.FlutterBridge.postMessage('startSpeech:sp_feedback');
-      } else _startSpWebSpeech();
+      $('spInterpretCard').style.display = 'none';
+      if (_isIOS && window.FlutterBridge) {
+        let warmed = false;
+        try { warmed = !!localStorage.getItem('cs_mic_warmed'); } catch {}
+        if (warmed) {
+          btn.classList.add('recording');
+          $('spFbVoiceWave').classList.add('active');
+          if (instr) instr.textContent = 'Recording — release when done';
+          window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+        } else {
+          btn.classList.add('preparing');
+          if (instr) instr.textContent = 'Starting up… keep holding';
+          window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+          setTimeout(() => {
+            if (_spIsRecording) {
+              btn.classList.remove('preparing');
+              btn.classList.add('recording');
+              $('spFbVoiceWave').classList.add('active');
+              if (instr) instr.textContent = 'Recording — release when done';
+            }
+          }, 2000);
+        }
+      } else {
+        btn.classList.add('recording');
+        $('spFbVoiceWave').classList.add('active');
+        if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:sp_feedback');
+        else _startSpWebSpeech();
+      }
     }
     if (_isIOS) {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_spIsRecording) startRecording(); }, { passive: false });
       btn.addEventListener('pointerup',     stop);
       btn.addEventListener('pointercancel', stop);
-      document.addEventListener('touchend',    stop, { passive: true });
-      document.addEventListener('touchcancel', stop, { passive: true });
     } else {
       btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_spIsRecording) stop(); else startRecording(); }, { passive: false });
       btn.addEventListener('pointercancel', stop);
       document.addEventListener('touchcancel', stop, { passive: true });
     }
+    _warmupMic();
   }
 
   function _resetSpVoiceState() {
     _spIsRecording = false;
-    $('spFbMicBtn')?.classList.remove('recording');
+    $('spFbMicBtn')?.classList.remove('recording', 'preparing');
     $('spFbVoiceWave')?.classList.remove('active');
   }
 
@@ -1975,13 +2030,42 @@
       if (el) el.textContent = (_spTranscript + (interim ? ' ' + interim : '')).trim() || _spTranscript;
     };
     _spWebRecognition.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetSpVoiceState(); };
-    _spWebRecognition.onend = () => { const was = _spIsRecording; _resetSpVoiceState(); if (was) regenerateWithFeedback(); };
+    _spWebRecognition.onend = () => { const was = _spIsRecording; _resetSpVoiceState(); if (was) _interpretSp(); };
     try { _spWebRecognition.start(); } catch { _resetSpVoiceState(); }
   }
 
   function _stopSpWebSpeech() {
     _resetSpVoiceState();
     if (_spWebRecognition) { try { _spWebRecognition.stop(); } catch {} _spWebRecognition = null; }
+  }
+
+  async function _interpretSp() {
+    if (!_spTranscript.trim()) { showToast('Nothing recorded — try again', 'error'); return; }
+    showToast('Interpreting…', 'success', 0);
+    try {
+      const res = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'interpret_voice', user_id: USER_ID, transcript: _spTranscript.trim(), context: 'plan_feedback' }),
+      });
+      const data = await res.json();
+      clearToast();
+      if (!res.ok || !data.interpreted) { showToast('Could not interpret — try again', 'error'); return; }
+      _interpretedSp = data.interpreted;
+      $('spInterpretText').textContent = data.interpreted;
+      $('spInterpretCard').style.display = '';
+      requestAnimationFrame(() => $('spInterpretCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+    } catch { clearToast(); showToast('Network error — try again', 'error'); }
+  }
+
+  function confirmSpInterpret() {
+    $('spInterpretCard').style.display = 'none';
+    _spTranscript = _interpretedSp; _interpretedSp = '';
+    showToast('Updating plan…', 'success', 0);
+    regenerateWithFeedback();
+  }
+  function cancelSpInterpret() {
+    $('spInterpretCard').style.display = 'none';
+    _interpretedSp = ''; _spTranscript = '';
   }
 
   // Wire up FlutterBridge speech callbacks
@@ -1995,9 +2079,10 @@
     } else if (_prevReceiveSpeechResult) { _prevReceiveSpeechResult(fieldId, text); }
   };
   window.onSpeechDone = function() {
+    try { localStorage.setItem('cs_mic_warmed', '1'); } catch {}
     clearTimeout(_spAutoReviseTimeout);
     _resetSpVoiceState();
-    if (_spAutoRevise) { _spAutoRevise = false; regenerateWithFeedback(); }
+    if (_spPendingInterpret) { _spPendingInterpret = false; _interpretSp(); }
   };
   const _prevSpeechError = window.onSpeechError;
   window.onSpeechError = function(msg) {
