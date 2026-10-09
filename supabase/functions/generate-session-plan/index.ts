@@ -617,17 +617,46 @@ serve(async (req) => {
         .eq("plan_id", loadId)
         .eq("created_by", user_id)
         .single();
-      if (planErr || !planRow) return new Response(JSON.stringify({ error: "Plan not found" }), {
+      if (!planErr && planRow) {
+        return new Response(JSON.stringify({
+          plan_id:       planRow.plan_id,
+          plan:          planRow.plan_json,
+          session_title: planRow.session_title,
+          event_id:      planRow.event_id ?? null,
+          club_id:       planRow.club_id ?? null,
+          is_own:        true,
+          branding,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Fallback: allow reading a club plan if the user belongs to the same club
+      const { data: gpMRows } = await sb.from("user_member_link").select("member_id").eq("user_id", user_id);
+      const gpMIds = (gpMRows || []).map((r: any) => r.member_id);
+      if (gpMIds.length > 0) {
+        const { data: gpTLinks } = await sb.from("member_team_link").select("teams!inner(club_id)").in("member_id", gpMIds);
+        const gpCIds = [...new Set((gpTLinks || []).map((r: any) => r.teams?.club_id).filter(Boolean))];
+        if (gpCIds.length > 0) {
+          const { data: cpRow } = await sb
+            .from("session_plans")
+            .select("plan_id, plan_json, session_title, event_id, club_id")
+            .eq("plan_id", loadId)
+            .in("club_id", gpCIds as number[])
+            .maybeSingle();
+          if (cpRow) {
+            return new Response(JSON.stringify({
+              plan_id:       cpRow.plan_id,
+              plan:          cpRow.plan_json,
+              session_title: cpRow.session_title,
+              event_id:      cpRow.event_id ?? null,
+              club_id:       cpRow.club_id ?? null,
+              is_own:        false,
+              branding,
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+        }
+      }
+      return new Response(JSON.stringify({ error: "Plan not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      return new Response(JSON.stringify({
-        plan_id:       planRow.plan_id,
-        plan:          planRow.plan_json,
-        session_title: planRow.session_title,
-        event_id:      planRow.event_id ?? null,
-        club_id:       planRow.club_id ?? null,
-        branding,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ── DEACTIVATE_PLAN: soft-delete a library plan ───────────────────────────
@@ -638,7 +667,7 @@ serve(async (req) => {
       });
       const { error: deactivateErr } = await sb
         .from("session_plans")
-        .update({ is_active: false })
+        .update({ is_active: false, club_id: null })
         .eq("plan_id", dpId)
         .eq("created_by", user_id);
       if (deactivateErr) return new Response(JSON.stringify({ error: deactivateErr.message }), {

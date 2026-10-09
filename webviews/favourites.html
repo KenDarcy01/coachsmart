@@ -679,9 +679,7 @@
 <div id="myPlansScreen" class="screen">
   <div class="sub-tab-bar">
     <button class="sub-tab-btn active" id="subMine"   onclick="subTab('mine')">My Plans</button>
-    <button class="sub-tab-btn"        id="subShared" onclick="subTab('shared')">
-      Shared with Me<span class="sub-tab-badge" id="sharedBadge" style="display:none">0</span>
-    </button>
+    <button class="sub-tab-btn"        id="subShared" onclick="subTab('shared')">Club Plans</button>
   </div>
   <div class="scroll-content" id="minePlansPanel">
     <div class="plans-list" id="plansList"></div>
@@ -740,6 +738,7 @@
   let _rotateStations = true;
   let _isDraft           = false;
   let _isSharedWithClub  = false;
+  let _currentPlanIsOwn  = true;
   let _favs    = [];
   let _currentPlanId = null;
   let _currentPlan   = null;
@@ -770,9 +769,9 @@
     const saveBtn       = $('savePlanBtn');
     const shareBtn      = $('shareClubBtn');
     const removeBtn     = $('removeClubBtn');
-    if (saveBtn)    saveBtn.style.display    = _isDraft ? '' : 'none';
-    if (shareBtn)   shareBtn.style.display   = (!_isDraft && !_isSharedWithClub) ? '' : 'none';
-    if (removeBtn)  removeBtn.style.display  = (!_isDraft && _isSharedWithClub)  ? '' : 'none';
+    if (saveBtn)    saveBtn.style.display    = (_isDraft && _currentPlanIsOwn) ? '' : 'none';
+    if (shareBtn)   shareBtn.style.display   = (_currentPlanIsOwn && !_isDraft && !_isSharedWithClub) ? '' : 'none';
+    if (removeBtn)  removeBtn.style.display  = (_currentPlanIsOwn && !_isDraft && _isSharedWithClub)  ? '' : 'none';
   }
 
   function showLoading(msg) {
@@ -804,7 +803,6 @@
     showScreen('myPlansScreen');
     subTab('mine');
     loadMyPlans();
-    loadSharedBadge();
   }
 
   function navBack() {
@@ -1024,8 +1022,9 @@
         return;
       }
 
-      _currentPlanId = data.plan_id ?? null;
-      _isDraft = !_currentPlanId;
+      _currentPlanId    = data.plan_id ?? null;
+      _isDraft          = !_currentPlanId;
+      _currentPlanIsOwn = true;
       renderPlan(data.plan);
       if (isRevision && _priorPlan && _priorEdits) _restoreUserEdits(_priorPlan, _priorEdits);
       if (isRevision) { clearToast(); showToast('Plan updated — tap Save when ready', 'success'); }
@@ -1281,7 +1280,7 @@
   }
 
   // ── My Plans ───────────────────────────────────────────────────────────────
-  let _subTab = 'mine', _myPlansLoading = false, _sharedLoading = false;
+  let _subTab = 'mine', _myPlansLoading = false;
 
   function subTab(tab) {
     _subTab = tab;
@@ -1290,7 +1289,7 @@
     $('minePlansPanel').style.display   = tab === 'mine'   ? '' : 'none';
     $('sharedPanel').style.display      = tab === 'shared' ? '' : 'none';
     if (tab === 'mine')   loadMyPlans();
-    if (tab === 'shared') loadSharedPlans();
+    if (tab === 'shared') loadClubPlans();
   }
 
   async function loadMyPlans() {
@@ -1307,10 +1306,8 @@
       } else {
         list.innerHTML = plans.map(p => {
           const date   = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-          const badge  = p.club_id ? '<span class="plan-club-badge">Shared with Club</span>' : '';
-          const action = p.club_id
-            ? `<div class="swipe-action s-remove-club"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg><span>Remove<br>from Club</span></div>`
-            : `<div class="swipe-action s-deactivate"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Deactivate</span></div>`;
+          const badge  = p.club_id ? '<span class="plan-club-badge">Club Plan</span>' : '';
+          const action = `<div class="swipe-action s-deactivate"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Deactivate</span></div>`;
           const btns = EVENT_ID
             ? `<button class="plan-btn accent" onclick="attachPlan(${p.plan_id})">Attach to Event</button>`
             : `<button class="plan-btn" onclick="loadPlanView(${p.plan_id})">Open</button>`;
@@ -1323,7 +1320,7 @@
             </div>
           </div>`;
         }).join('');
-        _initSwipeCards();
+        _initSwipeCards($('plansList'), 'mine');
       }
     } catch {
       list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection.</div>';
@@ -1331,9 +1328,12 @@
   }
 
   // ── Swipe-to-action ────────────────────────────────────────────────────────
-  function _initSwipeCards() {
+  let _swipeGlobalListenerAdded = false;
+  function _initSwipeCards(container, mode) {
     const REVEAL = 88, THRESH = 44;
-    document.querySelectorAll('#plansList .swipe-wrap').forEach(wrap => {
+    container.querySelectorAll('.swipe-wrap').forEach(wrap => {
+      if (wrap._swipeInited) return;
+      wrap._swipeInited = true;
       const card = wrap.querySelector('.plan-card');
       const act  = wrap.querySelector('.swipe-action');
       if (!card || !act) return;
@@ -1356,24 +1356,28 @@
         if (!tracking) return; tracking = false;
         card.style.transition = 'transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)';
         if (dx < -THRESH) { card.style.transform = `translateX(-${REVEAL}px)`; opened = true; }
-        else              { card.style.transform = 'translateX(0)';              opened = false; }
+        else              { card.style.transform = 'translateX(0)'; opened = false; }
       });
       act.addEventListener('click', () => {
-        const planId   = +wrap.dataset.planId;
-        const isShared = wrap.dataset.shared === '1';
-        if (isShared) _removeFromClubCard(planId, wrap, card);
-        else          _showDeactivateConfirm(planId, wrap, card);
+        const planId = +wrap.dataset.planId;
+        if (mode === 'club') _removeFromClubCard(planId, wrap, card);
+        else                 _showDeactivateConfirm(planId, wrap, card);
       });
     });
-    // Tap elsewhere closes any open card
-    document.addEventListener('touchstart', e => {
-      document.querySelectorAll('#plansList .swipe-wrap').forEach(w => {
-        if (!w.contains(e.target)) {
-          const c = w.querySelector('.plan-card');
-          if (c) { c.style.transition = 'transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)'; c.style.transform = 'translateX(0)'; }
-        }
-      });
-    }, { passive: true });
+    if (!_swipeGlobalListenerAdded) {
+      _swipeGlobalListenerAdded = true;
+      document.addEventListener('touchstart', e => {
+        [$('plansList'), $('sharedList')].forEach(cont => {
+          if (!cont) return;
+          cont.querySelectorAll('.swipe-wrap').forEach(w => {
+            if (!w.contains(e.target)) {
+              const c = w.querySelector('.plan-card');
+              if (c) { c.style.transition = 'transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)'; c.style.transform = 'translateX(0)'; }
+            }
+          });
+        });
+      }, { passive: true });
+    }
   }
 
   async function _removeFromClubCard(planId, wrap, card) {
@@ -1388,15 +1392,25 @@
       const data = await res.json();
       clearToast();
       if (!res.ok || !data.ok) { showToast(data.error || 'Could not remove', 'error'); return; }
-      // Update card in-place: remove badge, swap action to deactivate
-      const badge = wrap.querySelector('.plan-club-badge');
-      if (badge) badge.remove();
-      const act = wrap.querySelector('.swipe-action');
-      if (act) {
-        act.className = 'swipe-action s-deactivate';
-        act.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Deactivate</span>';
+      // If on My Plans: update card in-place (remove badge, swap action to deactivate)
+      // If on Club Plans: remove the card from the list
+      const isClubTab = wrap.closest('#sharedList') !== null;
+      if (isClubTab) {
+        wrap.remove();
+        const list = $('sharedList');
+        if (list && !list.querySelector('.swipe-wrap, .plan-card')) {
+          list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No club plans yet</div>Plans shared with your club will appear here.</div>';
+        }
+      } else {
+        const badge = wrap.querySelector('.plan-club-badge');
+        if (badge) badge.remove();
+        const act = wrap.querySelector('.swipe-action');
+        if (act) {
+          act.className = 'swipe-action s-deactivate';
+          act.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span>Deactivate</span>';
+        }
+        wrap.dataset.shared = '0';
       }
-      wrap.dataset.shared = '0';
       showToast('Removed from club ✓', 'success');
     } catch { clearToast(); showToast('Network error', 'error'); }
   }
@@ -1438,56 +1452,48 @@
   }
   function _confirmAction() { if (_confirmCb) _confirmCb(); }
 
-  async function loadSharedPlans() {
+  let _clubPlansLoading = false;
+  async function loadClubPlans() {
     const list = $('sharedList');
-    if (_sharedLoading) return;
-    _sharedLoading = true;
+    if (_clubPlansLoading) return;
+    _clubPlansLoading = true;
     list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Loading…</div></div>';
     try {
-      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_received_shares', user_id: USER_ID }) });
+      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_club_plans', user_id: USER_ID }) });
       const data = await res.json();
-      const shares = data.shares || [];
-      const pending = shares.filter(s => s.status === 'pending');
-      const badge = $('sharedBadge');
-      if (pending.length) { badge.textContent = pending.length; badge.style.display = ''; }
-      else badge.style.display = 'none';
-
-      if (!shares.length) {
-        list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No shared plans yet</div>When a coach shares a plan with you, it will appear here.</div>';
+      const plans = data.plans || [];
+      if (!plans.length) {
+        list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">No club plans yet</div>Plans shared with your club will appear here.</div>';
       } else {
-        list.innerHTML = shares.map(s => {
-          const date  = new Date(s.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
-          const isNew = s.status === 'pending';
-          const msg   = s.message ? `<div class="plan-card-msg">"${esc(s.message)}"</div>` : '';
-          const newBadge = isNew ? `<span class="new-badge">New</span>` : '';
-          let btns = `<button class="plan-btn" onclick="viewShare(${s.share_id})">View</button>`;
-          if (EVENT_ID) btns += `<button class="plan-btn accent" onclick="attachShare(${s.share_id})">Attach to Event</button>`;
-          else if (isNew) {
-            btns += `<button class="plan-btn accent" onclick="acceptShare(${s.share_id})">Save</button>`;
-            btns += `<button class="plan-btn muted"  onclick="dismissShare(${s.share_id})">Dismiss</button>`;
+        list.innerHTML = plans.map(p => {
+          const date       = new Date(p.created_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+          const fromLine   = p.is_own ? '' : `<div class="plan-card-from">From ${esc(p.created_by)}</div>`;
+          const btns       = EVENT_ID
+            ? `<button class="plan-btn accent" onclick="attachPlan(${p.plan_id})">Attach to Event</button>`
+            : `<button class="plan-btn" onclick="loadPlanView(${p.plan_id})">Open</button>`;
+          if (p.is_own) {
+            return `<div class="swipe-wrap" data-plan-id="${p.plan_id}">
+              <div class="swipe-action s-remove-club"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg><span>Remove<br>from Club</span></div>
+              <div class="plan-card">
+                <div class="plan-card-title">${esc(p.session_title)}</div>
+                <div class="plan-card-meta">${esc(date)}</div>
+                <div class="plan-card-actions">${btns}</div>
+              </div>
+            </div>`;
+          } else {
+            return `<div class="plan-card">
+              ${fromLine}
+              <div class="plan-card-title">${esc(p.session_title)}</div>
+              <div class="plan-card-meta">${esc(date)}</div>
+              <div class="plan-card-actions">${btns}</div>
+            </div>`;
           }
-          return `<div class="plan-card">
-            <div class="plan-card-from">From ${esc(s.from_name)}</div>
-            <div class="plan-card-title">${esc(s.session_title)}${newBadge}</div>
-            <div class="plan-card-meta">${esc(date)}</div>
-            ${msg}
-            <div class="plan-card-actions">${btns}</div>
-          </div>`;
         }).join('');
+        _initSwipeCards($('sharedList'), 'club');
       }
     } catch {
       list.innerHTML = '<div class="plans-empty"><div class="plans-empty-title">Failed to load</div>Check your connection.</div>';
-    } finally { _sharedLoading = false; }
-  }
-
-  async function loadSharedBadge() {
-    try {
-      const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_received_shares', user_id: USER_ID }) });
-      const data = await res.json();
-      const n = (data.shares || []).filter(s => s.status === 'pending').length;
-      const b = $('sharedBadge');
-      if (n > 0) { b.textContent = n; b.style.display = ''; } else b.style.display = 'none';
-    } catch {}
+    } finally { _clubPlansLoading = false; }
   }
 
   async function loadPlanView(planId) {
@@ -1496,9 +1502,10 @@
       const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_plan', plan_id: planId, user_id: USER_ID }) });
       const data = await res.json();
       if (!res.ok || !data.plan) { showError(data.error || 'Failed to load plan.'); return; }
-      _currentPlanId = data.plan_id;
-      _isDraft = false;
+      _currentPlanId    = data.plan_id;
+      _isDraft          = false;
       _isSharedWithClub = !!(data.club_id);
+      _currentPlanIsOwn = data.is_own !== false;
       renderPlan(data.plan);
     } catch { showError('Network error. Please try again.'); }
   }
