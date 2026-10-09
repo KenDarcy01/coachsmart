@@ -185,12 +185,11 @@
     .voice-wave span:nth-child(5){animation-delay:.60s}
     @keyframes wave-bar { 0%,100%{height:4px}50%{height:22px} }
     .transcript-preview {
-      min-height: 44px; padding: 10px 14px;
+      padding: 10px 14px;
       background: var(--card); border: 1px solid var(--border);
       border-radius: var(--radius); font-size: 15px; line-height: 1.55;
       color: var(--text); word-break: break-word;
     }
-    .transcript-preview:empty::before { content: "Your description will appear here…"; color: var(--muted); }
     .text-desc {
       width: 100%; background: var(--card); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 12px 14px;
@@ -400,7 +399,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           </button>
         </div>
-        <div id="voiceTranscript" class="transcript-preview"></div>
+        <div id="voiceTranscript" class="transcript-preview" style="display:none"></div>
         <div id="voiceInterpretCard" class="interpret-card" style="display:none">
           <div class="interpret-label">I understood:</div>
           <div id="voiceInterpretText" class="interpret-text"></div>
@@ -552,7 +551,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           </button>
         </div>
-        <div id="fbTranscript" class="transcript-preview"></div>
+        <div id="fbTranscript" class="transcript-preview" style="display:none"></div>
         <div id="fbInterpretCard" class="interpret-card" style="display:none">
           <div class="interpret-label">I understood:</div>
           <div id="fbInterpretText" class="interpret-text"></div>
@@ -1109,7 +1108,8 @@
       populateReviewFields(result);
       requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
       document.getElementById('fbInput').value = '';
-      document.getElementById('fbTranscript').textContent = '';
+      const _ftEl = document.getElementById('fbTranscript');
+      if (_ftEl) { _ftEl.textContent = ''; _ftEl.style.display = 'none'; }
       _fbTranscript = '';
       clearToast();
       showToast('Draft revised ✓', 'success');
@@ -1201,7 +1201,8 @@
     }
     function startRecording() {
       _isVoiceRecording = true; _voiceTranscript = ''; _baseVoiceText = '';
-      document.getElementById('voiceTranscript').textContent = '';
+      const vt = document.getElementById('voiceTranscript');
+      vt.textContent = ''; vt.style.display = '';
       const card = document.getElementById('voiceInterpretCard');
       if (card) card.style.display = 'none';
       if (_isIOS && window.FlutterBridge) {
@@ -1296,12 +1297,12 @@
         _interpretedFb = interpreted;
         const card = document.getElementById('fbInterpretCard');
         document.getElementById('fbInterpretText').textContent = interpreted;
-        if (card) { card.style.display = ''; requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' })); }
+        if (card) { card.style.display = ''; requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'end' })); }
       } else {
         _interpretedVoice = interpreted;
         const card = document.getElementById('voiceInterpretCard');
         document.getElementById('voiceInterpretText').textContent = interpreted;
-        if (card) { card.style.display = ''; requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' })); }
+        if (card) { card.style.display = ''; requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'end' })); }
       }
     } catch (err) {
       clearToast();
@@ -1311,15 +1312,18 @@
 
   function confirmVoiceInterpret() {
     _voiceTranscript = _interpretedVoice;
-    document.getElementById('voiceTranscript').textContent = _voiceTranscript;
+    const vt = document.getElementById('voiceTranscript');
+    if (vt) { vt.textContent = _voiceTranscript; vt.style.display = ''; }
     const card = document.getElementById('voiceInterpretCard');
     if (card) card.style.display = 'none';
     showToast('Description confirmed', 'success');
   }
   function cancelVoiceInterpret() {
-    _interpretedVoice = '';
+    _interpretedVoice = ''; _voiceTranscript = '';
     const card = document.getElementById('voiceInterpretCard');
     if (card) card.style.display = 'none';
+    const vt = document.getElementById('voiceTranscript');
+    if (vt) { vt.textContent = ''; vt.style.display = 'none'; }
   }
 
   function confirmFbInterpret() {
@@ -1332,9 +1336,11 @@
     reviseDraft();
   }
   function cancelFbInterpret() {
-    _interpretedFb = '';
+    _interpretedFb = ''; _fbTranscript = '';
     const card = document.getElementById('fbInterpretCard');
     if (card) card.style.display = 'none';
+    const ft = document.getElementById('fbTranscript');
+    if (ft) { ft.textContent = ''; ft.style.display = 'none'; }
   }
 
   window.receiveSpeechResult = function(fieldId, text) {
@@ -1390,7 +1396,8 @@
     }
     function startRecording() {
       _fbIsRecording = true; _fbTranscript = '';
-      document.getElementById('fbTranscript').textContent = '';
+      const ft = document.getElementById('fbTranscript');
+      ft.textContent = ''; ft.style.display = '';
       const card = document.getElementById('fbInterpretCard');
       if (card) card.style.display = 'none';
       if (_isIOS && window.FlutterBridge) {
