@@ -221,6 +221,25 @@
     }
     .edit-hint svg { width: 11px; height: 11px; flex-shrink: 0; }
 
+    .plan-name-card {
+      margin: 10px 16px 6px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 10px 13px 12px;
+    }
+    .plan-name-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--accent); margin-bottom: 5px;
+    }
+    .plan-name-input {
+      font-size: 18px; font-weight: 700; color: var(--text);
+      min-height: 26px; outline: none; line-height: 1.3;
+      border-bottom: 1.5px dashed var(--border);
+      padding-bottom: 3px;
+    }
+    .plan-name-input:focus { border-bottom-color: var(--accent); }
+
     .stat-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
       padding: 12px 16px;
@@ -976,13 +995,17 @@
       Tap any text to edit
     </div>`);
 
-    if (plan.session_title) {
+    out.push(`<div class="plan-name-card">
+      <div class="plan-name-label">Plan Name</div>
+      <div class="plan-name-input" contenteditable="true" data-path="session_title"
+           oninput="$('headerTitle').textContent = this.textContent.trim() || 'Session Plan'"
+           >${esc(plan.session_title || '')}</div>
+    </div>`);
+
+    if (plan.session_objective) {
       out.push(sHdr('FOCUS', null, 'drill'));
-      out.push(`<div class="phase-card"><div class="card-body" style="padding:10px 13px">
-        <div class="drill-name" style="font-size: 15px" contenteditable="true" data-path="session_title">${esc(plan.session_title)}</div>
-      </div></div>`);
+      out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
     }
-    if (plan.session_objective) out.push(`<div class="objective-block" contenteditable="true" data-path="session_objective">${esc(plan.session_objective)}</div>`);
     if (plan.player_count || plan.coach_count) {
       out.push(`<div class="stat-grid">
         <div class="stat-card"><div class="stat-value">${plan.player_count ?? '—'}</div><div class="stat-label">Players</div></div>
