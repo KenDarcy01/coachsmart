@@ -606,41 +606,6 @@
           <div class="toggle-explainer">When on, players are split across the drill stations and rotate at intervals — not everyone performs the same activity at the same time. Warm-up and cool-down remain collective.</div>
         </div>
       </div>
-      <div>
-        <div class="field-label">Session Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
-        <div class="feedback-bar" style="margin:0">
-          <div class="fb-mode-toggle">
-            <button class="fb-mode-btn active" id="setupFbModeVoice" onclick="setSetupMode('voice')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-              Voice
-            </button>
-            <button class="fb-mode-btn" id="setupFbModeText" onclick="setSetupMode('text')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-              Text
-            </button>
-          </div>
-          <div id="setupFbVoicePanel">
-            <p class="fb-voice-instruction" id="setupFbInstruction">Hold to describe session goals, focus areas, or any special requirements — the AI will use these when building the plan.</p>
-            <div id="setupFbVoiceWave" class="fb-voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
-            <div class="fb-mic-wrap">
-              <button id="setupMicBtn" class="fb-mic-btn" aria-label="Hold to record session notes">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-              </button>
-            </div>
-            <div id="setupInterpretCard" class="interpret-card" style="display:none">
-              <div class="interpret-label">I understood:</div>
-              <div id="setupInterpretText" class="interpret-text"></div>
-              <div class="interpret-actions">
-                <button class="btn btn-outline" onclick="cancelInterpret('setup')">Try again</button>
-                <button class="btn btn-primary" onclick="confirmInterpret('setup')">Use this</button>
-              </div>
-            </div>
-          </div>
-          <div id="setupFbTextPanel" style="display:none">
-            <textarea id="setupNotesText" class="feedback-input" placeholder="Describe session goals, focus areas or any special requirements…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
   <div class="bottom-bar">
@@ -775,7 +740,6 @@
     $('myPlansBtn').style.display = 'flex';
     $('durVal').textContent = _dur;
     showScreen('setupScreen');
-    requestAnimationFrame(initSetupMicBtn);
   }
 
   function showMyPlans() {
@@ -960,12 +924,9 @@
 
     try {
       _rotateStations = $('rotateToggle')?.checked ?? true;
-      const session_notes = _setupDescMode === 'voice'
-        ? _setupTranscript.trim()
-        : ($('setupNotesText')?.value || '').trim();
       const body = isRevision
         ? { action: 'revise_plan', user_id: USER_ID, feedback, existing_plan: _currentPlan }
-        : { action: 'generate', user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations, ...(session_notes ? { session_notes } : {}) };
+        : { action: 'generate', user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
       const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
       const data = await res.json();
 
@@ -1082,8 +1043,8 @@
           <div class="interpret-label">I understood:</div>
           <div id="spFbInterpretText" class="interpret-text"></div>
           <div class="interpret-actions">
-            <button class="btn btn-outline" onclick="cancelInterpret('sp')">Try again</button>
-            <button class="btn btn-primary" onclick="confirmInterpret('sp')">Confirm</button>
+            <button class="btn btn-outline" onclick="cancelInterpret()">Try again</button>
+            <button class="btn btn-primary" onclick="confirmInterpret()">Confirm</button>
           </div>
         </div>
       </div>
@@ -1500,11 +1461,7 @@
   // ── Mic / voice feedback ───────────────────────────────────────────────────
   let _spIsRecording = false, _spTranscript = '', _spDescMode = 'voice';
   let _spPendingInterpret = false, _spAutoReviseTimeout = null, _spWebRec = null;
-  let _interpretedSp = '', _interpretedSetup = '';
-
-  // Setup screen voice/text notes
-  let _setupIsRecording = false, _setupTranscript = '', _setupDescMode = 'voice', _setupWebRec = null;
-  let _setupAutoFinish = false;
+  let _interpretedSp = '';
 
   // Pre-warm iOS speech engine after first successful use
   let _warmupFired = false;
@@ -1513,9 +1470,9 @@
     try { if (!localStorage.getItem('cs_mic_warmed')) return; } catch { return; }
     _warmupFired = true;
     setTimeout(() => {
-      if (_spIsRecording || _setupIsRecording) return;
+      if (_spIsRecording) return;
       window.FlutterBridge.postMessage('startSpeech:warmup_init');
-      setTimeout(() => { if (!_spIsRecording && !_setupIsRecording) window.FlutterBridge.postMessage('stopSpeech'); }, 400);
+      setTimeout(() => { if (!_spIsRecording) window.FlutterBridge.postMessage('stopSpeech'); }, 400);
     }, 600);
   }
 
@@ -1525,14 +1482,6 @@
     $('spFbTextPanel').style.display  = mode === 'text'  ? '' : 'none';
     $('spFbModeVoice')?.classList.toggle('active', mode === 'voice');
     $('spFbModeText')?.classList.toggle('active',  mode === 'text');
-  }
-
-  function setSetupMode(mode) {
-    _setupDescMode = mode;
-    $('setupFbVoicePanel').style.display = mode === 'voice' ? '' : 'none';
-    $('setupFbTextPanel').style.display  = mode === 'text'  ? '' : 'none';
-    $('setupFbModeVoice')?.classList.toggle('active', mode === 'voice');
-    $('setupFbModeText')?.classList.toggle('active',  mode === 'text');
   }
 
   function initMicBtn() {
@@ -1638,129 +1587,16 @@
     if (_spWebRec) { try { _spWebRec.stop(); } catch {} _spWebRec = null; }
   }
 
-  function _resetSetupVoice() {
-    _setupIsRecording = false;
-    $('setupMicBtn')?.classList.remove('recording', 'preparing');
-    $('setupFbVoiceWave')?.classList.remove('active');
-  }
-  function _startSetupWebSpeech() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { showToast('Speech not supported on this browser', 'error'); _resetSetupVoice(); return; }
-    _setupWebRec = new SR();
-    _setupWebRec.lang = 'en-IE'; _setupWebRec.continuous = true; _setupWebRec.interimResults = true;
-    let base = '';
-    _setupWebRec.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) base += e.results[i][0].transcript + ' ';
-        else interim += e.results[i][0].transcript;
-      }
-      _setupTranscript = base.trim();
-    };
-    _setupWebRec.onerror = (e) => { if (e.error !== 'no-speech') showToast('Speech error: ' + e.error, 'error'); _resetSetupVoice(); };
-    _setupWebRec.onend   = () => {
-      _resetSetupVoice();
-      if (_setupTranscript.trim()) interpretVoice('setup', _setupTranscript);
-    };
-    try { _setupWebRec.start(); } catch { _resetSetupVoice(); }
-  }
-  function _stopSetupWebSpeech() {
-    _resetSetupVoice();
-    if (_setupWebRec) { try { _setupWebRec.stop(); } catch {} _setupWebRec = null; }
-  }
-
-  function initSetupMicBtn() {
-    const btn = $('setupMicBtn');
-    if (!btn || btn._setupInited) return;
-    btn._setupInited = true;
-    btn.addEventListener('contextmenu', e => e.preventDefault());
-    const instr = $('setupFbInstruction');
-    if (instr) {
-      if (_isIOS && window.FlutterBridge)
-        instr.textContent = 'Press and hold. Wait for red, then speak. Release when done.';
-      else if (!_isIOS) instr.textContent = window.FlutterBridge
-        ? 'Tap to start recording. Speak your session notes, then pause to finish.'
-        : 'Tap to start recording, tap again to stop.';
-    }
-
-    function stop() {
-      if (!_setupIsRecording) return;
-      if (window.FlutterBridge) {
-        window.FlutterBridge.postMessage('stopSpeech');
-        _resetSetupVoice();
-        if (instr) instr.textContent = 'Press and hold. Wait for red, then speak. Release when done.';
-        _setupAutoFinish = true;
-        setTimeout(() => {
-          if (_setupAutoFinish) {
-            _setupAutoFinish = false;
-            if (_setupTranscript.trim()) interpretVoice('setup', _setupTranscript);
-            else showToast('Nothing recorded — try again or switch to Text', 'error');
-          }
-        }, 1500);
-      } else {
-        _stopSetupWebSpeech();
-      }
-    }
-    function start() {
-      _setupIsRecording = true; _setupTranscript = '';
-      if (_isIOS && window.FlutterBridge) {
-        let _warmed = false;
-        try { _warmed = !!localStorage.getItem('cs_mic_warmed'); } catch {}
-        if (_warmed) {
-          btn.classList.add('recording');
-          $('setupFbVoiceWave').classList.add('active');
-          if (instr) instr.textContent = 'Recording — release when done';
-          window.FlutterBridge.postMessage('startSpeech:setup_notes');
-        } else {
-          btn.classList.add('preparing');
-          if (instr) instr.textContent = 'Starting up… keep holding';
-          window.FlutterBridge.postMessage('startSpeech:setup_notes');
-          setTimeout(() => {
-            if (_setupIsRecording) {
-              btn.classList.remove('preparing');
-              btn.classList.add('recording');
-              $('setupFbVoiceWave').classList.add('active');
-              if (instr) instr.textContent = 'Recording — release when done';
-            }
-          }, 2000);
-        }
-      } else {
-        btn.classList.add('recording');
-        $('setupFbVoiceWave').classList.add('active');
-        if (window.FlutterBridge) window.FlutterBridge.postMessage('startSpeech:setup_notes');
-        else _startSetupWebSpeech();
-      }
-    }
-    if (_isIOS) {
-      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (!_setupIsRecording) start(); }, { passive: false });
-      btn.addEventListener('pointerup', stop);
-      btn.addEventListener('pointercancel', stop);
-    } else {
-      btn.addEventListener('pointerdown', e => { e.preventDefault(); if (_setupIsRecording) stop(); else start(); }, { passive: false });
-      btn.addEventListener('pointercancel', stop);
-      document.addEventListener('touchcancel', stop, { passive: true });
-    }
-    _warmupMic();
-  }
 
   const _prevReceive = window.receiveSpeechResult;
   window.receiveSpeechResult = function(fieldId, text) {
     if (fieldId === 'sp_feedback') {
       _spTranscript += text + ' ';
       _spTranscript = _spTranscript.trim();
-    } else if (fieldId === 'setup_notes') {
-      _setupTranscript += text + ' ';
-      _setupTranscript = _setupTranscript.trim();
     } else if (_prevReceive) _prevReceive(fieldId, text);
   };
   window.onSpeechDone = function() {
     try { localStorage.setItem('cs_mic_warmed', '1'); } catch {}
-    if (_setupAutoFinish) {
-      _setupAutoFinish = false;
-      if (_setupTranscript.trim()) interpretVoice('setup', _setupTranscript);
-      else showToast('Nothing recorded — try again or switch to Text', 'error');
-      return;
-    }
     clearTimeout(_spAutoReviseTimeout);
     _resetVoice();
     if (_spPendingInterpret) { _spPendingInterpret = false; interpretVoice('sp', _spTranscript); }
@@ -1784,51 +1620,31 @@
           action: 'interpret_voice',
           user_id: USER_ID,
           transcript: transcript.trim(),
-          context: which === 'setup' ? 'session_notes' : 'plan_feedback',
+          context: 'plan_feedback',
         }),
       });
       const data = await res.json();
       clearToast();
       if (!res.ok || !data.interpreted) { showToast('Could not interpret — try again', 'error'); return; }
-      if (which === 'setup') {
-        _interpretedSetup = data.interpreted;
-        $('setupInterpretText').textContent = data.interpreted;
-        $('setupInterpretCard').style.display = '';
-        requestAnimationFrame(() => $('setupInterpretCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
-      } else {
-        _interpretedSp = data.interpreted;
-        $('spFbInterpretText').textContent = data.interpreted;
-        $('spFbInterpretCard').style.display = '';
-        requestAnimationFrame(() => $('spFbInterpretCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
-      }
+      _interpretedSp = data.interpreted;
+      $('spFbInterpretText').textContent = data.interpreted;
+      $('spFbInterpretCard').style.display = '';
+      requestAnimationFrame(() => $('spFbInterpretCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
     } catch { clearToast(); showToast('Network error — try again', 'error'); }
   }
 
-  function confirmInterpret(which) {
-    if (which === 'setup') {
-      $('setupInterpretCard').style.display = 'none';
-      _setupTranscript = _interpretedSetup;
-      _interpretedSetup = '';
-      generatePlan();
-    } else {
-      $('spFbInterpretCard').style.display = 'none';
-      _spTranscript = _interpretedSp;
-      _interpretedSp = '';
-      showToast('Updating plan…', 'success', 0);
-      regenWithFeedback();
-    }
+  function confirmInterpret() {
+    $('spFbInterpretCard').style.display = 'none';
+    _spTranscript = _interpretedSp;
+    _interpretedSp = '';
+    showToast('Updating plan…', 'success', 0);
+    regenWithFeedback();
   }
 
-  function cancelInterpret(which) {
-    if (which === 'setup') {
-      $('setupInterpretCard').style.display = 'none';
-      _interpretedSetup = '';
-      _setupTranscript = '';
-    } else {
-      $('spFbInterpretCard').style.display = 'none';
-      _interpretedSp = '';
-      _spTranscript = '';
-    }
+  function cancelInterpret() {
+    $('spFbInterpretCard').style.display = 'none';
+    _interpretedSp = '';
+    _spTranscript = '';
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
