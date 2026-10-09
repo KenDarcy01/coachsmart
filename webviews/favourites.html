@@ -1794,10 +1794,12 @@
         _interpretedSetup = data.interpreted;
         $('setupInterpretText').textContent = data.interpreted;
         $('setupInterpretCard').style.display = '';
+        requestAnimationFrame(() => $('setupInterpretCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
       } else {
         _interpretedSp = data.interpreted;
         $('spFbInterpretText').textContent = data.interpreted;
         $('spFbInterpretCard').style.display = '';
+        requestAnimationFrame(() => $('spFbInterpretCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
       }
     } catch { clearToast(); showToast('Network error — try again', 'error'); }
   }

@@ -104,9 +104,10 @@ Return ONLY valid JSON — no markdown fences, no explanation, nothing before or
 
 Rules:
 - (pre_session?.duration_mins ?? 0) + (warm_up?.duration_mins ?? 0) + all drills duration_mins + (cool_down?.duration_mins ?? 0) + (post_session?.duration_mins ?? 0) must equal total_duration_mins exactly
-- pre_session and post_session must be null unless the coach explicitly requests such an activity
-- warm_up must be null if no warm-up game is provided in the context; if a warm-up game IS provided, include it and allocate at least 10 minutes
-- cool_down must be null if no cool-down game is provided in the context; if a cool-down game IS provided, include it and allocate at least 5 minutes
+- pre_session must be null unless the coach explicitly requests such an activity
+- post_session must be null unless the coach explicitly requests a team meeting, debrief, or similar activity in their session notes
+- warm_up must be null unless a warm-up game is provided in the context OR the coach's session notes explicitly request a warm-up or warm-up activity; if a game IS provided, use it and allocate at least 10 minutes; if requested in notes without a game, describe a short generic warm-up (e.g. light jog, dynamic stretching, ball handling) of at least 5 minutes
+- cool_down must be null unless a cool-down game is provided in the context OR the coach's session notes explicitly request a cool-down, warm-down, or stretch; if a game IS provided, use it and allocate at least 5 minutes; if requested in notes without a game, describe a short generic cool-down (e.g. light jog, static stretching) of at least 5 minutes
 - Use the games in the ORDER given — do not reorder them
 - Use the EXACT game name from the input in each drill — do not paraphrase or rename
 - Adapt each drill to the given player count; note modifications if needed
