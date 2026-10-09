@@ -433,9 +433,34 @@
       font-size: 14px; color: #e8a040; line-height: 1.45;
     }
 
-    .share-row {
-      margin: 16px 16px 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    .share-row { display: none; }
+
+    .export-fab {
+      display: none;
+      position: fixed;
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      background: #87c232;
+      color: #14181b;
+      border: none;
+      border-radius: 24px;
+      height: 48px;
+      padding: 0 28px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+      white-space: nowrap;
     }
+    .export-fab:active { opacity: 0.78; }
     .btn {
       flex: 1; height: 44px; border-radius: 10px; font-size: 15px; font-weight: 600;
       font-family: inherit; cursor: pointer; border: none;
@@ -817,6 +842,12 @@
   </div>
 </div>
 
+<!-- Export FAB -->
+<button class="export-fab" id="exportFab" onclick="exportPlan('mobile')">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+  Export
+</button>
+
 
 <!-- Game detail sheet -->
 <div id="gameSheet" class="sheet">
@@ -877,6 +908,8 @@
       const el = $(s);
       if (el) el.classList.toggle('active', s === id);
     });
+    const fab = $('exportFab');
+    if (fab) { fab.style.display = id === 'planScreen' ? 'flex' : 'none'; }
   }
   let _wakeLock = null;
   async function _acquireWakeLock() {
@@ -1729,12 +1762,6 @@
       </div>`);
     }
 
-    out.push(`<div class="share-row">
-      <button class="btn btn-primary btn-full" onclick="exportPlan('mobile')" id="exportBtn">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-        Share
-      </button>
-    </div>`);
     out.push('<div class="drill-gap"></div>');
     $('planContent').innerHTML = out.join('');
     showScreen('planScreen');
