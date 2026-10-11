@@ -452,7 +452,7 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
     }
     .plan-card-meta  { font-size: 13px; color: var(--muted); }
-    .plan-card-from  { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 2px; }
+    .plan-card-from  { font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
     .plan-card-msg   { font-size: 13px; color: var(--muted); font-style: italic; margin-top: 4px; }
     .plan-card-actions { display: flex; gap: 7px; margin-top: 10px; }
     .plan-btn {
@@ -470,6 +470,7 @@
     .swipe-wrap {
       position: relative; border-radius: var(--radius); overflow: hidden;
       border: 1px solid var(--border);
+      transform: translateZ(0); -webkit-transform: translateZ(0);
     }
     .swipe-action {
       position: absolute; right: 0; top: 0; bottom: 0; width: 88px;
