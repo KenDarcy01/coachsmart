@@ -1443,7 +1443,7 @@
   async function attachPlanFromDetail(planId) {
     const resolvedId = planId || _pickerSelectedId;
     if (!resolvedId) return;
-    closePlanPicker();
+    $('planPickerSheet').classList.remove('open'); // close sheet without triggering closeSession
     showLoading('Attaching plan…');
     try {
       // Server loads plan by plan_id (checking own-plan then club membership), enriches with event context
@@ -1482,8 +1482,8 @@
 
     try {
       const body = isRevision
-        ? { action: 'revise_plan', event_id: EVENT_ID, user_id: USER_ID, feedback, existing_plan: _currentPlan }
-        : { action: 'generate', event_id: EVENT_ID, user_id: USER_ID, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
+        ? { action: 'revise_plan', event_id: EVENT_ID, user_id: USER_ID, plan_id: _currentPlanId, feedback, existing_plan: _currentPlan }
+        : { action: 'generate', event_id: EVENT_ID, user_id: USER_ID, plan_id: _currentPlanId, duration_mins: _dur, game_ids, rotate_stations: _rotateStations };
       const res = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
       const data = await res.json();
 

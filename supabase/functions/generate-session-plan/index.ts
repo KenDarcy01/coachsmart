@@ -744,15 +744,30 @@ serve(async (req) => {
       if (eventTitle)    enriched.session_title = eventTitle;
 
       const attachTitle: string = enriched.session_title || "Training Session";
-      await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
-      const { data: saved, error: attachErr } = await sb
-        .from("session_plans")
-        .insert({ event_id, created_by: user_id, plan_json: enriched, session_title: attachTitle, is_active: true })
-        .select("plan_id").single();
-      if (attachErr) return new Response(JSON.stringify({ error: attachErr.message }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-      return new Response(JSON.stringify({ ok: true, plan_id: saved?.plan_id ?? null, plan_json: enriched }), {
+
+      // Update existing plan for this user+event if one exists; otherwise deactivate others and insert
+      const { data: existingPlan } = await sb.from("session_plans")
+        .select("plan_id").eq("event_id", event_id).eq("created_by", user_id).eq("is_active", true).maybeSingle();
+
+      let attachPlanId: string | null = null;
+      if (existingPlan?.plan_id) {
+        await sb.from("session_plans")
+          .update({ plan_json: enriched, session_title: attachTitle })
+          .eq("plan_id", existingPlan.plan_id);
+        attachPlanId = existingPlan.plan_id;
+      } else {
+        await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
+        const { data: saved, error: attachErr } = await sb
+          .from("session_plans")
+          .insert({ event_id, created_by: user_id, plan_json: enriched, session_title: attachTitle, is_active: true })
+          .select("plan_id").single();
+        if (attachErr) return new Response(JSON.stringify({ error: attachErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+        attachPlanId = saved?.plan_id ?? null;
+      }
+
+      return new Response(JSON.stringify({ ok: true, plan_id: attachPlanId, plan_json: enriched }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -872,17 +887,23 @@ serve(async (req) => {
         if (planJson.cool_down.game_video == null) planJson.cool_down.game_video = ep.game_video ?? null;
       }
 
-      // Save revised plan — event-linked plans deactivate old version first;
-      // favourites plans always insert as a new library entry (Option B: keep history)
       const sessionTitle: string = planJson.session_title || "Training Session";
       let savedPlanId: string | null = null;
       if (event_id) {
-        await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
-        const { data: saved } = await sb
-          .from("session_plans")
-          .insert({ event_id, created_by: user_id, plan_json: planJson, session_title: sessionTitle, is_active: true })
-          .select("plan_id").single();
-        savedPlanId = saved?.plan_id ?? null;
+        if (plan_id) {
+          // Update the existing plan row in-place
+          await sb.from("session_plans")
+            .update({ plan_json: planJson, session_title: sessionTitle })
+            .eq("plan_id", plan_id).eq("created_by", user_id);
+          savedPlanId = plan_id;
+        } else {
+          await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
+          const { data: saved } = await sb
+            .from("session_plans")
+            .insert({ event_id, created_by: user_id, plan_json: planJson, session_title: sessionTitle, is_active: true })
+            .select("plan_id").single();
+          savedPlanId = saved?.plan_id ?? null;
+        }
       } else {
         // Favourites revision — caller saves explicitly via save_plan; return unsaved draft
         savedPlanId = null;
@@ -1161,24 +1182,37 @@ serve(async (req) => {
     if (coachCount  != null) planJson.coach_count  = coachCount;
     if (weather) planJson.weather = weather;
 
-    // Save plan — event-linked: deactivate old then insert; favourites: insert new library entry
+    // Save plan — update existing row if plan_id provided; otherwise deactivate old and insert
     const genSessionTitle: string = planJson.session_title || "Training Session";
     let savedPlanId: string | null = null;
     if (event_id) {
-      await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
-      const { data: saved, error: saveErr } = await sb
-        .from("session_plans")
-        .insert({ event_id, created_by: user_id, plan_json: planJson, session_title: genSessionTitle, is_active: true })
-        .select("plan_id")
-        .single();
-
-      if (saveErr) {
-        console.error("Save failed:", saveErr);
-        return new Response(JSON.stringify({ error: "Failed to save plan: " + saveErr.message }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (plan_id) {
+        // Update the existing plan row in-place
+        const { error: updErr } = await sb.from("session_plans")
+          .update({ plan_json: planJson, session_title: genSessionTitle })
+          .eq("plan_id", plan_id).eq("created_by", user_id);
+        if (updErr) {
+          console.error("Update failed:", updErr);
+          return new Response(JSON.stringify({ error: "Failed to update plan: " + updErr.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        savedPlanId = plan_id;
+      } else {
+        await sb.from("session_plans").update({ is_active: false }).eq("event_id", event_id);
+        const { data: saved, error: saveErr } = await sb
+          .from("session_plans")
+          .insert({ event_id, created_by: user_id, plan_json: planJson, session_title: genSessionTitle, is_active: true })
+          .select("plan_id")
+          .single();
+        if (saveErr) {
+          console.error("Save failed:", saveErr);
+          return new Response(JSON.stringify({ error: "Failed to save plan: " + saveErr.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        savedPlanId = saved.plan_id;
       }
-      savedPlanId = saved.plan_id;
     } else {
       // Favourites — caller saves explicitly via save_plan; return unsaved draft
       savedPlanId = null;
