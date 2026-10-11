@@ -495,8 +495,10 @@ async function buildSessionPlanPdf(
 
       for (let i = 0; i < n; i++) {
         const cx = ML + i * (cardW + GAP);
-        // Card filled with primary colour at 40% opacity
-        drawRoundedRect(page, cx, cardBottom, cardW, STAT_CARD_H, 4, primaryRgb, 0.4);
+        // Primary colour establishes the rounded shape + 3px top stripe
+        drawRoundedRect(page, cx, cardBottom, cardW, STAT_CARD_H, 4, primaryRgb);
+        // Light grey body covers everything except the top 3px stripe
+        drawRoundedRectBottom(page, cx, cardBottom, cardW, STAT_CARD_H - 3, 4, rgb(0.95, 0.95, 0.95));
 
         // Value — centred, large
         const valSize = isMobile ? 26 : 28;
@@ -508,9 +510,10 @@ async function buildSessionPlanPdf(
         }
         const valW = montserratBold.widthOfTextAtSize(displayVal, valSize);
         const lblSize = 8;
-        // Centre the text group (value + gap + label) vertically in the full card
+        const STRIPE  = 3;
+        // Centre the text group vertically in the usable area below the stripe
         const textGroupH = valSize + 5 + lblSize;
-        const groupBottom = cardBottom + (STAT_CARD_H - textGroupH) / 2;
+        const groupBottom = cardBottom + (STAT_CARD_H - STRIPE - textGroupH) / 2;
         const valY = groupBottom + lblSize + 5;
         const lblY = groupBottom + 1;
 
