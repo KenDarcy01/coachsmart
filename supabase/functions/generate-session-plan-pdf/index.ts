@@ -318,9 +318,10 @@ async function buildSessionPlanPdf(
 
   const STAT_CARD_H   = isMobile ? 72 : 82;
   const STAT_CARD_PAD = isMobile ? 10 : 12;
-  const SMALL_FONT_S  = 10; // needed early for weather line measurement
-  const WEATHER_LINE_H = isMobile ? 14 : 15;
-  const WEATHER_PAD    = isMobile ?  7 :  8;
+  const SMALL_FONT_S   = 10;
+  const WEATHER_FONT_S = isMobile ? 12 : 11; // larger than SMALL_FONT_S for readability
+  const WEATHER_LINE_H = WEATHER_FONT_S + 4;
+  const WEATHER_PAD    = isMobile ?  8 :  9;
 
   // Pre-wrap weather text so META_ROW_H can account for actual line count
   const weatherLines: string[] = [];
@@ -330,7 +331,7 @@ async function buildSessionPlanPdf(
     let line = "";
     for (const word of words) {
       const test = line ? line + " " + word : word;
-      if (notoReg.widthOfTextAtSize(test, SMALL_FONT_S) <= CW) {
+      if (notoReg.widthOfTextAtSize(test, WEATHER_FONT_S) <= CW) {
         line = test;
       } else {
         if (line) weatherLines.push(line);
@@ -449,13 +450,14 @@ async function buildSessionPlanPdf(
     }
   }
 
-  function drawRoundedRect(page: any, x: number, y: number, w: number, h: number, r: number, fillColor: any) {
-    page.drawRectangle({ x: x + r, y,        width: w - 2 * r, height: h,       color: fillColor });
-    page.drawRectangle({ x,        y: y + r,  width: w,         height: h - 2*r, color: fillColor });
-    page.drawEllipse({ x: x + r,     y: y + r,     xScale: r, yScale: r, color: fillColor });
-    page.drawEllipse({ x: x + w - r, y: y + r,     xScale: r, yScale: r, color: fillColor });
-    page.drawEllipse({ x: x + r,     y: y + h - r, xScale: r, yScale: r, color: fillColor });
-    page.drawEllipse({ x: x + w - r, y: y + h - r, xScale: r, yScale: r, color: fillColor });
+  function drawRoundedRect(page: any, x: number, y: number, w: number, h: number, r: number, fillColor: any, opacity = 1) {
+    const o = { color: fillColor, opacity };
+    page.drawRectangle({ x: x + r, y,        width: w - 2 * r, height: h,       ...o });
+    page.drawRectangle({ x,        y: y + r,  width: w,         height: h - 2*r, ...o });
+    page.drawEllipse({ x: x + r,     y: y + r,     xScale: r, yScale: r, ...o });
+    page.drawEllipse({ x: x + w - r, y: y + r,     xScale: r, yScale: r, ...o });
+    page.drawEllipse({ x: x + r,     y: y + h - r, xScale: r, yScale: r, ...o });
+    page.drawEllipse({ x: x + w - r, y: y + h - r, xScale: r, yScale: r, ...o });
   }
 
   // Rounds bottom corners only — used to overlay the grey card body on top of a full rounded accent card
@@ -469,7 +471,6 @@ async function buildSessionPlanPdf(
   function drawMetaRow(page: any, topY: number) {
     if (META_ROW_H === 0) return;
     const stripBottom = PH - topY - META_ROW_H;
-    page.drawRectangle({ x: 0, y: stripBottom, width: PW, height: META_ROW_H, color: primaryRgb, opacity: 0.4 });
 
     if (!showStatCards) {
       // No stat cards — fall through to weather-only rendering below
@@ -494,10 +495,8 @@ async function buildSessionPlanPdf(
 
       for (let i = 0; i < n; i++) {
         const cx = ML + i * (cardW + GAP);
-        // Accent colour fills the full card (establishes rounded top corners)
-        drawRoundedRect(page, cx, cardBottom, cardW, STAT_CARD_H, 4, accentRgb);
-        // Grey body overlaid with flat top / rounded bottom — reveals accent as 5px bar at top
-        drawRoundedRectBottom(page, cx, cardBottom, cardW, STAT_CARD_H - 5, 4, rgb(0.88, 0.88, 0.88));
+        // Card filled with primary colour at 40% opacity
+        drawRoundedRect(page, cx, cardBottom, cardW, STAT_CARD_H, 4, primaryRgb, 0.4);
 
         // Value — centred, large
         const valSize = isMobile ? 26 : 28;
@@ -509,11 +508,9 @@ async function buildSessionPlanPdf(
         }
         const valW = montserratBold.widthOfTextAtSize(displayVal, valSize);
         const lblSize = 8;
-        const ACCENT_BAR = 5;
-        const usableH = STAT_CARD_H - ACCENT_BAR;
-        // Centre the text group (value + gap + label) vertically in usable area
+        // Centre the text group (value + gap + label) vertically in the full card
         const textGroupH = valSize + 5 + lblSize;
-        const groupBottom = cardBottom + (usableH - textGroupH) / 2;
+        const groupBottom = cardBottom + (STAT_CARD_H - textGroupH) / 2;
         const valY = groupBottom + lblSize + 5;
         const lblY = groupBottom + 1;
 
@@ -567,7 +564,7 @@ async function buildSessionPlanPdf(
         const lineY = stripBottom + WEATHER_PAD + (weatherLines.length - 1 - wl) * WEATHER_LINE_H + 2;
         page.drawText(weatherLines[wl], {
           x: ML, y: lineY,
-          size: SMALL_FONT_S, font: notoReg, color: mutedText,
+          size: WEATHER_FONT_S, font: notoReg, color: mutedText,
         });
       }
     }
