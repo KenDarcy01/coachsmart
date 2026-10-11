@@ -970,6 +970,59 @@ serve(async (req) => {
       }
     }
 
+    // ── UPLOAD_SESSION_IMAGE ─────────────────────────────────────────────────
+    if (action === "upload_session_image") {
+      const { file_data, file_type } = body;
+      if (!plan_id || !file_data || !file_type) {
+        return new Response(JSON.stringify({ error: "plan_id, file_data, and file_type required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: imgPlanRow } = await sb.from("session_plans")
+        .select("plan_id, plan_json").eq("plan_id", plan_id).eq("created_by", user_id).maybeSingle();
+      if (!imgPlanRow) return new Response(JSON.stringify({ error: "Plan not found or access denied" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const ext = (file_type.split("/")[1] ?? "jpg").split("+")[0];
+      const imgPath = `session-images/${plan_id}.${ext}`;
+      const imgBytes = Uint8Array.from(atob(file_data), (c) => c.charCodeAt(0));
+      const { error: uploadErr } = await sb.storage
+        .from("event_images")
+        .upload(imgPath, imgBytes, { contentType: file_type, upsert: true });
+      if (uploadErr) return new Response(JSON.stringify({ error: "Upload failed: " + uploadErr.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
+      const { data: signed } = await sb.storage.from("event_images").createSignedUrl(imgPath, TEN_YEARS);
+      const imageUrl = signed?.signedUrl ?? null;
+      if (!imageUrl) return new Response(JSON.stringify({ error: "Failed to create signed URL" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const updatedPlanJson = { ...(imgPlanRow.plan_json as any), session_image: imageUrl };
+      await sb.from("session_plans").update({ plan_json: updatedPlanJson }).eq("plan_id", plan_id);
+      return new Response(JSON.stringify({ ok: true, url: imageUrl }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── REMOVE_SESSION_IMAGE ─────────────────────────────────────────────────
+    if (action === "remove_session_image") {
+      if (!plan_id) return new Response(JSON.stringify({ error: "plan_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const { data: rmPlanRow } = await sb.from("session_plans")
+        .select("plan_id, plan_json").eq("plan_id", plan_id).eq("created_by", user_id).maybeSingle();
+      if (!rmPlanRow) return new Response(JSON.stringify({ error: "Plan not found or access denied" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      const updatedPlanJson = { ...(rmPlanRow.plan_json as any) };
+      delete updatedPlanJson.session_image;
+      await sb.from("session_plans").update({ plan_json: updatedPlanJson }).eq("plan_id", plan_id);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── GENERATE ──────────────────────────────────────────────────────────────
     if (action !== "generate") return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

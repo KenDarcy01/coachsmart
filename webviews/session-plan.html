@@ -266,6 +266,25 @@
     .weather-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 3px; }
     .weather-text  { font-size: 14px; color: var(--text); line-height: 1.45; }
 
+    /* Session image card */
+    .session-img-card {
+      margin: 0 16px 10px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .session-img-card img { width: 100%; display: block; max-height: 260px; object-fit: contain; background: var(--surface-2); }
+    .session-img-prompt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+    .session-img-prompt-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
+    .session-img-prompt-sub { font-size: 13px; color: var(--muted); }
+    .session-img-actions { display: flex; gap: 8px; padding: 0 12px 10px; }
+    .session-img-btn {
+      height: 32px; border-radius: 7px; padding: 0 12px; font-size: 12px; font-weight: 600;
+      font-family: inherit; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 4px;
+      -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+    }
+    .session-img-btn:active { opacity: 0.7; }
+    .session-img-btn-add { background: var(--accent); color: rgba(0,0,0,0.65); }
+    .session-img-btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+
     /* Stats + weather unified section */
     .stats-section { background: var(--surface-2); margin-top: 6px; padding-bottom: 10px; }
     .stat-grid {
@@ -841,6 +860,9 @@
     <div class="plan-content" id="planContent"></div>
   </div>
 </div>
+
+<!-- Hidden session image file picker -->
+<input type="file" id="sessionImgInput" accept="image/*" style="display:none" onchange="onSessionImgPicked(this)">
 
 <!-- Share FAB -->
 <button class="export-fab" id="exportFab" onclick="exportPlan('mobile')">
@@ -1459,6 +1481,52 @@
     } catch { showError('Network error. Please try again.'); }
   }
 
+  // ── Session image ────────────────────────────────────────────────────────────
+  function triggerSessionImagePick() {
+    $('sessionImgInput').value = '';
+    $('sessionImgInput').click();
+  }
+
+  async function onSessionImgPicked(input) {
+    const file = input.files?.[0];
+    if (!file || !_currentPlanId) return;
+    if (!file.type.startsWith('image/')) { showToast('Please select an image file', 'error'); return; }
+    if (file.size > 8 * 1024 * 1024) { showToast('Image must be under 8 MB', 'error'); return; }
+    showToast('Uploading…');
+    try {
+      const b64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'upload_session_image', user_id: USER_ID, plan_id: _currentPlanId, file_data: b64, file_type: file.type }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Upload failed', 'error'); return; }
+      _currentPlan = { ..._currentPlan, session_image: data.url };
+      renderPlan(_currentPlan, _squadName);
+      showToast('Image added ✓', 'success');
+    } catch { showToast('Upload failed — please try again', 'error'); }
+  }
+
+  async function removeSessionImage() {
+    if (!_currentPlanId) return;
+    try {
+      const res = await fetch(EDGE_FN, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ action: 'remove_session_image', user_id: USER_ID, plan_id: _currentPlanId }),
+      });
+      if (!res.ok) { showToast('Remove failed', 'error'); return; }
+      _currentPlan = { ..._currentPlan };
+      delete _currentPlan.session_image;
+      renderPlan(_currentPlan, _squadName);
+      showToast('Image removed', 'success');
+    } catch { showToast('Remove failed — please try again', 'error'); }
+  }
+
   // ── Generate ────────────────────────────────────────────────────────────────
   async function generatePlan(feedback = '') {
     const isRevision = !!(feedback && _currentPlan);
@@ -1656,6 +1724,29 @@
 
     // Squad pill (location now in chip row)
     if (squadName) out.push(`<div class="meta-pills"><div class="meta-pill">🏷 ${esc(squadName)}</div></div>`);
+
+    // Session image (event context only)
+    if (EVENT_ID) {
+      if (plan.session_image) {
+        out.push(`<div class="session-img-card">
+          <img src="${esc(plan.session_image)}" alt="Session image" loading="lazy">
+          <div class="session-img-actions">
+            <button class="session-img-btn session-img-btn-outline" onclick="triggerSessionImagePick()">Change Image</button>
+            <button class="session-img-btn session-img-btn-outline" onclick="removeSessionImage()">Remove</button>
+          </div>
+        </div>`);
+      } else {
+        out.push(`<div class="session-img-card">
+          <div class="session-img-prompt">
+            <div style="flex:1">
+              <div class="session-img-prompt-label">Session Image</div>
+              <div class="session-img-prompt-sub">Optionally add a pitch layout or drill diagram</div>
+            </div>
+            <button class="session-img-btn session-img-btn-add" onclick="triggerSessionImagePick()">Add Image</button>
+          </div>
+        </div>`);
+      }
+    }
 
     // Focus
     if (plan.session_title) {

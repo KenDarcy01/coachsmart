@@ -185,6 +185,7 @@ interface PlanJson {
   player_count: number;
   coach_count: number;
   weather?: { summary: string };
+  session_image?: string;
   pre_session?: OptionalBlock | null;
   warm_up: WarmupCooldown;
   station_setup?: string | null;
@@ -747,6 +748,32 @@ async function buildSessionPlanPdf(
   // ── Build PDF ─────────────────────────────────────────────────────────────────
 
   newPage(true);
+
+  // Session image (optional — uploaded when attaching plan to event)
+  if (plan.session_image) {
+    const sessImgBytes = await fetchImageBytes(plan.session_image);
+    if (sessImgBytes) {
+      try {
+        let sessImg: any = null;
+        const lowerSrc = plan.session_image.toLowerCase();
+        if (lowerSrc.includes(".png") || lowerSrc.includes("image/png")) {
+          sessImg = await doc.embedPng(sessImgBytes);
+        } else {
+          sessImg = await doc.embedJpg(sessImgBytes);
+        }
+        const maxW = CW;
+        const maxH = 220;
+        const { width: iw, height: ih } = sessImg.scale(1);
+        const scale = Math.min(maxW / iw, maxH / ih, 1);
+        const imgW = iw * scale;
+        const imgH = ih * scale;
+        ensureSpace(imgH + 12);
+        const imgX = ML + (CW - imgW) / 2;
+        currentPage.drawImage(sessImg, { x: imgX, y: PH - curY - imgH, width: imgW, height: imgH });
+        curY += imgH + 12;
+      } catch { /* skip image if embed fails */ }
+    }
+  }
 
   // FOCUS section (was session_title)
   if (plan.session_title?.trim()) {
