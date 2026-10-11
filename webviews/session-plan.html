@@ -266,24 +266,41 @@
     .weather-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 3px; }
     .weather-text  { font-size: 14px; color: var(--text); line-height: 1.45; }
 
-    /* Session image card */
-    .session-img-card {
-      margin: 0 16px 10px; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    /* Session image upload */
+    .session-img-zone {
+      margin: 0 16px 10px;
+      min-height: 120px; border-radius: var(--radius);
+      border: 2px dashed rgba(255,255,255,0.20);
+      background: var(--surface);
+      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; color: var(--muted);
+      transition: border-color 0.15s, background 0.15s;
+      -webkit-tap-highlight-color: transparent;
     }
-    .session-img-card img { width: 100%; display: block; max-height: 260px; object-fit: contain; background: var(--surface-2); }
-    .session-img-prompt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
-    .session-img-prompt-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
-    .session-img-prompt-sub { font-size: 13px; color: var(--muted); }
-    .session-img-actions { display: flex; gap: 8px; padding: 0 12px 10px; }
-    .session-img-btn {
-      height: 32px; border-radius: 7px; padding: 0 12px; font-size: 12px; font-weight: 600;
-      font-family: inherit; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 4px;
-      -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+    .session-img-zone:active { border-color: var(--accent); background: var(--accent-dim); }
+    .session-img-zone svg { width: 30px; height: 30px; opacity: 0.45; }
+    .session-img-zone-label { font-size: 15px; font-weight: 500; color: var(--text); }
+    .session-img-zone-sub   { font-size: 13px; }
+    .session-img-primary {
+      position: relative; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); margin: 0 16px 10px;
     }
-    .session-img-btn:active { opacity: 0.7; }
-    .session-img-btn-add { background: var(--accent); color: rgba(0,0,0,0.65); }
-    .session-img-btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+    .session-img-primary img { display: block; width: 100%; max-height: 280px; object-fit: contain; background: var(--surface); }
+    .session-img-remove {
+      position: absolute; top: 8px; right: 8px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(0,0,0,0.65); color: #fff; font-size: 18px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none; font-family: inherit;
+    }
+    .session-img-change {
+      position: absolute; bottom: 8px; right: 8px;
+      height: 28px; border-radius: 7px; padding: 0 10px;
+      background: rgba(0,0,0,0.65); color: #fff; font-size: 12px; font-weight: 600;
+      font-family: inherit; cursor: pointer; border: none;
+      display: flex; align-items: center;
+    }
 
     /* Stats + weather unified section */
     .stats-section { background: var(--surface-2); margin-top: 6px; padding-bottom: 10px; }
@@ -1728,22 +1745,20 @@
     // Session image (event context only)
     if (EVENT_ID) {
       if (plan.session_image) {
-        out.push(`<div class="session-img-card">
+        out.push(`<div class="session-img-primary">
           <img src="${esc(plan.session_image)}" alt="Session image" loading="lazy">
-          <div class="session-img-actions">
-            <button class="session-img-btn session-img-btn-outline" onclick="triggerSessionImagePick()">Change Image</button>
-            <button class="session-img-btn session-img-btn-outline" onclick="removeSessionImage()">Remove</button>
-          </div>
+          <button class="session-img-remove" onclick="removeSessionImage()">×</button>
+          <button class="session-img-change" onclick="triggerSessionImagePick()">Change</button>
         </div>`);
       } else {
-        out.push(`<div class="session-img-card">
-          <div class="session-img-prompt">
-            <div style="flex:1">
-              <div class="session-img-prompt-label">Session Image</div>
-              <div class="session-img-prompt-sub">Optionally add a pitch layout or drill diagram</div>
-            </div>
-            <button class="session-img-btn session-img-btn-add" onclick="triggerSessionImagePick()">Add Image</button>
-          </div>
+        out.push(`<div class="session-img-zone" onclick="triggerSessionImagePick()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <span class="session-img-zone-label">Add session image</span>
+          <span class="session-img-zone-sub">Pitch layout, diagram or whiteboard</span>
         </div>`);
       }
     }
