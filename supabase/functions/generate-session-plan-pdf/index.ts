@@ -762,9 +762,9 @@ async function buildSessionPlanPdf(
           sessImg = await doc.embedJpg(sessImgBytes);
         }
         const maxW = CW;
-        const maxH = 220;
+        const maxH = isMobile ? 340 : 420;
         const { width: iw, height: ih } = sessImg.scale(1);
-        const scale = Math.min(maxW / iw, maxH / ih, 1);
+        const scale = Math.min(maxW / iw, maxH / ih);
         const imgW = iw * scale;
         const imgH = ih * scale;
         ensureSpace(imgH + 12);
