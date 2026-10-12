@@ -17,7 +17,6 @@ import { buildIcs, filterGames, type Game, parseGames } from "./gaa.ts";
 const BASE = "https://dublingaa.sportlomo.com/league-2";
 const UA = "Mozilla/5.0 (compatible; gaa-fixtures-feed)";
 const CACHE_MS = 10 * 60 * 1000;
-const MAX_COMPS = 5;
 
 // Warm-instance cache so repeated calendar polls don't hammer the source site.
 const cache = new Map<string, { at: number; games: Game[] }>();
@@ -53,7 +52,6 @@ Deno.serve(async (req) => {
 
   const comps = (q.get("comp") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   if (!comps.length) return text("Missing ?comp=<competition id>", 400);
-  if (comps.length > MAX_COMPS) return text(`At most ${MAX_COMPS} competitions per request`, 400);
   // Digits only: the ID goes into a URL on a fixed host, nothing else.
   if (!comps.every((c) => /^\d{1,10}$/.test(c))) return text("comp must be numeric IDs", 400);
 
