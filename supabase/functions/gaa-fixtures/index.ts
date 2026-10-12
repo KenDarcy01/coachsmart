@@ -105,3 +105,4 @@ Deno.serve(async (req) => {
     },
   });
 });
+# gaa-fixtures: verify_jwt=false (see config.toml)
