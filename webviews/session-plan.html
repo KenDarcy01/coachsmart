@@ -318,9 +318,13 @@
       font-variant-numeric: tabular-nums;
     }
     .stat-value[data-path] {
-      border-color: transparent; padding: 2px 8px; border-radius: 8px; min-width: 2ch; text-align: center;
+      border: 1px dashed rgba(135,194,50,0.40);
+      padding: 2px 8px; border-radius: 8px; min-width: 2ch; text-align: center;
     }
-    .stat-value[data-path]:focus { border-color: rgba(135,194,50,0.55); border-style: solid; }
+    .stat-value[data-path]:focus {
+      background: rgba(135,194,50,0.08);
+      border-color: rgba(135,194,50,0.65); border-style: solid;
+    }
     .stat-label {
       font-size: 14px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 0.06em; color: var(--muted);
@@ -1880,6 +1884,21 @@
     showScreen('planScreen');
     _releaseWakeLock();
     requestAnimationFrame(_initSpMicButton);
+    _initStatFocusScroll();
+  }
+
+  function _initStatFocusScroll() {
+    // When a stat value is focused, wait for the iOS keyboard to appear then
+    // scroll it into view so it isn't pushed off screen
+    const scrollEl = $('planScreen')?.querySelector('.scroll-content');
+    if (!scrollEl) return;
+    $('planContent').querySelectorAll('.stat-value[data-path]').forEach(el => {
+      el.addEventListener('focus', () => {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 320);
+      });
+    });
   }
 
   function sectionHdr(label, dur, type) {
