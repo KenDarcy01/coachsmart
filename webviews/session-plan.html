@@ -231,6 +231,27 @@
       background: rgba(0,0,0,0.65);
     }
 
+    /* Picker count inputs */
+    .picker-counts {
+      display: flex; gap: 10px; padding: 10px 16px 0;
+    }
+    .picker-count-field {
+      flex: 1; display: flex; flex-direction: column; gap: 4px;
+    }
+    .picker-count-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted);
+    }
+    .picker-count-input {
+      width: 100%; height: 42px; border-radius: 9px;
+      background: var(--bg); border: 1.5px solid var(--border);
+      color: var(--text); font-size: 17px; font-weight: 600;
+      font-family: inherit; text-align: center;
+      -webkit-appearance: none; appearance: none;
+      transition: border-color 0.15s;
+    }
+    .picker-count-input:focus { outline: none; border-color: var(--accent); }
+
     /* Setup bottom bar */
     .setup-bar {
       padding: 12px 16px max(12px, env(safe-area-inset-bottom));
@@ -862,11 +883,23 @@
       </button>
       <div class="picker-title" id="pickerDetailTitle">Plan Preview</div>
     </div>
-    <div class="picker-list" id="pickerDetailContent" style="padding-bottom:100px"></div>
-    <div class="setup-bar" style="position:absolute;bottom:0;left:0;right:0">
-      <button class="btn btn-primary btn-full" id="pickerUseBtn" onclick="attachPlanFromDetail()">
-        Use This Plan
-      </button>
+    <div class="picker-list" id="pickerDetailContent" style="padding-bottom:140px"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border)">
+      <div class="picker-counts" id="pickerCounts" style="display:none">
+        <div class="picker-count-field">
+          <div class="picker-count-label">Players</div>
+          <input type="number" id="pickerPlayerCount" class="picker-count-input" min="0" max="99" inputmode="numeric" placeholder="—">
+        </div>
+        <div class="picker-count-field">
+          <div class="picker-count-label">Coaches</div>
+          <input type="number" id="pickerCoachCount" class="picker-count-input" min="0" max="99" inputmode="numeric" placeholder="—">
+        </div>
+      </div>
+      <div class="setup-bar" style="padding-top:10px">
+        <button class="btn btn-primary btn-full" id="pickerUseBtn" onclick="attachPlanFromDetail()">
+          Use This Plan
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -924,6 +957,8 @@
   let _squadName = null;
   let _currentPlanId = null;
   let _currentPlan   = null;
+  let _acceptedPlayerCount = null;
+  let _acceptedCoachCount  = null;
   let _currentSheetGameId = null;
   let _rotateStations = true;
 
@@ -1313,6 +1348,15 @@
   function showPickerDetail() {
     $('pickerListPanel').style.display  = 'none';
     $('pickerDetailPanel').style.display = 'flex';
+    // Show count inputs only in event context
+    if (EVENT_ID) {
+      $('pickerCounts').style.display = 'flex';
+      const pi = $('pickerPlayerCount'), ci = $('pickerCoachCount');
+      if (_acceptedPlayerCount != null) pi.value = _acceptedPlayerCount;
+      else pi.value = '';
+      if (_acceptedCoachCount != null) ci.value = _acceptedCoachCount;
+      else ci.value = '';
+    }
   }
 
   function switchPickerTab(tab) {
@@ -1486,9 +1530,14 @@
     showLoading('Attaching plan…');
     try {
       // Server loads plan by plan_id (checking own-plan then club membership), enriches with event context
+      const pcVal = $('pickerPlayerCount')?.value;
+      const ccVal = $('pickerCoachCount')?.value;
+      const attachBody = { action: 'attach_plan', event_id: EVENT_ID, user_id: USER_ID, plan_id: resolvedId };
+      if (pcVal !== '' && pcVal != null) attachBody.player_count = parseInt(pcVal, 10);
+      if (ccVal !== '' && ccVal != null) attachBody.coach_count  = parseInt(ccVal, 10);
       const res  = await fetch(EDGE_FN, {
         method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ action: 'attach_plan', event_id: EVENT_ID, user_id: USER_ID, plan_id: resolvedId }),
+        body: JSON.stringify(attachBody),
       });
       const data = await res.json();
       if (!res.ok) { showError(data.error || 'Attach failed.'); return; }
@@ -1996,6 +2045,8 @@
       _eventMeta = data.event;
       _squadName = data.squad_name;
       _favs = data.favourites || [];
+      _acceptedPlayerCount = data.event?.player_count ?? null;
+      _acceptedCoachCount  = data.event?.coach_count  ?? null;
 
       // In library mode (no event) we still allow generating plans
       if (_favs.length === 0) { showEmpty(); return; }

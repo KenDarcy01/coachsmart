@@ -306,7 +306,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, existing_plan, plan_id, plan_json, rotate_stations = true, player_count: bodyPlayerCount, session_notes } = body;
+    const { action, event_id, user_id, duration_mins = 60, game_ids, feedback, existing_plan, plan_id, plan_json, rotate_stations = true, player_count: bodyPlayerCount, coach_count: bodyCoachCount, session_notes } = body;
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id is required" }), {
@@ -467,12 +467,17 @@ serve(async (req) => {
             .maybeSingle()
         : Promise.resolve({ data: null });
 
-      const [planResult, favResult] = await Promise.all([
+      const attendancePromise = (event_id && teamId)
+        ? countAcceptedAttendees(sb, event_id, teamId, eventSquadId)
+        : Promise.resolve(null);
+
+      const [planResult, favResult, attendanceCounts] = await Promise.all([
         planPromise,
         sb.from("user_game_link")
           .select("position, games!inner(game_id, game_name, game_image, game_code)")
           .eq("user_id", user_id)
           .order("position"),
+        attendancePromise,
       ]);
 
       // Filter by event code if known; fall back to all when no match
@@ -498,7 +503,7 @@ serve(async (req) => {
         plan_id:        planResult.data?.plan_id  ?? null,
         plan:           planResult.data?.plan_json ?? null,
         branding,
-        event:          eventMeta,
+        event:          eventMeta ? { ...eventMeta, player_count: attendanceCounts?.playerCount ?? null, coach_count: attendanceCounts?.coachCount ?? null } : null,
         squad_name:     squad?.squad_name ?? null,
         has_favourites: favourites.length > 0,
         favourites,
@@ -727,7 +732,11 @@ serve(async (req) => {
       // Enrich the generic template with event-specific context
       const enriched: Record<string, any> = { ...sourcePlanJson };
 
-      if (teamId) {
+      if (bodyPlayerCount != null || bodyCoachCount != null) {
+        // Use coach-supplied counts from the picker inputs
+        if (bodyPlayerCount != null) enriched.player_count = Number(bodyPlayerCount);
+        if (bodyCoachCount  != null) enriched.coach_count  = Number(bodyCoachCount);
+      } else if (teamId) {
         const { playerCount, coachCount } = await countAcceptedAttendees(sb, event_id, teamId, eventSquadId);
         enriched.player_count = playerCount;
         enriched.coach_count  = coachCount;
