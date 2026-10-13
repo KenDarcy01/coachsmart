@@ -25,7 +25,7 @@
 //            Clontarf is 3561). Every game also reports homeClubId/awayClubId.
 //   clubName optional. Club name, passed through as Sportlomo's page does.
 //   from,to  optional. YYYY-MM-DD, default 7 days ago to 35 days ahead, max 120 days.
-//   code     optional. Comma list of codes in CODE_IDS (default all of them; Football only for now).
+//   code     optional. Comma list of codes in CODE_IDS (Football, Hurling; default both).
 //   age      optional. Keep only competitions for this age, e.g. "U13".
 //   results / minutes / name / format as above.
 import {
@@ -56,10 +56,9 @@ async function loadComp(compId: string): Promise<{ html: string; games: Game[] }
 }
 
 const AJAX = "https://dublingaa.sportlomo.com/wp-admin/admin-ajax.php";
-// code_name -> code_id on Sportlomo's club fixtures page. Only Football (26)
-// is confirmed; code_name alone doesn't switch code, so unknown codes would
-// just return football again.
-const CODE_IDS: Record<string, string> = { Football: "26" };
+// code_name -> code_id on Sportlomo's club fixtures page. code_name alone
+// doesn't switch code, so a code needs its ID here before it can be fetched.
+const CODE_IDS: Record<string, string> = { Football: "26", Hurling: "27" };
 const CODES = Object.keys(CODE_IDS);
 const clubCache = new Map<string, { at: number; games: ClubGame[] }>();
 
@@ -93,7 +92,7 @@ async function loadClub(club: string, clubName: string, from: string, to: string
     const body = parseAjaxBody(await res.text());
     for (const g of parseClubGames(body.html)) {
       const id = [g.compId, g.home, g.away, g.startUtc.getTime()].join("|");
-      if (!seen.has(id)) { seen.add(id); games.push(g); }
+      if (!seen.has(id)) { seen.add(id); games.push({ ...g, code }); }
     }
     if (!body.isLoadMore) break;
   }
@@ -221,6 +220,7 @@ function output(games: Game[], q: URLSearchParams, common: Record<string, string
           competition: g.comp,
           competitionId: g.compId,
           ...compMeta(g.comp),
+          ...((g as ClubGame).code ? { code: (g as ClubGame).code } : {}),
           start: g.startUtc.toISOString(),
           home: g.home,
           away: g.away,

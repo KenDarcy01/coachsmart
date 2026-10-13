@@ -242,6 +242,10 @@ td.pts { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700
       </div>
 
       <div id="liveFilters" style="display:none">
+        <div class="s-section" id="codeSection">
+          <div class="s-label">Code</div>
+          <div class="chips" id="codeChips"></div>
+        </div>
         <div class="s-section">
           <div class="s-label">Age group</div>
           <div class="chips" id="ageChips"></div>
@@ -275,6 +279,7 @@ let activeSubs   = {};   // {[compId]: 'fixtures'|'results'|'standings'}
 // Club mode: one fetch per club, then every filter runs on these games locally
 let clubGames    = [];   // games from ?type=club
 let selAges      = new Set();
+let selCodes     = new Set();
 const DEFAULT_CLUB = { id: '3561', name: 'Clontarf' };
 
 // ── Club mode ──────────────────────────────────────────────────────────────
@@ -367,6 +372,9 @@ async function fetchClub() {
   const ages = new Set(clubGames.map(g => g.age));
   const savedAges = recall('gaa_ages', []).filter(a => ages.has(a));
   selAges = new Set(savedAges.length ? savedAges : ages);
+  const codes = new Set(clubGames.map(g => g.code));
+  const savedCodes = recall('gaa_codes', []).filter(c => codes.has(c));
+  selCodes = new Set(savedCodes.length ? savedCodes : codes);
   if (!clubGames.length) {
     document.getElementById('liveFilters').style.display = 'none';
     document.getElementById('main').innerHTML = `
@@ -384,9 +392,15 @@ async function fetchClub() {
 const ageOrder = a => { const m = a.match(/^U(\d+)/); return m ? +m[1] : 100; };
 
 function applyClubFilters() {
-  // Age chips with counts
+  // Code chips (Football / Hurling), then age chips counted within the chosen codes
+  const codeCounts = {};
+  clubGames.forEach(g => { codeCounts[g.code] = (codeCounts[g.code] || 0) + 1; });
+  document.getElementById('codeChips').innerHTML = Object.keys(codeCounts).sort()
+    .map(c => `<div class="chip ${selCodes.has(c) ? 'on' : ''}" onclick="toggleCode('${esc(c)}')">${esc(c)}<span class="n">${codeCounts[c]}</span></div>`)
+    .join('');
+  const inCode = clubGames.filter(g => selCodes.has(g.code));
   const ageCounts = {};
-  clubGames.forEach(g => { ageCounts[g.age] = (ageCounts[g.age] || 0) + 1; });
+  inCode.forEach(g => { ageCounts[g.age] = (ageCounts[g.age] || 0) + 1; });
   document.getElementById('ageChips').innerHTML = Object.keys(ageCounts)
     .sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b))
     .map(a => `<div class="chip ${selAges.has(a) ? 'on' : ''}" onclick="toggleAge('${esc(a)}')">${esc(a)}<span class="n">${ageCounts[a]}</span></div>`)
@@ -396,7 +410,7 @@ function applyClubFilters() {
   const prev = fetchedData;
   const now = Date.now();
   fetchedData = {};
-  clubGames.filter(g => selAges.has(g.age)).forEach(g => {
+  inCode.filter(g => selAges.has(g.age)).forEach(g => {
     const d = fetchedData[g.competitionId] = fetchedData[g.competitionId] ||
       { name: g.competition, fixtures: [], results: [], standings: prev[g.competitionId]?.standings ?? null, error: null };
     // A past game with no score (conceded, postponed…) belongs with results, not upcoming
@@ -409,11 +423,17 @@ function applyClubFilters() {
       <div class="empty-state">
         <div class="empty-icon">🔍</div>
         <div class="empty-title">Nothing selected</div>
-        <div class="empty-sub">Pick at least one age group in the sidebar.</div>
+        <div class="empty-sub">Pick at least one code and age group in the sidebar.</div>
       </div>`;
     return;
   }
   renderAll();
+}
+
+function toggleCode(c) {
+  selCodes.has(c) ? selCodes.delete(c) : selCodes.add(c);
+  store('gaa_codes', [...selCodes]);
+  applyClubFilters();
 }
 
 function toggleAge(a) {
