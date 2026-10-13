@@ -29,6 +29,8 @@
 //   camogieClub, lgfaClub optional. The club's ID on the camogie / ladies football
 //            organisations (Clontarf: 40597 / 5346). Each is fetched only when given.
 //   age      optional. Keep only competitions for this age, e.g. "U13".
+//
+// type=probe (diagnostic, plain text): club, from, to, codes=<extra code_ids>
 //   results / minutes / name / format as above.
 import {
   buildIcs, type ClubGame, compMeta, discoverComps, filterGames, type Game,
@@ -166,6 +168,64 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(found), {
       headers: { ...common, "Content-Type": "application/json; charset=utf-8" },
     });
+  }
+
+  // ── Diagnostic: what Sportlomo returns for one club, per code ─────────────
+  // ?type=probe&club=3561&from=2026-05-01&to=2026-06-30 -> plain-text report of
+  // raw competition names and counts (before our parser), parsed counts, and the
+  // code/age options on Sportlomo's own fixtures page. Read-only.
+  if (type === "probe") {
+    const club = q.get("club") ?? "3561";
+    const from = q.get("from") ?? isoDay(new Date(Date.now() - 60 * 864e5));
+    const to = q.get("to") ?? isoDay(new Date());
+    if (!/^\d{1,8}$/.test(club) || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return text("club must be numeric, from/to YYYY-MM-DD", 400);
+    }
+    const lines: string[] = [`Probe club ${club}, ${from} to ${to}`];
+    try {
+      const page = await fetch("https://dublingaa.sportlomo.com/fixtures-3/", {
+        headers: { "User-Agent": UA, "Accept": "text/html" }, signal: AbortSignal.timeout(15_000),
+      }).then((r) => r.text());
+      for (const m of page.matchAll(/<select[^>]*(?:id|name)="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)) {
+        if (/club/i.test(m[1])) continue;   // club list is huge
+        const opts = [...m[2].matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)/g)].map((o) => `${o[1]}=${o[2].trim()}`);
+        lines.push(`select ${m[1]}: ${opts.slice(0, 40).join(" | ")}`);
+      }
+    } catch (e) { lines.push(`fixtures-3 page: ${(e as Error).message}`); }
+    const variants: [string, Record<string, string>][] = [
+      ["Football code 26", { user_id: "7130", code_id: "26", code_name: "Football" }],
+      ["Hurling code 27", { user_id: "7130", code_id: "27", code_name: "Hurling" }],
+      ["No code_id (7130)", { user_id: "7130", code_name: "" }],
+    ];
+    for (const extra of (q.get("codes") ?? "").split(",").filter((c) => /^\d{1,4}$/.test(c))) {
+      variants.push([`code ${extra}`, { user_id: "7130", code_id: extra, code_name: "" }]);
+    }
+    for (const [label, v] of variants) {
+      const raw = new Map<string, number>();
+      let parsed = 0, total = "?", pages = 0;
+      try {
+        for (let p = 1; p <= 10; p++) {
+          const form = new URLSearchParams({
+            action: "get_fixtures3", fdate: from, tdate: to, age_id: "", spage_id: String(p), is_all: "0", sort: "",
+            debug: "", is_fixture: "1", club_search_id: club, club_search_val: "Clontarf", comp_search_id: "", ...v,
+          });
+          const res = await fetch(AJAX, {
+            method: "POST", body: form, signal: AbortSignal.timeout(20_000),
+            headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+              "X-Requested-With": "XMLHttpRequest", "Referer": "https://dublingaa.sportlomo.com/fixtures-3/" },
+          });
+          const body = parseAjaxBody(await res.text());
+          pages = p; total = String(body.totalRecords ?? "?");
+          for (const m of String(body.html).matchAll(/data-competition="([^"]*)"/g)) raw.set(m[1], (raw.get(m[1]) ?? 0) + 1);
+          parsed += parseClubGames(body.html).length;
+          if (!body.isLoadMore) break;
+        }
+      } catch (e) { lines.push(`${label}: error ${(e as Error).message}`); continue; }
+      const rawCount = [...raw.values()].reduce((a, b) => a + b, 0);
+      lines.push("", `${label}: totalRecords ${total}, pages ${pages}, raw rows ${rawCount}, parsed ${parsed}`);
+      for (const [name, n] of [...raw].sort((a, b) => a[0].localeCompare(b[0]))) lines.push(`  ${n}  ${name}  [${compMeta(name).age}]`);
+    }
+    return text(lines.join("\n"), 200);
   }
 
   if (type === "club") {
