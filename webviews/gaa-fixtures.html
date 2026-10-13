@@ -63,6 +63,27 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 .comp-item:hover .comp-del { opacity: 1; }
 .comp-del:hover { color: var(--red); }
 
+/* sheet sync */
+.sync-row { display: flex; gap: 6px; align-items: center; }
+.sync-input {
+  flex: 1; padding: 7px 9px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 11px;
+  font-family: 'DM Sans', sans-serif; min-width: 0;
+}
+.sync-input:focus { outline: none; border-color: var(--green); }
+.sync-input::placeholder { color: var(--muted); }
+.sync-btn {
+  flex-shrink: 0; padding: 7px 10px;
+  background: rgba(135,194,50,0.12); border: 1px solid rgba(135,194,50,0.28);
+  border-radius: 6px; color: var(--green); font-size: 11px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap;
+  transition: all .15s;
+}
+.sync-btn:hover { background: rgba(135,194,50,0.2); }
+.sync-btn:disabled { opacity: 0.4; cursor: default; }
+.sync-status { font-size: 11px; margin-top: 5px; min-height: 14px; padding: 0 2px; }
+
 .add-btn {
   width: 100%; margin-top: 6px; padding: 7px 6px;
   background: none; border: 1px dashed rgba(255,255,255,0.12);
@@ -269,11 +290,20 @@ td.pts { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700
 
     <div class="sidebar-scroll">
       <div class="s-section">
+        <div class="s-label">Sync from Sheet</div>
+        <div class="sync-row">
+          <input type="text" class="sync-input" id="csvUrl" placeholder="Paste Google Sheet CSV URL…">
+          <button class="sync-btn" id="syncBtn" onclick="syncFromSheet()">Sync</button>
+        </div>
+        <div class="sync-status" id="syncStatus"></div>
+      </div>
+
+      <div class="s-section">
         <div class="s-label">Competitions</div>
         <div id="compList"></div>
         <button class="add-btn" onclick="openModal()">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          Add Competition
+          Add manually
         </button>
       </div>
 
@@ -656,9 +686,78 @@ function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Sheet CSV sync ─────────────────────────────────────────────────────────
+function saveCsvUrl(url) {
+  try { localStorage.setItem('gaa_csv_url', url); } catch {}
+}
+function loadCsvUrl() {
+  try { return localStorage.getItem('gaa_csv_url') || ''; } catch { return ''; }
+}
+
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const result = [];
+  for (let i = 1; i < lines.length; i++) {   // skip header row
+    const cols = splitCsvRow(lines[i]);
+    const name = cols[0]?.trim();
+    const raw  = cols[1]?.trim() || '';
+    // A cell may contain multiple IDs comma-separated; keep as-is, the fetch handles it
+    if (name && raw) result.push({ name, id: raw });
+  }
+  return result;
+}
+
+function splitCsvRow(line) {
+  const cols = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  cols.push(cur);
+  return cols;
+}
+
+async function syncFromSheet() {
+  const url = document.getElementById('csvUrl').value.trim();
+  if (!url) return setSyncStatus('Paste a CSV URL first.', 'warn');
+  saveCsvUrl(url);
+
+  document.getElementById('syncBtn').disabled = true;
+  setSyncStatus('Syncing…', 'muted');
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const parsed = parseCsv(text);
+    if (!parsed.length) throw new Error('No competitions found in sheet.');
+    competitions = parsed;
+    saveComps();
+    renderCompList();
+    setSyncStatus(`Synced ${parsed.length} competition${parsed.length !== 1 ? 's' : ''}.`, 'ok');
+  } catch (e) {
+    setSyncStatus(e.message, 'error');
+  } finally {
+    document.getElementById('syncBtn').disabled = false;
+  }
+}
+
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('syncStatus');
+  el.textContent = msg;
+  el.style.color = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : type === 'warn' ? 'var(--amber)' : 'var(--muted)';
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 loadComps();
 renderCompList();
+const savedUrl = loadCsvUrl();
+if (savedUrl) document.getElementById('csvUrl').value = savedUrl;
 </script>
 </body>
 </html>
