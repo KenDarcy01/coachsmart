@@ -349,11 +349,18 @@ function loadFilters() { gender = recall('gaa_gender', 'all'); band = recall('ga
 // name -> {gaa, camogie, lgfa} IDs, learned from every game loaded
 function clubDir() {
   const dir = recall('gaa_clubdir', {});
+  // Camogie IDs come from Sportlomo's camogie club list (a club's camogie team may
+  // never have shown up in a loaded game, so it can't be learned)
+  for (const { id, name } of recall('gaa_camogie_clubs', { list: [] }).list) {
+    const k = Object.keys(dir).find(n => sameClub(n, name));
+    if (k) dir[k] = { ...dir[k], camogie: id };
+  }
   for (const [name, ids] of Object.entries(CLUB_SEED)) dir[name] = { ...dir[name], ...ids };   // seeds win
   return dir;
 }
 const currentClub = () => recall('gaa_club_name2', 'Clontarf');   // '' = all clubs
-const sameClub = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
+const clubKey = n => (n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const sameClub = (a, b) => clubKey(a) === clubKey(b);
 const homeClub = g => g.homeClub || g.home;
 const awayClub = g => g.awayClub || g.away;
 
@@ -977,7 +984,17 @@ document.getElementById('rangeSelect').value = recall('gaa_range4', 'lastweek');
 document.getElementById('fromDate').value = isoDay(addDays(-7));
 document.getElementById('toDate').value = isoDay(addDays(35));
 document.getElementById('customDates').style.display = document.getElementById('rangeSelect').value === 'custom' ? '' : 'none';
-loadGames();
+// Camogie club list, refreshed once a day; the first load waits for it (briefly)
+(async () => {
+  const cached = recall('gaa_camogie_clubs', null);
+  if (!cached || Date.now() - cached.at > 864e5) {
+    try {
+      const res = await fetch(`${EDGE}?type=clubs`, { signal: AbortSignal.timeout(8000) });
+      if (res.ok) store('gaa_camogie_clubs', { at: Date.now(), list: (await res.json()).camogie || [] });
+    } catch {}
+  }
+  loadGames();
+})();
 </script>
 </body>
 </html>
