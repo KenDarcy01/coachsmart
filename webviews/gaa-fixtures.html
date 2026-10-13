@@ -125,6 +125,37 @@ html, body { font-family: 'DM Sans', sans-serif; font-size: 15px; background: va
 .fetch-btn:hover { opacity: 0.88; }
 .fetch-btn:disabled { opacity: 0.4; cursor: default; }
 
+/* club picker + chips */
+.club-select {
+  width: 100%; padding: 8px 10px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+}
+.club-select:focus { outline: none; border-color: var(--green); }
+.date-row { display: flex; gap: 6px; margin-top: 6px; }
+.date-row input { flex: 1; min-width: 0; padding: 7px 8px; font-size: 13px; color-scheme: dark; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  padding: 5px 11px; border-radius: 16px; cursor: pointer; user-select: none;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  background: var(--card2); border: 1px solid var(--border); transition: all .15s;
+}
+.chip:hover { color: var(--text); }
+.chip.on { color: var(--green); background: rgba(135,194,50,0.1); border-color: rgba(135,194,50,0.35); }
+.chip .n { font-weight: 500; opacity: .7; margin-left: 3px; }
+.s-hint { font-size: 12px; color: var(--muted); padding: 4px 2px 0; line-height: 1.4; }
+.link-btn { background: none; border: none; color: var(--muted); font-size: 12px; cursor: pointer; padding: 6px 2px 0; font-family: inherit; text-decoration: underline; }
+.link-btn:hover { color: var(--green); }
+details.advanced { border-top: 1px solid var(--border); margin-top: 10px; }
+details.advanced > summary {
+  padding: 12px 14px; cursor: pointer; list-style: none;
+  font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+}
+details.advanced > summary::before { content: '▸ '; }
+details.advanced[open] > summary::before { content: '▾ '; }
+.fetch-btn.secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); font-size: 13px; padding: 9px; margin-top: 6px; }
+
 /* ── Main area ── */
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
@@ -300,37 +331,80 @@ td.pts { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700
 
     <div class="sidebar-scroll">
       <div class="s-section">
-        <div class="s-label">Sync from Sheet</div>
-        <div class="sync-row">
-          <input type="text" class="sync-input" id="csvUrl" placeholder="Paste Google Sheet CSV URL…">
-          <button class="sync-btn" id="syncBtn" onclick="syncFromSheet()">Sync</button>
+        <div class="s-label">Club</div>
+        <select class="club-select" id="clubSelect" onchange="onClubChange()"></select>
+        <div class="s-hint">Clubs you've played appear here after a fetch.</div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-label">Code</div>
+        <div class="chips" id="codeChips"></div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-label">Dates</div>
+        <select class="club-select" id="rangeSelect" onchange="onRangeChange()">
+          <option value="default">Last week + next 5 weeks</option>
+          <option value="next14">Next 2 weeks</option>
+          <option value="past28">Last 4 weeks</option>
+          <option value="season">Last 8 weeks + next 8 weeks</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <div class="date-row" id="customDates" style="display:none">
+          <input type="date" class="filter-input" id="fromDate">
+          <input type="date" class="filter-input" id="toDate">
         </div>
-        <div class="sync-status" id="syncStatus"></div>
       </div>
 
-      <div class="s-section">
-        <div class="s-label">Search by Age / Grade</div>
-        <input type="text" class="age-filter" id="ageFilter" placeholder="e.g. U13 Boys, U15 Girls…">
-        <div style="font-size:12px;color:var(--muted);padding:3px 2px 10px;">Fetches all matching competitions automatically. Or leave blank and select from your list below.</div>
+      <div id="liveFilters" style="display:none">
+        <div class="s-section">
+          <div class="s-label">Age group</div>
+          <div class="chips" id="ageChips"></div>
+        </div>
+        <div class="s-section">
+          <div class="s-label">Competitions</div>
+          <div id="compChips"></div>
+          <button class="link-btn" onclick="setAllComps(true)">All</button>
+          <button class="link-btn" onclick="setAllComps(false)">None</button>
+        </div>
       </div>
 
-      <div class="s-section">
-        <div class="s-label">Your Competitions</div>
-        <input type="text" class="age-filter" id="compSearch" placeholder="Filter list…" oninput="onAgeFilter()" style="margin-bottom:6px">
-        <div id="compList"></div>
-        <button class="add-btn" onclick="openModal()">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          Add manually
-        </button>
-      </div>
+      <details class="advanced">
+        <summary>Advanced: pick competitions by ID</summary>
+        <div class="s-section">
+          <div class="s-label">Sync from Sheet</div>
+          <div class="sync-row">
+            <input type="text" class="sync-input" id="csvUrl" placeholder="Paste Google Sheet CSV URL…">
+            <button class="sync-btn" id="syncBtn" onclick="syncFromSheet()">Sync</button>
+          </div>
+          <div class="sync-status" id="syncStatus"></div>
+        </div>
 
-      <div class="s-section">
-        <div class="s-label">Club Filter</div>
-        <input type="text" class="filter-input" id="clubFilter" placeholder="e.g. Clontarf (or leave blank)">
-      </div>
+        <div class="s-section">
+          <div class="s-label">Search by Age / Grade</div>
+          <input type="text" class="age-filter" id="ageFilter" placeholder="e.g. U13 Boys, U15 Girls…">
+          <div style="font-size:12px;color:var(--muted);padding:3px 2px 10px;">Fetches all matching competitions automatically. Or leave blank and select from your list below.</div>
+        </div>
+
+        <div class="s-section">
+          <div class="s-label">Your Competitions</div>
+          <input type="text" class="age-filter" id="compSearch" placeholder="Filter list…" oninput="onAgeFilter()" style="margin-bottom:6px">
+          <div id="compList"></div>
+          <button class="add-btn" onclick="openModal()">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Add manually
+          </button>
+        </div>
+
+        <div class="s-section">
+          <div class="s-label">Club Filter</div>
+          <input type="text" class="filter-input" id="clubFilter" placeholder="e.g. Clontarf (or leave blank)">
+          <button class="fetch-btn secondary" id="fetchCompsBtn" onclick="fetchAll()">Fetch these competitions</button>
+        </div>
+      </details>
     </div>
 
-    <button class="fetch-btn" id="fetchBtn" onclick="fetchAll()">Fetch Data</button>
+    <button class="fetch-btn" id="fetchBtn" onclick="fetchClub()">Fetch Fixtures</button>
   </aside>
 
   <!-- ── Main ── -->
@@ -338,7 +412,7 @@ td.pts { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700
     <div class="empty-state" id="emptyState">
       <div class="empty-icon">🏐</div>
       <div class="empty-title">No data yet</div>
-      <div class="empty-sub">Add competitions in the sidebar, then hit Fetch Data to load fixtures, results and standings.</div>
+      <div class="empty-sub">Pick your club and dates, then hit Fetch Fixtures. You can narrow by age group and competition afterwards.</div>
     </div>
   </div>
 
@@ -372,6 +446,13 @@ let competitions = [];   // [{id, name}]
 let fetchedData  = {};   // {[compId]: {name, fixtures, results, standings, error}}
 let activeComp   = null; // compId string
 let activeSubs   = {};   // {[compId]: 'fixtures'|'results'|'standings'}
+
+// Club mode: one fetch per club, then every filter runs on these games locally
+let clubGames    = [];   // games from ?type=club
+let selAges      = new Set();
+let selComps     = new Set();
+const CODES      = ['Football', 'Hurling'];
+const DEFAULT_CLUB = { id: '3561', name: 'Clontarf' };
 
 // ── Persistence ────────────────────────────────────────────────────────────
 function saveComps() {
@@ -440,10 +521,209 @@ function saveComp() {
 }
 document.getElementById('mId').addEventListener('keydown', e => { if (e.key === 'Enter') saveComp(); });
 
+// ── Club mode ──────────────────────────────────────────────────────────────
+function store(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+function recall(key, dflt) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v ?? dflt; } catch { return dflt; }
+}
+
+// Clubs we know an ID for: the default, anything picked before, and every
+// opponent seen in a fetch (Sportlomo gives each team's club ID).
+function knownClubs() { return recall('gaa_known_clubs', { [DEFAULT_CLUB.id]: DEFAULT_CLUB.name }); }
+
+function renderClubSelect() {
+  const sel = recall('gaa_club', DEFAULT_CLUB);
+  const clubs = { ...knownClubs(), [sel.id]: sel.name };
+  const el = document.getElementById('clubSelect');
+  el.innerHTML = Object.entries(clubs)
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .map(([id, name]) => `<option value="${esc(id)}" ${id === sel.id ? 'selected' : ''}>${esc(name)}</option>`)
+    .join('') + '<option value="__other">Other club ID…</option>';
+}
+
+function onClubChange() {
+  const el = document.getElementById('clubSelect');
+  if (el.value === '__other') {
+    const id = (prompt('Sportlomo club ID (the number in the club logo link, e.g. 3561 for Clontarf):') || '').replace(/\D/g, '');
+    const name = id && (prompt('Club name:') || '').trim();
+    if (id && name) {
+      store('gaa_known_clubs', { ...knownClubs(), [id]: name });
+      store('gaa_club', { id, name });
+    }
+    renderClubSelect();
+    return;
+  }
+  store('gaa_club', { id: el.value, name: el.options[el.selectedIndex].text });
+}
+
+function renderCodeChips() {
+  const on = recall('gaa_codes', CODES);
+  document.getElementById('codeChips').innerHTML = CODES.map(c =>
+    `<div class="chip ${on.includes(c) ? 'on' : ''}" onclick="toggleCode('${c}')">${c}</div>`).join('');
+}
+function toggleCode(c) {
+  const on = new Set(recall('gaa_codes', CODES));
+  on.has(c) ? on.delete(c) : on.add(c);
+  if (!on.size) return;   // keep at least one
+  store('gaa_codes', [...on]);
+  renderCodeChips();
+}
+
+const isoDay = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const addDays = n => new Date(Date.now() + n * 864e5);
+
+function onRangeChange() {
+  const v = document.getElementById('rangeSelect').value;
+  store('gaa_range', v);
+  document.getElementById('customDates').style.display = v === 'custom' ? '' : 'none';
+}
+function dateRange() {
+  const v = document.getElementById('rangeSelect').value;
+  if (v === 'custom') {
+    const from = document.getElementById('fromDate').value, to = document.getElementById('toDate').value;
+    if (from && to) return { from, to };
+  }
+  const [back, ahead] = { next14: [0, 14], past28: [28, 0], season: [56, 56] }[v] || [7, 35];
+  return { from: isoDay(addDays(-back)), to: isoDay(addDays(ahead)) };
+}
+
+async function fetchClub() {
+  const club = recall('gaa_club', DEFAULT_CLUB);
+  const codes = recall('gaa_codes', CODES);
+  const { from, to } = dateRange();
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  showLoading();
+  try {
+    const url = `${EDGE}?type=club&format=json&results=1&club=${club.id}&clubName=${encodeURIComponent(club.name)}`
+      + `&from=${from}&to=${to}&code=${codes.join(',')}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+    clubGames = await res.json();
+  } catch (e) {
+    btn.disabled = false;
+    document.getElementById('main').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-title">Could not load fixtures</div>
+        <div class="empty-sub">${esc(e.message)}</div>
+      </div>`;
+    return;
+  }
+  btn.disabled = false;
+
+  // Learn opponents' club IDs so they can be picked next time
+  const known = knownClubs();
+  clubGames.forEach(g => {
+    if (g.homeClubId) known[g.homeClubId] = known[g.homeClubId] || g.home;
+    if (g.awayClubId) known[g.awayClubId] = known[g.awayClubId] || g.away;
+  });
+  store('gaa_known_clubs', known);
+  renderClubSelect();
+
+  // Keep previous age/competition picks where they still exist
+  const ages = new Set(clubGames.map(g => g.age));
+  const savedAges = recall('gaa_ages', []).filter(a => ages.has(a));
+  selAges = new Set(savedAges.length ? savedAges : ages);
+  selComps = new Set(clubGames.map(g => g.competitionId));
+  if (!clubGames.length) {
+    document.getElementById('liveFilters').style.display = 'none';
+    document.getElementById('main').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">No games</div>
+        <div class="empty-sub">${esc(club.name)} has no ${esc(codes.join(' or ').toLowerCase())} games between ${from} and ${to}.</div>
+      </div>`;
+    return;
+  }
+  document.getElementById('liveFilters').style.display = '';
+  applyClubFilters();
+}
+
+const ageOrder = a => { const m = a.match(/^U(\d+)/); return m ? +m[1] : 100; };
+
+function applyClubFilters() {
+  // Age chips with counts
+  const ageCounts = {};
+  clubGames.forEach(g => { ageCounts[g.age] = (ageCounts[g.age] || 0) + 1; });
+  document.getElementById('ageChips').innerHTML = Object.keys(ageCounts)
+    .sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b))
+    .map(a => `<div class="chip ${selAges.has(a) ? 'on' : ''}" onclick="toggleAge('${esc(a)}')">${esc(a)}<span class="n">${ageCounts[a]}</span></div>`)
+    .join('');
+
+  // Competition list: only those in the chosen ages
+  const comps = {};
+  clubGames.filter(g => selAges.has(g.age)).forEach(g => {
+    comps[g.competitionId] = comps[g.competitionId] || { name: g.competition, age: g.age, n: 0 };
+    comps[g.competitionId].n++;
+  });
+  document.getElementById('compChips').innerHTML = Object.entries(comps)
+    .sort((a, b) => ageOrder(a[1].age) - ageOrder(b[1].age) || a[1].name.localeCompare(b[1].name))
+    .map(([id, c]) => `
+      <div class="comp-item"><label>
+        <input type="checkbox" ${selComps.has(id) ? 'checked' : ''} onchange="toggleComp('${id}', this.checked)">
+        <span class="comp-name">${esc(c.name)} <span style="color:var(--muted)">(${c.n})</span></span>
+      </label></div>`).join('');
+
+  // Rebuild the per-competition data the tabs render from
+  const prev = fetchedData;
+  const now = Date.now();
+  fetchedData = {};
+  clubGames.filter(g => selAges.has(g.age) && selComps.has(g.competitionId)).forEach(g => {
+    const d = fetchedData[g.competitionId] = fetchedData[g.competitionId] ||
+      { name: g.competition, fixtures: [], results: [], standings: prev[g.competitionId]?.standings ?? null, error: null };
+    // A past game with no score (conceded, postponed…) belongs with results, not upcoming
+    (g.kind === 'result' || new Date(g.start).getTime() < now ? d.results : d.fixtures).push(g);
+  });
+  Object.keys(fetchedData).forEach(id => { if (!activeSubs[id]) activeSubs[id] = 'fixtures'; });
+
+  if (!Object.keys(fetchedData).length) {
+    document.getElementById('main').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Nothing selected</div>
+        <div class="empty-sub">Pick an age group and at least one competition in the sidebar.</div>
+      </div>`;
+    return;
+  }
+  renderAll();
+}
+
+function toggleAge(a) {
+  if (selAges.has(a)) selAges.delete(a);
+  else {
+    selAges.add(a);
+    clubGames.filter(g => g.age === a).forEach(g => selComps.add(g.competitionId));
+  }
+  store('gaa_ages', [...selAges]);
+  applyClubFilters();
+}
+function toggleComp(id, on) { on ? selComps.add(id) : selComps.delete(id); applyClubFilters(); }
+function setAllComps(on) {
+  clubGames.filter(g => selAges.has(g.age)).forEach(g => on ? selComps.add(g.competitionId) : selComps.delete(g.competitionId));
+  applyClubFilters();
+}
+
+// League tables load only when a competition's Standings tab is opened
+async function loadStandings(compId) {
+  const d = fetchedData[compId];
+  if (!d || d.standings !== null || d.loadingStandings) return;
+  d.loadingStandings = true;
+  try {
+    const res = await fetch(`${EDGE}?comp=${compId}&type=table`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    d.standings = await res.json();
+  } catch { d.standings = []; }
+  d.loadingStandings = false;
+  if (activeComp === compId) renderContent();
+}
+
 // ── Fetch ──────────────────────────────────────────────────────────────────
 async function fetchAll() {
   const ageQ = document.getElementById('ageFilter').value.trim();
   const club  = document.getElementById('clubFilter').value.trim();
+  clubGames = [];
+  document.getElementById('liveFilters').style.display = 'none';
   document.getElementById('fetchBtn').disabled = true;
   showLoading();
 
@@ -592,19 +872,25 @@ function renderContent() {
   const tabs = [
     { key: 'fixtures',  label: 'Fixtures',  count: vd.fixtures.length  },
     { key: 'results',   label: 'Results',   count: vd.results.length   },
-    ...(activeComp !== 'all' ? [{ key: 'standings', label: 'Standings', count: vd.standings.length }] : []),
+    ...(activeComp !== 'all' ? [{ key: 'standings', label: 'Standings', count: vd.standings?.length ?? '' }] : []),
   ];
 
   const subEl = document.createElement('div');
   subEl.className = 'sub-tabs';
   subEl.innerHTML = tabs.map(t => `
     <div class="sub-tab ${t.key === sub ? 'active' : ''}" onclick="switchSub('${t.key}')">
-      ${t.label}<span class="badge">${t.count}</span>
+      ${t.label}${t.count === '' ? '' : `<span class="badge">${t.count}</span>`}
     </div>
   `).join('');
   panel.appendChild(subEl);
 
   // Toolbar
+  if (sub === 'standings' && vd.standings === null) {
+    loadStandings(activeComp);
+    panel.insertAdjacentHTML('beforeend', `
+      <div class="empty-state"><div class="spinner"></div><div class="empty-sub">Loading league table…</div></div>`);
+    return;
+  }
   const rowCount = sub === 'standings' ? vd.standings.length : sub === 'results' ? vd.results.length : vd.fixtures.length;
   const toolbar  = document.createElement('div');
   toolbar.className = 'table-toolbar';
@@ -748,7 +1034,7 @@ function exportCsv(compId, type) {
       });
   } else {
     headers = ['Pos', 'Team', 'P', 'W', 'D', 'L', 'Pts'];
-    rows = vd.standings.map(r => [r.position, r.team, r.played, r.won, r.drawn, r.lost, r.points]);
+    rows = (vd.standings || []).map(r => [r.position, r.team, r.played, r.won, r.drawn, r.lost, r.points]);
   }
 
   const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -832,6 +1118,12 @@ function setSyncStatus(msg, type) {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
+renderClubSelect();
+renderCodeChips();
+document.getElementById('rangeSelect').value = recall('gaa_range', 'default');
+document.getElementById('fromDate').value = isoDay(addDays(-7));
+document.getElementById('toDate').value = isoDay(addDays(35));
+onRangeChange();
 loadComps();
 renderCompList();
 const savedUrl = loadCsvUrl();
