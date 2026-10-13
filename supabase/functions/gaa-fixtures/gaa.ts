@@ -135,6 +135,8 @@ export function filterGames(games: Game[], opts: { team?: string; results: boole
 // competition the club plays in, so nothing has to be listed by hand.
 
 export interface ClubGame extends Game {
+  homeClub: string;   // club name (team names can carry a suffix, e.g. "Clontarf C")
+  awayClub: string;
   homeClubId: string;
   awayClubId: string;
   code?: string; // the code it was fetched under (Football, Hurling)
@@ -190,6 +192,8 @@ export function parseClubGames(html: string, today = new Date()): ClubGame[] {
       venue: clean(node.attr("data-venue") ?? "") || clean(foot.find(".venue span").first().text()),
       referee: clean(foot.find(".referee span").first().text()),
       note: [tm ? "" : "Time TBC", clean(foot.find(".comment span").first().text())].filter(Boolean).join(" · "),
+      homeClub: clean(node.attr("data-home-club") ?? "") || names[0],
+      awayClub: clean(node.attr("data-away-club") ?? "") || names[1],
       homeClubId: logoClubId(row.find("td.align-right img.team-logo").attr("src") ?? ""),
       awayClubId: logoClubId(row.find("td.align-left img.team-logo").attr("src") ?? ""),
     });
