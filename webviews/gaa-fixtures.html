@@ -694,7 +694,7 @@ function teamsTable(results, club) {
   const add = (name, g, forPts, against) => {
     const k = [name, g.code, g.age].join('|');
     const t = teams[k] = teams[k] || { key: k, name, code: g.code, age: g.age, ...blank(), subs: {} };
-    const sub = t.subs[g.competitionId] = t.subs[g.competitionId] || { label: shortComp(g), ...blank() };
+    const sub = t.subs[g.competitionId] = t.subs[g.competitionId] || { label: shortComp(g), name, code: g.code, age: g.age, ...blank() };
     tally(t, forPts, against); tally(sub, forPts, against);
   };
   results.forEach(g => {
@@ -709,6 +709,8 @@ function teamsTable(results, club) {
   const order = (a, b) => (typeof val(a) === 'string' ? val(a).localeCompare(val(b), undefined, { numeric: true }) : val(a) - val(b)) * dir
     || b.pct - a.pct || b.avg - a.avg || b.p - a.p;
   const list = Object.values(teams).map(t => ({ ...calc(t), subs: Object.values(t.subs).map(calc).sort(order) })).sort(order);
+  // "By competition": every team-in-a-competition ranked on its own
+  const flat = teamsMode === 'flat' ? list.flatMap(t => t.subs).sort(order) : null;
   if (!list.length) return '<div class="empty-state"><div class="empty-sub">No scored results for these filters yet.</div></div>';
   const th = (k, label, cls = '') => `<th class="${cls} ${key === k ? 'sorted' : ''}" onclick="sortTeams('${k}')">${label}${key === k ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`;
   const sign = v => v > 0 ? `+${v}` : `${v}`;
@@ -716,14 +718,25 @@ function teamsTable(results, club) {
   const nums = t => `<td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td class="pts">${t.pct}%</td>
     <td class="wide">${t.pf}</td><td class="wide">${t.pa}</td><td class="${tone(t.diff)}">${sign(t.diff)}</td>
     <td class="wide ${tone(t.avg)}">${sign(t.avg)}</td>`;
-  const multi = list.filter(t => t.subs.length > 1);
+  const multi = flat ? [] : list.filter(t => t.subs.length > 1);
   const allOpen = multi.every(t => !teamsCollapsed.has(t.key));
-  return `
-    <div class="section-title">Teams<span class="n">${list.length}</span>
-      ${multi.length ? `<button class="clear-btn" style="margin-left:auto" onclick="toggleAllTeams(${allOpen})">${allOpen ? 'Collapse all' : 'Expand all'}</button>` : ''}</div>
-    <div class="teams-wrap"><table>
-      <thead><tr><th class="l">#</th>${th('team', 'Team', 'l')}${th('p', 'P')}${th('w', 'W')}${th('d', 'D')}${th('l', 'L')}
-        ${th('pct', 'Win %')}${th('pf', 'For', 'wide')}${th('pa', 'Agst', 'wide')}${th('diff', 'Diff')}${th('avg', 'Per game', 'wide')}</tr></thead>
+  const modeBtn = (m, label) => `<button class="${teamsMode === m ? 'on' : ''}" onclick="setTeamsMode('${m}')">${label}</button>`;
+  const head = `
+    <div class="section-title">Teams<span class="n">${flat ? flat.length : list.length}</span>
+      <div class="seg small" style="margin-left:12px">${modeBtn('group', 'By age group')}${modeBtn('flat', 'By competition')}</div>
+      ${multi.length ? `<button class="clear-btn" style="margin-left:auto" onclick="toggleAllTeams(${allOpen})">${allOpen ? 'Collapse all' : 'Expand all'}</button>` : ''}</div>`;
+  const thead = `<thead><tr><th class="l">#</th>${th('team', 'Team', 'l')}${th('p', 'P')}${th('w', 'W')}${th('d', 'D')}${th('l', 'L')}
+        ${th('pct', 'Win %')}${th('pf', 'For', 'wide')}${th('pa', 'Agst', 'wide')}${th('diff', 'Diff')}${th('avg', 'Per game', 'wide')}</tr></thead>`;
+  const note = `<div class="teams-note">Ranked by win %, then points difference per game. Points count goals as 3. Tap a heading to sort${flat ? '' : ', or a team to show or hide its competitions'}. Only results in the dates and filters chosen are counted.</div>`;
+  if (flat) return `${head}
+    <div class="teams-wrap"><table>${thead}
+      <tbody>${flat.map((t, i) => `
+        <tr><td class="l rank">${i + 1}</td>
+          <td class="l team"><b>${esc(t.name)}</b><span>${esc(t.code)} · ${esc(t.age)} · ${esc(t.label)}</span></td>
+          ${nums(t)}</tr>`).join('')}</tbody>
+    </table></div>${note}`;
+  return `${head}
+    <div class="teams-wrap"><table>${thead}
       <tbody>${list.map((t, i) => {
         const split = t.subs.length > 1, open = split && !teamsCollapsed.has(t.key);
         return `
@@ -734,10 +747,11 @@ function teamsTable(results, club) {
           ${nums(t)}</tr>
         ${open ? t.subs.map(sub => `<tr class="sub"><td></td><td class="l team">${esc(sub.label)}</td>${nums(sub)}</tr>`).join('') : ''}`;
       }).join('')}</tbody>
-    </table></div>
-    <div class="teams-note">Ranked by win %, then points difference per game. Points count goals as 3. Tap a heading to sort, or a team to show or hide its competitions. Only results in the dates and filters chosen are counted.</div>`;
+    </table></div>${note}`;
 }
 let teamsCollapsed = new Set();
+let teamsMode = recall('gaa_teams_mode', 'group');   // group | flat
+function setTeamsMode(m) { teamsMode = m; store('gaa_teams_mode', m); render(); }
 function toggleTeam(k) { teamsCollapsed.has(k) ? teamsCollapsed.delete(k) : teamsCollapsed.add(k); render(); }
 function toggleAllTeams(collapse) {
   teamsCollapsed = new Set(collapse ? [...document.querySelectorAll('.teams-wrap tr.grp')].map(r => r.dataset.k) : []);
