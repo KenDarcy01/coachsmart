@@ -192,6 +192,25 @@ Deno.serve(async (req) => {
         lines.push(`select ${m[1]}: ${opts.slice(0, 40).join(" | ")}`);
       }
     } catch (e) { lines.push(`fixtures-3 page: ${(e as Error).message}`); }
+    // Sportlomo's club dropdown is filled by action=get_clubs; try it per organisation
+    for (const [label, extra] of [
+      ["get_clubs GAA", { countyId: "126", sport: "1", user_id: "7130" }],
+      ["get_clubs sport 2", { countyId: "126", sport: "2", user_id: "7130" }],
+      ["get_clubs camogie", { countyId: "126", sport: "2", user_id: "7282" }],
+      ["get_clubs LGFA", { countyId: "126", sport: "2", user_id: "7046" }],
+    ] as [string, Record<string, string>][]) {
+      try {
+        const res = await fetch(AJAX, {
+          method: "POST", body: new URLSearchParams({ action: "get_clubs", ...extra }), signal: AbortSignal.timeout(15_000),
+          headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest", "Referer": "https://dublingaa.sportlomo.com/fixtures-3/" },
+        });
+        const body = await res.text();
+        const hits = body.match(/.{0,80}(Clanna Gael|Clontarf).{0,80}/gi) ?? [];
+        lines.push("", `${label} (${JSON.stringify(extra)}): HTTP ${res.status}, ${body.length} chars`,
+          `  start: ${body.slice(0, 300).replace(/\s+/g, " ")}`, ...hits.slice(0, 4).map((h) => `  match: ${h.replace(/\s+/g, " ")}`));
+      } catch (e) { lines.push(`${label}: error ${(e as Error).message}`); }
+    }
     const variants: [string, Record<string, string>][] = [
       ["Football code 26", { user_id: "7130", code_id: "26", code_name: "Football" }],
       ["Hurling code 27", { user_id: "7130", code_id: "27", code_name: "Hurling" }],
