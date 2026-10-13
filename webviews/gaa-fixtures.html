@@ -75,7 +75,7 @@ button, select, input { font-family: inherit; }
   background: var(--card2); border: 1px solid var(--border); transition: all .12s;
 }
 .chip:hover { border-color: rgba(255,255,255,0.2); }
-.chip.on { color: #111; background: var(--green); border-color: var(--green); }
+.chip.on { color: var(--text); background: rgba(135,194,50,0.14); border-color: rgba(135,194,50,0.55); }
 .chip .n { font-weight: 500; opacity: .6; margin-left: 4px; }
 .chip.on .n { opacity: .75; }
 .comp-group { margin-bottom: 10px; }
@@ -262,12 +262,13 @@ td.pts { font-weight: 700; }
         <div class="s-section">
           <div class="s-label-row"><div class="s-label">Age group</div>
             <div class="toggle-all"><button onclick="setAll('age', true)">All</button><button onclick="setAll('age', false)">None</button></div></div>
+          <div class="seg" id="bandSeg" style="margin-bottom:10px">
+            <button data-b="all" onclick="setBand('all')">All</button>
+            <button data-b="ccc1" onclick="setBand('ccc1')">CCC1</button>
+            <button data-b="ccc2" onclick="setBand('ccc2')">CCC2</button>
+            <button data-b="adult" onclick="setBand('adult')">Adult</button>
+          </div>
           <div class="chips" id="ageChips"></div>
-        </div>
-        <div class="s-section">
-          <div class="s-label-row"><div class="s-label">Competition</div>
-            <div class="toggle-all"><button onclick="setAll('comp', true)">All</button><button onclick="setAll('comp', false)">None</button></div></div>
-          <div id="compChips"></div>
         </div>
       </div>
     </div>
@@ -293,11 +294,12 @@ const GENDER = { boys: ['Football', 'Hurling'], girls: ['Camogie', 'Ladies Footb
 // An empty selection set means "no filter" (show everything).
 let games = [];
 let gender = 'all';
+let band = 'all';   // all | ccc1 (U12 and under) | ccc2 (U13-U16) | adult (Minor and up)
 let view = recall('gaa_view', 'all');   // all | results | fixtures
 let venue = recall('gaa_venue', 'all'); // all | home | away (relative to the chosen club)
 // Every chip starts on; these hold what has been switched off, so new
 // codes/ages/competitions appear switched on.
-let offCodes = new Set(), offAges = new Set(), offComps = new Set();
+let offCodes = new Set(), offAges = new Set();
 const standingsCache = {};
 
 // ── Storage ────────────────────────────────────────────────────────────────
@@ -305,8 +307,8 @@ function store(key, val) { try { localStorage.setItem(key, JSON.stringify(val));
 function recall(key, dflt) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v ?? dflt; } catch { return dflt; }
 }
-function saveFilters() { store('gaa_gender', gender); }
-function loadFilters() { gender = recall('gaa_gender', 'all'); }
+function saveFilters() { store('gaa_gender', gender); store('gaa_band', band); }
+function loadFilters() { gender = recall('gaa_gender', 'all'); band = recall('gaa_band', 'all'); }
 // name -> {gaa, camogie, lgfa} IDs, learned from every game loaded
 function clubDir() {
   const dir = recall('gaa_clubdir', {});
@@ -415,7 +417,7 @@ async function loadGames() {
   if (seq !== loadSeq) return;   // a newer request superseded this one
   games = data;
   loadedKey = key;
-  offCodes.clear(); offAges.clear(); offComps.clear();
+  offCodes.clear(); offAges.clear();
   learnClubs();
   render();
 }
@@ -445,6 +447,14 @@ function clubGames() {
 const ageOrder = a => { const m = a.match(/^U(\d+)/); return m ? +m[1] : 100; };
 const genderOk = g => gender === 'all' || GENDER[gender].includes(g.code);
 const pass = (off, v) => !off.has(v);
+// CCC1 = U12 and under, CCC2 = U13-U16, Adult = Minor and all adult grades
+function ageBand(age) {
+  const n = ageOrder(age);
+  if (n <= 12) return 'ccc1';
+  if (n <= 16) return 'ccc2';
+  return age === 'Other' ? 'other' : 'adult';
+}
+const bandOk = g => band === 'all' || ageBand(g.age) === band;
 
 // Short competition label: drop the age, code and sponsor words already shown elsewhere
 function shortComp(g) {
@@ -456,12 +466,13 @@ function shortComp(g) {
 }
 
 function setGender(v) { gender = v; saveFilters(); render(); }
+function setBand(v) { band = v; saveFilters(); render(); }
 function toggle(set, v) { set.has(v) ? set.delete(v) : set.add(v); render(); }
-function clearFilters() { gender = 'all'; offCodes.clear(); offAges.clear(); offComps.clear(); saveFilters(); render(); }
+function clearFilters() { gender = 'all'; band = 'all'; offCodes.clear(); offAges.clear(); saveFilters(); render(); }
 // All / None for one group, over the chips currently shown in it
-let shownChips = { code: [], age: [], comp: [] };
+let shownChips = { code: [], age: [] };
 function setAll(group, on) {
-  const set = { code: offCodes, age: offAges, comp: offComps }[group];
+  const set = { code: offCodes, age: offAges }[group];
   shownChips[group].forEach(v => on ? set.delete(v) : set.add(v));
   render();
 }
@@ -473,6 +484,7 @@ const countBy = (list, key) => list.reduce((m, g) => (m[key(g)] = (m[key(g)] || 
 
 function renderFilters() {
   document.querySelectorAll('#genderSeg button').forEach(b => b.classList.toggle('on', b.dataset.g === gender));
+  document.querySelectorAll('#bandSeg button').forEach(b => b.classList.toggle('on', b.dataset.b === band));
 
   // Each level only offers what exists under the levels above it, and a
   // selection that no longer exists there is dropped.
@@ -482,40 +494,21 @@ function renderFilters() {
   document.getElementById('codeChips').innerHTML = shownChips.code
     .map(c => chip(c, codes[c], !offCodes.has(c), `toggle(offCodes, '${esc(c)}')`)).join('');
 
-  const g2 = g1.filter(g => pass(offCodes, g.code));
+  const g2 = g1.filter(g => pass(offCodes, g.code) && bandOk(g));
   const ages = countBy(g2, g => g.age);
   shownChips.age = Object.keys(ages).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
   document.getElementById('ageChips').innerHTML = shownChips.age
     .map(a => chip(a, ages[a], !offAges.has(a), `toggle(offAges, '${esc(a)}')`)).join('');
 
   const g3 = g2.filter(g => pass(offAges, g.age));
-  const comps = {};
-  g3.forEach(g => {
-    const c = comps[g.competitionId] = comps[g.competitionId] || { g, n: 0 };
-    c.n++;
-  });
-  shownChips.comp = Object.keys(comps);
-  const byAge = {};
-  Object.entries(comps).forEach(([id, c]) => (byAge[c.g.age] = byAge[c.g.age] || []).push([id, c]));
-  document.getElementById('compChips').innerHTML = Object.keys(byAge)
-    .sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b))
-    .map(age => `
-      <div class="comp-group">
-        <div class="comp-group-label">${esc(age)}</div>
-        <div class="chips">${byAge[age]
-          .sort((a, b) => shortComp(a[1].g).localeCompare(shortComp(b[1].g), undefined, { numeric: true }))
-          .map(([id, c]) => chip(shortComp(c.g) + (gender === 'all' && Object.keys(codes).length > 1 ? ` · ${c.g.code}` : ''),
-            c.n, !offComps.has(id), `toggle(offComps, '${id}')`)).join('')}</div>
-      </div>`).join('');
-
-  const active = (gender !== 'all') + shownChips.code.filter(c => offCodes.has(c)).length +
-    shownChips.age.filter(a => offAges.has(a)).length + shownChips.comp.filter(c => offComps.has(c)).length;
+  const active = (gender !== 'all') + (band !== 'all') + shownChips.code.filter(c => offCodes.has(c)).length +
+    shownChips.age.filter(a => offAges.has(a)).length;
   document.getElementById('clearBtn').style.visibility = active ? '' : 'hidden';
   const fc = document.getElementById('filterCount');
   fc.style.display = active ? '' : 'none';
   fc.textContent = active;
 
-  return g3.filter(g => pass(offComps, g.competitionId));
+  return g3;
 }
 
 // ── Render list ────────────────────────────────────────────────────────────
