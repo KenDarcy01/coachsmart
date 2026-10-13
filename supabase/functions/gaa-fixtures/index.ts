@@ -25,7 +25,7 @@
 //            Clontarf is 3561). Every game also reports homeClubId/awayClubId.
 //   clubName optional. Club name, passed through as Sportlomo's page does.
 //   from,to  optional. YYYY-MM-DD, default 7 days ago to 35 days ahead, max 120 days.
-//   code     optional. "Football", "Hurling" or both comma separated (default both).
+//   code     optional. Comma list of codes in CODE_IDS (default all of them; Football only for now).
 //   age      optional. Keep only competitions for this age, e.g. "U13".
 //   results / minutes / name / format as above.
 import {
@@ -56,7 +56,11 @@ async function loadComp(compId: string): Promise<{ html: string; games: Game[] }
 }
 
 const AJAX = "https://dublingaa.sportlomo.com/wp-admin/admin-ajax.php";
-const CODES = ["Football", "Hurling"];
+// code_name -> code_id on Sportlomo's club fixtures page. Only Football (26)
+// is confirmed; code_name alone doesn't switch code, so unknown codes would
+// just return football again.
+const CODE_IDS: Record<string, string> = { Football: "26" };
+const CODES = Object.keys(CODE_IDS);
 const clubCache = new Map<string, { at: number; games: ClubGame[] }>();
 
 /** Same request the club fixtures page (dublingaa.sportlomo.com/fixtures-3/) makes. */
@@ -66,9 +70,10 @@ async function loadClub(club: string, clubName: string, from: string, to: string
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.games;
 
   const games: ClubGame[] = [];
+  const seen = new Set<string>();
   for (let page = 1; page <= 10; page++) {
     const form = new URLSearchParams({
-      action: "get_fixtures3", fdate: from, tdate: to, user_id: "7130", code_id: "26",
+      action: "get_fixtures3", fdate: from, tdate: to, user_id: "7130", code_id: CODE_IDS[code],
       age_id: "", spage_id: String(page), is_all: "0", sort: "", code_name: code, debug: "",
       is_fixture: "1", club_search_id: club, club_search_val: clubName, comp_search_id: "",
     });
@@ -86,7 +91,10 @@ async function loadClub(club: string, clubName: string, from: string, to: string
     });
     if (!res.ok) throw new Error(`Source site returned ${res.status} for club ${club}`);
     const body = parseAjaxBody(await res.text());
-    games.push(...parseClubGames(body.html));
+    for (const g of parseClubGames(body.html)) {
+      const id = [g.compId, g.home, g.away, g.startUtc.getTime()].join("|");
+      if (!seen.has(id)) { seen.add(id); games.push(g); }
+    }
     if (!body.isLoadMore) break;
   }
   clubCache.set(key, { at: Date.now(), games });
