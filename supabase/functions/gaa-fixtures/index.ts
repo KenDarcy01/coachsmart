@@ -193,12 +193,8 @@ Deno.serve(async (req) => {
       }
     } catch (e) { lines.push(`fixtures-3 page: ${(e as Error).message}`); }
     // Sportlomo's club dropdown is filled by action=get_clubs; try it per organisation
-    for (const [label, extra] of [
-      ["get_clubs GAA", { countyId: "126", sport: "1", user_id: "7130" }],
-      ["get_clubs sport 2", { countyId: "126", sport: "2", user_id: "7130" }],
-      ["get_clubs camogie", { countyId: "126", sport: "2", user_id: "7282" }],
-      ["get_clubs LGFA", { countyId: "126", sport: "2", user_id: "7046" }],
-    ] as [string, Record<string, string>][]) {
+    for (const [label, extra] of (q.get("clubs") ?? "").split(",").filter((x) => /^[\d_]{1,8}$/.test(x)).map((sp) =>
+      [`get_clubs sport ${sp}`, { countyId: "126", sport: sp }] as [string, Record<string, string>])) {
       try {
         const res = await fetch(AJAX, {
           method: "POST", body: new URLSearchParams({ action: "get_clubs", ...extra }), signal: AbortSignal.timeout(15_000),
@@ -206,22 +202,23 @@ Deno.serve(async (req) => {
             "X-Requested-With": "XMLHttpRequest", "Referer": "https://dublingaa.sportlomo.com/fixtures-3/" },
         });
         const body = await res.text();
-        const hits = body.match(/.{0,80}(Clanna Gael|Clontarf).{0,80}/gi) ?? [];
+        const hits = body.replace(/\\/g, "").match(/value="\d+">(Clanna Gael[^<]*|Clontarf[^<]*)/gi) ?? [];
         lines.push("", `${label} (${JSON.stringify(extra)}): HTTP ${res.status}, ${body.length} chars`,
-          `  start: ${body.slice(0, 300).replace(/\s+/g, " ")}`, ...hits.slice(0, 4).map((h) => `  match: ${h.replace(/\s+/g, " ")}`));
+          `  options: ${(body.match(/option value/g) ?? []).length}`, ...hits.slice(0, 4).map((h) => `  match: ${h.replace(/\s+/g, " ")}`));
       } catch (e) { lines.push(`${label}: error ${(e as Error).message}`); }
     }
-    const variants: [string, Record<string, string>][] = [
-      ["Football code 26", { user_id: "7130", code_id: "26", code_name: "Football" }],
-      ["Hurling code 27", { user_id: "7130", code_id: "27", code_name: "Hurling" }],
-      ["No code_id (7130)", { user_id: "7130", code_name: "" }],
-    ];
-    for (const extra of (q.get("codes") ?? "").split(",").filter((c) => /^\d{1,4}$/.test(c))) {
-      variants.push([`code ${extra}`, { user_id: "7130", code_id: extra, code_name: "" }]);
-    }
+    // v=level:code[:club] list, e.g. v=3:26,3:6929,7167:26 (club defaults to ?club, "all" = every club)
+    const variants: [string, Record<string, string>][] = (q.get("v") ?? "7130:26,7130:27").split(",").slice(0, 12)
+      .map((x) => x.split(":"))
+      .filter(([lvl, code, c]) => /^\d{1,6}$/.test(lvl) && /^\d{0,6}$/.test(code ?? "") && /^(\d{0,8}|all)$/.test(c ?? ""))
+      .map(([lvl, code, c]) => [`level ${lvl} code ${code || "-"} club ${c || club}`, {
+        user_id: lvl, ...(code ? { code_id: code } : {}), code_name: "",
+        ...(c === "all" ? { club_search_id: "", club_search_val: "Select Club" } : c ? { club_search_id: c } : {}),
+      }]);
     for (const [label, v] of variants) {
       const raw = new Map<string, number>();
       let parsed = 0, total = "?", pages = 0;
+      const ids = new Set<string>();
       try {
         for (let p = 1; p <= 10; p++) {
           const form = new URLSearchParams({
@@ -236,12 +233,18 @@ Deno.serve(async (req) => {
           const body = parseAjaxBody(await res.text());
           pages = p; total = String(body.totalRecords ?? "?");
           for (const m of String(body.html).matchAll(/data-competition="([^"]*)"/g)) raw.set(m[1], (raw.get(m[1]) ?? 0) + 1);
-          parsed += parseClubGames(body.html).length;
+          const pg = parseClubGames(body.html);
+          parsed += pg.length;
+          for (const g of pg) for (const [n, id] of [[g.homeClub, g.homeClubId], [g.awayClub, g.awayClubId]]) {
+            if (/clontarf|clanna gael/i.test(n ?? "") && id) ids.add(`${n}=${id}`);
+          }
+          if (v.club_search_id === "" && p >= 2) break;
           if (!body.isLoadMore) break;
         }
       } catch (e) { lines.push(`${label}: error ${(e as Error).message}`); continue; }
       const rawCount = [...raw.values()].reduce((a, b) => a + b, 0);
-      lines.push("", `${label}: totalRecords ${total}, pages ${pages}, raw rows ${rawCount}, parsed ${parsed}`);
+      lines.push("", `${label}: totalRecords ${total}, pages ${pages}, raw rows ${rawCount}, parsed ${parsed}`,
+        `  club ids seen: ${[...ids].join(", ") || "none"}`);
       for (const [name, n] of [...raw].sort((a, b) => a[0].localeCompare(b[0]))) lines.push(`  ${n}  ${name}  [${compMeta(name).age}]`);
     }
     return text(lines.join("\n"), 200);
