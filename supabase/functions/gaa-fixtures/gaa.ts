@@ -157,6 +157,39 @@ function fold(line: string): string {
 
 const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
+// ---------- League Table ----------
+
+export interface TableRow {
+  position: number;
+  team: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  points: number;
+}
+
+export function parseTable(html: string, compId: string): TableRow[] {
+  const $ = load(html);
+  const out: TableRow[] = [];
+  $(`#leagueContent-${compId} table.league_table tbody.low tr`).each((_, tr) => {
+    const tds = $(tr).children("td");
+    const position = parseInt(tds.eq(0).text().trim(), 10);
+    const team = clean(tds.filter(".Team").find("a").first().text());
+    const played = parseInt(tds.filter(".Pld").first().text().trim(), 10);
+    const won = parseInt(tds.filter(".W").first().text().trim(), 10);
+    const drawn = parseInt(tds.filter(".D").first().text().trim(), 10);
+    const lost = parseInt(tds.filter(".L").first().text().trim(), 10);
+    const points = parseInt(tds.filter(".Pts").first().text().trim(), 10);
+    if (team && !isNaN(position)) {
+      out.push({ position, team, played, won, drawn, lost, points });
+    }
+  });
+  return out;
+}
+
+// ---------- ICS ----------
+
 export function buildIcs(games: Game[], calName: string, minutes: number, now = new Date()): string {
   const lines = [
     "BEGIN:VCALENDAR",
