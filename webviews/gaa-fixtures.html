@@ -13,7 +13,7 @@
   --card2:  #252A35;
   --border: rgba(255,255,255,0.07);
   --text:   #E7EBEE;
-  --muted:  #6B7280;
+  --muted:  #9CA3AF;
   --red:    #e05252;
   --amber:  #F5A623;
 }
@@ -164,11 +164,11 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 .export-btn {
   display: flex; align-items: center; gap: 5px;
   padding: 5px 12px;
-  background: var(--card2); border: 1px solid var(--border);
-  border-radius: 6px; color: var(--muted); font-size: 12px; font-weight: 500;
+  background: var(--card2); border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 500;
   font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all .15s;
 }
-.export-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.14); }
+.export-btn:hover { background: var(--card); border-color: rgba(255,255,255,0.22); }
 
 /* table */
 .table-wrap { flex: 1; overflow-y: auto; border-radius: 10px; border: 1px solid var(--border); }
@@ -191,7 +191,7 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
 td { padding: 9px 12px; font-size: 13px; vertical-align: middle; }
 td.r { text-align: right; }
 td.c { text-align: center; }
-td.muted { color: var(--muted); font-size: 12px; }
+td.muted { color: var(--muted); }
 td.nowrap { white-space: nowrap; }
 
 .team-name { font-weight: 500; }
@@ -616,7 +616,7 @@ function buildResultsTable(rows) {
       return `
       <tr>
         <td class="nowrap muted">${fmtDate(g.start)}</td>
-        <td class="team-name ${hWin ? '' : 'muted'}">${esc(g.home)}</td>
+        <td class="team-name" style="${hWin ? '' : 'opacity:.55'}">${esc(g.home)}</td>
         <td class="c nowrap">
           ${sc
             ? `<span class="score-pill ${hWin ? 'score-win' : ''}">${esc(sc.home)}</span>
@@ -624,7 +624,7 @@ function buildResultsTable(rows) {
                <span class="score-pill ${aWin ? 'score-win' : ''}">${esc(sc.away)}</span>`
             : '<span class="muted">—</span>'}
         </td>
-        <td class="team-name ${aWin ? '' : 'muted'}">${esc(g.away)}</td>
+        <td class="team-name" style="${aWin ? '' : 'opacity:.55'}">${esc(g.away)}</td>
         <td class="muted">${esc(g.venue || '—')}</td>
       </tr>`;
     }).join('')}
