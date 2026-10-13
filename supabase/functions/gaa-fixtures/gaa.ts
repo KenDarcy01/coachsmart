@@ -137,6 +137,7 @@ export function filterGames(games: Game[], opts: { team?: string; results: boole
 export interface ClubGame extends Game {
   homeClubId: string;
   awayClubId: string;
+  code?: string; // the code it was fetched under (Football, Hurling)
 }
 
 /** The body is JSON but has raw tabs/newlines inside the html string. */
