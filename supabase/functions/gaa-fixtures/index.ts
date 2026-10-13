@@ -25,9 +25,9 @@
 //            Clontarf is 3561). Every game also reports homeClubId/awayClubId.
 //   clubName optional. Club name, passed through as Sportlomo's page does.
 //   from,to  optional. YYYY-MM-DD, default 7 days ago to 35 days ahead, max 120 days.
-//   code     optional. Comma list of codes in SOURCES (Football, Hurling, Camogie; default all).
-//   camogieClub optional. The club's ID on the camogie organisation (Clontarf is
-//            40597). Camogie is only fetched when this is given.
+//   code     optional. Comma list of codes in SOURCES (default all).
+//   camogieClub, lgfaClub optional. The club's ID on the camogie / ladies football
+//            organisations (Clontarf: 40597 / 5346). Each is fetched only when given.
 //   age      optional. Keep only competitions for this age, e.g. "U13".
 //   results / minutes / name / format as above.
 import {
@@ -60,11 +60,12 @@ async function loadComp(compId: string): Promise<{ html: string; games: Game[] }
 const AJAX = "https://dublingaa.sportlomo.com/wp-admin/admin-ajax.php";
 // How each code is selected on Sportlomo's club fixtures page. code_name alone
 // doesn't switch code (code_id does). Camogie is a separate organisation
-// (user_id 7282) with its own club IDs and no code_id.
-const SOURCES: Record<string, { userId: string; codeId?: string; codeName: string }> = {
+// (user_id 7282), as is LGFA (7046); each has its own club IDs and no code_id.
+const SOURCES: Record<string, { userId: string; codeId?: string; codeName: string; clubParam?: string }> = {
   Football: { userId: "7130", codeId: "26", codeName: "Football" },
   Hurling: { userId: "7130", codeId: "27", codeName: "Hurling" },
-  Camogie: { userId: "7282", codeName: "" },
+  Camogie: { userId: "7282", codeName: "", clubParam: "camogieClub" },
+  "Ladies Football": { userId: "7046", codeName: "", clubParam: "lgfaClub" },
 };
 const CODES = Object.keys(SOURCES);
 const clubCache = new Map<string, { at: number; games: ClubGame[] }>();
@@ -164,8 +165,13 @@ Deno.serve(async (req) => {
     if (!day.test(from) || !day.test(to)) return text("from/to must be YYYY-MM-DD", 400);
     const span = (Date.parse(to) - Date.parse(from)) / 864e5;
     if (!(span >= 0 && span <= 120)) return text("from must be before to, at most 120 days apart", 400);
-    const camogieClub = q.get("camogieClub") ?? "";
-    if (camogieClub && !/^\d{1,8}$/.test(camogieClub)) return text("camogieClub must be numeric", 400);
+    const clubFor = (code: string) => {
+      const p = SOURCES[code].clubParam;
+      return p ? (q.get(p) ?? "") : club;
+    };
+    for (const p of ["camogieClub", "lgfaClub"]) {
+      if (!/^\d{0,8}$/.test(q.get(p) ?? "")) return text(`${p} must be numeric`, 400);
+    }
     const codes = (q.get("code") ?? CODES.join(",")).split(",")
       .map((c) => CODES.find((k) => k.toLowerCase() === c.trim().toLowerCase()))
       .filter((c): c is string => !!c);
@@ -175,8 +181,8 @@ Deno.serve(async (req) => {
     let games: ClubGame[];
     try {
       const jobs = codes
-        .filter((c) => c !== "Camogie" || camogieClub)
-        .map((c) => loadClub(c === "Camogie" ? camogieClub : club, clubName, from, to, c));
+        .filter((c) => clubFor(c))
+        .map((c) => loadClub(clubFor(c), clubName, from, to, c));
       games = (await Promise.all(jobs)).flat();
     } catch (e) {
       console.error(e);
