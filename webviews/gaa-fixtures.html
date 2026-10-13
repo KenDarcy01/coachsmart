@@ -228,6 +228,9 @@ td.pts { font-weight: 700; }
   .teams-wrap td, .teams-wrap th { padding-left: 6px; padding-right: 6px; }
   .topbar .seg.small button { padding-left: 7px; padding-right: 7px; font-size: 11.5px; }
   .trend-tip { max-width: calc(100% - 8px); }
+  .section-title { flex-wrap: wrap; row-gap: 6px; }
+  .section-title .seg { order: 3; margin-left: 0 !important; }
+  .section-title .n { flex-basis: 100%; order: 2; }
   .app { flex-direction: column; height: 100dvh; }
   .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); flex-shrink: 0; max-height: 70dvh; }
   .logo-area { padding: 12px 14px; }
@@ -853,6 +856,8 @@ function sortTeams(k) {
 // One point per day: the chosen club's average points difference in that day's
 // scored results (so several teams playing the same day don't zigzag the line).
 let trendData = null;
+let trendMode = recall('gaa_trend_mode', 'pts');   // pts | wl
+function setTrendMode(m) { trendMode = m; store('gaa_trend_mode', m); render(); }
 function trendSection(results, club) {
   trendData = null;
   if (!club) return '<div class="empty-state"><div class="empty-sub">Pick a club to chart its score difference over time.</div></div>';
@@ -868,17 +873,25 @@ function trendSection(results, club) {
     d.games.push({ g, diff });
     days.set(day, d);
   });
-  const pts = [...days.values()].sort((a, b) => a.t - b.t)
-    .map(d => ({ ...d, y: Math.round(d.games.reduce((s, x) => s + x.diff, 0) / d.games.length * 10) / 10 }));
+  // pts mode: average points difference that day; wl mode: wins minus losses that day
+  const pts = [...days.values()].sort((a, b) => a.t - b.t).map(d => {
+    const w = d.games.filter(x => x.diff > 0).length, l = d.games.filter(x => x.diff < 0).length;
+    return { ...d, w, l, y: trendMode === 'wl' ? w - l : Math.round(d.games.reduce((s, x) => s + x.diff, 0) / d.games.length * 10) / 10 };
+  });
   if (pts.length < 2) return '<div class="empty-state"><div class="empty-sub">Not enough scored results in these dates and filters to draw a chart.</div></div>';
   trendData = pts;
   const all = pts.flatMap(p => p.games);
   const w = all.filter(x => x.diff > 0).length, l = all.filter(x => x.diff < 0).length;
   const avg = Math.round(all.reduce((s, x) => s + x.diff, 0) / all.length * 10) / 10;
   return `
-    <div class="section-title">Score difference<span class="n">${all.length} games · ${w}W ${all.length - w - l}D ${l}L · ${avg > 0 ? '+' : ''}${avg} a game</span></div>
+    <div class="section-title">${trendMode === 'wl' ? 'Wins v losses' : 'Score difference'}<span class="n">${all.length} games · ${w}W ${all.length - w - l}D ${l}L · ${avg > 0 ? '+' : ''}${avg} pts a game</span>
+      <div class="seg small" style="margin-left:auto">${[['pts', 'Points diff'], ['wl', 'Win / loss']].map(([m, t]) =>
+        `<button class="${trendMode === m ? 'on' : ''}" onclick="setTrendMode('${m}')">${t}</button>`).join('')}</div></div>
     <div class="trend-wrap" id="trend"></div>
-    <div class="teams-note">Each point is a day: ${esc(club)}'s average points difference in that day's results (goals count as 3). Above the line is winning, below is losing. Follows the dates and filters chosen.</div>`;
+    <div class="teams-note">${trendMode === 'wl'
+      ? `Each point is a day: ${esc(club)}'s wins minus losses in that day's results (+2 = two more wins than losses).`
+      : `Each point is a day: ${esc(club)}'s average points difference in that day's results (goals count as 3).`}
+      Above the line is winning, below is losing. Follows the dates and filters chosen.</div>`;
 }
 
 // Monotone cubic path (Fritsch–Carlson): smooth, but never overshoots a point
@@ -913,7 +926,7 @@ function drawTrend() {
   const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
   const ys = pts.map(p => p.y);
   let lo = Math.min(0, ...ys), hi = Math.max(0, ...ys);
-  const step = niceStep((hi - lo) || 10, 5);
+  const step = trendMode === 'wl' ? Math.max(1, niceStep((hi - lo) || 2, 4)) : niceStep((hi - lo) || 10, 5);
   lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
   if (lo === hi) hi = lo + step;
   const X = t => ml + (t - t0) / (t1 - t0 || 1) * (W - ml - mr);
@@ -934,7 +947,7 @@ function drawTrend() {
   }
   const tone = v => v > 0 ? 'var(--green)' : v < 0 ? 'var(--red)' : 'var(--muted)';
   box.innerHTML = `
-    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Score difference over time">
+    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${trendMode === 'wl' ? 'Wins minus losses' : 'Score difference'} over time">
       <defs>
         <clipPath id="above"><rect x="0" y="0" width="${W}" height="${y0}"/></clipPath>
         <clipPath id="below"><rect x="0" y="${y0}" width="${W}" height="${H}"/></clipPath>
@@ -959,15 +972,15 @@ function drawTrend() {
     tip.replaceChildren();
     const head = document.createElement('div');
     head.className = 'tt-v';
-    head.textContent = `${d.y > 0 ? '+' : ''}${d.y}`;
+    head.textContent = trendMode === 'wl' ? `${d.w}W ${d.games.length - d.w - d.l}D ${d.l}L` : `${d.y > 0 ? '+' : ''}${d.y}`;
     const sub = document.createElement('div');
     sub.className = 'tt-d';
-    sub.textContent = `${dayFmt.format(new Date(d.t))}${d.games.length > 1 ? ` · average of ${d.games.length} games` : ''}`;
+    sub.textContent = `${dayFmt.format(new Date(d.t))}${trendMode === 'wl' ? ` · net ${d.y > 0 ? '+' : ''}${d.y}` : d.games.length > 1 ? ` · average of ${d.games.length} games` : ''}`;
     tip.append(head, sub);
     d.games.slice(0, 6).forEach(({ g, diff }) => {
       const row = document.createElement('div');
       row.className = 'tt-g';
-      row.textContent = `${diff > 0 ? '+' : ''}${diff}  ${g.home} ${parseScore(g.score).home} v ${parseScore(g.score).away} ${g.away} · ${g.age} ${g.code}`;
+      row.textContent = `${trendMode === 'wl' ? (diff > 0 ? 'W' : diff < 0 ? 'L' : 'D') : (diff > 0 ? '+' : '') + diff}  ${g.home} ${parseScore(g.score).home} v ${parseScore(g.score).away} ${g.away} · ${g.age} ${g.code}`;
       tip.append(row);
     });
     if (d.games.length > 6) { const more = document.createElement('div'); more.className = 'tt-d'; more.textContent = `+${d.games.length - 6} more`; tip.append(more); }
