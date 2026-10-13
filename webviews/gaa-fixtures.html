@@ -200,14 +200,16 @@ td.pts { font-weight: 700; }
 .teams-wrap th.sorted { color: var(--green); }
 .teams-wrap td.rank { color: var(--muted); width: 28px; }
 .teams-wrap td.team b { font-weight: 600; }
-.teams-wrap td.team span { display: block; font-size: 13.5px; color: var(--muted); }
+.teams-wrap td.team span { display: block; font-size: 14px; font-weight: 400; color: var(--muted); }
 .teams-wrap td.pos { color: var(--green); } .teams-wrap td.neg { color: #e5736f; }
-.teams-wrap tr.grp { cursor: pointer; }
 .teams-wrap tr.grp:hover td { background: rgba(255,255,255,0.03); }
 .teams-wrap .caret { font-style: normal; color: var(--muted); display: inline-block; width: 14px; }
-.teams-wrap tr.sub td { font-size: 14px; color: var(--muted); border-top-color: rgba(255,255,255,0.03); padding-top: 6px; padding-bottom: 6px; }
+.teams-wrap tr.sub td { font-size: 14px; font-weight: 400; color: var(--muted); border-top-color: rgba(255,255,255,0.03); padding-top: 6px; padding-bottom: 6px; }
 .teams-wrap tr.sub td.team { padding-left: 22px; color: var(--text); }
-.teams-wrap tr.sub td.pts { color: var(--text); }
+.teams-wrap tr.sub td.pts { color: var(--text); font-weight: 400; }
+.teams-wrap tbody tr { cursor: pointer; }
+.teams-wrap tbody tr:hover td.team b, .teams-wrap tr.sub:hover td.team { color: var(--green); }
+.teams-wrap .caret { cursor: pointer; padding: 4px 2px; }
 .teams-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
 /* ── Phone ── */
@@ -694,7 +696,7 @@ function teamsTable(results, club) {
   const add = (name, g, forPts, against) => {
     const k = [name, g.code, g.age].join('|');
     const t = teams[k] = teams[k] || { key: k, name, code: g.code, age: g.age, ...blank(), subs: {} };
-    const sub = t.subs[g.competitionId] = t.subs[g.competitionId] || { label: shortComp(g), name, code: g.code, age: g.age, ...blank() };
+    const sub = t.subs[g.competitionId] = t.subs[g.competitionId] || { label: shortComp(g), compId: g.competitionId, key: k, name, code: g.code, age: g.age, ...blank() };
     tally(t, forPts, against); tally(sub, forPts, against);
   };
   results.forEach(g => {
@@ -727,11 +729,11 @@ function teamsTable(results, club) {
       ${multi.length ? `<button class="clear-btn" style="margin-left:auto" onclick="toggleAllTeams(${allOpen})">${allOpen ? 'Collapse all' : 'Expand all'}</button>` : ''}</div>`;
   const thead = `<thead><tr><th class="l">#</th>${th('team', 'Team', 'l')}${th('p', 'P')}${th('w', 'W')}${th('d', 'D')}${th('l', 'L')}
         ${th('pct', 'Win %')}${th('pf', 'For', 'wide')}${th('pa', 'Agst', 'wide')}${th('diff', 'Diff')}${th('avg', 'Per game', 'wide')}</tr></thead>`;
-  const note = `<div class="teams-note">Ranked by win %, then points difference per game. Points count goals as 3. Tap a heading to sort${flat ? '' : ', or a team to show or hide its competitions'}. Only results in the dates and filters chosen are counted.</div>`;
+  const note = `<div class="teams-note">Ranked by win %, then points difference per game. Points count goals as 3. Tap a heading to sort, or a team to see its games${flat ? '' : ' (the arrow shows or hides its competitions)'}. Only results in the dates and filters chosen are counted.</div>`;
   if (flat) return `${head}
     <div class="teams-wrap"><table>${thead}
       <tbody>${flat.map((t, i) => `
-        <tr><td class="l rank">${i + 1}</td>
+        <tr data-k="${esc(t.key)}" data-c="${t.compId}" onclick="openTeam(this.dataset.k, this.dataset.c)"><td class="l rank">${i + 1}</td>
           <td class="l team"><b>${esc(t.name)}</b><span>${esc(t.code)} · ${esc(t.age)} · ${esc(t.label)}</span></td>
           ${nums(t)}</tr>`).join('')}</tbody>
     </table></div>${note}`;
@@ -740,16 +742,58 @@ function teamsTable(results, club) {
       <tbody>${list.map((t, i) => {
         const split = t.subs.length > 1, open = split && !teamsCollapsed.has(t.key);
         return `
-        <tr class="${split ? 'grp' : ''}" ${split ? `data-k="${esc(t.key)}" onclick="toggleTeam(this.dataset.k)"` : ''}>
+        <tr class="${split ? 'grp' : ''}" data-k="${esc(t.key)}" onclick="openTeam(this.dataset.k)">
           <td class="l rank">${i + 1}</td>
-          <td class="l team"><b>${split ? `<i class="caret">${open ? '▾' : '▸'}</i>` : ''}${esc(t.name)}</b>
+          <td class="l team"><b>${split ? `<i class="caret" onclick="event.stopPropagation(); toggleTeam(this.closest('tr').dataset.k)">${open ? '▾' : '▸'}</i>` : ''}${esc(t.name)}</b>
             <span>${esc(t.code)} · ${esc(t.age)}${split ? ` · ${t.subs.length} competitions` : ` · ${esc(t.subs[0].label)}`}</span></td>
           ${nums(t)}</tr>
-        ${open ? t.subs.map(sub => `<tr class="sub"><td></td><td class="l team">${esc(sub.label)}</td>${nums(sub)}</tr>`).join('') : ''}`;
+        ${open ? t.subs.map(sub => `<tr class="sub" data-k="${esc(t.key)}" data-c="${sub.compId}" onclick="openTeam(this.dataset.k, this.dataset.c)"><td></td><td class="l team">${esc(sub.label)}</td>${nums(sub)}</tr>`).join('') : ''}`;
       }).join('')}</tbody>
     </table></div>${note}`;
 }
 let teamsCollapsed = new Set();
+// One team's games (results and upcoming) in the side panel, using the filters on screen.
+// key = name|code|age; compId narrows to one competition.
+function openTeam(key, compId) {
+  const [name, code, age] = key.split('|');
+  const club = currentClub();
+  const list = renderFilters().filter(g => g.code === code && g.age === age && (!compId || g.competitionId === compId) &&
+    (g.home === name || g.away === name) &&
+    (!club || venue === 'all' || (venue === 'home') === (g.home === name)));
+  const now = Date.now();
+  const results = list.filter(g => g.kind === 'result' || new Date(g.start).getTime() < now).sort((a, b) => new Date(b.start) - new Date(a.start));
+  const upcoming = list.filter(g => !results.includes(g)).sort((a, b) => new Date(a.start) - new Date(b.start));
+  const row = g => {
+    const sc = parseScore(g.score);
+    const hWin = sc && sc.ht > sc.at, aWin = sc && sc.at > sc.ht;
+    const nm = (n, cls) => `<div class="${cls}" style="${n === name ? 'font-weight:700' : ''}">${esc(n)}</div>`;
+    return `<div class="pg"><div class="d">${shortFmt.format(new Date(g.start))}<br>${timeFmt.format(new Date(g.start))}</div>
+      ${nm(g.home, 'h')}
+      <div>${sc ? `<span class="pill ${hWin ? 'win' : ''}">${esc(sc.home)}</span> <span class="pill ${aWin ? 'win' : ''}">${esc(sc.away)}</span>` : '<span class="vs">v</span>'}</div>
+      ${nm(g.away, '')}
+      ${compId ? '' : `<div style="grid-column: 2 / -1; text-align: center; font-size: 12px; color: var(--muted); margin-top: -4px">${esc(shortComp(g))}</div>`}</div>`;
+  };
+  const comps = [...new Set(list.map(g => shortComp(g)))];
+  closePanel();
+  const div = document.createElement('div');
+  div.className = 'overlay';
+  div.onclick = e => { if (e.target === div) closePanel(); };
+  div.innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title">${esc(name)} · ${esc(age)} ${esc(code)}</div>
+          <div class="panel-sub">${compId ? esc(comps[0] || '') : `${comps.length} competition${comps.length === 1 ? '' : 's'}`} · dates and filters as on screen</div></div>
+        <button class="close-btn" onclick="closePanel()">×</button>
+      </div>
+      <div class="panel-body">
+        ${statsCards(results, g => g.home === name ? true : g.away === name ? false : null)}
+        ${results.length ? `<div class="day" style="padding:0 8px">Results</div>${results.map(row).join('')}` : ''}
+        ${upcoming.length ? `<div class="day" style="padding:0 8px">Upcoming</div>${upcoming.map(row).join('')}` : ''}
+        ${list.length ? '' : '<div class="empty-state"><div class="empty-sub">No games for this team in these dates.</div></div>'}
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
 let teamsMode = recall('gaa_teams_mode', 'group');   // group | flat
 function setTeamsMode(m) { teamsMode = m; store('gaa_teams_mode', m); render(); }
 function toggleTeam(k) { teamsCollapsed.has(k) ? teamsCollapsed.delete(k) : teamsCollapsed.add(k); render(); }
