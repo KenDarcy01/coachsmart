@@ -102,6 +102,18 @@ button, select, input { font-family: inherit; }
   margin: 18px 0 4px; display: flex; align-items: baseline; gap: 8px;
 }
 .section-title .n { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--muted); letter-spacing: 0; }
+/* results stats cards (club chosen only) */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 8px 0 6px; }
+.stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.stat-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+.stat-big { font-size: 24px; font-weight: 700; margin-top: 4px; }
+.stat-big small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.wdl-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; margin-top: 8px; background: rgba(255,255,255,0.06); }
+.wdl-bar .w { background: var(--green); } .wdl-bar .d { background: var(--muted); } .wdl-bar .l { background: #d9534f; }
+.form { display: flex; gap: 4px; margin-top: 8px; }
+.form span { width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.form .W { background: var(--green); color: #111; } .form .D { background: rgba(255,255,255,0.15); } .form .L { background: rgba(217,83,79,0.85); color: #fff; }
 .day { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 14px 0 6px; }
 
 /* game row: grid on desktop, card on phone */
@@ -566,19 +578,57 @@ function render() {
     <div class="list">
       ${shown.length ? '' : `<div class="empty-state"><div class="empty-title">Nothing matches these filters</div>
         <div class="empty-sub"><button class="clear-btn" style="font-size:13px" onclick="clearFilters()">Reset filters</button></div></div>`}
-      ${view !== 'fixtures' ? section('Results', results) : ''}
+      ${view !== 'fixtures' ? section('Results', results, club ? statsCards(results, club) : '') : ''}
       ${view !== 'results' ? section('Upcoming', upcoming) : ''}
       ${shown.length && view === 'results' && !results.length ? '<div class="empty-state"><div class="empty-sub">No results in these dates.</div></div>' : ''}
       ${shown.length && view === 'fixtures' && !upcoming.length ? '<div class="empty-state"><div class="empty-sub">No upcoming fixtures in these dates.</div></div>' : ''}
     </div>`;
 }
 
+// Win/draw/loss record for the chosen club over the results shown (scored games only)
+function statsCards(results, club) {
+  const played = results.map(g => {
+    const sc = parseScore(g.score);
+    if (!sc || !/\d/.test(g.score)) return null;
+    const home = sameClub(homeClub(g), club);
+    const forPts = home ? sc.ht : sc.at, against = home ? sc.at : sc.ht;
+    return { home, forPts, against, r: forPts > against ? 'W' : forPts < against ? 'L' : 'D' };
+  }).filter(Boolean);
+  if (!played.length) return '';
+  const rec = list => {
+    const n = list.length, w = list.filter(x => x.r === 'W').length, d = list.filter(x => x.r === 'D').length;
+    return { n, w, d, l: n - w - d, pct: n ? Math.round(w / n * 100) : 0 };
+  };
+  const pct = (x, n) => `${x / n * 100}%`;
+  const card = (label, list) => {
+    const r = rec(list);
+    if (!r.n) return '';
+    return `<div class="stat"><div class="stat-label">${label}</div>
+      <div class="stat-big">${r.pct}%<small>won</small></div>
+      <div class="stat-sub">${r.w}W · ${r.d}D · ${r.l}L from ${r.n}</div>
+      <div class="wdl-bar"><div class="w" style="width:${pct(r.w, r.n)}"></div><div class="d" style="width:${pct(r.d, r.n)}"></div><div class="l" style="width:${pct(r.l, r.n)}"></div></div></div>`;
+  };
+  const n = played.length;
+  const avgFor = played.reduce((t, x) => t + x.forPts, 0) / n, avgAgainst = played.reduce((t, x) => t + x.against, 0) / n;
+  const diff = avgFor - avgAgainst;
+  const one = v => (Math.round(v * 10) / 10).toString();
+  return `<div class="stats">
+    ${card('Overall', played)}${card('Home', played.filter(x => x.home))}${card('Away', played.filter(x => !x.home))}
+    <div class="stat"><div class="stat-label">Avg points</div>
+      <div class="stat-big">${one(avgFor)}<small>v</small> ${one(avgAgainst)}</div>
+      <div class="stat-sub">For v against · ${diff >= 0 ? '+' : ''}${one(diff)} a game</div></div>
+    <div class="stat"><div class="stat-label">Form</div>
+      <div class="form">${played.slice(0, 6).map(x => `<span class="${x.r}">${x.r}</span>`).join('')}</div>
+      <div class="stat-sub" style="margin-top:6px">Latest first</div></div>
+  </div>`;
+}
+
 function setView(v) { view = v; store('gaa_view', v); render(); }
 function setVenue(v) { venue = v; store('gaa_venue', v); render(); }
 
-function section(title, list) {
+function section(title, list, extra = '') {
   if (!list.length) return '';
-  let html = `<div class="section-title">${title}<span class="n">${list.length}</span></div>`;
+  let html = `<div class="section-title">${title}<span class="n">${list.length}</span></div>${extra}`;
   let lastDay = '';
   for (const g of list) {
     const day = dayFmt.format(new Date(g.start));
