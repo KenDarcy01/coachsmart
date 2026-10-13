@@ -21,7 +21,7 @@
 //   format   optional. "ics" (default) or "json".
 //
 // type=club (every competition one club plays in, no comp IDs needed)
-//   club     required. Sportlomo club ID (the number in …/clubLogos/<ID>/…;
+//   club     Sportlomo club ID, or "all" for every club (up to 16 days) (the number in …/clubLogos/<ID>/…;
 //            Clontarf is 3561). Every game also reports homeClubId/awayClubId.
 //   clubName optional. Club name, passed through as Sportlomo's page does.
 //   from,to  optional. YYYY-MM-DD, default 7 days ago to 35 days ahead, max 120 days.
@@ -71,20 +71,33 @@ const CODES = Object.keys(SOURCES);
 const clubCache = new Map<string, { at: number; games: ClubGame[] }>();
 
 /** Same request the club fixtures page (dublingaa.sportlomo.com/fixtures-3/) makes. */
-async function loadClub(club: string, clubName: string, from: string, to: string, code: string): Promise<ClubGame[]> {
+// Requests already on their way to Sportlomo, so simultaneous visitors share one
+const inflight = new Map<string, Promise<ClubGame[]>>();
+
+/** club "" = every club (Sportlomo's "Select Club"). */
+function loadClub(club: string, clubName: string, from: string, to: string, code: string): Promise<ClubGame[]> {
   const key = [club, from, to, code].join("|");
   const hit = clubCache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.games;
+  if (hit && Date.now() - hit.at < CACHE_MS) return Promise.resolve(hit.games);
+  if (!inflight.has(key)) {
+    inflight.set(key, fetchClub(club, clubName, from, to, code)
+      .then((games) => { clubCache.set(key, { at: Date.now(), games }); return games; })
+      .finally(() => inflight.delete(key)));
+  }
+  return inflight.get(key)!;
+}
 
+async function fetchClub(club: string, clubName: string, from: string, to: string, code: string): Promise<ClubGame[]> {
   const games: ClubGame[] = [];
   const seen = new Set<string>();
-  for (let page = 1; page <= 10; page++) {
+  const maxPages = club ? 10 : 80;
+  for (let page = 1; page <= maxPages; page++) {
     const src = SOURCES[code];
     const form = new URLSearchParams({
       action: "get_fixtures3", fdate: from, tdate: to, user_id: src.userId,
       ...(src.codeId ? { code_id: src.codeId } : {}),
       age_id: "", spage_id: String(page), is_all: "0", sort: "", code_name: src.codeName, debug: "",
-      is_fixture: "1", club_search_id: club, club_search_val: clubName, comp_search_id: "",
+      is_fixture: "1", club_search_id: club, club_search_val: club ? clubName : "Select Club", comp_search_id: "",
     });
     const res = await fetch(AJAX, {
       method: "POST",
@@ -98,7 +111,7 @@ async function loadClub(club: string, clubName: string, from: string, to: string
       body: form,
       signal: AbortSignal.timeout(20_000),
     });
-    if (!res.ok) throw new Error(`Source site returned ${res.status} for club ${club}`);
+    if (!res.ok) throw new Error(`Source site returned ${res.status} for ${club ? `club ${club}` : "all clubs"}`);
     const body = parseAjaxBody(await res.text());
     for (const g of parseClubGames(body.html)) {
       const id = [g.compId, g.home, g.away, g.startUtc.getTime()].join("|");
@@ -106,9 +119,10 @@ async function loadClub(club: string, clubName: string, from: string, to: string
     }
     if (!body.isLoadMore) break;
   }
-  clubCache.set(key, { at: Date.now(), games });
   return games;
 }
+
+const ALL_CLUBS_MAX_DAYS = 15;
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -155,8 +169,11 @@ Deno.serve(async (req) => {
   }
 
   if (type === "club") {
-    const club = q.get("club") ?? "";
-    if (!/^\d{1,8}$/.test(club)) return text("club must be a numeric Sportlomo club ID", 400);
+    // club=all fetches every club's games (short ranges only); otherwise club is
+    // the GAA club ID and may be empty when only camogieClub/lgfaClub are known.
+    const all = q.get("club") === "all";
+    const club = all ? "" : q.get("club") ?? "";
+    if (!/^\d{0,8}$/.test(club)) return text("club must be a numeric Sportlomo club ID or all", 400);
     const clubName = (q.get("clubName") ?? "").trim().slice(0, 60);
     const day = /^\d{4}-\d{2}-\d{2}$/;
     const now = Date.now();
@@ -165,6 +182,9 @@ Deno.serve(async (req) => {
     if (!day.test(from) || !day.test(to)) return text("from/to must be YYYY-MM-DD", 400);
     const span = (Date.parse(to) - Date.parse(from)) / 864e5;
     if (!(span >= 0 && span <= 120)) return text("from must be before to, at most 120 days apart", 400);
+    if (all && span > ALL_CLUBS_MAX_DAYS) {
+      return text(`All clubs works for up to ${ALL_CLUBS_MAX_DAYS + 1} days; pick a club or shorter dates`, 400);
+    }
     const clubFor = (code: string) => {
       const p = SOURCES[code].clubParam;
       return p ? (q.get(p) ?? "") : club;
@@ -181,8 +201,8 @@ Deno.serve(async (req) => {
     let games: ClubGame[];
     try {
       const jobs = codes
-        .filter((c) => clubFor(c))
-        .map((c) => loadClub(clubFor(c), clubName, from, to, c));
+        .filter((c) => all || clubFor(c))
+        .map((c) => loadClub(all ? "" : clubFor(c), clubName, from, to, c));
       games = (await Promise.all(jobs)).flat();
     } catch (e) {
       console.error(e);
@@ -244,6 +264,8 @@ function output(games: Game[], q: URLSearchParams, common: Record<string, string
           start: g.startUtc.toISOString(),
           home: g.home,
           away: g.away,
+          homeClub: (g as ClubGame).homeClub || null,
+          awayClub: (g as ClubGame).awayClub || null,
           homeClubId: (g as ClubGame).homeClubId || null,
           awayClubId: (g as ClubGame).awayClubId || null,
           score: g.score || null,

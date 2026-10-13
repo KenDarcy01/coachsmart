@@ -276,11 +276,14 @@ td.pts { font-weight: 700; }
 
 <script>
 const EDGE = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/gaa-fixtures';
-const DEFAULT_CLUB = { id: '3561', name: 'Clontarf' };
-// Camogie and ladies football are separate Sportlomo organisations with their
-// own club IDs, keyed by club name and learned from opponents in their games.
-const ORGS = { Camogie: 'camogieClub', 'Ladies Football': 'lgfaClub' };
-const ORG_SEED = { Camogie: { Clontarf: '40597' }, 'Ladies Football': { Clontarf: '5346' } };
+// Sportlomo keeps three separate organisations, each with its own club IDs:
+// GAA (football + hurling), camogie and ladies football. Clubs are matched
+// across them by name. IDs are only needed to fetch one club over a long
+// date range; short ranges load every club and filter here.
+const ORG_OF = { Football: 'gaa', Hurling: 'gaa', Camogie: 'camogie', 'Ladies Football': 'lgfa' };
+const ORG_PARAM = { gaa: 'club', camogie: 'camogieClub', lgfa: 'lgfaClub' };
+const CLUB_SEED = { Clontarf: { gaa: '3561', camogie: '40597', lgfa: '5346' } };
+const ALL_CLUBS_MAX_DAYS = 15;   // same limit as the edge function
 const GENDER = { boys: ['Football', 'Hurling'], girls: ['Camogie', 'Ladies Football'] };
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -307,41 +310,32 @@ function loadFilters() {
   selCodes = new Set(f.codes || []);
   selAges = new Set(f.ages || []);
 }
-function orgClubs() {
-  const saved = recall('gaa_org_clubs', {});
-  return Object.fromEntries(Object.keys(ORGS).map(o => [o, { ...ORG_SEED[o], ...(saved[o] || {}) }]));
+// name -> {gaa, camogie, lgfa} IDs, learned from every game loaded
+function clubDir() {
+  const dir = recall('gaa_clubdir', {});
+  for (const [name, ids] of Object.entries(CLUB_SEED)) dir[name] = { ...dir[name], ...ids };   // seeds win
+  return dir;
 }
-// Clubs we know an ID for: the default, anything picked before, and every
-// opponent seen in a fetch (Sportlomo gives each team's club ID).
-function knownClubs() { return recall('gaa_known_clubs', { [DEFAULT_CLUB.id]: DEFAULT_CLUB.name }); }
-const currentClub = () => recall('gaa_club', DEFAULT_CLUB);
+const currentClub = () => recall('gaa_club_name', '');   // '' = all clubs
+const sameClub = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
+const homeClub = g => g.homeClub || g.home;
+const awayClub = g => g.awayClub || g.away;
 
 // ── Club + dates ───────────────────────────────────────────────────────────
 function renderClubSelect() {
   const sel = currentClub();
-  const clubs = { ...knownClubs(), [sel.id]: sel.name };
-  document.getElementById('clubSelect').innerHTML = Object.entries(clubs)
-    .sort((a, b) => a[1].localeCompare(b[1]))
-    .map(([id, name]) => `<option value="${esc(id)}" ${id === sel.id ? 'selected' : ''}>${esc(name)}</option>`)
-    .join('') + '<option value="__other">Other club ID…</option>';
+  const names = Object.keys(clubDir());
+  if (sel && !names.some(n => sameClub(n, sel))) names.push(sel);
+  document.getElementById('clubSelect').innerHTML =
+    `<option value="" ${sel ? '' : 'selected'}>All clubs</option>` +
+    names.sort((a, b) => a.localeCompare(b))
+      .map(n => `<option value="${esc(n)}" ${sameClub(n, sel) ? 'selected' : ''}>${esc(n)}</option>`).join('');
 }
 
 function onClubChange() {
-  const el = document.getElementById('clubSelect');
-  if (el.value === '__other') {
-    const id = (prompt('Sportlomo club ID (the number in the club logo link, e.g. 3561 for Clontarf):') || '').replace(/\D/g, '');
-    const name = id && (prompt('Club name:') || '').trim();
-    if (id && name) {
-      store('gaa_known_clubs', { ...knownClubs(), [id]: name });
-      store('gaa_club', { id, name });
-    }
-    renderClubSelect();
-    if (!(id && name)) return;
-  } else {
-    store('gaa_club', { id: el.value, name: el.options[el.selectedIndex].text });
-  }
+  store('gaa_club_name', document.getElementById('clubSelect').value);
   selComps.clear();
-  loadGames();
+  loadGames();   // no new fetch when every club is already loaded for these dates
 }
 
 const isoDay = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -370,26 +364,48 @@ function dateRange() {
 
 // ── Fetch ──────────────────────────────────────────────────────────────────
 let loadSeq = 0;
+let loadedKey = '';   // what `games` currently holds, e.g. "all|2026-10-05|2026-10-18"
 async function loadGames() {
   const club = currentClub();
   const { from, to } = dateRange();
+  const days = (Date.parse(to) - Date.parse(from)) / 864e5;
+  const allClubs = days <= ALL_CLUBS_MAX_DAYS;
+  const key = allClubs ? `all|${from}|${to}` : `${club}|${from}|${to}`;
+  if (key === loadedKey) { render(); return; }
+
+  const main = document.getElementById('main');
+  if (!allClubs && !club) {
+    games = []; loadedKey = '';
+    document.getElementById('liveFilters').style.display = 'none';
+    main.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">Pick a club for longer date ranges</div>
+        <div class="empty-sub">All clubs works for up to two weeks. Choose a club, or shorter dates.</div>
+      </div>`;
+    return;
+  }
+
   const seq = ++loadSeq;
-  document.getElementById('main').innerHTML = `
-    <div class="empty-state"><div class="spinner"></div><div class="empty-sub">Loading ${esc(club.name)} games…</div></div>`;
+  main.innerHTML = `
+    <div class="empty-state"><div class="spinner"></div><div class="empty-sub">Loading ${allClubs ? 'every club’s' : esc(club)} games…</div></div>`;
   let data;
   try {
-    const org = orgClubs();
-    const url = `${EDGE}?type=club&format=json&results=1&club=${club.id}&clubName=${encodeURIComponent(club.name)}`
-      + `&from=${from}&to=${to}`
-      + Object.entries(ORGS).map(([o, p]) => org[o][club.name] ? `&${p}=${org[o][club.name]}` : '').join('');
+    let url = `${EDGE}?type=club&format=json&results=1&from=${from}&to=${to}`;
+    if (allClubs) url += '&club=all';
+    else {
+      const ids = Object.entries(clubDir()).find(([n]) => sameClub(n, club))?.[1] || {};
+      url += `&clubName=${encodeURIComponent(club)}` +
+        Object.entries(ORG_PARAM).map(([org, p]) => ids[org] ? `&${p}=${ids[org]}` : '').join('');
+    }
     const res = await fetch(url);
     if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
     data = await res.json();
   } catch (e) {
     if (seq !== loadSeq) return;
-    games = [];
+    games = []; loadedKey = '';
     document.getElementById('liveFilters').style.display = 'none';
-    document.getElementById('main').innerHTML = `
+    main.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">⚠️</div>
         <div class="empty-title">Could not load fixtures</div>
@@ -399,25 +415,30 @@ async function loadGames() {
   }
   if (seq !== loadSeq) return;   // a newer request superseded this one
   games = data;
+  loadedKey = key;
   learnClubs();
-  document.getElementById('liveFilters').style.display = games.length ? '' : 'none';
   render();
 }
 
 function learnClubs() {
-  const known = knownClubs();
-  const org = orgClubs();
+  const dir = recall('gaa_clubdir', {});
   games.forEach(g => {
-    const m = ORGS[g.code] ? org[g.code] : null;
-    for (const [name, id] of [[g.home, g.homeClubId], [g.away, g.awayClubId]]) {
-      if (!id) continue;
-      if (m) m[name] = m[name] || id;
-      else known[id] = known[id] || name;
+    const org = ORG_OF[g.code];
+    for (const [name, id] of [[homeClub(g), g.homeClubId], [awayClub(g), g.awayClubId]]) {
+      if (!name || /^bye$/i.test(name)) continue;
+      const k = Object.keys(dir).find(n => sameClub(n, name)) || name;
+      dir[k] = dir[k] || {};
+      if (id && org) dir[k][org] = dir[k][org] || id;
     }
   });
-  store('gaa_org_clubs', org);
-  store('gaa_known_clubs', known);
+  store('gaa_clubdir', dir);
   renderClubSelect();
+}
+
+// Games for the chosen club (all of them when "All clubs")
+function clubGames() {
+  const club = currentClub();
+  return club ? games.filter(g => sameClub(homeClub(g), club) || sameClub(awayClub(g), club)) : games;
 }
 
 // ── Filters ────────────────────────────────────────────────────────────────
@@ -448,7 +469,7 @@ function renderFilters() {
 
   // Each level only offers what exists under the levels above it, and a
   // selection that no longer exists there is dropped.
-  const g1 = games.filter(genderOk);
+  const g1 = clubGames().filter(genderOk);
   const codes = countBy(g1, g => g.code);
   selCodes.forEach(c => { if (!codes[c]) selCodes.delete(c); });
   document.getElementById('codeChips').innerHTML = Object.keys(codes).sort()
@@ -505,20 +526,22 @@ function parseScore(s) {
 function render() {
   const main = document.getElementById('main');
   const club = currentClub();
+  const label = club || 'All clubs';
   const { from, to } = dateRange();
-  if (!games.length) {
+  const mineAll = clubGames();
+  document.getElementById('liveFilters').style.display = mineAll.length ? '' : 'none';
+  if (!mineAll.length) {
     main.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📅</div>
         <div class="empty-title">No games</div>
-        <div class="empty-sub">${esc(club.name)} has no games between ${shortFmt.format(new Date(from))} and ${shortFmt.format(new Date(to))}. Try a wider date range.</div>
+        <div class="empty-sub">${esc(club || 'No club')} has no games between ${shortFmt.format(new Date(from))} and ${shortFmt.format(new Date(to))}. Try a wider date range.</div>
       </div>`;
     return;
   }
 
-  const clubName = club.name.toLowerCase();
-  const isHome = g => g.home.toLowerCase() === clubName;
-  const shown = renderFilters().filter(g => venue === 'all' || (venue === 'home') === isHome(g));
+  // Home / Away only means something once a club is chosen
+  const shown = renderFilters().filter(g => !club || venue === 'all' || (venue === 'home') === sameClub(homeClub(g), club));
   const now = Date.now();
   // A past game with no score (conceded, postponed…) still belongs with results
   const results = shown.filter(g => g.kind === 'result' || new Date(g.start).getTime() < now)
@@ -532,8 +555,8 @@ function render() {
     <div class="topbar">
       <div class="topbar-left">
         <div class="seg small">${segBtn('all', 'All')}${segBtn('results', `Results ${results.length}`)}${segBtn('fixtures', `Fixtures ${upcoming.length}`)}</div>
-        <div class="seg small">${venueBtn('all', 'All')}${venueBtn('home', 'Home')}${venueBtn('away', 'Away')}</div>
-        <div class="summary"><b>${esc(club.name)}</b> · ${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}</div>
+        ${club ? `<div class="seg small">${venueBtn('all', 'All')}${venueBtn('home', 'Home')}${venueBtn('away', 'Away')}</div>` : ''}
+        <div class="summary"><b>${esc(label)}</b> · ${shown.length} games · ${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}</div>
       </div>
       <button class="export-btn" onclick="exportCsv()">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -566,10 +589,10 @@ function section(title, list) {
 }
 
 function gameRow(g) {
-  const club = currentClub().name.toLowerCase();
+  const club = currentClub();
   const sc = parseScore(g.score);
   const hWin = sc && sc.ht > sc.at, aWin = sc && sc.at > sc.ht;
-  const mine = n => n.toLowerCase() === club ? 'mine' : '';
+  const mine = n => club && sameClub(n, club) ? 'mine' : '';
   const time = /Time TBC/.test(g.note || '') ? 'TBC' : timeFmt.format(new Date(g.start));
   const note = (g.note || '').replace(/^Time TBC( · )?/, '');
   return `
@@ -579,11 +602,11 @@ function gameRow(g) {
         <span class="code">${esc(g.code || '')} · ${esc(g.age)}</span>${esc(shortComp(g))}
       </div>
       <div class="g-match">
-        <div class="g-team home ${mine(g.home)} ${aWin ? 'lost' : ''}">${esc(g.home)}</div>
+        <div class="g-team home ${mine(homeClub(g))} ${aWin ? 'lost' : ''}">${esc(g.home)}</div>
         <div class="g-mid">${sc
           ? `<span class="pill ${hWin ? 'win' : ''}">${esc(sc.home)}</span><span class="vs">v</span><span class="pill ${aWin ? 'win' : ''}">${esc(sc.away)}</span>`
           : '<span class="vs">v</span>'}</div>
-        <div class="g-team ${mine(g.away)} ${hWin ? 'lost' : ''}">${esc(g.away)}</div>
+        <div class="g-team ${mine(awayClub(g))} ${hWin ? 'lost' : ''}">${esc(g.away)}</div>
       </div>
       <div class="g-venue">${esc(g.venue || '')}${note ? `<span class="g-note">${esc(note)}</span>` : ''}</div>
     </div>`;
@@ -639,7 +662,7 @@ function renderPanel() {
   if (!panel || !compCache[panel.compId]) return;
   const { table, games: list } = compCache[panel.compId];
   const team = panel.team;
-  const club = currentClub().name.toLowerCase();
+  const club = currentClub().toLowerCase();
   const now = Date.now();
   const forTeam = list.filter(g => !team ||
     (panel.venue !== 'away' && g.home === team) || (panel.venue !== 'home' && g.away === team));
@@ -664,7 +687,7 @@ function renderPanel() {
       <table>
         <thead><tr><th>#</th><th class="l">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead>
         <tbody>${table.map(r => `
-          <tr class="click ${r.team.toLowerCase().includes(club) ? 'mine' : ''} ${r.team === team ? 'sel' : ''}" data-team="${esc(r.team)}" onclick="panelTeam(this.dataset.team)">
+          <tr class="click ${club && r.team.toLowerCase().includes(club) ? 'mine' : ''} ${r.team === team ? 'sel' : ''}" data-team="${esc(r.team)}" onclick="panelTeam(this.dataset.team)">
             <td>${r.position}</td><td class="l">${esc(r.team)}</td><td>${r.played}</td><td>${r.won}</td>
             <td>${r.drawn}</td><td>${r.lost}</td><td class="pts">${r.points}</td>
           </tr>`).join('')}</tbody>
@@ -703,7 +726,7 @@ function exportCsv() {
   const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = `${currentClub().name.replace(/[^a-z0-9]+/gi, '-')}-fixtures.csv`;
+  a.download = `${(currentClub() || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
