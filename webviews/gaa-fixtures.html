@@ -537,7 +537,7 @@ const bandOk = g => band === 'all' || ageBand(g.age) === band;
 // Short competition label: drop the age, code and sponsor words already shown elsewhere
 function shortComp(g) {
   let s = (g.grade || g.competition)
-    .replace(/\b(PTSB|LGFA|Ladies|Football|Hurling|Camogie)\b/gi, '')
+    .replace(/\b(PTSB|LGFA|Ladies|Football|Hurling|Camogie|20\d\d)\b/gi, '')
     .replace(/\bDivision\b/gi, 'Div.').replace(/Div\.\s+/g, 'Div.')
     .replace(/\s+/g, ' ').trim();
   return s || g.competition;
