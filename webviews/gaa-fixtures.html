@@ -241,9 +241,9 @@ td.pts { font-weight: 700; }
       <div class="s-section">
         <div class="s-label-row"><div class="s-label">Dates</div></div>
         <select class="select" id="rangeSelect" onchange="onRangeChange()">
+          <option value="lastweek">Last week</option>
           <option value="thisweek">This week</option>
           <option value="lastthis">Last week + this week</option>
-          <option value="month">This month</option>
           <option value="custom">Custom…</option>
         </select>
         <div class="date-row" id="customDates" style="display:none">
@@ -351,7 +351,7 @@ const addDays = n => new Date(Date.now() + n * 864e5);
 
 function onRangeChange() {
   const v = document.getElementById('rangeSelect').value;
-  store('gaa_range3', v);
+  store('gaa_range4', v);
   document.getElementById('customDates').style.display = v === 'custom' ? '' : 'none';
   loadGames();
 }
@@ -361,15 +361,11 @@ function dateRange() {
     const from = document.getElementById('fromDate').value, to = document.getElementById('toDate').value;
     if (from && to) return { from, to };
   }
-  if (v === 'thisweek' || v === 'lastthis') {
-    const sinceMon = (new Date().getDay() + 6) % 7;   // Monday = 0
-    const back = v === 'lastthis' ? sinceMon + 7 : sinceMon;
-    return { from: isoDay(addDays(-back)), to: isoDay(addDays(6 - sinceMon)) };
-  }
-  // This month (also the fallback for an unfinished custom range)
-  const now = new Date();
-  return { from: isoDay(new Date(now.getFullYear(), now.getMonth(), 1)),
-           to: isoDay(new Date(now.getFullYear(), now.getMonth() + 1, 0)) };
+  // Weeks run Monday to Sunday. Last week is also the fallback for an unfinished custom range.
+  const sinceMon = (new Date().getDay() + 6) % 7;   // Monday = 0
+  if (v === 'thisweek') return { from: isoDay(addDays(-sinceMon)), to: isoDay(addDays(6 - sinceMon)) };
+  if (v === 'lastthis') return { from: isoDay(addDays(-sinceMon - 7)), to: isoDay(addDays(6 - sinceMon)) };
+  return { from: isoDay(addDays(-sinceMon - 7)), to: isoDay(addDays(-sinceMon - 1)) };
 }
 
 // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -787,7 +783,7 @@ function esc(s) {
 // ── Init ───────────────────────────────────────────────────────────────────
 loadFilters();
 renderClubSelect();
-document.getElementById('rangeSelect').value = recall('gaa_range3', 'thisweek');
+document.getElementById('rangeSelect').value = recall('gaa_range4', 'lastweek');
 document.getElementById('fromDate').value = isoDay(addDays(-7));
 document.getElementById('toDate').value = isoDay(addDays(35));
 document.getElementById('customDates').style.display = document.getElementById('rangeSelect').value === 'custom' ? '' : 'none';
