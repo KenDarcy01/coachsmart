@@ -61,15 +61,19 @@ async function loadComp(compId: string): Promise<{ html: string; games: Game[] }
 
 const AJAX = "https://dublingaa.sportlomo.com/wp-admin/admin-ajax.php";
 // How each code is selected on Sportlomo's club fixtures page. code_name alone
-// doesn't switch code (code_id does). Camogie is a separate organisation
-// (user_id 7282), as is LGFA (7046); each has its own club IDs and no code_id.
-const SOURCES: Record<string, { userId: string; codeId?: string; codeName: string; clubParam?: string }> = {
-  Football: { userId: "7130", codeId: "26", codeName: "Football" },
-  Hurling: { userId: "7130", codeId: "27", codeName: "Hurling" },
-  Camogie: { userId: "7282", codeName: "", clubParam: "camogieClub" },
-  "Ladies Football": { userId: "7046", codeName: "", clubParam: "lgfaClub" },
+// doesn't switch code (code_id does). For football and hurling, user_id is the
+// level: 3 = Adult & Minor, 7167 = CCC1 (U8-U12), 7130 = CCC2 (U13-U16); club IDs
+// and code_ids are the same at every level. Camogie (7282) and LGFA (7046) are
+// separate organisations with their own club IDs and no code_id.
+const GAA_LEVELS = ["3", "7167", "7130"];
+const SOURCES: Record<string, { userIds: string[]; codeId?: string; codeName: string; clubParam?: string }> = {
+  Football: { userIds: GAA_LEVELS, codeId: "26", codeName: "Football" },
+  Hurling: { userIds: GAA_LEVELS, codeId: "27", codeName: "Hurling" },
+  Camogie: { userIds: ["7282"], codeName: "", clubParam: "camogieClub" },
+  "Ladies Football": { userIds: ["7046"], codeName: "", clubParam: "lgfaClub" },
 };
 const CODES = Object.keys(SOURCES);
+let camogieClubs: { at: number; list: { id: string; name: string }[] } | null = null;
 const clubCache = new Map<string, { at: number; games: ClubGame[] }>();
 
 /** Same request the club fixtures page (dublingaa.sportlomo.com/fixtures-3/) makes. */
@@ -78,25 +82,32 @@ const inflight = new Map<string, Promise<ClubGame[]>>();
 
 /** club "" = every club (Sportlomo's "Select Club"). */
 function loadClub(club: string, clubName: string, from: string, to: string, code: string): Promise<ClubGame[]> {
-  const key = [club, from, to, code].join("|");
+  return Promise.all(SOURCES[code].userIds.map((level) => loadLevel(club, clubName, from, to, code, level)))
+    .then((parts) => parts.flat());
+}
+
+function loadLevel(club: string, clubName: string, from: string, to: string, code: string, level: string): Promise<ClubGame[]> {
+  const key = [club, from, to, code, level].join("|");
   const hit = clubCache.get(key);
   if (hit && Date.now() - hit.at < CACHE_MS) return Promise.resolve(hit.games);
   if (!inflight.has(key)) {
-    inflight.set(key, fetchClub(club, clubName, from, to, code)
+    inflight.set(key, fetchClub(club, clubName, from, to, code, level)
       .then((games) => { clubCache.set(key, { at: Date.now(), games }); return games; })
       .finally(() => inflight.delete(key)));
   }
   return inflight.get(key)!;
 }
 
-async function fetchClub(club: string, clubName: string, from: string, to: string, code: string): Promise<ClubGame[]> {
+async function fetchClub(
+  club: string, clubName: string, from: string, to: string, code: string, level: string,
+): Promise<ClubGame[]> {
   const games: ClubGame[] = [];
   const seen = new Set<string>();
   const maxPages = club ? 10 : 80;
   for (let page = 1; page <= maxPages; page++) {
     const src = SOURCES[code];
     const form = new URLSearchParams({
-      action: "get_fixtures3", fdate: from, tdate: to, user_id: src.userId,
+      action: "get_fixtures3", fdate: from, tdate: to, user_id: level,
       ...(src.codeId ? { code_id: src.codeId } : {}),
       age_id: "", spage_id: String(page), is_all: "0", sort: "", code_name: src.codeName, debug: "",
       is_fixture: "1", club_search_id: club, club_search_val: club ? clubName : "Select Club", comp_search_id: "",
@@ -248,6 +259,30 @@ Deno.serve(async (req) => {
       for (const [name, n] of [...raw].sort((a, b) => a[0].localeCompare(b[0]))) lines.push(`  ${n}  ${name}  [${compMeta(name).age}]`);
     }
     return text(lines.join("\n"), 200);
+  }
+
+  // ── Camogie club list (Sportlomo's get_clubs; its IDs are the camogie ones) ──
+  if (type === "clubs") {
+    try {
+      if (!camogieClubs || Date.now() - camogieClubs.at > 24 * 3600e3) {
+        const res = await fetch(AJAX, {
+          method: "POST", body: new URLSearchParams({ action: "get_clubs", countyId: "126", sport: "2" }),
+          signal: AbortSignal.timeout(15_000),
+          headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest", "Referer": "https://dublingaa.sportlomo.com/fixtures-3/" },
+        });
+        if (!res.ok) throw new Error(`Source site returned ${res.status}`);
+        const html = String(parseAjaxBody(await res.text()).html ?? "");
+        const list = [...html.matchAll(/<option value="(\d+)"[^>]*>([^<]+)</g)]
+          .map((m) => ({ id: m[1], name: m[2].replace(/&amp;/g, "&").replace(/&#0?39;/g, "'").trim() }));
+        camogieClubs = { at: Date.now(), list };
+      }
+      return new Response(JSON.stringify({ camogie: camogieClubs.list }), {
+        headers: { ...common, "Cache-Control": "public, max-age=86400", "Content-Type": "application/json; charset=utf-8" },
+      });
+    } catch (e) {
+      return text(`Could not load clubs: ${(e as Error).message}`, 502);
+    }
   }
 
   if (type === "club") {
