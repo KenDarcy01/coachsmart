@@ -297,6 +297,8 @@ const ORG_OF = { Football: 'gaa', Hurling: 'gaa', Camogie: 'camogie', 'Ladies Fo
 const ORG_PARAM = { gaa: 'club', camogie: 'camogieClub', lgfa: 'lgfaClub' };
 const CLUB_SEED = { Clontarf: { gaa: '3561', camogie: '40597', lgfa: '5346' } };
 const ALL_CLUBS_MAX_DAYS = 15;   // same limit as the edge function
+const CHUNK_DAYS = 14;           // one request per two weeks of a long range
+const addDaysFrom = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d; };
 const GENDER = { boys: ['Football', 'Hurling'], girls: ['Camogie', 'Ladies Football'] };
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -405,9 +407,41 @@ async function loadGames() {
       url += `&clubName=${encodeURIComponent(club)}` +
         Object.entries(ORG_PARAM).map(([org, p]) => ids[org] ? `&${p}=${ids[org]}` : '').join('');
     }
-    const res = await fetch(url);
-    if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
-    data = await res.json();
+    // Long ranges are fetched as two-week chunks (a few at a time) so no single
+    // request runs into the server's time limit; results are merged and de-duplicated.
+    const chunks = [];
+    for (let d = from; d <= to; d = isoDay(addDaysFrom(d, CHUNK_DAYS))) {
+      const end = isoDay(addDaysFrom(d, CHUNK_DAYS - 1));
+      chunks.push([d, end < to ? end : to]);
+    }
+    const getChunk = async ([f, t], tries = 2) => {
+      try {
+        const res = await fetch(url.replace(`from=${from}&to=${to}`, `from=${f}&to=${t}`));
+        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        return await res.json();
+      } catch (e) {
+        if (tries > 1) return getChunk([f, t], tries - 1);
+        throw e;
+      }
+    };
+    const parts = new Array(chunks.length);
+    let next = 0, done = 0;
+    const worker = async () => {
+      while (next < chunks.length && seq === loadSeq) {
+        const i = next++;
+        parts[i] = await getChunk(chunks[i]);
+        if (chunks.length > 1 && seq === loadSeq) {
+          const sub = main.querySelector('.empty-sub');
+          if (sub) sub.textContent = `Loading ${club || 'every club'}’s games… ${Math.round(++done / chunks.length * 100)}%`;
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, chunks.length) }, worker));
+    const seen = new Set();
+    data = parts.flat().filter(g => {
+      const id = [g.competitionId, g.home, g.away, g.start].join('|');
+      return !seen.has(id) && seen.add(id);
+    });
   } catch (e) {
     if (seq !== loadSeq) return;
     games = []; loadedKey = '';
