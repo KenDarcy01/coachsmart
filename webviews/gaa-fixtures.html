@@ -194,9 +194,21 @@ th.l, td.l { text-align: left; }
 td { padding: 9px 8px; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; border-top: 1px solid var(--border); }
 tr.mine td { color: var(--green); font-weight: 700; }
 td.pts { font-weight: 700; }
+/* Teams ranking */
+.teams-wrap { overflow-x: auto; margin-top: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+.teams-wrap th { cursor: pointer; white-space: nowrap; user-select: none; }
+.teams-wrap th.sorted { color: var(--green); }
+.teams-wrap td.rank { color: var(--muted); width: 28px; }
+.teams-wrap td.team b { font-weight: 600; }
+.teams-wrap td.team span { display: block; font-size: 12px; color: var(--muted); }
+.teams-wrap td.pos { color: var(--green); } .teams-wrap td.neg { color: #e5736f; }
+.teams-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
 /* ── Phone ── */
 @media (max-width: 760px) {
+  .teams-wrap .wide { display: none; }
+  .teams-wrap td, .teams-wrap th { padding-left: 6px; padding-right: 6px; }
+  .topbar .seg.small button { padding-left: 8px; padding-right: 8px; }
   .app { flex-direction: column; height: 100dvh; }
   .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); flex-shrink: 0; max-height: 70dvh; }
   .logo-area { padding: 12px 14px; }
@@ -307,7 +319,8 @@ const GENDER = { boys: ['Football', 'Hurling'], girls: ['Camogie', 'Ladies Footb
 let games = [];
 let gender = 'all';
 let band = 'all';   // all | ccc1 (U12 and under) | ccc2 (U13-U16) | adult (Minor and up)
-let view = recall('gaa_view', 'all');   // all | results | fixtures
+let view = recall('gaa_view', 'all');   // all | results | fixtures | teams
+let teamSort = { key: 'pct', dir: -1 };
 let venue = recall('gaa_venue', 'all'); // all | home | away (relative to the chosen club)
 // Every chip starts on; these hold what has been switched off, so new
 // codes/ages/competitions appear switched on.
@@ -594,7 +607,7 @@ function render() {
   main.innerHTML = `
     <div class="topbar">
       <div class="topbar-left">
-        <div class="seg small">${segBtn('all', 'All')}${segBtn('results', `Results ${results.length}`)}${segBtn('fixtures', `Fixtures ${upcoming.length}`)}</div>
+        <div class="seg small">${segBtn('all', 'All')}${segBtn('results', `Results ${results.length}`)}${segBtn('fixtures', `Fixtures ${upcoming.length}`)}${segBtn('teams', 'Teams')}</div>
         ${club ? `<div class="seg small">${venueBtn('all', 'All')}${venueBtn('home', 'Home')}${venueBtn('away', 'Away')}</div>` : ''}
         <div class="summary"><b>${esc(label)}</b> · ${shown.length} games · ${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}</div>
       </div>
@@ -606,8 +619,9 @@ function render() {
     <div class="list">
       ${shown.length ? '' : `<div class="empty-state"><div class="empty-title">Nothing matches these filters</div>
         <div class="empty-sub"><button class="clear-btn" style="font-size:13px" onclick="clearFilters()">Reset filters</button></div></div>`}
-      ${view !== 'fixtures' ? section('Results', results, club ? statsCards(results, g => sameClub(homeClub(g), club)) : '') : ''}
-      ${view !== 'results' ? section('Upcoming', upcoming) : ''}
+      ${view === 'teams' ? teamsTable(results, club) : ''}
+      ${view === 'all' || view === 'results' ? section('Results', results, club ? statsCards(results, g => sameClub(homeClub(g), club)) : '') : ''}
+      ${view === 'all' || view === 'fixtures' ? section('Upcoming', upcoming) : ''}
       ${shown.length && view === 'results' && !results.length ? '<div class="empty-state"><div class="empty-sub">No results in these dates.</div></div>' : ''}
       ${shown.length && view === 'fixtures' && !upcoming.length ? '<div class="empty-state"><div class="empty-sub">No upcoming fixtures in these dates.</div></div>' : ''}
     </div>`;
@@ -648,6 +662,50 @@ function statsCards(results, isHome) {
       <div class="stat-big">${one(avgFor)}<small>v</small> ${one(avgAgainst)}</div>
       <div class="stat-sub">For v against · ${diff >= 0 ? '+' : ''}${one(diff)} a game</div></div>
   </div>`;
+}
+
+// Teams ranked over the results shown. A team is name + code + age, since the
+// same club name fields many teams. With a club chosen, only that club's sides count.
+function teamsTable(results, club) {
+  const teams = {};
+  const add = (name, g, forPts, against) => {
+    const k = [name, g.code, g.age].join('|');
+    const t = teams[k] = teams[k] || { name, code: g.code, age: g.age, p: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0 };
+    t.p++; t.pf += forPts; t.pa += against;
+    forPts > against ? t.w++ : forPts < against ? t.l++ : t.d++;
+  };
+  results.forEach(g => {
+    const sc = parseScore(g.score);
+    if (!sc || !/\d/.test(g.score)) return;
+    if (!club || sameClub(homeClub(g), club)) add(g.home, g, sc.ht, sc.at);
+    if (!club || sameClub(awayClub(g), club)) add(g.away, g, sc.at, sc.ht);
+  });
+  const list = Object.values(teams).map(t => ({ ...t, pct: Math.round(t.w / t.p * 100), diff: t.pf - t.pa,
+    avg: Math.round((t.pf - t.pa) / t.p * 10) / 10 }));
+  if (!list.length) return '<div class="empty-state"><div class="empty-sub">No scored results for these filters yet.</div></div>';
+  const { key, dir } = teamSort;
+  const val = t => key === 'team' ? `${t.name} ${t.code} ${t.age}` : t[key];
+  list.sort((a, b) => (typeof val(a) === 'string' ? val(a).localeCompare(val(b)) : val(a) - val(b)) * dir
+    || b.pct - a.pct || b.avg - a.avg || b.p - a.p);
+  const th = (k, label, cls = '') => `<th class="${cls} ${key === k ? 'sorted' : ''}" onclick="sortTeams('${k}')">${label}${key === k ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`;
+  const sign = v => v > 0 ? `+${v}` : `${v}`;
+  return `
+    <div class="section-title">Teams<span class="n">${list.length}</span></div>
+    <div class="teams-wrap"><table>
+      <thead><tr><th class="l">#</th>${th('team', 'Team', 'l')}${th('p', 'P')}${th('w', 'W')}${th('d', 'D')}${th('l', 'L')}
+        ${th('pct', 'Win %')}${th('pf', 'For', 'wide')}${th('pa', 'Agst', 'wide')}${th('diff', 'Diff')}${th('avg', 'Per game', 'wide')}</tr></thead>
+      <tbody>${list.map((t, i) => `
+        <tr><td class="l rank">${i + 1}</td>
+          <td class="l team"><b>${esc(t.name)}</b><span>${esc(t.code)} · ${esc(t.age)}</span></td>
+          <td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td class="pts">${t.pct}%</td>
+          <td class="wide">${t.pf}</td><td class="wide">${t.pa}</td><td class="${t.diff > 0 ? 'pos' : t.diff < 0 ? 'neg' : ''}">${sign(t.diff)}</td>
+          <td class="wide ${t.avg > 0 ? 'pos' : t.avg < 0 ? 'neg' : ''}">${sign(t.avg)}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <div class="teams-note">Ranked by win %, then points difference per game. Points count goals as 3. Tap a heading to sort. Only results in the dates and filters chosen are counted.</div>`;
+}
+function sortTeams(k) {
+  teamSort = teamSort.key === k ? { key: k, dir: -teamSort.dir } : { key: k, dir: k === 'team' ? 1 : (k === 'pa' || k === 'l' ? 1 : -1) };
+  render();
 }
 
 function setView(v) { view = v; store('gaa_view', v); render(); }
