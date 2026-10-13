@@ -128,9 +128,87 @@ export function filterGames(games: Game[], opts: { team?: string; results: boole
     .sort((a, b) => a.startUtc.getTime() - b.startUtc.getTime());
 }
 
+// ---------- Club fixtures (dublingaa.sportlomo.com/fixtures-3/) ----------
+//
+// The club fixtures page POSTs to wp-admin/admin-ajax.php (action=get_fixtures3)
+// and gets back {html, totalRecords, isLoadMore}. One call covers every
+// competition the club plays in, so nothing has to be listed by hand.
+
+export interface ClubGame extends Game {
+  homeClubId: string;
+  awayClubId: string;
+}
+
+/** The body is JSON but has raw tabs/newlines inside the html string. */
+export function parseAjaxBody(body: string): { html: string; totalRecords: number; isLoadMore: boolean } {
+  const j = JSON.parse(body.replace(/[\r\n\t]+/g, " "));
+  return {
+    html: String(j.html ?? ""),
+    totalRecords: Number(j.totalRecords) || 0,
+    isLoadMore: j.isLoadMore === true,
+  };
+}
+
+const logoClubId = (src: string) => src.match(/\/clubLogos\/(\d+)\//)?.[1] ?? "";
+
+export function parseClubGames(html: string, today = new Date()): ClubGame[] {
+  const $ = load(html);
+  const out: ClubGame[] = [];
+  let date: { y: number; mo: number; d: number } | null = null;
+  let comp = "";
+  let compId = "";
+
+  $("thead.divider, tbody.fixture-row").each((_, el) => {
+    const node = $(el);
+    if (el.tagName === "thead") {
+      const dText = clean(node.find(".comp-header .date").first().text());
+      if (dText) date = resolveDate(dText, today);
+      const a = node.find(".comp-header .comp-name a").first();
+      comp = clean(a.text()) || comp;
+      compId = (a.attr("href") ?? "").match(/\/league-2\/(\d+)/)?.[1] ?? compId;
+      return;
+    }
+    const row = node.find("tr.desktop").first();
+    if (!row.length || !date) return;
+
+    const names = row.find(".team-name a").map((_, a) => clean($(a).text())).get();
+    if (names.length !== 2) return;
+    const tm = clean(row.find("td.time").first().text()).match(/^(\d{1,2}):(\d{2})$/);
+    const scores = row.find("td.score").map((_, s) => clean($(s).text())).get();
+    const played = scores.length === 2 && scores.every((s) => /\d/.test(s));
+    const foot = node.find(".footer-section").first();
+
+    out.push({
+      kind: played ? "result" : "fixture",
+      compId,
+      comp: clean(node.attr("data-competition") ?? "") || comp,
+      startUtc: dublinToUtc(date.y, date.mo, date.d, tm ? Number(tm[1]) : 0, tm ? Number(tm[2]) : 0),
+      home: names[0],
+      away: names[1],
+      score: played ? `${scores[0]} v ${scores[1]}` : "",
+      venue: clean(node.attr("data-venue") ?? "") || clean(foot.find(".venue span").first().text()),
+      referee: clean(foot.find(".referee span").first().text()),
+      note: [tm ? "" : "Time TBC", clean(foot.find(".comment span").first().text())].filter(Boolean).join(" · "),
+      homeClubId: logoClubId(row.find("td.align-right img.team-logo").attr("src") ?? ""),
+      awayClubId: logoClubId(row.find("td.align-left img.team-logo").attr("src") ?? ""),
+    });
+  });
+  return out;
+}
+
+/** "U13 Football League Div.3" -> {age:"U13", code:"Football", grade:"League Div.3"} */
+export function compMeta(name: string): { age: string; code: string; grade: string } {
+  const ageM = name.match(/\b(U-?\s?\d{1,2}|Minor|Junior|Intermediate|Senior|Adult)\b/i);
+  const age = ageM ? ageM[1].replace(/^u-?\s?/i, "U").replace(/^\w/, (c) => c.toUpperCase()) : "Other";
+  const codeM = name.match(/\b(Football|Hurling|Camogie)\b/i);
+  const code = codeM ? codeM[1][0].toUpperCase() + codeM[1].slice(1).toLowerCase() : "";
+  const grade = clean(name.replace(ageM?.[0] ?? "", "").replace(codeM?.[0] ?? "", ""));
+  return { age, code, grade };
+}
+
 // ---------- ICS ----------
 
-const esc = (s: string) =>
+const esc =(s: string) =>
   s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 
 /** RFC 5545 line folding at 75 octets, never splitting a UTF-8 character. */
