@@ -18,14 +18,14 @@
   --amber:  #F5A623;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); height: 100%; overflow: hidden; }
+html, body { font-family: 'DM Sans', sans-serif; font-size: 15px; background: var(--dark); color: var(--text); height: 100%; overflow: hidden; }
 
 /* ── Layout ── */
 .app { display: flex; height: 100vh; }
 
 /* ── Sidebar ── */
 .sidebar {
-  width: 244px; flex-shrink: 0;
+  width: 268px; flex-shrink: 0;
   background: var(--card);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
@@ -38,25 +38,35 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2.5px; line-height: 1; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2.5px; line-height: 1; }
 .logo span { color: var(--green); }
-.logo-sub { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+.logo-sub { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
 
 .s-section { padding: 14px 12px 6px; }
-.s-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; padding: 0 2px; }
+.s-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding: 0 2px; }
+
+/* age filter */
+.age-filter {
+  width: 100%; padding: 8px 10px; margin-bottom: 8px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+}
+.age-filter:focus { outline: none; border-color: var(--green); }
+.age-filter::placeholder { color: var(--muted); }
 
 /* competition items */
 .comp-item {
   display: flex; align-items: center; gap: 7px;
-  padding: 5px 4px; border-radius: 6px; margin-bottom: 1px; cursor: pointer;
+  padding: 6px 4px; border-radius: 6px; margin-bottom: 2px; cursor: pointer;
 }
 .comp-item:hover { background: var(--card2); }
 .comp-item label { display: flex; align-items: center; gap: 7px; flex: 1; cursor: pointer; }
-.comp-item input[type="checkbox"] { width: 13px; height: 13px; accent-color: var(--green); flex-shrink: 0; }
-.comp-name { font-size: 12px; font-weight: 500; line-height: 1.3; }
+.comp-item input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--green); flex-shrink: 0; }
+.comp-name { font-size: 13px; font-weight: 500; line-height: 1.3; }
 .comp-del {
-  width: 18px; height: 18px; border: none; background: none;
-  color: var(--muted); cursor: pointer; border-radius: 3px; font-size: 14px;
+  width: 20px; height: 20px; border: none; background: none;
+  color: var(--muted); cursor: pointer; border-radius: 3px; font-size: 15px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   opacity: 0; transition: opacity .1s;
 }
@@ -66,40 +76,40 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 /* sheet sync */
 .sync-row { display: flex; gap: 6px; align-items: center; }
 .sync-input {
-  flex: 1; padding: 7px 9px;
+  flex: 1; padding: 8px 10px;
   background: var(--card2); border: 1px solid var(--border);
-  border-radius: 6px; color: var(--text); font-size: 11px;
+  border-radius: 6px; color: var(--text); font-size: 13px;
   font-family: 'DM Sans', sans-serif; min-width: 0;
 }
 .sync-input:focus { outline: none; border-color: var(--green); }
 .sync-input::placeholder { color: var(--muted); }
 .sync-btn {
-  flex-shrink: 0; padding: 7px 10px;
+  flex-shrink: 0; padding: 8px 11px;
   background: rgba(135,194,50,0.12); border: 1px solid rgba(135,194,50,0.28);
-  border-radius: 6px; color: var(--green); font-size: 11px; font-weight: 600;
+  border-radius: 6px; color: var(--green); font-size: 13px; font-weight: 600;
   font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap;
   transition: all .15s;
 }
 .sync-btn:hover { background: rgba(135,194,50,0.2); }
 .sync-btn:disabled { opacity: 0.4; cursor: default; }
-.sync-status { font-size: 11px; margin-top: 5px; min-height: 14px; padding: 0 2px; }
+.sync-status { font-size: 13px; margin-top: 5px; min-height: 16px; padding: 0 2px; }
 
 .add-btn {
-  width: 100%; margin-top: 6px; padding: 7px 6px;
+  width: 100%; margin-top: 6px; padding: 8px 8px;
   background: none; border: 1px dashed rgba(255,255,255,0.12);
-  border-radius: 6px; color: var(--muted); font-size: 12px; font-weight: 500;
+  border-radius: 6px; color: var(--muted); font-size: 13px; font-weight: 500;
   font-family: 'DM Sans', sans-serif; cursor: pointer; text-align: left;
   transition: all .15s; display: flex; align-items: center; gap: 5px;
 }
 .add-btn:hover { border-color: var(--green); color: var(--green); background: rgba(135,194,50,0.06); }
 
-.empty-comps { padding: 6px 4px 8px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.empty-comps { padding: 6px 4px 8px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
 /* filter inputs */
 .filter-input {
   width: 100%; padding: 8px 10px;
   background: var(--card2); border: 1px solid var(--border);
-  border-radius: 6px; color: var(--text); font-size: 13px;
+  border-radius: 6px; color: var(--text); font-size: 14px;
   font-family: 'DM Sans', sans-serif;
 }
 .filter-input:focus { outline: none; border-color: var(--green); }
@@ -107,8 +117,8 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 
 .fetch-btn {
   margin: 12px; width: calc(100% - 24px);
-  padding: 11px; background: var(--green); border: none;
-  border-radius: 8px; color: #111; font-size: 14px; font-weight: 700;
+  padding: 12px; background: var(--green); border: none;
+  border-radius: 8px; color: #111; font-size: 15px; font-weight: 700;
   font-family: 'DM Sans', sans-serif; cursor: pointer; flex-shrink: 0;
   transition: opacity .15s;
 }
@@ -128,7 +138,7 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 .comp-tabs::-webkit-scrollbar { height: 3px; }
 .comp-tabs::-webkit-scrollbar-thumb { background: var(--border); }
 .comp-tab {
-  padding: 13px 18px 11px; font-size: 13px; font-weight: 500; color: var(--muted);
+  padding: 13px 18px 11px; font-size: 14px; font-weight: 500; color: var(--muted);
   cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap;
   transition: color .15s; margin-bottom: -1px; flex-shrink: 0;
 }
@@ -141,8 +151,8 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 /* sub-tabs */
 .sub-tabs { display: flex; gap: 4px; margin-bottom: 14px; flex-shrink: 0; }
 .sub-tab {
-  padding: 5px 14px; border-radius: 20px;
-  font-size: 12px; font-weight: 600; color: var(--muted);
+  padding: 6px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; color: var(--muted);
   cursor: pointer; transition: all .15s; border: 1px solid transparent;
 }
 .sub-tab:hover { color: var(--text); background: var(--card2); }
@@ -150,7 +160,7 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 .sub-tab .badge {
   display: inline-block; margin-left: 5px;
   background: var(--card2); border-radius: 10px;
-  padding: 0 6px; font-size: 10px; font-weight: 700; color: var(--muted);
+  padding: 0 6px; font-size: 11px; font-weight: 700; color: var(--muted);
   vertical-align: middle;
 }
 .sub-tab.active .badge { background: rgba(135,194,50,0.15); color: var(--green); }
@@ -160,12 +170,12 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 10px; flex-shrink: 0;
 }
-.row-count { font-size: 12px; color: var(--muted); }
+.row-count { font-size: 14px; color: var(--muted); }
 .export-btn {
   display: flex; align-items: center; gap: 5px;
-  padding: 5px 12px;
+  padding: 6px 14px;
   background: var(--card2); border: 1px solid rgba(255,255,255,0.13);
-  border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 500;
+  border-radius: 6px; color: var(--text); font-size: 13px; font-weight: 500;
   font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all .15s;
 }
 .export-btn:hover { background: var(--card); border-color: rgba(255,255,255,0.22); }
@@ -177,8 +187,8 @@ html, body { font-family: 'DM Sans', sans-serif; background: var(--dark); color:
 table { width: 100%; border-collapse: collapse; }
 thead th {
   position: sticky; top: 0; z-index: 1;
-  background: var(--card); padding: 9px 12px;
-  font-size: 10px; font-weight: 600; color: var(--muted);
+  background: var(--card); padding: 10px 14px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
   text-transform: uppercase; letter-spacing: .5px;
   border-bottom: 1px solid var(--border); white-space: nowrap;
   text-align: left;
@@ -188,7 +198,7 @@ thead th.c { text-align: center; }
 tbody tr { border-bottom: 1px solid var(--border); }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: rgba(255,255,255,0.025); }
-td { padding: 9px 12px; font-size: 13px; vertical-align: middle; }
+td { padding: 10px 14px; font-size: 15px; vertical-align: middle; }
 td.r { text-align: right; }
 td.c { text-align: center; }
 td.muted { color: var(--muted); }
@@ -196,13 +206,13 @@ td.nowrap { white-space: nowrap; }
 
 .team-name { font-weight: 500; }
 .score-pill {
-  display: inline-block; padding: 2px 8px; border-radius: 4px;
-  font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums;
+  display: inline-block; padding: 3px 9px; border-radius: 4px;
+  font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums;
   background: var(--card2);
 }
 .score-win { background: rgba(135,194,50,0.15); color: var(--green); }
 .score-lose { opacity: 0.6; }
-.vs { color: var(--muted); font-size: 11px; margin: 0 4px; }
+.vs { color: var(--muted); font-size: 13px; margin: 0 4px; }
 .pos { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
 .pos.top { color: var(--green); }
 td.num { font-variant-numeric: tabular-nums; text-align: right; color: var(--text); }
@@ -240,10 +250,10 @@ td.pts { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700
   background: var(--card); border: 1px solid var(--border);
   border-radius: 14px; padding: 24px; width: 340px; max-width: calc(100vw - 32px);
 }
-.modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
 .field { margin-bottom: 12px; }
 .field label {
-  display: block; font-size: 10px; font-weight: 600;
+  display: block; font-size: 11px; font-weight: 600;
   color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px;
 }
 .field input {
@@ -299,7 +309,14 @@ td.pts { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700
       </div>
 
       <div class="s-section">
-        <div class="s-label">Competitions</div>
+        <div class="s-label">Search by Age / Grade</div>
+        <input type="text" class="age-filter" id="ageFilter" placeholder="e.g. U13 Boys, U15 Girls…">
+        <div style="font-size:12px;color:var(--muted);padding:3px 2px 10px;">Fetches all matching competitions automatically. Or leave blank and select from your list below.</div>
+      </div>
+
+      <div class="s-section">
+        <div class="s-label">Your Competitions</div>
+        <input type="text" class="age-filter" id="compSearch" placeholder="Filter list…" oninput="onAgeFilter()" style="margin-bottom:6px">
         <div id="compList"></div>
         <button class="add-btn" onclick="openModal()">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -364,6 +381,19 @@ function loadComps() {
   try { competitions = JSON.parse(localStorage.getItem('gaa_comps') || '[]'); } catch { competitions = []; }
 }
 
+// ── Age / grade filter ─────────────────────────────────────────────────────
+function onAgeFilter() {
+  const q = document.getElementById('compSearch').value.trim().toLowerCase();
+  competitions.forEach((c, i) => {
+    const item = document.querySelector(`.comp-item[data-i="${i}"]`);
+    const chk  = document.getElementById('chk' + i);
+    if (!item || !chk) return;
+    const match = !q || c.name.toLowerCase().includes(q);
+    item.style.display = match ? '' : 'none';
+    chk.checked = match;
+  });
+}
+
 // ── Competition list rendering ─────────────────────────────────────────────
 function renderCompList() {
   const el = document.getElementById('compList');
@@ -372,7 +402,7 @@ function renderCompList() {
     return;
   }
   el.innerHTML = competitions.map((c, i) => `
-    <div class="comp-item">
+    <div class="comp-item" data-i="${i}">
       <label>
         <input type="checkbox" id="chk${i}" data-id="${c.id}" checked>
         <span class="comp-name">${esc(c.name)}</span>
@@ -412,21 +442,52 @@ document.getElementById('mId').addEventListener('keydown', e => { if (e.key === 
 
 // ── Fetch ──────────────────────────────────────────────────────────────────
 async function fetchAll() {
-  const selected = competitions.filter((c, i) => {
-    const el = document.getElementById('chk' + i);
-    return el && el.checked;
-  });
-  if (!selected.length) return;
-
-  const club = document.getElementById('clubFilter').value.trim();
+  const ageQ = document.getElementById('ageFilter').value.trim();
+  const club  = document.getElementById('clubFilter').value.trim();
   document.getElementById('fetchBtn').disabled = true;
-
   showLoading();
 
-  fetchedData = {};
-  activeComp  = selected[0].id;
+  let toFetch = []; // [{id, name}]
 
-  await Promise.all(selected.map(async c => {
+  if (ageQ) {
+    // Discover competitions by age/grade from the Dublin GAA site
+    try {
+      const res = await fetch(`${EDGE}?type=discover&search=${encodeURIComponent(ageQ)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toFetch = await res.json();
+    } catch (e) {
+      document.getElementById('fetchBtn').disabled = false;
+      document.getElementById('main').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Discovery failed</div>
+          <div class="empty-sub">${esc(e.message)}</div>
+        </div>`;
+      return;
+    }
+    if (!toFetch.length) {
+      document.getElementById('fetchBtn').disabled = false;
+      document.getElementById('main').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">No competitions found</div>
+          <div class="empty-sub">No competitions matching "${esc(ageQ)}" were found on the Dublin GAA site.</div>
+        </div>`;
+      return;
+    }
+  } else {
+    // Use checked competition list
+    toFetch = competitions.filter((c, i) => document.getElementById('chk' + i)?.checked);
+    if (!toFetch.length) {
+      document.getElementById('fetchBtn').disabled = false;
+      return;
+    }
+  }
+
+  fetchedData = {};
+  activeComp  = null;
+
+  await Promise.all(toFetch.map(async c => {
     let gamesUrl = `${EDGE}?comp=${c.id}&format=json&results=1`;
     if (club) gamesUrl += '&team=' + encodeURIComponent(club);
     const tableUrl = `${EDGE}?comp=${c.id}&type=table`;
@@ -465,7 +526,8 @@ function showLoading() {
 function renderAll() {
   const ids = Object.keys(fetchedData);
   if (!ids.length) return;
-  if (!ids.includes(activeComp)) activeComp = ids[0];
+  // 'all' is the virtual combined tab; default to it when multiple comps
+  if (activeComp !== 'all' && !ids.includes(activeComp)) activeComp = ids.length > 1 ? 'all' : ids[0];
 
   const main = document.getElementById('main');
   main.innerHTML = '';
@@ -474,7 +536,9 @@ function renderAll() {
   if (ids.length > 1) {
     const tabsEl = document.createElement('div');
     tabsEl.className = 'comp-tabs';
-    tabsEl.innerHTML = ids.map(id => {
+    // "All" combined tab first
+    tabsEl.innerHTML = `<div class="comp-tab ${activeComp === 'all' ? 'active' : ''}" onclick="switchComp('all')">All</div>`;
+    tabsEl.innerHTML += ids.map(id => {
       const d = fetchedData[id];
       return `<div class="comp-tab ${id === activeComp ? 'active' : ''}"
                    onclick="switchComp('${id}')">${esc(d.name)}</div>`;
@@ -491,31 +555,49 @@ function renderAll() {
   renderContent();
 }
 
+function getViewData(compId) {
+  // Returns {fixtures, results, standings} — merged across all comps for 'all'
+  if (compId === 'all') {
+    const all = Object.values(fetchedData);
+    return {
+      fixtures:  all.flatMap(d => d.fixtures),
+      results:   all.flatMap(d => d.results),
+      standings: [], // standings don't merge meaningfully
+    };
+  }
+  return fetchedData[compId] || { fixtures: [], results: [], standings: [] };
+}
+
 function renderContent() {
-  const d = fetchedData[activeComp];
-  if (!d) return;
-  const sub = activeSubs[activeComp] || 'fixtures';
   const panel = document.getElementById('contentPanel');
   panel.innerHTML = '';
 
-  if (d.error) {
-    panel.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">⚠️</div>
-        <div class="empty-title">Could not load</div>
-        <div class="empty-sub">${esc(d.error)}</div>
-      </div>`;
-    return;
+  if (activeComp !== 'all') {
+    const d = fetchedData[activeComp];
+    if (d?.error) {
+      panel.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Could not load</div>
+          <div class="empty-sub">${esc(d.error)}</div>
+        </div>`;
+      return;
+    }
   }
 
-  // Sub-tabs
+  const vd  = getViewData(activeComp);
+  const sub = activeSubs[activeComp] || 'fixtures';
+
+  // Sub-tabs — hide Standings on the combined "All" view
+  const tabs = [
+    { key: 'fixtures',  label: 'Fixtures',  count: vd.fixtures.length  },
+    { key: 'results',   label: 'Results',   count: vd.results.length   },
+    ...(activeComp !== 'all' ? [{ key: 'standings', label: 'Standings', count: vd.standings.length }] : []),
+  ];
+
   const subEl = document.createElement('div');
   subEl.className = 'sub-tabs';
-  subEl.innerHTML = [
-    { key: 'fixtures',  label: 'Fixtures',  count: d.fixtures.length  },
-    { key: 'results',   label: 'Results',   count: d.results.length   },
-    { key: 'standings', label: 'Standings', count: d.standings.length },
-  ].map(t => `
+  subEl.innerHTML = tabs.map(t => `
     <div class="sub-tab ${t.key === sub ? 'active' : ''}" onclick="switchSub('${t.key}')">
       ${t.label}<span class="badge">${t.count}</span>
     </div>
@@ -523,14 +605,9 @@ function renderContent() {
   panel.appendChild(subEl);
 
   // Toolbar
-  const toolbar = document.createElement('div');
+  const rowCount = sub === 'standings' ? vd.standings.length : sub === 'results' ? vd.results.length : vd.fixtures.length;
+  const toolbar  = document.createElement('div');
   toolbar.className = 'table-toolbar';
-
-  let rowCount = 0;
-  if (sub === 'fixtures')  rowCount = d.fixtures.length;
-  if (sub === 'results')   rowCount = d.results.length;
-  if (sub === 'standings') rowCount = d.standings.length;
-
   toolbar.innerHTML = `
     <span class="row-count">${rowCount} ${sub === 'standings' ? 'team' : 'game'}${rowCount !== 1 ? 's' : ''}</span>
     <button class="export-btn" onclick="exportCsv('${activeComp}','${sub}')">
@@ -544,19 +621,20 @@ function renderContent() {
   // Table
   const wrap = document.createElement('div');
   wrap.className = 'table-wrap';
-  if (sub === 'fixtures')  wrap.innerHTML = buildFixturesTable(d.fixtures);
-  if (sub === 'results')   wrap.innerHTML = buildResultsTable(d.results);
-  if (sub === 'standings') wrap.innerHTML = buildStandingsTable(d.standings);
+  if (sub === 'fixtures')  wrap.innerHTML = buildFixturesTable(vd.fixtures);
+  if (sub === 'results')   wrap.innerHTML = buildResultsTable(vd.results);
+  if (sub === 'standings') wrap.innerHTML = buildStandingsTable(vd.standings);
   panel.appendChild(wrap);
 }
 
 function switchComp(id) {
   activeComp = id;
-  // Re-render tabs
-  document.querySelectorAll('.comp-tab').forEach(el => {
-    el.classList.toggle('active', el.textContent.trim() === fetchedData[id].name);
+  document.querySelectorAll('.comp-tab').forEach((el, i) => {
+    // first tab is "All" when multiple comps
+    const ids = Object.keys(fetchedData);
+    const tabId = ids.length > 1 ? (i === 0 ? 'all' : ids[i - 1]) : ids[i];
+    el.classList.toggle('active', tabId === id);
   });
-  // Re-render content
   renderContent();
 }
 
@@ -653,30 +731,30 @@ function buildStandingsTable(rows) {
 
 // ── CSV Export ─────────────────────────────────────────────────────────────
 function exportCsv(compId, type) {
-  const d = fetchedData[compId];
-  if (!d) return;
+  const vd = getViewData(compId);
+  const name = compId === 'all' ? 'All' : (fetchedData[compId]?.name || compId);
   let headers, rows;
 
   if (type === 'fixtures') {
-    headers = ['Date/Time', 'Home', 'Away', 'Venue', 'Note'];
-    rows = [...d.fixtures].sort((a, b) => new Date(a.start) - new Date(b.start))
-      .map(g => [fmtDate(g.start), g.home, g.away, g.venue || '', g.note || '']);
+    headers = ['Date/Time', 'Competition', 'Home', 'Away', 'Venue', 'Note'];
+    rows = [...vd.fixtures].sort((a, b) => new Date(a.start) - new Date(b.start))
+      .map(g => [fmtDate(g.start), g.competition, g.home, g.away, g.venue || '', g.note || '']);
   } else if (type === 'results') {
-    headers = ['Date/Time', 'Home', 'Home Score', 'Away Score', 'Away', 'Venue'];
-    rows = [...d.results].sort((a, b) => new Date(b.start) - new Date(a.start))
+    headers = ['Date/Time', 'Competition', 'Home', 'Home Score', 'Away Score', 'Away', 'Venue'];
+    rows = [...vd.results].sort((a, b) => new Date(b.start) - new Date(a.start))
       .map(g => {
         const sc = parseScore(g.score);
-        return [fmtDate(g.start), g.home, sc?.home || '', sc?.away || '', g.away, g.venue || ''];
+        return [fmtDate(g.start), g.competition, g.home, sc?.home || '', sc?.away || '', g.away, g.venue || ''];
       });
   } else {
     headers = ['Pos', 'Team', 'P', 'W', 'D', 'L', 'Pts'];
-    rows = d.standings.map(r => [r.position, r.team, r.played, r.won, r.drawn, r.lost, r.points]);
+    rows = vd.standings.map(r => [r.position, r.team, r.played, r.won, r.drawn, r.lost, r.points]);
   }
 
   const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = `${d.name.replace(/[^a-z0-9]+/gi, '-')}-${type}.csv`;
+  a.download = `${name.replace(/[^a-z0-9]+/gi, '-')}-${type}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
