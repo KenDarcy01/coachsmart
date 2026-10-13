@@ -157,6 +157,35 @@ function fold(line: string): string {
 
 const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
+// ---------- Competition discovery ----------
+
+export interface CompEntry { id: string; name: string }
+
+/**
+ * Scrape any Dublin GAA Sportlomo page and return every competition
+ * linked from it. Links take the form …/league-2/{id}/ or …/league-2/{id}/…
+ * Optional search filters by name substring (case-insensitive).
+ */
+export function discoverComps(html: string, search = ""): CompEntry[] {
+  const $ = load(html);
+  const seen = new Set<string>();
+  const out: CompEntry[] = [];
+  const q = search.toLowerCase();
+  $('a[href*="/league-2/"]').each((_, el) => {
+    const href = $(el).attr("href") ?? "";
+    const m = href.match(/\/league-2\/(\d{1,10})/);
+    if (!m) return;
+    const id = m[1];
+    if (seen.has(id)) return;
+    const name = clean($(el).text());
+    if (!name || name.length < 3) return;
+    if (q && !name.toLowerCase().includes(q)) return;
+    seen.add(id);
+    out.push({ id, name });
+  });
+  return out;
+}
+
 // ---------- League Table ----------
 
 export interface TableRow {
