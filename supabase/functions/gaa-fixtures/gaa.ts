@@ -210,10 +210,10 @@ export function compMeta(name: string): { age: string; code: string; grade: stri
   const afl = name.match(/\bA([FH])L\b/i);
   const ageM = name.match(/\b(?:U|Under)[\s-]?(\d{1,2})\b/i) ??
     name.match(/\b(Minor|Junior|Inter(?:mediate)?|Senior|Adult|F[eé]ile)\b/i);
-  // "Inter" = Intermediate; Féile is the U14 competition
+  // "Inter" = Intermediate; Féile is the U15 competition (Ken)
   const word = ageM?.[1].toLowerCase() ?? "";
   const age = !ageM ? (afl ? "Adult" : "Other") : /^\d+$/.test(ageM[1]) ? `U${Number(ageM[1])}`
-    : word === "inter" ? "Intermediate" : /^f[eé]ile$/.test(word) ? "U14"
+    : word === "inter" ? "Intermediate" : /^f[eé]ile$/.test(word) ? "U15"
     : ageM[1][0].toUpperCase() + ageM[1].slice(1).toLowerCase();
   const codeM = name.match(/\b(Football|Hurling|Camogie)\b/i);
   const code = codeM ? codeM[1][0].toUpperCase() + codeM[1].slice(1).toLowerCase()
