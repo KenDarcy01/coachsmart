@@ -320,6 +320,17 @@ const EDGE = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/gaa-fixtures
 const ORG_OF = { Football: 'gaa', Hurling: 'gaa', Camogie: 'camogie', 'Ladies Football': 'lgfa' };
 const ORG_PARAM = { gaa: 'club', camogie: 'camogieClub', lgfa: 'lgfaClub' };
 const CLUB_SEED = { Clontarf: { gaa: '3561', camogie: '40597', lgfa: '5346' } };
+// Camogie club list name -> names the same club goes by in GAA fixtures
+const CAMOGIE_ALIAS = {
+  'Naomh Brid': ['St Brigids'],
+  'Naomh Jude': ['St Judes'],
+  'Naomh Fionnbarra': ['St Finbarrs'],
+  'Naomh Caitriona': ['St Catherines'],
+  'Round Towers Lusk': ['Round Towers (L)', 'Round Towers Lusk'],
+  'Round Tower': ['Round Towers (C)', 'Round Towers Clondalkin'],
+  'St Pats Donabate': ['St Patricks Donabate'],
+  'Kevins': ['St Kevins'],
+};
 const ALL_CLUBS_MAX_DAYS = 15;   // same limit as the edge function
 const CHUNK_DAYS = 14;           // one request per two weeks of a long range
 const addDaysFrom = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d; };
@@ -352,7 +363,8 @@ function clubDir() {
   // Camogie IDs come from Sportlomo's camogie club list (a club's camogie team may
   // never have shown up in a loaded game, so it can't be learned)
   for (const { id, name } of recall('gaa_camogie_clubs', { list: [] }).list) {
-    const k = Object.keys(dir).find(n => sameClub(n, name));
+    const names = [name, ...(CAMOGIE_ALIAS[name.trim()] || [])];
+    const k = Object.keys(dir).find(n => names.some(c => sameClub(n, c)));
     if (k) dir[k] = { ...dir[k], camogie: id };
   }
   for (const [name, ids] of Object.entries(CLUB_SEED)) dir[name] = { ...dir[name], ...ids };   // seeds win
