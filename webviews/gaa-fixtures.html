@@ -210,13 +210,24 @@ td.pts { font-weight: 700; }
 .teams-wrap tbody tr { cursor: pointer; }
 .teams-wrap tbody tr:hover td.team b, .teams-wrap tr.sub:hover td.team { color: var(--green); }
 .teams-wrap .caret { cursor: pointer; padding: 4px 2px; }
+.trend-wrap { position: relative; margin-top: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 6px 4px; }
+.trend-wrap svg { display: block; touch-action: pan-y; }
+.trend-wrap .tg { stroke: rgba(255,255,255,0.05); }
+.trend-wrap .t0 { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.trend-wrap .th { stroke: rgba(255,255,255,0.35); stroke-width: 1; }
+.trend-wrap .tl { fill: var(--muted); font-size: 11px; }
+.trend-tip { position: absolute; max-width: 320px; background: var(--card2); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; pointer-events: none; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+.trend-tip .tt-v { font-size: 18px; font-weight: 700; color: var(--text); }
+.trend-tip .tt-d { color: var(--muted); margin: 2px 0 4px; }
+.trend-tip .tt-g { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .teams-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
 /* ── Phone ── */
 @media (max-width: 760px) {
   .teams-wrap .wide { display: none; }
   .teams-wrap td, .teams-wrap th { padding-left: 6px; padding-right: 6px; }
-  .topbar .seg.small button { padding-left: 8px; padding-right: 8px; }
+  .topbar .seg.small button { padding-left: 7px; padding-right: 7px; font-size: 11.5px; }
+  .trend-tip { max-width: calc(100% - 8px); }
   .app { flex-direction: column; height: 100dvh; }
   .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); flex-shrink: 0; max-height: 70dvh; }
   .logo-area { padding: 12px 14px; }
@@ -655,7 +666,7 @@ function render() {
   main.innerHTML = `
     <div class="topbar">
       <div class="topbar-left">
-        <div class="seg small">${segBtn('all', 'All')}${segBtn('results', `Results ${results.length}`)}${segBtn('fixtures', `Fixtures ${upcoming.length}`)}${segBtn('teams', 'Teams')}</div>
+        <div class="seg small">${segBtn('all', 'All')}${segBtn('results', `Results ${results.length}`)}${segBtn('fixtures', `Fixtures ${upcoming.length}`)}${segBtn('teams', 'Teams')}${segBtn('trend', 'Chart')}</div>
         ${club ? `<div class="seg small">${venueBtn('all', 'All')}${venueBtn('home', 'Home')}${venueBtn('away', 'Away')}</div>` : ''}
         <div class="summary"><b>${esc(label)}</b> · ${shown.length} games · ${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}</div>
       </div>
@@ -668,11 +679,13 @@ function render() {
       ${shown.length ? '' : `<div class="empty-state"><div class="empty-title">Nothing matches these filters</div>
         <div class="empty-sub"><button class="clear-btn" style="font-size:13px" onclick="clearFilters()">Reset filters</button></div></div>`}
       ${view === 'teams' ? teamsTable(results, club) : ''}
+      ${view === 'trend' ? trendSection(results, club) : ''}
       ${view === 'all' || view === 'results' ? section('Results', results, club ? statsCards(results, g => sameClub(homeClub(g), club)) : '') : ''}
       ${view === 'all' || view === 'fixtures' ? section('Upcoming', upcoming) : ''}
       ${shown.length && view === 'results' && !results.length ? '<div class="empty-state"><div class="empty-sub">No results in these dates.</div></div>' : ''}
       ${shown.length && view === 'fixtures' && !upcoming.length ? '<div class="empty-state"><div class="empty-sub">No upcoming fixtures in these dates.</div></div>' : ''}
     </div>`;
+  if (view === 'trend') drawTrend();
 }
 
 // Win/draw/loss record over the results given (scored games only).
@@ -835,6 +848,141 @@ function sortTeams(k) {
   teamSort = teamSort.key === k ? { key: k, dir: -teamSort.dir } : { key: k, dir: k === 'team' ? 1 : (k === 'pa' || k === 'l' ? 1 : -1) };
   render();
 }
+
+// ── Score-difference chart ─────────────────────────────────────────────────
+// One point per day: the chosen club's average points difference in that day's
+// scored results (so several teams playing the same day don't zigzag the line).
+let trendData = null;
+function trendSection(results, club) {
+  trendData = null;
+  if (!club) return '<div class="empty-state"><div class="empty-sub">Pick a club to chart its score difference over time.</div></div>';
+  const days = new Map();
+  results.forEach(g => {
+    const sc = parseScore(g.score);
+    if (!sc || !/\d/.test(g.score)) return;
+    const home = sameClub(homeClub(g), club), away = sameClub(awayClub(g), club);
+    if (!home && !away) return;
+    const diff = home ? sc.ht - sc.at : sc.at - sc.ht;
+    const day = isoDay(new Date(g.start));
+    const d = days.get(day) || { day, t: new Date(day + 'T12:00:00').getTime(), games: [] };
+    d.games.push({ g, diff });
+    days.set(day, d);
+  });
+  const pts = [...days.values()].sort((a, b) => a.t - b.t)
+    .map(d => ({ ...d, y: Math.round(d.games.reduce((s, x) => s + x.diff, 0) / d.games.length * 10) / 10 }));
+  if (pts.length < 2) return '<div class="empty-state"><div class="empty-sub">Not enough scored results in these dates and filters to draw a chart.</div></div>';
+  trendData = pts;
+  const all = pts.flatMap(p => p.games);
+  const w = all.filter(x => x.diff > 0).length, l = all.filter(x => x.diff < 0).length;
+  const avg = Math.round(all.reduce((s, x) => s + x.diff, 0) / all.length * 10) / 10;
+  return `
+    <div class="section-title">Score difference<span class="n">${all.length} games · ${w}W ${all.length - w - l}D ${l}L · ${avg > 0 ? '+' : ''}${avg} a game</span></div>
+    <div class="trend-wrap" id="trend"></div>
+    <div class="teams-note">Each point is a day: ${esc(club)}'s average points difference in that day's results (goals count as 3). Above the line is winning, below is losing. Follows the dates and filters chosen.</div>`;
+}
+
+// Monotone cubic path (Fritsch–Carlson): smooth, but never overshoots a point
+function smoothPath(P) {
+  const n = P.length, d = [], m = [];
+  for (let i = 0; i < n - 1; i++) d.push((P[i + 1].y - P[i].y) / (P[i + 1].x - P[i].x || 1));
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], h = a * a + b * b;
+    if (h > 9) { const t = 3 / Math.sqrt(h); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+  }
+  let path = `M${P[0].x},${P[0].y}`;
+  for (let i = 0; i < n - 1; i++) {
+    const dx = (P[i + 1].x - P[i].x) / 3;
+    path += `C${P[i].x + dx},${P[i].y + m[i] * dx} ${P[i + 1].x - dx},${P[i + 1].y - m[i + 1] * dx} ${P[i + 1].x},${P[i + 1].y}`;
+  }
+  return path;
+}
+
+function niceStep(range, count) {
+  const raw = range / count, pow = 10 ** Math.floor(Math.log10(raw)), f = raw / pow;
+  return (f >= 5 ? 10 : f >= 2 ? 5 : f >= 1 ? 2 : 1) * pow;
+}
+
+function drawTrend() {
+  const box = document.getElementById('trend');
+  if (!box || !trendData) return;
+  const pts = trendData;
+  const W = box.clientWidth, H = W < 500 ? 240 : 320, ml = 40, mr = 14, mt = 14, mb = 26;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  const ys = pts.map(p => p.y);
+  let lo = Math.min(0, ...ys), hi = Math.max(0, ...ys);
+  const step = niceStep((hi - lo) || 10, 5);
+  lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+  if (lo === hi) hi = lo + step;
+  const X = t => ml + (t - t0) / (t1 - t0 || 1) * (W - ml - mr);
+  const Y = v => mt + (hi - v) / (hi - lo) * (H - mt - mb);
+  const P = pts.map(p => ({ x: X(p.t), y: Y(p.y) }));
+  const line = smoothPath(P), y0 = Y(0);
+  const area = `${line}L${P[P.length - 1].x},${y0}L${P[0].x},${y0}Z`;
+  let grid = '';
+  for (let v = lo; v <= hi + 1e-9; v += step) {
+    grid += `<line x1="${ml}" x2="${W - mr}" y1="${Y(v)}" y2="${Y(v)}" class="tg"/>
+      <text x="${ml - 6}" y="${Y(v) + 4}" class="tl" text-anchor="end">${v > 0 ? '+' : ''}${Math.round(v * 10) / 10}</text>`;
+  }
+  // x labels: about one every 90px
+  const nx = Math.max(2, Math.floor((W - ml - mr) / 90));
+  for (let i = 0; i <= nx; i++) {
+    const t = t0 + (t1 - t0) * i / nx;
+    grid += `<text x="${X(t)}" y="${H - 8}" class="tl" text-anchor="${i === 0 ? 'start' : i === nx ? 'end' : 'middle'}">${shortFmt.format(new Date(t))}</text>`;
+  }
+  const tone = v => v > 0 ? 'var(--green)' : v < 0 ? 'var(--red)' : 'var(--muted)';
+  box.innerHTML = `
+    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Score difference over time">
+      <defs>
+        <clipPath id="above"><rect x="0" y="0" width="${W}" height="${y0}"/></clipPath>
+        <clipPath id="below"><rect x="0" y="${y0}" width="${W}" height="${H}"/></clipPath>
+      </defs>
+      ${grid}
+      <path d="${area}" fill="var(--green)" opacity=".14" clip-path="url(#above)"/>
+      <path d="${area}" fill="var(--red)" opacity=".14" clip-path="url(#below)"/>
+      <line x1="${ml}" x2="${W - mr}" y1="${y0}" y2="${y0}" class="t0"/>
+      <path d="${line}" fill="none" stroke="var(--text)" stroke-width="2" stroke-linejoin="round"/>
+      ${P.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="${P.length > (W - ml - mr) / 10 ? 3 : 4}" fill="${tone(pts[i].y)}" stroke="var(--card)" stroke-width="2"/>`).join('')}
+      <line id="trendHair" y1="${mt}" y2="${H - mb}" class="th" style="display:none"/>
+      <rect x="${ml}" y="0" width="${W - ml - mr}" height="${H}" fill="transparent" id="trendHit"/>
+    </svg>
+    <div class="trend-tip" id="trendTip" style="display:none"></div>`;
+  const hit = document.getElementById('trendHit'), hair = document.getElementById('trendHair'), tip = document.getElementById('trendTip');
+  const show = e => {
+    const r = hit.getBoundingClientRect(), x = e.clientX - r.left + ml;
+    let i = 0;
+    P.forEach((p, k) => { if (Math.abs(p.x - x) < Math.abs(P[i].x - x)) i = k; });
+    const d = pts[i];
+    hair.setAttribute('x1', P[i].x); hair.setAttribute('x2', P[i].x); hair.style.display = '';
+    tip.replaceChildren();
+    const head = document.createElement('div');
+    head.className = 'tt-v';
+    head.textContent = `${d.y > 0 ? '+' : ''}${d.y}`;
+    const sub = document.createElement('div');
+    sub.className = 'tt-d';
+    sub.textContent = `${dayFmt.format(new Date(d.t))}${d.games.length > 1 ? ` · average of ${d.games.length} games` : ''}`;
+    tip.append(head, sub);
+    d.games.slice(0, 6).forEach(({ g, diff }) => {
+      const row = document.createElement('div');
+      row.className = 'tt-g';
+      row.textContent = `${diff > 0 ? '+' : ''}${diff}  ${g.home} ${parseScore(g.score).home} v ${parseScore(g.score).away} ${g.away} · ${g.age} ${g.code}`;
+      tip.append(row);
+    });
+    if (d.games.length > 6) { const more = document.createElement('div'); more.className = 'tt-d'; more.textContent = `+${d.games.length - 6} more`; tip.append(more); }
+    tip.style.display = '';
+    const tw = tip.offsetWidth;
+    let left = P[i].x + 12 + tw > W ? P[i].x - tw - 12 : P[i].x + 12;
+    left = Math.max(4, Math.min(left, W - tw - 4));
+    tip.style.left = `${left}px`;
+    tip.style.top = `${mt}px`;
+  };
+  hit.addEventListener('pointermove', show);
+  hit.addEventListener('pointerdown', show);
+  hit.addEventListener('pointerleave', () => { hair.style.display = 'none'; tip.style.display = 'none'; });
+}
+window.addEventListener('resize', () => { if (view === 'trend') drawTrend(); });
 
 function setView(v) { view = v; store('gaa_view', v); render(); }
 function setVenue(v) { venue = v; store('gaa_venue', v); render(); }
