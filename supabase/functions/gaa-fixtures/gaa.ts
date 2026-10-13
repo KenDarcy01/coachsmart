@@ -197,10 +197,15 @@ export function parseClubGames(html: string, today = new Date()): ClubGame[] {
   return out;
 }
 
-/** "U13 Football League Div.3" -> {age:"U13", code:"Football", grade:"League Div.3"} */
+/**
+ * "U13 Football League Div.3" -> {age:"U13", code:"Football", grade:"League Div.3"}
+ * Camogie and LGFA write "Under 15" / "Under-9" / "U-14", so all map to "U15" style.
+ */
 export function compMeta(name: string): { age: string; code: string; grade: string } {
-  const ageM = name.match(/\b(U-?\s?\d{1,2}|Minor|Junior|Intermediate|Senior|Adult)\b/i);
-  const age = ageM ? ageM[1].replace(/^u-?\s?/i, "U").replace(/^\w/, (c) => c.toUpperCase()) : "Other";
+  const ageM = name.match(/\b(?:U|Under)[\s-]?(\d{1,2})\b/i) ??
+    name.match(/\b(Minor|Junior|Intermediate|Senior|Adult)\b/i);
+  const age = !ageM ? "Other" : /^\d+$/.test(ageM[1]) ? `U${Number(ageM[1])}`
+    : ageM[1][0].toUpperCase() + ageM[1].slice(1).toLowerCase();
   const codeM = name.match(/\b(Football|Hurling|Camogie)\b/i);
   const code = codeM ? codeM[1][0].toUpperCase() + codeM[1].slice(1).toLowerCase() : "";
   const grade = clean(name.replace(ageM?.[0] ?? "", "").replace(codeM?.[0] ?? "", ""));
