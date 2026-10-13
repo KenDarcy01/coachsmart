@@ -238,6 +238,7 @@ td.pts { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700
         <div class="s-label">Dates</div>
         <select class="club-select" id="rangeSelect" onchange="onRangeChange()">
           <option value="default">Last week + next 5 weeks</option>
+          <option value="thisweek">This week (Mon–Sun)</option>
           <option value="next14">Next 2 weeks</option>
           <option value="past28">Last 4 weeks</option>
           <option value="season">Last 8 weeks + next 8 weeks</option>
@@ -348,6 +349,10 @@ function dateRange() {
   if (v === 'custom') {
     const from = document.getElementById('fromDate').value, to = document.getElementById('toDate').value;
     if (from && to) return { from, to };
+  }
+  if (v === 'thisweek') {
+    const sinceMon = (new Date().getDay() + 6) % 7;   // Monday = 0
+    return { from: isoDay(addDays(-sinceMon)), to: isoDay(addDays(6 - sinceMon)) };
   }
   const [back, ahead] = { next14: [0, 14], past28: [28, 0], season: [56, 56] }[v] || [7, 35];
   return { from: isoDay(addDays(-back)), to: isoDay(addDays(ahead)) };
