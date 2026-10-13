@@ -500,12 +500,12 @@ function clubGames() {
 const ageOrder = a => { const m = a.match(/^U(\d+)/); return m ? +m[1] : 100; };
 const genderOk = g => gender === 'all' || GENDER[gender].includes(g.code);
 const pass = (off, v) => !off.has(v);
-// CCC1 = U12 and under, CCC2 = U13-U16, Adult = Minor and all adult grades
+// CCC1 = U12 and under, CCC2 = U13-U16, Adult = Minor, U17+ and every adult grade
 function ageBand(age) {
   const n = ageOrder(age);
   if (n <= 12) return 'ccc1';
   if (n <= 16) return 'ccc2';
-  return age === 'Other' ? 'other' : 'adult';
+  return 'adult';   // Minor, Junior, Intermediate, Senior, AFL/AHL and anything without an under-age
 }
 const bandOk = g => band === 'all' || ageBand(g.age) === band;
 

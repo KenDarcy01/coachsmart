@@ -206,12 +206,15 @@ export function parseClubGames(html: string, today = new Date()): ClubGame[] {
  * Camogie and LGFA write "Under 15" / "Under-9" / "U-14", so all map to "U15" style.
  */
 export function compMeta(name: string): { age: string; code: string; grade: string } {
+  // Dublin's adult leagues are named "AFL ..." / "AHL ..." (Adult Football/Hurling League).
+  const afl = name.match(/\bA([FH])L\b/i);
   const ageM = name.match(/\b(?:U|Under)[\s-]?(\d{1,2})\b/i) ??
     name.match(/\b(Minor|Junior|Intermediate|Senior|Adult)\b/i);
-  const age = !ageM ? "Other" : /^\d+$/.test(ageM[1]) ? `U${Number(ageM[1])}`
+  const age = !ageM ? (afl ? "Adult" : "Other") : /^\d+$/.test(ageM[1]) ? `U${Number(ageM[1])}`
     : ageM[1][0].toUpperCase() + ageM[1].slice(1).toLowerCase();
   const codeM = name.match(/\b(Football|Hurling|Camogie)\b/i);
-  const code = codeM ? codeM[1][0].toUpperCase() + codeM[1].slice(1).toLowerCase() : "";
+  const code = codeM ? codeM[1][0].toUpperCase() + codeM[1].slice(1).toLowerCase()
+    : afl ? (afl[1].toUpperCase() === "F" ? "Football" : "Hurling") : "";
   const grade = clean(name.replace(ageM?.[0] ?? "", "").replace(codeM?.[0] ?? "", ""));
   return { age, code, grade };
 }
