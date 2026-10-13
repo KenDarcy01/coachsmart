@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
         const body = await res.text();
         const hits = [...body.replace(/\\/g, "").matchAll(/value="(\d+)">([^<]*)/g)].filter((m) => watch.test(m[2])).map((m) => `${m[1]}=${m[2]}`);
         lines.push("", `${label} (${JSON.stringify(extra)}): HTTP ${res.status}, ${body.length} chars`,
-          `  options: ${(body.match(/option value/g) ?? []).length}`, ...hits.slice(0, 4).map((h) => `  match: ${h.replace(/\s+/g, " ")}`));
+          `  options: ${(body.match(/option value/g) ?? []).length}`, ...hits.slice(0, 100).map((h) => `  match: ${h.replace(/\s+/g, " ")}`));
       } catch (e) { lines.push(`${label}: error ${(e as Error).message}`); }
     }
     // v=level:code[:club] list, e.g. v=3:26,3:6929,7167:26 (club defaults to ?club, "all" = every club)
