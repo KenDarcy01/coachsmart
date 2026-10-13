@@ -359,7 +359,12 @@ function saveFilters() { store('gaa_gender', gender); store('gaa_band', band); }
 function loadFilters() { gender = recall('gaa_gender', 'all'); band = recall('gaa_band', 'all'); }
 // name -> {gaa, camogie, lgfa} IDs, learned from every game loaded
 function clubDir() {
-  const dir = recall('gaa_clubdir', {});
+  const dir = {};
+  // Fold any entries saved under a camogie/variant name into the club's GAA name
+  for (const [name, ids] of Object.entries(recall('gaa_clubdir', {}))) {
+    const k = canonClub(name);
+    dir[k] = { ...ids, ...dir[k] };
+  }
   // Camogie IDs come from Sportlomo's camogie club list (a club's camogie team may
   // never have shown up in a loaded game, so it can't be learned)
   for (const { id, name } of recall('gaa_camogie_clubs', { list: [] }).list) {
@@ -370,11 +375,15 @@ function clubDir() {
   for (const [name, ids] of Object.entries(CLUB_SEED)) dir[name] = { ...dir[name], ...ids };   // seeds win
   return dir;
 }
-const currentClub = () => recall('gaa_club_name2', 'Clontarf');   // '' = all clubs
+const currentClub = () => canonClub(recall('gaa_club_name2', 'Clontarf'));   // '' = all clubs
 const clubKey = n => (n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const sameClub = (a, b) => clubKey(a) === clubKey(b);
-const homeClub = g => g.homeClub || g.home;
-const awayClub = g => g.awayClub || g.away;
+// One name per club: camogie names (and GAA spelling variants) fold into the GAA name
+const ALIAS_TO = {};
+for (const [camogie, gaa] of Object.entries(CAMOGIE_ALIAS)) for (const n of [camogie, ...gaa]) ALIAS_TO[clubKey(n)] = gaa[0];
+const canonClub = n => ALIAS_TO[clubKey(n)] || n;
+const homeClub = g => canonClub(g.homeClub || g.home);
+const awayClub = g => canonClub(g.awayClub || g.away);
 
 // ── Club + dates ───────────────────────────────────────────────────────────
 function renderClubSelect() {
