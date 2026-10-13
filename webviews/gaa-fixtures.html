@@ -313,6 +313,8 @@ td.pts { font-weight: 700; }
 
 <script>
 const EDGE = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/gaa-fixtures';
+// Bump when the edge function's output changes, so browsers don't reuse cached data (cached 15 min)
+const DATA_VERSION = 2;
 // Sportlomo keeps three separate organisations, each with its own club IDs:
 // GAA (football + hurling), camogie and ladies football. Clubs are matched
 // across them by name. IDs are only needed to fetch one club over a long
@@ -459,7 +461,7 @@ async function loadGames() {
     <div class="empty-state"><div class="spinner"></div><div class="empty-sub">Loading ${allClubs ? 'every club’s' : esc(club)} games…</div></div>`;
   let data;
   try {
-    let url = `${EDGE}?type=club&format=json&results=1&from=${from}&to=${to}`;
+    let url = `${EDGE}?type=club&format=json&results=1&dv=${DATA_VERSION}&from=${from}&to=${to}`;
     if (allClubs) url += '&club=all';
     else {
       const ids = Object.entries(clubDir()).find(([n]) => sameClub(n, club))?.[1] || {};
@@ -899,7 +901,7 @@ async function openStandings(compId) {
       const get = url => fetch(url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
       const [table, list] = await Promise.all([
         get(`${EDGE}?comp=${compId}&type=table`),
-        get(`${EDGE}?comp=${compId}&format=json&results=1`),
+        get(`${EDGE}?comp=${compId}&format=json&results=1&dv=${DATA_VERSION}`),
       ]);
       compCache[compId] = { table, games: list };
     }
