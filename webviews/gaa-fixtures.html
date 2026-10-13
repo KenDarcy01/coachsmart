@@ -256,6 +256,10 @@ td.pts { font-weight: 700; }
           <option value="lastweek">Last week</option>
           <option value="thisweek">This week</option>
           <option value="lastthis">Last week + this week</option>
+          <option value="month">This month</option>
+          <option value="spring">Spring (Jan – Jul)</option>
+          <option value="autumn">Autumn (Aug – Dec)</option>
+          <option value="year">This year</option>
           <option value="custom">Custom…</option>
         </select>
         <div class="date-row" id="customDates" style="display:none">
@@ -380,6 +384,12 @@ function dateRange() {
   const sinceMon = (new Date().getDay() + 6) % 7;   // Monday = 0
   if (v === 'thisweek') return { from: isoDay(addDays(-sinceMon)), to: isoDay(addDays(6 - sinceMon)) };
   if (v === 'lastthis') return { from: isoDay(addDays(-sinceMon - 7)), to: isoDay(addDays(6 - sinceMon)) };
+  const y = new Date().getFullYear(), m = new Date().getMonth();
+  const span = (m1, d1, m2, d2) => ({ from: isoDay(new Date(y, m1, d1)), to: isoDay(new Date(y, m2, d2)) });
+  if (v === 'month') return span(m, 1, m + 1, 0);
+  if (v === 'spring') return span(0, 1, 6, 31);
+  if (v === 'autumn') return span(7, 1, 11, 31);
+  if (v === 'year') return span(0, 1, 11, 31);
   return { from: isoDay(addDays(-sinceMon - 7)), to: isoDay(addDays(-sinceMon - 1)) };
 }
 
