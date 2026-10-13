@@ -202,6 +202,12 @@ td.pts { font-weight: 700; }
 .teams-wrap td.team b { font-weight: 600; }
 .teams-wrap td.team span { display: block; font-size: 12px; color: var(--muted); }
 .teams-wrap td.pos { color: var(--green); } .teams-wrap td.neg { color: #e5736f; }
+.teams-wrap tr.grp { cursor: pointer; }
+.teams-wrap tr.grp:hover td { background: rgba(255,255,255,0.03); }
+.teams-wrap .caret { font-style: normal; color: var(--muted); display: inline-block; width: 14px; }
+.teams-wrap tr.sub td { font-size: 13px; color: var(--muted); border-top-color: rgba(255,255,255,0.03); padding-top: 6px; padding-bottom: 6px; }
+.teams-wrap tr.sub td.team { padding-left: 22px; color: var(--text); }
+.teams-wrap tr.sub td.pts { color: var(--text); }
 .teams-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
 /* ── Phone ── */
@@ -678,11 +684,18 @@ function statsCards(results, isHome) {
 // same club name fields many teams. With a club chosen, only that club's sides count.
 function teamsTable(results, club) {
   const teams = {};
-  const add = (name, g, forPts, against) => {
-    const k = [name, g.code, g.age].join('|');
-    const t = teams[k] = teams[k] || { name, code: g.code, age: g.age, p: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0 };
+  const blank = () => ({ p: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0 });
+  const tally = (t, forPts, against) => {
     t.p++; t.pf += forPts; t.pa += against;
     forPts > against ? t.w++ : forPts < against ? t.l++ : t.d++;
+  };
+  // Group = team name + code + age; each competition it plays in is a sub-row
+  // (a club's U13 Div.3 and Div.11 sides share the name "Clontarf").
+  const add = (name, g, forPts, against) => {
+    const k = [name, g.code, g.age].join('|');
+    const t = teams[k] = teams[k] || { key: k, name, code: g.code, age: g.age, ...blank(), subs: {} };
+    const sub = t.subs[g.competitionId] = t.subs[g.competitionId] || { label: shortComp(g), ...blank() };
+    tally(t, forPts, against); tally(sub, forPts, against);
   };
   results.forEach(g => {
     const sc = parseScore(g.score);
@@ -690,28 +703,45 @@ function teamsTable(results, club) {
     if (!club || sameClub(homeClub(g), club)) add(g.home, g, sc.ht, sc.at);
     if (!club || sameClub(awayClub(g), club)) add(g.away, g, sc.at, sc.ht);
   });
-  const list = Object.values(teams).map(t => ({ ...t, pct: Math.round(t.w / t.p * 100), diff: t.pf - t.pa,
-    avg: Math.round((t.pf - t.pa) / t.p * 10) / 10 }));
-  if (!list.length) return '<div class="empty-state"><div class="empty-sub">No scored results for these filters yet.</div></div>';
+  const calc = t => ({ ...t, pct: Math.round(t.w / t.p * 100), diff: t.pf - t.pa, avg: Math.round((t.pf - t.pa) / t.p * 10) / 10 });
   const { key, dir } = teamSort;
-  const val = t => key === 'team' ? `${t.name} ${t.code} ${t.age}` : t[key];
-  list.sort((a, b) => (typeof val(a) === 'string' ? val(a).localeCompare(val(b)) : val(a) - val(b)) * dir
-    || b.pct - a.pct || b.avg - a.avg || b.p - a.p);
+  const val = t => key === 'team' ? (t.label ?? `${t.name} ${t.code} ${t.age}`) : t[key];
+  const order = (a, b) => (typeof val(a) === 'string' ? val(a).localeCompare(val(b), undefined, { numeric: true }) : val(a) - val(b)) * dir
+    || b.pct - a.pct || b.avg - a.avg || b.p - a.p;
+  const list = Object.values(teams).map(t => ({ ...calc(t), subs: Object.values(t.subs).map(calc).sort(order) })).sort(order);
+  if (!list.length) return '<div class="empty-state"><div class="empty-sub">No scored results for these filters yet.</div></div>';
   const th = (k, label, cls = '') => `<th class="${cls} ${key === k ? 'sorted' : ''}" onclick="sortTeams('${k}')">${label}${key === k ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`;
   const sign = v => v > 0 ? `+${v}` : `${v}`;
+  const tone = v => v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+  const nums = t => `<td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td class="pts">${t.pct}%</td>
+    <td class="wide">${t.pf}</td><td class="wide">${t.pa}</td><td class="${tone(t.diff)}">${sign(t.diff)}</td>
+    <td class="wide ${tone(t.avg)}">${sign(t.avg)}</td>`;
+  const multi = list.filter(t => t.subs.length > 1);
+  const allOpen = multi.every(t => !teamsCollapsed.has(t.key));
   return `
-    <div class="section-title">Teams<span class="n">${list.length}</span></div>
+    <div class="section-title">Teams<span class="n">${list.length}</span>
+      ${multi.length ? `<button class="clear-btn" style="margin-left:auto" onclick="toggleAllTeams(${allOpen})">${allOpen ? 'Collapse all' : 'Expand all'}</button>` : ''}</div>
     <div class="teams-wrap"><table>
       <thead><tr><th class="l">#</th>${th('team', 'Team', 'l')}${th('p', 'P')}${th('w', 'W')}${th('d', 'D')}${th('l', 'L')}
         ${th('pct', 'Win %')}${th('pf', 'For', 'wide')}${th('pa', 'Agst', 'wide')}${th('diff', 'Diff')}${th('avg', 'Per game', 'wide')}</tr></thead>
-      <tbody>${list.map((t, i) => `
-        <tr><td class="l rank">${i + 1}</td>
-          <td class="l team"><b>${esc(t.name)}</b><span>${esc(t.code)} · ${esc(t.age)}</span></td>
-          <td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td class="pts">${t.pct}%</td>
-          <td class="wide">${t.pf}</td><td class="wide">${t.pa}</td><td class="${t.diff > 0 ? 'pos' : t.diff < 0 ? 'neg' : ''}">${sign(t.diff)}</td>
-          <td class="wide ${t.avg > 0 ? 'pos' : t.avg < 0 ? 'neg' : ''}">${sign(t.avg)}</td></tr>`).join('')}</tbody>
+      <tbody>${list.map((t, i) => {
+        const split = t.subs.length > 1, open = split && !teamsCollapsed.has(t.key);
+        return `
+        <tr class="${split ? 'grp' : ''}" ${split ? `data-k="${esc(t.key)}" onclick="toggleTeam(this.dataset.k)"` : ''}>
+          <td class="l rank">${i + 1}</td>
+          <td class="l team"><b>${split ? `<i class="caret">${open ? '▾' : '▸'}</i>` : ''}${esc(t.name)}</b>
+            <span>${esc(t.code)} · ${esc(t.age)}${split ? ` · ${t.subs.length} competitions` : ` · ${esc(t.subs[0].label)}`}</span></td>
+          ${nums(t)}</tr>
+        ${open ? t.subs.map(sub => `<tr class="sub"><td></td><td class="l team">${esc(sub.label)}</td>${nums(sub)}</tr>`).join('') : ''}`;
+      }).join('')}</tbody>
     </table></div>
-    <div class="teams-note">Ranked by win %, then points difference per game. Points count goals as 3. Tap a heading to sort. Only results in the dates and filters chosen are counted.</div>`;
+    <div class="teams-note">Ranked by win %, then points difference per game. Points count goals as 3. Tap a heading to sort, or a team to show or hide its competitions. Only results in the dates and filters chosen are counted.</div>`;
+}
+let teamsCollapsed = new Set();
+function toggleTeam(k) { teamsCollapsed.has(k) ? teamsCollapsed.delete(k) : teamsCollapsed.add(k); render(); }
+function toggleAllTeams(collapse) {
+  teamsCollapsed = new Set(collapse ? [...document.querySelectorAll('.teams-wrap tr.grp')].map(r => r.dataset.k) : []);
+  render();
 }
 function sortTeams(k) {
   teamSort = teamSort.key === k ? { key: k, dir: -teamSort.dir } : { key: k, dir: k === 'team' ? 1 : (k === 'pa' || k === 'l' ? 1 : -1) };
