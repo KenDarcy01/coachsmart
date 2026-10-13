@@ -46,6 +46,9 @@ button, select, input { font-family: inherit; }
   font-size: 12px; font-weight: 600; color: var(--muted);
 }
 .clear-btn:hover { color: var(--green); }
+.toggle-all { display: flex; gap: 10px; }
+.toggle-all button { background: none; border: none; padding: 0; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); }
+.toggle-all button:hover { color: var(--green); }
 
 .select {
   width: 100%; padding: 9px 10px;
@@ -228,12 +231,9 @@ td.pts { font-weight: 700; }
       <div class="s-section">
         <div class="s-label-row"><div class="s-label">Dates</div></div>
         <select class="select" id="rangeSelect" onchange="onRangeChange()">
+          <option value="thisweek">This week</option>
           <option value="lastthis">Last week + this week</option>
-          <option value="thisweek">This week (Mon–Sun)</option>
-          <option value="default">Last week + next 5 weeks</option>
-          <option value="next14">Next 2 weeks</option>
-          <option value="past28">Last 4 weeks</option>
-          <option value="season">Last 8 weeks + next 8 weeks</option>
+          <option value="month">This month</option>
           <option value="custom">Custom…</option>
         </select>
         <div class="date-row" id="customDates" style="display:none">
@@ -246,7 +246,7 @@ td.pts { font-weight: 700; }
         <div class="s-section">
           <div class="s-label-row">
             <div class="s-label">Show</div>
-            <button class="clear-btn" id="clearBtn" onclick="clearFilters()">Clear filters</button>
+            <button class="clear-btn" id="clearBtn" onclick="clearFilters()">Reset filters</button>
           </div>
           <div class="seg" id="genderSeg">
             <button data-g="all" onclick="setGender('all')">All</button>
@@ -255,18 +255,20 @@ td.pts { font-weight: 700; }
           </div>
         </div>
         <div class="s-section">
-          <div class="s-label-row"><div class="s-label">Code</div></div>
+          <div class="s-label-row"><div class="s-label">Code</div>
+            <div class="toggle-all"><button onclick="setAll('code', true)">All</button><button onclick="setAll('code', false)">None</button></div></div>
           <div class="chips" id="codeChips"></div>
         </div>
         <div class="s-section">
-          <div class="s-label-row"><div class="s-label">Age group</div></div>
+          <div class="s-label-row"><div class="s-label">Age group</div>
+            <div class="toggle-all"><button onclick="setAll('age', true)">All</button><button onclick="setAll('age', false)">None</button></div></div>
           <div class="chips" id="ageChips"></div>
         </div>
         <div class="s-section">
-          <div class="s-label-row"><div class="s-label">Competition</div></div>
+          <div class="s-label-row"><div class="s-label">Competition</div>
+            <div class="toggle-all"><button onclick="setAll('comp', true)">All</button><button onclick="setAll('comp', false)">None</button></div></div>
           <div id="compChips"></div>
         </div>
-        <div class="s-hint" style="padding: 4px 16px">Nothing ticked shows everything. Tap to narrow it down.</div>
       </div>
     </div>
   </aside>
@@ -293,7 +295,9 @@ let games = [];
 let gender = 'all';
 let view = recall('gaa_view', 'all');   // all | results | fixtures
 let venue = recall('gaa_venue', 'all'); // all | home | away (relative to the chosen club)
-let selCodes = new Set(), selAges = new Set(), selComps = new Set();
+// Every chip starts on; these hold what has been switched off, so new
+// codes/ages/competitions appear switched on.
+let offCodes = new Set(), offAges = new Set(), offComps = new Set();
 const standingsCache = {};
 
 // ── Storage ────────────────────────────────────────────────────────────────
@@ -301,22 +305,15 @@ function store(key, val) { try { localStorage.setItem(key, JSON.stringify(val));
 function recall(key, dflt) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v ?? dflt; } catch { return dflt; }
 }
-function saveFilters() {
-  store('gaa_filters', { gender, codes: [...selCodes], ages: [...selAges] });
-}
-function loadFilters() {
-  const f = recall('gaa_filters', {});
-  gender = f.gender || 'all';
-  selCodes = new Set(f.codes || []);
-  selAges = new Set(f.ages || []);
-}
+function saveFilters() { store('gaa_gender', gender); }
+function loadFilters() { gender = recall('gaa_gender', 'all'); }
 // name -> {gaa, camogie, lgfa} IDs, learned from every game loaded
 function clubDir() {
   const dir = recall('gaa_clubdir', {});
   for (const [name, ids] of Object.entries(CLUB_SEED)) dir[name] = { ...dir[name], ...ids };   // seeds win
   return dir;
 }
-const currentClub = () => recall('gaa_club_name', '');   // '' = all clubs
+const currentClub = () => recall('gaa_club_name2', 'Clontarf');   // '' = all clubs
 const sameClub = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
 const homeClub = g => g.homeClub || g.home;
 const awayClub = g => g.awayClub || g.away;
@@ -333,8 +330,7 @@ function renderClubSelect() {
 }
 
 function onClubChange() {
-  store('gaa_club_name', document.getElementById('clubSelect').value);
-  selComps.clear();
+  store('gaa_club_name2', document.getElementById('clubSelect').value);
   loadGames();   // no new fetch when every club is already loaded for these dates
 }
 
@@ -343,7 +339,7 @@ const addDays = n => new Date(Date.now() + n * 864e5);
 
 function onRangeChange() {
   const v = document.getElementById('rangeSelect').value;
-  store('gaa_range2', v);
+  store('gaa_range3', v);
   document.getElementById('customDates').style.display = v === 'custom' ? '' : 'none';
   loadGames();
 }
@@ -358,8 +354,10 @@ function dateRange() {
     const back = v === 'lastthis' ? sinceMon + 7 : sinceMon;
     return { from: isoDay(addDays(-back)), to: isoDay(addDays(6 - sinceMon)) };
   }
-  const [back, ahead] = { next14: [0, 14], past28: [28, 0], season: [56, 56] }[v] || [7, 35];
-  return { from: isoDay(addDays(-back)), to: isoDay(addDays(ahead)) };
+  // This month (also the fallback for an unfinished custom range)
+  const now = new Date();
+  return { from: isoDay(new Date(now.getFullYear(), now.getMonth(), 1)),
+           to: isoDay(new Date(now.getFullYear(), now.getMonth() + 1, 0)) };
 }
 
 // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -369,19 +367,20 @@ async function loadGames() {
   const club = currentClub();
   const { from, to } = dateRange();
   const days = (Date.parse(to) - Date.parse(from)) / 864e5;
-  const allClubs = days <= ALL_CLUBS_MAX_DAYS;
-  const key = allClubs ? `all|${from}|${to}` : `${club}|${from}|${to}`;
-  if (key === loadedKey) { render(); return; }
+  const allClubs = !club;
+  // Every club already loaded for these dates also covers any one club
+  if (loadedKey === `all|${from}|${to}` || loadedKey === `${club}|${from}|${to}`) { render(); return; }
+  const key = `${allClubs ? 'all' : club}|${from}|${to}`;
 
   const main = document.getElementById('main');
-  if (!allClubs && !club) {
+  if (allClubs && days > ALL_CLUBS_MAX_DAYS) {
     games = []; loadedKey = '';
     document.getElementById('liveFilters').style.display = 'none';
     main.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📅</div>
-        <div class="empty-title">Pick a club for longer date ranges</div>
-        <div class="empty-sub">All clubs works for up to two weeks. Choose a club, or shorter dates.</div>
+        <div class="empty-title">All clubs is limited to two weeks</div>
+        <div class="empty-sub">Choose a club, or "This week" / "Last week + this week".</div>
       </div>`;
     return;
   }
@@ -416,6 +415,7 @@ async function loadGames() {
   if (seq !== loadSeq) return;   // a newer request superseded this one
   games = data;
   loadedKey = key;
+  offCodes.clear(); offAges.clear(); offComps.clear();
   learnClubs();
   render();
 }
@@ -444,7 +444,7 @@ function clubGames() {
 // ── Filters ────────────────────────────────────────────────────────────────
 const ageOrder = a => { const m = a.match(/^U(\d+)/); return m ? +m[1] : 100; };
 const genderOk = g => gender === 'all' || GENDER[gender].includes(g.code);
-const pass = (set, v) => !set.size || set.has(v);
+const pass = (off, v) => !off.has(v);
 
 // Short competition label: drop the age, code and sponsor words already shown elsewhere
 function shortComp(g) {
@@ -456,8 +456,15 @@ function shortComp(g) {
 }
 
 function setGender(v) { gender = v; saveFilters(); render(); }
-function toggle(set, v) { set.has(v) ? set.delete(v) : set.add(v); saveFilters(); render(); }
-function clearFilters() { gender = 'all'; selCodes.clear(); selAges.clear(); selComps.clear(); saveFilters(); render(); }
+function toggle(set, v) { set.has(v) ? set.delete(v) : set.add(v); render(); }
+function clearFilters() { gender = 'all'; offCodes.clear(); offAges.clear(); offComps.clear(); saveFilters(); render(); }
+// All / None for one group, over the chips currently shown in it
+let shownChips = { code: [], age: [], comp: [] };
+function setAll(group, on) {
+  const set = { code: offCodes, age: offAges, comp: offComps }[group];
+  shownChips[group].forEach(v => on ? set.delete(v) : set.add(v));
+  render();
+}
 
 function chip(label, n, on, onclick) {
   return `<div class="chip ${on ? 'on' : ''}" onclick="${onclick}">${esc(label)}<span class="n">${n}</span></div>`;
@@ -471,24 +478,23 @@ function renderFilters() {
   // selection that no longer exists there is dropped.
   const g1 = clubGames().filter(genderOk);
   const codes = countBy(g1, g => g.code);
-  selCodes.forEach(c => { if (!codes[c]) selCodes.delete(c); });
-  document.getElementById('codeChips').innerHTML = Object.keys(codes).sort()
-    .map(c => chip(c, codes[c], selCodes.has(c), `toggle(selCodes, '${esc(c)}')`)).join('');
+  shownChips.code = Object.keys(codes).sort();
+  document.getElementById('codeChips').innerHTML = shownChips.code
+    .map(c => chip(c, codes[c], !offCodes.has(c), `toggle(offCodes, '${esc(c)}')`)).join('');
 
-  const g2 = g1.filter(g => pass(selCodes, g.code));
+  const g2 = g1.filter(g => pass(offCodes, g.code));
   const ages = countBy(g2, g => g.age);
-  selAges.forEach(a => { if (!ages[a]) selAges.delete(a); });
-  document.getElementById('ageChips').innerHTML = Object.keys(ages)
-    .sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b))
-    .map(a => chip(a, ages[a], selAges.has(a), `toggle(selAges, '${esc(a)}')`)).join('');
+  shownChips.age = Object.keys(ages).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
+  document.getElementById('ageChips').innerHTML = shownChips.age
+    .map(a => chip(a, ages[a], !offAges.has(a), `toggle(offAges, '${esc(a)}')`)).join('');
 
-  const g3 = g2.filter(g => pass(selAges, g.age));
+  const g3 = g2.filter(g => pass(offAges, g.age));
   const comps = {};
   g3.forEach(g => {
     const c = comps[g.competitionId] = comps[g.competitionId] || { g, n: 0 };
     c.n++;
   });
-  selComps.forEach(id => { if (!comps[id]) selComps.delete(id); });
+  shownChips.comp = Object.keys(comps);
   const byAge = {};
   Object.entries(comps).forEach(([id, c]) => (byAge[c.g.age] = byAge[c.g.age] || []).push([id, c]));
   document.getElementById('compChips').innerHTML = Object.keys(byAge)
@@ -499,16 +505,17 @@ function renderFilters() {
         <div class="chips">${byAge[age]
           .sort((a, b) => shortComp(a[1].g).localeCompare(shortComp(b[1].g), undefined, { numeric: true }))
           .map(([id, c]) => chip(shortComp(c.g) + (gender === 'all' && Object.keys(codes).length > 1 ? ` · ${c.g.code}` : ''),
-            c.n, selComps.has(id), `toggle(selComps, '${id}')`)).join('')}</div>
+            c.n, !offComps.has(id), `toggle(offComps, '${id}')`)).join('')}</div>
       </div>`).join('');
 
-  const active = (gender !== 'all') + selCodes.size + selAges.size + selComps.size;
+  const active = (gender !== 'all') + shownChips.code.filter(c => offCodes.has(c)).length +
+    shownChips.age.filter(a => offAges.has(a)).length + shownChips.comp.filter(c => offComps.has(c)).length;
   document.getElementById('clearBtn').style.visibility = active ? '' : 'hidden';
   const fc = document.getElementById('filterCount');
   fc.style.display = active ? '' : 'none';
   fc.textContent = active;
 
-  return g3.filter(g => pass(selComps, g.competitionId));
+  return g3.filter(g => pass(offComps, g.competitionId));
 }
 
 // ── Render list ────────────────────────────────────────────────────────────
@@ -565,7 +572,7 @@ function render() {
     </div>
     <div class="list">
       ${shown.length ? '' : `<div class="empty-state"><div class="empty-title">Nothing matches these filters</div>
-        <div class="empty-sub"><button class="clear-btn" style="font-size:13px" onclick="clearFilters()">Clear filters</button></div></div>`}
+        <div class="empty-sub"><button class="clear-btn" style="font-size:13px" onclick="clearFilters()">Reset filters</button></div></div>`}
       ${view !== 'fixtures' ? section('Results', results) : ''}
       ${view !== 'results' ? section('Upcoming', upcoming) : ''}
       ${shown.length && view === 'results' && !results.length ? '<div class="empty-state"><div class="empty-sub">No results in these dates.</div></div>' : ''}
@@ -656,7 +663,7 @@ async function openStandings(compId) {
 function closePanel() { panel = null; document.querySelector('.overlay')?.remove(); }
 function panelTab(t) { panel.tab = t; renderPanel(); }
 function panelVenue(v) { panel.venue = v; renderPanel(); }
-function panelTeam(t) { panel.team = panel.team === t ? '' : t; panel.venue = 'all'; if (panel.tab === 'table') panel.tab = 'results'; renderPanel(); }
+function panelTeam(t) { panel.team = panel.team === t ? '' : t; panel.venue = 'all'; renderPanel(); }
 
 function renderPanel() {
   if (!panel || !compCache[panel.compId]) return;
@@ -687,7 +694,7 @@ function renderPanel() {
       <table>
         <thead><tr><th>#</th><th class="l">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead>
         <tbody>${table.map(r => `
-          <tr class="click ${club && r.team.toLowerCase().includes(club) ? 'mine' : ''} ${r.team === team ? 'sel' : ''}" data-team="${esc(r.team)}" onclick="panelTeam(this.dataset.team)">
+          <tr class="${club && r.team.toLowerCase().includes(club) ? 'mine' : ''}">
             <td>${r.position}</td><td class="l">${esc(r.team)}</td><td>${r.played}</td><td>${r.won}</td>
             <td>${r.drawn}</td><td>${r.lost}</td><td class="pts">${r.points}</td>
           </tr>`).join('')}</tbody>
@@ -738,7 +745,7 @@ function esc(s) {
 // ── Init ───────────────────────────────────────────────────────────────────
 loadFilters();
 renderClubSelect();
-document.getElementById('rangeSelect').value = recall('gaa_range2', 'lastthis');
+document.getElementById('rangeSelect').value = recall('gaa_range3', 'thisweek');
 document.getElementById('fromDate').value = isoDay(addDays(-7));
 document.getElementById('toDate').value = isoDay(addDays(35));
 document.getElementById('customDates').style.display = document.getElementById('rangeSelect').value === 'custom' ? '' : 'none';
