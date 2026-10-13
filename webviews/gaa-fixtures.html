@@ -281,6 +281,9 @@ let clubGames    = [];   // games from ?type=club
 let selAges      = new Set();
 let selCodes     = new Set();
 const DEFAULT_CLUB = { id: '3561', name: 'Clontarf' };
+// Camogie is a separate Sportlomo organisation with its own club IDs, keyed
+// here by club name. Learned from camogie opponents like the football IDs are.
+const CAMOGIE_SEED = { Clontarf: '40597' };
 
 // ── Club mode ──────────────────────────────────────────────────────────────
 function store(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
@@ -342,8 +345,9 @@ async function fetchClub() {
   btn.disabled = true;
   showLoading();
   try {
+    const camogieId = recall('gaa_camogie_clubs', CAMOGIE_SEED)[club.name] || CAMOGIE_SEED[club.name];
     const url = `${EDGE}?type=club&format=json&results=1&club=${club.id}&clubName=${encodeURIComponent(club.name)}`
-      + `&from=${from}&to=${to}`;
+      + `&from=${from}&to=${to}` + (camogieId ? `&camogieClub=${camogieId}` : '');
     const res = await fetch(url);
     if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
     clubGames = await res.json();
@@ -361,7 +365,13 @@ async function fetchClub() {
 
   // Learn opponents' club IDs so they can be picked next time
   const known = knownClubs();
-  clubGames.forEach(g => {
+  const camogie = recall('gaa_camogie_clubs', CAMOGIE_SEED);
+  clubGames.filter(g => g.code === 'Camogie').forEach(g => {
+    if (g.homeClubId) camogie[g.home] = camogie[g.home] || g.homeClubId;
+    if (g.awayClubId) camogie[g.away] = camogie[g.away] || g.awayClubId;
+  });
+  store('gaa_camogie_clubs', camogie);
+  clubGames.filter(g => g.code !== 'Camogie').forEach(g => {
     if (g.homeClubId) known[g.homeClubId] = known[g.homeClubId] || g.home;
     if (g.awayClubId) known[g.awayClubId] = known[g.awayClubId] || g.away;
   });

@@ -25,7 +25,9 @@
 //            Clontarf is 3561). Every game also reports homeClubId/awayClubId.
 //   clubName optional. Club name, passed through as Sportlomo's page does.
 //   from,to  optional. YYYY-MM-DD, default 7 days ago to 35 days ahead, max 120 days.
-//   code     optional. Comma list of codes in CODE_IDS (Football, Hurling; default both).
+//   code     optional. Comma list of codes in SOURCES (Football, Hurling, Camogie; default all).
+//   camogieClub optional. The club's ID on the camogie organisation (Clontarf is
+//            40597). Camogie is only fetched when this is given.
 //   age      optional. Keep only competitions for this age, e.g. "U13".
 //   results / minutes / name / format as above.
 import {
@@ -56,10 +58,15 @@ async function loadComp(compId: string): Promise<{ html: string; games: Game[] }
 }
 
 const AJAX = "https://dublingaa.sportlomo.com/wp-admin/admin-ajax.php";
-// code_name -> code_id on Sportlomo's club fixtures page. code_name alone
-// doesn't switch code, so a code needs its ID here before it can be fetched.
-const CODE_IDS: Record<string, string> = { Football: "26", Hurling: "27" };
-const CODES = Object.keys(CODE_IDS);
+// How each code is selected on Sportlomo's club fixtures page. code_name alone
+// doesn't switch code (code_id does). Camogie is a separate organisation
+// (user_id 7282) with its own club IDs and no code_id.
+const SOURCES: Record<string, { userId: string; codeId?: string; codeName: string }> = {
+  Football: { userId: "7130", codeId: "26", codeName: "Football" },
+  Hurling: { userId: "7130", codeId: "27", codeName: "Hurling" },
+  Camogie: { userId: "7282", codeName: "" },
+};
+const CODES = Object.keys(SOURCES);
 const clubCache = new Map<string, { at: number; games: ClubGame[] }>();
 
 /** Same request the club fixtures page (dublingaa.sportlomo.com/fixtures-3/) makes. */
@@ -71,9 +78,11 @@ async function loadClub(club: string, clubName: string, from: string, to: string
   const games: ClubGame[] = [];
   const seen = new Set<string>();
   for (let page = 1; page <= 10; page++) {
+    const src = SOURCES[code];
     const form = new URLSearchParams({
-      action: "get_fixtures3", fdate: from, tdate: to, user_id: "7130", code_id: CODE_IDS[code],
-      age_id: "", spage_id: String(page), is_all: "0", sort: "", code_name: code, debug: "",
+      action: "get_fixtures3", fdate: from, tdate: to, user_id: src.userId,
+      ...(src.codeId ? { code_id: src.codeId } : {}),
+      age_id: "", spage_id: String(page), is_all: "0", sort: "", code_name: src.codeName, debug: "",
       is_fixture: "1", club_search_id: club, club_search_val: clubName, comp_search_id: "",
     });
     const res = await fetch(AJAX, {
@@ -155,6 +164,8 @@ Deno.serve(async (req) => {
     if (!day.test(from) || !day.test(to)) return text("from/to must be YYYY-MM-DD", 400);
     const span = (Date.parse(to) - Date.parse(from)) / 864e5;
     if (!(span >= 0 && span <= 120)) return text("from must be before to, at most 120 days apart", 400);
+    const camogieClub = q.get("camogieClub") ?? "";
+    if (camogieClub && !/^\d{1,8}$/.test(camogieClub)) return text("camogieClub must be numeric", 400);
     const codes = (q.get("code") ?? CODES.join(",")).split(",")
       .map((c) => CODES.find((k) => k.toLowerCase() === c.trim().toLowerCase()))
       .filter((c): c is string => !!c);
@@ -163,7 +174,10 @@ Deno.serve(async (req) => {
 
     let games: ClubGame[];
     try {
-      games = (await Promise.all(codes.map((c) => loadClub(club, clubName, from, to, c)))).flat();
+      const jobs = codes
+        .filter((c) => c !== "Camogie" || camogieClub)
+        .map((c) => loadClub(c === "Camogie" ? camogieClub : club, clubName, from, to, c));
+      games = (await Promise.all(jobs)).flat();
     } catch (e) {
       console.error(e);
       return text(`Could not load club fixtures: ${(e as Error).message}`, 502);
