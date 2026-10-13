@@ -237,8 +237,9 @@ td.pts { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700
       <div class="s-section">
         <div class="s-label">Dates</div>
         <select class="club-select" id="rangeSelect" onchange="onRangeChange()">
-          <option value="default">Last week + next 5 weeks</option>
+          <option value="lastthis">Last week + this week</option>
           <option value="thisweek">This week (Mon–Sun)</option>
+          <option value="default">Last week + next 5 weeks</option>
           <option value="next14">Next 2 weeks</option>
           <option value="past28">Last 4 weeks</option>
           <option value="season">Last 8 weeks + next 8 weeks</option>
@@ -341,7 +342,7 @@ const addDays = n => new Date(Date.now() + n * 864e5);
 
 function onRangeChange() {
   const v = document.getElementById('rangeSelect').value;
-  store('gaa_range', v);
+  store('gaa_range2', v);
   document.getElementById('customDates').style.display = v === 'custom' ? '' : 'none';
 }
 function dateRange() {
@@ -350,9 +351,10 @@ function dateRange() {
     const from = document.getElementById('fromDate').value, to = document.getElementById('toDate').value;
     if (from && to) return { from, to };
   }
-  if (v === 'thisweek') {
+  if (v === 'thisweek' || v === 'lastthis') {
     const sinceMon = (new Date().getDay() + 6) % 7;   // Monday = 0
-    return { from: isoDay(addDays(-sinceMon)), to: isoDay(addDays(6 - sinceMon)) };
+    const back = v === 'lastthis' ? sinceMon + 7 : sinceMon;
+    return { from: isoDay(addDays(-back)), to: isoDay(addDays(6 - sinceMon)) };
   }
   const [back, ahead] = { next14: [0, 14], past28: [28, 0], season: [56, 56] }[v] || [7, 35];
   return { from: isoDay(addDays(-back)), to: isoDay(addDays(ahead)) };
@@ -765,7 +767,7 @@ function esc(s) {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 renderClubSelect();
-document.getElementById('rangeSelect').value = recall('gaa_range', 'default');
+document.getElementById('rangeSelect').value = recall('gaa_range2', 'lastthis');
 document.getElementById('fromDate').value = isoDay(addDays(-7));
 document.getElementById('toDate').value = isoDay(addDays(35));
 onRangeChange();
