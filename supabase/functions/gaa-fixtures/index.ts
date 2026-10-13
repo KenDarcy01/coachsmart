@@ -193,6 +193,8 @@ Deno.serve(async (req) => {
       return text("club must be numeric, from/to YYYY-MM-DD", 400);
     }
     const lines: string[] = [`Probe club ${club}, ${from} to ${to}`];
+    // names=Clontarf|St Brigid  -> report the club IDs seen for these names
+    const watch = new RegExp((q.get("names") ?? "clontarf|clanna gael").replace(/[^\w |']/g, "").slice(0, 80) || "clontarf", "i");
     try {
       const page = await fetch("https://dublingaa.sportlomo.com/fixtures-3/", {
         headers: { "User-Agent": UA, "Accept": "text/html" }, signal: AbortSignal.timeout(15_000),
@@ -213,7 +215,7 @@ Deno.serve(async (req) => {
             "X-Requested-With": "XMLHttpRequest", "Referer": "https://dublingaa.sportlomo.com/fixtures-3/" },
         });
         const body = await res.text();
-        const hits = body.replace(/\\/g, "").match(/value="\d+">(Clanna Gael[^<]*|Clontarf[^<]*)/gi) ?? [];
+        const hits = [...body.replace(/\\/g, "").matchAll(/value="(\d+)">([^<]*)/g)].filter((m) => watch.test(m[2])).map((m) => `${m[1]}=${m[2]}`);
         lines.push("", `${label} (${JSON.stringify(extra)}): HTTP ${res.status}, ${body.length} chars`,
           `  options: ${(body.match(/option value/g) ?? []).length}`, ...hits.slice(0, 4).map((h) => `  match: ${h.replace(/\s+/g, " ")}`));
       } catch (e) { lines.push(`${label}: error ${(e as Error).message}`); }
@@ -247,7 +249,7 @@ Deno.serve(async (req) => {
           const pg = parseClubGames(body.html);
           parsed += pg.length;
           for (const g of pg) for (const [n, id] of [[g.homeClub, g.homeClubId], [g.awayClub, g.awayClubId]]) {
-            if (/clontarf|clanna gael/i.test(n ?? "") && id) ids.add(`${n}=${id}`);
+            if (watch.test(n ?? "") && id) ids.add(`${n}=${id}`);
           }
           if (v.club_search_id === "" && p >= 2) break;
           if (!body.isLoadMore) break;
