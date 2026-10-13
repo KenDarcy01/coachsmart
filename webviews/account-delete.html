@@ -173,9 +173,9 @@ html, body {
       </svg>
     </div>
     <div class="title">Delete Your Account</div>
-    <div class="subtitle">This is permanent and cannot be undone. Please read what happens before continuing.</div>
+    <div class="subtitle">You will lose access to CoachSmart. Please read what happens before continuing.</div>
 
-    <div class="section-title">What will be deleted</div>
+    <div class="section-title">What will happen</div>
     <div class="delete-list">
       <div class="delete-item">
         <div class="delete-item-icon del">
@@ -188,20 +188,11 @@ html, body {
       </div>
       <div class="delete-item">
         <div class="delete-item-icon del">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-        </div>
-        <div class="delete-item-text">
-          <div class="delete-item-label">Your personal data</div>
-          <div class="delete-item-sub">Name, email, preferences and notification history</div>
-        </div>
-      </div>
-      <div class="delete-item">
-        <div class="delete-item-icon del">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
         <div class="delete-item-text">
-          <div class="delete-item-label">Your team memberships</div>
-          <div class="delete-item-sub">Your links to teams and clubs</div>
+          <div class="delete-item-label">Your teams</div>
+          <div class="delete-item-sub">You will no longer see your teams, clubs or events</div>
         </div>
       </div>
     </div>
@@ -215,6 +206,15 @@ html, body {
         <div class="delete-item-text">
           <div class="delete-item-label">Club &amp; team records</div>
           <div class="delete-item-sub">Match reports, events and squad data belong to your club and are managed by your admin</div>
+        </div>
+      </div>
+      <div class="delete-item">
+        <div class="delete-item-icon kept">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="delete-item-text">
+          <div class="delete-item-label">Your name &amp; email</div>
+          <div class="delete-item-sub">Stored securely with your club records. To have them erased too, email privacy@coachsmart.app</div>
         </div>
       </div>
     </div>
@@ -240,14 +240,14 @@ html, body {
       </svg>
     </div>
     <div class="title">Are you sure?</div>
-    <div class="subtitle" style="margin-bottom:32px">This will permanently delete your CoachSmart account. Type <strong style="color:var(--red)">DELETE</strong> to confirm.</div>
+    <div class="subtitle" style="margin-bottom:32px">This will delete your CoachSmart account and you will no longer be able to sign in. Type <strong style="color:var(--red)">DELETE</strong> to confirm.</div>
 
     <div class="confirm-label">Type DELETE to confirm</div>
     <input id="confirmInput" class="confirm-input" type="text" placeholder="DELETE"
       autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
       oninput="onConfirmInput(this)">
 
-    <button id="btnConfirm" class="btn-delete" disabled onclick="deleteAccount()">Permanently Delete Account</button>
+    <button id="btnConfirm" class="btn-delete" disabled onclick="deleteAccount()">Delete Account</button>
     <div id="deleteError" class="error-msg"></div>
     <button class="btn-cancel" style="margin-top:12px" onclick="showScreen('screen-warn')">Cancel</button>
   </div>
@@ -273,7 +273,7 @@ html, body {
       </svg>
     </div>
     <div class="title">Account Deleted</div>
-    <div class="subtitle" style="margin-top:8px">Your CoachSmart account has been permanently deleted. We're sorry to see you go.</div>
+    <div class="subtitle" style="margin-top:8px">Your CoachSmart account has been deleted. We're sorry to see you go.</div>
   </div>
 </div>
 
