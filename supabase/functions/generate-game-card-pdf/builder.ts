@@ -188,6 +188,37 @@ export async function buildPdf(games: GameData[], club: ClubData, isMobile = fal
     const rightH = () => rightParts.map(p => p(null, 0)).filter(Boolean).reduce((a, h, i) => a + h + (i ? 10 : 0), 0);
     const colsH = Math.max(leftH(), rightH());
 
+    // Long game: diagram on the left with teaching points and variations under
+    // it, set up and play steps down the right. Used when that fits one page
+    // and the normal layout would squeeze the diagram or spill over.
+    const sw = (CW - 16) * 0.42, sx2 = M + sw + 16, sw2 = CW - sw - 16;
+    const sideLeft = (cc: Canvas | null, t: number) => {
+      let yy = t;
+      if (img) {
+        const sc = Math.min(sw / img.width, 300 / img.height);
+        const iw = img.width * sc, ih = img.height * sc;
+        if (cc) { cc.clipped(M, yy, iw, ih, 12, () => cc.image(img, M, yy, iw, ih)); cc.rrect(M, yy, iw, ih, 12, null, fixed.line, 1); }
+        yy += ih + 14;
+      }
+      for (const p of [
+        (k: Canvas | null, tt: number) => box(k, "Teaching points", tps, M, tt, sw, th.pTint, th.pText, th.p, "check", th.onP),
+        (k: Canvas | null, tt: number) => box(k, "Variations", vars, M, tt, sw, th.sTint, th.sText, th.s, "up", th.onS),
+        (k: Canvas | null, tt: number) => video(k, vid, M, tt, sw),
+      ]) { const h = p(cc, yy); if (h) yy += h + 10; }
+      return yy - t;
+    };
+    const sideRight = (cc: Canvas | null, t: number) => {
+      const a = section(cc, "How to set up", setup, sx2, t, sw2);
+      return a + (a ? 12 : 0) + section(cc, "How to play", play, sx2, t + a + (a ? 12 : 0), sw2);
+    };
+    const normalImgH = img ? Math.min(CW / img.width, Math.max(190, Math.min(img.width >= img.height ? 330 : 400, bottom - y - colsH - 18)) / img.height) * img.height : 0;
+    const normalFits = y + (img ? normalImgH + 18 : 0) + colsH <= bottom;
+    const squeezed = !!img && normalImgH * img.width / img.height < sw; // side layout shows it bigger
+    if ((!normalFits || squeezed) && y + Math.max(sideLeft(null, 0), sideRight(null, 0)) <= bottom) {
+      sideLeft(c, y); sideRight(c, y);
+      continue;
+    }
+
     if (img) {
       // Diagram as large as possible while leaving room for the columns (minimum 190pt tall).
       const room = bottom - y - colsH - 18;
