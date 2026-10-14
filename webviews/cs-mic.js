@@ -5,7 +5,8 @@
  * onSpeechReady, onVoiceInterim, receiveSpeechResult, onSpeechDone and
  * onSpeechError. In a plain browser it falls back to the Web Speech API.
  *
- * iOS app: press and hold. Everywhere else: tap to start, tap to stop.
+ * In the app (iOS and Android): press and hold. In a browser: tap to start,
+ * tap to stop.
  * After stopping we wait for the engine to hand over its last words before
  * passing the full text to the page's onResult.
  *
@@ -19,7 +20,7 @@
   // iPadOS reports itself as a Mac; touch points give it away.
   const isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   const bridge = () => window.FlutterBridge || null;
-  const holdMode = () => isIOS && !!bridge();
+  const holdMode = () => !!bridge();
 
   const DONE_TIMEOUT = 3500;
   const FILLERS = /\b(um+h?|uh+|erm+|eh+|ahh?|mm+|hmm+|err+|y'know)\b[\s,]*/gi;
