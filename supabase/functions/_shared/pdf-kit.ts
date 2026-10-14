@@ -2,9 +2,9 @@
 // Shared drawing kit for the CoachSmart PDF exports (session plans, game cards).
 // Everything is laid out in "top" coordinates (distance from the top of the page)
 // and converted to pdf-lib's bottom-up coordinates at draw time.
-import type { PDFFont, PDFImage, PDFPage, RGB } from "npm:pdf-lib@1.17.1";
+import type { PDFFont, PDFPage, RGB } from "npm:pdf-lib@1.17.1";
 import {
-  PDFDocument, PDFName, PDFString, rgb, StandardFonts,
+  PDFDocument, PDFImage, PngEmbedder, PDFName, PDFHexString, PDFString, rgb, StandardFonts,
   pushGraphicsState, popGraphicsState, moveTo, lineTo, appendBezierCurve, closePath, clip, endPath,
   setCharacterSpacing,
 } from "npm:pdf-lib@1.17.1";
@@ -132,6 +132,19 @@ export async function loadFonts(doc: PDFDocument): Promise<Fonts> {
   const [h, r, b] = await Promise.all([
     fetchFontBytes("Montserrat", 700), fetchFontBytes("Noto Sans", 400), fetchFontBytes("Noto Sans", 700),
   ]);
+  // pdf-lib compresses each font file in JavaScript when the PDF is saved, about
+  // 300ms of CPU for the three. Compress them up front with the runtime's
+  // native zlib instead, and hand pdf-lib those bytes when it asks.
+  const packed = new Map<Uint8Array, Uint8Array>();
+  await Promise.all([h, r, b].map(async (bytes) => {
+    if (bytes) try { packed.set(bytes, await zlib(bytes, "compress")); } catch { /* pdf-lib compresses it */ }
+  }));
+  const ctx: any = doc.context, flate = ctx.flateStream.bind(ctx);
+  ctx.flateStream = (contents: any, dict: Record<string, any> = {}) => {
+    const z = packed.get(contents);
+    return z ? ctx.stream(z, { ...dict, Filter: "FlateDecode" }) : flate(contents, dict);
+  };
+
   let standard = false;
   const embed = async (bytes: Uint8Array | null, fb: StandardFonts) => {
     if (bytes) {
@@ -177,14 +190,149 @@ export async function fetchImageBytes(url: string | null | undefined): Promise<U
   }
 }
 
+let pngQueue: Promise<unknown> = Promise.resolve();
+
 export async function embedImage(doc: PDFDocument, url: string | null | undefined): Promise<PDFImage | null> {
   const b = await fetchImageBytes(url);
   if (!b) return null;
   try {
     if (b[0] === 0xff && b[1] === 0xd8) return await doc.embedJpg(b);
-    if (b[0] === 0x89 && b[1] === 0x50) return await doc.embedPng(b);
+    if (b[0] === 0x89 && b[1] === 0x50) {
+      // Decode PNGs one at a time: several 1800px images unpacked at once
+      // hold hundreds of MB and the garbage collector eats the CPU budget.
+      const run = pngQueue.then(async () => (await embedPngFast(doc, b)) ?? await doc.embedPng(b));
+      pngQueue = run.catch(() => {});
+      return await run;
+    }
   } catch (e) { console.warn("[image] embed failed:", e); }
   return null;
+}
+
+// pdf-lib's embedPng decodes every pixel and re-compresses it in JavaScript,
+// which costs ~300ms of CPU for one 1800px game diagram. PDF can read PNG's own
+// compressed rows directly, so opaque PNGs go in untouched, and PNGs with an
+// alpha channel are unpacked and re-packed with the runtime's native zlib.
+// Returns null for the rare formats this doesn't handle (pdf-lib takes those).
+async function zlib(data: Uint8Array, mode: "compress" | "decompress"): Promise<Uint8Array> {
+  const stream = mode === "compress" ? new CompressionStream("deflate") : new DecompressionStream("deflate");
+  const out = new Blob([data as unknown as BlobPart]).stream().pipeThrough(stream);
+  return new Uint8Array(await new Response(out).arrayBuffer());
+}
+
+// Reverses PNG row filters in place. raw holds h rows of [filter byte, stride bytes].
+// One tight loop per filter type keeps this fast enough for 1800px diagrams.
+function unfilterPng(raw: Uint8Array, h: number, stride: number, bpp: number) {
+  const rs = stride + 1;
+  for (let y = 0; y < h; y++) {
+    const s = y * rs + 1, e = s + stride, ft = raw[s - 1];
+    if (ft === 1) {
+      for (let i = s + bpp; i < e; i++) raw[i] = (raw[i] + raw[i - bpp]) & 255;
+    } else if (y === 0) {
+      // No row above: Up adds nothing, Average halves left, Paeth equals left.
+      if (ft === 3) for (let i = s + bpp; i < e; i++) raw[i] = (raw[i] + (raw[i - bpp] >> 1)) & 255;
+      else if (ft === 4) for (let i = s + bpp; i < e; i++) raw[i] = (raw[i] + raw[i - bpp]) & 255;
+    } else if (ft === 2) {
+      for (let i = s; i < e; i++) raw[i] = (raw[i] + raw[i - rs]) & 255;
+    } else if (ft === 3) {
+      for (let i = s; i < s + bpp; i++) raw[i] = (raw[i] + (raw[i - rs] >> 1)) & 255;
+      for (let i = s + bpp; i < e; i++) raw[i] = (raw[i] + ((raw[i - bpp] + raw[i - rs]) >> 1)) & 255;
+    } else if (ft === 4) {
+      for (let i = s; i < s + bpp; i++) raw[i] = (raw[i] + raw[i - rs]) & 255;
+      for (let i = s + bpp, u = s + bpp - rs; i < e; i++, u++) {
+        const a = raw[i - bpp], b = raw[u], c = raw[u - bpp];
+        const p = b - c, q = a - c;
+        const pa = p < 0 ? -p : p, pb = q < 0 ? -q : q, pc = p + q < 0 ? -(p + q) : p + q;
+        raw[i] = raw[i] + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c);
+      }
+    }
+  }
+}
+
+async function embedPngFast(doc: PDFDocument, b: Uint8Array): Promise<PDFImage | null> {
+  const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  let w = 0, h = 0, depth = 0, ctype = 0, interlace = 0, plte: Uint8Array | null = null, trns = false;
+  const idat: Uint8Array[] = [];
+  for (let p = 8; p + 8 <= b.length;) {
+    const len = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
+    const body = b.subarray(p + 8, p + 8 + len);
+    if (type === "IHDR") { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); depth = b[p + 16]; ctype = b[p + 17]; interlace = b[p + 20]; }
+    else if (type === "PLTE") plte = body;
+    else if (type === "tRNS") trns = true;
+    else if (type === "IDAT") idat.push(body);
+    else if (type === "IEND") break;
+    p += 12 + len;
+  }
+  if (!w || !h || depth !== 8 || interlace !== 0 || trns || !idat.length) return null;
+  let total = 0; for (const c of idat) total += c.length;
+  const z = new Uint8Array(total); total = 0;
+  for (const c of idat) { z.set(c, total); total += c.length; }
+
+  const ctx = doc.context;
+  let iw = w, ih = h;
+  const image = (data: Uint8Array, colorSpace: any, colors: number, extra: Record<string, any> = {}) =>
+    ctx.stream(data, { Type: "XObject", Subtype: "Image", Width: iw, Height: ih, BitsPerComponent: 8, ColorSpace: colorSpace,
+      Filter: "FlateDecode", ...extra,
+      ...(colors ? { DecodeParms: { Predictor: 15, Colors: colors, BitsPerComponent: 8, Columns: w } } : {}) });
+
+  let xObject;
+  if (ctype === 0 || ctype === 2) {
+    xObject = image(z, ctype === 0 ? "DeviceGray" : "DeviceRGB", ctype === 0 ? 1 : 3);
+  } else if (ctype === 3 && plte) {
+    const pal = Array.from(plte, (v) => v.toString(16).padStart(2, "0")).join("");
+    xObject = image(z, [PDFName.of("Indexed"), PDFName.of("DeviceRGB"), plte.length / 3 - 1, PDFHexString.of(pal)], 1);
+  } else if (ctype === 4 || ctype === 6) {
+    const ch = ctype === 6 ? 4 : 2, cc = ch - 1, stride = w * ch;
+    const raw = await zlib(z, "decompress");
+    if (raw.length < h * (stride + 1)) return null;
+    unfilterPng(raw, h, stride, ch);
+    // Big diagrams (1800px) are far sharper than the page needs, so they are
+    // halved here (2x2 average), which also quarters the work that follows.
+    const f = w >= 1200 && h >= 2 ? 2 : 1, ow = Math.floor(w / f), oh = Math.floor(h / f), rs = stride + 1;
+    const color = new Uint8Array(ow * oh * cc), alpha = new Uint8Array(ow * oh);
+    let opaque = true;
+    if (f === 1) {
+      for (let y = 0, o = 0, a = 0; y < h; y++) {
+        const end = y * rs + 1 + stride;
+        for (let i = y * rs + 1; i < end; i += ch) {
+          color[o++] = raw[i];
+          if (cc === 3) { color[o++] = raw[i + 1]; color[o++] = raw[i + 2]; }
+          const al = raw[i + cc]; alpha[a++] = al; if (al !== 255) opaque = false;
+        }
+      }
+    } else {
+      for (let y = 0, o = 0, a = 0; y < oh; y++) {
+        const r0 = 2 * y * rs + 1, r1 = r0 + rs;
+        if (cc === 3) {
+          for (let x = 0, i = r0, j = r1; x < ow; x++, i += 8, j += 8) {
+            color[o++] = (raw[i] + raw[i + 4] + raw[j] + raw[j + 4] + 2) >> 2;
+            color[o++] = (raw[i + 1] + raw[i + 5] + raw[j + 1] + raw[j + 5] + 2) >> 2;
+            color[o++] = (raw[i + 2] + raw[i + 6] + raw[j + 2] + raw[j + 6] + 2) >> 2;
+            const v = (raw[i + 3] + raw[i + 7] + raw[j + 3] + raw[j + 7] + 2) >> 2;
+            alpha[a++] = v; if (v !== 255) opaque = false;
+          }
+        } else {
+          for (let x = 0, i = r0, j = r1; x < ow; x++, i += 4, j += 4) {
+            color[o++] = (raw[i] + raw[i + 2] + raw[j] + raw[j + 2] + 2) >> 2;
+            const v = (raw[i + 1] + raw[i + 3] + raw[j + 1] + raw[j + 3] + 2) >> 2;
+            alpha[a++] = v; if (v !== 255) opaque = false;
+          }
+        }
+      }
+    }
+    iw = ow; ih = oh;
+    const space = cc === 3 ? "DeviceRGB" : "DeviceGray";
+    const SMask = opaque ? undefined
+      : ctx.register(image(await zlib(alpha, "compress"), "DeviceGray", 0, { Decode: [0, 1] }));
+    xObject = image(await zlib(color, "compress"), space, 0, SMask ? { SMask } : {});
+  } else return null;
+
+  // Hand pdf-lib a ready-made stream that it writes out when the PDF is saved.
+  const embedder: any = Object.create(PngEmbedder.prototype);
+  embedder.width = iw; embedder.height = ih;
+  embedder.embedIntoContext = async (c: any, ref: any) => { c.assign(ref, xObject); return ref; };
+  const pdfImage = PDFImage.of(ctx.nextRef(), doc, embedder);
+  (doc as any).images.push(pdfImage);
+  return pdfImage;
 }
 
 // ─── Canvas: a page plus top-down drawing helpers ─────────────────────────────

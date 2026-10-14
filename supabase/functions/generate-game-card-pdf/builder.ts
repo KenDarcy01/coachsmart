@@ -140,8 +140,11 @@ export async function buildPdf(games: GameData[], club: ClubData, isMobile = fal
     return o.qr + 16;
   };
 
-  for (const g of games) {
-    const img = await embedImage(doc, g.game_image || g.game_details_image);
+  // Fetch every diagram at once rather than one game at a time.
+  const images = await Promise.all(games.map((g) => embedImage(doc, g.game_image || g.game_details_image)));
+
+  for (const [gi, g] of games.entries()) {
+    const img = images[gi];
     const setup = toPoints(T(g.game_setup)), play = toPoints(T(g.game_how_to_play));
     const tps = toPoints(T(g.game_teaching_points)), vars = splitIdeas(T(g.game_variations));
     const vid = (g.game_video || "").trim();
