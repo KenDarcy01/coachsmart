@@ -245,12 +245,11 @@ button.card { display: block; width: 100%; }
 .up-t { color: var(--yes); } .down-t { color: var(--no-text); } .warn-t { color: var(--warn); }
 
 .months { display: flex; align-items: flex-end; gap: 6px; height: 112px; }
-.months > button, .months > div { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+.months > div { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
 .months em { font-style: normal; font-size: 11px; color: var(--text-2); }
 .months i { display: block; width: 100%; border-radius: 5px 5px 2px 2px; background: var(--accent); min-height: 2px; }
 .months i.low { opacity: 0.55; }
 .months i.nil { background: var(--surface-2); }
-.months .faded i { opacity: 0.25; }
 .months span { font-size: 11px; color: var(--muted); }
 
 .team-top { display: flex; align-items: center; gap: 14px; }
@@ -362,8 +361,7 @@ body.exporting #pdfStage { display: block; }
   <div class="wrap">
     <div id="topNav">
       <div class="tabs" id="tabs">
-        <button data-act="tab" data-tab="club" class="on">Club</button>
-        <button data-act="tab" data-tab="teams">Teams</button>
+        <button data-act="tab" data-tab="teams" class="on">Teams</button>
         <button data-act="tab" data-tab="players">Players</button>
         <button data-act="tab" data-tab="squads">Squads</button>
       </div>
@@ -459,7 +457,7 @@ const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const NO_CODE  = '__none';
 const ALL_FROM = new Date(2020, 0, 1);
-const LIMIT = { events: 5, teamEvents: 5, players: 25, teamPlayers: 5, picked: 5, unpicked: 5, teams: 3 };
+const LIMIT = { teamEvents: 5, players: 25, teamPlayers: 5, picked: 5, unpicked: 5 };
 const ICON_PDF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>';
 
 /* ── State ───────────────────────────────────────────────────────────────── */
@@ -475,9 +473,9 @@ const GROUPS = [
   { key: 'role', label: 'Role' },
 ];
 const st = {
-  tab: 'club', period: 'season', custom: null,     // custom = { from: Date, to: Date }
+  tab: 'teams', period: 'season', custom: null,     // custom = { from: Date, to: Date }
   f: { team: new Set(), code: new Set(), type: new Set(), role: new Set() },
-  teamPage: null, month: null,
+  teamPage: null,
   teamSort: 'att', playerSort: 'low', playerQ: '', teamPlayerSort: 'low',
   expanded: {},
 };
@@ -870,16 +868,16 @@ function render() {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === st.tab));
   const onTeamPage = st.tab === 'teams' && st.teamPage != null;
   document.getElementById('topNav').style.display = onTeamPage ? 'none' : '';
-  document.getElementById('view').innerHTML = viewHtml(false);
+  document.getElementById('view').innerHTML = viewHtml(false)
+    + (WV_TOKEN ? '' : `<div class="note" style="margin-top:20px"><button data-act="logout" style="color:var(--muted)">Sign out</button></div>`);
   document.getElementById('pdfBtn').disabled = false;
 }
 
 function viewHtml(full) {
   if (st.tab === 'teams' && st.teamPage != null) return teamPageHtml(full);
-  if (st.tab === 'teams')   return teamsHtml(full);
   if (st.tab === 'players') return playersHtml(full);
   if (st.tab === 'squads')  return squadsHtml(full);
-  return clubHtml(full);
+  return teamsHtml(full);
 }
 
 const noEvents = () => `<div class="card"><div class="empty">No events in this period${changedLabels().length ? ' for these filters' : ''}</div></div>`;
@@ -918,19 +916,16 @@ function codeCardsHtml(evs) {
   }).join('')}</div>`;
 }
 
-function monthsHtml(ctx, tappable) {
+function monthsHtml(ctx) {
   const ms = months(ctx);
   if (ms.length < 2 || !ctx.evs.length) return '';
   const avg = totals(ctx.evs).pct;
   const cells = ms.map(m => {
     const label = ms.length > 6 ? MON[m.d.getMonth()].charAt(0) : MON[m.d.getMonth()];
-    const faded = tappable && st.month && st.month !== m.key ? 'faded' : '';
-    const inner = m.pct == null ? `<em>–</em><i class="nil"></i><span>${label}</span>`
-      : `<em>${m.pct}%</em><i class="${m.pct < avg - 15 ? 'low' : ''}" style="height:${Math.max(m.pct, 2) * 0.7}%"></i><span>${label}</span>`;
-    return tappable && m.pct != null ? `<button class="${faded}" data-act="month" data-v="${m.key}">${inner}</button>` : `<div class="${faded}">${inner}</div>`;
+    return m.pct == null ? `<div><em>–</em><i class="nil"></i><span>${label}</span></div>`
+      : `<div><em>${m.pct}%</em><i class="${m.pct < avg - 15 ? 'low' : ''}" style="height:${Math.max(m.pct, 2) * 0.7}%"></i><span>${label}</span></div>`;
   }).join('');
-  return `<div class="h">Attendance by month ${tappable ? `<button class="no-pdf" data-act="${st.month ? 'month-clear' : 'noop'}">${st.month ? 'Show all months' : 'Tap a month to see its events'}</button>` : ''}</div>
-    <div class="card"><div class="months">${cells}</div></div>`;
+  return `<div class="h">Attendance by month</div><div class="card"><div class="months">${cells}</div></div>`;
 }
 
 // Event rows: "vs Raheny" for matches, the type otherwise (or a custom title)
@@ -968,54 +963,6 @@ function teamRanking(ctx) {
       players: new Set(evs.flatMap(e => e.members.map(m => m.member_id))).size,
       trend: prev.length >= 3 ? t.pct - totals(prev).pct : null };
   });
-}
-
-/* Club tab */
-function clubHtml(full) {
-  const ctx = context();
-  if (!ctx.evs.length) return noEvents();
-  const t = totals(ctx.evs);
-  const stats = playerStats(ctx.evs);
-  movers(ctx, stats);
-  const players = [...stats.values()];
-  const teams = teamRanking(ctx).sort((a, b) => b.t.pct - a.t.pct);
-
-  const extra = `<div class="stats3"><div><b>${ctx.evs.length.toLocaleString('en-IE')}</b><span>Events</span></div>
-    <div><b>${teams.length}</b><span>Teams</span></div><div><b>${players.length.toLocaleString('en-IE')}</b><span>Players</span></div></div>`;
-
-  // Needs attention / on the up
-  const noReply  = players.filter(p => p.events >= 3 && p.nr / p.events >= 0.5);
-  const dropping = players.filter(p => p.delta != null && p.delta <= -15);
-  const rising   = players.filter(p => p.delta != null && p.delta >= 15).sort((a, b) => b.delta - a.delta);
-  const low = teams.length >= 2 ? teams[teams.length - 1] : null;
-  const att = [];
-  if (noReply.length) att.push(`<button class="row" data-act="players" data-v="noreply"><div class="ico warn">${noReply.length}</div>
-    <div class="grow"><div class="t">${noReply.length === 1 ? 'Player' : 'Players'} not replying</div><div class="m">No reply to half or more of their events</div></div><span class="chev no-pdf">›</span></button>`);
-  if (dropping.length) att.push(`<button class="row" data-act="players" data-v="dropping"><div class="ico bad">${dropping.length}</div>
-    <div class="grow"><div class="t">${dropping.length === 1 ? 'Player' : 'Players'} dropping off</div><div class="m">Down 15% or more on earlier in the period</div></div><span class="chev no-pdf">›</span></button>`);
-  if (low && low.t.pct <= t.pct - 10) att.push(`<button class="row" data-act="team" data-id="${low.id}"><div class="ico ${low.t.pct < 50 ? 'bad' : 'warn'}">${low.t.pct}%</div>
-    <div class="grow"><div class="t">${esc(low.name)}</div><div class="m">Lowest team, ${t.pct - low.t.pct}% below club average</div></div><span class="chev no-pdf">›</span></button>`);
-  const names = rising.slice(0, 2).map(p => p.name).join(', ') + (rising.length > 2 ? ` +${rising.length - 2}` : '');
-
-  const evList = st.month ? ctx.evs.filter(e => `${e.date.getFullYear()}-${e.date.getMonth()}` === st.month) : ctx.evs;
-  const monthName = st.month ? (() => { const [y, m] = st.month.split('-').map(Number); return `${MON[m]} ${y}`; })() : '';
-  const mc = multiCodeIn(ctx.evs);
-
-  return `
-    ${heroHtml(ctx, t, extra)}
-    ${splitHtml(ctx.evs)}
-    ${codeCardsHtml(ctx.evs)}
-    ${att.length ? `<div class="h">Needs attention</div><div class="card needs">${att.join('')}</div>` : ''}
-    ${rising.length ? `<div class="h">On the up</div><div class="card"><button class="row" data-act="players" data-v="rising"><div class="ico good">${rising.length}</div>
-      <div class="grow"><div class="t">${rising.length === 1 ? 'Player' : 'Players'} improving</div><div class="m">Up 15% or more · ${esc(names)}</div></div><span class="chev no-pdf">›</span></button></div>` : ''}
-    ${monthsHtml(ctx, true)}
-    ${teams.length > 1 ? `<div class="h">Teams ${full ? '' : `<button class="no-pdf" data-act="tab" data-tab="teams">See all ${teams.length}</button>`}</div>
-      <div class="card">${(full ? teams : teams.slice(0, LIMIT.teams)).map((tm, i) => `<button class="row" data-act="team" data-id="${tm.id}">
-        <div class="rank">${i + 1}</div><div class="grow"><div class="t">${esc(tm.name)}</div><div class="track"><i style="width:${tm.t.pct}%;background:${bandColor(tm.t.pct)}"></i></div></div>
-        <div class="pct c-${band(tm.t.pct)}">${tm.t.pct}%</div></button>`).join('')}</div>` : ''}
-    <div class="h">${st.month ? `${monthName} events` : full && !st.expanded.clubEvents && evList.length > LIMIT.events ? `Latest ${LIMIT.events} of ${evList.length} events` : 'Events'} ${seeAll('clubEvents', evList.length, LIMIT.events, full)}</div>
-    <div class="card">${shown('clubEvents', evList, LIMIT.events, false).map(e => eventRowHtml(e, mc, true)).join('') || '<div class="empty">No events</div>'}</div>
-    ${!WV_TOKEN && !full ? `<div class="note no-pdf" style="margin-top:20px"><button data-act="logout" style="color:var(--muted)">Sign out</button></div>` : ''}`;
 }
 
 /* Teams tab */
@@ -1078,7 +1025,7 @@ function teamPageHtml(full) {
     <div class="h">Players ${seeAll('teamPlayers', list.length, LIMIT.teamPlayers, full)}</div>
     <div class="seg sub-seg no-pdf">${seg.map(([v, l]) => `<button class="${sort === v ? 'on' : ''}" data-act="sort" data-k="teamPlayerSort" data-v="${v}">${l}</button>`).join('')}</div>
     <div class="card">${shown('teamPlayers', list, LIMIT.teamPlayers, full).map(p => playerRowHtml(p, sort, false)).join('')}</div>
-    ${monthsHtml(ctx, false)}
+    ${monthsHtml(ctx)}
     <div class="h">Events ${seeAll('teamEvents', ctx.evs.length, LIMIT.teamEvents, full)}</div>
     <div class="card">${shown('teamEvents', ctx.evs, LIMIT.teamEvents, full).map(e => eventRowHtml(e, mc, false)).join('')}</div>`;
 }
@@ -1305,8 +1252,6 @@ function wireControls() {
       case 'players':  st.tab = 'players'; st.playerSort = v; st.playerQ = ''; st.expanded = {}; render(); scrollTop(); break;
       case 'sort':     st[k] = v; st.expanded = {}; render(); break;
       case 'more':     st.expanded[k] = !st.expanded[k]; render(); break;
-      case 'month':    st.month = st.month === v ? null : v; st.expanded.clubEvents = false; render(); break;
-      case 'month-clear': st.month = null; render(); break;
       case 'only-code': st.f.code = new Set([v]); renderFilterSheet(); render(); break;
       case 'event':    openSheet({ kind: 'event', id: Number(id), resp: 'all' }); break;
       case 'squad':    openSheet({ kind: 'squad', id: Number(id) }); break;
@@ -1328,7 +1273,7 @@ function wireControls() {
   });
 
   document.querySelectorAll('#periodSeg button').forEach(b => b.addEventListener('click', () => {
-    st.period = b.dataset.period; st.custom = null; st.month = null; st.expanded = {};
+    st.period = b.dataset.period; st.custom = null; st.expanded = {};
     renderFilterSheet(); loadData();
   }));
 
@@ -1360,7 +1305,7 @@ function wireControls() {
     if (!a || !b) return;
     const from = new Date(a + 'T00:00:00'), to = new Date(b + 'T23:59:59');
     if (to < from) return toast('The end date is before the start date');
-    st.custom = { from, to }; st.month = null; st.expanded = {};
+    st.custom = { from, to }; st.expanded = {};
     loadData();
   };
   document.getElementById('dateFrom').addEventListener('change', onDates);
@@ -1374,7 +1319,7 @@ function scrollTop() { document.body.scrollTop = 0; document.documentElement.scr
 
 /* ── PDF export ──────────────────────────────────────────────────────────── */
 let exporting = false;
-const TAB_NAMES = { club: 'Club attendance', teams: 'Teams', players: 'Players', squads: 'Match squads' };
+const TAB_NAMES = { teams: 'Teams', players: 'Players', squads: 'Match squads' };
 
 function pdfHead(title, sub) {
   return `<div class="pdf-head"><div><b>${esc(title)}</b><span>${esc(sub)}</span></div><div class="pdf-brand">Coach<em>Smart</em></div></div>`;
