@@ -163,11 +163,9 @@ export async function buildSessionPlanPdf(plan: PlanJson, event: EventData, form
     pages.push(c);
     return c;
   };
-  /** Phone pages: draw once on a scratch page to measure, then redraw on a page of exactly that height. */
+  /** Phone pages: lay out once on a dry canvas to measure, then draw on a page of exactly that height. */
   const fitted = (draw: (c: Canvas) => number) => {
-    const tmp = new Canvas(doc, doc.addPage([PW, 6000]), PW, 6000, f);
-    const used = draw(tmp);
-    doc.removePage(doc.getPageCount() - 1);
+    const used = draw(Canvas.dry(doc, PW, f));
     const c = newPage(Math.ceil(used + FOOT + 6));
     draw(c);
   };

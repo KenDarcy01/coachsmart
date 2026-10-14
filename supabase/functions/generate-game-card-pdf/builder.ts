@@ -166,9 +166,7 @@ export async function buildPdf(games: GameData[], club: ClubData, isMobile = fal
         for (const [, fn] of parts) { const h = fn(c, y); if (h) y += h + 12; }
         return y;
       };
-      const tmp = new Canvas(doc, doc.addPage([PW, 8000]), PW, 8000, f);
-      const used = draw(tmp);
-      doc.removePage(doc.getPageCount() - 1);
+      const used = draw(Canvas.dry(doc, PW, f));
       draw(newPage(Math.ceil(used + FOOT)));
       continue;
     }

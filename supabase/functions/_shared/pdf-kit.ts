@@ -121,6 +121,10 @@ async function fetchFontBytes(family: string, weight: number): Promise<Uint8Arra
   return null;
 }
 
+// Plain Latin text needs no shaping. Turning these features off keeps fontkit's layout
+// cheap (edge functions have a 2s CPU budget) and stops pdf-lib dropping ligatures like "fi".
+const NO_SHAPING = { liga: false, clig: false, calt: false, kern: false, ccmp: false, locl: false, mark: false, mkmk: false, rlig: false, dlig: false };
+
 export interface Fonts { head: PDFFont; reg: PDFFont; bold: PDFFont; standard: boolean }
 
 export async function loadFonts(doc: PDFDocument): Promise<Fonts> {
@@ -131,8 +135,7 @@ export async function loadFonts(doc: PDFDocument): Promise<Fonts> {
   let standard = false;
   const embed = async (bytes: Uint8Array | null, fb: StandardFonts) => {
     if (bytes) {
-      // Ligatures off: with them on, pdf-lib drops pairs like "fi" ("fi nish").
-      try { return await doc.embedFont(bytes, { features: { liga: false } } as any); } catch (e) { console.warn("embedFont failed:", e); }
+      try { return await doc.embedFont(bytes, { features: NO_SHAPING } as any); } catch (e) { console.warn("embedFont failed:", e); }
     }
     standard = true;
     return doc.embedFont(fb);
@@ -189,6 +192,17 @@ export async function embedImage(doc: PDFDocument, url: string | null | undefine
 export class Canvas {
   constructor(public doc: PDFDocument, public page: PDFPage, public W: number, public H: number, public f: Fonts) {}
 
+  /** True for a measuring canvas: nothing is drawn, only layout runs. */
+  dryRun = false;
+
+  /** A canvas that draws nothing, used to measure a layout's height cheaply. */
+  static dry(doc: PDFDocument, W: number, f: Fonts) {
+    const noop: any = new Proxy({}, { get: () => () => {} });
+    const c = new Canvas(doc, noop, W, 100000, f);
+    c.dryRun = true;
+    return c;
+  }
+
   y(top: number) { return this.H - top; }
 
   rect(x: number, top: number, w: number, h: number, color: RGB, opacity = 1) {
@@ -242,7 +256,7 @@ export class Canvas {
 
   /** Draws one line of text; `top` is the top of the line box, baseline sits at top + size*0.8. */
   text(s: string, x: number, top: number, size: number, font: PDFFont, color: RGB, spacing = 0) {
-    if (!s) return;
+    if (!s || this.dryRun) return;
     const y = this.H - top - size * 0.8;
     if (spacing) this.page.pushOperators(setCharacterSpacing(spacing));
     this.page.drawText(s, { x, y, size, font, color });
@@ -276,6 +290,7 @@ export class Canvas {
 
   /** Clickable link area. */
   link(url: string, x: number, top: number, w: number, h: number) {
+    if (this.dryRun) return;
     try {
       const ctx = this.doc.context;
       const annot = ctx.obj({
@@ -290,6 +305,7 @@ export class Canvas {
 
   /** QR code drawn as vector squares. */
   qr(data: string, x: number, top: number, size: number, color: RGB) {
+    if (this.dryRun) return;
     let m: any;
     try { m = QRCode.create(data, { errorCorrectionLevel: "M" }).modules; } catch { return; }
     const n = m.size, u = size / n;
@@ -321,26 +337,38 @@ export type IconName = keyof typeof ICONS;
 
 // ─── Text measuring and wrapping ──────────────────────────────────────────────
 
+// Measuring text runs the font's full shaping engine, which is slow; widths scale
+// linearly with size, so cache each string's width at size 1 per font.
+const widthCache = new WeakMap<PDFFont, Map<string, number>>();
+
 export function textW(s: string, font: PDFFont, size: number, spacing = 0) {
-  return font.widthOfTextAtSize(s, size) + (spacing ? spacing * Math.max(0, s.length - 1) : 0);
+  let m = widthCache.get(font);
+  if (!m) { m = new Map(); widthCache.set(font, m); }
+  let w = m.get(s);
+  if (w === undefined) { w = font.widthOfTextAtSize(s, 1); m.set(s, w); }
+  return w * size + (spacing ? spacing * Math.max(0, s.length - 1) : 0);
 }
 
 export function wrap(text: string, font: PDFFont, size: number, maxW: number): string[] {
+  // Widths are summed per word (cached) rather than re-measuring the growing line.
   const out: string[] = [];
+  const spW = textW(" ", font, size);
   for (const para of String(text ?? "").split("\n").map(l => l.trim()).filter(Boolean)) {
-    let cur = "";
+    let cur = "", curW = 0;
     for (const word of para.split(/\s+/)) {
-      const test = cur ? `${cur} ${word}` : word;
-      if (textW(test, font, size) <= maxW) { cur = test; continue; }
+      const ww = textW(word, font, size);
+      if (!cur) {
+        if (ww <= maxW) { cur = word; curW = ww; continue; }
+      } else if (curW + spW + ww <= maxW) { cur += " " + word; curW += spW + ww; continue; }
       if (cur) out.push(cur);
       // hard-break words longer than the line (long URLs)
       let w = word;
       while (textW(w, font, size) > maxW && w.length > 1) {
-        let i = w.length - 1;
-        while (i > 1 && textW(w.slice(0, i), font, size) > maxW) i--;
-        out.push(w.slice(0, i)); w = w.slice(i);
+        let k = Math.max(1, Math.floor(w.length * maxW / textW(w, font, size)));
+        while (k > 1 && textW(w.slice(0, k), font, size) > maxW) k--;
+        out.push(w.slice(0, k)); w = w.slice(k);
       }
-      cur = w;
+      cur = w; curW = textW(w, font, size);
     }
     if (cur) out.push(cur);
   }
