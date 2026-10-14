@@ -131,13 +131,32 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .code-card .k { margin-top: 6px; }
 .code-sub { font-size: 12px; color: var(--text-2); margin-top: 8px; }
 .code-sub + .code-sub { margin-top: 2px; }
-.sq-row { margin-top: 12px; }
+.sq-row { margin: 6px -6px 0; padding: 6px; }
 .sq-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
 .sq-name { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sq-num { color: var(--text-2); white-space: nowrap; }
 .sq-num b { color: var(--text); }
 .sq-bar { height: 8px; border-radius: 4px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
 .sq-bar i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.tappable { cursor: pointer; }
+.card.sel, .sq-row.sel { outline: 2px solid var(--accent); outline-offset: 0; }
+.sq-row { border-radius: 6px; }
+.months div.sel em { color: var(--accent); font-weight: 700; }
+.months div.sel span { color: var(--accent); font-weight: 700; }
+.months.focused div:not(.sel) i { opacity: 0.35; }
+.focus-bar { margin: 18px 0 -6px; }
+.focus-bar:empty { display: none; }
+.focus-chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+  padding: 6px 12px; border-radius: 99px; background: var(--accent); color: #111418;
+}
+.btn-spin {
+  display: none; width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--surface-2); border-top-color: var(--accent); animation: spin 0.8s linear infinite;
+}
+.icon-btn.busy svg { display: none; }
+.icon-btn.busy .btn-spin { display: block; }
+.icon-btn.busy:disabled { opacity: 1; }
 .code-tag.none { color: var(--text-2); background: var(--none-dim); }
 .code-tag {
   display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
@@ -252,6 +271,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
     </button>
     <button class="icon-btn" id="pdfBtn" aria-label="Export PDF">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F1F4F8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+      <span class="btn-spin"></span>
     </button>
   </div>
   <div class="chips no-pdf" id="activeChips"></div>
@@ -268,20 +288,22 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
     <div class="two codes" id="codeCards"></div>
 
-    <div id="upcomingSection">
-      <div class="h">Coming up</div>
-      <div class="card" id="upcomingList"></div>
-    </div>
-
     <div id="squadSection">
       <div class="h">Squad selections</div>
       <div class="two" id="squadCards"></div>
+    </div>
+
+    <div id="upcomingSection">
+      <div class="h">Coming up</div>
+      <div class="card" id="upcomingList"></div>
     </div>
 
     <div id="monthSection">
       <div class="h">Attendance by month</div>
       <div class="card"><div class="months" id="monthChart"></div></div>
     </div>
+
+    <div class="focus-bar no-pdf" id="focusBar"></div>
 
     <div id="matchSection">
       <div class="h">Matches <button class="no-pdf" id="matchMore"></button></div>
@@ -353,6 +375,9 @@ let fOptions = { code: [], type: [], team: [] };   // [value, label] per group
 let fDefault = { code: [], type: [], team: [] };
 let histCat  = 'all';
 let expanded = { matches: false, history: false };
+// Tapping a squad row, month bar or the trainings/matches card narrows the
+// Matches and History lists only. One at a time; tap again or ✕ to clear.
+let focus    = null;
 
 /* ── Classifiers ─────────────────────────────────────────────────────────── */
 // response_id 3 = attending, 4 = declined, anything else = pre-created "no response" placeholder
@@ -574,6 +599,7 @@ const pct   = (n, d) => d ? Math.round((n / d) * 100) : 0;
 /* ── Render ──────────────────────────────────────────────────────────────── */
 function render() {
   view = computeView();
+  focus = null;
   renderChips();
   renderHero();
   renderSplitCards();
@@ -581,6 +607,7 @@ function render() {
   renderUpcoming();
   renderMonths();
   renderSquads();
+  renderFocusBar();
   renderMatches();
   renderHistory();
 }
@@ -641,12 +668,21 @@ function renderSplitCards() {
   document.getElementById('matchCard').style.display = matches.length || !trainings.length ? '' : 'none';
   document.querySelector('.two').classList.toggle('single', !trainings.length !== !matches.length);
 
-  const picked = matches.filter(m => m.selection).length;
-  document.getElementById('matchCard').innerHTML = matches.length
-    ? `<div class="k">${picked}<small>/${matches.length}</small></div>
-       <div class="lbl">Matches selected</div>
-       <div class="mini"><i style="width:${pct(picked, matches.length)}%;background:var(--accent)"></i></div>`
-    : `<div class="k">–</div><div class="lbl">Matches selected</div><div class="mini"></div>`;
+  const tCard = document.getElementById('trainCard'), mCard = document.getElementById('matchCard');
+  tCard.classList.toggle('tappable', trainings.length > 0);
+  mCard.classList.toggle('tappable', matches.length > 0);
+  tCard.classList.toggle('sel', focus?.key === 'type:training');
+  mCard.classList.toggle('sel', focus?.key === 'type:match');
+  tCard.onclick = trainings.length ? () => setFocus({ key: 'type:training', kind: 'type', which: 'training', label: 'Trainings' }) : null;
+  mCard.onclick = matches.length   ? () => setFocus({ key: 'type:match',    kind: 'type', which: 'match',    label: 'Matches' })   : null;
+
+  const mPast = view.past.filter(isMatch);
+  const mWent = count(mPast, 'yes'), mNo = count(mPast, 'no');
+  document.getElementById('matchCard').innerHTML = mPast.length
+    ? `<div class="k">${mWent}<small>/${mPast.length}</small></div>
+       <div class="lbl">Matches attended</div>
+       <div class="mini"><i style="width:${pct(mWent, mPast.length)}%;background:var(--yes)"></i><i style="width:${pct(mNo, mPast.length)}%;background:var(--no)"></i></div>`
+    : `<div class="k">–</div><div class="lbl">Matches attended</div><div class="mini"></div>`;
 }
 
 // One card per code when the events on screen span more than one code. Tapping a card filters the page to that code.
@@ -709,7 +745,9 @@ function renderMonths() {
   sec.style.display = '';
 
   const avg = pct(count(past, 'yes'), past.length);
-  document.getElementById('monthChart').innerHTML = shown.map(m => {
+  const chart = document.getElementById('monthChart');
+  chart.classList.toggle('focused', focus?.kind === 'month');
+  chart.innerHTML = shown.map(m => {
     const inMonth = past.filter(e => {
       const d = new Date(e.event_date_time);
       return d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth();
@@ -717,8 +755,13 @@ function renderMonths() {
     const label = shown.length > 6 ? MON[m.getMonth()].charAt(0) : MON[m.getMonth()];
     if (!inMonth.length) return `<div><em>–</em><i class="nil"></i><span>${label}</span></div>`;
     const p = pct(count(inMonth, 'yes'), inMonth.length);
-    return `<div><em>${p}%</em><i class="${p < avg - 15 ? 'low' : ''}" style="height:${Math.max(p, 2) * 0.7}%"></i><span>${label}</span></div>`;
+    const key = `month:${m.getFullYear()}-${m.getMonth()}`;
+    return `<div class="tappable${focus?.key === key ? ' sel' : ''}" data-y="${m.getFullYear()}" data-m="${m.getMonth()}"><em>${p}%</em><i class="${p < avg - 15 ? 'low' : ''}" style="height:${Math.max(p, 2) * 0.7}%"></i><span>${label}</span></div>`;
   }).join('');
+  chart.querySelectorAll('.tappable').forEach(col => col.addEventListener('click', () => {
+    const y = +col.dataset.y, m = +col.dataset.m;
+    setFocus({ key: `month:${y}-${m}`, kind: 'month', y, m, label: `${MON[m]} ${y}` });
+  }));
 }
 
 // One card per code: how often the player was picked for each squad, with each
@@ -745,19 +788,23 @@ function renderSquads() {
       <div class="card">
         <div class="code-name">${esc(code)}</div>
         ${ranked.map(([squad, c], i) => `
-          <div class="sq-row">
+          <div class="sq-row tappable${focus?.key === `squad:${code}|${squad}` ? ' sel' : ''}" data-code="${esc(code)}" data-squad="${esc(squad)}">
             <div class="sq-top"><span class="sq-name">${esc(squad)}</span><span class="sq-num"><b>${c}</b> · ${pct(c, total)}%</span></div>
             <div class="sq-bar"><i style="width:${pct(c, total)}%;${i ? 'opacity:.6' : ''}"></i></div>
           </div>`).join('')}
       </div>`;
   }).join('');
+  el.querySelectorAll('.sq-row').forEach(row => row.addEventListener('click', () => {
+    const { code, squad } = row.dataset;
+    setFocus({ key: `squad:${code}|${squad}`, kind: 'squad', code, squad, label: byCode.size > 1 ? `${squad} · ${code}` : squad });
+  }));
 }
 
 function renderMatches() {
-  const { matches } = view;
   const sec = document.getElementById('matchSection');
-  if (!matches.length) { sec.style.display = 'none'; return; }
+  if (!view.matches.length || (focus && focus.kind === 'type' && focus.which === 'training')) { sec.style.display = 'none'; return; }
   sec.style.display = '';
+  const matches = focusMatches(view.matches);
 
   // Most frequent squad gets the green pill
   const counts = {};
@@ -766,7 +813,9 @@ function renderMatches() {
 
   const all  = isExporting || expanded.matches;
   const list = all ? matches : matches.slice(0, LIST_LIMIT.matches);
-  document.getElementById('matchList').innerHTML = list.map(m => {
+  document.getElementById('matchList').innerHTML = !list.length
+    ? `<div class="empty">No matches for this selection</div>`
+    : list.map(m => {
     const s = m.selection;
     const squad = s ? (s.squad_name || 'Selected') : null;
     const pill = s ? `<span class="pill ${squad === topSquad ? 'p-acc' : 'p-none'}">${esc(squad)}</span>`
@@ -787,7 +836,8 @@ function renderHistory() {
   if (!past.length) { sec.style.display = 'none'; return; }
   sec.style.display = '';
 
-  const rows = histCat === 'all' ? past : past.filter(e => catResponse(e) === histCat);
+  const focused = focusEvents(past);
+  const rows = histCat === 'all' ? focused : focused.filter(e => catResponse(e) === histCat);
   const all  = isExporting || expanded.history;
   const list = all ? rows : rows.slice(0, LIST_LIMIT.history);
   const PILL = { yes: '<span class="pill p-yes">Went</span>', no: '<span class="pill p-no">Declined</span>', none: '<span class="pill p-none">No reply</span>' };
@@ -798,6 +848,54 @@ function renderHistory() {
   const more = document.getElementById('histMore');
   more.style.display = rows.length > LIST_LIMIT.history ? '' : 'none';
   more.textContent = expanded.history ? 'Show less' : `See all ${rows.length}`;
+}
+
+/* ── List focus (tap a graphic to filter the lists) ──────────────────────── */
+function setFocus(f) {
+  const same = focus && f && focus.key === f.key;
+  focus = same ? null : f;
+  expanded = { matches: false, history: false };
+  renderFocused();
+  if (focus) document.getElementById('focusBar').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderFocused() {
+  renderSplitCards();
+  renderSquads();
+  renderMonths();
+  renderFocusBar();
+  renderMatches();
+  renderHistory();
+}
+
+function renderFocusBar() {
+  const el = document.getElementById('focusBar');
+  if (!focus) { el.innerHTML = ''; return; }
+  el.innerHTML = `<button class="focus-chip" id="focusClear">Showing: ${esc(focus.label)} ✕</button>`;
+  document.getElementById('focusClear').addEventListener('click', () => setFocus(null));
+}
+
+const sameMonth = (e, y, m) => { const d = new Date(e.event_date_time); return d.getFullYear() === y && d.getMonth() === m; };
+const squadOf   = m => m.selection ? (m.selection.squad_name || 'Selected') : null;
+const codeOf    = e => e.event_code ? codeLabel(e.event_code) : 'No code';
+
+function focusMatches(list) {
+  if (!focus) return list;
+  if (focus.kind === 'squad') return list.filter(m => squadOf(m) === focus.squad && codeOf(m) === focus.code);
+  if (focus.kind === 'month') return list.filter(m => sameMonth(m, focus.y, focus.m));
+  if (focus.kind === 'type')  return focus.which === 'match' ? list : [];
+  return list;
+}
+
+function focusEvents(list) {
+  if (!focus) return list;
+  if (focus.kind === 'squad') {
+    const ids = new Set(focusMatches(view.matches).map(m => m.event_id));
+    return list.filter(e => ids.has(e.event_id));
+  }
+  if (focus.kind === 'month') return list.filter(e => sameMonth(e, focus.y, focus.m));
+  if (focus.kind === 'type')  return list.filter(focus.which === 'match' ? isMatch : isTraining);
+  return list;
 }
 
 /* ── Row helpers ─────────────────────────────────────────────────────────── */
@@ -844,7 +942,10 @@ async function exportPdf() {
   if (btn.disabled) return;
   if (!window.html2canvas || !window.jspdf) return toast('Still loading, try again in a moment');
   btn.disabled = true;
+  btn.classList.add('busy');
   toast('Preparing PDF…', 0);
+  // Let the spinner paint before the heavy canvas work starts
+  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 30)));
 
   const main = document.getElementById('mainScreen');
   const name = playerName();
@@ -854,7 +955,8 @@ async function exportPdf() {
     : '';
   document.getElementById('pdfHead').innerHTML = `
     <b>${esc(name || 'Player report')}</b>
-    <span>${esc([view.r.label, ...filters, teamLine].filter(Boolean).join(' · '))}</span>`;
+    <span>${esc([view.r.label, ...filters, teamLine].filter(Boolean).join(' · '))}</span>
+    ${focus ? `<span style="display:block">Lists show: ${esc(focus.label)}</span>` : ''}`;
 
   const scroller = document.body, prevScroll = scroller.scrollTop;
   scroller.scrollTop = 0;
@@ -877,6 +979,7 @@ async function exportPdf() {
     renderHistory();
     scroller.scrollTop = prevScroll;
     btn.disabled = false;
+    btn.classList.remove('busy');
   }
 }
 
