@@ -288,14 +288,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
     <div class="two codes" id="codeCards"></div>
 
-    <div id="upcomingSection">
-      <div class="h">Coming up</div>
-      <div class="card" id="upcomingList"></div>
-    </div>
-
     <div id="squadSection">
       <div class="h">Squad selections</div>
       <div class="two" id="squadCards"></div>
+    </div>
+
+    <div id="upcomingSection">
+      <div class="h">Coming up</div>
+      <div class="card" id="upcomingList"></div>
     </div>
 
     <div id="monthSection">
@@ -676,12 +676,13 @@ function renderSplitCards() {
   tCard.onclick = trainings.length ? () => setFocus({ key: 'type:training', kind: 'type', which: 'training', label: 'Trainings' }) : null;
   mCard.onclick = matches.length   ? () => setFocus({ key: 'type:match',    kind: 'type', which: 'match',    label: 'Matches' })   : null;
 
-  const picked = matches.filter(m => m.selection).length;
-  document.getElementById('matchCard').innerHTML = matches.length
-    ? `<div class="k">${picked}<small>/${matches.length}</small></div>
-       <div class="lbl">Matches selected</div>
-       <div class="mini"><i style="width:${pct(picked, matches.length)}%;background:var(--accent)"></i></div>`
-    : `<div class="k">–</div><div class="lbl">Matches selected</div><div class="mini"></div>`;
+  const mPast = view.past.filter(isMatch);
+  const mWent = count(mPast, 'yes'), mNo = count(mPast, 'no');
+  document.getElementById('matchCard').innerHTML = mPast.length
+    ? `<div class="k">${mWent}<small>/${mPast.length}</small></div>
+       <div class="lbl">Matches attended</div>
+       <div class="mini"><i style="width:${pct(mWent, mPast.length)}%;background:var(--yes)"></i><i style="width:${pct(mNo, mPast.length)}%;background:var(--no)"></i></div>`
+    : `<div class="k">–</div><div class="lbl">Matches attended</div><div class="mini"></div>`;
 }
 
 // One card per code when the events on screen span more than one code. Tapping a card filters the page to that code.
