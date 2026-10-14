@@ -547,13 +547,23 @@ async function handleSession(session) {
   adminTeamIds = new Set(teams.map(t => t.team_id));
   userClubs = [...new Map(teams.map(t => [t.club_id, { club_id: t.club_id, club_name: t.club_name }])).values()]
     .sort((a, b) => a.club_name.localeCompare(b.club_name));
-  clubId = userClubs[0].club_id;
+  clubId = await defaultClubId();
 
   hideSplash();
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   wireControls();
   loadData();
+}
+
+// The user's default club (users.default_club) when they admin a team there, else the first club
+async function defaultClubId() {
+  try {
+    const { data } = await sb.from('users').select('default_club').eq('user_id', currentUser.id).maybeSingle();
+    const id = Number(data?.default_club);
+    if (id && userClubs.some(c => c.club_id === id)) return id;
+  } catch (e) { console.error(e); }
+  return userClubs[0].club_id;
 }
 
 // Teams where the user holds an admin (grade 100) role
