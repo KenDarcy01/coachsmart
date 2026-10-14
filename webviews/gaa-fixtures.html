@@ -115,9 +115,11 @@ button, select, input { font-family: inherit; }
 .stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .wdl-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; margin-top: 8px; background: rgba(255,255,255,0.06); }
 .wdl-bar .w { background: var(--green); } .wdl-bar .d { background: var(--muted); } .wdl-bar .l { background: #d9534f; }
-.team-head { font-size: 15px; font-weight: 600; margin: 22px 0 2px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-.team-head span { color: var(--muted); font-weight: 400; }
-.team-head .n { font-size: 12px; margin-left: 8px; }
+.team-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 26px 0 4px; padding: 10px 14px;
+  background: rgba(135,194,50,0.08); border-left: 3px solid var(--green, #87c232); border-radius: 6px; }
+.team-head .age { font-size: 18px; font-weight: 700; color: var(--text); }
+.team-head .side { font-size: 16px; font-weight: 600; color: var(--green, #87c232); }
+.team-head .n { font-size: 12px; color: var(--muted); margin-left: auto; }
 .team-head + .day { margin-top: 8px; }
 .day { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 14px 0 6px; }
 
@@ -1057,6 +1059,14 @@ function section(title, list, extra = '') {
   };
   if (listGroup !== 'team') return html + byDay(list);
   // By team: youngest first up to adult, then by code and team name; games keep the section's date order
+  teamGroups(list).forEach(t => {
+    html += `<div class="team-head"><span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}<span class="n">${t.games.length} game${t.games.length === 1 ? '' : 's'}</span></div>` + byDay(t.games);
+  });
+  return html;
+}
+
+// Team groups (age + code + the chosen club's side), youngest first; games keep the order given
+function teamGroups(list) {
   const club = currentClub();
   const groups = {};
   for (const g of list) {
@@ -1064,13 +1074,9 @@ function section(title, list, extra = '') {
     const k = [g.age, g.code, side].join('|');
     (groups[k] = groups[k] || { age: g.age, code: g.code, side, games: [] }).games.push(g);
   }
-  Object.values(groups)
+  return Object.values(groups)
     .sort((a, b) => ageRank(a.age) - ageRank(b.age) || a.age.localeCompare(b.age) || (a.code || '').localeCompare(b.code || '')
-      || a.side.localeCompare(b.side, undefined, { numeric: true }))
-    .forEach(t => {
-      html += `<div class="team-head">${esc(t.age)} ${esc(t.code || '')}${t.side ? ` <span>· ${esc(t.side)}</span>` : ''}<span class="n">${t.games.length}</span></div>` + byDay(t.games);
-    });
-  return html;
+      || a.side.localeCompare(b.side, undefined, { numeric: true }));
 }
 
 // Youngest to oldest: U8…U18, Minor, then adult grades
@@ -1212,16 +1218,24 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel()
 
 // ── CSV export (what's on screen) ──────────────────────────────────────────
 function exportCsv() {
-  const rows = renderFilters().sort((a, b) => new Date(a.start) - new Date(b.start)).map(g => {
+  // Same games and order as the list on screen: Home/Away filter, then by date or by team
+  const club = currentClub();
+  const shown = renderFilters().filter(g => !club || venue === 'all' || (venue === 'home') === sameClub(homeClub(g), club))
+    .sort((a, b) => new Date(a.start) - new Date(b.start));
+  const byTeam = listGroup === 'team';
+  const ordered = byTeam ? teamGroups(shown).flatMap(t => t.games.map(g => ({ g, team: [t.age, t.code, t.side].filter(Boolean).join(' ') })))
+    : shown.map(g => ({ g }));
+  const rows = ordered.map(({ g, team }) => {
     const sc = parseScore(g.score);
-    return [shortFmt.format(new Date(g.start)), timeFmt.format(new Date(g.start)), g.code, g.age, g.competition,
+    const row = [shortFmt.format(new Date(g.start)), timeFmt.format(new Date(g.start)), g.code, g.age, g.competition,
       g.home, sc?.home || '', sc?.away || '', g.away, g.venue || '', g.note || ''];
+    return byTeam ? [team, ...row] : row;
   });
-  const headers = ['Date', 'Time', 'Code', 'Age', 'Competition', 'Home', 'Home Score', 'Away Score', 'Away', 'Venue', 'Note'];
+  const headers = [...(byTeam ? ['Team'] : []), 'Date', 'Time', 'Code', 'Age', 'Competition', 'Home', 'Home Score', 'Away Score', 'Away', 'Venue', 'Note'];
   const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = `${(currentClub() || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures.csv`;
+  a.download = `${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures${byTeam ? '-by-team' : ''}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
