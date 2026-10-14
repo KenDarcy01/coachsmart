@@ -443,7 +443,8 @@ export async function buildSessionPlanPdf(plan: PlanJson, event: EventData, form
     const onC = th.on(b.colour);
     const nameLines = wrap(b.name, f.head, 18, w - 28 - 37).slice(0, 2);
     const bandH = 11 + 8.5 + 7 + Math.max(28, nameLines.length * 21) + 12;
-    const imgH = b.image ? Math.min(w * b.image.height / b.image.width, 320) : 0;
+    // Diagrams run the full card width; only very tall ones are capped (page height follows content).
+    const imgH = b.image ? Math.min(w * b.image.height / b.image.width, w * 1.25) : 0;
     const imgW = b.image ? imgH * b.image.width / b.image.height : 0;
     const items = bodyItems(b, w - 28, PHS, true);
     const bodyH = items.reduce((a, it) => a + it.h, 0);
@@ -451,6 +452,7 @@ export async function buildSessionPlanPdf(plan: PlanJson, event: EventData, form
     c.clipped(x, top, w, h, 14, () => {
       c.rect(x, top, w, h, fixed.white);
       c.rect(x, top, w, bandH, b.colour);
+      if (b.image && imgW < w - 1) c.rect(x, top + bandH, w, imgH, fixed.tint);
       if (b.image) c.image(b.image, x + (w - imgW) / 2, top + bandH, imgW, imgH);
     });
     c.rrect(x, top, w, h, 14, null, fixed.line, 1);
