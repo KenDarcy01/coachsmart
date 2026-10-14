@@ -313,7 +313,7 @@
     <div>
       <div class="field-label" style="display:flex;align-items:center;justify-content:space-between;">
         <span>Diagram / Sketch <span class="req">*</span></span>
-        <button onclick="openDrawingHelp()" style="display:flex;align-items:center;gap:5px;font-size: 13px;font-weight:600;color:var(--muted);background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:4px 10px;">
+        <button id="drawingHelpBtn" onclick="openDrawingHelp()" style="display:flex;align-items:center;gap:5px;font-size: 13px;font-weight:600;color:var(--muted);background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:4px 10px;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           How to draw
         </button>
@@ -379,7 +379,7 @@
     <!-- ── Step 2: Description (Voice or Text) ── -->
     <div>
       <div class="field-label">Description <span class="opt">(optional)</span></div>
-      <div class="mode-toggle">
+      <div class="mode-toggle" id="descModeToggle">
         <button class="mode-btn active" id="modeVoice" onclick="setDescMode('voice')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
           Voice
@@ -421,7 +421,7 @@
   <div class="sticky-footer">
     <button id="createDraftBtn" class="btn-primary" onclick="createDraft()" disabled>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Create Draft
+      <span id="createDraftLabel">Create Draft</span>
     </button>
   </div>
 </div>
@@ -531,7 +531,7 @@
     </div>
 
     <!-- Feedback section -->
-    <div class="feedback-section">
+    <div class="feedback-section" id="feedbackSection">
       <div class="feedback-label">Revise with feedback</div>
       <div class="mode-toggle">
         <button class="mode-btn active" id="fbModeVoice" onclick="setFbMode('voice')">
@@ -933,6 +933,13 @@
     } else {
       if (!_uploadedImages.length) { showToast('Add at least one photo to continue', 'error'); return; }
       sourceImg = { base64: _uploadedImages[0].base64, mimeType: _uploadedImages[0].mimeType };
+    }
+
+    // Without AI features: no processing, go straight to the form with what was typed
+    if (!_aiEnabled) {
+      _reviewImage = sourceImg;
+      showReview({ game_how_to_play: document.getElementById('inpDescription').value.trim() }, null);
+      return;
     }
 
     showScreen('screenProcessing');
@@ -1982,10 +1989,38 @@
     t.classList.remove('show', 'spinning');
   }
 
+  // ── AI features flag (users.ai_features) ──────────────────────────────────
+  // Off: type the details, add a photo or sketch, save. No AI, no mic.
+  let _aiEnabled = false;
+  function applyAiMode(on) {
+    _aiEnabled = on;
+    document.getElementById('descModeToggle').style.display = on ? '' : 'none';
+    document.getElementById('drawingHelpBtn').style.display = on ? 'flex' : 'none';
+    document.getElementById('feedbackSection').style.display = on ? '' : 'none';
+    document.getElementById('createDraftLabel').textContent = on ? 'Create Draft' : 'Continue';
+    setDescMode(on ? 'voice' : 'text');
+  }
+  async function loadAiFlag() {
+    if (!WV_TOKEN) return false;
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_my_ai_features', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + WV_TOKEN, 'apikey': SUPABASE_ANON_KEY },
+        body: '{}',
+      });
+      return res.ok && (await res.json()) === true;
+    } catch (_) { return false; }
+  }
+
   // ── Init ───────────────────────────────────────────────────────────────────
   renderImageGrid();
-  requestAnimationFrame(_initMicButton);
-  requestAnimationFrame(_initFbMicButton);
+  applyAiMode(false);
+  loadAiFlag().then(on => {
+    if (!on) return;
+    applyAiMode(true);
+    requestAnimationFrame(_initMicButton);
+    requestAnimationFrame(_initFbMicButton);
+  });
 </script>
 </body>
 </html>
