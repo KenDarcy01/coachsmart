@@ -194,6 +194,17 @@
     });
   }
 
+  // In a web browser the mic can be blocked: the PWA shows these pages in an
+  // iframe that isn't allowed to use the microphone, and some browsers have
+  // no speech recognition. The app (FlutterBridge) always has the mic.
+  function micUnavailable() {
+    if (window.FlutterBridge) return false;
+    if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) return true;
+    const fp = document.permissionsPolicy || document.featurePolicy;
+    try { return !!fp && typeof fp.allowsFeature === 'function' && !fp.allowsFeature('microphone'); }
+    catch (_) { return false; }
+  }
+
   function open(opts) {
     if (!window.CSMic) return;
     build();
@@ -207,7 +218,14 @@
     els.text.value        = opts.text || '';
     els.send.textContent  = opts.submitLabel || 'Done';
     showLive(false);
-    makeMic(opts.fieldId);
+    if (micUnavailable()) {
+      els.slot.innerHTML = '';
+      els.side.style.visibility = 'hidden';
+      els.hint.textContent = "Voice isn't available in the web version yet, so type here instead.";
+      if (!opts.placeholder) els.text.placeholder = 'Type here';
+    } else {
+      makeMic(opts.fieldId);
+    }
     updateSend();
     els.ov.classList.add('show');
     els.sh.classList.add('show');
