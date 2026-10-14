@@ -92,6 +92,7 @@ button, select, input { font-family: inherit; }
 }
 .summary { font-size: 14px; color: var(--muted); }
 .summary b { color: var(--text); font-weight: 600; }
+.export-btns { display: flex; gap: 6px; flex-shrink: 0; }
 .export-btn {
   display: flex; align-items: center; gap: 5px; padding: 6px 12px; flex-shrink: 0;
   background: var(--card2); border: 1px solid rgba(255,255,255,0.13);
@@ -717,10 +718,13 @@ function render() {
         ${club ? `<div class="seg small">${venueBtn('all', 'All')}${venueBtn('home', 'Home')}${venueBtn('away', 'Away')}</div>` : ''}
         <div class="summary"><b>${esc(label)}</b> · ${shown.length} games · ${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}</div>
       </div>
-      <button class="export-btn" onclick="exportCsv()">
+      <div class="export-btns"><button class="export-btn" onclick="exportCsv()" title="Download as CSV">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         CSV
-      </button>
+      </button><button class="export-btn" id="xlsxBtn" onclick="exportXlsx()" title="Download as Excel">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Excel
+      </button></div>
     </div>
     <div class="list">
       ${shown.length ? '' : `<div class="empty-state"><div class="empty-title">Nothing matches these filters</div>
@@ -1264,6 +1268,144 @@ function exportCsv() {
   a.download = `${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures${byTeam ? '-by-team' : ''}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+// ── Excel export (what's on screen) ────────────────────────────────────────
+// ExcelJS is loaded on first use only
+let excelLib = null;
+function loadExcel() {
+  return excelLib ??= new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    el.onload = () => resolve(window.ExcelJS);
+    el.onerror = () => { excelLib = null; reject(new Error('Could not load the Excel library')); };
+    document.head.appendChild(el);
+  });
+}
+
+async function exportXlsx() {
+  const btn = document.getElementById('xlsxBtn');
+  btn.disabled = true;
+  try { await buildXlsx(); }
+  catch (e) { alert(`Excel export failed: ${e.message}`); }
+  finally { btn.disabled = false; }
+}
+
+async function buildXlsx() {
+  const ExcelJS = await loadExcel();
+  // Same games and order as the list on screen: Home/Away filter, then by date or by team
+  const club = currentClub();
+  const shown = renderFilters().filter(g => !club || venue === 'all' || (venue === 'home') === sameClub(homeClub(g), club))
+    .sort((a, b) => new Date(a.start) - new Date(b.start));
+  const byTeam = listGroup === 'team';
+  // Groups as on screen: one per team, or one per day
+  const groups = byTeam
+    ? teamGroups(shown).map(t => ({ title: [t.age, t.code, t.side].filter(Boolean).join(' '), games: t.games }))
+    : shown.reduce((out, g) => {
+        const day = dayFmt.format(new Date(g.start));
+        if (out.at(-1)?.title !== day) out.push({ title: day, games: [] });
+        out.at(-1).games.push(g);
+        return out;
+      }, []);
+
+  const GREEN = 'FF87C232', DARK = 'FF14181B', BAND = 'FFEAF4DC', LINE = 'FFE2E5EA', MUTED = 'FF6B7280', CLUB = 'FF3F6E0F';
+  const cols = [
+    { header: 'Date', key: 'date', width: 16 },
+    { header: 'Time', key: 'time', width: 8 },
+    { header: 'Code', key: 'code', width: 16 },
+    { header: 'Age', key: 'age', width: 9 },
+    { header: 'Competition', key: 'comp', width: 42 },
+    { header: 'Home', key: 'home', width: 24 },
+    { header: 'Home score', key: 'hs', width: 11 },
+    { header: 'Away score', key: 'as', width: 11 },
+    { header: 'Away', key: 'away', width: 24 },
+    { header: 'Venue', key: 'venue', width: 24 },
+    { header: 'Note', key: 'note', width: 26 },
+  ];
+  const last = cols.length;
+  const { from, to } = dateRange();
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'CoachSmart';
+  const ws = wb.addWorksheet(byTeam ? 'By team' : 'By date', {
+    views: [{ state: 'frozen', ySplit: 4, showGridLines: false }],
+    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '4:4' },
+  });
+  ws.columns = cols.map(c => ({ key: c.key, width: c.width }));
+
+  // Title and summary
+  ws.mergeCells(1, 1, 1, last);
+  Object.assign(ws.getCell(1, 1), { value: `${club || 'All clubs'} fixtures and results`, font: { bold: true, size: 16, color: { argb: DARK } } });
+  ws.mergeCells(2, 1, 2, last);
+  Object.assign(ws.getCell(2, 1), {
+    value: `${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))} · ${shown.length} games · grouped by ${byTeam ? 'team' : 'date'}`,
+    font: { italic: true, size: 10, color: { argb: MUTED } },
+  });
+  ws.getRow(1).height = 24;
+
+  // Column headings
+  const head = ws.getRow(4);
+  cols.forEach((c, i) => {
+    Object.assign(head.getCell(i + 1), {
+      value: c.header,
+      font: { bold: true, color: { argb: DARK } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } },
+      alignment: { vertical: 'middle', horizontal: ['hs', 'as', 'time'].includes(c.key) ? 'center' : 'left' },
+    });
+  });
+  head.height = 20;
+
+  let r = 5;
+  for (const grp of groups) {
+    r++;   // blank line before each group
+    ws.mergeCells(r, 1, r, last);
+    Object.assign(ws.getCell(r, 1), {
+      value: `${grp.title}  (${grp.games.length} game${grp.games.length === 1 ? '' : 's'})`,
+      font: { bold: true, size: 12, color: { argb: DARK } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: BAND } },
+      border: { left: { style: 'thick', color: { argb: GREEN } } },
+      alignment: { vertical: 'middle' },
+    });
+    ws.getRow(r).height = 20;
+    r++;
+    for (const g of grp.games) {
+      const d = new Date(g.start);
+      const sc = parseScore(g.score);
+      const hWin = sc && sc.ht > sc.at, aWin = sc && sc.at > sc.ht;
+      const row = ws.getRow(r);
+      row.values = {
+        date: new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())),
+        time: /Time TBC/.test(g.note || '') ? 'TBC' : timeFmt.format(d),
+        code: g.code || '', age: g.age || '', comp: g.competition || '',
+        home: g.home, hs: sc?.home || '', as: sc?.away || '', away: g.away,
+        venue: g.venue || '', note: (g.note || '').replace(/^Time TBC( · )?/, ''),
+      };
+      row.eachCell({ includeEmpty: true }, (cell, i) => {
+        if (i > last) return;
+        cell.border = { bottom: { style: 'thin', color: { argb: LINE } } };
+        cell.alignment = { vertical: 'middle', horizontal: [2, 7, 8].includes(i) ? 'center' : 'left' };
+      });
+      row.getCell('date').numFmt = 'ddd d mmm yyyy';
+      // Winner in bold; the chosen club's side in green
+      const team = (key, won) => {
+        const name = row.getCell(key).value;
+        row.getCell(key).font = { bold: !!won, color: { argb: club && sameClub(canonClub(name), club) ? CLUB : DARK } };
+      };
+      team('home', hWin); team('away', aWin);
+      row.getCell('hs').font = { bold: !!hWin };
+      row.getCell('as').font = { bold: !!aWin };
+      if (row.getCell('note').value) row.getCell('note').font = { color: { argb: 'FFB45309' } };
+      row.height = 18;
+      r++;
+    }
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = `${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures${byTeam ? '-by-team' : ''}.xlsx`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 function esc(s) {
