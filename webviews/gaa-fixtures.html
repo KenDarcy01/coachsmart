@@ -1308,7 +1308,7 @@ async function buildXlsx() {
         return out;
       }, []);
 
-  const GREEN = 'FF87C232', DARK = 'FF14181B', LINE = 'FFE2E5EA', MUTED = 'FF6B7280', CLUB = 'FF3F6E0F';
+  const GREEN = 'FF87C232', DARK = 'FF14181B', LINE = 'FFE2E5EA', MUTED = 'FF6B7280';
   const cols = [
     { header: 'Date', key: 'date', width: 16 },
     { header: 'Time', key: 'time', width: 8 },
@@ -1388,12 +1388,9 @@ async function buildXlsx() {
         cell.alignment = { vertical: 'middle', horizontal: [2, 7, 8].includes(i) ? 'center' : 'left' };
       });
       row.getCell('date').numFmt = 'ddd d mmm yyyy';
-      // Winner in bold; the chosen club's side in green
-      const team = (key, won) => {
-        const name = row.getCell(key).value;
-        row.getCell(key).font = { bold: !!won, color: { argb: club && sameClub(canonClub(name), club) ? CLUB : DARK } };
-      };
-      team('home', hWin); team('away', aWin);
+      // Both teams in the dark text colour; the winner in bold
+      row.getCell('home').font = { bold: !!hWin, color: { argb: DARK } };
+      row.getCell('away').font = { bold: !!aWin, color: { argb: DARK } };
       row.getCell('hs').font = { bold: !!hWin };
       row.getCell('as').font = { bold: !!aWin };
       if (row.getCell('note').value) row.getCell('note').font = { color: { argb: 'FFB45309' } };
