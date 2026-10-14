@@ -320,6 +320,9 @@ body.exporting #pdfStage { display: block; }
 #pdfStage .no-pdf { display: none !important; }
 
 .login-submit, .denied-sign-out { text-align: center; }
+/* Shown over the page while a PDF is built (the share tray takes a few seconds) */
+#pdfBusy { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--text-2); font-size: 14px; }
+body.exporting #pdfBusy { display: flex; }
 .toast {
   position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
   background: var(--surface-2); color: var(--text); font-size: 13px; padding: 10px 14px; border-radius: 10px; display: none; z-index: 80;
@@ -411,6 +414,7 @@ body.exporting #pdfStage { display: block; }
 </div>
 
 <div id="pdfStage"></div>
+<div id="pdfBusy"><div class="spinner"></div><div>Preparing PDF…</div></div>
 <div class="toast" id="toast"></div>
 
 <!-- Install prompt — standalone web app only -->
@@ -1359,7 +1363,6 @@ async function exportHtml(html, fileBase, shareTitle) {
   if (exporting) return;
   if (!window.html2canvas || !window.jspdf) return toast('Still loading, try again in a moment');
   exporting = true;
-  toast('Preparing PDF…', 0);
   const stage = document.getElementById('pdfStage');
   stage.innerHTML = html;
   const prevScroll = document.body.scrollTop;
@@ -1368,16 +1371,20 @@ async function exportHtml(html, fileBase, shareTitle) {
   try {
     const pdf = await buildPdf(stage);
     const file = `${fileBase.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '')}.pdf`;
+    restorePage();
     await sharePdf(pdf, file, shareTitle);
-    hideToast();
   } catch (e) {
     console.error(e);
     toast('Could not create the PDF');
   } finally {
+    restorePage();
+    exporting = false;
+  }
+  function restorePage() {
+    if (!document.body.classList.contains('exporting')) return;
     document.body.classList.remove('exporting');
     stage.innerHTML = '';
     document.body.scrollTop = prevScroll;
-    exporting = false;
   }
 }
 
