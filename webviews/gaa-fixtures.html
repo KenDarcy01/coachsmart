@@ -1308,7 +1308,7 @@ async function buildXlsx() {
         return out;
       }, []);
 
-  const GREEN = 'FF87C232', DARK = 'FF14181B', BAND = 'FFEAF4DC', LINE = 'FFE2E5EA', MUTED = 'FF6B7280', CLUB = 'FF3F6E0F';
+  const GREEN = 'FF87C232', DARK = 'FF14181B', LINE = 'FFE2E5EA', MUTED = 'FF6B7280', CLUB = 'FF3F6E0F';
   const cols = [
     { header: 'Date', key: 'date', width: 16 },
     { header: 'Time', key: 'time', width: 8 },
@@ -1335,12 +1335,15 @@ async function buildXlsx() {
 
   // Title and summary
   ws.mergeCells(1, 1, 1, last);
-  Object.assign(ws.getCell(1, 1), { value: `${club || 'All clubs'} fixtures and results`, font: { bold: true, size: 16, color: { argb: DARK } } });
+  // Title band: black with green text, like the app
+  const blackFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK } };
+  Object.assign(ws.getCell(1, 1), { value: `${club || 'All clubs'} fixtures and results`, font: { bold: true, size: 16, color: { argb: GREEN } }, fill: blackFill, alignment: { vertical: 'middle', indent: 1 } });
   ws.mergeCells(2, 1, 2, last);
   Object.assign(ws.getCell(2, 1), {
     value: `${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))} · ${shown.length} games · grouped by ${byTeam ? 'team' : 'date'}`,
-    font: { italic: true, size: 10, color: { argb: MUTED } },
+    font: { italic: true, size: 10, color: { argb: 'FFA1A1A2' } }, fill: blackFill, alignment: { vertical: 'top', indent: 1 },
   });
+  ws.getRow(2).height = 18;
   ws.getRow(1).height = 24;
 
   // Column headings
@@ -1348,8 +1351,8 @@ async function buildXlsx() {
   cols.forEach((c, i) => {
     Object.assign(head.getCell(i + 1), {
       value: c.header,
-      font: { bold: true, color: { argb: DARK } },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } },
+      font: { bold: true, color: { argb: GREEN } },
+      fill: blackFill,
       alignment: { vertical: 'middle', horizontal: ['hs', 'as', 'time'].includes(c.key) ? 'center' : 'left' },
     });
   });
@@ -1362,8 +1365,7 @@ async function buildXlsx() {
     Object.assign(ws.getCell(r, 1), {
       value: `${grp.title}  (${grp.games.length} game${grp.games.length === 1 ? '' : 's'})`,
       font: { bold: true, size: 12, color: { argb: DARK } },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: BAND } },
-      border: { left: { style: 'thick', color: { argb: GREEN } } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } },
       alignment: { vertical: 'middle' },
     });
     ws.getRow(r).height = 20;
