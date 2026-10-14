@@ -131,6 +131,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .code-card .k { margin-top: 6px; }
 .code-sub { font-size: 12px; color: var(--text-2); margin-top: 8px; }
 .code-sub + .code-sub { margin-top: 2px; }
+.code-tag.none { color: var(--text-2); background: var(--none-dim); }
 .code-tag {
   display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
   padding: 1px 6px; border-radius: 5px; margin-right: 6px; vertical-align: 1px;
@@ -188,6 +189,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .sheet-title button { color: var(--accent); font-size: 14px; }
 .f-label { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
 .f-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.f-label { display: flex; justify-content: space-between; align-items: baseline; }
+.f-all { display: flex; gap: 14px; }
+.f-all button { color: var(--accent); font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; }
 .f-pill {
   font-size: 13px; padding: 7px 12px; border-radius: 99px;
   background: var(--surface-2); color: var(--text-2); border: 1px solid transparent;
@@ -293,10 +297,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   <div class="sheet">
     <div class="grab"></div>
     <div class="sheet-title"><b>Filters</b><button id="clearFilters">Clear</button></div>
-    <div id="codeGroup"><div class="f-label">Code</div><div class="f-pills" id="codePills"></div></div>
-    <div id="typeGroup"><div class="f-label">Event type</div><div class="f-pills" id="typePills"></div></div>
-    <div id="teamGroup"><div class="f-label">Team</div><div class="f-pills" id="teamPills"></div></div>
-    <div id="nocodeGroup"><div class="f-label">Events with no code</div><div class="f-pills" id="nocodePills"></div></div>
+    <div class="f-group" data-key="code"><div class="f-label">Code <span class="f-all"><button data-act="all">All</button><button data-act="none">None</button></span></div><div class="f-pills"></div></div>
+    <div class="f-group" data-key="type"><div class="f-label">Event type <span class="f-all"><button data-act="all">All</button><button data-act="none">None</button></span></div><div class="f-pills"></div></div>
+    <div class="f-group" data-key="team"><div class="f-label">Team <span class="f-all"><button data-act="all">All</button><button data-act="none">None</button></span></div><div class="f-pills"></div></div>
     <button class="done-btn" id="doneBtn">Done</button>
   </div>
 </div>
@@ -332,7 +335,12 @@ const LIST_LIMIT = { matches: 3, history: 5 };
 let rawData  = null;
 let isFemale = false;
 let multiCode = false;   // player has events in more than one code: tag each row with its code
-let fState   = { period: 'season', code: 'all', type: 'all', team: 'all', nocode: 'hide' };
+// Multi-select filters: each holds the set of values switched on. "-" (no code)
+// events are off on load; everything else starts on.
+const NO_CODE = '__none';
+let fState   = { period: 'season', code: new Set(), type: new Set(), team: new Set() };
+let fOptions = { code: [], type: [], team: [] };   // [value, label] per group
+let fDefault = { code: [], type: [], team: [] };
 let histCat  = 'all';
 let expanded = { matches: false, history: false };
 
@@ -405,11 +413,13 @@ function periodRange(period) {
 }
 
 function passesFilters(e) {
-  if (fState.nocode === 'hide' && !e.event_code)                         return false;
-  if (fState.code !== 'all' && codeLabel(e.event_code) !== fState.code) return false;
-  if (fState.type !== 'all' && e.event_type !== fState.type)            return false;
-  if (fState.team !== 'all' && String(e.team_id) !== fState.team)       return false;
-  return true;
+  return fState.code.has(codeKey(e))
+      && (!e.event_type || fState.type.has(e.event_type))
+      && (!e.team_id    || fState.team.has(String(e.team_id)));
+}
+
+function codeKey(e) {
+  return e.event_code ? codeLabel(e.event_code) : NO_CODE;
 }
 
 function inRange(e, from, to) {
@@ -418,20 +428,6 @@ function inRange(e, from, to) {
 }
 
 /* ── Filters sheet ───────────────────────────────────────────────────────── */
-function buildPills(containerId, groupId, key, options) {
-  const group = document.getElementById(groupId);
-  if (options.length < 2) { group.style.display = 'none'; return; }
-  const el = document.getElementById(containerId);
-  el.innerHTML = [['all', 'All'], ...options].map(([v, label]) =>
-    `<button class="f-pill${fState[key] === v ? ' on' : ''}" data-v="${esc(v)}">${esc(label)}</button>`
-  ).join('');
-  el.querySelectorAll('.f-pill').forEach(btn => btn.addEventListener('click', () => {
-    fState[key] = btn.dataset.v;
-    el.querySelectorAll('.f-pill').forEach(b => b.classList.toggle('on', b === btn));
-    render();
-  }));
-}
-
 function buildFilters() {
   const evs   = rawData.events;
   const codes = [...new Set(evs.map(e => codeLabel(e.event_code)).filter(Boolean))].sort();
@@ -440,50 +436,73 @@ function buildFilters() {
   const teams = new Map();
   (rawData.teams || []).forEach(t => teams.set(String(t.team_id), t.team_name));
   evs.forEach(e => { if (e.team_id && !teams.has(String(e.team_id))) teams.set(String(e.team_id), e.team_name); });
-
-  buildPills('codePills', 'codeGroup', 'code', codes.map(c => [c, c]));
-  buildPills('typePills', 'typeGroup', 'type', types.map(t => [t, t]));
-  buildPills('teamPills', 'teamGroup', 'team', [...teams.entries()].map(([id, n]) => [id, n || 'Team']));
   rawData._teamNames = teams;
 
-  const noCodeCount = evs.filter(e => !e.event_code).length;
-  const ncGroup = document.getElementById('nocodeGroup');
-  if (!noCodeCount) ncGroup.style.display = 'none';
-  else {
-    const el = document.getElementById('nocodePills');
-    el.innerHTML = [['hide', 'Hide'], ['show', `Show (${noCodeCount})`]].map(([v, l]) =>
-      `<button class="f-pill${fState.nocode === v ? ' on' : ''}" data-v="${v}">${l}</button>`).join('');
-    el.querySelectorAll('.f-pill').forEach(btn => btn.addEventListener('click', () => {
-      fState.nocode = btn.dataset.v;
-      el.querySelectorAll('.f-pill').forEach(b => b.classList.toggle('on', b === btn));
+  fOptions.code = codes.map(c => [c, c]);
+  if (evs.some(e => !e.event_code)) fOptions.code.push([NO_CODE, '- (no code)']);
+  fOptions.type = types.map(t => [t, t]);
+  fOptions.team = [...teams.entries()].map(([id, n]) => [id, n || 'Team']);
+
+  fDefault.code = codes;
+  fDefault.type = types;
+  fDefault.team = [...teams.keys()];
+  ['code', 'type', 'team'].forEach(k => { fState[k] = new Set(fDefault[k]); });
+
+  document.querySelectorAll('.f-group').forEach(group => {
+    const key = group.dataset.key;
+    if (fOptions[key].length < 2) { group.style.display = 'none'; return; }
+    group.querySelectorAll('.f-all button').forEach(b => b.addEventListener('click', () => {
+      fState[key] = new Set(b.dataset.act === 'all' ? fOptions[key].map(o => o[0]) : []);
+      syncPills(key);
       render();
     }));
-  }
+    const el = group.querySelector('.f-pills');
+    el.innerHTML = fOptions[key].map(([v, label]) =>
+      `<button class="f-pill" data-v="${esc(v)}">${esc(label)}</button>`).join('');
+    el.querySelectorAll('.f-pill').forEach(btn => btn.addEventListener('click', () => {
+      const set = fState[key];
+      set.has(btn.dataset.v) ? set.delete(btn.dataset.v) : set.add(btn.dataset.v);
+      syncPills(key);
+      render();
+    }));
+    syncPills(key);
+  });
 
-  if (codes.length < 2 && types.length < 2 && teams.size < 2 && !noCodeCount) {
+  if (!['code', 'type', 'team'].some(k => fOptions[k].length > 1)) {
     document.getElementById('filterBtn').style.display = 'none';
   }
 }
 
-function renderChips() {
-  const chips = [];
-  if (fState.nocode === 'show') chips.push(['nocode', 'Incl. no code']);
-  if (fState.code !== 'all') chips.push(['code', fState.code]);
-  if (fState.type !== 'all') chips.push(['type', fState.type]);
-  if (fState.team !== 'all') chips.push(['team', rawData._teamNames.get(fState.team) || 'Team']);
-  const el = document.getElementById('activeChips');
-  el.innerHTML = chips.map(([k, label]) => `<button class="chip" data-k="${k}">${esc(label)} ✕</button>`).join('');
-  el.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
-    fState[c.dataset.k] = c.dataset.k === 'nocode' ? 'hide' : 'all';
-    resetPills(c.dataset.k);
-    render();
-  }));
-  document.getElementById('filterBtn').classList.toggle('has-filters', chips.length > 0);
+function syncPills(key) {
+  document.querySelectorAll(`.f-group[data-key="${key}"] .f-pill`)
+    .forEach(b => b.classList.toggle('on', fState[key].has(b.dataset.v)));
 }
 
-function resetPills(key) {
-  const id = { code: 'codePills', type: 'typePills', team: 'teamPills', nocode: 'nocodePills' }[key];
-  document.querySelectorAll(`#${id} .f-pill`).forEach(b => b.classList.toggle('on', b.dataset.v === fState[key]));
+function isDefault(key) {
+  const d = fDefault[key];
+  return fState[key].size === d.length && d.every(v => fState[key].has(v));
+}
+
+function resetFilter(key) {
+  fState[key] = new Set(fDefault[key]);
+  syncPills(key);
+}
+
+// Short description of a group that's been changed from its default, e.g. "Football, - (no code)"
+function filterLabel(key) {
+  if (!fState[key].size) return `No ${key === 'type' ? 'event type' : key}`;
+  return fOptions[key].filter(([v]) => fState[key].has(v)).map(o => o[1]).join(', ');
+}
+
+function renderChips() {
+  const keys = ['code', 'type', 'team'].filter(k => !isDefault(k));
+  const el = document.getElementById('activeChips');
+  el.innerHTML = keys.map(k => `<button class="chip" data-k="${k}">${esc(filterLabel(k))} ✕</button>`).join('');
+  el.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    resetFilter(c.dataset.k);
+    render();
+  }));
+  document.getElementById('filterBtn').classList.toggle('has-filters', keys.length > 0);
 }
 
 function wireControls() {
@@ -503,8 +522,7 @@ function wireControls() {
   document.getElementById('doneBtn').addEventListener('click', () => sheet.classList.remove('open'));
   sheet.addEventListener('click', e => { if (e.target === sheet) sheet.classList.remove('open'); });
   document.getElementById('clearFilters').addEventListener('click', () => {
-    ['code', 'type', 'team'].forEach(k => { fState[k] = 'all'; resetPills(k); });
-    fState.nocode = 'hide'; resetPills('nocode');
+    ['code', 'type', 'team'].forEach(resetFilter);
     render();
   });
 
@@ -618,14 +636,11 @@ function renderSplitCards() {
     : `<div class="k">–</div><div class="lbl">Matches selected</div><div class="mini"></div>`;
 }
 
-// One card per code when the player's events span more than one code and no
-// single code is picked. Tapping a card filters the page to that code.
+// One card per code when the events on screen span more than one code. Tapping a card filters the page to that code.
 function renderCodeCards() {
   const el = document.getElementById('codeCards');
   const { past, matches } = view;
-  const codes = fState.code === 'all'
-    ? [...new Set(past.concat(matches).map(e => codeLabel(e.event_code)).filter(Boolean))].sort()
-    : [];
+  const codes = [...new Set(past.concat(matches).map(e => codeLabel(e.event_code)).filter(Boolean))].sort();
   if (codes.length < 2) { el.innerHTML = ''; return; }
 
   el.innerHTML = codes.map(code => {
@@ -644,8 +659,8 @@ function renderCodeCards() {
   }).join('');
 
   el.querySelectorAll('.code-card').forEach(card => card.addEventListener('click', () => {
-    fState.code = card.dataset.code;
-    document.querySelectorAll('#codePills .f-pill').forEach(b => b.classList.toggle('on', b.dataset.v === fState.code));
+    fState.code = new Set([card.dataset.code]);
+    syncPills('code');
     render();
   }));
 }
@@ -764,7 +779,9 @@ function eventRow(e, title, metaParts, pill) {
   const d  = new Date(e.event_date_time);
   const yr = d.getFullYear() !== new Date().getFullYear() ? ` ’${String(d.getFullYear()).slice(2)}` : '';
   const meta = metaParts.filter(v => v && v !== title).map(esc).join(' · ');
-  const code = multiCode && e.event_code ? `<span class="code-tag">${esc(codeLabel(e.event_code))}</span>` : '';
+  const code = !multiCode ? ''
+    : e.event_code ? `<span class="code-tag">${esc(codeLabel(e.event_code))}</span>`
+    : `<span class="code-tag none">No code</span>`;
   return `
     <div class="row">
       <div class="date"><b>${d.getDate()}</b><span>${MON[d.getMonth()]}${yr}</span></div>
@@ -790,9 +807,8 @@ async function exportPdf() {
 
   const main = document.getElementById('mainScreen');
   const name = playerName();
-  const filters = [fState.code, fState.type, fState.team !== 'all' ? rawData._teamNames.get(fState.team) : 'all']
-    .filter(v => v && v !== 'all');
-  const teamLine = fState.team === 'all'
+  const filters = ['code', 'type', 'team'].filter(k => !isDefault(k)).map(filterLabel);
+  const teamLine = isDefault('team')
     ? [...new Set((rawData.teams || []).map(t => t.team_name))].join(', ')
     : '';
   document.getElementById('pdfHead').innerHTML = `
