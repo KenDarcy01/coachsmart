@@ -44,7 +44,7 @@ serve(async (req) => {
     // Accept either a single game_id or an array of game_ids
     let gameIds: string[] = [];
     if (Array.isArray(game_ids) && game_ids.length > 0) {
-      gameIds = game_ids;
+      gameIds = game_ids.slice(0, 10); // the favourites page caps exports at 10
     } else if (game_id) {
       gameIds = [game_id];
     } else {

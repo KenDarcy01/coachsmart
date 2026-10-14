@@ -960,7 +960,7 @@
       list.innerHTML = '<div style="padding:20px 14px;font-size: 14px;color:var(--muted);text-align:center">No favourites found</div>';
       return;
     }
-    favs.forEach(f => {
+    favs.forEach((f, i) => {
       const item = document.createElement('div');
       item.className = 'fav-item';
       item.dataset.gid = f.game_id;
@@ -972,18 +972,29 @@
         <div class="drag-handle">
           <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="2"/><circle cx="16" cy="5" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="8" cy="19" r="2"/><circle cx="16" cy="19" r="2"/></svg>
         </div>
-        <input type="checkbox" class="fav-check" checked>
+        <input type="checkbox" class="fav-check"${i < MAX_GAMES ? ' checked' : ''}>
         ${imgHtml}
         <div class="fav-name">${esc(f.game_name)}</div>
         <button class="heart-btn" title="Remove from favourites">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>`;
       initDrag(item.querySelector('.drag-handle'));
+      const box = item.querySelector('.fav-check');
+      box.addEventListener('change', () => {
+        if (box.checked && checkedGameIds().length > MAX_GAMES) {
+          box.checked = false;
+          showToast(`You can pick up to ${MAX_GAMES} games`);
+        }
+      });
       item.querySelector('.fav-name').addEventListener('click', () => openGameSheet(f.game_id));
       item.querySelector('.heart-btn').addEventListener('click', () => unfavourite(f.game_id, item));
       list.appendChild(item);
     });
   }
+
+  // Exports and plan builds take at most this many games (keeps the PDF
+  // inside the server's time limit). Only the first 10 start ticked.
+  const MAX_GAMES = 10;
 
   function checkedGameIds() {
     return [...$('favList').querySelectorAll('.fav-item')]
@@ -1010,6 +1021,7 @@
   async function exportGamesPdf() {
     const game_ids = checkedGameIds();
     if (!game_ids.length) { showToast('Select at least one game'); return; }
+    if (game_ids.length > MAX_GAMES) { showToast(`You can pick up to ${MAX_GAMES} games`); return; }
     const btn = $('exportGamesBtn');
     const orig = btn?.innerHTML;
     const spin = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></div>';
@@ -1043,6 +1055,7 @@
     const isRevision = !!(feedback && _currentPlan);
     const game_ids = checkedGameIds();
     if (!isRevision && !game_ids.length) { showToast('Select at least one game'); return false; }
+    if (!isRevision && game_ids.length > MAX_GAMES) { showToast(`You can pick up to ${MAX_GAMES} games`); return false; }
 
     // The coach's typed edits go to the AI too, so a revision keeps them.
     const priorPlan = isRevision ? collectEdits() : null;
