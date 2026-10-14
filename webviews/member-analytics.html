@@ -131,6 +131,13 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .code-card .k { margin-top: 6px; }
 .code-sub { font-size: 12px; color: var(--text-2); margin-top: 8px; }
 .code-sub + .code-sub { margin-top: 2px; }
+.sq-row { margin-top: 12px; }
+.sq-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+.sq-name { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sq-num { color: var(--text-2); white-space: nowrap; }
+.sq-num b { color: var(--text); }
+.sq-bar { height: 8px; border-radius: 4px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+.sq-bar i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
 .code-tag.none { color: var(--text-2); background: var(--none-dim); }
 .code-tag {
   display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
@@ -169,7 +176,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .months i.nil { background: var(--surface-2); }
 .months span { font-size: 11px; color: var(--muted); }
 
-.squads { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .hist-seg { margin-bottom: 10px; }
 
 /* ── Filter sheet ────────────────────────────────────────────────────────── */
@@ -272,10 +278,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
       <div class="card"><div class="months" id="monthChart"></div></div>
     </div>
 
+    <div id="squadSection">
+      <div class="h">Squad selections</div>
+      <div class="two" id="squadCards"></div>
+    </div>
+
     <div id="matchSection">
       <div class="h">Matches <button class="no-pdf" id="matchMore"></button></div>
       <div class="card">
-        <div class="squads" id="squadCounts"></div>
         <div id="matchList"></div>
       </div>
     </div>
@@ -545,7 +555,9 @@ function computeView() {
   const upcoming = evs.filter(e => new Date(e.event_date_time) > now).sort(byDateAsc).slice(0, 3);
 
   // Matches: every past match event in range, joined with the player's selection
-  const selById = new Map(sel.filter(s => inRange(s, r.from, now)).map(s => [s.event_id, s]));
+  // A squad called "Not selected" isn't a real selection
+  const selById = new Map(sel.filter(s => inRange(s, r.from, now) && !/not\s*selected/i.test(s.squad_name || ''))
+    .map(s => [s.event_id, s]));
   const matchById = new Map();
   past.filter(isMatch).forEach(e => matchById.set(e.event_id, { ...e, selection: selById.get(e.event_id) || null }));
   selById.forEach((s, id) => { if (!matchById.has(id)) matchById.set(id, { ...s, selection: s }); });
@@ -568,6 +580,7 @@ function render() {
   renderCodeCards();
   renderUpcoming();
   renderMonths();
+  renderSquads();
   renderMatches();
   renderHistory();
 }
@@ -708,20 +721,48 @@ function renderMonths() {
   }).join('');
 }
 
+// One card per code: how often the player was picked for each squad, with each
+// squad's share of that code's selections
+function renderSquads() {
+  const sec = document.getElementById('squadSection');
+  const byCode = new Map();
+  view.matches.forEach(m => {
+    if (!m.selection) return;
+    const code = m.event_code ? codeLabel(m.event_code) : 'No code';
+    const squad = m.selection.squad_name || 'Selected';
+    if (!byCode.has(code)) byCode.set(code, {});
+    byCode.get(code)[squad] = (byCode.get(code)[squad] || 0) + 1;
+  });
+  if (!byCode.size) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const el = document.getElementById('squadCards');
+  el.classList.toggle('single', byCode.size === 1);
+  el.innerHTML = [...byCode.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([code, counts]) => {
+    const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const total  = ranked.reduce((n, [, c]) => n + c, 0);
+    return `
+      <div class="card">
+        <div class="code-name">${esc(code)}</div>
+        ${ranked.map(([squad, c], i) => `
+          <div class="sq-row">
+            <div class="sq-top"><span class="sq-name">${esc(squad)}</span><span class="sq-num"><b>${c}</b> · ${pct(c, total)}%</span></div>
+            <div class="sq-bar"><i style="width:${pct(c, total)}%;${i ? 'opacity:.6' : ''}"></i></div>
+          </div>`).join('')}
+      </div>`;
+  }).join('');
+}
+
 function renderMatches() {
   const { matches } = view;
   const sec = document.getElementById('matchSection');
   if (!matches.length) { sec.style.display = 'none'; return; }
   sec.style.display = '';
 
-  // Squad counts, most frequent first
+  // Most frequent squad gets the green pill
   const counts = {};
   matches.forEach(m => { if (m.selection) { const n = m.selection.squad_name || 'Selected'; counts[n] = (counts[n] || 0) + 1; } });
-  const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  const topSquad = ranked[0]?.[0];
-  document.getElementById('squadCounts').innerHTML = ranked
-    .map(([n, c], i) => `<span class="pill ${i === 0 ? 'p-acc' : 'p-none'}">${esc(n)} × ${c}</span>`).join('');
-  document.getElementById('squadCounts').style.display = ranked.length ? '' : 'none';
+  const topSquad = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   const all  = isExporting || expanded.matches;
   const list = all ? matches : matches.slice(0, LIST_LIMIT.matches);
