@@ -252,6 +252,38 @@ button.card { display: block; width: 100%; }
 .months i.nil { background: var(--surface-2); }
 .months span { font-size: 11px; color: var(--muted); }
 
+/* Squads tab graphics */
+.split { display: flex; align-items: center; gap: 16px; }
+.donut { width: 128px; height: 128px; flex: none; }
+.split-leg { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.split-leg div { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.split-leg b { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.split-leg span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.split-leg em { font-style: normal; font-weight: 700; }
+.split-leg span small { display: block; text-align: left; font-size: 11px; color: var(--muted); }
+.split-leg em + small { color: var(--muted); font-size: 12px; min-width: 32px; text-align: right; }
+.sbars { display: flex; align-items: flex-end; gap: 6px; height: 124px; }
+.sbars > div { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+.sbars .col { width: 100%; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 1px; border-radius: 5px 5px 2px 2px; overflow: hidden; }
+.sbars .col i { display: block; width: 100%; min-height: 2px; }
+.sbars .col i.nil { background: var(--surface-2); height: 2px; }
+.sbars em { font-style: normal; font-size: 11px; color: var(--text-2); }
+.sbars span { font-size: 11px; color: var(--muted); }
+.sq-badge { width: 36px; height: 36px; border-radius: 10px; border: 1px solid; display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
+.sq-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
+.sq-strip { height: 4px; border-radius: 2px; margin-top: 10px; }
+.sbar { display: flex; gap: 1px; height: 7px; margin-top: 6px; border-radius: 4px; overflow: hidden; }
+.sbar i { display: block; height: 100%; }
+.hbar { display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 5px 0; }
+.hbar span { width: 112px; flex: none; color: var(--text-2); }
+.hbar div { flex: 1; height: 12px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.hbar i { display: block; height: 100%; border-radius: 6px; min-width: 3px; }
+.hbar b { width: 28px; text-align: right; flex: none; }
+.medal { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted); flex: none; background: var(--surface-2); }
+.medal.m1 { background: #F5C542; color: #14181B; } .medal.m2 { background: #C9D1DC; color: #14181B; } .medal.m3 { background: #D08B4C; color: #14181B; }
+.pct small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+.ring-xs { width: 36px; height: 36px; flex: none; }
+
 .team-top { display: flex; align-items: center; gap: 14px; }
 .spark { display: flex; align-items: flex-end; gap: 3px; height: 34px; margin-top: 12px; }
 .spark i { flex: 1; background: var(--accent); border-radius: 2px 2px 1px 1px; min-height: 2px; }
@@ -695,6 +727,30 @@ function codeLabel(code, female) {
   return female && code === 'Hurling' ? 'Camogie' : code;
 }
 
+// Squad colours: the squad's own colour where it shows up on a dark card,
+// otherwise a bright palette colour. Two squads on one team never share a colour.
+const SQ_PALETTE = ['#87C232', '#3B82F6', '#F59E0B', '#A855F7', '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#EF4444', '#EAB308'];
+function hexOf(c) {
+  let h = String(c || '').trim().replace(/^0x/i, '').replace(/^#/, '');
+  if (/^[0-9a-f]{3}$/i.test(h)) h = h.split('').map(x => x + x).join('');
+  if (/^[0-9a-f]{8}$/i.test(h)) h = h.slice(2);          // Flutter ARGB
+  if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  if (lum < 0.18) return null;                            // too dark to see
+  return lum > 0.85 ? '#E2E6EE' : '#' + h.toUpperCase();  // whites read as light grey
+}
+function squadColours(squads) {
+  const byTeam = new Map();
+  [...squads.values()].sort((a, b) => (a.seq ?? 999) - (b.seq ?? 999) || (a.squad_name || '').localeCompare(b.squad_name || ''))
+    .forEach(s => {
+      const used = byTeam.get(s.team_id) || new Set(); byTeam.set(s.team_id, used);
+      let c = hexOf(s.colour);
+      if (!c || used.has(c)) c = SQ_PALETTE.find(x => !used.has(x)) || SQ_PALETTE[used.size % SQ_PALETTE.length];
+      used.add(c); s.hex = c;
+    });
+}
+
 function normalise(data, from) {
   const teams = (data.teams || []).filter(t => adminTeamIds.has(t.team_id));
   const squads = new Map((data.squads || []).map(s => [s.squad_id, s]));
@@ -713,6 +769,7 @@ function normalise(data, from) {
     }
   }
   events.sort((a, b) => b.date - a.date);
+  squadColours(squads);
   return { clubId, from, clubName: data.club_name || '', teams, squads, events };
 }
 
@@ -1118,9 +1175,38 @@ function squadModel(ctx) {
       const s = squads.get(m.squad_id); s.events.add(e.id); s.members.set(m.member_id, (s.members.get(m.member_id) || 0) + 1);
     }
   }
+  // How many picked matches each player was in the running for
+  const chances = new Map();
+  for (const e of withPicks) for (const m of e.members) chances.set(m.member_id, (chances.get(m.member_id) || 0) + 1);
   const sqName = id => raw.squads.get(id)?.squad_name || 'Squad';
   const sqSeq = id => raw.squads.get(id)?.seq ?? 999;
-  return { withPicks, pool, picks, squads, sqName, sqSeq };
+  const sqHex = id => raw.squads.get(id)?.hex || '#64748B';
+  // Name squads with their team when the view spans more than one team
+  const teamOf = new Map(withPicks.map(e => [e.team_id, e.team_name]));
+  const sqTeam = id => teamOf.size > 1 ? teamOf.get(raw.squads.get(id)?.team_id) || '' : '';
+  const sqLabel = id => `${sqTeam(id)} ${sqName(id)}`.trim();
+  return { withPicks, pool, picks, squads, chances, sqName, sqSeq, sqHex, sqTeam, sqLabel };
+}
+
+const rgba = (hex, a) => { const h = hex.replace('#', ''); return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`; };
+const sqBadge = (sm, id) => { const c = sm.sqHex(id); return `<div class="sq-badge" style="background:${rgba(c, 0.18)};color:${c};border-color:${rgba(c, 0.45)}">${esc(initials(sm.sqName(id)))}</div>`; };
+// Horizontal bar made of squad-coloured pieces; width is relative to max
+const stackBar = (sm, m, max) => `<div class="sbar">${[...m.entries()].sort((a, b) => sm.sqSeq(a[0]) - sm.sqSeq(b[0]))
+  .map(([sid, n]) => `<i style="width:${(n / max) * 100}%;background:${sm.sqHex(sid)}"></i>`).join('')}</div>`;
+
+function donut(segs, big, small) {
+  const total = segs.reduce((s, x) => s + x.v, 0) || 1, gap = segs.length > 1 ? 1.2 : 0;
+  let off = 0;
+  const arcs = segs.map(x => {
+    const len = (x.v / total) * 100, d = Math.max(len - gap, 0.4);
+    const c = `<circle cx="21" cy="21" r="15.5" fill="none" stroke="${x.c}" stroke-width="6" pathLength="100" stroke-dasharray="${d} ${100 - d}" stroke-dashoffset="${-off}" transform="rotate(-90 21 21)"/>`;
+    off += len; return c;
+  }).join('');
+  return `<svg class="donut" viewBox="0 0 42 42" role="img" aria-label="${esc(small)}">
+    <circle cx="21" cy="21" r="15.5" fill="none" stroke="#252A35" stroke-width="6"/>${arcs}
+    <text x="21" y="21.5" text-anchor="middle" font-size="8" font-weight="700" fill="#F1F4F8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">${big}</text>
+    <text x="21" y="27" text-anchor="middle" font-size="3.4" fill="#A1A1A2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">${esc(small)}</text>
+  </svg>`;
 }
 
 function squadsHtml(full) {
@@ -1128,35 +1214,89 @@ function squadsHtml(full) {
   if (!ctx.evs.length) return noEvents();
   const sm = squadModel(ctx);
   if (!sm.withPicks.length) return `<div class="card"><div class="empty">No match squads saved in this period</div></div>`;
-  const poolN = sm.pool.size, picked = sm.picks.size, places = [...sm.picks.values()].reduce((s, m) => s + [...m.values()].reduce((a, b) => a + b, 0), 0);
+  const poolN = sm.pool.size, picked = sm.picks.size;
   const multi = [...sm.picks.values()].filter(m => m.size >= 2).length;
   const p = pct(picked, poolN);
-  const most = [...sm.picks.entries()].map(([id, m]) => ({ id, name: sm.pool.get(id)?.name || nameOf(id), total: [...m.values()].reduce((a, b) => a + b, 0), m }))
+  const most = [...sm.picks.entries()].map(([id, m]) => ({ id, name: sm.pool.get(id)?.name || nameOf(id), total: [...m.values()].reduce((a, b) => a + b, 0), m, of: sm.chances.get(id) || 0 }))
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
   const unpicked = [...sm.pool.values()].filter(pl => !sm.picks.has(pl.id)).sort((a, b) => b.rate - a.rate);
-  const squads = [...sm.squads.values()].sort((a, b) => sm.sqSeq(a.id) - sm.sqSeq(b.id) || sm.sqName(a.id).localeCompare(sm.sqName(b.id)));
+  const squads = [...sm.squads.values()].map(s => ({ ...s, places: [...s.members.values()].reduce((a, b) => a + b, 0) }))
+    .sort((a, b) => sm.sqTeam(a.id).localeCompare(sm.sqTeam(b.id)) || sm.sqSeq(a.id) - sm.sqSeq(b.id) || sm.sqName(a.id).localeCompare(sm.sqName(b.id)));
+  const places = squads.reduce((t, s) => t + s.places, 0);
+  const maxPlaces = Math.max(...squads.map(s => s.places), 1);
+  const maxPick = most.length ? most[0].total : 1;
+
+  // Squad split donut (biggest 7, the rest as Other)
+  const bySize = [...squads].sort((a, b) => b.places - a.places);
+  const segs = bySize.slice(0, 7).map(s => ({ v: s.places, c: sm.sqHex(s.id), label: sm.sqName(s.id), team: sm.sqTeam(s.id) }));
+  if (bySize.length > 7) segs.push({ v: bySize.slice(7).reduce((t, s) => t + s.places, 0), c: '#64748B', label: `${bySize.length - 7} other squads`, team: '' });
+  const split = `<div class="h">Squad split</div><div class="card"><div class="split">${donut(segs, places, 'places')}
+    <div class="split-leg">${segs.map(x => `<div><b style="background:${x.c}"></b><span class="grow">${esc(x.label)}${x.team ? `<small>${esc(x.team)}</small>` : ''}</span><em>${x.v}</em><small>${pct(x.v, places)}%</small></div>`).join('')}</div></div></div>`;
+
+  // Picks by month, stacked by squad
+  const ms = months({ ...ctx, evs: sm.withPicks });
+  let byMonth = '';
+  if (ms.length >= 2) {
+    const cols = ms.map(m => {
+      const c = new Map();
+      for (const e of m.evs) for (const x of e.members) if (x.squad_id) c.set(x.squad_id, (c.get(x.squad_id) || 0) + 1);
+      return { m, c, total: [...c.values()].reduce((a, b) => a + b, 0) };
+    });
+    const mx = Math.max(...cols.map(x => x.total), 1);
+    byMonth = `<div class="h">Squad places by month</div><div class="card"><div class="sbars">${cols.map(({ m, c, total }) => {
+      const label = ms.length > 6 ? MON[m.d.getMonth()].charAt(0) : MON[m.d.getMonth()];
+      const segsH = [...c.entries()].sort((a, b) => sm.sqSeq(b[0]) - sm.sqSeq(a[0]))
+        .map(([sid, n]) => `<i style="height:${(n / mx) * 100}%;background:${sm.sqHex(sid)}"></i>`).join('');
+      return `<div><em>${total || '–'}</em><div class="col">${segsH || '<i class="nil"></i>'}</div><span>${label}</span></div>`;
+    }).join('')}</div></div>`;
+  }
+
+  // Share of matches each player was picked for
+  const B = [['Never picked', '#EF4444'], ['Under a third', '#F97316'], ['A third to half', '#F59E0B'], ['Over half', '#A3D65C'], ['Every match', '#87C232']];
+  const buckets = B.map(() => 0);
+  for (const pl of sm.pool.values()) {
+    const of = sm.chances.get(pl.id) || 0; if (!of) continue;
+    const n = sm.picks.has(pl.id) ? [...sm.picks.get(pl.id).values()].reduce((a, b) => a + b, 0) : 0;
+    const r = n / of;
+    buckets[n === 0 ? 0 : r >= 1 ? 4 : r > 0.5 ? 3 : r >= 1 / 3 ? 2 : 1]++;
+  }
+  const bMax = Math.max(...buckets, 1);
+  const share = `<div class="h">How often players are picked</div><div class="card">${B.map(([l, c], i) =>
+    `<div class="hbar"><span>${l}</span><div>${buckets[i] ? `<i style="width:${(buckets[i] / bMax) * 100}%;background:${c}"></i>` : ''}</div><b>${buckets[i]}</b></div>`).join('')}
+    <div class="note">Share of their team's picked matches</div></div>`;
+
   return `
     <div class="card"><div class="hero">${ring(p, 'ring', bandHex(p))}<div>
       <div class="big">${picked} of ${poolN} players picked</div><div class="sub">For at least one match squad</div>
       <div class="trend flat">${unpicked.length ? `${plural(unpicked.length, 'player')} not picked yet` : 'Everyone has been picked'}</div></div></div></div>
-    <div class="two"><div class="card"><div class="k">${places}</div><div class="lbl">Squad places</div><div class="code-sub">across ${plural(sm.withPicks.length, 'match', 'matches')}</div></div>
-      <div class="card"><div class="k">${multi}</div><div class="lbl">Played 2+ squads</div><div class="code-sub">${multi === 1 ? 'player' : 'players'} moving between squads</div></div></div>
+    <div class="two"><div class="card"><div class="k">${places}</div><div class="lbl">Squad places</div>
+        <div class="mini">${squads.map(s => `<i style="width:${pct(s.places, places)}%;background:${sm.sqHex(s.id)}"></i>`).join('')}</div>
+        <div class="code-sub">across ${plural(sm.withPicks.length, 'match', 'matches')}</div></div>
+      <div class="card"><div class="k">${multi}</div><div class="lbl">Played 2+ squads</div>
+        <div class="mini"><i style="width:${pct(multi, picked)}%;background:#A855F7"></i></div>
+        <div class="code-sub">${pct(multi, picked)}% of picked players</div></div></div>
+    ${split}
+    ${byMonth}
     <div class="h">Squads</div>
     <div class="card">${squads.map(s => {
       const top = [...s.members.entries()].sort((a, b) => b[1] - a[1])[0];
       const topName = top ? (sm.pool.get(top[0])?.name || nameOf(top[0])) : '';
-      return `<button class="row" data-act="squad" data-id="${s.id}"><div class="grow"><div class="t">${esc(sm.sqName(s.id))}</div>
-        <div class="m">${plural(s.events.size, 'match', 'matches')}${top ? ` · most picked ${esc(topName)} ×${top[1]}` : ''}</div></div>
-        <span class="pill p-acc">${plural(s.members.size, 'player')}</span><span class="chev no-pdf">›</span></button>`;
+      const c = sm.sqHex(s.id);
+      return `<button class="row" data-act="squad" data-id="${s.id}">${sqBadge(sm, s.id)}<div class="grow"><div class="t">${esc(sm.sqLabel(s.id))}</div>
+        <div class="m">${plural(s.events.size, 'match', 'matches')}${top ? ` · most picked ${esc(topName)} ×${top[1]}` : ''}</div>
+        <div class="track"><i style="width:${(s.places / maxPlaces) * 100}%;background:${c}"></i></div></div>
+        <span class="pill" style="background:${rgba(c, 0.16)};color:${c}">${plural(s.members.size, 'player')}</span><span class="chev no-pdf">›</span></button>`;
     }).join('')}</div>
+    ${share}
     <div class="h">Most picked ${seeAll('picked', most.length, LIMIT.picked, full)}</div>
     <div class="card">${shown('picked', most, LIMIT.picked, full).map((pl, i) => `<button class="row" data-act="player" data-id="${pl.id}" data-name="${esc(pl.name)}">
-      <div class="rank">${i + 1}</div><div class="grow"><div class="t">${esc(pl.name)}</div>
-      <div class="m">${[...pl.m.entries()].sort((a, b) => b[1] - a[1]).map(([sid, n]) => `${esc(sm.sqName(sid))} ×${n}`).join(' · ')}</div></div>
-      <div class="pct c-hi">${pl.total}</div></button>`).join('')}</div>
+      <div class="medal${i < 3 ? ` m${i + 1}` : ''}">${i + 1}</div><div class="grow"><div class="t">${esc(pl.name)}</div>
+      <div class="m">${[...pl.m.entries()].sort((a, b) => b[1] - a[1]).map(([sid, n]) => `<b class="sq-dot" style="background:${sm.sqHex(sid)}"></b>${esc(sm.sqName(sid))} ×${n}`).join(' &nbsp;')}</div>
+      ${stackBar(sm, pl.m, maxPick)}</div>
+      <div class="pct c-hi">${pl.total}${pl.of ? `<small>of ${pl.of}</small>` : ''}</div></button>`).join('')}</div>
     ${unpicked.length ? `<div class="h">Not picked yet ${seeAll('unpicked', unpicked.length, LIMIT.unpicked, full)}</div>
     <div class="card">${shown('unpicked', unpicked, LIMIT.unpicked, full).map(pl => `<button class="row" data-act="player" data-id="${pl.id}" data-name="${esc(pl.name)}">
-      <div class="avatar">${esc(initials(pl.name))}</div><div class="grow"><div class="t">${esc(pl.name)}</div>
+      ${ring(pl.rate, 'ring-xs', bandHex(pl.rate), 10)}<div class="grow"><div class="t">${esc(pl.name)}</div>
       <div class="m">${esc([...pl.teams].join(', '))} · attendance ${pl.rate}%</div></div><span class="chev no-pdf">›</span></button>`).join('')}</div>` : ''}`;
 }
 function nameOf(memberId) {
@@ -1203,11 +1343,14 @@ function sheetHtml(s, forPdf) {
   }
 
   if (s.kind === 'squad') {
-    const ctx = context(), sm = squadModel(ctx), sq = sm.squads.get(s.id);
-    const rows = sq ? [...sq.members.entries()].map(([id, n]) => ({ id, n, name: sm.pool.get(id)?.name || nameOf(id) })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)) : [];
-    return `${head(sm.sqName(s.id), `${ctx.r.label} · ${sq ? plural(sq.events.size, 'match', 'matches') : ''} · ${plural(rows.length, 'player')}`)}
-      <div style="margin-top:12px">${rows.map(r => `<button class="row" data-act="player" data-id="${r.id}" data-name="${esc(r.name)}"><div class="avatar">${esc(initials(r.name))}</div>
-        <div class="grow"><div class="t">${esc(r.name)}</div></div><span class="pill p-acc">×${r.n}</span></button>`).join('')}</div>${foot}`;
+    const ctx = context(), sm = squadModel(ctx), sq = sm.squads.get(s.id), c = sm.sqHex(s.id);
+    const n = sq ? sq.events.size : 0;
+    const rows = sq ? [...sq.members.entries()].map(([id, k]) => ({ id, n: k, name: sm.pool.get(id)?.name || nameOf(id) })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)) : [];
+    return `${head(sm.sqLabel(s.id), `${ctx.r.label} · ${plural(n, 'match', 'matches')} · ${plural(rows.length, 'player')}`)}
+      <div class="sq-strip" style="background:${c}"></div>
+      <div style="margin-top:12px">${rows.map(r => `<button class="row" data-act="player" data-id="${r.id}" data-name="${esc(r.name)}"><div class="avatar" style="background:${rgba(c, 0.18)};color:${c}">${esc(initials(r.name))}</div>
+        <div class="grow"><div class="t">${esc(r.name)}</div><div class="track"><i style="width:${pct(r.n, n)}%;background:${c}"></i></div></div>
+        <span class="pill" style="background:${rgba(c, 0.16)};color:${c}">${r.n} of ${n}</span></button>`).join('')}</div>${foot}`;
   }
 
   if (s.kind === 'roster') {
