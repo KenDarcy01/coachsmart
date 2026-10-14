@@ -221,16 +221,7 @@
       </div>
     </div>
 
-    <div class="voice-block" id="voiceBlock" style="display:none">
-      <p class="voice-instruction" id="voiceInstruction"></p>
-      <div id="voiceWave" class="voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-      <div class="mic-btn-wrap">
-        <button id="micBtn" class="mic-btn" aria-label="Record">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-        </button>
-      </div>
-      <div id="voiceTranscript" class="transcript-preview" style="display:none"></div>
-    </div>
+    <div class="voice-block" id="voiceBlock" style="display:none"></div>
 
     <div class="reports-section" id="reportsSection" style="display:none">
       <div class="field-label" style="margin-bottom:0">Reports for this match</div>
@@ -262,6 +253,7 @@
 <div class="toast" id="toast"><div class="toast-spinner"></div><span id="toastMsg"></span></div>
 
 <script src="cs-mic.js"></script>
+<script src="cs-voice-sheet.js"></script>
 <script>
   // ── Config ────────────────────────────────────────────────────────────────
   // Opened from FlutterFlow's NativeWebView: match-report.html?token=<jwt>&eventId=<id>
@@ -366,44 +358,44 @@
     _busy = on;
     $('reportField').classList.toggle('busy', on);
     $('inpReport').readOnly = on;
-    $('micBtn').disabled = on;
+    $('voiceBlock').style.opacity = on ? '0.5' : '';
+    $('voiceBlock').style.pointerEvents = on ? 'none' : '';
     $('saveBtn').disabled = on || _saving;
   }
 
   // ── Voice: first recording drafts the report, later ones add or correct ──
-  const MIC_TEXT = {
-    first: {
-      hold: 'Hold the mic and talk through the match. Let go when you\'re done and AI will tidy it up in your own words.',
-      tap:  'Tap the mic and talk through the match, then tap again when you\'re done. AI will tidy it up in your own words.',
-    },
-    more: {
-      hold: 'Hold the mic to add to the report or correct it. You can also type straight into the box.',
-      tap:  'Tap the mic to add to the report or correct it, then tap again when done. You can also type straight into the box.',
-    },
+  // Uses the shared slide-up voice panel (cs-voice-sheet.js).
+  const VOICE_TEXT = {
+    first: { label: 'Talk through the match', ph: 'Hold the mic and tell me how it went…',
+             title: 'Talk through the match', sub: "AI will tidy it up in your own words.", submit: 'Write report', busy: 'Writing…' },
+    more:  { label: 'Add to or correct the report', ph: 'Say or type what to add or change…',
+             title: 'Add to or correct the report', sub: 'Say what to add or change. You can also type straight into the report.', submit: 'Update', busy: 'Updating…' },
   };
+  function voiceText() { return reportText() ? VOICE_TEXT.more : VOICE_TEXT.first; }
   function updateMicText() {
-    if (!_aiEnabled || CSMic.isRecording('match_report')) return;
-    const t = reportText() ? MIC_TEXT.more : MIC_TEXT.first;
-    $('voiceInstruction').textContent = CSMic.holdMode() ? t.hold : t.tap;
-    attachMic(t);
+    if (!_aiEnabled) return;
+    const t = voiceText();
+    if ($('voiceBlock').dataset.mode === t.label) return;
+    $('voiceBlock').dataset.mode = t.label;
+    $('voiceBlock').innerHTML = CSVoice.restHtml({ label: t.label, placeholder: t.ph, onclick: 'openVoice()' });
   }
-
-  function attachMic(idleText) {
-    CSMic.attach('match_report', {
-      button:      $('micBtn'),
-      wave:        $('voiceWave'),
-      transcript:  $('voiceTranscript'),
-      autoHideTranscript: true,
-      instruction: $('voiceInstruction'),
-      idleText,
-      onError(msg) { showToast(msg, 'error', 4000); },
-      onResult(text) { handleVoice(text); },
+  function openVoice() {
+    if (_busy) return;
+    const t = voiceText();
+    CSVoice.open({
+      fieldId:     'match_report',
+      title:       t.title,
+      subtitle:    t.sub,
+      placeholder: t.ph,
+      submitLabel: t.submit,
+      busyLabel:   t.busy,
+      onSubmit:    handleVoice,
     });
   }
 
   async function handleVoice(transcript) {
-    if (!transcript || !transcript.trim()) { showToast("Didn't catch that. Please try again.", 'error'); return; }
-    if (_busy) return;
+    if (!transcript || !transcript.trim()) { showToast("Didn't catch that. Please try again.", 'error'); return false; }
+    if (_busy) return false;
     const current = reportText();
     const first = !current;
     setBusy(true);
@@ -416,16 +408,18 @@
       setReport(data.report);
       clearToast();
       showToast(first ? 'Draft ready. Check it over.' : 'Report updated', 'success');
-      const vt = $('voiceTranscript'); vt.textContent = ''; vt.style.display = 'none';
+      updateMicText();
+      return true;
     } catch (err) {
       clearToast();
       // Keep what was said rather than losing it.
       if (first) {
         setReport(transcript);
         showToast('AI is unavailable, so your words were added as spoken', 'error', 4000);
-      } else {
-        showToast('Could not update the report. Please try again.', 'error', 4000);
+        return true;
       }
+      showToast('Could not update the report. Please try again.', 'error', 4000);
+      return false;
     } finally {
       setBusy(false);
     }

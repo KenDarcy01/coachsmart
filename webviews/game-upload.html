@@ -379,40 +379,10 @@
     <!-- ── Step 2: Description (Voice or Text) ── -->
     <div>
       <div class="field-label">Description <span class="opt">(optional)</span></div>
-      <div class="mode-toggle" id="descModeToggle">
-        <button class="mode-btn active" id="modeVoice" onclick="setDescMode('voice')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          Voice
-        </button>
-        <button class="mode-btn" id="modeText" onclick="setDescMode('text')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Type
-        </button>
-      </div>
-
-      <!-- Voice panel -->
-      <div id="voicePanel" class="mode-panel">
-        <p class="voice-instruction" id="voiceInstruction">Hold to describe the drill — setup, how to play, variations, coaching points. AI will read any text already visible in your image.</p>
-        <div id="voiceWave" class="voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-        <div class="mic-btn-wrap">
-          <button id="micBtn" class="mic-btn" aria-label="Tap to record">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          </button>
-        </div>
-        <div id="voiceTranscript" class="transcript-preview" style="display:none"></div>
-        <div id="voiceInterpretCard" class="interpret-card" style="display:none">
-          <div class="interpret-label">I understood:</div>
-          <div id="voiceInterpretText" class="interpret-text"></div>
-          <div class="interpret-actions">
-            <button class="btn-secondary" onclick="cancelVoiceInterpret()">Try again</button>
-            <button class="btn-primary" onclick="confirmVoiceInterpret()">Confirm</button>
-          </div>
-        </div>
-      </div>
-
       <!-- Text panel -->
-      <div id="textPanel" class="mode-panel" style="display:none">
+      <div id="textPanel" class="mode-panel" style="position:relative">
         <textarea id="inpDescription" class="text-desc" placeholder="Describe the drill — setup, how to play, variations, coaching points…" oninput="autoResize(this)"></textarea>
+        <button class="csv-field-mic" id="descMicBtn" onclick="openDescVoice()" aria-label="Speak instead" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg></button>
       </div>
     </div>
 
@@ -532,42 +502,7 @@
 
     <!-- Feedback section -->
     <div class="feedback-section" id="feedbackSection">
-      <div class="feedback-label">Revise with feedback</div>
-      <div class="mode-toggle">
-        <button class="mode-btn active" id="fbModeVoice" onclick="setFbMode('voice')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          Voice
-        </button>
-        <button class="mode-btn" id="fbModeText" onclick="setFbMode('text')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Type
-        </button>
-      </div>
-      <div id="fbVoicePanel" class="mode-panel">
-        <p class="voice-instruction" id="fbInstruction">Hold to describe what you'd like changed — the AI will revise the draft text based on your notes.</p>
-        <div id="fbVoiceWave" class="voice-wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-        <div class="mic-btn-wrap">
-          <button id="fbMicBtn" class="mic-btn" aria-label="Tap to record feedback">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
-          </button>
-        </div>
-        <div id="fbTranscript" class="transcript-preview" style="display:none"></div>
-        <div id="fbInterpretCard" class="interpret-card" style="display:none">
-          <div class="interpret-label">I understood:</div>
-          <div id="fbInterpretText" class="interpret-text"></div>
-          <div class="interpret-actions">
-            <button class="btn-secondary" onclick="cancelFbInterpret()">Try again</button>
-            <button class="btn-primary" onclick="confirmFbInterpret()">Confirm</button>
-          </div>
-        </div>
-      </div>
-      <div id="fbTextPanel" class="mode-panel" style="display:none">
-        <textarea id="fbInput" class="text-desc" placeholder="Describe what to change — e.g. 'make the setup shorter', 'add a U10 variation', 'focus more on kicking'…" oninput="autoResize(this)"></textarea>
-        <button class="fb-revise-btn" id="fbReviseBtn" onclick="reviseDraft()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg>
-          Revise Draft
-        </button>
-      </div>
+      <div id="fbRest"></div>
     </div>
 
   </div>
@@ -654,6 +589,7 @@
 <div class="toast" id="toast"><span class="toast-spinner" id="toastSpinner"></span><span id="toastMsg"></span></div>
 
 <script src="cs-mic.js"></script>
+<script src="cs-voice-sheet.js"></script>
 <script>
   // ── Config ────────────────────────────────────────────────────────────────
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
@@ -668,8 +604,6 @@
   // ── State ─────────────────────────────────────────────────────────────────
   let _activeMediaTab  = 'photo';
   let _uploadedImages  = [];   // [{base64, mimeType, objectUrl}]
-  let _voiceTranscript = '';
-  let _descMode        = 'voice';
   let _reviewImage     = null; // {base64, mimeType} — standardised primary image
   let _selectedAges    = [];
   let _selectedSports  = [];
@@ -749,16 +683,6 @@
     const req  = document.getElementById('videoLinkReq');
     if (type === 'Video') { req.textContent = '*'; req.className = 'req'; }
     else                  { req.textContent = '(optional)'; req.className = 'opt'; }
-  }
-
-  // ── Description mode toggle ───────────────────────────────────────────────
-  function setDescMode(mode) {
-    _descMode = mode;
-    document.getElementById('voicePanel').style.display = mode === 'voice' ? '' : 'none';
-    document.getElementById('textPanel').style.display  = mode === 'text'  ? '' : 'none';
-    document.getElementById('modeVoice').classList.toggle('active', mode === 'voice');
-    document.getElementById('modeText').classList.toggle('active',  mode === 'text');
-    if (mode === 'text') requestAnimationFrame(() => autoResize(document.getElementById('inpDescription')));
   }
 
   // ── Media tab switch ──────────────────────────────────────────────────────
@@ -952,9 +876,7 @@
     }
 
     // Gather description: voice transcript or typed text
-    const description = _descMode === 'text'
-      ? (document.getElementById('inpDescription').value.trim() || '')
-      : _voiceTranscript.trim();
+    const description = document.getElementById('inpDescription').value.trim();
 
     const payload = {
       action:           'split_voice',
@@ -1058,30 +980,10 @@
   }
 
   // ── Revise with feedback ───────────────────────────────────────────────────
-  let _fbTranscript          = '';
-  let _fbDescMode            = 'voice';
-  let _interpretedFb         = '';
-  let _interpretedVoice      = '';
-
-  function setFbMode(mode) {
-    _fbDescMode = mode;
-    document.getElementById('fbVoicePanel').style.display = mode === 'voice' ? '' : 'none';
-    document.getElementById('fbTextPanel').style.display  = mode === 'text'  ? '' : 'none';
-    document.getElementById('fbModeVoice').classList.toggle('active', mode === 'voice');
-    document.getElementById('fbModeText').classList.toggle('active',  mode === 'text');
-    if (mode === 'text') requestAnimationFrame(() => autoResize(document.getElementById('fbInput')));
-  }
-
-  async function reviseDraft() {
-    const feedback = _fbDescMode === 'text'
-      ? (document.getElementById('fbInput').value.trim() || '')
-      : _fbTranscript.trim();
-    if (!feedback) {
-      showToast(_fbDescMode === 'voice' ? 'Nothing recorded — hold the mic and speak' : 'Add some feedback first', 'error');
-      return;
-    }
-    const btn = document.getElementById('fbReviseBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Revising…'; }
+  // Returns false (keeps the voice panel open) when the revision fails.
+  async function reviseDraft(feedback) {
+    feedback = (feedback || '').trim();
+    if (!feedback) return false;
     try {
       const result = await callEdgeFunction({
         action:               'revise_with_feedback',
@@ -1094,18 +996,43 @@
       });
       populateReviewFields(result);
       requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
-      document.getElementById('fbInput').value = '';
-      const _ftEl = document.getElementById('fbTranscript');
-      if (_ftEl) { _ftEl.textContent = ''; _ftEl.style.display = 'none'; }
-      _fbTranscript = '';
       clearToast();
       showToast('Draft revised ✓', 'success');
+      return true;
     } catch (err) {
       clearToast();
       showToast('Revision failed — please try again', 'error');
-    } finally {
-      if (btn) { btn.disabled = false; btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5v4l4-4h9V2z"/><path d="M11 8h2"/><path d="M11 12h6"/><path d="M7 8h1"/><path d="M7 12h1"/></svg> Revise Draft`; }
+      return false;
     }
+  }
+
+  // ── Voice panel (cs-voice-sheet.js) ───────────────────────────────────────
+  function openDescVoice() {
+    CSVoice.open({
+      fieldId:     'voice_input',
+      title:       'Describe the drill',
+      subtitle:    'Setup, how to play, variations, coaching points. AI will also read any text in your image.',
+      placeholder: 'e.g. 4 v 2 in a 20m square, keep the ball for 5 passes…',
+      text:        document.getElementById('inpDescription').value,
+      submitLabel: 'Done',
+      onSubmit(text) {
+        const el = document.getElementById('inpDescription');
+        el.value = text;
+        autoResize(el);
+      },
+    });
+  }
+
+  function openFbVoice() {
+    CSVoice.open({
+      fieldId:     'fb_input',
+      title:       'Revise the draft',
+      subtitle:    'Say or type what you would like changed.',
+      placeholder: "e.g. make the setup shorter, add a U10 variation, focus more on kicking",
+      submitLabel: 'Revise',
+      busyLabel:   'Revising…',
+      onSubmit:    reviseDraft,
+    });
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────
@@ -1159,113 +1086,6 @@
     const json = await res.json();
     if (!res.ok || !json.success) throw new Error((json.error || 'AI processing failed') + (json.detail ? ` (${json.detail})` : ''));
     return json.data;
-  }
-
-  // ── Voice recording (shared logic in cs-mic.js) ───────────────────────────
-  function _initMicButton() {
-    CSMic.attach('voice_input', {
-      button:      document.getElementById('micBtn'),
-      wave:        document.getElementById('voiceWave'),
-      transcript:  document.getElementById('voiceTranscript'),
-      autoHideTranscript: true,
-      instruction: document.getElementById('voiceInstruction'),
-      idleText: {
-        hold: 'Hold to describe the drill — setup, how to play, variations, coaching points. AI will read any text already visible in your image.',
-        tap:  'Tap to describe the drill — setup, how to play, variations, coaching points — then tap again when done. AI will read any text already visible in your image.',
-      },
-      onStart() {
-        _voiceTranscript = '';
-        const card = document.getElementById('voiceInterpretCard');
-        if (card) card.style.display = 'none';
-      },
-      onResult(text) { _voiceTranscript = text; _interpretVoice('voice', text); },
-    });
-    CSMic.warmup();
-  }
-
-  function _initFbMicButton() {
-    CSMic.attach('fb_input', {
-      button:      document.getElementById('fbMicBtn'),
-      wave:        document.getElementById('fbVoiceWave'),
-      transcript:  document.getElementById('fbTranscript'),
-      autoHideTranscript: true,
-      instruction: document.getElementById('fbInstruction'),
-      idleText: {
-        hold: "Hold to describe what you'd like changed — the AI will revise the draft text based on your notes.",
-        tap:  "Tap to describe what you'd like changed, then tap again when done — the AI will revise the draft text based on your notes.",
-      },
-      onStart() {
-        _fbTranscript = '';
-        const card = document.getElementById('fbInterpretCard');
-        if (card) card.style.display = 'none';
-      },
-      onResult(text) { _fbTranscript = text; _interpretVoice('fb', text); },
-    });
-  }
-
-  async function _interpretVoice(which, transcript) {
-    if (!transcript.trim()) { showToast('Nothing recorded — try again', 'error'); return; }
-    showToast('Interpreting…', 'success', 0);
-    const context = which === 'fb' ? 'game_feedback' : 'session_notes';
-    try {
-      const res = await fetch(INTERPRET_FN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
-        body: JSON.stringify({ action: 'interpret_voice', transcript, context }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Interpret failed');
-      let interpreted = json.interpreted || json.data?.interpreted || transcript;
-      try { const p = JSON.parse(interpreted); interpreted = p.interpreted || interpreted; } catch {}
-      clearToast();
-      if (which === 'fb') {
-        _interpretedFb = interpreted;
-        const card = document.getElementById('fbInterpretCard');
-        document.getElementById('fbInterpretText').textContent = interpreted;
-        if (card) { card.style.display = ''; requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'end' })); }
-      } else {
-        _interpretedVoice = interpreted;
-        const card = document.getElementById('voiceInterpretCard');
-        document.getElementById('voiceInterpretText').textContent = interpreted;
-        if (card) { card.style.display = ''; requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'end' })); }
-      }
-    } catch (err) {
-      clearToast();
-      showToast('Could not interpret — try again', 'error');
-    }
-  }
-
-  function confirmVoiceInterpret() {
-    _voiceTranscript = _interpretedVoice;
-    const vt = document.getElementById('voiceTranscript');
-    if (vt) { vt.textContent = _voiceTranscript; vt.style.display = ''; }
-    const card = document.getElementById('voiceInterpretCard');
-    if (card) card.style.display = 'none';
-    showToast('Description confirmed', 'success');
-  }
-  function cancelVoiceInterpret() {
-    _interpretedVoice = ''; _voiceTranscript = '';
-    const card = document.getElementById('voiceInterpretCard');
-    if (card) card.style.display = 'none';
-    const vt = document.getElementById('voiceTranscript');
-    if (vt) { vt.textContent = ''; vt.style.display = 'none'; }
-  }
-
-  function confirmFbInterpret() {
-    _fbTranscript = _interpretedFb;
-    const el = document.getElementById('fbTranscript');
-    if (el) el.textContent = _fbTranscript;
-    const card = document.getElementById('fbInterpretCard');
-    if (card) card.style.display = 'none';
-    _interpretedFb = '';
-    reviseDraft();
-  }
-  function cancelFbInterpret() {
-    _interpretedFb = ''; _fbTranscript = '';
-    const card = document.getElementById('fbInterpretCard');
-    if (card) card.style.display = 'none';
-    const ft = document.getElementById('fbTranscript');
-    if (ft) { ft.textContent = ''; ft.style.display = 'none'; }
   }
 
   // ── Canvas sketchpad ───────────────────────────────────────────────────────
@@ -1791,11 +1611,12 @@
   let _aiEnabled = false;
   function applyAiMode(on) {
     _aiEnabled = on;
-    document.getElementById('descModeToggle').style.display = on ? '' : 'none';
+    document.getElementById('descMicBtn').style.display = on ? 'flex' : 'none';
+    document.getElementById('inpDescription').style.paddingRight = on ? '56px' : '';
     document.getElementById('drawingHelpBtn').style.display = on ? 'flex' : 'none';
     document.getElementById('feedbackSection').style.display = on ? '' : 'none';
     document.getElementById('createDraftLabel').textContent = on ? 'Create Draft' : 'Continue';
-    setDescMode(on ? 'voice' : 'text');
+    if (on) document.getElementById('fbRest').innerHTML = CSVoice.restHtml({ label: 'Revise with feedback', placeholder: 'Tell me what to change…', onclick: 'openFbVoice()' });
   }
   async function loadAiFlag() {
     if (!WV_TOKEN) return false;
@@ -1815,8 +1636,7 @@
   loadAiFlag().then(on => {
     if (!on) return;
     applyAiMode(true);
-    requestAnimationFrame(_initMicButton);
-    requestAnimationFrame(_initFbMicButton);
+    CSMic.warmup();
   });
 </script>
 </body>

@@ -323,54 +323,16 @@
     /* ── Refine box: one box for typing and the mic ── */
     .plan-footer { flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border); }
     .composer { padding: 10px 12px 0; }
-    .composer-target {
-      display: none; align-items: center; gap: 6px; margin: 0 4px 8px;
-      font-size: 12px; color: var(--muted);
-    }
-    .composer-target.show { display: flex; }
-    .composer-target b { color: var(--text); font-weight: 600; }
-    .composer-target svg { width: 13px; height: 13px; color: var(--accent); flex-shrink: 0; }
-    .composer-target button { margin-left: auto; color: var(--muted); font-size: 15px; padding: 0 4px; }
-    .composer-box {
-      display: flex; align-items: flex-end; gap: 8px;
-      background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: 22px; padding: 5px 5px 5px 14px; transition: border-color 0.15s;
-    }
-    .composer-box:focus-within, .composer-box.live { border-color: rgba(135,194,50,0.55); }
-    .composer-input {
-      flex: 1; background: transparent; border: none; outline: none; resize: none;
-      color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.45;
-      padding: 7px 0; min-height: 22px; max-height: 128px; overflow-y: auto;
-    }
-    .composer-input::placeholder { color: var(--muted); }
-    .composer-live {
-      flex: 1; font-size: 15px; line-height: 1.45; padding: 7px 0; color: var(--text);
-      max-height: 128px; overflow-y: auto; word-break: break-word;
-    }
-    .composer-live:empty::before { content: "Listening…"; color: var(--muted); }
-    .composer-mic, .composer-send {
-      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .composer-mic {
-      color: var(--accent); border: 1.5px solid rgba(135,194,50,0.5);
-      -webkit-user-select: none; user-select: none; touch-action: none;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-    }
-    .composer-mic svg, .composer-send svg { width: 19px; height: 19px; }
-    .composer-mic.preparing { color: #f5a000; border-color: #f5a000; background: rgba(245,160,0,0.12); animation: fbMicPrepare 1s ease-in-out infinite; }
-    .composer-mic.recording { color: #fff; border-color: #dc3232; background: #dc3232; animation: fbMicRing 1.2s ease-out infinite; }
-    @keyframes fbMicPrepare { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-    @keyframes fbMicRing {
-      0%   { box-shadow: 0 0 0 0    rgba(220,50,50,0.45); }
-      70%  { box-shadow: 0 0 0 14px rgba(220,50,50,0);    }
-      100% { box-shadow: 0 0 0 0    rgba(220,50,50,0);    }
-    }
-    .composer-send { background: var(--accent); color: rgba(0,0,0,0.7); }
-    .composer-send:disabled { opacity: 0.5; }
-    .composer-hint { font-size: 12px; color: var(--muted); margin: 6px 6px 0; line-height: 1.4; }
     .composer .refusal-notice { margin-bottom: 8px; }
+    .notes-wrap { position: relative; }
+    .notes-input {
+      display: block; width: 100%; min-height: 96px; resize: none; overflow: hidden;
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 10px 56px 10px 12px; color: var(--text); font-family: inherit; font-size: 15px; line-height: 1.45;
+    }
+    .notes-input::placeholder { color: var(--muted); }
+    .notes-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
+    .notes-hint { font-size: 12px; color: var(--muted); margin: 6px 2px 0; line-height: 1.4; }
     .plan-footer .plan-action-bar { position: static; border-top: none; }
 
     /* ── Save state pill ── */
@@ -413,7 +375,6 @@
 
     /* ── Setup notes ── */
     .notes-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
-    .notes-card .composer-box { border-radius: 14px; }
 
     /* ── Save sheet ── */
     .save-sheet-btns { display: flex; flex-direction: column; gap: 10px; }
@@ -679,12 +640,11 @@
       <div>
         <div class="field-label">Anything to focus on? (optional)</div>
         <div class="notes-card">
-          <div class="composer-box" id="notesBox">
-            <textarea id="notesInput" class="composer-input" rows="2" placeholder="e.g. U12s, lots of new players, finish with a match" oninput="autoGrow(this)"></textarea>
-            <div id="notesLive" class="composer-live" style="display:none"></div>
-            <button class="composer-mic" id="notesMicBtn" aria-label="Hold to speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg></button>
+          <div class="notes-wrap">
+            <textarea id="notesInput" class="notes-input" rows="3" placeholder="e.g. U12s, lots of new players, finish with a match" oninput="autoGrow(this)"></textarea>
+            <button class="csv-field-mic" onclick="openNotesVoice()" aria-label="Speak instead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg></button>
           </div>
-          <div class="composer-hint" id="notesHint">Type it, or hold the mic to say it. Leave it blank to build from your games only.</div>
+          <div class="notes-hint">Type it, or tap the mic to say it. Leave it blank to build from your games only.</div>
         </div>
       </div>
       <div>
@@ -716,20 +676,7 @@
   <div class="plan-footer" id="planFooter">
   <div class="composer">
     <div id="refusalNotice" class="refusal-notice"></div>
-    <div class="composer-target" id="composerTarget">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4z"/></svg>
-      Changing <b id="composerTargetName"></b>
-      <button onclick="clearTarget()" aria-label="Change the whole plan">✕</button>
-    </div>
-    <div class="composer-box" id="composerBox">
-      <textarea id="feedbackText" class="composer-input" rows="1" placeholder="Tell me what to change…" oninput="autoGrow(this); updateSendBtn()"></textarea>
-      <div id="composerLive" class="composer-live" style="display:none"></div>
-      <button class="composer-mic" id="spFbMicBtn" aria-label="Hold to speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg></button>
-      <button class="composer-send" id="regenBtn" onclick="regenWithFeedback()" aria-label="Update plan" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-      </button>
-    </div>
-    <div class="composer-hint" id="spFbInstruction">Type it, or hold the mic to say it.</div>
+    <div id="refineRest"></div>
   </div>
   <div class="plan-action-bar" id="planActionBar">
     <button class="btn btn-primary" id="exportPlanBtn" onclick="exportPlan()">
@@ -809,6 +756,7 @@
 <div id="toast"><div class="sp-toast-spin"></div><span id="toastMsg"></span></div>
 
 <script src="cs-mic.js"></script>
+<script src="cs-voice-sheet.js"></script>
 <script>
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
@@ -1090,20 +1038,18 @@
   // ── Plan generation ────────────────────────────────────────────────────────
   const PHASE_LABELS = { pre_session: 'Pre-session', warm_up: 'Warm up', cool_down: 'Cool down', post_session: 'Post-session' };
 
-  async function generatePlan(feedback) {
+  // target: { path, name } to change one section only (revisions).
+  async function generatePlan(feedback, target) {
     const isRevision = !!(feedback && _currentPlan);
     const game_ids = checkedGameIds();
     if (!isRevision && !game_ids.length) { showToast('Select at least one game'); return false; }
 
     // The coach's typed edits go to the AI too, so a revision keeps them.
     const priorPlan = isRevision ? collectEdits() : null;
-    const target    = isRevision ? _target : null;
 
     if (!isRevision) {
       clearToast();
       showLoading('Generating your session plan…');
-    } else {
-      showToast('Updating plan…', '', 0);
     }
 
     try {
@@ -1121,7 +1067,7 @@
         showScreen('planScreen');
         const n = $('refusalNotice');
         if (n) { n.textContent = data.refusal; n.style.display = 'block'; }
-        clearToast(); return false;
+        clearToast(); return true;
       }
       if (!res.ok || !data.plan) {
         if (isRevision) showToast(data.message || data.error || 'Update failed.', 'error');
@@ -1143,7 +1089,6 @@
       _isDirty = true;
       const changes = diffPlans(priorPlan, data.plan);
       clearToast();
-      clearTarget();
       renderPlan(data.plan, { keepState: true, changes });
       if (!changes.list.length) showToast('No changes were needed', 'success');
       return true;
@@ -1154,23 +1099,21 @@
     }
   }
 
-  let _isRegen = false;
-  async function regenWithFeedback() {
-    if (_isRegen) return;
-    const input = $('feedbackText');
-    const feedback = (input?.value || '').trim();
-    if (!feedback) { showToast('Type or say what you would like changed', 'error'); return; }
-    _isRegen = true;
-    const btn = $('regenBtn');
-    if (btn) btn.disabled = true;
-    $('refusalNotice').style.display = 'none';
-    try {
-      if (await generatePlan(feedback) && input) { input.value = ''; autoGrow(input); }
-    } finally {
-      _isRegen = false;
-      if (btn) btn.disabled = false;
-      updateSendBtn();
-    }
+  // ── Refine with the voice panel (cs-voice-sheet.js) ───────────────────────
+  // Returns false to keep the panel open (with the coach's words) on failure.
+  function openRefine(target) {
+    CSVoice.open({
+      fieldId:     'sp_feedback',
+      title:       target ? `Change: ${target.name}` : 'Change this plan',
+      subtitle:    target ? 'Only this part of the plan will change.' : 'Say or type what you would like changed.',
+      placeholder: target ? 'e.g. make it easier for U10s, bigger channel' : 'e.g. 15 mins on the warm-up, more possession drills',
+      submitLabel: 'Update',
+      busyLabel:   'Updating…',
+      async onSubmit(text) {
+        $('refusalNotice').style.display = 'none';
+        return generatePlan(text, target || null);
+      },
+    });
   }
 
   // ── What changed ───────────────────────────────────────────────────────────
@@ -1210,21 +1153,12 @@
   }
 
   // ── Change one section ─────────────────────────────────────────────────────
-  let _target = null;
   function askChange(path) {
     const i = path.startsWith('drills.') ? +path.split('.')[1] : null;
     const name = i != null
       ? (_currentPlan?.drills?.[i]?.game_name || `Drill ${i + 1}`)
       : (_currentPlan?.[path]?.game_name || PHASE_LABELS[path] || path);
-    _target = { path, name };
-    $('composerTargetName').textContent = name;
-    $('composerTarget').classList.add('show');
-    $('feedbackText').placeholder = 'What should change in this part?';
-  }
-  function clearTarget() {
-    _target = null;
-    $('composerTarget')?.classList.remove('show');
-    if ($('feedbackText')) $('feedbackText').placeholder = 'Tell me what to change…';
+    openRefine({ path, name });
   }
 
   // ── Plan rendering ─────────────────────────────────────────────────────────
@@ -1232,7 +1166,7 @@
   // opts.changes:   from diffPlans, to mark what a revision changed.
   function renderPlan(plan, opts = {}) {
     _currentPlan = plan;
-    if (!opts.keepState) { _isDirty = false; _undo = null; clearTarget(); }
+    if (!opts.keepState) { _isDirty = false; _undo = null; }
     const chg = opts.changes?.map || {};
     const out = [];
 
@@ -1894,54 +1828,18 @@
 
   function closeSheet() { $('gameSheet').classList.remove('open'); _currentSheetGameId = null; }
 
-  // ── Mic ────────────────────────────────────────────────────────────────────
-  // Shared logic in cs-mic.js. Spoken words go into the same box as typing,
-  // so the coach can correct them before sending.
+  // ── Setup notes: type, or tap the mic for the voice panel ─────────────────
   function autoGrow(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
-  function updateSendBtn() {
-    const has = !!($('feedbackText')?.value || '').trim();
-    $('regenBtn').style.display = has ? '' : 'none';
-  }
-
-  function attachBoxMic(fieldId, ids, idleText, after) {
-    const input = $(ids.input), live = $(ids.live), box = $(ids.box);
-    const done = () => {
-      live.style.display = 'none'; live.textContent = '';
-      input.style.display = '';
-      box.classList.remove('live');
-      if (ids.send) $(ids.send).style.visibility = '';
-    };
-    CSMic.attach(fieldId, {
-      button:      $(ids.button),
-      transcript:  live,
-      instruction: $(ids.hint),
-      idleText,
-      onStart() {
-        input.style.display = 'none';
-        live.textContent = ''; live.style.display = '';
-        box.classList.add('live');
-        if (ids.send) $(ids.send).style.visibility = 'hidden';
-      },
-      onResult(text) {
-        done();
-        if (text) input.value = (input.value.trim() + ' ' + text).trim();
-        autoGrow(input);
-        if (after) after();
-      },
-      onError(msg) { done(); showToast(msg, 'error'); },
+  function openNotesVoice() {
+    CSVoice.open({
+      fieldId:     'sp_notes',
+      title:       'Anything to focus on?',
+      subtitle:    'Optional. The plan is built around this and your games.',
+      placeholder: 'e.g. U12s, lots of new players, finish with a match',
+      text:        $('notesInput').value,
+      submitLabel: 'Done',
+      onSubmit(text) { const el = $('notesInput'); el.value = text; autoGrow(el); },
     });
-  }
-
-  function initMics() {
-    attachBoxMic('sp_feedback',
-      { input: 'feedbackText', live: 'composerLive', box: 'composerBox', button: 'spFbMicBtn', hint: 'spFbInstruction', send: 'regenBtn' },
-      { hold: 'Type it, or hold the mic to say it.', tap: 'Type it, or tap the mic to say it.' },
-      updateSendBtn);
-    attachBoxMic('sp_notes',
-      { input: 'notesInput', live: 'notesLive', box: 'notesBox', button: 'notesMicBtn', hint: 'notesHint' },
-      { hold: 'Type it, or hold the mic to say it. Leave it blank to build from your games only.',
-        tap:  'Type it, or tap the mic to say it. Leave it blank to build from your games only.' });
-    CSMic.warmup();
   }
 
   // ── AI features flag (users.ai_features) ──────────────────────────────────
@@ -1966,7 +1864,7 @@
 
     showLoading('Loading…');
     _aiEnabled = await loadAiFlag();
-    if (_aiEnabled) initMics();
+    if (_aiEnabled) $('refineRest').innerHTML = CSVoice.restHtml({ label: 'Change this plan', placeholder: 'Tell me what to change…', onclick: 'openRefine()' });
 
     // Event-attach mode: open My Plans directly
     if (EVENT_ID && _aiEnabled) {
