@@ -948,9 +948,11 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
       const isNotes = context === "session_notes";
+      // Voice feedback often asks for several changes at once; keep them all.
+      const target = context === "game_feedback" ? "the draft of a training game" : "their training session plan";
       const sysPrompt = isNotes
         ? `You are a GAA coaching assistant. A coach has spoken session notes via voice. Preserve EVERY specific instruction they mentioned — do not summarise, merge, or omit any requirement. Remove only filler words and speech artefacts. Do not add any information the coach did not say. Return ONLY valid JSON: {"interpreted": "<full clear paraphrase with all instructions intact>"}`
-        : `You are a GAA coaching assistant. A coach has spoken an instruction to revise their training session plan. Return ONLY valid JSON: {"interpreted": "single clear specific instruction, removing filler words and speech artefacts"}. Do not add any information the coach did not say.`;
+        : `You are a GAA coaching assistant. A coach has spoken instructions to revise ${target}. Preserve EVERY change they asked for — do not summarise, merge, or drop any request, number, name or detail. Remove only filler words and speech artefacts, and fix obvious mis-hearings of GAA terms. If there is one change, write it as one clear sentence; if there are several, write each on its own line starting with "- ". Do not add any information the coach did not say. Return ONLY valid JSON: {"interpreted": "<the coach's requested changes, all intact>"}`;
       try {
         const raw = await callGemini(apiKey, sysPrompt, [{ text: `Coach said: "${transcript.trim()}"` }]);
         let interpreted: string;
