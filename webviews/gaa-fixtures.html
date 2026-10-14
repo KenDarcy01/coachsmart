@@ -121,6 +121,11 @@ button, select, input { font-family: inherit; }
 .team-head .age { font-size: 15px; font-weight: 700; color: var(--text); }
 .team-head .side { font-size: 14px; font-weight: 600; color: var(--green, #87c232); }
 .team-head .n { font-size: 12px; color: var(--muted); margin-left: auto; }
+.team-head { cursor: pointer; user-select: none; }
+.team-head .caret { color: var(--muted); width: 12px; font-size: 12px; margin-right: -4px; }
+.team-head.closed { margin-bottom: 0; }
+.team-head.closed + .team-head { margin-top: 8px; }
+.section-title .group-toggle { margin-left: auto; font-size: 12px; }
 .team-head + .day { margin-top: 8px; }
 .g-stats { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--muted); }
 .g-stats .gs-l { margin-right: 6px; }
@@ -1060,9 +1065,26 @@ function setView(v) { view = v; store('gaa_view', v); render(); }
 function setListGroup(v) { listGroup = v; store('gaa_list_group', v); render(); }
 function setVenue(v) { venue = v; store('gaa_venue', v); render(); }
 
+// Collapsed list groups ("Section|group"), for this visit only
+let listCollapsed = new Set();
+function toggleGroup(el) { const k = el.dataset.k; listCollapsed.has(k) ? listCollapsed.delete(k) : listCollapsed.add(k); render(); }
+function toggleAllGroups(btn, collapse) {
+  const keys = [...document.querySelectorAll(`.team-head[data-s="${btn.dataset.s}"]`)].map(h => h.dataset.k);
+  keys.forEach(k => collapse ? listCollapsed.add(k) : listCollapsed.delete(k));
+  render();
+}
+
 function section(title, list, extra = '') {
   if (!list.length) return '';
-  let html = `<div class="section-title">${title}<span class="n">${list.length}</span></div>${extra}`;
+  // Group heading that expands/collapses its games, like the Teams tab
+  const keys = [];
+  const head = (key, inner, games, body) => {
+    const k = esc(`${title}|${key}`);
+    keys.push(`${title}|${key}`);
+    const open = !listCollapsed.has(`${title}|${key}`);
+    return `<div class="team-head ${open ? '' : 'closed'}" data-s="${esc(title)}" data-k="${k}" onclick="toggleGroup(this)">
+      <span class="caret">${open ? '▾' : '▸'}</span>${inner}<span class="n">${games.length} game${games.length === 1 ? '' : 's'}</span>${groupStats(games)}</div>${open ? body : ''}`;
+  };
   const byDay = games => {
     let out = '', lastDay = '';
     for (const g of games) {
@@ -1072,7 +1094,7 @@ function section(title, list, extra = '') {
     }
     return out;
   };
-  const count = n => `<span class="n">${n} game${n === 1 ? '' : 's'}</span>`;
+  let groupsHtml = '';
   if (listGroup !== 'team') {
     // By date: one heading per day, styled like the By team headings
     const days = [];
@@ -1081,13 +1103,16 @@ function section(title, list, extra = '') {
       if (days.at(-1)?.day !== day) days.push({ day, games: [] });
       days.at(-1).games.push(g);
     }
-    return html + days.map(d => `<div class="team-head"><span class="age">${esc(d.day)}</span>${count(d.games.length)}${groupStats(d.games)}</div>${d.games.map(gameRow).join('')}`).join('');
+    groupsHtml = days.map(d => head(d.day, `<span class="age">${esc(d.day)}</span>`, d.games, d.games.map(gameRow).join(''))).join('');
+  } else {
+    // By team: youngest first up to adult, then by code and team name; games keep the section's date order
+    groupsHtml = teamGroups(list).map(t => head([t.age, t.code, t.side].join(' '),
+      `<span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}`, t.games, byDay(t.games))).join('');
   }
-  // By team: youngest first up to adult, then by code and team name; games keep the section's date order
-  teamGroups(list).forEach(t => {
-    html += `<div class="team-head"><span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}${count(t.games.length)}${groupStats(t.games)}</div>` + byDay(t.games);
-  });
-  return html;
+  const allOpen = keys.every(k => !listCollapsed.has(k));
+  const toggleBtn = keys.length > 1
+    ? `<button class="clear-btn group-toggle" data-s="${esc(title)}" onclick="toggleAllGroups(this, ${allOpen})">${allOpen ? 'Collapse all' : 'Expand all'}</button>` : '';
+  return `<div class="section-title">${title}<span class="n">${list.length}</span>${toggleBtn}</div>${extra}${groupsHtml}`;
 }
 
 // Team groups (age + code + the chosen club's side), youngest first; games keep the order given
