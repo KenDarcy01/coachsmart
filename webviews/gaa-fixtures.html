@@ -115,6 +115,10 @@ button, select, input { font-family: inherit; }
 .stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .wdl-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; margin-top: 8px; background: rgba(255,255,255,0.06); }
 .wdl-bar .w { background: var(--green); } .wdl-bar .d { background: var(--muted); } .wdl-bar .l { background: #d9534f; }
+.team-head { font-size: 15px; font-weight: 600; margin: 22px 0 2px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.team-head span { color: var(--muted); font-weight: 400; }
+.team-head .n { font-size: 12px; margin-left: 8px; }
+.team-head + .day { margin-top: 8px; }
 .day { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 14px 0 6px; }
 
 /* game row: grid on desktop, card on phone */
@@ -367,7 +371,8 @@ const GENDER = { boys: ['Football', 'Hurling'], girls: ['Camogie', 'Ladies Footb
 let games = [];
 let gender = 'all';
 let band = 'all';   // all | ccc1 (U12 and under) | ccc2 (U13-U16) | adult (Minor and up)
-let view = recall('gaa_view', 'all');   // all | results | fixtures | teams
+let view = recall('gaa_view', 'all');
+let listGroup = recall('gaa_list_group', 'date');   // date | team   // all | results | fixtures | teams
 let teamSort = { key: 'pct', dir: -1 };
 let venue = recall('gaa_venue', 'all'); // all | home | away (relative to the chosen club)
 // Every chip starts on; these hold what has been switched off, so new
@@ -698,11 +703,13 @@ function render() {
     .sort((a, b) => new Date(a.start) - new Date(b.start));
 
   const segBtn = (v, label) => `<button class="${view === v ? 'on' : ''}" onclick="setView('${v}')">${label}</button>`;
+  const groupBtn = (v, label) => `<button class="${listGroup === v ? 'on' : ''}" onclick="setListGroup('${v}')">${label}</button>`;
   const venueBtn = (v, label) => `<button class="${venue === v ? 'on' : ''}" onclick="setVenue('${v}')">${label}</button>`;
   main.innerHTML = `
     <div class="topbar">
       <div class="topbar-left">
         <div class="seg small">${segBtn('all', 'All')}${segBtn('results', `Results ${results.length}`)}${segBtn('fixtures', `Fixtures ${upcoming.length}`)}${segBtn('teams', 'Teams')}${segBtn('trend', 'Chart')}</div>
+        ${['all', 'results', 'fixtures'].includes(view) ? `<div class="seg small">${groupBtn('date', 'By date')}${groupBtn('team', 'By team')}</div>` : ''}
         ${club ? `<div class="seg small">${venueBtn('all', 'All')}${venueBtn('home', 'Home')}${venueBtn('away', 'Away')}</div>` : ''}
         <div class="summary"><b>${esc(label)}</b> · ${shown.length} games · ${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}</div>
       </div>
@@ -716,8 +723,10 @@ function render() {
         <div class="empty-sub"><button class="clear-btn" style="font-size:13px" onclick="clearFilters()">Reset filters</button></div></div>`}
       ${view === 'teams' ? teamsTable(results, club) : ''}
       ${view === 'trend' ? trendSection(results, club) : ''}
-      ${view === 'all' || view === 'results' ? section('Results', results, club ? statsCards(results, g => sameClub(homeClub(g), club)) : '') : ''}
-      ${view === 'all' || view === 'fixtures' ? section('Upcoming', upcoming) : ''}
+      ${view === 'all' && listGroup === 'team'
+        ? section('Games', [...results].reverse().concat(upcoming), club ? statsCards(results, g => sameClub(homeClub(g), club)) : '')
+        : `${view === 'all' || view === 'results' ? section('Results', results, club ? statsCards(results, g => sameClub(homeClub(g), club)) : '') : ''}
+      ${view === 'all' || view === 'fixtures' ? section('Upcoming', upcoming) : ''}`}
       ${shown.length && view === 'results' && !results.length ? '<div class="empty-state"><div class="empty-sub">No results in these dates.</div></div>' : ''}
       ${shown.length && view === 'fixtures' && !upcoming.length ? '<div class="empty-state"><div class="empty-sub">No upcoming fixtures in these dates.</div></div>' : ''}
     </div>`;
@@ -1031,18 +1040,45 @@ function drawTrend() {
 window.addEventListener('resize', () => { if (view === 'trend') drawTrend(); });
 
 function setView(v) { view = v; store('gaa_view', v); render(); }
+function setListGroup(v) { listGroup = v; store('gaa_list_group', v); render(); }
 function setVenue(v) { venue = v; store('gaa_venue', v); render(); }
 
 function section(title, list, extra = '') {
   if (!list.length) return '';
   let html = `<div class="section-title">${title}<span class="n">${list.length}</span></div>${extra}`;
-  let lastDay = '';
+  const byDay = games => {
+    let out = '', lastDay = '';
+    for (const g of games) {
+      const day = dayFmt.format(new Date(g.start));
+      if (day !== lastDay) { out += `<div class="day">${esc(day)}</div>`; lastDay = day; }
+      out += gameRow(g);
+    }
+    return out;
+  };
+  if (listGroup !== 'team') return html + byDay(list);
+  // By team: youngest first up to adult, then by code and team name; games keep the section's date order
+  const club = currentClub();
+  const groups = {};
   for (const g of list) {
-    const day = dayFmt.format(new Date(g.start));
-    if (day !== lastDay) { html += `<div class="day">${esc(day)}</div>`; lastDay = day; }
-    html += gameRow(g);
+    const side = !club ? '' : sameClub(homeClub(g), club) ? g.home : g.away;
+    const k = [g.age, g.code, side].join('|');
+    (groups[k] = groups[k] || { age: g.age, code: g.code, side, games: [] }).games.push(g);
   }
+  Object.values(groups)
+    .sort((a, b) => ageRank(a.age) - ageRank(b.age) || a.age.localeCompare(b.age) || (a.code || '').localeCompare(b.code || '')
+      || a.side.localeCompare(b.side, undefined, { numeric: true }))
+    .forEach(t => {
+      html += `<div class="team-head">${esc(t.age)} ${esc(t.code || '')}${t.side ? ` <span>· ${esc(t.side)}</span>` : ''}<span class="n">${t.games.length}</span></div>` + byDay(t.games);
+    });
   return html;
+}
+
+// Youngest to oldest: U8…U18, Minor, then adult grades
+function ageRank(age) {
+  const m = age.match(/^U(\d+)/);
+  if (m) return +m[1];
+  const adult = ['Minor', 'Junior', 'Intermediate', 'Senior', 'Adult'].findIndex(w => age.startsWith(w));
+  return adult < 0 ? 200 : 100 + adult;
 }
 
 function gameRow(g) {
