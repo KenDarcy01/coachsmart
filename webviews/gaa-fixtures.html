@@ -730,6 +730,9 @@ function render() {
       </button><button class="export-btn" id="xlsxBtn" onclick="exportXlsx()" title="Download as Excel">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Excel
+      </button><button class="export-btn" id="pdfBtn" onclick="exportPdf()" title="Download as PDF">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        PDF
       </button></div>
     </div>
     <div class="list">
@@ -1102,9 +1105,9 @@ function teamGroups(list) {
 }
 
 // One-line record for a group heading (club chosen, scored results only)
-function groupStats(list) {
+function groupRecord(list) {
   const club = currentClub();
-  if (!club) return '';
+  if (!club) return null;
   const played = list.map(g => {
     const sc = parseScore(g.score);
     if (!sc || !/\d/.test(g.score) || new Date(g.start).getTime() > Date.now()) return null;
@@ -1113,17 +1116,29 @@ function groupStats(list) {
     const f = home ? sc.ht : sc.at, a = home ? sc.at : sc.ht;
     return { home, f, a, r: f > a ? 'W' : f < a ? 'L' : 'D' };
   }).filter(Boolean);
-  if (!played.length) return '';
+  if (!played.length) return null;
   const rec = (label, xs) => {
-    if (!xs.length) return '';
+    if (!xs.length) return null;
     const w = xs.filter(x => x.r === 'W').length, d = xs.filter(x => x.r === 'D').length, l = xs.length - w - d;
-    const pct = Math.round(w / xs.length * 100);
-    return `<span class="gs"><span class="gs-l">${label}</span><b class="${pct >= 50 ? 'good' : 'bad'}">${pct}%</b> ${w}-${d}-${l}</span>`;
+    return { label, pct: Math.round(w / xs.length * 100), wdl: `${w}-${d}-${l}`, w, d, l, n: xs.length };
   };
   const one = v => (Math.round(v * 10) / 10).toString();
-  const af = played.reduce((t, x) => t + x.f, 0) / played.length, aa = played.reduce((t, x) => t + x.a, 0) / played.length;
-  return `<div class="g-stats">${rec('Overall', played)}${rec('Home', played.filter(x => x.home))}${rec('Away', played.filter(x => !x.home))}
-    <span class="gs"><span class="gs-l">Avg points</span><b>${one(af)}</b> v ${one(aa)}</span></div>`;
+  return {
+    recs: [rec('Overall', played), rec('Home', played.filter(x => x.home)), rec('Away', played.filter(x => !x.home))].filter(Boolean),
+    avgFor: one(played.reduce((t, x) => t + x.f, 0) / played.length),
+    avgAgainst: one(played.reduce((t, x) => t + x.a, 0) / played.length),
+  };
+}
+function groupStats(list) {
+  const r = groupRecord(list);
+  if (!r) return '';
+  return `<div class="g-stats">${r.recs.map(x => `<span class="gs"><span class="gs-l">${x.label}</span><b class="${x.pct >= 50 ? 'good' : 'bad'}">${x.pct}%</b> ${x.wdl}</span>`).join('')}
+    <span class="gs"><span class="gs-l">Avg points</span><b>${r.avgFor}</b> v ${r.avgAgainst}</span></div>`;
+}
+// Plain-text version for downloads
+function groupStatsText(list) {
+  const r = groupRecord(list);
+  return r ? [...r.recs.map(x => `${x.label} ${x.pct}% ${x.wdl}`), `Avg points ${r.avgFor} v ${r.avgAgainst}`].join('   ·   ') : '';
 }
 
 // Youngest to oldest: U8…U18, Minor, then adult grades
@@ -1322,9 +1337,8 @@ async function exportXlsx() {
   finally { btn.disabled = false; }
 }
 
-async function buildXlsx() {
-  const ExcelJS = await loadExcel();
-  // Same games and order as the list on screen: Home/Away filter, then by date or by team
+// Games and groups for the downloads: same games and order as the list on screen
+function exportData() {
   const club = currentClub();
   const shown = renderFilters().filter(g => !club || venue === 'all' || (venue === 'home') === sameClub(homeClub(g), club))
     .sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -1338,7 +1352,208 @@ async function buildXlsx() {
         out.at(-1).games.push(g);
         return out;
       }, []);
+  return { club, shown, byTeam, groups };
+}
 
+// ── PDF export (what's on screen) ──────────────────────────────────────────
+// jsPDF is loaded on first use only
+let pdfLib = null;
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = resolve;
+    el.onerror = () => reject(new Error('Could not load the PDF library'));
+    document.head.appendChild(el);
+  });
+}
+function loadPdf() {
+  return pdfLib ??= loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js')
+    .then(() => window.jspdf.jsPDF)
+    .catch(e => { pdfLib = null; throw e; });
+}
+
+async function exportPdf() {
+  const btn = document.getElementById('pdfBtn');
+  btn.disabled = true;
+  try { await buildPdf(); }
+  catch (e) { alert(`PDF export failed: ${e.message}`); }
+  finally { btn.disabled = false; }
+}
+
+async function buildPdf() {
+  const jsPDF = await loadPdf();
+  const { club, shown, byTeam, groups } = exportData();
+  const { from, to } = dateRange();
+  // Screen colours
+  const C = {
+    bg: [20, 24, 27], card: [30, 34, 43], border: [44, 49, 60], text: [231, 235, 238], muted: [156, 163, 175],
+    green: [135, 194, 50], red: [224, 82, 82], amber: [245, 166, 35], band: [30, 38, 27], pill: [37, 42, 53], winPill: [44, 60, 30],
+  };
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 10, CW = W - 2 * M;
+  const font = (size, style = 'normal', color = C.text) => { doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(...color); };
+  const fit = (t, maxW) => {   // trim text with an ellipsis to fit a width
+    t = String(t || '');
+    if (doc.getTextWidth(t) <= maxW) return t;
+    while (t.length > 1 && doc.getTextWidth(t + '…') > maxW) t = t.slice(0, -1);
+    return t + '…';
+  };
+  const fill = (c, ...r) => { doc.setFillColor(...c); doc.rect(...r, 'F'); };
+  const box = (x, y, w, h, c, border) => {
+    doc.setFillColor(...c);
+    if (border) { doc.setDrawColor(...border); doc.setLineWidth(0.25); doc.roundedRect(x, y, w, h, 2, 2, 'FD'); }
+    else doc.roundedRect(x, y, w, h, 1.4, 1.4, 'F');
+  };
+
+  let y = 0, page = 0;
+  const newPage = () => {
+    if (page++) doc.addPage();
+    fill(C.bg, 0, 0, W, H);
+    // Header strip
+    font(15, 'normal', C.text); doc.text('COACH', M, 13);
+    font(15, 'normal', C.green); doc.text('SMART', M + doc.getTextWidth('COACH') + 0.3, 13);
+    font(6.5, 'bold', C.muted); doc.text('GAA FIXTURES', M, 17.5);
+    font(10, 'bold', C.text);
+    const right = `${club || 'All clubs'}`;
+    doc.text(right, W - M, 12, { align: 'right' });
+    font(7.5, 'normal', C.muted);
+    doc.text(`${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}  ·  ${shown.length} games  ·  by ${byTeam ? 'team' : 'date'}`, W - M, 17, { align: 'right' });
+    doc.setDrawColor(...C.border); doc.setLineWidth(0.3); doc.line(0, 22, W, 22);
+    y = 29;
+  };
+  const room = h => { if (y + h > H - 12) newPage(); };
+
+  newPage();
+
+  // Stat cards, as on screen (club chosen, scored results)
+  const rec = groupRecord(shown);
+  if (rec) {
+    const cards = [...rec.recs, { label: 'Avg points', avg: true }];
+    const gap = 3, cw = (CW - gap * (cards.length - 1)) / cards.length, ch = 21;
+    cards.forEach((c, i) => {
+      const x = M + i * (cw + gap);
+      box(x, y, cw, ch, C.card, C.border);
+      font(6.5, 'bold', C.muted); doc.text(c.label.toUpperCase(), x + 3.5, y + 5.5);
+      if (c.avg) {
+        font(15, 'bold', C.text); doc.text(rec.avgFor, x + 3.5, y + 13);
+        let tx = x + 3.5 + doc.getTextWidth(rec.avgFor) + 1.2;
+        font(8, 'normal', C.muted); doc.text('v', tx, y + 13); tx += doc.getTextWidth('v') + 1.2;
+        font(15, 'bold', C.text); doc.text(rec.avgAgainst, tx, y + 13);
+        const diff = Math.round((rec.avgFor - rec.avgAgainst) * 10) / 10;
+        font(6.5, 'normal', C.muted); doc.text(`For v against · ${diff >= 0 ? '+' : ''}${diff} a game`, x + 3.5, y + 18);
+      } else {
+        font(15, 'bold', C.text); doc.text(`${c.pct}%`, x + 3.5, y + 13);
+        const pw = doc.getTextWidth(`${c.pct}%`);
+        font(8, 'normal', C.muted); doc.text('won', x + 3.5 + pw + 1.2, y + 13);
+        font(6.5, 'normal', C.muted); doc.text(`${c.w}W · ${c.d}D · ${c.l}L from ${c.n}`, x + 3.5, y + 17);
+        // W/D/L bar
+        const bw = cw - 7, bx = x + 3.5, by = y + 18.6;
+        fill(C.green, bx, by, bw * c.w / c.n, 0.9);
+        fill(C.muted, bx + bw * c.w / c.n, by, bw * c.d / c.n, 0.9);
+        fill(C.red, bx + bw * (c.w + c.d) / c.n, by, bw * c.l / c.n, 0.9);
+      }
+    });
+    y += ch + 6;
+  }
+
+  const gameH = g => (g.note || '').replace(/^Time TBC( · )?/, '') ? 15 : 13;
+  const dayLabel = d => {
+    room(7);
+    font(7, 'bold', C.muted); doc.text(d.toUpperCase(), M, y + 4);
+    y += 6.5;
+  };
+  const gameCard = g => {
+    const h = gameH(g);
+    room(h + 1.6);
+    const x = M, mid = y + h / 2;
+    box(x, y, CW, h, C.card, C.border);
+    const d = new Date(g.start), sc = parseScore(g.score);
+    const hWin = sc && sc.ht > sc.at, aWin = sc && sc.at > sc.ht;
+    // Time
+    font(9, 'bold', C.muted); doc.text(/Time TBC/.test(g.note || '') ? 'TBC' : timeFmt.format(d), x + 4, mid + 1.2);
+    // Team label and competition
+    const cx = x + 19;
+    font(8.5, 'bold', C.green); doc.text(g.age || '', cx, mid - 0.6);
+    font(8.5, 'bold', C.text); doc.text(fit(g.code || '', 34), cx + doc.getTextWidth(g.age || '') + (g.age ? 1.3 : 0), mid - 0.6);
+    font(7, 'normal', C.muted); doc.text(fit(shortComp(g), 44), cx, mid + 3.4);
+    // Match: home  [score] v [score]  away
+    const mx = x + 112;
+    const isClub = n => club && sameClub(canonClub(n), club);
+    const nameColor = (n, lost) => lost ? C.muted : C.text;
+    let hl = mx - 3, ar = mx + 3;
+    font(7, 'normal', C.muted); doc.text('v', mx, mid + 1, { align: 'center' });
+    if (sc) {
+      font(8.5, 'bold', C.text);
+      const pw = t => doc.getTextWidth(t) + 3.6;
+      const hp = pw(sc.home), ap = pw(sc.away);
+      box(mx - 2.6 - hp, mid - 3, hp, 6, hWin ? C.winPill : C.pill);
+      box(mx + 2.6, mid - 3, ap, 6, aWin ? C.winPill : C.pill);
+      font(8.5, 'bold', hWin ? C.green : C.text); doc.text(sc.home, mx - 2.6 - hp / 2, mid + 1.1, { align: 'center' });
+      font(8.5, 'bold', aWin ? C.green : C.text); doc.text(sc.away, mx + 2.6 + ap / 2, mid + 1.1, { align: 'center' });
+      hl = mx - 2.6 - hp - 2; ar = mx + 2.6 + ap + 2;
+    }
+    const sideW = 44;
+    font(9, isClub(g.home) ? 'bold' : 'normal', nameColor(g.home, aWin)); doc.text(fit(g.home, sideW - (mx - 3 - hl)), hl, mid + 1.2, { align: 'right' });
+    font(9, isClub(g.away) ? 'bold' : 'normal', nameColor(g.away, hWin)); doc.text(fit(g.away, sideW - (ar - mx - 3)), ar, mid + 1.2);
+    // Venue and note
+    const vx = x + 160, vw = CW - 160 - 3;
+    const note = (g.note || '').replace(/^Time TBC( · )?/, '');
+    font(7.5, 'normal', C.muted); doc.text(fit(g.venue || '', vw), vx, note ? mid - 0.6 : mid + 1);
+    if (note) { font(6.8, 'normal', C.amber); doc.text(fit(note, vw), vx, mid + 3.4); }
+    y += h + 1.6;
+  };
+
+  groups.forEach(grp => {
+    const statsRec = groupRecord(grp.games);
+    const bandH = statsRec ? 13 : 8.5;
+    room(bandH + 3 + gameH(grp.games[0]) + (byTeam ? 7 : 0));
+    y += 2;
+    // Group band: soft green with a bright edge, title, count and record
+    fill(C.band, M, y, CW, bandH);
+    fill(C.green, M, y, 0.9, bandH);
+    const t = byTeam ? grp.title.replace(club ? ` ${grp.games[0] && (sameClub(homeClub(grp.games[0]), club) ? grp.games[0].home : grp.games[0].away)}` : '', '') : grp.title;
+    font(10, 'bold', C.text); doc.text(t, M + 4, y + 5.6);
+    if (byTeam && club) {
+      const side = grp.title.slice(t.length).trim();
+      font(9.5, 'bold', C.green); doc.text(side, M + 4 + doc.getTextWidth(t) + 3, y + 5.6);
+      font(10, 'bold', C.text);
+    }
+    font(7, 'normal', C.muted); doc.text(`${grp.games.length} game${grp.games.length === 1 ? '' : 's'}`, W - M - 3, y + 5.6, { align: 'right' });
+    if (statsRec) {
+      let sx = M + 4;
+      const part = (label, value, color, tail) => {
+        font(7.5, 'normal', C.muted); doc.text(label, sx, y + 10.6); sx += doc.getTextWidth(label) + 1.5;
+        font(7.5, 'bold', color); doc.text(value, sx, y + 10.6); sx += doc.getTextWidth(value) + 1.2;
+        font(7.5, 'normal', C.muted); doc.text(tail, sx, y + 10.6); sx += doc.getTextWidth(tail) + 6;
+      };
+      statsRec.recs.forEach(r => part(r.label, `${r.pct}%`, r.pct >= 50 ? C.green : C.red, r.wdl));
+      part('Avg points', statsRec.avgFor, C.text, `v ${statsRec.avgAgainst}`);
+    }
+    y += bandH + 2.5;
+    let lastDay = '';
+    grp.games.forEach(g => {
+      if (byTeam) {
+        const day = dayFmt.format(new Date(g.start));
+        if (day !== lastDay) { dayLabel(day); lastDay = day; }
+      }
+      gameCard(g);
+    });
+  });
+
+  // Footer on every page
+  const pages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    font(7, 'normal', C.muted);
+    doc.text('CoachSmart', M, H - 5);
+    doc.text(`Page ${i} of ${pages}`, W - M, H - 5, { align: 'right' });
+  }
+  doc.save(`${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures${byTeam ? '-by-team' : ''}.pdf`);
+}
+
+async function buildXlsx() {
+  const ExcelJS = await loadExcel();
+  const { club, shown, byTeam, groups } = exportData();
   const GREEN = 'FF87C232', DARK = 'FF14181B', LINE = 'FFE2E5EA', MUTED = 'FF6B7280';
   const cols = [
     { header: 'Date', key: 'date', width: 16 },
