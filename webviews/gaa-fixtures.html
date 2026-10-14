@@ -121,6 +121,7 @@ button, select, input { font-family: inherit; }
 .team-head .side { font-size: 14px; font-weight: 600; color: var(--green, #87c232); }
 .team-head .n { font-size: 12px; color: var(--muted); margin-left: auto; }
 .team-head + .day { margin-top: 8px; }
+.team-head + .game { margin-top: 8px; }
 .day { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 14px 0 6px; }
 
 /* game row: grid on desktop, card on phone */
@@ -1058,10 +1059,20 @@ function section(title, list, extra = '') {
     }
     return out;
   };
-  if (listGroup !== 'team') return html + byDay(list);
+  const count = n => `<span class="n">${n} game${n === 1 ? '' : 's'}</span>`;
+  if (listGroup !== 'team') {
+    // By date: one heading per day, styled like the By team headings
+    const days = [];
+    for (const g of list) {
+      const day = dayFmt.format(new Date(g.start));
+      if (days.at(-1)?.day !== day) days.push({ day, games: [] });
+      days.at(-1).games.push(g);
+    }
+    return html + days.map(d => `<div class="team-head"><span class="age">${esc(d.day)}</span>${count(d.games.length)}</div>${d.games.map(gameRow).join('')}`).join('');
+  }
   // By team: youngest first up to adult, then by code and team name; games keep the section's date order
   teamGroups(list).forEach(t => {
-    html += `<div class="team-head"><span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}<span class="n">${t.games.length} game${t.games.length === 1 ? '' : 's'}</span></div>` + byDay(t.games);
+    html += `<div class="team-head"><span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}${count(t.games.length)}</div>` + byDay(t.games);
   });
   return html;
 }
