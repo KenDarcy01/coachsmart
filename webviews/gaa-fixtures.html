@@ -1235,16 +1235,30 @@ function exportCsv() {
   const shown = renderFilters().filter(g => !club || venue === 'all' || (venue === 'home') === sameClub(homeClub(g), club))
     .sort((a, b) => new Date(a.start) - new Date(b.start));
   const byTeam = listGroup === 'team';
-  const ordered = byTeam ? teamGroups(shown).flatMap(t => t.games.map(g => ({ g, team: [t.age, t.code, t.side].filter(Boolean).join(' ') })))
-    : shown.map(g => ({ g }));
-  const rows = ordered.map(({ g, team }) => {
+  // Groups as on screen: one per team, or one per day
+  const groups = byTeam
+    ? teamGroups(shown).map(t => ({ title: [t.age, t.code, t.side].filter(Boolean).join(' '), games: t.games }))
+    : shown.reduce((out, g) => {
+        const day = dayFmt.format(new Date(g.start));
+        if (out.at(-1)?.title !== day) out.push({ title: day, games: [] });
+        out.at(-1).games.push(g);
+        return out;
+      }, []);
+  const gameCells = (g, team) => {
     const sc = parseScore(g.score);
     const row = [shortFmt.format(new Date(g.start)), timeFmt.format(new Date(g.start)), g.code, g.age, g.competition,
       g.home, sc?.home || '', sc?.away || '', g.away, g.venue || '', g.note || ''];
     return byTeam ? [team, ...row] : row;
-  });
+  };
   const headers = [...(byTeam ? ['Team'] : []), 'Date', 'Time', 'Code', 'Age', 'Competition', 'Home', 'Home Score', 'Away Score', 'Away', 'Venue', 'Note'];
-  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  // A blank line and the group heading before each group, for easy reading
+  const lines = [headers.map(cell).join(',')];
+  groups.forEach(grp => {
+    lines.push('', cell(`${grp.title} (${grp.games.length} game${grp.games.length === 1 ? '' : 's'})`));
+    grp.games.forEach(g => lines.push(gameCells(g, grp.title).map(cell).join(',')));
+  });
+  const csv = lines.join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   a.download = `${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures${byTeam ? '-by-team' : ''}.csv`;
