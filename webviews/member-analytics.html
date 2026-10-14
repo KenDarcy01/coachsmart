@@ -296,6 +296,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
     <div id="codeGroup"><div class="f-label">Code</div><div class="f-pills" id="codePills"></div></div>
     <div id="typeGroup"><div class="f-label">Event type</div><div class="f-pills" id="typePills"></div></div>
     <div id="teamGroup"><div class="f-label">Team</div><div class="f-pills" id="teamPills"></div></div>
+    <div id="nocodeGroup"><div class="f-label">Events with no code</div><div class="f-pills" id="nocodePills"></div></div>
     <button class="done-btn" id="doneBtn">Done</button>
   </div>
 </div>
@@ -331,7 +332,7 @@ const LIST_LIMIT = { matches: 3, history: 5 };
 let rawData  = null;
 let isFemale = false;
 let multiCode = false;   // player has events in more than one code: tag each row with its code
-let fState   = { period: 'season', code: 'all', type: 'all', team: 'all' };
+let fState   = { period: 'season', code: 'all', type: 'all', team: 'all', nocode: 'hide' };
 let histCat  = 'all';
 let expanded = { matches: false, history: false };
 
@@ -372,6 +373,10 @@ async function init() {
   rawData.events          = dedupeByEventId(rawData.events);
   rawData.matchSelections = dedupeByEventId(rawData.matchSelections);
   isFemale = (rawData.teams || []).some(t => t.team_female === true);
+  // A "-" or blank code means the event isn't tied to a code (meetings, socials...)
+  rawData.events.concat(rawData.matchSelections).forEach(e => {
+    if (!e.event_code || /^[\s\-–—]*$/.test(e.event_code)) e.event_code = null;
+  });
   multiCode = new Set(rawData.events.map(e => codeLabel(e.event_code)).filter(Boolean)).size > 1;
 
   buildFilters();
@@ -400,6 +405,7 @@ function periodRange(period) {
 }
 
 function passesFilters(e) {
+  if (fState.nocode === 'hide' && !e.event_code)                         return false;
   if (fState.code !== 'all' && codeLabel(e.event_code) !== fState.code) return false;
   if (fState.type !== 'all' && e.event_type !== fState.type)            return false;
   if (fState.team !== 'all' && String(e.team_id) !== fState.team)       return false;
@@ -440,20 +446,35 @@ function buildFilters() {
   buildPills('teamPills', 'teamGroup', 'team', [...teams.entries()].map(([id, n]) => [id, n || 'Team']));
   rawData._teamNames = teams;
 
-  if (codes.length < 2 && types.length < 2 && teams.size < 2) {
+  const noCodeCount = evs.filter(e => !e.event_code).length;
+  const ncGroup = document.getElementById('nocodeGroup');
+  if (!noCodeCount) ncGroup.style.display = 'none';
+  else {
+    const el = document.getElementById('nocodePills');
+    el.innerHTML = [['hide', 'Hide'], ['show', `Show (${noCodeCount})`]].map(([v, l]) =>
+      `<button class="f-pill${fState.nocode === v ? ' on' : ''}" data-v="${v}">${l}</button>`).join('');
+    el.querySelectorAll('.f-pill').forEach(btn => btn.addEventListener('click', () => {
+      fState.nocode = btn.dataset.v;
+      el.querySelectorAll('.f-pill').forEach(b => b.classList.toggle('on', b === btn));
+      render();
+    }));
+  }
+
+  if (codes.length < 2 && types.length < 2 && teams.size < 2 && !noCodeCount) {
     document.getElementById('filterBtn').style.display = 'none';
   }
 }
 
 function renderChips() {
   const chips = [];
+  if (fState.nocode === 'show') chips.push(['nocode', 'Incl. no code']);
   if (fState.code !== 'all') chips.push(['code', fState.code]);
   if (fState.type !== 'all') chips.push(['type', fState.type]);
   if (fState.team !== 'all') chips.push(['team', rawData._teamNames.get(fState.team) || 'Team']);
   const el = document.getElementById('activeChips');
   el.innerHTML = chips.map(([k, label]) => `<button class="chip" data-k="${k}">${esc(label)} ✕</button>`).join('');
   el.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
-    fState[c.dataset.k] = 'all';
+    fState[c.dataset.k] = c.dataset.k === 'nocode' ? 'hide' : 'all';
     resetPills(c.dataset.k);
     render();
   }));
@@ -461,8 +482,8 @@ function renderChips() {
 }
 
 function resetPills(key) {
-  const id = { code: 'codePills', type: 'typePills', team: 'teamPills' }[key];
-  document.querySelectorAll(`#${id} .f-pill`).forEach(b => b.classList.toggle('on', b.dataset.v === 'all'));
+  const id = { code: 'codePills', type: 'typePills', team: 'teamPills', nocode: 'nocodePills' }[key];
+  document.querySelectorAll(`#${id} .f-pill`).forEach(b => b.classList.toggle('on', b.dataset.v === fState[key]));
 }
 
 function wireControls() {
@@ -483,6 +504,7 @@ function wireControls() {
   sheet.addEventListener('click', e => { if (e.target === sheet) sheet.classList.remove('open'); });
   document.getElementById('clearFilters').addEventListener('click', () => {
     ['code', 'type', 'team'].forEach(k => { fState[k] = 'all'; resetPills(k); });
+    fState.nocode = 'hide'; resetPills('nocode');
     render();
   });
 
@@ -714,7 +736,7 @@ function renderHistory() {
   const list = all ? rows : rows.slice(0, LIST_LIMIT.history);
   const PILL = { yes: '<span class="pill p-yes">Went</span>', no: '<span class="pill p-no">Declined</span>', none: '<span class="pill p-none">No reply</span>' };
   document.getElementById('historyList').innerHTML = list.length
-    ? list.map(e => eventRow(e, eventTitle(e), [typeLabel(e), dayTime(e.event_date_time), e.home_away], PILL[catResponse(e)])).join('')
+    ? list.map(e => eventRow(e, eventTitle(e), [typeLabel(e), e.home_away], PILL[catResponse(e)])).join('')
     : `<div class="empty">Nothing here for this period</div>`;
 
   const more = document.getElementById('histMore');
