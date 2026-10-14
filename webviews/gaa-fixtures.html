@@ -122,6 +122,11 @@ button, select, input { font-family: inherit; }
 .team-head .side { font-size: 14px; font-weight: 600; color: var(--green, #87c232); }
 .team-head .n { font-size: 12px; color: var(--muted); margin-left: auto; }
 .team-head + .day { margin-top: 8px; }
+.g-stats { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--muted); }
+.g-stats .gs-l { margin-right: 6px; }
+.g-stats b { color: var(--text); font-weight: 700; }
+.g-stats b.good { color: var(--green); }
+.g-stats b.bad { color: var(--red); }
 .team-head + .game { margin-top: 8px; }
 .day { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 14px 0 6px; }
 
@@ -253,7 +258,8 @@ td.pts { font-weight: 700; }
   }
   .filters-btn .badge { background: var(--green); color: #111; border-radius: 9px; padding: 0 6px; font-size: 11px; }
   .sidebar:not(.open) .sidebar-scroll { display: none; }
-  .topbar { padding: 10px 14px; }
+  .topbar { padding: 10px 14px; flex-wrap: wrap; gap: 10px; }
+  .topbar .export-btns { order: -1; margin-left: auto; }
   .list { padding: 4px 12px 40px; }
   .game { grid-template-columns: auto 1fr; grid-template-areas: "time comp" "match match" "venue venue"; gap: 8px 10px; }
   .g-time { grid-area: time; }
@@ -1072,11 +1078,11 @@ function section(title, list, extra = '') {
       if (days.at(-1)?.day !== day) days.push({ day, games: [] });
       days.at(-1).games.push(g);
     }
-    return html + days.map(d => `<div class="team-head"><span class="age">${esc(d.day)}</span>${count(d.games.length)}</div>${d.games.map(gameRow).join('')}`).join('');
+    return html + days.map(d => `<div class="team-head"><span class="age">${esc(d.day)}</span>${count(d.games.length)}${groupStats(d.games)}</div>${d.games.map(gameRow).join('')}`).join('');
   }
   // By team: youngest first up to adult, then by code and team name; games keep the section's date order
   teamGroups(list).forEach(t => {
-    html += `<div class="team-head"><span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}${count(t.games.length)}</div>` + byDay(t.games);
+    html += `<div class="team-head"><span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}${count(t.games.length)}${groupStats(t.games)}</div>` + byDay(t.games);
   });
   return html;
 }
@@ -1093,6 +1099,31 @@ function teamGroups(list) {
   return Object.values(groups)
     .sort((a, b) => ageRank(a.age) - ageRank(b.age) || a.age.localeCompare(b.age) || (a.code || '').localeCompare(b.code || '')
       || a.side.localeCompare(b.side, undefined, { numeric: true }));
+}
+
+// One-line record for a group heading (club chosen, scored results only)
+function groupStats(list) {
+  const club = currentClub();
+  if (!club) return '';
+  const played = list.map(g => {
+    const sc = parseScore(g.score);
+    if (!sc || !/\d/.test(g.score) || new Date(g.start).getTime() > Date.now()) return null;
+    const home = sameClub(homeClub(g), club);
+    if (!home && !sameClub(awayClub(g), club)) return null;
+    const f = home ? sc.ht : sc.at, a = home ? sc.at : sc.ht;
+    return { home, f, a, r: f > a ? 'W' : f < a ? 'L' : 'D' };
+  }).filter(Boolean);
+  if (!played.length) return '';
+  const rec = (label, xs) => {
+    if (!xs.length) return '';
+    const w = xs.filter(x => x.r === 'W').length, d = xs.filter(x => x.r === 'D').length, l = xs.length - w - d;
+    const pct = Math.round(w / xs.length * 100);
+    return `<span class="gs"><span class="gs-l">${label}</span><b class="${pct >= 50 ? 'good' : 'bad'}">${pct}%</b> ${w}-${d}-${l}</span>`;
+  };
+  const one = v => (Math.round(v * 10) / 10).toString();
+  const af = played.reduce((t, x) => t + x.f, 0) / played.length, aa = played.reduce((t, x) => t + x.a, 0) / played.length;
+  return `<div class="g-stats">${rec('Overall', played)}${rec('Home', played.filter(x => x.home))}${rec('Away', played.filter(x => !x.home))}
+    <span class="gs"><span class="gs-l">Avg points</span><b>${one(af)}</b> v ${one(aa)}</span></div>`;
 }
 
 // Youngest to oldest: U8…U18, Minor, then adult grades
