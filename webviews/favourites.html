@@ -1027,7 +1027,7 @@
     const spin = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></div>';
     if (btn) { btn.innerHTML = spin; btn.disabled = true; }
     try {
-      const res = await fetch(GAME_CARD_PDF_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ game_ids, user_id: USER_ID }) });
+      const res = await fetch(GAME_CARD_PDF_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ game_ids, user_id: USER_ID, platform: IS_WEBVIEW ? 'mobile' : 'web' }) });
       if (!res.ok) throw new Error('Server error');
       const { pdf, filename } = await res.json();
       _deliverPdf(pdf, filename);
@@ -1831,7 +1831,7 @@
     const orig = btn?.innerHTML;
     if (btn) { btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; btn.disabled = true; }
     try {
-      const res = await fetch(GAME_CARD_PDF_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ game_id: gameId, user_id: USER_ID }) });
+      const res = await fetch(GAME_CARD_PDF_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ game_id: gameId, user_id: USER_ID, platform: IS_WEBVIEW ? 'mobile' : 'web' }) });
       if (!res.ok) throw new Error();
       const { pdf, filename } = await res.json();
       _deliverPdf(pdf, filename);
