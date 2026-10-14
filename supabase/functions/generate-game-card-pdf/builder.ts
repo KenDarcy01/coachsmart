@@ -5,7 +5,7 @@
 import type { Fonts, Theme, ClubData } from "../_shared/pdf-kit.ts";
 import {
   PDFDocument, Canvas, makeTheme, loadFonts, embedImage, clean, fixed, wrap, fitLine,
-  drawCrest, drawStripes, drawFooters, drawContBand, label, sectionHead, videoRow, iconList, toPoints, textW,
+  drawCrest, drawStripes, drawFooters, drawContBand, label, sectionHead, videoRow, iconList, toPoints, splitIdeas, textW,
 } from "../_shared/pdf-kit.ts";
 
 export type { ClubData };
@@ -143,7 +143,7 @@ export async function buildPdf(games: GameData[], club: ClubData, isMobile = fal
   for (const g of games) {
     const img = await embedImage(doc, g.game_image || g.game_details_image);
     const setup = toPoints(T(g.game_setup)), play = toPoints(T(g.game_how_to_play));
-    const tps = toPoints(T(g.game_teaching_points)), vars = toPoints(T(g.game_variations));
+    const tps = toPoints(T(g.game_teaching_points)), vars = splitIdeas(T(g.game_variations));
     const vid = (g.game_video || "").trim();
     const contLeft = T(g.game_name || "Game card");
 

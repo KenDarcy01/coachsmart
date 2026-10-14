@@ -540,6 +540,53 @@ export function callout(c: Canvas | null, lead: string, text: string, x: number,
   return h;
 }
 
+/** Tinted callout with a bold heading line and one bullet per idea. Returns height. */
+export function calloutList(c: Canvas | null, lead: string, items: string[], x: number, top: number, w: number, f: Fonts, th: Theme, size: number, lh: number, iconName: IconName = "up") {
+  const pad = 8, isz = size * 1.3, tx = x + pad + isz + 6, bw = 10;
+  const tw = x + w - pad - tx;
+  const wrapped = items.map(it => wrap(it, f.reg, size, tw - bw));
+  const n = 1 + wrapped.reduce((a, l) => a + l.length, 0);
+  const gaps = items.length * 2;
+  const h = n * lh + gaps + pad * 2 - (lh - size) + 2;
+  if (c) {
+    c.rrect(x, top, w, h, 8, th.sTint);
+    c.icon(iconName, x + pad, top + pad - 1, isz, th.sText, 2.4);
+    let y = top + pad - (lh - size) / 2 + 1;
+    c.text(lead, tx, y + (lh - size) / 2, size, f.bold, th.sText);
+    y += lh + 2;
+    for (const lines of wrapped) {
+      c.circle(tx + 2.5, y + lh / 2, 1.8, th.sText);
+      lines.forEach((l, i) => c.text(l, tx + bw, y + i * lh + (lh - size) / 2, size, f.reg, fixed.body));
+      y += lines.length * lh + 2;
+    }
+  }
+  return h;
+}
+
+/** Splits "• a • b", "- a - b" or multi-line text into separate ideas. */
+export function splitIdeas(text: string): string[] {
+  const t = String(text ?? "").trim();
+  let parts = t.split(/\n+|\s*•\s*/);
+  if (/^[-–]\s/.test(t)) parts = parts.flatMap(p => p.split(/(?:^|\s)[-–]\s+/));
+  return parts.map(p => p.replace(/^\s*(?:[-–*]|\d+[.)])\s*/, "").trim()).filter(Boolean);
+}
+
+/** Separates a description into intro text and numbered steps ("1. ..." on their own lines or inline). */
+export function splitSteps(text: string): { intro: string[]; steps: string[] } {
+  let t = String(text ?? "").trim();
+  // inline "1. foo 2. bar" -> one per line, only when it really looks like a sequence
+  if (/(^|\s)1[.)]\s/.test(t) && /\s2[.)]\s/.test(t)) t = t.replace(/\s+(?=\d{1,2}[.)]\s)/g, "\n");
+  const intro: string[] = [], steps: string[] = [];
+  for (const line of t.split("\n").map(l => l.trim()).filter(Boolean)) {
+    const m = /^(\d{1,2})[.)]\s+(.*)$/.exec(line);
+    if (m) steps.push(m[2]);
+    else if (steps.length) steps[steps.length - 1] += " " + line;
+    else intro.push(line);
+  }
+  if (steps.length < 2) return { intro: t.split("\n").map(l => l.trim()).filter(Boolean), steps: [] };
+  return { intro, steps };
+}
+
 /** Parses a weather summary like "17°C · 1% rain · 22km/h wind — good conditions" into [main, rest]. */
 export function splitWeather(summary: string | null | undefined): [string, string] | null {
   const s = String(summary ?? "").replace(/[\s—\-]+$/, "").trim();

@@ -7,7 +7,7 @@ import {
   PDFDocument, Canvas,
   makeTheme, loadFonts, embedImage, clean, fixed, wrap, fitLine, wrapRuns, drawRuns, textW,
   drawCrest, drawStripes, drawFooters, drawContBand, drawPill, pillW, label, sectionHead,
-  videoRow, iconList, callout, splitWeather, irishParts, clock,
+  videoRow, iconList, callout, calloutList, splitIdeas, splitSteps, splitWeather, irishParts, clock,
 } from "../_shared/pdf-kit.ts";
 
 export type { ClubData };
@@ -339,18 +339,42 @@ export async function buildSessionPlanPdf(plan: PlanJson, event: EventData, form
   // ── Card body items (shared by A4 and phone) ──
   function bodyItems(b: Block, w: number, s: { body: number; lh: number; lab: number; pt: number; plh: number; call: number; clh: number }, videoInText: boolean): Item[] {
     const items: Item[] = [];
-    const descLines = wrap(b.desc, f.reg, s.body, w);
+    const { intro, steps } = splitSteps(b.desc);
+    const descLines = intro.flatMap(p => wrap(p, f.reg, s.body, w));
     descLines.forEach(l => items.push({ h: s.lh, draw: (c, x, t) => c.text(l, x, t + (s.lh - s.body) / 2, s.body, f.reg, fixed.body) }));
+    // numbered steps: small circle with the number, text hanging beside it
+    const d = s.body * 1.6;
+    steps.forEach((st, i) => {
+      const lines = wrap(st, f.reg, s.body, w - d - 7);
+      const top0 = i === 0 && descLines.length ? 4 : 0;
+      items.push({
+        h: top0 + lines.length * s.lh + 3,
+        draw: (c, x, t) => {
+          const y = t + top0;
+          c.circle(x + d / 2, y + s.lh / 2, d / 2, th.s);
+          c.textCenter(String(i + 1), x + d / 2, y + s.lh / 2 - s.body * 0.4, s.body * 0.82, f.head, th.onS);
+          lines.forEach((l, k) => c.text(l, x + d + 7, y + k * s.lh + (s.lh - s.body) / 2, s.body, f.reg, fixed.body));
+        },
+      });
+    });
+    const gap = descLines.length || steps.length ? 5 : 0;
     if (b.points.length) {
-      items.push({ h: s.lab + 8 + (descLines.length ? 5 : 0), draw: (c, x, t) => label(c, "Coaching points", x, t + (descLines.length ? 5 : 0) + 2, s.lab, th.pText, f) });
+      items.push({ h: s.lab + 8 + gap, draw: (c, x, t) => label(c, "Coaching points", x, t + gap + 2, s.lab, th.pText, f) });
       for (const p of b.points) {
         const h = iconList(null, [p], 0, 0, w, f, s.pt, s.plh, th.p, "check", 2);
         items.push({ h, draw: (c, x, t) => iconList(c, [p], x, t, w, f, s.pt, s.plh, th.p, "check", 2, th.onP) });
       }
     }
     if (b.variation) {
-      const h = callout(null, "Make it harder:", b.variation, 0, 0, w, f, th, s.call, s.clh);
-      items.push({ h: h + 7, draw: (c, x, t) => callout(c, "Make it harder:", b.variation, x, t + 7, w, f, th, s.call, s.clh) });
+      const ideas = splitIdeas(b.variation);
+      if (ideas.length > 1) {
+        const h = calloutList(null, "Make it harder", ideas, 0, 0, w, f, th, s.call, s.clh);
+        items.push({ h: h + 7, draw: (c, x, t) => calloutList(c, "Make it harder", ideas, x, t + 7, w, f, th, s.call, s.clh) });
+      } else {
+        const one = ideas[0] ?? b.variation;
+        const h = callout(null, "Make it harder:", one, 0, 0, w, f, th, s.call, s.clh);
+        items.push({ h: h + 7, draw: (c, x, t) => callout(c, "Make it harder:", one, x, t + 7, w, f, th, s.call, s.clh) });
+      }
     }
     if (b.video && videoInText) {
       const o = mobile
