@@ -20,6 +20,7 @@ import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:universal_html/html.dart' as html;
 
 class NativeWebView extends StatefulWidget {
   const NativeWebView({
@@ -77,10 +78,46 @@ class _NativeWebViewState extends State<NativeWebView>
   static const _maxRecording = Duration(minutes: 5);
   static const _warmupField = 'warmup_init';
 
+  // ── Web (PWA) only ─────────────────────────────────────────────────────────
+  // On the web the page is shown in an iframe, and browsers block the
+  // microphone inside an iframe unless the iframe allows it. This adds
+  // allow="microphone" to every iframe the app creates. It runs once, and
+  // never on iOS or Android (kIsWeb is false there).
+  static bool _webMicAllowed = false;
+
+  static void _allowMicInWebIframes() {
+    if (!kIsWeb || _webMicAllowed) return;
+    _webMicAllowed = true;
+    try {
+      final script = html.ScriptElement()
+        ..text = r"""
+(function () {
+  var ALLOW = 'microphone; clipboard-write';
+  function fix(f) {
+    var a = f.getAttribute('allow') || '';
+    if (/microphone/.test(a)) return false;
+    f.setAttribute('allow', a ? a + '; ' + ALLOW : ALLOW);
+    return true;
+  }
+  var orig = Document.prototype.createElement;
+  Document.prototype.createElement = function (tag) {
+    var el = orig.apply(this, arguments);
+    if (String(tag).toLowerCase() === 'iframe') fix(el);
+    return el;
+  };
+  function reload(f) { if (f.src && f.isConnected) { var s = f.src; f.src = 'about:blank'; f.src = s; } }
+  document.querySelectorAll('iframe').forEach(function (f) { if (fix(f)) reload(f); });
+})();
+""";
+      html.document.head?.append(script);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _allowMicInWebIframes();
     _initController();
     // Speech is initialized lazily on first use to avoid requesting
     // microphone permission on pages that don't need it.
