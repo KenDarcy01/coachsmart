@@ -126,6 +126,26 @@
       border-radius: var(--radius); font-size: 15px; line-height: 1.55; color: var(--muted); word-break: break-word;
     }
 
+    /* ── EARLIER REPORTS ── */
+    .reports-section { display: flex; flex-direction: column; gap: 10px; padding-top: 18px; border-top: 1px solid var(--border); }
+    .report-row { text-align: left; width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+    .report-row:active { background: var(--card2); }
+    .report-row-main { flex: 1; min-width: 0; }
+    .report-row-top { font-size: 16px; font-weight: 600; }
+    .report-row-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
+    .report-row-snippet { font-size: 14px; color: var(--muted); margin-top: 6px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .report-row svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
+    .reports-empty { font-size: 15px; color: var(--muted); }
+
+    .detail { position: fixed; inset: 0; z-index: 50; background: var(--dark); display: none; flex-direction: column; overflow-y: auto; }
+    .detail.open { display: flex; }
+    .detail-body { padding: 20px 16px calc(32px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 16px; }
+    .detail-meta { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 15px; }
+    .detail-meta dt { color: var(--muted); }
+    .detail-text { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px;
+      font-size: 16px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+
     /* ── FOOTER ── */
     .sticky-footer {
       position: sticky; bottom: 0; background: var(--dark);
@@ -211,6 +231,24 @@
       </div>
       <div id="voiceTranscript" class="transcript-preview" style="display:none"></div>
     </div>
+
+    <div class="reports-section" id="reportsSection" style="display:none">
+      <div class="field-label" style="margin-bottom:0">Reports for this match</div>
+      <div id="reportsList"></div>
+    </div>
+  </div>
+
+  <div class="detail" id="detail">
+    <div class="top-bar">
+      <button class="back-btn" onclick="closeDetail()" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="top-bar-title">Match Report</div>
+    </div>
+    <div class="detail-body">
+      <dl class="detail-meta" id="detailMeta"></dl>
+      <div class="detail-text" id="detailText"></div>
+    </div>
   </div>
 
   <div class="sticky-footer" id="footer" style="display:none">
@@ -246,6 +284,7 @@
   // ── Helpers ───────────────────────────────────────────────────────────────
   function goBack() {
     if (CSMic.isRecording()) return;
+    if ($('detail').classList.contains('open')) { closeDetail(); return; }
     if (window.FlutterBridge) window.FlutterBridge.postMessage('close');
     else history.back();
   }
@@ -420,6 +459,54 @@
     }
   }
 
+  // ── Earlier reports (role level 100+; the server leaves them out otherwise) ──
+  let _reports = [];
+  function renderReports(list) {
+    _reports = list;
+    $('reportsSection').style.display = '';
+    const box = $('reportsList');
+    box.innerHTML = '';
+    if (!list.length) {
+      const p = document.createElement('div');
+      p.className = 'reports-empty'; p.textContent = 'No reports yet for this match.';
+      box.appendChild(p);
+      return;
+    }
+    box.style.display = 'flex'; box.style.flexDirection = 'column'; box.style.gap = '10px';
+    list.forEach((r, i) => {
+      const row = document.createElement('button');
+      row.className = 'report-row';
+      row.onclick = () => openDetail(i);
+      const main = document.createElement('div'); main.className = 'report-row-main';
+      const top = document.createElement('div'); top.className = 'report-row-top'; top.textContent = r.author;
+      const sub = document.createElement('div'); sub.className = 'report-row-sub';
+      sub.textContent = [formatDate(r.created_at), r.squad_name, r.opposition ? 'v ' + r.opposition : null].filter(Boolean).join(' · ');
+      const snip = document.createElement('div'); snip.className = 'report-row-snippet'; snip.textContent = r.report;
+      main.append(top, sub, snip);
+      row.appendChild(main);
+      row.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>');
+      box.appendChild(row);
+    });
+  }
+
+  function openDetail(i) {
+    const r = _reports[i];
+    if (!r) return;
+    const meta = $('detailMeta');
+    meta.innerHTML = '';
+    [['By', r.author], ['Submitted', formatDate(r.created_at)], ['Squad', r.squad_name], ['Opposition', r.opposition]]
+      .filter(([, v]) => v)
+      .forEach(([k, v]) => {
+        const dt = document.createElement('dt'); dt.textContent = k;
+        const dd = document.createElement('dd'); dd.textContent = v;
+        meta.append(dt, dd);
+      });
+    $('detailText').textContent = r.report;
+    $('detail').classList.add('open');
+    $('detail').scrollTop = 0;
+  }
+  function closeDetail() { $('detail').classList.remove('open'); }
+
   // ── Init ──────────────────────────────────────────────────────────────────
   async function init() {
     if (!EVENT_ID) { showError('No match was given. Go back and open the report from the match.'); return; }
@@ -461,6 +548,8 @@
       updateMicText();
       CSMic.warmup();
     }
+
+    if (Array.isArray(data.reports)) renderReports(data.reports);
 
     $('stateLoading').style.display = 'none';
     $('formBody').style.display = '';

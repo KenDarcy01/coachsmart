@@ -81,6 +81,26 @@ async function callGemini(apiKey: string, systemPrompt: string, userText: string
   throw new Error("Gemini returned an unexpected format");
 }
 
+async function loadReports(sb: any, eventId: number, squads: { squad_id: number; squad_name: string }[]) {
+  const { data: rows } = await sb.from("match_reports")
+    .select("id, created_at, user_id, match_report, squad_id, opposition")
+    .eq("event_id", eventId).order("created_at", { ascending: false });
+  if (!rows?.length) return [];
+  const userIds = [...new Set(rows.map((r: any) => r.user_id).filter(Boolean))];
+  const { data: users } = userIds.length
+    ? await sb.from("users").select("user_id, first_name, last_name").in("user_id", userIds)
+    : { data: [] };
+  const names = new Map((users || []).map((u: any) => [u.user_id, `${u.first_name || ""} ${u.last_name || ""}`.trim()]));
+  return rows.map((r: any) => ({
+    id: r.id,
+    created_at: r.created_at,
+    author: names.get(r.user_id) || "Unknown",
+    squad_name: squads.find(s => s.squad_id === r.squad_id)?.squad_name ?? null,
+    opposition: r.opposition,
+    report: r.match_report || "",
+  }));
+}
+
 function matchContext(ev: any, teamName: string, squadName: string | null, opposition: string | null): string {
   const date = ev.event_date_time
     ? new Date(ev.event_date_time).toLocaleDateString("en-IE", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Dublin" })
@@ -118,13 +138,21 @@ serve(async (req) => {
       .eq("event_id", eventId).maybeSingle();
     if (!ev) return json({ error: "Match not found" }, 404);
 
-    const { data: links } = await sb.from("user_member_link").select("member_id").eq("user_id", user.id);
+    // Active memberships on the event's team, and the caller's highest role level there
+    // (same rule as get_user_home_events).
+    const { data: links } = await sb.from("user_member_link").select("member_id")
+      .eq("user_id", user.id).eq("status", "active");
     const memberIds = (links || []).map((l: any) => l.member_id).filter(Boolean);
-    const { count } = memberIds.length
-      ? await sb.from("member_team_link").select("member_team_id", { count: "exact", head: true })
-          .eq("team_id", ev.team_id).in("member_id", memberIds)
-      : { count: 0 };
-    if (!count) return json({ error: "You're not on this team" }, 403);
+    const { data: teamLinks } = memberIds.length
+      ? await sb.from("member_team_link").select("member_team_id")
+          .eq("team_id", ev.team_id).eq("status", "active").in("member_id", memberIds)
+      : { data: [] as any[] };
+    const memberTeamIds = (teamLinks || []).map((l: any) => l.member_team_id);
+    if (!memberTeamIds.length) return json({ error: "You're not on this team" }, 403);
+
+    const { data: roleRows } = await sb.from("member_team_role_link")
+      .select("roles!inner(role_level)").in("member_team_id", memberTeamIds);
+    const roleLevel = Math.max(0, ...(roleRows || []).map((r: any) => Number(r.roles?.role_level) || 0));
 
     const [{ data: team }, { data: squads }, { data: me }] = await Promise.all([
       sb.from("teams").select("team_name").eq("team_id", ev.team_id).maybeSingle(),
@@ -157,6 +185,8 @@ serve(async (req) => {
           team_name: teamName,
           squads: squadList,
           ai_enabled: aiEnabled,
+          // Earlier reports for this match: management (role level 100+) only, as in FlutterFlow.
+          reports: roleLevel >= 100 ? await loadReports(sb, eventId, squadList) : null,
         },
       });
     }
