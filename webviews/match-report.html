@@ -179,12 +179,12 @@
     </div>
 
     <div id="squadRow">
-      <div class="field-label">Squad</div>
+      <div class="field-label">Squad <span class="req">*</span></div>
       <select id="inpSquad" class="text-input"></select>
     </div>
 
     <div>
-      <div class="field-label">Opposition</div>
+      <div class="field-label">Opposition <span class="req">*</span></div>
       <input id="inpOpposition" class="text-input" type="text" maxlength="120" placeholder="Who did you play?" autocomplete="off"/>
     </div>
 
@@ -239,6 +239,7 @@
   let _busy      = false;  // AI is working on the report
   let _saving    = false;
   let _undoText  = null;   // report before the last AI change
+  let _needsSquad = false; // team has more than one squad, so the coach must pick
 
   const $ = id => document.getElementById(id);
 
@@ -401,6 +402,8 @@
     if (_saving || _busy) return;
     if (CSMic.isRecording()) return;
     const report = reportText();
+    if (_needsSquad && !$('inpSquad').value) { showToast('Please select a squad', 'error'); $('inpSquad').focus(); return; }
+    if (!$('inpOpposition').value.trim()) { showToast('Please enter the opposition', 'error'); $('inpOpposition').focus(); return; }
     if (!report) { showToast('The match report is empty', 'error'); $('inpReport').focus(); return; }
     _saving = true;
     $('saveBtn').disabled = true;
@@ -435,6 +438,7 @@
     const sel = $('inpSquad');
     const squads = data.squads || [];
     sel.innerHTML = '';
+    // No default squad: the coach picks one. A team with a single squad uses it and hides the choice.
     if (squads.length !== 1) {
       const none = document.createElement('option');
       none.value = ''; none.textContent = 'Select a squad';
@@ -445,10 +449,10 @@
       o.value = s.squad_id; o.textContent = s.squad_name || ('Squad ' + s.squad_id);
       sel.appendChild(o);
     });
-    if (ev.squad_id && squads.some(s => s.squad_id === ev.squad_id)) sel.value = String(ev.squad_id);
-    if (!squads.length) $('squadRow').style.display = 'none';
-
-    $('inpOpposition').value = ev.opposition || '';
+    if (squads.length === 1) sel.value = String(squads[0].squad_id);
+    else sel.value = '';
+    if (squads.length <= 1) $('squadRow').style.display = 'none';
+    _needsSquad = squads.length > 1;
 
     _aiEnabled = !!data.ai_enabled;
     if (_aiEnabled) {

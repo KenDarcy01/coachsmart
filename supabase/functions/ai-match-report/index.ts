@@ -140,7 +140,9 @@ serve(async (req) => {
     if (squadId !== null && !squadList.some(s => s.squad_id === squadId)) {
       return json({ error: "That squad isn't on this team" }, 400);
     }
-    const squadName = squadList.find(s => s.squad_id === squadId)?.squad_name ?? null;
+    // One squad on the team: that's the squad. More than one: the coach must pick.
+    const effectiveSquadId = squadId ?? (squadList.length === 1 ? squadList[0].squad_id : null);
+    const squadName = squadList.find(s => s.squad_id === effectiveSquadId)?.squad_name ?? null;
     const opposition = typeof body.opposition === "string" && body.opposition.trim() ? body.opposition.trim().slice(0, 120) : null;
 
     // ── LOAD ──
@@ -150,7 +152,7 @@ serve(async (req) => {
         data: {
           event: {
             event_id: ev.event_id, event_title: ev.event_title, event_date_time: ev.event_date_time,
-            opposition: ev.opposition, home_away: ev.home_away, squad_id: ev.squad_id,
+            home_away: ev.home_away,
           },
           team_name: teamName,
           squads: squadList,
@@ -185,9 +187,11 @@ serve(async (req) => {
     if (action === "save") {
       const report = String(body.report || "").trim();
       if (!report) return json({ error: "The match report is empty" }, 400);
+      if (!opposition) return json({ error: "Please enter the opposition" }, 400);
+      if (squadList.length > 1 && effectiveSquadId === null) return json({ error: "Please select a squad" }, 400);
 
       const { data: row, error: insErr } = await sb.from("match_reports").insert({
-        event_id: eventId, user_id: user.id, match_report: report, squad_id: squadId, opposition,
+        event_id: eventId, user_id: user.id, match_report: report, squad_id: effectiveSquadId, opposition,
       }).select("id").single();
       if (insErr || !row) {
         console.error("match_reports insert failed:", insErr);
