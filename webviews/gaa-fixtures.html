@@ -442,7 +442,7 @@ const addDays = n => new Date(Date.now() + n * 864e5);
 
 function onRangeChange() {
   const v = document.getElementById('rangeSelect').value;
-  store('gaa_range4', v);
+  store('gaa_range5', v);
   document.getElementById('customDates').style.display = v === 'custom' ? '' : 'none';
   loadGames();
 }
@@ -1415,7 +1415,7 @@ function esc(s) {
 // ── Init ───────────────────────────────────────────────────────────────────
 loadFilters();
 renderClubSelect();
-document.getElementById('rangeSelect').value = recall('gaa_range4', 'lastweek');
+document.getElementById('rangeSelect').value = recall('gaa_range5', 'thisweek');
 document.getElementById('fromDate').value = isoDay(addDays(-7));
 document.getElementById('toDate').value = isoDay(addDays(35));
 document.getElementById('customDates').style.display = document.getElementById('rangeSelect').value === 'custom' ? '' : 'none';
