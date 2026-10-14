@@ -865,8 +865,14 @@ function applyAndRender() {
 }
 
 /* ── Stats strip ─────────────────────────────────────────────────────────── */
+// Upcoming events haven't happened yet, so leave them out of the rates
+function pastEvents() {
+  const now = new Date();
+  return filtered.events.filter(e => new Date(e.event_date_time) <= now);
+}
+
 function renderStats() {
-  const evs   = filtered.events;
+  const evs   = pastEvents();
   const total = evs.length;
   const responded = evs.filter(e => catResponse(e) !== 'none').length;
   const attending = evs.filter(e => catResponse(e) === 'yes').length;
@@ -882,7 +888,7 @@ function renderStats() {
 /* ── Attendance chart ────────────────────────────────────────────────────── */
 function renderAttendance() {
   const el = document.getElementById('attendChart');
-  const evs = filtered.events;
+  const evs = pastEvents();
   if (!evs.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>No events in this period</div>`;
     return;
@@ -929,8 +935,7 @@ function renderMatchHistory() {
   const cnt  = document.getElementById('matchCount');
   const sels = filtered.matchSelections;
 
-  const uniqueSquads = new Set(sels.map(m => m.squad_id).filter(Boolean));
-  if (!sels.length || uniqueSquads.size <= 1) {
+  if (!sels.length) {
     wrap.style.display = 'none';
     return;
   }
