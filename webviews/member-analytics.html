@@ -125,6 +125,17 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 .two .card { margin: 0; }
 .two.single { grid-template-columns: 1fr; }
+.codes:empty { display: none; }
+.code-card { text-align: left; width: 100%; }
+.code-name { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.code-card .k { margin-top: 6px; }
+.code-sub { font-size: 12px; color: var(--text-2); margin-top: 8px; }
+.code-sub + .code-sub { margin-top: 2px; }
+.code-tag {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 5px; margin-right: 6px; vertical-align: 1px;
+  color: var(--accent); background: var(--accent-dim);
+}
 .k { font-size: 26px; font-weight: 700; line-height: 1.1; }
 .k small { font-size: 15px; color: var(--muted); font-weight: 500; }
 .lbl { font-size: 13px; color: var(--text-2); margin-top: 2px; }
@@ -245,6 +256,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
       <div class="card" id="matchCard"></div>
     </div>
 
+    <div class="two codes" id="codeCards"></div>
+
     <div id="upcomingSection">
       <div class="h">Coming up</div>
       <div class="card" id="upcomingList"></div>
@@ -317,6 +330,7 @@ const LIST_LIMIT = { matches: 3, history: 5 };
 /* ── State ───────────────────────────────────────────────────────────────── */
 let rawData  = null;
 let isFemale = false;
+let multiCode = false;   // player has events in more than one code: tag each row with its code
 let fState   = { period: 'season', code: 'all', type: 'all', team: 'all' };
 let histCat  = 'all';
 let expanded = { matches: false, history: false };
@@ -358,6 +372,7 @@ async function init() {
   rawData.events          = dedupeByEventId(rawData.events);
   rawData.matchSelections = dedupeByEventId(rawData.matchSelections);
   isFemale = (rawData.teams || []).some(t => t.team_female === true);
+  multiCode = new Set(rawData.events.map(e => codeLabel(e.event_code)).filter(Boolean)).size > 1;
 
   buildFilters();
   wireControls();
@@ -510,6 +525,7 @@ function render() {
   renderChips();
   renderHero();
   renderSplitCards();
+  renderCodeCards();
   renderUpcoming();
   renderMonths();
   renderMatches();
@@ -580,6 +596,38 @@ function renderSplitCards() {
     : `<div class="k">–</div><div class="lbl">Matches selected</div><div class="mini"></div>`;
 }
 
+// One card per code when the player's events span more than one code and no
+// single code is picked. Tapping a card filters the page to that code.
+function renderCodeCards() {
+  const el = document.getElementById('codeCards');
+  const { past, matches } = view;
+  const codes = fState.code === 'all'
+    ? [...new Set(past.concat(matches).map(e => codeLabel(e.event_code)).filter(Boolean))].sort()
+    : [];
+  if (codes.length < 2) { el.innerHTML = ''; return; }
+
+  el.innerHTML = codes.map(code => {
+    const evs  = past.filter(e => codeLabel(e.event_code) === code);
+    const ms   = matches.filter(m => codeLabel(m.event_code) === code);
+    const went = count(evs, 'yes'), no = count(evs, 'no');
+    const picked = ms.filter(m => m.selection).length;
+    return `
+      <button class="card code-card" data-code="${esc(code)}">
+        <div class="code-name">${esc(code)}</div>
+        <div class="k">${evs.length ? pct(went, evs.length) + '%' : '–'}</div>
+        <div class="lbl">Attended ${went} of ${evs.length}</div>
+        <div class="mini"><i style="width:${pct(went, evs.length)}%;background:var(--yes)"></i><i style="width:${pct(no, evs.length)}%;background:var(--no)"></i></div>
+        ${ms.length ? `<div class="code-sub">Selected ${picked}/${ms.length} match${ms.length !== 1 ? 'es' : ''}</div>` : ''}
+      </button>`;
+  }).join('');
+
+  el.querySelectorAll('.code-card').forEach(card => card.addEventListener('click', () => {
+    fState.code = card.dataset.code;
+    document.querySelectorAll('#codePills .f-pill').forEach(b => b.classList.toggle('on', b.dataset.v === fState.code));
+    render();
+  }));
+}
+
 function renderUpcoming() {
   const { upcoming } = view;
   const sec = document.getElementById('upcomingSection');
@@ -592,7 +640,7 @@ function renderUpcoming() {
     const pill = cat === 'yes' ? `<span class="pill p-yes">Going</span>`
                : cat === 'no'  ? `<span class="pill p-no">Can't go</span>`
                :                 `<span class="pill p-none">Reply needed</span>`;
-    return eventRow(e, eventTitle(e), [e.event_type, dayTime(e.event_date_time), e.home_away], pill);
+    return eventRow(e, eventTitle(e), [typeLabel(e), dayTime(e.event_date_time), e.home_away], pill);
   }).join('');
 }
 
@@ -666,7 +714,7 @@ function renderHistory() {
   const list = all ? rows : rows.slice(0, LIST_LIMIT.history);
   const PILL = { yes: '<span class="pill p-yes">Went</span>', no: '<span class="pill p-no">Declined</span>', none: '<span class="pill p-none">No reply</span>' };
   document.getElementById('historyList').innerHTML = list.length
-    ? list.map(e => eventRow(e, eventTitle(e), [e.event_type, dayTime(e.event_date_time), e.home_away], PILL[catResponse(e)])).join('')
+    ? list.map(e => eventRow(e, eventTitle(e), [typeLabel(e), dayTime(e.event_date_time), e.home_away], PILL[catResponse(e)])).join('')
     : `<div class="empty">Nothing here for this period</div>`;
 
   const more = document.getElementById('histMore');
@@ -680,6 +728,11 @@ function eventTitle(e) {
   return e.event_title || e.event_type || 'Event';
 }
 
+// "vs Raheny" already says it's a match, so leave the type out to save room for the code tag
+function typeLabel(e) {
+  return isMatch(e) && e.opposition ? null : e.event_type;
+}
+
 function dayTime(iso) {
   const d = new Date(iso);
   return `${DOW[d.getDay()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -689,10 +742,11 @@ function eventRow(e, title, metaParts, pill) {
   const d  = new Date(e.event_date_time);
   const yr = d.getFullYear() !== new Date().getFullYear() ? ` ’${String(d.getFullYear()).slice(2)}` : '';
   const meta = metaParts.filter(v => v && v !== title).map(esc).join(' · ');
+  const code = multiCode && e.event_code ? `<span class="code-tag">${esc(codeLabel(e.event_code))}</span>` : '';
   return `
     <div class="row">
       <div class="date"><b>${d.getDate()}</b><span>${MON[d.getMonth()]}${yr}</span></div>
-      <div class="grow"><div class="t">${esc(title)}</div>${meta ? `<div class="m">${meta}</div>` : ''}</div>
+      <div class="grow"><div class="t">${esc(title)}</div>${meta || code ? `<div class="m">${code}${meta}</div>` : ''}</div>
       ${pill}
     </div>`;
 }
