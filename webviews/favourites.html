@@ -115,73 +115,115 @@
     .btn-full    { width: 100%; flex: none; }
 
     /* ── Favourites list ── */
-    .fav-list { padding: 12px 14px; display: flex; flex-direction: column; gap: 0; }
-    .fav-list-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
+    .fav-list { padding: 12px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .fav-chips {
+      display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+      margin: 0 -14px; padding: 0 14px;
     }
+    .fav-chips::-webkit-scrollbar { display: none; }
+    .fav-chip {
+      flex-shrink: 0; font-size: 13px; font-weight: 500; padding: 6px 12px;
+      border-radius: 16px; border: 1px solid var(--border); color: var(--muted);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fav-chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .fav-count { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--muted); }
+    .fav-count b { color: var(--text); font-weight: 600; }
+    .fav-count button { color: var(--accent); font-weight: 600; font-size: 13px; padding: 2px 0 2px 10px; }
+    .fav-meter { height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; margin-top: 6px; }
+    .fav-meter i { display: block; height: 100%; background: var(--accent); transition: width 0.2s; }
+    .fav-sec {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted); margin-top: 4px;
+    }
+    .fav-group { display: flex; flex-direction: column; gap: 10px; }
+    .fav-group:empty { display: none; }
+    .fav-hint { font-size: 13px; color: var(--muted); text-align: center; padding: 6px 0; }
+
+    /* Each card sits in a red "Remove" well and slides left to show it. */
+    .fav-wrap { position: relative; border-radius: 14px; }
+    .fav-wrap.is-dragging { opacity: 0.45; }
+    .fav-remove {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 110px;
+      border-radius: 14px; background: #c0392b; color: #fff;
+      display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+      gap: 3px; padding-right: 22px; font-size: 12px; font-weight: 600;
+      visibility: hidden;
+    }
+    .fav-wrap.swiping .fav-remove, .fav-wrap.open .fav-remove { visibility: visible; }
+    .fav-remove svg { width: 20px; height: 20px; margin-right: 8px; }
     .fav-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      user-select: none; -webkit-user-select: none;
+      position: relative; display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px;
+      padding: 10px 12px 10px 4px;
+      user-select: none; -webkit-user-select: none; touch-action: pan-y;
+      transition: transform 0.2s ease, border-color 0.15s;
     }
-    .fav-item:last-child { border-bottom: none; }
-    .fav-item.is-dragging { opacity: 0.4; background: var(--surface-2); }
+    .fav-wrap.swiping .fav-item { transition: none; }
+    .fav-wrap.open .fav-item { transform: translateX(-96px); }
+    .fav-item.picked { border-color: rgba(135,194,50,0.5); background: linear-gradient(90deg, rgba(135,194,50,0.08), var(--surface) 65%); }
+    .fav-wrap.capped .fav-item { opacity: 0.45; }
+    .fav-num {
+      position: absolute; top: -7px; left: -7px; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #14181b; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg);
+    }
 
     .drag-handle {
       color: var(--muted); flex-shrink: 0; touch-action: none; cursor: grab;
       display: flex; align-items: center; justify-content: center;
-      width: 32px; height: 44px;
+      width: 24px; height: 44px; opacity: 0.7;
     }
+    .drag-handle.off { visibility: hidden; }
     .drag-handle:active { cursor: grabbing; color: var(--accent); }
-    .drag-handle svg { width: 20px; height: 20px; }
-
-    .fav-check {
-      appearance: none; -webkit-appearance: none;
-      width: 20px; height: 20px; border-radius: 4px;
-      border: 2px solid var(--accent); background: transparent;
-      cursor: pointer; flex-shrink: 0; position: relative;
-      transition: background 0.15s;
-    }
-    .fav-check:checked { background: var(--accent); }
-    .fav-check:checked::after {
-      content: ''; position: absolute; left: 4px; top: 1px;
-      width: 8px; height: 11px;
-      border: 2.5px solid rgba(0,0,0,0.65);
-      border-top: none; border-left: none;
-      transform: rotate(45deg);
-    }
+    .drag-handle svg { width: 16px; height: 16px; }
 
     .fav-thumb {
-      width: 42px; height: 42px; border-radius: 7px;
+      width: 68px; height: 68px; border-radius: 10px;
       object-fit: cover; flex-shrink: 0; background: var(--surface-2);
     }
     .fav-thumb-ph {
-      width: 42px; height: 42px; border-radius: 7px;
+      width: 68px; height: 68px; border-radius: 10px;
       background: var(--surface-2); flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
     }
-    .fav-thumb-ph svg { width: 18px; height: 18px; color: var(--muted); }
+    .fav-thumb-ph svg { width: 22px; height: 22px; color: var(--muted); }
 
-    .fav-name {
-      flex: 1; min-width: 0;
-      font-size: 14px; font-weight: 500; color: var(--text);
-      cursor: pointer;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .fav-name:active { opacity: 0.6; }
+    .fav-info { flex: 1; min-width: 0; cursor: pointer; }
+    .fav-name { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.25; margin-bottom: 6px; }
+    .fav-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+    .fav-tag { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--surface-2); color: #b9c3cf; white-space: nowrap; }
+    .fav-tag.type { color: var(--accent); background: var(--accent-dim); }
 
-    .heart-btn {
-      flex-shrink: 0; color: #e05555;
+    .fav-tick {
+      width: 44px; height: 44px; margin: -6px -8px -6px 0; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      width: 34px; height: 34px; border-radius: 7px;
-      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
     }
-    .heart-btn:active { background: rgba(224,85,85,0.12); }
-    .heart-btn svg { width: 18px; height: 18px; }
+    .fav-tick i {
+      width: 26px; height: 26px; border-radius: 50%; border: 2px solid #3a4556;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s;
+    }
+    .fav-item.picked .fav-tick i { background: var(--accent); border-color: var(--accent); }
+    .fav-item.picked .fav-tick i::after {
+      content: ''; width: 6px; height: 11px; margin-top: -2px;
+      border: solid #14181b; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+    }
+
+    /* Undo bar after a swipe-remove */
+    #undoBar {
+      position: fixed; left: 14px; right: 14px; bottom: 80px; z-index: 998;
+      background: #2a3344; border-radius: 12px; padding: 12px 14px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      font-size: 14px; color: var(--text); box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      transform: translateY(20px); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+    }
+    #undoBar.show { opacity: 1; transform: none; pointer-events: auto; }
+    #undoBar span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #undoBar button { color: var(--accent); font-weight: 700; font-size: 14px; flex-shrink: 0; }
+
+    #exportGamesBtn.compact { flex: 0 0 auto; padding: 0 16px; }
+    #buildPlanBtn:disabled { opacity: 0.5; }
 
     /* ── Setup screen ── */
     .setup-body { padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
@@ -491,17 +533,34 @@
 
     /* ── Game detail sheet ── */
     .sheet {
-      position: fixed; inset: 0; background: var(--bg); z-index: 300;
-      display: none; flex-direction: column;
+      position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0);
+      display: none; flex-direction: column; justify-content: flex-end;
+      transition: background 0.25s;
     }
     .sheet.open { display: flex; }
+    .sheet.shown { background: rgba(0,0,0,0.55); }
+    .sheet-panel {
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      max-height: calc(100% - 48px); height: calc(100% - 48px);
+      display: flex; flex-direction: column; overflow: hidden;
+      transform: translateY(100%); transition: transform 0.28s cubic-bezier(.2,.8,.2,1);
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+    }
+    .sheet.shown .sheet-panel { transform: none; }
+    .sheet-grab { width: 40px; height: 4px; border-radius: 2px; background: #3a4556; margin: 8px auto 0; flex-shrink: 0; }
     .sheet-header {
-      background: var(--surface); border-bottom: 3px solid var(--accent);
-      padding: 0 14px; height: 56px;
+      padding: 2px 8px 0 4px; height: 48px;
       display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0;
     }
-    .sheet-back { display: flex; align-items: center; gap: 4px; color: var(--accent); font-size: 16px; font-weight: 600; }
-    .sheet-back svg { width: 26px; height: 26px; }
+    .sheet-back { display: flex; align-items: center; justify-content: center; color: var(--muted); width: 44px; height: 44px; }
+    .sheet-back svg { width: 22px; height: 22px; }
+    .sheet-foot {
+      display: none; gap: 10px; flex-shrink: 0;
+      padding: 10px 14px max(12px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border); background: var(--surface);
+    }
+    .sheet-foot.on { display: flex; }
+    .sheet-tags { display: flex; gap: 5px; flex-wrap: wrap; padding: 2px 14px 0; }
     .sheet-heart-btn {
       color: var(--muted);
       display: flex; align-items: center; justify-content: center;
@@ -512,7 +571,7 @@
     .sheet-heart-btn svg { width: 22px; height: 22px; }
     .sheet-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .sheet-game-img { width: calc(100% - 28px); height: auto; display: block; margin: 14px; border-radius: 10px; }
-    .sheet-game-title { font-size: 19px; font-weight: 700; color: var(--text); padding: 14px 14px 4px; }
+    .sheet-game-title { font-size: 20px; font-weight: 700; color: var(--text); padding: 0 14px 6px; }
     .sheet-section { padding: 12px 14px 0; }
     .sheet-section-label {
       font-size: 12px; font-weight: 700; text-transform: uppercase;
@@ -596,14 +655,23 @@
 <!-- Favourites list screen -->
 <div id="favScreen" class="screen">
   <div class="scroll-content">
-    <div class="fav-list">
-      <div class="fav-list-card" id="favList"></div>
+    <div class="fav-list" id="favList">
+      <div class="fav-chips" id="favChips"></div>
+      <div>
+        <div class="fav-count"><span id="favCountText"></span><button id="favCountBtn" onclick="toggleAllPicks()"></button></div>
+        <div class="fav-meter"><i id="favMeter"></i></div>
+      </div>
+      <div class="fav-sec" id="pickedLabel">Picked · drag to set order</div>
+      <div class="fav-group" id="pickedList"></div>
+      <div class="fav-sec" id="restLabel">Not picked</div>
+      <div class="fav-group" id="restList"></div>
+      <div class="fav-hint" id="favHint"></div>
     </div>
   </div>
   <div class="bottom-bar">
     <button class="btn btn-outline" id="exportGamesBtn" onclick="exportGamesPdf()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-      Export Games
+      <span id="exportGamesLabel">Export Games</span>
     </button>
     <button class="btn btn-primary" id="buildPlanBtn" onclick="goSetup()" style="display:none">
       Build Session Plan
@@ -717,18 +785,23 @@
   </div>
 </div>
 
-<!-- Game detail sheet -->
-<div id="gameSheet" class="sheet">
-  <div class="sheet-header">
-    <button class="sheet-back" onclick="closeSheet()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      Back
-    </button>
-    <button class="sheet-heart-btn" id="sheetHeartBtn" onclick="toggleFavFromSheet()">
-      <svg id="sheetHeartSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    </button>
+<!-- Game quick look: slide-up sheet -->
+<div id="gameSheet" class="sheet" onclick="if (event.target === this) closeSheet()">
+  <div class="sheet-panel" id="sheetPanel">
+    <div class="sheet-grab"></div>
+    <div class="sheet-header">
+      <button class="sheet-back" onclick="closeSheet()" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <button class="sheet-heart-btn" id="sheetHeartBtn" onclick="toggleFavFromSheet()">
+        <svg id="sheetHeartSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+    <div class="sheet-foot" id="sheetFoot">
+      <button class="btn btn-primary" id="sheetPickBtn" onclick="pickFromSheet()"></button>
+    </div>
   </div>
-  <div class="sheet-body" id="sheetBody"></div>
 </div>
 
 <div class="confirm-overlay" id="confirmOverlay" style="display:none" onclick="closeConfirm(event)">
@@ -754,6 +827,7 @@
 </div>
 
 <div id="toast"><div class="sp-toast-spin"></div><span id="toastMsg"></span></div>
+<div id="undoBar"><span id="undoMsg"></span><button onclick="undoRemove()">Undo</button></div>
 
 <script src="cs-mic.js"></script>
 <script src="cs-voice-sheet.js"></script>
@@ -846,9 +920,12 @@
   function showError(msg) { $('errorText').textContent = msg; showScreen('errorScreen'); }
 
   function showFavs() {
+    if (!_favsLoaded) { loadFavs(); return; }
+    if (!_favs.length) { showEmpty(); return; }
     $('headerTitle').textContent = 'Favourites';
     $('myPlansBtn').style.display = _aiEnabled ? 'flex' : 'none';
     $('buildPlanBtn').style.display = _aiEnabled ? '' : 'none';
+    updatePickCount();
     showScreen('favScreen');
   }
 
@@ -910,13 +987,165 @@
     $('playersVal').textContent = _players ?? '—';
   }
 
-  // ── Drag-to-reorder ────────────────────────────────────────────────────────
+  // ── Favourites list ────────────────────────────────────────────────────────
+  // Exports and plan builds take at most this many games (keeps the PDF
+  // inside the server's time limit). Only the first 10 start picked.
+  const MAX_GAMES = 10;
+  const HAS_TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  let _picked = [];        // picked game ids, in session order
+  let _favFilter = 'all';  // chip key: all | type:<x> | code:<x>
+  let _removed = null;     // { fav, index, pickedAt } for Undo
+  let _undoTimer;
+
+  const TYPE_ORDER = ['warmup', 'drill', 'skills', 'skill', 'game'];
+  const TYPE_LABEL = { warmup: 'Warm-up', drill: 'Drill', skills: 'Skills', skill: 'Skills', game: 'Game' };
+  const TYPE_CHIP  = { warmup: 'Warm-ups', drill: 'Drills', skills: 'Skills', skill: 'Skills', game: 'Games' };
+  const ICON_IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+
+  function favTypes(f) {
+    return (f.game_type || []).map(t => String(t).toLowerCase()).filter(t => TYPE_LABEL[t]);
+  }
+  // "U8–U12" from ['u8','u10','u12']; "All ages" when the list has none.
+  function ageText(ages) {
+    const n = (ages || []).map(a => parseInt(String(a).replace(/\D/g, ''))).filter(x => !isNaN(x));
+    if (!n.length) return '';
+    const lo = Math.min(...n), hi = Math.max(...n);
+    return lo === hi ? `U${lo}` : `U${lo}–U${hi}`;
+  }
+  function favTagsHtml(f, cls) {
+    const tags = [];
+    const types = favTypes(f);
+    if (types.length) tags.push(`<span class="${cls} type">${esc(TYPE_LABEL[types[0]])}</span>`);
+    const age = ageText(f.game_age);
+    if (age) tags.push(`<span class="${cls}">${esc(age)}</span>`);
+    const codes = f.game_code || [];
+    if (codes.length) tags.push(`<span class="${cls}">${esc(codes.length > 1 ? 'Both codes' : codes[0])}</span>`);
+    if (f.has_video) tags.push(`<span class="${cls}">▶ Video</span>`);
+    return tags.join('');
+  }
+
+  function favMatches(f) {
+    if (_favFilter === 'all') return true;
+    const [k, v] = _favFilter.split(':');
+    if (k === 'type') return favTypes(f).some(t => TYPE_CHIP[t] === v);
+    return (f.game_code || []).includes(v);
+  }
+
+  // Chips only show when they would actually split the list.
+  function renderFavChips() {
+    const types = new Set(), codes = new Set();
+    _favs.forEach(f => { favTypes(f).forEach(t => types.add(TYPE_CHIP[t])); (f.game_code || []).forEach(c => codes.add(c)); });
+    const typeChips = TYPE_ORDER.map(t => TYPE_CHIP[t]).filter((c, i, a) => types.has(c) && a.indexOf(c) === i);
+    const chips = [];
+    if (typeChips.length > 1) typeChips.forEach(c => chips.push(['type:' + c, c]));
+    if (codes.size > 1) [...codes].sort().forEach(c => chips.push(['code:' + c, c]));
+    if (!chips.some(c => c[0] === _favFilter)) _favFilter = 'all';
+    const box = $('favChips');
+    if (_favs.length < 5 || !chips.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = '';
+    box.innerHTML = [['all', 'All'], ...chips].map(([k, l]) =>
+      `<button class="fav-chip${k === _favFilter ? ' on' : ''}" data-k="${esc(k)}">${esc(l)}</button>`).join('');
+    box.querySelectorAll('.fav-chip').forEach(b => b.addEventListener('click', () => { _favFilter = b.dataset.k; renderFavList(); }));
+  }
+
+  function favCard(f, num) {
+    const picked = num > 0;
+    const capped = !picked && _picked.length >= MAX_GAMES;
+    const wrap = document.createElement('div');
+    wrap.className = 'fav-wrap' + (capped ? ' capped' : '');
+    wrap.dataset.gid = f.game_id;
+    const img = f.game_image
+      ? `<img class="fav-thumb" src="${esc(f.game_image)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fav-thumb-ph" style="display:none">${ICON_IMG}</div>`
+      : `<div class="fav-thumb-ph">${ICON_IMG}</div>`;
+    wrap.innerHTML = `
+      <div class="fav-remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/><line x1="4" y1="4" x2="20" y2="20"/></svg>Remove</div>
+      <div class="fav-item${picked ? ' picked' : ''}">
+        ${picked ? `<div class="fav-num">${num}</div>` : ''}
+        <div class="drag-handle${picked ? '' : ' off'}">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="2"/><circle cx="16" cy="5" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="8" cy="19" r="2"/><circle cx="16" cy="19" r="2"/></svg>
+        </div>
+        ${img}
+        <div class="fav-info">
+          <div class="fav-name">${esc(f.game_name)}</div>
+          <div class="fav-tags">${favTagsHtml(f, 'fav-tag')}</div>
+        </div>
+        <button class="fav-tick" aria-label="${picked ? 'Unpick' : 'Pick'}"><i></i></button>
+      </div>`;
+    if (picked) initDrag(wrap.querySelector('.drag-handle'));
+    wrap.querySelector('.fav-tick').addEventListener('click', e => { e.stopPropagation(); togglePick(f.game_id); });
+    wrap.querySelector('.fav-remove').addEventListener('click', () => removeFav(f.game_id));
+    wrap.querySelector('.fav-item').addEventListener('click', e => {
+      if (!e.target.closest('.drag-handle, .fav-tick')) openGameSheet(f.game_id);
+    });
+    initSwipe(wrap);
+    return wrap;
+  }
+
+  function renderFavList(favs) {
+    if (favs) { _favs = favs; _picked = favs.slice(0, MAX_GAMES).map(f => f.game_id); }
+    _picked = _picked.filter(id => _favs.some(f => f.game_id === id));
+    renderFavChips();
+    const byId = new Map(_favs.map(f => [f.game_id, f]));
+    const pickedList = $('pickedList'), restList = $('restList');
+    pickedList.innerHTML = ''; restList.innerHTML = '';
+    let shownPicked = 0, shownRest = 0;
+    _picked.forEach((id, i) => {
+      const f = byId.get(id);
+      if (!favMatches(f)) return;
+      pickedList.appendChild(favCard(f, i + 1)); shownPicked++;
+    });
+    _favs.filter(f => !_picked.includes(f.game_id) && favMatches(f)).forEach(f => { restList.appendChild(favCard(f, 0)); shownRest++; });
+    $('pickedLabel').style.display = shownPicked ? '' : 'none';
+    $('pickedLabel').textContent = shownPicked > 1 && _favFilter === 'all' ? 'Picked · drag to set order' : 'Picked';
+    $('restLabel').style.display = shownRest ? '' : 'none';
+    $('favHint').textContent = !shownPicked && !shownRest ? 'No favourites match this filter'
+      : !localStorageGet('cs_fav_swipe_hint') ? (HAS_TOUCH ? 'Tip: swipe a game left to remove it' : 'Tip: open a game and tap the heart to remove it') : '';
+    updatePickCount();
+  }
+
+  function localStorageGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+  function updatePickCount() {
+    const n = _picked.length;
+    const atCap = n >= MAX_GAMES;
+    $('favCountText').innerHTML = atCap
+      ? `<b>${n} picked</b> · that's the limit`
+      : _favs.length > MAX_GAMES ? `<b>${n} picked</b> · up to ${MAX_GAMES}` : `<b>${n} of ${_favs.length}</b> picked`;
+    $('favCountBtn').textContent = n ? 'Clear' : 'Pick all';
+    $('favMeter').style.width = Math.min(100, n / Math.min(Math.max(_favs.length, 1), MAX_GAMES) * 100) + '%';
+    const build = $('buildPlanBtn');
+    build.textContent = n ? `Build plan with ${n} game${n === 1 ? '' : 's'}` : 'Pick games to build a plan';
+    build.disabled = !n;
+    const exp = $('exportGamesBtn');
+    exp.classList.toggle('compact', _aiEnabled);
+    $('exportGamesLabel').textContent = _aiEnabled ? 'PDF' : (n ? `Export ${n} game${n === 1 ? '' : 's'}` : 'Export Games');
+  }
+
+  function togglePick(gameId) {
+    const i = _picked.indexOf(gameId);
+    if (i >= 0) _picked.splice(i, 1);
+    else {
+      if (_picked.length >= MAX_GAMES) { showToast(`You can pick up to ${MAX_GAMES} games`); return; }
+      _picked.push(gameId);
+    }
+    renderFavList();
+    if (_currentSheetGameId === gameId) updateSheetPick();
+  }
+
+  function toggleAllPicks() {
+    _picked = _picked.length ? [] : _favs.slice(0, MAX_GAMES).map(f => f.game_id);
+    renderFavList();
+  }
+
+  function checkedGameIds() { return _picked.slice(); }
+
+  // ── Drag to reorder picked games ──────────────────────────────────────────
   let _drag = null;
 
   function _doDragMove(cx, cy) {
-    const list = $('favList');
-    if (!list) return;
-    const others = [...list.querySelectorAll('.fav-item')].filter(el => el !== _drag.el);
+    const list = $('pickedList');
+    const others = [...list.querySelectorAll('.fav-wrap')].filter(el => el !== _drag.el);
     let ref = null;
     for (const item of others) {
       const r = item.getBoundingClientRect();
@@ -930,15 +1159,21 @@
     if (!_drag) return;
     _drag.el.classList.remove('is-dragging');
     _drag = null;
+    // Keep any picked games hidden by a filter in their old slots.
+    const shown = [...$('pickedList').querySelectorAll('.fav-wrap')].map(el => parseInt(el.dataset.gid));
+    const shownSet = new Set(shown);
+    let k = 0;
+    _picked = _picked.map(id => shownSet.has(id) ? shown[k++] : id);
+    renderFavList();
   }
 
   function initDrag(handle) {
     handle.addEventListener('touchstart', e => {
-      const item = handle.closest('.fav-item'); if (!item) return;
+      const item = handle.closest('.fav-wrap'); if (!item) return;
       e.preventDefault(); _drag = { el: item }; item.classList.add('is-dragging');
     }, { passive: false });
     handle.addEventListener('mousedown', e => {
-      const item = handle.closest('.fav-item'); if (!item) return;
+      const item = handle.closest('.fav-wrap'); if (!item) return;
       e.preventDefault(); _drag = { el: item }; item.classList.add('is-dragging');
     });
   }
@@ -952,70 +1187,92 @@
   document.addEventListener('mousemove', e => { if (!_drag) return; _doDragMove(e.clientX, e.clientY); });
   document.addEventListener('mouseup', _endDrag);
 
-  // ── Favourites list ────────────────────────────────────────────────────────
-  function renderFavList(favs) {
-    const list = $('favList');
-    list.innerHTML = '';
-    if (!favs || !favs.length) {
-      list.innerHTML = '<div style="padding:20px 14px;font-size: 14px;color:var(--muted);text-align:center">No favourites found</div>';
-      return;
-    }
-    favs.forEach((f, i) => {
-      const item = document.createElement('div');
-      item.className = 'fav-item';
-      item.dataset.gid = f.game_id;
-      const imgHtml = f.game_image
-        ? `<img class="fav-thumb" src="${esc(f.game_image)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-           <div class="fav-thumb-ph" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`
-        : `<div class="fav-thumb-ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
-      item.innerHTML = `
-        <div class="drag-handle">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="2"/><circle cx="16" cy="5" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="8" cy="19" r="2"/><circle cx="16" cy="19" r="2"/></svg>
-        </div>
-        <input type="checkbox" class="fav-check"${i < MAX_GAMES ? ' checked' : ''}>
-        ${imgHtml}
-        <div class="fav-name">${esc(f.game_name)}</div>
-        <button class="heart-btn" title="Remove from favourites">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        </button>`;
-      initDrag(item.querySelector('.drag-handle'));
-      const box = item.querySelector('.fav-check');
-      box.addEventListener('change', () => {
-        if (box.checked && checkedGameIds().length > MAX_GAMES) {
-          box.checked = false;
-          showToast(`You can pick up to ${MAX_GAMES} games`);
-        }
-      });
-      item.querySelector('.fav-name').addEventListener('click', () => openGameSheet(f.game_id));
-      item.querySelector('.heart-btn').addEventListener('click', () => unfavourite(f.game_id, item));
-      list.appendChild(item);
+  // ── Swipe left to remove ───────────────────────────────────────────────────
+  const SWIPE_OPEN = 96;
+  function closeSwipes(except) {
+    document.querySelectorAll('.fav-wrap.open').forEach(w => { if (w !== except) w.classList.remove('open'); });
+  }
+  function initSwipe(wrap) {
+    const card = wrap.querySelector('.fav-item');
+    let x0 = 0, y0 = 0, dx = 0, mode = null, base = 0;
+    card.addEventListener('touchstart', e => {
+      if (_drag || e.target.closest('.drag-handle, .fav-tick')) { mode = 'skip'; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = null;
+      base = wrap.classList.contains('open') ? -SWIPE_OPEN : 0;
+    }, { passive: true });
+    card.addEventListener('touchmove', e => {
+      if (mode === 'skip' || mode === 'scroll') return;
+      const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if (!mode) {
+        if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+        mode = Math.abs(mx) > Math.abs(my) ? 'swipe' : 'scroll';
+        if (mode === 'swipe') { closeSwipes(wrap); wrap.classList.add('swiping'); }
+        else return;
+      }
+      dx = Math.max(-SWIPE_OPEN - 30, Math.min(0, base + mx));
+      card.style.transform = `translateX(${dx}px)`;
+    }, { passive: true });
+    card.addEventListener('touchend', () => {
+      if (mode !== 'swipe') { mode = null; return; }
+      wrap.classList.remove('swiping');
+      card.style.transform = '';
+      wrap.classList.toggle('open', dx < -SWIPE_OPEN / 2);
+      mode = null;
+      // Stop the tap that ends a swipe from opening the quick look.
+      wrap.dataset.swiped = '1'; setTimeout(() => delete wrap.dataset.swiped, 350);
     });
+    card.addEventListener('click', e => {
+      if (wrap.dataset.swiped) { e.stopPropagation(); e.preventDefault(); return; }
+      if (wrap.classList.contains('open')) { e.stopPropagation(); wrap.classList.remove('open'); }
+    }, true);
+  }
+  document.addEventListener('touchstart', e => { if (!e.target.closest('.fav-wrap.open')) closeSwipes(); }, { passive: true });
+
+  async function setFavourite(gameId) {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/toggle_user_game_link', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_game_id: gameId }),
+    });
+    return res.ok;
   }
 
-  // Exports and plan builds take at most this many games (keeps the PDF
-  // inside the server's time limit). Only the first 10 start ticked.
-  const MAX_GAMES = 10;
-
-  function checkedGameIds() {
-    return [...$('favList').querySelectorAll('.fav-item')]
-      .filter(el => el.querySelector('.fav-check')?.checked)
-      .map(el => parseInt(el.dataset.gid));
-  }
-
-  async function unfavourite(gameId, itemEl) {
-    itemEl.style.opacity = '0.4';
+  // Removes at once (so it sticks even if the coach leaves), and Undo adds it back.
+  async function removeFav(gameId) {
+    const index = _favs.findIndex(f => f.game_id === gameId);
+    if (index < 0) return;
+    const fav = _favs[index], pickedAt = _picked.indexOf(gameId);
+    _favs.splice(index, 1);
+    if (pickedAt >= 0) _picked.splice(pickedAt, 1);
+    localStorageSet('cs_fav_swipe_hint', '1');
+    if (_currentSheetGameId === gameId) closeSheet();
+    if (!_favs.length) showEmpty(); else renderFavList();
     try {
-      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/toggle_user_game_link', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ p_game_id: gameId }),
-      });
-      if (res.ok) {
-        itemEl.remove();
-        _favs = _favs.filter(f => f.game_id !== gameId);
-        if (!$('favList').children.length) showEmpty();
-      } else { itemEl.style.opacity = ''; showToast('Could not remove — try again'); }
-    } catch { itemEl.style.opacity = ''; showToast('Network error'); }
+      if (!await setFavourite(gameId)) throw new Error();
+      _removed = { fav, index, pickedAt };
+      clearToast();
+      clearToast();
+      $('undoMsg').textContent = `Removed "${fav.game_name}"`;
+      $('undoBar').classList.add('show');
+      clearTimeout(_undoTimer);
+      _undoTimer = setTimeout(() => { $('undoBar').classList.remove('show'); _removed = null; }, 5000);
+    } catch {
+      _favs.splice(index, 0, fav);
+      if (pickedAt >= 0 && _picked.length < MAX_GAMES) _picked.splice(pickedAt, 0, gameId);
+      renderFavList(); showFavs();
+      showToast('Could not remove. Try again', 'error');
+    }
+  }
+
+  async function undoRemove() {
+    const r = _removed; if (!r) return;
+    _removed = null; clearTimeout(_undoTimer); $('undoBar').classList.remove('show');
+    try {
+      if (!await setFavourite(r.fav.game_id)) throw new Error();
+      _favs.splice(Math.min(r.index, _favs.length), 0, r.fav);
+      if (r.pickedAt >= 0 && _picked.length < MAX_GAMES) _picked.splice(Math.min(r.pickedAt, _picked.length), 0, r.fav.game_id);
+      renderFavList(); showFavs();
+    } catch { showToast('Could not add it back. Try again', 'error'); }
   }
 
   async function exportGamesPdf() {
@@ -1742,14 +1999,22 @@
 
   // ── Game detail sheet ──────────────────────────────────────────────────────
   async function openGameSheet(gameId) {
+    closeSwipes();
     _currentSheetGameId = gameId;
-    $('sheetBody').innerHTML = '<div class="state-screen"><div class="spinner"></div></div>';
+    const fav = _favs.find(f => f.game_id === gameId);
+    $('sheetBody').innerHTML = (fav ? `<div class="sheet-game-title">${esc(fav.game_name)}</div>` : '') +
+      '<div class="state-screen"><div class="spinner"></div></div>';
     updateSheetHeart();
-    $('gameSheet').classList.add('open');
+    updateSheetPick();
+    $('sheetBody').scrollTop = 0;
+    const sheet = $('gameSheet');
+    sheet.classList.add('open');
+    requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('shown')));
     try {
       const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get_game', user_id: USER_ID, game_id: gameId }) });
       const data = await res.json();
       const g = data.game;
+      if (_currentSheetGameId !== gameId) return;
       if (!g) { $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Game not found</div></div>'; return; }
       const imgSrc = g.game_details_image || g.game_image;
       const imgHtml = imgSrc ? `<img class="sheet-game-img" src="${esc(imgSrc)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
@@ -1759,6 +2024,8 @@
       }
       $('sheetBody').innerHTML = `
         <div class="sheet-game-title">${esc(g.game_name)}</div>
+        <div class="sheet-tags">${favTagsHtml({ ...g, has_video: fav?.has_video }, 'fav-tag')}</div>
+        ${imgHtml}
         <div class="sheet-actions">
           <button class="btn btn-outline btn-full" id="gcPdfBtn" onclick="exportGameCardPdf(${Number(gameId)})">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -1766,7 +2033,6 @@
           </button>
         </div>
         ${sec('Setup', g.game_setup)}
-        ${imgHtml}
         ${sec('How to Play', g.game_how_to_play)}
         ${sec('Variations', g.game_variations)}
         ${sec('Teaching Points', g.game_teaching_points)}
@@ -1803,12 +2069,12 @@
       if (res.ok) {
         if (isFav) {
           _favs = _favs.filter(f => f.game_id !== _currentSheetGameId);
-          const item = $('favList')?.querySelector(`[data-gid="${_currentSheetGameId}"]`);
-          if (item) item.remove();
           showToast('Removed from favourites');
-          if (!$('favList')?.children.length) { closeSheet(); showEmpty(); return; }
+          if (!_favs.length) { closeSheet(); showEmpty(); return; }
+          renderFavList();
         } else showToast('Added to favourites');
         updateSheetHeart();
+        updateSheetPick();
       } else showToast('Could not update favourites');
     } catch { showToast('Network error'); }
   }
@@ -1839,7 +2105,32 @@
     if (btn) { btn.innerHTML = orig; btn.disabled = false; }
   }
 
-  function closeSheet() { $('gameSheet').classList.remove('open'); _currentSheetGameId = null; }
+  function closeSheet() {
+    const sheet = $('gameSheet');
+    sheet.classList.remove('shown');
+    _currentSheetGameId = null;
+    setTimeout(() => { if (!sheet.classList.contains('shown')) sheet.classList.remove('open'); }, 280);
+  }
+
+  // Pick / Unpick from the quick look. Hidden once the game is no longer a favourite.
+  function updateSheetPick() {
+    const foot = $('sheetFoot'), btn = $('sheetPickBtn');
+    const id = _currentSheetGameId;
+    const isFav = _favs.some(f => f.game_id === id);
+    foot.classList.toggle('on', !!id && isFav);
+    if (!id || !isFav) return;
+    const picked = _picked.includes(id);
+    btn.className = 'btn ' + (picked ? 'btn-outline' : 'btn-primary');
+    btn.textContent = picked ? `Picked as game ${_picked.indexOf(id) + 1} · Unpick` : (_picked.length >= MAX_GAMES ? `${MAX_GAMES} picked already` : '+ Pick for plan');
+    btn.disabled = !picked && _picked.length >= MAX_GAMES;
+  }
+  function pickFromSheet() {
+    const id = _currentSheetGameId;
+    if (!id) return;
+    const wasPicked = _picked.includes(id);
+    togglePick(id);
+    if (!wasPicked && _picked.includes(id)) closeSheet();
+  }
 
   // ── Setup notes: type, or tap the mic for the voice panel ─────────────────
   function autoGrow(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
@@ -1885,11 +2176,17 @@
       return;
     }
 
+    loadFavs();
+  }
+
+  let _favsLoaded = false;
+  async function loadFavs() {
     showLoading('Loading…');
     try {
       const res  = await fetch(EDGE_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ action: 'get', user_id: USER_ID }) });
       const data = await res.json();
       if (!res.ok) { showError(data.error || 'Failed to load.'); return; }
+      _favsLoaded = true;
       _favs = data.favourites || [];
       if (!_favs.length) { showEmpty(); return; }
       renderFavList(_favs);
