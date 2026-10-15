@@ -1,0 +1,86 @@
+/* Shared styles for privacy, terms, data deletion and contact. Matches the homepage. */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--g:#87c232;--green:#87c232;--bg:#0f1215;--card:#1e222b;--card2:#252a35;--line:rgba(255,255,255,.08);--text:#f1f4f8;--light:#f1f4f8;--muted:#a1a1a2;--soft:#c9ced6}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--g);text-decoration:none}
+a:hover{text-decoration:underline}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--g);color:#111;font-weight:700;padding:13px 22px;border-radius:12px;font-size:16px;box-shadow:0 8px 30px rgba(135,194,50,.35)}
+.btn:hover{text-decoration:none;filter:brightness(1.05)}
+.btn.sm{padding:9px 16px;font-size:14px;box-shadow:none}
+
+nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:50;width:min(1160px,calc(100% - 28px));display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 12px 10px 18px;border-radius:18px;background:rgba(20,24,27,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Bebas Neue';font-size:26px;letter-spacing:1px;color:var(--text)}
+.logo:hover{text-decoration:none}
+.logo img{width:34px;height:34px}
+.logo .s{color:var(--g)}
+nav .links{display:flex;gap:26px;font-size:15px}
+nav .links a{color:var(--soft)}
+nav .links a:hover,nav .links a.on{color:var(--g);text-decoration:none}
+
+.page-header{position:relative;padding:150px 20px 56px;text-align:center;overflow:hidden}
+.page-header::before{content:"";position:absolute;left:0;right:0;top:-200px;height:620px;background:radial-gradient(520px 340px at 50% 40%,rgba(135,194,50,.22),transparent 70%);pointer-events:none}
+.page-header-inner{position:relative;max-width:820px;margin:0 auto}
+.page-tag{display:inline-block;font-size:12px;font-weight:700;color:var(--g);background:rgba(135,194,50,.12);border:1px solid rgba(135,194,50,.3);padding:3px 12px;border-radius:999px;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px}
+.page-header h1{font-family:'DM Sans';font-weight:700;font-size:clamp(38px,5vw,60px);line-height:1.05;letter-spacing:-1.5px}
+.page-header .meta,.page-header .lead{color:var(--muted);font-size:15px;margin-top:12px}
+.page-header .lead{color:var(--soft);font-size:19px}
+
+.content-wrap{padding:10px 20px 100px}
+.content-inner{max-width:820px;margin:0 auto;background:linear-gradient(180deg,#1f242d,#181c23);border:1px solid var(--line);border-radius:28px;padding:48px 52px}
+.policy-section{padding:26px 0;border-bottom:1px solid var(--line)}
+.policy-section:first-child{padding-top:0}
+.policy-section:last-child{border-bottom:0;padding-bottom:0}
+.policy-section h2{font-size:24px;letter-spacing:-.5px;line-height:1.2;margin-bottom:14px}
+.policy-section h3{font-size:18px;color:var(--g);margin:20px 0 8px}
+.policy-section p{color:var(--soft);margin-bottom:12px}
+.policy-section p:last-child{margin-bottom:0}
+.policy-section strong{color:var(--text)}
+.policy-section ul,.policy-section ol{color:var(--soft);margin:6px 0 14px 0;padding-left:0;list-style:none;display:grid;gap:8px}
+.policy-section ul li{position:relative;padding-left:26px}
+.policy-section ul li::before{content:"✓";position:absolute;left:0;color:var(--g);font-weight:800}
+
+.highlight-box,.contact-card,.warning-box{border-radius:18px;padding:20px 24px;margin:6px 0 14px}
+.highlight-box{background:rgba(135,194,50,.08);border:1px solid rgba(135,194,50,.35)}
+.highlight-box p{color:#e2e6ea}
+.contact-card{background:#12161a;border:1px solid var(--line)}
+.contact-card p{margin-bottom:4px}
+.warning-box{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.35)}
+.warning-box p{color:#ecdcc0}
+
+ol.steps{counter-reset:s;gap:12px}
+ol.steps li{counter-increment:s;position:relative;padding:14px 18px 14px 62px;background:#12161a;border:1px solid var(--line);border-radius:14px}
+ol.steps li::before{content:counter(s);position:absolute;left:18px;top:50%;transform:translateY(-50%);font-family:'Bebas Neue';font-size:32px;line-height:1;color:var(--g)}
+
+.retention-table{width:100%;border-collapse:separate;border-spacing:0;margin:10px 0 16px;font-size:15px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.retention-table th{background:#12161a;color:var(--muted);font-size:12px;letter-spacing:1px;text-transform:uppercase;text-align:left;padding:12px 14px}
+.retention-table td{padding:12px 14px;color:var(--soft);border-top:1px solid var(--line);vertical-align:top}
+.badge-deleted,.badge-retained{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.badge-deleted{background:rgba(135,194,50,.15);color:var(--g)}
+.badge-retained{background:rgba(245,166,35,.15);color:#f5a623}
+.email-btn{display:inline-flex;margin-top:14px;background:var(--g);color:#111;font-weight:700;padding:12px 20px;border-radius:12px}
+.email-btn:hover{text-decoration:none;filter:brightness(1.05)}
+
+/* contact page */
+.cards{max-width:980px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{border-radius:24px;padding:28px;background:linear-gradient(180deg,#1f242d,#181c23);border:1px solid var(--line);display:flex;flex-direction:column}
+.card .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:rgba(135,194,50,.15);font-size:22px}
+.card h2{font-size:22px;margin:18px 0 6px}
+.card p{color:var(--soft);font-size:15.5px;flex:1}
+.card .go{margin-top:18px;font-weight:700;word-break:break-all}
+
+footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);font-size:14px}
+footer .wrap{max-width:1160px;margin:0 auto;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.flinks{display:flex;gap:18px;flex-wrap:wrap}
+.flinks a{color:var(--muted)}
+.flinks a:hover,.flinks a.on{color:var(--g);text-decoration:none}
+
+@media (max-width:820px){
+  nav .links{display:none}
+  .page-header{padding:120px 16px 40px}
+  .content-wrap{padding:0 12px 70px}
+  .content-inner{padding:28px 20px;border-radius:22px}
+  .cards{grid-template-columns:1fr}
+  .retention-table{font-size:14px}
+  .retention-table th,.retention-table td{padding:10px}
+}
