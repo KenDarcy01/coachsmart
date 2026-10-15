@@ -377,7 +377,7 @@ serve(async (req) => {
       });
       const [{ data: game, error: gameErr }, { data: noteRow }] = await Promise.all([
         sb.from("games")
-          .select("game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points, game_details_image")
+          .select("game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points, game_details_image, game_code, game_type, game_age")
           .eq("game_id", game_id)
           .single(),
         sb.from("game_coach_notes")
@@ -521,7 +521,7 @@ serve(async (req) => {
       const [planResult, favResult] = await Promise.all([
         planPromise,
         sb.from("user_game_link")
-          .select("position, games!inner(game_id, game_name, game_image, game_code)")
+          .select("position, games!inner(game_id, game_name, game_image, game_code, game_type, game_age, game_video)")
           .eq("user_id", user_id)
           .order("position"),
       ]);
@@ -542,6 +542,9 @@ serve(async (req) => {
         game_name:  f.games.game_name,
         game_image: f.games.game_image || null,
         game_code:  f.games.game_code  || [],
+        game_type:  f.games.game_type  || [],
+        game_age:   f.games.game_age   || [],
+        has_video:  !!f.games.game_video?.trim(),
         position:   f.position,
       }));
 
