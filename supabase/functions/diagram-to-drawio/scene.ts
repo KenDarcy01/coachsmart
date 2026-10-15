@@ -161,6 +161,39 @@ function lineSide(p: Pt, a: Pt, b: Pt) {
   return { d: (p.x - a.x) * nx + (p.y - a.y) * ny, nx, ny, inside: t > -0.02 && t < 1.02 };
 }
 
+// Tidy-up: values within `tol` of each other along one axis (a row or a column drawn by
+// hand) are set to their average, so things drawn roughly in line come out exactly in line.
+// A row or column only links neighbours (within `span` along the other axis), so things far
+// apart on the page are not pulled into line with each other. Two solid things are never put
+// in the same group if that would pull them closer than `sep` (on top of each other).
+// Only `solid` points (players, cones, balls) can clash; arrow ends never do.
+function alignAxis(pts: Pt[], key: "x" | "y", tol: number, sep: number, span: number, solid: Set<Pt>) {
+  const other = key === "x" ? "y" : "x";
+  const groups: Pt[][] = [];
+  const mean = (g: Pt[]) => g.reduce((t, q) => t + q[key], 0) / g.length;
+  for (const p of [...pts].sort((a, b) => a[other] - b[other])) {
+    const home = groups.find((g) =>
+      Math.abs(mean(g) - p[key]) <= tol &&
+      g.some((q) => Math.abs(q[other] - p[other]) <= span) &&
+      !(solid.has(p) && g.some((q) => {
+        if (!solid.has(q)) return false;
+        const after = Math.abs(q[other] - p[other]);
+        return after < sep && after < dist(q, p) - 2;
+      })));
+    if (home) home.push(p); else groups.push([p]);
+  }
+  for (const g of groups) if (g.length >= 2) { const m = mean(g); for (const p of g) p[key] = m; }
+}
+
+// A hand-drawn arrow given as several points that is really straight becomes two points.
+function simplifyPath(pts: Pt[]): Pt[] {
+  if (pts.length <= 2) return pts;
+  const a = pts[0], b = pts[pts.length - 1], len = dist(a, b);
+  if (len < 1) return pts;
+  const straightEnough = pts.every((p) => Math.abs(lineSide(p, a, b).d) < Math.max(4, len * 0.04));
+  return straightEnough ? [a, b] : pts;
+}
+
 // ── Scene → mxGraph XML ──────────────────────────────────────────────────────
 export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   const CANVAS = 700, PAD = 34;
@@ -220,10 +253,78 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     else if (level.includes(seg)) { join(a, "upright", reach); join(b, "upright", reach); }
   }
 
+  // Tidy-up: line up players, coaches, cones, balls and arrow ends that were drawn roughly
+  // in the same row or column, and straighten arrows that are nearly upright or level.
+  // Matching arrows end up the same length because their starts and ends line up.
+  const pos = new Map<SceneItem, Pt>(items.map((it) => [it, map(it)]));
+  const arrows = lines
+    .filter((l) => l.kind === "run" || l.kind === "pass")
+    .map((l) => ({ kind: l.kind, pts: simplifyPath(l.points.map(map)) }));
+  const people = items.filter((it) => it.kind === "player" || it.kind === "coach").map((it) => pos.get(it)!);
+  let gap = Infinity;
+  for (let i = 0; i < people.length; i++) for (let j = i + 1; j < people.length; j++) gap = Math.min(gap, dist(people[i], people[j]));
+  const D0 = Math.max(28, Math.min(42, Number.isFinite(gap) ? gap * 0.95 : 40));
+  const tol = Math.max(14, D0 * 0.6), sep = D0 * 0.9;
+
+  // An arrow that starts where another ends (a run that turns into a strike) stays joined to it.
+  const chained = arrows.map((a) => arrows.find((b) => b !== a && dist(b.pts[b.pts.length - 1], a.pts[0]) < 6) ?? null);
+  const solid = new Set(items.filter((it) => ["player", "coach", "cone", "ball"].includes(it.kind)).map((it) => pos.get(it)!));
+  const pool: Pt[] = [
+    ...solid,
+    ...arrows.flatMap((a, i) => chained[i] ? [a.pts[a.pts.length - 1]] : [a.pts[0], a.pts[a.pts.length - 1]]),
+  ];
+  alignAxis(pool, "x", tol, sep, D0 * 4, solid);
+  alignAxis(pool, "y", tol, sep, D0 * 4, solid);
+  const relink = () => arrows.forEach((a, i) => { const b = chained[i]; if (b) a.pts[0] = { ...b.pts[b.pts.length - 1] }; });
+  const straighten = () => {
+    for (const a of arrows) {
+      if (a.pts.length !== 2) continue;
+      const [p, q] = a.pts, dx = Math.abs(q.x - p.x), dy = Math.abs(q.y - p.y);
+      if (dy > 0 && dx / dy < 0.1) { p.x = q.x = (p.x + q.x) / 2; }
+      else if (dx > 0 && dy / dx < 0.1) { p.y = q.y = (p.y + q.y) / 2; }
+    }
+  };
+  relink(); straighten();
+
+  // Matching arrows (same kind, same direction, starting in the same row or column, roughly
+  // the same length) get the same length.
+  const straightArrows = arrows.filter((a, i) => a.pts.length === 2 && !chained[i]);
+  const used = new Set<typeof arrows[number]>();
+  for (const a of straightArrows) {
+    if (used.has(a)) continue;
+    const dir = (x: typeof a) => { const [p, q] = x.pts; return { x: Math.sign(Math.round(q.x - p.x)), y: Math.sign(Math.round(q.y - p.y)) }; };
+    const len = (x: typeof a) => dist(x.pts[0], x.pts[1]);
+    const da = dir(a);
+    const group = straightArrows.filter((b) => {
+      const db = dir(b);
+      return !used.has(b) && b.kind === a.kind && db.x === da.x && db.y === da.y &&
+        (da.x === 0 ? Math.abs(b.pts[0].y - a.pts[0].y) < tol : da.y === 0 ? Math.abs(b.pts[0].x - a.pts[0].x) < tol : false) &&
+        len(b) > len(a) * 0.6 && len(b) < len(a) * 1.65;
+    });
+    group.forEach((b) => used.add(b));
+    if (group.length < 2) continue;
+    const L = group.map(len).sort((x, y) => x - y)[Math.floor(group.length / 2)];
+    for (const b of group) {
+      const [p, q] = b.pts, l = len(b) || 1;
+      b.pts[1] = { x: p.x + ((q.x - p.x) / l) * L, y: p.y + ((q.y - p.y) / l) * L };
+    }
+  }
+  relink(); straighten();
+
+  // Balls and cones drawn touching (a stack of balls) are spread just far enough apart to read.
+  const small = items.filter((it) => it.kind === "ball" || it.kind === "cone").map((it) => pos.get(it)!);
+  const ballGap = D0 * 0.62;
+  for (let pass = 0; pass < 3; pass++) for (let i = 0; i < small.length; i++) for (let j = i + 1; j < small.length; j++) {
+    const a = small[i], b = small[j], d = dist(a, b);
+    if (d >= ballGap) continue;
+    const ux = d > 0.01 ? (b.x - a.x) / d : 1, uy = d > 0.01 ? (b.y - a.y) / d : 0, k = (ballGap - d) / 2;
+    a.x -= ux * k; a.y -= uy * k; b.x += ux * k; b.y += uy * k;
+  }
+
   // Players and coaches: size from how close together they were drawn.
   const circles: Circle[] = items
     .filter((it) => it.kind === "player" || it.kind === "coach")
-    .map((it) => { const p = map(it); return { p: { ...p }, orig: { ...p }, kind: it.kind as "player" | "coach", item: it }; });
+    .map((it) => { const p = pos.get(it)!; return { p: { ...p }, orig: { ...p }, kind: it.kind as "player" | "coach", item: it }; });
   let nn = Infinity;
   for (let i = 0; i < circles.length; i++) for (let j = i + 1; j < circles.length; j++) nn = Math.min(nn, dist(circles[i].orig, circles[j].orig));
   let D = Math.max(28, Math.min(42, Number.isFinite(nn) ? nn * 0.95 : 40));
@@ -290,7 +391,7 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   // Runs and passes: pull the ends back off the circles they start or finish at.
   const ends: { p: Pt; r: number }[] = [
     ...circles.map((c) => ({ p: c.p, r: D / 2 })),
-    ...items.filter((it) => it.kind === "cone" || it.kind === "ball").map((it) => ({ p: map(it), r: 12 })),
+    ...items.filter((it) => it.kind === "cone" || it.kind === "ball").map((it) => ({ p: pos.get(it)!, r: 12 })),
   ];
   const trim = (end: Pt, toward: Pt) => {
     let best: { p: Pt; r: number } | null = null, bd = Infinity;
@@ -300,18 +401,17 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     if (len < best.r + 10) return end;
     return { x: best.p.x + (dx / len) * (best.r + 7), y: best.p.y + (dy / len) * (best.r + 7) };
   };
-  for (const l of lines) {
-    if (l.kind !== "run" && l.kind !== "pass") continue;
-    const pts = l.points.map(map);
+  for (const a of arrows) {
+    const pts = a.pts.map((p) => ({ ...p }));
     pts[0] = trim(pts[0], pts[1]);
     pts[pts.length - 1] = trim(pts[pts.length - 1], pts[pts.length - 2]);
     const curved = pts.length > 2;
-    edge(l.kind === "pass" ? (curved ? S.passCurve : S.pass) : (curved ? S.runCurve : S.run), pts);
+    edge(a.kind === "pass" ? (curved ? S.passCurve : S.pass) : (curved ? S.runCurve : S.run), pts);
   }
 
   // Equipment, then people on top.
   for (const it of items) {
-    const c = map(it);
+    const c = pos.get(it)!;
     if (it.kind === "goalposts") {
       const { w, h } = mapLen(it.w || 60, it.h || 80);
       const gw = Math.max(w, 40), gh = Math.max(h, 40);
