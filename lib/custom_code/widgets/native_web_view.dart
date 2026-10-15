@@ -15,6 +15,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -439,6 +440,20 @@ class _NativeWebViewState extends State<NativeWebView>
             }
             if (message == 'stopSpeech') {
               _stopSpeech();
+              return;
+            }
+            if (message.startsWith('haptic:')) {
+              // Small buzz for drag-and-drop: grab, tick (new slot), drop.
+              switch (message.substring('haptic:'.length)) {
+                case 'grab':
+                  HapticFeedback.mediumImpact();
+                  break;
+                case 'drop':
+                  HapticFeedback.lightImpact();
+                  break;
+                default:
+                  HapticFeedback.selectionClick();
+              }
               return;
             }
             if (message.startsWith('openUrl:')) {

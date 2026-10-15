@@ -142,7 +142,15 @@
 
     /* Each card sits in a red "Remove" well and slides left to show it. */
     .fav-wrap { position: relative; border-radius: 14px; }
-    .fav-wrap.is-dragging { opacity: 0.45; }
+    .fav-wrap.drag-shift { transition: transform 0.2s cubic-bezier(.2,.8,.2,1); }
+    .fav-wrap.lifted { z-index: 20; position: relative; }
+    .fav-wrap.lifted .fav-item {
+      border-color: var(--accent); background: #232d40;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.55);
+    }
+    .fav-wrap.lifted.settling { transition: transform 0.18s ease-out; }
+    body.dragging, body.dragging * { cursor: grabbing !important; }
+    .fav-item, .fav-item img { -webkit-touch-callout: none; }
     .fav-remove {
       position: absolute; top: 0; right: 0; bottom: 0; width: 110px;
       border-radius: 14px; background: #c0392b; color: #fff;
@@ -1071,10 +1079,11 @@
         </div>
         <button class="fav-tick" aria-label="${picked ? 'Unpick' : 'Pick'}"><i></i></button>
       </div>`;
-    if (picked) initDrag(wrap.querySelector('.drag-handle'));
+    if (picked) initDrag(wrap);
     wrap.querySelector('.fav-tick').addEventListener('click', e => { e.stopPropagation(); togglePick(f.game_id); });
     wrap.querySelector('.fav-remove').addEventListener('click', () => removeFav(f.game_id));
     wrap.querySelector('.fav-item').addEventListener('click', e => {
+      if (Date.now() < _noClickUntil) return;
       if (!e.target.closest('.drag-handle, .fav-tick')) openGameSheet(f.game_id);
     });
     initSwipe(wrap);
@@ -1141,50 +1150,152 @@
   function checkedGameIds() { return _picked.slice(); }
 
   // ── Drag to reorder picked games ──────────────────────────────────────────
+  // Grab by the handle, or press and hold anywhere on a picked card. The card
+  // lifts (with a buzz), follows the finger, and the others slide out of its
+  // way with their numbers updating live. A small buzz marks each new slot.
   let _drag = null;
+  let _noClickUntil = 0;
+  const DRAG_GAP = 10;      // matches .fav-group gap
+  const HOLD_MS  = 320;
 
-  function _doDragMove(cx, cy) {
-    const list = $('pickedList');
-    const others = [...list.querySelectorAll('.fav-wrap')].filter(el => el !== _drag.el);
-    let ref = null;
-    for (const item of others) {
-      const r = item.getBoundingClientRect();
-      if (cy < r.top + r.height / 2) { ref = item; break; }
+  // iOS/Android buzz through the app (NativeWebView 'haptic:' messages);
+  // browsers that support it vibrate; anything else stays silent.
+  function haptic(kind) {
+    if (IS_WEBVIEW) { try { FlutterBridge.postMessage('haptic:' + kind); } catch (_) {} return; }
+    try { navigator.vibrate?.(kind === 'grab' ? 15 : 6); } catch (_) {}
+  }
+
+  function _startDrag(wrap, clientY) {
+    const scroller = wrap.closest('.scroll-content');
+    const items = [...$('pickedList').querySelectorAll('.fav-wrap')];
+    const from = items.indexOf(wrap);
+    if (from < 0 || items.length < 2) return false;
+    const rects = items.map(el => el.getBoundingClientRect());
+    closeSwipes();
+    _drag = {
+      el: wrap, items, from, to: from, startY: clientY, lastY: clientY,
+      scroller, startScroll: scroller.scrollTop,
+      tops: rects.map(r => r.top), heights: rects.map(r => r.height),
+      nums: items.map(el => el.querySelector('.fav-num')),
+      baseNums: items.map(el => parseInt(el.querySelector('.fav-num')?.textContent) || 0),
+    };
+    items.forEach(el => { if (el !== wrap) el.classList.add('drag-shift'); });
+    wrap.classList.add('lifted');
+    document.body.classList.add('dragging');
+    haptic('grab');
+    _drag.raf = requestAnimationFrame(_dragFrame);
+    return true;
+  }
+
+  // Runs every frame while dragging: auto-scroll near the edges and re-place.
+  function _dragFrame() {
+    const d = _drag; if (!d) return;
+    const r = d.scroller.getBoundingClientRect();
+    const edge = 70;
+    let v = 0;
+    if (d.lastY < r.top + edge)         v = -Math.ceil((r.top + edge - d.lastY) / 6);
+    else if (d.lastY > r.bottom - edge) v =  Math.ceil((d.lastY - (r.bottom - edge)) / 6);
+    if (v) d.scroller.scrollTop += v;
+    _dragLayout();
+    d.raf = requestAnimationFrame(_dragFrame);
+  }
+
+  function _dragLayout() {
+    const d = _drag;
+    const dy = d.lastY - d.startY + (d.scroller.scrollTop - d.startScroll);
+    d.el.style.transform = `translateY(${dy}px) scale(1.03)`;
+    const mid = d.tops[d.from] + d.heights[d.from] / 2 + dy;
+    let to = d.from;
+    d.items.forEach((el, i) => {
+      if (i === d.from) return;
+      const c = d.tops[i] + d.heights[i] / 2;
+      if (i > d.from && mid > c) to = Math.max(to, i);
+      if (i < d.from && mid < c) to = Math.min(to, i);
+    });
+    const shift = d.heights[d.from] + DRAG_GAP;
+    d.items.forEach((el, i) => {
+      if (i === d.from) return;
+      let off = 0;
+      if (d.from < to && i > d.from && i <= to) off = -shift;
+      if (d.from > to && i < d.from && i >= to) off = shift;
+      el.style.transform = off ? `translateY(${off}px)` : '';
+    });
+    if (to !== d.to) {
+      d.to = to;
+      haptic('tick');
+      // Live numbers: the order as it would be if dropped now.
+      const order = d.items.map((_, i) => i);
+      order.splice(d.from, 1); order.splice(to, 0, d.from);
+      const sorted = d.baseNums.slice().sort((a, b) => a - b);
+      order.forEach((idx, pos) => { if (d.nums[idx]) d.nums[idx].textContent = sorted[pos]; });
     }
-    if (ref) list.insertBefore(_drag.el, ref);
-    else list.appendChild(_drag.el);
   }
 
   function _endDrag() {
-    if (!_drag) return;
-    _drag.el.classList.remove('is-dragging');
+    const d = _drag; if (!d) return;
     _drag = null;
-    // Keep any picked games hidden by a filter in their old slots.
-    const shown = [...$('pickedList').querySelectorAll('.fav-wrap')].map(el => parseInt(el.dataset.gid));
-    const shownSet = new Set(shown);
-    let k = 0;
-    _picked = _picked.map(id => shownSet.has(id) ? shown[k++] : id);
-    renderFavList();
+    cancelAnimationFrame(d.raf);
+    _noClickUntil = Date.now() + 400;
+    document.body.classList.remove('dragging');
+    // Settle the lifted card into its new slot, then redraw in the new order.
+    let target = 0;
+    if (d.to > d.from) for (let i = d.from + 1; i <= d.to; i++) target += d.heights[i] + DRAG_GAP;
+    if (d.to < d.from) for (let i = d.to; i < d.from; i++) target -= d.heights[i] + DRAG_GAP;
+    target += d.scroller.scrollTop - d.startScroll;
+    d.el.classList.add('settling');
+    d.el.style.transform = `translateY(${target}px)`;
+    if (d.to !== d.from) haptic('drop');
+    setTimeout(() => {
+      const shown = d.items.map(el => parseInt(el.dataset.gid));
+      const [moved] = shown.splice(d.from, 1);
+      shown.splice(d.to, 0, moved);
+      // Picked games hidden by a filter keep their old slots.
+      const shownSet = new Set(shown);
+      let k = 0;
+      _picked = _picked.map(id => shownSet.has(id) ? shown[k++] : id);
+      const top = d.scroller.scrollTop;
+      renderFavList();
+      d.scroller.scrollTop = top;
+    }, 190);
   }
 
-  function initDrag(handle) {
+  function initDrag(wrap) {
+    const handle = wrap.querySelector('.drag-handle');
+    const card = wrap.querySelector('.fav-item');
     handle.addEventListener('touchstart', e => {
-      const item = handle.closest('.fav-wrap'); if (!item) return;
-      e.preventDefault(); _drag = { el: item }; item.classList.add('is-dragging');
+      e.preventDefault();
+      _startDrag(wrap, e.touches[0].clientY);
     }, { passive: false });
     handle.addEventListener('mousedown', e => {
-      const item = handle.closest('.fav-wrap'); if (!item) return;
-      e.preventDefault(); _drag = { el: item }; item.classList.add('is-dragging');
+      e.preventDefault();
+      _startDrag(wrap, e.clientY);
     });
+    // Press and hold anywhere else on the card (not the tick).
+    let hold = null, y0 = 0, x0 = 0, lastY = 0;
+    card.addEventListener('touchstart', e => {
+      if (_drag || e.target.closest('.drag-handle, .fav-tick') || wrap.classList.contains('open')) return;
+      x0 = e.touches[0].clientX; y0 = lastY = e.touches[0].clientY;
+      clearTimeout(hold);
+      hold = setTimeout(() => { hold = null; _startDrag(wrap, lastY); }, HOLD_MS);
+    }, { passive: true });
+    card.addEventListener('touchmove', e => {
+      lastY = e.touches[0].clientY;
+      if (hold && (Math.abs(e.touches[0].clientX - x0) > 8 || Math.abs(lastY - y0) > 8)) { clearTimeout(hold); hold = null; }
+    }, { passive: true });
+    const cancel = () => { clearTimeout(hold); hold = null; };
+    card.addEventListener('touchend', cancel);
+    card.addEventListener('touchcancel', cancel);
+    card.addEventListener('contextmenu', e => e.preventDefault());
   }
 
   document.addEventListener('touchmove', e => {
     if (!_drag) return;
     e.preventDefault();
-    _doDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    _drag.lastY = e.touches[0].clientY;
   }, { passive: false });
   document.addEventListener('touchend', _endDrag);
-  document.addEventListener('mousemove', e => { if (!_drag) return; _doDragMove(e.clientX, e.clientY); });
+  document.addEventListener('touchcancel', _endDrag);
+  document.addEventListener('mousemove', e => { if (_drag) _drag.lastY = e.clientY; });
   document.addEventListener('mouseup', _endDrag);
 
   // ── Swipe left to remove ───────────────────────────────────────────────────
@@ -1201,6 +1312,7 @@
       base = wrap.classList.contains('open') ? -SWIPE_OPEN : 0;
     }, { passive: true });
     card.addEventListener('touchmove', e => {
+      if (_drag) { mode = 'skip'; card.style.transform = ''; wrap.classList.remove('swiping'); return; }
       if (mode === 'skip' || mode === 'scroll') return;
       const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
       if (!mode) {
