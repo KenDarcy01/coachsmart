@@ -1526,7 +1526,7 @@
     const lineWidth = !hasArrow ? 1.5 : 2.5;
     const wptArr=geo.querySelector('Array[as="points"]');
     const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0')*s+offX,y:parseFloat(p.getAttribute('y')||'0')*s+offY})):[];
-    ctx.save(); ctx.strokeStyle=lineColor; ctx.lineWidth=lineWidth; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed&&hasArrow?[8,4]:[]);
+    ctx.save(); ctx.strokeStyle=lineColor; ctx.lineWidth=lineWidth; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed?(hasArrow?[8,4]:[6,6]):[]);
     ctx.beginPath(); ctx.moveTo(x1,y1);
     if (!hasArrow && isCurved && waypoints.length>0) {
       // Pitch marking arc — fit a perfect circle through start, midpoint waypoint, end

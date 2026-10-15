@@ -29,10 +29,11 @@ TEAMS (players only)
 - If all players belong to one group, set every player to "home".
 
 LINES (the "lines" list)
-- pitch_line: a straight line with no arrowhead that marks the pitch or an area: end lines, side lines, the 13m, 20m, 45m and 65m lines, halfway, box sides, and any short marker line. Give 2 points, one at each end, following the line as drawn (lines that stop before the edge stop there too).
+- pitch_line: a solid straight line with no arrowhead that marks the pitch or an area: end lines, side lines, the 13m, 20m, 45m and 65m lines, halfway, box sides, and any short marker line. Give 2 points, one at each end, following the line as drawn (lines that stop before the edge stop there too).
 - pitch_arc: a curved pitch marking with no arrowhead (the small D in front of goal, the large arc, a centre circle). Give 3 points: the start, the point of the arc furthest from the straight line between start and end, and the end.
 - run: a solid line with an arrowhead, meaning a player moves. Give 2 to 12 points tracing the path from where it starts to the arrowhead. For curved or wavy lines, put a point at every bend so the shape is kept.
-- pass: a dashed or dotted line with an arrowhead, meaning a kick, hand pass or strike. Same points rule as run.
+- pass: a dashed or dotted line with an arrowhead, meaning a kick, hand pass or strike. Same points rule as run, except that a pass the coach was clearly trying to draw straight (wobbly but heading one way) is straight: give just its 2 ends.
+- dotted_line: a dashed or dotted line with no arrowhead (for example a halfway or marker line drawn dotted). Output the whole dotted line as ONE entry, never one entry per dash, even where it runs behind a goal, cone or player. If the coach was trying to draw it straight, give just its 2 ends; only give more points if it is clearly meant to curve.
 
 WHAT TO IGNORE
 - Faint marks that are not drawn on this page: dents or impressions from writing on a sheet above, ink showing through from the back of the page (often mirrored), shadows, creases, the paper edge, the table, fingers. Only describe pen, pencil or marker strokes clearly drawn on this page.
@@ -84,7 +85,7 @@ export const SCENE_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          kind: { type: "string", enum: ["pitch_line", "pitch_arc", "run", "pass"] },
+          kind: { type: "string", enum: ["pitch_line", "pitch_arc", "dotted_line", "run", "pass"] },
           points: { type: "array", items: POINT },
         },
         required: ["kind", "points"],
@@ -108,7 +109,7 @@ export type SceneItem = {
   label: string; team: "home" | "away" | "none";
   x: number; y: number; w: number; h: number;
 };
-export type SceneLine = { kind: "pitch_line" | "pitch_arc" | "run" | "pass"; points: Pt[] };
+export type SceneLine = { kind: "pitch_line" | "pitch_arc" | "dotted_line" | "run" | "pass"; points: Pt[] };
 export type Scene = { game_name: string; sport: "football" | "hurling" | "unknown"; items: SceneItem[]; lines: SceneLine[];
   symmetry?: { left_right: boolean; top_bottom: boolean } };
 
@@ -153,6 +154,7 @@ const S = {
   zone:     "rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;opacity=12;strokeColor=#ffffff;strokeWidth=1.5;fontColor=#ffffff;fontSize=13;fontStyle=1;",
   text:     "text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=13;fontStyle=1;",
   line:     "edgeStyle=none;html=1;endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;",
+  dotted:   "edgeStyle=none;html=1;endArrow=none;endFill=0;dashed=1;dashPattern=6 6;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;",
   arc:      "edgeStyle=none;curved=1;html=1;endArrow=none;endFill=0;strokeColor=#ffffff;strokeWidth=1.5;opacity=50;",
   run:      "edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;",
   runCurve: "edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;",
@@ -199,11 +201,12 @@ function alignAxis(pts: Pt[], key: "x" | "y", tol: number, sep: number, span: nu
 }
 
 // A hand-drawn arrow given as several points that is really straight becomes two points.
-function simplifyPath(pts: Pt[]): Pt[] {
+// `slack` is how far (as a share of its length) a line may wander and still count as straight.
+function simplifyPath(pts: Pt[], slack = 0.04): Pt[] {
   if (pts.length <= 2) return pts;
   const a = pts[0], b = pts[pts.length - 1], len = dist(a, b);
   if (len < 1) return pts;
-  const straightEnough = pts.every((p) => Math.abs(lineSide(p, a, b).d) < Math.max(4, len * 0.04));
+  const straightEnough = pts.every((p) => Math.abs(lineSide(p, a, b).d) < Math.max(4, len * slack));
   return straightEnough ? [a, b] : pts;
 }
 
@@ -331,12 +334,18 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
 
   // Straight pitch lines in canvas space. Hand-drawn lines that are nearly level or
   // nearly upright are straightened, and ends that nearly meet another line are joined to it.
-  const straight = lines.filter((l) => l.kind === "pitch_line").map((l) => {
+  const squareUp = (l: SceneLine) => {
     const a = map(l.points[0]), b = map(l.points[l.points.length - 1]);
     const dx = Math.abs(b.x - a.x), dy = Math.abs(b.y - a.y);
     if (dx > 0 && dy / dx < 0.09) { const y = (a.y + b.y) / 2; a.y = y; b.y = y; }
     else if (dy > 0 && dx / dy < 0.09) { const x = (a.x + b.x) / 2; a.x = x; b.x = x; }
     return [a, b] as [Pt, Pt];
+  };
+  const straight = lines.filter((l) => l.kind === "pitch_line").map(squareUp);
+  // Dotted marker lines: straight from end to end unless clearly drawn as a curve.
+  const dotted = lines.filter((l) => l.kind === "dotted_line" && l.points.length >= 2).map((l) => {
+    const pts = simplifyPath(l.points.map(map), 0.1);
+    return pts.length === 2 ? squareUp(l) : pts;
   });
   const level = straight.filter(([a, b]) => a.y === b.y), upright = straight.filter(([a, b]) => a.x === b.x);
   // Join an end of a level line across to an upright line (or an upright's end up/down to a
@@ -364,7 +373,8 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   const pos = new Map<SceneItem, Pt>(items.map((it) => [it, map(it)]));
   const arrows = lines
     .filter((l) => l.kind === "run" || l.kind === "pass")
-    .map((l) => ({ kind: l.kind, pts: simplifyPath(l.points.map(map)) }));
+    // A dotted pass that only wobbles was meant to be straight.
+    .map((l) => ({ kind: l.kind, pts: simplifyPath(l.points.map(map), l.kind === "pass" ? 0.1 : 0.04) }));
   const arcs = lines.filter((l) => l.kind === "pitch_arc").map((l) => {
     const pts = l.points.map(map);
     return pts.length >= 3 ? [pts[0], pts[Math.floor(pts.length / 2)], pts[pts.length - 1]] : [pts[0], pts[pts.length - 1]];
@@ -394,7 +404,7 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   for (const key of ["x", "y"] as const) {
     if (!(key === "x" ? scene.symmetry?.left_right : scene.symmetry?.top_bottom)) continue;
     const frame: Pt[] = [
-      ...straight.flat(), ...arcs.flat(),
+      ...straight.flat(), ...arcs.flat(), ...dotted.flat(),
       ...items.filter((it) => ["cone", "goalposts", "wall", "zone"].includes(it.kind)).map((it) => pos.get(it)!),
     ];
     const ref = frame.length >= 2 ? frame : [...pos.values()];
@@ -415,6 +425,7 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     const features: Feature[] = [
       ...straight.map((l) => ({ kind: "line", pts: l as Pt[], tol: loose })),
       ...arcs.map((l) => ({ kind: "arc", pts: l, tol: loose })),
+      ...dotted.map((l) => ({ kind: "dotted", pts: l as Pt[], tol: loose })),
       ...items.filter((it) => !isPerson(it) && (peopleMirror || !attached.has(it)))
         .map((it) => ({ kind: it.kind, pts: [pos.get(it)!], tol: loose })),
       ...(peopleMirror ? personFeatures : []),
@@ -609,9 +620,12 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
 
   // Pitch markings.
   for (const [a, b] of straight) edge(S.line, [a, b]);
+  for (const l of dotted) edge(l.length > 2 ? S.dotted.replace("edgeStyle=none;", "edgeStyle=none;curved=1;") : S.dotted, l);
   for (const l of arcs) edge(l.length === 3 ? S.arc : S.line, l);
 
-  // Runs and passes: pull the ends back off the circles they start or finish at.
+  // Runs and passes: pull the ends back off the circles they start or finish at, leaving a
+  // clear gap (coaches prefer arrows that stop short rather than touch).
+  const GAP = 11;
   const ends: { p: Pt; r: number }[] = [
     ...circles.map((c) => ({ p: c.p, r: D / 2 })),
     ...items.filter((it) => it.kind === "cone" || it.kind === "ball").map((it) => ({ p: pos.get(it)!, r: 12 })),
@@ -625,18 +639,52 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     // arrow keeps its direction even if the circle was nudged sideways.
     const len = dist(toward, end) || 1, ux = (toward.x - end.x) / len, uy = (toward.y - end.y) / len;
     const wx = best.p.x - end.x, wy = best.p.y - end.y, proj = wx * ux + wy * uy;
-    const R = best.r + 7, perp2 = wx * wx + wy * wy - proj * proj;
+    const R = best.r + GAP, perp2 = wx * wx + wy * wy - proj * proj;
     if (perp2 >= R * R) return end;
     const s = proj + Math.sqrt(R * R - perp2);
     return s > 0 && s < len - 10 ? { x: end.x + ux * s, y: end.y + uy * s } : end;
   };
-  for (const a of arrows) {
+  // Walls and zones: an arrow end that runs into or up to one stops short of its edge.
+  const boxes = items.filter((it) => it.kind === "wall" || it.kind === "zone").map((it) => {
+    const c = map(it), { w, h } = mapLen(it.w || 80, it.h || (it.kind === "wall" ? 30 : 80));
+    const hh = Math.max(h, it.kind === "wall" ? 28 : 10);
+    return { x0: c.x - w / 2, x1: c.x + w / 2, y0: c.y - hh / 2, y1: c.y + hh / 2, wall: it.kind === "wall" };
+  });
+  const near = (p: Pt, b: typeof boxes[number], m: number) => p.x > b.x0 - m && p.x < b.x1 + m && p.y > b.y0 - m && p.y < b.y1 + m;
+  const offBox = (end: Pt, toward: Pt) => {
+    for (const b of boxes) {
+      // A zone is somewhere to run into, so only its edge is kept clear; a wall is kept clear always.
+      if (!near(end, b, 8) || near(toward, b, 8)) continue;
+      if (!b.wall && near(end, b, -8)) continue;
+      const len = dist(toward, end) || 1, ux = (toward.x - end.x) / len, uy = (toward.y - end.y) / len;
+      let s = 0;
+      while (s < len - 12 && near({ x: end.x + ux * s, y: end.y + uy * s }, b, 8)) s += 1;
+      return { x: end.x + ux * s, y: end.y + uy * s };
+    }
+    return end;
+  };
+  // Where one arrow carries straight on from another (a run then a strike), each stops a
+  // little short of the joint so the two read as separate moves.
+  const feeds = new Set(chained.filter((b) => b)); // arrows that another arrow carries on from
+  const back = (end: Pt, toward: Pt, by: number) => {
+    const len = dist(toward, end);
+    if (len < by * 3) return end;
+    return { x: end.x + ((toward.x - end.x) / len) * by, y: end.y + ((toward.y - end.y) / len) * by };
+  };
+  arrows.forEach((a, i) => {
     const pts = a.pts.map((p) => ({ ...p }));
-    pts[0] = trim(pts[0], pts[1]);
-    pts[pts.length - 1] = trim(pts[pts.length - 1], pts[pts.length - 2]);
+    const n = pts.length;
+    const joinStart = !!chained[i], joinEnd = feeds.has(a);
+    // A joint on a player (pass to 7, then 7 runs) is trimmed off the player like any end.
+    const fix = (end: Pt, toward: Pt, joint: boolean) => {
+      const t = trim(end, toward);
+      return joint && t === end ? back(end, toward, 6) : offBox(t, toward);
+    };
+    pts[0] = fix(pts[0], pts[1], joinStart);
+    pts[n - 1] = fix(pts[n - 1], pts[n - 2], joinEnd);
     const curved = pts.length > 2;
     edge(a.kind === "pass" ? (curved ? S.passCurve : S.pass) : (curved ? S.runCurve : S.run), pts);
-  }
+  });
 
   // Equipment, then people on top.
   for (const it of items) {
