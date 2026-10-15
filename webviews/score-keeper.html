@@ -98,20 +98,16 @@ input,select{font:inherit;color:var(--text)}
 
 /* voice */
 .voice{text-align:center;margin-top:14px}
-.mic{width:150px;height:150px;border-radius:50%;background:var(--green);display:grid;place-items:center;margin:6px auto 0;box-shadow:0 0 0 14px rgba(135,194,50,.12),0 0 0 28px rgba(135,194,50,.06);touch-action:none;transition:transform .12s}
-.mic svg{width:58px;height:58px;stroke:#14181b}
+.mic{width:132px;height:132px;border-radius:50%;background:var(--green);display:grid;place-items:center;margin:28px auto 0;box-shadow:0 0 0 12px rgba(135,194,50,.12),0 0 0 24px rgba(135,194,50,.06);touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.mic svg{width:52px;height:52px;stroke:#14181b;pointer-events:none}
 .mic.preparing{background:var(--amber);box-shadow:0 0 0 14px rgba(245,165,36,.15),0 0 0 28px rgba(245,165,36,.07)}
-.mic.recording{background:var(--red);transform:scale(1.06);box-shadow:0 0 0 16px rgba(224,82,82,.18),0 0 0 32px rgba(224,82,82,.08);animation:ring 1.2s infinite}
+.mic.recording{background:var(--red);box-shadow:0 0 0 16px rgba(224,82,82,.18),0 0 0 32px rgba(224,82,82,.08);animation:ring 1.2s infinite}
 @keyframes ring{50%{box-shadow:0 0 0 22px rgba(224,82,82,.12),0 0 0 40px rgba(224,82,82,.05)}}
-.mic-t{font-size:18px;font-weight:700;margin-top:30px}
+.mic-t{font-size:17px;font-weight:700;margin-top:30px}
 .mic-s{font-size:14px;color:var(--muted);margin-top:4px}
-.heard{font-size:15px;color:var(--text);margin-top:10px;min-height:20px;font-style:italic}
-.vcards{margin-bottom:14px;text-align:left}
-.voice.has .mic{width:104px;height:104px;box-shadow:0 0 0 10px rgba(135,194,50,.12)}
-.voice.has .mic svg{width:42px;height:42px}
-.voice.has .mic-t{margin-top:16px;font-size:16px}
-.voice.has .mic-s{display:none}
-.vheard{font-size:14px;color:var(--muted);margin:8px 2px}
+.heard{font-size:16px;color:var(--text);margin:10px 0 0;min-height:48px;line-height:1.45;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.voice.rec .heard:empty::before{content:"Listening…";color:var(--muted)}
+.vcards{margin-top:8px;text-align:left}
 .vcard{background:var(--card);border-radius:16px;padding:14px;margin-bottom:10px;border-left:4px solid var(--green)}
 .vcard.opp{border-left-color:var(--red)}
 .vcard.ask{border-left-color:var(--amber)}
@@ -271,11 +267,10 @@ input,select{font:inherit;color:var(--text)}
       </div>
       <div id="tapPad"></div>
       <div id="voicePad" class="voice hidden">
-        <div class="vcards" id="vcards"></div>
         <button class="mic" id="micBtn" aria-label="Hold to talk"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
         <div class="mic-t" id="micInstr">Hold and say what happened</div>
-        <div class="mic-s">Release when you're done. The clock keeps running.</div>
         <div class="heard" id="micHeard"></div>
+        <div class="vcards" id="vcards"></div>
       </div>
     </div>
     <div id="recent"></div>
@@ -1644,10 +1639,10 @@ function voiceCtx() {
 }
 const cap = t => String(t || '').replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase());
 function renderVoice() {
-  $('voicePad').classList.toggle('has', vcards.length > 0);
+  if (!CSMic_rec()) $('micHeard').textContent = vheard ? `"${vheard}"` : '';
   $('voicePad').classList.toggle('wait', !started());
   const r = roster();
-  $('vcards').innerHTML = (vheard ? `<div class="vheard">Heard: "${esc(vheard)}"</div>` : '') + vcards.map(c => {
+  $('vcards').innerHTML = vcards.map(c => {
     if (c.kind === 'act') {
       const a = S.acts.find(x => x.id === c.id);
       if (!a) return '';
@@ -1685,6 +1680,7 @@ setInterval(() => {
   }
 }, 500);
 
+function CSMic_rec() { return !!(window.CSMic && CSMic.isRecording('sk_voice')); }
 function attachMic() {
   if (!window.CSMic) return;
   CSMic.attach('sk_voice', {
@@ -1693,9 +1689,9 @@ function attachMic() {
     autoHideTranscript: false,
     instruction: $('micInstr'),
     idleText: { hold: 'Hold and say what happened', tap: 'Tap and say what happened' },
-    onStart() { micAt = nowStamp(); },
-    onResult(text) { $('micHeard').textContent = ''; handleVoice(text, micAt); micAt = null; },
-    onError(msg) { toast(msg); },
+    onStart() { micAt = nowStamp(); $('voicePad').classList.add('rec'); },
+    onResult(text) { $('voicePad').classList.remove('rec'); handleVoice(text, micAt); micAt = null; },
+    onError(msg) { $('voicePad').classList.remove('rec'); toast(msg); },
   });
   CSMic.warmup();
 }
