@@ -591,9 +591,10 @@
       width: 100%; background: var(--surface); border: 1px solid var(--border);
       border-radius: 9px; padding: 9px 11px; color: var(--text);
       font-family: inherit; font-size: 14px; line-height: 1.55;
-      resize: none; overflow: hidden; min-height: 72px;
+      resize: none; overflow: hidden; min-height: 140px; display: block;
     }
     .coach-notes-input::placeholder { color: var(--muted); }
+    .coach-notes-input.has-mic { padding-right: 56px; }
     .coach-notes-input:focus { outline: none; border-color: rgba(135,194,50,0.45); }
 
     /* ── Toast ── */
@@ -2140,12 +2141,15 @@
         ${sec('Teaching Points', g.game_teaching_points)}
         <div class="coach-notes-section">
           <div class="coach-notes-label">Coach Notes</div>
-          <textarea id="coachNotesInput" class="coach-notes-input" placeholder="Add your coaching notes for this game…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(data.coach_note || '')}</textarea>
+          <div class="notes-wrap">
+            <textarea id="coachNotesInput" class="coach-notes-input${_aiEnabled ? ' has-mic' : ''}" placeholder="${_aiEnabled ? 'Type your notes, or tap the mic to say them' : 'Add your coaching notes for this game…'}" oninput="autoGrow(this)">${esc(data.coach_note || '')}</textarea>
+            ${_aiEnabled ? `<button class="csv-field-mic" onclick="openCoachNoteVoice()" aria-label="Speak your notes">${CSVoice.micSvg}</button>` : ''}
+          </div>
           <button class="btn btn-outline btn-full" id="saveNoteBtn" style="margin-top:10px" onclick="saveCoachNote()">Save Note</button>
         </div>
         <div style="height:calc(24px + env(safe-area-inset-bottom))"></div>`;
       const ta = $('coachNotesInput');
-      if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+      if (ta) autoGrow(ta);
     } catch {
       $('sheetBody').innerHTML = '<div class="state-screen"><div class="state-body">Could not load game details</div></div>';
     }
@@ -2225,6 +2229,21 @@
       text:        $('notesInput').value,
       submitLabel: 'Done',
       onSubmit(text) { const el = $('notesInput'); el.value = text; autoGrow(el); },
+    });
+  }
+
+  // Coach notes in the game quick look: the shared voice panel, then save.
+  function openCoachNoteVoice() {
+    const el = $('coachNotesInput');
+    if (!el) return;
+    CSVoice.open({
+      fieldId:     'gc_notes',
+      title:       'Coach notes',
+      subtitle:    'Your own notes for this game. Only you see them.',
+      placeholder: 'e.g. Works best with 8 a side, keep the boxes tight',
+      text:        el.value,
+      submitLabel: 'Save note',
+      onSubmit(text) { el.value = text; autoGrow(el); saveCoachNote(); },
     });
   }
 
