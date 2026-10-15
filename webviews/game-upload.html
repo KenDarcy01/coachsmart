@@ -529,7 +529,7 @@
     <div style="font-size: 14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;">Circles</div>
     <div class="help-row">
       <svg width="60" height="36" viewBox="0 0 60 36"><circle cx="14" cy="18" r="13" fill="#C62828" stroke="#B71C1C" stroke-width="2"/><text x="14" y="23" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="-apple-system,sans-serif">3</text><circle cx="46" cy="18" r="13" fill="#1565C0" stroke="#0D47A1" stroke-width="2"/><text x="46" y="23" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="-apple-system,sans-serif">12</text></svg>
-      <div><div class="help-title">Numbered circle = Player</div><div class="help-sub">Side by side, numbers sum to 15 → opponents (3 &amp; 12, 6 &amp; 9…)<br>Side by side, same number → drill opponents<br>Single team spread out → all red</div></div>
+      <div><div class="help-title">Numbered circle = Player</div><div class="help-sub">A stick man or X with a number works too<br>Side by side, numbers sum to 17 → opponents (3 &amp; 14, 6 &amp; 11…)<br>Side by side, same number → drill opponents<br>Single team spread out → all red</div></div>
     </div>
     <div class="help-row">
       <svg width="36" height="36" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" fill="#1a1a1a" stroke="#000" stroke-width="2"/><text x="18" y="23" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="-apple-system,sans-serif">C</text></svg>
@@ -712,8 +712,9 @@
     let pending = Math.min(files.length, remaining);
     if (!pending) return;
     files.slice(0, pending).forEach(file => {
-      compressImage(file).then(({ base64, mimeType }) => {
-        _uploadedImages.push({ base64, mimeType, objectUrl: URL.createObjectURL(file) });
+      // 1024px copy for the form and the text AI; a sharper 2048px copy for the diagram AI
+      Promise.all([compressImage(file), compressImage(file, 2048, 0.85)]).then(([{ base64, mimeType }, hires]) => {
+        _uploadedImages.push({ base64, mimeType, hires, objectUrl: URL.createObjectURL(file) });
         if (--pending === 0) { renderImageGrid(); _updateCreateBtn(); }
       });
     });
@@ -760,12 +761,11 @@
     }
   }
 
-  function compressImage(file) {
+  function compressImage(file, MAX = 1024, quality = 0.8) {
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
-        const MAX = 1024;
         let w = img.width, h = img.height;
         if (w > MAX || h > MAX) {
           if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
@@ -779,7 +779,7 @@
           const reader = new FileReader();
           reader.onload = e => resolve({ base64: e.target.result.split(',')[1], mimeType: 'image/jpeg' });
           reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.8);
+        }, 'image/jpeg', quality);
       };
       img.src = url;
     });
@@ -793,6 +793,8 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(xml, 'text/xml');
       if (doc.querySelector('parsererror')) return xml;
+      // The v2 engine draws its own circles: an unnumbered player is still a player
+      if (doc.documentElement.getAttribute('csEngine') === 'v2') return xml;
       const STYLE_FOOTBALL = 'ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#555555;shadow=0;';
       const STYLE_COACH    = 'ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fontStyle=1;fillColor=#1a1a1a;gradientColor=#3a3a3a;gradientDirection=north;strokeColor=#000000;shadow=1;fontColor=#ffffff;';
       doc.querySelectorAll('mxCell').forEach(cell => {
@@ -848,7 +850,7 @@
   // ── Create Draft ──────────────────────────────────────────────────────────
   async function createDraft() {
     // Gather the source image
-    let sourceImg = null;
+    let sourceImg = null, diagramImg = null;
     if (_activeMediaTab === 'sketch') {
       if (!_hasDrawn) { showToast('Draw something first', 'error'); return; }
       const png = await getSketchPng();
@@ -856,6 +858,7 @@
     } else {
       if (!_uploadedImages.length) { showToast('Add at least one photo to continue', 'error'); return; }
       sourceImg = { base64: _uploadedImages[0].base64, mimeType: _uploadedImages[0].mimeType };
+      diagramImg = _uploadedImages[0].hires || null;
     }
 
     // Without AI features: no processing, go straight to the form with what was typed
@@ -896,7 +899,7 @@
       aiErr = e;
     });
 
-    const stdPromise = standardiseDiagram(sourceImg).then(r => {
+    const stdPromise = standardiseDiagram(diagramImg || sourceImg).then(r => {
       stdResult = r;
       setStatus('Creating your draft…', aiResult === null ? 'Reading your diagram…' : 'Almost done…');
     });

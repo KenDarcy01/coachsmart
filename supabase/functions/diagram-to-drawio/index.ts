@@ -1,8 +1,16 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SCENE_PROMPT, SCENE_SCHEMA, imageSize, sceneToXml, type Scene } from "./scene.ts";
 
 // Requires ANTHROPIC_API_KEY set as a Supabase secret:
 //   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+//
+// Two engines, picked by the DIAGRAM_ENGINE secret (no redeploy needed to switch):
+//   v2 (default) — the model describes the drawing as JSON (scene.ts) and our code draws it.
+//   legacy       — the model writes the draw.io XML itself (the original prompt below).
+//   To go back:  supabase secrets set DIAGRAM_ENGINE=legacy
+// DIAGRAM_EFFORT sets the v2 thinking effort (default "high"; "medium" is faster).
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-opus-5-5";
@@ -257,6 +265,170 @@ function fixCircleStyles(xml: string): string {
   });
 }
 
+type ConvertResult =
+  | { xml: string; gameName: string | null; suggestedCodes: string[] }
+  | { error: Record<string, unknown>; status: number };
+
+// ── v2: the model describes the scene, scene.ts draws it ─────────────────────
+async function sceneConvert(apiKey: string, image_base64: string, media_type: string): Promise<ConvertResult> {
+  const effort = Deno.env.get("DIAGRAM_EFFORT") ?? "high";
+  const claudeRes = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 32000,
+      thinking: { type: "adaptive" },
+      output_config: { effort, format: { type: "json_schema", schema: SCENE_SCHEMA } },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type, data: image_base64 } },
+            { type: "text", text: SCENE_PROMPT },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!claudeRes.ok) {
+    const errText = await claudeRes.text();
+    console.error("Anthropic API error", claudeRes.status, errText.slice(0, 500));
+    return { error: { error: `Anthropic API error ${claudeRes.status}`, detail: errText }, status: 502 };
+  }
+
+  const claudeData = await claudeRes.json();
+  console.log("v2 stop_reason:", claudeData?.stop_reason, "| usage:", JSON.stringify(claudeData?.usage));
+  const rawText: string = (claudeData?.content ?? [])
+    .filter((c: any) => c.type === "text")
+    .map((c: any) => c.text ?? "")
+    .join("");
+
+  let scene: Scene;
+  try {
+    scene = JSON.parse(rawText);
+  } catch (_) {
+    return { error: { error: "Could not read the diagram description", stop_reason: claudeData?.stop_reason, raw: rawText.slice(0, 2000) }, status: 422 };
+  }
+
+  const size = imageSize(image_base64) ?? { w: 1000, h: 1000 };
+  const xml = sceneToXml(scene, size.w, size.h);
+  console.log("v2 scene:", scene.items?.length ?? 0, "items,", scene.lines?.length ?? 0, "lines, image", size.w, "x", size.h);
+
+  const gameName = scene.game_name?.trim() || null;
+  const suggestedCodes = scene.sport === "hurling" ? ["hurling", "camogie"] : scene.sport === "football" ? ["football"] : [];
+  return { xml, gameName, suggestedCodes };
+}
+
+// ── legacy: the model writes the draw.io XML itself ──────────────────────────
+async function legacyConvert(apiKey: string, image_base64: string, media_type: string): Promise<ConvertResult> {
+  const claudeRes = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 16000,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type, data: image_base64 },
+            },
+            { type: "text", text: PROMPT },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!claudeRes.ok) {
+    const errText = await claudeRes.text();
+    return { error: { error: `Anthropic API error ${claudeRes.status}`, detail: errText }, status: 502 };
+  }
+
+  const claudeData = await claudeRes.json();
+  console.log("Claude stop_reason:", claudeData?.stop_reason);
+  console.log("Claude content blocks:", JSON.stringify(claudeData?.content?.map((c: any) => ({ type: c.type, len: c.text?.length }))));
+
+  // Extract text from the first text-type content block
+  const rawText: string = (claudeData?.content ?? [])
+    .filter((c: any) => c.type === "text")
+    .map((c: any) => c.text ?? "")
+    .join("") ?? "";
+
+  // Extract game name from the GAME_NAME: prefix line (if present)
+  let gameName: string | null = null;
+  const gameNameMatch = rawText.match(/^GAME_NAME:\s*(.+?)[\r\n]/m);
+  if (gameNameMatch && gameNameMatch[1].trim()) {
+    gameName = gameNameMatch[1].trim();
+  }
+
+  // Extract mxGraphModel XML — multiple fallback strategies
+  let xml = rawText.trim();
+
+  // Strip XML declaration if present
+  xml = xml.replace(/^<\?xml[^?]*\?>\s*/i, "");
+
+  // Strip markdown code fences (``` or ~~~, with optional language tag)
+  xml = xml.replace(/^(`{3,}|~{3,})[a-z]*\n?/i, "").replace(/\n?(`{3,}|~{3,})$/i, "").trim();
+
+  // Strategy 1: find <mxGraphModel...>...</mxGraphModel>
+  const fullMatch = xml.match(/<mxGraphModel[\s\S]*?<\/mxGraphModel>/);
+  if (fullMatch) {
+    xml = fullMatch[0];
+  } else {
+    // Strategy 2: <mxGraphModel present but closing tag missing (truncation) — close it
+    const openMatch = xml.match(/<mxGraphModel[\s\S]*/);
+    if (openMatch) {
+      xml = openMatch[0];
+      if (!xml.includes("</root>")) xml += "</root>";
+      if (!xml.endsWith("</mxGraphModel>")) xml += "</mxGraphModel>";
+    } else if (xml.includes("<mxCell")) {
+      // Strategy 3: bare mxCell content — wrap it
+      xml = `<mxGraphModel background="#4CAF50"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${xml}</root></mxGraphModel>`;
+    } else {
+      // Nothing recognisable — return raw so the UI can show it
+      return { error: { error: "Could not extract mxGraphModel from response", raw: rawText }, status: 422 };
+    }
+  }
+
+  // Post-process 1: guarantee wall vertex for wall-ball drills regardless of model output.
+  xml = fixWallCell(xml, gameName, rawText);
+
+  // Post-process 2: enforce correct ellipse styles by value — never trust the model's colour choice.
+  const xmlBefore = xml;
+  xml = fixCircleStyles(xml);
+  console.log("fixCircleStyles changed:", xml !== xmlBefore, "| coach cells:", (xml.match(/fillColor=#1a1a1a/g) || []).length, "| football cells:", (xml.match(/fillColor=#ffffff/g) || []).length);
+
+  // Derive suggested sport codes from the XML itself.
+  // STEP 6 adds value="Hurling · Camogie" when hurling elements are detected — read that back,
+  // then strip the label so it doesn't appear in the rendered diagram image.
+  const isHurling  = /value="Hurling\s*[·•·]\s*Camogie"/i.test(xml);
+  const isFootball = !isHurling && /football/i.test(gameName ?? "");
+  const suggestedCodes: string[] = isHurling
+    ? ["hurling", "camogie"]
+    : isFootball
+      ? ["football"]
+      : [];
+  // Remove the Hurling · Camogie text cell — it was only needed as a detection signal
+  if (isHurling) {
+    xml = xml.replace(/<mxCell[^>]+value="Hurling[^"]*Camogie"[\s\S]*?<\/mxCell>/i, "");
+  }
+
+  return { xml, gameName, suggestedCodes };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -272,6 +444,24 @@ serve(async (req) => {
       });
     }
 
+    // Signed-in users with AI features only: this spends Anthropic credit.
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+    const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const { data: { user } } = await sb.auth.getUser(jwt);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Please sign in again" }), {
+        status: 401,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+      });
+    }
+    const { data: me } = await sb.from("users").select("ai_features").eq("user_id", user.id).maybeSingle();
+    if (!me?.ai_features) {
+      return new Response(JSON.stringify({ error: "AI features are not turned on for this account" }), {
+        status: 403,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+      });
+    }
+
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY secret not set" }), {
@@ -280,110 +470,17 @@ serve(async (req) => {
       });
     }
 
-    const claudeRes = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 16000,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: { type: "base64", media_type, data: image_base64 },
-              },
-              { type: "text", text: PROMPT },
-            ],
-          },
-        ],
-      }),
-    });
-
-    if (!claudeRes.ok) {
-      const errText = await claudeRes.text();
-      return new Response(JSON.stringify({ error: `Anthropic API error ${claudeRes.status}`, detail: errText }), {
-        status: 502,
+    const engine = (Deno.env.get("DIAGRAM_ENGINE") ?? "v2").toLowerCase();
+    const result = engine === "legacy"
+      ? await legacyConvert(apiKey, image_base64, media_type)
+      : await sceneConvert(apiKey, image_base64, media_type);
+    if ("error" in result) {
+      return new Response(JSON.stringify(result.error), {
+        status: result.status,
         headers: { ...corsHeaders, "content-type": "application/json" },
       });
     }
-
-    const claudeData = await claudeRes.json();
-    console.log("Claude stop_reason:", claudeData?.stop_reason);
-    console.log("Claude content blocks:", JSON.stringify(claudeData?.content?.map((c: any) => ({ type: c.type, len: c.text?.length }))));
-
-    // Extract text from the first text-type content block
-    const rawText: string = (claudeData?.content ?? [])
-      .filter((c: any) => c.type === "text")
-      .map((c: any) => c.text ?? "")
-      .join("") ?? "";
-
-    // Extract game name from the GAME_NAME: prefix line (if present)
-    let gameName: string | null = null;
-    const gameNameMatch = rawText.match(/^GAME_NAME:\s*(.+?)[\r\n]/m);
-    if (gameNameMatch && gameNameMatch[1].trim()) {
-      gameName = gameNameMatch[1].trim();
-    }
-
-    // Extract mxGraphModel XML — multiple fallback strategies
-    let xml = rawText.trim();
-
-    // Strip XML declaration if present
-    xml = xml.replace(/^<\?xml[^?]*\?>\s*/i, "");
-
-    // Strip markdown code fences (``` or ~~~, with optional language tag)
-    xml = xml.replace(/^(`{3,}|~{3,})[a-z]*\n?/i, "").replace(/\n?(`{3,}|~{3,})$/i, "").trim();
-
-    // Strategy 1: find <mxGraphModel...>...</mxGraphModel>
-    const fullMatch = xml.match(/<mxGraphModel[\s\S]*?<\/mxGraphModel>/);
-    if (fullMatch) {
-      xml = fullMatch[0];
-    } else {
-      // Strategy 2: <mxGraphModel present but closing tag missing (truncation) — close it
-      const openMatch = xml.match(/<mxGraphModel[\s\S]*/);
-      if (openMatch) {
-        xml = openMatch[0];
-        if (!xml.includes("</root>")) xml += "</root>";
-        if (!xml.endsWith("</mxGraphModel>")) xml += "</mxGraphModel>";
-      } else if (xml.includes("<mxCell")) {
-        // Strategy 3: bare mxCell content — wrap it
-        xml = `<mxGraphModel background="#4CAF50"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${xml}</root></mxGraphModel>`;
-      } else {
-        // Nothing recognisable — return raw so the UI can show it
-        return new Response(JSON.stringify({ error: "Could not extract mxGraphModel from response", raw: rawText }), {
-          status: 422,
-          headers: { ...corsHeaders, "content-type": "application/json" },
-        });
-      }
-    }
-
-    // Post-process 1: guarantee wall vertex for wall-ball drills regardless of model output.
-    xml = fixWallCell(xml, gameName, rawText);
-
-    // Post-process 2: enforce correct ellipse styles by value — never trust the model's colour choice.
-    const xmlBefore = xml;
-    xml = fixCircleStyles(xml);
-    console.log("fixCircleStyles changed:", xml !== xmlBefore, "| coach cells:", (xml.match(/fillColor=#1a1a1a/g) || []).length, "| football cells:", (xml.match(/fillColor=#ffffff/g) || []).length);
-
-    // Derive suggested sport codes from the XML itself.
-    // STEP 6 adds value="Hurling · Camogie" when hurling elements are detected — read that back,
-    // then strip the label so it doesn't appear in the rendered diagram image.
-    const isHurling  = /value="Hurling\s*[·•·]\s*Camogie"/i.test(xml);
-    const isFootball = !isHurling && /football/i.test(gameName ?? "");
-    const suggestedCodes: string[] = isHurling
-      ? ["hurling", "camogie"]
-      : isFootball
-        ? ["football"]
-        : [];
-    // Remove the Hurling · Camogie text cell — it was only needed as a detection signal
-    if (isHurling) {
-      xml = xml.replace(/<mxCell[^>]+value="Hurling[^"]*Camogie"[\s\S]*?<\/mxCell>/i, "");
-    }
+    const { xml, gameName, suggestedCodes } = result;
 
     return new Response(JSON.stringify({ xml, game_name: gameName, suggested_codes: suggestedCodes }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
