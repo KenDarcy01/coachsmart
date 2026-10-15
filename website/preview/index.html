@@ -250,6 +250,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;color:var(--muted);font-s
 footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 @media (max-width:1000px){
+ .mr{grid-template-columns:1fr!important}
  .links{display:none}
  .stage{height:720px}.stage .l,.stage .ph-r{display:none}
  .float{display:none}
@@ -261,6 +262,26 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
  .steps{grid-template-columns:1fr 1fr}
  section{padding:70px 0}
 }
+
+/* real screenshot phones */
+.iphone .clip img.scr{display:block;width:100%;height:100%;object-fit:cover;object-position:top}
+.island2{position:absolute;top:calc(11px*var(--s));left:50%;transform:translateX(-50%);width:calc(122px*var(--s));height:calc(35px*var(--s));border-radius:99px;background:#000;z-index:3}
+.paper{position:absolute;border-radius:10px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.6);background:#fff}
+.paper img{display:block;width:100%}
+.tile.wide{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:20px;align-items:start;min-height:0}
+.tile.wide .phones{position:relative;display:flex;justify-content:center;gap:14px;align-items:flex-start}
+.tile.wide .phones .iphone{position:relative}
+.tile.wide .phones .iphone:nth-child(2){margin-top:40px}
+.tile.wide .phones .iphone:nth-child(3){margin-top:80px}
+@media (max-width:1000px){
+ .tile.wide{grid-template-columns:1fr}
+ .tile.below{min-height:0!important}
+ .tile.below .iphone{top:auto!important;left:auto!important;transform:none!important}
+ .hide-m{display:none!important}
+ .tile.wide .phones{overflow:hidden;justify-content:flex-start;margin:20px -10px -140px}
+ .tile.wide .phones .iphone{--s:.5!important;margin:0!important;flex:none}
+ .paper{position:relative!important;left:auto!important;right:auto!important;top:auto!important;transform:none!important;margin:20px auto -80px;width:85%!important}
+}
 </style>
 </head>
 <body>
@@ -271,13 +292,11 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
   <a class="btn sm" href="#download">Get the app</a>
 </nav>
 
-<!-- ================= HERO ================= -->
 <header class="hero"><div class="wrap">
   <span class="tagpill">Free on iPhone and Android <b>Download →</b></span>
   <h1>Know who's coming.<br><span>Every session, every match.</span></h1>
   <p class="lead">Players reply in one tap, you see the numbers straight away, and reminders chase the rest. Then plan the session, pick the team and keep the score, all in one app built for GAA.</p>
   <div class="cta"><a class="btn" href="#download">Download free</a><a class="btn light" href="#attendance">See how it works</a></div>
-
   <div class="stage">
     <!-- left: lock screen notification -->
     <div class="iphone ph-l"><div class="clip"><div class="vp lock">
@@ -294,138 +313,60 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
       <div class="homebar"></div>
     </div></div></div>
 
-    <!-- centre: event attendance -->
-    <div class="iphone ph-c"><div class="clip"><div class="vp">
-      <div class="island"></div>
-      <div class="sbar"><span>17:14</span><span class="ic">●●● <span class="bat"><i></i></span></span></div>
-      <div class="ah"><span class="back">←</span><span class="t">U12 Boys Training</span><span style="width:24px;text-align:right">⋮</span></div>
-      <div class="rsvp"><div class="yes">✓ Going</div><div>✕ Not going</div></div>
-      <div class="det">
-        <div class="r"><span>When</span>Tue 14 Oct, 18:30</div>
-        <div class="r"><span>Where</span>Ardcairn Park, Pitch 2</div>
-        <div class="r"><span>Meet</span>18:15</div>
-      </div>
-      <div class="secth" style="justify-content:center;color:#fff;letter-spacing:0;font-size:15px">Attendance</div>
-      <div class="att">
-        <div class="a">Attending<b><span class="dot g"></span><span class="count" data-to="22">22</span></b><small>Coaches: 3</small></div>
-        <div>No reply<b><span class="dot n"></span>4</b><small>Coaches: 0</small></div>
-        <div class="d">Declined<b><span class="dot r"></span>3</b><small>Coaches: 1</small></div>
-      </div>
-      <div class="secth"><span>PLAYERS</span><span style="color:var(--g)">Remind 4 →</span></div>
-      <div class="plist">
-        <div class="p">Oisín Gallagher<em class="y">Going</em></div>
-        <div class="p">Cian Doherty<em class="y">Going</em></div>
-        <div class="p">Tadhg Brennan<em class="w">No reply</em></div>
-        <div class="p">Darragh Molloy<em class="y">Going</em></div>
-        <div class="p">Rory Kinsella<em class="x">Injured</em></div>
-        <div class="p">Fionn Duggan<em class="y">Going</em></div>
-        <div class="p">Seán Whelan<em class="y">Going</em></div>
-        <div class="p">Liam Corrigan<em class="w">No reply</em></div>
-      </div>
-      <div class="homebar"></div>
-    </div></div></div>
-
-    <!-- right: home list -->
-    <div class="iphone ph-r"><div class="clip"><div class="vp">
-      <div class="island"></div>
-      <div class="sbar"><span>17:14</span><span class="ic">●●● <span class="bat"><i></i></span></span></div>
-      <div class="ah"><span style="width:24px">☰</span><span class="t">Home</span><span style="width:24px;text-align:right">🔔</span></div>
-      <div class="clubs">
-        <div class="c"><div class="cl"><img src="logo.svg" style="width:44px" alt=""></div>All Clubs</div>
-        <div class="c"><div class="cl"><svg width="40" height="44" viewBox="0 0 40 44"><path d="M20 2 L37 8 V22 C37 33 29 39 20 42 C11 39 3 33 3 22 V8 Z" fill="#1d6b3a" stroke="#f1f4f8" stroke-width="2"/><path d="M20 10 V34 M10 20 H30" stroke="#f5c242" stroke-width="3"/></svg></div>Ardcairn GAA</div>
-      </div>
-      <div class="chiprow"><span class="chip on">All Teams</span><span class="chip">U12 Boys</span><span class="chip">U14 Girls</span><span class="chip">Minor</span></div>
-      <div class="dh">Tuesday, 14 October at 18:30</div>
-      <div class="ev"><div class="tm">ARDCAIRN U12 BOYS</div><div class="nm">Training</div><div class="cnt"><b><span class="dot g"></span>22</b><b><span class="dot n"></span>4</b><b><span class="dot r"></span>3</b></div><div class="st"><span class="okk">Attending</span><span>Meet: 18:15</span></div></div>
-      <div class="dh">Wednesday, 15 October at 19:00</div>
-      <div class="ev"><div class="tm">ARDCAIRN U14 GIRLS</div><div class="nm">Camogie Training</div><div class="cnt"><b><span class="dot g"></span>18</b><b><span class="dot n"></span>7</b><b><span class="dot r"></span>2</b></div><div class="st"><span class="okk">Attending</span><span></span></div></div>
-      <div class="dh">Saturday, 18 October at 11:00</div>
-      <div class="ev"><div class="tm">ARDCAIRN U12 BOYS</div><div class="nm">Match v Lisnavar Gaels</div><div class="cnt"><b><span class="dot g"></span>19</b><b><span class="dot n"></span>8</b><b><span class="dot r"></span>2</b></div><div class="st"><span class="okk">Attending</span><span>Meet: 10:15</span></div></div>
-      <div class="fab">+</div>
-      <div class="homebar"></div>
-    </div></div></div>
-
-    <div class="float" style="left:calc(50% - 520px);top:30px"><small>Reminder sent</small><b>4 players haven't replied</b></div>
-    <div class="float" style="left:calc(50% + 330px);top:10px"><small>Saturday's match</small><b><span class="g">19</span> going · 8 to reply</b></div>
-    <div class="float" style="left:calc(50% - 470px);top:560px"><small>Tadhg's dad replied</small><b><span class="g">✓</span> Going</b></div>
+    
+    <div class="iphone ph-c" style="--s:.78;"><div class="clip"><img class="scr" src="assets/event.jpg" alt=""><div class="island2"></div></div></div>
+    <div class="iphone ph-r" style="--s:.66;"><div class="clip"><img class="scr" src="assets/home.jpg" alt=""><div class="island2"></div></div></div>
+    <div class="float" style="left:calc(50% - 520px);top:30px"><small>Reminder sent</small><b>26 haven't replied yet</b></div>
+    <div class="float" style="left:calc(50% + 330px);top:10px"><small>Thursday training</small><b><span class="g">48</span> going · 13 to reply</b></div>
+    <div class="float" style="left:calc(50% - 470px);top:560px"><small>Aoife's mum replied</small><b><span class="g">✓</span> Going</b></div>
     <div class="fade"></div>
   </div>
   <div class="codes"><span>FOOTBALL</span><span>HURLING</span><span>CAMOGIE</span><span>LADIES FOOTBALL</span><span>NURSERY TO ADULT</span></div>
 </div></header>
 
-<!-- ================= ATTENDANCE ================= -->
 <section id="attendance"><div class="wrap">
   <div class="head"><div class="eyebrow">Attendance first</div><h2>No more WhatsApp polls</h2><p>Every training and match gets one tap replies, live numbers and automatic reminders, so you know who's coming before you pack the cones.</p></div>
   <div class="bento">
 
-    <div class="tile span4 glow" style="min-height:520px">
+    <div class="tile span4 glow" style="min-height:540px">
       <span class="tg">THE CORE OF COACHSMART</span>
-      <h3>Who's in, who's out,<br>who hasn't replied</h3>
-      <p style="max-width:330px">Players and parents reply from the notification. You see attending, declined and no reply, split into players and coaches, the moment it changes.</p>
-      <ul class="ticks" style="max-width:330px">
+      <h3>Attendance for every<br>session and every team</h3>
+      <p style="max-width:320px">Players and parents reply from the notification. Coaches see who's going, who isn't and who hasn't replied, and how each team is trending against this time last year.</p>
+      <ul class="ticks" style="max-width:320px">
         <li>One-tap Going or Not going</li>
         <li>Automatic reminders to anyone who hasn't replied</li>
         <li>Coaches told when someone changes their mind</li>
-        <li>Recurring sessions set up once for the season</li>
+        <li>Training and match attendance for every team</li>
       </ul>
-      <div class="iphone" style="--s:.6;right:40px;top:40px;transform:rotate(3deg)"><div class="clip"><div class="vp">
-        <div class="island"></div>
-        <div class="sbar"><span>18:02</span><span class="ic">●●● <span class="bat"><i></i></span></span></div>
-        <div class="ah"><span class="back">←</span><span class="t">U14 Girls Camogie</span><span style="width:24px"></span></div>
-        <div class="rsvp"><div class="yes">✓ Going</div><div>✕ Not going</div></div>
-        <div class="att">
-          <div class="a">Attending<b><span class="dot g"></span>18</b><small>Coaches: 2</small></div>
-          <div>No reply<b><span class="dot n"></span>7</b><small>Coaches: 1</small></div>
-          <div class="d">Declined<b><span class="dot r"></span>2</b><small>Coaches: 0</small></div>
-        </div>
-        <div class="secth"><span>PLAYERS</span><span style="color:var(--g)">Remind 7 →</span></div>
-        <div class="plist">
-          <div class="p">Aoife Brennan<em class="y">Going</em></div>
-          <div class="p">Ciara Nolan<em class="y">Going</em></div>
-          <div class="p">Saoirse Kehoe<em class="w">No reply</em></div>
-          <div class="p">Niamh Dunne<em class="y">Going</em></div>
-          <div class="p">Róisín Tierney<em class="x">Away</em></div>
-          <div class="p">Clodagh Rafferty<em class="y">Going</em></div>
-          <div class="p">Éabha Moran<em class="w">No reply</em></div>
-          <div class="p">Lucy Hanrahan<em class="y">Going</em></div>
-          <div class="p">Grace Fennelly<em class="y">Going</em></div>
-          <div class="p">Orla Keating<em class="w">No reply</em></div>
-        </div>
-        <div class="homebar"></div>
-      </div></div></div>
+      <div class="iphone " style="--s:.6;right:40px;top:40px;transform:rotate(3deg)"><div class="clip"><img class="scr" src="assets/teams.jpg" alt=""><div class="island2"></div></div></div>
     </div>
 
-    <div class="tile span2" style="min-height:520px">
+    <div class="tile span2" style="min-height:540px">
       <span class="tg">LIVE</span>
       <h3>Replies as they happen</h3>
       <p>Watch the numbers change in the hour before training.</p>
       <div class="feed">
-        <div>Oisín G. <em class="y" style="background:rgba(135,194,50,.18);color:var(--g)">Going</em></div>
+        <div>Aoife B. <em style="background:rgba(135,194,50,.18);color:var(--g)">Going</em></div>
         <div>Rory K. <em style="background:rgba(217,56,56,.2);color:#ff8a8a">Injured</em></div>
-        <div>Fionn D. <em style="background:rgba(135,194,50,.18);color:var(--g)">Going</em></div>
+        <div>Ciara N. <em style="background:rgba(135,194,50,.18);color:var(--g)">Going</em></div>
         <div>Liam C. <em style="background:rgba(255,255,255,.08);color:#c9ced6">Reminded</em></div>
-        <div>Seán W. <em style="background:rgba(135,194,50,.18);color:var(--g)">Going</em></div>
+        <div>Niamh D. <em style="background:rgba(135,194,50,.18);color:var(--g)">Going</em></div>
       </div>
-      <div class="big" style="margin-top:22px"><span class="count" data-to="22">22</span> <span style="color:#6b7280;font-size:40px">/ 29</span></div>
-      <p style="margin-top:0">attending tonight</p>
+      <div class="big" style="margin-top:22px">24 <span style="color:#6b7280;font-size:40px">/ 56</span></div>
+      <p style="margin-top:0">going so far</p>
     </div>
 
-    <div class="tile span2">
+    <div class="tile span2" style="min-height:260px">
       <h3>Push notifications</h3>
       <p>Reach the whole panel in seconds: changes, cancellations and reminders.</p>
       <div class="notif" style="margin:22px 0 0;background:#262b34"><div class="hd"><i><img src="logo.svg" alt=""></i>COACHSMART<span>now</span></div><b>Training moved to Pitch 3</b>Same time, 18:30. See you there.</div>
     </div>
-
-    <div class="tile span2">
-      <h3>Squads &amp; teams</h3>
-      <p>Split the players who said yes into colour-coded teams and publish them, or export to Excel and Google Sheets.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px">
-        <div style="background:#12161a;border-radius:14px;padding:14px;border:1px solid var(--line)"><span class="dot" style="background:var(--blue)"></span> <b>Blue</b><div style="font-family:'Bebas Neue';font-size:40px;line-height:1;margin-top:4px">11</div><small style="color:var(--muted)">Coaches: 2</small></div>
-        <div style="background:#12161a;border-radius:14px;padding:14px;border:1px solid var(--line)"><span class="dot r"></span> <b>Red</b><div style="font-family:'Bebas Neue';font-size:40px;line-height:1;margin-top:4px">11</div><small style="color:var(--muted)">Coaches: 1</small></div>
-      </div>
+    <div class="tile span2" style="min-height:260px">
+      <h3>All your clubs, one list</h3>
+      <p>Coach two teams, or have kids in three? Every event from every club and team in one place.</p>
+      <div class="feed"><div>Ardcairn Boys 2016 <em style="background:rgba(135,194,50,.18);color:var(--g)">17:00</em></div><div>Ardcairn Boys 2013 <em style="background:rgba(135,194,50,.18);color:var(--g)">17:50</em></div></div>
     </div>
-
-    <div class="tile span2">
+    <div class="tile span2" style="min-height:260px">
       <h3>Lifts &amp; payments</h3>
       <p>Car pools for away games, and fees for club events paid in the app.</p>
       <div class="feed">
@@ -434,163 +375,93 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
       </div>
     </div>
 
-    <div class="tile span3 below" style="min-height:440px">
+    <div class="tile span3 below">
       <span class="tg">EVERY PLAYER</span>
-      <h3>Attendance that builds<br>up all season</h3>
-      <p style="max-width:250px">See each player's record for training and matches, and spot the ones drifting away before they stop coming.</p>
-      <div class="iphone" style="--s:.56;right:30px;top:30px"><div class="clip"><div class="vp">
-        <div class="island"></div>
-        <div class="sbar"><span>09:41</span><span class="ic">●●● <span class="bat"><i></i></span></span></div>
-        <div class="ah"><span class="back">←</span><span class="t">Cian Doherty</span><span style="width:24px"></span></div>
-        <div class="chiprow"><span class="chip">Month</span><span class="chip">3 months</span><span class="chip on">Season</span></div>
-        <div class="ring">
-          <svg width="86" height="86" viewBox="0 0 86 86"><circle cx="43" cy="43" r="36" fill="none" stroke="#2e3441" stroke-width="9"/><circle cx="43" cy="43" r="36" fill="none" stroke="#87c232" stroke-width="9" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="41" transform="rotate(-90 43 43)"/><text x="43" y="49" text-anchor="middle" fill="#fff" font-size="19" font-weight="700" font-family="DM Sans">82%</text></svg>
-          <div><b>Attended 37 of 45</b><p>Replied to 44 of 45</p><span class="up">▲ 6% on last season</span></div>
-        </div>
-        <div class="secth" style="padding-top:4px"><span>LAST 10 EVENTS</span></div>
-        <div class="last"><i style="background:#5cb82e"></i><i style="background:#5cb82e"></i><i style="background:#5cb82e"></i><i style="background:var(--red)"></i><i style="background:#5cb82e"></i><i style="background:#5cb82e"></i><i style="background:#5cb82e"></i><i style="background:#5cb82e"></i><i style="background:#9ea3aa"></i><i style="background:#5cb82e"></i></div>
-        <div class="bars"><div class="bt">ATTENDANCE BY MONTH</div>
-          <div class="bc">
-            <div class="col dim">75%<i style="height:75%"></i></div>
-            <div class="col dim">67%<i style="height:67%"></i></div>
-            <div class="col dim">50%<i style="height:50%"></i></div>
-            <div class="col">83%<i style="height:83%"></i></div>
-            <div class="col">89%<i style="height:89%"></i></div>
-            <div class="col">86%<i style="height:86%"></i></div>
-          </div>
-          <div class="lab"><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span></div>
-        </div>
-        <div class="mini2"><div><b>28<small>/33</small></b>Trainings</div><div><b>9<small>/12</small></b>Matches</div></div>
-        <div class="homebar"></div>
-      </div></div></div>
+      <h3>Every player's record, all season</h3>
+      <p>Training and matches, month by month, and the last ten events at a glance. Spot the ones drifting away before they stop coming.</p>
+      <div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="assets/player.jpg" alt=""><div class="island2"></div></div></div>
+    </div>
+    <div class="tile span3 below">
+      <span class="tg">MATCHDAY</span>
+      <h3>Split the panel into teams</h3>
+      <p>Put the players who said yes into colour-coded teams, set the line-up, then publish to the panel or export to a spreadsheet.</p>
+      <div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="assets/accepted.jpg" alt=""><div class="island2"></div></div></div>
     </div>
 
-    <div class="tile span3 below" style="min-height:440px">
-      <span class="tg">MATCHDAY</span>
-      <h3>Pick your team</h3>
-      <p style="max-width:250px">Drag the players who are available onto the pitch. 9, 11, 13 or 15-a-side, with subs, shared in one tap.</p>
-      <div class="iphone" style="--s:.56;right:30px;top:30px"><div class="clip"><div class="vp">
-        <div class="island"></div>
-        <div class="sbar"><span>09:41</span><span class="ic">●●● <span class="bat"><i></i></span></span></div>
-        <div class="ah"><span class="back">←</span><span class="t">U12 Boys v Lisnavar</span><span style="width:24px"></span></div>
-        <div class="fmt">FORMAT <span>9</span><span>11</span><span class="on">13</span><span>15</span></div>
-        <div class="pitch">
-          <div class="sq"></div><div class="l" style="top:33%"></div><div class="l" style="top:66%"></div>
-          <div class="jer gk" style="left:50%;top:6px"><i>1</i>T. Brennan</div>
-          <div class="jer" style="left:20%;top:80px"><i>2</i>R. Kinsella</div><div class="jer" style="left:50%;top:80px"><i>3</i>S. Whelan</div><div class="jer" style="left:80%;top:80px"><i>4</i>L. Corrigan</div>
-          <div class="jer" style="left:20%;top:175px"><i>5</i>M. Hayes</div><div class="jer" style="left:50%;top:175px"><i>6</i>D. Molloy</div><div class="jer" style="left:80%;top:175px"><i>7</i>E. Quinlan</div>
-          <div class="jer" style="left:35%;top:270px"><i>8</i>C. Doherty</div><div class="jer" style="left:65%;top:270px"><i>9</i>O. Gallagher</div>
-          <div class="jer" style="left:20%;top:370px"><i>10</i>F. Duggan</div><div class="jer" style="left:50%;top:370px"><i>11</i>P. Lyons</div><div class="jer" style="left:80%;top:370px"><i>12</i>J. Furlong</div>
-          <div class="jer" style="left:50%;top:465px"><i>13</i>B. Cassidy</div>
-        </div>
-        <div class="subs">SUBS <i></i><i></i><i></i><i></i></div>
-        <div class="homebar"></div>
-      </div></div></div>
+    <div class="tile span6 wide" style="grid-column:1/-1">
+      <div>
+        <span class="tg">FAIR GAME TIME</span>
+        <h3>See who's being picked,<br>and who isn't</h3>
+        <p>Every squad place across the season, by squad and by month. Find the player who hasn't had a game yet, before their parents do.</p>
+        <ul class="ticks"><li>Players picked, and not picked yet</li><li>Places per squad and per month</li><li>Download as PDF or Excel</li></ul>
+      </div>
+      <div class="phones"><div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="assets/squads.jpg" alt=""><div class="island2"></div></div></div><div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="assets/squad-chart.jpg" alt=""><div class="island2"></div></div></div></div>
     </div>
 
   </div>
 </div></section>
 
-<!-- ================= SMART TOOLS ================= -->
 <section id="smart" style="padding-top:0"><div class="wrap">
   <div class="head"><div class="eyebrow">Then the smart stuff</div><h2>Less admin, more coaching</h2><p>Once you know who's coming, CoachSmart helps you plan the session, keep the score and write it all up. Just talk to it.</p></div>
   <div class="bento">
 
-    <div class="tile span4 glow" style="min-height:560px">
+    <div class="tile span4 glow" style="min-height:600px">
       <span class="tg">AI · VOICE</span>
       <h3>Session plans that<br>write themselves</h3>
-      <p style="max-width:300px">Tell it the age, numbers and focus. You get a full session with warm-up, drills, timings and coaching points, with the weather checked. Want a change? Say it.</p>
-      <ul class="ticks" style="max-width:300px">
-        <li>Change any drill by voice</li>
-        <li>Club library of games by age</li>
-        <li>Print-ready PDFs in your club colours</li>
+      <p style="max-width:230px">Pick your favourite drills, set the length and say what you want to focus on. You get a full plan with timings, stations and coaching points, with the weather checked. Want a change? Say it.</p>
+      <ul class="ticks" style="max-width:230px">
+        <li>Build from your favourite drills</li>
+        <li>Change anything by voice</li>
+        <li>Stations that rotate, with timings</li>
         <li>Share plans with the other coaches</li>
       </ul>
-      <div class="iphone" style="--s:.62;right:40px;top:36px"><div class="clip"><div class="vp">
-        <div class="island"></div>
-        <div class="sbar"><span>17:40</span><span class="ic">●●● <span class="bat"><i></i></span></span></div>
-        <div class="ah"><span class="back">←</span><span class="t" style="text-align:left">Tackling &amp; Support Play</span><span class="pill" style="font-size:11px">Saved</span></div>
-        <div class="sp-name"><small>PLAN NAME</small><b>Tackling &amp; Support Play</b></div>
-        <div class="sp-stats"><div><b>22</b>PLAYERS</div><div><b>3</b>COACHES</div><div><b>60</b>MINS</div></div>
-        <div class="blk"><div class="bh">● WARM UP <em>10 min</em></div><b>Rondo Warm-up</b><p>20m grid, 4 cones, 2 balls. Groups of 5 v 2, hand pass only.</p></div>
-        <div class="blk"><div class="bh">● DRILL 1 <em>12 min</em></div><b>3 v 2 Overlap</b><p>Channel 30m x 15m. Three attackers take on two defenders.</p></div>
-        <div class="sheet">
-          <div class="grab"></div>
-          <div class="st">Change: 3 v 2 Overlap <span style="color:var(--muted)">✕</span></div>
-          <div class="sub">Only this drill will change. Type or hold the mic.</div>
-          <div class="box">make it easier for the under tens, bigger channel and no shooting from outside the thirteen</div>
-          <div class="row"><span style="font-size:12px;color:var(--muted);width:90px">Tap the text to edit</span><div class="mic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div><span class="upd">Update</span></div>
-          <div class="listen">● Listening… release when done</div>
-        </div>
-      </div></div></div>
+      <div class="iphone hide-m" style="--s:.48;right:222px;top:80px;transform:rotate(-4deg)"><div class="clip"><img class="scr" src="assets/plan-build.jpg" alt=""><div class="island2"></div></div></div>
+      <div class="iphone " style="--s:.58;right:30px;top:30px;transform:rotate(3deg)"><div class="clip"><img class="scr" src="assets/plan-change.jpg" alt=""><div class="island2"></div></div></div>
     </div>
 
-    <div class="tile span2" style="min-height:560px">
-      <span class="tg">MATCHDAY</span>
-      <h3>Score keeper</h3>
-      <p>The clock runs, you tap or say the score. Works with no signal and keeps the screen on.</p>
-      <div class="iphone" style="--s:.6;left:50%;transform:translateX(-50%);bottom:-170px"><div class="clip"><div class="vp">
-        <div class="island"></div>
-        <div class="sbar"><span>11:23</span><span class="ic">●●● <span class="bat"><i></i></span></span></div>
-        <div class="sk-top"><span style="color:var(--g);font-size:22px">‹</span><span class="pill">All saved</span><span class="sk-icons"><i>?</i><i>☀</i><i>⋯</i></span></div>
-        <div class="half">FIRST HALF · 30 MIN</div>
-        <div class="clock" id="clock">11:31</div>
-        <div class="prog"><i id="prog"></i></div>
-        <div class="scorebox"><div><small>ARDCAIRN</small><b>1-08</b><em>11 pts</em></div><span class="lead5">▲ 5</span><div><small>LISNAVAR</small><b>0-06</b><em>6 pts</em></div></div>
-        <div class="tv"><div class="on">👆 Tap</div><div>🎙 Voice</div></div>
-        <div class="btns">
-          <span class="h">ARDCAIRN</span><span class="h">LISNAVAR</span>
-          <div class="b">Goal<span>1</span></div><div class="b">Goal<span>0</span></div>
-          <div class="b">Point<span>6</span></div><div class="b">Point<span>6</span></div>
-          <div class="b p2">2 Pointer<span>1</span></div><div class="b p2">2 Pointer<span>0</span></div>
-          <div class="b">Wide<span>3</span></div><div class="b">Wide<span>5</span></div>
-        </div>
-        <div class="sk-bottom"><div class="pa">❚❚ Pause</div><div class="eh">End half</div></div>
-        <div class="homebar"></div>
-      </div></div></div>
+    <div class="tile span2" style="min-height:600px">
+      <span class="tg">PRINT-READY</span>
+      <h3>In your club's colours</h3>
+      <p>Session plans and drill cards as PDFs with your crest, timings and diagrams. Share them or print them for the clubhouse.</p>
+      <div class="paper" style="width:76%;left:12%;top:250px;transform:rotate(-3deg)"><img src="assets/plan-pdf.jpg" alt=""></div>
+      <div class="paper" style="width:58%;right:6%;top:420px;transform:rotate(4deg)"><img src="assets/game-card.jpg" alt=""></div>
     </div>
 
-    <div class="tile span3 below" style="min-height:520px">
+    <div class="tile span6 wide" style="grid-column:1/-1">
+      <div>
+        <span class="tg">MATCHDAY</span>
+        <h3>Score keeper</h3>
+        <p>The clock runs and you keep the score, by tap or by voice: hold the mic and say "Point, Cian". It keeps working with no signal and keeps the screen awake. At full time it checks the score with you, and the charts and timeline are ready to share.</p>
+        <ul class="ticks"><li>Running clock for each half</li><li>Tap or voice scoring</li><li>Works offline, saves as you go</li><li>Full-time check against the ref's score</li></ul>
+      </div>
+      <div class="phones"><div class="iphone " style="--s:.45;"><div class="clip"><img class="scr" src="assets/sk-tap.jpg" alt=""><div class="island2"></div></div></div><div class="iphone " style="--s:.45;"><div class="clip"><img class="scr" src="assets/sk-voice.jpg" alt=""><div class="island2"></div></div></div><div class="iphone " style="--s:.45;"><div class="clip"><img class="scr" src="assets/sk-ft.jpg" alt=""><div class="island2"></div></div></div></div>
+    </div>
+
+    <div class="tile span3 below">
+      <span class="tg">LIBRARY</span>
+      <h3>Your club's drill library</h3>
+      <p>Warm-ups, drills and games by age and code, each with a diagram and video. Pick your favourites and build a plan from them.</p>
+      <div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="assets/favourites.jpg" alt=""><div class="island2"></div></div></div>
+    </div>
+    <div class="tile span3 below">
       <span class="tg">AI</span>
-      <h3>Sketch to diagram</h3>
-      <p style="max-width:250px">Photograph a drill drawn on paper or a whiteboard. Get a clean pitch diagram for your library, and fix it by voice.</p>
-      <div class="iphone" style="--s:.56;right:30px;top:30px"><div class="clip"><div class="vp">
-        <div class="island"></div>
-        <div class="sbar"><span>20:15</span><span class="ic">●●● <span class="bat"><i></i></span></span></div>
-        <div class="ah"><span class="back">←</span><span class="t">Review &amp; Edit</span><span style="width:24px"></span></div>
-        <div style="margin:6px 14px;border-radius:12px;overflow:hidden">
-          <svg viewBox="0 0 360 380" width="100%" style="display:block;background:#3f8f2b">
-            <g fill="none" stroke="rgba(255,255,255,.75)" stroke-width="2.5"><rect x="20" y="20" width="320" height="340"/><line x1="20" y1="190" x2="340" y2="190"/><rect x="140" y="20" width="80" height="26"/><path d="M130 46 A50 50 0 0 0 230 46"/></g>
-            <g stroke="#fff" stroke-width="3" fill="none" stroke-dasharray="8 7"><path d="M90 300 L150 220"/><path d="M270 300 L215 225"/></g>
-            <g stroke="#f5c242" stroke-width="3.5" fill="none"><path d="M162 212 L205 150"/></g>
-            <g><path d="M205 150 l-12 2 l8 -10 z" fill="#f5c242"/></g>
-            <g fill="#f08a1c"><path d="M60 340 l8 -16 l8 16 z"/><path d="M284 340 l8 -16 l8 16 z"/><path d="M60 100 l8 -16 l8 16 z"/><path d="M284 100 l8 -16 l8 16 z"/></g>
-            <g stroke="#fff" stroke-width="2"><circle cx="90" cy="310" r="13" fill="#d93838"/><circle cx="270" cy="310" r="13" fill="#d93838"/><circle cx="155" cy="215" r="13" fill="#d93838"/><circle cx="215" cy="150" r="13" fill="#2f80ed"/><circle cx="150" cy="140" r="13" fill="#2f80ed"/></g>
-          </svg>
-        </div>
-        <div style="margin:10px 14px;border:1px solid rgba(135,194,50,.4);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-size:11px;color:var(--g);font-weight:700;letter-spacing:1px">FIX THE DRAWING</div><div style="font-size:13px;color:var(--muted)">e.g. that line is a shadow, remove it</div></div>
-          <div class="mic gr" style="width:42px;height:42px;animation:none;box-shadow:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div>
-        </div>
-        <div class="secth"><span>AGE GROUP</span></div>
-        <div class="chiprow" style="flex-wrap:wrap"><span class="chip">U8</span><span class="chip on">U10</span><span class="chip on">U12</span><span class="chip">U14</span><span class="chip">U16</span></div>
-        <div class="secth"><span>CODE</span></div>
-        <div class="chiprow"><span class="chip on">Football</span><span class="chip">Hurling</span><span class="chip">Camogie</span></div>
-        <div class="homebar"></div>
-      </div></div></div>
+      <h3>Add your own drills</h3>
+      <p>Take a photo or sketch it, then describe it by voice. CoachSmart writes it up and draws a clean diagram for your library.</p>
+      <div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="assets/add-drill.jpg" alt=""><div class="island2"></div></div></div>
     </div>
 
-    <div class="tile span3" style="min-height:520px">
+    <div class="tile span6" style="grid-column:1/-1;min-height:0">
       <span class="tg">AI</span>
       <h3>Match reports in your own words</h3>
-      <p>Talk through the game on the drive home. CoachSmart tidies it into a report, keeps how you said it, and saves it with the match.</p>
-      <div class="quote me" style="margin-top:22px">"Slow start, two points down at the water break, but the subs gave us legs and Ciara's goal settled it."</div>
-      <div class="quote cs">After a slow start we were two points down at the water break. The subs brought fresh legs and Ciara Nolan's goal settled it in the second half.</div>
+      <p style="max-width:640px">Talk through the game on the drive home. CoachSmart tidies it into a report, keeps how you said it, and saves it with the match.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="mr">
+        <div class="quote me">"Slow start, two points down at the water break, but the subs gave us legs and Ciara's goal settled it."</div>
+        <div class="quote cs">After a slow start we were two points down at the water break. The subs brought fresh legs and Ciara Nolan's goal settled it in the second half.</div>
+      </div>
     </div>
 
   </div>
 </div></section>
-
 <!-- ================= VOICE ================= -->
 <section style="padding-top:0"><div class="wrap">
   <div class="ai">
@@ -636,13 +507,5 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 </div></div>
 <footer><div class="wrap"><span>© 2026 CoachSmart · Coaching Made Simple</span><span>Privacy · Terms · Contact</span></div></footer>
 
-<script>
-// score keeper clock: ticks like the app (first half of 30 min)
-(function(){
-  var s = 11*60+31, c = document.getElementById('clock'), p = document.getElementById('prog');
-  function draw(){ var m=Math.floor(s/60), x=s%60; c.textContent=(m<10?'0':'')+m+':'+(x<10?'0':'')+x; p.style.width=(s/1800*100)+'%'; }
-  draw(); setInterval(function(){ s = s>=1800 ? 0 : s+1; draw(); }, 1000);
-})();
-</script>
 </body>
 </html>
