@@ -71,12 +71,10 @@ input,select{font:inherit;color:var(--text)}
 .big.v3 b{color:var(--green)}
 .big.v2{background:linear-gradient(135deg,rgba(245,165,36,.2),rgba(245,165,36,.07));border-color:rgba(245,165,36,.35)}
 .big.v2 b{color:var(--amber)}
-.big:active,.chip:active{transform:scale(.97)}
+.big:active{transform:scale(.97)}
 .big.flash{border-color:var(--green);box-shadow:0 0 0 2px var(--green) inset}
-.chips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.chip{display:flex;justify-content:space-between;align-items:center;padding:0 11px;height:44px;border-radius:12px;background:var(--card);font-size:15px;color:var(--muted);transition:transform .08s}
-.chip b{color:var(--text);font-weight:700}
-.chip.flash{box-shadow:0 0 0 2px var(--green) inset}
+#tapPad.wait .big,.voice.wait .mic{opacity:.45}
+.big span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:6px}
 
 /* recent list */
 .list{background:var(--card);border-radius:18px;margin-top:14px;padding:2px 14px}
@@ -108,8 +106,6 @@ input,select{font:inherit;color:var(--text)}
 .mic-t{font-size:18px;font-weight:700;margin-top:30px}
 .mic-s{font-size:14px;color:var(--muted);margin-top:4px}
 .heard{font-size:15px;color:var(--text);margin-top:10px;min-height:20px;font-style:italic}
-.ex{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
-.ex span{background:var(--card);color:var(--muted);font-size:13px;padding:7px 11px;border-radius:999px}
 .vcards{margin-bottom:14px;text-align:left}
 .voice.has .mic{width:104px;height:104px;box-shadow:0 0 0 10px rgba(135,194,50,.12)}
 .voice.has .mic svg{width:42px;height:42px}
@@ -277,7 +273,6 @@ input,select{font:inherit;color:var(--text)}
         <div class="mic-t" id="micInstr">Hold and say what happened</div>
         <div class="mic-s">Release when you're done. The clock keeps running.</div>
         <div class="heard" id="micHeard"></div>
-        <div class="ex" id="micEx"></div>
       </div>
     </div>
     <div id="recent"></div>
@@ -483,7 +478,11 @@ function roster() {
   ((C && C.lineup && C.lineup.players) || []).forEach(p => out.set(p.member_id, {
     id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: p.number, inLineup: true, isSub: !!p.is_sub,
   }));
-  ((C && C.players) || []).forEach(p => { if (!out.has(p.member_id)) out.set(p.member_id, { id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: null, inLineup: false }); });
+  // A squad picked in setup narrows the list to that squad (unless nobody is linked to it)
+  const sq = S && S.setup && S.setup.squadId;
+  let players = (C && C.players) || [];
+  if (sq) { const inSq = players.filter(p => (p.squads || []).includes(sq)); if (inSq.length) players = inSq; }
+  players.forEach(p => { if (!out.has(p.member_id)) out.set(p.member_id, { id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: null, inLineup: false }); });
   return out;
 }
 const fullName = p => p ? `${p.first} ${p.last}`.trim() : '';
@@ -937,6 +936,10 @@ function model() {
 function render() {
   if (!S || !C) return;
   renderPill();
+  // Chart and timeline are for half time and full time; while playing it's just the clock, score and buttons
+  const live = S.phase === 'setup' || S.phase === 'play';
+  if (live && view !== 'score') view = 'score';
+  $('viewSeg').classList.toggle('hidden', live);
   document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
   $('vScore').classList.toggle('hidden', view !== 'score');
   $('vChart').classList.toggle('hidden', view !== 'chart');
@@ -994,10 +997,11 @@ function renderMode() {
 }
 
 function renderTapPad() {
-  const big = bigTypes(), small = smallTypes();
+  // Every stat gets the same full-size button; the scores come first and the rest are a scroll away
+  const all = bigTypes().concat(smallTypes());
   const col = side => `<div><div class="colh">${esc(side === 'us' ? usName() : oppName())}</div>
-    ${big.map(t => `<button class="big v${t.score_value}" data-st="${t.id}" data-side="${side}"><span>${esc(t.score_type)}</span><b>${countFor(t.id, side)}</b></button>`).join('')}
-    <div class="chips">${small.map(t => `<button class="chip" data-st="${t.id}" data-side="${side}"><span>${esc(t.score_type)}</span><b>${countFor(t.id, side)}</b></button>`).join('')}</div></div>`;
+    ${all.map(t => `<button class="big v${t.score_value > 0 ? t.score_value : 0}" data-st="${t.id}" data-side="${side}"><span>${esc(t.score_type)}</span><b>${countFor(t.id, side)}</b></button>`).join('')}</div>`;
+  $('tapPad').classList.toggle('wait', !started());
   $('tapPad').innerHTML = types().length ? `<div class="cols">${col('us')}${col('opp')}</div>` : '<div class="empty">No score types set up for this team.</div>';
 }
 
@@ -1009,7 +1013,7 @@ function renderTapPad() {
   pad.addEventListener('pointerdown', e => {
     const b = e.target.closest('[data-st]'); if (!b) return;
     held = false; startXY = [e.clientX, e.clientY];
-    holdTimer = setTimeout(() => { held = true; takeOneOff(Number(b.dataset.st), b.dataset.side); }, 600);
+    holdTimer = setTimeout(() => { held = true; if (!started()) return notStarted(); takeOneOff(Number(b.dataset.st), b.dataset.side); }, 600);
   });
   const cancel = () => clearTimeout(holdTimer);
   pad.addEventListener('pointermove', e => { if (startXY && Math.hypot(e.clientX - startXY[0], e.clientY - startXY[1]) > 12) cancel(); });
@@ -1022,7 +1026,16 @@ function renderTapPad() {
   });
 })();
 
+// Nothing can be scored until the half has kicked off
+const started = () => S.phase !== 'play' || S.clock.run || secInHalf() > 0;
+function notStarted() {
+  buzz([40, 60, 40]);
+  toast(`Start the ${S.clock.half === 1 ? '1st' : '2nd'} half first`);
+  const f = document.querySelector('#footIn [data-f="start"]');
+  if (f) { f.classList.add('pulse'); setTimeout(() => f.classList.remove('pulse'), 1600); }
+}
 function tapScore(st, side, btn) {
+  if (!started()) return notStarted();
   const a = addScore(st, side);
   buzz(15);
   if (btn) { btn.classList.add('flash'); setTimeout(() => btn.classList.remove('flash'), 350); }
@@ -1294,7 +1307,7 @@ $('howBtn').addEventListener('click', () => {
   openSheet(`<h2>How to use the score keeper <button class="x" data-close>×</button></h2>
     <div class="how">
     <div class="sec">Scoring</div>
-    ${hi('+', 'Tap Goal, Point or 2 Pointer for the team that scored', 'Wide, Short, Free and the rest are the smaller buttons underneath')}
+    ${hi('+', 'Tap Goal, Point or 2 Pointer for the team that scored', 'Start the half first. Wide, Free and the rest are further down: scroll to them')}
     <div class="sec">Fix a mistake</div>
     ${hi('↶', 'Tap <b>Undo</b> on the bar that pops up after each tap', 'For a mis-tap you notice straight away')}
     ${hi('☰', 'Tap the score in the Latest list', 'Add the player, change it (Point ↔ Wide, or the other team), or use – / + to take one off or add another')}
@@ -1339,7 +1352,7 @@ $('menuBtn').addEventListener('click', () => {
     ${mi('undo', '↶', 'Undo last score', last ? `${ll.t} · ${ll.s} · ${minute(last.half, last.sec)}` : 'Nothing to undo', '', !last)}
     ${canSub ? mi('sub', '⇄', 'Make a sub', S.subs.length ? `${S.subs.length} made so far` : 'Who came off and who went on') : ''}
     ${S.phase !== 'setup' ? mi('check', '✓', "Check against the ref's score", 'Set the score to the ref\'s') : ''}
-    ${mi('chart', '📈', 'Chart and timeline', 'Who was ahead, scorers, every score')}
+    ${S.phase !== 'setup' && S.phase !== 'play' ? mi('chart', '📈', 'Chart and timeline', 'Who was ahead, scorers, every score') : ''}
     ${mi('awake', '☀', 'Screen stays on', awakeWanted ? 'On for the whole match. Tap to turn off.' : 'Off. Tap to keep the screen on.')}
     ${S.phase === 'done' ? mi('again', '⟲', 'Start a new record', 'Keeps this one, starts again from 0-00', 'red') : S.phase !== 'setup' ? mi('reset', '⟲', 'Reset match', 'Clears the clock and every score', 'red') : ''}
   </div>`);
@@ -1565,22 +1578,9 @@ function voiceCtx() {
   };
 }
 const cap = t => String(t || '').replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase());
-function examples() {
-  const r = Array.from(roster().values());
-  const pick = r.find(p => p.inLineup && !p.isSub) || r[0];
-  const ex = [];
-  if (pick) ex.push(`"Point ${pick.first}"`);
-  const num = r.find(p => p.number != null && p !== pick);
-  if (num) ex.push(`"Goal number ${num.number}"`);
-  ex.push(`"Point ${oppName().split(' ')[0]}"`);
-  ex.push('"Wide for them"');
-  if (bigTypes().some(t => t.score_value === 2)) ex.push(`"Two pointer ${usName().split(' ')[0]}"`);
-  if (onPitch()) ex.push('"Sub 17 for 11"');
-  return ex.slice(0, 5);
-}
 function renderVoice() {
   $('voicePad').classList.toggle('has', vcards.length > 0);
-  $('micEx').innerHTML = vcards.length ? '' : examples().map(e => `<span>${esc(e)}</span>`).join('');
+  $('voicePad').classList.toggle('wait', !started());
   const r = roster();
   $('vcards').innerHTML = (vheard ? `<div class="vheard">Heard: "${esc(vheard)}"</div>` : '') + vcards.map(c => {
     if (c.kind === 'act') {
@@ -1648,6 +1648,7 @@ function handleVoice(text, at) {
   at = at || nowStamp();
   text = (text || '').trim();
   if (!text) { toast("Didn't hear anything. Hold the mic while you talk."); return; }
+  if (!started()) return notStarted();
   const res = CSScoreVoice.parse(text, voiceCtx());
   vheard = text;
   const now = Date.now();
