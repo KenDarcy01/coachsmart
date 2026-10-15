@@ -235,6 +235,10 @@ input,select{font:inherit;color:var(--text)}
 .err{padding:60px 24px;text-align:center;color:var(--muted)}
 .err b{display:block;color:var(--text);font-size:19px;margin-bottom:8px}
 .mc-card,.mc-kpis,.mc-tl{margin-left:0!important;margin-right:0!important}
+.pdfbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px}
+.pdfbtn svg{width:20px;height:20px}
+.pdfhost{position:fixed;left:-10000px;top:0;width:600px;padding:18px 16px 24px;background:var(--bg,#14181b);color:var(--text)}
+.pdf-h .lbl{text-align:center;font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -251,8 +255,7 @@ input,select{font:inherit;color:var(--text)}
 
   <div class="seg" id="viewSeg">
     <button data-v="score" class="on">Score</button>
-    <button data-v="chart">Chart</button>
-    <button data-v="timeline">Timeline</button>
+    <button data-v="stats">Stats</button>
   </div>
 
   <!-- SCORE VIEW -->
@@ -279,8 +282,7 @@ input,select{font:inherit;color:var(--text)}
   </div>
 
   <!-- CHART / TIMELINE -->
-  <div id="vChart" class="hidden"></div>
-  <div id="vTimeline" class="hidden"></div>
+  <div id="vStats" class="hidden"></div>
 </div>
 
 <div class="foot" id="foot"><div class="in" id="footIn"></div></div>
@@ -910,7 +912,7 @@ function show() {
 }
 
 // ── Rendering ────────────────────────────────────────────────────────────────
-let view = 'score', mode = 'tap', showAll = false;
+let view = 'score', mode = 'tap';
 
 function totalsNow() { return CSMatchCharts.totals(model()); }
 function countFor(st, side) {
@@ -942,10 +944,8 @@ function render() {
   $('viewSeg').classList.toggle('hidden', live);
   document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
   $('vScore').classList.toggle('hidden', view !== 'score');
-  $('vChart').classList.toggle('hidden', view !== 'chart');
-  $('vTimeline').classList.toggle('hidden', view !== 'timeline');
-  if (view === 'chart') renderChart();
-  if (view === 'timeline') renderTimeline();
+  $('vStats').classList.toggle('hidden', view !== 'stats');
+  if (view === 'stats') renderStats();
   const ph = S.phase;
   $('setup').classList.toggle('hidden', ph !== 'setup');
   $('live').classList.toggle('hidden', ph !== 'play');
@@ -1078,9 +1078,9 @@ function renderRecent() {
     ? ((y.e.ts || 0) - (x.e.ts || 0)) || (y.e.half - x.e.half) || (y.e.sec - x.e.sec)
     : (y.e.half - x.e.half) || (y.e.sec - x.e.sec) || ((y.e.ts || 0) - (x.e.ts || 0)));
   if (!items.length) { el.innerHTML = S.phase === 'play' ? '' : '<div class="list"><div class="empty">Nothing recorded</div></div>'; return; }
-  const n = showAll ? items.length : (S.phase === 'play' ? 3 : 5);
+  const n = items.length;
   const r = roster();
-  el.innerHTML = `<div class="listh"><span>${S.phase === 'play' ? 'Latest' : 'Everything recorded'}</span>${items.length > n || showAll ? `<button id="allBtn">${showAll ? 'Show less' : `Show all ${items.length}`}</button>` : ''}</div>
+  el.innerHTML = `<div class="listh"><span>${S.phase === 'play' ? 'Latest' : 'Everything recorded'}</span><span>${items.length}</span></div>
     <div class="list">${items.slice(0, n).map(it => {
       if (it.k === 's') {
         const s = it.s;
@@ -1091,7 +1091,6 @@ function renderRecent() {
     }).join('')}</div>`;
 }
 $('recent').addEventListener('click', e => {
-  if (e.target.closest('#allBtn')) { showAll = !showAll; renderRecent(); return; }
   const r = e.target.closest('[data-act]'); if (r) { openEdit(r.dataset.act); return; }
   const s = e.target.closest('[data-sub]'); if (s) openSubEdit(s.dataset.sub);
 });
@@ -1173,8 +1172,8 @@ function renderFoot() {
     else html = `<button class="fb g" data-f="resume">${IC_PLAY} Resume</button><button class="fb" id="endBtn" data-f="end">End ${h === 1 ? 'half' : 'match'}</button>`;
   }
   else if (ph === 'ht') { html = `<button class="fb g" data-f="h2">${IC_PLAY} Start 2nd half</button>`; one = true; }
-  else if (ph === 'ft') { html = `<button class="fb" data-f="chart">View chart</button><button class="fb g" data-f="finish">Save match</button>`; }
-  else { html = `<button class="fb" data-f="chart">View chart</button><button class="fb g" data-f="report">Match report</button>`; }
+  else if (ph === 'ft') { html = `<button class="fb" data-f="chart">View stats</button><button class="fb g" data-f="finish">Save match</button>`; }
+  else { html = `<button class="fb" data-f="chart">View stats</button><button class="fb g" data-f="report">Match report</button>`; }
   f.className = 'in' + (one ? ' one' : '');
   f.innerHTML = html;
   renderClock();
@@ -1188,7 +1187,7 @@ $('footIn').addEventListener('click', e => {
   if (k === 'end') return endHalf();
   if (k === 'h2') return startSecondHalf();
   if (k === 'finish') return finishMatch();
-  if (k === 'chart') return setView('chart');
+  if (k === 'chart') return setView('stats');
   if (k === 'report') return openReport();
 });
 
@@ -1253,18 +1252,84 @@ $('modeSeg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   mode = b.dataset.m; store.set('sk2mode', mode); renderMode();
 });
-function renderChart() {
+// Stats: the charts, then the timeline (newest first), then a PDF of the lot
+function renderStats() {
   CSMatchCharts.injectCss();
-  $('vChart').innerHTML = S.phase === 'setup' || !S.acts.length
-    ? '<div class="empty" style="padding-top:60px">The chart fills in as you score.</div>'
-    : CSMatchCharts.chartSection(model());
-}
-function renderTimeline() {
-  CSMatchCharts.injectCss();
-  $('vTimeline').innerHTML = `<div class="mc-tl">${CSMatchCharts.timelineSection(model())}</div>
+  if (!S.acts.length) { $('vStats').innerHTML = '<div class="empty" style="padding-top:60px">Nothing recorded yet.</div>'; return; }
+  const m = model();
+  $('vStats').innerHTML = `<button class="fb pdfbtn" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download PDF</button>
+    <div id="statsBody">${CSMatchCharts.chartSection(m)}
+    <div class="listh"><span>Timeline</span></div>
+    <div class="mc-tl">${CSMatchCharts.timelineSection(m)}</div></div>
     <div class="hint" style="text-align:center;margin-top:12px">To change a score, tap it in the list on the Score tab.</div>`;
+  $('pdfBtn').onclick = statsPdf;
 }
-setInterval(() => { if (S && view === 'chart' && S.phase === 'play' && !document.hidden) renderChart(); }, 15000);
+
+const loadScript = src => new Promise((ok, no) => {
+  if (document.querySelector(`script[src="${src}"]`)) return ok();
+  const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('load')); document.head.appendChild(s);
+});
+async function statsPdf() {
+  const btn = $('pdfBtn');
+  if (btn.disabled) return;
+  const label = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'Making the PDF…';
+  let host = null;
+  try {
+    await Promise.all([
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+    ]);
+    const t = totalsNow();
+    const ev = (C && C.event) || {};
+    const when = ev.event_date_time || '';
+    const dateTxt = when ? new Date(when).toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    // Lay the page out at a fixed phone-like width off screen, with a score header
+    host = document.createElement('div');
+    host.className = 'pdfhost';
+    host.innerHTML = `<div class="pdf-h"><div class="lbl">${esc([ev.team_name, dateTxt].filter(Boolean).join(' · '))}</div>
+      <div class="board">${boardHtml(S.phase === 'ht' ? 'HT' : S.phase === 'play' ? '' : 'FT')}</div></div>${$('statsBody').innerHTML}`;
+    document.body.appendChild(host);
+    await new Promise(r => setTimeout(r, 60));
+    const W = host.offsetWidth;
+    const canvas = await html2canvas(host, { backgroundColor: '#14181b', scale: 2, logging: false, useCORS: true, windowWidth: W });
+    // A4 pages, cut between blocks so no row is split
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pw = 210, ph = 297, pxPerMm = canvas.width / pw, pageH = Math.floor(ph * pxPerMm);
+    const hostTop = host.getBoundingClientRect().top;
+    const cuts = Array.from(host.querySelectorAll('.pdf-h,.mc-card,.mc-kpis,.mc-ev,.mc-band,.mc-run,.listh'))
+      .map(el => Math.round((el.getBoundingClientRect().bottom - hostTop) * 2)).sort((a, b) => a - b);
+    let y = 0, first = true;
+    while (y < canvas.height - 4) {
+      let end = Math.min(y + pageH, canvas.height);
+      if (end < canvas.height) { const c = cuts.filter(v => v > y + 40 && v <= end).pop(); if (c) end = c; }
+      const part = document.createElement('canvas');
+      part.width = canvas.width; part.height = end - y;
+      const g = part.getContext('2d'); g.fillStyle = '#14181b'; g.fillRect(0, 0, part.width, part.height);
+      g.drawImage(canvas, 0, y, canvas.width, end - y, 0, 0, canvas.width, end - y);
+      if (!first) doc.addPage();
+      doc.setFillColor(20, 24, 27); doc.rect(0, 0, pw, ph, 'F');
+      doc.addImage(part.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pw, (end - y) / pxPerMm);
+      first = false; y = end;
+    }
+    const name = `${usName()} v ${oppName()} ${t.us} ${t.opp}`.replace(/[^A-Za-z0-9 \-]/g, '').replace(/\s+/g, '_') + '.pdf';
+    if (window.FlutterBridge) {
+      const b64 = doc.output('datauristring').split(',')[1];
+      window.FlutterBridge.postMessage(`sharePdf:${name}:${b64}`);
+    } else {
+      const blob = doc.output('blob');
+      const file = new File([blob], name, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: name.replace('.pdf', '') });
+      else { const u = URL.createObjectURL(blob); const a = Object.assign(document.createElement('a'), { href: u, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 10000); }
+    }
+  } catch (e) {
+    if (!(e && e.name === 'AbortError')) toast(navigator.onLine === false ? 'The PDF needs signal. Try again when you have it.' : "Couldn't make the PDF. Try again.");
+  } finally {
+    if (host) host.remove();
+    btn.disabled = false; btn.innerHTML = label;
+  }
+}
 
 // ── Toast ────────────────────────────────────────────────────────────────────
 let toastTimer = null, toastAction = null;
@@ -1352,7 +1417,7 @@ $('menuBtn').addEventListener('click', () => {
     ${mi('undo', '↶', 'Undo last score', last ? `${ll.t} · ${ll.s} · ${minute(last.half, last.sec)}` : 'Nothing to undo', '', !last)}
     ${canSub ? mi('sub', '⇄', 'Make a sub', S.subs.length ? `${S.subs.length} made so far` : 'Who came off and who went on') : ''}
     ${S.phase !== 'setup' ? mi('check', '✓', "Check against the ref's score", 'Set the score to the ref\'s') : ''}
-    ${S.phase !== 'setup' && S.phase !== 'play' ? mi('chart', '📈', 'Chart and timeline', 'Who was ahead, scorers, every score') : ''}
+    ${S.phase !== 'setup' && S.phase !== 'play' ? mi('chart', '📈', 'Stats', 'Charts, scorers and the timeline, with a PDF') : ''}
     ${mi('awake', '☀', 'Screen stays on', awakeWanted ? 'On for the whole match. Tap to turn off.' : 'Off. Tap to keep the screen on.')}
     ${S.phase === 'done' ? mi('again', '⟲', 'Start a new record', 'Keeps this one, starts again from 0-00', 'red') : S.phase !== 'setup' ? mi('reset', '⟲', 'Reset match', 'Clears the clock and every score', 'red') : ''}
   </div>`);
@@ -1368,7 +1433,7 @@ $('sheetBody').addEventListener('click', e => {
   }
   if (k === 'sub') openSubs();
   if (k === 'check') openCorrect();
-  if (k === 'chart') setView('chart');
+  if (k === 'chart') setView('stats');
   if (k === 'awake') { keepAwake(!awakeWanted); }
   if (k === 'reset' || k === 'again') confirmReset(k === 'again');
 });
@@ -1435,8 +1500,8 @@ function confirmReset(again) {
 // Change or remove one entry
 function openEdit(id) {
   const a = S.acts.find(x => x.id === id); if (!a) return;
-  const extra = [];
-  let showAll = false;   // copies added with + while this sheet is open; changes apply to them too
+  const extra = [];   // copies added with + while this sheet is open; changes apply to them too
+  let showAll = false;
   const edit = ch => [a.id].concat(extra.map(x => x.id)).forEach(x => editAct(x, ch));
   const draw = () => {
     const l = actLabel(a);
