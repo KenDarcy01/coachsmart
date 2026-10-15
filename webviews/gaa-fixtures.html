@@ -809,7 +809,7 @@ function statsCards(results, isHome) {
 
 // Teams ranked over the results shown. A team is name + code + age, since the
 // same club name fields many teams. With a club chosen, only that club's sides count.
-function teamsTable(results, club) {
+function teamsModel(results, club) {
   const teams = {};
   const blank = () => ({ p: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0 });
   const tally = (t, forPts, against) => {
@@ -838,6 +838,11 @@ function teamsTable(results, club) {
   const list = Object.values(teams).map(t => ({ ...calc(t), subs: Object.values(t.subs).map(calc).sort(order) })).sort(order);
   // "By competition": every team-in-a-competition ranked on its own
   const flat = teamsMode === 'flat' ? list.flatMap(t => t.subs).sort(order) : null;
+  return { list, flat };
+}
+function teamsTable(results, club) {
+  const { list, flat } = teamsModel(results, club);
+  const { key, dir } = teamSort;
   if (!list.length) return '<div class="empty-state"><div class="empty-sub">No scored results for these filters yet.</div></div>';
   const th = (k, label, cls = '') => `<th class="${cls} ${key === k ? 'sorted' : ''}" onclick="sortTeams('${k}')">${label}${key === k ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`;
   const sign = v => v > 0 ? `+${v}` : `${v}`;
@@ -937,9 +942,8 @@ function sortTeams(k) {
 let trendData = null;
 let trendMode = recall('gaa_trend_mode', 'pts');   // pts | wl
 function setTrendMode(m) { trendMode = m; store('gaa_trend_mode', m); render(); }
-function trendSection(results, club) {
-  trendData = null;
-  if (!club) return '<div class="empty-state"><div class="empty-sub">Pick a club to chart its score difference over time.</div></div>';
+// One point per day: the club's average points difference (pts) or wins minus losses (wl)
+function trendPoints(results, club) {
   const days = new Map();
   results.forEach(g => {
     const sc = parseScore(g.score);
@@ -957,6 +961,12 @@ function trendSection(results, club) {
     const w = d.games.filter(x => x.diff > 0).length, l = d.games.filter(x => x.diff < 0).length;
     return { ...d, w, l, y: trendMode === 'wl' ? w - l : Math.round(d.games.reduce((s, x) => s + x.diff, 0) / d.games.length * 10) / 10 };
   });
+  return pts;
+}
+function trendSection(results, club) {
+  trendData = null;
+  if (!club) return '<div class="empty-state"><div class="empty-sub">Pick a club to chart its score difference over time.</div></div>';
+  const pts = trendPoints(results, club);
   if (pts.length < 2) return '<div class="empty-state"><div class="empty-sub">Not enough scored results in these dates and filters to draw a chart.</div></div>';
   trendData = pts;
   const all = pts.flatMap(p => p.games);
@@ -973,8 +983,9 @@ function trendSection(results, club) {
       Above the line is winning, below is losing. Follows the dates and filters chosen.</div>`;
 }
 
-// Monotone cubic path (Fritsch–Carlson): smooth, but never overshoots a point
-function smoothPath(P) {
+// Monotone cubic curve (Fritsch–Carlson): smooth, but never overshoots a point.
+// Returns one [c1x, c1y, c2x, c2y, x, y] bezier segment per gap between points.
+function smoothSegs(P) {
   const n = P.length, d = [], m = [];
   for (let i = 0; i < n - 1; i++) d.push((P[i + 1].y - P[i].y) / (P[i + 1].x - P[i].x || 1));
   m[0] = d[0]; m[n - 1] = d[n - 2];
@@ -984,12 +995,15 @@ function smoothPath(P) {
     const a = m[i] / d[i], b = m[i + 1] / d[i], h = a * a + b * b;
     if (h > 9) { const t = 3 / Math.sqrt(h); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
   }
-  let path = `M${P[0].x},${P[0].y}`;
+  const segs = [];
   for (let i = 0; i < n - 1; i++) {
     const dx = (P[i + 1].x - P[i].x) / 3;
-    path += `C${P[i].x + dx},${P[i].y + m[i] * dx} ${P[i + 1].x - dx},${P[i + 1].y - m[i + 1] * dx} ${P[i + 1].x},${P[i + 1].y}`;
+    segs.push([P[i].x + dx, P[i].y + m[i] * dx, P[i + 1].x - dx, P[i + 1].y - m[i + 1] * dx, P[i + 1].x, P[i + 1].y]);
   }
-  return path;
+  return segs;
+}
+function smoothPath(P) {
+  return `M${P[0].x},${P[0].y}` + smoothSegs(P).map(c => `C${c[0]},${c[1]} ${c[2]},${c[3]} ${c[4]},${c[5]}`).join('');
 }
 
 function niceStep(range, count) {
@@ -1109,25 +1123,29 @@ function section(title, list, extra = '') {
     }
     return out;
   };
-  let groupsHtml = '';
-  if (listGroup !== 'team') {
-    // By date: one heading per day, styled like the By team headings
-    const days = [];
-    for (const g of list) {
-      const day = dayFmt.format(new Date(g.start));
-      if (days.at(-1)?.day !== day) days.push({ day, games: [] });
-      days.at(-1).games.push(g);
-    }
-    groupsHtml = days.map(d => head(d.day, `<span class="age">${esc(d.day)}</span>`, d.games, d.games.map(gameRow).join(''))).join('');
-  } else {
-    // By team: youngest first up to adult, then by code and team name; games keep the section's date order
-    groupsHtml = teamGroups(list).map(t => head([t.age, t.code, t.side].join(' '),
-      `<span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}`, t.games, byDay(t.games))).join('');
-  }
+  const groupsHtml = listGroups(title, list).map(t => listGroup !== 'team'
+    ? head(t.key, `<span class="age">${esc(t.key)}</span>`, t.games, t.games.map(gameRow).join(''))
+    : head(t.key, `<span class="age">${esc(t.age)} ${esc(t.code || '')}</span>${t.side ? `<span class="side">${esc(t.side)}</span>` : ''}`, t.games, byDay(t.games))).join('');
   const allOpen = keys.every(k => !listCollapsed.has(k));
   const toggleBtn = keys.length > 1
     ? `<button class="clear-btn group-toggle" data-s="${esc(title)}" onclick="toggleAllGroups(this, ${allOpen})">${allOpen ? 'Collapse all' : 'Expand all'}</button>` : '';
   return `<div class="section-title">${title}<span class="n">${list.length}</span>${toggleBtn}</div>${extra}${groupsHtml}`;
+}
+
+// The groups of a list section, as on screen: one per day (by date) or per team
+// (youngest first up to adult, then code and team name; games keep the section's date order).
+// open = not collapsed on screen.
+function listGroups(sectionTitle, list) {
+  let groups;
+  if (listGroup !== 'team') {
+    groups = [];
+    for (const g of list) {
+      const day = dayFmt.format(new Date(g.start));
+      if (groups.at(-1)?.key !== day) groups.push({ key: day, games: [] });
+      groups.at(-1).games.push(g);
+    }
+  } else groups = teamGroups(list).map(t => ({ ...t, key: [t.age, t.code, t.side].join(' ') }));
+  return groups.map(t => ({ ...t, open: !listCollapsed.has(`${sectionTitle}|${t.key}`) }));
 }
 
 // Team groups (age + code + the chosen club's side), youngest first; games keep the order given
@@ -1318,42 +1336,103 @@ function renderPanel() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
 
-// ── CSV export (what's on screen) ──────────────────────────────────────────
-function exportCsv() {
-  // Same games and order as the list on screen: Home/Away filter, then by date or by team
+// What's on screen, for the downloads: the same view (list, Teams or Chart), the same
+// sections, groups and order, and only the groups and teams that are open on screen.
+function exportData() {
   const club = currentClub();
-  const shown = renderFilters().filter(g => !club || venue === 'all' || (venue === 'home') === sameClub(homeClub(g), club))
+  const shown = renderFilters().filter(g => !club || venue === 'all' || (venue === 'home') === sameClub(homeClub(g), club));
+  const now = Date.now();
+  const results = shown.filter(g => g.kind === 'result' || new Date(g.start).getTime() < now)
+    .sort((a, b) => new Date(b.start) - new Date(a.start));
+  const upcoming = shown.filter(g => !results.includes(g))
     .sort((a, b) => new Date(a.start) - new Date(b.start));
   const byTeam = listGroup === 'team';
-  // Groups as on screen: one per team, or one per day
-  const groups = byTeam
-    ? teamGroups(shown).map(t => ({ title: [t.age, t.code, t.side].filter(Boolean).join(' '), games: t.games }))
-    : shown.reduce((out, g) => {
-        const day = dayFmt.format(new Date(g.start));
-        if (out.at(-1)?.title !== day) out.push({ title: day, games: [] });
-        out.at(-1).games.push(g);
-        return out;
-      }, []);
-  const gameCells = (g, team) => {
-    const sc = parseScore(g.score);
-    const row = [shortFmt.format(new Date(g.start)), timeFmt.format(new Date(g.start)), g.code, g.age, g.competition,
-      g.home, sc?.home || '', sc?.away || '', g.away, g.venue || '', g.note || ''];
-    return byTeam ? [team, ...row] : row;
+  const parts = [{ all: 'All games', results: 'Results', fixtures: 'Fixtures', teams: 'Teams', trend: 'Chart' }[view] || 'All games'];
+  if (view === 'teams') parts.push(teamsMode === 'flat' ? 'by competition' : 'by age group');
+  else if (view === 'trend') parts.push(trendMode === 'wl' ? 'win / loss' : 'points difference');
+  else parts.push(byTeam ? 'by team' : 'by date');
+  if (club && venue !== 'all') parts.push(venue === 'home' ? 'home games' : 'away games');
+  const out = {
+    club, shown, results, byTeam, label: parts.join(' · '),
+    file: `${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-${parts.slice(0, 2).join('-').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`,
   };
-  const headers = [...(byTeam ? ['Team'] : []), 'Date', 'Time', 'Code', 'Age', 'Competition', 'Home', 'Home Score', 'Away Score', 'Away', 'Venue', 'Note'];
-  const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  // A blank line and the group heading before each group, for easy reading
-  const lines = [headers.map(cell).join(',')];
-  groups.forEach(grp => {
-    lines.push('', cell(`${grp.title} (${grp.games.length} game${grp.games.length === 1 ? '' : 's'})`));
-    grp.games.forEach(g => lines.push(gameCells(g, grp.title).map(cell).join(',')));
-  });
-  const csv = lines.join('\n');
+  if (view === 'teams') {
+    const { list, flat } = teamsModel(results, club);
+    const row = (t, rank, level, label) => ({ rank, level, age: t.age, code: t.code, name: t.name, label,
+      p: t.p, w: t.w, d: t.d, l: t.l, pct: t.pct, pf: t.pf, pa: t.pa, diff: t.diff, avg: t.avg });
+    out.kind = 'teams';
+    out.rows = flat
+      ? flat.map((t, i) => row(t, i + 1, 0, t.label))
+      : list.flatMap((t, i) => {
+          const split = t.subs.length > 1, open = split && !teamsCollapsed.has(t.key);
+          return [row(t, i + 1, 0, split ? `${t.subs.length} competitions` : t.subs[0].label),
+            ...(open ? t.subs.map(sub => row(sub, '', 1, sub.label)) : [])];
+        });
+    out.count = `${out.rows.filter(r => !r.level).length} teams`;
+  } else if (view === 'trend') {
+    out.kind = 'chart';
+    out.pts = club ? trendPoints(results, club) : [];
+    out.count = `${out.pts.reduce((t, p) => t + p.games.length, 0)} results`;
+  } else {
+    out.kind = 'list';
+    const secs = view === 'all' && byTeam ? [['Games', [...results].reverse().concat(upcoming), true]]
+      : [...(view !== 'fixtures' ? [['Results', results, true]] : []), ...(view !== 'results' ? [['Upcoming', upcoming, false]] : [])];
+    out.sections = secs.filter(([, list]) => list.length).map(([title, games, stats]) => ({
+      title, games, rec: stats ? groupRecord(results) : null,
+      groups: listGroups(title, games).map(t => ({ ...t, title: byTeam ? `${t.age} ${t.code || ''}`.trim() : t.key, side: byTeam ? t.side : '' })),
+    }));
+    out.count = `${out.sections.reduce((t, x) => t + x.games.length, 0)} games`;
+  }
+  return out;
+}
+const groupLabel = grp => `${[grp.title, grp.side].filter(Boolean).join(' ')} (${grp.games.length} game${grp.games.length === 1 ? '' : 's'})`;
+const signed = v => v > 0 ? `+${v}` : `${v}`;
+const resultLetter = diff => diff > 0 ? 'W' : diff < 0 ? 'L' : 'D';
+const trendValueLabel = () => trendMode === 'wl' ? 'Wins minus losses' : 'Avg points difference';
+
+function download(blob, name) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = `${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures${byTeam ? '-by-team' : ''}.csv`;
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
   a.click();
-  URL.revokeObjectURL(a.href);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ── CSV export (what's on screen) ──────────────────────────────────────────
+function exportCsv() {
+  const x = exportData();
+  const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [];
+  const line = vals => lines.push(vals.map(cell).join(','));
+  if (x.kind === 'teams') {
+    line(['#', 'Team', 'Club', 'Competition', 'P', 'W', 'D', 'L', 'Win %', 'For', 'Against', 'Diff', 'Per game']);
+    x.rows.forEach(r => line(r.level
+      ? ['', '', '', r.label, r.p, r.w, r.d, r.l, `${r.pct}%`, r.pf, r.pa, signed(r.diff), signed(r.avg)]
+      : [r.rank, `${r.age} ${r.code}`, r.name, r.label, r.p, r.w, r.d, r.l, `${r.pct}%`, r.pf, r.pa, signed(r.diff), signed(r.avg)]));
+  } else if (x.kind === 'chart') {
+    line(['Date', trendValueLabel(), 'Result', 'Points difference', 'Home', 'Home Score', 'Away Score', 'Away', 'Code', 'Age', 'Competition']);
+    [...x.pts].reverse().forEach(p => p.games.forEach(({ g, diff }) => {
+      const sc = parseScore(g.score);
+      line([shortFmt.format(new Date(g.start)), signed(p.y), resultLetter(diff), signed(diff), g.home, sc.home, sc.away, g.away, g.code, g.age, g.competition]);
+    }));
+  } else {
+    // A blank line and the heading before each section and group; closed groups show the heading only
+    const headers = [...(x.byTeam ? ['Team'] : []), 'Date', 'Time', 'Code', 'Age', 'Competition', 'Home', 'Home Score', 'Away Score', 'Away', 'Venue', 'Note'];
+    line(headers);
+    x.sections.forEach(sec => {
+      if (x.sections.length > 1 || sec.title !== 'Games') lines.push('', cell(`${sec.title.toUpperCase()} (${sec.games.length})`));
+      sec.groups.forEach(grp => {
+        lines.push('', cell(groupLabel(grp)));
+        if (!grp.open) return;
+        grp.games.forEach(g => {
+          const sc = parseScore(g.score);
+          line([...(x.byTeam ? [[grp.title, grp.side].filter(Boolean).join(' ')] : []), shortFmt.format(new Date(g.start)), timeFmt.format(new Date(g.start)),
+            g.code, g.age, g.competition, g.home, sc?.home || '', sc?.away || '', g.away, g.venue || '', g.note || '']);
+        });
+      });
+    });
+  }
+  download(new Blob([lines.join('\n')], { type: 'text/csv' }), `${x.file}.csv`);
 }
 
 // ── Excel export (what's on screen) ────────────────────────────────────────
@@ -1375,24 +1454,6 @@ async function exportXlsx() {
   try { await buildXlsx(); }
   catch (e) { alert(`Excel export failed: ${e.message}`); }
   finally { btn.disabled = false; }
-}
-
-// Games and groups for the downloads: same games and order as the list on screen
-function exportData() {
-  const club = currentClub();
-  const shown = renderFilters().filter(g => !club || venue === 'all' || (venue === 'home') === sameClub(homeClub(g), club))
-    .sort((a, b) => new Date(a.start) - new Date(b.start));
-  const byTeam = listGroup === 'team';
-  // Groups as on screen: one per team, or one per day
-  const groups = byTeam
-    ? teamGroups(shown).map(t => ({ title: [t.age, t.code, t.side].filter(Boolean).join(' '), games: t.games }))
-    : shown.reduce((out, g) => {
-        const day = dayFmt.format(new Date(g.start));
-        if (out.at(-1)?.title !== day) out.push({ title: day, games: [] });
-        out.at(-1).games.push(g);
-        return out;
-      }, []);
-  return { club, shown, byTeam, groups };
 }
 
 // ── PDF export (what's on screen) ──────────────────────────────────────────
@@ -1422,11 +1483,12 @@ async function exportPdf() {
 
 async function buildPdf() {
   const jsPDF = await loadPdf();
-  const { club, shown, byTeam, groups } = exportData();
+  const x = exportData();
+  const { club } = x;
   const { from, to } = dateRange();
   // Screen colours
   const C = {
-    bg: [20, 24, 27], card: [30, 34, 43], border: [44, 49, 60], text: [231, 235, 238], muted: [156, 163, 175],
+    bg: [20, 24, 27], card: [30, 34, 43], card2: [37, 42, 53], border: [44, 49, 60], text: [231, 235, 238], muted: [156, 163, 175],
     green: [135, 194, 50], red: [224, 82, 82], amber: [245, 166, 35], band: [30, 38, 27], pill: [37, 42, 53], winPill: [44, 60, 30],
   };
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -1439,11 +1501,12 @@ async function buildPdf() {
     return t + '…';
   };
   const fill = (c, ...r) => { doc.setFillColor(...c); doc.rect(...r, 'F'); };
-  const box = (x, y, w, h, c, border) => {
+  const box = (x0, y0, w, h, c, border) => {
     doc.setFillColor(...c);
-    if (border) { doc.setDrawColor(...border); doc.setLineWidth(0.25); doc.roundedRect(x, y, w, h, 2, 2, 'FD'); }
-    else doc.roundedRect(x, y, w, h, 1.4, 1.4, 'F');
+    if (border) { doc.setDrawColor(...border); doc.setLineWidth(0.25); doc.roundedRect(x0, y0, w, h, 2, 2, 'FD'); }
+    else doc.roundedRect(x0, y0, w, h, 1.4, 1.4, 'F');
   };
+  const tone = v => v > 0 ? C.green : v < 0 ? C.red : C.muted;
 
   let y = 0, page = 0;
   const newPage = () => {
@@ -1454,70 +1517,77 @@ async function buildPdf() {
     font(15, 'normal', C.green); doc.text('SMART', M + doc.getTextWidth('COACH') + 0.3, 13);
     font(6.5, 'bold', C.muted); doc.text('GAA FIXTURES', M, 17.5);
     font(10, 'bold', C.text);
-    const right = `${club || 'All clubs'}`;
-    doc.text(right, W - M, 12, { align: 'right' });
+    doc.text(`${club || 'All clubs'}`, W - M, 12, { align: 'right' });
     font(7.5, 'normal', C.muted);
-    doc.text(`${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}  ·  ${shown.length} games  ·  by ${byTeam ? 'team' : 'date'}`, W - M, 17, { align: 'right' });
+    doc.text(`${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))}  ·  ${x.count}  ·  ${x.label}`, W - M, 17, { align: 'right' });
     doc.setDrawColor(...C.border); doc.setLineWidth(0.3); doc.line(0, 22, W, 22);
     y = 29;
   };
   const room = h => { if (y + h > H - 12) newPage(); };
+  const sectionTitle = (title, n) => {
+    room(16);
+    font(13, 'bold', C.text); doc.text(title.toUpperCase(), M, y + 5);
+    if (n) { const tw = doc.getTextWidth(title.toUpperCase()); font(8, 'normal', C.muted); doc.text(String(n), M + tw + 2.5, y + 5); }
+    y += 9;
+  };
+  const empty = msg => { font(9, 'normal', C.muted); doc.text(msg, W / 2, y + 10, { align: 'center' }); y += 16; };
 
   newPage();
 
   // Stat cards, as on screen (club chosen, scored results)
-  const rec = groupRecord(shown);
-  if (rec) {
+  const statCards = rec => {
     const cards = [...rec.recs, { label: 'Avg points', avg: true }];
     const gap = 3, cw = (CW - gap * (cards.length - 1)) / cards.length, ch = 21;
+    room(ch + 6);
     cards.forEach((c, i) => {
-      const x = M + i * (cw + gap);
-      box(x, y, cw, ch, C.card, C.border);
-      font(6.5, 'bold', C.muted); doc.text(c.label.toUpperCase(), x + 3.5, y + 5.5);
+      const cx = M + i * (cw + gap);
+      box(cx, y, cw, ch, C.card, C.border);
+      font(6.5, 'bold', C.muted); doc.text(c.label.toUpperCase(), cx + 3.5, y + 5.5);
       if (c.avg) {
-        font(15, 'bold', C.text); doc.text(rec.avgFor, x + 3.5, y + 13);
-        let tx = x + 3.5 + doc.getTextWidth(rec.avgFor) + 1.2;
+        font(15, 'bold', C.text); doc.text(rec.avgFor, cx + 3.5, y + 13);
+        let tx = cx + 3.5 + doc.getTextWidth(rec.avgFor) + 1.2;
         font(8, 'normal', C.muted); doc.text('v', tx, y + 13); tx += doc.getTextWidth('v') + 1.2;
         font(15, 'bold', C.text); doc.text(rec.avgAgainst, tx, y + 13);
         const diff = Math.round((rec.avgFor - rec.avgAgainst) * 10) / 10;
-        font(6.5, 'normal', C.muted); doc.text(`For v against · ${diff >= 0 ? '+' : ''}${diff} a game`, x + 3.5, y + 18);
+        font(6.5, 'normal', C.muted); doc.text(`For v against · ${diff >= 0 ? '+' : ''}${diff} a game`, cx + 3.5, y + 18);
       } else {
-        font(15, 'bold', C.text); doc.text(`${c.pct}%`, x + 3.5, y + 13);
+        font(15, 'bold', C.text); doc.text(`${c.pct}%`, cx + 3.5, y + 13);
         const pw = doc.getTextWidth(`${c.pct}%`);
-        font(8, 'normal', C.muted); doc.text('won', x + 3.5 + pw + 1.2, y + 13);
-        font(6.5, 'normal', C.muted); doc.text(`${c.w}W · ${c.d}D · ${c.l}L from ${c.n}`, x + 3.5, y + 17);
+        font(8, 'normal', C.muted); doc.text('won', cx + 3.5 + pw + 1.2, y + 13);
+        font(6.5, 'normal', C.muted); doc.text(`${c.w}W · ${c.d}D · ${c.l}L from ${c.n}`, cx + 3.5, y + 17);
         // W/D/L bar
-        const bw = cw - 7, bx = x + 3.5, by = y + 18.6;
+        const bw = cw - 7, bx = cx + 3.5, by = y + 18.6;
         fill(C.green, bx, by, bw * c.w / c.n, 0.9);
         fill(C.muted, bx + bw * c.w / c.n, by, bw * c.d / c.n, 0.9);
         fill(C.red, bx + bw * (c.w + c.d) / c.n, by, bw * c.l / c.n, 0.9);
       }
     });
     y += ch + 6;
-  }
+  };
 
   const gameH = g => (g.note || '').replace(/^Time TBC( · )?/, '') ? 15 : 13;
-  const dayLabel = d => {
+  const dayLabel = (d, tail) => {
     room(7);
     font(7, 'bold', C.muted); doc.text(d.toUpperCase(), M, y + 4);
+    if (tail) { const tw = doc.getTextWidth(d.toUpperCase()); font(7, 'bold', tail[1]); doc.text(tail[0], M + tw + 3, y + 4); }
     y += 6.5;
   };
   const gameCard = g => {
     const h = gameH(g);
     room(h + 1.6);
-    const x = M, mid = y + h / 2;
-    box(x, y, CW, h, C.card, C.border);
+    const x0 = M, mid = y + h / 2;
+    box(x0, y, CW, h, C.card, C.border);
     const d = new Date(g.start), sc = parseScore(g.score);
     const hWin = sc && sc.ht > sc.at, aWin = sc && sc.at > sc.ht;
     // Time
-    font(9, 'bold', C.muted); doc.text(/Time TBC/.test(g.note || '') ? 'TBC' : timeFmt.format(d), x + 4, mid + 1.2);
+    font(9, 'bold', C.muted); doc.text(/Time TBC/.test(g.note || '') ? 'TBC' : timeFmt.format(d), x0 + 4, mid + 1.2);
     // Team label and competition
-    const cx = x + 19;
+    const cx = x0 + 19;
     font(8.5, 'bold', C.green); doc.text(g.age || '', cx, mid - 0.6);
     font(8.5, 'bold', C.text); doc.text(fit(g.code || '', 34), cx + doc.getTextWidth(g.age || '') + (g.age ? 1.3 : 0), mid - 0.6);
     font(7, 'normal', C.muted); doc.text(fit(shortComp(g), 44), cx, mid + 3.4);
     // Match: home  [score] v [score]  away
-    const mx = x + 112;
+    const mx = x0 + 112;
     const isClub = n => club && sameClub(canonClub(n), club);
     const nameColor = (n, lost) => lost ? C.muted : C.text;
     let hl = mx - 3, ar = mx + 3;
@@ -1536,49 +1606,165 @@ async function buildPdf() {
     font(9, isClub(g.home) ? 'bold' : 'normal', nameColor(g.home, aWin)); doc.text(fit(g.home, sideW - (mx - 3 - hl)), hl, mid + 1.2, { align: 'right' });
     font(9, isClub(g.away) ? 'bold' : 'normal', nameColor(g.away, hWin)); doc.text(fit(g.away, sideW - (ar - mx - 3)), ar, mid + 1.2);
     // Venue and note
-    const vx = x + 160, vw = CW - 160 - 3;
+    const vx = x0 + 160, vw = CW - 160 - 3;
     const note = (g.note || '').replace(/^Time TBC( · )?/, '');
     font(7.5, 'normal', C.muted); doc.text(fit(g.venue || '', vw), vx, note ? mid - 0.6 : mid + 1);
     if (note) { font(6.8, 'normal', C.amber); doc.text(fit(note, vw), vx, mid + 3.4); }
     y += h + 1.6;
   };
 
-  groups.forEach(grp => {
-    const statsRec = groupRecord(grp.games);
-    const bandH = statsRec ? 13 : 8.5;
-    room(bandH + 3 + gameH(grp.games[0]) + (byTeam ? 7 : 0));
-    y += 2;
-    // Group band: soft green with a bright edge, title, count and record
-    fill(C.band, M, y, CW, bandH);
-    fill(C.green, M, y, 0.9, bandH);
-    const t = byTeam ? grp.title.replace(club ? ` ${grp.games[0] && (sameClub(homeClub(grp.games[0]), club) ? grp.games[0].home : grp.games[0].away)}` : '', '') : grp.title;
-    font(10, 'bold', C.text); doc.text(t, M + 4, y + 5.6);
-    if (byTeam && club) {
-      const side = grp.title.slice(t.length).trim();
-      font(9.5, 'bold', C.green); doc.text(side, M + 4 + doc.getTextWidth(t) + 3, y + 5.6);
-      font(10, 'bold', C.text);
-    }
-    font(7, 'normal', C.muted); doc.text(`${grp.games.length} game${grp.games.length === 1 ? '' : 's'}`, W - M - 3, y + 5.6, { align: 'right' });
-    if (statsRec) {
-      let sx = M + 4;
-      const part = (label, value, color, tail) => {
-        font(7.5, 'normal', C.muted); doc.text(label, sx, y + 10.6); sx += doc.getTextWidth(label) + 1.5;
-        font(7.5, 'bold', color); doc.text(value, sx, y + 10.6); sx += doc.getTextWidth(value) + 1.2;
-        font(7.5, 'normal', C.muted); doc.text(tail, sx, y + 10.6); sx += doc.getTextWidth(tail) + 6;
-      };
-      statsRec.recs.forEach(r => part(r.label, `${r.pct}%`, r.pct >= 50 ? C.green : C.red, r.wdl));
-      part('Avg points', statsRec.avgFor, C.text, `v ${statsRec.avgAgainst}`);
-    }
-    y += bandH + 2.5;
-    let lastDay = '';
-    grp.games.forEach(g => {
-      if (byTeam) {
-        const day = dayFmt.format(new Date(g.start));
-        if (day !== lastDay) { dayLabel(day); lastDay = day; }
-      }
-      gameCard(g);
+  // ── List views: sections, then group bands; closed groups show their band only
+  const listView = () => {
+    if (!x.sections.length) return empty('Nothing matches these filters.');
+    x.sections.forEach(sec => {
+      sectionTitle(sec.title, sec.games.length);
+      if (sec.rec) statCards(sec.rec);
+      sec.groups.forEach(grp => {
+        const statsRec = groupRecord(grp.games);
+        const bandH = statsRec ? 13 : 8.5;
+        room(bandH + 3 + (grp.open ? gameH(grp.games[0]) + (x.byTeam ? 7 : 0) : 0));
+        y += 2;
+        // Group band: soft green with a bright edge, open/closed arrow, title, count and record
+        fill(C.band, M, y, CW, bandH);
+        fill(C.green, M, y, 0.9, bandH);
+        doc.setFillColor(...C.muted);
+        const ty = y + 4.3;
+        if (grp.open) doc.triangle(M + 3.2, ty - 1, M + 5.8, ty - 1, M + 4.5, ty + 1.2, 'F');
+        else doc.triangle(M + 3.6, ty - 1.4, M + 3.6, ty + 1.4, M + 5.8, ty, 'F');
+        font(10, 'bold', C.text); doc.text(grp.title, M + 8, y + 5.6);
+        if (grp.side) { font(9.5, 'bold', C.green); doc.text(grp.side, M + 8 + doc.getTextWidth(grp.title) + 3, y + 5.6); }
+        font(7, 'normal', C.muted); doc.text(`${grp.games.length} game${grp.games.length === 1 ? '' : 's'}`, W - M - 3, y + 5.6, { align: 'right' });
+        if (statsRec) {
+          let sx = M + 8;
+          const part = (label, value, color, tail) => {
+            font(7.5, 'normal', C.muted); doc.text(label, sx, y + 10.6); sx += doc.getTextWidth(label) + 1.5;
+            font(7.5, 'bold', color); doc.text(value, sx, y + 10.6); sx += doc.getTextWidth(value) + 1.2;
+            font(7.5, 'normal', C.muted); doc.text(tail, sx, y + 10.6); sx += doc.getTextWidth(tail) + 6;
+          };
+          statsRec.recs.forEach(r => part(r.label, `${r.pct}%`, r.pct >= 50 ? C.green : C.red, r.wdl));
+          part('Avg points', statsRec.avgFor, C.text, `v ${statsRec.avgAgainst}`);
+        }
+        y += bandH + (grp.open ? 2.5 : 0.5);
+        if (!grp.open) return;
+        let lastDay = '';
+        grp.games.forEach(g => {
+          if (x.byTeam) {
+            const day = dayFmt.format(new Date(g.start));
+            if (day !== lastDay) { dayLabel(day); lastDay = day; }
+          }
+          gameCard(g);
+        });
+      });
+      y += 4;
     });
-  });
+  };
+
+  // ── Teams view: one card per team, open teams followed by their competitions
+  const teamsView = () => {
+    sectionTitle('Teams', x.rows.filter(r => !r.level).length);
+    if (!x.rows.length) return empty('No scored results for these filters yet.');
+    // Right edges of the number columns (Win % is centred)
+    const cols = [['P', 'p', 98], ['W', 'w', 107], ['D', 'd', 116], ['L', 'l', 125], ['Win %', 'pct', 137, 'c'],
+      ['For', 'pf', 158], ['Agst', 'pa', 168], ['Diff', 'diff', 179], ['Per game', 'avg', 191]];
+    const header = () => {
+      font(6.5, 'bold', C.muted);
+      doc.text('#', M + 3, y + 3.5); doc.text('TEAM', M + 11, y + 3.5);
+      cols.forEach(([h, , cx, al]) => doc.text(h.toUpperCase(), M + cx - (al ? 0 : 3), y + 3.5, { align: al ? 'center' : 'right' }));
+      y += 6;
+    };
+    header();
+    x.rows.forEach(r => {
+      const sub = r.level === 1, h = sub ? 8 : 12.5;
+      if (y + h + 1.6 > H - 12) { newPage(); header(); }
+      const bx = sub ? M + 9 : M;
+      box(bx, y, CW - (bx - M), h, sub ? C.card2 : C.card, C.border);
+      const mid = y + h / 2;
+      if (sub) { font(7.5, 'normal', C.text); doc.text(fit(r.label, 80), bx + 3, mid + 1); }
+      else {
+        font(8.5, 'bold', C.muted); doc.text(String(r.rank), M + 3, mid + 1.2);
+        font(8.5, 'bold', C.green); doc.text(r.age, M + 11, mid - 0.8);
+        font(8.5, 'bold', C.text); doc.text(fit(r.code, 55), M + 11 + doc.getTextWidth(r.age) + 1.3, mid - 0.8);
+        font(7, 'normal', C.muted); doc.text(fit(`${r.name} · ${r.label}`, 75), M + 11, mid + 3.3);
+      }
+      cols.forEach(([, k, cx, al]) => {
+        const right = M + cx - 3;
+        if (k === 'pct') {
+          font(sub ? 7.5 : 8.5, 'bold', C.text);
+          const t = `${r.pct}%`, pw = doc.getTextWidth(t) + 4, ph = sub ? 5 : 6;
+          box(M + cx - pw / 2, mid - ph / 2, pw, ph, r.pct >= 50 ? C.winPill : C.pill);
+          font(sub ? 7.5 : 8.5, 'bold', r.pct >= 50 ? C.green : C.text); doc.text(t, M + cx, mid + 1.1, { align: 'center' });
+          return;
+        }
+        const v = k === 'diff' || k === 'avg' ? signed(r[k]) : String(r[k]);
+        const color = k === 'diff' || k === 'avg' ? tone(r[k]) : sub ? C.muted : C.text;
+        font(sub ? 7.5 : 8.5, sub ? 'normal' : 'bold', color); doc.text(v, right, mid + 1.1, { align: 'right' });
+      });
+      y += h + 1.6;
+    });
+    font(6.5, 'normal', C.muted);
+    room(6); doc.text('Ranked by win %, then points difference per game. Points count goals as 3. Only results in the dates and filters chosen are counted.', M, y + 3);
+    y += 6;
+  };
+
+  // ── Chart view: the line as on screen, then each day's games
+  const chartView = () => {
+    const pts = x.pts;
+    if (!club) return empty('Pick a club to chart its score difference over time.');
+    if (pts.length < 2) return empty('Not enough scored results in these dates and filters to draw a chart.');
+    const all = pts.flatMap(p => p.games);
+    const w = all.filter(v => v.diff > 0).length, l = all.filter(v => v.diff < 0).length;
+    const avg = Math.round(all.reduce((t, v) => t + v.diff, 0) / all.length * 10) / 10;
+    sectionTitle(trendMode === 'wl' ? 'Wins v losses' : 'Score difference', `${all.length} games · ${w}W ${all.length - w - l}D ${l}L · ${signed(avg)} pts a game`);
+    const ch = 78, ml = 13, mr = 5, mt = 6, mb = 9;
+    room(ch + 4);
+    box(M, y, CW, ch, C.card, C.border);
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    const ys = pts.map(p => p.y);
+    let lo = Math.min(0, ...ys), hi = Math.max(0, ...ys);
+    const step = trendMode === 'wl' ? Math.max(1, niceStep((hi - lo) || 2, 4)) : niceStep((hi - lo) || 10, 5);
+    lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+    if (lo === hi) hi = lo + step;
+    const X = t => M + ml + (t - t0) / (t1 - t0 || 1) * (CW - ml - mr);
+    const Y = v => y + mt + (hi - v) / (hi - lo) * (ch - mt - mb);
+    doc.setLineWidth(0.15);
+    for (let v = lo; v <= hi + 1e-9; v += step) {
+      doc.setDrawColor(44, 49, 60); doc.line(M + ml, Y(v), M + CW - mr, Y(v));
+      font(6.5, 'normal', C.muted); doc.text(signed(Math.round(v * 10) / 10), M + ml - 2, Y(v) + 1.1, { align: 'right' });
+    }
+    const nx = Math.max(1, Math.min(6, Math.round((t1 - t0) / 864e5)));   // no more date labels than days
+    for (let i = 0; i <= nx; i++) {
+      const t = t0 + (t1 - t0) * i / nx;
+      font(6.5, 'normal', C.muted); doc.text(shortFmt.format(new Date(t)), X(t), y + ch - 3, { align: i === 0 ? 'left' : i === nx ? 'right' : 'center' });
+    }
+    // Level line, dashed
+    doc.setDrawColor(...C.muted); doc.setLineWidth(0.35); doc.setLineDashPattern([1.2, 1.2], 0);
+    doc.line(M + ml, Y(0), M + CW - mr, Y(0));
+    doc.setLineDashPattern([], 0);
+    // Smooth line through the points
+    const P = pts.map(p => ({ x: X(p.t), y: Y(p.y) }));
+    let px = P[0].x, py = P[0].y;
+    const rel = smoothSegs(P).map(c => { const r = [c[0] - px, c[1] - py, c[2] - px, c[3] - py, c[4] - px, c[5] - py]; px = c[4]; py = c[5]; return r; });
+    doc.setDrawColor(...C.text); doc.setLineWidth(0.5);
+    doc.lines(rel, P[0].x, P[0].y, [1, 1], 'S');
+    P.forEach((p, i) => { doc.setFillColor(...tone(pts[i].y)); doc.setDrawColor(...C.card); doc.setLineWidth(0.4); doc.circle(p.x, p.y, pts.length > 60 ? 0.8 : 1.1, 'FD'); });
+    y += ch + 3;
+    font(6.5, 'normal', C.muted);
+    doc.text(trendMode === 'wl'
+      ? `Each point is a day: ${club}'s wins minus losses in that day's results. Above the line is winning, below is losing.`
+      : `Each point is a day: ${club}'s average points difference in that day's results (goals count as 3). Above the line is winning, below is losing.`, M, y + 2);
+    y += 8;
+    // The games behind each point, newest first like the Results list
+    sectionTitle('Games by day', all.length);
+    [...pts].reverse().forEach(p => {
+      room(7 + gameH(p.games[0].g));
+      dayLabel(dayFmt.format(new Date(p.t)), [trendMode === 'wl' ? `${p.w}W ${p.games.length - p.w - p.l}D ${p.l}L` : signed(p.y), tone(p.y)]);
+      p.games.forEach(({ g }) => gameCard(g));
+    });
+  };
+
+  if (x.kind === 'teams') teamsView();
+  else if (x.kind === 'chart') chartView();
+  else listView();
 
   // Footer on every page
   const pages = doc.internal.getNumberOfPages();
@@ -1588,109 +1774,156 @@ async function buildPdf() {
     doc.text('CoachSmart', M, H - 5);
     doc.text(`Page ${i} of ${pages}`, W - M, H - 5, { align: 'right' });
   }
-  doc.save(`${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures${byTeam ? '-by-team' : ''}.pdf`);
+  doc.save(`${x.file}.pdf`);
 }
 
 async function buildXlsx() {
   const ExcelJS = await loadExcel();
-  const { club, shown, byTeam, groups } = exportData();
-  const GREEN = 'FF87C232', DARK = 'FF14181B', LINE = 'FFE2E5EA', MUTED = 'FF6B7280';
-  const cols = [
+  const x = exportData();
+  const { club } = x;
+  const GREEN = 'FF87C232', DARK = 'FF14181B', LINE = 'FFE2E5EA', MUTED = 'FF6B7280', RED = 'FFC0392B', SOFT = 'FFF1F7E8';
+  const { from, to } = dateRange();
+  const listCols = [
+    ...(x.byTeam && x.kind === 'list' ? [{ header: 'Team', key: 'team', width: 26 }] : []),
     { header: 'Date', key: 'date', width: 16 },
-    { header: 'Time', key: 'time', width: 8 },
+    { header: 'Time', key: 'time', width: 8, c: 1 },
     { header: 'Code', key: 'code', width: 16 },
     { header: 'Age', key: 'age', width: 9 },
     { header: 'Competition', key: 'comp', width: 42 },
     { header: 'Home', key: 'home', width: 24 },
-    { header: 'Home score', key: 'hs', width: 11 },
-    { header: 'Away score', key: 'as', width: 11 },
+    { header: 'Home score', key: 'hs', width: 11, c: 1 },
+    { header: 'Away score', key: 'as', width: 11, c: 1 },
     { header: 'Away', key: 'away', width: 24 },
     { header: 'Venue', key: 'venue', width: 24 },
     { header: 'Note', key: 'note', width: 26 },
   ];
+  const num = (header, key, width = 9) => ({ header, key, width, c: 1 });
+  const teamCols = [
+    num('#', 'rank', 5), { header: 'Team', key: 'team', width: 24 }, { header: 'Club', key: 'club', width: 22 }, { header: 'Competition', key: 'comp', width: 34 },
+    num('P', 'p', 6), num('W', 'w', 6), num('D', 'd', 6), num('L', 'l', 6), num('Win %', 'pct'), num('For', 'pf'), num('Against', 'pa'), num('Diff', 'diff'), num('Per game', 'avg'),
+  ];
+  const chartCols = [
+    { header: 'Date', key: 'date', width: 16 }, num(trendValueLabel(), 'value', 20), num('Result', 'res', 9), num('Points diff', 'diff', 12),
+    { header: 'Home', key: 'home', width: 24 }, num('Home score', 'hs', 11), num('Away score', 'as', 11), { header: 'Away', key: 'away', width: 24 },
+    { header: 'Code', key: 'code', width: 16 }, { header: 'Age', key: 'age', width: 9 }, { header: 'Competition', key: 'comp', width: 42 },
+  ];
+  const cols = x.kind === 'teams' ? teamCols : x.kind === 'chart' ? chartCols : listCols;
   const last = cols.length;
-  const { from, to } = dateRange();
 
   const wb = new ExcelJS.Workbook();
   wb.creator = 'CoachSmart';
-  const ws = wb.addWorksheet(byTeam ? 'By team' : 'By date', {
+  const ws = wb.addWorksheet(x.label.split(' · ').slice(0, 2).join(' ').slice(0, 31), {
     views: [{ state: 'frozen', ySplit: 4, showGridLines: false }],
     pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '4:4' },
   });
   ws.columns = cols.map(c => ({ key: c.key, width: c.width }));
 
-  // Title and summary
-  ws.mergeCells(1, 1, 1, last);
   // Title band: black with green text, like the app
   const blackFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK } };
-  Object.assign(ws.getCell(1, 1), { value: `${club || 'All clubs'} fixtures and results`, font: { bold: true, size: 16, color: { argb: GREEN } }, fill: blackFill, alignment: { vertical: 'middle', indent: 1 } });
+  const what = { teams: 'teams', chart: 'score chart' }[x.kind] || 'fixtures and results';
+  ws.mergeCells(1, 1, 1, last);
+  Object.assign(ws.getCell(1, 1), { value: `${club || 'All clubs'} ${what}`, font: { bold: true, size: 16, color: { argb: GREEN } }, fill: blackFill, alignment: { vertical: 'middle', indent: 1 } });
   ws.mergeCells(2, 1, 2, last);
   Object.assign(ws.getCell(2, 1), {
-    value: `${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))} · ${shown.length} games · grouped by ${byTeam ? 'team' : 'date'}`,
+    value: `${shortFmt.format(new Date(from))} – ${shortFmt.format(new Date(to))} · ${x.count} · ${x.label}`,
     font: { italic: true, size: 10, color: { argb: 'FFA1A1A2' } }, fill: blackFill, alignment: { vertical: 'top', indent: 1 },
   });
-  ws.getRow(2).height = 18;
   ws.getRow(1).height = 24;
+  ws.getRow(2).height = 18;
 
   // Column headings
   const head = ws.getRow(4);
-  cols.forEach((c, i) => {
-    Object.assign(head.getCell(i + 1), {
-      value: c.header,
-      font: { bold: true, color: { argb: GREEN } },
-      fill: blackFill,
-      alignment: { vertical: 'middle', horizontal: ['hs', 'as', 'time'].includes(c.key) ? 'center' : 'left' },
-    });
-  });
+  cols.forEach((c, i) => Object.assign(head.getCell(i + 1), {
+    value: c.header, font: { bold: true, color: { argb: GREEN } }, fill: blackFill,
+    alignment: { vertical: 'middle', horizontal: c.c ? 'center' : 'left' },
+  }));
   head.height = 20;
 
   let r = 5;
-  for (const grp of groups) {
-    r++;   // blank line before each group
+  const band = (text, dark) => {
     ws.mergeCells(r, 1, r, last);
     Object.assign(ws.getCell(r, 1), {
-      value: `${grp.title}  (${grp.games.length} game${grp.games.length === 1 ? '' : 's'})`,
-      font: { bold: true, size: 12, color: { argb: DARK } },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } },
-      alignment: { vertical: 'middle' },
+      value: text,
+      font: { bold: true, size: dark ? 13 : 12, color: { argb: dark ? GREEN : DARK } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: dark ? DARK : GREEN } },
+      alignment: { vertical: 'middle', indent: dark ? 1 : 0 },
     });
     ws.getRow(r).height = 20;
     r++;
-    for (const g of grp.games) {
-      const d = new Date(g.start);
+  };
+  const dataRow = (values, style) => {
+    const row = ws.getRow(r);
+    row.values = values;
+    row.eachCell({ includeEmpty: true }, (cell, i) => {
+      if (i > last) return;
+      cell.border = { bottom: { style: 'thin', color: { argb: LINE } } };
+      cell.alignment = { vertical: 'middle', horizontal: cols[i - 1].c ? 'center' : 'left' };
+    });
+    if (values.date instanceof Date) row.getCell('date').numFmt = 'ddd d mmm yyyy';
+    style?.(row);
+    row.height = 18;
+    r++;
+  };
+  const day = d => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const toneFont = v => ({ bold: true, color: { argb: v > 0 ? 'FF4D7A12' : v < 0 ? RED : MUTED } });
+
+  if (x.kind === 'teams') {
+    x.rows.forEach(t => dataRow({
+      rank: t.rank, team: t.level ? '' : `${t.age} ${t.code}`, club: t.level ? '' : t.name, comp: t.label,
+      p: t.p, w: t.w, d: t.d, l: t.l, pct: t.pct / 100, pf: t.pf, pa: t.pa, diff: t.diff, avg: t.avg,
+    }, row => {
+      row.getCell('pct').numFmt = '0%';
+      ['diff', 'avg'].forEach(k => { row.getCell(k).numFmt = '+0.##;-0.##;0'; row.getCell(k).font = toneFont(t[k]); });
+      if (t.level) {
+        row.getCell('comp').alignment = { indent: 2, vertical: 'middle' };
+        row.eachCell({ includeEmpty: true }, (cell, i) => { if (i <= last) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF6F7F9' } }; });
+      } else {
+        row.getCell('team').font = { bold: true, color: { argb: DARK } };
+        row.getCell('pct').font = { bold: true, color: { argb: t.pct >= 50 ? 'FF4D7A12' : DARK } };
+        if (t.pct >= 50) row.getCell('pct').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SOFT } };
+      }
+    }));
+  } else if (x.kind === 'chart') {
+    [...x.pts].reverse().forEach(p => p.games.forEach(({ g, diff }) => {
       const sc = parseScore(g.score);
-      const hWin = sc && sc.ht > sc.at, aWin = sc && sc.at > sc.ht;
-      const row = ws.getRow(r);
-      row.values = {
-        date: new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())),
-        time: /Time TBC/.test(g.note || '') ? 'TBC' : timeFmt.format(d),
-        code: g.code || '', age: g.age || '', comp: g.competition || '',
-        home: g.home, hs: sc?.home || '', as: sc?.away || '', away: g.away,
-        venue: g.venue || '', note: (g.note || '').replace(/^Time TBC( · )?/, ''),
-      };
-      row.eachCell({ includeEmpty: true }, (cell, i) => {
-        if (i > last) return;
-        cell.border = { bottom: { style: 'thin', color: { argb: LINE } } };
-        cell.alignment = { vertical: 'middle', horizontal: [2, 7, 8].includes(i) ? 'center' : 'left' };
-      });
-      row.getCell('date').numFmt = 'ddd d mmm yyyy';
-      // Both teams in the dark text colour; the winner in bold
-      row.getCell('home').font = { bold: !!hWin, color: { argb: DARK } };
-      row.getCell('away').font = { bold: !!aWin, color: { argb: DARK } };
-      row.getCell('hs').font = { bold: !!hWin };
-      row.getCell('as').font = { bold: !!aWin };
-      if (row.getCell('note').value) row.getCell('note').font = { color: { argb: 'FFB45309' } };
-      row.height = 18;
-      r++;
+      dataRow({ date: day(new Date(g.start)), value: p.y, res: resultLetter(diff), diff, home: g.home, hs: sc.home, as: sc.away, away: g.away, code: g.code, age: g.age, comp: g.competition },
+        row => {
+          row.getCell('value').numFmt = '+0.#;-0.#;0'; row.getCell('value').font = toneFont(p.y);
+          row.getCell('diff').numFmt = '+0;-0;0'; row.getCell('diff').font = toneFont(diff);
+          row.getCell('res').font = toneFont(diff);
+        });
+    }));
+  } else {
+    for (const sec of x.sections) {
+      if (x.sections.length > 1 || sec.title !== 'Games') { r++; band(`${sec.title}  (${sec.games.length})`, true); }
+      for (const grp of sec.groups) {
+        r++;   // blank line before each group; a closed group is its heading only
+        band(groupLabel(grp));
+        if (!grp.open) continue;
+        for (const g of grp.games) {
+          const d = new Date(g.start), sc = parseScore(g.score);
+          const hWin = sc && sc.ht > sc.at, aWin = sc && sc.at > sc.ht;
+          dataRow({
+            team: [grp.title, grp.side].filter(Boolean).join(' '),
+            date: day(d), time: /Time TBC/.test(g.note || '') ? 'TBC' : timeFmt.format(d),
+            code: g.code || '', age: g.age || '', comp: g.competition || '',
+            home: g.home, hs: sc?.home || '', as: sc?.away || '', away: g.away,
+            venue: g.venue || '', note: (g.note || '').replace(/^Time TBC( · )?/, ''),
+          }, row => {
+            // Both teams in the dark text colour; the winner in bold
+            row.getCell('home').font = { bold: !!hWin, color: { argb: DARK } };
+            row.getCell('away').font = { bold: !!aWin, color: { argb: DARK } };
+            row.getCell('hs').font = { bold: !!hWin };
+            row.getCell('as').font = { bold: !!aWin };
+            if (row.getCell('note').value) row.getCell('note').font = { color: { argb: 'FFB45309' } };
+          });
+        }
+      }
     }
   }
 
   const buf = await wb.xlsx.writeBuffer();
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-  a.download = `${(club || 'all-clubs').replace(/[^a-z0-9]+/gi, '-')}-fixtures${byTeam ? '-by-team' : ''}.xlsx`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  download(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${x.file}.xlsx`);
 }
 
 function esc(s) {
