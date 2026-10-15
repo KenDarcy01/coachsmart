@@ -39,6 +39,12 @@ WHAT TO IGNORE
 - A title: free-standing words above or outside the diagram with no box around it. Put it in game_name instead ("" if there is no title). A rectangle with "WALL" or a label inside is a diagram element, not a title.
 - Written instructions or notes beside the diagram (for example "split into groups of 4"). Do not output them, but use them to understand the drawing.
 
+SYMMETRY
+Coaches draw by hand, so lines wobble and shapes come out lopsided. Say what the coach meant, not the wobble:
+- symmetry.left_right: true when the layout is meant to be the same on the left and right of an upright centre line. Most pitch drawings are (goals, boxes, D and arc centred between the sidelines), as are drills set out as a square, rectangle or mirrored lanes of cones and players. false when the two sides are meant to differ (for example attackers on one side only, or a single channel off to one side).
+- symmetry.top_bottom: the same idea for a level centre line (for example a full pitch with a goal at each end, or a square of cones). false for a half pitch with one goal.
+When unsure, use false.
+
 SPORT
 Set sport to "hurling" if hurleys, sliotars, a wall-ball setup, or the words hurling or camogie appear; "football" if the drawing or its writing clearly says football; otherwise "unknown".
 
@@ -85,8 +91,14 @@ export const SCENE_SCHEMA = {
         additionalProperties: false,
       },
     },
+    symmetry: {
+      type: "object",
+      properties: { left_right: { type: "boolean" }, top_bottom: { type: "boolean" } },
+      required: ["left_right", "top_bottom"],
+      additionalProperties: false,
+    },
   },
-  required: ["game_name", "sport", "items", "lines"],
+  required: ["game_name", "sport", "items", "lines", "symmetry"],
   additionalProperties: false,
 };
 
@@ -97,7 +109,8 @@ export type SceneItem = {
   x: number; y: number; w: number; h: number;
 };
 export type SceneLine = { kind: "pitch_line" | "pitch_arc" | "run" | "pass"; points: Pt[] };
-export type Scene = { game_name: string; sport: "football" | "hurling" | "unknown"; items: SceneItem[]; lines: SceneLine[] };
+export type Scene = { game_name: string; sport: "football" | "hurling" | "unknown"; items: SceneItem[]; lines: SceneLine[];
+  symmetry?: { left_right: boolean; top_bottom: boolean } };
 
 // ── Image size (PNG / JPEG header) ───────────────────────────────────────────
 // The model gives positions on a 0–1000 grid stretched over the image, so we need the
@@ -194,6 +207,100 @@ function simplifyPath(pts: Pt[]): Pt[] {
   return straightEnough ? [a, b] : pts;
 }
 
+// ── "Draw what was meant" helpers ───────────────────────────────────────────
+
+type Feature = { kind: string; pts: Pt[]; tol: number };
+
+// Mirror symmetry: each feature is matched with its mirror image across the axis (the
+// left-hand 2 with the right-hand 4's spot, the left sideline with the right one) and the
+// two are averaged, so they come out as exact mirror images. A feature that is its own
+// mirror (an end line, the D, a goal on the centre line) is centred on the axis.
+function symmetrise(features: Feature[], key: "x" | "y", axis: number, dry = false): number {
+  const refl = (p: Pt): Pt => key === "x" ? { x: 2 * axis - p.x, y: p.y } : { x: p.x, y: 2 * axis - p.y };
+  const order = (n: number, rev: boolean) => (i: number) => rev ? n - 1 - i : i;
+  const cands: { f: Feature; g: Feature; cost: number; rev: boolean }[] = [];
+  for (const f of features) for (const g of features) {
+    if (f.kind !== g.kind || f.pts.length !== g.pts.length) continue;
+    for (const rev of [false, true]) {
+      const o = order(f.pts.length, rev);
+      const cost = Math.max(...f.pts.map((p, i) => dist(refl(p), g.pts[o(i)])));
+      if (cost < Math.min(f.tol, g.tol)) cands.push({ f, g, cost, rev });
+    }
+  }
+  cands.sort((a, b) => a.cost - b.cost);
+  const done = new Set<Feature>();
+  for (const { f, g, rev } of cands) {
+    if (done.has(f) || done.has(g)) continue;
+    if (dry) { done.add(f); done.add(g); continue; }
+    const o = order(f.pts.length, rev);
+    const next = f.pts.map((p, i) => { const q = refl(g.pts[o(i)]); return { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }; });
+    if (f === g) next.forEach((n, i) => Object.assign(f.pts[i], n));
+    else { next.forEach((n, i) => Object.assign(f.pts[i], n)); next.forEach((n, i) => Object.assign(g.pts[o(i)], refl(n))); }
+    done.add(f); done.add(g);
+  }
+  return done.size;
+}
+
+// Rows (or columns) of three or more of the same thing spaced roughly evenly are spaced
+// exactly evenly. Everything else sharing a moved row/column position moves with it, so
+// cones, arrows and the players behind them stay in their lanes.
+function evenOut(groups: { kind: string; p: Pt }[], everything: Pt[], key: "x" | "y", minGap: number) {
+  const other = key === "x" ? "y" : "x";
+  const rows = new Map<string, Pt[]>();
+  for (const { kind, p } of groups) {
+    const k = kind + "|" + Math.round(p[other] * 100);
+    if (!rows.has(k)) rows.set(k, []);
+    rows.get(k)!.push(p);
+  }
+  const moves: [number, number][] = [];
+  for (const row of rows.values()) {
+    if (row.length < 3) continue;
+    row.sort((a, b) => a[key] - b[key]);
+    const first = row[0][key], last = row[row.length - 1][key], step = (last - first) / (row.length - 1);
+    if (step < minGap) continue;
+    const gaps = row.slice(1).map((p, i) => p[key] - row[i][key]);
+    if (gaps.some((g) => g < step * 0.7 || g > step * 1.3)) continue;
+    row.forEach((p, i) => moves.push([p[key], first + i * step]));
+  }
+  if (!moves.length) return;
+  for (const p of everything) {
+    const m = moves.find(([from]) => Math.abs(p[key] - from) < 0.01);
+    if (m) p[key] = m[1];
+  }
+}
+
+// Curves: a run that bends one way becomes one clean arc; a wave or S keeps its turns but
+// with even swings. Small wobbles on the way are dropped.
+function smoothPath(pts: Pt[]): Pt[] {
+  if (pts.length <= 2) return pts;
+  const a = pts[0], b = pts[pts.length - 1], L = dist(a, b);
+  if (L < 1) return pts;
+  const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+  const at = (t: number, d: number): Pt => ({ x: a.x + ux * t - uy * d, y: a.y + uy * t + ux * d });
+  const td = pts.map((p) => ({ t: (p.x - a.x) * ux + (p.y - a.y) * uy, d: -(p.x - a.x) * uy + (p.y - a.y) * ux }));
+  const ext = td.slice(1, -1).filter((q, i) => {
+    // A neighbour on the other side of the line never stops a point being a swing (zig-zags).
+    const peak = (n: { d: number }) => Math.sign(n.d) !== Math.sign(q.d) || Math.abs(q.d) >= Math.abs(n.d) - 0.5;
+    return Math.abs(q.d) > L * 0.04 && peak(td[i]) && peak(td[i + 2]);
+  });
+  // Merge neighbouring extremes on the same side (one swing drawn as two bumps).
+  const swings: { t: number; d: number }[] = [];
+  for (const q of ext) {
+    const last = swings[swings.length - 1];
+    if (last && Math.sign(last.d) === Math.sign(q.d)) { if (Math.abs(q.d) > Math.abs(last.d)) swings[swings.length - 1] = q; }
+    else swings.push(q);
+  }
+  if (!swings.length) return [a, b];
+  if (swings.length === 1) {
+    // One bend: a single control point that makes the smoothed curve pass through the apex.
+    const apex = at(swings[0].t, swings[0].d), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    return [a, { x: 2 * apex.x - mid.x, y: 2 * apex.y - mid.y }, b];
+  }
+  const amp = swings.reduce((t, q) => t + Math.abs(q.d), 0) / swings.length;
+  const t0 = swings[0].t, t1 = swings[swings.length - 1].t, n = swings.length;
+  return [a, ...swings.map((q, i) => at(n > 1 ? t0 + ((t1 - t0) * i) / (n - 1) : q.t, Math.sign(q.d) * amp * 1.35)), b];
+}
+
 // ── Scene → mxGraph XML ──────────────────────────────────────────────────────
 export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   const CANVAS = 700, PAD = 34;
@@ -253,13 +360,15 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     else if (level.includes(seg)) { join(a, "upright", reach); join(b, "upright", reach); }
   }
 
-  // Tidy-up: line up players, coaches, cones, balls and arrow ends that were drawn roughly
-  // in the same row or column, and straighten arrows that are nearly upright or level.
-  // Matching arrows end up the same length because their starts and ends line up.
+  // Positions in canvas space.
   const pos = new Map<SceneItem, Pt>(items.map((it) => [it, map(it)]));
   const arrows = lines
     .filter((l) => l.kind === "run" || l.kind === "pass")
     .map((l) => ({ kind: l.kind, pts: simplifyPath(l.points.map(map)) }));
+  const arcs = lines.filter((l) => l.kind === "pitch_arc").map((l) => {
+    const pts = l.points.map(map);
+    return pts.length >= 3 ? [pts[0], pts[Math.floor(pts.length / 2)], pts[pts.length - 1]] : [pts[0], pts[pts.length - 1]];
+  });
   const people = items.filter((it) => it.kind === "player" || it.kind === "coach").map((it) => pos.get(it)!);
   let gap = Infinity;
   for (let i = 0; i < people.length; i++) for (let j = i + 1; j < people.length; j++) gap = Math.min(gap, dist(people[i], people[j]));
@@ -268,23 +377,140 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
 
   // An arrow that starts where another ends (a run that turns into a strike) stays joined to it.
   const chained = arrows.map((a) => arrows.find((b) => b !== a && dist(b.pts[b.pts.length - 1], a.pts[0]) < 6) ?? null);
+  const relink = () => arrows.forEach((a, i) => { const b = chained[i]; if (b) a.pts[0] = b.pts[b.pts.length - 1]; });
+  relink();
+
+  // 1. Symmetry: pitches and symmetric layouts come out as exact mirror images. A cone or
+  // ball set beside a player stays beside that player if mirroring would pull them apart.
+  const peoplePts = items.filter((it) => it.kind === "player" || it.kind === "coach").map((it) => pos.get(it)!);
+  const attached = new Map<SceneItem, { to: Pt; cone: Pt; dx: number; dy: number }>();
+  for (const it of items) {
+    if (it.kind !== "cone" && it.kind !== "ball") continue;
+    const p = pos.get(it)!;
+    let best: Pt | null = null, bd = D0 * 1.6;
+    for (const q of peoplePts) { const d = dist(p, q); if (d < bd) { bd = d; best = q; } }
+    if (best) attached.set(it, { to: best, cone: p, dx: p.x - best.x, dy: p.y - best.y });
+  }
+  for (const key of ["x", "y"] as const) {
+    if (!(key === "x" ? scene.symmetry?.left_right : scene.symmetry?.top_bottom)) continue;
+    const frame: Pt[] = [
+      ...straight.flat(), ...arcs.flat(),
+      ...items.filter((it) => ["cone", "goalposts", "wall", "zone"].includes(it.kind)).map((it) => pos.get(it)!),
+    ];
+    const ref = frame.length >= 2 ? frame : [...pos.values()];
+    if (ref.length < 2) continue;
+    const lo = Math.min(...ref.map((p) => p[key])), hi = Math.max(...ref.map((p) => p[key])), W = hi - lo;
+    if (W < 60) continue;
+    const loose = W * 0.09, tight = W * 0.07;
+    const axis = (lo + hi) / 2;
+    const isPerson = (it: SceneItem) => it.kind === "player" || it.kind === "coach";
+    const personFeatures: Feature[] = items.filter(isPerson).map((it) => ({ kind: `${it.kind}:${it.team}`, pts: [pos.get(it)!], tol: tight }));
+    // Players only follow the mirror when most of them have a partner across it. A drill
+    // that goes round a square (one player at each corner) is not a mirror image, so its
+    // players, their cones and the arrows between them are left to the other tidy-ups.
+    // (Players near the centre line are left out of that count.)
+    const offCentre = personFeatures.filter((f) => Math.abs(f.pts[0][key] - axis) > tight * 1.5)
+      .map((f) => ({ ...f, pts: [{ ...f.pts[0] }] }));
+    const peopleMirror = offCentre.length === 0 || symmetrise(offCentre, key, axis, true) >= offCentre.length * 0.6;
+    const features: Feature[] = [
+      ...straight.map((l) => ({ kind: "line", pts: l as Pt[], tol: loose })),
+      ...arcs.map((l) => ({ kind: "arc", pts: l, tol: loose })),
+      ...items.filter((it) => !isPerson(it) && (peopleMirror || !attached.has(it)))
+        .map((it) => ({ kind: it.kind, pts: [pos.get(it)!], tol: loose })),
+      ...(peopleMirror ? personFeatures : []),
+      ...(peopleMirror ? arrows.map((a) => ({ kind: a.kind, pts: [a.pts[0], a.pts[a.pts.length - 1]], tol: loose })) : []),
+    ];
+    symmetrise(features, key, axis);
+  }
+  for (const [it, a] of attached) {
+    const p = pos.get(it)!, want = { x: a.to.x + a.dx, y: a.to.y + a.dy };
+    if (dist(p, want) > D0 * 0.5) Object.assign(p, want);
+  }
+  for (const l of arcs) { join(l[0], "level", 12); join(l[l.length - 1], "level", 12); }
+
+  // 5a. Arrows land on what they point at: an end that stops short of (or runs past) a
+  // player or cone it is aimed at is moved onto it, and the start onto the player it leaves.
+  const joints = new Set<Pt>(arrows.flatMap((a, i) => chained[i] ? [a.pts[0]] : []));
+  const targets = items.filter((it) => ["player", "coach", "cone"].includes(it.kind)).map((it) => pos.get(it)!);
+  const land = (end: Pt, from: Pt) => {
+    if (joints.has(end)) return;
+    const len = dist(from, end);
+    if (len < 1) return;
+    const dx = (end.x - from.x) / len, dy = (end.y - from.y) / len;
+    let best: Pt | null = null, bd = D0 * 1.6;
+    for (const t of targets) {
+      const d = dist(t, end), ft = dist(from, t);
+      if (d >= bd || ft < D0 * 0.8) continue;
+      if (((t.x - from.x) * dx + (t.y - from.y) * dy) / ft < Math.cos(Math.PI / 6)) continue;
+      best = t; bd = d;
+    }
+    if (best) { Object.assign(end, best); landed.set(end, best); }
+  };
+  const landed = new Map<Pt, Pt>();
+  for (const a of arrows) {
+    const n = a.pts.length;
+    land(a.pts[n - 1], a.pts[n - 2]);
+    land(a.pts[0], a.pts[1]);
+  }
+  // 2b. Two players linked by a nearly level or upright straight arrow are put exactly level
+  // or upright, so the sides of a square come out square however far apart the corners are.
+  for (const a of arrows) {
+    if (a.pts.length !== 2) continue;
+    const t0 = landed.get(a.pts[0]), t1 = landed.get(a.pts[1]);
+    if (!t0 || !t1 || t0 === t1) continue;
+    const dx = Math.abs(t1.x - t0.x), dy = Math.abs(t1.y - t0.y);
+    const key = dx < dy * 0.1 ? "x" : dy < dx * 0.1 ? "y" : null;
+    if (!key) continue;
+    const m = (t0[key] + t1[key]) / 2;
+    for (const t of [t0, t1]) {
+      const d = m - t[key];
+      for (const at of attached.values()) if (at.to === t) at.cone[key] += d;
+      t[key] = m;
+    }
+  }
+  for (const [end, t] of landed) Object.assign(end, t);
+
+  // 2 + 4. Line up rows and columns, then space evenly spaced rows exactly evenly.
   const solid = new Set(items.filter((it) => ["player", "coach", "cone", "ball"].includes(it.kind)).map((it) => pos.get(it)!));
-  const pool: Pt[] = [
-    ...solid,
-    ...arrows.flatMap((a, i) => chained[i] ? [a.pts[a.pts.length - 1]] : [a.pts[0], a.pts[a.pts.length - 1]]),
-  ];
+  const arrowEnds = arrows.flatMap((a, i) => chained[i] ? [a.pts[a.pts.length - 1]] : [a.pts[0], a.pts[a.pts.length - 1]]);
+  const pool: Pt[] = [...new Set([...solid, ...arrowEnds])];
   alignAxis(pool, "x", tol, sep, D0 * 4, solid);
   alignAxis(pool, "y", tol, sep, D0 * 4, solid);
-  const relink = () => arrows.forEach((a, i) => { const b = chained[i]; if (b) a.pts[0] = { ...b.pts[b.pts.length - 1] }; });
+  const kinds = items.filter((it) => solid.has(pos.get(it)!)).map((it) => ({ kind: it.kind === "coach" ? "player" : it.kind, p: pos.get(it)! }));
+  evenOut(kinds, pool, "x", D0);
+  evenOut(kinds, pool, "y", D0);
+  relink();
+
+  // Repeated so a run and the strike chained onto it both end up straight.
   const straighten = () => {
-    for (const a of arrows) {
+    for (let k = 0; k < 4; k++) for (const a of arrows) {
       if (a.pts.length !== 2) continue;
       const [p, q] = a.pts, dx = Math.abs(q.x - p.x), dy = Math.abs(q.y - p.y);
       if (dy > 0 && dx / dy < 0.1) { p.x = q.x = (p.x + q.x) / 2; }
       else if (dx > 0 && dy / dx < 0.1) { p.y = q.y = (p.y + q.y) / 2; }
     }
   };
-  relink(); straighten();
+  straighten();
+
+  // 5b. Arrows drawn side by side at nearly the same angle are made parallel.
+  const ang = (a: typeof arrows[number]) => { const [p, q] = a.pts; return Math.atan2(q.y - p.y, q.x - p.x); };
+  const twoPt = arrows.filter((a) => a.pts.length === 2);
+  const paired = new Set<typeof arrows[number]>();
+  for (const a of twoPt) for (const b of twoPt) {
+    if (a === b || paired.has(a) || paired.has(b) || a.kind !== b.kind) continue;
+    let d = ang(b) - ang(a);
+    while (d > Math.PI / 2) d -= Math.PI;
+    while (d < -Math.PI / 2) d += Math.PI;
+    if (Math.abs(d) > (8 * Math.PI) / 180 || Math.abs(d) < 1e-6) continue;
+    for (const [x, turn] of [[a, d / 2], [b, -d / 2]] as const) {
+      const [p, q] = x.pts, m = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }, c = Math.cos(turn), sn = Math.sin(turn);
+      for (const pt of [p, q]) {
+        const rx = pt.x - m.x, ry = pt.y - m.y;
+        Object.assign(pt, { x: m.x + rx * c - ry * sn, y: m.y + rx * sn + ry * c });
+      }
+    }
+    paired.add(a); paired.add(b);
+  }
 
   // Matching arrows (same kind, same direction, starting in the same row or column, roughly
   // the same length) get the same length.
@@ -306,10 +532,13 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     const L = group.map(len).sort((x, y) => x - y)[Math.floor(group.length / 2)];
     for (const b of group) {
       const [p, q] = b.pts, l = len(b) || 1;
-      b.pts[1] = { x: p.x + ((q.x - p.x) / l) * L, y: p.y + ((q.y - p.y) / l) * L };
+      Object.assign(q, { x: p.x + ((q.x - p.x) / l) * L, y: p.y + ((q.y - p.y) / l) * L });
     }
   }
-  relink(); straighten();
+  straighten();
+
+  // 3. Smooth curved runs and passes.
+  for (const a of arrows) if (a.pts.length > 2) a.pts = smoothPath(a.pts);
 
   // Balls and cones drawn touching (a stack of balls) are spread just far enough apart to read.
   const small = items.filter((it) => it.kind === "ball" || it.kind === "cone").map((it) => pos.get(it)!);
@@ -380,13 +609,7 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
 
   // Pitch markings.
   for (const [a, b] of straight) edge(S.line, [a, b]);
-  for (const l of lines) {
-    if (l.kind !== "pitch_arc") continue;
-    const pts = l.points.map(map);
-    const first = join(pts[0], "level", 12), last = join(pts[pts.length - 1], "level", 12);
-    const far = pts.length >= 3 ? pts[Math.floor(pts.length / 2)] : null;
-    edge(far ? S.arc : S.line, far ? [first, far, last] : [first, last]);
-  }
+  for (const l of arcs) edge(l.length === 3 ? S.arc : S.line, l);
 
   // Runs and passes: pull the ends back off the circles they start or finish at.
   const ends: { p: Pt; r: number }[] = [
@@ -397,9 +620,15 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     let best: { p: Pt; r: number } | null = null, bd = Infinity;
     for (const e of ends) { const d = dist(e.p, end); if (d < bd) { bd = d; best = e; } }
     if (!best || bd > best.r + 14) return end;
-    const dx = toward.x - best.p.x, dy = toward.y - best.p.y, len = Math.hypot(dx, dy);
-    if (len < best.r + 10) return end;
-    return { x: best.p.x + (dx / len) * (best.r + 7), y: best.p.y + (dy / len) * (best.r + 7) };
+    if (dist(toward, best.p) < best.r + 10) return end;
+    // Slide the end back along the arrow's own line until it clears the circle, so the
+    // arrow keeps its direction even if the circle was nudged sideways.
+    const len = dist(toward, end) || 1, ux = (toward.x - end.x) / len, uy = (toward.y - end.y) / len;
+    const wx = best.p.x - end.x, wy = best.p.y - end.y, proj = wx * ux + wy * uy;
+    const R = best.r + 7, perp2 = wx * wx + wy * wy - proj * proj;
+    if (perp2 >= R * R) return end;
+    const s = proj + Math.sqrt(R * R - perp2);
+    return s > 0 && s < len - 10 ? { x: end.x + ux * s, y: end.y + uy * s } : end;
   };
   for (const a of arrows) {
     const pts = a.pts.map((p) => ({ ...p }));
