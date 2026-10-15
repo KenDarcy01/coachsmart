@@ -216,22 +216,30 @@ th.l, td.l { text-align: left; }
 td { padding: 9px 8px; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; border-top: 1px solid var(--border); }
 tr.mine td { color: var(--green); font-weight: 700; }
 td.pts { font-weight: 700; }
-/* Teams ranking */
-.teams-wrap { overflow-x: auto; margin-top: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
-.teams-wrap th { cursor: pointer; white-space: nowrap; user-select: none; }
+/* Teams ranking: each team is a card like the game rows */
+.teams-wrap { overflow-x: auto; margin-top: 4px; }
+.teams-wrap table { border-collapse: separate; border-spacing: 0 6px; }
+.teams-wrap th { cursor: pointer; white-space: nowrap; user-select: none; padding-bottom: 0; }
 .teams-wrap th.sorted { color: var(--green); }
-.teams-wrap td.rank { color: var(--muted); width: 28px; }
-.teams-wrap td.team b { font-weight: 600; }
-.teams-wrap td.team span { display: block; font-size: 14px; font-weight: 400; color: var(--muted); }
-.teams-wrap td.pos { color: var(--green); } .teams-wrap td.neg { color: #e5736f; }
-.teams-wrap tr.grp:hover td { background: rgba(255,255,255,0.03); }
-.teams-wrap .caret { font-style: normal; color: var(--muted); display: inline-block; width: 14px; }
-.teams-wrap tr.sub td { font-size: 14px; font-weight: 400; color: var(--muted); border-top-color: rgba(255,255,255,0.03); padding-top: 6px; padding-bottom: 6px; }
-.teams-wrap tr.sub td.team { padding-left: 22px; color: var(--text); }
-.teams-wrap tr.sub td.pts { color: var(--text); font-weight: 400; }
+.teams-wrap td { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 11px 8px; }
+.teams-wrap tr > td:first-child { border-left: 1px solid var(--border); border-radius: 10px 0 0 10px; padding-left: 14px; }
+.teams-wrap tr > td:last-child { border-right: 1px solid var(--border); border-radius: 0 10px 10px 0; padding-right: 14px; }
+.teams-wrap td.rank { color: var(--muted); width: 28px; font-weight: 600; }
+.teams-wrap td.team .code { display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.teams-wrap td.team .code b { color: var(--green); font-weight: 700; margin-right: 4px; }
+.teams-wrap td.team .cname { font-size: 13px; color: var(--muted); text-decoration: underline; text-decoration-color: rgba(255,255,255,0.15); text-underline-offset: 3px; }
+.teams-wrap td.pos { color: var(--green); } .teams-wrap td.neg { color: var(--red); }
+.teams-wrap td.pts .pill { min-width: 50px; text-align: center; }
+.teams-wrap .caret { font-style: normal; color: var(--muted); display: inline-block; width: 14px; cursor: pointer; padding: 2px 2px; }
 .teams-wrap tbody tr { cursor: pointer; }
-.teams-wrap tbody tr:hover td.team b, .teams-wrap tr.sub:hover td.team { color: var(--green); }
-.teams-wrap .caret { cursor: pointer; padding: 4px 2px; }
+.teams-wrap tbody tr:hover td { border-color: rgba(255,255,255,0.18); }
+.teams-wrap tbody tr:hover td.team .cname { color: var(--green); text-decoration-color: var(--green); }
+/* competitions inside an age group: smaller cards, indented under the team */
+.teams-wrap tr.sub > td:first-child { background: transparent; border-color: transparent; }
+.teams-wrap tr.sub > td:nth-child(2) { border-left: 1px solid var(--border); border-radius: 8px 0 0 8px; }
+.teams-wrap table tr.sub td { background: var(--card2); font-size: 13px; color: var(--muted); padding-top: 7px; padding-bottom: 7px; }
+.teams-wrap tr.sub td.team { color: var(--text); padding-left: 22px; }
+.teams-wrap tr.sub td.pts .pill { font-size: 12px; padding: 2px 6px; }
 .trend-wrap { position: relative; margin-top: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 6px 4px; }
 .trend-wrap svg { display: block; touch-action: pan-y; }
 .trend-wrap .tg { stroke: rgba(255,255,255,0.05); }
@@ -248,6 +256,13 @@ td.pts { font-weight: 700; }
 @media (max-width: 760px) {
   .teams-wrap .wide { display: none; }
   .teams-wrap td, .teams-wrap th { padding-left: 6px; padding-right: 6px; }
+  .teams-wrap td, .teams-wrap th { padding-left: 4px; padding-right: 4px; }
+  .teams-wrap tr > td:first-child { padding-left: 10px; }
+  .teams-wrap td.diff { border-right: 1px solid var(--border); border-radius: 0 10px 10px 0; padding-right: 10px; }
+  .teams-wrap tbody tr:hover td.diff { border-color: rgba(255,255,255,0.18); }
+  .teams-wrap td.rank { width: 18px; }
+  .teams-wrap td.pts .pill { min-width: 0; font-size: 13px; padding: 3px 6px; }
+  .teams-wrap tr.sub td.team { padding-left: 10px; }
   .topbar .seg.small button { padding-left: 7px; padding-right: 7px; font-size: 11.5px; }
   .trend-tip { max-width: calc(100% - 8px); }
   .section-title { flex-wrap: wrap; row-gap: 6px; }
@@ -827,8 +842,8 @@ function teamsTable(results, club) {
   const th = (k, label, cls = '') => `<th class="${cls} ${key === k ? 'sorted' : ''}" onclick="sortTeams('${k}')">${label}${key === k ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`;
   const sign = v => v > 0 ? `+${v}` : `${v}`;
   const tone = v => v > 0 ? 'pos' : v < 0 ? 'neg' : '';
-  const nums = t => `<td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td class="pts">${t.pct}%</td>
-    <td class="wide">${t.pf}</td><td class="wide">${t.pa}</td><td class="${tone(t.diff)}">${sign(t.diff)}</td>
+  const nums = t => `<td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td class="pts"><span class="pill${t.pct >= 50 ? ' win' : ''}">${t.pct}%</span></td>
+    <td class="wide">${t.pf}</td><td class="wide">${t.pa}</td><td class="diff ${tone(t.diff)}">${sign(t.diff)}</td>
     <td class="wide ${tone(t.avg)}">${sign(t.avg)}</td>`;
   const multi = flat ? [] : list.filter(t => t.subs.length > 1);
   const allOpen = multi.every(t => !teamsCollapsed.has(t.key));
@@ -844,7 +859,7 @@ function teamsTable(results, club) {
     <div class="teams-wrap"><table>${thead}
       <tbody>${flat.map((t, i) => `
         <tr data-k="${esc(t.key)}" data-c="${t.compId}" onclick="openTeam(this.dataset.k, this.dataset.c)"><td class="l rank">${i + 1}</td>
-          <td class="l team"><b>${esc(t.name)}</b><span>${esc(t.code)} · ${esc(t.age)} · ${esc(t.label)}</span></td>
+          <td class="l team"><span class="code"><b>${esc(t.age)}</b>${esc(t.code)}</span><span class="cname">${esc(t.name)} · ${esc(t.label)}</span></td>
           ${nums(t)}</tr>`).join('')}</tbody>
     </table></div>${note}`;
   return `${head}
@@ -852,10 +867,10 @@ function teamsTable(results, club) {
       <tbody>${list.map((t, i) => {
         const split = t.subs.length > 1, open = split && !teamsCollapsed.has(t.key);
         return `
-        <tr class="${split ? 'grp' : ''}" data-k="${esc(t.key)}" onclick="openTeam(this.dataset.k)">
+        <tr class="${split ? 'grp' : ''}${open ? ' open' : ''}" data-k="${esc(t.key)}" onclick="openTeam(this.dataset.k)">
           <td class="l rank">${i + 1}</td>
-          <td class="l team"><b>${split ? `<i class="caret" onclick="event.stopPropagation(); toggleTeam(this.closest('tr').dataset.k)">${open ? '▾' : '▸'}</i>` : ''}${esc(t.name)}</b>
-            <span>${esc(t.code)} · ${esc(t.age)}${split ? ` · ${t.subs.length} competitions` : ` · ${esc(t.subs[0].label)}`}</span></td>
+          <td class="l team"><span class="code">${split ? `<i class="caret" onclick="event.stopPropagation(); toggleTeam(this.closest('tr').dataset.k)">${open ? '▾' : '▸'}</i>` : ''}<b>${esc(t.age)}</b>${esc(t.code)}</span>
+            <span class="cname">${esc(t.name)}${split ? ` · ${t.subs.length} competitions` : ` · ${esc(t.subs[0].label)}`}</span></td>
           ${nums(t)}</tr>
         ${open ? t.subs.map(sub => `<tr class="sub" data-k="${esc(t.key)}" data-c="${sub.compId}" onclick="openTeam(this.dataset.k, this.dataset.c)"><td></td><td class="l team">${esc(sub.label)}</td>${nums(sub)}</tr>`).join('') : ''}`;
       }).join('')}</tbody>
