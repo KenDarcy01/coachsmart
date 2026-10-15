@@ -274,7 +274,15 @@ type ConvertResult =
 // and asks for the whole description again with only the coach's changes made.
 type Revision = { scene: Scene; instruction: string };
 
-async function sceneConvert(apiKey: string, image_base64: string, media_type: string, revision?: Revision): Promise<ConvertResult> {
+// The coach's own description of the drill (typed or spoken on the upload screen).
+const NOTES_PROMPT = (notes: string) => `
+
+THE COACH'S DESCRIPTION
+The coach also described this drill in their own words (typed or spoken, so allow for dictation slips):
+"""${notes.slice(0, 4000)}"""
+Use it to read the drawing the way the coach meant it: what each mark is, how many players and which team, which lines are runs or passes, and the shape of the setup (for example "a 20m square" means the cones form a square). Where the description and an unclear mark disagree, follow the description. If it says something on the page should be ignored, leave it out. Do not add players or equipment that are only mentioned and not drawn, unless the description clearly says where they go.`;
+
+async function sceneConvert(apiKey: string, image_base64: string, media_type: string, revision?: Revision, notes?: string): Promise<ConvertResult> {
   const effort = Deno.env.get("DIAGRAM_EFFORT") ?? "high";
   const claudeRes = await fetch(ANTHROPIC_URL, {
     method: "POST",
@@ -293,7 +301,7 @@ async function sceneConvert(apiKey: string, image_base64: string, media_type: st
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type, data: image_base64 } },
-            { type: "text", text: SCENE_PROMPT },
+            { type: "text", text: SCENE_PROMPT + (notes ? NOTES_PROMPT(notes) : "") },
           ],
         },
         ...(revision ? [
@@ -449,7 +457,8 @@ serve(async (req) => {
   }
 
   try {
-    const { image_base64, media_type, scene: prevScene, instruction } = await req.json();
+    const { image_base64, media_type, scene: prevScene, instruction, notes: rawNotes } = await req.json();
+    const notes = typeof rawNotes === "string" && rawNotes.trim() ? rawNotes.trim() : undefined;
     const revision: Revision | undefined =
       prevScene && typeof prevScene === "object" && Array.isArray(prevScene.items) && typeof instruction === "string" && instruction.trim()
         ? { scene: prevScene, instruction: instruction.trim() }
@@ -492,7 +501,7 @@ serve(async (req) => {
     // A revision always uses v2: it is a change to a description only v2 makes.
     const result = engine === "legacy" && !revision
       ? await legacyConvert(apiKey, image_base64, media_type)
-      : await sceneConvert(apiKey, image_base64, media_type, revision);
+      : await sceneConvert(apiKey, image_base64, media_type, revision, notes);
     if ("error" in result) {
       return new Response(JSON.stringify(result.error), {
         status: result.status,

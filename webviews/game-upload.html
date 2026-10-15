@@ -827,7 +827,7 @@
   // on the page only, so "Fix the drawing" can send it back with the coach's changes.
   let _diag = null;          // { scene, img } while the draft is open
   const _diagUndo = [];      // earlier { scene, image } to step back to
-  async function standardiseDiagram(img, fix) {
+  async function standardiseDiagram(img, fix, notes) {
     let errMsg = 'unknown';
     try {
       const res = await fetch(DIAGRAM_FN_URL, {
@@ -837,9 +837,10 @@
           'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
           'apikey': SUPABASE_ANON_KEY,
         },
+        // notes: the coach's typed or spoken description, so the drawing is read as they meant it.
         body: JSON.stringify(fix
-          ? { image_base64: img.base64, media_type: img.mimeType, scene: fix.scene, instruction: fix.instruction }
-          : { image_base64: img.base64, media_type: img.mimeType }),
+          ? { image_base64: img.base64, media_type: img.mimeType, scene: fix.scene, instruction: fix.instruction, notes: fix.notes || '' }
+          : { image_base64: img.base64, media_type: img.mimeType, notes: notes || '' }),
       });
       const data = await res.json();
       if (!res.ok || data.error || !data.xml) {
@@ -910,7 +911,7 @@
       aiErr = e;
     });
 
-    const stdPromise = standardiseDiagram(diagramImg || sourceImg).then(r => {
+    const stdPromise = standardiseDiagram(diagramImg || sourceImg, null, description).then(r => {
       stdResult = r;
       setStatus('Creating your draft…', aiResult === null ? 'Reading your diagram…' : 'Almost done…');
     });
@@ -920,7 +921,7 @@
       if (aiErr) throw aiErr;
 
       _reviewImage = (stdResult?.base64 && !stdResult?._err) ? stdResult : sourceImg;
-      _diag = (stdResult?.scene && !stdResult?._err) ? { scene: stdResult.scene, img: diagramImg || sourceImg } : null;
+      _diag = (stdResult?.scene && !stdResult?._err) ? { scene: stdResult.scene, img: diagramImg || sourceImg, notes: description } : null;
       _diagUndo.length = 0;
 
       if (aiResult.suggested_type)           document.getElementById('rvType').value = aiResult.suggested_type;
@@ -1048,7 +1049,7 @@
       busyLabel:   'Redrawing…',
       async onSubmit(text) {
         const before = { scene: _diag.scene, image: _reviewImage };
-        const r = await standardiseDiagram(_diag.img, { scene: _diag.scene, instruction: text });
+        const r = await standardiseDiagram(_diag.img, { scene: _diag.scene, instruction: text, notes: _diag.notes });
         if (!r || r._err || !r.scene) {
           showToast('Could not redraw it — please try again', 'error');
           return false;
