@@ -266,11 +266,15 @@ function fixCircleStyles(xml: string): string {
 }
 
 type ConvertResult =
-  | { xml: string; gameName: string | null; suggestedCodes: string[] }
+  | { xml: string; gameName: string | null; suggestedCodes: string[]; scene?: Scene }
   | { error: Record<string, unknown>; status: number };
 
 // ── v2: the model describes the scene, scene.ts draws it ─────────────────────
-async function sceneConvert(apiKey: string, image_base64: string, media_type: string): Promise<ConvertResult> {
+// A revision ("there's no line down the middle, that's a shadow") replays the first answer
+// and asks for the whole description again with only the coach's changes made.
+type Revision = { scene: Scene; instruction: string };
+
+async function sceneConvert(apiKey: string, image_base64: string, media_type: string, revision?: Revision): Promise<ConvertResult> {
   const effort = Deno.env.get("DIAGRAM_EFFORT") ?? "high";
   const claudeRes = await fetch(ANTHROPIC_URL, {
     method: "POST",
@@ -292,6 +296,10 @@ async function sceneConvert(apiKey: string, image_base64: string, media_type: st
             { type: "text", text: SCENE_PROMPT },
           ],
         },
+        ...(revision ? [
+          { role: "assistant", content: [{ type: "text", text: JSON.stringify(revision.scene) }] },
+          { role: "user", content: [{ type: "text", text: REVISE_PROMPT(revision.instruction) }] },
+        ] : []),
       ],
     }),
   });
@@ -322,8 +330,14 @@ async function sceneConvert(apiKey: string, image_base64: string, media_type: st
 
   const gameName = scene.game_name?.trim() || null;
   const suggestedCodes = scene.sport === "hurling" ? ["hurling", "camogie"] : scene.sport === "football" ? ["football"] : [];
-  return { xml, gameName, suggestedCodes };
+  return { xml, gameName, suggestedCodes, scene };
 }
+
+const REVISE_PROMPT = (instruction: string) => `The coach has seen the diagram drawn from your description and wants changes. Their words (typed or spoken, so allow for dictation slips):
+
+"""${instruction.slice(0, 2000)}"""
+
+Give the whole description again in the same format, with their changes made. Look at the image again where it helps (for example to find something they say you missed, or to check a mark they say is a shadow). Change only what they ask for, and anything that follows directly from it; keep every other item, line and position exactly as before. If they say something is not really there, remove it. If they ask for something that is not in the drawing, add it where they say.`;
 
 // ── legacy: the model writes the draw.io XML itself ──────────────────────────
 async function legacyConvert(apiKey: string, image_base64: string, media_type: string): Promise<ConvertResult> {
@@ -435,7 +449,11 @@ serve(async (req) => {
   }
 
   try {
-    const { image_base64, media_type } = await req.json();
+    const { image_base64, media_type, scene: prevScene, instruction } = await req.json();
+    const revision: Revision | undefined =
+      prevScene && typeof prevScene === "object" && Array.isArray(prevScene.items) && typeof instruction === "string" && instruction.trim()
+        ? { scene: prevScene, instruction: instruction.trim() }
+        : undefined;
 
     if (!image_base64 || !media_type) {
       return new Response(JSON.stringify({ error: "image_base64 and media_type are required" }), {
@@ -471,18 +489,19 @@ serve(async (req) => {
     }
 
     const engine = (Deno.env.get("DIAGRAM_ENGINE") ?? "v2").toLowerCase();
-    const result = engine === "legacy"
+    // A revision always uses v2: it is a change to a description only v2 makes.
+    const result = engine === "legacy" && !revision
       ? await legacyConvert(apiKey, image_base64, media_type)
-      : await sceneConvert(apiKey, image_base64, media_type);
+      : await sceneConvert(apiKey, image_base64, media_type, revision);
     if ("error" in result) {
       return new Response(JSON.stringify(result.error), {
         status: result.status,
         headers: { ...corsHeaders, "content-type": "application/json" },
       });
     }
-    const { xml, gameName, suggestedCodes } = result;
+    const { xml, gameName, suggestedCodes, scene } = result;
 
-    return new Response(JSON.stringify({ xml, game_name: gameName, suggested_codes: suggestedCodes }), {
+    return new Response(JSON.stringify({ xml, game_name: gameName, suggested_codes: suggestedCodes, scene: scene ?? null }), {
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
   } catch (e: any) {

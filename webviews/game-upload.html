@@ -422,6 +422,10 @@
     <div class="draft-image" id="rvImageCard" style="display:none">
       <div id="rvImageInner"></div>
     </div>
+    <div id="diagFix" style="display:none;margin:-4px 0 14px">
+      <div id="diagFixRest"></div>
+      <button type="button" id="diagUndo" onclick="undoDiagramFix()" style="display:none;margin-top:6px;background:none;border:0;color:#a1a1a2;font:inherit;font-size:13px;text-decoration:underline;padding:4px 2px">Undo last fix</button>
+    </div>
 
     <!-- Metadata (directly under image) -->
     <div class="draft-field">
@@ -819,7 +823,11 @@
   }
 
   // ── Diagram standardisation ────────────────────────────────────────────────
-  async function standardiseDiagram(img) {
+  // The v2 diagram engine returns its description of the drawing (scene). It is kept here,
+  // on the page only, so "Fix the drawing" can send it back with the coach's changes.
+  let _diag = null;          // { scene, img } while the draft is open
+  const _diagUndo = [];      // earlier { scene, image } to step back to
+  async function standardiseDiagram(img, fix) {
     let errMsg = 'unknown';
     try {
       const res = await fetch(DIAGRAM_FN_URL, {
@@ -829,7 +837,9 @@
           'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
           'apikey': SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ image_base64: img.base64, media_type: img.mimeType }),
+        body: JSON.stringify(fix
+          ? { image_base64: img.base64, media_type: img.mimeType, scene: fix.scene, instruction: fix.instruction }
+          : { image_base64: img.base64, media_type: img.mimeType }),
       });
       const data = await res.json();
       if (!res.ok || data.error || !data.xml) {
@@ -839,7 +849,8 @@
       }
       const fixedXml = fixCircleStylesClient(data.xml);
       const png = await renderMxGraphToPng(fixedXml);
-      return { base64: png.base64, mimeType: 'image/png', game_name: data.game_name || null };
+      return { base64: png.base64, mimeType: 'image/png', game_name: data.game_name || null,
+               suggested_codes: data.suggested_codes || [], scene: data.scene || null };
     } catch(e) {
       errMsg = e?.message || 'network error';
       console.warn('[diagram-to-drawio] exception —', errMsg);
@@ -863,7 +874,7 @@
 
     // Without AI features: no processing, go straight to the form with what was typed
     if (!_aiEnabled) {
-      _reviewImage = sourceImg;
+      _reviewImage = sourceImg; _diag = null;
       showReview({ game_how_to_play: document.getElementById('inpDescription').value.trim() }, null);
       return;
     }
@@ -909,6 +920,8 @@
       if (aiErr) throw aiErr;
 
       _reviewImage = (stdResult?.base64 && !stdResult?._err) ? stdResult : sourceImg;
+      _diag = (stdResult?.scene && !stdResult?._err) ? { scene: stdResult.scene, img: diagramImg || sourceImg } : null;
+      _diagUndo.length = 0;
 
       if (aiResult.suggested_type)           document.getElementById('rvType').value = aiResult.suggested_type;
       if (aiResult.suggested_ages?.length)   _preselectChips('ageChips',   'age',   aiResult.suggested_ages);
@@ -950,6 +963,7 @@
     } else {
       card.style.display = 'none';
     }
+    showDiagFix();
     showScreen('screenReview');
     requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
     if (stdErr) {
@@ -1007,6 +1021,52 @@
       showToast('Revision failed — please try again', 'error');
       return false;
     }
+  }
+
+  // ── Fix the drawing ───────────────────────────────────────────────────────
+  function showDiagFix() {
+    const on = _aiEnabled && !!_diag;
+    document.getElementById('diagFix').style.display = on ? '' : 'none';
+    if (on && !document.getElementById('diagFixRest').innerHTML) {
+      document.getElementById('diagFixRest').innerHTML = CSVoice.restHtml({
+        label: 'Fix the drawing', placeholder: 'e.g. that line is a shadow, remove it…', onclick: 'openDiagramFix()' });
+    }
+    document.getElementById('diagUndo').style.display = on && _diagUndo.length ? '' : 'none';
+  }
+  function setDiagramImage(image) {
+    _reviewImage = image;
+    document.getElementById('rvImageInner').innerHTML = `<img src="data:${image.mimeType};base64,${image.base64}" alt="Diagram"/>`;
+  }
+  function openDiagramFix() {
+    if (!_diag) return;
+    CSVoice.open({
+      fieldId:     'diag_fix',
+      title:       'Fix the drawing',
+      subtitle:    'Say or type what is wrong. Only that changes.',
+      placeholder: "e.g. there's no line down the middle, that's a shadow. Add a cone beside player 3.",
+      submitLabel: 'Update',
+      busyLabel:   'Redrawing…',
+      async onSubmit(text) {
+        const before = { scene: _diag.scene, image: _reviewImage };
+        const r = await standardiseDiagram(_diag.img, { scene: _diag.scene, instruction: text });
+        if (!r || r._err || !r.scene) {
+          showToast('Could not redraw it — please try again', 'error');
+          return false;
+        }
+        _diagUndo.push(before);
+        _diag.scene = r.scene;
+        setDiagramImage({ base64: r.base64, mimeType: r.mimeType });
+        showDiagFix();
+        showToast('Drawing updated');
+      },
+    });
+  }
+  function undoDiagramFix() {
+    const prev = _diagUndo.pop();
+    if (!prev || !_diag) return;
+    _diag.scene = prev.scene;
+    setDiagramImage(prev.image);
+    showDiagFix();
   }
 
   // ── Voice panel (cs-voice-sheet.js) ───────────────────────────────────────
