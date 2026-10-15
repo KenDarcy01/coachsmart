@@ -283,12 +283,12 @@
       }
     });
     if (!rows.length) return out + '<div class="mc-empty">No scores yet</div>';
-    out += rows.join('');
     const t = totals(m);
-    out += m.finished
+    const end = m.finished
       ? `<div class="mc-band ft"><span>Full time</span><b>${t.us} v ${t.opp}</b></div>`
       : `<div class="mc-band"><span>Now</span><b>${t.us} v ${t.opp}</b></div>`;
-    return out;
+    // Newest first: full time (or now) at the top, throw-in at the bottom
+    return [out].concat(rows, end).reverse().join('');
   }
 
   const CSS = `
