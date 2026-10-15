@@ -24,6 +24,12 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      - name: Show migration status (local vs remote)
+        run: supabase migration list --project-ref gyfporsbdftvtakdvukt
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
       - name: Push DB Migrations
         run: supabase db push --project-ref gyfporsbdftvtakdvukt
         env:
