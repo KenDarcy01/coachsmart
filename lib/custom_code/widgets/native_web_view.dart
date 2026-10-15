@@ -20,6 +20,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:universal_html/html.dart' as html;
 
@@ -127,10 +128,53 @@ class _NativeWebViewState extends State<NativeWebView>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    if (_keepAwake) {
+      try { WakelockPlus.disable(); } catch (_) {}
+    }
     _recording = false;
     _fieldId = null;
     try { _speech.cancel(); } catch (_) {}
     super.dispose();
+  }
+
+  // ── Screen on and sign-in (score keeper) ────────────────────────────────────
+  // keepAwake:on / keepAwake:off keep the screen from sleeping while a page
+  // needs it. It always turns off again when the page closes.
+  bool _keepAwake = false;
+
+  void _setKeepAwake(bool on) {
+    _keepAwake = on;
+    try {
+      if (on) {
+        WakelockPlus.enable();
+      } else {
+        WakelockPlus.disable();
+      }
+    } catch (_) {}
+  }
+
+  // getToken: the page's sign-in is about to run out (it lasts an hour and a
+  // match is longer). The app owns the sign-in, so it hands over its current
+  // access token, refreshing it first if it has less than 5 minutes left.
+  // Replies with window.csSetToken(token, expiresAtSeconds).
+  Future<void> _sendToken() async {
+    try {
+      final auth = SupaFlow.client.auth;
+      var session = auth.currentSession;
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if (session == null || (session.expiresAt ?? 0) - now < 300) {
+        final res = await auth.refreshSession();
+        session = res.session ?? auth.currentSession;
+      }
+      if (session == null) {
+        _js('window.csSetToken && window.csSetToken(null, 0)');
+        return;
+      }
+      _js('window.csSetToken && window.csSetToken(${jsonEncode(session.accessToken)}, ${session.expiresAt ?? 0})');
+    } catch (_) {
+      // No signal or sign-in failed: the page keeps everything and asks again
+      _js('window.csSetToken && window.csSetToken(null, 0)');
+    }
   }
 
   void _js(String code) {
@@ -377,6 +421,7 @@ class _NativeWebViewState extends State<NativeWebView>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkAndReloadIfDead();
+      if (_keepAwake) _setKeepAwake(true);
     }
   }
 
@@ -440,6 +485,14 @@ class _NativeWebViewState extends State<NativeWebView>
             }
             if (message == 'stopSpeech') {
               _stopSpeech();
+              return;
+            }
+            if (message == 'keepAwake:on' || message == 'keepAwake:off') {
+              _setKeepAwake(message == 'keepAwake:on');
+              return;
+            }
+            if (message == 'getToken') {
+              _sendToken();
               return;
             }
             if (message.startsWith('haptic:')) {

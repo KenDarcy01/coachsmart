@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="cs-match-charts.js"></script>
   <style>
     /* ── Tokens ─────────────────────────────────────────────────────────────── */
     :root {
@@ -234,6 +235,9 @@
     }
 
     /* Tooltip */
+    .mc-title { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #a1a1a2; font-weight: 600; margin: 22px 16px 0; }
+    #mcCharts, #mcTimeline { padding-bottom: 4px; }
+    #mcTimeline { padding-bottom: 28px; }
     #tooltip {
       display: none; position: fixed;
       background: #0f172a; border: 1px solid var(--border);
@@ -383,7 +387,7 @@
       </div>
       <div class="score-board">
         <div class="score-team">
-          <div class="score-team-name us">Us</div>
+          <div class="score-team-name us" id="usName">Us</div>
           <div class="score-gaa us" id="usGAA">0-00</div>
           <div class="score-pts" id="usPts">(0)</div>
         </div>
@@ -397,29 +401,10 @@
       <div class="score-lead" id="scoreLead"></div>
     </div>
 
-    <!-- Line chart -->
-    <div class="chart-section">
-      <div class="chart-wrapper">
-        <svg id="chart" viewBox="0 0 500 300" preserveAspectRatio="none"></svg>
-      </div>
-    </div>
-
-    <div class="legend">
-      <div class="legend-item"><div class="legend-line us"></div><span>Us</span></div>
-      <div class="legend-item"><div class="legend-line opp"></div><span id="legendOpp">Opp</span></div>
-    </div>
-
-    <!-- Scoring tree -->
-    <div class="tree-section">
-      <div class="tree-header">
-        <span class="tree-team-label us">Us</span>
-        <span class="tree-section-label">Scoring Timeline</span>
-        <span class="tree-team-label opp" id="treeOppLabel">Opp</span>
-      </div>
-      <div class="tree-wrapper" id="treeWrapper">
-        <div class="no-events">No scores yet</div>
-      </div>
-    </div>
+    <!-- Charts and timeline: shared with the score keeper (cs-match-charts.js) -->
+    <div id="mcCharts"></div>
+    <div class="mc-title">Timeline</div>
+    <div class="mc-tl" id="mcTimeline"></div>
   </div>
 
 <script>
@@ -574,9 +559,7 @@ async function loadSessionById(id) {
   timelineData = data;
   oppLabel = data.opposition || 'Opp';
   document.getElementById('oppName').textContent      = oppLabel;
-  document.getElementById('legendOpp').textContent    = oppLabel;
   document.getElementById('tt-opp-label').textContent = oppLabel;
-  document.getElementById('treeOppLabel').textContent = oppLabel;
   document.getElementById('eventLabel').textContent   = data.event_title || 'Match';
   render();
   showChart();
@@ -767,53 +750,8 @@ function updateLiveTimerDisplay() {
     subEl.textContent  = isRunning ? 'remaining' : 'remaining — paused';
   }
 
-  // Compute current abs seconds once — reused for both chart cursor and tree dot
-  const rawAbsSecs = half === 2
-    ? dur + Math.min(elapsed, dur + 900)
-    : Math.min(elapsed, dur + 900);
-
-  if (rawAbsSecs > 0 && chartState.maxSecs) {
-    // During injury time re-render every second so the axis grows smoothly with the clock.
-    // Outside injury time only re-render if the clock has somehow outrun the axis.
-    if (chartState.isLive && (inInjury || rawAbsSecs > chartState.maxSecs)) {
-      render();
-      return;
-    }
-    const clampedAbsSecs = Math.min(rawAbsSecs, chartState.maxSecs);
-
-    // Move the "Now" cursor in the chart SVG each tick
-    const cursorLine = document.getElementById('nowCursorLine');
-    const cursorText = document.getElementById('nowCursorText');
-    if (cursorLine && cursorText) {
-      const cX = f(xS(clampedAbsSecs, chartState.maxSecs));
-      cursorLine.setAttribute('x1', cX);
-      cursorLine.setAttribute('x2', cX);
-      cursorText.setAttribute('x', cX);
-    }
-
-    // Move the "Now" dot on the scoring tree each tick
-    const treeDot  = document.getElementById('treeNowDot');
-    const treeText = document.getElementById('treeNowText');
-    if (treeDot && treeText && chartState.treeUsable) {
-      const nowY = (T_PAD_V + (1 - clampedAbsSecs / chartState.maxSecs) * chartState.treeUsable).toFixed(1);
-      treeDot.setAttribute('cy', nowY);
-      treeText.setAttribute('y', (parseFloat(nowY) + 4).toFixed(1));
-    }
-
-    // Extend tail lines and end labels to follow the "Now" position
-    const usTailLine  = document.getElementById('usTailLine');
-    const oppTailLine = document.getElementById('oppTailLine');
-    if (usTailLine || oppTailLine) {
-      const tailX   = f(xS(clampedAbsSecs, chartState.maxSecs));
-      const labelX  = f(Math.min(xS(clampedAbsSecs, chartState.maxSecs) + 4, VW - PAD.r - 2));
-      if (usTailLine)  usTailLine.setAttribute('x2', tailX);
-      if (oppTailLine) oppTailLine.setAttribute('x2', tailX);
-      const usEndLabel  = document.getElementById('usEndLabel');
-      const oppEndLabel = document.getElementById('oppEndLabel');
-      if (usEndLabel)  usEndLabel.setAttribute('x', labelX);
-      if (oppEndLabel) oppEndLabel.setAttribute('x', labelX);
-    }
-  }
+  // Keep the "now" end of the charts moving while the match is live
+  if (isRunning && Date.now() - _mcLastRender > 15000) render();
 }
 
 async function exportPDF() {
@@ -901,8 +839,46 @@ function render() {
   if (!timelineData) return;
   processData();
   renderScore();
-  renderChartSVG();
-  renderTree();
+  renderMatchCharts();
+}
+
+// Model for cs-match-charts.js, built from get_match_stats_session
+function chartModel() {
+  const timer = timelineData.timer || {};
+  const dur = timer.duration_seconds || 1800;
+  const events = timelineData.events || [];
+  const finished = !!timelineData.finalised_at;
+  let nowAbs = null;
+  if (!finished) {
+    let el = timer.elapsed_seconds || 0;
+    if (timer.status === 'running' && timer.started_at) el += (Date.now() - new Date(timer.started_at).getTime()) / 1000;
+    nowAbs = ((timer.current_half || 1) === 2 ? dur : 0) + Math.min(Math.max(el, 0), dur * 1.5);
+  }
+  return {
+    usName: timelineData.team_name || 'Us',
+    oppName: oppLabel || 'Opp',
+    duration: dur,
+    hasH2: events.some(e => e.half === 2) || (timer.current_half || 1) === 2,
+    nowAbs, finished,
+    events: events.map((e, i) => ({
+      half: e.half || 1, second: e.second || 0, side: e.side,
+      value: e.score_value || null, name: e.score_type_name || e.abbreviated_name || 'Score',
+      kind: e.kind || 'score', count: e.count == null ? 1 : e.count, member: e.member_name || '', order: i,
+    })),
+    subs: (timelineData.subs || []).map(s => ({ half: s.half || 1, second: s.second || 0, on: s.on_name || '', off: s.off_name || '' })),
+  };
+}
+
+let _mcLastRender = 0;
+function renderMatchCharts() {
+  CSMatchCharts.injectCss();
+  const m = chartModel();
+  document.getElementById('mcCharts').innerHTML = m.events.length
+    ? CSMatchCharts.chartSection(m)
+    : '<div class="mc-empty">Waiting for the first score…</div>';
+  document.getElementById('mcTimeline').innerHTML = CSMatchCharts.timelineSection(m);
+  document.getElementById('usName').textContent = m.usName;
+  _mcLastRender = Date.now();
 }
 
 // ── Time scale ────────────────────────────────────────────────────────────
@@ -1045,7 +1021,10 @@ function processData() {
 function fmtGAA(goals, pts) { return `${goals}-${String(pts).padStart(2, '0')}`; }
 
 function renderScore() {
-  const { usTotal, oppTotal, usGoals, usPts, oppGoals, oppPts, isFinished } = chartState;
+  const { isFinished } = chartState;
+  const w = CSMatchCharts.walk(chartModel());
+  const usGoals = w.us.g, usPts = w.us.p, oppGoals = w.opp.g, oppPts = w.opp.p;
+  const usTotal = usGoals * 3 + usPts, oppTotal = oppGoals * 3 + oppPts;
   document.getElementById('usGAA').textContent  = fmtGAA(usGoals, usPts);
   document.getElementById('usPts').textContent  = `(${usTotal})`;
   document.getElementById('oppGAA').textContent = fmtGAA(oppGoals, oppPts);
@@ -1058,279 +1037,11 @@ function renderScore() {
     else if (diff < 0) { leadEl.innerHTML = chip(`Lost by ${Math.abs(diff)}`);         leadEl.className = 'score-lead trailing'; }
     else               { leadEl.innerHTML = chip('Draw');                               leadEl.className = 'score-lead level'; }
   } else {
-    if      (diff > 0) { leadEl.innerHTML = chip(`Us ${diff} up`);                     leadEl.className = 'score-lead leading'; }
+    if      (diff > 0) { leadEl.innerHTML = chip(`${timelineData.team_name || 'Us'} ${diff} up`);                     leadEl.className = 'score-lead leading'; }
     else if (diff < 0) { leadEl.innerHTML = chip(`${oppLabel} ${Math.abs(diff)} up`);  leadEl.className = 'score-lead trailing'; }
     else if (usTotal === 0) { leadEl.innerHTML = '';                                    leadEl.className = 'score-lead'; }
     else               { leadEl.innerHTML = chip('Level');                              leadEl.className = 'score-lead level'; }
   }
-}
-
-// ── SVG line chart ────────────────────────────────────────────────────────
-function xS(s, maxSecs) { return PAD.l + (s / maxSecs) * CW; }
-function yS(p, maxPts)  { return PAD.t + CH - (p / maxPts) * CH; }
-function f(n)            { return n.toFixed(1); }
-function pts2str(pts, maxSecs, maxPts) {
-  return pts.map(p => `${f(xS(p.x, maxSecs))},${f(yS(p.y, maxPts))}`).join(' ');
-}
-
-function renderChartSVG() {
-  const { sortedEvents, usLine, oppLine, usTotal, oppTotal,
-          durationSecs, currentAbsSecs, maxSecs, maxPts, showHT, isLive, timeScale } = chartState;
-
-  let svg = '';
-
-  // Y grid
-  const yTick = maxPts <= 5 ? 1 : maxPts <= 12 ? 2 : maxPts <= 25 ? 5 : 10;
-  for (let y = 0; y <= maxPts; y += yTick) {
-    const cy = f(yS(y, maxPts));
-    svg += `<line x1="${PAD.l}" y1="${cy}" x2="${f(PAD.l+CW)}" y2="${cy}" stroke="${C_GRID}" stroke-width="1"/>`;
-    svg += `<text x="${PAD.l-4}" y="${cy}" dy="4" text-anchor="end" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${y}</text>`;
-  }
-
-  // X grid — dynamic tick interval in seconds
-  for (let s = 0; s <= Math.ceil(maxSecs); s += timeScale.tickSecs) {
-    const cx = f(xS(s, maxSecs));
-    svg += `<line x1="${cx}" y1="${PAD.t}" x2="${cx}" y2="${f(PAD.t+CH)}" stroke="${C_GRID}" stroke-width="1"/>`;
-    svg += `<text x="${cx}" y="${f(PAD.t+CH+14)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${fmtAxisLabel(s, timeScale.unit)}</text>`;
-  }
-
-  // Halftime marker — shown whenever the axis spans more than one half
-  if (showHT) {
-    const htX = f(xS(durationSecs, maxSecs));
-    svg += `<line x1="${htX}" y1="${PAD.t}" x2="${htX}" y2="${f(PAD.t+CH)}" stroke="${C_AMBER}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.75"/>`;
-    svg += `<text x="${htX}" y="${PAD.t-4}" text-anchor="middle" fill="${C_AMBER}" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">HT</text>`;
-  }
-
-  // Axes
-  svg += `<line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${f(PAD.t+CH)}" stroke="${C_AXIS}" stroke-width="1"/>`;
-  svg += `<line x1="${PAD.l}" y1="${f(PAD.t+CH)}" x2="${f(PAD.l+CW)}" y2="${f(PAD.t+CH)}" stroke="${C_AXIS}" stroke-width="1"/>`;
-  svg += `<text x="${f(PAD.l+CW/2)}" y="${VH-2}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif">${timeScale.unit === 'seconds' ? 'Seconds' : 'Minutes'}</text>`;
-  svg += `<text x="9" y="${f(PAD.t+CH/2)}" text-anchor="middle" fill="${C_MUTE}" font-size="9" font-family="DM Sans,sans-serif" transform="rotate(-90 9 ${f(PAD.t+CH/2)})">Points</text>`;
-
-  // "Now" cursor — prominent in live mode, subtle in finalised.
-  // In injury time, currentAbsSecs > maxSecs so we clamp to right edge rather than hiding.
-  if (currentAbsSecs > 0) {
-    const clampedAbsSecs = Math.min(currentAbsSecs, maxSecs);
-    const cX = f(xS(clampedAbsSecs, maxSecs));
-    if (isLive) {
-      svg += `<line id="nowCursorLine" x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>`;
-      svg += `<text id="nowCursorText" x="${cX}" y="${PAD.t-4}" text-anchor="middle" fill="#94a3b8" font-size="8" font-weight="600" font-family="DM Sans,sans-serif">Now</text>`;
-    } else if (currentAbsSecs < maxSecs) {
-      svg += `<line x1="${cX}" y1="${PAD.t}" x2="${cX}" y2="${f(PAD.t+CH)}" stroke="#475569" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>`;
-    }
-  }
-
-  // Lines — the tail point (lineEndSecs) is always excluded from the static polyline.
-  // In live mode it becomes an animated tail line; in finalised mode it becomes an endpoint dot.
-  const usStaticLine  = usLine.slice(0, -1);
-  const oppStaticLine = oppLine.slice(0, -1);
-  if (oppStaticLine.length > 1)
-    svg += `<polyline points="${pts2str(oppStaticLine, maxSecs, maxPts)}" fill="none" stroke="${C_OPP}" stroke-width="2"   stroke-linejoin="round" stroke-linecap="round"/>`;
-  if (usStaticLine.length > 1)
-    svg += `<polyline points="${pts2str(usStaticLine,  maxSecs, maxPts)}" fill="none" stroke="${C_US}"  stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-  if (isLive) {
-    const usAnchor   = usLine[usLine.length - 2]  || usLine[0];
-    const oppAnchor  = oppLine[oppLine.length - 2] || oppLine[0];
-    const tailNowX   = f(xS(Math.min(currentAbsSecs, maxSecs), maxSecs));
-    svg += `<line id="oppTailLine" x1="${f(xS(oppAnchor.x,maxSecs))}" y1="${f(yS(oppAnchor.y,maxPts))}" x2="${tailNowX}" y2="${f(yS(oppAnchor.y,maxPts))}" stroke="${C_OPP}" stroke-width="2"   stroke-linecap="round"/>`;
-    svg += `<line id="usTailLine"  x1="${f(xS(usAnchor.x, maxSecs))}" y1="${f(yS(usAnchor.y, maxPts))}" x2="${tailNowX}" y2="${f(yS(usAnchor.y, maxPts))}" stroke="${C_US}"  stroke-width="2.5" stroke-linecap="round"/>`;
-  } else {
-    const usEndPt  = usStaticLine[usStaticLine.length - 1]  || usLine[0];
-    const oppEndPt = oppStaticLine[oppStaticLine.length - 1] || oppLine[0];
-    if (usTotal > 0) {
-      svg += `<circle cx="${f(xS(usEndPt.x, maxSecs))}" cy="${f(yS(usEndPt.y, maxPts))}" r="6"   fill="#111418"/>`;
-      svg += `<circle cx="${f(xS(usEndPt.x, maxSecs))}" cy="${f(yS(usEndPt.y, maxPts))}" r="4.5" fill="${C_US}"/>`;
-    }
-    if (oppTotal > 0) {
-      svg += `<circle cx="${f(xS(oppEndPt.x, maxSecs))}" cy="${f(yS(oppEndPt.y, maxPts))}" r="5.5" fill="#111418"/>`;
-      svg += `<circle cx="${f(xS(oppEndPt.x, maxSecs))}" cy="${f(yS(oppEndPt.y, maxPts))}" r="4"   fill="${C_OPP}"/>`;
-    }
-  }
-
-  // Event markers
-  for (const ev of sortedEvents) {
-    const cx = f(xS(ev.absSec, maxSecs));
-    const cy = ev.side === 'us' ? f(yS(ev.usCum, maxPts)) : f(yS(ev.oppCum, maxPts));
-    const c  = ev.side === 'us' ? C_US : C_OPP;
-    const r  = ev.isGoal ? 4.5 : 3;
-    svg += `<circle cx="${cx}" cy="${cy}" r="${r+1}" fill="#111418"/>`;
-    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c}"/>`;
-    if (ev.isGoal) {
-      const ly = ev.side === 'us' ? parseFloat(cy) - 8 : parseFloat(cy) + 14;
-      svg += `<text x="${cx}" y="${f(ly)}" text-anchor="middle" fill="${c}" font-size="8" font-weight="700" font-family="DM Sans,sans-serif">${ev.abbreviated_name || 'G'}</text>`;
-    }
-  }
-
-  // End labels — live: track the animated tail tip; finalised: sit next to the endpoint dot
-  const usEnd  = isLive ? usLine[usLine.length - 1]  : (usStaticLine[usStaticLine.length - 1]  || usLine[0]);
-  const oppEnd = isLive ? oppLine[oppLine.length - 1] : (oppStaticLine[oppStaticLine.length - 1] || oppLine[0]);
-  if (usTotal > 0) {
-    const lx     = Math.min(xS(usEnd.x, maxSecs) + 4, VW - PAD.r - 2);
-    const idAttr = isLive ? ' id="usEndLabel"' : '';
-    svg += `<text${idAttr} x="${f(lx)}" y="${f(yS(usEnd.y, maxPts) - 4)}" fill="${C_US}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">Us ${usTotal}</text>`;
-  }
-  if (oppTotal > 0) {
-    const lx     = Math.min(xS(oppEnd.x, maxSecs) + 4, VW - PAD.r - 2);
-    const yOff   = Math.abs(yS(usEnd.y, maxPts) - yS(oppEnd.y, maxPts)) < 14 ? 12 : -4;
-    const idAttr = isLive ? ' id="oppEndLabel"' : '';
-    svg += `<text${idAttr} x="${f(lx)}" y="${f(yS(oppEnd.y, maxPts) + yOff)}" fill="${C_OPP}" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">${oppLabel} ${oppTotal}</text>`;
-  }
-
-  if (sortedEvents.length === 0)
-    svg += `<text x="${f(VW/2)}" y="${f(VH/2)}" text-anchor="middle" fill="${C_MUTE}" font-size="12" font-family="DM Sans,sans-serif">Waiting for first score…</text>`;
-
-  svg += `<rect id="chartOverlay" x="${PAD.l}" y="${PAD.t}" width="${CW}" height="${CH}" fill="transparent" style="cursor:crosshair"/>`;
-  document.getElementById('chart').innerHTML = svg;
-  attachChartInteraction();
-}
-
-// ── Chart interaction ─────────────────────────────────────────────────────
-function attachChartInteraction() {
-  const overlay = document.getElementById('chartOverlay');
-  const tooltip = document.getElementById('tooltip');
-  if (!overlay) return;
-
-  function getAbsSec(clientX) {
-    const rect   = overlay.closest('svg').getBoundingClientRect();
-    const scaleX = VW / rect.width;
-    return ((clientX - rect.left) * scaleX - PAD.l) / CW * chartState.maxSecs;
-  }
-  function getScores(absSec) {
-    let us = 0, opp = 0;
-    for (const ev of chartState.sortedEvents) {
-      if (ev.absSec <= absSec) { if (ev.side === 'us') us = ev.usCum; else opp = ev.oppCum; }
-    }
-    return { us, opp };
-  }
-  function showTip(clientX, clientY, absSec) {
-    if (absSec < 0 || absSec > chartState.maxSecs) { hideTip(); return; }
-    const scores = getScores(absSec);
-    document.getElementById('tt-min').textContent = fmtEventTime(absSec, chartState.durationSecs, chartState.hasH2);
-    document.getElementById('tt-us').textContent  = scores.us;
-    document.getElementById('tt-opp').textContent = scores.opp;
-    tooltip.style.display = 'block';
-    const tipW = tooltip.offsetWidth, tipH = tooltip.offsetHeight;
-    let left = clientX + 12, top = clientY - tipH / 2;
-    if (left + tipW > window.innerWidth)  left = clientX - tipW - 12;
-    if (top < 8) top = 8;
-    if (top + tipH > window.innerHeight - 8) top = window.innerHeight - tipH - 8;
-    tooltip.style.left = `${left}px`;
-    tooltip.style.top  = `${top}px`;
-  }
-  function hideTip() { tooltip.style.display = 'none'; }
-
-  overlay.addEventListener('mousemove',  e => showTip(e.clientX, e.clientY, getAbsSec(e.clientX)));
-  overlay.addEventListener('mouseleave', hideTip);
-  // Touch events intentionally removed — tooltip under finger is unreadable on mobile
-  // and the non-passive preventDefault was blocking page scroll.
-}
-
-// ── Scoring tree ──────────────────────────────────────────────────────────
-function renderTree() {
-  const wrapper = document.getElementById('treeWrapper');
-  const { sortedEvents, maxSecs, durationSecs, hasH2, showHT, isLive, currentAbsSecs, timeScale } = chartState;
-
-  if (!sortedEvents.length) {
-    wrapper.innerHTML = '<div class="no-events">No scores yet</div>';
-    return;
-  }
-
-  // Compute tree height
-  const H = Math.max(T_MIN_H, sortedEvents.length * 28 + T_PAD_V * 2);
-  const USABLE = H - T_PAD_V * 2;
-  chartState.treeUsable = USABLE;  // stored so the 1s tick can move the Now dot
-
-  // Assign raw y positions (top = Finish = high absSec, bottom = Start = 0)
-  const positioned = sortedEvents.map(ev => {
-    const rawY = T_PAD_V + (1 - ev.absSec / maxSecs) * USABLE;
-    return { ...ev, y: rawY };
-  });
-
-  // Spread overlapping events per side
-  ['us', 'opp'].forEach(side => {
-    const sideEvs = positioned.filter(e => e.side === side).sort((a, b) => a.y - b.y);
-    for (let i = 1; i < sideEvs.length; i++) {
-      if (sideEvs[i].y - sideEvs[i-1].y < T_MIN_GAP) {
-        sideEvs[i].y = sideEvs[i-1].y + T_MIN_GAP;
-      }
-    }
-  });
-
-  // Recompute H to fit spread events
-  const maxY = Math.max(...positioned.map(e => e.y));
-  const finalH = Math.max(H, maxY + T_PAD_V);
-
-  const C_TRUNK = '#2d3f56';
-  const C_TICK  = '#334155';
-  const FONT    = "DM Sans,system-ui,sans-serif";
-
-  let svg = `<svg viewBox="0 0 ${T_W} ${finalH}" xmlns="http://www.w3.org/2000/svg">`;
-
-  // Trunk
-  svg += `<line x1="${T_TRUNK}" y1="${T_PAD_V - 8}" x2="${T_TRUNK}" y2="${finalH - T_PAD_V + 8}" stroke="${C_TRUNK}" stroke-width="2"/>`;
-
-  // Finish / Start labels — "HALF TIME" for single-half matches, "FULL TIME" for two-half
-  const finishLabel = hasH2 ? 'FULL TIME' : 'HALF TIME';
-  svg += `<text x="${T_TRUNK}" y="${T_PAD_V - 12}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">${finishLabel}</text>`;
-  svg += `<text x="${T_TRUNK}" y="${finalH - T_PAD_V + 22}" text-anchor="middle" fill="${C_MUTE}" font-size="10" font-weight="600" font-family="${FONT}" letter-spacing="1">START</text>`;
-
-  // Halftime line — full width, prominent
-  if (showHT) {
-    const htY = f(T_PAD_V + (1 - durationSecs / maxSecs) * USABLE);
-    svg += `<line x1="0" y1="${htY}" x2="${T_W}" y2="${htY}" stroke="${C_AMBER}" stroke-width="1" stroke-dasharray="4,4" opacity="0.35"/>`;
-    svg += `<text x="${T_W - 4}" y="${parseFloat(htY) - 4}" text-anchor="end" fill="${C_AMBER}" font-size="9" font-weight="700" font-family="${FONT}" letter-spacing="0.5">HALF TIME</text>`;
-  }
-
-  // "Now" marker on trunk — only in live mode; clamp to top during injury time
-  if (isLive && currentAbsSecs > 0) {
-    const clampedNowSecs = Math.min(currentAbsSecs, maxSecs);
-    const nowY = f(T_PAD_V + (1 - clampedNowSecs / maxSecs) * USABLE);
-    svg += `<circle id="treeNowDot" cx="${T_TRUNK}" cy="${nowY}" r="4" fill="#94a3b8"/>`;
-    svg += `<text id="treeNowText" x="${T_TRUNK + 10}" y="${parseFloat(nowY) + 4}" text-anchor="start" fill="#94a3b8" font-size="8" font-weight="600" font-family="${FONT}">Now</text>`;
-  }
-
-  // Draw events
-  for (const ev of positioned) {
-    const y  = f(ev.y);
-    const yN = parseFloat(y);
-    const c  = ev.side === 'us' ? C_US : C_OPP;
-
-    const scoreType  = ev.val >= 3 ? 'Goal' : ev.val === 2 ? '2 Pointer' : 'Point';
-    const playerName = ev.abbreviated_name || '';
-    const lead       = ev.side === 'us' ? ev.usCum - ev.oppCum : ev.oppCum - ev.usCum;
-    const leadStr    = lead > 0 ? `+${lead}` : lead < 0 ? `${lead}` : '=';
-    const leadColor  = c;
-    const time       = fmtTreeTime(ev, durationSecs);
-
-    if (ev.side === 'us') {
-      // Branch goes left
-      const dotX = T_TRUNK - T_BRANCH;
-      svg += `<line x1="${T_TRUNK}" y1="${y}" x2="${dotX}" y2="${y}" stroke="${c}" stroke-width="1.5" opacity="0.7"/>`;
-      svg += `<circle cx="${T_TRUNK}" cy="${y}" r="3" fill="${C_TRUNK}" stroke="${c}" stroke-width="1.5"/>`;
-      svg += `<circle cx="${dotX}" cy="${y}" r="${T_DOT_R}" fill="${c}"/>`;
-      // Score type at tip
-      svg += `<text x="${dotX - 8}" y="${yN + 3}" text-anchor="end" fill="${c}" font-size="10" font-weight="700" font-family="${FONT}">${scoreType}</text>`;
-      // Lead indicator below score type
-      svg += `<text x="${dotX - 8}" y="${yN + 14}" text-anchor="end" fill="${leadColor}" font-size="8" font-weight="600" font-family="${FONT}">${leadStr}${playerName ? '  ' + playerName : ''}</text>`;
-      // Time on trunk, right side
-      svg += `<text x="${T_TRUNK + 10}" y="${yN - 4}" text-anchor="start" fill="${C_MUTE}" font-size="8" font-family="${FONT}">${time}</text>`;
-    } else {
-      // Branch goes right
-      const dotX = T_TRUNK + T_BRANCH;
-      svg += `<line x1="${T_TRUNK}" y1="${y}" x2="${dotX}" y2="${y}" stroke="${c}" stroke-width="1.5" opacity="0.7"/>`;
-      svg += `<circle cx="${T_TRUNK}" cy="${y}" r="3" fill="${C_TRUNK}" stroke="${c}" stroke-width="1.5"/>`;
-      svg += `<circle cx="${dotX}" cy="${y}" r="${T_DOT_R}" fill="${c}"/>`;
-      // Score type at tip
-      svg += `<text x="${dotX + 8}" y="${yN + 3}" text-anchor="start" fill="${c}" font-size="10" font-weight="700" font-family="${FONT}">${scoreType}</text>`;
-      // Lead indicator below score type
-      svg += `<text x="${dotX + 8}" y="${yN + 14}" text-anchor="start" fill="${leadColor}" font-size="8" font-weight="600" font-family="${FONT}">${playerName ? playerName + '  ' : ''}${leadStr}</text>`;
-      // Time on trunk, left side
-      svg += `<text x="${T_TRUNK - 10}" y="${yN - 4}" text-anchor="end" fill="${C_MUTE}" font-size="8" font-family="${FONT}">${time}</text>`;
-    }
-  }
-
-  svg += `</svg>`;
-  wrapper.innerHTML = svg;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────
