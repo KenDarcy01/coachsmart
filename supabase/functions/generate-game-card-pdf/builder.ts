@@ -25,21 +25,6 @@ export interface GameData {
   game_type?: string[] | null;
 }
 
-/** Short tag list from the game's own code / age / skill / type. */
-function gameTags(g: GameData): string[] {
-  const tags: string[] = [];
-  (g.game_code || []).slice(0, 2).forEach(c => c && tags.push(c));
-  const ages = (g.game_age || []).filter(Boolean);
-  const nums = ages.map(a => /^u\s?(\d+)$/i.exec(a.trim())).filter(Boolean).map(m => Number(m![1]));
-  if (nums.length && nums.length === ages.length) {
-    const lo = Math.min(...nums), hi = Math.max(...nums);
-    tags.push(lo === hi ? `U${lo}` : `U${lo} – U${hi}`);
-  } else ages.slice(0, 2).forEach(a => tags.push(a));
-  (g.game_skill || []).slice(0, 2).forEach(s => s && tags.push(s));
-  (g.game_type || []).filter(t => !/^video$/i.test(t)).slice(0, 1).forEach(t => t && tags.push(t));
-  return [...new Set(tags.map(t => t.trim()).filter(Boolean))].slice(0, 6);
-}
-
 export async function buildPdf(games: GameData[], club: ClubData, isMobile = false): Promise<Uint8Array> {
   const th: Theme = makeTheme(club);
   const doc = await PDFDocument.create();
@@ -60,22 +45,14 @@ export async function buildPdf(games: GameData[], club: ClubData, isMobile = fal
     ? { step: 11, slh: 16, pt: 11, plh: 16, lab: 8, h1: 21 }
     : { step: 9.5, slh: 14.25, pt: 9.5, plh: 13.8, lab: 7.5, h1: 23 };
 
+  // Hero: crest, "GAME CARD · CLUB" and the game name. Game attributes stay
+  // off the header (Ken, 2026-10-15) so it reads cleanly.
   function hero(c: Canvas, g: GameData): number {
-    const padY = isMobile ? 18 : 20, crestW = isMobile ? 44 : 58, crestH = isMobile ? 50 : 66;
-    const tags = gameTags(g).map(T);
-    const tx0 = M + (crest ? crestW + 14 : 0), tw = PW - M - tx0;
+    const padY = isMobile ? 16 : 18, crestW = isMobile ? 58 : 70, crestH = isMobile ? 66 : 80;
+    const tx0 = M + (crest ? crestW + 16 : 0), tw = PW - M - tx0;
     const nameLines = wrap(T(g.game_name || "Game"), f.head, S.h1, tw).slice(0, 2);
     const nameLH = S.h1 * 1.12;
-    // lay tags out in rows
-    const tagRows: string[][] = [];
-    let row: string[] = [], rw = 0;
-    for (const t of tags) {
-      const w = textW(t, f.bold, 8.5) + 18 + 6;
-      if (row.length && rw + w > tw) { tagRows.push(row); row = []; rw = 0; }
-      row.push(t); rw += w;
-    }
-    if (row.length) tagRows.push(row);
-    const textH = 8.5 + 6 + nameLines.length * nameLH + (tagRows.length ? 6 + tagRows.length * 21 - 4 : 0);
+    const textH = 8.5 + 6 + nameLines.length * nameLH;
     const h = Math.max(crest ? crestH : 0, textH) + padY * 2;
     c.rect(0, 0, PW, h, th.p);
     drawCrest(c, crest, M, (h - crestH) / 2, crestW, crestH);
@@ -83,18 +60,6 @@ export async function buildPdf(games: GameData[], club: ClubData, isMobile = fal
     label(c, fitLine(`GAME CARD · ${T(club.club_name).toUpperCase()}`, f.bold, 8.5, 7, tw)[0], tx0, y, 8.5, th.onP, f);
     y += 8.5 + 6;
     nameLines.forEach(l => { c.text(l, tx0, y + (nameLH - S.h1) / 2, S.h1, f.head, th.onP); y += nameLH; });
-    y += 6;
-    for (const r of tagRows) {
-      let x = tx0;
-      for (const t of r) {
-        const w = textW(t, f.bold, 8.5) + 18;
-        c.page.drawSvgPath(`M8.5,0 H${w - 8.5} A8.5,8.5 0 0 1 ${w - 8.5},17 H8.5 A8.5,8.5 0 0 1 8.5,0 Z`,
-          { x, y: c.H - y, color: th.onP, opacity: 0.18 });
-        c.text(t, x + 9, y + 4.3, 8.5, f.bold, th.onP);
-        x += w + 6;
-      }
-      y += 21;
-    }
     return h + drawStripes(c, h, th, 6);
   }
 

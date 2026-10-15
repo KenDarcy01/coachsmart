@@ -547,6 +547,7 @@
     }
     .sheet.open { display: flex; }
     .sheet.shown { background: rgba(0,0,0,0.55); }
+    .sheet-body .btn:disabled { opacity: 0.6; }
     .sheet-panel {
       background: var(--surface); border-radius: 20px 20px 0 0;
       max-height: calc(100% - 48px); height: calc(100% - 48px);
@@ -562,12 +563,6 @@
     }
     .sheet-back { display: flex; align-items: center; justify-content: center; color: var(--muted); width: 44px; height: 44px; }
     .sheet-back svg { width: 22px; height: 22px; }
-    .sheet-foot {
-      display: none; gap: 10px; flex-shrink: 0;
-      padding: 10px 14px max(12px, env(safe-area-inset-bottom));
-      border-top: 1px solid var(--border); background: var(--surface);
-    }
-    .sheet-foot.on { display: flex; }
     .sheet-tags { display: flex; gap: 5px; flex-wrap: wrap; padding: 2px 14px 0; }
     .sheet-heart-btn {
       color: var(--muted);
@@ -806,9 +801,6 @@
       </button>
     </div>
     <div class="sheet-body" id="sheetBody"></div>
-    <div class="sheet-foot" id="sheetFoot">
-      <button class="btn btn-primary" id="sheetPickBtn" onclick="pickFromSheet()"></button>
-    </div>
   </div>
 </div>
 
@@ -1139,7 +1131,6 @@
       _picked.push(gameId);
     }
     renderFavList();
-    if (_currentSheetGameId === gameId) updateSheetPick();
   }
 
   function toggleAllPicks() {
@@ -2117,7 +2108,6 @@
     $('sheetBody').innerHTML = (fav ? `<div class="sheet-game-title">${esc(fav.game_name)}</div>` : '') +
       '<div class="state-screen"><div class="spinner"></div></div>';
     updateSheetHeart();
-    updateSheetPick();
     $('sheetBody').scrollTop = 0;
     const sheet = $('gameSheet');
     sheet.classList.add('open');
@@ -2151,9 +2141,9 @@
         <div class="coach-notes-section">
           <div class="coach-notes-label">Coach Notes</div>
           <textarea id="coachNotesInput" class="coach-notes-input" placeholder="Add your coaching notes for this game…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(data.coach_note || '')}</textarea>
-          <div style="margin-top:8px"><button class="btn btn-outline" id="saveNoteBtn" onclick="saveCoachNote()">Save Note</button></div>
+          <button class="btn btn-outline btn-full" id="saveNoteBtn" style="margin-top:10px" onclick="saveCoachNote()">Save Note</button>
         </div>
-        <div style="height:24px">`;
+        <div style="height:calc(24px + env(safe-area-inset-bottom))"></div>`;
       const ta = $('coachNotesInput');
       if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
     } catch {
@@ -2186,8 +2176,7 @@
           renderFavList();
         } else showToast('Added to favourites');
         updateSheetHeart();
-        updateSheetPick();
-      } else showToast('Could not update favourites');
+          } else showToast('Could not update favourites');
     } catch { showToast('Network error'); }
   }
 
@@ -2207,7 +2196,7 @@
   async function exportGameCardPdf(gameId) {
     const btn = $('gcPdfBtn');
     const orig = btn?.innerHTML;
-    if (btn) { btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-color:rgba(0,0,0,0.2);border-top-color:rgba(0,0,0,0.55)"></div>'; btn.disabled = true; }
+    if (btn) { btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></div>Preparing card…'; btn.disabled = true; }
     try {
       const res = await fetch(GAME_CARD_PDF_FN, { method: 'POST', headers: HEADERS, body: JSON.stringify({ game_id: gameId, user_id: USER_ID, platform: IS_WEBVIEW ? 'mobile' : 'web' }) });
       if (!res.ok) throw new Error();
@@ -2224,25 +2213,6 @@
     setTimeout(() => { if (!sheet.classList.contains('shown')) sheet.classList.remove('open'); }, 280);
   }
 
-  // Pick / Unpick from the quick look. Hidden once the game is no longer a favourite.
-  function updateSheetPick() {
-    const foot = $('sheetFoot'), btn = $('sheetPickBtn');
-    const id = _currentSheetGameId;
-    const isFav = _favs.some(f => f.game_id === id);
-    foot.classList.toggle('on', !!id && isFav);
-    if (!id || !isFav) return;
-    const picked = _picked.includes(id);
-    btn.className = 'btn ' + (picked ? 'btn-outline' : 'btn-primary');
-    btn.textContent = picked ? `Picked as game ${_picked.indexOf(id) + 1} · Unpick` : (_picked.length >= MAX_GAMES ? `${MAX_GAMES} picked already` : '+ Pick for plan');
-    btn.disabled = !picked && _picked.length >= MAX_GAMES;
-  }
-  function pickFromSheet() {
-    const id = _currentSheetGameId;
-    if (!id) return;
-    const wasPicked = _picked.includes(id);
-    togglePick(id);
-    if (!wasPicked && _picked.includes(id)) closeSheet();
-  }
 
   // ── Setup notes: type, or tap the mic for the voice panel ─────────────────
   function autoGrow(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
