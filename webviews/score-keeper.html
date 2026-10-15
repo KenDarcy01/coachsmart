@@ -92,19 +92,8 @@ input,select{font:inherit;color:var(--text)}
 .row.opp .mn{color:var(--red)}
 .row.corr small{color:var(--amber)}
 
-/* who scored: floats above the bottom bar so the buttons never move */
-.who{position:fixed;left:12px;right:12px;bottom:calc(86px + var(--safe-b));max-width:456px;margin:0 auto;z-index:25;background:#262b35;border-radius:18px;padding:12px 12px 10px;border:1.5px solid rgba(135,194,50,.45);box-shadow:0 10px 34px rgba(0,0,0,.5)}
-.who .h{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700}
-.who .h span{flex:1}
-.who .h button{font-weight:700;font-size:15px;padding:6px 4px}
-.who .h .u{color:var(--green)}
-.who .h .k{color:var(--muted)}
-.who .s2{font-size:13px;color:var(--muted);margin:2px 0 8px}
-.who .shirts{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-height:122px;overflow-y:auto}
-.who .cd{height:4px;background:#1e222b;border-radius:2px;margin-top:8px;overflow:hidden}
-.who .cd i{display:block;height:100%;background:var(--green);transform-origin:left;animation:cd linear forwards}
+/* player picker (edit sheet, subs) */
 .shirt{min-width:64px;padding:7px 6px;border-radius:12px;background:var(--card2);text-align:center;border:1.5px solid transparent}
-.who .shirt{min-width:0;background:#1e222b}
 .shirt b{display:block;font-family:var(--num);font-size:24px;line-height:1;font-weight:400}
 .shirt span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .shirt.sel{border-color:var(--green)}
@@ -290,7 +279,6 @@ input,select{font:inherit;color:var(--text)}
         <div class="heard" id="micHeard"></div>
         <div class="ex" id="micEx"></div>
       </div>
-      <div id="whoStrip"></div>
     </div>
     <div id="recent"></div>
   </div>
@@ -1003,7 +991,6 @@ function renderMode() {
   $('tapPad').classList.toggle('hidden', mode !== 'tap');
   $('voicePad').classList.toggle('hidden', mode !== 'voice');
   if (mode === 'tap') renderTapPad(); else renderVoice();
-  renderWho();
 }
 
 function renderTapPad() {
@@ -1040,14 +1027,11 @@ function tapScore(st, side, btn) {
   buzz(15);
   if (btn) { btn.classList.add('flash'); setTimeout(() => btn.classList.remove('flash'), 350); }
   const t = typeById(st);
-  whoFor = null;
-  if (side === 'us' && t.score_value > 0 && rosterForStrip().length) whoFor = { id: a.id, at: Date.now(), until: Date.now() + 9000 };
-  renderBoard(); renderTapPad(); renderWho(); renderRecent();
+  renderBoard(); renderTapPad(); renderRecent();
   if (btn) {
     const nb = document.querySelector(`#tapPad [data-st="${st}"][data-side="${side}"]`);
     if (nb) { nb.classList.add('flash'); setTimeout(() => nb.classList.remove('flash'), 350); }
   }
-  if (whoFor) { $('toast').classList.remove('show'); return; }   // the who-scored panel has its own Undo
   toast(`${t.score_type} for ${side === 'us' ? usName() : oppName()} at ${minute(a.half, a.sec)}`, 'Undo', () => {
     removeAct(a.id); render();
   });
@@ -1061,39 +1045,6 @@ function takeOneOff(st, side) {
   render();
   toast(`Took off a ${t.score_type.toLowerCase()} for ${side === 'us' ? usName() : oppName()}`, 'Undo', () => { restoreAct(last); render(); });
 }
-
-// "Who scored?" strip after one of our scores (Tap mode)
-let whoFor = null;
-function rosterForStrip() {
-  const op = onPitch();
-  if (op) return op;
-  return Array.from(roster().values()).sort((a, b) => fullName(a).localeCompare(fullName(b)));
-}
-function renderWho() {
-  const el = $('whoStrip');
-  if (!whoFor || Date.now() > whoFor.until || mode !== 'tap' || S.phase !== 'play' || view !== 'score') { el.innerHTML = ''; return; }
-  const a = S.acts.find(x => x.id === whoFor.id);
-  if (!a) { el.innerHTML = ''; return; }
-  const t = typeById(a.st);
-  const ms = whoFor.until - whoFor.at;
-  el.innerHTML = `<div class="who"><div class="h"><span>${esc(t.score_type)} saved · who scored?</span><button class="u" data-who="undo">Undo</button><button class="k" data-who="x">Skip</button></div>
-    <div class="s2">Optional. Leave it and it goes down as ${esc(usName())}.</div>
-    <div class="shirts">${rosterForStrip().map(p => `<button class="shirt ${a.mem === p.id ? 'sel' : ''}" data-who="${p.id}"><b>${p.number != null ? p.number : '·'}</b><span>${esc(shortName(p))}</span></button>`).join('')}</div>
-    <div class="cd"><i style="animation-duration:${ms}ms;animation-delay:-${Date.now() - whoFor.at}ms"></i></div></div>`;
-}
-$('whoStrip').addEventListener('click', e => {
-  const b = e.target.closest('[data-who]'); if (!b || !whoFor) return;
-  const id = whoFor.id;
-  whoFor = null;
-  if (b.dataset.who === 'undo') { removeAct(id); render(); toast('Removed'); return; }
-  if (b.dataset.who !== 'x') {
-    const mem = Number(b.dataset.who);
-    editAct(id, { mem });
-    toast(`${typeById(S.acts.find(x => x.id === id).st).score_type}: ${memberName(mem)}`);
-  }
-  renderWho(); renderRecent();
-});
-setInterval(() => { if (whoFor && Date.now() > whoFor.until) { whoFor = null; renderWho(); } }, 1000);
 
 function actLabel(a) {
   const t = typeById(a.st);
@@ -1152,7 +1103,7 @@ function renderPhase() {
   const h = S.clock.half;
   const leadTxt = d === 0 ? 'Level' : `${d > 0 ? usName() : oppName()} ${S.phase === 'ht' ? 'leading' : (S.phase === 'done' || S.phase === 'ft') ? 'won' : 'ahead'} by ${Math.abs(d)}`;
   const checkKey = S.phase === 'ht' ? 1 : 2;
-  const check = S.phase === 'done' ? '' : S.checked[checkKey]
+  const check = S.checked[checkKey]
     ? `<div class="check ok"><p>✓ Matches the ref's score</p><button class="e" data-do="correct">Edit</button></div>`
     : `<div class="check"><p>Does this match the ref's score?</p><button class="y" data-do="yes">Yes</button><button class="e" data-do="correct">Edit</button></div>`;
   if (S.phase === 'ht') {
@@ -1172,7 +1123,7 @@ function renderPhase() {
     const timerOk = S.timerVer === S.timerSent && !S.needSetup;
     const st = (ok, txt) => `<div class="s ${ok ? '' : 'wait'}"><i>${ok ? '✓' : '…'}</i>${txt}</div>`;
     el.innerHTML = `<div class="phase"><div class="lbl">${d === 0 ? 'A draw' : esc(leadTxt)}</div><h1 class="ft">Full time</h1></div>
-      <div class="board">${boardHtml('FT')}</div>
+      <div class="board">${boardHtml('FT')}${check}</div>
       <div class="card steps"><h3>${S.final ? 'Match saved' : 'Saving the match'}</h3>
         ${st(!outN, outN ? `${outN} of ${n} entries still to upload` : `${n} score${n === 1 ? '' : 's'} and stats uploaded`)}
         ${st(timerOk, timerOk ? 'Clock and halves saved' : 'Clock still to upload')}
@@ -1344,16 +1295,15 @@ $('howBtn').addEventListener('click', () => {
     <div class="how">
     <div class="sec">Scoring</div>
     ${hi('+', 'Tap Goal, Point or 2 Pointer for the team that scored', 'Wide, Short, Free and the rest are the smaller buttons underneath')}
-    ${hi('👤', 'Pick who scored on the strip that pops up', 'Or ignore it and the score stays with the team')}
     <div class="sec">Fix a mistake</div>
     ${hi('↶', 'Tap <b>Undo</b> on the bar that pops up after each tap', 'For a mis-tap you notice straight away')}
-    ${hi('☰', 'Tap the score in the Latest list', 'Remove it, or change it (Point ↔ Wide, the player, or the other team)')}
+    ${hi('☰', 'Tap the score in the Latest list', 'Add the player, change it (Point ↔ Wide, or the other team), or use – / + to take one off or add another')}
     ${hi('✋', 'Press and hold a button to take one off', 'You feel a buzz when it works')}
-    ${hi('✓', "At half time and full time, check against the ref's score", 'Edit sets it to the ref\'s score, and shows in the timeline as a score check')}
+    ${hi('✓', "At half time and full time, check against the ref's score", 'Edit sets it to the ref\'s score, and shows in the timeline as a score check. You can still do it after the match is saved.')}
     <div class="sec">Voice</div>
     ${hi('🎙', 'Switch to Voice, hold the mic and say what happened', '"Point Ciarán", "Goal number 11", "Wide for them", "Two pointer Clontarf". You can say a few in one go.')}
     ${hi('⇄', 'Subs: "Sub 17 for 11"', 'Or use Make a sub in the ⋯ menu')}
-    ${hi('?', "If it isn't sure of a name, it asks once", 'and remembers your answer for next time')}
+    ${hi('?', 'It never stops to ask', `"Point" on its own counts for ${esc(usName())}. If it isn't sure of a name it picks the closest player and shows a ? on the card. Tap Change if it's wrong and it remembers for next time.`)}
     <div class="sec">The clock</div>
     ${hi('❚❚', 'Pause for stoppages, End half when the ref blows', 'The clock turns amber in injury time and buzzes when injury time is up')}
     <div class="sec">No signal?</div>
@@ -1472,6 +1422,9 @@ function confirmReset(again) {
 // Change or remove one entry
 function openEdit(id) {
   const a = S.acts.find(x => x.id === id); if (!a) return;
+  const extra = [];
+  let showAll = false;   // copies added with + while this sheet is open; changes apply to them too
+  const edit = ch => [a.id].concat(extra.map(x => x.id)).forEach(x => editAct(x, ch));
   const draw = () => {
     const l = actLabel(a);
     const ourScore = a.side === 'us' && a.k === 'score';
@@ -1479,16 +1432,32 @@ function openEdit(id) {
     const op = onPitch();
     const list = (op && op.length ? op : r.sort((x, y) => fullName(x).localeCompare(fullName(y))));
     if (a.mem && !list.some(p => p.id === a.mem) && roster().get(a.mem)) list.unshift(roster().get(a.mem));
+    const rest = r.filter(p => !list.some(q => q.id === p.id)).sort((x, y) => fullName(x).localeCompare(fullName(y)));
+    const shirt = p => `<button class="shirt ${a.mem === p.id ? 'sel' : ''}" data-p="${p.id}"><b>${p.number != null ? p.number : '·'}</b><span>${esc(shortName(p))}</span></button>`;
     openSheet(`<h2>${esc(l.t)} · ${minute(a.half, a.sec)} <button class="x" data-close>×</button></h2>
       <p class="sub">${esc(l.s)}</p>
       ${a.k === 'score' ? `<div class="sec">What was it?</div><div class="typepick" id="eType">${types().map(t => `<button data-t="${t.id}" class="${t.id === a.st ? 'on' : ''}">${esc(t.score_type)}</button>`).join('')}</div>` : ''}
       <div class="sec">Which team?</div><div class="typepick" id="eSide"><button data-s="us" class="${a.side === 'us' ? 'on' : ''}">${esc(usName())}</button><button data-s="opp" class="${a.side === 'opp' ? 'onr' : ''}">${esc(oppName())}</button></div>
-      ${ourScore && r.length ? `<div class="sec">Who?</div><div class="grid5" id="eWho"><button class="shirt ${!a.mem ? 'sel' : ''}" data-p=""><b>–</b><span>No one</span></button>${list.map(p => `<button class="shirt ${a.mem === p.id ? 'sel' : ''}" data-p="${p.id}"><b>${p.number != null ? p.number : '·'}</b><span>${esc(shortName(p))}</span></button>`).join('')}</div>` : ''}
+      ${a.k === 'score' ? `<div class="stp"><div class="l"><b>How many?</b><span>Add another the same, or take one off</span></div>
+        <div class="stepper"><button id="eMinus">–</button><b>${1 + extra.length}</b><button id="ePlus">+</button></div></div>` : ''}
+      ${ourScore && r.length ? `<div class="sec">Who?</div><div class="grid5" id="eWho"><button class="shirt ${!a.mem ? 'sel' : ''}" data-p=""><b>–</b><span>No one</span></button>${list.map(shirt).join('')}${showAll ? rest.map(shirt).join('') : ''}</div>
+        ${rest.length && !showAll ? `<button class="undo-link" id="eAll">Someone else (${rest.length} more)</button>` : ''}` : ''}
       <div class="sheetbtns"><button class="fb" style="color:var(--red)" id="eDel">Remove</button><button class="fb g" data-close>Done</button></div>`, () => render());
     const body = $('sheetBody');
-    body.querySelectorAll('#eType [data-t]').forEach(b => b.onclick = () => { editAct(a.id, { st: Number(b.dataset.t) }); draw(); });
-    body.querySelectorAll('#eSide [data-s]').forEach(b => b.onclick = () => { editAct(a.id, { side: b.dataset.s }); draw(); });
-    body.querySelectorAll('#eWho [data-p]').forEach(b => b.onclick = () => { editAct(a.id, { mem: b.dataset.p ? Number(b.dataset.p) : null }); draw(); });
+    body.querySelectorAll('#eType [data-t]').forEach(b => b.onclick = () => { edit({ st: Number(b.dataset.t) }); draw(); });
+    body.querySelectorAll('#eSide [data-s]').forEach(b => b.onclick = () => { edit({ side: b.dataset.s }); draw(); });
+    body.querySelectorAll('#eWho [data-p]').forEach(b => b.onclick = () => {
+      const mem = b.dataset.p ? Number(b.dataset.p) : null;
+      edit({ mem });
+      if (a.heard) rememberName(a.heard, mem);   // fix the spoken name for next time
+      draw();
+    });
+    if ($('eAll')) $('eAll').onclick = () => { showAll = true; draw(); };
+    if ($('ePlus')) $('ePlus').onclick = () => { extra.push(restoreAct(a)); buzz(15); draw(); };
+    if ($('eMinus')) $('eMinus').onclick = () => {
+      if (extra.length) { removeAct(extra.pop().id); buzz(15); draw(); return; }
+      $('eDel').onclick();
+    };
     $('eDel').onclick = () => {
       sheetClose = null; closeSheet();
       const gone = removeAct(a.id); render();
@@ -1618,27 +1587,10 @@ function renderVoice() {
       const a = S.acts.find(x => x.id === c.id);
       if (!a) return '';
       const l = actLabel(a);
-      return `<div class="vcard ${a.side === 'opp' ? 'opp' : ''}"><div class="t">${esc(l.t)} · ${minute(a.half, a.sec)}</div><div class="s">${esc(a.side === 'us' && a.mem ? `${memberName(a.mem)} · ${usName()}` : l.s)}</div>
+      const who = a.side === 'us' && a.mem ? `${memberName(a.mem)}${c.guess ? '?' : ''} · ${usName()}` : l.s;
+      return `<div class="vcard ${a.side === 'opp' ? 'opp' : ''}"><div class="t">${esc(l.t)} · ${minute(a.half, a.sec)}</div><div class="s">${esc(who)}</div>
         <div class="cd"><i style="animation-duration:${c.ms}ms;animation-delay:-${Date.now() - c.at}ms"></i></div>
         <div class="btns"><button class="btn" data-v="undo" data-id="${c.id}">Undo</button><button class="btn" data-v="change" data-id="${c.id}">Change</button></div></div>`;
-    }
-    if (c.kind === 'ask') {
-      const a = S.acts.find(x => x.id === c.id);
-      if (!a) return '';
-      const t = typeById(a.st);
-      const cands = c.cands.map(id => r.get(id)).filter(Boolean);
-      return `<div class="vcard ask"><div class="t">${esc(t.score_type)} for ${esc(usName())}. Who was "${esc(cap(c.heard))}"?</div>
-        <div class="s">The ${esc(t.score_type.toLowerCase())} is saved. Pick the player or leave it as ${esc(usName())}.</div>
-        <div class="opts">${cands.map((p, i) => `<button class="opt ${i === 0 ? 'best' : ''}" data-v="who" data-id="${c.id}" data-p="${p.id}"><b>${esc(fullName(p))}</b><span>${p.number != null ? '#' + p.number : 'Not in line-up'}${i === 0 ? ' · best match' : ''}</span></button>`).join('')}
-          <button class="opt" data-v="who" data-id="${c.id}" data-p=""><b>Just ${esc(usName())}</b><span>No player</span></button>
-          <button class="opt" data-v="other" data-id="${c.id}"><b>Someone else</b><span>Full list</span></button>
-          <button class="opt" data-v="theirs" data-id="${c.id}"><b>${esc(oppName())}</b><span>It was theirs</span></button></div>
-        ${c.heard && !/^#/.test(c.heard) ? `<div class="vnote">Next time "${esc(cap(c.heard))}" will go straight to the player you pick.</div>` : ''}</div>`;
-    }
-    if (c.kind === 'side') {
-      return `<div class="vcard ask"><div class="t">${esc(c.typeName)} for who?</div><div class="s">Nothing is saved until you pick.</div>
-        <div class="btns"><button class="btn" data-v="side" data-k="${c.key}" data-s="us">${esc(usName())}</button><button class="btn" data-v="side" data-k="${c.key}" data-s="opp">${esc(oppName())}</button></div>
-        <div class="btns" style="grid-template-columns:1fr"><button class="btn r" data-v="drop" data-k="${c.key}">Forget it</button></div></div>`;
     }
     if (c.kind === 'sub') {
       const s = S.subs.find(x => x.id === c.id);
@@ -1683,6 +1635,15 @@ function attachMic() {
   CSMic.warmup();
 }
 
+// Spoken name → player, saved per team on this phone
+function rememberName(heard, mem) {
+  if (!heard || /^#/.test(heard)) return;
+  const al = store.get(ALIAS_KEY()) || {};
+  const k = CSScoreVoice.norm(heard);
+  if (mem) al[k] = mem; else delete al[k];
+  store.set(ALIAS_KEY(), al);
+}
+
 function handleVoice(text, at) {
   at = at || nowStamp();
   text = (text || '').trim();
@@ -1702,22 +1663,23 @@ function handleVoice(text, at) {
       }
       return;
     }
-    if (!it.side) {
-      cards.push({ kind: 'side', key, typeId: it.typeId, typeName: it.typeName, count: it.count, at: now, actAt: at });
-      return;
+    // No questions while the coach is watching: no team named means us, an unsure
+    // name goes to the best guess (remembered for next time) with a "?" on the card.
+    const side = it.side || 'us';
+    let mem = side === 'us' ? it.memberId || null : null, guess = false;
+    if (side === 'us' && !mem && it.heard && it.ask && it.ask.length) {
+      mem = it.ask[0]; guess = true;
+      rememberName(it.heard, mem);
     }
     for (let i = 0; i < it.count; i++) {
-      const a = addScore(it.typeId, it.side, { at, mem: it.memberId });
-      if (it.side === 'us' && !it.memberId && it.heard && it.ask) {
-        cards.push({ kind: 'ask', id: a.id, heard: it.heard, cands: it.ask, at: now });
-      } else {
-        cards.push({ kind: 'act', id: a.id, at: now, ms: 9000 });
-      }
+      const a = addScore(it.typeId, side, { at, mem });
+      if (side === 'us' && it.heard) { a.heard = it.heard; save(); }
+      cards.push({ kind: 'act', id: a.id, guess, at: now, ms: guess ? 7000 : 6000 });
     }
   });
   res.unknown.forEach(u => cards.push({ kind: 'miss', text: u, at: now, ms: 9000 }));
   if (!res.items.length && !res.unknown.length) cards.push({ kind: 'miss', text, at: now, ms: 9000 });
-  vcards = cards.concat(vcards.filter(c => c.kind === 'ask' || c.kind === 'side' || c.kind === 'subask')).slice(0, 6);
+  vcards = cards.concat(vcards.filter(c => c.kind === 'subask')).slice(0, 4);
   buzz(20);
   renderBoard(); renderVoice(); renderRecent();
 }
@@ -1729,23 +1691,6 @@ $('vcards').addEventListener('click', e => {
   const dropCard = () => { vcards = vcards.filter(c => c !== card); };
   if (v === 'undo') { removeAct(id); dropCard(); }
   if (v === 'change') { dropCard(); openEdit(id); }
-  if (v === 'who') {
-    const mem = b.dataset.p ? Number(b.dataset.p) : null;
-    editAct(id, { mem });
-    if (mem && card && card.heard && !/^#/.test(card.heard)) {
-      const al = store.get(ALIAS_KEY()) || {};
-      al[CSScoreVoice.norm(card.heard)] = mem;
-      store.set(ALIAS_KEY(), al);
-    }
-    if (card) { card.kind = 'act'; card.at = Date.now(); card.ms = 6000; }
-  }
-  if (v === 'other') { dropCard(); openEdit(id); }
-  if (v === 'theirs') { editAct(id, { side: 'opp' }); if (card) { card.kind = 'act'; card.at = Date.now(); card.ms = 6000; } }
-  if (v === 'side' && card) {
-    const ids = [];
-    for (let i = 0; i < card.count; i++) ids.push(addScore(card.typeId, b.dataset.s, { at: card.actAt }).id);
-    vcards = vcards.filter(c => c !== card).concat(ids.map(x => ({ kind: 'act', id: x, at: Date.now(), ms: 6000 })));
-  }
   if (v === 'drop') dropCard();
   if (v === 'unsub') { removeSub(id); dropCard(); }
   if (v === 'subs' && card) {
