@@ -106,6 +106,8 @@ events ──< match_reports ──< match_scores
 users ──< notifications
 ```
 
+Codes: `clubs ──< club_code_link >── event_codes`. A `club_code_link` row with `team_id` NULL applies to every team at the club; with `team_id` set it applies to that team only (e.g. S&C). A player's squad is stored per code in `member_squad_link.code_id`.
+
 Full table list: `clubs`, `teams`, `events`, `event_types`, `event_codes`, `event_attendance`, `event_response_type`, `members`, `users`, `user_member_link`, `member_team_link`, `member_team_role_link`, `roles`, `squads`, `member_squad_link`, `car_pool`, `car_pool_detail`, `notifications`, `reminders`, `match_squads`, `match_squad_details`, `match_reports`, `match_scores`, `match_scores_details`, `match_score_types`, `games`, `game_ages`, `invitations`, `legacy_users`, `event_user_payment`, `event_user_member_payment`, `sport`, `team_roles_link`, `club_code_link`.
 
 ## Role System
