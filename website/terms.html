@@ -7,227 +7,21 @@
 <meta name="description" content="CoachSmart Terms of Service — the terms governing your use of the CoachSmart platform.">
 <link rel="icon" type="image/png" href="/images/CoachSmart%20-%20Black%20Icon.PNG">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --dark: #1E222B;
-    --darker: #15181f;
-    --card: #252a35;
-    --border: #2e3441;
-    --green: #87C232;
-    --green-dim: rgba(135,194,50,0.12);
-    --text: #E7EBEE;
-    --muted: #8a93a0;
-    --light: #c2cad4;
-  }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--darker);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
-    overflow-x: hidden;
-  }
-
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    background: rgba(21,24,31,0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 5%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 64px;
-  }
-
-  .nav-logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 26px;
-    letter-spacing: 2px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-  }
-
-  .nav-logo-img { height: 36px; width: auto; }
-  .nav-logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; }
-  .nav-logo-text .coach { color: var(--light); }
-  .nav-logo-text .smart { color: var(--green); }
-
-  .nav-cta {
-    background: var(--green);
-    color: var(--darker);
-    border: none;
-    padding: 9px 22px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: opacity 0.2s;
-    display: inline-block;
-  }
-  .nav-cta:hover { opacity: 0.88; }
-
-  .page-header {
-    padding: 120px 5% 64px;
-    border-bottom: 1px solid var(--border);
-    background: var(--dark);
-  }
-
-  .page-header-inner { max-width: 800px; margin: 0 auto; }
-
-  .page-tag {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--green);
-    margin-bottom: 12px;
-  }
-
-  .page-header h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(42px, 6vw, 64px);
-    letter-spacing: 2px;
-    line-height: 1;
-    margin-bottom: 16px;
-    color: var(--text);
-  }
-
-  .page-header .meta { font-size: 14px; color: var(--muted); }
-
-  .content-wrap { padding: 64px 5% 100px; }
-  .content-inner { max-width: 800px; margin: 0 auto; }
-
-  .policy-section {
-    margin-bottom: 48px;
-    padding-bottom: 48px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .policy-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-  }
-
-  .policy-section h2 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 1px;
-    color: var(--text);
-    margin-bottom: 16px;
-  }
-
-  .policy-section h3 {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
-    margin: 24px 0 10px;
-  }
-
-  .policy-section p {
-    color: var(--muted);
-    font-size: 15px;
-    line-height: 1.8;
-    margin-bottom: 14px;
-  }
-
-  .policy-section p:last-child { margin-bottom: 0; }
-
-  .policy-section ul, .policy-section ol {
-    color: var(--muted);
-    font-size: 15px;
-    line-height: 1.8;
-    padding-left: 20px;
-    margin-bottom: 14px;
-  }
-
-  .policy-section li { margin-bottom: 6px; }
-
-  .highlight-box {
-    background: var(--dark);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--green);
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin: 24px 0;
-  }
-
-  .highlight-box p { color: var(--light); margin-bottom: 0; }
-
-  .warning-box {
-    background: rgba(135,194,50,0.06);
-    border: 1px solid rgba(135,194,50,0.25);
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin: 24px 0;
-  }
-
-  .warning-box p { color: var(--light); margin-bottom: 0; font-size: 14px; }
-
-  .contact-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px 32px;
-    margin-top: 16px;
-  }
-
-  .contact-card p { margin-bottom: 6px; }
-  .contact-card a { color: var(--green); text-decoration: none; }
-  .contact-card a:hover { text-decoration: underline; }
-
-  a { color: var(--green); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 40px 5%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 20px;
-  }
-
-  .footer-logo-img { height: 28px; width: auto; opacity: 0.85; }
-  .footer-copy { font-size: 13px; color: var(--muted); }
-  .footer-links { display: flex; gap: 24px; list-style: none; }
-  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
-  .footer-links a:hover { color: var(--text); }
-
-  @media (max-width: 600px) {
-    .page-header { padding: 100px 5% 48px; }
-    .content-wrap { padding: 48px 5% 80px; }
-    .contact-card { padding: 20px; }
-  }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/legal.css">
 </head>
 <body>
 
 <nav>
-  <a href="/" class="nav-logo">
-    <img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="nav-logo-img">
-    <span class="nav-logo-text"><span class="coach">COACH</span><span class="smart">SMART</span></span>
-  </a>
-  <a href="/#download" class="nav-cta">Get the App</a>
+  <a class="logo" href="/"><img src="/logo.svg" alt="">COACH<span class="s">SMART</span></a>
+  <div class="links"><a href="/#attendance">Attendance</a><a href="/#smart">Smart tools</a><a href="/#club">For clubs</a><a href="/contact.html">Contact</a></div>
+  <a class="btn sm" href="/#download">Get the app</a>
 </nav>
 
 <div class="page-header">
   <div class="page-header-inner">
     <div class="page-tag">Legal</div>
-    <h1>TERMS OF SERVICE</h1>
+    <h1>Terms of service</h1>
     <p class="meta">Last updated: 27 May 2026</p>
   </div>
 </div>
@@ -370,16 +164,7 @@
   </div>
 </div>
 
-<footer>
-  <div><img src="images/CoachSmart Logo - Trans.svg" alt="CoachSmart" class="footer-logo-img"></div>
-  <div class="footer-copy">© 2026 CoachSmart. Coaching Made Simple.</div>
-  <ul class="footer-links">
-    <li><a href="privacy.html">Privacy</a></li>
-    <li><a href="terms.html">Terms</a></li>
-    <li><a href="data-deletion.html">Data Deletion</a></li>
-    <li><a href="mailto:hello@coachsmart.app">Contact</a></li>
-  </ul>
-</footer>
+<footer><div class="wrap"><span>© 2026 CoachSmart · Coaching Made Simple</span><span class="flinks"><a href="/privacy.html">Privacy</a><a href="/terms.html" class="on">Terms</a><a href="/data-deletion.html">Data deletion</a><a href="/contact.html">Contact</a></span></div></footer>
 <script src="/cookie-consent.js"></script>
 </body>
 </html>

@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>Score keeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#14181b;--card:#1e222b;--card2:#262b35;--line:rgba(255,255,255,.08);
+  --text:#f1f4f8;--muted:#a1a1a2;--green:#87c232;--amber:#f5a524;--red:#e05252;--blue:#5b8def;
+  --num:'Bebas Neue','Oswald','Arial Narrow',sans-serif;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+body{min-height:100vh;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+input,select{font:inherit;color:var(--text)}
+.wrap{max-width:480px;margin:0 auto;padding:calc(10px + var(--safe-t)) 16px calc(120px + var(--safe-b))}
+.hidden{display:none!important}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:8px;height:56px;position:sticky;top:0;z-index:15;background:var(--bg);margin:0 -16px;padding:0 16px}
+.back{width:40px;height:40px;display:grid;place-items:center;margin-left:-8px}
+.back svg{width:22px;height:22px;stroke:var(--green)}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;font-size:14px;font-weight:600;background:rgba(135,194,50,.14);color:var(--green);margin:0 auto;white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor;display:block}
+.pill.wait{background:rgba(245,165,36,.15);color:var(--amber)}
+.pill.busy i{animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.ibtn{width:40px;height:40px;border-radius:12px;background:var(--card);display:grid;place-items:center;font-weight:700;font-size:17px}
+.ibtn svg{width:20px;height:20px}
+.ibtn.on{color:var(--green)}
+.ibtn.off{color:var(--muted)}
+
+/* segments */
+.seg{display:flex;background:var(--card);border-radius:14px;padding:4px;margin-top:8px}
+.seg button{flex:1;padding:9px 0;border-radius:10px;font-size:15px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--card2);color:var(--text)}
+.seg.mode button.on{background:var(--green);color:#14181b}
+.seg.mode{margin:12px 0 0}
+.seg.mode button{display:flex;align-items:center;justify-content:center;gap:7px}
+.seg.mode svg{width:17px;height:17px}
+
+/* clock */
+.clock{text-align:center;margin-top:12px}
+.clock .lbl{font-size:13px;letter-spacing:2.5px;color:var(--muted);font-weight:600;text-transform:uppercase}
+.clock .t{font-family:var(--num);font-size:78px;line-height:.95;letter-spacing:1px}
+.clock.inj .t,.clock.inj .lbl b{color:var(--amber)}
+.clock.paused .t{opacity:.55}
+.bar{height:5px;background:var(--card2);border-radius:3px;margin:8px auto 0;width:72%;overflow:hidden;display:flex}
+.bar i{display:block;height:100%;background:var(--green)}
+.bar i.inj{background:var(--amber)}
+
+/* scoreboard */
+.board{background:var(--card);border-radius:20px;padding:14px 10px;margin-top:14px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center}
+.board .nm{font-size:13px;letter-spacing:2px;color:var(--muted);font-weight:600;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
+.board .sc{font-family:var(--num);font-size:54px;line-height:1;white-space:nowrap}
+.board .pt{font-size:14px;color:var(--muted)}
+.lead{font-size:14px;font-weight:700;padding:6px 11px;border-radius:999px;background:rgba(135,194,50,.15);color:var(--green);min-width:48px}
+.lead.opp{background:rgba(224,82,82,.15);color:var(--red)}
+.lead.lvl{background:var(--card2);color:var(--muted)}
+
+/* tap pad */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.colh{font-size:12px;letter-spacing:2px;color:var(--muted);font-weight:600;text-transform:uppercase;margin:0 0 8px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.big{width:100%;display:flex;justify-content:space-between;align-items:center;padding:0 16px;height:60px;border-radius:16px;background:var(--card);border:1.5px solid var(--line);margin-bottom:8px;font-size:18px;font-weight:700;transition:transform .08s}
+.big b{font-family:var(--num);font-size:34px;font-weight:400;color:var(--muted)}
+.big.v3{background:linear-gradient(135deg,rgba(135,194,50,.22),rgba(135,194,50,.08));border-color:rgba(135,194,50,.35)}
+.big.v3 b{color:var(--green)}
+.big.v2{background:linear-gradient(135deg,rgba(245,165,36,.2),rgba(245,165,36,.07));border-color:rgba(245,165,36,.35)}
+.big.v2 b{color:var(--amber)}
+.big:active{transform:scale(.97)}
+.big.flash{border-color:var(--green);box-shadow:0 0 0 2px var(--green) inset}
+#tapPad.wait .big,.voice.wait .mic{opacity:.45}
+.big span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:6px}
+
+/* recent list */
+.list{background:var(--card);border-radius:18px;margin-top:14px;padding:2px 14px}
+.row{display:grid;grid-template-columns:46px 1fr 22px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:16px;width:100%;text-align:left}
+.row:last-child{border:0}
+.row .mn{color:var(--muted);font-weight:600}
+.row small{color:var(--muted);font-size:13px;display:block}
+.row .st{width:18px;height:18px}
+.row .st.ok{color:var(--green)}
+.row .st.wait{color:var(--amber)}
+.listh{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:12px;letter-spacing:2px;color:var(--muted);font-weight:600;text-transform:uppercase}
+.listh button{color:var(--green);letter-spacing:0;text-transform:none;font-size:14px}
+.row.opp .mn{color:var(--red)}
+.row.corr small{color:var(--amber)}
+
+/* player picker (edit sheet, subs) */
+.shirt{min-width:64px;padding:7px 6px;border-radius:12px;background:var(--card2);text-align:center;border:1.5px solid transparent}
+.shirt b{display:block;font-family:var(--num);font-size:24px;line-height:1;font-weight:400}
+.shirt span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.shirt.sel{border-color:var(--green)}
+
+/* voice */
+.voice{text-align:center;margin-top:14px}
+.mic{width:132px;height:132px;border-radius:50%;background:var(--green);display:grid;place-items:center;margin:28px auto 0;box-shadow:0 0 0 12px rgba(135,194,50,.12),0 0 0 24px rgba(135,194,50,.06);touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.mic svg{width:52px;height:52px;stroke:#14181b;pointer-events:none}
+.mic.preparing{background:var(--amber);box-shadow:0 0 0 14px rgba(245,165,36,.15),0 0 0 28px rgba(245,165,36,.07)}
+.mic.recording{background:var(--red);box-shadow:0 0 0 16px rgba(224,82,82,.18),0 0 0 32px rgba(224,82,82,.08);animation:ring 1.2s infinite}
+@keyframes ring{50%{box-shadow:0 0 0 22px rgba(224,82,82,.12),0 0 0 40px rgba(224,82,82,.05)}}
+.mic-t{font-size:17px;font-weight:700;margin-top:30px}
+.mic-s{font-size:14px;color:var(--muted);margin-top:4px}
+.heard{font-size:16px;color:var(--text);margin:10px 0 0;min-height:48px;line-height:1.45;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.voice.rec .heard:empty::before{content:"Listening…";color:var(--muted)}
+.vcards{margin-top:8px;text-align:left}
+.vcard{background:var(--card);border-radius:16px;padding:14px;margin-bottom:10px;border-left:4px solid var(--green)}
+.vcard.opp{border-left-color:var(--red)}
+.vcard.ask{border-left-color:var(--amber)}
+.vcard .t{font-size:18px;font-weight:700}
+.vcard .s{font-size:15px;color:var(--muted);margin-top:2px}
+.vcard .cd{height:4px;background:var(--card2);border-radius:2px;margin:10px 0;overflow:hidden}
+.vcard .cd i{display:block;height:100%;background:var(--green);transform-origin:left;animation:cd linear forwards}
+@keyframes cd{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn{height:46px;border-radius:12px;background:var(--card2);font-weight:600;font-size:16px}
+.btn.g{background:var(--green);color:#14181b}
+.btn.a{background:rgba(245,165,36,.18);color:var(--amber)}
+.btn.r{color:var(--red)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.opt{background:var(--card2);border-radius:12px;padding:10px 12px;text-align:left;border:1.5px solid transparent}
+.opt b{display:block;font-size:16px}
+.opt span{font-size:13px;color:var(--muted)}
+.opt.best{border-color:var(--green)}
+.vnote{font-size:13px;color:var(--muted);margin-top:10px}
+
+/* phase cards */
+.phase{text-align:center;margin-top:8px}
+.phase .lbl{font-size:13px;letter-spacing:2.5px;color:var(--muted);font-weight:600;text-transform:uppercase}
+.phase h1{font-family:var(--num);font-weight:400;font-size:80px;line-height:.95;margin:2px 0 0;color:var(--amber);letter-spacing:1px}
+.phase h1.ft{color:var(--text)}
+.check{background:var(--card2);border-radius:14px;padding:12px 14px;margin:12px 0 0;display:flex;align-items:center;gap:10px;text-align:left;grid-column:1/-1}
+.check p{margin:0;flex:1;font-size:16px}
+.check .y{background:rgba(135,194,50,.15);color:var(--green);padding:10px 16px;border-radius:999px;font-weight:700}
+.check .e{background:rgba(245,165,36,.15);color:var(--amber);padding:10px 16px;border-radius:999px;font-weight:700}
+.check.ok p{color:var(--green)}
+.board.big2{grid-template-columns:1fr auto 1fr}
+.board .sub{grid-column:1/-1;font-size:15px;color:var(--muted);margin-bottom:6px}
+.card{background:var(--card);border-radius:18px;padding:14px 16px;margin-top:12px}
+.card h3{margin:0 0 6px;font-size:17px}
+.trow{display:grid;grid-template-columns:1fr auto 1fr;padding:9px 0;border-bottom:1px solid var(--line);font-size:16px}
+.trow:last-child{border:0}
+.trow span:nth-child(2){font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;align-self:center}
+.trow span:nth-child(3){text-align:right}
+.steps .s{display:flex;gap:12px;align-items:center;padding:7px 0;font-size:16px}
+.steps .s i{width:22px;height:22px;display:grid;place-items:center;font-style:normal;color:var(--green);font-weight:700}
+.steps .s.wait i{color:var(--amber)}
+.steps p{font-size:13px;color:var(--muted);margin:8px 0 0}
+.undo-link{display:block;margin:14px auto 0;color:var(--muted);font-size:14px;text-decoration:underline}
+
+/* setup */
+.setup h2{font-size:24px;margin:14px 0 2px}
+.setup .sub{color:var(--muted);font-size:15px;margin-bottom:6px}
+.field{margin-top:16px}
+.field label{display:block;font-size:12px;letter-spacing:2px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:8px}
+.field input,.field select{width:100%;height:52px;border-radius:14px;background:var(--card);border:1.5px solid var(--line);padding:0 14px;font-size:17px;outline:none;-webkit-user-select:text;user-select:text}
+.field input:focus{border-color:var(--green)}
+.pick{display:flex;flex-wrap:wrap;gap:8px}
+.pick button{min-width:58px;height:46px;border-radius:12px;background:var(--card);font-weight:600;font-size:16px;padding:0 12px;border:1.5px solid transparent}
+.pick button.on{border-color:var(--green);color:var(--green);background:rgba(135,194,50,.1)}
+.hint{font-size:13px;color:var(--muted);margin-top:6px}
+
+/* bottom bar */
+.foot{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--bg) 26%);padding:24px 16px calc(14px + var(--safe-b));z-index:20}
+.foot .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.foot .in.one{grid-template-columns:1fr}
+.fb{height:58px;border-radius:16px;font-size:19px;font-weight:700;background:var(--card);display:flex;align-items:center;justify-content:center;gap:10px}
+.fb svg{width:20px;height:20px}
+.fb.g{background:var(--green);color:#14181b}
+.fb.a{background:var(--amber);color:#14181b}
+.fb.pulse{animation:fbp 1s infinite}
+@keyframes fbp{50%{box-shadow:0 0 0 4px rgba(245,165,36,.5)}}
+
+/* toast */
+.toast{position:fixed;left:16px;right:16px;bottom:calc(92px + var(--safe-b));max-width:448px;margin:0 auto;background:#2c323d;border-radius:14px;padding:13px 16px;display:flex;align-items:center;gap:12px;font-size:16px;z-index:30;box-shadow:0 8px 30px rgba(0,0,0,.4);transform:translateY(20px);opacity:0;pointer-events:none;transition:all .18s}
+.toast.show{transform:none;opacity:1;pointer-events:auto}
+.toast .ok{color:var(--green);font-weight:700;flex:0 0 auto}
+.toast #toastTxt{flex:1}
+.toast button{color:var(--green);font-weight:700;font-size:16px;padding:4px 2px}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:var(--card);border-radius:24px 24px 0 0;z-index:41;padding:10px 18px calc(18px + var(--safe-b));max-height:88vh;overflow-y:auto;transform:translateY(105%);transition:transform .22s}
+.sheet.show{transform:none}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:#3a414d;margin:0 auto 12px}
+.sheet h2{font-size:22px;margin:4px 0 4px;display:flex;justify-content:space-between;align-items:center}
+.sheet h2 .x{width:38px;height:38px;border-radius:12px;background:var(--card2);font-size:20px;color:var(--muted)}
+.sheet .sub{color:var(--muted);font-size:15px;margin:0 0 6px}
+.sec{font-size:12px;letter-spacing:2px;font-weight:700;text-transform:uppercase;margin:18px 0 8px;color:var(--green)}
+.sec.r{color:var(--red)}
+.mi{display:flex;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.mi:last-child{border:0}
+.mi .ic{width:42px;height:42px;border-radius:12px;background:var(--card2);display:grid;place-items:center;flex:0 0 auto;font-size:18px}
+.mi .ic svg{width:20px;height:20px}
+.mi b{display:block;font-size:17px;font-weight:500}
+.mi span{font-size:14px;color:var(--muted)}
+.mi.red b{color:var(--red)}
+.mi:disabled{opacity:.4}
+.how .hi{display:flex;gap:14px;padding:8px 0}
+.how .hi .ic{width:34px;height:34px;border-radius:10px;background:var(--card2);display:grid;place-items:center;flex:0 0 auto;font-size:15px}
+.how .hi b{display:block;font-weight:500;font-size:16px}
+.how .hi span{font-size:14px;color:var(--muted)}
+.stp{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+.stp .l b{display:block;font-size:17px;font-weight:500}
+.stp .l span{font-size:14px;color:var(--muted)}
+.stp .l em{font-style:normal;font-size:13px;font-weight:700;color:var(--amber);background:rgba(245,165,36,.15);padding:2px 7px;border-radius:6px;margin-left:6px}
+.stepper{display:flex;align-items:center;background:var(--card2);border-radius:14px;height:52px}
+.stepper button{width:52px;height:52px;font-size:24px;color:var(--muted)}
+.stepper b{font-family:var(--num);font-size:34px;font-weight:400;width:44px;text-align:center}
+.newsc{display:flex;justify-content:space-between;align-items:center;margin:14px 0 4px;color:var(--muted)}
+.newsc b{font-family:var(--num);font-size:32px;font-weight:400;color:var(--text)}
+.sheetbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.sheetbtns .fb{height:54px;font-size:17px}
+.typepick{display:flex;flex-wrap:wrap;gap:8px}
+.typepick button{height:42px;padding:0 14px;border-radius:12px;background:var(--card2);font-weight:600;border:1.5px solid transparent}
+.typepick button.on{border-color:var(--green);color:var(--green)}
+.typepick button.onr{border-color:var(--red);color:var(--red)}
+.grid5{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.grid5 .shirt{min-width:0}
+.subline{background:var(--card2);border-radius:14px;padding:12px 14px;margin-top:14px;font-size:16px;min-height:46px}
+.subline .on{color:var(--green)}.subline .off{color:var(--red)}
+.empty{color:var(--muted);text-align:center;padding:26px 0;font-size:15px}
+.loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:60;color:var(--muted);font-size:16px}
+.loading .sp{width:34px;height:34px;border:3px solid var(--card2);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{padding:60px 24px;text-align:center;color:var(--muted)}
+.err b{display:block;color:var(--text);font-size:19px;margin-bottom:8px}
+.mc-card,.mc-kpis,.mc-tl{margin-left:0!important;margin-right:0!important}
+.pdfbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px}
+.pdfbtn svg{width:20px;height:20px}
+.pdfhost{position:fixed;left:-10000px;top:0;width:600px;padding:18px 16px 24px;background:var(--bg,#14181b);color:var(--text)}
+.pdf-h .lbl{text-align:center;font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div id="loading" class="loading"><div><div class="sp"></div>Opening the match…</div></div>
+
+<div class="wrap" id="app">
+  <div class="top">
+    <button class="back" id="backBtn" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="pill" id="pill"><i></i><span id="pillTxt">All saved</span></button>
+    <button class="ibtn" id="howBtn" aria-label="How to">?</button>
+    <button class="ibtn on" id="sunBtn" aria-label="Screen stays on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+    <button class="ibtn" id="menuBtn" aria-label="More"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+  </div>
+
+  <div class="seg" id="viewSeg">
+    <button data-v="score" class="on">Score</button>
+    <button data-v="stats">Stats</button>
+  </div>
+
+  <!-- SCORE VIEW -->
+  <div id="vScore">
+    <div id="setup" class="setup hidden"></div>
+    <div id="phase" class="hidden"></div>
+    <div id="live">
+      <div class="clock" id="clock"><div class="lbl" id="clockLbl">First half</div><div class="t" id="clockT">00:00</div><div class="bar" id="clockBar"><i></i><i class="inj"></i></div></div>
+      <div class="board" id="board"></div>
+      <div class="seg mode" id="modeSeg">
+        <button data-m="tap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5a2 2 0 1 1 4 0v6M13 10V4a2 2 0 1 1 4 0v8M9 10.5a2 2 0 1 0-4 0V14a7 7 0 0 0 7 7h1a7 7 0 0 0 6-3.4L21 14a2 2 0 0 0-3.4-2"/></svg>Tap</button>
+        <button data-m="voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>Voice</button>
+      </div>
+      <div id="tapPad"></div>
+      <div id="voicePad" class="voice hidden">
+        <button class="mic" id="micBtn" aria-label="Hold to talk"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
+        <div class="mic-t" id="micInstr">Hold and say what happened</div>
+        <div class="heard" id="micHeard"></div>
+        <div class="vcards" id="vcards"></div>
+      </div>
+    </div>
+    <div id="recent"></div>
+  </div>
+
+  <!-- CHART / TIMELINE -->
+  <div id="vStats" class="hidden"></div>
+</div>
+
+<div class="foot" id="foot"><div class="in" id="footIn"></div></div>
+<div class="toast" id="toast"><span class="ok">✓</span><span id="toastTxt"></span><button id="toastBtn" class="hidden">Undo</button></div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+
+<script src="cs-mic.js"></script>
+<script src="cs-match-charts.js"></script>
+<script src="cs-score-voice.js"></script>
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════════════════════════
+// CoachSmart score keeper (v2)
+//
+// Opened by the app with ?event_id=…&token=… (refreshToken optional).
+//
+// Phone first: every tap is saved on the phone straight away and put in an
+// outbox. The outbox uploads in batches (sync_match_actions) whenever there is
+// signal. Each entry carries an id made here, so an upload that is retried
+// never creates a duplicate.
+//
+// Sign-in: the app owns the sign-in. When the token is close to running out
+// the page asks the app for a fresh one (FlutterBridge "getToken", the app
+// answers with window.csSetToken). Older app builds: falls back to the
+// refreshToken URL parameter, if given. Nothing is ever thrown away because
+// of a sign-in problem; it waits in the outbox.
+//
+// Screen: asks the app to keep the screen on ("keepAwake:on"), and also uses
+// the browser's own screen wake lock where there is one.
+// ════════════════════════════════════════════════════════════════════════════
+
+const SUPABASE_URL  = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad2 = n => String(n).padStart(2, '0');
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+const bridge = () => window.FlutterBridge || null;
+const post = msg => { try { if (bridge()) bridge().postMessage(msg); } catch (_) {} };
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (_) {} };
+
+// Raw regex keeps "+" in tokens (URLSearchParams turns it into a space)
+function param(name) {
+  const m = location.search.match(new RegExp('[?&]' + name + '=([^&]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function jwtClaims(t) {
+  try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (_) { return {}; }
+}
+
+const EVENT_ID = Number(param('event_id') || param('eventId') || 0);
+let token = param('token') || param('currentAuthToken') || '';
+let refreshTok = param('refreshToken') || param('refresh_token') || '';
+let tokenExp = (jwtClaims(token).exp || 0) * 1000;
+const UID = jwtClaims(token).sub || '';
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+const KEY = `sk2:${EVENT_ID}:${UID}`;
+const CKEY = `sk2c:${EVENT_ID}:${UID}`;
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} },
+};
+
+// S is the match as this phone knows it. C is the read-only match info.
+let S = null;
+let C = null;
+const save = () => store.set(KEY, S);
+
+function blankState(setup) {
+  return {
+    v: 1,
+    sessionId: null,
+    final: false,
+    finalisePending: false,
+    needSetup: false,
+    setup: setup || null,
+    phase: setup ? 'play' : 'setup',
+    clock: { run: false, startedAt: null, banked: 0, half: 1, ended: {}, alarmed: {} },
+    acts: [],
+    subs: [],
+    out: [],
+    timerVer: 0,
+    timerSent: 0,
+    checked: {},
+  };
+}
+
+// ── Sign-in ──────────────────────────────────────────────────────────────────
+let tokenWaiters = [];
+let bridgeAnswersToken = null;   // null = not known yet
+window.csSetToken = function (t, expiresAt) {
+  if (t && typeof t === 'string') {
+    token = t;
+    const e = Number(expiresAt) || 0;
+    tokenExp = e ? (e > 1e12 ? e : e * 1000) : (jwtClaims(t).exp || 0) * 1000;
+    bridgeAnswersToken = true;
+  }
+  tokenWaiters.splice(0).forEach(f => f());
+  if (netState === 'auth') kickSync(0);
+};
+
+async function freshToken(force) {
+  if (!force && tokenExp - Date.now() > 120000) return token;
+  const before = token;
+  if (bridge() && bridgeAnswersToken !== false) {
+    post('getToken');
+    await new Promise(r => { tokenWaiters.push(r); setTimeout(r, bridgeAnswersToken ? 6000 : 3000); });
+    if (token !== before) return token;
+    if (bridgeAnswersToken === null) bridgeAnswersToken = false;   // older app build
+  }
+  if (refreshTok) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_ANON, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshTok }),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        token = j.access_token;
+        refreshTok = j.refresh_token || refreshTok;
+        tokenExp = (j.expires_at ? j.expires_at * 1000 : Date.now() + (j.expires_in || 3600) * 1000);
+      }
+    } catch (_) {}
+  }
+  return token;
+}
+// Top up well before the hour runs out, so a refresh never lands mid-tap
+setInterval(() => { if (tokenExp - Date.now() < 10 * 60000) freshToken(true); }, 60000);
+
+async function api(path, body, opts = {}) {
+  const t = await freshToken(false);
+  const go = tok => fetch(SUPABASE_URL + path, {
+    method: opts.method || 'POST',
+    headers: Object.assign({
+      apikey: SUPABASE_ANON,
+      Authorization: 'Bearer ' + tok,
+      'Content-Type': 'application/json',
+    }, opts.prefer ? { Prefer: opts.prefer } : {}),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  let r;
+  try { r = await go(t); } catch (_) { const e = new Error('offline'); e.offline = true; throw e; }
+  if (r.status === 401) {
+    const t2 = await freshToken(true);
+    if (t2 !== t) { try { r = await go(t2); } catch (_) { const e = new Error('offline'); e.offline = true; throw e; } }
+  }
+  if (!r.ok) {
+    let j = null; try { j = await r.json(); } catch (_) {}
+    const e = new Error((j && (j.message || j.msg)) || ('HTTP ' + r.status));
+    e.status = r.status; e.code = j && j.code;
+    throw e;
+  }
+  const txt = await r.text();
+  return txt ? JSON.parse(txt) : null;
+}
+const rpc = (fn, args) => api('/rest/v1/rpc/' + fn, args || {});
+
+// ── Keep the screen on ──────────────────────────────────────────────────────
+let awakeWanted = true, wakeLock = null;
+async function keepAwake(on) {
+  awakeWanted = on;
+  post(on ? 'keepAwake:on' : 'keepAwake:off');
+  try {
+    if (on && 'wakeLock' in navigator && !document.hidden) {
+      if (!wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (_) {}
+  const b = $('sunBtn');
+  b.classList.toggle('on', on); b.classList.toggle('off', !on);
+}
+
+// ── Match info helpers ───────────────────────────────────────────────────────
+const types = () => (C && C.score_types) || [];
+const typeById = id => types().find(t => t.id === id) || { id, score_type: 'Score', score_value: null };
+const bigTypes = () => types().filter(t => t.score_value > 0)
+  .sort((a, b) => (b.score_value === 3) - (a.score_value === 3) || (b.score_value === 1) - (a.score_value === 1) || b.score_value - a.score_value);
+const smallTypes = () => types().filter(t => !(t.score_value > 0));
+const goalType = () => types().find(t => t.score_value === 3);
+const pointType = () => types().find(t => t.score_value === 1);
+
+function cleanClub(n) { return String(n || '').replace(/\b(GAA|GFC|CLG|HC|LGFA|Camogie Club)\b/gi, '').replace(/\s{2,}/g, ' ').trim(); }
+const usName = () => (C && C.event && (cleanClub(C.event.club_name) || C.event.team_name)) || 'Us';
+const oppName = () => (S && S.setup && S.setup.opp) || (C && C.event && C.event.opposition) || 'Opposition';
+const halfLen = () => (S && S.setup && S.setup.dur) || 1800;
+const injLen = () => (S && S.setup && S.setup.inj != null ? S.setup.inj : 300);
+
+// Players: the latest saved line-up (with shirt numbers) plus the rest of the team
+function roster() {
+  const out = new Map();
+  ((C && C.lineup && C.lineup.players) || []).forEach(p => out.set(p.member_id, {
+    id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: p.number, inLineup: true, isSub: !!p.is_sub,
+  }));
+  // A squad picked in setup narrows the list to that squad (unless nobody is linked to it)
+  const sq = S && S.setup && S.setup.squadId;
+  let players = (C && C.players) || [];
+  if (sq) { const inSq = players.filter(p => (p.squads || []).includes(sq)); if (inSq.length) players = inSq; }
+  players.forEach(p => { if (!out.has(p.member_id)) out.set(p.member_id, { id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: null, inLineup: false }); });
+  return out;
+}
+const fullName = p => p ? `${p.first} ${p.last}`.trim() : '';
+// "Ciarán B.", "Jack O'S."
+const shortName = p => {
+  if (!p) return '';
+  const l = (p.last || '').trim();
+  if (!l) return p.first;
+  const ini = /^(O'|O’|Ó )/i.test(l) ? l.slice(0, 3).replace(' ', '') : l[0];
+  return `${p.first} ${ini}.`;
+};
+function memberName(id) { const p = roster().get(id); return p ? fullName(p) : ''; }
+
+// Who is on the pitch now: line-up starters, then each sub in turn
+function onPitch() {
+  const r = roster();
+  const lineup = (C && C.lineup && C.lineup.players) || [];
+  if (!lineup.length) return null;
+  const on = new Set(lineup.filter(p => !p.is_sub).map(p => p.member_id));
+  subsSorted().forEach(s => { if (s.off) on.delete(s.off); if (s.on) on.add(s.on); });
+  return Array.from(on).map(id => r.get(id)).filter(Boolean).sort((a, b) => (a.number || 99) - (b.number || 99));
+}
+const subsSorted = () => S.subs.slice().sort((a, b) => (a.half - b.half) || (a.sec - b.sec));
+
+// ── Clock ───────────────────────────────────────────────────────────────────
+function secInHalf() {
+  const c = S.clock;
+  return Math.max(0, Math.floor(c.banked + (c.run && c.startedAt ? (Date.now() - c.startedAt) / 1000 : 0)));
+}
+const fmt = s => `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`;
+const minute = (half, sec) => CSMatchCharts.minuteLabel({ duration: halfLen() }, half, sec);
+
+function timerChanged() { S.timerVer++; save(); kickSync(400); }
+function startClock() {
+  if (S.clock.run) return;
+  S.clock.run = true; S.clock.startedAt = Date.now();
+  timerChanged(); render();
+}
+function pauseClock() {
+  if (!S.clock.run) return;
+  S.clock.banked = Math.round(S.clock.banked + (Date.now() - S.clock.startedAt) / 1000);
+  S.clock.run = false; S.clock.startedAt = null;
+  timerChanged(); render();
+}
+function endHalf() {
+  const sec = secInHalf();
+  if (S.clock.run) { S.clock.banked = sec; S.clock.run = false; S.clock.startedAt = null; }
+  S.clock.ended[S.clock.half] = sec;
+  S.phase = S.clock.half === 1 ? 'ht' : 'ft';
+  timerChanged();
+  if (S.phase === 'ht') whistle([0, 0.4], 740); else whistle([0, 0.28, 0.56, 0.84, 1.12], 660);
+  buzz([200, 100, 200]);
+  setView('score'); render(); window.scrollTo(0, 0);
+}
+function backToClock() {
+  delete S.clock.ended[S.clock.half];
+  S.phase = 'play';
+  timerChanged(); render();
+}
+function startSecondHalf() {
+  S.clock.half = 2; S.clock.banked = 0; S.clock.run = true; S.clock.startedAt = Date.now();
+  S.phase = 'play';
+  timerChanged(); render(); window.scrollTo(0, 0);
+}
+function timerPayload() {
+  const c = S.clock;
+  return {
+    status: c.run ? 'running' : 'paused',
+    started_at: c.run && c.startedAt ? new Date(c.startedAt).toISOString() : '',
+    elapsed_seconds: Math.floor(c.banked),
+    current_half: c.half,
+    duration_seconds: halfLen(),
+    injury_seconds: injLen(),
+  };
+}
+
+function beep(times, freq, len, vol) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    times.forEach(d => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, ctx.currentTime + d);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d + len);
+      o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + len);
+    });
+  } catch (_) {}
+}
+const whistle = (times, f) => beep(times, f, 0.25, 0.7);
+
+function tick() {
+  if (!S || S.phase !== 'play') return;
+  const sec = secInHalf(), dur = halfLen(), inj = injLen(), h = S.clock.half;
+  const al = S.clock.alarmed;
+  if (S.clock.run && sec >= dur && !al[h + 'a']) {
+    al[h + 'a'] = 1; save();
+    beep([0, 0.45, 0.9], 880, 0.35, 0.6); buzz([300, 120, 300]);
+    toast(`${Math.round(dur / 60)} minutes up. Injury time now.`);
+  }
+  if (S.clock.run && inj > 0 && sec >= dur + inj && !al[h + 'b']) {
+    al[h + 'b'] = 1; save();
+    whistle([0, 0.3], 700); buzz([400]);
+    toast(`Injury time's up. End the ${h === 1 ? 'half' : 'match'} when the ref blows.`);
+  }
+  renderClock();
+}
+
+// ── Actions: change the match, save on the phone, queue for upload ─────────
+const inFlight = new Set();
+function opFor(a) {
+  return a.k === 'correction'
+    ? { type: 'correction', id: a.id, score_type: a.st, side: a.side, count: a.n, second: a.sec, half: a.half }
+    : { type: 'score', id: a.id, score_type: a.st, side: a.side, second: a.sec, half: a.half, timer_status: a.run ? 'running' : 'paused', member_id: a.mem || null };
+}
+function nowStamp() { return { half: S.clock.half, sec: S.phase === 'play' ? secInHalf() : (S.clock.ended[S.clock.half] != null ? S.clock.ended[S.clock.half] : secInHalf()), run: S.clock.run }; }
+
+function addScore(st, side, opts = {}) {
+  const at = opts.at || nowStamp();
+  const a = { id: uuid(), k: 'score', st, side, sec: at.sec, half: at.half, run: at.run, mem: opts.mem || null, n: 1, ts: Date.now() };
+  S.acts.push(a);
+  S.out.push(opFor(a));
+  save(); kickSync(300);
+  return a;
+}
+function addCorrection(st, side, n) {
+  const at = nowStamp();
+  const a = { id: uuid(), k: 'correction', st, side, sec: at.sec, half: at.half, run: false, mem: null, n, ts: Date.now() };
+  S.acts.push(a); S.out.push(opFor(a));
+  save(); kickSync(300);
+  return a;
+}
+function removeAct(id) {
+  const a = S.acts.find(x => x.id === id);
+  if (!a) return null;
+  S.acts = S.acts.filter(x => x.id !== id);
+  const queued = S.out.findIndex(o => o.id === id);
+  if (queued >= 0 && !inFlight.has(id)) {
+    S.out.splice(queued, 1);
+    S.out = S.out.filter(o => o.target !== id);
+  } else {
+    S.out.push({ type: 'remove', id: uuid(), target: id });
+  }
+  save(); kickSync(300);
+  return a;
+}
+// Put a removed entry back (Undo of a take-off)
+function restoreAct(a) {
+  const b = Object.assign({}, a, { id: uuid(), ts: Date.now() });
+  S.acts.push(b); S.out.push(opFor(b)); save(); kickSync(300);
+  return b;
+}
+function editAct(id, ch) {
+  const a = S.acts.find(x => x.id === id);
+  if (!a) return;
+  if ('st' in ch) a.st = ch.st;
+  if ('side' in ch) a.side = ch.side;
+  if ('mem' in ch) a.mem = ch.mem;
+  if (a.side === 'opp') a.mem = null;
+  const q = S.out.find(o => o.id === id && (o.type === 'score' || o.type === 'correction'));
+  if (q && !inFlight.has(id)) {
+    Object.assign(q, opFor(a));
+  } else {
+    const op = { type: 'edit', id: uuid(), target: id };
+    if ('st' in ch) op.score_type = a.st;
+    if ('side' in ch) op.side = a.side;
+    if ('mem' in ch || 'side' in ch) op.member_id = a.mem || null;
+    S.out.push(op);
+  }
+  save(); kickSync(300);
+}
+function addSub(off, on, at) {
+  at = at || nowStamp();
+  const s = { id: uuid(), half: at.half, sec: at.sec, off, on, ts: Date.now() };
+  S.subs.push(s);
+  S.out.push({ type: 'sub', id: s.id, second: s.sec, half: s.half, member_off: off, member_on: on });
+  save(); kickSync(300);
+  return s;
+}
+function removeSub(id) {
+  S.subs = S.subs.filter(s => s.id !== id);
+  const q = S.out.findIndex(o => o.id === id);
+  if (q >= 0 && !inFlight.has(id)) S.out.splice(q, 1);
+  else S.out.push({ type: 'remove_sub', id: uuid(), target: id });
+  save(); kickSync(300);
+}
+
+// ── Upload ───────────────────────────────────────────────────────────────────
+let syncing = false, syncAgain = false, syncTimer = null, backoff = 0;
+let netState = 'ok';     // ok | offline | auth | error
+let singleMode = false;  // after a rejected batch, send one at a time to find the bad one
+
+function kickSync(delay) {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(sync, delay == null ? 0 : delay);
+}
+
+async function serverSetup() {
+  const st = S.setup;
+  await api('/rest/v1/match_timer?on_conflict=event_id,user_id', {
+    event_id: EVENT_ID, user_id: UID,
+    opposition: st.opp || null, squad_id: st.squadId || null,
+    duration_seconds: st.dur, injury_seconds: st.inj, current_half: S.clock.half,
+  }, { prefer: 'resolution=merge-duplicates,return=minimal' });
+  const r = await rpc('upsert_match_stats', { p_event_id: EVENT_ID, p_opposition: st.opp || null, p_squad_id: st.squadId || null });
+  if (!r || !r.id) throw new Error('No match record');
+  S.sessionId = r.id;
+  S.needSetup = false;
+  S.timerVer++;
+  save();
+  refreshInfo();   // line-up may depend on the squad picked
+}
+
+async function sync() {
+  if (!S || !EVENT_ID) return;
+  if (syncing) { syncAgain = true; return; }
+  syncing = true; renderPill();
+  try {
+    if (S.needSetup && S.setup) await serverSetup();
+    while (S.sessionId && (S.out.length || S.timerVer !== S.timerSent)) {
+      const batch = S.out.slice(0, singleMode ? 1 : 40);
+      const ver = S.timerVer;
+      batch.forEach(o => inFlight.add(o.id));
+      let res;
+      try {
+        res = await rpc('sync_match_actions', {
+          p_match_stats_id: S.sessionId,
+          p_actions: batch,
+          p_timer: ver !== S.timerSent ? timerPayload() : null,
+        });
+      } catch (e) {
+        // A batch the server can't read: find the bad entry and set it aside
+        if (e.status === 400 || e.status === 409 || e.status === 422 || (e.status >= 400 && e.status < 500 && !/^(401|403|408|429)$/.test(String(e.status)))) {
+          if (!singleMode && batch.length > 1) { singleMode = true; continue; }
+          if (batch.length === 1) {
+            S.out = S.out.filter(o => o.id !== batch[0].id);
+            S.rejected = (S.rejected || []).concat([batch[0]]).slice(-20);
+            save();
+            continue;
+          }
+        }
+        throw e;
+      } finally {
+        batch.forEach(o => inFlight.delete(o.id));
+      }
+      const done = new Set((res && res.done) || []);
+      S.out = S.out.filter(o => !done.has(o.id));
+      S.timerSent = ver;
+      if (singleMode && !S.out.length) singleMode = false;
+      save();
+    }
+    if (S.finalisePending && S.sessionId && !S.out.length && S.timerVer === S.timerSent) {
+      await rpc('finalise_match_stats', { p_match_stats_id: S.sessionId });
+      S.finalisePending = false; S.final = true; save();
+      keepAwake(false);
+    }
+    netState = 'ok'; backoff = 0;
+  } catch (e) {
+    netState = e.offline ? 'offline' : (e.status === 401 || e.status === 403) ? 'auth' : 'error';
+    backoff = Math.min(backoff ? backoff * 2 : 3000, 30000);
+    clearTimeout(syncTimer); syncTimer = setTimeout(sync, backoff);
+  } finally {
+    syncing = false;
+    renderPill();
+    if (S.phase === 'done') renderPhase();
+    renderRecent();
+    if (syncAgain) { syncAgain = false; kickSync(0); }
+  }
+}
+window.addEventListener('online', () => kickSync(0));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (S) save(); return; }
+  if (awakeWanted) keepAwake(true);
+  kickSync(0);
+  if (S) render();
+});
+window.addEventListener('pagehide', () => { if (S) save(); });
+
+function pending() { return S ? S.out.length + (S.needSetup ? 1 : 0) : 0; }
+function renderPill() {
+  const p = $('pill'), n = pending(), timerWait = S && S.timerVer !== S.timerSent;
+  let txt = 'All saved', cls = '';
+  if (n || timerWait || (S && S.finalisePending)) {
+    if (netState === 'offline') { txt = n ? `${n} waiting · no signal` : 'Waiting for signal'; cls = 'wait'; }
+    else if (netState === 'auth') { txt = 'Waiting to sign in'; cls = 'wait'; }
+    else if (netState === 'error') { txt = n ? `${n} waiting · retrying` : 'Retrying'; cls = 'wait'; }
+    else { txt = 'Saving…'; cls = 'busy'; }
+  }
+  p.className = 'pill ' + cls;
+  $('pillTxt').textContent = txt;
+}
+
+// ── Loading the match ────────────────────────────────────────────────────────
+function mapServerActs(list) {
+  return (list || []).map((d, i) => ({
+    id: d.id, k: d.kind === 'correction' ? 'correction' : 'score', st: d.score_type, side: d.side,
+    sec: d.second || 0, half: d.half || 1, run: false, mem: d.member_id || null, n: d.count == null ? 1 : d.count,
+    ts: Date.parse(d.created_at) || i,
+  }));
+}
+function mapServerSubs(list) {
+  return (list || []).map(s => ({ id: s.id, half: s.half || 1, sec: s.second || 0, off: s.member_off, on: s.member_on, ts: 0 }));
+}
+// Server entries, with anything still waiting in this phone's outbox on top
+function mergeWithOutbox(acts, subs, out) {
+  out.forEach(o => {
+    if ((o.type === 'score' || o.type === 'correction') && !acts.some(a => a.id === o.id)) {
+      acts.push({ id: o.id, k: o.type, st: o.score_type, side: o.side, sec: o.second, half: o.half, run: o.timer_status === 'running', mem: o.member_id || null, n: o.type === 'correction' ? o.count : 1, ts: Date.now() });
+    } else if (o.type === 'remove') {
+      acts = acts.filter(a => a.id !== o.target);
+    } else if (o.type === 'edit') {
+      const a = acts.find(x => x.id === o.target);
+      if (a) { if ('score_type' in o) a.st = o.score_type; if ('side' in o) a.side = o.side; if ('member_id' in o) a.mem = o.member_id; }
+    } else if (o.type === 'sub' && !subs.some(s => s.id === o.id)) {
+      subs.push({ id: o.id, half: o.half, sec: o.second, off: o.member_off, on: o.member_on, ts: Date.now() });
+    } else if (o.type === 'remove_sub') {
+      subs = subs.filter(s => s.id !== o.target);
+    }
+  });
+  return { acts, subs };
+}
+
+function stateFromServer(srv) {
+  const tm = srv.timer, ses = srv.session;
+  if (!ses && !tm) return blankState(null);
+  const setup = {
+    opp: (ses && ses.opposition) || (tm && tm.opposition) || (srv.event && srv.event.opposition) || '',
+    squadId: (ses && ses.squad_id) || (tm && tm.squad_id) || null,
+    dur: (tm && tm.duration_seconds) || 1800,
+    inj: (tm && tm.injury_seconds != null) ? tm.injury_seconds : 300,
+  };
+  const s = blankState(setup);
+  if (tm) {
+    s.clock.half = tm.current_half || 1;
+    s.clock.banked = tm.elapsed_seconds || 0;
+    if (tm.status === 'running' && tm.started_at) {
+      s.clock.run = true;
+      s.clock.startedAt = Date.parse(tm.started_at);
+    }
+    // The old score keeper parks the clock at half length + injury when a half ends
+    if (tm.status !== 'running' && s.clock.banked >= setup.dur + setup.inj && setup.dur) {
+      s.clock.ended[s.clock.half] = s.clock.banked;
+      s.phase = s.clock.half === 1 ? 'ht' : 'ft';
+    }
+  }
+  if (ses) {
+    s.sessionId = ses.id;
+    if (ses.status === 'finalised') { s.final = true; s.phase = 'done'; }
+    else if (!tm) s.needSetup = true;   // recreate the clock row
+  } else {
+    s.needSetup = true;
+  }
+  s.acts = mapServerActs(srv.actions);
+  s.subs = mapServerSubs(srv.subs);
+  s.timerVer = s.timerSent = 0;
+  return s;
+}
+
+function takeInfo(srv) {
+  C = {
+    event: srv.event || {}, is_member: !!srv.is_member, squads: srv.squads || [],
+    score_types: srv.score_types || [], lineup: srv.lineup || null, players: srv.players || [],
+  };
+  store.set(CKEY, C);
+}
+
+async function refreshInfo() {
+  try { const srv = await rpc('get_score_keeper_state', { p_event_id: EVENT_ID }); if (srv && !srv.error) { takeInfo(srv); render(); } } catch (_) {}
+}
+
+async function boot() {
+  if (!EVENT_ID || !token) {
+    $('loading').innerHTML = '<div class="err"><b>Open this from the app</b>The score keeper needs a match from your events.</div>';
+    return;
+  }
+  keepAwake(true);
+  S = store.get(KEY);
+  C = store.get(CKEY);
+  if (S && C) { show(); }   // straight away from the phone, even with no signal
+
+  let srv = null;
+  try { srv = await rpc('get_score_keeper_state', { p_event_id: EVENT_ID }); }
+  catch (e) { netState = e.offline ? 'offline' : (e.status === 401 || e.status === 403) ? 'auth' : 'error'; }
+
+  if (srv && srv.error) {
+    if (!S) {
+      $('loading').innerHTML = `<div class="err"><b>Can't open this match</b>${srv.error === 'event_not_found' ? 'The event was not found.' : 'Please close and open it again.'}</div>`;
+      return;
+    }
+    srv = null;
+  }
+  if (srv) {
+    takeInfo(srv);
+    const ses = srv.session;
+    if (!S) {
+      S = stateFromServer(srv);
+    } else if (S.sessionId && ses && ses.id === S.sessionId) {
+      const m = mergeWithOutbox(mapServerActs(srv.actions), mapServerSubs(srv.subs), S.out);
+      S.acts = m.acts; S.subs = m.subs;
+      if (ses.status === 'finalised' && !S.final) { S.final = true; S.finalisePending = false; S.phase = 'done'; }
+    } else if (S.sessionId && (!ses || ses.id !== S.sessionId) && !S.out.length) {
+      // Reset or restarted somewhere else: go with the server
+      S = stateFromServer(srv);
+    }
+    // else: this phone has a match the server hasn't seen yet; keep it and upload
+  } else if (!S || !C) {
+    $('loading').innerHTML = `<div class="err"><b>No signal</b>The score keeper needs signal the first time it opens a match. Once open, it keeps working without signal.<br><br><button class="fb g" style="width:100%;margin-top:10px" onclick="location.reload()">Try again</button></div>`;
+    return;
+  }
+  save();
+  show();
+  kickSync(0);
+}
+
+let shown = false;
+function show() {
+  $('loading').classList.add('hidden');
+  if (!shown) {
+    shown = true;
+    setInterval(tick, 250);
+    attachMic();
+    if (store.get('sk2mode') === 'voice') mode = 'voice';
+  }
+  render();
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────────
+let view = 'score', mode = 'tap';
+
+function totalsNow() { return CSMatchCharts.totals(model()); }
+function countFor(st, side) {
+  return S.acts.reduce((n, a) => n + (a.st === st && a.side === side ? (a.k === 'correction' ? a.n : 1) : 0), 0);
+}
+function model() {
+  const r = roster();
+  const finished = S.phase === 'ft' || S.phase === 'done';
+  const order = S.acts.slice().sort((a, b) => a.ts - b.ts).map(a => a.id);
+  return {
+    usName: usName(), oppName: oppName(), duration: halfLen(),
+    hasH2: S.clock.half === 2 || finished,
+    nowAbs: S.phase === 'play' ? (S.clock.half === 2 ? halfLen() : 0) + Math.min(secInHalf(), halfLen() * 1.5) : null,
+    finished,
+    events: S.acts.map(a => {
+      const t = typeById(a.st);
+      return { half: a.half, second: a.sec, side: a.side, value: t.score_value || null, name: t.score_type, kind: a.k, count: a.n, member: a.mem ? fullName(r.get(a.mem)) : '', order: order.indexOf(a.id) };
+    }),
+    subs: S.subs.map(s => ({ half: s.half, second: s.sec, on: s.on ? fullName(r.get(s.on)) : '', off: s.off ? fullName(r.get(s.off)) : '' })),
+  };
+}
+
+function render() {
+  if (!S || !C) return;
+  renderPill();
+  // Chart and timeline are for half time and full time; while playing it's just the clock, score and buttons
+  const live = S.phase === 'setup' || S.phase === 'play';
+  if (live && view !== 'score') view = 'score';
+  $('viewSeg').classList.toggle('hidden', live);
+  document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+  $('vScore').classList.toggle('hidden', view !== 'score');
+  $('vStats').classList.toggle('hidden', view !== 'stats');
+  if (view === 'stats') renderStats();
+  const ph = S.phase;
+  $('setup').classList.toggle('hidden', ph !== 'setup');
+  $('live').classList.toggle('hidden', ph !== 'play');
+  $('phase').classList.toggle('hidden', ph === 'setup' || ph === 'play');
+  if (ph === 'setup') renderSetup();
+  if (ph === 'play') { renderClock(); renderBoard(); renderMode(); }
+  if (ph !== 'setup' && ph !== 'play') renderPhase();
+  renderRecent();
+  renderFoot();
+}
+
+function boardHtml(tag) {
+  const t = totalsNow();
+  const d = t.usT - t.oppT;
+  const lead = tag ? `<span class="lead lvl" style="color:var(--green);background:rgba(135,194,50,.15)">${tag}</span>`
+    : d === 0 ? '<span class="lead lvl">Level</span>'
+    : `<span class="lead ${d < 0 ? 'opp' : ''}">▲ ${Math.abs(d)}</span>`;
+  return `<div><div class="nm">${esc(usName())}</div><div class="sc">${t.us}</div><div class="pt">${t.usT} pts</div></div>
+    <div>${lead}</div>
+    <div><div class="nm">${esc(oppName())}</div><div class="sc">${t.opp}</div><div class="pt">${t.oppT} pts</div></div>`;
+}
+function renderBoard() { $('board').innerHTML = boardHtml(); }
+
+function renderClock() {
+  if (!S || S.phase !== 'play') return;
+  const sec = secInHalf(), dur = halfLen(), h = S.clock.half;
+  const inj = sec > dur;
+  const matchSec = (h - 1) * dur + sec;
+  const el = $('clock');
+  el.classList.toggle('inj', inj);
+  el.classList.toggle('paused', !S.clock.run && sec > 0);
+  const hn = h === 1 ? 'First half' : 'Second half';
+  $('clockLbl').innerHTML = inj ? `${hn} · <b>Injury time +${fmt(sec - dur)}</b>` : `${hn} · ${Math.round(dur / 60)} min${!S.clock.run && sec > 0 ? ' · paused' : ''}`;
+  $('clockT').textContent = fmt(matchSec);
+  const bars = $('clockBar').children;
+  const injMax = Math.max(injLen(), 60);
+  bars[0].style.width = (Math.min(sec / dur, 1) * (inj ? 80 : 100)) + '%';
+  bars[1].style.width = inj ? Math.min((sec - dur) / injMax, 1) * 20 + '%' : '0';
+  // End-of-half nudge once injury time is up
+  const end = $('endBtn');
+  if (end) end.classList.toggle('pulse', S.clock.run && injLen() > 0 && sec >= dur + injLen());
+}
+
+function renderMode() {
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
+  $('tapPad').classList.toggle('hidden', mode !== 'tap');
+  $('voicePad').classList.toggle('hidden', mode !== 'voice');
+  if (mode === 'tap') renderTapPad(); else renderVoice();
+}
+
+function renderTapPad() {
+  // Every stat gets the same full-size button; the scores come first and the rest are a scroll away
+  const all = bigTypes().concat(smallTypes());
+  const col = side => `<div><div class="colh">${esc(side === 'us' ? usName() : oppName())}</div>
+    ${all.map(t => `<button class="big v${t.score_value > 0 ? t.score_value : 0}" data-st="${t.id}" data-side="${side}"><span>${esc(t.score_type)}</span><b>${countFor(t.id, side)}</b></button>`).join('')}</div>`;
+  $('tapPad').classList.toggle('wait', !started());
+  $('tapPad').innerHTML = types().length ? `<div class="cols">${col('us')}${col('opp')}</div>` : '<div class="empty">No score types set up for this team.</div>';
+}
+
+// Tap = add one. Press and hold = take the last one off.
+(function bindPad() {
+  let holdTimer = null, held = false, startXY = null;
+  const pad = $('tapPad');
+  pad.addEventListener('contextmenu', e => e.preventDefault());
+  pad.addEventListener('pointerdown', e => {
+    const b = e.target.closest('[data-st]'); if (!b) return;
+    held = false; startXY = [e.clientX, e.clientY];
+    holdTimer = setTimeout(() => { held = true; if (!started()) return notStarted(); takeOneOff(Number(b.dataset.st), b.dataset.side); }, 600);
+  });
+  const cancel = () => clearTimeout(holdTimer);
+  pad.addEventListener('pointermove', e => { if (startXY && Math.hypot(e.clientX - startXY[0], e.clientY - startXY[1]) > 12) cancel(); });
+  pad.addEventListener('pointercancel', cancel);
+  pad.addEventListener('pointerup', cancel);
+  pad.addEventListener('click', e => {
+    const b = e.target.closest('[data-st]'); if (!b) return;
+    if (held) { held = false; return; }
+    tapScore(Number(b.dataset.st), b.dataset.side, b);
+  });
+})();
+
+// Nothing can be scored until the half has kicked off
+const started = () => S.phase !== 'play' || S.clock.run || secInHalf() > 0;
+function notStarted() {
+  buzz([40, 60, 40]);
+  toast(`Start the ${S.clock.half === 1 ? '1st' : '2nd'} half first`);
+  const f = document.querySelector('#footIn [data-f="start"]');
+  if (f) { f.classList.add('pulse'); setTimeout(() => f.classList.remove('pulse'), 1600); }
+}
+function tapScore(st, side, btn) {
+  if (!started()) return notStarted();
+  const a = addScore(st, side);
+  buzz(15);
+  if (btn) { btn.classList.add('flash'); setTimeout(() => btn.classList.remove('flash'), 350); }
+  const t = typeById(st);
+  renderBoard(); renderTapPad(); renderRecent();
+  if (btn) {
+    const nb = document.querySelector(`#tapPad [data-st="${st}"][data-side="${side}"]`);
+    if (nb) { nb.classList.add('flash'); setTimeout(() => nb.classList.remove('flash'), 350); }
+  }
+  toast(`${t.score_type} for ${side === 'us' ? usName() : oppName()} at ${minute(a.half, a.sec)}`, 'Undo', () => {
+    removeAct(a.id); render();
+  });
+}
+function takeOneOff(st, side) {
+  const last = S.acts.filter(a => a.st === st && a.side === side && a.k === 'score').sort((a, b) => b.ts - a.ts)[0];
+  const t = typeById(st);
+  if (!last) { toast(`No ${t.score_type.toLowerCase()} to take off`); return; }
+  removeAct(last.id);
+  buzz([40, 60, 40]);
+  render();
+  toast(`Took off a ${t.score_type.toLowerCase()} for ${side === 'us' ? usName() : oppName()}`, 'Undo', () => { restoreAct(last); render(); });
+}
+
+function actLabel(a) {
+  const t = typeById(a.st);
+  if (a.k === 'correction') return { t: `Score check: ${a.n > 0 ? '+' : ''}${a.n} ${t.score_type.toLowerCase()}${Math.abs(a.n) !== 1 ? 's' : ''}`, s: a.side === 'us' ? usName() : oppName() };
+  return { t: t.score_type, s: a.side === 'opp' ? oppName() : (a.mem ? memberName(a.mem) || usName() : usName()) };
+}
+const ICON_OK = '<svg class="st ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const ICON_WAIT = '<svg class="st wait" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>';
+
+function renderRecent() {
+  if (!S || !C) return;
+  const el = $('recent');
+  if (S.phase === 'setup' || view !== 'score') { el.innerHTML = ''; return; }
+  const waiting = new Set(S.out.map(o => o.id));
+  const items = S.acts.map(a => ({ k: 'a', a, e: a })).concat(S.subs.map(s => ({ k: 's', s, e: s })));
+  // While playing: newest entry first. After: match order, latest first.
+  items.sort((x, y) => S.phase === 'play'
+    ? ((y.e.ts || 0) - (x.e.ts || 0)) || (y.e.half - x.e.half) || (y.e.sec - x.e.sec)
+    : (y.e.half - x.e.half) || (y.e.sec - x.e.sec) || ((y.e.ts || 0) - (x.e.ts || 0)));
+  if (!items.length) { el.innerHTML = S.phase === 'play' ? '' : '<div class="list"><div class="empty">Nothing recorded</div></div>'; return; }
+  const n = items.length;
+  const r = roster();
+  el.innerHTML = `<div class="listh"><span>${S.phase === 'play' ? 'Latest' : 'Everything recorded'}</span><span>${items.length}</span></div>
+    <div class="list">${items.slice(0, n).map(it => {
+      if (it.k === 's') {
+        const s = it.s;
+        return `<button class="row" data-sub="${esc(s.id)}"><span class="mn">${minute(s.half, s.sec)}</span><span>Sub<small>${esc(fullName(r.get(s.on)) || '?')} on for ${esc(fullName(r.get(s.off)) || '?')}</small></span>${waiting.has(s.id) ? ICON_WAIT : ICON_OK}</button>`;
+      }
+      const a = it.a, l = actLabel(a);
+      return `<button class="row ${a.side === 'opp' ? 'opp' : ''} ${a.k === 'correction' ? 'corr' : ''}" data-act="${esc(a.id)}"><span class="mn">${minute(a.half, a.sec)}</span><span>${esc(l.t)}<small>${esc(l.s)}</small></span>${waiting.has(a.id) ? ICON_WAIT : ICON_OK}</button>`;
+    }).join('')}</div>`;
+}
+$('recent').addEventListener('click', e => {
+  const r = e.target.closest('[data-act]'); if (r) { openEdit(r.dataset.act); return; }
+  const s = e.target.closest('[data-sub]'); if (s) openSubEdit(s.dataset.sub);
+});
+
+// ── Phase cards: half time, full time, done ─────────────────────────────────
+function halfTable(h) {
+  const rows = {};
+  S.acts.filter(a => a.half === h || h === 0).forEach(a => {
+    const t = typeById(a.st);
+    const k = t.score_value === 3 ? 'Goals' : t.score_value === 2 ? '2 pointers' : t.score_value === 1 ? 'Points' : t.score_type + (/s$/.test(t.score_type) ? '' : 's');
+    rows[k] = rows[k] || { us: 0, opp: 0, o: t.score_value === 3 ? 0 : t.score_value === 1 ? 1 : t.score_value === 2 ? 2 : 3 };
+    rows[k][a.side] += a.k === 'correction' ? a.n : 1;
+  });
+  const list = Object.entries(rows).sort((a, b) => a[1].o - b[1].o);
+  if (!list.length) return '';
+  return list.map(([k, v]) => `<div class="trow"><span>${v.us}</span><span>${esc(k)}</span><span>${v.opp}</span></div>`).join('');
+}
+
+function renderPhase() {
+  const el = $('phase');
+  const t = totalsNow(), d = t.usT - t.oppT;
+  const h = S.clock.half;
+  const leadTxt = d === 0 ? 'Level' : `${d > 0 ? usName() : oppName()} ${S.phase === 'ht' ? 'leading' : (S.phase === 'done' || S.phase === 'ft') ? 'won' : 'ahead'} by ${Math.abs(d)}`;
+  const checkKey = S.phase === 'ht' ? 1 : 2;
+  const check = S.checked[checkKey]
+    ? `<div class="check ok"><p>✓ Matches the ref's score</p><button class="e" data-do="correct">Edit</button></div>`
+    : `<div class="check"><p>Does this match the ref's score?</p><button class="y" data-do="yes">Yes</button><button class="e" data-do="correct">Edit</button></div>`;
+  if (S.phase === 'ht') {
+    const ended = S.clock.ended[1] != null ? S.clock.ended[1] : secInHalf();
+    el.innerHTML = `<div class="phase"><div class="lbl">First half finished at ${fmt(ended)}</div><h1>Half time</h1></div>
+      <div class="board"><div class="sub">${esc(leadTxt)}</div>${boardHtml('HT')}${check}</div>
+      ${halfTable(1) ? `<div class="card"><h3>First half</h3>${halfTable(1)}</div>` : ''}
+      <button class="undo-link" data-do="back">Ended the half by mistake? Back to the clock</button>`;
+  } else if (S.phase === 'ft') {
+    el.innerHTML = `<div class="phase"><div class="lbl">${d === 0 ? 'A draw' : esc(leadTxt)}</div><h1 class="ft">Full time</h1></div>
+      <div class="board">${boardHtml('FT')}${check}</div>
+      ${halfTable(0) ? `<div class="card"><h3>The match</h3>${halfTable(0)}</div>` : ''}
+      <button class="undo-link" data-do="back">Ended the match by mistake? Back to the clock</button>`;
+  } else {
+    const n = S.acts.length;
+    const outN = S.out.length;
+    const timerOk = S.timerVer === S.timerSent && !S.needSetup;
+    const st = (ok, txt) => `<div class="s ${ok ? '' : 'wait'}"><i>${ok ? '✓' : '…'}</i>${txt}</div>`;
+    el.innerHTML = `<div class="phase"><div class="lbl">${d === 0 ? 'A draw' : esc(leadTxt)}</div><h1 class="ft">Full time</h1></div>
+      <div class="board">${boardHtml('FT')}${check}</div>
+      <div class="card steps"><h3>${S.final ? 'Match saved' : 'Saving the match'}</h3>
+        ${st(!outN, outN ? `${outN} of ${n} entries still to upload` : `${n} score${n === 1 ? '' : 's'} and stats uploaded`)}
+        ${st(timerOk, timerOk ? 'Clock and halves saved' : 'Clock still to upload')}
+        ${st(S.final, S.final ? 'Match finished and saved' : 'Finishing the match')}
+        ${S.final ? '' : '<p>If you lose signal here, it finishes saving by itself next time the app has signal. You can close this screen.</p>'}
+      </div>`;
+  }
+}
+$('phase').addEventListener('click', e => {
+  const b = e.target.closest('[data-do]'); if (!b) return;
+  const k = b.dataset.do;
+  if (k === 'yes') { S.checked[S.phase === 'ht' ? 1 : 2] = true; save(); renderPhase(); }
+  if (k === 'correct') openCorrect();
+  if (k === 'back') backToClock();
+});
+
+function finishMatch() {
+  S.phase = 'done';
+  S.finalisePending = true;
+  save(); render(); kickSync(0);
+}
+
+// ── Bottom bar ───────────────────────────────────────────────────────────────
+const IC_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>';
+const IC_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>';
+function renderFoot() {
+  const f = $('footIn');
+  const ph = S.phase, h = S.clock.half, sec = secInHalf();
+  let html = '', one = false;
+  if (ph === 'setup') { html = '<button class="fb g" data-f="ready">Ready</button>'; one = true; }
+  else if (ph === 'play') {
+    if (!S.clock.run && sec === 0) { html = `<button class="fb g" data-f="start">${IC_PLAY} Start ${h === 1 ? '1st' : '2nd'} half</button>`; one = true; }
+    else if (S.clock.run) html = `<button class="fb a" data-f="pause">${IC_PAUSE} Pause</button><button class="fb" id="endBtn" data-f="end">End ${h === 1 ? 'half' : 'match'}</button>`;
+    else html = `<button class="fb g" data-f="resume">${IC_PLAY} Resume</button><button class="fb" id="endBtn" data-f="end">End ${h === 1 ? 'half' : 'match'}</button>`;
+  }
+  else if (ph === 'ht') { html = `<button class="fb g" data-f="h2">${IC_PLAY} Start 2nd half</button>`; one = true; }
+  else if (ph === 'ft') { html = `<button class="fb" data-f="chart">View stats</button><button class="fb g" data-f="finish">Save match</button>`; }
+  else { html = `<button class="fb" data-f="chart">View stats</button><button class="fb g" data-f="report">Match report</button>`; }
+  f.className = 'in' + (one ? ' one' : '');
+  f.innerHTML = html;
+  renderClock();
+}
+$('footIn').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if (!b) return;
+  const k = b.dataset.f;
+  if (k === 'ready') return applySetup();
+  if (k === 'start' || k === 'resume') return startClock();
+  if (k === 'pause') return pauseClock();
+  if (k === 'end') return endHalf();
+  if (k === 'h2') return startSecondHalf();
+  if (k === 'finish') return finishMatch();
+  if (k === 'chart') return setView('stats');
+  if (k === 'report') return openReport();
+});
+
+function openReport() {
+  const q = `?token=${encodeURIComponent(token)}&eventId=${EVENT_ID}`;
+  keepAwake(false);
+  location.href = 'match-report.html' + q;
+}
+
+// ── Setup ────────────────────────────────────────────────────────────────────
+let draft = null;
+function renderSetup() {
+  if (!draft) {
+    const st = S.setup || {};
+    draft = {
+      opp: st.opp != null ? st.opp : ((C.event && C.event.opposition) || ''),
+      squadId: st.squadId || null,
+      dur: st.dur || 1800,
+      inj: st.inj != null ? st.inj : 300,
+    };
+  }
+  const ev = C.event || {};
+  const when = ev.event_date_time ? new Date(ev.event_date_time).toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+  const durs = [15, 20, 25, 30, 35];
+  const injs = [0, 2, 3, 5, 10];
+  const dm = Math.round(draft.dur / 60);
+  $('setup').innerHTML = `<h2>${esc(usName())}${draft.opp ? ' v ' + esc(draft.opp) : ''}</h2>
+    <div class="sub">${esc([when, ev.event_code, ev.event_type, ev.team_name].filter(Boolean).join(' · '))}</div>
+    <div class="field"><label>Opposition</label><input id="fOpp" value="${esc(draft.opp)}" placeholder="Who are you playing?" autocomplete="off"/></div>
+    ${C.squads.length ? `<div class="field"><label>Squad</label><select id="fSquad"><option value="">Whole team</option>${C.squads.map(s => `<option value="${s.squad_id}" ${draft.squadId === s.squad_id ? 'selected' : ''}>${esc(s.squad_name)}</option>`).join('')}</select></div>` : ''}
+    <div class="field"><label>Half length</label><div class="pick" id="fDur">${durs.map(m => `<button data-v="${m}" class="${dm === m ? 'on' : ''}">${m} min</button>`).join('')}<button data-v="other" class="${durs.includes(dm) ? '' : 'on'}">${durs.includes(dm) ? 'Other' : dm + ' min'}</button></div></div>
+    <div class="field"><label>Injury time, most per half</label><div class="pick" id="fInj">${injs.map(m => `<button data-v="${m}" class="${Math.round(draft.inj / 60) === m ? 'on' : ''}">${m ? m + ' min' : 'None'}</button>`).join('')}</div>
+      <div class="hint">The clock keeps going into injury time. You'll get a buzz when it's up, and you end the half when the ref blows.</div></div>`;
+}
+$('setup').addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; });
+$('setup').addEventListener('change', e => { if (e.target.id === 'fSquad') draft.squadId = e.target.value ? Number(e.target.value) : null; });
+$('setup').addEventListener('click', e => {
+  const b = e.target.closest('.pick button'); if (!b) return;
+  if (b.parentElement.id === 'fDur') {
+    if (b.dataset.v === 'other') {
+      const v = Number(prompt('Half length in minutes', String(Math.round(draft.dur / 60))));
+      if (v >= 1 && v <= 60) draft.dur = Math.round(v) * 60;
+    } else draft.dur = Number(b.dataset.v) * 60;
+  } else draft.inj = Number(b.dataset.v) * 60;
+  renderSetup();
+});
+function applySetup() {
+  const opp = (draft.opp || '').trim();
+  if (!opp) { toast('Add the opposition first'); const i = $('fOpp'); if (i) i.focus(); return; }
+  const wasFinal = S.phase === 'done';
+  S.setup = { opp, squadId: draft.squadId, dur: draft.dur, inj: draft.inj };
+  if (S.phase === 'setup') S.phase = 'play';
+  if (!wasFinal) S.needSetup = true;
+  draft = null;
+  timerChanged(); render(); window.scrollTo(0, 0);
+}
+
+// ── Views ────────────────────────────────────────────────────────────────────
+function setView(v) { view = v; render(); window.scrollTo(0, 0); }
+$('viewSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
+$('modeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  mode = b.dataset.m; store.set('sk2mode', mode); renderMode();
+});
+// Stats: the charts, then the timeline (newest first), then a PDF of the lot
+function renderStats() {
+  CSMatchCharts.injectCss();
+  if (!S.acts.length) { $('vStats').innerHTML = '<div class="empty" style="padding-top:60px">Nothing recorded yet.</div>'; return; }
+  const m = model();
+  $('vStats').innerHTML = `<button class="fb pdfbtn" id="pdfBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download PDF</button>
+    <div id="statsBody">${CSMatchCharts.chartSection(m)}
+    <div class="listh"><span>Timeline</span></div>
+    <div class="mc-tl">${CSMatchCharts.timelineSection(m)}</div></div>
+    <div class="hint" style="text-align:center;margin-top:12px">To change a score, tap it in the list on the Score tab.</div>`;
+  $('pdfBtn').onclick = statsPdf;
+}
+
+const loadScript = src => new Promise((ok, no) => {
+  if (document.querySelector(`script[src="${src}"]`)) return ok();
+  const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('load')); document.head.appendChild(s);
+});
+async function statsPdf() {
+  const btn = $('pdfBtn');
+  if (btn.disabled) return;
+  const label = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'Making the PDF…';
+  let host = null;
+  try {
+    await Promise.all([
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+    ]);
+    const t = totalsNow();
+    const ev = (C && C.event) || {};
+    const when = ev.event_date_time || '';
+    const dateTxt = when ? new Date(when).toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    // Lay the page out at a fixed phone-like width off screen, with a score header
+    host = document.createElement('div');
+    host.className = 'pdfhost';
+    host.innerHTML = `<div class="pdf-h"><div class="lbl">${esc([ev.team_name, dateTxt].filter(Boolean).join(' · '))}</div>
+      <div class="board">${boardHtml(S.phase === 'ht' ? 'HT' : S.phase === 'play' ? '' : 'FT')}</div></div>${$('statsBody').innerHTML}`;
+    document.body.appendChild(host);
+    await new Promise(r => setTimeout(r, 60));
+    const W = host.offsetWidth;
+    const canvas = await html2canvas(host, { backgroundColor: '#14181b', scale: 2, logging: false, useCORS: true, windowWidth: W });
+    // A4 pages, cut between blocks so no row is split
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pw = 210, ph = 297, pxPerMm = canvas.width / pw, pageH = Math.floor(ph * pxPerMm);
+    const hostTop = host.getBoundingClientRect().top;
+    const cuts = Array.from(host.querySelectorAll('.pdf-h,.mc-card,.mc-kpis,.mc-ev,.mc-band,.mc-run,.listh'))
+      .map(el => Math.round((el.getBoundingClientRect().bottom - hostTop) * 2)).sort((a, b) => a - b);
+    let y = 0, first = true;
+    while (y < canvas.height - 4) {
+      let end = Math.min(y + pageH, canvas.height);
+      if (end < canvas.height) { const c = cuts.filter(v => v > y + 40 && v <= end).pop(); if (c) end = c; }
+      const part = document.createElement('canvas');
+      part.width = canvas.width; part.height = end - y;
+      const g = part.getContext('2d'); g.fillStyle = '#14181b'; g.fillRect(0, 0, part.width, part.height);
+      g.drawImage(canvas, 0, y, canvas.width, end - y, 0, 0, canvas.width, end - y);
+      if (!first) doc.addPage();
+      doc.setFillColor(20, 24, 27); doc.rect(0, 0, pw, ph, 'F');
+      doc.addImage(part.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pw, (end - y) / pxPerMm);
+      first = false; y = end;
+    }
+    const name = `${usName()} v ${oppName()} ${t.us} ${t.opp}`.replace(/[^A-Za-z0-9 \-]/g, '').replace(/\s+/g, '_') + '.pdf';
+    if (window.FlutterBridge) {
+      const b64 = doc.output('datauristring').split(',')[1];
+      window.FlutterBridge.postMessage(`sharePdf:${name}:${b64}`);
+    } else {
+      const blob = doc.output('blob');
+      const file = new File([blob], name, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: name.replace('.pdf', '') });
+      else { const u = URL.createObjectURL(blob); const a = Object.assign(document.createElement('a'), { href: u, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 10000); }
+    }
+  } catch (e) {
+    if (!(e && e.name === 'AbortError')) toast(navigator.onLine === false ? 'The PDF needs signal. Try again when you have it.' : "Couldn't make the PDF. Try again.");
+  } finally {
+    if (host) host.remove();
+    btn.disabled = false; btn.innerHTML = label;
+  }
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer = null, toastAction = null;
+function toast(msg, btn, fn) {
+  $('toastTxt').textContent = msg;
+  const b = $('toastBtn');
+  b.classList.toggle('hidden', !btn);
+  b.textContent = btn || '';
+  toastAction = fn || null;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), btn ? 5000 : 2800);
+}
+window.showToast = msg => toast(msg);
+$('toastBtn').addEventListener('click', () => {
+  const f = toastAction; toastAction = null;
+  $('toast').classList.remove('show');
+  if (f) f();
+});
+
+// ── Sheets ───────────────────────────────────────────────────────────────────
+let sheetClose = null;
+function openSheet(html, onClose) {
+  $('sheetBody').innerHTML = html;
+  $('scrim').classList.add('show'); $('sheet').classList.add('show');
+  $('sheet').scrollTop = 0;
+  sheetClose = onClose || null;
+}
+function closeSheet() {
+  $('scrim').classList.remove('show'); $('sheet').classList.remove('show');
+  const f = sheetClose; sheetClose = null;
+  if (f) f();
+}
+$('scrim').addEventListener('click', closeSheet);
+$('sheetBody').addEventListener('click', e => { if (e.target.closest('[data-close]')) closeSheet(); });
+
+// How to
+$('howBtn').addEventListener('click', () => {
+  const hi = (ic, b, s) => `<div class="hi"><div class="ic">${ic}</div><div><b>${b}</b>${s ? `<span>${s}</span>` : ''}</div></div>`;
+  openSheet(`<h2>How to use the score keeper <button class="x" data-close>×</button></h2>
+    <div class="how">
+    <div class="sec">Scoring</div>
+    ${hi('+', 'Tap Goal, Point or 2 Pointer for the team that scored', 'Start the half first. Wide, Free and the rest are further down: scroll to them')}
+    <div class="sec">Fix a mistake</div>
+    ${hi('↶', 'Tap <b>Undo</b> on the bar that pops up after each tap', 'For a mis-tap you notice straight away')}
+    ${hi('☰', 'Tap the score in the Latest list', 'Add the player, change it (Point ↔ Wide, or the other team), or use – / + to take one off or add another')}
+    ${hi('✋', 'Press and hold a button to take one off', 'You feel a buzz when it works')}
+    ${hi('✓', "At half time and full time, check against the ref's score", 'Edit sets it to the ref\'s score, and shows in the timeline as a score check. You can still do it after the match is saved.')}
+    <div class="sec">Voice</div>
+    ${hi('🎙', 'Switch to Voice, hold the mic and say what happened', '"Point Ciarán", "Goal number 11", "Wide for them", "Two pointer Clontarf". You can say a few in one go.')}
+    ${hi('⇄', 'Subs: "Sub 17 for 11"', 'Or use Make a sub in the ⋯ menu')}
+    ${hi('?', 'It never stops to ask', `"Point" on its own counts for ${esc(usName())}. If it isn't sure of a name it picks the closest player and shows a ? on the card. Tap Change if it's wrong and it remembers for next time.`)}
+    <div class="sec">The clock</div>
+    ${hi('❚❚', 'Pause for stoppages, End half when the ref blows', 'The clock turns amber in injury time and buzzes when injury time is up')}
+    <div class="sec">No signal?</div>
+    ${hi('<span style="color:var(--amber)">●</span>', "Keep scoring. It's all saved on your phone", 'It uploads by itself when signal comes back. The pill at the top shows what is still waiting.')}
+    ${hi('☀', 'The screen stays on until the match is saved', 'Tap the sun to turn that off')}
+    </div>`);
+});
+
+// Pill: what's waiting
+$('pill').addEventListener('click', () => {
+  const n = pending();
+  const msg = !n && netState === 'ok' ? 'Everything is saved to CoachSmart.'
+    : netState === 'offline' ? `${n} entr${n === 1 ? 'y is' : 'ies are'} saved on this phone and will upload by themselves when signal comes back. Keep scoring as normal.`
+    : netState === 'auth' ? `${n} entr${n === 1 ? 'y is' : 'ies are'} saved on this phone, waiting for the app to sign in again. Keep scoring. If this stays, close the score keeper and open it again: nothing is lost.`
+    : `${n} entr${n === 1 ? 'y is' : 'ies are'} saved on this phone and uploading.`;
+  openSheet(`<h2>Saving <button class="x" data-close>×</button></h2><p class="sub">${esc(msg)}</p>
+    ${S && (S.rejected || []).length ? `<p class="sub">${S.rejected.length} entr${S.rejected.length === 1 ? 'y was' : 'ies were'} turned down by the server and set aside.</p>` : ''}
+    <div class="sheetbtns"><button class="fb" data-close>Close</button><button class="fb g" id="syncNow">Try now</button></div>`);
+  $('syncNow').addEventListener('click', () => { closeSheet(); netState = 'ok'; backoff = 0; kickSync(0); });
+});
+
+$('sunBtn').addEventListener('click', () => { keepAwake(!awakeWanted); toast(awakeWanted ? 'Screen stays on' : 'Screen can sleep now'); });
+
+// Menu
+$('menuBtn').addEventListener('click', () => {
+  if (!S) return;
+  const last = S.acts.filter(a => a.k === 'score').sort((a, b) => b.ts - a.ts)[0];
+  const ll = last && actLabel(last);
+  const canSub = roster().size > 0 && S.phase !== 'setup';
+  const mi = (k, ic, b, s, cls, dis) => `<button class="mi ${cls || ''}" data-m="${k}" ${dis ? 'disabled' : ''}><div class="ic">${ic}</div><div><b>${b}</b><span>${s}</span></div></button>`;
+  openSheet(`<div>
+    ${S.phase !== 'done' ? mi('setup', '⚙', 'Match setup', 'Opposition, squad, half length, injury time') : ''}
+    ${mi('undo', '↶', 'Undo last score', last ? `${ll.t} · ${ll.s} · ${minute(last.half, last.sec)}` : 'Nothing to undo', '', !last)}
+    ${canSub ? mi('sub', '⇄', 'Make a sub', S.subs.length ? `${S.subs.length} made so far` : 'Who came off and who went on') : ''}
+    ${S.phase !== 'setup' ? mi('check', '✓', "Check against the ref's score", 'Set the score to the ref\'s') : ''}
+    ${S.phase !== 'setup' && S.phase !== 'play' ? mi('chart', '📈', 'Stats', 'Charts, scorers and the timeline, with a PDF') : ''}
+    ${mi('awake', '☀', 'Screen stays on', awakeWanted ? 'On for the whole match. Tap to turn off.' : 'Off. Tap to keep the screen on.')}
+    ${S.phase === 'done' ? mi('again', '⟲', 'Start a new record', 'Keeps this one, starts again from 0-00', 'red') : S.phase !== 'setup' ? mi('reset', '⟲', 'Reset match', 'Clears the clock and every score', 'red') : ''}
+  </div>`);
+});
+$('sheetBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-m]'); if (!b || b.disabled) return;
+  const k = b.dataset.m;
+  closeSheet();
+  if (k === 'setup') { draft = null; S.phase === 'setup' ? render() : openSetupSheet(); }
+  if (k === 'undo') {
+    const last = S.acts.filter(a => a.k === 'score').sort((a, b) => b.ts - a.ts)[0];
+    if (last) { removeAct(last.id); render(); toast(`Removed: ${actLabel(last).t}`, 'Undo', () => { restoreAct(last); render(); }); }
+  }
+  if (k === 'sub') openSubs();
+  if (k === 'check') openCorrect();
+  if (k === 'chart') setView('stats');
+  if (k === 'awake') { keepAwake(!awakeWanted); }
+  if (k === 'reset' || k === 'again') confirmReset(k === 'again');
+});
+
+function openSetupSheet() {
+  draft = null;
+  const real = S.phase;
+  S.phase = 'setup';
+  renderSetup();
+  S.phase = real;
+  openSheet(`<h2>Match setup <button class="x" data-close>×</button></h2><div class="setup" id="setupSheet"></div>
+    <div class="sheetbtns"><button class="fb" data-close>Cancel</button><button class="fb g" id="setupSave">Save</button></div>`);
+  $('setupSheet').appendChild($('setup').cloneNode(true)).id = 'setupInner';
+  $('setup').innerHTML = '';
+  const host = $('setupInner');
+  host.classList.remove('hidden');
+  host.addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; });
+  host.addEventListener('change', e => { if (e.target.id === 'fSquad') draft.squadId = e.target.value ? Number(e.target.value) : null; });
+  host.addEventListener('click', e => {
+    const b = e.target.closest('.pick button'); if (!b) return;
+    if (b.parentElement.id === 'fDur') {
+      if (b.dataset.v === 'other') { const v = Number(prompt('Half length in minutes', String(Math.round(draft.dur / 60)))); if (v >= 1 && v <= 60) draft.dur = Math.round(v) * 60; }
+      else draft.dur = Number(b.dataset.v) * 60;
+    } else draft.inj = Number(b.dataset.v) * 60;
+    b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  });
+  $('setupSave').addEventListener('click', () => { closeSheet(); applySetup(); });
+}
+
+function confirmReset(again) {
+  openSheet(`<h2>${again ? 'Start a new record?' : 'Reset the match?'}</h2>
+    <p class="sub">${again ? 'This match stays saved. A new record starts at 0-00 with the clock at zero.' : 'This clears the clock and every score for this match. It can\'t be undone.'}</p>
+    <div class="sheetbtns"><button class="fb" data-close>Cancel</button><button class="fb" style="background:var(--red);color:#fff" id="resetGo">${again ? 'Start again' : 'Reset'}</button></div>`);
+  $('resetGo').addEventListener('click', async () => {
+    closeSheet();
+    if (S.sessionId) {
+      toast('Resetting…');
+      while (syncing) await new Promise(r => setTimeout(r, 100));
+      try {
+        const r = again
+          ? await rpc('upsert_match_stats', { p_event_id: EVENT_ID, p_opposition: S.setup.opp || null, p_squad_id: S.setup.squadId || null })
+          : await rpc('reset_match_stats_session', { p_match_stats_id: S.sessionId });
+        if (!r || !r.id) throw new Error('reset');
+        const setup = S.setup;
+        S = blankState(setup);
+        S.sessionId = r.id;
+        S.timerVer = 1;
+      } catch (e) {
+        toast(e.offline ? 'Reset needs signal. Try again when you have it.' : "Couldn't reset. Please try again.");
+        return;
+      }
+    } else {
+      const setup = S.setup;
+      const needSetup = S.needSetup;
+      S = blankState(setup);
+      S.needSetup = needSetup;
+    }
+    keepAwake(true);
+    save(); render(); kickSync(0);
+    toast(again ? 'New record started' : 'Match reset');
+  });
+}
+
+// Change or remove one entry
+function openEdit(id) {
+  const a = S.acts.find(x => x.id === id); if (!a) return;
+  const extra = [];   // copies added with + while this sheet is open; changes apply to them too
+  let showAll = false;
+  const edit = ch => [a.id].concat(extra.map(x => x.id)).forEach(x => editAct(x, ch));
+  const draw = () => {
+    const l = actLabel(a);
+    const ourScore = a.side === 'us' && a.k === 'score';
+    const r = Array.from(roster().values());
+    const op = onPitch();
+    const list = (op && op.length ? op : r.sort((x, y) => fullName(x).localeCompare(fullName(y))));
+    if (a.mem && !list.some(p => p.id === a.mem) && roster().get(a.mem)) list.unshift(roster().get(a.mem));
+    const rest = r.filter(p => !list.some(q => q.id === p.id)).sort((x, y) => fullName(x).localeCompare(fullName(y)));
+    const shirt = p => `<button class="shirt ${a.mem === p.id ? 'sel' : ''}" data-p="${p.id}"><b>${p.number != null ? p.number : '·'}</b><span>${esc(shortName(p))}</span></button>`;
+    openSheet(`<h2>${esc(l.t)} · ${minute(a.half, a.sec)} <button class="x" data-close>×</button></h2>
+      <p class="sub">${esc(l.s)}</p>
+      ${a.k === 'score' ? `<div class="sec">What was it?</div><div class="typepick" id="eType">${types().map(t => `<button data-t="${t.id}" class="${t.id === a.st ? 'on' : ''}">${esc(t.score_type)}</button>`).join('')}</div>` : ''}
+      <div class="sec">Which team?</div><div class="typepick" id="eSide"><button data-s="us" class="${a.side === 'us' ? 'on' : ''}">${esc(usName())}</button><button data-s="opp" class="${a.side === 'opp' ? 'onr' : ''}">${esc(oppName())}</button></div>
+      ${a.k === 'score' ? `<div class="stp"><div class="l"><b>How many?</b><span>Add another the same, or take one off</span></div>
+        <div class="stepper"><button id="eMinus">–</button><b>${1 + extra.length}</b><button id="ePlus">+</button></div></div>` : ''}
+      ${ourScore && r.length ? `<div class="sec">Who?</div><div class="grid5" id="eWho"><button class="shirt ${!a.mem ? 'sel' : ''}" data-p=""><b>–</b><span>No one</span></button>${list.map(shirt).join('')}${showAll ? rest.map(shirt).join('') : ''}</div>
+        ${rest.length && !showAll ? `<button class="undo-link" id="eAll">Someone else (${rest.length} more)</button>` : ''}` : ''}
+      <div class="sheetbtns"><button class="fb" style="color:var(--red)" id="eDel">Remove</button><button class="fb g" data-close>Done</button></div>`, () => render());
+    const body = $('sheetBody');
+    body.querySelectorAll('#eType [data-t]').forEach(b => b.onclick = () => { edit({ st: Number(b.dataset.t) }); draw(); });
+    body.querySelectorAll('#eSide [data-s]').forEach(b => b.onclick = () => { edit({ side: b.dataset.s }); draw(); });
+    body.querySelectorAll('#eWho [data-p]').forEach(b => b.onclick = () => {
+      const mem = b.dataset.p ? Number(b.dataset.p) : null;
+      edit({ mem });
+      if (a.heard) rememberName(a.heard, mem);   // fix the spoken name for next time
+      draw();
+    });
+    if ($('eAll')) $('eAll').onclick = () => { showAll = true; draw(); };
+    if ($('ePlus')) $('ePlus').onclick = () => { extra.push(restoreAct(a)); buzz(15); draw(); };
+    if ($('eMinus')) $('eMinus').onclick = () => {
+      if (extra.length) { removeAct(extra.pop().id); buzz(15); draw(); return; }
+      $('eDel').onclick();
+    };
+    $('eDel').onclick = () => {
+      sheetClose = null; closeSheet();
+      const gone = removeAct(a.id); render();
+      toast(`Removed: ${actLabel(gone).t}`, 'Undo', () => { restoreAct(gone); render(); });
+    };
+  };
+  draw();
+}
+function openSubEdit(id) {
+  const s = S.subs.find(x => x.id === id); if (!s) return;
+  openSheet(`<h2>Sub · ${minute(s.half, s.sec)} <button class="x" data-close>×</button></h2>
+    <p class="sub">${esc(memberName(s.on) || '?')} on for ${esc(memberName(s.off) || '?')}</p>
+    <div class="sheetbtns"><button class="fb" style="color:var(--red)" id="sDel">Remove sub</button><button class="fb g" data-close>Done</button></div>`);
+  $('sDel').onclick = () => { closeSheet(); removeSub(s.id); render(); toast('Sub removed'); };
+}
+
+// Half-time / full-time score check
+function openCorrect() {
+  if (!goalType() || !pointType()) { toast('This team has no Goal and Point score types'); return; }
+  const walk = CSMatchCharts.walk(model());
+  const rec = { us: { g: walk.us.g, p: walk.us.p }, opp: { g: walk.opp.g, p: walk.opp.p } };
+  const v = JSON.parse(JSON.stringify(rec));
+  const label = S.phase === 'ht' ? 'half-time' : S.phase === 'ft' || S.phase === 'done' ? 'full-time' : '';
+  const row = (side, k, name) => {
+    const d = v[side][k] - rec[side][k];
+    return `<div class="stp"><div class="l"><b>${name}${d ? `<em>${d > 0 ? '+' : ''}${d}</em>` : ''}</b><span>Recorded ${rec[side][k]}</span></div>
+      <div class="stepper"><button data-c="${side}.${k}.-1">–</button><b>${v[side][k]}</b><button data-c="${side}.${k}.1">+</button></div></div>`;
+  };
+  const draw = () => {
+    openSheet(`<h2>Correct the ${label} score</h2>
+      <p class="sub">Set it to the ref's score. Your recorded scores stay as they are, and the change shows in the timeline as a score check.</p>
+      <div class="sec">${esc(usName())}</div>${row('us', 'g', 'Goals')}${row('us', 'p', 'Points')}
+      <div class="sec r">${esc(oppName())}</div>${row('opp', 'g', 'Goals')}${row('opp', 'p', 'Points')}
+      <div class="newsc"><span>New score</span><b>${v.us.g}-${pad2(v.us.p)} v ${v.opp.g}-${pad2(v.opp.p)}</b></div>
+      <div class="sheetbtns"><button class="fb" data-close>Cancel</button><button class="fb g" id="cSave">Save score</button></div>`);
+    $('sheetBody').querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
+      const [side, k, n] = b.dataset.c.split('.');
+      v[side][k] = Math.max(0, v[side][k] + Number(n));
+      draw();
+    });
+    $('cSave').onclick = () => {
+      let changed = 0;
+      ['us', 'opp'].forEach(side => {
+        const dg = v[side].g - rec[side].g, dp = v[side].p - rec[side].p;
+        if (dg) { addCorrection(goalType().id, side, dg); changed++; }
+        if (dp) { addCorrection(pointType().id, side, dp); changed++; }
+      });
+      if (S.phase === 'ht') S.checked[1] = true;
+      if (S.phase === 'ft') S.checked[2] = true;
+      save();
+      closeSheet(); render();
+      toast(changed ? 'Score set to the ref\'s' : 'No change');
+    };
+  };
+  draw();
+}
+
+// Subs
+function openSubs(pre) {
+  const r = roster();
+  const op = onPitch();
+  let off = pre && pre.off || null, on = pre && pre.on || null, others = false;
+  const at = (pre && pre.at) || nowStamp();
+  const draw = () => {
+    const all = Array.from(r.values()).sort((a, b) => (a.number || 99) - (b.number || 99) || fullName(a).localeCompare(fullName(b)));
+    const offList = op || all;
+    const opIds = new Set((op || []).map(p => p.id));
+    const bench = op ? all.filter(p => !opIds.has(p.id) && (p.inLineup || others)) : all;
+    const shirt = (p, sel, k) => `<button class="shirt ${sel ? 'sel' : ''}" data-${k}="${p.id}"><b>${p.number != null ? p.number : '·'}</b><span>${esc(shortName(p))}</span></button>`;
+    openSheet(`<h2>Make a sub · ${minute(at.half, at.sec)} <button class="x" data-close>×</button></h2>
+      <p class="sub">Pick who comes off, then who goes on. Or say "Sub 17 for 11" in Voice mode.</p>
+      <div class="sec r">Coming off</div><div class="grid5">${offList.map(p => shirt(p, off === p.id, 'off')).join('')}</div>
+      <div class="sec">Going on</div><div class="grid5">${bench.map(p => shirt(p, on === p.id, 'on')).join('') || '<span class="hint">No one on the bench</span>'}</div>
+      ${op && !others && all.some(p => !opIds.has(p.id) && !p.inLineup) ? '<button class="undo-link" id="sOthers">Someone not in the line-up</button>' : ''}
+      <div class="subline">${on ? `<span class="on">▲ ${esc(shortName(r.get(on)))}</span>` : '<span style="color:var(--muted)">▲ on</span>'} &nbsp;⇄&nbsp; ${off ? `<span class="off">▼ ${esc(shortName(r.get(off)))}</span>` : '<span style="color:var(--muted)">▼ off</span>'}</div>
+      <div class="sheetbtns"><button class="fb" data-close>Cancel</button><button class="fb g" id="sGo" ${on && off ? '' : 'style="opacity:.4"'}>Make sub</button></div>`);
+    const body = $('sheetBody');
+    body.querySelectorAll('[data-off]').forEach(b => b.onclick = () => { off = Number(b.dataset.off); draw(); });
+    body.querySelectorAll('[data-on]').forEach(b => b.onclick = () => { on = Number(b.dataset.on); draw(); });
+    if ($('sOthers')) $('sOthers').onclick = () => { others = true; draw(); };
+    $('sGo').onclick = () => {
+      if (!on || !off) { toast('Pick who comes off and who goes on'); return; }
+      if (on === off) { toast('Pick two different players'); return; }
+      const s = addSub(off, on, at);
+      closeSheet(); render();
+      toast(`Sub: ${shortName(r.get(on))} on for ${shortName(r.get(off))}`, 'Undo', () => { removeSub(s.id); render(); });
+    };
+  };
+  draw();
+}
+
+// ── Voice ────────────────────────────────────────────────────────────────────
+const ALIAS_KEY = () => `sk2a:${(C && C.event && C.event.team_id) || 0}`;
+let vcards = [];      // result cards under the mic
+let vheard = '';
+let micAt = null;     // clock when the mic was pressed: scores get this time
+
+function voiceCtx() {
+  return {
+    types: types().map(t => ({ id: t.id, name: t.score_type, abbr: t.abbreviated_name, value: t.score_value })),
+    usName: `${usName()} ${(C.event && C.event.club_name) || ''} ${(C.event && C.event.team_name) || ''}`,
+    oppName: oppName(),
+    players: Array.from(roster().values()).map(p => ({ member_id: p.id, first_name: p.first, last_name: p.last, number: p.number })),
+    aliases: store.get(ALIAS_KEY()) || {},
+  };
+}
+const cap = t => String(t || '').replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase());
+function renderVoice() {
+  if (!CSMic_rec()) $('micHeard').textContent = vheard ? `"${vheard}"` : '';
+  $('voicePad').classList.toggle('wait', !started());
+  const r = roster();
+  $('vcards').innerHTML = vcards.map(c => {
+    if (c.kind === 'act') {
+      const a = S.acts.find(x => x.id === c.id);
+      if (!a) return '';
+      const l = actLabel(a);
+      const who = a.side === 'us' && a.mem ? `${memberName(a.mem)}${c.guess ? '?' : ''} · ${usName()}` : l.s;
+      return `<div class="vcard ${a.side === 'opp' ? 'opp' : ''}"><div class="t">${esc(l.t)} · ${minute(a.half, a.sec)}</div><div class="s">${esc(who)}</div>
+        <div class="cd"><i style="animation-duration:${c.ms}ms;animation-delay:-${Date.now() - c.at}ms"></i></div>
+        <div class="btns"><button class="btn" data-v="undo" data-id="${c.id}">Undo</button><button class="btn" data-v="change" data-id="${c.id}">Change</button></div></div>`;
+    }
+    if (c.kind === 'sub') {
+      const s = S.subs.find(x => x.id === c.id);
+      if (!s) return '';
+      return `<div class="vcard"><div class="t">Sub · ${minute(s.half, s.sec)}</div><div class="s">${esc(memberName(s.on))} on for ${esc(memberName(s.off))}</div>
+        <div class="cd"><i style="animation-duration:${c.ms}ms;animation-delay:-${Date.now() - c.at}ms"></i></div>
+        <div class="btns"><button class="btn" data-v="unsub" data-id="${c.id}">Undo</button><button class="btn" data-v="subs" data-k="${c.key}">Change</button></div></div>`;
+    }
+    if (c.kind === 'subask') {
+      return `<div class="vcard ask"><div class="t">Sub: who was it?</div><div class="s">Heard ${esc(c.onHeard || '?')} on for ${esc(c.offHeard || '?')}. Pick them to make the sub.</div>
+        <div class="btns"><button class="btn g" data-v="subs" data-k="${c.key}">Pick players</button><button class="btn r" data-v="drop" data-k="${c.key}">Forget it</button></div></div>`;
+    }
+    if (c.kind === 'miss') {
+      return `<div class="vcard ask"><div class="t">Didn't catch that</div><div class="s">"${esc(c.text)}". Try "Point Ciarán" or "Wide for them".</div></div>`;
+    }
+    return '';
+  }).join('');
+}
+setInterval(() => {
+  if (!vcards.length) return;
+  const now = Date.now();
+  const keep = vcards.filter(c => !c.ms || now - c.at < c.ms);
+  if (keep.length !== vcards.length) {
+    vcards = keep;
+    if (!vcards.length) vheard = '';
+    if (mode === 'voice' && S.phase === 'play') renderVoice();
+  }
+}, 500);
+
+function CSMic_rec() { return !!(window.CSMic && CSMic.isRecording('sk_voice')); }
+function attachMic() {
+  if (!window.CSMic) return;
+  CSMic.attach('sk_voice', {
+    button: $('micBtn'),
+    transcript: $('micHeard'),
+    autoHideTranscript: false,
+    instruction: $('micInstr'),
+    idleText: { hold: 'Hold and say what happened', tap: 'Tap and say what happened' },
+    onStart() { micAt = nowStamp(); $('voicePad').classList.add('rec'); },
+    onResult(text) { $('voicePad').classList.remove('rec'); handleVoice(text, micAt); micAt = null; },
+    onError(msg) { $('voicePad').classList.remove('rec'); toast(msg); },
+  });
+  CSMic.warmup();
+}
+
+// Spoken name → player, saved per team on this phone
+function rememberName(heard, mem) {
+  if (!heard || /^#/.test(heard)) return;
+  const al = store.get(ALIAS_KEY()) || {};
+  const k = CSScoreVoice.norm(heard);
+  if (mem) al[k] = mem; else delete al[k];
+  store.set(ALIAS_KEY(), al);
+}
+
+function handleVoice(text, at) {
+  at = at || nowStamp();
+  text = (text || '').trim();
+  if (!text) { toast("Didn't hear anything. Hold the mic while you talk."); return; }
+  if (!started()) return notStarted();
+  const res = CSScoreVoice.parse(text, voiceCtx());
+  vheard = text;
+  const now = Date.now();
+  const cards = [];
+  res.items.forEach(it => {
+    const key = uuid();
+    if (it.kind === 'sub') {
+      if (it.onId && it.offId) {
+        const s = addSub(it.offId, it.onId, at);
+        cards.push({ kind: 'sub', id: s.id, key, at: now, ms: 9000 });
+      } else {
+        cards.push({ kind: 'subask', key, onId: it.onId, offId: it.offId, onHeard: it.onHeard, offHeard: it.offHeard, at: now, subAt: at });
+      }
+      return;
+    }
+    // No questions while the coach is watching: no team named means us, an unsure
+    // name goes to the best guess (remembered for next time) with a "?" on the card.
+    const side = it.side || 'us';
+    let mem = side === 'us' ? it.memberId || null : null, guess = false;
+    if (side === 'us' && !mem && it.heard && it.ask && it.ask.length) {
+      mem = it.ask[0]; guess = true;
+      rememberName(it.heard, mem);
+    }
+    for (let i = 0; i < it.count; i++) {
+      const a = addScore(it.typeId, side, { at, mem });
+      if (side === 'us' && it.heard) { a.heard = it.heard; save(); }
+      cards.push({ kind: 'act', id: a.id, guess, at: now, ms: guess ? 7000 : 6000 });
+    }
+  });
+  res.unknown.forEach(u => cards.push({ kind: 'miss', text: u, at: now, ms: 9000 }));
+  if (!res.items.length && !res.unknown.length) cards.push({ kind: 'miss', text, at: now, ms: 9000 });
+  vcards = cards.concat(vcards.filter(c => c.kind === 'subask')).slice(0, 4);
+  buzz(20);
+  renderBoard(); renderVoice(); renderRecent();
+}
+
+$('vcards').addEventListener('click', e => {
+  const b = e.target.closest('[data-v]'); if (!b) return;
+  const v = b.dataset.v, id = b.dataset.id, key = b.dataset.k;
+  const card = vcards.find(c => (id && c.id === id) || (key && c.key === key));
+  const dropCard = () => { vcards = vcards.filter(c => c !== card); };
+  if (v === 'undo') { removeAct(id); dropCard(); }
+  if (v === 'change') { dropCard(); openEdit(id); }
+  if (v === 'drop') dropCard();
+  if (v === 'unsub') { removeSub(id); dropCard(); }
+  if (v === 'subs' && card) {
+    dropCard();
+    if (card.kind === 'sub') { const s = S.subs.find(x => x.id === card.id); if (s) { removeSub(s.id); openSubs({ off: s.off, on: s.on, at: { half: s.half, sec: s.sec } }); } }
+    else openSubs({ off: card.offId, on: card.onId, at: card.subAt });
+  }
+  if (!vcards.length) vheard = '';
+  renderBoard(); renderVoice(); renderRecent();
+});
+
+// ── Back ─────────────────────────────────────────────────────────────────────
+$('backBtn').addEventListener('click', async () => {
+  if (S) save();
+  if (S && pending()) {
+    kickSync(0);
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  if (bridge()) { post('keepAwake:off'); post('close'); }
+  else history.back();
+});
+
+// Test hook (used by automated checks; harmless otherwise)
+window.__sk = { handleVoice: t => handleVoice(t), get S() { return S; }, sync: () => sync() };
+
+boot();
+</script>
+</body>
+</html>

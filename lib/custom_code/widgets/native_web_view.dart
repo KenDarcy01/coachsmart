@@ -11,14 +11,18 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:universal_html/html.dart' as html;
 
 class NativeWebView extends StatefulWidget {
   const NativeWebView({
@@ -45,20 +49,77 @@ class NativeWebView extends StatefulWidget {
 class _NativeWebViewState extends State<NativeWebView>
     with WidgetsBindingObserver {
   WebViewController? _controller;
+
+  // ── Voice input ────────────────────────────────────────────────────────────
+  // One recording = from startSpeech:<field> until stopSpeech. Within one
+  // recording the phone's recogniser may end its session several times
+  // (Android at every pause, iOS after ~1 minute or a long silence). Each
+  // time it does, we keep what was heard and start a new session, so
+  // nothing said while the user is still recording is lost. The full text
+  // is sent to the page once, after the user stops.
   final SpeechToText _speech = SpeechToText();
   bool _speechAvailable = false;
-  bool _speechInitialized = false;
-  String? _speechFieldId;
-  String _lastRecognizedWords = '';
-  // True while the user is physically holding the voice-input mic button.
-  // Lets onStatus distinguish an auto-stop (e.g. iOS 60-second limit) from a
-  // deliberate button release so we can restart in the former case.
-  bool _voiceHoldActive = false;
+  String? _localeId;
+  // Field the user is recording into, or null when idle.
+  String? _fieldId;
+  // True from start until the user stops (button released / tapped again).
+  bool _recording = false;
+  DateTime? _recordingStartedAt;
+  // Text from recogniser sessions (or iOS segments) already finished.
+  String _committed = '';
+  // Latest partial text of the current recogniser session.
+  String _current = '';
+  // Bumped on every new session; results from older sessions are ignored.
+  int _gen = 0;
+  bool _restartPending = false;
+  bool _listenInFlight = false;
+  int _notListeningTicks = 0;
+  Timer? _watchdog;
+  Completer<void>? _finalWaiter;
+
+  static const _maxRecording = Duration(minutes: 5);
+  static const _warmupField = 'warmup_init';
+
+  // ── Web (PWA) only ─────────────────────────────────────────────────────────
+  // On the web the page is shown in an iframe, and browsers block the
+  // microphone inside an iframe unless the iframe allows it. This adds
+  // allow="microphone" to every iframe the app creates. It runs once, and
+  // never on iOS or Android (kIsWeb is false there).
+  static bool _webMicAllowed = false;
+
+  static void _allowMicInWebIframes() {
+    if (!kIsWeb || _webMicAllowed) return;
+    _webMicAllowed = true;
+    try {
+      final script = html.ScriptElement()
+        ..text = r"""
+(function () {
+  var ALLOW = 'microphone; clipboard-write';
+  function fix(f) {
+    var a = f.getAttribute('allow') || '';
+    if (/microphone/.test(a)) return false;
+    f.setAttribute('allow', a ? a + '; ' + ALLOW : ALLOW);
+    return true;
+  }
+  var orig = Document.prototype.createElement;
+  Document.prototype.createElement = function (tag) {
+    var el = orig.apply(this, arguments);
+    if (String(tag).toLowerCase() === 'iframe') fix(el);
+    return el;
+  };
+  function reload(f) { if (f.src && f.isConnected) { var s = f.src; f.src = 'about:blank'; f.src = s; } }
+  document.querySelectorAll('iframe').forEach(function (f) { if (fix(f)) reload(f); });
+})();
+""";
+      html.document.head?.append(script);
+    } catch (_) {}
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _allowMicInWebIframes();
     _initController();
     // Speech is initialized lazily on first use to avoid requesting
     // microphone permission on pages that don't need it.
@@ -67,200 +128,288 @@ class _NativeWebViewState extends State<NativeWebView>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    if (_speech.isListening) _speech.stop();
+    if (_keepAwake) {
+      try { WakelockPlus.disable(); } catch (_) {}
+    }
+    _recording = false;
+    _fieldId = null;
+    try { _speech.cancel(); } catch (_) {}
     super.dispose();
   }
 
-  Future<void> _initSpeech() async {
-    _speechInitialized = true;
+  // ── Screen on and sign-in (score keeper) ────────────────────────────────────
+  // keepAwake:on / keepAwake:off keep the screen from sleeping while a page
+  // needs it. It always turns off again when the page closes.
+  bool _keepAwake = false;
+
+  void _setKeepAwake(bool on) {
+    _keepAwake = on;
     try {
-      _speechAvailable = await _speech.initialize(
-        onError: (error) {
-          if (_speechFieldId == null) return;
-          _controller?.runJavaScript(
-            'window.onSpeechError(${jsonEncode(error.errorMsg)})',
-          );
-          _speechFieldId = null;
-          _voiceHoldActive = false;
-        },
-        onStatus: (status) {
-          if ((status == 'done' || status == 'notListening') &&
-              _speechFieldId != null) {
-            if (_speechFieldId == 'voice_input' && _voiceHoldActive) {
-              // iOS caps each recognition session at ~60 s. Restart
-              // transparently while the button is still held.
-              _lastRecognizedWords = '';
-              _restartVoiceListen();
-            } else {
-              final fid = _speechFieldId;
-              final words = _lastRecognizedWords;
-              _speechFieldId = null;
-              _lastRecognizedWords = '';
-              if (words.isNotEmpty) {
-                _controller?.runJavaScript(
-                  'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
-                );
-              }
-              // Always signal done so JS can reset UI and trigger regeneration.
-              _controller?.runJavaScript('window.onSpeechDone()');
-            }
-          }
-        },
-      );
+      if (on) {
+        WakelockPlus.enable();
+      } else {
+        WakelockPlus.disable();
+      }
     } catch (_) {}
   }
 
-  // Called when iOS forces a session end while the hold button is still down.
-  Future<void> _restartVoiceListen() async {
+  // getToken: the page's sign-in is about to run out (it lasts an hour and a
+  // match is longer). The app owns the sign-in, so it hands over its current
+  // access token, refreshing it first if it has less than 5 minutes left.
+  // Replies with window.csSetToken(token, expiresAtSeconds).
+  Future<void> _sendToken() async {
+    try {
+      final auth = SupaFlow.client.auth;
+      var session = auth.currentSession;
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if (session == null || (session.expiresAt ?? 0) - now < 300) {
+        final res = await auth.refreshSession();
+        session = res.session ?? auth.currentSession;
+      }
+      if (session == null) {
+        _js('window.csSetToken && window.csSetToken(null, 0)');
+        return;
+      }
+      _js('window.csSetToken && window.csSetToken(${jsonEncode(session.accessToken)}, ${session.expiresAt ?? 0})');
+    } catch (_) {
+      // No signal or sign-in failed: the page keeps everything and asks again
+      _js('window.csSetToken && window.csSetToken(null, 0)');
+    }
+  }
+
+  void _js(String code) {
+    try { _controller?.runJavaScript(code); } catch (_) {}
+  }
+
+  String get _fullText => '$_committed $_current'.trim();
+
+  Future<void> _initSpeech() async {
+    try {
+      _speechAvailable = await _speech.initialize(
+        onError: _onSpeechError,
+        onStatus: _onSpeechStatus,
+      );
+    } catch (_) {
+      _speechAvailable = false;
+    }
+    if (!_speechAvailable) return;
+    // Prefer Irish English, then UK English, else the phone's default.
+    try {
+      final locales = await _speech.locales();
+      String norm(String id) => id.replaceAll('-', '_').toLowerCase();
+      for (final want in ['en_ie', 'en_gb']) {
+        final match = locales.where((l) => norm(l.localeId) == want);
+        if (match.isNotEmpty) {
+          _localeId = match.first.localeId;
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _onSpeechError(dynamic error) {
+    final String msg = error.errorMsg?.toString() ?? '';
+    // Recoverable errors (no match, silence timeout, busy...) just end the
+    // current session; the status handler restarts it while recording.
+    final isPermission = msg.contains('permission');
+    if (!isPermission || _fieldId == null) return;
+    final fid = _fieldId;
+    _resetRecording();
+    if (fid != _warmupField) {
+      _js('window.onSpeechError && window.onSpeechError(${jsonEncode("Microphone permission is off. Turn it on in Settings to use voice input.")})');
+    }
+  }
+
+  // 'done' comes after the session's final result, so by then its words are
+  // safely kept. (Restarting on 'notListening' would hand the old session's
+  // late final result to the new session's listener.)
+  void _onSpeechStatus(String status) {
+    if (status != 'done' || _fieldId == null) return;
+    _completeFinalWaiter();
+    if (_recording) _scheduleRestart();
+  }
+
+  void _completeFinalWaiter() {
+    final w = _finalWaiter;
+    if (w != null && !w.isCompleted) w.complete();
+  }
+
+  void _commitCurrent() {
+    if (_current.isNotEmpty) {
+      _committed = '$_committed $_current'.trim();
+      _current = '';
+    }
+  }
+
+  void _onResult(int gen, dynamic result) {
+    if (gen != _gen || _fieldId == null) return;
+    final String words = (result.recognizedWords as String).trim();
+    // A late final result from a session we already kept.
+    if (_current.isEmpty && words.isNotEmpty && _committed.endsWith(words)) {
+      if (result.finalResult == true) _completeFinalWaiter();
+      return;
+    }
+    if (words.isNotEmpty) {
+      // iOS sometimes starts its text over after a pause without marking
+      // the earlier text final. A much shorter partial means a fresh
+      // segment, so keep the previous one before replacing it.
+      if (_current.length >= 12 && words.length < _current.length ~/ 2) {
+        _commitCurrent();
+      }
+      _current = words;
+    }
+    if (result.finalResult == true) {
+      _commitCurrent();
+      _completeFinalWaiter();
+    }
+    if (_recording && _fieldId != _warmupField) {
+      _js('window.onVoiceInterim && window.onVoiceInterim(${jsonEncode(_fieldId)}, ${jsonEncode(_fullText)})');
+    }
+  }
+
+  Future<bool> _listenSession() async {
+    final gen = ++_gen;
+    _current = '';
+    _listenInFlight = true;
     try {
       await _speech.listen(
-        onResult: (result) {
-          if (result.recognizedWords.isNotEmpty) {
-            _lastRecognizedWords = result.recognizedWords;
-          }
-          // Stream interim words for real-time display.
-          if (!result.finalResult && result.recognizedWords.isNotEmpty) {
-            _controller?.runJavaScript(
-              'window.onVoiceInterim(${jsonEncode(result.recognizedWords)})',
-            );
-          }
-          // Deliver each final chunk but keep _speechFieldId so we keep
-          // receiving results while the button is held.
-          if (result.finalResult && result.recognizedWords.isNotEmpty) {
-            _lastRecognizedWords = '';
-            _controller?.runJavaScript(
-              'window.receiveSpeechResult("voice_input", ${jsonEncode(result.recognizedWords)})',
-            );
-          }
-        },
-        pauseFor: const Duration(seconds: 30),
-        listenFor: const Duration(minutes: 2),
+        onResult: (result) => _onResult(gen, result),
+        localeId: _localeId,
+        listenMode: ListenMode.dictation,
         partialResults: true,
         cancelOnError: false,
+        pauseFor: const Duration(seconds: 30),
+        listenFor: _maxRecording,
       );
-    } catch (_) {}
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      _listenInFlight = false;
+    }
+  }
+
+  // The recogniser ended its session while the user is still recording:
+  // keep what it heard and start a new one.
+  void _scheduleRestart() {
+    if (_restartPending) return;
+    _restartPending = true;
+    Future.delayed(const Duration(milliseconds: 150), () async {
+      _restartPending = false;
+      if (!_recording || _fieldId == null) return;
+      final started = _recordingStartedAt;
+      if (started != null &&
+          DateTime.now().difference(started) > _maxRecording) {
+        // Safety cap so a forgotten tap-to-record doesn't run forever.
+        _stopSpeech();
+        return;
+      }
+      for (var attempt = 0; attempt < 4; attempt++) {
+        if (!_recording || _fieldId == null) return;
+        if (_listenInFlight || _speech.isListening) return;
+        _commitCurrent();
+        await _listenSession();
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    });
+  }
+
+  // Backstop for a session that ended without telling us (or a restart the
+  // recogniser refused because it was still shutting down).
+  void _startWatchdog() {
+    _watchdog?.cancel();
+    _notListeningTicks = 0;
+    _watchdog = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!_recording || _fieldId == null) {
+        _watchdog?.cancel();
+        return;
+      }
+      if (_listenInFlight || _restartPending || _speech.isListening) {
+        _notListeningTicks = 0;
+        return;
+      }
+      _notListeningTicks++;
+      if (_notListeningTicks >= 2) {
+        _notListeningTicks = 0;
+        _scheduleRestart();
+      }
+    });
+  }
+
+  void _resetRecording() {
+    _watchdog?.cancel();
+    _watchdog = null;
+    _recording = false;
+    _fieldId = null;
+    _committed = '';
+    _current = '';
+    _gen++;
+    _completeFinalWaiter();
   }
 
   Future<void> _startSpeech(String fieldId) async {
-    if (!_speechInitialized) {
+    if (!_speechAvailable) {
       await _initSpeech();
     }
     if (!_speechAvailable) {
-      _controller?.runJavaScript(
-        'window.onSpeechError(${jsonEncode("Speech recognition not available on this device")})',
-      );
+      if (fieldId != _warmupField) {
+        _js('window.onSpeechError && window.onSpeechError(${jsonEncode("Voice input isn't available. Check that microphone and speech recognition are allowed for CoachSmart in Settings.")})');
+      }
       return;
     }
-    if (_speech.isListening) await _speech.stop();
-    _speechFieldId = fieldId;
-    _lastRecognizedWords = '';
-
-    if (fieldId == 'voice_input') {
-      _voiceHoldActive = true;
-      try {
-        await _speech.listen(
-          onResult: (result) {
-            if (result.recognizedWords.isNotEmpty) {
-              _lastRecognizedWords = result.recognizedWords;
-            }
-            // Stream interim words for real-time display.
-            if (!result.finalResult && result.recognizedWords.isNotEmpty) {
-              _controller?.runJavaScript(
-                'window.onVoiceInterim(${jsonEncode(result.recognizedWords)})',
-              );
-            }
-            // Deliver each final chunk. Keep _speechFieldId set so we
-            // continue receiving results while the button is held.
-            if (result.finalResult && result.recognizedWords.isNotEmpty) {
-              _lastRecognizedWords = '';
-              _controller?.runJavaScript(
-                'window.receiveSpeechResult("voice_input", ${jsonEncode(result.recognizedWords)})',
-              );
-            }
-          },
-          pauseFor: const Duration(seconds: 30),
-          listenFor: const Duration(minutes: 2),
-          partialResults: true,
-          cancelOnError: false,
-        );
-      } catch (_) {
-        _controller?.runJavaScript(
-          'window.onSpeechError(${jsonEncode("Could not start microphone")})',
-        );
-        _speechFieldId = null;
-        _voiceHoldActive = false;
+    // Abandon any earlier recording (e.g. the warm-up) without sending
+    // anything for it.
+    _resetRecording();
+    if (_speech.isListening) {
+      try { await _speech.cancel(); } catch (_) {}
+    }
+    _fieldId = fieldId;
+    _recording = true;
+    _recordingStartedAt = DateTime.now();
+    final ok = await _listenSession();
+    if (_fieldId != fieldId) return; // stopped or replaced meanwhile
+    if (!ok) {
+      _resetRecording();
+      if (fieldId != _warmupField) {
+        _js('window.onSpeechError && window.onSpeechError(${jsonEncode("Could not start the microphone. Please try again.")})');
       }
-    } else {
-      // Feedback / per-field speech (sp_feedback, fb_input, etc.).
-      // partialResults keeps the Android recognizer active long enough to
-      // capture speech; listenFor prevents an early Android timeout.
-      try {
-        await _speech.listen(
-          onResult: (result) {
-            if (result.recognizedWords.isNotEmpty) {
-              _lastRecognizedWords = result.recognizedWords;
-            }
-            // On a final result, deliver immediately and let onStatus fire
-            // onSpeechDone to reset the JS UI.
-            if (result.finalResult && result.recognizedWords.isNotEmpty) {
-              final fid = _speechFieldId;
-              if (fid == null) return;
-              _speechFieldId = null;
-              _lastRecognizedWords = '';
-              _controller?.runJavaScript(
-                'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(result.recognizedWords)})',
-              );
-              // Signal done immediately so JS resets and triggers regeneration
-              // without waiting for the onStatus callback.
-              _controller?.runJavaScript('window.onSpeechDone()');
-            }
-          },
-          pauseFor: const Duration(seconds: 10),
-          listenFor: const Duration(minutes: 2),
-          partialResults: true,
-          cancelOnError: false,
-        );
-      } catch (_) {
-        _controller?.runJavaScript(
-          'window.onSpeechError(${jsonEncode("Could not start microphone")})',
-        );
-        _speechFieldId = null;
-      }
+      return;
+    }
+    _startWatchdog();
+    if (fieldId != _warmupField) {
+      _js('window.onSpeechReady && window.onSpeechReady(${jsonEncode(fieldId)})');
     }
   }
 
   Future<void> _stopSpeech() async {
-    if (_speechFieldId == 'voice_input') {
-      // Button released: mark hold as over so onStatus won't restart.
-      _voiceHoldActive = false;
-      final words = _lastRecognizedWords;
-      _speechFieldId = null;
-      _lastRecognizedWords = '';
-      try { await _speech.stop(); } catch (_) {}
-      // Deliver any partial words that hadn't reached a finalResult yet.
-      if (words.isNotEmpty) {
-        _controller?.runJavaScript(
-          'window.receiveSpeechResult("voice_input", ${jsonEncode(words)})',
-        );
-      }
-      _controller?.runJavaScript('window.onSpeechDone()');
-      return;
-    }
-
-    final fid = _speechFieldId;
-    final words = _lastRecognizedWords;
-    _speechFieldId = null;
-    _lastRecognizedWords = '';
+    final fid = _fieldId;
+    if (fid == null || !_recording) return;
+    _recording = false;
+    _watchdog?.cancel();
+    final stopGen = _gen;
+    // Wait briefly for the recogniser's final result: it usually holds the
+    // last words spoken before the button was released.
+    final waiter = Completer<void>();
+    _finalWaiter = waiter;
+    final wasLive =
+        _speech.isListening || _listenInFlight || _current.isNotEmpty;
     try { await _speech.stop(); } catch (_) {}
-    if (fid != null) {
-      if (words.isNotEmpty) {
-        _controller?.runJavaScript(
-          'window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})',
-        );
-      }
-      // Always signal done so JS resets UI and triggers regeneration.
-      _controller?.runJavaScript('window.onSpeechDone()');
+    if (wasLive) {
+      try {
+        await waiter.future.timeout(const Duration(milliseconds: 1500));
+      } catch (_) {}
     }
+    if (_finalWaiter == waiter) _finalWaiter = null;
+    if (_gen != stopGen) return; // a new recording started meanwhile
+    _commitCurrent();
+    final words = _committed;
+    _resetRecording();
+    if (fid == _warmupField) return;
+    if (words.isNotEmpty) {
+      _js('window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})');
+    }
+    // Always signal done so the page resets and sends the text to the AI.
+    _js('window.onSpeechDone && window.onSpeechDone()');
   }
 
   // When the app returns to the foreground, check whether the WebView's
@@ -272,6 +421,7 @@ class _NativeWebViewState extends State<NativeWebView>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkAndReloadIfDead();
+      if (_keepAwake) _setKeepAwake(true);
     }
   }
 
@@ -335,6 +485,28 @@ class _NativeWebViewState extends State<NativeWebView>
             }
             if (message == 'stopSpeech') {
               _stopSpeech();
+              return;
+            }
+            if (message == 'keepAwake:on' || message == 'keepAwake:off') {
+              _setKeepAwake(message == 'keepAwake:on');
+              return;
+            }
+            if (message == 'getToken') {
+              _sendToken();
+              return;
+            }
+            if (message.startsWith('haptic:')) {
+              // Small buzz for drag-and-drop: grab, tick (new slot), drop.
+              switch (message.substring('haptic:'.length)) {
+                case 'grab':
+                  HapticFeedback.mediumImpact();
+                  break;
+                case 'drop':
+                  HapticFeedback.lightImpact();
+                  break;
+                default:
+                  HapticFeedback.selectionClick();
+              }
               return;
             }
             if (message.startsWith('openUrl:')) {

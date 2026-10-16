@@ -8,25 +8,24 @@
 /* ── Tokens — CoachSmart dark palette ───────────────────────────────────── */
 :root {
   --accent:      #87C232;
-  --accent-dim:  rgba(135,194,50,0.12);
-  --accent-mid:  rgba(135,194,50,0.30);
+  --accent-dim:  rgba(135,194,50,0.14);
 
-  --attend:      #22C55E;
-  --attend-dim:  rgba(34,197,94,0.12);
-  --absent:      #EF4444;
-  --absent-dim:  rgba(239,68,68,0.10);
-  --unsure:      #F59E0B;
-  --unsure-dim:  rgba(245,158,11,0.10);
-  --noresponse:  #4B5563;
+  --yes:         #22C55E;
+  --yes-dim:     rgba(34,197,94,0.14);
+  --no:          #EF4444;
+  --no-text:     #F87171;
+  --no-dim:      rgba(239,68,68,0.14);
+  --warn:        #F59E0B;
+  --none:        #4B5563;
+  --none-dim:    rgba(75,85,99,0.35);
 
   --bg:          #111418;
   --surface:     #1E222B;
   --surface-2:   #252A35;
   --border:      rgba(255,255,255,0.07);
-  --text:        #E7EBEE;
+  --text:        #F1F4F8;
   --text-2:      #B0B8C8;
-  --muted:       #6B7280;
-  --shadow:      0 1px 4px rgba(0,0,0,0.40);
+  --muted:       #A1A1A2;
 }
 
 /* ── Reset + base ───────────────────────────────────────────────────────── */
@@ -45,465 +44,201 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 
 /* ── Loading / Error screens ─────────────────────────────────────────────── */
 #loadingScreen, #errorScreen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 50vh;
-  padding: 40px 24px;
-  text-align: center;
-  gap: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 50vh; padding: 40px 24px; text-align: center; gap: 12px;
 }
 .spinner {
   width: 32px; height: 32px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 .err-icon { font-size: 33px; }
 .err-msg  { color: var(--muted); font-size: 15px; max-width: 260px; }
 
-/* ── Main layout ─────────────────────────────────────────────────────────── */
-#mainScreen { display: none; padding: 16px 16px 40px; }
+#mainScreen { display: none; padding: 12px 16px 32px; }
 
-/* ── Filter bar ──────────────────────────────────────────────────────────── */
-.filter-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow);
+/* ── Top bar: period switch, filters, export ─────────────────────────────── */
+.bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.seg {
+  flex: 1; display: flex; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px; padding: 3px;
 }
+.seg button {
+  flex: 1; text-align: center; font-size: 13px; padding: 6px 0;
+  border-radius: 8px; color: var(--text-2); white-space: nowrap;
+}
+.seg button.on { background: var(--surface-2); color: var(--text); font-weight: 600; }
+.icon-btn {
+  width: 40px; height: 38px; flex: none; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  display: grid; place-items: center; position: relative;
+}
+.icon-btn:disabled { opacity: 0.5; }
+.icon-btn .dot {
+  position: absolute; top: 6px; right: 6px; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--accent); display: none;
+}
+.icon-btn.has-filters .dot { display: block; }
 
-.filter-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.9px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-/* Date slider */
-.date-range-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 10px;
-}
-.date-range-label .from-label,
-.date-range-label .to-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-.date-range-label .arrow {
-  color: var(--muted);
-  font-size: 13px;
+.chips { display: flex; gap: 6px; margin: -2px 0 12px; flex-wrap: wrap; }
+.chips:empty { display: none; }
+.chip {
+  font-size: 12px; padding: 4px 10px; border-radius: 99px;
+  border: 1px solid var(--accent); color: var(--accent);
 }
 
-.slider-wrap {
-  position: relative;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  margin-bottom: 4px;
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px; margin-bottom: 12px;
 }
-.slider-track {
-  position: absolute;
-  left: 0; right: 0;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  z-index: 0;
+.h {
+  font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); margin: 18px 2px 8px;
+  display: flex; justify-content: space-between; align-items: baseline;
 }
-.slider-fill {
-  position: absolute;
-  height: 4px;
-  background: var(--accent);
-  border-radius: 2px;
-  pointer-events: none;
-  z-index: 1;
+.h button { color: var(--accent); text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 13px; }
+
+.hero { display: flex; gap: 16px; align-items: center; }
+.ring { width: 96px; height: 96px; flex: none; }
+.big  { font-size: 16px; font-weight: 600; }
+.sub  { font-size: 13px; color: var(--text-2); }
+.trend { font-size: 13px; font-weight: 600; margin-top: 2px; }
+.trend.up   { color: var(--yes); }
+.trend.down { color: var(--no-text); }
+.trend.flat { color: var(--muted); }
+.dots-label { font-size: 12px; color: var(--text-2); margin-top: 12px; }
+.dots { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+.dots b { width: 16px; height: 16px; border-radius: 50%; }
+.d-yes { background: var(--yes); } .d-no { background: var(--no); } .d-none { background: var(--none); }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.two .card { margin: 0; }
+.two.single { grid-template-columns: 1fr; }
+.codes:empty { display: none; }
+.code-card { text-align: left; width: 100%; }
+.code-name { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.code-card .k { margin-top: 6px; }
+.code-sub { font-size: 12px; color: var(--text-2); margin-top: 8px; }
+.code-sub + .code-sub { margin-top: 2px; }
+.sq-row { margin: 6px -6px 0; padding: 6px; }
+.sq-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+.sq-name { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sq-num { color: var(--text-2); white-space: nowrap; }
+.sq-num b { color: var(--text); }
+.sq-bar { height: 8px; border-radius: 4px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+.sq-bar i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.tappable { cursor: pointer; }
+.card.sel, .sq-row.sel { outline: 2px solid var(--accent); outline-offset: 0; }
+.sq-row { border-radius: 6px; }
+.months div.sel em { color: var(--accent); font-weight: 700; }
+.months div.sel span { color: var(--accent); font-weight: 700; }
+.months.focused div:not(.sel) i { opacity: 0.35; }
+.focus-bar { margin: 18px 0 -6px; }
+.focus-bar:empty { display: none; }
+.focus-chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+  padding: 6px 12px; border-radius: 99px; background: var(--accent); color: #111418;
 }
-.slider-wrap input[type=range] {
-  position: absolute;
-  left: 0; right: 0; width: 100%;
-  height: 4px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  pointer-events: none;
-  z-index: 2;
+.btn-spin {
+  display: none; width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--surface-2); border-top-color: var(--accent); animation: spin 0.8s linear infinite;
 }
-.slider-wrap input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid var(--surface);
-  box-shadow: 0 1px 5px rgba(0,0,0,0.20);
-  cursor: pointer;
-  pointer-events: all;
-  transition: transform 0.1s;
+.icon-btn.busy svg { display: none; }
+.icon-btn.busy .btn-spin { display: block; }
+.icon-btn.busy:disabled { opacity: 1; }
+.code-tag.none { color: var(--text-2); background: var(--none-dim); }
+.code-tag {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 5px; margin-right: 6px; vertical-align: 1px;
+  color: var(--accent); background: var(--accent-dim);
 }
-.slider-wrap input[type=range]:active::-webkit-slider-thumb {
-  transform: scale(1.15);
+.k { font-size: 26px; font-weight: 700; line-height: 1.1; }
+.k small { font-size: 15px; color: var(--muted); font-weight: 500; }
+.lbl { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+.mini { height: 6px; border-radius: 3px; background: var(--surface-2); margin-top: 10px; overflow: hidden; display: flex; }
+.mini i { display: block; height: 100%; }
+
+/* ── Rows ────────────────────────────────────────────────────────────────── */
+.row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border); }
+.row:first-child { border-top: 0; padding-top: 0; }
+.row:last-child  { padding-bottom: 0; }
+.date { width: 40px; text-align: center; flex: none; }
+.date b { display: block; font-size: 17px; line-height: 1.1; }
+.date span { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+.grow { flex: 1; min-width: 0; }
+.t { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m { font-size: 12px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; flex: none; }
+.p-yes  { background: var(--yes-dim);  color: var(--yes); }
+.p-no   { background: var(--no-dim);   color: var(--no-text); }
+.p-none { background: var(--none-dim); color: var(--text-2); }
+.p-acc  { background: var(--accent-dim); color: var(--accent); }
+.needs { border-color: rgba(245,158,11,0.5); }
+.empty { font-size: 13px; color: var(--muted); text-align: center; padding: 6px 0; }
+
+.months { display: flex; align-items: flex-end; gap: 6px; height: 112px; }
+.months div { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+.months em { font-style: normal; font-size: 11px; color: var(--text-2); }
+.months i { display: block; width: 100%; border-radius: 5px 5px 2px 2px; background: var(--accent); min-height: 2px; }
+.months i.low { opacity: 0.55; }
+.months i.nil { background: var(--surface-2); }
+.months span { font-size: 11px; color: var(--muted); }
+
+.hist-seg { margin-bottom: 10px; }
+
+/* ── Filter sheet ────────────────────────────────────────────────────────── */
+.sheet-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  display: none; align-items: flex-end; z-index: 10;
 }
-.slider-wrap input[type=range]::-moz-range-thumb {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid var(--surface);
-  box-shadow: 0 1px 5px rgba(0,0,0,0.20);
-  cursor: pointer;
-  pointer-events: all;
+.sheet-bg.open { display: flex; }
+.sheet {
+  width: 100%; max-height: 80vh; overflow-y: auto;
+  background: var(--surface); border-radius: 18px 18px 0 0;
+  border-top: 1px solid var(--border); padding: 8px 16px 24px;
+}
+.grab { width: 36px; height: 4px; border-radius: 2px; background: var(--surface-2); margin: 0 auto 12px; }
+.sheet-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.sheet-title b { font-size: 16px; }
+.sheet-title button { color: var(--accent); font-size: 14px; }
+.f-label { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+.f-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.f-label { display: flex; justify-content: space-between; align-items: baseline; }
+.f-all { display: flex; gap: 14px; }
+.f-all button { color: var(--accent); font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.f-pill {
+  font-size: 13px; padding: 7px 12px; border-radius: 99px;
+  background: var(--surface-2); color: var(--text-2); border: 1px solid transparent;
+}
+.f-pill.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.done-btn {
+  width: 100%; margin-top: 20px; padding: 12px; border-radius: 12px;
+  background: var(--accent); color: #111418; font-weight: 700;
 }
 
-/* Quick date chips */
-.quick-chips {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.quick-chip {
-  flex: 1;
-  padding: 6px 0;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1.5px solid var(--border);
-  background: var(--surface-2);
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.15s;
-  text-align: center;
-}
-.quick-chip.active {
-  background: var(--accent-dim);
-  border-color: var(--accent-mid);
-  color: var(--accent);
-}
+/* ── PDF header (only shown in the exported copy) ───────────────────────── */
+.pdf-head { display: none; margin-bottom: 14px; padding-top: 8px; }
+.pdf-head b { display: block; font-size: 20px; }
+.pdf-head span { font-size: 13px; color: var(--text-2); }
+.exporting .pdf-head { display: block; }
+.exporting .no-pdf { display: none !important; }
 
-.filter-divider { height: 1px; background: var(--border); margin: 14px 0; }
-
-/* Type pills */
-.pills-scroll {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 2px;
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: var(--surface-2); color: var(--text); font-size: 13px;
+  padding: 10px 14px; border-radius: 10px; display: none; z-index: 20;
 }
-.pills-scroll::-webkit-scrollbar { display: none; }
-.pill {
-  flex-shrink: 0;
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1.5px solid var(--border);
-  background: var(--surface-2);
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.pill.active {
-  background: var(--accent-dim);
-  border-color: var(--accent-mid);
-  color: var(--accent);
-}
-
-/* Team selector */
-.team-select {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1.5px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 500;
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237C849A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
-}
-
-/* ── Stats strip ─────────────────────────────────────────────────────────── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-.stat-tile {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: var(--shadow);
-}
-.stat-value {
-  font-size: 29px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.5px;
-  line-height: 1;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-.stat-value.accent { color: var(--accent); }
-.stat-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.stat-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-
-/* ── Section header ──────────────────────────────────────────────────────── */
-.section-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.section-title {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.section-count {
-  font-size: 13px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Attendance chart ────────────────────────────────────────────────────── */
-.attend-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow);
-}
-.attend-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-.attend-row:last-child { margin-bottom: 0; }
-
-.attend-row-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-.attend-type-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-.attend-type-count {
-  font-size: 13px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.attend-bar {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--surface-2);
-  overflow: hidden;
-  display: flex;
-}
-.attend-bar-seg {
-  height: 100%;
-  transition: width 0.4s ease;
-}
-.attend-bar-seg.yes  { background: var(--attend); }
-.attend-bar-seg.no   { background: var(--absent); }
-.attend-bar-seg.none { background: var(--noresponse); }
-
-.attend-legend {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.legend-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.legend-dot.yes   { background: var(--attend); }
-.legend-dot.no    { background: var(--absent); }
-.legend-dot.none  { background: var(--noresponse); }
-
-/* ── Match history ───────────────────────────────────────────────────────── */
-.match-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.match-date {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.match-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.3;
-}
-.match-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-.match-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  background: var(--surface-2);
-  color: var(--text-2);
-  border: 1px solid var(--border);
-}
-.match-chip.squad {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border-color: var(--accent-mid);
-}
-.match-chip.homeaway {
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-/* ── Event log ───────────────────────────────────────────────────────────── */
-.event-log-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-}
-.event-row {
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 0 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  align-items: center;
-}
-.event-row:last-child { border-bottom: none; }
-
-.event-date-col {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.3;
-  text-align: right;
-  grid-row: span 2;
-  align-self: center;
-}
-.event-date-day { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1; }
-
-.event-info { overflow: hidden; }
-.event-title-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.event-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  margin-top: 2px;
-}
-.event-type-tag {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.response-chip {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.response-chip.yes   { background: var(--attend-dim); color: var(--attend); }
-.response-chip.no    { background: var(--absent-dim); color: var(--absent); }
-.response-chip.none  { color: var(--muted); background: var(--surface-2); }
-
-/* ── Empty states ────────────────────────────────────────────────────────── */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 36px 24px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 14px;
-  gap: 6px;
-}
-.empty-icon { font-size: 29px; opacity: 0.5; }
-
-.section-wrap { margin-bottom: 20px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -523,93 +258,89 @@ body {
 
 <div id="mainScreen">
 
-  <!-- Filter bar -->
-  <div class="filter-card">
-
-    <div class="quick-chips">
-      <button class="quick-chip" data-range="month">This Month</button>
-      <button class="quick-chip" data-range="3months">Last 3 Months</button>
-      <button class="quick-chip active" data-range="year">This Year</button>
+  <div class="bar no-pdf">
+    <div class="seg" id="periodSeg">
+      <button data-period="month">Month</button>
+      <button data-period="3months">3 months</button>
+      <button data-period="season" class="on">Season</button>
+      <button data-period="all">All</button>
     </div>
-    <div class="date-range-label">
-      <span class="from-label" id="fromLabel">–</span>
-      <span class="arrow">→</span>
-      <span class="to-label" id="toLabel">–</span>
-    </div>
-    <div class="slider-wrap">
-      <div class="slider-track"></div>
-      <div class="slider-fill" id="sliderFill"></div>
-      <input type="range" id="sliderFrom" min="0" value="0">
-      <input type="range" id="sliderTo"   min="0" value="0">
-    </div>
-
-    <div class="filter-divider"></div>
-
-    <div class="filter-label">Code</div>
-    <div class="pills-scroll" id="codePills"></div>
-
-    <div class="filter-divider"></div>
-
-    <div class="filter-label">Event type</div>
-    <div class="pills-scroll" id="typePills"></div>
-
-    <div id="teamFilterWrap" style="display:none">
-      <div class="filter-divider"></div>
-      <div class="filter-label">Team</div>
-      <select class="team-select" id="teamSelect"></select>
-    </div>
-
+    <button class="icon-btn" id="filterBtn" aria-label="Filters">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F1F4F8" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+      <span class="dot"></span>
+    </button>
+    <button class="icon-btn" id="pdfBtn" aria-label="Export PDF">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F1F4F8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+      <span class="btn-spin"></span>
+    </button>
   </div>
+  <div class="chips no-pdf" id="activeChips"></div>
 
-  <!-- Stats strip -->
-  <div class="stats-grid">
-    <div class="stat-tile">
-      <div class="stat-value" id="statEvents">–</div>
-      <div class="stat-label">Events</div>
+  <div id="report">
+    <div class="pdf-head" id="pdfHead"></div>
+
+    <div class="card" id="heroCard"></div>
+
+    <div class="two">
+      <div class="card" id="trainCard"></div>
+      <div class="card" id="matchCard"></div>
     </div>
-    <div class="stat-tile">
-      <div class="stat-value accent" id="statResponded">–</div>
-      <div class="stat-label">Responded</div>
+
+    <div class="two codes" id="codeCards"></div>
+
+    <div id="squadSection">
+      <div class="h">Squad selections</div>
+      <div class="two" id="squadCards"></div>
     </div>
-    <div class="stat-tile">
-      <div class="stat-value accent" id="statAttending">–</div>
-      <div class="stat-label">Attending %</div>
+
+    <div id="upcomingSection">
+      <div class="h">Coming up</div>
+      <div class="card" id="upcomingList"></div>
     </div>
-    <div class="stat-tile">
-      <div class="stat-value" id="statMatches">–</div>
-      <div class="stat-label">Matches Selected</div>
+
+    <div id="monthSection">
+      <div class="h">Attendance by month</div>
+      <div class="card"><div class="months" id="monthChart"></div></div>
+    </div>
+
+    <div class="focus-bar no-pdf" id="focusBar"></div>
+
+    <div id="matchSection">
+      <div class="h">Matches <button class="no-pdf" id="matchMore"></button></div>
+      <div class="card">
+        <div id="matchList"></div>
+      </div>
+    </div>
+
+    <div id="historySection">
+      <div class="h">History <button class="no-pdf" id="histMore"></button></div>
+      <div class="seg hist-seg no-pdf" id="histSeg">
+        <button data-hist="all" class="on">All</button>
+        <button data-hist="yes">Went</button>
+        <button data-hist="no">Missed</button>
+        <button data-hist="none">No reply</button>
+      </div>
+      <div class="card" id="historyList"></div>
     </div>
   </div>
-
-  <!-- Attendance breakdown -->
-  <div class="section-wrap">
-    <div class="section-header">
-      <span class="section-title">Attendance</span>
-    </div>
-    <div class="attend-card" id="attendChart"></div>
-  </div>
-
-  <!-- Event log -->
-  <div class="section-wrap" id="eventSection">
-    <div class="section-header">
-      <span class="section-title">Event Log</span>
-      <span class="section-count" id="eventCount"></span>
-    </div>
-    <div class="event-log-card" id="eventLog"></div>
-  </div>
-
-  <!-- Match history -->
-  <div class="section-wrap" id="matchSection">
-    <div class="section-header">
-      <span class="section-title">Match Selections</span>
-      <span class="section-count" id="matchCount"></span>
-    </div>
-    <div id="matchList"></div>
-  </div>
-
 </div>
 
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sheet-title"><b>Filters</b><button id="clearFilters">Clear</button></div>
+    <div class="f-group" data-key="code"><div class="f-label">Code <span class="f-all"><button data-act="all">All</button><button data-act="none">None</button></span></div><div class="f-pills"></div></div>
+    <div class="f-group" data-key="type"><div class="f-label">Event type <span class="f-all"><button data-act="all">All</button><button data-act="none">None</button></span></div><div class="f-pills"></div></div>
+    <div class="f-group" data-key="team"><div class="f-label">Team <span class="f-all"><button data-act="all">All</button><button data-act="none">None</button></span></div><div class="f-pills"></div></div>
+    <button class="done-btn" id="doneBtn">Done</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
 <script>
 'use strict';
 
@@ -628,44 +359,40 @@ const sb = window.supabase.createClient(
     : {}
 );
 
-/* ── Month helpers ───────────────────────────────────────────────────────── */
-const MONTHS_ARR = [];
-(function() {
-  const now   = new Date();
-  const start = new Date(now.getFullYear() - 2, 0, 1);
-  let d = new Date(start);
-  while (d <= now) {
-    MONTHS_ARR.push(new Date(d));
-    d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-  }
-})();
-
-const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtMonth(d) { return `${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
-function fmtDay(iso)  {
-  const d = new Date(iso);
-  return { day: d.getDate(), mon: SHORT_MONTHS[d.getMonth()], yr: d.getFullYear() };
-}
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const LIST_LIMIT = { matches: 3, history: 5 };
 
 /* ── State ───────────────────────────────────────────────────────────────── */
-let rawData   = null;
-let filtered  = { events: [], matchSelections: [] };
-let fState    = {
-  fromIdx:   0,
-  toIdx:     MONTHS_ARR.length - 1,
-  code:      'all',
-  eventType: 'all',
-  teamId:    'all'
-};
+let rawData  = null;
+let isFemale = false;
+let multiCode = false;   // player has events in more than one code: tag each row with its code
+// Multi-select filters: each holds the set of values switched on. "-" (no code)
+// events are off on load; everything else starts on.
+const NO_CODE = '__none';
+let fState   = { period: 'season', code: new Set(), type: new Set(), team: new Set() };
+let fOptions = { code: [], type: [], team: [] };   // [value, label] per group
+let fDefault = { code: [], type: [], team: [] };
+let histCat  = 'all';
+let expanded = { matches: false, history: false };
+// Tapping a squad row, month bar or the trainings/matches card narrows the
+// Matches and History lists only. One at a time; tap again or ✕ to clear.
+let focus    = null;
 
-/* ── Response categoriser ────────────────────────────────────────────────── */
+/* ── Classifiers ─────────────────────────────────────────────────────────── */
 // response_id 3 = attending, 4 = declined, anything else = pre-created "no response" placeholder
 function catResponse(e) {
   if (e.response_id === 3) return 'yes';
   if (e.response_id === 4) return 'no';
   return 'none';
 }
-const CAT_LABEL = { yes: 'Attending', no: 'Declined', none: 'No Response' };
+const isMatch    = e => /match|game|fixture|league|cup|championship|challenge/i.test(e.event_type || '');
+const isTraining = e => /train|session|practi/i.test(e.event_type || '');
+
+function codeLabel(code) {
+  if (!code) return code;
+  return (isFemale && code === 'Hurling') ? 'Camogie' : code;
+}
 
 /* ── Load ────────────────────────────────────────────────────────────────── */
 async function init() {
@@ -675,330 +402,648 @@ async function init() {
   if (error) return showError(`Failed to load data: ${error.message}`);
   if (!data)  return showError('No data returned.');
 
-  rawData  = data;
+  rawData = data;
 
   // Deduplicate by event_id — defensive against any DB-level fan-out
   const dedupeByEventId = arr => {
     const seen = new Set();
     return (arr || []).filter(item => {
-      if (seen.has(item.event_id)) return false;
+      if (!item.event_date_time || seen.has(item.event_id)) return false;
       seen.add(item.event_id);
       return true;
     });
   };
   rawData.events          = dedupeByEventId(rawData.events);
   rawData.matchSelections = dedupeByEventId(rawData.matchSelections);
-
   isFemale = (rawData.teams || []).some(t => t.team_female === true);
-
-  // Build slider default: from = Jan of current year
-  const now         = new Date();
-  const curYear     = now.getFullYear();
-  const janIdx      = MONTHS_ARR.findIndex(m => m.getFullYear() === curYear && m.getMonth() === 0);
-  fState.fromIdx    = janIdx >= 0 ? janIdx : 0;
-  fState.toIdx      = MONTHS_ARR.length - 1;
+  // A "-" or blank code means the event isn't tied to a code (meetings, socials...)
+  rawData.events.concat(rawData.matchSelections).forEach(e => {
+    if (!e.event_code || /^[\s\-–—]*$/.test(e.event_code)) e.event_code = null;
+  });
+  multiCode = new Set(rawData.events.map(e => codeLabel(e.event_code)).filter(Boolean)).size > 1;
 
   buildFilters();
-  applyAndRender();
+  wireControls();
+  render();
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display    = 'block';
 }
 
-/* ── Code label helper (Hurling → Camogie for female teams) ─────────────── */
-let isFemale = false;
-function codeLabel(code) {
-  if (!code) return code;
-  return (isFemale && code === 'Hurling') ? 'Camogie' : code;
+/* ── Period ──────────────────────────────────────────────────────────────── */
+// Returns { from, prevFrom, prevTo, prevLabel } for the selected period
+function periodRange(period) {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  if (period === 'month') {
+    return { from: new Date(y, m, 1), prevFrom: new Date(y, m - 1, 1), prevTo: new Date(y, m, 1), prevLabel: 'last month', label: `${MON[m]} ${y}` };
+  }
+  if (period === '3months') {
+    const from = new Date(y, m - 2, 1);
+    return { from, prevFrom: new Date(y, m - 5, 1), prevTo: from, prevLabel: 'previous 3 months', label: `${MON[from.getMonth()]} – ${MON[m]} ${y}` };
+  }
+  if (period === 'season') {
+    return { from: new Date(y, 0, 1), prevFrom: new Date(y - 1, 0, 1), prevTo: new Date(y - 1, m, now.getDate(), 23, 59), prevLabel: 'this time last year', label: `${y} season` };
+  }
+  return { from: null, prevFrom: null, prevTo: null, prevLabel: null, label: 'All time' };
 }
 
-/* ── Filters ─────────────────────────────────────────────────────────────── */
-function buildPillGroup(containerId, key, values, onChange) {
-  const el = document.getElementById(containerId);
-  el.innerHTML = '';
-  values.forEach(v => {
-    const btn = document.createElement('button');
-    btn.className = 'pill' + (v === 'all' ? ' active' : '');
-    btn.dataset.key = key;
-    btn.textContent = v === 'all' ? 'All' : v;
-    btn.addEventListener('click', () => {
-      el.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      onChange(v);
-    });
-    el.appendChild(btn);
-  });
+function passesFilters(e) {
+  return fState.code.has(codeKey(e))
+      && (!e.event_type || fState.type.has(e.event_type))
+      && (!e.team_id    || fState.team.has(String(e.team_id)));
 }
 
+function codeKey(e) {
+  return e.event_code ? codeLabel(e.event_code) : NO_CODE;
+}
+
+function inRange(e, from, to) {
+  const d = new Date(e.event_date_time);
+  return (!from || d >= from) && (!to || d <= to);
+}
+
+/* ── Filters sheet ───────────────────────────────────────────────────────── */
 function buildFilters() {
-  const max = MONTHS_ARR.length - 1;
+  const evs   = rawData.events;
+  const codes = [...new Set(evs.map(e => codeLabel(e.event_code)).filter(Boolean))].sort();
+  const types = [...new Set(evs.map(e => e.event_type).filter(Boolean))].sort();
+  // Teams from current links plus any team that appears in the player's history
+  const teams = new Map();
+  (rawData.teams || []).forEach(t => teams.set(String(t.team_id), t.team_name));
+  evs.forEach(e => { if (e.team_id && !teams.has(String(e.team_id))) teams.set(String(e.team_id), e.team_name); });
+  rawData._teamNames = teams;
 
-  // Sliders
-  const sFrom = document.getElementById('sliderFrom');
-  const sTo   = document.getElementById('sliderTo');
-  sFrom.max   = max;
-  sTo.max     = max;
-  sFrom.value = fState.fromIdx;
-  sTo.value   = fState.toIdx;
-  updateSliderUI();
+  fOptions.code = codes.map(c => [c, c]);
+  if (evs.some(e => !e.event_code)) fOptions.code.push([NO_CODE, '- (no code)']);
+  fOptions.type = types.map(t => [t, t]);
+  fOptions.team = [...teams.entries()].map(([id, n]) => [id, n || 'Team']);
 
-  sFrom.addEventListener('input', () => {
-    if (+sFrom.value > +sTo.value) sFrom.value = sTo.value;
-    fState.fromIdx = +sFrom.value;
-    clearQuickChips();
-    updateSliderUI();
-    applyAndRender();
+  fDefault.code = codes;
+  fDefault.type = types;
+  fDefault.team = [...teams.keys()];
+  ['code', 'type', 'team'].forEach(k => { fState[k] = new Set(fDefault[k]); });
+
+  document.querySelectorAll('.f-group').forEach(group => {
+    const key = group.dataset.key;
+    if (fOptions[key].length < 2) { group.style.display = 'none'; return; }
+    group.querySelectorAll('.f-all button').forEach(b => b.addEventListener('click', () => {
+      fState[key] = new Set(b.dataset.act === 'all' ? fOptions[key].map(o => o[0]) : []);
+      syncPills(key);
+      render();
+    }));
+    const el = group.querySelector('.f-pills');
+    el.innerHTML = fOptions[key].map(([v, label]) =>
+      `<button class="f-pill" data-v="${esc(v)}">${esc(label)}</button>`).join('');
+    el.querySelectorAll('.f-pill').forEach(btn => btn.addEventListener('click', () => {
+      const set = fState[key];
+      set.has(btn.dataset.v) ? set.delete(btn.dataset.v) : set.add(btn.dataset.v);
+      syncPills(key);
+      render();
+    }));
+    syncPills(key);
   });
-  sTo.addEventListener('input', () => {
-    if (+sTo.value < +sFrom.value) sTo.value = sFrom.value;
-    fState.toIdx = +sTo.value;
-    clearQuickChips();
-    updateSliderUI();
-    applyAndRender();
-  });
 
-  // Quick chips
-  document.querySelectorAll('.quick-chip').forEach(btn => {
-    btn.addEventListener('click', () => setQuickRange(btn.dataset.range));
-  });
-
-  // Code chips — apply Hurling→Camogie remap before building labels
-  const rawCodes = [...new Set((rawData.events || []).map(e => e.event_code).filter(Boolean))];
-  const codes    = ['all', ...rawCodes.map(codeLabel)];
-  if (codes.length > 1) {
-    buildPillGroup('codePills', 'code', codes, v => { fState.code = v; applyAndRender(); });
-  } else {
-    document.getElementById('codePills').closest('.filter-divider + *')?.previousElementSibling?.remove();
-    document.getElementById('codePills').parentElement.style.display = 'none';
-  }
-
-  // Type pills
-  const types = ['all', ...new Set((rawData.events || []).map(e => e.event_type).filter(Boolean))];
-  buildPillGroup('typePills', 'type', types, v => { fState.eventType = v; applyAndRender(); });
-
-  // Team selector
-  const teams = rawData.teams || [];
-  if (teams.length > 1) {
-    const wrap   = document.getElementById('teamFilterWrap');
-    const sel    = document.getElementById('teamSelect');
-    wrap.style.display = 'block';
-    sel.innerHTML = `<option value="all">All Teams</option>` +
-      teams.map(t => `<option value="${t.team_id}">${t.team_name}</option>`).join('');
-    sel.addEventListener('change', () => { fState.teamId = sel.value; applyAndRender(); });
+  if (!['code', 'type', 'team'].some(k => fOptions[k].length > 1)) {
+    document.getElementById('filterBtn').style.display = 'none';
   }
 }
 
-function clearQuickChips() {
-  document.querySelectorAll('.quick-chip').forEach(c => c.classList.remove('active'));
+function syncPills(key) {
+  document.querySelectorAll(`.f-group[data-key="${key}"] .f-pill`)
+    .forEach(b => b.classList.toggle('on', fState[key].has(b.dataset.v)));
 }
 
-function setQuickRange(key) {
-  const now    = new Date();
-  const curYr  = now.getFullYear();
-  const curMon = now.getMonth();
-  const lastIdx = MONTHS_ARR.length - 1;
-  let fromIdx;
-
-  if (key === 'month') {
-    fromIdx = MONTHS_ARR.findIndex(m => m.getFullYear() === curYr && m.getMonth() === curMon);
-  } else if (key === '3months') {
-    const target = new Date(curYr, curMon - 2, 1);
-    fromIdx = MONTHS_ARR.findIndex(m => m >= target);
-  } else { // year
-    fromIdx = MONTHS_ARR.findIndex(m => m.getFullYear() === curYr && m.getMonth() === 0);
-  }
-
-  fState.fromIdx = Math.max(0, fromIdx >= 0 ? fromIdx : 0);
-  fState.toIdx   = lastIdx;
-
-  document.getElementById('sliderFrom').value = fState.fromIdx;
-  document.getElementById('sliderTo').value   = fState.toIdx;
-
-  clearQuickChips();
-  const activeBtn = document.querySelector(`.quick-chip[data-range="${key}"]`);
-  if (activeBtn) activeBtn.classList.add('active');
-
-  updateSliderUI();
-  applyAndRender();
+function isDefault(key) {
+  const d = fDefault[key];
+  return fState[key].size === d.length && d.every(v => fState[key].has(v));
 }
 
-function updateSliderUI() {
-  const max = MONTHS_ARR.length - 1;
-  const l   = (fState.fromIdx / max) * 100;
-  const r   = 100 - (fState.toIdx / max) * 100;
-  document.getElementById('sliderFill').style.left  = l + '%';
-  document.getElementById('sliderFill').style.right = r + '%';
-  document.getElementById('fromLabel').textContent  = fmtMonth(MONTHS_ARR[fState.fromIdx]);
-  document.getElementById('toLabel').textContent    = fmtMonth(MONTHS_ARR[fState.toIdx]);
+function resetFilter(key) {
+  fState[key] = new Set(fDefault[key]);
+  syncPills(key);
 }
 
-function dateRange() {
-  const from = MONTHS_ARR[fState.fromIdx];
-  const toM  = MONTHS_ARR[fState.toIdx];
-  const to   = new Date(toM.getFullYear(), toM.getMonth() + 1, 0, 23, 59, 59); // last ms of month
-  return { from, to };
+// Short description of a group that's been changed from its default, e.g. "Football, - (no code)"
+function filterLabel(key) {
+  if (!fState[key].size) return `No ${key === 'type' ? 'event type' : key}`;
+  return fOptions[key].filter(([v]) => fState[key].has(v)).map(o => o[1]).join(', ');
 }
 
-function applyAndRender() {
-  const { from, to } = dateRange();
-  filtered.events = (rawData.events || []).filter(e => {
-    if (!e.event_date_time) return false;
-    const d = new Date(e.event_date_time);
-    if (d < from || d > to) return false;
-    if (fState.code      !== 'all' && codeLabel(e.event_code) !== fState.code) return false;
-    if (fState.eventType !== 'all' && e.event_type  !== fState.eventType) return false;
-    if (fState.teamId    !== 'all' && String(e.team_id) !== fState.teamId) return false;
-    return true;
+function renderChips() {
+  const keys = ['code', 'type', 'team'].filter(k => !isDefault(k));
+  const el = document.getElementById('activeChips');
+  el.innerHTML = keys.map(k => `<button class="chip" data-k="${k}">${esc(filterLabel(k))} ✕</button>`).join('');
+  el.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    resetFilter(c.dataset.k);
+    render();
+  }));
+  document.getElementById('filterBtn').classList.toggle('has-filters', keys.length > 0);
+}
+
+function wireControls() {
+  document.querySelectorAll('#periodSeg button').forEach(btn => btn.addEventListener('click', () => {
+    fState.period = btn.dataset.period;
+    document.querySelectorAll('#periodSeg button').forEach(b => b.classList.toggle('on', b === btn));
+    render();
+  }));
+  document.querySelectorAll('#histSeg button').forEach(btn => btn.addEventListener('click', () => {
+    histCat = btn.dataset.hist;
+    document.querySelectorAll('#histSeg button').forEach(b => b.classList.toggle('on', b === btn));
+    renderHistory();
+  }));
+
+  const sheet = document.getElementById('sheetBg');
+  document.getElementById('filterBtn').addEventListener('click', () => sheet.classList.add('open'));
+  document.getElementById('doneBtn').addEventListener('click', () => sheet.classList.remove('open'));
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.classList.remove('open'); });
+  document.getElementById('clearFilters').addEventListener('click', () => {
+    ['code', 'type', 'team'].forEach(resetFilter);
+    render();
   });
-  filtered.matchSelections = (rawData.matchSelections || []).filter(m => {
-    if (!m.event_date_time) return false;
-    const d = new Date(m.event_date_time);
-    if (d < from || d > to) return false;
-    if (fState.code      !== 'all' && codeLabel(m.event_code) !== fState.code) return false;
-    if (fState.eventType !== 'all' && m.event_type !== fState.eventType)       return false;
-    if (fState.teamId    !== 'all' && String(m.team_id) !== fState.teamId)     return false;
-    return true;
-  });
-  renderStats();
-  renderAttendance();
-  renderMatchHistory();
-  renderEventLog();
+
+  document.getElementById('matchMore').addEventListener('click', () => { expanded.matches = !expanded.matches; renderMatches(); });
+  document.getElementById('histMore').addEventListener('click',  () => { expanded.history = !expanded.history; renderHistory(); });
+  document.getElementById('pdfBtn').addEventListener('click', exportPdf);
 }
 
-/* ── Stats strip ─────────────────────────────────────────────────────────── */
-function renderStats() {
-  const evs   = filtered.events;
-  const total = evs.length;
-  const responded = evs.filter(e => catResponse(e) !== 'none').length;
-  const attending = evs.filter(e => catResponse(e) === 'yes').length;
-  const respPct   = total ? Math.round((responded / total) * 100) : 0;
-  const attendPct = total ? Math.round((attending / total) * 100) : 0;
+/* ── Derived data ────────────────────────────────────────────────────────── */
+let view = null;
 
-  document.getElementById('statEvents').textContent    = total;
-  document.getElementById('statResponded').textContent = total ? `${respPct}%` : '–';
-  document.getElementById('statAttending').textContent = total ? `${attendPct}%` : '–';
-  document.getElementById('statMatches').textContent   = filtered.matchSelections.length;
+function computeView() {
+  const now = new Date();
+  const r   = periodRange(fState.period);
+  const evs = rawData.events.filter(passesFilters);
+  const sel = rawData.matchSelections.filter(passesFilters);
+
+  const past     = evs.filter(e => inRange(e, r.from, now)).sort(byDateDesc);
+  const prevPast = r.prevFrom ? evs.filter(e => inRange(e, r.prevFrom, r.prevTo)) : [];
+  const upcoming = evs.filter(e => new Date(e.event_date_time) > now).sort(byDateAsc).slice(0, 3);
+
+  // Matches: every past match event in range, joined with the player's selection
+  // A squad called "Not selected" isn't a real selection
+  const selById = new Map(sel.filter(s => inRange(s, r.from, now) && !/not\s*selected/i.test(s.squad_name || ''))
+    .map(s => [s.event_id, s]));
+  const matchById = new Map();
+  past.filter(isMatch).forEach(e => matchById.set(e.event_id, { ...e, selection: selById.get(e.event_id) || null }));
+  selById.forEach((s, id) => { if (!matchById.has(id)) matchById.set(id, { ...s, selection: s }); });
+  const matches = [...matchById.values()].sort(byDateDesc);
+
+  return { r, past, prevPast, upcoming, matches, trainings: past.filter(isTraining) };
 }
 
-/* ── Attendance chart ────────────────────────────────────────────────────── */
-function renderAttendance() {
-  const el = document.getElementById('attendChart');
-  const evs = filtered.events;
-  if (!evs.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>No events in this period</div>`;
+const byDateDesc = (a, b) => new Date(b.event_date_time) - new Date(a.event_date_time);
+const byDateAsc  = (a, b) => new Date(a.event_date_time) - new Date(b.event_date_time);
+const count = (arr, cat) => arr.filter(e => catResponse(e) === cat).length;
+const pct   = (n, d) => d ? Math.round((n / d) * 100) : 0;
+
+/* ── Render ──────────────────────────────────────────────────────────────── */
+function render() {
+  view = computeView();
+  focus = null;
+  renderChips();
+  renderHero();
+  renderSplitCards();
+  renderCodeCards();
+  renderUpcoming();
+  renderMonths();
+  renderSquads();
+  renderFocusBar();
+  renderMatches();
+  renderHistory();
+}
+
+function renderHero() {
+  const { past, prevPast, r } = view;
+  const el = document.getElementById('heroCard');
+  if (!past.length) {
+    el.innerHTML = `<div class="empty">No events in this period yet</div>`;
     return;
   }
+  const went    = count(past, 'yes');
+  const replied = past.length - count(past, 'none');
+  const rate    = pct(went, past.length);
 
-  // Group by event type
-  const groups = {};
-  evs.forEach(e => {
-    const t = e.event_type || 'Other';
-    if (!groups[t]) groups[t] = { yes: 0, no: 0, none: 0 };
-    groups[t][catResponse(e)]++;
-  });
+  let trend = '';
+  if (prevPast.length >= 3) {
+    const diff = rate - pct(count(prevPast, 'yes'), prevPast.length);
+    const cls  = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+    const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '';
+    trend = diff === 0
+      ? `<div class="trend flat">Same as ${r.prevLabel}</div>`
+      : `<div class="trend ${cls}">${arrow} ${Math.abs(diff)}% on ${r.prevLabel}</div>`;
+  }
 
-  let html = '';
-  Object.entries(groups).forEach(([type, counts]) => {
-    const total  = counts.yes + counts.no + counts.none;
-    const pct    = v => total ? Math.round((v / total) * 100) : 0;
-    html += `
-      <div class="attend-row">
-        <div class="attend-row-header">
-          <span class="attend-type-name">${esc(type)}</span>
-          <span class="attend-type-count">${total} event${total !== 1 ? 's' : ''}</span>
-        </div>
-        <div class="attend-bar">
-          <div class="attend-bar-seg yes"   style="width:${pct(counts.yes)}%"></div>
-          <div class="attend-bar-seg no"    style="width:${pct(counts.no)}%"></div>
-
-          <div class="attend-bar-seg none"  style="width:${pct(counts.none)}%"></div>
-        </div>
-        <div class="attend-legend">
-          ${counts.yes   ? `<span class="legend-item"><span class="legend-dot yes"></span>${counts.yes} attending</span>` : ''}
-          ${counts.no    ? `<span class="legend-item"><span class="legend-dot no"></span>${counts.no} declined</span>` : ''}
-          ${counts.none  ? `<span class="legend-item"><span class="legend-dot none"></span>${counts.none} no response</span>` : ''}
-        </div>
-      </div>`;
-  });
-  el.innerHTML = html;
+  const last10 = past.slice(0, 10).reverse();
+  const dashes = rate === 0 ? '0 100' : `${rate} 100`;
+  el.innerHTML = `
+    <div class="hero">
+      <svg class="ring" viewBox="0 0 36 36" role="img" aria-label="${rate}% attended">
+        <circle cx="18" cy="18" r="15.5" fill="none" stroke="#252A35" stroke-width="4"/>
+        <circle cx="18" cy="18" r="15.5" fill="none" stroke="#87C232" stroke-width="4" stroke-linecap="round"
+          stroke-dasharray="${dashes}" pathLength="100" transform="rotate(-90 18 18)"/>
+        <text x="18" y="21" text-anchor="middle" font-size="8.5" font-weight="700" fill="#F1F4F8"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">${rate}%</text>
+      </svg>
+      <div>
+        <div class="big">Attended ${went} of ${past.length}</div>
+        <div class="sub">Replied to ${replied} of ${past.length}</div>
+        ${trend}
+      </div>
+    </div>
+    <div class="dots-label">Last ${last10.length} event${last10.length !== 1 ? 's' : ''}</div>
+    <div class="dots">${last10.map(e => `<b class="d-${catResponse(e)}"></b>`).join('')}</div>`;
 }
 
-/* ── Match history ───────────────────────────────────────────────────────── */
-function renderMatchHistory() {
-  const wrap = document.getElementById('matchSection');
-  const el   = document.getElementById('matchList');
-  const cnt  = document.getElementById('matchCount');
-  const sels = filtered.matchSelections;
+function renderSplitCards() {
+  const { trainings, matches } = view;
+  const tWent = count(trainings, 'yes'), tNo = count(trainings, 'no');
+  document.getElementById('trainCard').innerHTML = trainings.length
+    ? `<div class="k">${tWent}<small>/${trainings.length}</small></div>
+       <div class="lbl">Trainings attended</div>
+       <div class="mini"><i style="width:${pct(tWent, trainings.length)}%;background:var(--yes)"></i><i style="width:${pct(tNo, trainings.length)}%;background:var(--no)"></i></div>`
+    : `<div class="k">–</div><div class="lbl">Trainings attended</div><div class="mini"></div>`;
 
-  const uniqueSquads = new Set(sels.map(m => m.squad_id).filter(Boolean));
-  if (!sels.length || uniqueSquads.size <= 1) {
-    wrap.style.display = 'none';
-    return;
-  }
-  wrap.style.display = '';
-  cnt.textContent = `${sels.length} match${sels.length !== 1 ? 'es' : ''}`;
+  // Only one of the two has data (e.g. filtered to matches): let it fill the row
+  document.getElementById('trainCard').style.display = trainings.length || !matches.length ? '' : 'none';
+  document.getElementById('matchCard').style.display = matches.length || !trainings.length ? '' : 'none';
+  document.querySelector('.two').classList.toggle('single', !trainings.length !== !matches.length);
 
-  if (!sels.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🏐</div>No match selections in this period</div>`;
-    return;
-  }
+  const tCard = document.getElementById('trainCard'), mCard = document.getElementById('matchCard');
+  tCard.classList.toggle('tappable', trainings.length > 0);
+  mCard.classList.toggle('tappable', matches.length > 0);
+  tCard.classList.toggle('sel', focus?.key === 'type:training');
+  mCard.classList.toggle('sel', focus?.key === 'type:match');
+  tCard.onclick = trainings.length ? () => setFocus({ key: 'type:training', kind: 'type', which: 'training', label: 'Trainings' }) : null;
+  mCard.onclick = matches.length   ? () => setFocus({ key: 'type:match',    kind: 'type', which: 'match',    label: 'Matches' })   : null;
 
-  el.innerHTML = sels.map(m => {
-    const { day, mon, yr } = fmtDay(m.event_date_time);
-    const now  = new Date().getFullYear();
-    const yrTxt = yr !== now ? ` ${yr}` : '';
-    const title = m.opposition ? `vs ${esc(m.opposition)}` : esc(m.event_title || 'Match');
-    const ha    = m.home_away ? `<span class="match-chip homeaway">${esc(m.home_away)}</span>` : '';
-    const squad = m.squad_name ? `<span class="match-chip squad">${esc(m.squad_name)}</span>` : '';
-    const role  = m.role_name  ? `<span class="match-chip">${esc(m.role_name)}</span>`   : '';
-    const team  = m.team_name  ? `<span class="match-chip">${esc(m.team_name)}</span>`   : '';
+  const mPast = view.past.filter(isMatch);
+  const mWent = count(mPast, 'yes'), mNo = count(mPast, 'no');
+  document.getElementById('matchCard').innerHTML = mPast.length
+    ? `<div class="k">${mWent}<small>/${mPast.length}</small></div>
+       <div class="lbl">Matches attended</div>
+       <div class="mini"><i style="width:${pct(mWent, mPast.length)}%;background:var(--yes)"></i><i style="width:${pct(mNo, mPast.length)}%;background:var(--no)"></i></div>`
+    : `<div class="k">–</div><div class="lbl">Matches attended</div><div class="mini"></div>`;
+}
+
+// One card per code when the events on screen span more than one code. Tapping a card filters the page to that code.
+function renderCodeCards() {
+  const el = document.getElementById('codeCards');
+  const { past, matches } = view;
+  const codes = [...new Set(past.concat(matches).map(e => codeLabel(e.event_code)).filter(Boolean))].sort();
+  if (codes.length < 2) { el.innerHTML = ''; return; }
+
+  el.innerHTML = codes.map(code => {
+    const evs  = past.filter(e => codeLabel(e.event_code) === code);
+    const ms   = matches.filter(m => codeLabel(m.event_code) === code);
+    const went = count(evs, 'yes'), no = count(evs, 'no');
+    const picked = ms.filter(m => m.selection).length;
     return `
-      <div class="match-card">
-        <div class="match-date">${day} ${mon}${yrTxt}</div>
-        <div class="match-title">${title}</div>
-        <div class="match-meta">${ha}${squad}${role}${team}</div>
-      </div>`;
+      <button class="card code-card" data-code="${esc(code)}">
+        <div class="code-name">${esc(code)}</div>
+        <div class="k">${evs.length ? pct(went, evs.length) + '%' : '–'}</div>
+        <div class="lbl">Attended ${went} of ${evs.length}</div>
+        <div class="mini"><i style="width:${pct(went, evs.length)}%;background:var(--yes)"></i><i style="width:${pct(no, evs.length)}%;background:var(--no)"></i></div>
+        ${ms.length ? `<div class="code-sub">Selected ${picked}/${ms.length} match${ms.length !== 1 ? 'es' : ''}</div>` : ''}
+      </button>`;
+  }).join('');
+
+  el.querySelectorAll('.code-card').forEach(card => card.addEventListener('click', () => {
+    fState.code = new Set([card.dataset.code]);
+    syncPills('code');
+    render();
+  }));
+}
+
+function renderUpcoming() {
+  const { upcoming } = view;
+  const sec = document.getElementById('upcomingSection');
+  if (!upcoming.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  const list = document.getElementById('upcomingList');
+  list.classList.toggle('needs', upcoming.some(e => catResponse(e) === 'none'));
+  list.innerHTML = upcoming.map(e => {
+    const cat  = catResponse(e);
+    const pill = cat === 'yes' ? `<span class="pill p-yes">Going</span>`
+               : cat === 'no'  ? `<span class="pill p-no">Can't go</span>`
+               :                 `<span class="pill p-none">Reply needed</span>`;
+    return eventRow(e, eventTitle(e), [typeLabel(e), dayTime(e.event_date_time), e.home_away], pill);
   }).join('');
 }
 
-/* ── Event log ───────────────────────────────────────────────────────────── */
-function renderEventLog() {
-  const el  = document.getElementById('eventLog');
-  const cnt = document.getElementById('eventCount');
-  const evs = filtered.events;
-  cnt.textContent = evs.length ? `${evs.length} event${evs.length !== 1 ? 's' : ''}` : '';
-
-  if (!evs.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>No events in this period</div>`;
-    return;
+function renderMonths() {
+  const { past, r } = view;
+  const sec = document.getElementById('monthSection');
+  const now = new Date();
+  // Months from the start of the period (or the first event) up to now, latest 12
+  const first = r.from || (past.length ? new Date(past[past.length - 1].event_date_time) : now);
+  const months = [];
+  for (let d = new Date(first.getFullYear(), first.getMonth(), 1); d <= now; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    months.push(d);
   }
+  const shown = months.slice(-12);
+  if (shown.length < 2 || !past.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
 
-  el.innerHTML = evs.map(e => {
-    const { day, mon, yr } = fmtDay(e.event_date_time);
-    const now   = new Date().getFullYear();
-    const yrTxt = yr !== now ? `'${String(yr).slice(2)}` : '';
-    const cat   = catResponse(e);
-    const label = CAT_LABEL[cat] || 'No Response';
+  const avg = pct(count(past, 'yes'), past.length);
+  const chart = document.getElementById('monthChart');
+  chart.classList.toggle('focused', focus?.kind === 'month');
+  chart.innerHTML = shown.map(m => {
+    const inMonth = past.filter(e => {
+      const d = new Date(e.event_date_time);
+      return d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth();
+    });
+    const label = shown.length > 6 ? MON[m.getMonth()].charAt(0) : MON[m.getMonth()];
+    if (!inMonth.length) return `<div><em>–</em><i class="nil"></i><span>${label}</span></div>`;
+    const p = pct(count(inMonth, 'yes'), inMonth.length);
+    const key = `month:${m.getFullYear()}-${m.getMonth()}`;
+    return `<div class="tappable${focus?.key === key ? ' sel' : ''}" data-y="${m.getFullYear()}" data-m="${m.getMonth()}"><em>${p}%</em><i class="${p < avg - 15 ? 'low' : ''}" style="height:${Math.max(p, 2) * 0.7}%"></i><span>${label}</span></div>`;
+  }).join('');
+  chart.querySelectorAll('.tappable').forEach(col => col.addEventListener('click', () => {
+    const y = +col.dataset.y, m = +col.dataset.m;
+    setFocus({ key: `month:${y}-${m}`, kind: 'month', y, m, label: `${MON[m]} ${y}` });
+  }));
+}
+
+// One card per code: how often the player was picked for each squad, with each
+// squad's share of that code's selections
+function renderSquads() {
+  const sec = document.getElementById('squadSection');
+  const byCode = new Map();
+  view.matches.forEach(m => {
+    if (!m.selection) return;
+    const code = m.event_code ? codeLabel(m.event_code) : 'No code';
+    const squad = m.selection.squad_name || 'Selected';
+    if (!byCode.has(code)) byCode.set(code, {});
+    byCode.get(code)[squad] = (byCode.get(code)[squad] || 0) + 1;
+  });
+  if (!byCode.size) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const el = document.getElementById('squadCards');
+  el.classList.toggle('single', byCode.size === 1);
+  el.innerHTML = [...byCode.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([code, counts]) => {
+    const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const total  = ranked.reduce((n, [, c]) => n + c, 0);
     return `
-      <div class="event-row">
-        <div class="event-date-col">
-          <div class="event-date-day">${day}</div>
-          <div>${mon}${yrTxt ? ' ' + yrTxt : ''}</div>
-        </div>
-        <div class="event-info">
-          <div class="event-title-text">${esc(e.event_title || (e.opposition ? `vs ${e.opposition}` : '–'))}</div>
-          <div class="event-meta-row">
-            <span class="event-type-tag">${esc(e.event_type || '')}</span>
-            <span class="response-chip ${cat}">${esc(label)}</span>
-          </div>
-        </div>
+      <div class="card">
+        <div class="code-name">${esc(code)}</div>
+        ${ranked.map(([squad, c], i) => `
+          <div class="sq-row tappable${focus?.key === `squad:${code}|${squad}` ? ' sel' : ''}" data-code="${esc(code)}" data-squad="${esc(squad)}">
+            <div class="sq-top"><span class="sq-name">${esc(squad)}</span><span class="sq-num"><b>${c}</b> · ${pct(c, total)}%</span></div>
+            <div class="sq-bar"><i style="width:${pct(c, total)}%;${i ? 'opacity:.6' : ''}"></i></div>
+          </div>`).join('')}
       </div>`;
   }).join('');
+  el.querySelectorAll('.sq-row').forEach(row => row.addEventListener('click', () => {
+    const { code, squad } = row.dataset;
+    setFocus({ key: `squad:${code}|${squad}`, kind: 'squad', code, squad, label: byCode.size > 1 ? `${squad} · ${code}` : squad });
+  }));
+}
+
+function renderMatches() {
+  const sec = document.getElementById('matchSection');
+  if (!view.matches.length || (focus && focus.kind === 'type' && focus.which === 'training')) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  const matches = focusMatches(view.matches);
+
+  // Most frequent squad gets the green pill
+  const counts = {};
+  matches.forEach(m => { if (m.selection) { const n = m.selection.squad_name || 'Selected'; counts[n] = (counts[n] || 0) + 1; } });
+  const topSquad = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  const all  = isExporting || expanded.matches;
+  const list = all ? matches : matches.slice(0, LIST_LIMIT.matches);
+  document.getElementById('matchList').innerHTML = !list.length
+    ? `<div class="empty">No matches for this selection</div>`
+    : list.map(m => {
+    const s = m.selection;
+    const squad = s ? (s.squad_name || 'Selected') : null;
+    const pill = s ? `<span class="pill ${squad === topSquad ? 'p-acc' : 'p-none'}">${esc(squad)}</span>`
+                   : `<span class="pill p-none">Not selected</span>`;
+    const role = s && s.role_name && !/^player$/i.test(s.role_name) ? s.role_name : null;
+    const sub  = m.opposition && m.event_title && m.event_title !== m.opposition ? m.event_title : m.event_type;
+    return eventRow(m, m.opposition ? `vs ${m.opposition}` : (m.event_title || 'Match'), [sub, m.home_away, role], pill);
+  }).join('');
+
+  const more = document.getElementById('matchMore');
+  more.style.display = matches.length > LIST_LIMIT.matches ? '' : 'none';
+  more.textContent = expanded.matches ? 'Show less' : `See all ${matches.length}`;
+}
+
+function renderHistory() {
+  const { past } = view;
+  const sec = document.getElementById('historySection');
+  if (!past.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const focused = focusEvents(past);
+  const rows = histCat === 'all' ? focused : focused.filter(e => catResponse(e) === histCat);
+  const all  = isExporting || expanded.history;
+  const list = all ? rows : rows.slice(0, LIST_LIMIT.history);
+  const PILL = { yes: '<span class="pill p-yes">Went</span>', no: '<span class="pill p-no">Declined</span>', none: '<span class="pill p-none">No reply</span>' };
+  document.getElementById('historyList').innerHTML = list.length
+    ? list.map(e => eventRow(e, eventTitle(e), [typeLabel(e), e.home_away], PILL[catResponse(e)])).join('')
+    : `<div class="empty">Nothing here for this period</div>`;
+
+  const more = document.getElementById('histMore');
+  more.style.display = rows.length > LIST_LIMIT.history ? '' : 'none';
+  more.textContent = expanded.history ? 'Show less' : `See all ${rows.length}`;
+}
+
+/* ── List focus (tap a graphic to filter the lists) ──────────────────────── */
+function setFocus(f) {
+  const same = focus && f && focus.key === f.key;
+  focus = same ? null : f;
+  expanded = { matches: false, history: false };
+  renderFocused();
+  if (focus) document.getElementById('focusBar').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderFocused() {
+  renderSplitCards();
+  renderSquads();
+  renderMonths();
+  renderFocusBar();
+  renderMatches();
+  renderHistory();
+}
+
+function renderFocusBar() {
+  const el = document.getElementById('focusBar');
+  if (!focus) { el.innerHTML = ''; return; }
+  el.innerHTML = `<button class="focus-chip" id="focusClear">Showing: ${esc(focus.label)} ✕</button>`;
+  document.getElementById('focusClear').addEventListener('click', () => setFocus(null));
+}
+
+const sameMonth = (e, y, m) => { const d = new Date(e.event_date_time); return d.getFullYear() === y && d.getMonth() === m; };
+const squadOf   = m => m.selection ? (m.selection.squad_name || 'Selected') : null;
+const codeOf    = e => e.event_code ? codeLabel(e.event_code) : 'No code';
+
+function focusMatches(list) {
+  if (!focus) return list;
+  if (focus.kind === 'squad') return list.filter(m => squadOf(m) === focus.squad && codeOf(m) === focus.code);
+  if (focus.kind === 'month') return list.filter(m => sameMonth(m, focus.y, focus.m));
+  if (focus.kind === 'type')  return focus.which === 'match' ? list : [];
+  return list;
+}
+
+function focusEvents(list) {
+  if (!focus) return list;
+  if (focus.kind === 'squad') {
+    const ids = new Set(focusMatches(view.matches).map(m => m.event_id));
+    return list.filter(e => ids.has(e.event_id));
+  }
+  if (focus.kind === 'month') return list.filter(e => sameMonth(e, focus.y, focus.m));
+  if (focus.kind === 'type')  return list.filter(focus.which === 'match' ? isMatch : isTraining);
+  return list;
+}
+
+/* ── Row helpers ─────────────────────────────────────────────────────────── */
+function eventTitle(e) {
+  if (isMatch(e) && e.opposition) return `vs ${e.opposition}`;
+  return e.event_title || e.event_type || 'Event';
+}
+
+// "vs Raheny" already says it's a match, so leave the type out to save room for the code tag
+function typeLabel(e) {
+  return isMatch(e) && e.opposition ? null : e.event_type;
+}
+
+function dayTime(iso) {
+  const d = new Date(iso);
+  return `${DOW[d.getDay()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function eventRow(e, title, metaParts, pill) {
+  const d  = new Date(e.event_date_time);
+  const yr = d.getFullYear() !== new Date().getFullYear() ? ` ’${String(d.getFullYear()).slice(2)}` : '';
+  const meta = metaParts.filter(v => v && v !== title).map(esc).join(' · ');
+  const code = !multiCode ? ''
+    : e.event_code ? `<span class="code-tag">${esc(codeLabel(e.event_code))}</span>`
+    : `<span class="code-tag none">No code</span>`;
+  return `
+    <div class="row">
+      <div class="date"><b>${d.getDate()}</b><span>${MON[d.getMonth()]}${yr}</span></div>
+      <div class="grow"><div class="t">${esc(title)}</div>${meta || code ? `<div class="m">${code}${meta}</div>` : ''}</div>
+      ${pill}
+    </div>`;
+}
+
+/* ── PDF export ──────────────────────────────────────────────────────────── */
+let isExporting = false;
+
+function playerName() {
+  const m = rawData.member;
+  return m ? [m.first_name, m.last_name].filter(Boolean).join(' ') : '';
+}
+
+async function exportPdf() {
+  const btn = document.getElementById('pdfBtn');
+  if (btn.disabled) return;
+  if (!window.html2canvas || !window.jspdf) return toast('Still loading, try again in a moment');
+  btn.disabled = true;
+  btn.classList.add('busy');
+  toast('Preparing PDF…', 0);
+  // Let the spinner paint before the heavy canvas work starts
+  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 30)));
+
+  const main = document.getElementById('mainScreen');
+  const name = playerName();
+  const filters = ['code', 'type', 'team'].filter(k => !isDefault(k)).map(filterLabel);
+  const teamLine = isDefault('team')
+    ? [...new Set((rawData.teams || []).map(t => t.team_name))].join(', ')
+    : '';
+  document.getElementById('pdfHead').innerHTML = `
+    <b>${esc(name || 'Player report')}</b>
+    <span>${esc([view.r.label, ...filters, teamLine].filter(Boolean).join(' · '))}</span>
+    ${focus ? `<span style="display:block">Lists show: ${esc(focus.label)}</span>` : ''}`;
+
+  const scroller = document.body, prevScroll = scroller.scrollTop;
+  scroller.scrollTop = 0;
+  isExporting = true;
+  main.classList.add('exporting');
+  renderMatches();
+  renderHistory();
+
+  try {
+    const pdf  = await buildPdf(document.getElementById('report'));
+    const file = `${(name || 'player').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-')}-stats.pdf`;
+    await sharePdf(pdf, file, name ? `${name} – stats` : 'Player stats');
+    hideToast();
+  } catch (e) {
+    toast('Could not create the PDF');
+  } finally {
+    isExporting = false;
+    main.classList.remove('exporting');
+    renderMatches();
+    renderHistory();
+    scroller.scrollTop = prevScroll;
+    btn.disabled = false;
+    btn.classList.remove('busy');
+  }
+}
+
+// Renders the report in page-height slices so long histories don't blow the canvas limit
+async function buildPdf(el) {
+  const { jsPDF } = window.jspdf;
+  const pad = 16, pageH = 1100;
+  const w = el.offsetWidth, h = el.scrollHeight;
+  const top = el.getBoundingClientRect().top;
+  let pdf = null;
+  for (let y = 0; y < h; y += pageH) {
+    const sliceH = Math.min(pageH, h - y);
+    const canvas = await Promise.race([
+      html2canvas(el, { backgroundColor: '#111418', scale: 2, y: top + y, x: 0, width: w, height: sliceH, windowWidth: document.body.clientWidth, logging: false, imageTimeout: 5000 }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 20000))
+    ]);
+    const img = canvas.toDataURL('image/jpeg', 0.9);
+    const pw = w + pad * 2, ph = sliceH + pad * 2;
+    if (!pdf) pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [pw, ph] });
+    else pdf.addPage([pw, ph]);
+    pdf.setFillColor(17, 20, 24);
+    pdf.rect(0, 0, pw, ph, 'F');
+    pdf.addImage(img, 'JPEG', pad, pad, w, sliceH);
+  }
+  return pdf;
+}
+
+async function sharePdf(pdf, filename, title) {
+  const blob = pdf.output('blob');
+  const file = new File([blob], filename, { type: 'application/pdf' });
+  let canShare = false;
+  try { canShare = !!(navigator.canShare && navigator.canShare({ files: [file] })); } catch (_) {}
+  if (canShare) {
+    try {
+      // navigator.share can hang in some WKWebView configs, so cap it
+      await Promise.race([
+        navigator.share({ title, files: [file] }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('ShareTimeout')), 10000))
+      ]);
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 function esc(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+let _toastTimer = null;
+function toast(msg, ms = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(_toastTimer);
+  if (ms) _toastTimer = setTimeout(hideToast, ms);
+}
+function hideToast() { document.getElementById('toast').style.display = 'none'; }
 
 function showError(msg) {
   document.getElementById('loadingScreen').style.display = 'none';

@@ -46,6 +46,8 @@ Rules:
 - If timing is adjusted, redistribute durations so they still sum to total_duration_mins exactly
 - Keep all game_name values exactly as they are (do not rename drills)
 - If the feedback is vague (e.g. "more time on passing"), apply it sensibly
+- Copy every field the feedback does not touch (setup, description, coaching points, variation) word for word
+- If the feedback is limited to one section, change only that section and copy every other section exactly
 - If the request is impossible, set "_refusal" to a short explanation; otherwise "_refusal" must be null
 
 Return ONLY valid JSON matching EXACTLY this schema — no markdown fences, no explanation:
@@ -54,10 +56,10 @@ Return ONLY valid JSON matching EXACTLY this schema — no markdown fences, no e
   "session_objective": "string",
   "total_duration_mins": number,
   "pre_session": null | { "duration_mins": number, "description": "string" },
-  "warm_up": { "duration_mins": number, "description": "string", "coaching_points": ["string"] },
+  "warm_up": null | { "duration_mins": number, "setup": "string | null", "description": "string", "coaching_points": ["string"], "variation": "string | null" },
   "station_setup": null | "string",
-  "drills": [{ "game_name": "string", "duration_mins": number, "description": "string", "coaching_points": ["string"], "variation": "string | null" }],
-  "cool_down": { "duration_mins": number, "description": "string" },
+  "drills": [{ "game_name": "string", "duration_mins": number, "setup": "string | null", "description": "string", "coaching_points": ["string"], "variation": "string | null" }],
+  "cool_down": null | { "duration_mins": number, "setup": "string | null", "description": "string", "coaching_points": ["string"], "variation": "string | null" },
   "post_session": null | { "duration_mins": number, "description": "string" },
   "_refusal": null | "string"
 }`;
@@ -300,6 +302,55 @@ async function countAcceptedAttendees(sb: any, eventId: number, teamId: number, 
   return countMembers(sb, teamId, squadId);
 }
 
+// ── Revision merge ────────────────────────────────────────────────────────────
+// Lays a revised plan from Gemini over the existing one. Fields Gemini leaves
+// out or returns empty (images, videos, setup, counts, weather...) are kept.
+// With a target ("warm_up", "drills.2"...), only that section is taken from the
+// revision and the total is re-added.
+function mergeRevision(oldPlan: any, newPlan: any, target: string | null): any {
+  const PHASES = ["pre_session", "warm_up", "cool_down", "post_session"];
+  const mergePhase = (o: any, n: any) => {
+    if (!o) return n;
+    const out = { ...o };
+    for (const [k, v] of Object.entries(n || {})) {
+      if (v == null || v === "" || (Array.isArray(v) && !v.length)) continue;
+      out[k] = v;
+    }
+    return out;
+  };
+  const oldDrills: any[] = oldPlan.drills || [];
+  const out: any = { ...oldPlan };
+  delete out._refusal;
+
+  if (target) {
+    if (target.startsWith("drills.")) {
+      const i = +target.split(".")[1];
+      const od = oldDrills[i];
+      const nd = (newPlan.drills || []).find((d: any) => d?.game_name === od?.game_name) ?? newPlan.drills?.[i];
+      if (od && nd) out.drills = oldDrills.map((d, j) => j === i ? { ...mergePhase(d, nd), game_name: d.game_name } : d);
+    } else if (PHASES.includes(target) && oldPlan[target] && newPlan[target]) {
+      out[target] = mergePhase(oldPlan[target], newPlan[target]);
+    }
+    out.total_duration_mins = [...PHASES.map(k => out[k]), ...(out.drills || [])]
+      .reduce((t: number, p: any) => t + (Number(p?.duration_mins) || 0), 0) || oldPlan.total_duration_mins;
+    return out;
+  }
+
+  for (const k of ["session_title", "session_objective", "total_duration_mins", "station_setup"]) {
+    if (k in newPlan) out[k] = newPlan[k];
+  }
+  for (const k of PHASES) {
+    if (k in newPlan) out[k] = newPlan[k] == null ? null : mergePhase(oldPlan[k], newPlan[k]);
+  }
+  if (Array.isArray(newPlan.drills)) {
+    out.drills = newPlan.drills.map((nd: any, i: number) => {
+      const od = oldDrills.find(d => d?.game_name === nd?.game_name) ?? null;
+      return od ? mergePhase(od, nd) : nd;
+    });
+  }
+  return out;
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -326,7 +377,7 @@ serve(async (req) => {
       });
       const [{ data: game, error: gameErr }, { data: noteRow }] = await Promise.all([
         sb.from("games")
-          .select("game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points, game_details_image")
+          .select("game_id, game_name, game_image, game_setup, game_how_to_play, game_variations, game_teaching_points, game_details_image, game_code, game_type, game_age")
           .eq("game_id", game_id)
           .single(),
         sb.from("game_coach_notes")
@@ -470,7 +521,7 @@ serve(async (req) => {
       const [planResult, favResult] = await Promise.all([
         planPromise,
         sb.from("user_game_link")
-          .select("position, games!inner(game_id, game_name, game_image, game_code)")
+          .select("position, games!inner(game_id, game_name, game_image, game_code, game_type, game_age, game_video)")
           .eq("user_id", user_id)
           .order("position"),
       ]);
@@ -491,6 +542,9 @@ serve(async (req) => {
         game_name:  f.games.game_name,
         game_image: f.games.game_image || null,
         game_code:  f.games.game_code  || [],
+        game_type:  f.games.game_type  || [],
+        game_age:   f.games.game_age   || [],
+        has_video:  !!f.games.game_video?.trim(),
         position:   f.position,
       }));
 
@@ -811,29 +865,36 @@ serve(async (req) => {
         if (plan.pre_session) {
           sections.push(`Pre-session (${plan.pre_session.duration_mins} mins):\n${plan.pre_session.description}`);
         }
-        const wu = plan.warm_up;
-        if (wu) {
-          const pts = (wu.coaching_points || []).map((p: string) => `• ${p}`).join('\n');
-          sections.push(`Warm-up (${wu.duration_mins} mins):\n${wu.description}${pts ? '\nCoaching points:\n' + pts : ''}`);
-        }
+        const phaseText = (label: string, p: any) => {
+          let s = `${label} (${p.duration_mins} mins):`;
+          if (p.setup) s += `\nSetup: ${p.setup}`;
+          s += `\n${p.description}`;
+          const pts = (p.coaching_points || []).map((x: string) => `• ${x}`).join('\n');
+          if (pts) s += `\nCoaching points:\n${pts}`;
+          if (p.variation) s += `\nVariation: ${p.variation}`;
+          return s;
+        };
+        if (plan.warm_up) sections.push(phaseText(`Warm-up${plan.warm_up.game_name ? ': ' + plan.warm_up.game_name : ''}`, plan.warm_up));
         if (plan.station_setup) sections.push(`Station setup: ${plan.station_setup}`);
         for (let i = 0; i < (plan.drills || []).length; i++) {
           const d = plan.drills[i];
-          const pts = (d.coaching_points || []).map((p: string) => `• ${p}`).join('\n');
-          let s = `Drill ${i + 1}: ${d.game_name} (${d.duration_mins} mins):\n${d.description}`;
-          if (pts) s += `\nCoaching points:\n${pts}`;
-          if (d.variation) s += `\nVariation: ${d.variation}`;
-          sections.push(s);
+          sections.push(phaseText(`Drill ${i + 1}: ${d.game_name}`, d));
         }
-        const cd = plan.cool_down;
-        if (cd) sections.push(`Cool-down (${cd.duration_mins} mins):\n${cd.description}`);
+        if (plan.cool_down) sections.push(phaseText(`Cool-down${plan.cool_down.game_name ? ': ' + plan.cool_down.game_name : ''}`, plan.cool_down));
         if (plan.post_session) {
           sections.push(`Post-session (${plan.post_session.duration_mins} mins):\n${plan.post_session.description}`);
         }
         return sections.join('\n\n');
       }
 
-      const inputText = buildPlanText(existing_plan) + `\n\nCoach feedback: ${feedback.trim()}`;
+      // target: one section to change ("warm_up", "drills.2", ...). Everything else is kept as is.
+      const target: string | null = typeof body.target === "string" ? body.target : null;
+      const targetLabel = !target ? null
+        : target.startsWith("drills.") ? `Drill ${+target.split(".")[1] + 1}: ${existing_plan.drills?.[+target.split(".")[1]]?.game_name ?? ""}`
+        : ({ warm_up: "Warm-up", cool_down: "Cool-down", pre_session: "Pre-session", post_session: "Post-session" } as Record<string, string>)[target] ?? null;
+      const inputText = buildPlanText(existing_plan) + (targetLabel
+        ? `\n\nCoach feedback, for the "${targetLabel}" section ONLY (copy every other section exactly): ${feedback.trim()}`
+        : `\n\nCoach feedback: ${feedback.trim()}`);
 
       let planJson: any;
       try {
@@ -866,25 +927,13 @@ serve(async (req) => {
         if (g?.game_name) imgByName[g.game_name] = g.game_image ?? null;
       }
 
-      for (const drill of (planJson.drills || [])) {
-        if (drill.game_name in imgByName) drill.game_image = imgByName[drill.game_name];
-      }
-      if (planJson.warm_up?.game_name in imgByName) planJson.warm_up.game_image = imgByName[planJson.warm_up.game_name];
-      if (planJson.cool_down?.game_name in imgByName) planJson.cool_down.game_image = imgByName[planJson.cool_down.game_name];
+      // Gemini only returns the text fields. Lay its answer over the existing
+      // plan so images, videos, setup, counts, weather and the session image
+      // survive the revision.
+      planJson = mergeRevision(existing_plan, planJson, target);
 
-      // Gemini doesn't output game_name / game_image / game_video for warm_up or cool_down.
-      // Inherit them from existing_plan so they survive revisions.
-      if (planJson.warm_up && (existing_plan as any)?.warm_up) {
-        const ep = (existing_plan as any).warm_up;
-        if (planJson.warm_up.game_name  == null) planJson.warm_up.game_name  = ep.game_name  ?? null;
-        if (planJson.warm_up.game_image == null) planJson.warm_up.game_image = ep.game_image ?? null;
-        if (planJson.warm_up.game_video == null) planJson.warm_up.game_video = ep.game_video ?? null;
-      }
-      if (planJson.cool_down && (existing_plan as any)?.cool_down) {
-        const ep = (existing_plan as any).cool_down;
-        if (planJson.cool_down.game_name  == null) planJson.cool_down.game_name  = ep.game_name  ?? null;
-        if (planJson.cool_down.game_image == null) planJson.cool_down.game_image = ep.game_image ?? null;
-        if (planJson.cool_down.game_video == null) planJson.cool_down.game_video = ep.game_video ?? null;
+      for (const drill of (planJson.drills || [])) {
+        if (drill.game_image == null && drill.game_name in imgByName) drill.game_image = imgByName[drill.game_name];
       }
 
       const sessionTitle: string = planJson.session_title || "Training Session";
@@ -948,9 +997,11 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
       const isNotes = context === "session_notes";
+      // Voice feedback often asks for several changes at once; keep them all.
+      const target = context === "game_feedback" ? "the draft of a training game" : "their training session plan";
       const sysPrompt = isNotes
         ? `You are a GAA coaching assistant. A coach has spoken session notes via voice. Preserve EVERY specific instruction they mentioned — do not summarise, merge, or omit any requirement. Remove only filler words and speech artefacts. Do not add any information the coach did not say. Return ONLY valid JSON: {"interpreted": "<full clear paraphrase with all instructions intact>"}`
-        : `You are a GAA coaching assistant. A coach has spoken an instruction to revise their training session plan. Return ONLY valid JSON: {"interpreted": "single clear specific instruction, removing filler words and speech artefacts"}. Do not add any information the coach did not say.`;
+        : `You are a GAA coaching assistant. A coach has spoken instructions to revise ${target}. Preserve EVERY change they asked for — do not summarise, merge, or drop any request, number, name or detail. Remove only filler words and speech artefacts, and fix obvious mis-hearings of GAA terms. If there is one change, write it as one clear sentence; if there are several, write each on its own line starting with "- ". Do not add any information the coach did not say. Return ONLY valid JSON: {"interpreted": "<the coach's requested changes, all intact>"}`;
       try {
         const raw = await callGemini(apiKey, sysPrompt, [{ text: `Coach said: "${transcript.trim()}"` }]);
         let interpreted: string;

@@ -60,11 +60,16 @@ Deno.serve(async (req)=>{
         const isBatch = notes.length > 1;
         const displayTitle = notes[0].push_title;
         const displayBody = isBatch ? `You have ${notes.length} new updates from ${notes[0].push_title}.` : notes[0].push_body;
+        // Newest first, so a tap on a batched push opens the latest item
+        notes.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
         const latestNote = notes[0];
-        const nativeLinkPage = latestNote.link_page ?? '';
-        // Parse eventID from link_page for FlutterFlow's parameterData
-        const eventIdMatch = nativeLinkPage.match(/eventID=(\d+)/);
-        const eventId = eventIdMatch ? eventIdMatch[1] : '';
+        const eventIdNum = noteEventId(latestNote);
+        const eventId = eventIdNum ? String(eventIdNum) : '';
+        // The app opens EventDetails from an eventID in link_page. Since link_page
+        // became a route name ('Notifications'), rebuild the deep link from event_id.
+        const nativeLinkPage = eventId
+          ? `coachsmartv2://coachsmartv2.com/eventDetails?eventID=${eventId}&fromSearch=false`
+          : (latestNote.link_page ?? '');
         console.log(`📱 Native link: ${nativeLinkPage} | eventId: ${eventId}`);
         try {
           const fcmMessage = {
@@ -167,7 +172,7 @@ Deno.serve(async (req)=>{
       const eventIds = [
         ...new Set(
           validEmailNotes
-            .map((n) => { const m = n.link_page?.match(/eventID=(\d+)/); return m ? parseInt(m[1]) : null; })
+            .map((n) => noteEventId(n))
             .filter(Boolean)
         ),
       ];
@@ -205,8 +210,7 @@ Deno.serve(async (req)=>{
         const title = n.app_title || 'Notification';
         const body = n.app_body || '';
 
-        const eventIdMatch = n.link_page?.match(/eventID=(\d+)/);
-        const eventIdNum = eventIdMatch ? parseInt(eventIdMatch[1]) : null;
+        const eventIdNum = noteEventId(n);
         const eventData = eventIdNum ? eventDataMap.get(eventIdNum) : null;
 
         // Detect notification type from title to choose badge and intro phrasing
@@ -341,6 +345,12 @@ Deno.serve(async (req)=>{
 // ---------------------------------------------------------------------------
 // HELPERS
 // ---------------------------------------------------------------------------
+// Event id from the event_id column, falling back to an eventID= deep link
+function noteEventId(n): number | null {
+  if (n.event_id) return Number(n.event_id);
+  const m = n.link_page?.match(/eventID=(\d+)/);
+  return m ? parseInt(m[1]) : null;
+}
 function groupBy(arr, key) {
   return arr.reduce((acc, obj)=>{
     const k = obj[key];
