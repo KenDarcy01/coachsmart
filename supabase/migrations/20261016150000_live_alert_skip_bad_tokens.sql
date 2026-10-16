@@ -1,10 +1,9 @@
--- Live match alerts: the scorer gets alerts when they follow the match
+-- Live match alerts: skip push tokens that can't be FCM tokens
 --
--- Ken (2026-10-16) chose "Only if following": the person keeping score is
--- still left out of their team's default alerts, but gets alerts when they
--- have followed that match themselves (so one phone can be used to test).
--- Also skips stored tokens that can't be FCM tokens (too short or with
--- spaces), which FCM rejects as "not a valid FCM registration token".
+-- Some users.fcm_token values are too short or contain spaces, and FCM
+-- rejects them as "not a valid FCM registration token". Skip them.
+-- The person keeping score stays left out of that match's alerts
+-- (Ken, 2026-10-16: "Never").
 
 CREATE OR REPLACE FUNCTION public.lm_alert_targets(p_event_id bigint, p_scorer uuid)
 RETURNS TABLE (user_id uuid, level text, kickoff boolean, names boolean, fcm_token text)
@@ -29,8 +28,7 @@ AS $$
     SELECT ev.user_id,
            COALESCE(fe.level,   CASE WHEN tu.user_id IS NOT NULL THEN COALESCE(fd.level, 'result') ELSE 'off' END) AS level,
            COALESCE(fe.kickoff, fd.kickoff, true) AS kickoff,
-           COALESCE(fe.names,   fd.names,   true) AS names,
-           fe.user_id IS NOT NULL AS follows_match
+           COALESCE(fe.names,   fd.names,   true) AS names
       FROM everyone ev
       LEFT JOIN team_users tu ON tu.user_id = ev.user_id
       LEFT JOIN public.live_follows fe ON fe.user_id = ev.user_id AND fe.event_id = p_event_id
@@ -40,7 +38,7 @@ AS $$
     FROM resolved r
     JOIN public.users u ON u.user_id = r.user_id
    WHERE r.level <> 'off'
-     AND (r.user_id IS DISTINCT FROM p_scorer OR r.follows_match)
+     AND r.user_id IS DISTINCT FROM p_scorer
      AND length(COALESCE(u.fcm_token, '')) >= 100
      AND u.fcm_token !~ '\s';
 $$;
