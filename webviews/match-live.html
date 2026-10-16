@@ -382,7 +382,10 @@ async function share() {
 // ── Start ──────────────────────────────────────────────────────────────────
 let pulse = null;
 if (!EVENT_ID && !SHARE) {
-  $('main').innerHTML = '<div class="empty">No match was given.</div>';
+  // Opened from the menu with no match: show the Matches list instead
+  const p = new URLSearchParams(location.search);
+  ['event_id', 'eventId', 'eventID', 'from'].forEach(k => p.delete(k));
+  location.replace('matches.html' + (p.toString() ? '?' + p.toString() : ''));
 } else {
   pulse = L.listen(EVENT_ID ? [EVENT_ID] : [], load, { fast: 6000, slow: 20000 });
   load();
