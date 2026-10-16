@@ -967,6 +967,7 @@ function render() {
   if (ph !== 'setup' && ph !== 'play') renderPhase();
   renderRecent();
   renderFoot();
+  syncAudio();
 }
 
 function boardHtml(tag) {
@@ -1009,6 +1010,7 @@ function renderClock() {
 function renderMode() {
   $('modeSeg').classList.toggle('hidden', !voiceAllowed);
   if (!voiceAllowed) mode = 'tap';
+  syncAudio();
   document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
   $('tapPad').classList.toggle('hidden', mode !== 'tap');
   $('voicePad').classList.toggle('hidden', mode !== 'voice');
@@ -1738,44 +1740,125 @@ let lastBy = '';
 function renderAiTog() {
   const el = $('aiTog');
   el.classList.toggle('off', !aiWanted || !aiVoice);
-  el.innerHTML = !aiVoice ? 'AI reading: <b>not on for this account</b>' : `AI reading: <b>${aiWanted ? 'On' : 'Off'}</b> · tap to switch`;
+  el.innerHTML = !aiVoice ? 'AI reading: <b>not on for this account</b>'
+    : `AI ${audioState === 'on' ? 'listening' : 'reading'}: <b>${aiWanted ? 'On' : 'Off'}</b> · tap to switch`;
 }
 $('aiTog').addEventListener('click', () => {
-  aiWanted = !aiWanted; store.set('sk2ai', aiWanted ? 'on' : 'off'); renderAiTog();
+  aiWanted = !aiWanted; store.set('sk2ai', aiWanted ? 'on' : 'off'); syncAudio(); renderAiTog();
   toast(aiWanted ? 'AI reading on: Gemini works out what you meant' : 'AI reading off: the phone reads your words on its own');
 });
 async function aiParse(text) {
   if (!aiWanted || !aiVoice || navigator.onLine === false) return null;
-  const ctx = voiceCtx();
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 4000);
   try {
-    const tok = await freshToken(false);
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/score-voice`, {
-      method: 'POST', signal: ctl.signal,
-      headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_id: EVENT_ID, text, us: usName(), opp: oppName(), aliases: ctx.aliases,
-        types: types().map(t => ({ id: t.id, name: t.score_type, value: t.score_value })),
-        players: ctx.players.map(p => ({ id: p.member_id, name: `${p.first_name} ${p.last_name}`.trim(), number: p.number })),
-      }),
-    });
-    if (r.status === 403) { aiVoice = false; renderAiTog(); return null; }   // no AI on this account: on-phone only
-    if (!r.ok) return null;
-    const d = await r.json();
-    return {
-      items: (d.items || []).map(it => it.kind === 'sub'
-        ? { kind: 'sub', onId: it.on_id, offId: it.off_id, onHeard: memberName(it.on_id), offHeard: memberName(it.off_id) }
-        : { kind: 'score', typeId: it.type_id, typeName: (typeById(it.type_id) || {}).score_type, count: it.count || 1, side: it.side,
-            memberId: it.unsure ? null : it.member_id, heard: it.heard || '', ask: it.unsure ? [it.member_id] : null }),
-      unknown: d.unknown || [],
-    };
+    const d = await voiceRequest({ text }, ctl.signal);
+    return d && mapAi(d);
   } catch (_) {
     return null;
   } finally {
     clearTimeout(timer);
   }
 }
+async function voiceRequest(extra, signal) {
+  const ctx = voiceCtx();
+  const tok = await freshToken(false);
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/score-voice`, {
+    method: 'POST', signal,
+    headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({
+      event_id: EVENT_ID, us: usName(), opp: oppName(), aliases: ctx.aliases,
+      types: types().map(t => ({ id: t.id, name: t.score_type, value: t.score_value })),
+      players: ctx.players.map(p => ({ id: p.member_id, name: `${p.first_name} ${p.last_name}`.trim(), number: p.number })),
+    }, extra)),
+  });
+  if (r.status === 403) { aiVoice = false; renderAiTog(); return null; }   // no AI on this account: on-phone only
+  if (!r.ok) return null;
+  return r.json();
+}
+function mapAi(d) {
+  return {
+    items: (d.items || []).map(it => it.kind === 'sub'
+      ? { kind: 'sub', onId: it.on_id, offId: it.off_id, onHeard: memberName(it.on_id), offHeard: memberName(it.off_id) }
+      : { kind: 'score', typeId: it.type_id, typeName: (typeById(it.type_id) || {}).score_type, count: it.count || 1, side: it.side,
+          memberId: it.unsure ? null : it.member_id, heard: it.heard || '', ask: it.unsure ? [it.member_id] : null }),
+    unknown: d.unknown || [],
+    transcript: d.transcript || '',
+  };
+}
+
+// ── Always-on mic (app builds with audioArm): Gemini listens to the clip ─────
+// The app keeps the mic open while Voice is showing, so a press is instant and
+// a short lead-in catches the first word. Older app builds never answer
+// audioArm, and the phone's dictation is used as before.
+let audioState = 'off';   // off | arming | on | none (this app build can't)
+let audioPress = null;    // { at } while held
+function wantAudio() {
+  return !!bridge() && voiceAllowed && aiWanted && aiVoice && mode === 'voice' && S && S.phase === 'play' && view === 'score' && !document.hidden;
+}
+function syncAudio() {
+  if (audioState === 'none') return;
+  const want = wantAudio();
+  if (want && audioState === 'off') {
+    audioState = 'arming'; post('audioArm');
+    setTimeout(() => { if (audioState === 'arming') audioState = 'none'; }, 4000);
+  } else if (!want && (audioState === 'on' || audioState === 'arming')) {
+    audioState = 'off'; post('audioDisarm');
+  }
+  $('voicePad').classList.toggle('hot', audioState === 'on');
+}
+window.onAudioArmed = (ok) => {
+  if (audioState !== 'arming' && audioState !== 'on') return;
+  audioState = ok ? 'on' : 'none';
+  if (!ok) toast("Couldn't keep the mic open, so it starts on each press instead");
+  syncAudio(); renderAiTog();
+};
+document.addEventListener('visibilitychange', () => syncAudio());
+// Capture phase on the pad: when the always-on mic is live, it handles the
+// press instead of the dictation mic.
+(function bindAudioMic() {
+  const pad = $('voicePad'), btn = $('micBtn');
+  const down = e => {
+    if (audioState !== 'on' || !e.target.closest('#micBtn')) return;
+    e.stopPropagation(); e.preventDefault();
+    if (audioPress) return;
+    if (!started()) { notStarted(); return; }
+    audioPress = { at: nowStamp() };
+    post('audioStart');
+    btn.classList.add('recording'); pad.classList.add('rec');
+    $('micHeard').textContent = '';
+    $('micInstr').textContent = 'Listening… release when done';
+    buzz(10);
+  };
+  const up = e => {
+    if (!audioPress || audioState !== 'on') return;
+    e.stopPropagation();
+    const p = audioPress; audioPress = null;
+    btn.classList.remove('recording'); pad.classList.remove('rec');
+    $('micInstr').textContent = 'Working it out…';
+    pendingAudio.push(p);
+    post('audioStop');
+  };
+  pad.addEventListener('pointerdown', down, true);
+  pad.addEventListener('pointerup', up, true);
+  pad.addEventListener('pointercancel', up, true);
+})();
+const pendingAudio = [];
+window.onVoiceAudio = async (b64) => {
+  const p = pendingAudio.shift();
+  const idle = () => { $('micInstr').textContent = 'Hold and say what happened'; };
+  if (!p) return;
+  if (!b64) { idle(); toast('Too short. Hold the mic while you talk.'); return; }
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 9000);
+  let d = null;
+  try { d = await voiceRequest({ audio: b64 }, ctl.signal); } catch (_) {} finally { clearTimeout(timer); }
+  idle();
+  if (!d) { toast(navigator.onLine === false ? 'No signal for voice. Use Tap for now.' : "Couldn't make that out. Try again."); return; }
+  const res = mapAi(d);
+  lastBy = 'AI (listening)';
+  applyVoice(res, res.transcript || '…', p.at);
+};
 
 async function handleVoice(text, at) {
   at = at || nowStamp();
@@ -1785,7 +1868,9 @@ async function handleVoice(text, at) {
   $('micHeard').textContent = `"${text}" · working it out…`;
   const ai = await aiParse(text);
   lastBy = ai ? 'AI' : 'phone';
-  const res = ai || CSScoreVoice.parse(text, voiceCtx());
+  applyVoice(ai || CSScoreVoice.parse(text, voiceCtx()), text, at);
+}
+function applyVoice(res, text, at) {
   vheard = text;
   const now = Date.now();
   const cards = [];

@@ -7,10 +7,13 @@
 // The page falls back to its own on-phone reader (cs-score-voice.js) when
 // this fails, is slow, or there is no signal.
 //
-// POST { event_id, text, us, opp, types:[{id,name,value}],
+// POST { event_id, text | audio, us, opp, types:[{id,name,value}],
 //        players:[{id,name,number}], aliases:{spoken:member_id} }
 //   → { items:[{kind:'score', type_id, side, member_id, unsure, heard, count}
-//              |{kind:'sub', on_id, off_id}], unknown:[string] }
+//              |{kind:'sub', on_id, off_id}], unknown:[string], transcript }
+// audio: a short WAV clip (base64) from the app's always-on mic. Gemini
+// listens to it directly, knowing the player names to expect, instead of
+// relying on the phone's dictation.
 //
 // Needs the caller's JWT, membership of the event's team and users.ai_features.
 // Requires GEMINI_API_KEY; GEMINI_MODEL is optional (same secrets as ai-match-report).
@@ -49,8 +52,12 @@ Rules:
 - Use only ids from the lists. Never invent a player or stat type.
 - Anything you cannot turn into a command goes in unknown as the original words.
 
+When you get an audio clip instead of words, listen to it yourself: expect the stat names and the
+player names and numbers in the lists, said quickly by an Irish coach, often with crowd or wind noise.
+Put what you heard in transcript.
+
 Return ONLY JSON:
-{"items":[{"kind":"score","type_id":1,"side":"us","member_id":5,"unsure":false,"heard":"ciaran","count":1},
+{"transcript":"point ciarán","items":[{"kind":"score","type_id":1,"side":"us","member_id":5,"unsure":false,"heard":"ciaran","count":1},
           {"kind":"sub","on_id":7,"off_id":3}],
  "unknown":[]}`;
 
@@ -61,7 +68,8 @@ serve(async (req) => {
     const body = await req.json();
     const eventId = Number(body.event_id);
     const text = typeof body.text === "string" ? body.text.trim().slice(0, 400) : "";
-    if (!eventId || !text) return json({ error: "event_id and text required" }, 400);
+    const audio = typeof body.audio === "string" && body.audio.length < 1_500_000 ? body.audio : "";
+    if (!eventId || (!text && !audio)) return json({ error: "event_id and text or audio required" }, 400);
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -101,7 +109,7 @@ serve(async (req) => {
       `Stat types: ${JSON.stringify(types)}`,
       `Our players: ${JSON.stringify(players)}`,
       aliases.length ? `Known names (spoken words this coach used before for a player): ${JSON.stringify(aliases)}` : "",
-      `Spoken: "${text}"`,
+      audio ? "Spoken: (the audio clip)" : `Spoken: "${text}"`,
     ].filter(Boolean).join("\n");
 
     // Thinking off for speed; models that can't turn it off get asked without it.
@@ -110,7 +118,9 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: PROMPT }] },
-        contents: [{ parts: [{ text: userText }] }],
+        contents: [{ parts: audio
+          ? [{ inline_data: { mime_type: "audio/wav", data: audio } }, { text: userText }]
+          : [{ text: userText }] }],
         generationConfig: Object.assign(
           { maxOutputTokens: 2048, temperature: 0, responseMimeType: "application/json" },
           fast ? { thinkingConfig: { thinkingBudget: 0 } } : {},
@@ -146,7 +156,8 @@ serve(async (req) => {
       }];
     });
     const unknown = (Array.isArray(out.unknown) ? out.unknown : []).map((u: any) => String(u).slice(0, 80)).slice(0, 5);
-    return json({ items, unknown });
+    const transcript = typeof out.transcript === "string" ? out.transcript.slice(0, 200) : text;
+    return json({ items, unknown, transcript });
   } catch (e) {
     console.error("score-voice", e);
     return json({ error: "Something went wrong" }, 500);
