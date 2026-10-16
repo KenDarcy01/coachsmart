@@ -145,7 +145,7 @@ class _NativeWebViewState extends State<NativeWebView>
   int? _audioMark;
   static const _rate = 16000; // 16 kHz mono 16-bit = 32,000 bytes a second
   static const _bytesPerSec = _rate * 2;
-  static const _leadIn = _bytesPerSec * 2 ~/ 5; // 0.4 s before the press
+  static const _leadIn = _bytesPerSec * 7 ~/ 10; // 0.7 s before the press
   static const _keep = _bytesPerSec * 30; // hold at most 30 s
 
   Future<void> _audioArm() async {
@@ -214,8 +214,8 @@ class _NativeWebViewState extends State<NativeWebView>
       _js('window.onVoiceAudio && window.onVoiceAudio(null)');
       return;
     }
-    // A short tail so the last word isn't cut
-    await Future.delayed(const Duration(milliseconds: 300));
+    // A tail so the last word isn't cut (people let go as they finish)
+    await Future.delayed(const Duration(milliseconds: 700));
     _audioMark = null;
     final from = (mark - _audioDropped).clamp(0, _audioBuf.length).toInt();
     var pcm = _audioBuf.sublist(from);
