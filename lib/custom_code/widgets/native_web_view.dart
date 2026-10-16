@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +23,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:record/record.dart';
 import 'package:universal_html/html.dart' as html;
 
 class NativeWebView extends StatefulWidget {
@@ -125,9 +127,133 @@ class _NativeWebViewState extends State<NativeWebView>
     // microphone permission on pages that don't need it.
   }
 
+  // ── Always-on mic for the score keeper (audio sent to Gemini) ──────────────
+  // audioArm: open the mic once and keep listening, holding the last few
+  //   seconds in memory, so a press is instant. Replies onAudioArmed(true|false).
+  // audioStart: the coach pressed the mic. Marks the spot, minus a short
+  //   lead-in so the first word is never clipped.
+  // audioStop: the coach let go. Sends the clip to the page as a WAV
+  //   (base64) via onVoiceAudio. Nothing is kept or sent otherwise.
+  // audioDisarm: close the mic (also when the app goes to the background).
+  AudioRecorder? _rec;
+  StreamSubscription<Uint8List>? _recSub;
+  bool _audioWanted = false;
+  bool _audioLive = false;
+  bool _audioArming = false;
+  final List<int> _audioBuf = [];
+  int _audioDropped = 0; // bytes trimmed off the front of _audioBuf
+  int? _audioMark;
+  static const _rate = 16000; // 16 kHz mono 16-bit = 32,000 bytes a second
+  static const _bytesPerSec = _rate * 2;
+  static const _leadIn = _bytesPerSec * 2 ~/ 5; // 0.4 s before the press
+  static const _keep = _bytesPerSec * 30; // hold at most 30 s
+
+  Future<void> _audioArm() async {
+    _audioWanted = true;
+    if (_audioLive) {
+      _js('window.onAudioArmed && window.onAudioArmed(true)');
+      return;
+    }
+    if (_audioArming) return; // the call already under way will answer
+    _audioArming = true;
+    try {
+      _rec ??= AudioRecorder();
+      if (!await _rec!.hasPermission()) {
+        _js('window.onAudioArmed && window.onAudioArmed(false, "permission")');
+        return;
+      }
+      // speech_to_text can't share the mic
+      if (_speech.isListening) {
+        try { await _speech.cancel(); } catch (_) {}
+      }
+      final stream = await _rec!.startStream(const RecordConfig(
+        encoder: AudioEncoder.pcm16bits, sampleRate: _rate, numChannels: 1));
+      _audioBuf.clear();
+      _audioDropped = 0;
+      _audioMark = null;
+      _recSub = stream.listen((data) {
+        _audioBuf.addAll(data);
+        final over = _audioBuf.length - _keep;
+        // Don't trim past a press in progress
+        if (over > _bytesPerSec && _audioMark == null) {
+          _audioBuf.removeRange(0, over);
+          _audioDropped += over;
+        }
+      });
+      _audioLive = true;
+      if (!_audioWanted) { await _audioDisarm(); return; }
+      _js('window.onAudioArmed && window.onAudioArmed(true)');
+    } catch (_) {
+      _audioLive = false;
+      _js('window.onAudioArmed && window.onAudioArmed(false)');
+    } finally {
+      _audioArming = false;
+    }
+  }
+
+  Future<void> _audioDisarm({bool keepWanted = false}) async {
+    if (!keepWanted) _audioWanted = false;
+    _audioMark = null;
+    final sub = _recSub;
+    _recSub = null;
+    _audioLive = false;
+    try { await sub?.cancel(); } catch (_) {}
+    try { await _rec?.stop(); } catch (_) {}
+    _audioBuf.clear();
+  }
+
+  void _audioStart() {
+    if (!_audioLive) return;
+    final at = _audioDropped + _audioBuf.length - _leadIn;
+    _audioMark = at < _audioDropped ? _audioDropped : at;
+  }
+
+  Future<void> _audioStop() async {
+    final mark = _audioMark;
+    if (mark == null || !_audioLive) {
+      _js('window.onVoiceAudio && window.onVoiceAudio(null)');
+      return;
+    }
+    // A short tail so the last word isn't cut
+    await Future.delayed(const Duration(milliseconds: 300));
+    _audioMark = null;
+    final from = (mark - _audioDropped).clamp(0, _audioBuf.length).toInt();
+    var pcm = _audioBuf.sublist(from);
+    if (pcm.length.isOdd) pcm = pcm.sublist(0, pcm.length - 1);
+    if (pcm.length < _bytesPerSec ~/ 4) {
+      _js('window.onVoiceAudio && window.onVoiceAudio(null)');
+      return;
+    }
+    _js('window.onVoiceAudio && window.onVoiceAudio(${jsonEncode(base64Encode(_wav(pcm)))})');
+  }
+
+  Uint8List _wav(List<int> pcm) {
+    final h = ByteData(44);
+    void str(int o, String v) { for (var i = 0; i < 4; i++) { h.setUint8(o + i, v.codeUnitAt(i)); } }
+    str(0, 'RIFF');
+    h.setUint32(4, 36 + pcm.length, Endian.little);
+    str(8, 'WAVE');
+    str(12, 'fmt ');
+    h.setUint32(16, 16, Endian.little);
+    h.setUint16(20, 1, Endian.little);
+    h.setUint16(22, 1, Endian.little);
+    h.setUint32(24, _rate, Endian.little);
+    h.setUint32(28, _bytesPerSec, Endian.little);
+    h.setUint16(32, 2, Endian.little);
+    h.setUint16(34, 16, Endian.little);
+    str(36, 'data');
+    h.setUint32(40, pcm.length, Endian.little);
+    final out = Uint8List(44 + pcm.length);
+    out.setRange(0, 44, h.buffer.asUint8List());
+    out.setRange(44, out.length, pcm);
+    return out;
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _audioDisarm();
+    try { _rec?.dispose(); } catch (_) {}
     if (_keepAwake) {
       try { WakelockPlus.disable(); } catch (_) {}
     }
@@ -357,6 +483,8 @@ class _NativeWebViewState extends State<NativeWebView>
       }
       return;
     }
+    // The always-on mic and speech recognition can't share the microphone
+    if (_audioLive) await _audioDisarm(keepWanted: true);
     // Abandon any earlier recording (e.g. the warm-up) without sending
     // anything for it.
     _resetRecording();
@@ -404,6 +532,7 @@ class _NativeWebViewState extends State<NativeWebView>
     _commitCurrent();
     final words = _committed;
     _resetRecording();
+    if (_audioWanted && !_audioLive) _audioArm();
     if (fid == _warmupField) return;
     if (words.isNotEmpty) {
       _js('window.receiveSpeechResult(${jsonEncode(fid)}, ${jsonEncode(words)})');
@@ -422,6 +551,10 @@ class _NativeWebViewState extends State<NativeWebView>
     if (state == AppLifecycleState.resumed) {
       _checkAndReloadIfDead();
       if (_keepAwake) _setKeepAwake(true);
+      if (_audioWanted && !_audioLive) _audioArm();
+    } else if (state == AppLifecycleState.paused) {
+      // Never listen in the background
+      if (_audioLive) _audioDisarm(keepWanted: true);
     }
   }
 
@@ -491,6 +624,10 @@ class _NativeWebViewState extends State<NativeWebView>
               _setKeepAwake(message == 'keepAwake:on');
               return;
             }
+            if (message == 'audioArm') { _audioArm(); return; }
+            if (message == 'audioDisarm') { _audioDisarm(); return; }
+            if (message == 'audioStart') { _audioStart(); return; }
+            if (message == 'audioStop') { _audioStop(); return; }
             if (message == 'getToken') {
               _sendToken();
               return;
