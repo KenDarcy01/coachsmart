@@ -158,7 +158,7 @@ serve(async (req) => {
     const types = (Array.isArray(body.types) ? body.types : []).slice(0, 40)
       .map((t: any) => ({ id: Number(t.id), name: String(t.name || "").slice(0, 40), value: t.value == null ? null : Number(t.value) }))
       .filter((t: any) => t.id && t.name);
-    const players = (Array.isArray(body.players) ? body.players : []).slice(0, 80)
+    const players = (Array.isArray(body.players) ? body.players : []).slice(0, 150)
       .map((p: any) => ({ id: Number(p.id), name: String(p.name || "").slice(0, 60), number: p.number == null ? null : Number(p.number) }))
       .filter((p: any) => p.id && p.name);
     const aliases = Object.entries(body.aliases && typeof body.aliases === "object" ? body.aliases : {}).slice(0, 80)
