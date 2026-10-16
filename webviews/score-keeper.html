@@ -1717,12 +1717,49 @@ function rememberName(heard, mem) {
   store.set(ALIAS_KEY(), al);
 }
 
-function handleVoice(text, at) {
+// Gemini reads what was heard (forgives misheard words); the on-phone reader is
+// the fallback with no signal, no AI access, or a slow answer.
+let aiVoice = true;
+async function aiParse(text) {
+  if (!aiVoice || navigator.onLine === false) return null;
+  const ctx = voiceCtx();
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 4000);
+  try {
+    const tok = await freshToken(false);
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/score-voice`, {
+      method: 'POST', signal: ctl.signal,
+      headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id: EVENT_ID, text, us: usName(), opp: oppName(), aliases: ctx.aliases,
+        types: types().map(t => ({ id: t.id, name: t.score_type, value: t.score_value })),
+        players: ctx.players.map(p => ({ id: p.member_id, name: `${p.first_name} ${p.last_name}`.trim(), number: p.number })),
+      }),
+    });
+    if (r.status === 403) { aiVoice = false; return null; }   // no AI on this account: on-phone only
+    if (!r.ok) return null;
+    const d = await r.json();
+    return {
+      items: (d.items || []).map(it => it.kind === 'sub'
+        ? { kind: 'sub', onId: it.on_id, offId: it.off_id, onHeard: memberName(it.on_id), offHeard: memberName(it.off_id) }
+        : { kind: 'score', typeId: it.type_id, typeName: (typeById(it.type_id) || {}).score_type, count: it.count || 1, side: it.side,
+            memberId: it.unsure ? null : it.member_id, heard: it.heard || '', ask: it.unsure ? [it.member_id] : null }),
+      unknown: d.unknown || [],
+    };
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function handleVoice(text, at) {
   at = at || nowStamp();
   text = (text || '').trim();
   if (!text) { toast("Didn't hear anything. Hold the mic while you talk."); return; }
   if (!started()) return notStarted();
-  const res = CSScoreVoice.parse(text, voiceCtx());
+  $('micHeard').textContent = `"${text}" · working it out…`;
+  const res = (await aiParse(text)) || CSScoreVoice.parse(text, voiceCtx());
   vheard = text;
   const now = Date.now();
   const cards = [];
@@ -1741,7 +1778,7 @@ function handleVoice(text, at) {
     // name goes to the best guess (remembered for next time) with a "?" on the card.
     const side = it.side || 'us';
     let mem = side === 'us' ? it.memberId || null : null, guess = false;
-    if (side === 'us' && !mem && it.heard && it.ask && it.ask.length) {
+    if (side === 'us' && !mem && it.ask && it.ask.length) {
       mem = it.ask[0]; guess = true;
       rememberName(it.heard, mem);
     }
