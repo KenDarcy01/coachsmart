@@ -79,6 +79,7 @@ serve(async (req)=>{
       FROM public.event_codes ec
       JOIN public.club_code_link ccl ON ec.code_id = ccl.code_id
       WHERE ccl.club_id = ${club_id} AND ec.code_id != 1
+        AND (ccl.team_id IS NULL OR ccl.team_id = ${p_team_id})
       ORDER BY ec.event_code ASC
     `;
     const members = await sql`
