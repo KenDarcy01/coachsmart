@@ -111,8 +111,10 @@ function leadText(n: Names, s: any) {
 // One message per score. score is the score just after this one.
 function scoreMessage(n: Names, state: any, item: any, score: any, names: boolean) {
   const what = item.value === 3 ? "GOAL" : item.type;
+  const team = item.side === "us" ? n.us : n.opp;
   const who = item.side === "us" ? (names && item.member ? item.member : n.us) : n.opp;
-  const title = `${what} · ${scoreLine(n, score)}`;
+  // Says which side scored, e.g. "GOAL Clontarf · Clontarf 1-03 Ballymun 0-02"
+  const title = `${what} ${team} · ${scoreLine(n, score)}`;
   const body = `${who} ${minute(state, item.half, item.second)}. ${leadText(n, score)}. ${n.team}`;
   return { title, body };
 }
@@ -134,6 +136,7 @@ function runningScores(items: any[], now: any) {
 function phaseMessage(n: Names, state: any, phase: string) {
   const s = state.score;
   if (phase === "ko") return { title: `Throw-in · ${n.team} v ${n.opp}`, body: "Tap to watch live." };
+  if (phase === "h2") return { title: `Second half · ${scoreLine(n, s)}`, body: `${n.team}. Second half under way. Tap to watch live.` };
   if (phase === "ht") return { title: `Half time · ${scoreLine(n, s)}`, body: `${n.team}. Tap for the chart and scorers.` };
   const d = s.us.t - s.opp.t;
   const res = d > 0 ? `won by ${d}` : d < 0 ? `lost by ${-d}` : "drew";
@@ -160,9 +163,10 @@ async function handle(sb: any, claim: any): Promise<Record<string, unknown> | nu
   const jobs: Promise<string[]>[] = [];
   const results: string[] = [];
   for (const t of targets || []) {
-    // In order: throw-in, each score, then half time or full time
+    // In order: throw-in or second half, each score, then half time or full time
     const msgs: { title: string; body: string }[] = [];
     if (phases.includes("ko") && t.kickoff && !result) msgs.push(phaseMessage(n, state, "ko"));
+    if (phases.includes("h2") && t.kickoff && !result) msgs.push(phaseMessage(n, state, "h2"));
     items.forEach((it, i) => {
       if (t.level === "all" || (t.level === "goals" && it.value === 3)) msgs.push(scoreMessage(n, state, it, scores[i], t.names));
     });

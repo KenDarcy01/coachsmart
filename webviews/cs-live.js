@@ -170,7 +170,7 @@
         <div class="lv-sub">${esc(opts.sub || 'Sent to your phone as they happen')}</div>
         ${LEVELS.map(([k, t, s]) => `<button class="lv-row" data-l="${k}"><div>${t}<small>${s}</small></div><div class="lv-rad ${ch.level === k ? 'on' : ''}"></div></button>`).join('')}
         <div class="lv-cap">Also</div>
-        <button class="lv-row" data-t="kickoff"><div>Kick-off alert<small>When the clock starts</small></div><div class="lv-tog ${ch.kickoff ? 'on' : ''}"></div></button>
+        <button class="lv-row" data-t="kickoff"><div>Throw-in alerts<small>Start of each half</small></div><div class="lv-tog ${ch.kickoff ? 'on' : ''}"></div></button>
         <button class="lv-row" data-t="names"><div>Name the scorer<small>When the coach names a player</small></div><div class="lv-tog ${ch.names ? 'on' : ''}"></div></button>
         ${opts.allowDefault ? `<button class="lv-row" data-t="forAll"><div>Use this for all my teams' matches</div><div class="lv-tog ${ch.forAll ? 'on' : ''}"></div></button>` : ''}
         <button class="lv-btn" data-save>Save</button>
