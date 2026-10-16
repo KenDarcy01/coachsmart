@@ -112,6 +112,10 @@ input,select{font:inherit;color:var(--text)}
 .heard{font-size:16px;color:var(--text);margin:10px 0 0;min-height:48px;line-height:1.45;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .voice.rec .heard:empty::before{content:"Listening…";color:var(--muted)}
 .vcards{margin-top:8px;text-align:left}
+.aitog{margin:6px auto 0;padding:6px 14px;border-radius:999px;background:var(--card);color:var(--muted);font-size:13px;font-weight:600}
+.aitog b{color:var(--green)}
+.aitog.off b{color:var(--muted)}
+.vby{font-style:normal;font-size:12px;color:var(--muted);letter-spacing:.5px}
 .vcard{background:var(--card);border-radius:16px;padding:14px;margin-bottom:10px;border-left:4px solid var(--green)}
 .vcard.opp{border-left-color:var(--red)}
 .vcard.ask{border-left-color:var(--amber)}
@@ -275,6 +279,7 @@ input,select{font:inherit;color:var(--text)}
         <button class="mic" id="micBtn" aria-label="Hold to talk"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
         <div class="mic-t" id="micInstr">Hold and say what happened</div>
         <div class="heard" id="micHeard"></div>
+        <button class="aitog" id="aiTog"></button>
         <div class="vcards" id="vcards"></div>
       </div>
     </div>
@@ -1651,7 +1656,8 @@ function voiceCtx() {
 }
 const cap = t => String(t || '').replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase());
 function renderVoice() {
-  if (!CSMic_rec()) $('micHeard').textContent = vheard ? `"${vheard}"` : '';
+  if (!CSMic_rec()) $('micHeard').innerHTML = vheard ? `"${esc(vheard)}" <span class="vby">· read by ${lastBy}</span>` : '';
+  renderAiTog();
   $('voicePad').classList.toggle('wait', !started());
   const r = roster();
   $('vcards').innerHTML = vcards.map(c => {
@@ -1719,9 +1725,20 @@ function rememberName(heard, mem) {
 
 // Gemini reads what was heard (forgives misheard words); the on-phone reader is
 // the fallback with no signal, no AI access, or a slow answer.
-let aiVoice = true;
+let aiVoice = true;                                   // false once the server says this account has no AI
+let aiWanted = store.get('sk2ai') !== 'off';           // TEMP test switch (Ken, 2026-10-16)
+let lastBy = '';
+function renderAiTog() {
+  const el = $('aiTog');
+  el.classList.toggle('off', !aiWanted || !aiVoice);
+  el.innerHTML = !aiVoice ? 'AI reading: <b>not on for this account</b>' : `AI reading: <b>${aiWanted ? 'On' : 'Off'}</b> · tap to switch`;
+}
+$('aiTog').addEventListener('click', () => {
+  aiWanted = !aiWanted; store.set('sk2ai', aiWanted ? 'on' : 'off'); renderAiTog();
+  toast(aiWanted ? 'AI reading on: Gemini works out what you meant' : 'AI reading off: the phone reads your words on its own');
+});
 async function aiParse(text) {
-  if (!aiVoice || navigator.onLine === false) return null;
+  if (!aiWanted || !aiVoice || navigator.onLine === false) return null;
   const ctx = voiceCtx();
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 4000);
@@ -1736,7 +1753,7 @@ async function aiParse(text) {
         players: ctx.players.map(p => ({ id: p.member_id, name: `${p.first_name} ${p.last_name}`.trim(), number: p.number })),
       }),
     });
-    if (r.status === 403) { aiVoice = false; return null; }   // no AI on this account: on-phone only
+    if (r.status === 403) { aiVoice = false; renderAiTog(); return null; }   // no AI on this account: on-phone only
     if (!r.ok) return null;
     const d = await r.json();
     return {
@@ -1759,7 +1776,9 @@ async function handleVoice(text, at) {
   if (!text) { toast("Didn't hear anything. Hold the mic while you talk."); return; }
   if (!started()) return notStarted();
   $('micHeard').textContent = `"${text}" · working it out…`;
-  const res = (await aiParse(text)) || CSScoreVoice.parse(text, voiceCtx());
+  const ai = await aiParse(text);
+  lastBy = ai ? 'AI' : 'phone';
+  const res = ai || CSScoreVoice.parse(text, voiceCtx());
   vheard = text;
   const now = Date.now();
   const cards = [];
