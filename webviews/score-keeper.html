@@ -46,8 +46,6 @@ input,select{font:inherit;color:var(--text)}
 
 /* clock */
 .clock{text-align:center;margin-top:8px}
-.setchip{display:inline-flex;align-items:center;gap:2px;margin:2px 0 0 -4px;padding:5px 12px 5px 6px;border-radius:999px;background:var(--card);color:var(--green);font-size:14px;font-weight:700}
-.setchip svg{width:18px;height:18px}
 .clock .lbl{font-size:13px;letter-spacing:2.5px;color:var(--muted);font-weight:600;text-transform:uppercase}
 .clock .t{font-family:var(--num);font-size:78px;line-height:.95;letter-spacing:1px}
 .clock.inj .t,.clock.inj .lbl b{color:var(--amber)}
@@ -266,7 +264,6 @@ input,select{font:inherit;color:var(--text)}
     <div id="setup" class="setup hidden"></div>
     <div id="phase" class="hidden"></div>
     <div id="live">
-      <button class="setchip" id="setChip"></button>
       <div class="clock" id="clock"><div class="lbl" id="clockLbl">First half</div><div class="t" id="clockT">00:00</div><div class="bar" id="clockBar"><i></i><i class="inj"></i></div></div>
       <div class="board" id="board"></div>
       <div class="seg mode" id="modeSeg">
@@ -963,7 +960,7 @@ function render() {
   $('live').classList.toggle('hidden', ph !== 'play');
   $('phase').classList.toggle('hidden', ph === 'setup' || ph === 'play');
   if (ph === 'setup') renderSetup();
-  if (ph === 'play') { renderSetChip(); renderClock(); renderBoard(); renderMode(); }
+  if (ph === 'play') { renderClock(); renderBoard(); renderMode(); }
   if (ph !== 'setup' && ph !== 'play') renderPhase();
   renderRecent();
   renderFoot();
@@ -982,11 +979,6 @@ function boardHtml(tag) {
 }
 function renderBoard() { $('board').innerHTML = boardHtml(); }
 
-// Small chip under the top bar: what was set up, tap to change it
-function renderSetChip() {
-  $('setChip').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Setup';
-}
-$('setChip').addEventListener('click', () => openSetupSheet());
 function renderClock() {
   if (!S || S.phase !== 'play') return;
   const sec = secInHalf(), dur = halfLen(), h = S.clock.half;
