@@ -182,6 +182,7 @@ function render() {
     return;
   }
   document.title = `${D.event.team_name || 'Match'} v ${oppName()}`;
+  keepAwake(D.phase === 'play' || D.phase === 'ht');
   renderTop();
   if (D.phase === 'pre') renderPre(); else renderMatch();
   renderFoot();
@@ -378,6 +379,20 @@ async function share() {
   try { await navigator.clipboard.writeText(`${text} ${url}`); toast('Link copied. Paste it into a message.'); }
   catch (_) { prompt('Copy this link', url); }
 }
+
+// ── Keep the screen on while the match is being played ─────────────────────
+// Asks the app (NativeWebView keepAwake) and also uses the browser's wake lock,
+// which the public link needs. The app turns it off when the page closes.
+let awake = false, wakeLock = null;
+async function keepAwake(on) {
+  if (on !== awake) { awake = on; L.post(on ? 'keepAwake:on' : 'keepAwake:off'); }
+  try {
+    if (on && 'wakeLock' in navigator && !document.hidden) {
+      if (!wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (_) {}
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && awake) { awake = false; keepAwake(true); } });
 
 // ── Start ──────────────────────────────────────────────────────────────────
 let pulse = null;
