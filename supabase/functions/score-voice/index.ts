@@ -1,0 +1,154 @@
+// deno-lint-ignore-file no-explicit-any
+// Score keeper voice (webviews/score-keeper.html).
+//
+// The phone turns speech into words; this asks Gemini what the coach meant,
+// using the squad list and the team's stat names, so misheard words still
+// land on the right stat and player ("pointy kieran" → Point, Ciarán Byrne).
+// The page falls back to its own on-phone reader (cs-score-voice.js) when
+// this fails, is slow, or there is no signal.
+//
+// POST { event_id, text, us, opp, types:[{id,name,value}],
+//        players:[{id,name,number}], aliases:{spoken:member_id} }
+//   → { items:[{kind:'score', type_id, side, member_id, unsure, heard, count}
+//              |{kind:'sub', on_id, off_id}], unknown:[string] }
+//
+// Needs the caller's JWT, membership of the event's team and users.ai_features.
+// Requires GEMINI_API_KEY; GEMINI_MODEL is optional (same secrets as ai-match-report).
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+const PROMPT = `You read short spoken commands from a GAA (Gaelic games) coach keeping score during a match.
+The words came from phone speech recognition, so they are often misheard: Irish names come out as
+English words or other names (e.g. "Kieran"/"keera" for Ciarán, "Shawn" for Seán, "Fin" for Fionn,
+"Eoin"/"Owen"), and stat words get mangled ("pint"/"pointy"/"appoint" = Point, "gold"/"go" = Goal,
+"two pointer"/"to pointer"/"2.0" = 2 Pointer, "white"/"wild" = Wide). Work out what the coach meant.
+
+You get our team name, the opposition name, the stat types (id, name, value) and our players (id, name,
+shirt number). One utterance can hold several commands ("point Ciarán and a wide for them").
+
+Rules:
+- Each command is a stat (score or other stat) or a substitution ("sub 17 for 11", "Jack on for Liam").
+- side: "opp" only if the opposition is named or the coach says them/they/their/opposition. Otherwise "us",
+  including when nobody is named at all.
+- member_id: only for side "us". Match the spoken name or shirt number to the players list (sound-alikes,
+  first name only, surname only, nicknames). Use the known-names list first. If you are not sure, still give
+  your best guess and set unsure true. If no player was mentioned, member_id null.
+- heard: the words that named the player, as spoken (empty if none).
+- count: how many of that stat (e.g. "two points" = 2), default 1.
+- Use only ids from the lists. Never invent a player or stat type.
+- Anything you cannot turn into a command goes in unknown as the original words.
+
+Return ONLY JSON:
+{"items":[{"kind":"score","type_id":1,"side":"us","member_id":5,"unsure":false,"heard":"ciaran","count":1},
+          {"kind":"sub","on_id":7,"off_id":3}],
+ "unknown":[]}`;
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  try {
+    const body = await req.json();
+    const eventId = Number(body.event_id);
+    const text = typeof body.text === "string" ? body.text.trim().slice(0, 400) : "";
+    if (!eventId || !text) return json({ error: "event_id and text required" }, 400);
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+
+    const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const { data: { user }, error: userErr } = await sb.auth.getUser(jwt);
+    if (userErr || !user) return json({ error: "Please sign in again" }, 401);
+
+    const { data: ev } = await sb.from("events").select("team_id").eq("event_id", eventId).maybeSingle();
+    if (!ev) return json({ error: "Match not found" }, 404);
+    const asUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${jwt}` } },
+    });
+    const [{ data: member }, { data: me }] = await Promise.all([
+      asUser.rpc("sk_is_team_member", { p_team_id: ev.team_id }),
+      sb.from("users").select("ai_features").eq("user_id", user.id).maybeSingle(),
+    ]);
+    if (member !== true) return json({ error: "You're not on this team" }, 403);
+    if (me?.ai_features !== true) return json({ error: "AI features are not switched on for your account" }, 403);
+
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) return json({ error: "GEMINI_API_KEY not configured" }, 500);
+
+    const types = (Array.isArray(body.types) ? body.types : []).slice(0, 40)
+      .map((t: any) => ({ id: Number(t.id), name: String(t.name || "").slice(0, 40), value: t.value == null ? null : Number(t.value) }))
+      .filter((t: any) => t.id && t.name);
+    const players = (Array.isArray(body.players) ? body.players : []).slice(0, 80)
+      .map((p: any) => ({ id: Number(p.id), name: String(p.name || "").slice(0, 60), number: p.number == null ? null : Number(p.number) }))
+      .filter((p: any) => p.id && p.name);
+    const aliases = Object.entries(body.aliases && typeof body.aliases === "object" ? body.aliases : {}).slice(0, 80)
+      .map(([k, v]) => ({ spoken: String(k).slice(0, 40), member_id: Number(v) }))
+      .filter(a => players.some((p: any) => p.id === a.member_id));
+
+    const userText = [
+      `Our team: ${String(body.us || "Us").slice(0, 60)}`,
+      `Opposition: ${String(body.opp || "Opposition").slice(0, 60)}`,
+      `Stat types: ${JSON.stringify(types)}`,
+      `Our players: ${JSON.stringify(players)}`,
+      aliases.length ? `Known names (spoken words this coach used before for a player): ${JSON.stringify(aliases)}` : "",
+      `Spoken: "${text}"`,
+    ].filter(Boolean).join("\n");
+
+    // Thinking off for speed; models that can't turn it off get asked without it.
+    const ask = (fast: boolean) => fetch(`${GEMINI_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: PROMPT }] },
+        contents: [{ parts: [{ text: userText }] }],
+        generationConfig: Object.assign(
+          { maxOutputTokens: 2048, temperature: 0, responseMimeType: "application/json" },
+          fast ? { thinkingConfig: { thinkingBudget: 0 } } : {},
+        ),
+      }),
+    });
+    let res = await ask(true);
+    if (res.status === 400) res = await ask(false);
+    if (!res.ok) { console.warn("Gemini", res.status, (await res.text()).slice(0, 200)); return json({ error: "AI unavailable" }, 502); }
+    const data = await res.json();
+    const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || "").trim()
+      .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
+    let out: any;
+    try { out = JSON.parse(raw); } catch { return json({ error: "AI gave an unexpected answer" }, 502); }
+
+    // Keep only ids we sent
+    const typeIds = new Set(types.map((t: any) => t.id));
+    const playerIds = new Set(players.map((p: any) => p.id));
+    const items = (Array.isArray(out.items) ? out.items : []).flatMap((it: any) => {
+      if (it?.kind === "sub") {
+        const on = Number(it.on_id), off = Number(it.off_id);
+        return playerIds.has(on) || playerIds.has(off)
+          ? [{ kind: "sub", on_id: playerIds.has(on) ? on : null, off_id: playerIds.has(off) ? off : null }] : [];
+      }
+      const typeId = Number(it?.type_id);
+      if (!typeIds.has(typeId)) return [];
+      const side = it.side === "opp" ? "opp" : "us";
+      const mem = side === "us" && playerIds.has(Number(it.member_id)) ? Number(it.member_id) : null;
+      return [{
+        kind: "score", type_id: typeId, side, member_id: mem, unsure: !!it.unsure && !!mem,
+        heard: typeof it.heard === "string" ? it.heard.slice(0, 40) : "",
+        count: Math.min(Math.max(Math.round(Number(it.count) || 1), 1), 5),
+      }];
+    });
+    const unknown = (Array.isArray(out.unknown) ? out.unknown : []).map((u: any) => String(u).slice(0, 80)).slice(0, 5);
+    return json({ items, unknown });
+  } catch (e) {
+    console.error("score-voice", e);
+    return json({ error: "Something went wrong" }, 500);
+  }
+});
