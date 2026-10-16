@@ -130,10 +130,10 @@
 
   // ── Alert choices sheet ─────────────────────────────────────────────────────
   const LEVELS = [
-    ['all', 'Every score', 'Goals, points and 2 pointers, both teams'],
+    ['all', 'Every score', 'Goals, points and 2 pointers, both teams, plus half time and full time'],
     ['goals', 'Goals only', 'Plus half time and full time'],
-    ['result', 'Result only', 'Half time and full time'],
-    ['off', 'Off', 'No alerts'],
+    ['result', 'Half time and full time only', 'No alerts for scores'],
+    ['off', 'Stop following', 'No alerts for this match'],
   ];
   const levelLabel = l => ({ all: 'Every score', goals: 'Goals, half time and full time', result: 'Half time and full time', off: 'No alerts' }[l] || '');
   const CSS = `
@@ -197,9 +197,31 @@
     return rpc('set_live_follow', { p_event_id: eventId, p_level: ch.forAll && ownTeam ? null : ch.level, p_kickoff: ch.kickoff, p_names: ch.names });
   }
 
-  // Follow a match (every score, throw-in, half time and full time) or stop
+  // Following a match starts on every score (plus throw-in, half time and
+  // full time); once following, the bell opens the choices for that match.
   function setFollow(eventId, on) {
     return rpc('set_live_follow', { p_event_id: eventId, p_level: on ? 'all' : null, p_kickoff: true, p_names: true });
+  }
+
+  // Bell on a match: follow straight away, or change / stop if already following
+  // opts: { eventId, title, sub, follow, onChange(follow, message) }
+  async function bell(opts) {
+    const f = opts.follow || {};
+    if (!f.level || f.level === 'off') {
+      opts.onChange(await setFollow(opts.eventId, true), "Following: you'll get every score. Tap the bell to change.");
+      return;
+    }
+    alertSheet({
+      title: opts.title || 'Alerts for this match', sub: opts.sub, follow: f,
+      onSave: async ch => {
+        try {
+          const nf = ch.level === 'off'
+            ? await setFollow(opts.eventId, false)
+            : await rpc('set_live_follow', { p_event_id: opts.eventId, p_level: ch.level, p_kickoff: ch.kickoff, p_names: ch.names });
+          opts.onChange(nf, ch.level === 'off' ? 'Stopped following this match' : "Saved. You'll get " + levelLabel(ch.level).toLowerCase() + '.');
+        } catch (_) { opts.onError && opts.onError(); }
+      },
+    });
   }
 
   function close() {
@@ -209,7 +231,7 @@
 
   window.CSLive = {
     P, rpc, listen, post, bridge, signedIn: () => !!token, freshToken,
-    esc, gaa, fmt, pad2, cleanClub, halfSeconds, alertSheet, saveFollow, setFollow, levelLabel, close,
+    esc, gaa, fmt, pad2, cleanClub, halfSeconds, alertSheet, saveFollow, setFollow, bell, levelLabel, close,
     url: SUPABASE_URL, anon: SUPABASE_ANON,
   };
 })();
