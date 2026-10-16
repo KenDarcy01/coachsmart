@@ -224,8 +224,8 @@ function followCard() {
   const f = D.follow || { level: 'off' };
   const on = f.level !== 'off';
   return `<div class="card"><button class="follow" data-act="alerts"><div class="bell ${on ? 'on' : ''}">${BELL}</div>
-    <div style="flex:1"><div class="h">${on ? "You're following this match" : 'Follow this match'}</div><div class="sub" style="margin:2px 0 0">${on ? L.levelLabel(f.level) + (f.kickoff ? ' and kick-off' : '') : 'Get alerts as it happens'}</div></div>
-    <span class="chg">${on ? 'Change' : 'Follow'}</span></button></div>`;
+    <div style="flex:1"><div class="h">${on ? "You're following this match" : 'Follow this match'}</div><div class="sub" style="margin:2px 0 0">${on ? 'Every score, half time and full time' : 'Get an alert for every score'}</div></div>
+    <span class="chg">${on ? 'Unfollow' : 'Follow'}</span></button></div>`;
 }
 
 function renderPre() {
@@ -343,22 +343,15 @@ $('shareBtn').addEventListener('click', share);
 // Opened from the Matches list in the same page: go back to it
 $('backBtn').addEventListener('click', () => { if (L.P.get('from') === 'list' && history.length > 1) history.back(); else L.close(); });
 
-function openAlerts() {
+// The bell follows or unfollows this match: following means every score
+async function openAlerts() {
   if (!D || D.error || PUBLIC) return;
-  const f = D.follow || {};
-  L.alertSheet({
-    title: 'Alerts for this match',
-    sub: `${D.event.team_name || ''} v ${oppName()}`,
-    follow: f.level === 'off' && !f.own_team ? { level: 'all', kickoff: true, names: true } : f,
-    allowDefault: !!f.own_team,
-    onSave: async ch => {
-      try {
-        D.follow = await L.saveFollow(D.event.event_id, ch, !!f.own_team);
-        render();
-        toast(ch.level === 'off' ? 'Alerts off for this match' : 'Saved. You\'ll get ' + L.levelLabel(ch.level).toLowerCase() + '.');
-      } catch (_) { toast("Couldn't save. Check your signal."); }
-    },
-  });
+  const on = !(D.follow && D.follow.level !== 'off');
+  try {
+    D.follow = await L.setFollow(D.event.event_id, on);
+    render();
+    toast(on ? "Following. You'll get every score." : 'Alerts off for this match');
+  } catch (_) { toast("Couldn't save. Check your signal."); }
 }
 
 async function share() {

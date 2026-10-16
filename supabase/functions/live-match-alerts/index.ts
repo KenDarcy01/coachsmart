@@ -6,8 +6,9 @@
 //   1. asks lm_alert_claim for scores that have settled (8 s old, so a score
 //      undone straight away is never sent) and for kick-off / HT / FT
 //   2. works out who wants which alert (lm_alert_targets)
-//   3. sends one push each through FCM. Pushes for a match share a collapse
-//      id / tag, so each one replaces the last on the lock screen.
+//   3. sends the pushes through FCM: one for each score, plus throw-in, half
+//      time and full time. Each is its own notification (Ken, 2026-10-16), so
+//      nothing replaces the last; iOS groups them by match.
 //   4. repeats while newer scores are still settling
 //
 // POST { match_stats_id }  (service role only)
@@ -58,7 +59,7 @@ async function fcmAccess() {
 
 async function sendPush(token: string, eventId: number, title: string, body: string): Promise<string> {
   const fcm = await fcmAccess();
-  const tag = `live-${eventId}`;
+  const group = `live-${eventId}`;
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${fcm.project}/messages:send`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${fcm.token}` },
@@ -72,10 +73,10 @@ async function sendPush(token: string, eventId: number, title: string, body: str
           link_page: `eventDetails?eventID=${eventId}`,
         },
         apns: {
-          headers: { "apns-priority": "10", "apns-push-type": "alert", "apns-collapse-id": tag },
-          payload: { aps: { alert: { title, body }, sound: "default", "thread-id": tag } },
+          headers: { "apns-priority": "10", "apns-push-type": "alert" },
+          payload: { aps: { alert: { title, body }, sound: "default", "thread-id": group } },
         },
-        android: { priority: "high", collapse_key: tag, notification: { tag, sound: "default", click_action: "FLUTTER_NOTIFICATION_CLICK" } },
+        android: { priority: "high", notification: { sound: "default", click_action: "FLUTTER_NOTIFICATION_CLICK" } },
       },
     }),
   });
@@ -107,14 +108,27 @@ function leadText(n: Names, s: any) {
   return `${d > 0 ? n.us : n.opp} lead by ${Math.abs(d)}`;
 }
 
-function scoreMessage(n: Names, state: any, items: any[], names: boolean) {
-  const last = items[items.length - 1];
-  const what = last.value === 3 ? "GOAL" : last.type;
-  const who = last.side === "us" ? (names && last.member ? last.member : n.us) : n.opp;
-  const title = `${what} · ${scoreLine(n, state.score)}`;
-  const more = items.length > 1 ? ` (+${items.length - 1} more)` : "";
-  const body = `${who} ${minute(state, last.half, last.second)}${more}. ${leadText(n, state.score)}. ${n.team}`;
+// One message per score. score is the score just after this one.
+function scoreMessage(n: Names, state: any, item: any, score: any, names: boolean) {
+  const what = item.value === 3 ? "GOAL" : item.type;
+  const who = item.side === "us" ? (names && item.member ? item.member : n.us) : n.opp;
+  const title = `${what} · ${scoreLine(n, score)}`;
+  const body = `${who} ${minute(state, item.half, item.second)}. ${leadText(n, score)}. ${n.team}`;
   return { title, body };
+}
+
+// The score after each item: the current score with later items taken off
+function runningScores(items: any[], now: any) {
+  const cur = { us: { ...now.us }, opp: { ...now.opp } };
+  const out: any[] = new Array(items.length);
+  for (let i = items.length - 1; i >= 0; i--) {
+    out[i] = { us: { ...cur.us }, opp: { ...cur.opp } };
+    const side = items[i].side === "us" ? cur.us : cur.opp;
+    const v = Number(items[i].value) || 0;
+    if (v === 3) side.g = Math.max(0, side.g - 1); else side.p = Math.max(0, side.p - v);
+    side.t = side.g * 3 + side.p;
+  }
+  return out;
 }
 
 function phaseMessage(n: Names, state: any, phase: string) {
@@ -142,20 +156,26 @@ async function handle(sb: any, claim: any): Promise<Record<string, unknown> | nu
   if (error) { console.warn("targets", error.message); return { items: items.length, phases, error: "targets: " + error.message }; }
 
   const result = phases.includes("ft") ? "ft" : phases.includes("ht") ? "ht" : null;
-  const jobs: Promise<string>[] = [];
+  const scores = runningScores(items, state.score);
+  const jobs: Promise<string[]>[] = [];
   const results: string[] = [];
   for (const t of targets || []) {
-    let msg: { title: string; body: string } | null = null;
-    if (result) msg = phaseMessage(n, state, result);
-    else {
-      const mine = t.level === "all" ? items : t.level === "goals" ? items.filter((i) => i.value === 3) : [];
-      if (mine.length) msg = scoreMessage(n, state, mine, t.names);
-      else if (phases.includes("ko") && t.kickoff) msg = phaseMessage(n, state, "ko");
-    }
-    if (msg) jobs.push(sendPush(t.fcm_token, claim.event_id, msg.title, msg.body).catch((e) => `error ${String(e).slice(0, 80)}`));
-    if (jobs.length >= 25) results.push(...await Promise.all(jobs.splice(0)));
+    // In order: throw-in, each score, then half time or full time
+    const msgs: { title: string; body: string }[] = [];
+    if (phases.includes("ko") && t.kickoff && !result) msgs.push(phaseMessage(n, state, "ko"));
+    items.forEach((it, i) => {
+      if (t.level === "all" || (t.level === "goals" && it.value === 3)) msgs.push(scoreMessage(n, state, it, scores[i], t.names));
+    });
+    if (result) msgs.push(phaseMessage(n, state, result));
+    if (!msgs.length) continue;
+    jobs.push((async () => {
+      const r: string[] = [];
+      for (const m of msgs) r.push(await sendPush(t.fcm_token, claim.event_id, m.title, m.body).catch((e) => `error ${String(e).slice(0, 80)}`));
+      return r;
+    })());
+    if (jobs.length >= 25) for (const r of await Promise.all(jobs.splice(0))) results.push(...r);
   }
-  results.push(...await Promise.all(jobs));
+  for (const r of await Promise.all(jobs)) results.push(...r);
   // A short record for lm_alert_probe: counts and FCM answers only
   const fcm: Record<string, number> = {};
   for (const r of results) fcm[r] = (fcm[r] || 0) + 1;

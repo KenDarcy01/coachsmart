@@ -197,6 +197,11 @@
     return rpc('set_live_follow', { p_event_id: eventId, p_level: ch.forAll && ownTeam ? null : ch.level, p_kickoff: ch.kickoff, p_names: ch.names });
   }
 
+  // Follow a match (every score, throw-in, half time and full time) or stop
+  function setFollow(eventId, on) {
+    return rpc('set_live_follow', { p_event_id: eventId, p_level: on ? 'all' : null, p_kickoff: true, p_names: true });
+  }
+
   function close() {
     if (bridge()) post('close');
     else if (history.length > 1) history.back();
@@ -204,7 +209,7 @@
 
   window.CSLive = {
     P, rpc, listen, post, bridge, signedIn: () => !!token, freshToken,
-    esc, gaa, fmt, pad2, cleanClub, halfSeconds, alertSheet, saveFollow, levelLabel, close,
+    esc, gaa, fmt, pad2, cleanClub, halfSeconds, alertSheet, saveFollow, setFollow, levelLabel, close,
     url: SUPABASE_URL, anon: SUPABASE_ANON,
   };
 })();
