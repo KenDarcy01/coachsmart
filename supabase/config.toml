@@ -409,3 +409,6 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 
 [functions.gaa-fixtures]
 verify_jwt = false
+
+[functions.live-match-probe]
+verify_jwt = false
