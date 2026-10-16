@@ -228,9 +228,10 @@ Future<void> _markNotificationRead(
 ) async {
   _logStep('MarkRead', 'Marking notification $notificationId as read...');
   try {
-    // Only plain notifications. Reminders ('attend') and join/access requests
-    // stay unread until answered: the server clears them, and their buttons
-    // on the Notifications page stay usable.
+    // Plain notifications and event reminders ('attend'): tapping the push
+    // opens the event, so the reminder is done with. Join/access requests
+    // stay unread so their Accept/Decline buttons on the Notifications page
+    // keep working.
     await supabase
         .from('notifications')
         .update({
@@ -238,10 +239,16 @@ Future<void> _markNotificationRead(
           'when_read': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', notificationId)
-        .isFilter('action', null);
+        .or('action.is.null,action.eq.attend');
     _log('Notification $notificationId marked is_read=true ✓');
   } catch (e) {
     _logError('Failed to mark notification $notificationId as read', e);
+  }
+  // Bring the bell and the app badge into line straight away.
+  final String? userId = supabase.auth.currentUser?.id;
+  if (userId != null) {
+    unawaited(_refreshHomeEvents(supabase, userId));
+    unawaited(_updateBadge(supabase, userId));
   }
 }
 
