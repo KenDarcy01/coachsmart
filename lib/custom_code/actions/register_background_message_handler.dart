@@ -1249,8 +1249,26 @@ Future<void> _handlePushTap(RemoteMessage message, {bool coldStart = false}) asy
     await _markNotificationRead(supabase, notificationId);
   }
   if (coldStart) {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _waitForAppReady();
   }
+  await _openPushTarget(message, linkPage);
+
+  // Cold start: check the page really opened, and open it once more if the
+  // app's start-up replaced it.
+  if (coldStart && !kIsWeb) {
+    await Future.delayed(const Duration(milliseconds: 1200));
+    final String location = _currentLocation();
+    final bool isLive = (message.data['live_event_id']?.toString() ?? '').isNotEmpty;
+    final String expected = isLive ? 'liveUpdate' : 'eventDetails';
+    _logStep('ColdStart', 'Check | location=$location | expected=$expected');
+    if (location.isNotEmpty && !location.contains(expected)) {
+      _logWarn('[ColdStart] Page was replaced during start-up, opening again');
+      await _openPushTarget(message, linkPage);
+    }
+  }
+}
+
+Future<void> _openPushTarget(RemoteMessage message, String linkPage) async {
   // Live match alerts (score, half time, full time) open the live screen:
   // the FlutterFlow page whose route is /liveUpdate, with parameter eventID
   final String liveEventId = message.data['live_event_id']?.toString() ?? '';
@@ -1267,6 +1285,31 @@ Future<void> _handlePushTap(RemoteMessage message, {bool coldStart = false}) asy
     }
   }
   await _navigateFromPushLink(linkPage);
+}
+
+/// Cold start: FlutterFlow shows its loading screen for about a second and
+/// loads the signed-in user before it builds Home. A page opened before then
+/// is lost, so wait until the app says it is ready, then let Home build.
+Future<void> _waitForAppReady() async {
+  final AppStateNotifier notifier = AppStateNotifier.instance;
+  final DateTime deadline = DateTime.now().add(const Duration(seconds: 15));
+  while (notifier.loading && DateTime.now().isBefore(deadline)) {
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+  _logStep('ColdStart', 'App ready=${!notifier.loading}');
+  await Future.delayed(const Duration(milliseconds: 700));
+}
+
+/// The page currently showing, e.g. '/eventDetails?eventID=12'.
+String _currentLocation() {
+  try {
+    final BuildContext? ctx = appNavigatorKey.currentContext;
+    if (ctx == null) return '';
+    return GoRouter.of(ctx).getCurrentLocation();
+  } catch (e) {
+    _logError('Could not read the current page', e);
+    return '';
+  }
 }
 
 void _registerPushTapListener() {
