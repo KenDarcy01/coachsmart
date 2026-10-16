@@ -56,7 +56,12 @@ Rules:
 
 When you get an audio clip instead of words, listen to it yourself: expect the stat names and the
 player names and numbers in the lists, said quickly by an Irish coach, often with crowd or wind noise.
-Put what you heard in transcript.
+The coach only ever presses the mic to record a stat, so this is never general chat or commentary.
+Hear every clip as: [stat name] [optional player name or shirt number] [optional "them"/opposition],
+possibly several in a row. A word that sounds anything like a stat name IS that stat; a word that sounds
+like a player's name IS that player. Write transcript using the stat names and player names exactly as
+they appear in the lists (e.g. "Point Conor Wilson", "Wide them"), not everyday words.
+Only put something in unknown if it really has no stat in it at all.
 
 Return ONLY JSON:
 {"transcript":"point ciarán","items":[{"kind":"score","type_id":1,"side":"us","member_id":5,"unsure":false,"heard":"ciaran","count":1},
@@ -97,6 +102,25 @@ function matchPlayer(words: string, players: { id: number; name: string }[]) {
   const best = scored[0], next = scored[1];
   if (next && next.s >= best.s - 0.05) return { id: best.id, sure: false };
   return { id: best.id, sure: best.both || best.s >= 1 };
+}
+
+// Stat type named in the words, by spelling: whole names first ("two pointer"),
+// then single words close to a one-word name ("pint" ~ point)
+const SOUNDS_LIKE: Record<string, string> = { gold: "goal", gol: "goal", goul: "goal", white: "wide", wild: "wide", wise: "wide",
+  pint: "point", pointy: "point", appoint: "point", poynt: "point", to: "two", too: "two" };
+function matchType(words: string, types: { id: number; name: string }[]) {
+  const said = fold(words).split(/\s+/).filter(Boolean).map((w) => SOUNDS_LIKE[w] || w);
+  const joined = " " + said.join(" ") + " ";
+  let best: { id: number; s: number; words: string[] } | null = null;
+  for (const t of types) {
+    const tw = fold(t.name).split(/\s+/).filter(Boolean);
+    if (!tw.length) continue;
+    let s = 0;
+    if (joined.includes(" " + tw.join(" ") + " ")) s = 2 + tw.length;
+    else if (tw.length === 1) s = Math.max(0, ...said.map((w) => w.length >= 3 ? nameScore(w, tw[0]) : 0));
+    if (s > 0 && (!best || s > best.s)) best = { id: t.id, s, words: tw };
+  }
+  return best;
 }
 
 serve(async (req) => {
@@ -202,6 +226,19 @@ serve(async (req) => {
         count: Math.min(Math.max(Math.round(Number(it.count) || 1), 1), 5),
       }];
     });
+    // Nothing understood: lean towards a stat anyway, matching the words to
+    // the stat names by spelling ("pint" ~ Point) and any name to the squad
+    if (!items.length) {
+      const words = [typeof out.transcript === "string" ? out.transcript : "", text,
+        ...(Array.isArray(out.unknown) ? out.unknown.map(String) : [])].join(" ");
+      const t = matchType(words, types);
+      if (t) {
+        const side = /\b(them|they|their|opp|opposition)\b/i.test(words) || (body.opp && fold(words).includes(fold(String(body.opp)).trim())) ? "opp" : "us";
+        const m = side === "us" ? byName(fold(words).split(/\s+/).filter((w) => !t.words.includes(w)).join(" ")) : null;
+        items.push({ kind: "score", type_id: t.id, side, member_id: m ? m.id : null, unsure: !!m && !m.sure, heard: "", count: 1 });
+        out.unknown = [];
+      }
+    }
     const unknown = (Array.isArray(out.unknown) ? out.unknown : []).map((u: any) => String(u).slice(0, 80)).slice(0, 5);
     const transcript = typeof out.transcript === "string" ? out.transcript.slice(0, 200) : text;
     return json({ items, unknown, transcript });
