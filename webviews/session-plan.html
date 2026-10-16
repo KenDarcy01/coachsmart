@@ -789,6 +789,15 @@
   </div>
 </div>
 
+<!-- Session plans not switched on for this team -->
+<div id="offScreen" class="screen">
+  <div class="state-screen">
+    <div class="state-icon">📋</div>
+    <div class="state-title">Session plans aren't on for this team</div>
+    <div class="state-body">Ask your club to switch on session plans for this team, then come back to build one.</div>
+  </div>
+</div>
+
 <!-- Error -->
 <div id="errorScreen" class="screen">
   <div class="state-screen">
@@ -953,7 +962,7 @@
     else history.back();
   }
   function showScreen(id) {
-    ['loadingScreen','emptyScreen','errorScreen','setupScreen','planScreen'].forEach(s => {
+    ['loadingScreen','emptyScreen','offScreen','errorScreen','setupScreen','planScreen'].forEach(s => {
       const el = $(s);
       if (el) el.classList.toggle('active', s === id);
     });
@@ -1992,6 +2001,11 @@
       _eventMeta = data.event;
       _squadName = data.squad_name;
       _favs = data.favourites || [];
+
+      // Team not switched on (teams.session_plan): existing plans still open
+      if (EVENT_ID && data.session_plan_allowed === false && !data.plan) {
+        _releaseWakeLock(); showScreen('offScreen'); return;
+      }
 
       // In library mode (no event) we still allow generating plans
       if (_favs.length === 0) { showEmpty(); return; }

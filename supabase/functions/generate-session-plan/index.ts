@@ -518,12 +518,25 @@ serve(async (req) => {
             .maybeSingle()
         : Promise.resolve({ data: null });
 
-      const [planResult, favResult] = await Promise.all([
+      // Team switch teams.session_plan, or the user's own ai_features. Either
+      // lookup failing (e.g. column not there yet) leaves this null = allowed.
+      const allowedPromise = event_id && teamId
+        ? Promise.all([
+            sb.from("teams").select("session_plan").eq("team_id", teamId).maybeSingle(),
+            sb.from("users").select("ai_features").eq("user_id", user_id).maybeSingle(),
+          ]).then(([t, u]) => {
+            if (t.error) return null;
+            return t.data?.session_plan === true || u.data?.ai_features === true;
+          }).catch(() => null)
+        : Promise.resolve(null);
+
+      const [planResult, favResult, sessionPlanAllowed] = await Promise.all([
         planPromise,
         sb.from("user_game_link")
           .select("position, games!inner(game_id, game_name, game_image, game_code, game_type, game_age, game_video)")
           .eq("user_id", user_id)
           .order("position"),
+        allowedPromise,
       ]);
 
       // Filter by event code if known; fall back to all when no match
@@ -556,6 +569,7 @@ serve(async (req) => {
         squad_name:     squad?.squad_name ?? null,
         has_favourites: favourites.length > 0,
         favourites,
+        session_plan_allowed: sessionPlanAllowed,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
