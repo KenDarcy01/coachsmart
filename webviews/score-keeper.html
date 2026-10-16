@@ -910,10 +910,18 @@ function show() {
     shown = true;
     setInterval(tick, 250);
     attachMic();
-    if (store.get('sk2mode') === 'voice') mode = 'voice';
+    voiceAllowed = store.get('sk2aiflag') === true;
+    if (voiceAllowed && store.get('sk2mode') === 'voice') mode = 'voice';
+    // Voice is parked for now (Ken, 2026-10-16): only AI-feature accounts see it, to test.
+    rpc('get_my_ai_features').then(v => {
+      voiceAllowed = v === true; store.set('sk2aiflag', voiceAllowed);
+      if (!voiceAllowed && mode === 'voice') mode = 'tap';
+      render();
+    }).catch(() => {});
   }
   render();
 }
+let voiceAllowed = false;
 
 // ── Rendering ────────────────────────────────────────────────────────────────
 let view = 'score', mode = 'tap';
@@ -999,6 +1007,8 @@ function renderClock() {
 }
 
 function renderMode() {
+  $('modeSeg').classList.toggle('hidden', !voiceAllowed);
+  if (!voiceAllowed) mode = 'tap';
   document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
   $('tapPad').classList.toggle('hidden', mode !== 'tap');
   $('voicePad').classList.toggle('hidden', mode !== 'voice');
