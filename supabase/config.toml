@@ -410,5 +410,9 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 [functions.gaa-fixtures]
 verify_jwt = false
 
+# Season store loader, woken by pg_cron with a service-role token
+[functions.gaa-sync]
+verify_jwt = true
+
 [functions.live-match-probe]
 verify_jwt = false
