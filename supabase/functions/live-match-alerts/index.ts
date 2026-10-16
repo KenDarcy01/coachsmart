@@ -56,7 +56,7 @@ async function fcmAccess() {
   return fcmCache;
 }
 
-async function sendPush(token: string, eventId: number, title: string, body: string) {
+async function sendPush(token: string, eventId: number, title: string, body: string): Promise<string> {
   const fcm = await fcmAccess();
   const tag = `live-${eventId}`;
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${fcm.project}/messages:send`, {
@@ -79,7 +79,12 @@ async function sendPush(token: string, eventId: number, title: string, body: str
       },
     }),
   });
-  if (!res.ok) console.warn("FCM", res.status, (await res.text()).slice(0, 200));
+  if (!res.ok) {
+    const txt = (await res.text()).slice(0, 200);
+    console.warn("FCM", res.status, txt);
+    return `${res.status} ${txt.slice(0, 80)}`;
+  }
+  return "ok";
 }
 
 // ── Message text ──────────────────────────────────────────────────────────────
@@ -122,10 +127,10 @@ function phaseMessage(n: Names, state: any, phase: string) {
 }
 
 // ── One pass ──────────────────────────────────────────────────────────────────
-async function handle(sb: any, claim: any) {
+async function handle(sb: any, claim: any): Promise<Record<string, unknown> | null> {
   const items: any[] = claim.items || [];
   const phases: string[] = claim.phases || [];
-  if (!items.length && !phases.length) return 0;
+  if (!items.length && !phases.length) return null;
   const state = claim.state || {};
   const ev = state.event || {};
   const n: Names = {
@@ -134,10 +139,11 @@ async function handle(sb: any, claim: any) {
     team: ev.team_name || "",
   };
   const { data: targets, error } = await sb.rpc("lm_alert_targets", { p_event_id: claim.event_id, p_scorer: claim.scorer });
-  if (error) { console.warn("targets", error.message); return 0; }
+  if (error) { console.warn("targets", error.message); return { items: items.length, phases, error: "targets: " + error.message }; }
 
   const result = phases.includes("ft") ? "ft" : phases.includes("ht") ? "ht" : null;
-  const jobs: Promise<void>[] = [];
+  const jobs: Promise<string>[] = [];
+  const results: string[] = [];
   for (const t of targets || []) {
     let msg: { title: string; body: string } | null = null;
     if (result) msg = phaseMessage(n, state, result);
@@ -146,11 +152,14 @@ async function handle(sb: any, claim: any) {
       if (mine.length) msg = scoreMessage(n, state, mine, t.names);
       else if (phases.includes("ko") && t.kickoff) msg = phaseMessage(n, state, "ko");
     }
-    if (msg) jobs.push(sendPush(t.fcm_token, claim.event_id, msg.title, msg.body).catch((e) => console.warn("push", e)));
-    if (jobs.length >= 25) { await Promise.all(jobs.splice(0)); }
+    if (msg) jobs.push(sendPush(t.fcm_token, claim.event_id, msg.title, msg.body).catch((e) => `error ${String(e).slice(0, 80)}`));
+    if (jobs.length >= 25) results.push(...await Promise.all(jobs.splice(0)));
   }
-  await Promise.all(jobs);
-  return (targets || []).length;
+  results.push(...await Promise.all(jobs));
+  // A short record for lm_alert_probe: counts and FCM answers only
+  const fcm: Record<string, number> = {};
+  for (const r of results) fcm[r] = (fcm[r] || 0) + 1;
+  return { items: items.length, phases, phase: claim.phase, targets: (targets || []).length, sent: results.length, fcm };
 }
 
 async function run(matchStatsId: number) {
@@ -158,8 +167,14 @@ async function run(matchStatsId: number) {
   const started = Date.now();
   while (true) {
     const { data: claim, error } = await sb.rpc("lm_alert_claim", { p_match_stats_id: matchStatsId, p_settle: SETTLE_S });
-    if (error) { console.error("claim", error.message); return; }
-    try { await handle(sb, claim); } catch (e) { console.error("handle", e); }
+    if (error) {
+      console.error("claim", error.message);
+      await sb.rpc("lm_alert_note", { p_match_stats_id: matchStatsId, p_note: { error: "claim: " + error.message } });
+      return;
+    }
+    let note: Record<string, unknown> | null = null;
+    try { note = await handle(sb, claim); } catch (e) { console.error("handle", e); note = { error: "handle: " + String(e).slice(0, 160) }; }
+    if (note) await sb.rpc("lm_alert_note", { p_match_stats_id: matchStatsId, p_note: note });
     if (!claim.more) return;
     if (Date.now() - started > MAX_RUN_MS) {
       await sb.rpc("lm_alert_rewake", { p_match_stats_id: matchStatsId });
