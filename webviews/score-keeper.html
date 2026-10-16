@@ -533,8 +533,9 @@ function pauseClock() {
   S.clock.run = false; S.clock.startedAt = null;
   timerChanged(); render();
 }
-function endHalf() {
-  const sec = secInHalf();
+// cap: when injury time ran out, the half ends at half length + injury time
+function endHalf(cap) {
+  const sec = cap != null ? Math.min(secInHalf(), cap) : secInHalf();
   if (S.clock.run) { S.clock.banked = sec; S.clock.run = false; S.clock.startedAt = null; }
   S.clock.ended[S.clock.half] = sec;
   S.phase = S.clock.half === 1 ? 'ht' : 'ft';
@@ -588,15 +589,18 @@ function tick() {
   if (!S || S.phase !== 'play') return;
   const sec = secInHalf(), dur = halfLen(), inj = injLen(), h = S.clock.half;
   const al = S.clock.alarmed;
-  if (S.clock.run && sec >= dur && !al[h + 'a']) {
+  if (S.clock.run && inj > 0 && sec >= dur && sec < dur + inj && !al[h + 'a']) {
     al[h + 'a'] = 1; save();
     beep([0, 0.45, 0.9], 880, 0.35, 0.6); buzz([300, 120, 300]);
     toast(`${Math.round(dur / 60)} minutes up. Injury time now.`);
   }
-  if (S.clock.run && inj > 0 && sec >= dur + inj && !al[h + 'b']) {
-    al[h + 'b'] = 1; save();
-    whistle([0, 0.3], 700); buzz([400]);
-    toast(`Injury time's up. End the ${h === 1 ? 'half' : 'match'} when the ref blows.`);
+  // Injury time is the most per half: when it's up the half ends by itself
+  // (also when the phone was closed and the page opens long after)
+  if (S.clock.run && dur > 0 && sec >= dur + inj) {
+    al[h + 'b'] = 1;
+    endHalf(dur + inj);
+    toast(h === 1 ? "Injury time's up. Half time." : "Injury time's up. Full time.");
+    return;
   }
   renderClock();
 }
@@ -1245,7 +1249,7 @@ function renderSetup() {
     <div class="field"><label>Half length</label><div class="pick" id="fDur">${durs.map(m => `<button data-v="${m}" class="${dm === m ? 'on' : ''}">${m} min</button>`).join('')}<button data-v="other" class="${durs.includes(dm) && !draft.otherDur ? '' : 'on'}">Other</button></div>
       <div class="otherdur ${durs.includes(dm) && !draft.otherDur ? 'hidden' : ''}"><input id="fDurOther" type="number" inputmode="numeric" min="1" max="60" value="${dm}" aria-label="Half length in minutes"/><span>minutes per half</span></div></div>
     <div class="field"><label>Injury time, most per half</label><div class="pick" id="fInj">${injs.map(m => `<button data-v="${m}" class="${Math.round(draft.inj / 60) === m ? 'on' : ''}">${m ? m + ' min' : 'None'}</button>`).join('')}</div>
-      <div class="hint">The clock keeps going into injury time. You'll get a buzz when it's up, and you end the half when the ref blows.</div></div>`;
+      <div class="hint">The clock keeps going into injury time. End the half when the ref blows. If you forget, it ends by itself when injury time is up.</div></div>`;
 }
 $('setup').addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; otherDurInput(e); });
 $('setup').addEventListener('change', e => { if (e.target.id === 'fSquad') draft.squadId = e.target.value ? Number(e.target.value) : null; });
@@ -1417,7 +1421,7 @@ $('howBtn').addEventListener('click', () => {
     ${hi('⇄', 'Subs: "Sub 17 for 11"', 'Or use Make a sub in the ⋯ menu')}
     ${hi('?', 'It never stops to ask', `"Point" on its own counts for ${esc(usName())}. If it isn't sure of a name it picks the closest player and shows a ? on the card. Tap Change if it's wrong and it remembers for next time.`)}
     <div class="sec">The clock</div>
-    ${hi('❚❚', 'Pause for stoppages, End half when the ref blows', 'The clock turns amber in injury time and buzzes when injury time is up')}
+    ${hi('❚❚', 'Pause for stoppages, End half when the ref blows', 'The clock turns amber in injury time. If you forget, the half ends by itself when injury time is up')}
     <div class="sec">No signal?</div>
     ${hi('<span style="color:var(--amber)">●</span>', "Keep scoring. It's all saved on your phone", 'It uploads by itself when signal comes back. The pill at the top shows what is still waiting.')}
     ${hi('☀', 'The screen stays on until the match is saved', 'Tap the sun to turn that off')}
