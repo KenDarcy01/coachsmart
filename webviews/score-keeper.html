@@ -1678,7 +1678,13 @@ function voiceCtx() {
     types: types().map(t => ({ id: t.id, name: t.score_type, abbr: t.abbreviated_name, value: t.score_value })),
     usName: `${usName()} ${(C.event && C.event.club_name) || ''} ${(C.event && C.event.team_name) || ''}`,
     oppName: oppName(),
-    players: Array.from(roster().values()).map(p => ({ member_id: p.id, first_name: p.first, last_name: p.last, number: p.number })),
+    // Line-up and squad first, then the rest of the team, so a name said is always matched
+    players: (() => {
+      const r = roster();
+      const rest = ((C && C.players) || []).filter(p => !r.has(p.member_id))
+        .map(p => ({ id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: null }));
+      return [...r.values(), ...rest].map(p => ({ member_id: p.id, first_name: p.first, last_name: p.last, number: p.number }));
+    })(),
     aliases: store.get(ALIAS_KEY()) || {},
   };
 }
