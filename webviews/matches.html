@@ -146,7 +146,7 @@ function render() {
   } else {
     html = fol.length ? `<div class="card">${fol.map(row).join('')}</div>` : '<div class="empty">You\'re not following any upcoming matches.<br>Tap a bell to follow one.</div>';
   }
-  html += `<div class="note">Tap a bell to follow a match. You'll get an alert for every score, half time and full time. A green bell means you're following.</div>`;
+  html += `<div class="note">Tap a bell to follow a match and get every score. Tap a green bell to change to half and full time only, or stop.</div>`;
   $('list').innerHTML = html;
 }
 
@@ -165,15 +165,16 @@ function openMatch(id) {
   location.href = 'match-live.html?' + p.toString();
 }
 
-// A bell follows or unfollows that match: following means every score
+// A bell follows that match (every score); once following it opens the choices
 async function bellFor(id) {
   const m = (D.matches || []).find(x => x.event_id === id);
   if (!m) return;
-  const on = !following(m);
   try {
-    m.follow = await L.setFollow(id, on);
-    render();
-    toast(on ? "Following. You'll get every score." : 'Alerts off for this match');
+    await L.bell({
+      eventId: id, sub: `${m.team_name || ''} v ${m.opposition || 'Opposition'}`, follow: m.follow,
+      onChange: (f, msg) => { m.follow = f; render(); toast(msg); },
+      onError: () => toast("Couldn't save. Check your signal."),
+    });
   } catch (_) { toast("Couldn't save. Check your signal."); }
 }
 

@@ -224,8 +224,8 @@ function followCard() {
   const f = D.follow || { level: 'off' };
   const on = f.level !== 'off';
   return `<div class="card"><button class="follow" data-act="alerts"><div class="bell ${on ? 'on' : ''}">${BELL}</div>
-    <div style="flex:1"><div class="h">${on ? "You're following this match" : 'Follow this match'}</div><div class="sub" style="margin:2px 0 0">${on ? 'Every score, half time and full time' : 'Get an alert for every score'}</div></div>
-    <span class="chg">${on ? 'Unfollow' : 'Follow'}</span></button></div>`;
+    <div style="flex:1"><div class="h">${on ? "You're following this match" : 'Follow this match'}</div><div class="sub" style="margin:2px 0 0">${on ? L.levelLabel(f.level) + (f.kickoff ? ' and throw-in' : '') : 'Get an alert for every score'}</div></div>
+    <span class="chg">${on ? 'Change' : 'Follow'}</span></button></div>`;
 }
 
 function renderPre() {
@@ -343,14 +343,15 @@ $('shareBtn').addEventListener('click', share);
 // Opened from the Matches list in the same page: go back to it
 $('backBtn').addEventListener('click', () => { if (L.P.get('from') === 'list' && history.length > 1) history.back(); else L.close(); });
 
-// The bell follows or unfollows this match: following means every score
+// The bell follows this match (every score); once following it opens the choices
 async function openAlerts() {
   if (!D || D.error || PUBLIC) return;
-  const on = !(D.follow && D.follow.level !== 'off');
   try {
-    D.follow = await L.setFollow(D.event.event_id, on);
-    render();
-    toast(on ? "Following. You'll get every score." : 'Alerts off for this match');
+    await L.bell({
+      eventId: D.event.event_id, sub: `${D.event.team_name || ''} v ${oppName()}`, follow: D.follow,
+      onChange: (f, msg) => { D.follow = f; render(); toast(msg); },
+      onError: () => toast("Couldn't save. Check your signal."),
+    });
   } catch (_) { toast("Couldn't save. Check your signal."); }
 }
 
