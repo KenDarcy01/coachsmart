@@ -56,7 +56,6 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;paddin
   <div class="top">
     <button class="back" id="backBtn" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="title">Matches</div>
-    <button class="ib" id="defBtn" aria-label="Alerts for my teams"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
   </div>
   <div class="tabs" id="tabs"></div>
   <div id="list"><div class="empty">Loading matches…</div></div>
@@ -147,7 +146,7 @@ function render() {
   } else {
     html = fol.length ? `<div class="card">${fol.map(row).join('')}</div>` : '<div class="empty">You\'re not following any upcoming matches.<br>Tap a bell to follow one.</div>';
   }
-  html += `<div class="note">Green bell means you get alerts. Your own teams are followed for you; tap a bell to follow any club match.</div>`;
+  html += `<div class="note">Tap a bell to follow a match. You'll get an alert for every score, half time and full time. A green bell means you're following.</div>`;
   $('list').innerHTML = html;
 }
 
@@ -166,35 +165,18 @@ function openMatch(id) {
   location.href = 'match-live.html?' + p.toString();
 }
 
-function bellFor(id) {
+// A bell follows or unfollows that match: following means every score
+async function bellFor(id) {
   const m = (D.matches || []).find(x => x.event_id === id);
   if (!m) return;
-  const f = m.follow || {};
-  L.alertSheet({
-    title: 'Alerts for this match',
-    sub: `${m.team_name || ''} v ${m.opposition || 'Opposition'}`,
-    follow: f.level === 'off' && !f.own_team ? { level: 'all', kickoff: true, names: true } : f,
-    allowDefault: !!f.own_team,
-    onSave: async ch => {
-      try { m.follow = await L.saveFollow(id, ch, !!f.own_team); render(); if (ch.forAll) load(); toast(ch.level === 'off' ? 'Alerts off for this match' : 'Saved'); }
-      catch (_) { toast("Couldn't save. Check your signal."); }
-    },
-  });
+  const on = !following(m);
+  try {
+    m.follow = await L.setFollow(id, on);
+    render();
+    toast(on ? "Following. You'll get every score." : 'Alerts off for this match');
+  } catch (_) { toast("Couldn't save. Check your signal."); }
 }
 
-$('defBtn').addEventListener('click', () => {
-  const f = (D && D.default) || { level: 'result', kickoff: true, names: true };
-  L.alertSheet({
-    title: "Alerts for my teams' matches",
-    sub: 'Used for every match of the teams you are on',
-    follow: f,
-    note: 'You can still change it for a single match with its bell.',
-    onSave: async ch => {
-      try { await L.rpc('set_live_follow', { p_event_id: null, p_level: ch.level, p_kickoff: ch.kickoff, p_names: ch.names }); await load(); toast('Saved'); }
-      catch (_) { toast("Couldn't save. Check your signal."); }
-    },
-  });
-});
 $('backBtn').addEventListener('click', () => L.close());
 
 const pulse = L.listen([], load, { fast: 15000, slow: 30000 });
