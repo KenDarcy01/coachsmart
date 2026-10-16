@@ -145,15 +145,17 @@
     .pitch-wrap { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.55); flex-shrink: 0; }
     .pitch-svg { width: 100%; height: 100%; display: block; }
     .pos-ov { position: absolute; inset: 0; pointer-events: none; }
-    .ps { position: absolute; transform: translate(-50%,-50%); pointer-events: all; display: flex; flex-direction: column; align-items: center; gap: 1px; }
-    .pc { width: 36px; height: 40px; position: relative; cursor: pointer; transition: transform 0.12s; }
+    .ps { position: absolute; transform: translate(-50%, calc(var(--jh,40px) / -2)); pointer-events: all; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .pc { width: var(--jw,36px); height: var(--jh,40px); position: relative; cursor: pointer; transition: transform 0.12s; }
     .pc.over { transform: scale(1.2); }
     .jsv { position: absolute; inset: 0; width: 100%; height: 100%; }
     .jb { fill: rgba(255,255,255,0.15); stroke: rgba(255,255,255,0.55); stroke-width: 1.5; stroke-dasharray: 3,2; }
     .pc.has .jb { fill: var(--jc-p, #cc0000); stroke: rgba(255,255,255,0.85); stroke-dasharray: none; }
     .pc.gk.has .jb { fill: var(--jc-g, #ffffff); }
     .pc.over .jb { fill: rgba(255,255,255,0.28); stroke: white; stroke-dasharray: none; }
-    .pn { font-size: 10px; font-weight: 700; color: white; text-align: center; max-width: 68px; white-space: pre-line; word-break: break-word; line-height: 1.25; position: relative; z-index: 2; background: rgba(0,0,0,0.52); padding: 1px 4px; border-radius: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
+    .pn { font-weight: 700; color: white; text-align: center; line-height: 1.2; position: relative; z-index: 2; background: rgba(0,0,0,0.55); padding: 1px 5px 2px; border-radius: 5px; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
+    .pn:empty { display: none; }
+    .pn span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pl { font-size: 8px; font-weight: 600; color: rgba(255,255,255,0.65); text-shadow: 0 1px 2px rgba(0,0,0,0.6); white-space: nowrap; }
     .rx { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: var(--red); color: white; font-size: 9px; display: none; align-items: center; justify-content: center; z-index: 10; cursor: pointer; line-height: 1; }
     .pc.has:hover .rx { display: flex; }
@@ -389,7 +391,7 @@ function updateShareBtn(){ $('dlBtn').disabled=!hasAnyPlayers(); }
 function markDirty(){ dirty=true; updateShareBtn(); }
 function jwtUserId(token){ try{ return JSON.parse(atob(token.split('.')[1])).sub; }catch{ return null; } }
 let jc={p:'#cc0000',s:'#cc0000',g:'#ffffff'};
-let teamId=null,teamName='',eventId=null,eventLabel='',squadName='',squadId=null;
+let teamId=null,teamName='',eventId=null,eventLabel='',imageSub='',squadName='',squadId=null;
 let currentSquadMemberIds = new Set(); // all member_ids in current squad (set by initFromParams)
 
 const $=id=>document.getElementById(id);
@@ -426,6 +428,7 @@ function sizePitch() {
   area.style.height = availH + 'px';
   wrap.style.width  = Math.floor(pitchW) + 'px';
   wrap.style.height = Math.floor(pitchH) + 'px';
+  if(typeof renderPos==='function') renderPos();
 }
 
 window.addEventListener('resize', sizePitch);
@@ -440,11 +443,32 @@ function toast(m,d=2500){const e=$('toast');e.textContent=m;e.classList.add('sho
 function badge(id,val){const el=$(id);el.textContent=val;el.classList.toggle('on',!!val);}
 function applyJC(){document.documentElement.style.setProperty('--jc-p',jc.p);document.documentElement.style.setProperty('--jc-s',jc.s);document.documentElement.style.setProperty('--jc-g',jc.g);}
 function numCol(hex){try{const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return(0.299*r+0.587*g+0.114*b)/255<0.38?'#ffffff':'#000000';}catch{return'#000000';}}
-function fmtName(name){const p=name.trim().split(/\s+/);if(p.length===1)return p[0];const full=p.join(' ');if(full.length<=11)return full;return p[0]+'\n'+p.slice(1).join(' ');}
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 // Bench labels are narrow: first name plus surname initial ("Adam L.")
 function shortName(name){const p=name.trim().split(/\s+/);return p.length>1?`${p[0]} ${p[p.length-1][0]}.`:p[0];}
-function nameFz(name){const mx=Math.max(...name.trim().split(/\s+/).map(x=>x.length));return mx<=6?9:mx<=9?8:7;}
+// Names: fit each line to the space between columns, never wrap mid-word.
+// Two lines (first name / surname) when rows have room, else one line.
+const _mctx=document.createElement('canvas').getContext('2d');
+function textW(t,fs){_mctx.font=`700 ${fs}px "DM Sans",sans-serif`;return _mctx.measureText(t).width;}
+function fitFs(t,maxW,base,min){const w=textW(t,base);return w<=maxW?base:Math.max(min,Math.floor(base*maxW/w*2)/2);}
+function pitchLayout(){
+  const wr=$('pitchWrap'),W=wr.offsetWidth||300,H=wr.offsetHeight||484;
+  const ys=[...new Set(POS[fmt].map(p=>dispY(p.y)))].sort((a,b)=>a-b);
+  let gap=Infinity;for(let i=1;i<ys.length;i++)gap=Math.min(gap,(ys[i]-ys[i-1])*H/100);
+  const jh=Math.max(26,Math.min(40,gap*0.56)),jw=jh*0.9;
+  const two=gap-jh-4>=25;
+  return{W,H,jw,jh,two,nameW:W*0.30-10};
+}
+// Spread rows a little so the keeper's name stays on the pitch
+function dispY(y){return 8+(y-11)*(80/81);}
+function nameLines(name,L){
+  const p=name.trim().split(/\s+/),first=p[0],rest=p.slice(1).join(' ');
+  if(L.two&&rest) return [first,rest].map(t=>({t,fs:fitFs(t,L.nameW,11,8)}));
+  if(!rest) return [{t:first,fs:fitFs(first,L.nameW,10,8)}];
+  // One line: surname only, with an initial when two players share it
+  const same=Object.values(assign).map(id=>players.find(p=>p.id===id)).filter(p=>p&&p.name!==name&&p.name.trim().split(/\s+/).slice(1).join(' ')===rest).length;
+  const t=same?`${first[0]}. ${rest}`:rest;return [{t,fs:fitFs(t,L.nameW,10,8)}];
+}
 function onPitch(id){return Object.values(assign).includes(id)||Object.values(subAssign).includes(id);}
 
 // ── FORMAT ──
@@ -510,15 +534,16 @@ function jSVG(num,isGK,filled){
 }
 
 function renderPos(){
-  const ov=$('posOv');
+  const ov=$('posOv'),L=pitchLayout();
+  ov.style.setProperty('--jw',L.jw+'px');ov.style.setProperty('--jh',L.jh+'px');
   ov.innerHTML=POS[fmt].map(pos=>{
     const pid=assign[pos.n],pl=pid?players.find(p=>p.id===pid):null,gk=pos.n===1;
-    return`<div class="ps" style="left:${pos.x}%;top:${pos.y}%" data-p="${pos.n}">
+    return`<div class="ps" style="left:${pos.x}%;top:${dispY(pos.y)}%" data-p="${pos.n}">
       <div class="pc${pl?' has':''}${gk?' gk':''}" data-p="${pos.n}">
         ${jSVG(pos.n,gk,!!pl)}
         ${pl?`<div class="rx" data-rp="${pos.n}">×</div>`:''}
       </div>
-    <div class="pn" style="font-size:${pl?nameFz(pl.name):9}px;max-width:72px">${pl?fmtName(pl.name):''}</div>
+    <div class="pn" style="max-width:${L.nameW+10}px">${pl?nameLines(pl.name,L).map(l=>`<span style="font-size:${l.fs}px">${esc(l.t)}</span>`).join(''):''}</div>
       <div class="pl">${pl?'':pos.l}</div>
     </div>`;
   }).join('');
@@ -753,6 +778,7 @@ $('dlBtn').addEventListener('click',async()=>{
   try{
     await persistLineup();
     btn.innerHTML='Generating…';
+    try{ await Promise.race([document.fonts.load('26px "Bebas Neue"'),new Promise(r=>setTimeout(r,1500))]); }catch(_){}
     const canvas=generateLineupCanvas();
     const fname=`CoachSmart_${teamName.replace(/\s+/g,'_')}_lineup.png`;
     canvas.toBlob(async blob=>{
@@ -815,84 +841,82 @@ function drawCanvasJersey(ctx,cx,cy,num,isGK,filled){
   ctx.stroke(path);ctx.setLineDash([]);
   const nc=filled?numCol(isGK?jc.g:jc.p):'rgba(255,255,255,0.9)';
   const fs=filled?14:11,yn=filled&&!isGK?21:26;
-  ctx.lineWidth=4/sc;ctx.strokeStyle='rgba(0,0,0,0.8)';
+  ctx.lineWidth=4/sc;ctx.strokeStyle='rgba(0,0,0,0.8)';ctx.lineJoin='round';
   ctx.font=`800 ${fs}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.strokeText(String(num),20,yn);
   ctx.fillStyle=nc;ctx.fillText(String(num),20,yn);
   ctx.restore();
 }
 function generateLineupCanvas(){
-  const SC=3,PW=380,PH=Math.round(PW*145/90),PAD=12;
-  const JW=46,JH=JW*44/40;
+  const SC=3,PW=380,PH=Math.round(PW*145/90),PAD=12,HDR=66;
+  const JW=44,JH=JW*44/40,NAMEW=PW*0.30-8;
   const subEntries=Object.entries(subAssign).filter(([,m])=>m).sort((a,b)=>+a[0]-+b[0]);
-  // Pre-measure subs text to get correct canvas height
-  let SUB_H=0;
-  if(subEntries.length){
-    const tmp=document.createElement('canvas').getContext('2d');
-    tmp.font='500 13px "DM Sans",sans-serif';
-    const subsStr='Subs: '+subEntries.map(([,m])=>players.find(p=>p.id===m)?.name||'').filter(Boolean).join(', ');
-    SUB_H=wrapText(tmp,subsStr,PW).length*18+14;
-  }
-  const TW=PW+PAD*2,TH=PH+PAD*2+SUB_H+24;
+  const subRows=Math.ceil(subEntries.length/2),SUB_H=subEntries.length?28+subRows*26:0;
+  const TW=PW+PAD*2,TH=HDR+PH+PAD*2+SUB_H+26;
   const canvas=document.createElement('canvas');
   canvas.width=TW*SC;canvas.height=TH*SC;
   const ctx=canvas.getContext('2d');ctx.scale(SC,SC);
-  // Background
-  ctx.fillStyle='#111418';ctx.fillRect(0,0,TW,TH);
-  // Pitch — horizontal stripes (GAA mowing pattern)
-  const NS=12,SH=PH/NS;
-  for(let i=0;i<NS;i++){ctx.fillStyle=i%2?'#3a9a3a':'#2d6a2d';ctx.fillRect(PAD,PAD+i*SH,PW,SH);}
-  // Pitch border
-  ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=1.5;
-  ctx.strokeRect(PAD,PAD,PW,PH);
-  // GAA pitch markings
-  // Small parallelogram: 4.5m deep (3.3%), 13m wide (14.9% of 87.5m avg)
+  ctx.fillStyle='#14181b';ctx.fillRect(0,0,TW,TH);
+  // Header: club colour bar, team, event
+  ctx.fillStyle=jc.p;ctx.fillRect(0,0,TW,5);
+  ctx.fillStyle=jc.s;ctx.fillRect(0,5,TW,2);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#f1f4f8';ctx.font='26px "Bebas Neue",sans-serif';
+  ctx.fillText((teamName||'Line-up').toUpperCase(),PAD,40);
+  ctx.fillStyle='#a1a1a2';ctx.font='500 12px "DM Sans",sans-serif';
+  ctx.fillText(imageSub,PAD,58);
+  const PY=HDR;
+  // Pitch: soft mowing stripes
+  const NS=10,SH=PH/NS;
+  ctx.save();rr(ctx,PAD,PY,PW,PH,10);ctx.clip();
+  for(let i=0;i<NS;i++){ctx.fillStyle=i%2?'#3d8c3a':'#357e33';ctx.fillRect(PAD,PY+i*SH,PW,SH+1);}
+  ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=1.5;
   const SQW=PW*0.149,SQX=PAD+(PW-SQW)/2,SQH=PH*0.033;
-  ctx.strokeRect(SQX,PAD,SQW,SQH);
-  ctx.strokeRect(SQX,PAD+PH-SQH,SQW,SQH);
-  // Large parallelogram: 13m deep (9.5%), 19m wide (21.7% of 87.5m avg)
+  ctx.strokeRect(SQX,PY,SQW,SQH);ctx.strokeRect(SQX,PY+PH-SQH,SQW,SQH);
   const LRW=PW*0.217,LRX=PAD+(PW-LRW)/2,LRH=PH*0.095;
-  ctx.strokeRect(LRX,PAD,LRW,LRH);
-  ctx.strokeRect(LRX,PAD+PH-LRH,LRW,LRH);
-  // Full-width lines: 13m, 20m, 45m, 65m from each end
-  [0.095,0.146,0.328,0.474,0.526,0.672,0.854,0.905].forEach(yp=>{
-    ctx.beginPath();ctx.moveTo(PAD,PAD+yp*PH);ctx.lineTo(PAD+PW,PAD+yp*PH);ctx.stroke();
-  });
-  // D-arcs at 20m lines: flat side on 20m line, arc curves away from nearest goal
-  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH*0.146,PW*0.149,0,Math.PI);ctx.stroke();
-  ctx.beginPath();ctx.arc(PAD+PW/2,PAD+PH*0.854,PW*0.149,Math.PI,2*Math.PI);ctx.stroke();
-  // Centre line — dotted
-  ctx.setLineDash([6,4]);
-  ctx.beginPath();ctx.moveTo(PAD,PAD+PH*0.5);ctx.lineTo(PAD+PW,PAD+PH*0.5);ctx.stroke();
-  ctx.setLineDash([]);
-  // Players
+  ctx.strokeRect(LRX,PY,LRW,LRH);ctx.strokeRect(LRX,PY+PH-LRH,LRW,LRH);
+  ctx.strokeStyle='rgba(255,255,255,0.45)';
+  [0.146,0.328,0.474,0.526,0.672,0.854].forEach(yp=>{ctx.beginPath();ctx.moveTo(PAD,PY+yp*PH);ctx.lineTo(PAD+PW,PY+yp*PH);ctx.stroke();});
+  ctx.beginPath();ctx.arc(PAD+PW/2,PY+PH*0.146,PW*0.149,0,Math.PI);ctx.stroke();
+  ctx.beginPath();ctx.arc(PAD+PW/2,PY+PH*0.854,PW*0.149,Math.PI,2*Math.PI);ctx.stroke();
+  ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(255,255,255,0.6)';
+  ctx.beginPath();ctx.moveTo(PAD,PY+PH*0.5);ctx.lineTo(PAD+PW,PY+PH*0.5);ctx.stroke();ctx.setLineDash([]);
+  ctx.restore();
+  ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=2;rr(ctx,PAD,PY,PW,PH,10);ctx.stroke();
+  // Players: jersey on the spot, first name / surname under it
   POS[fmt].forEach(pos=>{
     const pid=assign[pos.n],pl=pid?players.find(p=>p.id===pid):null;
-    const cx=PAD+pos.x/100*PW,cy=PAD+pos.y/100*PH;
+    const cx=PAD+pos.x/100*PW,cy=PY+dispY(pos.y)/100*PH;
     drawCanvasJersey(ctx,cx,cy,pos.n,pos.n===1,!!pl);
-    if(pl){
-      ctx.font='700 10px "DM Sans",sans-serif';
-      const maxNW=PW*0.28;
-      const lines=wrapText(ctx,pl.name,maxNW);
-      const lineH=12,pillH=lines.length*lineH+4;
-      const pillW=Math.min(Math.max(...lines.map(l=>ctx.measureText(l).width))+8,maxNW+8);
-      const lx=cx-pillW/2,ly=cy+JH/2+3;
-      ctx.fillStyle='rgba(0,0,0,0.65)';rr(ctx,lx,ly,pillW,pillH,3);ctx.fill();
-      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';
-      lines.forEach((l,i)=>ctx.fillText(l,cx,ly+2+i*lineH));
-    }
+    if(!pl) return;
+    const parts=pl.name.trim().split(/\s+/),lines=parts.length>1?[parts[0],parts.slice(1).join(' ')]:[parts[0]];
+    const fit=lines.map(t=>{let fs=12;ctx.font=`700 ${fs}px "DM Sans",sans-serif`;const w=ctx.measureText(t).width;if(w>NAMEW)fs=Math.max(8.5,12*NAMEW/w);return{t,fs};});
+    const widths=fit.map(l=>{ctx.font=`700 ${l.fs}px "DM Sans",sans-serif`;return Math.min(ctx.measureText(l.t).width,NAMEW);});
+    const pillW=Math.max(...widths)+12,pillH=fit.length*14+5;
+    const ly=cy+JH/2+2;
+    ctx.fillStyle='rgba(0,0,0,0.6)';rr(ctx,cx-pillW/2,ly,pillW,pillH,5);ctx.fill();
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';
+    fit.forEach((l,i)=>{ctx.font=`${i?600:700} ${l.fs}px "DM Sans",sans-serif`;ctx.fillText(l.t,cx,ly+3+i*14,NAMEW);});
   });
-  // Subs — comma-separated, wraps if needed
+  // Subs: numbered, two columns
   if(subEntries.length){
-    const subsStr='Subs: '+subEntries.map(([,m])=>players.find(p=>p.id===m)?.name||'').filter(Boolean).join(', ');
-    ctx.font='500 13px "DM Sans",sans-serif';
-    ctx.textAlign='left';ctx.textBaseline='top';
-    ctx.fillStyle='rgba(255,255,255,0.85)';
-    wrapText(ctx,subsStr,PW).forEach((l,i)=>ctx.fillText(l,PAD,PAD+PH+8+i*18));
+    let y=PY+PH+PAD+6;
+    ctx.fillStyle='#87c232';ctx.font='700 11px "DM Sans",sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText('SUBSTITUTES',PAD,y);y+=22;
+    const colW=PW/2;
+    subEntries.forEach(([slot,m],i)=>{
+      const pl=players.find(p=>p.id===m);if(!pl)return;
+      const x=PAD+(i%2)*colW,yy=y+Math.floor(i/2)*26;
+      const num=String(POS[fmt].length+parseInt(slot));
+      ctx.fillStyle=jc.p;rr(ctx,x,yy,24,18,4);ctx.fill();
+      ctx.fillStyle=numCol(jc.p);ctx.font='800 11px "DM Sans",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(num,x+12,yy+9.5);
+      ctx.fillStyle='#f1f4f8';ctx.font='500 13px "DM Sans",sans-serif';ctx.textAlign='left';
+      ctx.fillText(pl.name,x+32,yy+9.5,colW-40);
+    });
   }
-  // Watermark
-  ctx.font='bold 10px "Bebas Neue",sans-serif';ctx.fillStyle='rgba(135,194,50,0.55)';
-  ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText('COACHSMART',PAD+PW,TH-4);
+  ctx.font='12px "Bebas Neue",sans-serif';ctx.fillStyle='rgba(135,194,50,0.7)';ctx.letterSpacing='1px';
+  ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText('COACHSMART',PAD+PW,TH-6);
   return canvas;
 }
 
@@ -1584,6 +1608,8 @@ async function initFromParams(){
       const ds = new Date(e.event_date_time).toLocaleDateString('en-IE',{day:'2-digit',month:'short',year:'numeric'});
       const opp = e.opposition ? ` vs ${e.opposition.trim()}` : '';
       eventLabel = `${ds} · ${e.event_codes?.event_code||''} ${e.event_types?.event_type||''}${opp}`.trim();
+      // Shared image header: no opposition (Ken, 2026-10-16)
+      imageSub = [`${e.event_codes?.event_code||''} ${e.event_types?.event_type||''}`.trim(), ds].filter(Boolean).join('  ·  ');
     }
 
     // Fetch squadName
