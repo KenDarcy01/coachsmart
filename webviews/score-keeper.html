@@ -167,6 +167,9 @@ input,select{font:inherit;color:var(--text)}
 .pick{display:flex;flex-wrap:wrap;gap:8px}
 .pick button{min-width:58px;height:46px;border-radius:12px;background:var(--card);font-weight:600;font-size:16px;padding:0 12px;border:1.5px solid transparent}
 .pick button.on{border-color:var(--green);color:var(--green);background:rgba(135,194,50,.1)}
+.otherdur{display:flex;align-items:center;gap:10px;margin-top:10px}
+.otherdur input{width:90px;text-align:center;font-size:18px;font-weight:600}
+.otherdur span{color:var(--muted);font-size:15px}
 .hint{font-size:13px;color:var(--muted);margin-top:6px}
 
 /* bottom bar */
@@ -1239,22 +1242,32 @@ function renderSetup() {
     <div class="sub">${esc([when, ev.event_code, ev.event_type, ev.team_name].filter(Boolean).join(' · '))}</div>
     <div class="field"><label>Opposition</label><input id="fOpp" value="${esc(draft.opp)}" placeholder="Who are you playing?" autocomplete="off"/></div>
     ${C.squads.length ? `<div class="field"><label>Squad</label><select id="fSquad"><option value="">Whole team</option>${C.squads.map(s => `<option value="${s.squad_id}" ${draft.squadId === s.squad_id ? 'selected' : ''}>${esc(s.squad_name)}</option>`).join('')}</select></div>` : ''}
-    <div class="field"><label>Half length</label><div class="pick" id="fDur">${durs.map(m => `<button data-v="${m}" class="${dm === m ? 'on' : ''}">${m} min</button>`).join('')}<button data-v="other" class="${durs.includes(dm) ? '' : 'on'}">${durs.includes(dm) ? 'Other' : dm + ' min'}</button></div></div>
+    <div class="field"><label>Half length</label><div class="pick" id="fDur">${durs.map(m => `<button data-v="${m}" class="${dm === m ? 'on' : ''}">${m} min</button>`).join('')}<button data-v="other" class="${durs.includes(dm) && !draft.otherDur ? '' : 'on'}">Other</button></div>
+      <div class="otherdur ${durs.includes(dm) && !draft.otherDur ? 'hidden' : ''}"><input id="fDurOther" type="number" inputmode="numeric" min="1" max="60" value="${dm}" aria-label="Half length in minutes"/><span>minutes per half</span></div></div>
     <div class="field"><label>Injury time, most per half</label><div class="pick" id="fInj">${injs.map(m => `<button data-v="${m}" class="${Math.round(draft.inj / 60) === m ? 'on' : ''}">${m ? m + ' min' : 'None'}</button>`).join('')}</div>
       <div class="hint">The clock keeps going into injury time. You'll get a buzz when it's up, and you end the half when the ref blows.</div></div>`;
 }
-$('setup').addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; });
+$('setup').addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; otherDurInput(e); });
 $('setup').addEventListener('change', e => { if (e.target.id === 'fSquad') draft.squadId = e.target.value ? Number(e.target.value) : null; });
 $('setup').addEventListener('click', e => {
   const b = e.target.closest('.pick button'); if (!b) return;
   if (b.parentElement.id === 'fDur') {
-    if (b.dataset.v === 'other') {
-      const v = Number(prompt('Half length in minutes', String(Math.round(draft.dur / 60))));
-      if (v >= 1 && v <= 60) draft.dur = Math.round(v) * 60;
-    } else draft.dur = Number(b.dataset.v) * 60;
+    draft.otherDur = b.dataset.v === 'other';
+    if (!draft.otherDur) draft.dur = Number(b.dataset.v) * 60;
   } else draft.inj = Number(b.dataset.v) * 60;
   renderSetup();
+  if (draft.otherDur && b.dataset.v === 'other') focusOtherDur($('setup'));
 });
+// "Other" half length: a number box under the choices (the app can't show pop-up prompts)
+function otherDurInput(e) {
+  if (e.target.id !== 'fDurOther') return;
+  const v = Math.round(Number(e.target.value));
+  if (v >= 1 && v <= 60) draft.dur = v * 60;
+}
+function focusOtherDur(host) {
+  const i = host.querySelector('#fDurOther'); if (!i) return;
+  i.focus(); try { i.select(); } catch (_) {}
+}
 function applySetup() {
   const opp = (draft.opp || '').trim();
   if (!opp) { toast('Add the opposition first'); const i = $('fOpp'); if (i) i.focus(); return; }
@@ -1471,13 +1484,15 @@ function openSetupSheet() {
   $('setup').innerHTML = '';
   const host = $('setupInner');
   host.classList.remove('hidden');
-  host.addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; });
+  host.addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; otherDurInput(e); });
   host.addEventListener('change', e => { if (e.target.id === 'fSquad') draft.squadId = e.target.value ? Number(e.target.value) : null; });
   host.addEventListener('click', e => {
     const b = e.target.closest('.pick button'); if (!b) return;
     if (b.parentElement.id === 'fDur') {
-      if (b.dataset.v === 'other') { const v = Number(prompt('Half length in minutes', String(Math.round(draft.dur / 60)))); if (v >= 1 && v <= 60) draft.dur = Math.round(v) * 60; }
-      else draft.dur = Number(b.dataset.v) * 60;
+      draft.otherDur = b.dataset.v === 'other';
+      if (!draft.otherDur) draft.dur = Number(b.dataset.v) * 60;
+      host.querySelector('.otherdur').classList.toggle('hidden', !draft.otherDur);
+      if (draft.otherDur) focusOtherDur(host);
     } else draft.inj = Number(b.dataset.v) * 60;
     b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
   });
