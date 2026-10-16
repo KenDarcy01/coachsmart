@@ -1,11 +1,32 @@
 -- Live match: two people keeping score for the same match
 --
 -- Ken (2026-10-16): when more than one person keeps score, followers stick
--- with whoever started scoring first. It moves to another scorer only if that
--- person has done nothing for 10 minutes (or has finished and someone is still
--- scoring). Before, the live page showed whoever tapped last, so it could flip
+-- with whoever started the clock first (not whoever logged the first score).
+-- It moves to another scorer only if that person has done nothing for 10
+-- minutes (or has finished and someone is still scoring). Before, the live page showed whoever tapped last, so it could flip
 -- between scorers, and every scorer's session sent alerts, so followers could
 -- get the same point twice. Now only the session followers see sends alerts.
+
+-- When this scorer first started the clock (kept through half time and restarts)
+ALTER TABLE public.match_timer ADD COLUMN IF NOT EXISTS kicked_off_at timestamptz;
+UPDATE public.match_timer SET kicked_off_at = COALESCE(started_at, updated_at)
+ WHERE kicked_off_at IS NULL AND (started_at IS NOT NULL OR status <> 'paused' OR elapsed_seconds > 0 OR current_half > 1);
+
+CREATE OR REPLACE FUNCTION public.lm_timer_kickoff()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = 'public'
+AS $$
+BEGIN
+  IF NEW.kicked_off_at IS NULL AND (NEW.started_at IS NOT NULL OR NEW.status = 'running') THEN
+    NEW.kicked_off_at := now();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS lm_timer_kickoff_trg ON public.match_timer;
+CREATE TRIGGER lm_timer_kickoff_trg BEFORE INSERT OR UPDATE ON public.match_timer
+  FOR EACH ROW EXECUTE FUNCTION public.lm_timer_kickoff();
 
 CREATE OR REPLACE FUNCTION public.lm_session_id(p_event_id bigint)
 RETURNS bigint
@@ -15,7 +36,7 @@ SECURITY DEFINER
 SET search_path = 'public'
 AS $$
   WITH s AS (
-    SELECT ms.id, ms.status, ms.created_at,
+    SELECT ms.id, ms.status, mt.kicked_off_at, ms.created_at,
            GREATEST(mt.updated_at, (SELECT max(d.created_at) FROM public.match_stats_details d WHERE d.match_stats_id = ms.id), ms.created_at) AS last_at
       FROM public.match_stats ms
       LEFT JOIN public.match_timer mt ON mt.event_id = ms.event_id AND mt.user_id = ms.user_id
@@ -23,6 +44,8 @@ AS $$
   )
   SELECT id FROM s
    ORDER BY (status = 'active' AND last_at > now() - interval '10 minutes') DESC,
+            -- among scorers still going: first to start the clock, then first to open
+            CASE WHEN status = 'active' AND last_at > now() - interval '10 minutes' THEN kicked_off_at END ASC NULLS LAST,
             CASE WHEN status = 'active' AND last_at > now() - interval '10 minutes' THEN created_at END ASC NULLS LAST,
             (status = 'active') DESC,
             last_at DESC NULLS LAST,
