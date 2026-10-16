@@ -561,6 +561,8 @@ function timerPayload() {
     injury_seconds: injLen(),
     // Lets followers see kick-off, half time and full time ('setup' until the clock first runs)
     phase: S.phase === 'play' && !c.run && c.half === 1 && !c.banked ? 'setup' : S.phase,
+    // This phone's clock when sent, so the live screen can correct for a phone clock that is off
+    client_now: new Date().toISOString(),
   };
 }
 
