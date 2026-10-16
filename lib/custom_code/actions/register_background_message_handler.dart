@@ -1251,6 +1251,23 @@ Future<void> _handlePushTap(RemoteMessage message, {bool coldStart = false}) asy
   if (coldStart) {
     await Future.delayed(const Duration(milliseconds: 500));
   }
+  // Live match alerts (score, half time, full time) open the live screen
+  final String liveEventId = message.data['live_event_id']?.toString() ?? '';
+  if (liveEventId.isNotEmpty && !kIsWeb) {
+    try {
+      _refreshNavigatorContext();
+      if (_navigatorContext != null && _navigatorContext!.mounted) {
+        _navigatorContext!.pushNamed(
+          'LiveMatch',
+          queryParameters: {'eventID': liveEventId},
+        );
+        _log('[PushTap] Navigated to LiveMatch eventId=$liveEventId ✓');
+        return;
+      }
+    } catch (e) {
+      _logError('[PushTap] LiveMatch navigation failed, opening the event', e);
+    }
+  }
   await _navigateFromPushLink(linkPage);
 }
 

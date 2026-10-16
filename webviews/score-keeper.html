@@ -559,6 +559,8 @@ function timerPayload() {
     current_half: c.half,
     duration_seconds: halfLen(),
     injury_seconds: injLen(),
+    // Lets followers see kick-off, half time and full time ('setup' until the clock first runs)
+    phase: S.phase === 'play' && !c.run && c.half === 1 && !c.banked ? 'setup' : S.phase,
   };
 }
 
@@ -825,8 +827,12 @@ function stateFromServer(srv) {
       s.clock.run = true;
       s.clock.startedAt = Date.parse(tm.started_at);
     }
+    if (tm.phase === 'ht' || tm.phase === 'ft') {
+      s.clock.ended[s.clock.half] = s.clock.banked;
+      s.phase = tm.phase;
+    }
     // The old score keeper parks the clock at half length + injury when a half ends
-    if (tm.status !== 'running' && s.clock.banked >= setup.dur + setup.inj && setup.dur) {
+    else if (tm.status !== 'running' && s.clock.banked >= setup.dur + setup.inj && setup.dur) {
       s.clock.ended[s.clock.half] = s.clock.banked;
       s.phase = s.clock.half === 1 ? 'ht' : 'ft';
     }

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#14181b"/>
+<title>Matches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="cs-live.js"></script>
+<style>
+:root{
+  --bg:#14181b;--card:#1e222b;--card2:#262b35;--line:rgba(255,255,255,.07);
+  --text:#f1f4f8;--muted:#a1a1a2;--green:#87c232;--amber:#f5a524;--red:#e05252;
+  --num:'Bebas Neue','Oswald','Arial Narrow',sans-serif;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif}
+body{min-height:100vh;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+.wrap{max-width:520px;margin:0 auto;padding:calc(4px + var(--safe-t)) 0 calc(40px + var(--safe-b))}
+.hidden{display:none!important}
+.top{display:flex;align-items:center;justify-content:space-between;padding:6px 12px 2px;position:sticky;top:0;z-index:10;background:var(--bg)}
+.back{width:48px;height:48px;display:grid;place-items:center;border-radius:8px;color:var(--green)}
+.back svg{width:34px;height:34px}
+.title{font-size:18px;font-weight:700}
+.ib{width:38px;height:38px;border-radius:11px;background:var(--card);display:grid;place-items:center;color:var(--muted)}
+.ib svg{width:19px;height:19px}
+.tabs{display:flex;margin:8px 16px 0;background:var(--card);border-radius:12px;padding:3px}
+.tabs button{flex:1;text-align:center;padding:9px 0;font-size:14px;font-weight:600;color:var(--muted);border-radius:9px}
+.tabs button.on{background:var(--card2);color:var(--text)}
+.card{margin:10px 16px 0;background:var(--card);border-radius:18px;padding:4px 14px}
+.sec{font-size:12.5px;color:var(--muted);margin:16px 18px 0}
+.mc{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.mc:last-child{border:0}
+.mc .l{flex:1;min-width:0}.mc .l b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc .l small{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap}
+.mc .r{text-align:right;font-family:var(--num);font-size:23px;line-height:1.05;white-space:nowrap}
+.mc .r small{display:block;font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--muted)}
+.mc .r.wait{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--muted)}
+.bell{width:40px;height:40px;border-radius:12px;background:var(--card2);color:var(--muted);display:grid;place-items:center;flex-shrink:0}
+.bell.on{background:rgba(135,194,50,.15);color:var(--green)}.bell svg{width:19px;height:19px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;letter-spacing:1px;padding:2px 7px;border-radius:99px;background:var(--red);color:#fff}
+.pill i{width:6px;height:6px;border-radius:50%;background:#fff;animation:blink 1.6s infinite}
+.pill.ht{background:var(--amber);color:#14181b}.pill.ft{background:var(--card2);color:var(--muted)}
+@keyframes blink{50%{opacity:.25}}
+.note{font-size:12.5px;color:var(--muted);margin:14px 18px;line-height:1.45}
+.empty{text-align:center;color:var(--muted);padding:50px 24px;font-size:15px;line-height:1.5}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(24px + var(--safe-b));max-width:480px;margin:0 auto;background:#2c323d;border-radius:14px;padding:12px 14px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:60;opacity:0;transform:translateY(10px);transition:all .2s;pointer-events:none}
+.toast.on{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <button class="back" id="backBtn" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="title">Matches</div>
+    <button class="ib" id="defBtn" aria-label="Alerts for my teams"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div id="list"><div class="empty">Loading matches…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const L = CSLive, $ = id => document.getElementById(id), esc = L.esc;
+const BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+let D = null, skew = 0, tab = null, ids = '';
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+async function load() {
+  try {
+    const d = await L.rpc('get_live_matches', {});
+    if (d && d.server_now) skew = Date.now() - Date.parse(d.server_now);
+    D = d;
+    render();
+    const now = (D.matches || []).map(m => m.event_id).join(',');
+    if (now !== ids) { ids = now; pulse.resubscribe((D.matches || []).map(m => m.event_id)); }
+  } catch (_) {
+    if (!D) $('list').innerHTML = `<div class="empty">Couldn't load matches.<br>Check your signal and try again.</div>`;
+  }
+}
+
+const isLive = m => m.phase === 'play' || m.phase === 'ht';
+const isDone = m => m.phase === 'ft' || m.phase === 'done';
+const dublinDay = t => new Date(t).toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin' });
+const isToday = m => m.event_date_time && dublinDay(m.event_date_time) === dublinDay(Date.now() - skew);
+const following = m => m.follow && m.follow.level !== 'off';
+
+function minuteOf(m) {
+  const tm = m.timer || {};
+  const dur = tm.duration_seconds || 1800, h = tm.current_half || 1;
+  const sec = L.halfSeconds(tm, skew);
+  const min = Math.floor(sec / 60) + 1, halfMin = Math.round(dur / 60);
+  return min > halfMin ? `${(h - 1) * halfMin + halfMin}+${min - halfMin}'` : `${(h - 1) * halfMin + min}'`;
+}
+function pill(m) {
+  if (m.phase === 'play') return `<span class="pill"><i></i>LIVE ${minuteOf(m)}</span>`;
+  if (m.phase === 'ht') return '<span class="pill ht">HALF TIME</span>';
+  if (isDone(m)) return '<span class="pill ft">FULL TIME</span>';
+  return '';
+}
+function until(t) {
+  const ms = Date.parse(t) - (Date.now() - skew);
+  if (ms <= 0) return 'Due';
+  const min = Math.round(ms / 60000);
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ${min % 60}m`;
+  return new Date(t).toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function ha(m) { return m.home_away ? m.home_away.charAt(0).toUpperCase() + m.home_away.slice(1).toLowerCase() : ''; }
+const time = t => new Date(t).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Dublin' });
+
+function row(m) {
+  const opp = m.opposition || 'Opposition';
+  const started = isLive(m) || isDone(m);
+  const sub = started ? `${pill(m)} ${esc(ha(m))}` : `Throw-in ${m.event_date_time ? time(m.event_date_time) : ''}${ha(m) ? ' · ' + esc(ha(m)) : ''}`;
+  const right = started && m.score
+    ? `<div class="r">${L.gaa(m.score.us)}<small>v ${L.gaa(m.score.opp)}</small></div>`
+    : `<div class="r wait">${m.event_date_time ? until(m.event_date_time) : ''}</div>`;
+  return `<div class="mc" data-open="${m.event_id}"><button class="bell ${following(m) ? 'on' : ''}" data-bell="${m.event_id}" aria-label="Alerts">${BELL}</button>
+    <div class="l"><b>${esc(m.team_name || '')} v ${esc(opp)}</b><small>${sub}</small></div>${right}</div>`;
+}
+
+function render() {
+  if (!D) return;
+  if (D.error) { $('list').innerHTML = '<div class="empty">Please sign in again.</div>'; return; }
+  const all = D.matches || [];
+  const live = all.filter(isLive);
+  const today = all.filter(isToday);
+  const fol = all.filter(m => following(m) && !isDone(m));
+  if (!tab) tab = live.length ? 'live' : 'today';
+  $('tabs').innerHTML = [['live', `Live now${live.length ? ' · ' + live.length : ''}`], ['today', 'Today'], ['following', 'Following']]
+    .map(([k, t]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('');
+  let html = '';
+  if (tab === 'live') {
+    html = live.length ? `<div class="card">${live.map(row).join('')}</div>` : '<div class="empty">No matches live right now.</div>';
+    const next = today.filter(m => m.phase === 'pre');
+    if (next.length) html += `<div class="sec">Coming up today</div><div class="card">${next.map(row).join('')}</div>`;
+  } else if (tab === 'today') {
+    html = today.length ? `<div class="card">${today.map(row).join('')}</div>` : '<div class="empty">No matches in your club today.</div>';
+  } else {
+    html = fol.length ? `<div class="card">${fol.map(row).join('')}</div>` : '<div class="empty">You\'re not following any upcoming matches.<br>Tap a bell to follow one.</div>';
+  }
+  html += `<div class="note">Green bell means you get alerts. Your own teams are followed for you; tap a bell to follow any club match.</div>`;
+  $('list').innerHTML = html;
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]');
+  if (t) { tab = t.dataset.tab; render(); return; }
+  const b = e.target.closest('[data-bell]');
+  if (b) { e.stopPropagation(); bellFor(Number(b.dataset.bell)); return; }
+  const o = e.target.closest('[data-open]');
+  if (o) openMatch(o.dataset.open);
+});
+
+function openMatch(id) {
+  const p = new URLSearchParams(location.search);
+  p.set('event_id', id); p.set('from', 'list');
+  location.href = 'match-live.html?' + p.toString();
+}
+
+function bellFor(id) {
+  const m = (D.matches || []).find(x => x.event_id === id);
+  if (!m) return;
+  const f = m.follow || {};
+  L.alertSheet({
+    title: 'Alerts for this match',
+    sub: `${m.team_name || ''} v ${m.opposition || 'Opposition'}`,
+    follow: f.level === 'off' && !f.own_team ? { level: 'all', kickoff: true, names: true } : f,
+    allowDefault: !!f.own_team,
+    onSave: async ch => {
+      try { m.follow = await L.saveFollow(id, ch, !!f.own_team); render(); if (ch.forAll) load(); toast(ch.level === 'off' ? 'Alerts off for this match' : 'Saved'); }
+      catch (_) { toast("Couldn't save. Check your signal."); }
+    },
+  });
+}
+
+$('defBtn').addEventListener('click', () => {
+  const f = (D && D.default) || { level: 'result', kickoff: true, names: true };
+  L.alertSheet({
+    title: "Alerts for my teams' matches",
+    sub: 'Used for every match of the teams you are on',
+    follow: f,
+    note: 'You can still change it for a single match with its bell.',
+    onSave: async ch => {
+      try { await L.rpc('set_live_follow', { p_event_id: null, p_level: ch.level, p_kickoff: ch.kickoff, p_names: ch.names }); await load(); toast('Saved'); }
+      catch (_) { toast("Couldn't save. Check your signal."); }
+    },
+  });
+});
+$('backBtn').addEventListener('click', () => L.close());
+
+const pulse = L.listen([], load, { fast: 15000, slow: 30000 });
+load();
+// Keep the live minutes ticking
+setInterval(() => { if (D && tab === 'live' && (D.matches || []).some(m => m.phase === 'play')) render(); }, 15000);
+</script>
+</body>
+</html>
