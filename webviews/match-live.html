@@ -360,7 +360,8 @@ async function share() {
   let url;
   try {
     const tok = await L.rpc('get_live_share_link', { p_event_id: D.event.event_id });
-    url = `${location.origin}${location.pathname}?share=${tok}`;
+    // Always the coachsmart.app address (the app loads this page from the longer Firebase one)
+    url = `https://coachsmart.app/webviews/match-live.html?share=${tok}`;
   } catch (_) { toast("Couldn't make a link. Check your signal."); return; }
   const done = D.phase === 'ft' || D.phase === 'done';
   const s = D.score;
