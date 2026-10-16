@@ -46,9 +46,8 @@ input,select{font:inherit;color:var(--text)}
 
 /* clock */
 .clock{text-align:center;margin-top:8px}
-.setchip{display:flex;align-items:center;gap:6px;margin:6px auto 0;padding:6px 12px;border-radius:999px;background:var(--card);color:var(--muted);font-size:13px;font-weight:600;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.setchip span{overflow:hidden;text-overflow:ellipsis;min-width:0}
-.setchip b{color:var(--green);font-weight:700;flex-shrink:0}
+.setchip{display:inline-flex;align-items:center;gap:2px;margin:2px 0 0 -4px;padding:5px 12px 5px 6px;border-radius:999px;background:var(--card);color:var(--green);font-size:14px;font-weight:700}
+.setchip svg{width:18px;height:18px}
 .clock .lbl{font-size:13px;letter-spacing:2.5px;color:var(--muted);font-weight:600;text-transform:uppercase}
 .clock .t{font-family:var(--num);font-size:78px;line-height:.95;letter-spacing:1px}
 .clock.inj .t,.clock.inj .lbl b{color:var(--amber)}
@@ -976,9 +975,7 @@ function renderBoard() { $('board').innerHTML = boardHtml(); }
 
 // Small chip under the top bar: what was set up, tap to change it
 function renderSetChip() {
-  const sq = S.setup.squadId && (C.squads || []).find(x => x.squad_id === S.setup.squadId);
-  const bits = [`v ${oppName()}`].concat(sq ? [sq.squad_name] : []);
-  $('setChip').innerHTML = `<span>${esc(bits.join(' · '))}</span><b>✎ Setup</b>`;
+  $('setChip').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Setup';
 }
 $('setChip').addEventListener('click', () => openSetupSheet());
 function renderClock() {
