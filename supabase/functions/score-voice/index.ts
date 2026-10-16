@@ -47,6 +47,8 @@ Rules:
 - member_id: only for side "us". Match the spoken name or shirt number to the players list (sound-alikes,
   first name only, surname only, nicknames). Use the known-names list first. If you are not sure, still give
   your best guess and set unsure true. If no player was mentioned, member_id null.
+- A name that sounds or is spelt a little differently is still that player ("Connor Wilson" = Conor Wilson,
+  "Sean"/"Shaun" = Seán). Always pick the closest player when a name was said; never leave member_id null then.
 - heard: the words that named the player, as spoken (empty if none).
 - count: how many of that stat (e.g. "two points" = 2), default 1.
 - Use only ids from the lists. Never invent a player or stat type.
@@ -60,6 +62,42 @@ Return ONLY JSON:
 {"transcript":"point ciarán","items":[{"kind":"score","type_id":1,"side":"us","member_id":5,"unsure":false,"heard":"ciaran","count":1},
           {"kind":"sub","on_id":7,"off_id":3}],
  "unknown":[]}`;
+
+// Closest player to the spoken words, by spelling: each spoken word is
+// compared with each player's first and last name (accents and case ignored).
+// sure = both names matched closely, or one name matched exactly and no other
+// player shares it.
+const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z' ]/g, " ");
+function editDistance(a: string, b: string) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  }
+  return d[a.length][b.length];
+}
+function nameScore(word: string, name: string) {
+  if (!word || !name || word.length < 2) return 0;
+  if (word === name) return 1;
+  const allow = name.length <= 4 ? 1 : 2;
+  const e = editDistance(word, name);
+  return e <= allow ? 1 - e / (name.length + 1) : 0;
+}
+function matchPlayer(words: string, players: { id: number; name: string }[]) {
+  const said = fold(words).split(/\s+/).filter((w) => w.length > 1);
+  if (!said.length) return null;
+  const scored = players.map((p) => {
+    const parts = fold(p.name).split(/\s+/).filter(Boolean);
+    const first = parts[0] || "", last = parts.slice(1).join(" ").replace(/ /g, "");
+    const f = Math.max(0, ...said.map((w) => nameScore(w, first)));
+    const l = Math.max(0, ...said.map((w) => nameScore(w, last)), last ? nameScore(said.join(""), last) : 0);
+    return { id: p.id, f, l, s: f + l, both: f > 0 && l > 0 };
+  }).filter((x) => x.s > 0).sort((a, b) => b.s - a.s);
+  if (!scored.length) return null;
+  const best = scored[0], next = scored[1];
+  if (next && next.s >= best.s - 0.05) return { id: best.id, sure: false };
+  return { id: best.id, sure: best.both || best.s >= 1 };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -136,7 +174,9 @@ serve(async (req) => {
     let out: any;
     try { out = JSON.parse(raw); } catch { return json({ error: "AI gave an unexpected answer" }, 502); }
 
-    // Keep only ids we sent
+    // Keep only ids we sent. A name the AI heard but didn't link to a player
+    // is matched here by spelling (Connor ~ Conor, Wolson ~ Wilson).
+    const byName = (words: string) => matchPlayer(words, players);
     const typeIds = new Set(types.map((t: any) => t.id));
     const playerIds = new Set(players.map((p: any) => p.id));
     const items = (Array.isArray(out.items) ? out.items : []).flatMap((it: any) => {
@@ -148,9 +188,16 @@ serve(async (req) => {
       const typeId = Number(it?.type_id);
       if (!typeIds.has(typeId)) return [];
       const side = it.side === "opp" ? "opp" : "us";
-      const mem = side === "us" && playerIds.has(Number(it.member_id)) ? Number(it.member_id) : null;
+      let mem = side === "us" && playerIds.has(Number(it.member_id)) ? Number(it.member_id) : null;
+      let unsure = !!it.unsure && !!mem;
+      if (side === "us" && !mem) {
+        const words = typeof it.heard === "string" && it.heard.trim() ? it.heard
+          : (out.items.length === 1 && typeof out.transcript === "string" ? out.transcript : "");
+        const m = words ? byName(words) : null;
+        if (m) { mem = m.id; unsure = !m.sure; }
+      }
       return [{
-        kind: "score", type_id: typeId, side, member_id: mem, unsure: !!it.unsure && !!mem,
+        kind: "score", type_id: typeId, side, member_id: mem, unsure,
         heard: typeof it.heard === "string" ? it.heard.slice(0, 40) : "",
         count: Math.min(Math.max(Math.round(Number(it.count) || 1), 1), 5),
       }];
