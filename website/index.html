@@ -297,6 +297,26 @@ a.tagpill{text-decoration:none}
  .tile.wide .phones{justify-content:center;margin:20px 0 0}
  .tile.wide .phones .iphone.full{--s:.62!important}
 }
+
+/* screen carousels */
+.show-m{display:none!important}
+.tile .cwrap{position:absolute;z-index:1;display:flex;flex-direction:column;align-items:center}
+.tile .cwrap .iphone{position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;margin:0!important}
+.carousel .clip{touch-action:pan-y;cursor:grab}
+.carousel .clip img.scr{position:absolute;inset:0;opacity:0;transform:translateX(8%);transition:opacity .55s ease,transform .55s ease}
+.carousel .clip img.scr.on{opacity:1;transform:none}
+.carousel .clip img.scr.out{transform:translateX(-8%)}
+.cnav{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;justify-content:center;position:relative;z-index:2}
+.cnav button{position:relative;overflow:hidden;font:600 12.5px 'DM Sans',sans-serif;color:var(--soft);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+.cnav button.on{color:var(--text);border-color:rgba(135,194,50,.55);background:rgba(135,194,50,.12)}
+.cnav button.on.run::after{content:"";position:absolute;left:0;bottom:0;height:2px;background:var(--g);animation:cbar var(--dur,4s) linear forwards}
+@keyframes cbar{from{width:0}to{width:100%}}
+@media (prefers-reduced-motion:reduce){.carousel .clip img.scr{transition:none}}
+@media (max-width:1000px){
+ .show-m{display:flex!important}
+ .tile .cwrap{position:relative!important;left:auto!important;right:auto!important;top:auto!important;transform:none!important;margin:26px auto 0}
+ .tile.wide .phones.hide-m{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -343,7 +363,7 @@ a.tagpill{text-decoration:none}
   <div class="head"><div class="eyebrow">Attendance first</div><h2>No more WhatsApp polls</h2><p>Every training and match gets one tap replies, live numbers and automatic reminders, so you know who's coming before you pack the cones.</p></div>
   <div class="bento">
 
-    <div class="tile span4 glow" style="min-height:540px">
+    <div class="tile span4 glow" style="min-height:650px">
       <span class="tg">THE CORE OF COACHSMART</span>
       <h3>Attendance for every<br>session and every team</h3>
       <p style="max-width:320px">Players and parents reply from the notification. Coaches see who's going, who isn't and who hasn't replied, and how each team is trending against this time last year.</p>
@@ -353,10 +373,10 @@ a.tagpill{text-decoration:none}
         <li>Coaches told when someone changes their mind</li>
         <li>Training and match attendance for every team</li>
       </ul>
-      <div class="iphone " style="--s:.6;right:40px;top:40px;transform:rotate(3deg)"><div class="clip"><img class="scr" src="/assets/teams.jpg" alt=""><div class="island2"></div></div></div>
+      <div class="cwrap " style="right:36px;top:34px"><div class="iphone carousel full" style="--s:.6;"><div class="clip"><img class="scr" src="/assets/teams.jpg" alt=""><img class="scr" src="/assets/event.jpg" alt=""><img class="scr" src="/assets/home.jpg" alt=""><div class="island2"></div></div></div><div class="cnav" data-labels="Team trends|Who's coming|Your week"></div></div>
     </div>
 
-    <div class="tile span2" style="min-height:540px">
+    <div class="tile span2" style="min-height:650px">
       <span class="tg">LIVE</span>
       <h3>Replies as they happen</h3>
       <p>Watch the numbers change in the hour before training.</p>
@@ -410,7 +430,7 @@ a.tagpill{text-decoration:none}
         <p>Every squad place across the season, by squad and by month. Find the player who hasn't had a game yet, before their parents do.</p>
         <ul class="ticks"><li>Players picked, and not picked yet</li><li>Places per squad and per month</li><li>Download as PDF or Excel</li></ul>
       </div>
-      <div class="phones"><div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="/assets/squads.jpg" alt=""><div class="island2"></div></div></div><div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="/assets/squad-chart.jpg" alt=""><div class="island2"></div></div></div></div>
+      <div class="cwrap show-m" style=""><div class="iphone carousel full" style="--s:.6;"><div class="clip"><img class="scr" src="/assets/squads.jpg" alt=""><img class="scr" src="/assets/squad-chart.jpg" alt=""><div class="island2"></div></div></div><div class="cnav" data-labels="Picked|By month"></div></div><div class="phones hide-m"><div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="/assets/squads.jpg" alt=""><div class="island2"></div></div></div><div class="iphone " style="--s:.56;"><div class="clip"><img class="scr" src="/assets/squad-chart.jpg" alt=""><div class="island2"></div></div></div></div>
     </div>
 
   </div>
@@ -420,21 +440,20 @@ a.tagpill{text-decoration:none}
   <div class="head"><div class="eyebrow">Then the smart stuff</div><h2>Less admin, more coaching</h2><p>Once you know who's coming, CoachSmart helps you plan the session, keep the score and write it all up. Just talk to it.</p></div>
   <div class="bento">
 
-    <div class="tile span4 glow" style="min-height:600px">
+    <div class="tile span4 glow" style="min-height:640px">
       <span class="tg">AI · VOICE</span>
       <h3>Session plans that<br>write themselves</h3>
-      <p style="max-width:230px">Pick your favourite drills, set the length and say what you want to focus on. You get a full plan with timings, stations and coaching points, with the weather checked. Want a change? Say it.</p>
-      <ul class="ticks" style="max-width:230px">
+      <p style="max-width:340px">Pick your favourite drills, set the length and say what you want to focus on. You get a full plan with timings, stations and coaching points, with the weather checked. Want a change? Say it.</p>
+      <ul class="ticks" style="max-width:340px">
         <li>Build from your favourite drills</li>
         <li>Change anything by voice</li>
         <li>Stations that rotate, with timings</li>
         <li>Share plans with the other coaches</li>
       </ul>
-      <div class="iphone hide-m" style="--s:.48;right:222px;top:80px;transform:rotate(-4deg)"><div class="clip"><img class="scr" src="/assets/plan-build.jpg" alt=""><div class="island2"></div></div></div>
-      <div class="iphone full" style="--s:.58;right:30px;top:30px;transform:rotate(3deg)"><div class="clip"><img class="scr" src="/assets/plan-change.jpg" alt=""><div class="island2"></div></div></div>
+      <div class="cwrap " style="right:40px;top:30px"><div class="iphone carousel full" style="--s:.58;"><div class="clip"><img class="scr" src="/assets/plan-build.jpg" alt=""><img class="scr" src="/assets/planner.jpg" alt=""><img class="scr" src="/assets/plan-change.jpg" alt=""><div class="island2"></div></div></div><div class="cnav" data-labels="Build|Your plan|Change by voice"></div></div>
     </div>
 
-    <div class="tile span2" style="min-height:600px">
+    <div class="tile span2" style="min-height:640px">
       <span class="tg">PRINT-READY</span>
       <h3>In your club's colours</h3>
       <p>Session plans and drill cards as PDFs with your crest, timings and diagrams. Share them or print them for the clubhouse.</p>
@@ -449,7 +468,7 @@ a.tagpill{text-decoration:none}
         <p>The clock runs and you keep the score, by tap or by voice: hold the mic and say "Point, Cian". It keeps working with no signal and keeps the screen awake. At full time it checks the score with you, and the charts and timeline are ready to share.</p>
         <ul class="ticks"><li>Running clock for each half</li><li>Tap or voice scoring</li><li>Works offline, saves as you go</li><li>Full-time check against the ref's score</li></ul>
       </div>
-      <div class="phones"><div class="iphone hide-m" style="--s:.45;"><div class="clip"><img class="scr" src="/assets/sk-tap.jpg" alt=""><div class="island2"></div></div></div><div class="iphone full" style="--s:.45;"><div class="clip"><img class="scr" src="/assets/sk-voice.jpg" alt=""><div class="island2"></div></div></div><div class="iphone hide-m" style="--s:.45;"><div class="clip"><img class="scr" src="/assets/sk-ft.jpg" alt=""><div class="island2"></div></div></div></div>
+      <div class="cwrap show-m" style=""><div class="iphone carousel full" style="--s:.6;"><div class="clip"><img class="scr" src="/assets/sk-tap.jpg" alt=""><img class="scr" src="/assets/sk-voice.jpg" alt=""><img class="scr" src="/assets/sk-ft.jpg" alt=""><div class="island2"></div></div></div><div class="cnav" data-labels="Tap|Voice|Full time"></div></div><div class="phones hide-m"><div class="iphone" style="--s:.45;"><div class="clip"><img class="scr" src="/assets/sk-tap.jpg" alt=""><div class="island2"></div></div></div><div class="iphone full" style="--s:.45;"><div class="clip"><img class="scr" src="/assets/sk-voice.jpg" alt=""><div class="island2"></div></div></div><div class="iphone" style="--s:.45;"><div class="clip"><img class="scr" src="/assets/sk-ft.jpg" alt=""><div class="island2"></div></div></div></div>
     </div>
 
     <div class="tile span3 below">
@@ -522,6 +541,32 @@ a.tagpill{text-decoration:none}
 </div></div>
 <footer><div class="wrap"><span>© 2026 CoachSmart · Coaching Made Simple</span><span class="flinks"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/data-deletion.html">Data deletion</a><a href="/contact.html">Contact</a></span></div></footer>
 
+<script>
+(function(){
+  var DUR=4000, still=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.cwrap').forEach(function(w){
+    var imgs=[].slice.call(w.querySelectorAll('img.scr')), nav=w.querySelector('.cnav');
+    var labels=nav.getAttribute('data-labels').split('|'), i=0, timer=null, auto=!still, seen=false;
+    var btns=labels.map(function(t,k){var b=document.createElement('button');b.type='button';b.textContent=t;
+      b.addEventListener('click',function(){auto=false;go(k)});nav.appendChild(b);return b});
+    function go(k){
+      k=(k+imgs.length)%imgs.length;
+      imgs.forEach(function(im,n){im.classList.toggle('out',n===i&&n!==k);im.classList.toggle('on',n===k)});
+      btns.forEach(function(b,n){b.classList.remove('run');b.classList.toggle('on',n===k)});
+      i=k; clearTimeout(timer);
+      if(auto&&seen){void btns[k].offsetWidth;btns[k].style.setProperty('--dur',DUR+'ms');btns[k].classList.add('run');timer=setTimeout(function(){go(i+1)},DUR)}
+    }
+    var clip=w.querySelector('.clip'), x0=null;
+    clip.addEventListener('pointerdown',function(e){x0=e.clientX});
+    clip.addEventListener('pointerup',function(e){if(x0===null)return;var dx=e.clientX-x0;x0=null;
+      if(Math.abs(dx)>30){auto=false;go(i+(dx<0?1:-1))}else{auto=false;go(i+1)}});
+    if('IntersectionObserver' in window){
+      new IntersectionObserver(function(es){es.forEach(function(e){seen=e.isIntersecting;if(seen)go(i);else clearTimeout(timer)})},{threshold:.45}).observe(w);
+    }
+    go(0);
+  });
+})();
+</script>
 <script src="/cookie-consent.js"></script>
 </body>
 </html>
