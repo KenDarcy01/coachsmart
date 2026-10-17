@@ -24,7 +24,7 @@
   <main class="main">
     <div class="topbar">
       <div class="tabs" id="tabs">
-        <button data-t="clubs">Clubs</button><button data-t="vs">Club v club</button><button data-t="h2h">Head to head</button><button data-t="trend">Trends</button>
+        <button data-t="clubs">Clubs</button><button data-t="vs">Club v club</button><button data-t="h2h">Head to head</button><button data-t="trend">Trends</button><button data-t="cmp">Compare</button>
       </div>
       <div class="summary" id="summary"></div>
       <div class="export-btns">
@@ -80,7 +80,7 @@ function render() {
   }
   if (!games.length) { $('list').innerHTML = `<div class="empty"><b>No results for these filters</b>Try more codes, another age group or a longer date range.</div>`; return; }
   const agg = aggregate(games);
-  $('list').innerHTML = { clubs: viewClubs, vs: viewVs, h2h: viewH2h, trend: viewTrend }[tab](agg, games);
+  $('list').innerHTML = { clubs: viewClubs, vs: viewVs, h2h: viewH2h, trend: viewTrend, cmp: viewCompare }[tab](agg, games);
 }
 
 // ── Clubs ──────────────────────────────────────────────────────────────────
@@ -238,6 +238,131 @@ function viewTrend(agg, games) {
 function trendAdd(v) { if (!v) return; v = +v; if (!trendClubs.includes(v) && trendClubs.length < 5) trendClubs.push(v); store('gaaSeason.trend', trendClubs); render(); }
 function trendDrop(i) { trendClubs.splice(i, 1); store('gaaSeason.trend', trendClubs); render(); }
 
+// ── Compare: ages in my club, one age across clubs, individual teams ───────
+let cmpMode = stored('gaaSeason.cmp', 'ages'), cmpAge = stored('gaaSeason.cmpAge', 'U14'), cmpCode = stored('gaaSeason.cmpCode', '');
+let cmpClubs = null, teamPick = [], cmpRows = [], cmpTitle = '';
+const setCmp = (k, v) => {
+  if (k === 'mode') cmpMode = v; else if (k === 'age') cmpAge = v; else cmpCode = v;
+  store('gaaSeason.cmp', cmpMode); store('gaaSeason.cmpAge', cmpAge); store('gaaSeason.cmpCode', cmpCode);
+  teamPick = []; render();
+};
+const agesIn = games => [...new Set(games.map(g => g.comp.age))].sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
+const teamKey = (club, g, suf) => `${club}|${g.comp.code}|${g.comp.age}|${suf}`;
+const teamLabel = k => { const [c, , , suf] = k.split('|'); return `${clubName(+c)}${suf ? ` ${suf}` : ''}`; };
+const statCells = s => `<td>${s.p}</td><td>${s.w}</td><td class="hide-s">${s.d}</td><td>${s.l}</td>
+  <td><span class="pill ${!F.weighted && winPct(s) >= 50 ? 'win' : ''}">${winPct(s)}%</span></td>
+  ${F.weighted ? `<td><span class="pill ${wScore(s) >= 50 ? 'win' : ''}">${wScore(s)}</span></td>` : ''}
+  <td class="${diffPg(s) > 0 ? 'pos' : diffPg(s) < 0 ? 'neg' : ''}">${sign(diffPg(s))}</td><td class="hide-s">${wdlBar(s)}</td>`;
+const statHead = () => `<th>P</th><th>W</th><th class="hide-s">D</th><th>L</th><th>Win %</th>${F.weighted ? '<th>Weighted</th>' : ''}<th>Diff / game</th><th class="hide-s">Record</th>`;
+const statRow = s => ({ p: s.p, w: s.w, d: s.d, l: s.l, wp: winPct(s), ws: wScore(s), diff: diffPg(s) });
+const statCols = () => [['P', 'p'], ['W', 'w'], ['D', 'd'], ['L', 'l'], ['Win %', 'wp'], ...(F.weighted ? [[`Weighted (${F.k}% division)`, 'ws']] : []), ['Diff / game', 'diff']];
+// Running monthly metric for each side; side(g) returns 'h', 'a' or null
+function running(games, sides) {
+  const months = monthsInRange(), run = sides.map(() => blank()), out = sides.map(() => []), k = K();
+  const byM = new Map(months.map(m => [m, []]));
+  for (const g of games) byM.get(g.m)?.push(g);
+  for (const m of months) {
+    for (const g of byM.get(m)) sides.forEach((f, i) => { const s = f(g); if (s === 'h') addSide(run[i], g.hp, g.ap, g.comp.str, k); else if (s === 'a') addSide(run[i], g.ap, g.hp, g.comp.str, k); });
+    sides.forEach((_, i) => out[i].push(run[i].p ? metric(run[i]) : null));
+  }
+  return { labels: months.map(m => MON[m]), vals: out };
+}
+
+function viewCompare(agg, games) {
+  const modes = [['ages', 'Ages in my club'], ['age', 'Same age, all clubs'], ['teams', 'Teams']];
+  const head = `<div class="section-title">Compare<span class="right"><span class="seg small">${modes.map(([v, l]) => `<button class="${cmpMode === v ? 'on' : ''}" onclick="setCmp('mode','${v}')">${l}</button>`).join('')}</span></span></div>`;
+  return head + (cmpMode === 'ages' ? cmpAges(games) : cmpMode === 'age' ? cmpSameAge(games) : cmpTeams(games));
+}
+
+function cmpAges(games) {
+  const by = {}, teams = {}, k = K();
+  for (const g of games) for (const [id, f, a, suf] of [[g.h, g.hp, g.ap, g.hs], [g.a, g.ap, g.hp, g.as]]) {
+    if (id !== myClub) continue;
+    addSide(by[g.comp.age] ??= blank(), f, a, g.comp.str, k);
+    (teams[g.comp.age] ??= new Set()).add(`${g.comp.code}|${suf}`);
+  }
+  const ages = Object.keys(by).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
+  cmpTitle = `${clubName(myClub)} age groups`;
+  cmpRows = ages.map(a => ({ age: a, teams: teams[a].size, ...statRow(by[a]) }));
+  if (!ages.length) return `<div class="empty"><b>No games for ${esc(clubName(myClub))}</b>Try more codes or a longer date range.</div>`;
+  const chart = chartHtml('ages', {
+    labels: ages, bars: true, min: 0, max: 100, ref: 50, fmt: metricFmt, legend: false,
+    series: [{ name: metricName(), color: v => v >= 50 ? '#679C20' : '#D47A0C', values: ages.map(a => metric(by[a])), labels: ages.map(a => `${metric(by[a])}`) }],
+    tip: i => { const s = by[ages[i]]; return `<b>${esc(ages[i])}</b><div>${metricName()}<span>${metricFmt(metric(s))}</span></div><div>Record<span>${rec(s)}</span></div><div>Diff a game<span>${sign(diffPg(s))}</span></div>`; },
+  });
+  return `<div class="note" style="margin:-2px 0 10px">${esc(clubName(myClub))}'s age groups side by side. Change the club under Your club.</div>
+    <div class="card"><div class="mini-t">${metricName()} by age group</div>${chart}</div>
+    <div class="tbl"><table><thead><tr><th class="l">Age</th><th class="hide-s">Teams</th>${statHead()}</tr></thead><tbody>
+    ${ages.map(a => `<tr onclick="cmpAge='${esc(a)}';setCmp('mode','age')"><td class="l" style="color:var(--green);width:auto">${esc(a)}</td><td class="hide-s">${teams[a].size}</td>${statCells(by[a])}</tr>`).join('')}
+    </tbody></table></div><div class="note">Tap an age to see how every club does at it.</div>`;
+}
+
+function cmpSameAge(games) {
+  const ages = agesIn(games);
+  if (!ages.includes(cmpAge)) cmpAge = ages.includes('U14') ? 'U14' : ages[0];
+  const gs = games.filter(g => g.comp.age === cmpAge), agg = aggregate(gs);
+  const list = byMetric([...agg.values()].filter(s => s.p >= 5));
+  const top = list.filter(s => s.id !== myClub).slice(0, 2).map(s => s.id);
+  let ids = (cmpClubs || [myClub, ...top]).filter(id => agg.has(id)).slice(0, 5);
+  cmpClubs = ids;
+  const r = running(gs, ids.map(id => g => g.h === id ? 'h' : g.a === id ? 'a' : null));
+  const series = ids.map((id, i) => ({ name: clubName(id), color: SERIES[i], values: r.vals[i], drop: ids.length > 1 ? `cmpDrop(${i})` : '' }));
+  const add = ids.length < 5 ? `<select class="no-pdf" onchange="cmpAdd(this.value)"><option value="">+ Add club</option>${list.filter(s => !ids.includes(s.id)).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>` : '';
+  cmpTitle = `${cmpAge} club rankings`;
+  cmpRows = list.map((s, i) => ({ _me: s.id === myClub, rank: i + 1, club: s.name, teams: s.teams.size, ...statRow(s) }));
+  return `<div class="legend" style="margin-bottom:12px"><span>Age</span><select onchange="setCmp('age', this.value)" style="margin-left:0">${ages.map(a => `<option ${a === cmpAge ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select></div>
+    <div class="card">${r.labels.length ? chartHtml('sameage', { labels: r.labels, series, fmt: metricFmt, min: 0, max: 100, fit: true, ref: 50, endLabels: true, legendExtra: add }) : ''}</div>
+    <div class="note" style="margin:-4px 0 6px">Running ${metricName().toLowerCase()} at ${esc(cmpAge)} through the season. Tap a club below to add it to the chart.</div>
+    <div class="section-title">Every club at ${esc(cmpAge)}<span class="n">${list.length} clubs with 5+ games</span></div>
+    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Club</th><th class="hide-s">Teams</th>${statHead()}</tr></thead><tbody>
+    ${list.map((s, i) => `<tr class="${s.id === myClub ? 'me' : ''}" onclick="cmpAdd(${s.id})"><td class="l">${i + 1}</td><td class="l club"><b>${esc(s.name)}</b><span>${s.teams.size} team${s.teams.size === 1 ? '' : 's'}</span></td><td class="hide-s">${s.teams.size}</td>${statCells(s)}</tr>`).join('')}
+    </tbody></table></div>`;
+}
+function cmpAdd(v) { if (!v) return; v = +v; if (!cmpClubs.includes(v)) { if (cmpClubs.length >= 5) cmpClubs.pop(); cmpClubs.push(v); } render(); }
+function cmpDrop(i) { cmpClubs.splice(i, 1); render(); }
+
+function cmpTeams(games) {
+  const codes = codesOn(), code = codes.includes(cmpCode) ? cmpCode : codes[0];
+  const inCode = games.filter(g => g.comp.code === code), ages = agesIn(inCode);
+  if (!ages.includes(cmpAge)) cmpAge = ages.includes('U14') ? 'U14' : ages[0];
+  const gs = inCode.filter(g => g.comp.age === cmpAge), k = K();
+  const T = new Map();
+  for (const g of gs) for (const [id, f, a, suf, side] of [[g.h, g.hp, g.ap, g.hs, 'h'], [g.a, g.ap, g.hp, g.as, 'a']]) {
+    const key = teamKey(id, g, suf);
+    let t = T.get(key); if (!t) T.set(key, t = { key, club: id, ...blank(), grades: {}, games: [] });
+    addSide(t, f, a, g.comp.str, k); t.grades[g.comp.grade] = (t.grades[g.comp.grade] || 0) + 1; t.games.push([g, side]);
+  }
+  const grade = t => Object.entries(t.grades).sort((x, y) => y[1] - x[1])[0][0];
+  const list = byMetric([...T.values()].filter(t => t.p >= 3));
+  teamPick = teamPick.filter(k => T.has(k));
+  cmpTitle = `${cmpAge} ${code} teams`;
+  cmpRows = list.map((t, i) => ({ _me: t.club === myClub, rank: i + 1, team: teamLabel(t.key), comp: grade(t), ...statRow(t) }));
+  const pickers = `<div class="legend" style="margin-bottom:12px"><span>Code</span><select onchange="setCmp('code', this.value)" style="margin-left:0">${codes.map(c => `<option ${c === code ? 'selected' : ''}>${c}</option>`).join('')}</select>
+    <span>Age</span><select onchange="setCmp('age', this.value)" style="margin-left:0">${ages.map(a => `<option ${a === cmpAge ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select></div>`;
+  if (!list.length) return pickers + `<div class="empty"><b>No teams with 3+ games</b>Try another age, code or a longer date range.</div>`;
+  let top = '';
+  const picked = teamPick.map(k => T.get(k));
+  if (picked.length === 2) {
+    const [A, B] = picked, pf = s => one(s.pf / s.p), pa = s => one(s.pa / s.p), p100 = v => `${v}%`;
+    const met = A.games.filter(([g]) => B.games.some(([h]) => h === g)).map(([g]) => g);
+    top = `<div class="card"><div class="vs-head"><div class="vs-club">${ring(metric(A), SERIES[0], metricFmt(metric(A)))}<div><b style="font-size:17px">${esc(teamLabel(A.key))}</b><div class="s">${esc(grade(A))} · ${rec(A)}</div></div></div>
+      <div class="vs-mid">V</div><div class="vs-club b">${ring(metric(B), SERIES[1], metricFmt(metric(B)))}<div><b style="font-size:17px">${esc(teamLabel(B.key))}</b><div class="s">${esc(grade(B))} · ${rec(B)}</div></div></div></div></div>
+      <div class="card">${bfLine('Win %', winPct(A), winPct(B), p100)}${F.weighted ? bfLine('Weighted score', wScore(A), wScore(B)) : ''}${bfLine('Points for a game', pf(A), pf(B))}${bfLine('Points against a game', pa(A), pa(B), undefined, true)}${bfLine('Diff a game', diffPg(A), diffPg(B), sign)}${bfLine('Games played', A.p, B.p)}
+      <div class="note">${met.length ? `They met ${met.length} time${met.length === 1 ? '' : 's'}: ${met.map(g => `${dayLabel(g.day)} ${esc(teamLabel(teamKey(g.h, g, g.hs)))} ${g.hp}–${g.ap} ${esc(teamLabel(teamKey(g.a, g, g.as)))}`).join(' · ')}` : "They haven't played each other in these filters."} <a href="#" onclick="teamPick=[];render();return false" style="color:var(--green)">Clear</a></div></div>`;
+  } else if (picked.length === 1) {
+    const t = picked[0];
+    top = `<div class="section-title" style="margin-top:6px">${esc(teamLabel(t.key))} ${esc(cmpAge)} ${esc(code)}<span class="n">${rec(t)} · tap another team to compare</span><span class="right"><a href="#" class="back" onclick="teamPick=[];render();return false">Clear</a></span></div>
+    ${t.games.slice().reverse().map(([g]) => { const hw = g.hp > g.ap, aw = g.ap > g.hp;
+      return `<div class="game"><div class="dt">${dayLabel(g.day)}</div><div class="cp">${esc(g.comp.grade)}</div>
+      <div class="m"><div class="h ${hw ? 'w' : aw ? 'lo' : ''}">${esc(teamLabel(teamKey(g.h, g, g.hs)))}</div><div class="sc"><span class="pill ${hw ? 'win' : ''}">${g.hp}</span><span>v</span><span class="pill ${aw ? 'win' : ''}">${g.ap}</span></div><div class="${aw ? 'w' : hw ? 'lo' : ''}">${esc(teamLabel(teamKey(g.a, g, g.as)))}</div></div></div>`; }).join('')}`;
+  }
+  return pickers + top + `<div class="section-title">${esc(cmpAge)} ${esc(code)} teams<span class="n">${list.length} teams with 3+ games · tap one for its games, two to compare</span></div>
+    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Team</th><th class="l hide-s">Competition</th>${statHead()}</tr></thead><tbody>
+    ${list.map((t, i) => `<tr class="${t.club === myClub ? 'me' : ''}" onclick="pickTeam('${esc(t.key)}')" style="${teamPick.includes(t.key) ? 'outline:2px solid var(--green);outline-offset:-2px;border-radius:10px' : ''}"><td class="l">${i + 1}</td><td class="l club"><b>${esc(teamLabel(t.key))}</b><span class="show-s">${esc(grade(t))}</span></td><td class="l hide-s">${esc(grade(t))}</td>${statCells(t)}</tr>`).join('')}
+    </tbody></table></div>`;
+}
+function pickTeam(k) { teamPick = teamPick.includes(k) ? teamPick.filter(x => x !== k) : [...teamPick.slice(-1), k]; render(); $('list').scrollTop = 0; }
+
 // ── Exports: whatever the open tab shows ───────────────────────────────────
 function exportData() {
   const [from, to] = range(), when = `${dayLabel(from)} to ${dayLabel(DB.lastDay && DB.lastDay < to ? DB.lastDay : to)}`;
@@ -249,6 +374,10 @@ function exportData() {
   if (tab === 'h2h') {
     const b = pairB(agg);
     return { title: `Head to head ${clubName(myClub)} v ${clubName(b)} ${when}`, sheets: [{ name: 'Games', cols: [['Date', 'date'], ['Age', 'age'], ['Code', 'code'], ['Competition', 'comp'], ['Home', 'home'], ['Home pts', 'hp'], ['Away pts', 'ap'], ['Away', 'away']], rows: h2hRows }] };
+  }
+  if (tab === 'cmp') {
+    const lead = cmpMode === 'ages' ? [['Age', 'age'], ['Teams', 'teams']] : cmpMode === 'age' ? [['#', 'rank'], ['Club', 'club'], ['Teams', 'teams']] : [['#', 'rank'], ['Team', 'team'], ['Competition', 'comp']];
+    return { title: `${cmpTitle} ${when}`, sheets: [{ name: 'Compare', cols: [...lead, ...statCols()], rows: cmpRows }] };
   }
   if (tab === 'trend') {
     return { title: `${metricName()} by month ${when}`, sheets: [{ name: 'Trends', cols: [['Month', 'month'], ...trendClubs.map(id => [clubName(id), String(id)])], rows: trendRows }] };
