@@ -16,6 +16,9 @@
 :root{--g:#87c232;--gd:rgba(135,194,50,.15);--bg:#14181b;--side:#101316;--card:#1e222b;--card2:#272c37;--tx:#f1f4f8;--mu:#b3b7bd;--am:#f5a524;--ad:rgba(245,165,36,.15);--red:#ef5350;--bd:rgba(255,255,255,.08)}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
+/* no visible scroll bars; areas still scroll */
+*{scrollbar-width:none}
+*::-webkit-scrollbar{display:none}
 body{background:var(--bg);font-family:DM,system-ui,sans-serif;color:var(--tx);font-size:15px;overflow:hidden}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 a{color:var(--g)}
