@@ -222,7 +222,7 @@ function monthsInRange() {
 const CHARTS = {};
 function chartHtml(id, cfg) {
   CHARTS[id] = cfg;
-  const W = cfg.width || (innerWidth < 760 ? 480 : 900), H = cfg.height || 280, ml = 44, mr = cfg.endLabels && W >= 700 ? 150 : 16, mt = 14, mb = 28;
+  const W = innerWidth < 760 ? Math.max(320, innerWidth - 56) : (cfg.width || 900), H = cfg.height || 280, ml = 44, mr = cfg.endLabels && W >= 700 ? 150 : 16, mt = 14, mb = 28;
   const vals = cfg.series.flatMap(s => s.values).filter(v => v != null);
   let lo = cfg.min ?? Math.min(0, ...vals), hi = cfg.max ?? Math.max(1, ...vals);
   if (cfg.fit && vals.length) { lo = Math.max(lo, Math.min(...vals) - 5); hi = Math.min(hi, Math.max(...vals) + 5); }
