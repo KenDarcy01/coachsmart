@@ -92,7 +92,8 @@ nav{width:220px;flex:none;background:var(--side);border-right:1px solid var(--bd
 .box{background:var(--card);border-radius:14px;padding:14px 16px}
 .box h4{font-size:15px;font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between}.box h4 span{color:var(--mu);font-weight:500}
 .box h5{font-size:12px;color:var(--g);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px;display:flex;align-items:center;gap:8px;padding-left:8px;border-left:4px solid var(--sqc,transparent)}
-.box h5 img{width:22px;height:22px;object-fit:contain;border-radius:4px;margin-left:auto}
+.box h5 img{width:22px;height:22px;object-fit:contain;border-radius:4px;margin-left:-8px}
+.box h5:has(img){border-left:0;padding-left:8px}
 .pl{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--bd);font-size:15px}
 .pl .s{width:28px;height:28px;border-radius:50%;background:var(--card2);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
 .pl em{margin-left:auto;font-style:normal;font-size:13px;color:var(--mu);text-align:right}
@@ -577,7 +578,9 @@ async function loadAttendance(e, kpiOnly) {
     rows.forEach(p => {
       if (!fSquad && sqName(p) !== last) {
         const q = squads[sqOrder[sqName(p)]];
-        html += `<h5${q.colour ? ` style="--sqc:${esc(q.colour)}"` : ''}>${esc(sqName(p))}${q.image ? `<img src="${esc(q.image)}" alt="">` : ''}</h5>`;
+        // Squad image if there is one, otherwise its colour, otherwise nothing
+        html += q.image ? `<h5><img src="${esc(q.image)}" alt="">${esc(sqName(p))}</h5>`
+          : `<h5${q.colour ? ` style="--sqc:${esc(q.colour)}"` : ''}>${esc(sqName(p))}</h5>`;
         last = sqName(p);
       }
       const ini = (p.member_name || '').split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
@@ -589,7 +592,7 @@ async function loadAttendance(e, kpiOnly) {
   $('tabBody').innerHTML = `
     <div class="bar"><i style="width:${g / total * 100}%;background:var(--g)"></i><i style="width:${n / total * 100}%;background:var(--red)"></i><i style="width:${(total - g - n) / total * 100}%;background:var(--am)"></i></div>
     ${squads.length > 1 ? `<div class="sqs">${squads.map(q => `<button class="sq${q.name === fSquad ? ' on' : ''}" data-sq="${esc(q.name)}">
-      ${q.colour ? `<i class="stripe" style="background:${esc(q.colour)}"></i>` : ''}${q.image ? `<img src="${esc(q.image)}" alt="">` : ''}<span>${esc(q.name)}</span><b>${q.going}<em>/${q.total}</em></b><small>players going</small><small>${q.not} not going · ${q.none} no reply</small></button>`).join('')}</div>` : ''}
+      ${q.image ? `<img src="${esc(q.image)}" alt="">` : q.colour ? `<i class="stripe" style="background:${esc(q.colour)}"></i>` : ''}<span>${esc(q.name)}</span><b>${q.going}<em>/${q.total}</em></b><small>players going</small><small>${q.not} not going · ${q.none} no reply</small></button>`).join('')}</div>` : ''}
     <div class="cols">${col('Going', 'going')}${col('Not going', 'not')}${col('No reply', 'none')}</div>`;
   document.querySelectorAll('.sq').forEach(b => b.onclick = () => {
     fSquad = fSquad === b.dataset.sq ? null : b.dataset.sq;
