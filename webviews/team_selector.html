@@ -99,6 +99,7 @@
        Use JS-measured pixel heights — no flex magic needed */
     #pitchScreen { overflow: hidden; }
     .sub-bar { background: var(--card2); border-bottom: 1px solid var(--border); height: 38px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .sub-bar[hidden] { display: none; }
     .event-lbl { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .event-lbl strong { color: var(--text); }
     .toolbar { background: var(--card); border-bottom: 1px solid var(--border); height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
@@ -235,7 +236,8 @@
       </button>
     </div>
   </div>
-  <div class="sub-bar">
+  <!-- Team / date bar hidden (Ken, 2026-10-17): the pitch gets the space -->
+  <div class="sub-bar" hidden>
     <div class="event-lbl" id="evtLbl">—</div>
   </div>
   <div class="toolbar">
