@@ -159,7 +159,7 @@ nav{width:220px;flex:none;background:var(--side);border-right:1px solid var(--bd
     <div class="det" id="det"><div class="placeholder">Pick an event to see its details</div></div>
   </section>
 
-  <section class="view" id="view-insights"><iframe class="frame" data-src="/webviews/dashboard-app-v2.html" title="Insights"></iframe></section>
+  <section class="view" id="view-insights"><iframe class="frame" data-src="/webviews/dashboard-app.html" title="Insights"></iframe></section>
   <section class="view" id="view-fixtures"><iframe class="frame" data-src="/webviews/gaa-fixtures.html" title="Fixtures"></iframe></section>
 </div>
 
@@ -465,8 +465,10 @@ function renderDetail() {
   renderTab(e);
 }
 
-// Players are role grade 10; everyone else (coaches, managers…) is listed under the big number
-const isPlayer = r => r.role_grade === 10;
+// Members are role grade 10 (players, coaches, FLOs…); admins are grade 100 and left out of every count.
+// Players are the grade 10 role at level 10; the other member roles are listed under the big number.
+const isMember = r => r.role_grade === 10;
+const isPlayer = r => r.role_grade === 10 && r.role_level === 10;
 const plural = (r, n) => n === 1 ? (r.role_name || '') : (r.role_name_plural || r.role_name || '');
 
 const tally = rows => rows.reduce((t, r) => ({ going: t.going + +r.accepted_attendees_count, not: t.not + +r.declined_attendees_count, none: t.none + +r.no_response_count }), { going: 0, not: 0, none: 0 });
@@ -474,10 +476,10 @@ const tally = rows => rows.reduce((t, r) => ({ going: t.going + +r.accepted_atte
 // Big number = players (for the chosen squad when one is picked); every other role underneath, in role list order
 function kpis(summary, squadPlayers) {
   const players = squadPlayers || tally(summary.filter(isPlayer));
-  const others = summary.filter(r => !isPlayer(r));
+  const others = summary.filter(r => isMember(r) && !isPlayer(r));
   const card = (cls, label, key, col) => `<div class="k ${cls}"><span>${label}</span><b>${players[key]}<em>${players[key] === 1 ? 'Player' : 'Players'}</em></b>
     ${others.map(r => `<div class="rl">${esc(r.role_name_plural || r.role_name)}<i>${+r[col]}</i></div>`).join('')}</div>`;
-  const all = tally(summary), tot = all.going + all.not + all.none;
+  const all = tally(summary.filter(isMember)), tot = all.going + all.not + all.none;
   const pct = tot ? Math.round((all.going + all.not) / tot * 100) : 0;
   $('kpis').innerHTML = card('g', 'Going', 'going', 'accepted_attendees_count') + card('r', 'Not going', 'not', 'declined_attendees_count')
     + card('a', 'No reply', 'none', 'no_response_count') + `<div class="k"><span>Replied</span><b>${pct}%</b><small>${all.going + all.not} of ${tot} members</small></div>`;
@@ -549,7 +551,7 @@ async function loadAttendance(e, kpiOnly) {
   const STATUS = { accepted_members: 'going', declined_members: 'not', no_response_members: 'none' };
   const sqName = p => p.squad_name || 'No squad';
   const people = [];
-  roles.forEach(r => Object.keys(STATUS).forEach(k => (r[k] || []).forEach(m => people.push({ ...m, role: r, status: STATUS[k] }))));
+  roles.filter(isMember).forEach(r => Object.keys(STATUS).forEach(k => (r[k] || []).forEach(m => people.push({ ...m, role: r, status: STATUS[k] }))));
   const squads = [];
   people.forEach(p => {
     let q = squads.find(q => q.name === sqName(p));
