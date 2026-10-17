@@ -72,9 +72,13 @@ nav{width:220px;flex:none;background:var(--side);border-right:1px solid var(--bd
 .dh .tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
 .k{background:var(--card);border-radius:14px;padding:14px 16px}.k span{font-size:13px;color:var(--mu);font-weight:600}.k b{display:block;font-family:Bebas;font-size:38px;line-height:1.1;font-weight:400}
-.k small{display:block;font-size:13px;color:var(--mu);font-weight:600;margin-top:2px}.k b em{font-family:DM;font-style:normal;font-size:14px;color:var(--mu);font-weight:600;margin-left:6px}
+.k small{display:block;font-size:13px;color:var(--mu);font-weight:600;margin-top:2px}
+.k .rl{display:flex;justify-content:space-between;font-size:13px;color:var(--mu);font-weight:600;padding-top:3px}.k .rl i{font-style:normal;color:var(--tx)}.k b em{font-family:DM;font-style:normal;font-size:14px;color:var(--mu);font-weight:600;margin-left:6px}
 .sqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:16px}
-.sq{background:var(--card);border-radius:14px;padding:12px 14px;text-align:left;border:1.5px solid transparent}
+.sq{background:var(--card);border-radius:14px;padding:12px 14px;text-align:left;border:1.5px solid transparent;position:relative;overflow:hidden}
+.sq .stripe{position:absolute;left:0;right:0;top:0;height:5px}
+.sq img{position:absolute;top:10px;right:10px;width:34px;height:34px;object-fit:contain;border-radius:6px}
+.sq span{padding-right:40px}
 .sq:hover{border-color:rgba(135,194,50,.4)}.sq.on{border-color:var(--g);background:#222a22}
 .sq span{font-size:14px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sq b{display:block;font-family:Bebas;font-size:32px;line-height:1.1;font-weight:400;color:var(--g)}.sq b em{font-style:normal;font-size:20px;color:var(--mu)}
@@ -399,27 +403,25 @@ function renderList() {
 
 // "x/y going" on the cards counts players only, so each event's attendance is fetched in the background
 function playerCount(id) {
-  const roles = attCache[id];
-  if (!roles) return '<b>…</b><br>going';
-  const p = roles.filter(isPlayer);
-  const n = k => p.reduce((t, r) => t + (r[k] || []).length, 0);
-  const going = n('accepted_members');
-  return `<b>${going}</b>/${going + n('declined_members') + n('no_response_members')}<br>going`;
+  const rows = sumCache[id];
+  if (!rows) return '<b>…</b><br>going';
+  const t = tally(rows.filter(isPlayer));
+  return `<b>${t.going}</b>/${t.going + t.not + t.none}<br>going`;
 }
 
 let prefetching = false;
 async function prefetchCounts(list) {
   if (prefetching) return;
   prefetching = true;
-  const todo = list.filter(e => e.role >= 100 && !attCache[e.id]);
+  const todo = list.filter(e => e.role >= 100 && !sumCache[e.id]);
   const worker = async () => {
     for (let e; (e = todo.shift());) {
-      if (await fetchRoles(e.id)) document.querySelectorAll(`[data-cnt="${e.id}"]`).forEach(c => c.innerHTML = playerCount(e.id));
+      if (await fetchSummary(e.id)) document.querySelectorAll(`[data-cnt="${e.id}"]`).forEach(c => c.innerHTML = playerCount(e.id));
     }
   };
   await Promise.all([worker(), worker(), worker(), worker()]);
   prefetching = false;
-  if (shown().some(e => e.role >= 100 && !attCache[e.id] && !attFailed[e.id])) renderList();
+  if (shown().some(e => e.role >= 100 && !sumCache[e.id] && !sumFailed[e.id])) renderList();
 }
 
 $('items').addEventListener('click', e => {
@@ -467,19 +469,18 @@ function renderDetail() {
 const isPlayer = r => r.role_grade === 10;
 const plural = (r, n) => n === 1 ? (r.role_name || '') : (r.role_name_plural || r.role_name || '');
 
-function kpiCard(cls, label, roles, key) {
-  const players = roles.filter(isPlayer).reduce((n, r) => n + (r[key] || []).length, 0);
-  const others = roles.filter(r => !isPlayer(r) && (r[key] || []).length)
-    .map(r => `${r[key].length} ${esc(plural(r, r[key].length))}`);
-  return `<div class="k ${cls}"><span>${label}</span><b>${players}<em>${players === 1 ? 'Player' : 'Players'}</em></b>${others.length ? `<small>${others.join(' · ')}</small>` : ''}</div>`;
-}
+const tally = rows => rows.reduce((t, r) => ({ going: t.going + +r.accepted_attendees_count, not: t.not + +r.declined_attendees_count, none: t.none + +r.no_response_count }), { going: 0, not: 0, none: 0 });
 
-function kpis(roles) {
-  const all = k => roles.reduce((n, r) => n + (r[k] || []).length, 0);
-  const g = all('accepted_members'), n = all('declined_members'), x = all('no_response_members');
-  const pct = g + n + x ? Math.round((g + n) / (g + n + x) * 100) : 0;
-  $('kpis').innerHTML = kpiCard('g', 'Going', roles, 'accepted_members') + kpiCard('r', 'Not going', roles, 'declined_members')
-    + kpiCard('a', 'No reply', roles, 'no_response_members') + `<div class="k"><span>Replied</span><b>${pct}%</b><small>${g + n} of ${g + n + x}</small></div>`;
+// Big number = players (for the chosen squad when one is picked); every other role underneath, in role list order
+function kpis(summary, squadPlayers) {
+  const players = squadPlayers || tally(summary.filter(isPlayer));
+  const others = summary.filter(r => !isPlayer(r));
+  const card = (cls, label, key, col) => `<div class="k ${cls}"><span>${label}</span><b>${players[key]}<em>${players[key] === 1 ? 'Player' : 'Players'}</em></b>
+    ${others.map(r => `<div class="rl">${esc(r.role_name_plural || r.role_name)}<i>${+r[col]}</i></div>`).join('')}</div>`;
+  const all = tally(summary), tot = all.going + all.not + all.none;
+  const pct = tot ? Math.round((all.going + all.not) / tot * 100) : 0;
+  $('kpis').innerHTML = card('g', 'Going', 'going', 'accepted_attendees_count') + card('r', 'Not going', 'not', 'declined_attendees_count')
+    + card('a', 'No reply', 'none', 'no_response_count') + `<div class="k"><span>Replied</span><b>${pct}%</b><small>${all.going + all.not} of ${tot} members</small></div>`;
 }
 
 function iframeUrl(page, e) {
@@ -513,6 +514,21 @@ async function renderTab(e) {
   loadAttendance(e, false);
 }
 
+const sumCache = {}, sumFailed = {}, sumPending = {}, squadInfo = {};
+function fetchSummary(id) {
+  if (sumCache[id]) return Promise.resolve(sumCache[id]);
+  return sumPending[id] ||= sb.rpc('get_event_attendance_summary_by_role', { p_event_id: id }).then(({ data, error }) => {
+    delete sumPending[id];
+    if (error) { sumFailed[id] = error.message; return null; }
+    return sumCache[id] = (data || []).slice().sort((a, b) => (a.role_list_seq ?? 99) - (b.role_list_seq ?? 99));
+  });
+}
+// Squad colour and image for a team (the attendance call has no colour)
+function fetchSquads(teamId) {
+  return squadInfo[teamId] ||= sb.from('squads').select('squad_id,squad_colour,squad_image').eq('team_id', teamId)
+    .then(({ data }) => Object.fromEntries((data || []).map(q => [q.squad_id, q])));
+}
+
 const attCache = {}, attFailed = {}, attPending = {};
 function fetchRoles(id) {
   if (attCache[id]) return Promise.resolve(attCache[id]);
@@ -525,11 +541,9 @@ function fetchRoles(id) {
 
 async function loadAttendance(e, kpiOnly) {
   if (e.role < 100) { $('kpis').style.display = 'none'; if (!kpiOnly) $('tabBody').innerHTML = '<div class="none">Attendance lists are only shown to team admins.</div>'; return; }
-  const roles = await fetchRoles(e.id);
-  if (!roles) { if (!kpiOnly && selId === e.id) $('tabBody').innerHTML = `<div class="none">Couldn’t load attendance. ${esc(attFailed[e.id] || '')}</div>`; return; }
+  const [summary, roles, sqInfo] = await Promise.all([fetchSummary(e.id), fetchRoles(e.id), fetchSquads(e.team_id)]);
   if (selId !== e.id) return;
-  kpis(roles);
-  if (kpiOnly || detTab !== 'attendance') return;
+  if (!roles) { if (!kpiOnly) $('tabBody').innerHTML = `<div class="none">Couldn’t load attendance. ${esc(attFailed[e.id] || '')}</div>`; return; }
 
   // One row per member, keeping role and squad; squads follow their list order
   const STATUS = { accepted_members: 'going', declined_members: 'not', no_response_members: 'none' };
@@ -539,12 +553,15 @@ async function loadAttendance(e, kpiOnly) {
   const squads = [];
   people.forEach(p => {
     let q = squads.find(q => q.name === sqName(p));
-    if (!q) squads.push(q = { name: sqName(p), seq: p.squad_list_seq ?? 9999, going: 0, not: 0, none: 0, total: 0 });
+    if (!q) squads.push(q = { name: sqName(p), seq: p.squad_list_seq ?? 9999, image: p.squad_image || sqInfo[p.squad_id]?.squad_image, colour: sqInfo[p.squad_id]?.squad_colour, going: 0, not: 0, none: 0, total: 0 });
     if (isPlayer(p.role)) { q[p.status]++; q.total++; }
   });
   squads.sort((a, b) => a.seq - b.seq || a.name.localeCompare(b.name));
   const sqOrder = Object.fromEntries(squads.map((q, i) => [q.name, i]));
   if (fSquad && !(fSquad in sqOrder)) fSquad = null;
+  const fq = fSquad && squads.find(q => q.name === fSquad);
+  if (summary) kpis(summary, fq ? { going: fq.going, not: fq.not, none: fq.none } : null);
+  if (kpiOnly || detTab !== 'attendance') return;
 
   const g = people.filter(p => p.status === 'going').length, n = people.filter(p => p.status === 'not').length;
   const total = people.length || 1;
@@ -565,7 +582,7 @@ async function loadAttendance(e, kpiOnly) {
   $('tabBody').innerHTML = `
     <div class="bar"><i style="width:${g / total * 100}%;background:var(--g)"></i><i style="width:${n / total * 100}%;background:var(--red)"></i><i style="width:${(total - g - n) / total * 100}%;background:var(--am)"></i></div>
     ${squads.length > 1 ? `<div class="sqs">${squads.map(q => `<button class="sq${q.name === fSquad ? ' on' : ''}" data-sq="${esc(q.name)}">
-      <span>${esc(q.name)}</span><b>${q.going}<em>/${q.total}</em></b><small>players going</small><small>${q.not} not going · ${q.none} no reply</small></button>`).join('')}</div>` : ''}
+      ${q.colour ? `<i class="stripe" style="background:${esc(q.colour)}"></i>` : ''}${q.image ? `<img src="${esc(q.image)}" alt="">` : ''}<span>${esc(q.name)}</span><b>${q.going}<em>/${q.total}</em></b><small>players going</small><small>${q.not} not going · ${q.none} no reply</small></button>`).join('')}</div>` : ''}
     <div class="cols">${col('Going', 'going')}${col('Not going', 'not')}${col('No reply', 'none')}</div>`;
   document.querySelectorAll('.sq').forEach(b => b.onclick = () => {
     fSquad = fSquad === b.dataset.sq ? null : b.dataset.sq;
