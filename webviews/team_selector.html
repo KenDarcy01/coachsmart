@@ -447,7 +447,9 @@ function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 // Bench labels are narrow: first name plus surname initial ("Adam L.")
 function shortName(name){const p=name.trim().split(/\s+/);return p.length>1?`${p[0]} ${p[p.length-1][0]}.`:p[0];}
 // Names: fit each line to the space between columns, never wrap mid-word.
-// Two lines (first name / surname) when rows have room, else one line.
+// Always the full name (Ken, 2026-10-17: a surname alone isn't clear enough):
+// first name / surname on two lines, smaller and tighter when rows are close,
+// or the full name on one line when there's no room for two.
 const _mctx=document.createElement('canvas').getContext('2d');
 function textW(t,fs){_mctx.font=`700 ${fs}px "DM Sans",sans-serif`;return _mctx.measureText(t).width;}
 function fitFs(t,maxW,base,min){const w=textW(t,base);return w<=maxW?base:Math.max(min,Math.floor(base*maxW/w*2)/2);}
@@ -456,18 +458,16 @@ function pitchLayout(){
   const ys=[...new Set(POS[fmt].map(p=>dispY(p.y)))].sort((a,b)=>a-b);
   let gap=Infinity;for(let i=1;i<ys.length;i++)gap=Math.min(gap,(ys[i]-ys[i-1])*H/100);
   const jh=Math.max(26,Math.min(40,gap*0.56)),jw=jh*0.9;
-  const two=gap-jh-4>=25;
-  return{W,H,jw,jh,two,nameW:W*0.30-10};
+  const room=gap-jh-4,two=room>=25,tight=!two&&room>=17;
+  return{W,H,jw,jh,two,tight,nameW:W*0.30-10};
 }
 // Spread rows a little so the keeper's name stays on the pitch
 function dispY(y){return 8+(y-11)*(80/81);}
 function nameLines(name,L){
   const p=name.trim().split(/\s+/),first=p[0],rest=p.slice(1).join(' ');
   if(L.two&&rest) return [first,rest].map(t=>({t,fs:fitFs(t,L.nameW,11,8)}));
-  if(!rest) return [{t:first,fs:fitFs(first,L.nameW,10,8)}];
-  // One line: surname only, with an initial when two players share it
-  const same=Object.values(assign).map(id=>players.find(p=>p.id===id)).filter(p=>p&&p.name!==name&&p.name.trim().split(/\s+/).slice(1).join(' ')===rest).length;
-  const t=same?`${first[0]}. ${rest}`:rest;return [{t,fs:fitFs(t,L.nameW,10,8)}];
+  if(L.tight&&rest) return [first,rest].map(t=>({t,fs:fitFs(t,L.nameW,9,7),lh:1.05}));
+  const t=rest?`${first} ${rest}`:first;return [{t,fs:fitFs(t,L.nameW,10,7)}];
 }
 function onPitch(id){return Object.values(assign).includes(id)||Object.values(subAssign).includes(id);}
 
@@ -543,7 +543,7 @@ function renderPos(){
         ${jSVG(pos.n,gk,!!pl)}
         ${pl?`<div class="rx" data-rp="${pos.n}">×</div>`:''}
       </div>
-    <div class="pn" style="max-width:${L.nameW+10}px">${pl?nameLines(pl.name,L).map(l=>`<span style="font-size:${l.fs}px">${esc(l.t)}</span>`).join(''):''}</div>
+    <div class="pn" style="max-width:${L.nameW+10}px">${pl?nameLines(pl.name,L).map(l=>`<span style="font-size:${l.fs}px${l.lh?`;line-height:${l.lh}`:''}">${esc(l.t)}</span>`).join(''):''}</div>
       <div class="pl">${pl?'':pos.l}</div>
     </div>`;
   }).join('');
