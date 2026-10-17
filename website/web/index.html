@@ -601,7 +601,7 @@ async function loadAttendance(e, kpiOnly) {
   $('tabBody').innerHTML = `
     <div class="bar"><i style="width:${g / total * 100}%;background:var(--g)"></i><i style="width:${n / total * 100}%;background:var(--red)"></i><i style="width:${(total - g - n) / total * 100}%;background:var(--am)"></i></div>
     ${squads.length > 1 ? `<div class="sqs">${squads.map(q => `<button class="sq${q.name === fSquad ? ' on' : ''}" data-sq="${esc(q.name)}">
-      ${q.image ? `<img src="${esc(q.image)}" alt="">` : q.colour ? `<i class="stripe" style="background:${esc(q.colour)}"></i>` : ''}<span>${esc(q.name)}</span><b>${q.going}<em>/${q.total}</em><u>Players</u></b>${Object.values(q.roles).sort((a, b) => a.seq - b.seq).map(r => `<div class="rl">${esc(r.name)}<i>${r.going}/${r.total}</i></div>`).join('')}</button>`).join('')}</div>` : ''}
+      ${q.image ? `<img src="${esc(q.image)}" alt="">` : q.colour ? `<i class="stripe" style="background:${esc(q.colour)}"></i>` : ''}<span>${esc(q.name)}</span><b>${q.going}<u>${q.going === 1 ? 'Player' : 'Players'}</u></b>${Object.values(q.roles).sort((a, b) => a.seq - b.seq).map(r => `<div class="rl">${esc(r.name)}<i>${r.going}</i></div>`).join('')}</button>`).join('')}</div>` : ''}
     <div class="cols">${col('Going', 'going')}${col('Not going', 'not')}${col('No reply', 'none')}</div>`;
   document.querySelectorAll('.sq').forEach(b => b.onclick = () => {
     fSquad = fSquad === b.dataset.sq ? null : b.dataset.sq;
