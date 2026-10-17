@@ -99,6 +99,7 @@
        Use JS-measured pixel heights — no flex magic needed */
     #pitchScreen { overflow: hidden; }
     .sub-bar { background: var(--card2); border-bottom: 1px solid var(--border); height: 38px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .sub-bar[hidden] { display: none; }
     .event-lbl { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .event-lbl strong { color: var(--text); }
     .toolbar { background: var(--card); border-bottom: 1px solid var(--border); height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
@@ -182,31 +183,39 @@
     /* ── PDF PREVIEW OVERLAY ── */
     #pdfOverlay {
       display: none; position: fixed; inset: 0; z-index: 2000;
-      background: rgba(0,0,0,0.92); flex-direction: column;
-      align-items: center; justify-content: flex-start;
-      overflow-y: auto; -webkit-overflow-scrolling: touch;
-      padding: 0;
+      background: var(--dark); flex-direction: column;
     }
     #pdfOverlay.show { display: flex; }
-    #pdfOverlay .lov-actions {
-      position: sticky; top: 0; z-index: 10;
-      background: rgba(0,0,0,0.92);
-      width: 100%; max-width: 100%;
-      padding: 12px 16px;
-      backdrop-filter: blur(6px);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      margin-bottom: 0;
+    #pdfOverlay .pdf-top {
+      flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center;
+      height: calc(52px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top);
+      border-bottom: 1px solid var(--border);
     }
+    #pdfOverlay .pdf-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    #pdfOverlay .pdf-back {
+      position: absolute; left: 6px; bottom: 6px; display: flex; align-items: center; gap: 2px;
+      height: 40px; padding: 0 12px 0 6px; font-size: 15px; font-weight: 600; color: var(--text);
+      background: none; border: none; border-radius: 10px;
+    }
+    #pdfOverlay .pdf-back:active { background: var(--card2); }
     #pdfOverlay .pdf-content {
-      padding: 16px;
-      width: 100%;
-      display: flex; flex-direction: column; align-items: center;
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 16px; display: flex; flex-direction: column; align-items: center;
     }
     #pdfOverlay canvas {
-      max-width: 100%; border-radius: 6px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.8);
-      margin-bottom: 8px;
+      max-width: 100%; flex-shrink: 0; border-radius: 4px;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.6); margin-bottom: 12px;
     }
+    #pdfOverlay .pdf-bottom {
+      flex-shrink: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border); background: var(--dark);
+    }
+    #pdfOverlay .pdf-share {
+      width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: var(--green); color: #14181b; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 700;
+    }
+    #pdfOverlay .pdf-share:active { opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -235,7 +244,8 @@
       </button>
     </div>
   </div>
-  <div class="sub-bar">
+  <!-- Team / date bar hidden (Ken, 2026-10-17): the pitch gets the space -->
+  <div class="sub-bar" hidden>
     <div class="event-lbl" id="evtLbl">—</div>
   </div>
   <div class="toolbar">
@@ -323,14 +333,20 @@
 
 <!-- PDF preview overlay -->
 <div id="pdfOverlay">
-  <div class="lov-actions">
-    <button class="lov-share" id="pdfShareBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-      Share / Save
+  <div class="pdf-top">
+    <button class="pdf-back" onclick="closePdfOverlay()" aria-label="Close teamsheet">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
     </button>
-    <button class="lov-close" onclick="closePdfOverlay()">✕ Close</button>
+    <div class="pdf-title">Teamsheet</div>
   </div>
   <div id="pdfPages" class="pdf-content"></div>
+  <div class="pdf-bottom">
+    <button class="pdf-share" id="pdfShareBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Share teamsheet
+    </button>
+  </div>
 </div>
 
 <script>
@@ -447,7 +463,9 @@ function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 // Bench labels are narrow: first name plus surname initial ("Adam L.")
 function shortName(name){const p=name.trim().split(/\s+/);return p.length>1?`${p[0]} ${p[p.length-1][0]}.`:p[0];}
 // Names: fit each line to the space between columns, never wrap mid-word.
-// Two lines (first name / surname) when rows have room, else one line.
+// Always the full name (Ken, 2026-10-17: a surname alone isn't clear enough):
+// first name / surname on two lines, smaller and tighter when rows are close,
+// or the full name on one line when there's no room for two.
 const _mctx=document.createElement('canvas').getContext('2d');
 function textW(t,fs){_mctx.font=`700 ${fs}px "DM Sans",sans-serif`;return _mctx.measureText(t).width;}
 function fitFs(t,maxW,base,min){const w=textW(t,base);return w<=maxW?base:Math.max(min,Math.floor(base*maxW/w*2)/2);}
@@ -456,18 +474,16 @@ function pitchLayout(){
   const ys=[...new Set(POS[fmt].map(p=>dispY(p.y)))].sort((a,b)=>a-b);
   let gap=Infinity;for(let i=1;i<ys.length;i++)gap=Math.min(gap,(ys[i]-ys[i-1])*H/100);
   const jh=Math.max(26,Math.min(40,gap*0.56)),jw=jh*0.9;
-  const two=gap-jh-4>=25;
-  return{W,H,jw,jh,two,nameW:W*0.30-10};
+  const room=gap-jh-4,two=room>=25,tight=!two&&room>=17;
+  return{W,H,jw,jh,two,tight,nameW:W*0.30-10};
 }
 // Spread rows a little so the keeper's name stays on the pitch
 function dispY(y){return 8+(y-11)*(80/81);}
 function nameLines(name,L){
   const p=name.trim().split(/\s+/),first=p[0],rest=p.slice(1).join(' ');
   if(L.two&&rest) return [first,rest].map(t=>({t,fs:fitFs(t,L.nameW,11,8)}));
-  if(!rest) return [{t:first,fs:fitFs(first,L.nameW,10,8)}];
-  // One line: surname only, with an initial when two players share it
-  const same=Object.values(assign).map(id=>players.find(p=>p.id===id)).filter(p=>p&&p.name!==name&&p.name.trim().split(/\s+/).slice(1).join(' ')===rest).length;
-  const t=same?`${first[0]}. ${rest}`:rest;return [{t,fs:fitFs(t,L.nameW,10,8)}];
+  if(L.tight&&rest) return [first,rest].map(t=>({t,fs:fitFs(t,L.nameW,9,7),lh:1.05}));
+  const t=rest?`${first} ${rest}`:first;return [{t,fs:fitFs(t,L.nameW,10,7)}];
 }
 function onPitch(id){return Object.values(assign).includes(id)||Object.values(subAssign).includes(id);}
 
@@ -543,7 +559,7 @@ function renderPos(){
         ${jSVG(pos.n,gk,!!pl)}
         ${pl?`<div class="rx" data-rp="${pos.n}">×</div>`:''}
       </div>
-    <div class="pn" style="max-width:${L.nameW+10}px">${pl?nameLines(pl.name,L).map(l=>`<span style="font-size:${l.fs}px">${esc(l.t)}</span>`).join(''):''}</div>
+    <div class="pn" style="max-width:${L.nameW+10}px">${pl?nameLines(pl.name,L).map(l=>`<span style="font-size:${l.fs}px${l.lh?`;line-height:${l.lh}`:''}">${esc(l.t)}</span>`).join(''):''}</div>
       <div class="pl">${pl?'':pos.l}</div>
     </div>`;
   }).join('');
@@ -953,7 +969,7 @@ async function generateTeamsheet(){
       gaaLogoUrl = sportRows[0]?.sport_crest || '';
     }catch(e){ console.warn('GAA logo fetch failed',e); }
 
-    // Pre-fetch both images as base64 in JS (Pyodide can't fetch external URLs)
+    // Pre-fetch both images as base64 so they can be cleaned up and embedded
     async function toBase64(url){
       if(!url) return '';
       try{
@@ -1100,7 +1116,7 @@ async function generateTeamsheet(){
       mem:     m.mem
     }));
 
-    // ── 6. Generate PDF via Pyodide + ReportLab ──
+    // ── 6. Build the PDF and preview ──
     load(true,'Generating PDF…');
     await generatePDF({
       clubIrish, crestB64, gaaB64, chairperson, secretary,
@@ -1137,371 +1153,259 @@ async function translateWithClaude(names){
   }
 }
 
-// ── PYODIDE PDF GENERATOR ──
-let _pyodide = null;
+// ── TEAMSHEET PDF (jsPDF) ──
+// Same A4 layout the ReportLab version drew, now built in the browser in a
+// few milliseconds. The preview is drawn straight onto canvases with the
+// same layout code, so there's no PDF viewer to load either.
+// ── TEAMSHEET LAYOUT ──
+// One layout, drawn by two "pens": jsPDF for the PDF and a canvas for the
+// on-screen preview. Points on A4, measured from the bottom left like the
+// original ReportLab version, so every position is unchanged.
+const TS_W = 595.2756, TS_H = 841.8898, MM = 72 / 25.4;
+function drawTeamsheet(pen, d){
+  const W=TS_W, H=TS_H, mm=MM;
+  const ML=14*mm, MR=14*mm, MT=10*mm, MB=10*mm, GAP=8*mm;
+  const COLW=(W-ML-MR-GAP)/2, LX=ML, RX=ML+COLW+GAP;
+  const TEAL='#004A67', DETAIL='#7E8291', LGREY='#cccccc', DGREY='#333333', BLACK='#000000';
+  const B='bold', N='normal';
+  let y = H - MT;
 
-async function getPyodide(){
-  if(_pyodide) return _pyodide;
-  load(true,'Loading PDF engine…');
-  if(!window.loadPyodide){
-    await new Promise((res,rej)=>{
-      const s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
-      s.onload=res; s.onerror=rej;
-      document.head.appendChild(s);
-    });
+  // Logos, vertically centred in the logo row
+  const logo = 28*mm, midY = y - logo/2;
+  if (d.crest) pen.image(d.crest, LX, y-logo, logo, logo);
+  else { pen.stroke(LGREY, 0.5); pen.rect(LX, y-logo, logo, logo); }
+  const gw=26*mm, gh=18*mm;
+  if (d.gaa) pen.image(d.gaa, W-MR-gw, midY-gh/2, gw, gh);
+  else { pen.stroke(LGREY, 0.5); pen.rect(W-MR-gw, midY-gh/2, gw, gh); }
+  pen.font(B, 25); pen.fill(TEAL); pen.text(d.club_name_irish, W/2, midY, 'center');
+  y -= logo + 4*mm;
+
+  // Meta fields
+  const ROW_H = 11*mm;
+  const meta = (x, top, value, label) => {
+    if (value) { pen.font(B, 11); pen.fill(TEAL); pen.text(value, x, top-4*mm); }
+    pen.stroke(TEAL, 0.5); pen.line(x, top-6*mm, x+COLW, top-6*mm);
+    pen.font(N, 7); pen.fill(DETAIL); pen.text(label, x, top-8.5*mm);
+  };
+  meta(LX, y, d.chairperson, '(Cathaoirleach)');
+  meta(RX, y, d.secretary, '(Rúnaí)');
+  y -= ROW_H;
+  meta(LX, y, d.team_name, '(Foireann)');
+  meta(RX, y, '', '(Freasúra)');
+  y -= ROW_H;
+  meta(LX, y, '', '(Comórtas)');
+  meta(RX, y, '', '(Dáta)');
+  y -= ROW_H + 2*mm;
+
+  // Imreoirí
+  pen.font(B, 16); pen.fill(TEAL); pen.text('Imreoirí', W/2, y-5*mm, 'center');
+  y -= 9*mm;
+  const CB=3.8*mm, r=0.8*mm;
+  pen.stroke(DGREY, 0.9); pen.rrect(LX, y-CB, CB, CB, r);
+  // The tick in the key box
+  pen.stroke(BLACK, 1.1);
+  pen.line(LX+0.8*mm, y-CB+1.9*mm, LX+1.6*mm, y-CB+0.9*mm);
+  pen.line(LX+1.6*mm, y-CB+0.9*mm, LX+3.1*mm, y-CB+3.0*mm);
+  pen.font(N, 8.5); pen.fill(DGREY); pen.text('= ag tosú (Starting)', LX+CB+2.5*mm, y-2.8*mm);
+  y -= 7*mm;
+
+  const ROW_P=8.5*mm, LINE_W=7*mm, G2=2*mm, NAME_Y=4*mm, DTL_Y=7.2*mm;
+  const TX = CB + G2 + LINE_W + G2;
+  const PAGE_BOT = MB + 20*mm;
+  const newPage = () => { pen.newPage(); return H - MT; };
+  const player = (cx, cy, p) => {
+    pen.stroke(DGREY, 0.9); pen.rrect(cx, cy-CB-1.2*mm, CB, CB, r);
+    const jx = cx+CB+G2;
+    pen.stroke(TEAL, 0.6); pen.line(jx, cy-CB-0.7*mm, jx+LINE_W, cy-CB-0.7*mm);
+    pen.font(N, 10.5); pen.fill(TEAL); pen.text(p.irish, cx+TX, cy-NAME_Y);
+    pen.font(N, 8); pen.fill(DETAIL); pen.text(`${p.dob}   ${p.mem}   ${p.english}`, cx+TX, cy-DTL_Y);
+  };
+  const players = d.players || [];
+  const half = Math.ceil(players.length/2), left = players.slice(0, half), right = players.slice(half);
+  const rows = Math.max(left.length, right.length);
+  for (let i = 0; i < rows; ) {
+    if (y - ROW_P < PAGE_BOT) y = newPage();
+    while (i < rows && y - ROW_P >= PAGE_BOT) {
+      if (left[i]) player(LX, y, left[i]);
+      if (right[i]) player(RX, y, right[i]);
+      y -= ROW_P; i++;
+    }
   }
-  _pyodide = await loadPyodide({ indexURL:'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
-  await _pyodide.loadPackage('micropip');
-  await _pyodide.runPythonAsync(`
-import micropip
-await micropip.install(['reportlab', 'pillow'])
-`);
-  return _pyodide;
+  y -= 5*mm;
+
+  // Bainisteoirí
+  if (y - 16*mm < PAGE_BOT) y = newPage();
+  pen.font(B, 16); pen.fill(TEAL); pen.text('Bainisteoirí', W/2, y-4*mm, 'center');
+  y -= 8*mm;
+  const ROW_M = 8*mm, mgrs = d.managers || [];
+  const mh = Math.ceil(mgrs.length/2), ml = mgrs.slice(0, mh), mr = mgrs.slice(mh);
+  const mrows = mgrs.length ? Math.max(ml.length, mr.length) : 0;
+  for (let i = 0; i < mrows; ) {
+    if (y - ROW_M < PAGE_BOT) y = newPage();
+    while (i < mrows && y - ROW_M >= PAGE_BOT) {
+      for (const [m, cx] of [[ml[i], LX], [mr[i], RX]]) {
+        if (!m) continue;
+        pen.font(N, 10.5); pen.fill(TEAL); pen.text(m.irish, cx+TX, y-3.5*mm);
+        pen.font(N, 8); pen.fill(DETAIL); pen.text(`${m.mem}   ${m.english}`, cx+TX, y-6.8*mm);
+      }
+      y -= ROW_M; i++;
+    }
+  }
+  y -= 8*mm;
+
+  // Signatures
+  pen.stroke(TEAL, 0.6); pen.line(LX, y, LX+COLW, y); pen.line(RX, y, RX+COLW, y);
+  pen.font(N, 7.5); pen.fill(DETAIL);
+  pen.text('(Sínithe ag an Rúnaí)', LX, y-4.5*mm);
+  pen.text('(Sínithe ag an Réiteoir)', RX, y-4.5*mm);
+
+  // Footer
+  const t = new Date(), p2 = n => String(n).padStart(2, '0');
+  const now = `${p2(t.getDate())}-${p2(t.getMonth()+1)}-${t.getFullYear()} ${p2(t.getHours())}:${p2(t.getMinutes())}`;
+  pen.font(N, 6.5); pen.fill(LGREY);
+  pen.text('= neamhchláraithe', LX, MB+2*mm);
+  pen.text(`Cruthaithe i gCoachSmart ag ${now} (1/1)`, W-MR, MB+2*mm, 'right');
 }
+
+// Fit an image inside a box, centred, keeping its shape (as ReportLab did)
+function tsFit(img, x, y, w, h){
+  const s = Math.min(w / img.width, h / img.height), iw = img.width * s, ih = img.height * s;
+  return [x + (w - iw) / 2, y + (h - ih) / 2, iw, ih];
+}
+
+// PDF pen (jsPDF, points, top-left origin so y is flipped)
+function tsPdfPen(doc){
+  const Y = y => TS_H - y;
+  return {
+    font(w, size){ doc.setFont('helvetica', w); doc.setFontSize(size); },
+    fill(c){ doc.setTextColor(c); },
+    stroke(c, w){ doc.setDrawColor(c); doc.setLineWidth(w); },
+    text(s, x, y, align){ doc.text(String(s ?? ''), x, Y(y), align ? { align } : undefined); },
+    line(x1, y1, x2, y2){ doc.line(x1, Y(y1), x2, Y(y2)); },
+    rect(x, y, w, h){ doc.rect(x, Y(y+h), w, h, 'S'); },
+    rrect(x, y, w, h, r){ doc.roundedRect(x, Y(y+h), w, h, r, r, 'S'); },
+    image(img, x, y, w, h){ const [ix, iy, iw, ih] = tsFit(img, x, y, w, h); doc.addImage(img.src, 'PNG', ix, Y(iy+ih), iw, ih); },
+    newPage(){ doc.addPage('a4', 'p'); },
+  };
+}
+
+// Preview pen (canvas). Draws one canvas per page.
+function tsCanvasPen(makeCanvas, width){
+  const k = width / TS_W;
+  let ctx;
+  const page = () => { const c = makeCanvas(); ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.lineCap = 'butt'; };
+  page();
+  const X = x => x * k, Y = y => (TS_H - y) * k;
+  return {
+    font(w, size){ ctx.font = `${w === 'bold' ? 700 : 400} ${size * k}px Helvetica, Arial, sans-serif`; },
+    fill(c){ ctx.fillStyle = c; },
+    stroke(c, w){ ctx.strokeStyle = c; ctx.lineWidth = Math.max(0.5, w * k); },
+    text(s, x, y, align){ ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(String(s ?? ''), X(x), Y(y)); },
+    line(x1, y1, x2, y2){ ctx.beginPath(); ctx.moveTo(X(x1), Y(y1)); ctx.lineTo(X(x2), Y(y2)); ctx.stroke(); },
+    rect(x, y, w, h){ ctx.strokeRect(X(x), Y(y+h), w*k, h*k); },
+    rrect(x, y, w, h, r){ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(X(x), Y(y+h), w*k, h*k, r*k) : ctx.rect(X(x), Y(y+h), w*k, h*k); ctx.stroke(); },
+    image(img, x, y, w, h){ const [ix, iy, iw, ih] = tsFit(img, x, y, w, h); ctx.drawImage(img, X(ix), Y(iy+ih), iw*k, ih*k); },
+    newPage(){ page(); },
+  };
+}
+
+let _jspdf = null;
+function loadJsPDF(){
+  if (window.jspdf) return Promise.resolve();
+  if (_jspdf) return _jspdf;
+  _jspdf = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+    s.onload = res; s.onerror = () => { _jspdf = null; rej(new Error('Could not load the PDF builder')); };
+    document.head.appendChild(s);
+  });
+  return _jspdf;
+}
+
+// Base64 logo → PNG Image with its near-white background made transparent
+function tsLogo(b64){
+  if (!b64) return Promise.resolve(null);
+  return new Promise(res => {
+    const src = new Image();
+    src.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = src.naturalWidth; c.height = src.naturalHeight;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(src, 0, 0);
+        const px = ctx.getImageData(0, 0, c.width, c.height), a = px.data;
+        for (let i = 0; i < a.length; i += 4) if (a[i] > 230 && a[i+1] > 230 && a[i+2] > 230) a[i+3] = 0;
+        ctx.putImageData(px, 0, 0);
+        const out = new Image();
+        out.onload = () => res(out); out.onerror = () => res(null);
+        out.src = c.toDataURL('image/png');
+      } catch (e) { res(null); }
+    };
+    src.onerror = () => res(null);
+    src.src = 'data:image;base64,' + b64;
+  });
+}
+
+let _pdfDoc = null, _pdfFname = null;
 
 async function generatePDF(data){
-  const py = await getPyodide();
-  load(true,'Building PDF…');
+  load(true, 'Building teamsheet…');
+  const [, crest, gaa] = await Promise.all([loadJsPDF(), tsLogo(data.crestB64), tsLogo(data.gaaB64)]);
+  const d = {
+    club_name_irish: data.clubIrish, chairperson: data.chairperson, secretary: data.secretary,
+    team_name: data.teamName, crest, gaa, players: data.players, managers: data.managers,
+  };
 
-  // Pass data as JSON string — more reliable than toPy for nested objects
-  py.globals.set('ts_json', JSON.stringify({
-    club_name_irish: data.clubIrish,
-    chairperson:     data.chairperson,
-    secretary:       data.secretary,
-    team_name:       data.teamName,
-    crest_b64:       data.crestB64  || '',
-    gaa_b64:         data.gaaB64    || '',
-    players:         data.players,
-    managers:        data.managers
-  }));
+  const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'p', compress: true });
+  drawTeamsheet(tsPdfPen(doc), d);
+  _pdfDoc = doc;
+  _pdfFname = `CoachSmart_${(data.teamName || 'Team').replace(/[^\w-]+/g, '_')}_teamsheet.pdf`;
 
-  const pdfBytes = await py.runPythonAsync(`
-import io, base64, json
-from datetime import datetime
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm
-from reportlab.pdfgen import canvas as rl_canvas
-from reportlab.lib.colors import HexColor, black
-from reportlab.lib.utils import ImageReader
-from PIL import Image as PILImage
-
-d        = json.loads(ts_json)
-players  = d['players']
-managers = d['managers']
-
-W, H         = A4
-ML,MR,MT,MB  = 14*mm,14*mm,10*mm,10*mm
-GAP          = 8*mm
-COLW         = (W-ML-MR-GAP)/2
-LX,RX        = ML, ML+COLW+GAP
-
-TEAL   = HexColor("#004A67")
-DETAIL = HexColor("#7E8291")
-LGREY  = HexColor("#cccccc")
-DGREY  = HexColor("#333333")
-B,N    = "Helvetica-Bold","Helvetica"
-TB,TN  = "Times-Bold","Times-Roman"
-
-def b64img(b64str):
-    """Decode base64 to ImageReader, removing white/light background for transparency."""
-    if not b64str:
-        return None
-    try:
-        raw = base64.b64decode(b64str)
-        img = PILImage.open(io.BytesIO(raw)).convert("RGBA")
-
-        # Remove near-white background pixels
-        data = img.getdata()
-        new_data = []
-        for r, g, b, a in data:
-            # If pixel is near-white (light background), make transparent
-            if r > 230 and g > 230 and b > 230:
-                new_data.append((r, g, b, 0))
-            else:
-                new_data.append((r, g, b, a))
-        img.putdata(new_data)
-
-        # Save back to buffer as PNG with transparency
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        buf.seek(0)
-        return ImageReader(buf)
-    except Exception as e:
-        # Fall back to plain decode without transparency removal
-        try:
-            return ImageReader(io.BytesIO(base64.b64decode(b64str)))
-        except:
-            return None
-
-def rounded_rect(c, x, y, w, h, r):
-    p = c.beginPath()
-    p.moveTo(x+r, y)
-    p.lineTo(x+w-r, y)
-    p.curveTo(x+w,y, x+w,y, x+w,y+r)
-    p.lineTo(x+w, y+h-r)
-    p.curveTo(x+w,y+h, x+w,y+h, x+w-r,y+h)
-    p.lineTo(x+r, y+h)
-    p.curveTo(x,y+h, x,y+h, x,y+h-r)
-    p.lineTo(x, y+r)
-    p.curveTo(x,y, x,y, x+r,y)
-    p.close()
-    c.drawPath(p, stroke=1, fill=0)
-
-def fetch_img(url):
-    pass  # unused — keeping for safety
-
-buf = io.BytesIO()
-c   = rl_canvas.Canvas(buf, pagesize=A4)
-c.setTitle("Teamsheet")
-y = H - MT
-
-# Logos — both vertically centred within logo_sz height
-logo_sz = 28*mm
-mid_y   = y - logo_sz/2   # vertical centre of logo row
-
-# Club crest — centred vertically
-crest = b64img(d.get('crest_b64',''))
-if crest:
-    c.drawImage(crest, LX, y-logo_sz, logo_sz, logo_sz, preserveAspectRatio=True, mask='auto')
-else:
-    c.setStrokeColor(LGREY); c.setLineWidth(0.5)
-    c.rect(LX, y-logo_sz, logo_sz, logo_sz)
-
-# GAA logo — larger, vertically centred
-gw,gh = 26*mm,18*mm
-gaa = b64img(d.get('gaa_b64',''))
-if gaa:
-    c.drawImage(gaa, W-MR-gw, mid_y-gh/2, gw, gh, preserveAspectRatio=True, mask='auto')
-else:
-    c.setStrokeColor(LGREY); c.setLineWidth(0.5)
-    c.rect(W-MR-gw, mid_y-gh/2, gw, gh)
-
-# Club name — vertically centred in logo row
-c.setFont(B,25); c.setFillColor(TEAL)
-c.drawCentredString(W/2, mid_y, d['club_name_irish'])
-y -= logo_sz + 4*mm
-
-# ── No header rule — matches original template ──
-
-# ── Meta ──
-ROW_H = 11*mm
-def meta_field(x, ytop, value, label, blank=False):
-    if not blank and value:
-        c.setFont(B,11); c.setFillColor(TEAL)
-        c.drawString(x, ytop-4*mm, value)
-    c.setStrokeColor(TEAL); c.setLineWidth(0.5)
-    c.line(x, ytop-6*mm, x+COLW, ytop-6*mm)
-    c.setFont(N,7); c.setFillColor(DETAIL)
-    c.drawString(x, ytop-8.5*mm, label)
-
-meta_field(LX, y, d['chairperson'], '(Cathaoirleach)')
-meta_field(RX, y, d['secretary'],   '(Rúnaí)')
-y -= ROW_H
-meta_field(LX, y, d['team_name'],   '(Foireann)')
-meta_field(RX, y, '',               '(Freasúra)', blank=True)
-y -= ROW_H
-meta_field(LX, y, '', '(Comórtas)', blank=True)
-meta_field(RX, y, '', '(Dáta)',     blank=True)
-y -= ROW_H + 2*mm
-
-# ── Imreoirí ──
-c.setFont(B,16); c.setFillColor(TEAL)
-c.drawCentredString(W/2, y-5*mm, "Imreoirí")
-y -= 9*mm
-
-CB, r = 3.8*mm, 0.8*mm
-c.setStrokeColor(DGREY); c.setFillColor(black); c.setLineWidth(0.9)
-rounded_rect(c, LX, y-CB, CB, CB, r)
-c.setFont(B,11); c.setFillColor(black)
-c.drawString(LX+0.2*mm, y-CB+0.3*mm, "✓")
-c.setFont(N,8.5); c.setFillColor(DGREY)
-c.drawString(LX+CB+2.5*mm, y-2.8*mm, "= ag tosú (Starting)")
-y -= 7*mm
-
-# ── Players — with page break support ──
-ROW_P  = 8.5*mm
-CB_S   = 3.8*mm
-LINE_W = 7*mm
-G2     = 2*mm
-NAME_Y = 4*mm
-DTL_Y  = 7.2*mm
-tx_offset = CB_S + G2 + LINE_W + G2
-
-def new_page():
-    """Start a new page, return y reset to top."""
-    c.showPage()
-    return H - MT
-
-def draw_player(c, cx, cy, p, r, tx_offset):
-    c.setStrokeColor(DGREY); c.setFillColor(black); c.setLineWidth(0.9)
-    rounded_rect(c, cx, cy-CB_S-1.2*mm, CB_S, CB_S, r)
-    jx = cx+CB_S+G2
-    c.setStrokeColor(TEAL); c.setLineWidth(0.6)
-    c.line(jx, cy-CB_S-0.7*mm, jx+LINE_W, cy-CB_S-0.7*mm)
-    tx = cx+tx_offset
-    c.setFont(N,10.5); c.setFillColor(TEAL)
-    c.drawString(tx, cy-NAME_Y, p['irish'])
-    c.setFont(N,8); c.setFillColor(DETAIL)
-    c.drawString(tx, cy-DTL_Y, f"{p['dob']}   {p['mem']}   {p['english']}")
-
-# Split players into two columns, row by row
-# Each "row" is one player from left column paired with one from right column
-half = (len(players)+1)//2
-left_players  = players[:half]
-right_players = players[half:]
-max_rows = max(len(left_players), len(right_players))
-
-# How many player rows fit on current page vs a fresh page
-PAGE_BOT = MB + 20*mm  # bottom margin + space for signatures/footer
-
-row_idx = 0
-while row_idx < max_rows:
-    # Check if at least one more row fits on current page
-    if y - ROW_P < PAGE_BOT:
-        y = new_page()
-
-    # Draw as many rows as fit on this page
-    while row_idx < max_rows and y - ROW_P >= PAGE_BOT:
-        lp = left_players[row_idx]  if row_idx < len(left_players)  else None
-        rp = right_players[row_idx] if row_idx < len(right_players) else None
-        if lp: draw_player(c, LX, y, lp, r, tx_offset)
-        if rp: draw_player(c, RX, y, rp, r, tx_offset)
-        y -= ROW_P
-        row_idx += 1
-
-y -= 5*mm
-
-# ── Bainisteoirí — with page break support ──
-# Check if section title + at least one row fits
-if y - 8*mm - 8*mm < PAGE_BOT:
-    y = new_page()
-
-c.setFont(B,16); c.setFillColor(TEAL)
-c.drawCentredString(W/2, y-4*mm, "Bainisteoirí")
-y -= 8*mm
-
-ROW_M = 8*mm
-mhalf = (len(managers)+1)//2
-left_mgrs  = managers[:mhalf]
-right_mgrs = managers[mhalf:]
-max_mgr_rows = max(len(left_mgrs), len(right_mgrs)) if managers else 0
-
-mgr_idx = 0
-while mgr_idx < max_mgr_rows:
-    if y - ROW_M < PAGE_BOT:
-        y = new_page()
-    while mgr_idx < max_mgr_rows and y - ROW_M >= PAGE_BOT:
-        lm = left_mgrs[mgr_idx]  if mgr_idx < len(left_mgrs)  else None
-        rm = right_mgrs[mgr_idx] if mgr_idx < len(right_mgrs) else None
-        for m, cx in [(lm, LX), (rm, RX)]:
-            if m:
-                tx = cx + tx_offset
-                c.setFont(N,10.5); c.setFillColor(TEAL)
-                c.drawString(tx, y-3.5*mm, m['irish'])
-                c.setFont(N,8); c.setFillColor(DETAIL)
-                c.drawString(tx, y-6.8*mm, f"{m['mem']}   {m['english']}")
-        y -= ROW_M
-        mgr_idx += 1
-
-y -= 8*mm
-
-# ── Signatures ──
-c.setStrokeColor(TEAL); c.setLineWidth(0.6)
-c.line(LX, y, LX+COLW, y)
-c.line(RX, y, RX+COLW, y)
-c.setFont(N,7.5); c.setFillColor(DETAIL)
-c.drawString(LX, y-4.5*mm, "(Sínithe ag an Rúnaí)")
-c.drawString(RX, y-4.5*mm, "(Sínithe ag an Réiteoir)")
-
-# ── Footer ──
-now = datetime.now().strftime("%d-%m-%Y %H:%M")
-c.setFont(N,6.5); c.setFillColor(LGREY)
-c.drawString(LX, MB+2*mm, "= neamhchláraithe")
-c.drawRightString(W-MR, MB+2*mm, f"Cruthaithe i gCoachSmart ag {now} (1/1)")
-
-c.save()
-base64.b64encode(buf.getvalue()).decode()
-`);
-
-  // Convert base64 PDF to blob and show in overlay
-  const binary = atob(pdfBytes);
-  const bytes  = new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-  const blob = new Blob([bytes],{type:'application/pdf'});
-  _pdfBlob  = blob;
-  _pdfFname = `CoachSmart_${teamName.replace(/\s+/g,'_')}_teamsheet.pdf`;
-  load(false);
-
-  // Render PDF pages to canvas using PDF.js then show overlay
-  await renderPdfOverlay(bytes);
-}
-
-// ── PDF OVERLAY ──
-let _pdfBlob  = null;
-let _pdfFname = null;
-
-async function renderPdfOverlay(pdfBytes){
-  // Load PDF.js on demand
-  if(!window.pdfjsLib){
-    await new Promise((res,rej)=>{
-      const s=document.createElement('script');
-      s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      s.onload=()=>{
-        pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        res();
-      };
-      s.onerror=rej;
-      document.head.appendChild(s);
-    });
-  }
-
-  load(true,'Rendering preview…');
+  // Preview: one canvas per page, sharp on retina screens
   const pagesEl = $('pdfPages');
   pagesEl.innerHTML = '';
-
-  const pdf = await pdfjsLib.getDocument({data: pdfBytes}).promise;
-  const scale = Math.min(window.innerWidth - 32, 600) / 595; // A4 width in pts = 595
-
-  for(let i=1; i<=pdf.numPages; i++){
-    const page     = await pdf.getPage(i);
-    const viewport = page.getViewport({scale});
-    const canvas   = document.createElement('canvas');
-    canvas.width   = viewport.width;
-    canvas.height  = viewport.height;
-    canvas.style.marginBottom = '12px';
-    pagesEl.appendChild(canvas);
-    await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
-  }
+  const cssW = Math.min(window.innerWidth - 32, 600), dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const pxW = Math.round(cssW * dpr), pxH = Math.round(pxW * TS_H / TS_W);
+  drawTeamsheet(tsCanvasPen(() => {
+    const c = document.createElement('canvas');
+    c.width = pxW; c.height = pxH; c.style.width = cssW + 'px';
+    pagesEl.appendChild(c);
+    return c;
+  }, pxW), d);
 
   load(false);
+  $('pdfPages').scrollTop = 0;
   $('pdfOverlay').classList.add('show');
 }
 
-$('pdfShareBtn').addEventListener('click', async()=>{
-  if(!_pdfBlob) return;
-  const file = new File([_pdfBlob], _pdfFname, {type:'application/pdf'});
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)&&navigator.maxTouchPoints>0;
-  if(isMobile && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file], title:'CoachSmart Teamsheet'}); }
-    catch(e){ if(e.name!=='AbortError') fallbackPdfDownload(); }
-  } else {
-    fallbackPdfDownload();
+// ── TEAMSHEET OVERLAY ──
+$('pdfShareBtn').addEventListener('click', async () => {
+  if (!_pdfDoc) return;
+  // In the app: native share sheet (same as session plans and game cards)
+  if (window.FlutterBridge) {
+    const b64 = _pdfDoc.output('datauristring').split(',')[1];
+    window.FlutterBridge.postMessage('sharePdf:' + _pdfFname + ':' + b64);
+    return;
   }
-});
-
-function fallbackPdfDownload(){
-  const url  = URL.createObjectURL(_pdfBlob);
+  const blob = _pdfDoc.output('blob');
+  const file = new File([blob], _pdfFname, { type: 'application/pdf' });
+  let canShare = false;
+  try { canShare = !!(navigator.canShare && navigator.canShare({ files: [file] })); } catch (_) {}
+  if (canShare) {
+    try { await navigator.share({ files: [file], title: 'Teamsheet' }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href=url; link.download=_pdfFname;
+  link.href = url; link.download = _pdfFname;
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  setTimeout(()=>URL.revokeObjectURL(url), 10000);
-}
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+});
 
 function closePdfOverlay(){
   $('pdfOverlay').classList.remove('show');
-  $('pdfPages').innerHTML='';
-  _pdfBlob=null; _pdfFname=null;
+  $('pdfPages').innerHTML = '';
+  _pdfDoc = null; _pdfFname = null;
 }
 
 document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
