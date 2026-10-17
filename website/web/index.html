@@ -72,6 +72,13 @@ nav{width:220px;flex:none;background:var(--side);border-right:1px solid var(--bd
 .dh .tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
 .k{background:var(--card);border-radius:14px;padding:14px 16px}.k span{font-size:13px;color:var(--mu);font-weight:600}.k b{display:block;font-family:Bebas;font-size:38px;line-height:1.1;font-weight:400}
+.k small{display:block;font-size:13px;color:var(--mu);font-weight:600;margin-top:2px}.k b em{font-family:DM;font-style:normal;font-size:14px;color:var(--mu);font-weight:600;margin-left:6px}
+.sqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:16px}
+.sq{background:var(--card);border-radius:14px;padding:12px 14px;text-align:left;border:1.5px solid transparent}
+.sq:hover{border-color:rgba(135,194,50,.4)}.sq.on{border-color:var(--g);background:#222a22}
+.sq span{font-size:14px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sq b{display:block;font-family:Bebas;font-size:32px;line-height:1.1;font-weight:400;color:var(--g)}.sq b em{font-style:normal;font-size:20px;color:var(--mu)}
+.sq small{display:block;font-size:13px;color:var(--mu)}
 .k.g b{color:var(--g)}.k.r b{color:var(--red)}.k.a b{color:var(--am)}
 .tabs{display:flex;gap:6px;border-bottom:1px solid var(--bd);margin-bottom:14px;flex-wrap:wrap}
 .tab{padding:10px 14px;font-weight:600;color:var(--mu);font-size:15px;border-bottom:2px solid transparent;margin-bottom:-1px}
@@ -180,7 +187,7 @@ const DAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 
 let session = null, home = null, teamInfo = {}, lookups = null;
 let upcoming = [], past = null;
-let fTeam = 0, fWhen = 'upcoming', fKind = 'all', fText = '', selId = null, detTab = 'attendance';
+let fSquad = null, fTeam = 0, fWhen = 'upcoming', fKind = 'all', fText = '', selId = null, detTab = 'attendance';
 
 // ── Sign in ───────────────────────────────────────────────────────
 function showLogin(msg, ok) {
@@ -262,6 +269,13 @@ async function loadHome() {
   $('teamChips').innerHTML = [`<button class="chip on" data-team="0">All teams</button>`]
     .concat(teams.map(t => `<button class="chip" data-team="${t.team_id}">${esc(t.team_name)}</button>`)).join('');
   renderList();
+  // Open the first event straight away on a wide screen (on a phone the list stays in view)
+  const first = shown()[0];
+  if (first && !selId && window.innerWidth > 860) {
+    selId = first.id;
+    document.querySelector(`.ev[data-id="${first.id}"]`)?.classList.add('on');
+    renderDetail();
+  }
 }
 
 // get_user_home_events gives the date only as text like "Saturday, 18 October, 2026 at 11:00"
@@ -373,21 +387,46 @@ function renderList() {
     const where = [e.match && e.home_away ? e.home_away : null, hhmm(e.date), e.location].filter(Boolean).join(' · ');
     const tag = e.status === 'cancelled' ? '<span class="tag x">Cancelled</span>'
       : e.match ? '<span class="tag m">Match</span>' : `<span class="tag">${esc(e.type || 'Training')}</span>`;
-    const cnt = fWhen === 'upcoming' && e.role >= 100
-      ? `<div class="cnt"><b>${e.going}</b>/${e.going + e.notGoing + e.noReply}<br>going</div>` : '';
+    const cnt = fWhen === 'upcoming' && e.role >= 100 ? `<div class="cnt" data-cnt="${e.id}">${playerCount(e.id)}</div>` : '';
     html += `<button class="ev${e.id === selId ? ' on' : ''}" data-id="${e.id}">
       <div class="dt"><b>${e.date ? e.date.getDate() : '–'}</b><span>${e.date ? DAYS[e.date.getDay()] : ''}</span></div>
       <div class="ei"><h3>${esc(e.title)}</h3><p>${esc([fTeam ? null : e.team_name, where].filter(Boolean).join(' · '))}</p></div>
       ${tag}${cnt}</button>`;
   }
   $('items').innerHTML = html;
+  if (fWhen === 'upcoming') prefetchCounts(list);
+}
+
+// "x/y going" on the cards counts players only, so each event's attendance is fetched in the background
+function playerCount(id) {
+  const roles = attCache[id];
+  if (!roles) return '<b>…</b><br>going';
+  const p = roles.filter(isPlayer);
+  const n = k => p.reduce((t, r) => t + (r[k] || []).length, 0);
+  const going = n('accepted_members');
+  return `<b>${going}</b>/${going + n('declined_members') + n('no_response_members')}<br>going`;
+}
+
+let prefetching = false;
+async function prefetchCounts(list) {
+  if (prefetching) return;
+  prefetching = true;
+  const todo = list.filter(e => e.role >= 100 && !attCache[e.id]);
+  const worker = async () => {
+    for (let e; (e = todo.shift());) {
+      if (await fetchRoles(e.id)) document.querySelectorAll(`[data-cnt="${e.id}"]`).forEach(c => c.innerHTML = playerCount(e.id));
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  prefetching = false;
+  if (shown().some(e => e.role >= 100 && !attCache[e.id] && !attFailed[e.id])) renderList();
 }
 
 $('items').addEventListener('click', e => {
   const b = e.target.closest('.ev'); if (!b) return;
   selId = +b.dataset.id;
   document.querySelectorAll('.ev').forEach(x => x.classList.toggle('on', x === b));
-  detTab = 'attendance';
+  detTab = 'attendance'; fSquad = null;
   renderDetail();
 });
 
@@ -424,11 +463,23 @@ function renderDetail() {
   renderTab(e);
 }
 
-function kpis(going, notGoing, noReply) {
-  const total = going + notGoing + noReply;
-  const pct = total ? Math.round((going + notGoing) / total * 100) : 0;
-  $('kpis').innerHTML = `<div class="k g"><span>Going</span><b>${going}</b></div><div class="k r"><span>Not going</span><b>${notGoing}</b></div>
-    <div class="k a"><span>No reply</span><b>${noReply}</b></div><div class="k"><span>Replied</span><b>${pct}%</b></div>`;
+// Players are role grade 10; everyone else (coaches, managers…) is listed under the big number
+const isPlayer = r => r.role_grade === 10;
+const plural = (r, n) => n === 1 ? (r.role_name || '') : (r.role_name_plural || r.role_name || '');
+
+function kpiCard(cls, label, roles, key) {
+  const players = roles.filter(isPlayer).reduce((n, r) => n + (r[key] || []).length, 0);
+  const others = roles.filter(r => !isPlayer(r) && (r[key] || []).length)
+    .map(r => `${r[key].length} ${esc(plural(r, r[key].length))}`);
+  return `<div class="k ${cls}"><span>${label}</span><b>${players}<em>${players === 1 ? 'Player' : 'Players'}</em></b>${others.length ? `<small>${others.join(' · ')}</small>` : ''}</div>`;
+}
+
+function kpis(roles) {
+  const all = k => roles.reduce((n, r) => n + (r[k] || []).length, 0);
+  const g = all('accepted_members'), n = all('declined_members'), x = all('no_response_members');
+  const pct = g + n + x ? Math.round((g + n) / (g + n + x) * 100) : 0;
+  $('kpis').innerHTML = kpiCard('g', 'Going', roles, 'accepted_members') + kpiCard('r', 'Not going', roles, 'declined_members')
+    + kpiCard('a', 'No reply', roles, 'no_response_members') + `<div class="k"><span>Replied</span><b>${pct}%</b><small>${g + n} of ${g + n + x}</small></div>`;
 }
 
 function iframeUrl(page, e) {
@@ -462,33 +513,64 @@ async function renderTab(e) {
   loadAttendance(e, false);
 }
 
-const attCache = {};
+const attCache = {}, attFailed = {}, attPending = {};
+function fetchRoles(id) {
+  if (attCache[id]) return Promise.resolve(attCache[id]);
+  return attPending[id] ||= sb.rpc('get_event_attendance_by_role_v2', { p_event_id: id }).then(({ data, error }) => {
+    delete attPending[id];
+    if (error) { attFailed[id] = error.message; return null; }
+    return attCache[id] = (data || []).slice().sort((a, b) => (a.role_level ?? 0) - (b.role_level ?? 0));
+  });
+}
+
 async function loadAttendance(e, kpiOnly) {
   if (e.role < 100) { $('kpis').style.display = 'none'; if (!kpiOnly) $('tabBody').innerHTML = '<div class="none">Attendance lists are only shown to team admins.</div>'; return; }
-  let roles = attCache[e.id];
-  if (!roles) {
-    const { data, error } = await sb.rpc('get_event_attendance_by_role_v2', { p_event_id: e.id });
-    if (error) { if (!kpiOnly) $('tabBody').innerHTML = `<div class="none">Couldn’t load attendance. ${esc(error.message)}</div>`; return; }
-    roles = attCache[e.id] = (data || []).slice().sort((a, b) => (a.role_level ?? 0) - (b.role_level ?? 0));
-  }
+  const roles = await fetchRoles(e.id);
+  if (!roles) { if (!kpiOnly && selId === e.id) $('tabBody').innerHTML = `<div class="none">Couldn’t load attendance. ${esc(attFailed[e.id] || '')}</div>`; return; }
   if (selId !== e.id) return;
-  const sum = k => roles.reduce((n, r) => n + (r[k] || 0), 0);
-  const going = sum('accepted_count'), notGoing = sum('declined_count'), noReply = sum('no_response_count');
-  kpis(going, notGoing, noReply);
+  kpis(roles);
   if (kpiOnly || detTab !== 'attendance') return;
-  const total = going + notGoing + noReply || 1;
-  const col = (label, key, count) => {
-    const groups = roles.filter(r => (r[key] || []).length);
-    const many = groups.length > 1;
-    const rows = groups.map(r => (many ? `<h5>${esc(r.role_name_plural || r.role_name)}</h5>` : '') + r[key].map(m => {
-      const ini = (m.member_name || '').split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-      return `<div class="pl"><span class="s">${esc(ini)}</span>${esc(m.member_name)}<em>${esc(m.squad_name || '')}</em></div>`;
-    }).join('')).join('');
-    return `<div class="box"><h4>${label} <span>${count}</span></h4>${rows || '<div class="none">Nobody</div>'}</div>`;
+
+  // One row per member, keeping role and squad; squads follow their list order
+  const STATUS = { accepted_members: 'going', declined_members: 'not', no_response_members: 'none' };
+  const sqName = p => p.squad_name || 'No squad';
+  const people = [];
+  roles.forEach(r => Object.keys(STATUS).forEach(k => (r[k] || []).forEach(m => people.push({ ...m, role: r, status: STATUS[k] }))));
+  const squads = [];
+  people.forEach(p => {
+    let q = squads.find(q => q.name === sqName(p));
+    if (!q) squads.push(q = { name: sqName(p), seq: p.squad_list_seq ?? 9999, going: 0, not: 0, none: 0, total: 0 });
+    if (isPlayer(p.role)) { q[p.status]++; q.total++; }
+  });
+  squads.sort((a, b) => a.seq - b.seq || a.name.localeCompare(b.name));
+  const sqOrder = Object.fromEntries(squads.map((q, i) => [q.name, i]));
+  if (fSquad && !(fSquad in sqOrder)) fSquad = null;
+
+  const g = people.filter(p => p.status === 'going').length, n = people.filter(p => p.status === 'not').length;
+  const total = people.length || 1;
+  const list = people.filter(p => !fSquad || sqName(p) === fSquad);
+
+  const col = (label, status) => {
+    const rows = list.filter(p => p.status === status).sort((a, b) =>
+      sqOrder[sqName(a)] - sqOrder[sqName(b)] || (isPlayer(b.role) - isPlayer(a.role)) || (a.member_name || '').localeCompare(b.member_name || ''));
+    let html = '', last = null;
+    rows.forEach(p => {
+      if (!fSquad && sqName(p) !== last) { html += `<h5>${esc(sqName(p))}</h5>`; last = sqName(p); }
+      const ini = (p.member_name || '').split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      html += `<div class="pl"><span class="s">${esc(ini)}</span>${esc(p.member_name)}<em>${isPlayer(p.role) ? '' : esc(p.role.role_name || '')}</em></div>`;
+    });
+    return `<div class="box"><h4>${label} <span>${rows.length}</span></h4>${html || '<div class="none">Nobody</div>'}</div>`;
   };
+
   $('tabBody').innerHTML = `
-    <div class="bar"><i style="width:${going / total * 100}%;background:var(--g)"></i><i style="width:${notGoing / total * 100}%;background:var(--red)"></i><i style="width:${noReply / total * 100}%;background:var(--am)"></i></div>
-    <div class="cols">${col('Going', 'accepted_members', going)}${col('Not going', 'declined_members', notGoing)}${col('No reply', 'no_response_members', noReply)}</div>`;
+    <div class="bar"><i style="width:${g / total * 100}%;background:var(--g)"></i><i style="width:${n / total * 100}%;background:var(--red)"></i><i style="width:${(total - g - n) / total * 100}%;background:var(--am)"></i></div>
+    ${squads.length > 1 ? `<div class="sqs">${squads.map(q => `<button class="sq${q.name === fSquad ? ' on' : ''}" data-sq="${esc(q.name)}">
+      <span>${esc(q.name)}</span><b>${q.going}<em>/${q.total}</em></b><small>players going</small><small>${q.not} not going · ${q.none} no reply</small></button>`).join('')}</div>` : ''}
+    <div class="cols">${col('Going', 'going')}${col('Not going', 'not')}${col('No reply', 'none')}</div>`;
+  document.querySelectorAll('.sq').forEach(b => b.onclick = () => {
+    fSquad = fSquad === b.dataset.sq ? null : b.dataset.sq;
+    loadAttendance(e, false);
+  });
 }
 </script>
 </body>
