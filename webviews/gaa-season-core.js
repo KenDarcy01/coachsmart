@@ -91,7 +91,9 @@ function statusHtml() {
   let h = `Data from Dublin GAA, Camogie and LGFA fixtures.<br>Updated <b>${t}</b> · ${fmtN(s.results || 0)} results stored`;
   if (s.first_day) h += ` from ${dayLabel(s.first_day)}`;
   // The backfill walks from 1 Jan to four weeks ahead, so it's done once fixtures past today are stored
-  if (!s.last_day || s.last_day < iso(new Date())) h += '<br>The season is still loading, a fortnight at a time.';
+  // The backfill walks a week at a time per code from 1 Jan to four weeks ahead
+  const to = s.backfill_codes >= 4 ? s.backfill_to : null;
+  if (!to || to < iso(new Date())) h += `<br>The season is still loading a week at a time${to ? `, done up to ${dayLabel(to)}` : ''}.`;
   if (s.failed_24h) h += `<br><span class="neg">${s.failed_24h} load${s.failed_24h > 1 ? 's' : ''} failed in the last day</span>`;
   return h;
 }

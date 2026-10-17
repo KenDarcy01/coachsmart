@@ -19,13 +19,15 @@ export const SOURCES: Record<string, { userIds: string[]; codeId?: string; codeN
 };
 export const CODES = Object.keys(SOURCES);
 
-/** Same request the club fixtures page (dublingaa.sportlomo.com/fixtures-3/) makes. club "" = every club. */
+/** Same request the club fixtures page (dublingaa.sportlomo.com/fixtures-3/) makes. club "" = every club.
+ *  strict: throw rather than return a cut-off list when there are more pages than maxPages. */
 export async function fetchClub(
   club: string, clubName: string, from: string, to: string, code: string, level: string,
+  opts: { maxPages?: number; strict?: boolean } = {},
 ): Promise<ClubGame[]> {
   const games: ClubGame[] = [];
   const seen = new Set<string>();
-  const maxPages = club ? 10 : 80;
+  const maxPages = opts.maxPages ?? (club ? 10 : 80);
   for (let page = 1; page <= maxPages; page++) {
     const src = SOURCES[code];
     const form = new URLSearchParams({
@@ -53,6 +55,7 @@ export async function fetchClub(
       if (!seen.has(id)) { seen.add(id); games.push({ ...g, code }); }
     }
     if (!body.isLoadMore) break;
+    if (page === maxPages && opts.strict) throw new Error(`${code} level ${level}: more than ${maxPages} pages`);
   }
   return games;
 }
