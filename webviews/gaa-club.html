@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Club Trends</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="gaa-season.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-area">
+      <div>
+        <div class="logo">COACH<span>SMART</span></div>
+        <div class="logo-sub">Club trends</div>
+      </div>
+      <button class="filters-btn" onclick="$('sidebar').classList.toggle('open')">Filters</button>
+    </div>
+    <div class="sidebar-scroll" id="filters"></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <a class="back" href="gaa-season.html">← All clubs</a>
+      <div class="summary" id="summary"></div>
+      <div class="export-btns">
+        <button class="export-btn" onclick="exportCsv()">⤓ CSV</button>
+        <button class="export-btn" id="xlsxBtn" onclick="exportExcel()">⤓ Excel</button>
+        <button class="export-btn" id="pdfBtn" onclick="exportPdf()">⤓ PDF</button>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+  </main>
+</div>
+<div id="pdfStage"></div>
+<div class="busy" id="busy"><div class="spinner"></div>Making the PDF…</div>
+
+<script src="gaa-season-core.js"></script>
+<script>
+let club = null, ageRows = [], monthRows = [];
+
+function filterOpts() { return { clubLabel: 'Club', clubId: club, min: false }; }
+function pageInit() {
+  const q = +new URLSearchParams(location.search).get('club');
+  club = q && DB.clubs.has(q) ? q : defaultClub();
+}
+function onClubPick(v) {
+  club = +v;
+  history.replaceState(null, '', `?club=${club}`);
+  refresh();
+}
+
+// The club's own games, as one side: {day, m, comp, f, a, home}
+function sides(games) {
+  const out = [];
+  for (const g of games) {
+    if (g.h === club) out.push({ day: g.day, m: g.m, comp: g.comp, f: g.hp, a: g.ap, home: true, suf: g.hs });
+    else if (g.a === club) out.push({ day: g.day, m: g.m, comp: g.comp, f: g.ap, a: g.hp, home: false, suf: g.as });
+  }
+  return out;
+}
+const tally = list => { const s = blank(), k = K(); for (const x of list) addSide(s, x.f, x.a, x.comp.str, k); return s; };
+
+function render() {
+  if (!DB) return;
+  const all = filtered(), mine = sides(all), name = clubName(club), [from, to] = range();
+  const last = DB.lastDay && DB.lastDay < to ? DB.lastDay : to;
+  $('summary').innerHTML = `<b>${esc(name)}</b> · ${fmtN(mine.length)} results · ${dayLabel(from)} – ${dayLabel(last)}${F.weighted ? ` · weighted ${F.k}%` : ''}`;
+  document.title = `${name} trends`;
+  if (!mine.length) {
+    $('list').innerHTML = `<div class="empty"><b>No results for ${esc(name)}</b>${DB.games.length ? 'Try more codes, another age group or a longer date range.' : 'The season is still loading a fortnight at a time.'}</div>`;
+    ageRows = monthRows = [];
+    return;
+  }
+  const agg = aggregate(all), me = agg.get(club);
+  const ranked = [...agg.values()].filter(s => s.p >= 30).sort((a, b) => metric(b) - metric(a) || diffPg(b) - diffPg(a));
+  const rank = ranked.findIndex(s => s.id === club) + 1;
+
+  // Month by month (each month on its own, not a running total)
+  const months = monthsInRange();
+  const mon = months.map(m => ({ m, s: tally(mine.filter(x => x.m === m)) }));
+  monthRows = mon.map(({ m, s }) => ({ month: MON[m], p: s.p, w: s.w, d: s.d, l: s.l, wp: s.p ? winPct(s) : '', ws: s.p ? wScore(s) : '', diff: s.p ? diffPg(s) : '' }));
+  const labels = months.map(m => MON[m]);
+  const mVals = mon.map(({ s }) => s.p ? metric(s) : null);
+  const c1 = chartHtml('month', {
+    labels, bars: true, min: 0, max: 100, ref: 50, fmt: metricFmt, legend: false,
+    series: [{ name: metricName(), color: v => v >= 50 ? '#679C20' : '#D47A0C', values: mVals, labels: mon.map(({ s }) => s.p ? `${metric(s)}` : '') }],
+    tip: i => { const s = mon[i].s; return `<b>${MON[mon[i].m]}</b>${s.p ? `<div>${metricName()}<span>${metricFmt(metric(s))}</span></div><div>Games<span>${s.p}</span></div><div>Record<span>${rec(s)}</span></div>` : '<div>No games</div>'}`; },
+  });
+  const bandSeries = Object.keys(BANDS).map((b, i) => ({ name: BANDS[b], color: SERIES[i], values: months.map(m => { const s = tally(mine.filter(x => x.m === m && x.comp.level === b)); return s.p >= 3 ? metric(s) : null; }) }))
+    .filter(s => s.values.some(v => v != null));
+  const c2 = bandSeries.length ? chartHtml('bands', { labels, series: bandSeries, min: 0, max: 100, ref: 50, fmt: metricFmt, width: 480, height: 260 }) : '<div class="note">Not enough games yet</div>';
+  const dVals = mon.map(({ s }) => s.p ? diffPg(s) : null);
+  const c3 = chartHtml('diff', {
+    labels, bars: true, ref: 0, fmt: v => sign(one(v)), legend: false, width: 480, height: 260,
+    series: [{ name: 'Diff a game', color: v => v >= 0 ? '#679C20' : '#e05252', values: dVals, labels: dVals.map(v => v == null ? '' : sign(v)) }],
+  });
+
+  // Age groups, youngest first
+  const ages = {};
+  for (const x of mine) (ages[x.comp.age] ??= []).push(x);
+  ageRows = Object.keys(ages).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b)).map(age => {
+    const s = tally(ages[age]);
+    return { age, teams: new Set(ages[age].map(x => `${x.comp.code}|${x.suf}`)).size, p: s.p, w: s.w, d: s.d, l: s.l, wp: winPct(s), ws: wScore(s), diff: diffPg(s), s };
+  });
+  const codes = CODES.map(c => ({ c, s: tally(mine.filter(x => x.comp.code === c)) })).filter(x => x.s.p);
+
+  // Form: last 6 weeks against the rest of the range
+  const cut = iso(addDays(fromIso(last), -42)), recent = tally(mine.filter(x => x.day >= cut)), before = tally(mine.filter(x => x.day < cut));
+  const form = recent.p && before.p ? metric(recent) - metric(before) : null;
+
+  $('list').innerHTML = `
+  <div class="section-title">${esc(name)}<span class="n">${rank ? `rank ${rank} of ${ranked.length} clubs with 30+ games, by ${metricName().toLowerCase()}` : 'fewer than 30 games, so not ranked'}</span></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Overall</div><div class="stat-big">${winPct(me)}%<small>won</small></div><div class="stat-sub">${me.w}W · ${me.d}D · ${me.l}L from ${fmtN(me.p)}</div></div>
+    ${F.weighted ? `<div class="stat"><div class="stat-label">Weighted score</div><div class="stat-big">${wScore(me)}<small>/ 100</small></div><div class="stat-sub">${F.k}% division, ${100 - F.k}% results</div></div>` : ''}
+    <div class="stat"><div class="stat-label">Avg points</div><div class="stat-big">${one(me.pf / me.p)}<small>v</small> ${one(me.pa / me.p)}</div><div class="stat-sub">For v against · ${sign(diffPg(me))} a game</div></div>
+    <div class="stat"><div class="stat-label">Home · away</div><div class="stat-big">${winPct(me.home)}%<small>v</small> ${winPct(me.away)}%</div><div class="stat-sub">${me.home.p} home, ${me.away.p} away games</div></div>
+    <div class="stat"><div class="stat-label">Form · last 6 weeks</div><div class="stat-big">${recent.p ? metricFmt(metric(recent)) : '–'}${form != null ? `<small class="${form > 0 ? 'pos' : form < 0 ? 'neg' : ''}">${sign(form)}</small>` : ''}</div><div class="stat-sub">${recent.p} games${before.p ? `, ${metricFmt(metric(before))} before that` : ''}</div></div>
+  </div>
+
+  <div class="section-title">Month by month<span class="n">${metricName().toLowerCase()} in each month on its own</span></div>
+  <div class="card">${c1}</div>
+  <div class="two">
+    <div class="card"><div class="mini-t">${metricName()} by age band</div>${c2}<div class="note">Months with fewer than 3 games in a band are left out.</div></div>
+    <div class="card"><div class="mini-t">Points difference a game</div>${c3}</div>
+  </div>
+
+  <div class="section-title">Age groups<span class="n">${ageRows.length} age groups · ${me.teams.size} teams</span></div>
+  <div class="tbl"><table><thead><tr><th class="l">Age</th><th class="hide-s">Teams</th><th>P</th><th>W</th><th class="hide-s">D</th><th>L</th><th>Win %</th>${F.weighted ? '<th>Weighted</th>' : ''}<th>Diff / game</th><th class="hide-s">Record</th></tr></thead><tbody>
+  ${ageRows.map(r => `<tr><td class="l" style="color:var(--green);width:auto">${esc(r.age)}</td><td class="hide-s">${r.teams}</td><td>${r.p}</td><td>${r.w}</td><td class="hide-s">${r.d}</td><td>${r.l}</td>
+    <td><span class="pill ${!F.weighted && r.wp >= 50 ? 'win' : ''}">${r.wp}%</span></td>${F.weighted ? `<td><span class="pill ${r.ws >= 50 ? 'win' : ''}">${r.ws}</span></td>` : ''}
+    <td class="${r.diff > 0 ? 'pos' : r.diff < 0 ? 'neg' : ''}">${sign(r.diff)}</td><td class="hide-s">${wdlBar(r.s)}</td></tr>`).join('')}
+  </tbody></table></div>
+
+  <div class="section-title">By code</div>
+  <div class="stats">${codes.map(({ c, s }) => `<div class="stat"><div class="stat-label">${c}</div><div class="stat-big">${metricFmt(metric(s))}</div><div class="stat-sub">${rec(s)} from ${s.p} · ${sign(diffPg(s))} a game</div></div>`).join('')}</div>
+  <div class="note">Every scored result for ${esc(name)} in the dates, codes and ages chosen. Points count goals as 3.</div>`;
+}
+
+function exportData() {
+  const [from, to] = range(), when = `${dayLabel(from)} to ${dayLabel(DB.lastDay && DB.lastDay < to ? DB.lastDay : to)}`;
+  const w = F.weighted ? [[`Weighted (${F.k}% division)`, 'ws']] : [];
+  return {
+    title: `${clubName(club)} ${when}`,
+    sheets: [
+      { name: 'Age groups', cols: [['Age', 'age'], ['Teams', 'teams'], ['P', 'p'], ['W', 'w'], ['D', 'd'], ['L', 'l'], ['Win %', 'wp'], ...w, ['Diff / game', 'diff']], rows: ageRows },
+      { name: 'Months', cols: [['Month', 'month'], ['P', 'p'], ['W', 'w'], ['D', 'd'], ['L', 'l'], ['Win %', 'wp'], ...w, ['Diff / game', 'diff']], rows: monthRows },
+    ],
+  };
+}
+
+boot();
+</script>
+</body>
+</html>
