@@ -73,7 +73,7 @@ nav{width:220px;flex:none;background:var(--side);border-right:1px solid var(--bd
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
 .k{background:var(--card);border-radius:14px;padding:14px 16px}.k span{font-size:13px;color:var(--mu);font-weight:600}.k b{display:block;font-family:Bebas;font-size:38px;line-height:1.1;font-weight:400}
 .k small{display:block;font-size:13px;color:var(--mu);font-weight:600;margin-top:2px}
-.k .rl{display:flex;justify-content:space-between;font-size:13px;color:var(--mu);font-weight:600;padding-top:3px}.k .rl i{font-style:normal;color:var(--tx)}.k b em{font-family:DM;font-style:normal;font-size:14px;color:var(--mu);font-weight:600;margin-left:6px}
+.rl{display:flex;gap:8px;font-size:13px;color:var(--mu);font-weight:600;padding-top:3px}.rl i{font-style:normal;color:var(--tx);font-weight:700}.k b em{font-family:DM;font-style:normal;font-size:14px;color:var(--mu);font-weight:600;margin-left:6px}
 .sqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:16px}
 .sq{background:var(--card);border-radius:14px;padding:12px 14px;text-align:left;border:1.5px solid transparent;position:relative;overflow:hidden}
 .sq .stripe{position:absolute;left:0;right:0;top:0;height:5px}
@@ -83,6 +83,7 @@ nav{width:220px;flex:none;background:var(--side);border-right:1px solid var(--bd
 .sq span{font-size:14px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sq b{display:block;font-family:Bebas;font-size:32px;line-height:1.1;font-weight:400;color:var(--g)}.sq b em{font-style:normal;font-size:20px;color:var(--mu)}
 .sq small{display:block;font-size:13px;color:var(--mu)}
+.sq b u{text-decoration:none;font-family:DM;font-size:14px;color:var(--mu);font-weight:600;margin-left:6px}
 .k.g b{color:var(--g)}.k.r b{color:var(--red)}.k.a b{color:var(--am)}
 .tabs{display:flex;gap:6px;border-bottom:1px solid var(--bd);margin-bottom:14px;flex-wrap:wrap}
 .tab{padding:10px 14px;font-weight:600;color:var(--mu);font-size:15px;border-bottom:2px solid transparent;margin-bottom:-1px}
@@ -555,10 +556,15 @@ async function loadAttendance(e, kpiOnly) {
   const people = [];
   roles.filter(isMember).forEach(r => Object.keys(STATUS).forEach(k => (r[k] || []).forEach(m => people.push({ ...m, role: r, status: STATUS[k] }))));
   const squads = [];
+  const roleSeq = Object.fromEntries((summary || []).map(r => [r.role_id, r.role_list_seq ?? 99]));
   people.forEach(p => {
     let q = squads.find(q => q.name === sqName(p));
-    if (!q) squads.push(q = { name: sqName(p), seq: p.squad_list_seq ?? 9999, image: p.squad_image || sqInfo[p.squad_id]?.squad_image, colour: sqInfo[p.squad_id]?.squad_colour, going: 0, not: 0, none: 0, total: 0 });
+    if (!q) squads.push(q = { name: sqName(p), seq: p.squad_list_seq ?? 9999, image: p.squad_image || sqInfo[p.squad_id]?.squad_image, colour: sqInfo[p.squad_id]?.squad_colour, going: 0, not: 0, none: 0, total: 0, roles: {} });
     if (isPlayer(p.role)) { q[p.status]++; q.total++; }
+    else {
+      const r = q.roles[p.role.role_id] ||= { name: p.role.role_name_plural || p.role.role_name, seq: roleSeq[p.role.role_id] ?? 99, going: 0, total: 0 };
+      r.total++; if (p.status === 'going') r.going++;
+    }
   });
   squads.sort((a, b) => a.seq - b.seq || a.name.localeCompare(b.name));
   const sqOrder = Object.fromEntries(squads.map((q, i) => [q.name, i]));
@@ -572,15 +578,18 @@ async function loadAttendance(e, kpiOnly) {
   const list = people.filter(p => !fSquad || sqName(p) === fSquad);
 
   const col = (label, status) => {
-    const rows = list.filter(p => p.status === status).sort((a, b) =>
+    const inCol = list.filter(p => p.status === status);
+    const perSquad = {}; inCol.forEach(p => perSquad[sqName(p)] = (perSquad[sqName(p)] || 0) + 1);
+    const rows = inCol.sort((a, b) =>
       sqOrder[sqName(a)] - sqOrder[sqName(b)] || (isPlayer(b.role) - isPlayer(a.role)) || (a.member_name || '').localeCompare(b.member_name || ''));
     let html = '', last = null;
     rows.forEach(p => {
       if (!fSquad && sqName(p) !== last) {
         const q = squads[sqOrder[sqName(p)]];
         // Squad image if there is one, otherwise its colour, otherwise nothing
-        html += q.image ? `<h5><img src="${esc(q.image)}" alt="">${esc(sqName(p))}</h5>`
-          : `<h5${q.colour ? ` style="--sqc:${esc(q.colour)}"` : ''}>${esc(sqName(p))}</h5>`;
+        const label = `${esc(sqName(p))} (${perSquad[sqName(p)]})`;
+        html += q.image ? `<h5><img src="${esc(q.image)}" alt="">${label}</h5>`
+          : `<h5${q.colour ? ` style="--sqc:${esc(q.colour)}"` : ''}>${label}</h5>`;
         last = sqName(p);
       }
       const ini = (p.member_name || '').split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
@@ -592,7 +601,7 @@ async function loadAttendance(e, kpiOnly) {
   $('tabBody').innerHTML = `
     <div class="bar"><i style="width:${g / total * 100}%;background:var(--g)"></i><i style="width:${n / total * 100}%;background:var(--red)"></i><i style="width:${(total - g - n) / total * 100}%;background:var(--am)"></i></div>
     ${squads.length > 1 ? `<div class="sqs">${squads.map(q => `<button class="sq${q.name === fSquad ? ' on' : ''}" data-sq="${esc(q.name)}">
-      ${q.image ? `<img src="${esc(q.image)}" alt="">` : q.colour ? `<i class="stripe" style="background:${esc(q.colour)}"></i>` : ''}<span>${esc(q.name)}</span><b>${q.going}<em>/${q.total}</em></b><small>players going</small><small>${q.not} not going · ${q.none} no reply</small></button>`).join('')}</div>` : ''}
+      ${q.image ? `<img src="${esc(q.image)}" alt="">` : q.colour ? `<i class="stripe" style="background:${esc(q.colour)}"></i>` : ''}<span>${esc(q.name)}</span><b>${q.going}<em>/${q.total}</em><u>Players</u></b>${Object.values(q.roles).sort((a, b) => a.seq - b.seq).map(r => `<div class="rl">${esc(r.name)}<i>${r.going}/${r.total}</i></div>`).join('')}</button>`).join('')}</div>` : ''}
     <div class="cols">${col('Going', 'going')}${col('Not going', 'not')}${col('No reply', 'none')}</div>`;
   document.querySelectorAll('.sq').forEach(b => b.onclick = () => {
     fSquad = fSquad === b.dataset.sq ? null : b.dataset.sq;
