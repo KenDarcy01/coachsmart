@@ -176,7 +176,9 @@ a { color: inherit; }
 .back { font-size: 13px; color: var(--green); font-weight: 600; text-decoration: none; }
 #pdfStage { position: absolute; top: 0; left: 0; width: 1000px; padding: 4px 10px 10px; background: var(--dark); display: none; z-index: 40; }
 #pdfStage .hide-s { display: table-cell; }
+.tbl .club span.show-s { display: none; }
 @media (max-width: 760px) {
-  .tabs { width: 100%; overflow-x: auto; } .tabs button { flex: 1; padding: 6px 8px; }
+  .tabs { width: 100%; overflow-x: auto; } .tabs button { flex: 1 0 auto; padding: 6px 5px; font-size: 12px; }
   .export-btns { margin-left: 0; }
+  .tbl .club span.show-s { display: block; }
 }

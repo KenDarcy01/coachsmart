@@ -222,7 +222,7 @@ function monthsInRange() {
 const CHARTS = {};
 function chartHtml(id, cfg) {
   CHARTS[id] = cfg;
-  const W = cfg.width || 900, H = cfg.height || 280, ml = 44, mr = cfg.endLabels ? 150 : 16, mt = 14, mb = 28;
+  const W = cfg.width || (innerWidth < 760 ? 480 : 900), H = cfg.height || 280, ml = 44, mr = cfg.endLabels && W >= 700 ? 150 : 16, mt = 14, mb = 28;
   const vals = cfg.series.flatMap(s => s.values).filter(v => v != null);
   let lo = cfg.min ?? Math.min(0, ...vals), hi = cfg.max ?? Math.max(1, ...vals);
   if (cfg.fit && vals.length) { lo = Math.max(lo, Math.min(...vals) - 5); hi = Math.min(hi, Math.max(...vals) + 5); }
@@ -255,7 +255,7 @@ function chartHtml(id, cfg) {
       s.values.forEach((v, i) => { if (v == null) return; path += `${path ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`; last = [i, v]; });
       g += `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
       s.values.forEach((v, i) => { if (v != null) g += `<circle cx="${X(i)}" cy="${Y(v)}" r="${n > 14 ? 2 : 3.2}" fill="${s.color}"/>`; });
-      if (last && cfg.endLabels) ends.push({ s, x: X(last[0]), y: Y(last[1]), v: last[1] });
+      if (last && cfg.endLabels && W >= 700) ends.push({ s, x: X(last[0]), y: Y(last[1]), v: last[1] });
     });
     // End labels at least 16px apart so close finishes stay readable
     ends.sort((p, q) => p.y - q.y).forEach((e, i) => { e.ly = i && e.y - ends[i - 1].ly < 16 ? ends[i - 1].ly + 16 : e.y; });
