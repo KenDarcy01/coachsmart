@@ -133,18 +133,22 @@ function render() {
   const live = all.filter(isLive);
   const today = all.filter(isToday);
   const fol = all.filter(m => following(m) && !isDone(m));
-  if (!tab) tab = live.length ? 'live' : 'today';
+  // Finished in the last 12 hours, newest first
+  const results = all.filter(isDone).sort((a, b) => Date.parse(b.event_date_time || 0) - Date.parse(a.event_date_time || 0));
+  const section = (title, list) => list.length ? `<div class="sec">${title}</div><div class="card">${list.map(row).join('')}</div>` : '';
+  if (!tab) tab = live.length || results.length ? 'live' : 'today';
   $('tabs').innerHTML = [['live', `Live now${live.length ? ' · ' + live.length : ''}`], ['today', 'Today'], ['following', 'Following']]
     .map(([k, t]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('');
   let html = '';
   if (tab === 'live') {
     html = live.length ? `<div class="card">${live.map(row).join('')}</div>` : '<div class="empty">No matches live right now.</div>';
     const next = today.filter(m => m.phase === 'pre');
-    if (next.length) html += `<div class="sec">Coming up today</div><div class="card">${next.map(row).join('')}</div>`;
+    html += section('Coming up today', next) + section('Results', results);
   } else if (tab === 'today') {
     html = today.length ? `<div class="card">${today.map(row).join('')}</div>` : '<div class="empty">No matches in your club today.</div>';
   } else {
     html = fol.length ? `<div class="card">${fol.map(row).join('')}</div>` : '<div class="empty">You\'re not following any upcoming matches.<br>Tap a bell to follow one.</div>';
+    html += section('Results', results.filter(following));
   }
   html += `<div class="note">Tap a bell to follow a match and get every score. Tap a green bell to change to half and full time only, or stop.</div>`;
   $('list').innerHTML = html;
