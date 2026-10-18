@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Club Lotto</title>
+<meta name="robots" content="noindex">
+<style>
+@font-face { font-family: 'Bebas'; src: url(/web/fonts/bebas-neue-latin-400-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: 'DM'; font-weight: 400; src: url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: 'DM'; font-weight: 500; src: url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: 'DM'; font-weight: 600; src: url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: 'DM'; font-weight: 700; src: url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2'); font-display: swap; }
+:root { --pri: #1B3A6B; --acc: #ED1B2E; --paper: #F5F6FB; --ink: #1B2333; --muted: #5B6478; --line: #E3E7F0; --ok: #4f8a12; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'DM', -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+button { font: inherit; cursor: pointer; }
+.hero { background: linear-gradient(160deg, var(--pri), color-mix(in srgb, var(--pri) 78%, #000)); color: #fff; padding: 22px 16px 18px; border-bottom: 5px solid var(--acc); }
+.hero-in { max-width: 560px; margin: 0 auto; }
+.top { display: flex; gap: 12px; align-items: center; }
+.top img { width: 46px; height: 46px; object-fit: contain; }
+.club { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+h1 { font: 400 28px 'Bebas', sans-serif; letter-spacing: .03em; margin: 0; line-height: 1; }
+.jack { margin-top: 16px; text-align: center; }
+.jack .lbl { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.jack .amt { font: 400 64px 'Bebas', sans-serif; line-height: 1; letter-spacing: .02em; }
+.jack .when { font-size: 14px; opacity: .92; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 0 14px 120px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-top: 12px; }
+.card h2 { font: 400 20px 'Bebas', sans-serif; letter-spacing: .04em; color: var(--pri); margin: 0 0 8px; }
+.sub { font-size: 13px; color: var(--muted); margin: -4px 0 10px; line-height: 1.4; }
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.n { aspect-ratio: 1; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font: 600 15px 'DM', sans-serif; color: var(--ink); background: #fff; padding: 0; }
+.n.on { background: var(--acc); border-color: var(--acc); color: #fff; }
+.btnrow { display: flex; gap: 8px; margin-top: 10px; }
+.btn { flex: 1; text-align: center; border-radius: 10px; padding: 12px 0; font: 600 15px 'DM', sans-serif; border: 0; }
+.btn.o { border: 1.5px solid var(--pri); color: var(--pri); background: #fff; }
+.btn.p { background: var(--acc); color: #fff; }
+.btn.n2 { background: var(--pri); color: #fff; }
+.btn:disabled { opacity: .45; }
+.line { display: flex; align-items: center; gap: 6px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.line:first-of-type { border-top: 0; }
+.ball { width: 30px; height: 30px; flex: none; border-radius: 50%; background: var(--pri); color: #fff; display: grid; place-items: center; font: 600 13px 'DM', sans-serif; }
+.ball.hit { background: var(--acc); }
+.ball.lg { width: 46px; height: 46px; font: 400 25px 'Bebas', sans-serif; background: var(--acc); }
+.x { margin-left: auto; color: var(--muted); font-size: 22px; background: none; border: 0; padding: 0 4px; line-height: 1; }
+.empty { font-size: 13px; color: var(--muted); }
+.seg { display: flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { flex: 1; text-align: center; padding: 10px 0; font: 600 13px 'DM', sans-serif; color: var(--muted); background: #fff; border: 0; }
+.seg button.on { background: var(--pri); color: #fff; }
+select, input[type=text], input[type=email], input[type=tel] { width: 100%; border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 12px; font: 15px 'DM', sans-serif; color: var(--ink); background: #fff; margin-top: 8px; appearance: none; }
+select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; margin-top: 0; }
+input:focus, select:focus { outline: none; border-color: var(--pri); }
+.tick { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin-top: 12px; line-height: 1.35; }
+.tick input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--pri); }
+.total { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line); padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); }
+.total-in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+.total .t { font: 400 30px 'Bebas', sans-serif; color: var(--pri); line-height: 1; }
+.total .s { font-size: 12px; color: var(--muted); }
+.total .btn { flex: none; padding: 13px 22px; margin-left: auto; }
+.small { font-size: 11px; color: var(--muted); text-align: center; margin: 14px 0; line-height: 1.5; }
+.small a { color: var(--muted); }
+.res { display: flex; gap: 8px; justify-content: center; margin: 6px 0 4px; }
+.win { display: flex; justify-content: space-between; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
+.win:first-of-type { border-top: 0; }
+.win span:last-child { font-weight: 600; }
+.badge { margin-left: auto; display: inline-block; background: color-mix(in srgb, var(--acc) 10%, #fff); color: var(--acc); border-radius: 999px; padding: 3px 10px; font: 600 12px 'DM', sans-serif; white-space: nowrap; }
+.muted { color: var(--muted); }
+.ok { text-align: center; }
+.ok .ic { width: 58px; height: 58px; border-radius: 50%; background: #E9F6DA; color: var(--ok); display: grid; place-items: center; font-size: 30px; margin: 0 auto 8px; }
+.tk { border-top: 1px solid var(--line); padding: 10px 0; }
+.tk:first-of-type { border-top: 0; padding-top: 0; }
+.tk .meta { font-size: 13px; color: var(--muted); margin-top: 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.link { background: none; border: 0; color: var(--acc); font: 600 13px 'DM', sans-serif; padding: 0; }
+.err { color: #b3261e; font-size: 13px; margin-top: 10px; }
+.back { background: none; border: 0; color: var(--pri); font: 600 14px 'DM', sans-serif; padding: 12px 0 0; }
+.rules { font-size: 13px; color: var(--ink); line-height: 1.5; }
+.rules li { margin-bottom: 4px; }
+.hide { display: none !important; }
+.toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: #1B2333; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; text-align: center; }
+.toast.show { opacity: 1; }
+.loading { text-align: center; padding: 60px 0; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="hero"><div class="hero-in">
+  <div class="top"><img id="crest" alt="" class="hide"><div><div class="club" id="clubName">&nbsp;</div><h1 id="lottoName">Club Lotto</h1></div></div>
+  <div class="jack hide" id="jack"><div class="lbl">This week's jackpot</div><div class="amt" id="jackAmt"></div><div class="when" id="jackWhen"></div></div>
+</div></div>
+
+<div class="wrap">
+  <div class="loading" id="loading">Loading…</div>
+  <div class="card hide" id="msgCard"><h2 id="msgTitle"></h2><p class="sub" id="msgText" style="margin:0"></p></div>
+
+  <div class="card hide" id="paidCard">
+    <div class="ok"><div class="ic">✓</div><h2 style="margin-bottom:2px">You're in!</h2><p class="sub" style="margin:0 0 6px" id="paidText"></p></div>
+    <div id="paidLines"></div>
+  </div>
+
+  <!-- Step 1: pick -->
+  <div id="step1" class="hide">
+    <div class="card">
+      <h2 id="pickTitle">Pick 4 numbers</h2>
+      <div class="grid" id="grid"></div>
+      <div class="btnrow"><button class="btn o" id="quick">Quick pick</button><button class="btn n2" id="addLine">Add line</button></div>
+    </div>
+    <div class="card">
+      <h2>Your lines</h2>
+      <div id="lines"></div>
+    </div>
+  </div>
+
+  <!-- Step 2: details -->
+  <div id="step2" class="hide">
+    <button class="back" id="back">‹ Change numbers</button>
+    <div class="card">
+      <h2>How long?</h2>
+      <div class="seg" id="plan"><button data-plan="w1">1 week</button><button data-plan="w4">4 weeks</button><button data-plan="weekly" class="on">Every week</button></div>
+      <p class="sub" style="margin:8px 0 0" id="planNote"></p>
+    </div>
+    <div class="card" id="teamCard">
+      <h2>Support a team</h2>
+      <p class="sub">Optional. Teams see what they raised.</p>
+      <select id="team"><option value="">No team</option></select>
+    </div>
+    <div class="card">
+      <h2>Your details</h2>
+      <input type="text" id="name" placeholder="Name" autocomplete="name">
+      <input type="email" id="email" placeholder="Email (results and receipts)" autocomplete="email">
+      <input type="tel" id="phone" placeholder="Mobile (optional)" autocomplete="tel">
+      <label class="tick"><input type="checkbox" id="agree18">I am 18 or over</label>
+      <label class="tick"><input type="checkbox" id="agreeRules">I agree to the <button class="link" type="button" id="openRules">lotto rules</button></label>
+      <div class="err hide" id="err"></div>
+    </div>
+  </div>
+
+  <div class="card hide" id="mineCard">
+    <h2>Your tickets</h2>
+    <div id="mine"></div>
+  </div>
+
+  <div class="card hide" id="resultsCard" style="text-align:center">
+    <h2 style="margin-bottom:2px" id="resDate"></h2>
+    <div class="res" id="resBalls"></div>
+    <p class="sub" style="margin:8px 0 6px" id="resNote"></p>
+    <div style="text-align:left;margin-top:10px" id="resWinners"></div>
+    <div style="text-align:left;margin-top:10px" id="resMine"></div>
+  </div>
+
+  <div class="card hide" id="rulesCard">
+    <h2>Lotto rules</h2>
+    <ul class="rules" id="rulesList"></ul>
+  </div>
+
+  <p class="small" id="foot"></p>
+</div>
+
+<div class="total hide" id="total"><div class="total-in"><div><div class="t" id="totalAmt">€0</div><div class="s" id="totalSub"></div></div><button class="btn p" id="go">Continue</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const FN_URL = window.LOTTO_FN_URL || SUPABASE_URL + '/functions/v1/lotto';
+
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const SLUG = (location.pathname.match(/\/lotto\/([a-z0-9-]+)/i)?.[1] || params.get('club') || '').toLowerCase();
+const PREVIEW = params.get('preview') === '1';
+let TOKEN = params.get('t') || '';
+try { if (!TOKEN) TOKEN = localStorage.getItem('lotto-token-' + SLUG) || ''; } catch (_) {}
+
+let L = null;          // lotto settings
+let lines = [];        // [[n,n,n,n], ...]
+let picked = [];       // current selection
+let plan = 'weekly';
+let step = 1;
+
+async function api(payload) {
+  const res = await fetch(FN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ slug: SLUG, ...payload }),
+  });
+  let j = {};
+  try { j = await res.json(); } catch (_) {}
+  if (!res.ok || !j.success) throw new Error(j.error || 'Something went wrong, please try again');
+  return j.data;
+}
+
+function euro(c) {
+  const v = (c || 0) / 100;
+  return '€' + (Number.isInteger(v) ? v.toLocaleString('en-IE') : v.toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+}
+function priceFor(n) {
+  if (L.bundle_lines > 1 && L.bundle_price_cents > 0) return Math.floor(n / L.bundle_lines) * L.bundle_price_cents + (n % L.bundle_lines) * L.line_price_cents;
+  return n * L.line_price_cents;
+}
+function fmtDraw(iso) {
+  return new Date(iso).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Europe/Dublin' }).replace(/ at /, ', ');
+}
+function fmtDay(iso) {
+  return new Date(iso).toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Dublin' });
+}
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function balls(nums, hits = []) { return nums.map(n => `<div class="ball${hits.includes(n) ? ' hit' : ''}">${n}</div>`).join(''); }
+let toastT;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+function show(id, on = true) { $(id).classList.toggle('hide', !on); }
+
+// ── Load ──
+async function load(paid) {
+  if (!SLUG) { message('Lotto not found', 'Check the link and try again.'); return; }
+  let d;
+  try { d = await api({ action: 'page', token: TOKEN || undefined, paid: paid || undefined }); }
+  catch (e) { message('Lotto not found', e.message); return; }
+  L = d.lotto;
+  document.title = `${L.club_name} ${L.lotto_name}`;
+  document.documentElement.style.setProperty('--pri', L.colours.primary);
+  document.documentElement.style.setProperty('--acc', L.colours.accent);
+  $('clubName').textContent = L.club_name;
+  $('lottoName').textContent = L.lotto_name;
+  if (L.crest) { $('crest').src = L.crest; show('crest'); }
+  show('loading', false);
+
+  $('jackAmt').textContent = euro(L.jackpot_cents);
+  if (d.buying_for) {
+    $('jackWhen').textContent = (d.buying_for.closed_for_current ? 'Next draw ' : 'Draw ') + fmtDraw(d.buying_for.draw_at);
+  }
+  show('jack', L.jackpot_cents > 0 || !!d.buying_for);
+  $('foot').innerHTML = [esc(L.club_name + ' ' + L.lotto_name), L.licence_text ? esc(L.licence_text) : '', '18+ only. Payments go directly to ' + esc(L.club_name) + '. Powered by CoachSmart.', L.contact_email ? `Questions? <a href="mailto:${esc(L.contact_email)}">${esc(L.contact_email)}</a>` : '', '<button class="link" style="font-size:11px;color:var(--muted)" onclick="toggleRules()">Lotto rules</button>'].filter(Boolean).join('<br>');
+  buildRules(d);
+
+  if (d.me?.token) { TOKEN = d.me.token; try { localStorage.setItem('lotto-token-' + SLUG, TOKEN); } catch (_) {} }
+  if (paid) history.replaceState(null, '', location.pathname + (PREVIEW ? '?preview=1' : ''));
+
+  // Arrived from a results or tickets email: lead with that.
+  if (params.get('t')) { const w = document.querySelector('.wrap'); w.insertBefore($('mineCard'), $('step1')); w.insertBefore($('resultsCard'), $('mineCard')); }
+  renderPaid(d.paid, d.buying_for);
+  renderMine(d.me);
+  renderResults(d.results, d.me);
+
+  const open = L.status === 'live' || (L.status === 'setup' && PREVIEW);
+  if (!open) {
+    message(L.status === 'paused' ? 'The lotto is paused' : 'Coming soon', L.status === 'paused' ? 'Ticket sales are paused for now. Check back soon.' : `The ${L.club_name} lotto will be open here soon.`);
+    return;
+  }
+  if (!L.can_pay) { message('Coming soon', 'Card payments are being set up.'); return; }
+
+  $('pickTitle').textContent = `Pick ${L.pick_count} numbers`;
+  const sel = $('team');
+  for (const t of d.teams) sel.insertAdjacentHTML('beforeend', `<option value="${t.team_id}">${esc(t.team_name)}</option>`);
+  show('teamCard', d.teams.length > 0);
+  if (d.me) { $('name').value = d.me.name || ''; $('email').value = d.me.email || ''; }
+  buildGrid();
+  setStep(1);
+  if (d.buying_for?.closed_for_current) toast('Sales for this draw have closed. New lines go into the next draw.');
+}
+
+function message(title, text) {
+  show('loading', false);
+  $('msgTitle').textContent = title; $('msgText').textContent = text; show('msgCard');
+  show('step1', false); show('step2', false); show('total', false);
+}
+
+function buildRules(d) {
+  const day = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][L.draw_weekday];
+  const r = [
+    `Pick ${L.pick_count} different numbers from 1 to ${L.pool_size} for each line.`,
+    `A line costs ${euro(L.line_price_cents)}` + (L.bundle_lines > 1 && L.bundle_price_cents ? `, or ${L.bundle_lines} lines for ${euro(L.bundle_price_cents)}.` : '.'),
+    `The draw is every ${day} at ${String(L.draw_time).slice(0, 5)}. Lines bought after sales close go into the following draw.`,
+    `Match all ${L.pick_count} numbers to win the jackpot. If more than one line matches, the jackpot is shared.`,
+    `If nobody wins, the jackpot grows for the next draw.`,
+  ];
+  if (L.match3_prize_cents) r.push(`Lines matching ${L.pick_count - 1} numbers share ${euro(L.match3_prize_cents)}.`);
+  if (L.lucky_dip_count) r.push(`${L.lucky_dip_count} lucky dip ${L.lucky_dip_count === 1 ? 'prize' : 'prizes'} of ${euro(L.lucky_dip_prize_cents)} each go to players picked at random from that week's lines.`);
+  r.push('Every week plans renew by card each week until you stop them from the link in your email.');
+  r.push('Results are emailed to every player after each draw. Winners are contacted by the club.');
+  r.push('You must be 18 or over to play. Proceeds go to ' + L.club_name + '.');
+  $('rulesList').innerHTML = r.map(x => `<li>${esc(x)}</li>`).join('');
+}
+function toggleRules() { const c = $('rulesCard'); c.classList.toggle('hide'); if (!c.classList.contains('hide')) c.scrollIntoView({ behavior: 'smooth' }); }
+$('openRules').onclick = toggleRules;
+
+// ── Step 1 ──
+function buildGrid() {
+  const g = $('grid'); g.innerHTML = '';
+  for (let i = 1; i <= L.pool_size; i++) {
+    const b = document.createElement('button');
+    b.className = 'n'; b.textContent = i; b.dataset.n = i;
+    b.onclick = () => tapNumber(i);
+    g.appendChild(b);
+  }
+  renderPick();
+}
+function tapNumber(n) {
+  if (picked.includes(n)) picked = picked.filter(x => x !== n);
+  else if (picked.length < L.pick_count) picked.push(n);
+  else { toast(`That's ${L.pick_count} already. Add the line or tap a number to remove it.`); return; }
+  renderPick();
+}
+function renderPick() {
+  document.querySelectorAll('.n').forEach(b => b.classList.toggle('on', picked.includes(+b.dataset.n)));
+  $('addLine').disabled = picked.length !== L.pick_count;
+}
+function addLine(nums) {
+  if (lines.length >= 10) { toast('Up to 10 lines at a time'); return false; }
+  lines.push([...nums].sort((a, b) => a - b));
+  renderLines();
+  return true;
+}
+$('addLine').onclick = () => { if (picked.length === L.pick_count && addLine(picked)) { picked = []; renderPick(); } };
+$('quick').onclick = () => {
+  const pool = Array.from({ length: L.pool_size }, (_, i) => i + 1);
+  const a = new Uint32Array(L.pick_count); crypto.getRandomValues(a);
+  const out = [];
+  for (let i = 0; i < L.pick_count; i++) out.push(pool.splice(a[i] % pool.length, 1)[0]);
+  addLine(out);
+};
+function renderLines() {
+  $('lines').innerHTML = lines.length
+    ? lines.map((l, i) => `<div class="line">${balls(l)}<button class="x" aria-label="Remove line" onclick="removeLine(${i})">×</button></div>`).join('')
+    : `<p class="empty">Pick ${L.pick_count} numbers and tap Add line, or use Quick pick.</p>`;
+  renderTotal();
+}
+function removeLine(i) { lines.splice(i, 1); renderLines(); }
+
+function renderTotal() {
+  const n = lines.length;
+  const week = priceFor(n);
+  if (step === 1) {
+    $('totalAmt').textContent = euro(week);
+    let s = `${n} ${n === 1 ? 'line' : 'lines'}`;
+    const b = L.bundle_lines;
+    if (b > 1 && L.bundle_price_cents && n % b) s += ` · add ${b - (n % b)} more, ${b} for ${euro(L.bundle_price_cents)}`;
+    else if (b > 1 && L.bundle_price_cents && n) s += ` · ${b} for ${euro(L.bundle_price_cents)}`;
+    $('totalSub').textContent = s;
+    $('go').textContent = 'Continue';
+    $('go').disabled = n === 0;
+  } else {
+    const weeks = plan === 'w4' ? 4 : 1;
+    $('totalAmt').textContent = euro(week * weeks);
+    $('totalSub').textContent = plan === 'weekly' ? `per week · ${n} ${n === 1 ? 'line' : 'lines'}` : `${n} ${n === 1 ? 'line' : 'lines'} · ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+    $('go').textContent = 'Pay by card';
+    $('go').disabled = false;
+  }
+}
+
+// ── Step 2 ──
+function setStep(s) {
+  step = s;
+  show('step1', s === 1); show('step2', s === 2); show('total');
+  if (s === 1) renderLines(); else renderTotal();
+  if (s === 2) { window.scrollTo({ top: $('step2').offsetTop - 10, behavior: 'smooth' }); setPlan(plan); }
+}
+$('back').onclick = () => setStep(1);
+document.querySelectorAll('#plan button').forEach(b => b.onclick = () => setPlan(b.dataset.plan));
+function setPlan(p) {
+  plan = p;
+  document.querySelectorAll('#plan button').forEach(b => b.classList.toggle('on', b.dataset.plan === p));
+  $('planNote').textContent = p === 'weekly' ? 'Renews each week by card. Stop any time from the link in your email.'
+    : p === 'w4' ? 'Your lines are in the next 4 draws. Paid once, no renewal.' : 'Your lines are in the next draw only.';
+  renderTotal();
+}
+
+$('go').onclick = async () => {
+  if (step === 1) { if (lines.length) setStep(2); return; }
+  const err = $('err'); show('err', false);
+  const fail = m => { err.textContent = m; show('err'); err.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+  const name = $('name').value.trim(), email = $('email').value.trim();
+  if (name.length < 2) return fail('Please add your name.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Please check your email address.');
+  if (!$('agree18').checked) return fail('You need to be 18 or over to play.');
+  if (!$('agreeRules').checked) return fail('Please agree to the lotto rules.');
+  const btn = $('go'); btn.disabled = true; btn.textContent = 'Opening payment…';
+  try {
+    const d = await api({
+      action: 'checkout', lines, plan: plan === 'weekly' ? 'weekly' : 'weeks', weeks: plan === 'w4' ? 4 : 1,
+      team_id: $('team').value || null, name, email, phone: $('phone').value.trim(), agree18: true, preview: PREVIEW || undefined,
+    });
+    location.href = d.url;
+  } catch (e) {
+    fail(e.message); btn.disabled = false; renderTotal();
+  }
+};
+
+// ── Paid / mine / results ──
+function renderPaid(p, buying) {
+  if (!p) return;
+  if (p.pending) {
+    $('paidText').textContent = "We're still waiting on the payment. If it went through, your tickets will arrive by email shortly.";
+    $('paidCard').querySelector('.ic').textContent = '…';
+    $('paidCard').querySelector('h2').textContent = 'Almost there';
+  } else {
+    $('paidText').textContent = (p.plan === 'weekly' ? `Every week, ${euro(p.price_cents)} a week. ` : `${p.weeks} ${p.weeks === 1 ? 'week' : 'weeks'}. `) + 'We have emailed your tickets.' + (buying ? ` First draw ${fmtDraw(buying.draw_at)}.` : '');
+    $('paidLines').innerHTML = p.lines.map(l => `<div class="line">${balls(l)}</div>`).join('');
+  }
+  show('paidCard');
+}
+
+function renderMine(me) {
+  if (!me || !me.tickets.length) return;
+  $('mine').innerHTML = me.tickets.map(t => {
+    const left = t.plan === 'weekly' && t.status === 'active' ? `Every week, ${euro(t.price_cents)}` : `${t.weeks_left} ${t.weeks_left === 1 ? 'draw' : 'draws'} left`;
+    const stop = t.plan === 'weekly' && t.status === 'active' ? `<button class="link" onclick="stopTicket(${t.ticket_id}, this)">Stop weekly play</button>` : (t.status === 'cancelled' ? '<span>Stopped</span>' : '');
+    return `<div class="tk">${t.lines.map(l => `<div class="line" style="border:0;padding:3px 0">${balls(l)}</div>`).join('')}<div class="meta"><span>${esc(left)}${t.team_name ? ' · ' + esc(t.team_name) : ''}</span>${stop}</div></div>`;
+  }).join('');
+  show('mineCard');
+}
+
+async function stopTicket(id, btn) {
+  if (!confirm('Stop playing these lines every week? Any week already paid still plays.')) return;
+  btn.disabled = true;
+  try { await api({ action: 'stop', token: TOKEN, ticket_id: id }); btn.outerHTML = '<span>Stopped</span>'; toast('Weekly play stopped'); }
+  catch (e) { btn.disabled = false; toast(e.message); }
+}
+
+const KIND = { jackpot: 'Jackpot', match3: 'Match 3', lucky_dip: 'Lucky dip' };
+function renderResults(r, me) {
+  if (!r) return;
+  KIND.match3 = 'Match ' + (L.pick_count - 1);
+  $('resDate').textContent = fmtDay(r.draw_at);
+  $('resBalls').innerHTML = r.numbers.map(n => `<div class="ball lg">${n}</div>`).join('');
+  $('resNote').innerHTML = r.jackpot_won ? `The jackpot of <b>${euro(r.jackpot_cents)}</b> was won!` : `No jackpot winner. Next jackpot is <b>${euro(r.next_jackpot_cents)}</b>`;
+  $('resWinners').innerHTML = r.winners.length
+    ? '<h2>Winners</h2>' + r.winners.map(w => `<div class="win"><span>${KIND[w.kind]} · ${esc(w.display_name)}</span><span>${euro(w.prize_cents)}</span></div>`).join('')
+    : '';
+  if (me && me.last_entries.length) {
+    const won = me.last_prizes.length ? `<p class="sub" style="color:var(--ok);margin:0 0 6px;font-weight:600">You won ${me.last_prizes.map(p => euro(p.prize_cents) + ' (' + KIND[p.kind] + ')').join(' and ')}! The club will be in touch.</p>` : '';
+    $('resMine').innerHTML = '<h2>Your lines that week</h2>' + won + me.last_entries.map(e =>
+      `<div class="line">${balls(e.numbers, r.numbers)}<span class="${e.matches ? 'badge' : 'muted'}" style="margin-left:auto">${e.matches ? e.matches + (e.matches === 1 ? ' match' : ' matches') : 'No match'}</span></div>`).join('');
+  }
+  show('resultsCard');
+}
+
+load(params.get('paid'));
+</script>
+</body>
+</html>

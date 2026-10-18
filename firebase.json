@@ -4,6 +4,9 @@
       "target": "main",
       "public": "website",
       "ignore": ["firebase.json", "**/.*"],
+      "rewrites": [
+        { "source": "/lotto/**", "destination": "/lotto/index.html" }
+      ],
       "headers": [
         {
           "source": "/webviews/**",

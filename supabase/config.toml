@@ -416,3 +416,7 @@ verify_jwt = true
 
 [functions.live-match-probe]
 verify_jwt = false
+
+# Club lotto: public ticket page (anon key) and the Stripe Connect webhook (signed by Stripe)
+[functions.lotto-webhook]
+verify_jwt = false

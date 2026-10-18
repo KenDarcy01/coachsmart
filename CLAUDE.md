@@ -110,6 +110,8 @@ Codes: `clubs ──< club_code_link >── event_codes`. A `club_code_link` ro
 
 Full table list: `clubs`, `teams`, `events`, `event_types`, `event_codes`, `event_attendance`, `event_response_type`, `members`, `users`, `user_member_link`, `member_team_link`, `member_team_role_link`, `roles`, `squads`, `member_squad_link`, `car_pool`, `car_pool_detail`, `notifications`, `reminders`, `match_squads`, `match_squad_details`, `match_reports`, `match_scores`, `match_scores_details`, `match_score_types`, `games`, `game_ages`, `invitations`, `legacy_users`, `event_user_payment`, `event_user_member_payment`, `sport`, `team_roles_link`, `club_code_link`.
 
+Club lotto (web first, 2026-10-18): `lotto_clubs`, `lotto_admins`, `lotto_players`, `lotto_tickets`, `lotto_payments`, `lotto_draws`, `lotto_entries`, `lotto_winners` (RLS on, no policies; only the `lotto` and `lotto-webhook` edge functions touch them). Public page `website/lotto/index.html` at coachsmart.app/lotto/<slug>, admin at coachsmart.app/lotto/admin.html. Money goes straight to the club's Stripe Connect account in `clubs.stripe_account_id`, which is shared by all club payments (membership will use it too); helpers in `supabase/functions/_shared/stripe-connect.ts`.
+
 ## Role System
 Roles have a `role_level` and `role_grade`. Grade 100 = admin/management, grade 10 = player/athlete. `role_level` determines what data a user can see within the team hierarchy.
 

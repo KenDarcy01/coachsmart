@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lotto admin</title>
+<meta name="robots" content="noindex">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+@font-face { font-family: 'Bebas'; src: url(/web/fonts/bebas-neue-latin-400-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: 'DM'; font-weight: 400; src: url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: 'DM'; font-weight: 500; src: url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: 'DM'; font-weight: 600; src: url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2'); font-display: swap; }
+@font-face { font-family: 'DM'; font-weight: 700; src: url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2'); font-display: swap; }
+:root { --g: #87c232; --bk: #14181b; --card: #1e222b; --card2: #262b35; --line: #2c313b; --wh: #f1f4f8; --grey: #a1a1a2; --red: #ff6b6b; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bk); color: var(--wh); font-family: 'DM', -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+button { font: inherit; cursor: pointer; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 0 0 40px; }
+.abar { padding: 18px 16px 10px; display: flex; align-items: center; gap: 10px; }
+.abar h1 { font: 400 26px 'Bebas', sans-serif; letter-spacing: .04em; margin: 0; flex: 1; }
+.abar .club { font-size: 12px; color: var(--grey); letter-spacing: .08em; text-transform: uppercase; }
+.abar .so { background: none; border: 0; color: var(--grey); font-size: 13px; }
+.tabs { display: flex; gap: 8px; padding: 0 14px 12px; }
+.tabs button { flex: 1; background: var(--card); color: var(--grey); border: 0; border-radius: 10px; padding: 10px 0; font-weight: 600; font-size: 14px; }
+.tabs button.on { background: var(--g); color: var(--bk); }
+.acard { background: var(--card); border-radius: 14px; padding: 14px; margin: 0 14px 12px; }
+.acard h3 { font: 600 13px 'DM', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--grey); margin: 0 0 10px; }
+.kv { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.kv:first-of-type { border-top: 0; }
+.kv > span:first-child { color: var(--grey); flex: none; }
+.kv > span:last-child { font-weight: 600; text-align: right; }
+.kv input, .kv select { background: var(--card2); border: 1.5px solid #3a404c; color: var(--wh); border-radius: 8px; padding: 7px 9px; font: 600 14px 'DM', sans-serif; text-align: right; width: 100%; max-width: 210px; min-width: 0; }
+.kv input:focus, .kv select:focus { outline: none; border-color: var(--g); }
+.kv .pair { display: flex; gap: 6px; align-items: center; justify-content: flex-end; color: var(--grey); font-size: 13px; }
+.kv .pair input { width: 64px; }
+.ok { color: var(--g); }
+.warn { color: var(--red); }
+.stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.stat { background: var(--card2); border-radius: 10px; padding: 10px; }
+.stat .v { font: 400 26px 'Bebas', sans-serif; line-height: 1; }
+.stat .k { font-size: 11px; color: var(--grey); margin-top: 2px; }
+.inball { display: flex; gap: 10px; justify-content: center; margin: 4px 0 6px; }
+.inball input { width: 56px; height: 56px; border-radius: 12px; background: var(--card2); border: 1.5px solid #3a404c; color: var(--wh); text-align: center; font: 400 30px 'Bebas', sans-serif; padding: 0; }
+.inball input:focus { outline: none; border-color: var(--g); }
+.note { font-size: 12px; color: var(--grey); margin: 6px 0 0; line-height: 1.45; text-align: center; }
+.abtn { display: block; width: calc(100% - 28px); text-align: center; border-radius: 12px; padding: 13px 0; font: 600 15px 'DM', sans-serif; margin: 0 14px 12px; border: 0; }
+.abtn.g { background: var(--g); color: var(--bk); }
+.abtn.o { border: 1.5px solid var(--g); color: var(--g); background: none; }
+.abtn:disabled { opacity: .4; }
+.bar { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 0; }
+.bar .nm { width: 110px; color: var(--grey); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .tr { flex: 1; height: 8px; background: var(--card2); border-radius: 4px; overflow: hidden; }
+.bar .tr i { display: block; height: 100%; background: var(--g); border-radius: 4px; }
+.bar .vv { width: 56px; text-align: right; font-weight: 600; }
+.past { border-top: 1px solid var(--line); padding: 10px 0; font-size: 13px; }
+.past:first-of-type { border-top: 0; padding-top: 0; }
+.past .r1 { display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; }
+.past .r2 { color: var(--grey); margin-top: 3px; display: flex; justify-content: space-between; align-items: center; }
+.link { background: none; border: 0; color: var(--g); font: 600 13px 'DM', sans-serif; padding: 0; }
+.balls { letter-spacing: .06em; }
+.hide { display: none !important; }
+.empty { color: var(--grey); font-size: 13px; }
+.login { max-width: 380px; margin: 0 auto; padding: 60px 20px; }
+.login h1 { font: 400 32px 'Bebas', sans-serif; letter-spacing: .04em; margin: 0 0 6px; }
+.login p { color: var(--grey); font-size: 14px; margin: 0 0 18px; }
+.login input { width: 100%; background: var(--card); border: 1.5px solid #3a404c; color: var(--wh); border-radius: 10px; padding: 12px; font: 15px 'DM', sans-serif; margin-bottom: 10px; }
+.login .abtn { width: 100%; margin: 6px 0 0; }
+.msg { font-size: 13px; color: var(--red); min-height: 18px; margin-top: 10px; }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--wh); color: var(--bk); padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; text-align: center; }
+.toast.show { opacity: 1; }
+.loading { text-align: center; padding: 60px 0; color: var(--grey); }
+</style>
+</head>
+<body>
+<div class="login hide" id="login">
+  <h1>Lotto admin</h1>
+  <p>Sign in with your CoachSmart account.</p>
+  <form id="loginForm">
+    <input type="email" id="lemail" placeholder="Email" autocomplete="email" required>
+    <input type="password" id="lpass" placeholder="Password" autocomplete="current-password" required>
+    <button class="abtn g" id="lgo">Sign in</button>
+  </form>
+  <div class="msg" id="lmsg"></div>
+</div>
+
+<div class="wrap hide" id="app">
+  <div class="abar"><div style="flex:1"><div class="club" id="clubName"></div><h1 id="title">Club Lotto</h1></div><button class="so" id="signOut">Sign out</button></div>
+  <div class="tabs"><button data-tab="draw" class="on">Draw</button><button data-tab="settings">Settings</button></div>
+
+  <!-- Draw -->
+  <div id="tab-draw">
+    <div class="acard"><h3 id="drawHead">This draw</h3>
+      <div class="stats"><div class="stat"><div class="v" id="sSales">€0</div><div class="k">sales since last draw</div></div><div class="stat"><div class="v" id="sLines">0</div><div class="k">lines in draw</div></div><div class="stat"><div class="v" id="sPlayers">0</div><div class="k">players</div></div></div>
+    </div>
+    <div class="acard"><h3>Numbers drawn</h3>
+      <div class="inball" id="inball"></div>
+      <p class="note" id="drawNote">Type the numbers from the clubhouse draw</p>
+    </div>
+    <div class="acard hide" id="previewCard"><h3>Preview</h3><div id="preview"></div></div>
+    <button class="abtn o" id="checkBtn">Check winners</button>
+    <button class="abtn g hide" id="publishBtn">Publish results</button>
+    <div class="acard"><h3>Sales by team</h3><div id="byTeam"></div></div>
+    <div class="acard"><h3>Past draws</h3><div id="past"></div></div>
+  </div>
+
+  <!-- Settings -->
+  <div id="tab-settings" class="hide">
+    <div class="acard"><h3>Lotto</h3>
+      <div class="kv"><span>Status</span><span><select data-k="status"><option value="setup">Setting up (not public)</option><option value="live">Live</option><option value="paused">Paused</option></select></span></div>
+      <div class="kv"><span>Name</span><span><input data-k="lotto_name" maxlength="60"></span></div>
+      <div class="kv"><span>Public page</span><span><button class="link" id="share"></button></span></div>
+    </div>
+    <div class="acard"><h3>Game</h3>
+      <div class="kv"><span>Numbers</span><span class="pair">Pick <input data-k="pick_count" type="number" min="3" max="6"> from 1 to <input data-k="pool_size" type="number" min="10" max="60"></span></div>
+      <div class="kv"><span>Price per line</span><span class="pair">€ <input data-k="line_price_cents" data-eur type="number" step="0.5" min="0.5"></span></div>
+      <div class="kv"><span>Bundle</span><span class="pair"><input data-k="bundle_lines" type="number" min="0" max="10"> lines for € <input data-k="bundle_price_cents" data-eur type="number" step="0.5" min="0"></span></div>
+      <div class="kv"><span>Draw day</span><span><select data-k="draw_weekday"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></span></div>
+      <div class="kv"><span>Draw time</span><span><input data-k="draw_time" type="time"></span></div>
+      <div class="kv"><span>Sales close</span><span class="pair"><input data-k="sales_close_minutes" data-hours type="number" min="0" max="48" step="0.5"> hours before</span></div>
+    </div>
+    <div class="acard"><h3>Prizes</h3>
+      <div class="kv"><span>Jackpot now</span><span class="pair">€ <input data-k="jackpot_cents" data-eur type="number" min="0" step="10" style="width:100px"></span></div>
+      <div class="kv"><span>Jackpot after a win</span><span class="pair">€ <input data-k="jackpot_start_cents" data-eur type="number" min="0" step="10" style="width:100px"></span></div>
+      <div class="kv"><span>Rollover each week</span><span class="pair">+ € <input data-k="rollover_cents" data-eur type="number" min="0" step="10" style="width:80px"></span></div>
+      <div class="kv"><span id="m3label">Match 3 (shared)</span><span class="pair">€ <input data-k="match3_prize_cents" data-eur type="number" min="0" step="5" style="width:80px"></span></div>
+      <div class="kv"><span>Lucky dips</span><span class="pair"><input data-k="lucky_dip_count" type="number" min="0" max="20"> × € <input data-k="lucky_dip_prize_cents" data-eur type="number" min="0" step="5"></span></div>
+    </div>
+    <div class="acard"><h3>Club</h3>
+      <div class="kv"><span>Licence</span><span><input data-k="licence_text" placeholder="e.g. Lottery licence no. 123/26" maxlength="200"></span></div>
+      <div class="kv"><span>Contact email</span><span><input data-k="contact_email" type="email" placeholder="lotto@club.ie"></span></div>
+      <div class="kv"><span>Stripe account</span><span><input data-k="stripe_account_id" placeholder="acct_…"></span></div>
+      <div class="kv"><span>Payments</span><span id="stripeStatus"></span></div>
+    </div>
+    <button class="abtn g" id="saveBtn">Save settings</button>
+    <div class="acard"><h3>Lotto admins</h3><div id="admins"></div>
+      <div class="kv"><span>Add admin</span><span><input id="newAdmin" type="email" placeholder="Their CoachSmart email"></span></div>
+      <button class="link" id="addAdmin" style="margin-top:8px">Add</button>
+    </div>
+  </div>
+</div>
+<div class="loading" id="loading">Loading…</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const FN_URL = window.LOTTO_FN_URL || SUPABASE_URL + '/functions/v1/lotto';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+let JWT = params.get('token') || '';   // opened from the app
+let V = null;                          // admin view
+let lottoId = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function euro(c) { const v = (c || 0) / 100; return '€' + (Number.isInteger(v) ? v.toLocaleString('en-IE') : v.toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })); }
+function fmt(iso) { return new Date(iso).toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Europe/Dublin' }); }
+let toastT;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2800); }
+
+async function api(payload) {
+  if (!params.get('token')) { const { data } = await sb.auth.getSession(); JWT = data.session?.access_token || ''; }
+  const res = await fetch(FN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + JWT, apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ lotto_id: lottoId || undefined, ...payload }),
+  });
+  let j = {};
+  try { j = await res.json(); } catch (_) {}
+  if (res.status === 401 && !params.get('token')) { JWT = ''; showLogin('Please sign in again.'); throw new Error('Please sign in again'); }
+  if (!res.ok || !j.success) throw new Error(j.error || 'Something went wrong');
+  return j.data;
+}
+
+// ── Sign in ──
+function showLogin(msg) { $('loading').classList.add('hide'); $('app').classList.add('hide'); $('login').classList.remove('hide'); $('lmsg').textContent = msg || ''; $('lgo').disabled = false; $('lgo').textContent = 'Sign in'; }
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('lgo').disabled = true; $('lgo').textContent = 'Signing in…';
+  const { data, error } = await sb.auth.signInWithPassword({ email: $('lemail').value.trim(), password: $('lpass').value });
+  if (error) return showLogin(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : error.message);
+  JWT = data.session.access_token;
+  $('login').classList.add('hide');
+  start();
+});
+$('signOut').onclick = async () => { await sb.auth.signOut(); JWT = ''; location.href = location.pathname; };
+if (params.get('token')) $('signOut').classList.add('hide');
+
+async function start() {
+  $('loading').classList.remove('hide');
+  try { render(await api({ action: 'admin_load' })); }
+  catch (e) { if (JWT) showLogin(e.message); }
+}
+
+// ── Tabs ──
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('tab-draw').classList.toggle('hide', b.dataset.tab !== 'draw');
+  $('tab-settings').classList.toggle('hide', b.dataset.tab !== 'settings');
+});
+
+// ── Render ──
+function render(v) {
+  V = v; lottoId = v.lotto.lotto_id;
+  $('loading').classList.add('hide'); $('app').classList.remove('hide');
+  const L = v.lotto;
+  $('clubName').textContent = L.club_name;
+  $('title').textContent = v.draw ? 'Draw · ' + new Date(v.draw.draw_at).toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Dublin' }) : L.lotto_name;
+  document.title = L.club_name + ' lotto admin';
+
+  // Draw tab
+  $('drawHead').textContent = L.status === 'live' ? 'This draw' : 'This draw (lotto not live yet)';
+  $('sSales').textContent = euro(v.stats.sales_cents);
+  $('sLines').textContent = v.stats.lines;
+  $('sPlayers').textContent = v.stats.players;
+  const ib = $('inball');
+  if (ib.children.length !== L.pick_count) {
+    ib.innerHTML = Array.from({ length: L.pick_count }, () => '<input inputmode="numeric" maxlength="2">').join('');
+    ib.querySelectorAll('input').forEach((inp, i, all) => inp.addEventListener('input', () => {
+      inp.value = inp.value.replace(/\D/g, '');
+      if (inp.value.length === 2 || (inp.value.length === 1 && +inp.value * 10 > L.pool_size)) all[i + 1]?.focus();
+      clearPreview();
+    }));
+  }
+  const canDraw = v.draw?.can_draw;
+  $('drawNote').textContent = canDraw ? 'Type the numbers from the clubhouse draw' : v.draw ? `Sales are open until ${fmt(v.draw.sales_close_at)}. You can enter the numbers after that.` : '';
+  ib.querySelectorAll('input').forEach(i => i.disabled = !canDraw);
+  $('checkBtn').disabled = !canDraw;
+  clearPreview();
+
+  const max = Math.max(1, ...v.stats.by_team.map(t => t.cents));
+  $('byTeam').innerHTML = v.stats.by_team.length
+    ? v.stats.by_team.map(t => `<div class="bar"><span class="nm">${esc(t.team)}</span><span class="tr"><i style="width:${Math.round(t.cents / max * 100)}%"></i></span><span class="vv">${euro(t.cents)}</span></div>`).join('')
+    : '<p class="empty">No sales since the last draw yet.</p>';
+  $('past').innerHTML = v.past.length
+    ? v.past.map(d => `<div class="past"><div class="r1"><span>${fmt(d.draw_at)}</span><span class="balls">${(d.numbers || []).join(' · ')}</span></div><div class="r2"><span>${d.jackpot_won ? 'Jackpot won, ' + euro(d.jackpot_cents) : 'Jackpot ' + euro(d.jackpot_cents) + ', not won'} · ${d.totals?.lines ?? 0} lines · prizes ${euro(d.totals?.prizes_cents)}</span><button class="link" onclick="exportDraw(${d.draw_id})">CSV</button></div></div>`).join('')
+    : '<p class="empty">No draws yet.</p>';
+
+  // Settings tab
+  document.querySelectorAll('[data-k]').forEach(el => {
+    let val = L[el.dataset.k];
+    if (el.hasAttribute('data-eur')) val = (val || 0) / 100;
+    if (el.hasAttribute('data-hours')) val = (val || 0) / 60;
+    if (el.dataset.k === 'draw_time') val = String(val || '').slice(0, 5);
+    el.value = val ?? '';
+  });
+  $('m3label').textContent = `Match ${L.pick_count - 1} (shared)`;
+  $('share').textContent = L.page_url.replace('https://', '') + (L.status === 'setup' ? '?preview=1' : '');
+  const st = v.stripe;
+  $('stripeStatus').innerHTML = st.connected ? (st.charges_enabled ? `<span class="ok">Stripe connected ✓</span>` : `<span class="warn">Connected, finish setup in Stripe</span>`) : (L.stripe_account_id ? `<span class="warn">Not found</span>` : `<span class="warn">Not connected</span>`);
+  $('admins').innerHTML = v.admins.map(a => `<div class="kv"><span>${esc(a.name || a.email)}</span><span style="font-weight:400;color:var(--grey);font-size:13px">${esc(a.email)}</span></div>`).join('');
+}
+
+function numbersEntered() { return [...$('inball').querySelectorAll('input')].map(i => Number(i.value)); }
+function clearPreview() { $('previewCard').classList.add('hide'); $('publishBtn').classList.add('hide'); $('checkBtn').classList.remove('hide'); }
+
+$('checkBtn').onclick = async () => {
+  const nums = numbersEntered();
+  const L = V.lotto;
+  if (nums.some(n => !n || n > L.pool_size) || new Set(nums).size !== nums.length) return toast(`Enter ${L.pick_count} different numbers from 1 to ${L.pool_size}`);
+  $('checkBtn').disabled = true; $('checkBtn').textContent = 'Checking…';
+  try {
+    const p = await api({ action: 'admin_preview', numbers: nums });
+    const m = L.pick_count - 1;
+    $('preview').innerHTML = `
+      <div class="kv"><span>Lines in draw</span><span>${p.lines} from ${p.players} ${p.players === 1 ? 'player' : 'players'}</span></div>
+      <div class="kv"><span>Jackpot (match ${L.pick_count})</span><span>${p.jackpot_winners ? `${p.jackpot_winners} ${p.jackpot_winners === 1 ? 'winner' : 'winners'} · ${euro(p.jackpot_each_cents)}${p.jackpot_winners > 1 ? ' each' : ''}` : `No winner, rolls to ${euro(p.next_jackpot_cents)}`}</span></div>
+      <div class="kv"><span>Match ${m}</span><span>${p.match3_winners ? `${p.match3_winners} ${p.match3_winners === 1 ? 'winner' : 'winners'} · ${euro(p.match3_each_cents)}${p.match3_winners > 1 ? ' each' : ''}` : 'No winners'}</span></div>
+      <div class="kv"><span>Lucky dips</span><span>${p.lucky_dips ? `Pick ${p.lucky_dips} at random · ${euro(p.lucky_dip_prize_cents)} each` : 'None'}</span></div>`;
+    $('previewCard').classList.remove('hide');
+    $('checkBtn').classList.add('hide');
+    $('publishBtn').classList.remove('hide');
+  } catch (e) { toast(e.message); }
+  $('checkBtn').disabled = false; $('checkBtn').textContent = 'Check winners';
+};
+
+$('publishBtn').onclick = async () => {
+  const nums = numbersEntered();
+  if (!confirm(`Publish results for ${nums.join(', ')}? Lucky dips are picked now, and every player gets an email. This can't be undone.`)) return;
+  $('publishBtn').disabled = true; $('publishBtn').textContent = 'Publishing…';
+  try {
+    const v = await api({ action: 'admin_publish', numbers: nums });
+    $('inball').querySelectorAll('input').forEach(i => i.value = '');
+    render(v);
+    toast('Results published and emailed');
+  } catch (e) { toast(e.message); }
+  $('publishBtn').disabled = false; $('publishBtn').textContent = 'Publish results';
+};
+
+async function exportDraw(id) {
+  try {
+    const d = await api({ action: 'admin_export', draw_id: id });
+    const blob = new Blob([d.csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `lotto-draw-${id}.csv`; a.click();
+  } catch (e) { toast(e.message); }
+}
+
+$('saveBtn').onclick = async () => {
+  const s = {};
+  document.querySelectorAll('[data-k]').forEach(el => {
+    let val = el.value;
+    if (el.hasAttribute('data-eur')) val = Math.round(Number(val || 0) * 100);
+    else if (el.hasAttribute('data-hours')) val = Math.round(Number(val || 0) * 60);
+    else if (el.type === 'number' || el.tagName === 'SELECT' && el.dataset.k === 'draw_weekday') val = Number(val);
+    s[el.dataset.k] = val;
+  });
+  $('saveBtn').disabled = true; $('saveBtn').textContent = 'Saving…';
+  try { render(await api({ action: 'admin_save', settings: s })); toast('Settings saved'); }
+  catch (e) { toast(e.message); }
+  $('saveBtn').disabled = false; $('saveBtn').textContent = 'Save settings';
+};
+
+$('share').onclick = async () => {
+  const url = 'https://' + $('share').textContent;
+  if (navigator.share) { try { await navigator.share({ title: V.lotto.club_name + ' Lotto', url }); return; } catch (_) {} }
+  try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch (_) { window.open(url, '_blank'); }
+};
+
+$('addAdmin').onclick = async () => {
+  const email = $('newAdmin').value.trim();
+  if (!email) return;
+  try { render(await api({ action: 'admin_add_admin', email })); $('newAdmin').value = ''; toast('Admin added'); }
+  catch (e) { toast(e.message); }
+};
+
+(async () => {
+  if (JWT) return start();
+  const { data } = await sb.auth.getSession();
+  if (data.session) { JWT = data.session.access_token; start(); } else showLogin();
+})();
+</script>
+</body>
+</html>
