@@ -114,7 +114,8 @@ export function clubName(cfg: any) {
 
 // A weekly ticket's paid weeks are its payment rows (one per paid invoice).
 async function recountWeekly(sb: any, ticketId: number) {
-  const { count } = await sb.from("lotto_payments").select("payment_id", { count: "exact", head: true }).eq("ticket_id", ticketId);
+  const { count } = await sb.from("lotto_payments").select("payment_id", { count: "exact", head: true })
+    .eq("ticket_id", ticketId).in("kind", ["checkout", "renewal"]);
   await sb.from("lotto_tickets").update({ weeks_paid: count || 0 }).eq("ticket_id", ticketId);
 }
 
@@ -185,6 +186,40 @@ export async function syncWithStripe(sb: any, cfg: any) {
   for (let i = 0; i < jobs.length; i += 8) {
     await Promise.all(jobs.slice(i, i + 8).map(j => j().catch(e => console.error("stripe sync", e))));
   }
+}
+
+// A charge refunded in full in Stripe (usually by the club, from its own dashboard):
+// the ticket stops playing in future draws and weekly play is stopped. Draws
+// already published keep their results.
+export async function refundCharge(sb: any, cfg: any, charge: any) {
+  if (!charge?.refunded) return;
+  const account = acct(cfg);
+  let ticketId = 0;
+  const piId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+  if (piId) {
+    const pi = await stripe("GET", `/payment_intents/${piId}`, null, account);
+    ticketId = Number(pi.metadata?.ticket_id) || 0;
+  }
+  // Weekly tickets: the subscription carries the ticket id.
+  if (!ticketId && charge.customer) {
+    const subs = await stripe("GET", "/subscriptions", { customer: charge.customer, status: "all", limit: 10 }, account);
+    ticketId = Number((subs.data || []).find((x: any) => x.metadata?.ticket_id)?.metadata?.ticket_id) || 0;
+  }
+  if (!ticketId) return;
+  const { data: t } = await sb.from("lotto_tickets").select("*").eq("ticket_id", ticketId).eq("lotto_id", cfg.lotto_id).maybeSingle();
+  if (!t) return;
+
+  await sb.from("lotto_payments").upsert({
+    lotto_id: cfg.lotto_id, ticket_id: t.ticket_id, amount_cents: -(charge.amount_refunded || 0), kind: "refund", stripe_ref: charge.id,
+  }, { onConflict: "stripe_ref", ignoreDuplicates: true });
+  if (t.status === "refunded") return;
+  if (t.plan === "weekly" && t.stripe_subscription_id && t.status === "active") {
+    await stripe("DELETE", `/subscriptions/${t.stripe_subscription_id}`, null, account).catch((e) => {
+      if (!/No such subscription|canceled/i.test(e.message)) throw e;
+    });
+  }
+  const { error } = await sb.from("lotto_tickets").update({ status: "refunded", refunded_at: new Date().toISOString() }).eq("ticket_id", t.ticket_id);
+  if (error) throw error;
 }
 
 // ── Email (Resend) ────────────────────────────────────────────────────────────
