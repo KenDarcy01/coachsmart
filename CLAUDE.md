@@ -112,6 +112,8 @@ Full table list: `clubs`, `teams`, `events`, `event_types`, `event_codes`, `even
 
 Club lotto (web first, 2026-10-18): `lotto_clubs`, `lotto_admins`, `lotto_players`, `lotto_tickets`, `lotto_payments`, `lotto_draws`, `lotto_entries`, `lotto_winners` (RLS on, no policies; only the `lotto` and `lotto-webhook` edge functions touch them). Public page `website/lotto/index.html` at coachsmart.app/lotto/<slug>, admin at coachsmart.app/lotto/admin.html. Money goes straight to the club's Stripe Connect account in `clubs.stripe_account_id`, which is shared by all club payments (membership will use it too); helpers in `supabase/functions/_shared/stripe-connect.ts`.
 
+Scouting reports (2026-10-18): `webviews/scouting.html` + `scouting` edge function build an opposition report from the season store (`gaa_games`) for a match event. Managers (role 100+) only; gated by `teams.scouting` (default off) or `users.ai_features`. `scouting_reports` (one per event: the two Sportlomo sides, shared coach notes, cached AI summary) and `scouting_links` (which Sportlomo side a team/squad plays as per code) have RLS on, no policies. `clubs.gaa_club_id` links a club to `gaa_clubs`. FlutterFlow opens `/webviews/scouting.html?token=<jwt>&eventId=<id>`.
+
 ## Role System
 Roles have a `role_level` and `role_grade`. Grade 100 = admin/management, grade 10 = player/athlete. `role_level` determines what data a user can see within the team hierarchy.
 
