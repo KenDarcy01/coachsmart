@@ -136,7 +136,7 @@ function render() {
   </tbody></table></div>
 
   <div class="section-title">By code</div>
-  <div class="stats">${codes.map(({ c, s }) => `<div class="stat"><div class="stat-label">${c}</div><div class="stat-big">${metricFmt(metric(s))}</div><div class="stat-sub">${rec(s)} from ${s.p} · ${sign(diffPg(s))} a game</div></div>`).join('')}</div>
+  <div class="stats">${codes.map(({ c, s }) => `<div class="stat"><div class="stat-label">${c}</div><div class="stat-big">${F.weighted ? `${wScore(s)}<small>/ 100 weighted</small>` : `${winPct(s)}%<small>won</small>`}</div><div class="stat-sub">${F.weighted ? `${winPct(s)}% won · ` : ''}${rec(s)} from ${s.p} · ${sign(diffPg(s))} a game</div></div>`).join('')}</div>
   <div class="note">Every scored result for ${esc(name)} in the dates, codes and ages chosen. Points count goals as 3.</div>`;
 }
 

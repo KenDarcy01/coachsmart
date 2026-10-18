@@ -767,8 +767,8 @@ async function sharePDF(){
             canvas=null;
             if(imgData.length<500)throw new Error('Canvas render failed (page '+(i+1)+')');
             const pgW=elW+pad*2,pgH=sliceH+pad*2;
-            if(!pdf){pdf=new jsPDF({orientation:'p',unit:'px',format:[pgW,pgH]});}
-            else{pdf.addPage([pgW,pgH]);}
+            if(!pdf){pdf=new jsPDF({orientation:pgW>pgH?'l':'p',unit:'px',format:[pgW,pgH]});}
+            else{pdf.addPage([pgW,pgH],pgW>pgH?'l':'p');}
             pdf.setFillColor(17,20,24);pdf.rect(0,0,pgW,pgH,'F');
             pdf.addImage(imgData,'JPEG',pad,pad,elW,sliceH);
         }

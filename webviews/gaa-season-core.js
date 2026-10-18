@@ -351,7 +351,9 @@ async function exportPdf() {
       const sliceH = Math.min(pageH, h - y);
       const canvas = await html2canvas(stage, { backgroundColor: '#111418', scale: 2, y, height: sliceH, width: w, windowWidth: w, logging: false });
       const pw = w + pad * 2, ph = sliceH + pad * 2;
-      if (!pdf) pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [pw, ph] }); else pdf.addPage([pw, ph]);
+      // Orientation must follow each slice's shape, or jsPDF swaps width and height on short last pages
+      const orient = pw > ph ? 'l' : 'p';
+      if (!pdf) pdf = new jsPDF({ orientation: orient, unit: 'px', format: [pw, ph] }); else pdf.addPage([pw, ph], orient);
       pdf.setFillColor(17, 20, 24); pdf.rect(0, 0, pw, ph, 'F');
       pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', pad, pad, w, sliceH);
     }
