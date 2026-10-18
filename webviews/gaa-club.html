@@ -103,7 +103,7 @@ function render() {
   for (const x of mine) (ages[x.comp.age] ??= []).push(x);
   ageRows = Object.keys(ages).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b)).map(age => {
     const s = tally(ages[age]);
-    return { age, teams: new Set(ages[age].map(x => `${x.comp.code}|${x.suf}`)).size, p: s.p, w: s.w, d: s.d, l: s.l, wp: winPct(s), ws: wScore(s), diff: diffPg(s), s };
+    return { age, teams: new Set(ages[age].map(x => `${x.comp.code}|${x.suf}`)).size, comps: new Set(ages[age].map(x => x.comp.id)).size, p: s.p, w: s.w, d: s.d, l: s.l, wp: winPct(s), ws: wScore(s), diff: diffPg(s), s };
   });
   const codes = CODES.map(c => { const xs = mine.filter(x => x.comp.code === c); return { c, s: tally(xs), teams: new Set(xs.map(x => `${x.comp.age}|${x.suf}`)).size }; }).filter(x => x.s.p);
 
@@ -129,8 +129,8 @@ function render() {
   </div>
 
   <div class="section-title">Age groups<span class="n">${ageRows.length} age groups · ${me.teams.size} teams</span></div>
-  <div class="tbl"><table><thead><tr><th class="l">Age</th><th class="hide-s">Teams</th><th>P</th><th>W</th><th class="hide-s">D</th><th>L</th><th>Win %</th>${F.weighted ? '<th>Weighted</th>' : ''}<th>Diff / game</th><th class="hide-s">Record</th></tr></thead><tbody>
-  ${ageRows.map(r => `<tr><td class="l" style="color:var(--green);width:auto">${esc(r.age)}</td><td class="hide-s">${r.teams}</td><td>${r.p}</td><td>${r.w}</td><td class="hide-s">${r.d}</td><td>${r.l}</td>
+  <div class="tbl"><table><thead><tr><th class="l">Age</th><th class="hide-s">Teams</th><th>Comps</th><th>P</th><th>W</th><th class="hide-s">D</th><th>L</th><th>Win %</th>${F.weighted ? '<th>Weighted</th>' : ''}<th>Diff / game</th><th class="hide-s">Record</th></tr></thead><tbody>
+  ${ageRows.map(r => `<tr><td class="l" style="color:var(--green);width:auto">${esc(r.age)}</td><td class="hide-s">${r.teams}</td><td>${r.comps}</td><td>${r.p}</td><td>${r.w}</td><td class="hide-s">${r.d}</td><td>${r.l}</td>
     <td><span class="pill ${!F.weighted && r.wp >= 50 ? 'win' : ''}">${r.wp}%</span></td>${F.weighted ? `<td><span class="pill ${r.ws >= 50 ? 'win' : ''}">${r.ws}</span></td>` : ''}
     <td class="${r.diff > 0 ? 'pos' : r.diff < 0 ? 'neg' : ''}">${sign(r.diff)}</td><td class="hide-s">${wdlBar(r.s)}</td></tr>`).join('')}
   </tbody></table></div>
@@ -146,7 +146,7 @@ function exportData() {
   return {
     title: `${clubName(club)} ${when}`,
     sheets: [
-      { name: 'Age groups', cols: [['Age', 'age'], ['Teams', 'teams'], ['P', 'p'], ['W', 'w'], ['D', 'd'], ['L', 'l'], ['Win %', 'wp'], ...w, ['Diff / game', 'diff']], rows: ageRows },
+      { name: 'Age groups', cols: [['Age', 'age'], ['Teams', 'teams'], ['Competitions', 'comps'], ['P', 'p'], ['W', 'w'], ['D', 'd'], ['L', 'l'], ['Win %', 'wp'], ...w, ['Diff / game', 'diff']], rows: ageRows },
       { name: 'Months', cols: [['Month', 'month'], ['P', 'p'], ['W', 'w'], ['D', 'd'], ['L', 'l'], ['Win %', 'wp'], ...w, ['Diff / game', 'diff']], rows: monthRows },
     ],
   };

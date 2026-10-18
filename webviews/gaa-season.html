@@ -278,15 +278,16 @@ function viewCompare(agg, games) {
 }
 
 function cmpAges(games) {
-  const by = {}, teams = {}, k = K();
+  const by = {}, teams = {}, comps = {}, k = K();
   for (const g of games) for (const [id, f, a, suf] of [[g.h, g.hp, g.ap, g.hs], [g.a, g.ap, g.hp, g.as]]) {
     if (id !== myClub) continue;
     addSide(by[g.comp.age] ??= blank(), f, a, g.comp.str, k);
     (teams[g.comp.age] ??= new Set()).add(`${g.comp.code}|${suf}`);
+    (comps[g.comp.age] ??= new Set()).add(g.comp.id);
   }
   const ages = Object.keys(by).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
   cmpTitle = `${clubName(myClub)} age groups`;
-  cmpRows = ages.map(a => ({ age: a, teams: teams[a].size, ...statRow(by[a]) }));
+  cmpRows = ages.map(a => ({ age: a, teams: teams[a].size, comps: comps[a].size, ...statRow(by[a]) }));
   if (!ages.length) return `<div class="empty"><b>No games for ${esc(clubName(myClub))}</b>Try more codes or a longer date range.</div>`;
   const chart = chartHtml('ages', {
     labels: ages, bars: true, min: 0, max: 100, ref: 50, fmt: metricFmt, legend: false,
@@ -295,8 +296,8 @@ function cmpAges(games) {
   });
   return `<div class="note" style="margin:-2px 0 10px">${esc(clubName(myClub))}'s age groups side by side. Change the club under Your club.</div>
     <div class="card"><div class="mini-t">${metricName()} by age group</div>${chart}</div>
-    <div class="tbl"><table><thead><tr><th class="l">Age</th><th class="hide-s">Teams</th>${statHead()}</tr></thead><tbody>
-    ${ages.map(a => `<tr onclick="cmpAge='${esc(a)}';setCmp('mode','age')"><td class="l" style="color:var(--green);width:auto">${esc(a)}</td><td class="hide-s">${teams[a].size}</td>${statCells(by[a])}</tr>`).join('')}
+    <div class="tbl"><table><thead><tr><th class="l">Age</th><th class="hide-s">Teams</th><th>Comps</th>${statHead()}</tr></thead><tbody>
+    ${ages.map(a => `<tr onclick="cmpAge='${esc(a)}';setCmp('mode','age')"><td class="l" style="color:var(--green);width:auto">${esc(a)}</td><td class="hide-s">${teams[a].size}</td><td>${comps[a].size}</td>${statCells(by[a])}</tr>`).join('')}
     </tbody></table></div><div class="note">Tap an age to see how every club does at it.</div>`;
 }
 
@@ -312,13 +313,13 @@ function cmpSameAge(games) {
   const series = ids.map((id, i) => ({ name: clubName(id), color: SERIES[i], values: r.vals[i], drop: ids.length > 1 ? `cmpDrop(${i})` : '' }));
   const add = ids.length < 5 ? `<select class="no-pdf" onchange="cmpAdd(this.value)"><option value="">+ Add club</option>${list.filter(s => !ids.includes(s.id)).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>` : '';
   cmpTitle = `${cmpAge} club rankings`;
-  cmpRows = list.map((s, i) => ({ _me: s.id === myClub, rank: i + 1, club: s.name, teams: s.teams.size, ...statRow(s) }));
+  cmpRows = list.map((s, i) => ({ _me: s.id === myClub, rank: i + 1, club: s.name, teams: s.teams.size, comps: s.comps.size, ...statRow(s) }));
   return `<div class="legend" style="margin-bottom:12px"><span>Age</span><select onchange="setCmp('age', this.value)" style="margin-left:0">${ages.map(a => `<option ${a === cmpAge ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select></div>
     <div class="card">${r.labels.length ? chartHtml('sameage', { labels: r.labels, series, fmt: metricFmt, min: 0, max: 100, fit: true, ref: 50, endLabels: true, legendExtra: add }) : ''}</div>
     <div class="note" style="margin:-4px 0 6px">Running ${metricName().toLowerCase()} at ${esc(cmpAge)} through the season. Tap a club below to add it to the chart.</div>
     <div class="section-title">Every club at ${esc(cmpAge)}<span class="n">${list.length} clubs with 5+ games</span></div>
-    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Club</th><th class="hide-s">Teams</th>${statHead()}</tr></thead><tbody>
-    ${list.map((s, i) => `<tr class="${s.id === myClub ? 'me' : ''}" onclick="cmpAdd(${s.id})"><td class="l">${i + 1}</td><td class="l club"><b>${esc(s.name)}</b><span>${s.teams.size} team${s.teams.size === 1 ? '' : 's'}</span></td><td class="hide-s">${s.teams.size}</td>${statCells(s)}</tr>`).join('')}
+    <div class="tbl"><table><thead><tr><th class="l">#</th><th class="l">Club</th><th class="hide-s">Teams</th><th>Comps</th>${statHead()}</tr></thead><tbody>
+    ${list.map((s, i) => `<tr class="${s.id === myClub ? 'me' : ''}" onclick="cmpAdd(${s.id})"><td class="l">${i + 1}</td><td class="l club"><b>${esc(s.name)}</b><span>${s.teams.size} team${s.teams.size === 1 ? '' : 's'}</span></td><td class="hide-s">${s.teams.size}</td><td>${s.comps.size}</td>${statCells(s)}</tr>`).join('')}
     </tbody></table></div>`;
 }
 function cmpAdd(v) { if (!v) return; v = +v; if (!cmpClubs.includes(v)) { if (cmpClubs.length >= 5) cmpClubs.pop(); cmpClubs.push(v); } render(); }
@@ -379,7 +380,7 @@ function exportData() {
     return { title: `Head to head ${clubName(myClub)} v ${clubName(b)} ${when}`, sheets: [{ name: 'Games', cols: [['Date', 'date'], ['Age', 'age'], ['Code', 'code'], ['Competition', 'comp'], ['Home', 'home'], ['Home pts', 'hp'], ['Away pts', 'ap'], ['Away', 'away']], rows: h2hRows }] };
   }
   if (tab === 'cmp') {
-    const lead = cmpMode === 'ages' ? [['Age', 'age'], ['Teams', 'teams']] : cmpMode === 'age' ? [['#', 'rank'], ['Club', 'club'], ['Teams', 'teams']] : [['#', 'rank'], ['Team', 'team'], ['Competition', 'comp']];
+    const lead = cmpMode === 'ages' ? [['Age', 'age'], ['Teams', 'teams'], ['Competitions', 'comps']] : cmpMode === 'age' ? [['#', 'rank'], ['Club', 'club'], ['Teams', 'teams'], ['Competitions', 'comps']] : [['#', 'rank'], ['Team', 'team'], ['Competition', 'comp']];
     return { title: `${cmpTitle} ${when}`, sheets: [{ name: 'Compare', cols: [...lead, ...statCols()], rows: cmpRows }] };
   }
   if (tab === 'trend') {

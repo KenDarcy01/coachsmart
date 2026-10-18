@@ -189,7 +189,7 @@ function aggregate(games, k = K()) {
   const out = new Map();
   const get = id => {
     let s = out.get(id);
-    if (!s) { s = { id, name: clubName(id), ...blank(), home: blank(), away: blank(), band: {}, code: {}, teams: new Set() }; out.set(id, s); }
+    if (!s) { s = { id, name: clubName(id), ...blank(), home: blank(), away: blank(), band: {}, code: {}, teams: new Set(), comps: new Set() }; out.set(id, s); }
     return s;
   };
   for (const g of games) {
@@ -200,6 +200,7 @@ function aggregate(games, k = K()) {
       addSide(s.band[c.level] ??= blank(), f, a, c.str, k);
       addSide(s.code[c.code] ??= blank(), f, a, c.str, k);
       s.teams.add(`${c.code}|${c.age}|${suf}`);
+      s.comps.add(c.id);
     }
   }
   return out;
