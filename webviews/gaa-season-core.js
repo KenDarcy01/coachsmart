@@ -184,7 +184,7 @@ function addSide(s, f, a, str, k) {
   s.p++; s.pf += f; s.pa += a; s.ws += (1 - k) * r + k * str;
   if (r === 1) s.w++; else if (r === 0) s.l++; else s.d++;
 }
-// Per club: totals, home/away, by band, by code, teams
+// Per club: totals, home/away, by band, by code, teams (code|competition|team name)
 function aggregate(games, k = K()) {
   const out = new Map();
   const get = id => {
@@ -199,7 +199,7 @@ function aggregate(games, k = K()) {
       addSide(s, f, a, c.str, k); addSide(s[ha], f, a, c.str, k);
       addSide(s.band[c.level] ??= blank(), f, a, c.str, k);
       addSide(s.code[c.code] ??= blank(), f, a, c.str, k);
-      s.teams.add(`${c.code}|${c.age}|${suf}`);
+      s.teams.add(`${c.code}|${c.id}|${suf}`);   // every team in every competition counts once (Ken)
     }
   }
   return out;
@@ -291,6 +291,8 @@ function chartOut(e) {
 
 const ring = (p, c, label = `${p}%`) => `<svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="#252A35" stroke-width="4"/><circle cx="18" cy="18" r="15.5" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${p} 100" pathLength="100" transform="rotate(-90 18 18)"/><text x="18" y="21" text-anchor="middle" font-size="8.5" font-weight="700" fill="#F1F4F8">${label}</text></svg>`;
 const wdlBar = s => s.p ? `<div class="wdl"><i class="w" style="width:${s.w / s.p * 100}%"></i><i class="d" style="width:${s.d / s.p * 100}%"></i><i class="l" style="width:${s.l / s.p * 100}%"></i></div>` : '';
+// Teams per code from a club's team set, in code order
+const teamsByCode = teams => { const n = {}; for (const t of teams) { const c = t.split('|')[0]; n[c] = (n[c] || 0) + 1; } return CODES.filter(c => n[c]).map(c => [c, n[c]]); };
 const rec = s => s ? `${s.w}–${s.d}–${s.l}` : '0–0–0';
 
 // ── Exports ────────────────────────────────────────────────────────────────

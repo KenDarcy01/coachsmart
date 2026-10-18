@@ -95,13 +95,13 @@ function viewClubs(agg) {
   let h = '';
   if (me) {
     const bands = Object.keys(BANDS).filter(b => me.band[b]?.p >= 5).sort((a, b) => metric(me.band[b]) - metric(me.band[a]));
-    const codes = new Set([...me.teams].map(t => t.split('|')[0]));
+    const codes = teamsByCode(me.teams);
     h += `<div class="section-title">${esc(me.name)}<span class="n">${rank ? `rank ${rank} of ${byM.length} clubs by ${metricName().toLowerCase()}` : `fewer than ${F.min} games, so not ranked`}</span>
       <span class="right"><a class="back" href="gaa-club.html?club=${me.id}">Club trends →</a></span></div>
     <div class="stats">
       <div class="stat"><div class="stat-label">Overall</div><div class="stat-big">${winPct(me)}%<small>won</small></div><div class="stat-sub">${me.w}W · ${me.d}D · ${me.l}L from ${fmtN(me.p)}</div></div>
       ${F.weighted ? `<div class="stat"><div class="stat-label">Weighted score</div><div class="stat-big">${wScore(me)}<small>/ 100</small></div><div class="stat-sub">${F.k}% division, ${100 - F.k}% results</div></div>` : ''}
-      <div class="stat"><div class="stat-label">Teams</div><div class="stat-big">${me.teams.size}</div><div class="stat-sub">across ${codes.size} code${codes.size === 1 ? '' : 's'}</div></div>
+      <div class="stat"><div class="stat-label">Teams</div><div class="stat-big">${me.teams.size}</div><div class="stat-sub">${codes.map(([c, n]) => `${c} ${n}`).join(' · ')}</div></div>
       <div class="stat"><div class="stat-label">Avg points</div><div class="stat-big">${one(me.pf / me.p)}<small>v</small> ${one(me.pa / me.p)}</div><div class="stat-sub">For v against · ${sign(diffPg(me))} a game</div></div>
       ${bands.length ? `<div class="stat"><div class="stat-label">Best age band</div><div class="stat-big">${BAND_SHORT[bands[0]]}<small>${metricFmt(metric(me.band[bands[0]]))}</small></div><div class="stat-sub">${bands.slice(1).map(b => `${BAND_SHORT[b]} ${metricFmt(metric(me.band[b]))}`).join(' · ') || '&nbsp;'}</div></div>` : ''}
     </div>`;
@@ -154,11 +154,14 @@ function viewVs(agg) {
     + line('Home win %', winPct(A.home), winPct(B.home), p100) + line('Away win %', winPct(A.away), winPct(B.away), p100);
   const bands = Object.keys(BANDS).filter(k => A.band[k]?.p || B.band[k]?.p).map(k => line(BANDS[k], metric(A.band[k]), metric(B.band[k]), metricFmt)).join('');
   const codes = CODES.filter(k => A.code[k]?.p || B.code[k]?.p).map(k => line(k, metric(A.code[k]), metric(B.code[k]), metricFmt)).join('');
+  const tA = Object.fromEntries(teamsByCode(A.teams)), tB = Object.fromEntries(teamsByCode(B.teams));
+  const codeTeams = CODES.filter(k => tA[k] || tB[k]).map(k => line(k, tA[k] || 0, tB[k] || 0)).join('');
   return `<div class="section-title">Club v club<span class="n">pick either club to change it</span></div>
     <div class="card"><div class="vs-head">${head(A, myClub, '', SERIES[0], 'pickA')}<div class="vs-mid">V</div>${head(B, b, 'b', SERIES[1], 'pickB')}</div></div>
     <div class="card">${main}</div>
     <div class="two"><div class="card"><div class="mini-t">${metricName()} by age band</div>${bands || '<div class="note">No games</div>'}</div>
-      <div class="card"><div class="mini-t">${metricName()} by code</div>${codes || '<div class="note">No games</div>'}</div></div>`;
+      <div class="card"><div class="mini-t">${metricName()} by code</div>${codes || '<div class="note">No games</div>'}</div></div>
+    <div class="card"><div class="mini-t">Teams by code</div>${codeTeams || '<div class="note">No games</div>'}<div class="note">Each team in each competition counts once.</div></div>`;
 }
 
 // ── Head to head ───────────────────────────────────────────────────────────
@@ -247,7 +250,7 @@ const setCmp = (k, v) => {
   teamPick = []; render();
 };
 const agesIn = games => [...new Set(games.map(g => g.comp.age))].sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
-const teamKey = (club, g, suf) => `${club}|${g.comp.code}|${g.comp.age}|${suf}`;
+const teamKey = (club, g, suf) => `${club}|${g.comp.code}|${g.comp.age}|${suf}|${g.comp.id}`;   // one team per competition
 const teamLabel = k => { const [c, , , suf] = k.split('|'); return `${clubName(+c)}${suf ? ` ${suf}` : ''}`; };
 const statCells = s => `<td>${s.p}</td><td>${s.w}</td><td class="hide-s">${s.d}</td><td>${s.l}</td>
   <td><span class="pill ${!F.weighted && winPct(s) >= 50 ? 'win' : ''}">${winPct(s)}%</span></td>
@@ -279,7 +282,7 @@ function cmpAges(games) {
   for (const g of games) for (const [id, f, a, suf] of [[g.h, g.hp, g.ap, g.hs], [g.a, g.ap, g.hp, g.as]]) {
     if (id !== myClub) continue;
     addSide(by[g.comp.age] ??= blank(), f, a, g.comp.str, k);
-    (teams[g.comp.age] ??= new Set()).add(`${g.comp.code}|${suf}`);
+    (teams[g.comp.age] ??= new Set()).add(`${g.comp.id}|${suf}`);
   }
   const ages = Object.keys(by).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
   cmpTitle = `${clubName(myClub)} age groups`;

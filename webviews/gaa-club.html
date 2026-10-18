@@ -103,9 +103,9 @@ function render() {
   for (const x of mine) (ages[x.comp.age] ??= []).push(x);
   ageRows = Object.keys(ages).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b)).map(age => {
     const s = tally(ages[age]);
-    return { age, teams: new Set(ages[age].map(x => `${x.comp.code}|${x.suf}`)).size, p: s.p, w: s.w, d: s.d, l: s.l, wp: winPct(s), ws: wScore(s), diff: diffPg(s), s };
+    return { age, teams: new Set(ages[age].map(x => `${x.comp.id}|${x.suf}`)).size, p: s.p, w: s.w, d: s.d, l: s.l, wp: winPct(s), ws: wScore(s), diff: diffPg(s), s };
   });
-  const codes = CODES.map(c => ({ c, s: tally(mine.filter(x => x.comp.code === c)) })).filter(x => x.s.p);
+  const codes = CODES.map(c => { const xs = mine.filter(x => x.comp.code === c); return { c, s: tally(xs), teams: new Set(xs.map(x => `${x.comp.id}|${x.suf}`)).size }; }).filter(x => x.s.p);
 
   // Form: last 6 weeks against the rest of the range
   const cut = iso(addDays(fromIso(last), -42)), recent = tally(mine.filter(x => x.day >= cut)), before = tally(mine.filter(x => x.day < cut));
@@ -135,9 +135,9 @@ function render() {
     <td class="${r.diff > 0 ? 'pos' : r.diff < 0 ? 'neg' : ''}">${sign(r.diff)}</td><td class="hide-s">${wdlBar(r.s)}</td></tr>`).join('')}
   </tbody></table></div>
 
-  <div class="section-title">By code</div>
-  <div class="stats">${codes.map(({ c, s }) => `<div class="stat"><div class="stat-label">${c}</div><div class="stat-big">${F.weighted ? `${wScore(s)}<small>/ 100 weighted</small>` : `${winPct(s)}%<small>won</small>`}</div><div class="stat-sub">${F.weighted ? `${winPct(s)}% won · ` : ''}${rec(s)} from ${s.p} · ${sign(diffPg(s))} a game</div></div>`).join('')}</div>
-  <div class="note">Every scored result for ${esc(name)} in the dates, codes and ages chosen. Points count goals as 3.</div>`;
+  <div class="section-title">By code<span class="n">${me.teams.size} teams in all</span></div>
+  <div class="stats">${codes.map(({ c, s, teams }) => `<div class="stat"><div class="stat-label">${c} · ${teams} team${teams === 1 ? '' : 's'}</div><div class="stat-big">${F.weighted ? `${wScore(s)}<small>/ 100 weighted</small>` : `${winPct(s)}%<small>won</small>`}</div><div class="stat-sub">${F.weighted ? `${winPct(s)}% won · ` : ''}${rec(s)} from ${s.p} · ${sign(diffPg(s))} a game</div></div>`).join('')}</div>
+  <div class="note">Every scored result for ${esc(name)} in the dates, codes and ages chosen. Each team in each competition counts as one team. Points count goals as 3.</div>`;
 }
 
 function exportData() {
