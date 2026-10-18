@@ -5,7 +5,7 @@
 // event's team, and the team's scouting switch must be on or the caller must have ai_features):
 //   load    { event_id }                         → report, or the options to link the two teams first
 //   link    { event_id, our_team, age, opp_team, opp_club_id } → saves which sides to compare, then as load
-//   relink  { event_id }                         → forgets the saved sides, then as load
+//   relink  { event_id }                         → the link sheet again (the saved pair and notes stay until a new link)
 //   notes   { event_id, notes }                  → saves the managers' shared notes
 //   summary { event_id }                         → { summary } AI "short version" (ai_features only), cached
 //   pdf     { event_id, format: a4 | mobile }    → { pdf (base64), filename }
@@ -170,7 +170,7 @@ serve(async (req) => {
       .eq("club_id", team!.club_id).maybeSingle();
 
     // ── Our club in the season store ──
-    const { data: gaaClubs } = await sb.from("gaa_clubs").select("club_id, name, name_key, alias_keys");
+    const gaaClubs = await allRows(() => sb.from("gaa_clubs").select("club_id, name, name_key, alias_keys").order("club_id"));
     const clubById = new Map((gaaClubs || []).map((c: any) => [c.club_id, c]));
     let ourClubId: number | null = club?.gaa_club_id ?? null;
     if (!ourClubId) {
@@ -184,10 +184,6 @@ serve(async (req) => {
     const year = Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin", year: "numeric" }).format(eventStart));
     const teamAge = ageFrom(squad?.squad_name, team?.team_name, ev.event_title);
     const squadKey = Number(ev.squad_id) || 0;
-
-    if (action === "relink") {
-      await sb.from("scouting_reports").delete().eq("event_id", eventId);
-    }
 
     if (action === "notes") {
       const notes = String(body.notes ?? "").slice(0, 8000);
@@ -216,11 +212,12 @@ serve(async (req) => {
 
     // ── The saved pair for this event, or find it from the fixture on the day ──
     let { data: pair } = await sb.from("scouting_reports").select("*").eq("event_id", eventId).maybeSingle();
+    // Relinking shows the sheet again; the saved pair (and its notes) stays until a new pair is picked.
+    if (action === "relink") pair = null;
 
     const { data: savedLink } = await sb.from("scouting_links").select("gaa_team, age")
       .eq("team_id", ev.team_id).eq("squad_id", squadKey).eq("code", code).maybeSingle();
 
-    // Relinking always shows the sheet, so the coach can pick a different pair.
     if (!pair && action !== "relink") {
       // Games for our club within 12 hours of the event: usually exactly one is this match.
       const from = new Date(eventStart.getTime() - 12 * 3600e3).toISOString();
@@ -364,7 +361,7 @@ async function saveLink(sb: any, ev: any, userId: string, code: string, age: str
   oppClubId: number, oppTeam: string, compId: string | null, squadKey: number, club: any) {
   await sb.from("scouting_reports").upsert({
     event_id: ev.event_id, code, age, our_club_id: ourClubId, our_team: ourTeam, opp_club_id: oppClubId, opp_team: oppTeam,
-    comp_id: compId, created_by: userId,
+    comp_id: compId, created_by: userId, ai_summary: null, ai_key: null,
   }, { onConflict: "event_id" });
   await sb.from("scouting_links").upsert({
     team_id: ev.team_id, squad_id: squadKey, code, gaa_team: ourTeam, age, updated_by: userId, updated_at: new Date().toISOString(),
