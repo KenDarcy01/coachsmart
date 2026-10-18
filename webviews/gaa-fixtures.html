@@ -36,6 +36,7 @@ button, select, input { font-family: inherit; }
 .logo span { color: var(--green); }
 .logo-sub { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
 .filters-btn { display: none; }
+.phone-btns, .sheet-done, .sheet-back { display: none; }
 .sidebar-scroll { flex: 1; overflow-y: auto; padding-bottom: 16px; }
 
 .s-section { padding: 14px 14px 4px; }
@@ -280,7 +281,29 @@ td.pts { font-weight: 700; }
   .filters-btn .badge { background: var(--green); color: #111; border-radius: 9px; padding: 0 6px; font-size: 11px; }
   .sidebar:not(.open) .sidebar-scroll { display: none; }
   .topbar { padding: 10px 14px; flex-wrap: wrap; gap: 10px; }
-  .topbar .export-btns { order: -1; margin-left: auto; }
+  .topbar .export-btns { display: none; }
+  /* Phone: slim header, filters as a bottom sheet, downloads in a small menu */
+  .logo { font-size: 21px; }
+  .logo-sub { font-size: 10px; margin-top: 1px; }
+  .phone-btns { display: flex; align-items: center; gap: 8px; position: relative; }
+  .dl-btn { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--card2); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
+  .dl-menu { display: none; position: absolute; top: 40px; left: 0; z-index: 70; background: var(--card2); border: 1px solid rgba(255,255,255,0.13); border-radius: 10px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+  .dl-menu.open { display: block; }
+  .dl-menu button { display: block; width: 100%; text-align: left; padding: 9px 22px 9px 12px; background: none; border: 0; color: var(--text); font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+  .dl-menu button:active { background: rgba(135,194,50,0.15); }
+  .sidebar { max-height: none; overflow: visible; }
+  .sidebar.open .sidebar-scroll { display: block; position: fixed; left: 0; right: 0; bottom: 0; max-height: 84dvh; z-index: 60; background: var(--card); border-radius: 16px 16px 0 0; border-top: 1px solid rgba(255,255,255,0.12); box-shadow: 0 -10px 30px rgba(0,0,0,.5); padding-bottom: 0; }
+  .sidebar.open .sidebar-scroll::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.25); margin: 8px auto 0; }
+  .sidebar.open ~ .sheet-back { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 55; }
+  .sheet-done { display: block; position: sticky; bottom: 0; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--border); margin-top: 10px; }
+  .sheet-done button { width: 100%; padding: 12px; border-radius: 10px; background: var(--green); color: #111; font-size: 15px; font-weight: 700; border: 0; cursor: pointer; }
+  .topbar-left { width: 100%; gap: 8px; }
+  .topbar-left > .seg.small:first-child { display: flex; width: 100%; }
+  .topbar-left > .seg.small:first-child button { flex: 1; padding-left: 2px; padding-right: 2px; }
+  .topbar .summary { font-size: 12.5px; width: 100%; }
+  .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat-big { font-size: 20px; }
   .list { padding: 4px 12px 40px; }
   .game { grid-template-columns: auto 1fr; grid-template-areas: "time comp" "match match" "venue venue"; gap: 8px 10px; }
   .g-time { grid-area: time; }
@@ -300,9 +323,17 @@ td.pts { font-weight: 700; }
         <div class="logo">COACH<span>SMART</span></div>
         <div class="logo-sub">GAA Fixtures</div>
       </div>
-      <button class="filters-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">
-        Filters <span class="badge" id="filterCount" style="display:none"></span>
-      </button>
+      <div class="phone-btns">
+        <button class="dl-btn" onclick="document.getElementById('dlMenu').classList.toggle('open')" aria-label="Download">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dl-menu" id="dlMenu" onclick="this.classList.remove('open')">
+          <button onclick="exportCsv()">CSV</button><button onclick="exportXlsx()">Excel</button><button onclick="exportPdf()">PDF</button>
+        </div>
+        <button class="filters-btn" onclick="toggleSheet()">
+          Filters <span class="badge" id="filterCount" style="display:none"></span>
+        </button>
+      </div>
     </div>
 
     <div class="sidebar-scroll">
@@ -364,8 +395,10 @@ td.pts { font-weight: 700; }
           <div id="compChips" style="display:none"></div>
         </div>
       </div>
+      <div class="sheet-done"><button onclick="toggleSheet(false)">Show games</button></div>
     </div>
   </aside>
+  <div class="sheet-back" onclick="toggleSheet(false)"></div>
 
   <div class="main" id="main"></div>
 </div>
@@ -412,6 +445,12 @@ let venue = recall('gaa_venue', 'all'); // all | home | away (relative to the ch
 let offCodes = new Set(), offAges = new Set(), offComps = new Set();
 let compsOpen = recall('gaa_comps_open', false);
 const standingsCache = {};
+
+// Phone filters sheet
+function toggleSheet(open) {
+  const sb = document.getElementById('sidebar');
+  sb.classList.toggle('open', open ?? !sb.classList.contains('open'));
+}
 
 // ── Storage ────────────────────────────────────────────────────────────────
 function store(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
