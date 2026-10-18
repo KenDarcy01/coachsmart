@@ -184,7 +184,7 @@ function addSide(s, f, a, str, k) {
   s.p++; s.pf += f; s.pa += a; s.ws += (1 - k) * r + k * str;
   if (r === 1) s.w++; else if (r === 0) s.l++; else s.d++;
 }
-// Per club: totals, home/away, by band, by code, teams (code|competition|team name)
+// Per club: totals, home/away, by band, by code, teams (code|age|team name)
 function aggregate(games, k = K()) {
   const out = new Map();
   const get = id => {
@@ -199,7 +199,7 @@ function aggregate(games, k = K()) {
       addSide(s, f, a, c.str, k); addSide(s[ha], f, a, c.str, k);
       addSide(s.band[c.level] ??= blank(), f, a, c.str, k);
       addSide(s.code[c.code] ??= blank(), f, a, c.str, k);
-      s.teams.add(`${c.code}|${c.id}|${suf}`);   // every team in every competition counts once (Ken)
+      s.teams.add(`${c.code}|${c.age}|${suf}`);
     }
   }
   return out;

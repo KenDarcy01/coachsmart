@@ -161,7 +161,7 @@ function viewVs(agg) {
     <div class="card">${main}</div>
     <div class="two"><div class="card"><div class="mini-t">${metricName()} by age band</div>${bands || '<div class="note">No games</div>'}</div>
       <div class="card"><div class="mini-t">${metricName()} by code</div>${codes || '<div class="note">No games</div>'}</div></div>
-    <div class="card"><div class="mini-t">Teams by code</div>${codeTeams || '<div class="note">No games</div>'}<div class="note">Each team in each competition counts once.</div></div>`;
+    <div class="card"><div class="mini-t">Teams by code</div>${codeTeams || '<div class="note">No games</div>'}</div>`;
 }
 
 // ── Head to head ───────────────────────────────────────────────────────────
@@ -250,7 +250,7 @@ const setCmp = (k, v) => {
   teamPick = []; render();
 };
 const agesIn = games => [...new Set(games.map(g => g.comp.age))].sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
-const teamKey = (club, g, suf) => `${club}|${g.comp.code}|${g.comp.age}|${suf}|${g.comp.id}`;   // one team per competition
+const teamKey = (club, g, suf) => `${club}|${g.comp.code}|${g.comp.age}|${suf}`;
 const teamLabel = k => { const [c, , , suf] = k.split('|'); return `${clubName(+c)}${suf ? ` ${suf}` : ''}`; };
 const statCells = s => `<td>${s.p}</td><td>${s.w}</td><td class="hide-s">${s.d}</td><td>${s.l}</td>
   <td><span class="pill ${!F.weighted && winPct(s) >= 50 ? 'win' : ''}">${winPct(s)}%</span></td>
@@ -282,7 +282,7 @@ function cmpAges(games) {
   for (const g of games) for (const [id, f, a, suf] of [[g.h, g.hp, g.ap, g.hs], [g.a, g.ap, g.hp, g.as]]) {
     if (id !== myClub) continue;
     addSide(by[g.comp.age] ??= blank(), f, a, g.comp.str, k);
-    (teams[g.comp.age] ??= new Set()).add(`${g.comp.id}|${suf}`);
+    (teams[g.comp.age] ??= new Set()).add(`${g.comp.code}|${suf}`);
   }
   const ages = Object.keys(by).sort((a, b) => ageOrder(a) - ageOrder(b) || a.localeCompare(b));
   cmpTitle = `${clubName(myClub)} age groups`;
