@@ -9,6 +9,8 @@
 //   notes   { event_id, notes }                  → saves the managers' shared notes
 //   summary { event_id }                         → { summary } AI "short version" (ai_features only), cached
 //   pdf     { event_id, format: a4 | mobile }    → { pdf (base64), filename }
+//   events  {}                                   → the caller's matches from yesterday to 6 weeks ahead on
+//          teams they manage, for opening the page in a browser without an event (no event_id needed)
 //
 // Numbers come from the season store (public.gaa_games, loaded nightly by gaa-sync).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -122,7 +124,7 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
     const eventId = Number(body.event_id);
-    if (!eventId) return json({ error: "event_id required" }, 400);
+    if (!eventId && action !== "events") return json({ error: "event_id required" }, 400);
 
     const SUPABASE_URL     = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -132,6 +134,8 @@ serve(async (req) => {
     const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const { data: { user }, error: userErr } = await sb.auth.getUser(jwt);
     if (userErr || !user) return json({ error: "Please sign in again" }, 401);
+
+    if (action === "events") return json({ success: true, data: await listMatches(sb, user.id) });
 
     const { data: ev } = await sb.from("events")
       .select("event_id, event_title, event_date_time, opposition, home_away, location_name, squad_id, team_id, event_code_id")
@@ -413,4 +417,35 @@ async function loadMatchReports(sb: any, ev: any, oppClub: any, oppTeam: string)
     opposition: r.opposition || byId.get(r.event_id)?.opposition || "",
     report: r.match_report,
   })).sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 5);
+}
+
+/** Events with an opposition on teams the caller manages (role level 100+), yesterday to six weeks ahead. */
+async function listMatches(sb: any, userId: string) {
+  const { data: links } = await sb.from("user_member_link").select("member_id").eq("user_id", userId).eq("status", "active");
+  const memberIds = (links || []).map((l: any) => l.member_id).filter(Boolean);
+  if (!memberIds.length) return { events: [] };
+  const { data: mts } = await sb.from("member_team_link").select("member_team_id, team_id").eq("status", "active").in("member_id", memberIds);
+  if (!mts?.length) return { events: [] };
+  const { data: roles } = await sb.from("member_team_role_link").select("member_team_id, roles!inner(role_level)")
+    .in("member_team_id", mts.map((m: any) => m.member_team_id));
+  const teamOf = new Map(mts.map((m: any) => [m.member_team_id, m.team_id]));
+  const teamIds = [...new Set((roles || []).filter((r: any) => Number(r.roles?.role_level) >= 100).map((r: any) => teamOf.get(r.member_team_id)))];
+  if (!teamIds.length) return { events: [] };
+  const [{ data: teams }, { data: me }, { data: events }] = await Promise.all([
+    sb.from("teams").select("team_id, team_name, scouting").in("team_id", teamIds),
+    sb.from("users").select("ai_features").eq("user_id", userId).maybeSingle(),
+    sb.from("events").select("event_id, event_title, event_date_time, opposition, home_away, team_id, squads(squad_name)")
+      .in("team_id", teamIds).not("opposition", "is", null).neq("opposition", "")
+      .gte("event_date_time", new Date(Date.now() - 86400e3).toISOString())
+      .lte("event_date_time", new Date(Date.now() + 42 * 86400e3).toISOString())
+      .order("event_date_time").limit(60),
+  ]);
+  const ai = me?.ai_features === true;
+  const team = new Map<number, any>((teams || []).map((t: any) => [t.team_id, t]));
+  return {
+    events: (events || []).filter((e: any) => ai || team.get(e.team_id)?.scouting).map((e: any) => ({
+      event_id: e.event_id, title: e.event_title, date: e.event_date_time, opposition: e.opposition, home_away: e.home_away,
+      team_name: team.get(e.team_id)?.team_name || "", squad_name: e.squads?.squad_name || null,
+    })),
+  };
 }

@@ -84,6 +84,8 @@
     .tbl td:nth-child(2), .tbl th:nth-child(2) { text-align: left; }
     .tbl tr.opp td { color: var(--amber); font-weight: 700; } .tbl tr.us td { color: var(--green); font-weight: 700; }
 
+    .field { display: block; width: 100%; background: var(--card2); border: 1.5px solid transparent; border-radius: 12px; padding: 12px; font: inherit; color: var(--text); font-size: 16px; outline: none; margin-bottom: 10px; }
+    .field:focus { border-color: rgba(135,194,50,.55); }
     .notes { width: 100%; min-height: 96px; background: var(--card2); border: 1.5px solid transparent; border-radius: 12px; padding: 10px 12px; font-size: 15px; line-height: 1.5; outline: none; resize: none; }
     .notes:focus { border-color: rgba(135,194,50,.55); }
     .btns { display: flex; gap: 10px; margin-top: 10px; }
@@ -139,12 +141,16 @@
 <script src="cs-voice-sheet.js"></script>
 <script>
   // Opened from FlutterFlow's NativeWebView: scouting.html?token=<jwt>&eventId=<id>
+  // In a browser with no token it signs in with the CoachSmart login and lists the coach's matches.
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
   const FN_URL   = SUPABASE_URL + '/functions/v1/scouting';
   const params   = new URLSearchParams(window.location.search);
   const WV_TOKEN = params.get('token') || '';
-  const EVENT_ID = Number(params.get('eventId') || params.get('event_id') || 0);
+  let EVENT_ID   = Number(params.get('eventId') || params.get('event_id') || 0);
+  const STANDALONE = !WV_TOKEN && !window.FlutterBridge;
+  let sb = null;          // supabase client, browser only
+  let fromList = false;   // opened from the match list in the browser
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -154,18 +160,26 @@
 
   function goBack() {
     if (window.CSVoice && CSVoice.isOpen()) { CSVoice.close(); return; }
+    if (STANDALONE) { if (EVENT_ID) showEvents(); return; }
     if (window.FlutterBridge) window.FlutterBridge.postMessage('close');
     else history.back();
+  }
+
+  async function token() {
+    if (!STANDALONE) return WV_TOKEN || SUPABASE_ANON_KEY;
+    const { data: { session } } = await sb.auth.getSession();
+    return session ? session.access_token : SUPABASE_ANON_KEY;
   }
 
   async function callFn(payload) {
     const res = await fetch(FN_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + await token(), 'apikey': SUPABASE_ANON_KEY },
       body: JSON.stringify({ event_id: EVENT_ID, ...payload }),
     });
     let json = {};
     try { json = await res.json(); } catch (_) {}
+    if (res.status === 401 && STANDALONE) { showSignIn(); throw new Error('Please sign in'); }
     if (!res.ok || json.error) throw new Error(json.error || 'Something went wrong');
     return json.data ?? json;
   }
@@ -204,7 +218,62 @@
     try {
       D = await callFn({ action, ...extra });
       if (D.link_needed) renderLink(); else renderReport();
-    } catch (e) { showError(e.message); }
+    } catch (e) { if (e.message !== 'Please sign in') showError(e.message); }
+  }
+
+  // ── Browser: sign in and pick a match ────────────────────────────────────
+  function showSignIn(msg = '') {
+    $('shareTop').style.display = 'none';
+    showMain(`<div class="card"><div class="pick-h">Sign in</div>
+      <div class="pick-sub">Use your CoachSmart login to see scouting reports for the teams you manage.</div>
+      <input class="field" id="email" type="email" placeholder="Email" autocomplete="username">
+      <input class="field" id="password" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')signIn()">
+      <div class="hint" id="signErr" style="color:var(--red)">${esc(msg)}</div>
+      <div class="btns"><button class="btn g" id="signBtn" onclick="signIn()">Sign in</button></div></div>`);
+  }
+  async function signIn() {
+    const b = $('signBtn');
+    b.disabled = true; b.textContent = 'Signing in…';
+    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    if (error) { b.disabled = false; b.textContent = 'Sign in'; $('signErr').textContent = 'That email and password didn\'t work.'; return; }
+    EVENT_ID ? (showLoading(), load()) : showEvents();
+  }
+  async function signOut() { await sb.auth.signOut(); EVENT_ID = 0; history.replaceState(null, '', location.pathname); showSignIn(); }
+  function showLoading() { $('main').style.display = 'none'; $('stateError').style.display = 'none'; $('stateLoading').style.display = ''; }
+
+  async function showEvents() {
+    EVENT_ID = 0; D = null; pick = null;
+    history.replaceState(null, '', location.pathname);
+    $('shareTop').style.display = 'none';
+    showLoading();
+    try {
+      const { events } = await callFn({ action: 'events' });
+      showMain(`<div class="card"><div class="pick-h">Your matches</div>
+        <div class="pick-sub">Matches with an opposition on the teams you manage, from yesterday to six weeks ahead.</div>
+        ${events.length ? events.map(e => `<button class="opt" onclick="openEvent(${Number(e.event_id)})"><span class="tx">v ${esc(e.opposition)}<small>${esc(fmtWhen(e.date))} · ${esc(e.team_name)}${e.squad_name ? ' ' + esc(e.squad_name) : ''}</small></span></button>`).join('')
+          : '<div class="empty">No upcoming matches with an opposition on teams you manage, or scouting isn\'t switched on for them.</div>'}
+        </div><button class="link" onclick="signOut()">Sign out</button>`);
+    } catch (e) { if (e.message !== 'Please sign in') showError(e.message); }
+  }
+  function openEvent(id) {
+    EVENT_ID = id; fromList = true;
+    history.replaceState(null, '', location.pathname + '?eventId=' + id);
+    showLoading(); load();
+  }
+
+  async function start() {
+    if (!STANDALONE) { load(); return; }
+    await new Promise((ok, bad) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.min.js';
+      sc.onload = ok; sc.onerror = bad; document.head.appendChild(sc);
+    }).catch(() => {});
+    if (!window.supabase) { showError('Could not load the sign-in. Please refresh.'); return; }
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) showSignIn();
+    else if (EVENT_ID) load();
+    else showEvents();
   }
 
   // ── Link sheet: which sides to compare ───────────────────────────────────
@@ -419,7 +488,7 @@
     }
   }
 
-  load();
+  start();
 </script>
 </body>
 </html>
