@@ -146,7 +146,7 @@
 <script src="cs-voice-sheet.js"></script>
 <script>
   // Opened from FlutterFlow's NativeWebView: scouting.html?token=<jwt>&eventId=<id>
-  // In a browser with no token it signs in with the CoachSmart login and lists the coach's matches.
+  // In a browser with no token it signs in with the CoachSmart login; no match is needed.
   const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
   const FN_URL   = SUPABASE_URL + '/functions/v1/scouting';
@@ -155,7 +155,6 @@
   let EVENT_ID   = Number(params.get('eventId') || params.get('event_id') || 0);
   const STANDALONE = !WV_TOKEN && !window.FlutterBridge;
   let sb = null;          // supabase client, browser only
-  let fromList = false;   // opened from the match list in the browser
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -163,7 +162,7 @@
 
   function goBack() {
     if (window.CSVoice && CSVoice.isOpen()) { CSVoice.close(); return; }
-    if (STANDALONE) { if (EVENT_ID) showEvents(); return; }
+    if (STANDALONE) { if (D && S && !EVENT_ID) { D = null; relink(); } else if (pk && pk.step === 2 && !D) { pk.step = 1; renderStep1(); } return; }
     if (window.FlutterBridge) window.FlutterBridge.postMessage('close');
     else history.back();
   }
@@ -178,7 +177,7 @@
     const res = await fetch(FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + await token(), 'apikey': SUPABASE_ANON_KEY },
-      body: JSON.stringify({ event_id: EVENT_ID, ...payload }),
+      body: JSON.stringify({ event_id: EVENT_ID || undefined, ...payload }),
     });
     let json = {};
     try { json = await res.json(); } catch (_) {}
@@ -216,19 +215,21 @@
   const initials = s => (String(s).replace(/\b(GAA|CLG|LGFA)\b/gi, '').match(/\b[A-Za-z]/g) || []).slice(0, 2).join('').toUpperCase();
 
   // ── Load ─────────────────────────────────────────────────────────────────
-  async function load(action = 'load', extra = {}) {
-    if (!EVENT_ID) { showError('No match was given.'); return; }
+  // S is the start payload (clubs, our club's sides, the event and a guess); D is the report.
+  let S = null;
+  async function loadStart(action = 'start') {
+    showLoading();
     try {
-      D = await callFn({ action, ...extra });
-      if (D.link_needed) renderLink(); else renderReport();
+      const d = await callFn({ action });
+      if (d.link_needed) { S = d; pk = null; renderPicker(); } else { D = d; renderReport(); }
     } catch (e) { if (e.message !== 'Please sign in') showError(e.message); }
   }
 
-  // ── Browser: sign in and pick a match ────────────────────────────────────
+  // ── Browser: sign in ─────────────────────────────────────────────────────
   function showSignIn(msg = '') {
     $('shareTop').style.display = 'none';
     showMain(`<div class="card"><div class="pick-h">Sign in</div>
-      <div class="pick-sub">Use your CoachSmart login to see scouting reports for the teams you manage.</div>
+      <div class="pick-sub">Use your CoachSmart login. Scouting reports are for team managers.</div>
       <input class="field" id="email" type="email" placeholder="Email" autocomplete="username">
       <input class="field" id="password" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')signIn()">
       <div class="hint" id="signErr" style="color:var(--red)">${esc(msg)}</div>
@@ -239,33 +240,13 @@
     b.disabled = true; b.textContent = 'Signing in…';
     const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
     if (error) { b.disabled = false; b.textContent = 'Sign in'; $('signErr').textContent = 'That email and password didn\'t work.'; return; }
-    EVENT_ID ? (showLoading(), load()) : showEvents();
+    loadStart();
   }
-  async function signOut() { await sb.auth.signOut(); EVENT_ID = 0; history.replaceState(null, '', location.pathname); showSignIn(); }
+  async function signOut() { await sb.auth.signOut(); S = null; D = null; pk = null; showSignIn(); }
   function showLoading() { $('main').style.display = 'none'; $('stateError').style.display = 'none'; $('stateLoading').style.display = ''; }
 
-  async function showEvents() {
-    EVENT_ID = 0; D = null; pk = null;
-    history.replaceState(null, '', location.pathname);
-    $('shareTop').style.display = 'none';
-    showLoading();
-    try {
-      const { events } = await callFn({ action: 'events' });
-      showMain(`<div class="card"><div class="pick-h">Your matches</div>
-        <div class="pick-sub">Matches with an opposition on the teams you manage, from yesterday to six weeks ahead.</div>
-        ${events.length ? events.map(e => `<button class="opt" onclick="openEvent(${Number(e.event_id)})"><span class="tx">v ${esc(e.opposition)}<small>${esc(fmtWhen(e.date))} · ${esc(e.team_name)}${e.squad_name ? ' ' + esc(e.squad_name) : ''}</small></span></button>`).join('')
-          : '<div class="empty">No upcoming matches with an opposition on teams you manage, or scouting isn\'t switched on for them.</div>'}
-        </div><button class="link" onclick="signOut()">Sign out</button>`);
-    } catch (e) { if (e.message !== 'Please sign in') showError(e.message); }
-  }
-  function openEvent(id) {
-    EVENT_ID = id; fromList = true;
-    history.replaceState(null, '', location.pathname + '?eventId=' + id);
-    showLoading(); load();
-  }
-
   async function start() {
-    if (!STANDALONE) { load(); return; }
+    if (!STANDALONE) { loadStart(); return; }
     await new Promise((ok, bad) => {
       const sc = document.createElement('script');
       sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.min.js';
@@ -274,149 +255,167 @@
     if (!window.supabase) { showError('Could not load the sign-in. Please refresh.'); return; }
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) showSignIn();
-    else if (EVENT_ID) load();
-    else showEvents();
+    session ? loadStart() : showSignIn();
   }
 
-  // ── Picker: which two sides to compare ───────────────────────────────────
-  // Step 1: any side our club has fielded this season, filtered by code and age.
-  // Step 2: any side in that code and age, filtered by division and a search box.
-  let pk = null;  // { step, code, age, team, opp, sides, grade, q, loading }
-  function renderLink() {
-    $('shareTop').style.display = 'none';
-    const opts = D.our_options || [];
-    if (!opts.length) {
-      showMain(`<div class="card"><div class="pick-h">No fixtures found</div><div class="pick-sub">We couldn't find any Dublin fixtures for ${esc(D.club.name)} this season, so there's nothing to scout from yet.</div></div>`);
-      return;
-    }
-    if (!pk) {
-      const g = D.guess || {};
-      const hit = g.team ? opts.find(o => o.code === g.code && o.age === g.age && o.team === g.team) : null;
-      pk = { step: 1, code: hit ? hit.code : (g.code && opts.some(o => o.code === g.code) ? g.code : null),
-             age: hit ? hit.age : (g.age && opts.some(o => o.age === g.age && (!g.code || o.code === g.code)) ? g.age : null),
-             div: hit && g.grade && hit.grades.includes(g.grade) ? g.grade : null,
-             team: hit ? hit.team : null, opp: hit && g.opp ? g.opp : null, sides: null, grade: null, q: '' };
-      if (!pk.code && [...new Set(opts.map(o => o.code))].length === 1) pk.code = opts[0].code;
-    }
-    pk.step === 1 ? renderStep1(opts) : renderStep2();
-  }
-
+  // ── Picker ───────────────────────────────────────────────────────────────
+  // Step 1, the opposition: club (search), then age, code and division, then the team.
+  // Step 2, our team: the sides our club fielded in that code and age, by division.
+  let pk = null;  // { step, q, club, sides, age, code, div, oppTeam, ourDiv, ourTeam, loading }
   const chip = (label, on, onclick) => `<button class="fchip ${on ? 'on' : ''}" onclick="${onclick}">${esc(label)}</button>`;
-  const ageOrder = a => { const m = a.match(/^U(\d+)$/); return m ? +m[1] : 20 + ['Minor', 'Junior', 'Intermediate', 'Senior', 'Adult', 'Other'].indexOf(a); };
-
-  function renderStep1(opts) {
-    const codes = [...new Set(opts.map(o => o.code))];
-    const inCode = opts.filter(o => !pk.code || o.code === pk.code);
-    const ages = [...new Set(inCode.map(o => o.age))].sort((a, b) => ageOrder(a) - ageOrder(b));
-    const inAge = inCode.filter(o => !pk.age || o.age === pk.age);
-    const divs = [...new Set(inAge.flatMap(o => o.grades))].sort();
-    const list = inAge.filter(o => !pk.div || o.grades.includes(pk.div));
-    showMain(`
-      <div class="card">
-        <div class="pick-h">Step 1 of 2 · Our team</div>
-        <div class="pick-sub">Narrow it down by code, age and division, then pick the side playing this match.${D.guess && D.guess.team ? ' Our guess is selected.' : ''}</div>
-        <div class="flabel">Code</div>
-        <div class="frow">${chip('All', !pk.code, 'setCode(null)')}${codes.map(c => chip(c, pk.code === c, `setCode(${js(c)})`)).join('')}</div>
-        <div class="flabel">Age</div>
-        <div class="frow">${chip('All', !pk.age, 'setAge(null)')}${ages.map(a => chip(a, pk.age === a, `setAge(${js(a)})`)).join('')}</div>
-        <div class="flabel">Division</div>
-        <div class="frow">${chip('All', !pk.div, 'setDiv(null)')}${divs.map(d => chip(d, pk.div === d, `setDiv(${js(d)})`)).join('')}</div>
-        <div class="flabel">Team</div>
-        <div class="list">${list.map(o => `
-          <button class="opt ${pk.team === o.team && pk.code === o.code && pk.age === o.age ? 'on' : ''}" onclick="pickOur(${js(o.code)},${js(o.age)},${js(o.team)})">
-            <span class="rad"></span><span class="tx">${esc(o.team)}<small>${esc(o.age)} ${esc(o.code)} · ${esc(o.grades.join(', '))}</small></span>
-            ${D.guess && D.guess.team === o.team && D.guess.age === o.age && D.guess.code === o.code ? '<span class="tag">Our guess</span>' : ''}
-          </button>`).join('') || '<div class="empty">No sides match those filters.</div>'}</div>
-        <div class="btns"><button class="btn g" onclick="toStep2()" ${pk.team ? '' : 'disabled'}>Next: opposition</button></div>
-      </div>`);
-  }
   const js = v => JSON.stringify(v).replace(/"/g, '&quot;');
-  function clearTeamIf(fn) { if (pk.team && !D.our_options.some(o => o.team === pk.team && o.code === pk.code && o.age === pk.age && fn(o))) pk.team = null; }
-  function setCode(c) {
-    pk.code = c;
-    if (pk.age && !D.our_options.some(o => (!c || o.code === c) && o.age === pk.age)) pk.age = null;
-    if (pk.div && !D.our_options.some(o => (!c || o.code === c) && (!pk.age || o.age === pk.age) && o.grades.includes(pk.div))) pk.div = null;
-    if (pk.team && c && pk.code !== c) pk.team = null;
-    renderLink();
-  }
-  function setAge(a) {
-    pk.age = a;
-    if (pk.div && !D.our_options.some(o => (!pk.code || o.code === pk.code) && (!a || o.age === a) && o.grades.includes(pk.div))) pk.div = null;
-    if (pk.team && a && pk.age !== a) pk.team = null;
-    renderLink();
-  }
-  function setDiv(d) { pk.div = d; clearTeamIf(o => !d || o.grades.includes(d)); renderLink(); }
-  function pickOur(code, age, team) {
-    const changed = pk.team !== team || pk.code !== code || pk.age !== age;
-    pk.code = code; pk.age = age; pk.team = team;
-    if (changed) { pk.sides = null; pk.grade = null; pk.q = ''; if (!(D.guess && D.guess.team === team && D.guess.code === code && D.guess.age === age)) pk.opp = null; }
-    renderLink();
-  }
-  async function toStep2() {
-    if (!pk.team) return;
-    pk.step = 2;
-    if (!pk.sides) {
-      pk.loading = true; renderStep2();
-      try { pk.sides = (await callFn({ action: 'sides', code: pk.code, age: pk.age })).sides; }
-      catch (e) { toast(e.message, 'error'); pk.step = 1; pk.loading = false; renderLink(); return; }
-      pk.loading = false;
-      // Start in our team's division: the one chosen in step 1, else the guessed fixture's, else our side's first.
-      const ours = D.our_options.find(o => o.team === pk.team && o.code === pk.code && o.age === pk.age);
-      const grades = new Set(pk.sides.flatMap(x => x.grades));
-      pk.grade = [pk.div, D.guess && D.guess.grade, ...(ours ? ours.grades : [])].find(g => g && grades.has(g)) || null;
-      // Preselect the guess, or the side in that division that matches what the coach typed as the opposition.
-      if (!pk.opp) {
-        const best = pk.sides.find(x => x.score > 0 && x.club_id !== ourClubIdOf() && (!pk.grade || x.grades.includes(pk.grade)))
-          || pk.sides.find(x => x.score > 0 && x.club_id !== ourClubIdOf());
-        if (best) pk.opp = { club_id: best.club_id, team: best.team };
-      }
+  const ageOrder = a => { const m = a.match(/^U(\d+)$/); return m ? +m[1] : 20 + ['Minor', 'Junior', 'Intermediate', 'Senior', 'Adult', 'Other'].indexOf(a); };
+  const uniq = xs => [...new Set(xs)];
+  const stepHead = (n, title, sub) => `<div class="pick-h">Step ${n} of 2 · ${title}</div><div class="pick-sub">${sub}</div>`;
+
+  function renderPicker() {
+    $('shareTop').style.display = 'none';
+    if (!pk) {
+      const g = S.guess || {};
+      pk = { step: 1, q: '', club: null, sides: null, age: g.age || null, code: g.code || null, div: g.grade || null,
+             oppTeam: g.opp_team || null, ourDiv: g.grade || null, ourTeam: g.our_team || null, loading: false };
+      if (g.opp_club_id) { pickClub(g.opp_club_id); return; }
     }
+    pk.step === 1 ? renderStep1() : renderStep2();
+  }
+
+  async function pickClub(clubId) {
+    const club = (S.clubs || []).find(c => c.club_id === clubId);
+    if (!club) return;
+    if (pk.club && pk.club.club_id !== clubId) { pk.age = null; pk.code = null; pk.div = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourDiv = null; }
+    pk.club = club; pk.sides = null; pk.q = ''; pk.loading = true;
+    renderStep1();
+    try { pk.sides = (await callFn({ action: 'club', club_id: clubId })).sides; }
+    catch (e) { toast(e.message, 'error'); pk.club = null; pk.loading = false; renderStep1(); return; }
+    pk.loading = false;
+    settleOpp();
+    renderStep1();
+  }
+  // Drop choices the club doesn't have, and pick the only option when there is just one.
+  function settleOpp() {
+    const s = pk.sides || [];
+    const ages = uniq(s.map(x => x.age));
+    if (pk.age && !ages.includes(pk.age)) pk.age = null;
+    if (!pk.age && ages.length === 1) pk.age = ages[0];
+    const codes = uniq(s.filter(x => x.age === pk.age).map(x => x.code));
+    if (pk.code && pk.age && !codes.includes(pk.code)) pk.code = null;
+    if (!pk.code && pk.age && codes.length === 1) pk.code = codes[0];
+    const divs = uniq(s.filter(x => x.age === pk.age && x.code === pk.code).flatMap(x => x.grades)).sort();
+    if (pk.div && pk.code && !divs.includes(pk.div)) pk.div = null;
+    if (!pk.div && pk.code && divs.length === 1) pk.div = divs[0];
+    const teams = s.filter(x => x.age === pk.age && x.code === pk.code && (!pk.div || x.grades.includes(pk.div)));
+    if (pk.oppTeam && !teams.some(x => x.team === pk.oppTeam)) pk.oppTeam = null;
+    if (!pk.oppTeam && pk.code && teams.length === 1) pk.oppTeam = teams[0].team;
+  }
+  function setOpp(k, v) {
+    if (pk[k] === v) return;
+    pk[k] = v;
+    if (k === 'age') { pk.code = null; pk.div = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourDiv = null; }
+    if (k === 'code') { pk.div = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourDiv = null; }
+    if (k === 'div') { pk.ourDiv = v; }
+    settleOpp();
+    renderStep1();
+  }
+  function renderStep1() {
+    const ev = S.event;
+    const q = pk.q.trim().toLowerCase();
+    let h = `<div class="card">${stepHead(1, 'Opposition', 'Which club are you scouting? Then narrow it down by age, code and division.' +
+      (ev && ev.opposition ? ' You entered "' + esc(ev.opposition) + '" on the match.' : ''))}`;
+    if (!pk.club) {
+      const clubs = (S.clubs || []).filter(c => !q || c.name.toLowerCase().includes(q));
+      h += `<div class="flabel">Club</div>
+        <input class="field" type="search" id="clubQ" placeholder="Search clubs" value="${esc(pk.q)}" oninput="pk.q=this.value;renderStep1();$('clubQ').focus();$('clubQ').setSelectionRange(this.value.length,this.value.length)">
+        <div class="list">${clubs.slice(0, 80).map(c => `<button class="opt" onclick="pickClub(${c.club_id})"><span class="tx">${esc(c.name)}</span></button>`).join('') || '<div class="empty">No clubs match.</div>'}
+        ${clubs.length > 80 ? `<div class="hint">Showing 80 of ${clubs.length}. Keep typing to narrow it down.</div>` : ''}</div></div>
+        ${STANDALONE ? '<button class="link" onclick="signOut()">Sign out</button>' : ''}`;
+      showMain(h); return;
+    }
+    h += `<div class="flabel">Club</div>
+      <button class="opt on" onclick="pk.club=null;pk.sides=null;renderStep1()"><span class="rad"></span><span class="tx">${esc(pk.club.name)}<small>Tap to change club</small></span></button>`;
+    if (pk.loading) { h += `<div class="state" style="padding:30px 0"><div class="spinner"></div>Loading ${esc(pk.club.name)}'s teams…</div></div>`; showMain(h); return; }
+    const s = pk.sides || [];
+    if (!s.length) { h += `<div class="empty">No Dublin fixtures found for ${esc(pk.club.name)} this season.</div></div>`; showMain(h); return; }
+    const ages = uniq(s.map(x => x.age)).sort((a, b) => ageOrder(a) - ageOrder(b));
+    h += `<div class="flabel">Age</div><div class="frow">${ages.map(a => chip(a, pk.age === a, `setOpp('age',${js(a)})`)).join('')}</div>`;
+    if (pk.age) {
+      const codes = uniq(s.filter(x => x.age === pk.age).map(x => x.code)).sort();
+      h += `<div class="flabel">Code</div><div class="frow">${codes.map(c => chip(c, pk.code === c, `setOpp('code',${js(c)})`)).join('')}</div>`;
+    }
+    if (pk.age && pk.code) {
+      const inCode = s.filter(x => x.age === pk.age && x.code === pk.code);
+      const divs = uniq(inCode.flatMap(x => x.grades)).sort();
+      const teams = inCode.filter(x => !pk.div || x.grades.includes(pk.div));
+      h += `<div class="flabel">Division</div><div class="frow">${divs.length > 1 ? chip('All', !pk.div, "setOpp('div',null)") : ''}${divs.map(d => chip(d, pk.div === d, `setOpp('div',${js(d)})`)).join('')}</div>
+        <div class="flabel">Team</div><div class="list">${teams.map(x => `
+          <button class="opt ${pk.oppTeam === x.team ? 'on' : ''}" onclick="setOpp('oppTeam',${js(x.team)})">
+            <span class="rad"></span><span class="tx">${esc(x.team)}<small>${esc(pk.age)} ${esc(pk.code)} · ${esc(x.grades.join(', '))}</small></span>
+            ${S.guess && S.guess.opp_team === x.team && S.guess.opp_club_id === pk.club.club_id ? '<span class="tag">Our guess</span>' : ''}
+          </button>`).join('') || '<div class="empty">No teams in that division.</div>'}</div>`;
+    }
+    h += `<div class="btns"><button class="btn g" onclick="toStep2()" ${pk.oppTeam ? '' : 'disabled'}>Next: our team</button></div></div>`;
+    showMain(h);
+  }
+
+  function ourSides() { return (S.our_options || []).filter(o => o.code === pk.code && o.age === pk.age); }
+  function toStep2() {
+    if (!pk.oppTeam) return;
+    pk.step = 2;
+    const ours = ourSides();
+    if (pk.ourTeam && !ours.some(o => o.team === pk.ourTeam)) pk.ourTeam = null;
+    if (!pk.ourTeam && ours.length === 1) pk.ourTeam = ours[0].team;
+    const divs = uniq(ours.flatMap(o => o.grades));
+    if (pk.ourDiv && !divs.includes(pk.ourDiv)) pk.ourDiv = null;
+    if (!pk.ourDiv && pk.div && divs.includes(pk.div)) pk.ourDiv = pk.div;
+    if (pk.ourTeam && pk.ourDiv && !ours.some(o => o.team === pk.ourTeam && o.grades.includes(pk.ourDiv))) pk.ourDiv = null;
+    const inDiv = ours.filter(o => !pk.ourDiv || o.grades.includes(pk.ourDiv));
+    if (!pk.ourTeam && inDiv.length === 1) pk.ourTeam = inDiv[0].team;
     renderStep2();
   }
-  function ourClubIdOf() { const mine = pk.sides && pk.sides.find(x => x.team === pk.team); return mine ? mine.club_id : -1; }
+  function setOurDiv(d) {
+    pk.ourDiv = d;
+    if (pk.ourTeam && d && !ourSides().some(o => o.team === pk.ourTeam && o.grades.includes(d))) pk.ourTeam = null;
+    renderStep2();
+  }
   function renderStep2() {
-    const ev = D.event;
-    if (pk.loading) { showMain(`<div class="card"><div class="pick-h">Step 2 of 2 · Opposition</div><div class="state" style="padding:40px 0"><div class="spinner"></div>Loading ${esc(pk.age)} ${esc(pk.code)} teams…</div></div>`); return; }
-    const sides = pk.sides || [];
-    const grades = [...new Set(sides.flatMap(x => x.grades))].sort();
-    const q = pk.q.trim().toLowerCase();
-    const list = sides.filter(x => (!pk.grade || x.grades.includes(pk.grade)) && (!q || (x.club + ' ' + x.team).toLowerCase().includes(q)));
-    const sel = x => pk.opp && pk.opp.club_id === x.club_id && pk.opp.team === x.team;
-    const selected = pk.opp && sides.find(sel);
-    showMain(`
-      <div class="card">
-        <div class="pick-h">Step 2 of 2 · Opposition</div>
-        <div class="pick-sub">Our team: ${esc(pk.team)}, ${esc(pk.age)} ${esc(pk.code)}. <button class="inline-link" onclick="pk.step=1;renderLink()">Change</button>${ev.opposition ? '<br>You entered "' + esc(ev.opposition) + '" on the event.' : ''}</div>
+    const ours = ourSides();
+    const divs = uniq(ours.flatMap(o => o.grades)).sort();
+    const list = ours.filter(o => !pk.ourDiv || o.grades.includes(pk.ourDiv));
+    showMain(`<div class="card">${stepHead(2, 'Our team', `Scouting ${esc(pk.oppTeam)}, ${esc(pk.age)} ${esc(pk.code)}. <button class="inline-link" onclick="pk.step=1;renderStep1()">Change</button><br>Which ${esc(S.club.name)} side will play them?`)}
+      ${ours.length ? `
         <div class="flabel">Division</div>
-        <div class="frow">${chip('All', !pk.grade, 'pk.grade=null;renderStep2()')}${grades.map(g => chip(g, pk.grade === g, `pk.grade=${js(g)};renderStep2()`)).join('')}</div>
+        <div class="frow">${divs.length > 1 ? chip('All', !pk.ourDiv, 'setOurDiv(null)') : ''}${divs.map(d => chip(d, pk.ourDiv === d, `setOurDiv(${js(d)})`)).join('')}</div>
         <div class="flabel">Team</div>
-        <input class="field" type="search" placeholder="Search club or team" value="${esc(pk.q)}" oninput="pk.q=this.value;renderStep2();this.focus();this.setSelectionRange(this.value.length,this.value.length)">
-        <div class="list">${list.slice(0, 60).map(x => `
-          <button class="opt ${sel(x) ? 'on' : ''}" onclick="pk.opp={club_id:${x.club_id},team:${js(x.team)}};renderStep2()">
-            <span class="rad"></span><span class="tx">${esc(x.team)}<small>${esc(x.grades.join(', '))}</small></span>
-            ${x.score > 0 && D.guess && D.guess.opp && D.guess.opp.team === x.team && D.guess.opp.club_id === x.club_id ? '<span class="tag">Our guess</span>' : x.score > 0 ? '<span class="tag">Matches event</span>' : ''}
-          </button>`).join('') || '<div class="empty">No teams match.</div>'}
-          ${list.length > 60 ? `<div class="hint">Showing 60 of ${list.length}. Narrow it down with the search box.</div>` : ''}</div>
-        ${selected && !list.includes(selected) ? `<div class="hint">Selected: ${esc(selected.team)} (${esc(selected.grades.join(', '))})</div>` : ''}
-        <div class="btns"><button class="btn" onclick="pk.step=1;renderLink()">Back</button><button class="btn g" id="buildBtn" onclick="buildReport()" ${pk.opp ? '' : 'disabled'}>Build report</button></div>
-      </div>`);
+        <div class="list">${list.map(o => `
+          <button class="opt ${pk.ourTeam === o.team ? 'on' : ''}" onclick="pk.ourTeam=${js(o.team)};renderStep2()">
+            <span class="rad"></span><span class="tx">${esc(o.team)}<small>${esc(o.age)} ${esc(o.code)} · ${esc(o.grades.join(', '))}</small></span>
+            ${S.guess && S.guess.our_team === o.team && S.guess.code === o.code && S.guess.age === o.age ? '<span class="tag">Our guess</span>' : ''}
+          </button>`).join('') || '<div class="empty">No sides in that division.</div>'}</div>`
+        : `<div class="empty">${esc(S.club.name)} have no ${esc(pk.age)} ${esc(pk.code)} side in the Dublin fixtures this season.</div>`}
+      <div class="btns"><button class="btn" onclick="pk.step=1;renderStep1()">Back</button><button class="btn g" id="buildBtn" onclick="buildReport()" ${pk.ourTeam ? '' : 'disabled'}>Build report</button></div>
+    </div>`);
   }
   async function buildReport() {
-    if (!pk.team || !pk.opp) return;
+    if (!pk.ourTeam || !pk.oppTeam) return;
     $('buildBtn').disabled = true;
     $('buildBtn').textContent = 'Building…';
-    await load('link', { code: pk.code, age: pk.age, grade: pk.grade, our_team: pk.team, opp_team: pk.opp.team, opp_club_id: pk.opp.club_id });
+    try {
+      D = await callFn({ action: 'link', code: pk.code, age: pk.age, grade: pk.div, our_team: pk.ourTeam, opp_team: pk.oppTeam, opp_club_id: pk.club.club_id });
+      renderReport();
+    } catch (e) {
+      if (e.message === 'Please sign in') return;
+      toast(e.message, 'error');
+      $('buildBtn').disabled = false; $('buildBtn').textContent = 'Build report';
+    }
   }
+  // Back to the picker. With a match, the match forgets its pair (the pair's notes stay).
   async function relink() {
-    pk = null;
-    showLoading();
-    await load('relink');
+    if (EVENT_ID) { loadStart('relink'); return; }
+    if (S) { pk && (pk.step = 1); renderPicker(); } else loadStart();
   }
 
   // ── Report ───────────────────────────────────────────────────────────────
   function renderReport() {
-    const r = D.report, rec = r.record, ev = D.event;
+    const r = D.report, rec = r.record, ev = D.event || {};
     $('shareTop').style.display = '';
     const ha = String(ev.home_away || '').toLowerCase();
     const where = D.fixture ? (D.fixture.venue || (D.fixture.home ? 'Home' : 'Away')) : ha.startsWith('h') ? 'Home' : ha.startsWith('a') ? 'Away' : '';
@@ -472,7 +471,7 @@
 
     h += `<div class="card"><div class="h">Coach notes <em>managers only</em></div>
         <textarea class="notes" id="notes" placeholder="Who to mark, kickouts, anything to tell the players…" oninput="notesDirty()">${esc(D.notes)}</textarea>
-        <div class="hint" id="notesBy">${D.notes_by ? 'Last saved by ' + esc(D.notes_by) + (D.notes_at ? ', ' + esc(fmtWhen(D.notes_at)) : '') : 'Every manager on the team sees these notes.'}</div>
+        <div class="hint" id="notesBy">${D.notes_by ? 'Last saved by ' + esc(D.notes_by) + (D.notes_at ? ', ' + esc(fmtWhen(D.notes_at)) : '') : 'Every manager at the club sees these notes.'}</div>
         <div class="btns">
           ${D.ai_enabled ? `<button class="btn" onclick="talkNotes()">${CSVoice.micSvg}Talk</button>` : ''}
           <button class="btn" id="saveNotesBtn" onclick="saveNotes()" disabled>Saved</button>
@@ -491,7 +490,7 @@
 
   async function loadSummary() {
     try {
-      const d = await callFn({ action: 'summary' });
+      const d = await callFn({ action: 'summary', pair_key: D.pair_key });
       D.summary = d.summary;
       if ($('aiBox')) $('aiBox').innerHTML = summaryHtml(d.summary);
     } catch (e) {
@@ -525,7 +524,7 @@
     const b = $('saveNotesBtn');
     b.disabled = true; b.textContent = 'Saving…';
     try {
-      await callFn({ action: 'notes', notes: $('notes').value });
+      await callFn({ action: 'notes', pair_key: D.pair_key, notes: $('notes').value });
       D.notes = $('notes').value;
       b.textContent = 'Saved'; b.classList.remove('g');
       $('notesBy').textContent = 'Saved just now.';
@@ -558,7 +557,7 @@
     const btn = $(format === 'mobile' ? 'pdfMobile' : 'pdfA4'), label = btn ? btn.textContent : '';
     if (btn) { btn.disabled = true; btn.textContent = 'Making PDF…'; }
     try {
-      const { pdf, filename } = await callFn({ action: 'pdf', format });
+      const { pdf, filename } = await callFn({ action: 'pdf', pair_key: D.pair_key, format });
       if (window.FlutterBridge) {
         window.FlutterBridge.postMessage('sharePdf:' + filename + ':' + pdf);
       } else {
