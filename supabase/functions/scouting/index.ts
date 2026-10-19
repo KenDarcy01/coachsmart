@@ -5,7 +5,7 @@
 // event's team, and the team's scouting switch must be on or the caller must have ai_features):
 //   load    { event_id }                         → report, or (link_needed) our club's sides and a guess
 //   sides   { event_id, code, age }              → every side in that code and age, for the opposition choice
-//   link    { event_id, code, age, our_team, opp_team, opp_club_id } → saves which sides to compare, then as load
+//   link    { event_id, code, age, our_team, opp_team, opp_club_id, grade } → saves which sides to compare, then as load
 //   relink  { event_id }                         → the link sheet again (the saved pair and notes stay until a new link)
 //   notes   { event_id, notes }                  → saves the managers' shared notes
 //   summary { event_id }                         → { summary } AI "short version" (ai_features only), cached
@@ -252,7 +252,12 @@ serve(async (req) => {
       const sides = await sidesIn(code, age);
       const ok = (cid: number, name: string) => sides.some(x => x.club_id === cid && norm(x.team) === norm(name));
       if (!ok(ourClubId, ourTeam) || !ok(oppClubId, oppTeam)) return json({ error: "Those teams weren't found in the fixtures" }, 400);
-      await saveLink(sb, ev, user.id, code, age, ourClubId, ourTeam, oppClubId, oppTeam, null, squadKey, club);
+      // The division the coach picked for the opposition gives the league table its competition.
+      const grade = String(body.grade || "").trim();
+      const { data: comp } = grade
+        ? await sb.from("gaa_competitions").select("comp_id").eq("code", code).eq("age", age).eq("grade", grade).limit(1).maybeSingle()
+        : { data: null };
+      await saveLink(sb, ev, user.id, code, age, ourClubId, ourTeam, oppClubId, oppTeam, comp?.comp_id ?? null, squadKey, club);
     }
 
     // ── The saved pair for this event ──
@@ -289,7 +294,7 @@ serve(async (req) => {
       const from = new Date(eventStart.getTime() - 12 * 3600e3).toISOString();
       const to = new Date(eventStart.getTime() + 12 * 3600e3).toISOString();
       const { data: dayGames } = await sb.from("gaa_games")
-        .select("comp_id, home_team, away_team, home_club_id, away_club_id, gaa_competitions!inner(code, age)")
+        .select("comp_id, home_team, away_team, home_club_id, away_club_id, gaa_competitions!inner(code, age, grade, name)")
         .gte("start_at", from).lte("start_at", to)
         .or(`home_club_id.eq.${ourClubId},away_club_id.eq.${ourClubId}`);
       const ranked = (dayGames || []).filter((g: any) => g.home_club_id !== g.away_club_id).map((g: any) => {
@@ -297,16 +302,17 @@ serve(async (req) => {
         const ours = home ? g.home_team : g.away_team, theirs = home ? g.away_team : g.home_team;
         const oppClub = home ? g.away_club_id : g.home_club_id;
         const { code, age } = g.gaa_competitions;
+        const grade = g.gaa_competitions.grade || g.gaa_competitions.name;
         const opp = oppScore(ev.opposition, theirs, clubById.get(oppClub));
         const score = opp * 4 + (eventCode && code === eventCode ? 2 : 0) + (teamAge && age === teamAge ? 1 : 0)
           + (savedLink && norm(savedLink.gaa_team) === norm(ours) && savedLink.age === age && savedLink.code === code ? 2 : 0);
-        return { code, age, ours, theirs, oppClub, score };
+        return { code, age, grade, ours, theirs, oppClub, score };
       }).sort((a: any, b: any) => b.score - a.score);
       const top = ranked[0];
       const guess = top && top.score > 0
-        ? { code: top.code, age: top.age, team: top.ours, opp: { club_id: top.oppClub, team: top.theirs } }
-        : savedLink ? { code: savedLink.code, age: savedLink.age, team: savedLink.gaa_team, opp: null }
-        : eventCode || teamAge ? { code: eventCode, age: teamAge, team: null, opp: null } : null;
+        ? { code: top.code, age: top.age, grade: top.grade, team: top.ours, opp: { club_id: top.oppClub, team: top.theirs } }
+        : savedLink ? { code: savedLink.code, age: savedLink.age, grade: null, team: savedLink.gaa_team, opp: null }
+        : eventCode || teamAge ? { code: eventCode, age: teamAge, grade: null, team: null, opp: null } : null;
 
       const our_options = [...sides.values()].map(x => ({ code: x.code, age: x.age, team: x.team, grades: [...x.grades].sort() }))
         .sort((a, b) => a.code.localeCompare(b.code) || ageRank(a.age) - ageRank(b.age) || a.team.localeCompare(b.team));
