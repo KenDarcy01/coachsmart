@@ -245,7 +245,7 @@ async function load(paid) {
     message(L.status === 'paused' ? 'The lotto is paused' : 'Coming soon', L.status === 'paused' ? 'Ticket sales are paused for now. Check back soon.' : `The ${L.club_name} lotto will be open here soon.`);
     return;
   }
-  if (!L.can_pay) { message('Coming soon', 'Card payments are being set up.'); return; }
+  if (!L.can_pay && !PREVIEW) { message('Coming soon', 'Card payments are being set up.'); return; }
 
   $('pickTitle').textContent = `Pick ${L.pick_count} numbers`;
   const sel = $('team');
