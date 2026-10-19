@@ -274,7 +274,7 @@
     if (!pk) {
       const g = S.guess || {};
       pk = { step: 1, q: '', club: null, sides: null, age: g.age || null, code: g.code || null, oppComp: g.comp_id || null,
-             oppTeam: g.opp_team || null, loading: false };
+             oppTeam: g.opp_team || null, scope: 'all', loading: false };
       if (g.opp_club_id) { pickClub(g.opp_club_id); return; }
     }
     renderStep1();
@@ -320,7 +320,7 @@
   function renderStep1() {
     const ev = S.event;
     const q = pk.q.trim().toLowerCase();
-    let h = `<div class="card">${stepHead(1, 'Who are you scouting?', 'Pick the club, then narrow it down by age, code and division. The report covers their whole year.' +
+    let h = `<div class="card">${stepHead(1, 'Who are you scouting?', 'Pick the club, then narrow it down by age, code and division. Then choose whether the report covers just that competition or their whole year.' +
       (ev && ev.opposition ? ' You entered "' + esc(ev.opposition) + '" on the match.' : ''))}`;
     if (!pk.club) {
       const clubs = (S.clubs || []).filter(c => !q || c.name.toLowerCase().includes(q));
@@ -353,6 +353,10 @@
             <span class="rad"></span><span class="tx">${esc(x.team)}<small>${esc(pk.age)} ${esc(pk.code)} · ${esc(x.grade)}${x.games ? ' · ' + x.games + ' game' + (x.games === 1 ? '' : 's') : ''}</small></span>
             ${S.guess && S.guess.opp_team === x.team && S.guess.comp_id === x.comp_id && S.guess.opp_club_id === pk.club.club_id ? '<span class="tag">Our guess</span>' : ''}
           </button>`).join('') || '<div class="empty">No teams in that division.</div>'}</div>`;
+        if (pk.oppTeam) {
+          const d = divs.find(x => x.comp_id === pk.oppComp);
+          h += `<div class="flabel">Results to include</div><div class="frow">${chip('League, cup, shield, knockout', pk.scope === 'all', "pk.scope='all';renderStep1()")}${chip('Just ' + (d ? d.grade : 'this competition'), pk.scope === 'comp', "pk.scope='comp';renderStep1()")}</div>`;
+        }
       }
     }
     h += `<div class="btns"><button class="btn g" id="buildBtn" onclick="buildReport()" ${pk.oppTeam ? '' : 'disabled'}>Build report</button></div></div>`;
@@ -364,7 +368,7 @@
     $('buildBtn').disabled = true;
     $('buildBtn').textContent = 'Building…';
     try {
-      D = await callFn({ action: 'link', code: pk.code, age: pk.age, opp_team: pk.oppTeam, opp_comp_id: pk.oppComp, opp_club_id: pk.club.club_id });
+      D = await callFn({ action: 'link', code: pk.code, age: pk.age, opp_team: pk.oppTeam, opp_comp_id: pk.oppComp, opp_club_id: pk.club.club_id, scope: pk.scope });
       renderReport();
     } catch (e) {
       if (e.message === 'Please sign in') return;
@@ -388,7 +392,7 @@
     let h = `
       <div class="hero"><div class="badge">${esc(initials(r.opp.team))}</div>
         <div><h1>${esc(r.opp.team)}</h1><div class="sub">${esc(r.opp.age)} ${esc(r.opp.code)}${grade ? ' · ' + esc(grade) : ''}</div></div></div>
-      <div class="next"><span>${ev.date ? 'Match ' + esc(fmtWhen(ev.date)) : 'This season, every competition'}</span><span>${esc(where)}</span></div>`;
+      <div class="next"><span>${ev.date ? 'Match ' + esc(fmtWhen(ev.date)) : (D.scope === 'comp' ? 'This season, ' + esc(grade || 'this competition') + ' only' : 'This season, league plus cup, shield and knockout')}</span><span>${esc(where)}</span></div>`;
 
     if (!r.games.length) {
       h += `<div class="card"><div class="empty">${esc(r.opp.team)} have no results yet this season, so there's nothing to show.</div></div>`;
