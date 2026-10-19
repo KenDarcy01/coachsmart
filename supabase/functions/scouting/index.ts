@@ -12,7 +12,7 @@
 //                                                   with an event that already has a pair, the report instead
 //   club    { club_id }                          → that club's sides this season, one per team and competition
 //   sides   { code, age }                        → every side in that code and age, for the team list
-//   link    { event_id?, code, age, our_team, our_comp_id, opp_club_id, opp_team, opp_comp_id } → saves the pair, returns the report
+//   link    { event_id?, code, age, opp_club_id, opp_team, opp_comp_id } → saves the pair, returns the report
 //   report  { pair_key }                         → the report for a pair picked earlier
 //   relink  { event_id }                         → forgets which pair the event uses (notes stay with the pair)
 //   notes   { pair_key, notes }                  → saves the managers' shared notes for the pair
@@ -89,8 +89,11 @@ function oppScore(text: string | null | undefined, team: string, club: any): num
 }
 
 /** One key per pair of sides, shared by every event and browser visit that compares them. */
-const pairKeyOf = (ourClubId: number, code: string, age: string, ourTeam: string, ourComp: string, oppClubId: number, oppTeam: string, oppComp: string) =>
-  `${ourClubId}|${code}|${age}|${norm(ourTeam)}|${ourComp}|${oppClubId}|${norm(oppTeam)}|${oppComp}`;
+const pairKeyOf = (ourClubId: number, code: string, age: string, oppClubId: number, oppTeam: string, oppComp: string) =>
+  `${ourClubId}|${code}|${age}|${oppClubId}|${norm(oppTeam)}|${oppComp}`;
+
+/** Does a competition grade read like a league division ("League Div 3", "Division 1")? */
+const isDivision = (grade: string) => /\bdiv(?:ision)?\b/i.test(grade);
 
 async function callGemini(apiKey: string, userText: string): Promise<string[]> {
   const body = JSON.stringify({
@@ -309,7 +312,6 @@ serve(async (req) => {
           link_needed: true, event: eventInfo, team_name: team?.team_name ?? null,
           club: { name: club?.club_name, crest: club?.crest, gaa_club_id: ourClubId },
           clubs: gaaClubs.map((c: any) => ({ club_id: c.club_id, name: c.name })).sort((a: any, b: any) => a.name.localeCompare(b.name)),
-          our_options: await clubSides(ourClubId),
           guess, ai_enabled: aiEnabled,
         },
       });
@@ -318,20 +320,20 @@ serve(async (req) => {
     // ── LINK: the coach picked both sides ──
     if (action === "link") {
       const code = String(body.code || "").trim(), age = String(body.age || "").trim();
-      const ourTeam = String(body.our_team || "").trim();
       const oppTeam = String(body.opp_team || "").trim(), oppClubId = Number(body.opp_club_id);
-      const ourComp = String(body.our_comp_id || "").trim(), oppComp = String(body.opp_comp_id || "").trim();
-      if (!code || !age || !ourTeam || !oppTeam || !oppClubId || !ourComp || !oppComp) return json({ error: "Please pick both teams and their divisions" }, 400);
-      const sides = await sidesIn(code, age);
-      const ok = (cid: number, name: string, comp: string) => sides.some(x => x.club_id === cid && norm(x.team) === norm(name) && x.comp_id === comp);
-      if (!ok(ourClubId, ourTeam, ourComp) || !ok(oppClubId, oppTeam, oppComp)) return json({ error: "Those teams weren't found in the fixtures" }, 400);
-      const pairKey = pairKeyOf(ourClubId, code, age, ourTeam, ourComp, oppClubId, oppTeam, oppComp);
+      const oppComp = String(body.opp_comp_id || "").trim();
+      if (!code || !age || !oppTeam || !oppClubId || !oppComp) return json({ error: "Please pick the team and its division" }, 400);
+      const sides = await clubSides(oppClubId);
+      if (!sides.some(x => x.code === code && x.age === age && norm(x.team) === norm(oppTeam) && x.comp_id === oppComp)) {
+        return json({ error: "That team wasn't found in the fixtures" }, 400);
+      }
+      const pairKey = pairKeyOf(ourClubId, code, age, oppClubId, oppTeam, oppComp);
       const { data: existing } = await sb.from("scouting_reports").select("report_id").eq("pair_key", pairKey).maybeSingle();
       if (existing) {
         if (ev) await sb.from("scouting_reports").update({ event_id: eventId }).eq("report_id", existing.report_id);
       } else {
         await sb.from("scouting_reports").insert({
-          pair_key: pairKey, event_id: ev ? eventId : null, code, age, our_club_id: ourClubId, our_team: ourTeam, our_comp_id: ourComp,
+          pair_key: pairKey, event_id: ev ? eventId : null, code, age, our_club_id: ourClubId,
           opp_club_id: oppClubId, opp_team: oppTeam, comp_id: oppComp, created_by: user.id,
         });
       }
@@ -372,7 +374,7 @@ serve(async (req) => {
       const venue = ha.startsWith("h") ? "at our ground" : ha.startsWith("a") ? "at their ground" : "venue not given";
       const points = await callGemini(apiKey, [
         `Opposition: ${pair.opp_team} (${pair.age} ${pair.code})`,
-        `Our team: ${pair.our_team}`,
+        `Our club: ${club?.club_name || ""}`,
         ev ? `Coming game: ${ev.event_title || ""}, ${venue}` : "Coming game: not set",
         `Scouting data (JSON):`,
         JSON.stringify({ record: report.record, home: report.home, away: report.away, form_newest_first: report.form, games: report.games, common_opponents: report.common, earlier_games_v_us: report.h2h, table: report.table }),
@@ -408,7 +410,7 @@ serve(async (req) => {
         pair_key: pair.pair_key, event: eventInfo, team_name: team?.team_name ?? null, code: pair.code,
         club: { name: club?.club_name, crest: club?.crest },
         ai_enabled: aiEnabled,
-        fixture: fixture ? { date: fixture.start_at, venue: fixture.venue || "", home: fixture.home_club_id === pair.our_club_id && norm(fixture.home_team) === norm(pair.our_team) } : null,
+        fixture: fixture ? { date: fixture.start_at, venue: fixture.venue || "", home: fixture.home_club_id === pair.our_club_id } : null,
         report,
         match_reports: matchReports,
         notes: pair.notes || "",
@@ -423,22 +425,36 @@ serve(async (req) => {
   }
 });
 
-/** The season's results for the pair's age and code, up to the event (or today), and the report built from them. */
+/** The season's results for the pair's age and code, up to the event (or today), and the report built from them.
+ *  The opposition's whole year counts, every competition, except other league divisions in which the club
+ *  lists a team under the same name (LGFA names every side after the club): those are different teams. */
 async function buildFor(sb: any, pair: any, year: number, eventStart: Date) {
   const { data: comps } = await sb.from("gaa_competitions").select("comp_id, name, code, age, grade").eq("code", pair.code).eq("age", pair.age);
   const ids = (comps || []).map((c: Comp) => c.comp_id);
   const until = new Date(Math.min(eventStart.getTime(), Date.now() + 86400e3)).toISOString();
-  const games: Game[] = ids.length ? await allRows(() => sb.from("gaa_games").select(GAME_COLS).in("comp_id", ids)
+  let games: Game[] = ids.length ? await allRows(() => sb.from("gaa_games").select(GAME_COLS).in("comp_id", ids)
     .gte("start_at", `${year}-01-01`).lt("start_at", until).order("game_id")) : [];
-  const us = { club_id: pair.our_club_id, team: pair.our_team, age: pair.age, comp_id: pair.our_comp_id || null };
-  const opp = { club_id: pair.opp_club_id, team: pair.opp_team, age: pair.age, comp_id: pair.comp_id || null };
+  const picked = (comps || []).find((c: Comp) => c.comp_id === pair.comp_id);
+  if (picked && isDivision(picked.grade || picked.name)) {
+    const gradeOf = new Map<string, string>((comps || []).map((c: Comp) => [c.comp_id, c.grade || c.name]));
+    const parallel = new Set<string>();
+    for (const g of games) {
+      if (g.comp_id === pair.comp_id || !isDivision(gradeOf.get(g.comp_id) || "")) continue;
+      for (const [cid, name] of [[g.home_club_id, g.home_team], [g.away_club_id, g.away_team]] as [number | null, string][]) {
+        if (cid === pair.opp_club_id && norm(name) === norm(pair.opp_team)) parallel.add(g.comp_id);
+      }
+    }
+    if (parallel.size) games = games.filter(g => !parallel.has(g.comp_id));
+  }
+  const us = { club_id: pair.our_club_id, team: "", age: pair.age };
+  const opp = { club_id: pair.opp_club_id, team: pair.opp_team, age: pair.age };
   // The fixture itself (venue, and whether we're at home): the two sides' next game within a day of the event.
   const { data: next } = await sb.from("gaa_games").select(GAME_COLS).in("comp_id", ids.length ? ids : ["-"])
     .gte("start_at", new Date(eventStart.getTime() - 12 * 3600e3).toISOString())
     .lte("start_at", new Date(eventStart.getTime() + 12 * 3600e3).toISOString())
     .or(`home_club_id.eq.${pair.our_club_id},away_club_id.eq.${pair.our_club_id}`);
   const fixture = (next || []).find((g: Game) =>
-    [g.home_team, g.away_team].map(norm).includes(norm(pair.our_team)) && [g.home_team, g.away_team].map(norm).includes(norm(pair.opp_team))) ?? null;
+    [g.home_club_id, g.away_club_id].includes(pair.our_club_id) && [g.home_team, g.away_team].map(norm).includes(norm(pair.opp_team))) ?? null;
   const report: Report = buildReport(games, comps || [], us, opp, pair.code, pair.comp_id ?? fixture?.comp_id);
   return { report, fixture };
 }

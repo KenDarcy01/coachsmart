@@ -2,8 +2,8 @@
 //
 // A "team" is one Sportlomo side: its club, its name as listed ("Na Fianna B") and the age of
 // the competitions it plays in (a club's "B" team at U13 and at U14 are different sides).
-// With comp_id set, only that competition's games count: some codes list every side of a club
-// under the same name (LGFA), so "Kilmacud Crokes" in Division 1 and in Division 3 are different teams.
+// With comp_id set, only that competition's games count. With team "", any side of the club matches
+// (used for "us": the report no longer names our side, only our club).
 
 export interface Game {
   game_id: number;
@@ -72,7 +72,7 @@ const scored = (g: Game) => g.status === "result" && g.home_pts != null && g.awa
 export function isTeam(g: Game, side: "home" | "away", t: TeamRef, comps: Map<string, Comp>): boolean {
   const club = side === "home" ? g.home_club_id : g.away_club_id;
   const name = side === "home" ? g.home_team : g.away_team;
-  return club === t.club_id && norm(name) === norm(t.team) && comps.get(g.comp_id)?.age === t.age && (!t.comp_id || g.comp_id === t.comp_id);
+  return club === t.club_id && (!t.team || norm(name) === norm(t.team)) && comps.get(g.comp_id)?.age === t.age && (!t.comp_id || g.comp_id === t.comp_id);
 }
 
 /** Key for "the same opponent" across both teams' games: club + listed name + age. */
@@ -140,7 +140,7 @@ export function leagueTable(games: Game[], compId: string, us: TeamRef, opp: Tea
 export function buildReport(games: Game[], compList: Comp[], us: TeamRef, opp: TeamRef, code: string, fixtureCompId?: string | null): Report {
   const comps = new Map(compList.map(c => [c.comp_id, c]));
   const theirs = teamGames(games, opp, comps, us);
-  const ours = teamGames(games, us, comps);
+  const ours = us.team ? teamGames(games, us, comps) : [];
 
   const pf = theirs.reduce((s, r) => s + r.u, 0), pa = theirs.reduce((s, r) => s + r.t, 0);
   const n = theirs.length || 1;
