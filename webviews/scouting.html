@@ -261,19 +261,21 @@
   // ── Picker ───────────────────────────────────────────────────────────────
   // Step 1, the opposition: club (search), then age, code and division, then the team.
   // Step 2, our team: the sides our club fielded in that code and age, by division.
-  let pk = null;  // { step, q, club, sides, age, code, div, oppTeam, ourDiv, ourTeam, loading }
+  // A side is a team in one competition: some codes list every team of a club under one name.
+  let pk = null;  // { step, q, club, sides, age, code, oppComp, oppTeam, ourComp, ourTeam, loading }
   const chip = (label, on, onclick) => `<button class="fchip ${on ? 'on' : ''}" onclick="${onclick}">${esc(label)}</button>`;
   const js = v => JSON.stringify(v).replace(/"/g, '&quot;');
   const ageOrder = a => { const m = a.match(/^U(\d+)$/); return m ? +m[1] : 20 + ['Minor', 'Junior', 'Intermediate', 'Senior', 'Adult', 'Other'].indexOf(a); };
   const uniq = xs => [...new Set(xs)];
+  const divsOf = xs => { const m = new Map(); xs.forEach(x => m.set(x.comp_id, x.grade)); return [...m].map(([comp_id, grade]) => ({ comp_id, grade })).sort((a, b) => a.grade.localeCompare(b.grade)); };
   const stepHead = (n, title, sub) => `<div class="pick-h">Step ${n} of 2 · ${title}</div><div class="pick-sub">${sub}</div>`;
 
   function renderPicker() {
     $('shareTop').style.display = 'none';
     if (!pk) {
       const g = S.guess || {};
-      pk = { step: 1, q: '', club: null, sides: null, age: g.age || null, code: g.code || null, div: g.grade || null,
-             oppTeam: g.opp_team || null, ourDiv: g.grade || null, ourTeam: g.our_team || null, loading: false };
+      pk = { step: 1, q: '', club: null, sides: null, age: g.age || null, code: g.code || null, oppComp: g.comp_id || null,
+             oppTeam: g.opp_team || null, ourComp: g.comp_id || null, ourTeam: g.our_team || null, loading: false };
       if (g.opp_club_id) { pickClub(g.opp_club_id); return; }
     }
     pk.step === 1 ? renderStep1() : renderStep2();
@@ -282,7 +284,7 @@
   async function pickClub(clubId) {
     const club = (S.clubs || []).find(c => c.club_id === clubId);
     if (!club) return;
-    if (pk.club && pk.club.club_id !== clubId) { pk.age = null; pk.code = null; pk.div = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourDiv = null; }
+    if (pk.club && pk.club.club_id !== clubId) { pk.age = null; pk.code = null; pk.oppComp = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourComp = null; }
     pk.club = club; pk.sides = null; pk.q = ''; pk.loading = true;
     renderStep1();
     try { pk.sides = (await callFn({ action: 'club', club_id: clubId })).sides; }
@@ -300,19 +302,19 @@
     const codes = uniq(s.filter(x => x.age === pk.age).map(x => x.code));
     if (pk.code && pk.age && !codes.includes(pk.code)) pk.code = null;
     if (!pk.code && pk.age && codes.length === 1) pk.code = codes[0];
-    const divs = uniq(s.filter(x => x.age === pk.age && x.code === pk.code).flatMap(x => x.grades)).sort();
-    if (pk.div && pk.code && !divs.includes(pk.div)) pk.div = null;
-    if (!pk.div && pk.code && divs.length === 1) pk.div = divs[0];
-    const teams = s.filter(x => x.age === pk.age && x.code === pk.code && (!pk.div || x.grades.includes(pk.div)));
+    const divs = divsOf(s.filter(x => x.age === pk.age && x.code === pk.code));
+    if (pk.oppComp && pk.code && !divs.some(d => d.comp_id === pk.oppComp)) pk.oppComp = null;
+    if (!pk.oppComp && pk.code && divs.length === 1) pk.oppComp = divs[0].comp_id;
+    const teams = s.filter(x => x.age === pk.age && x.code === pk.code && x.comp_id === pk.oppComp);
     if (pk.oppTeam && !teams.some(x => x.team === pk.oppTeam)) pk.oppTeam = null;
-    if (!pk.oppTeam && pk.code && teams.length === 1) pk.oppTeam = teams[0].team;
+    if (!pk.oppTeam && pk.oppComp && teams.length === 1) pk.oppTeam = teams[0].team;
   }
   function setOpp(k, v) {
     if (pk[k] === v) return;
     pk[k] = v;
-    if (k === 'age') { pk.code = null; pk.div = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourDiv = null; }
-    if (k === 'code') { pk.div = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourDiv = null; }
-    if (k === 'div') { pk.ourDiv = v; }
+    if (k === 'age') { pk.code = null; pk.oppComp = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourComp = null; }
+    if (k === 'code') { pk.oppComp = null; pk.oppTeam = null; pk.ourTeam = null; pk.ourComp = null; }
+    if (k === 'oppComp') { pk.oppTeam = null; pk.ourComp = null; pk.ourTeam = null; }
     settleOpp();
     renderStep1();
   }
@@ -343,14 +345,16 @@
     }
     if (pk.age && pk.code) {
       const inCode = s.filter(x => x.age === pk.age && x.code === pk.code);
-      const divs = uniq(inCode.flatMap(x => x.grades)).sort();
-      const teams = inCode.filter(x => !pk.div || x.grades.includes(pk.div));
-      h += `<div class="flabel">Division</div><div class="frow">${divs.length > 1 ? chip('All', !pk.div, "setOpp('div',null)") : ''}${divs.map(d => chip(d, pk.div === d, `setOpp('div',${js(d)})`)).join('')}</div>
-        <div class="flabel">Team</div><div class="list">${teams.map(x => `
+      const divs = divsOf(inCode);
+      h += `<div class="flabel">Division / competition</div><div class="frow">${divs.map(d => chip(d.grade, pk.oppComp === d.comp_id, `setOpp('oppComp',${js(d.comp_id)})`)).join('')}</div>`;
+      if (pk.oppComp) {
+        const teams = inCode.filter(x => x.comp_id === pk.oppComp);
+        h += `<div class="flabel">Team</div><div class="list">${teams.map(x => `
           <button class="opt ${pk.oppTeam === x.team ? 'on' : ''}" onclick="setOpp('oppTeam',${js(x.team)})">
-            <span class="rad"></span><span class="tx">${esc(x.team)}<small>${esc(pk.age)} ${esc(pk.code)} · ${esc(x.grades.join(', '))}</small></span>
-            ${S.guess && S.guess.opp_team === x.team && S.guess.opp_club_id === pk.club.club_id ? '<span class="tag">Our guess</span>' : ''}
+            <span class="rad"></span><span class="tx">${esc(x.team)}<small>${esc(pk.age)} ${esc(pk.code)} · ${esc(x.grade)}${x.games ? ' · ' + x.games + ' game' + (x.games === 1 ? '' : 's') : ''}</small></span>
+            ${S.guess && S.guess.opp_team === x.team && S.guess.comp_id === x.comp_id && S.guess.opp_club_id === pk.club.club_id ? '<span class="tag">Our guess</span>' : ''}
           </button>`).join('') || '<div class="empty">No teams in that division.</div>'}</div>`;
+      }
     }
     h += `<div class="btns"><button class="btn g" onclick="toStep2()" ${pk.oppTeam ? '' : 'disabled'}>Next: our team</button></div></div>`;
     showMain(h);
@@ -361,45 +365,48 @@
     if (!pk.oppTeam) return;
     pk.step = 2;
     const ours = ourSides();
-    if (pk.ourTeam && !ours.some(o => o.team === pk.ourTeam)) pk.ourTeam = null;
-    if (!pk.ourTeam && ours.length === 1) pk.ourTeam = ours[0].team;
-    const divs = uniq(ours.flatMap(o => o.grades));
-    if (pk.ourDiv && !divs.includes(pk.ourDiv)) pk.ourDiv = null;
-    if (!pk.ourDiv && pk.div && divs.includes(pk.div)) pk.ourDiv = pk.div;
-    if (pk.ourTeam && pk.ourDiv && !ours.some(o => o.team === pk.ourTeam && o.grades.includes(pk.ourDiv))) pk.ourDiv = null;
-    const inDiv = ours.filter(o => !pk.ourDiv || o.grades.includes(pk.ourDiv));
+    const divs = divsOf(ours);
+    if (pk.ourComp && !divs.some(d => d.comp_id === pk.ourComp)) pk.ourComp = null;
+    // Our side is usually in the same competition as theirs.
+    if (!pk.ourComp && divs.some(d => d.comp_id === pk.oppComp)) pk.ourComp = pk.oppComp;
+    if (!pk.ourComp && divs.length === 1) pk.ourComp = divs[0].comp_id;
+    const inDiv = ours.filter(o => o.comp_id === pk.ourComp);
+    if (pk.ourTeam && !inDiv.some(o => o.team === pk.ourTeam)) pk.ourTeam = null;
     if (!pk.ourTeam && inDiv.length === 1) pk.ourTeam = inDiv[0].team;
     renderStep2();
   }
-  function setOurDiv(d) {
-    pk.ourDiv = d;
-    if (pk.ourTeam && d && !ourSides().some(o => o.team === pk.ourTeam && o.grades.includes(d))) pk.ourTeam = null;
+  function setOurComp(c) {
+    pk.ourComp = c;
+    const inDiv = ourSides().filter(o => o.comp_id === c);
+    if (pk.ourTeam && !inDiv.some(o => o.team === pk.ourTeam)) pk.ourTeam = null;
+    if (!pk.ourTeam && inDiv.length === 1) pk.ourTeam = inDiv[0].team;
     renderStep2();
   }
   function renderStep2() {
     const ours = ourSides();
-    const divs = uniq(ours.flatMap(o => o.grades)).sort();
-    const list = ours.filter(o => !pk.ourDiv || o.grades.includes(pk.ourDiv));
-    showMain(`<div class="card">${stepHead(2, 'Our team', `Scouting ${esc(pk.oppTeam)}, ${esc(pk.age)} ${esc(pk.code)}. <button class="inline-link" onclick="pk.step=1;renderStep1()">Change</button><br>Which ${esc(S.club.name)} side will play them?`)}
+    const divs = divsOf(ours);
+    const list = ours.filter(o => o.comp_id === pk.ourComp);
+    const oppSide = (pk.sides || []).find(x => x.team === pk.oppTeam && x.comp_id === pk.oppComp);
+    showMain(`<div class="card">${stepHead(2, 'Our team', `Scouting ${esc(pk.oppTeam)}, ${esc(pk.age)} ${esc(pk.code)}${oppSide ? ' ' + esc(oppSide.grade) : ''}. <button class="inline-link" onclick="pk.step=1;renderStep1()">Change</button><br>Which ${esc(S.club.name)} side will play them?`)}
       ${ours.length ? `
-        <div class="flabel">Division</div>
-        <div class="frow">${divs.length > 1 ? chip('All', !pk.ourDiv, 'setOurDiv(null)') : ''}${divs.map(d => chip(d, pk.ourDiv === d, `setOurDiv(${js(d)})`)).join('')}</div>
-        <div class="flabel">Team</div>
+        <div class="flabel">Division / competition</div>
+        <div class="frow">${divs.map(d => chip(d.grade, pk.ourComp === d.comp_id, `setOurComp(${js(d.comp_id)})`)).join('')}</div>
+        ${pk.ourComp ? `<div class="flabel">Team</div>
         <div class="list">${list.map(o => `
           <button class="opt ${pk.ourTeam === o.team ? 'on' : ''}" onclick="pk.ourTeam=${js(o.team)};renderStep2()">
-            <span class="rad"></span><span class="tx">${esc(o.team)}<small>${esc(o.age)} ${esc(o.code)} · ${esc(o.grades.join(', '))}</small></span>
-            ${S.guess && S.guess.our_team === o.team && S.guess.code === o.code && S.guess.age === o.age ? '<span class="tag">Our guess</span>' : ''}
-          </button>`).join('') || '<div class="empty">No sides in that division.</div>'}</div>`
+            <span class="rad"></span><span class="tx">${esc(o.team)}<small>${esc(o.age)} ${esc(o.code)} · ${esc(o.grade)}${o.games ? ' · ' + o.games + ' game' + (o.games === 1 ? '' : 's') : ''}</small></span>
+            ${S.guess && S.guess.our_team === o.team && S.guess.comp_id === o.comp_id ? '<span class="tag">Our guess</span>' : ''}
+          </button>`).join('') || '<div class="empty">No sides in that division.</div>'}</div>` : ''}`
         : `<div class="empty">${esc(S.club.name)} have no ${esc(pk.age)} ${esc(pk.code)} side in the Dublin fixtures this season.</div>`}
-      <div class="btns"><button class="btn" onclick="pk.step=1;renderStep1()">Back</button><button class="btn g" id="buildBtn" onclick="buildReport()" ${pk.ourTeam ? '' : 'disabled'}>Build report</button></div>
+      <div class="btns"><button class="btn" onclick="pk.step=1;renderStep1()">Back</button><button class="btn g" id="buildBtn" onclick="buildReport()" ${pk.ourTeam && pk.ourComp ? '' : 'disabled'}>Build report</button></div>
     </div>`);
   }
   async function buildReport() {
-    if (!pk.ourTeam || !pk.oppTeam) return;
+    if (!pk.ourTeam || !pk.ourComp || !pk.oppTeam || !pk.oppComp) return;
     $('buildBtn').disabled = true;
     $('buildBtn').textContent = 'Building…';
     try {
-      D = await callFn({ action: 'link', code: pk.code, age: pk.age, grade: pk.div, our_team: pk.ourTeam, opp_team: pk.oppTeam, opp_club_id: pk.club.club_id });
+      D = await callFn({ action: 'link', code: pk.code, age: pk.age, our_team: pk.ourTeam, our_comp_id: pk.ourComp, opp_team: pk.oppTeam, opp_comp_id: pk.oppComp, opp_club_id: pk.club.club_id });
       renderReport();
     } catch (e) {
       if (e.message === 'Please sign in') return;

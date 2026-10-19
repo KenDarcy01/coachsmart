@@ -2,6 +2,8 @@
 //
 // A "team" is one Sportlomo side: its club, its name as listed ("Na Fianna B") and the age of
 // the competitions it plays in (a club's "B" team at U13 and at U14 are different sides).
+// With comp_id set, only that competition's games count: some codes list every side of a club
+// under the same name (LGFA), so "Kilmacud Crokes" in Division 1 and in Division 3 are different teams.
 
 export interface Game {
   game_id: number;
@@ -22,7 +24,7 @@ export interface Game {
 
 export interface Comp { comp_id: string; name: string; code: string; age: string; grade: string }
 
-export interface TeamRef { club_id: number; team: string; age: string }
+export interface TeamRef { club_id: number; team: string; age: string; comp_id?: string | null }
 
 export interface GameRow {
   date: string;                // YYYY-MM-DD, Dublin
@@ -70,7 +72,7 @@ const scored = (g: Game) => g.status === "result" && g.home_pts != null && g.awa
 export function isTeam(g: Game, side: "home" | "away", t: TeamRef, comps: Map<string, Comp>): boolean {
   const club = side === "home" ? g.home_club_id : g.away_club_id;
   const name = side === "home" ? g.home_team : g.away_team;
-  return club === t.club_id && norm(name) === norm(t.team) && comps.get(g.comp_id)?.age === t.age;
+  return club === t.club_id && norm(name) === norm(t.team) && comps.get(g.comp_id)?.age === t.age && (!t.comp_id || g.comp_id === t.comp_id);
 }
 
 /** Key for "the same opponent" across both teams' games: club + listed name + age. */
