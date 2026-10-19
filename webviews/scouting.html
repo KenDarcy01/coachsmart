@@ -107,7 +107,11 @@
     .opt small { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
     .opt .tx { flex: 1; min-width: 0; }
     .tag { font-size: 10px; font-weight: 700; color: var(--green); background: var(--green-dim); padding: 2px 7px; border-radius: 99px; flex: none; }
-    .section-label { font-size: 13px; color: var(--muted); margin: 14px 0 8px; }
+    .frow { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+    .fchip { font-size: 13px; font-weight: 600; color: var(--muted); background: var(--card2); border: 1.5px solid transparent; border-radius: 99px; padding: 6px 12px; }
+    .fchip.on { color: var(--green); border-color: var(--green); background: var(--green-dim); }
+    .list { max-height: 52vh; overflow-y: auto; margin: 4px 0; }
+    .inline-link { color: var(--green); font-weight: 600; font-size: 13px; padding: 0; }
 
     .state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 80px 24px; text-align: center; color: var(--muted); font-size: 16px; line-height: 1.5; }
     .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; }
@@ -155,8 +159,6 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let D = null;           // last load
-  let pick = null;        // link sheet choice { our: index, opp: index }
-  let showAll = { our: false, opp: false };
 
   function goBack() {
     if (window.CSVoice && CSVoice.isOpen()) { CSVoice.close(); return; }
@@ -242,7 +244,7 @@
   function showLoading() { $('main').style.display = 'none'; $('stateError').style.display = 'none'; $('stateLoading').style.display = ''; }
 
   async function showEvents() {
-    EVENT_ID = 0; D = null; pick = null;
+    EVENT_ID = 0; D = null; pk = null;
     history.replaceState(null, '', location.pathname);
     $('shareTop').style.display = 'none';
     showLoading();
@@ -276,54 +278,104 @@
     else showEvents();
   }
 
-  // ── Link sheet: which sides to compare ───────────────────────────────────
+  // ── Picker: which two sides to compare ───────────────────────────────────
+  // Step 1: any side our club has fielded this season, filtered by code and age.
+  // Step 2: any side in that code and age, filtered by division and a search box.
+  let pk = null;  // { step, code, age, team, opp, sides, grade, q, loading }
   function renderLink() {
     $('shareTop').style.display = 'none';
     const opts = D.our_options || [];
     if (!opts.length) {
-      showMain(`<div class="card"><div class="pick-h">No fixtures found</div><div class="pick-sub">We couldn't find any ${esc(D.code.toLowerCase())} fixtures for ${esc(D.club.name)} this season, so there's nothing to scout from yet.</div></div>`);
+      showMain(`<div class="card"><div class="pick-h">No fixtures found</div><div class="pick-sub">We couldn't find any Dublin fixtures for ${esc(D.club.name)} this season, so there's nothing to scout from yet.</div></div>`);
       return;
     }
-    if (!pick) {
-      const best = Math.max(0, opts.findIndex(o => o.best));
-      pick = { our: best, opp: opts[best].opps.length && opts[best].opps[0].score > 0 ? 0 : -1 };
+    if (!pk) {
+      const g = D.guess || {};
+      const hit = g.team ? opts.find(o => o.code === g.code && o.age === g.age && o.team === g.team) : null;
+      pk = { step: 1, code: hit ? hit.code : (g.code && opts.some(o => o.code === g.code) ? g.code : null),
+             age: hit ? hit.age : (g.age && opts.some(o => o.age === g.age && (!g.code || o.code === g.code)) ? g.age : null),
+             team: hit ? hit.team : null, opp: hit && g.opp ? g.opp : null, sides: null, grade: null, q: '' };
+      if (!pk.code && [...new Set(opts.map(o => o.code))].length === 1) pk.code = opts[0].code;
     }
-    const our = opts[pick.our];
-    const ourList = showAll.our ? opts : opts.slice(0, 5);
-    const oppList = showAll.opp ? our.opps : our.opps.slice(0, 8);
+    pk.step === 1 ? renderStep1(opts) : renderStep2();
+  }
+
+  const chip = (label, on, onclick) => `<button class="fchip ${on ? 'on' : ''}" onclick="${onclick}">${esc(label)}</button>`;
+  const ageOrder = a => { const m = a.match(/^U(\d+)$/); return m ? +m[1] : 20 + ['Minor', 'Junior', 'Intermediate', 'Senior', 'Adult', 'Other'].indexOf(a); };
+
+  function renderStep1(opts) {
+    const codes = [...new Set(opts.map(o => o.code))];
+    const ages = [...new Set(opts.filter(o => !pk.code || o.code === pk.code).map(o => o.age))].sort((a, b) => ageOrder(a) - ageOrder(b));
+    const list = opts.filter(o => (!pk.code || o.code === pk.code) && (!pk.age || o.age === pk.age));
     const ev = D.event;
     showMain(`
       <div class="card">
-        <div class="pick-h">Which fixtures are this team's?</div>
-        <div class="pick-sub">Pick once and we'll remember it for ${esc(D.team_name || 'this team')}${D.squad_name ? ' (' + esc(D.squad_name) + ')' : ''}.</div>
-        ${ourList.map((o, i) => `
-          <button class="opt ${i === pick.our ? 'on' : ''}" onclick="pickOur(${i})">
-            <span class="rad"></span><span class="tx">${esc(o.team)}<small>${esc(o.age)} ${esc(D.code)}${o.grades ? ' · ' + esc(o.grades) : ''}</small></span>
-            ${o.best ? '<span class="tag">Last used</span>' : ''}
-          </button>`).join('')}
-        ${opts.length > 5 && !showAll.our ? `<button class="link" onclick="showAll.our=true;renderLink()">Show all ${opts.length}</button>` : ''}
-        <div class="section-label">Opposition${ev.date ? ' for ' + esc(fmtWhen(ev.date)) : ''}${ev.opposition ? ' · you entered "' + esc(ev.opposition) + '"' : ''}</div>
-        ${our.opps.length ? oppList.map((o, i) => `
-          <button class="opt ${i === pick.opp ? 'on' : ''}" onclick="pickOpp(${i})">
-            <span class="rad"></span><span class="tx">${esc(o.team)}</span>
-            ${o.score > 0 && i === 0 ? '<span class="tag">Best match</span>' : ''}
-          </button>`).join('') : `<div class="empty">${esc(our.team)} hasn't played anyone yet this season.</div>`}
-        ${our.opps.length > 8 && !showAll.opp ? `<button class="link" onclick="showAll.opp=true;renderLink()">Show all ${our.opps.length}</button>` : ''}
-        <div class="btns"><button class="btn g" id="buildBtn" onclick="buildReport()" ${pick.opp < 0 ? 'disabled' : ''}>Build report</button></div>
+        <div class="pick-h">Step 1 of 2 · Our team</div>
+        <div class="pick-sub">${esc(D.club.name)}'s sides in this season's Dublin fixtures. ${D.guess && D.guess.team ? 'Our best guess is selected, change it if it\'s wrong.' : 'Pick the side playing this match.'}</div>
+        ${codes.length > 1 ? `<div class="frow">${chip('All codes', !pk.code, 'setCode(null)')}${codes.map(c => chip(c, pk.code === c, `setCode('${esc(c)}')`)).join('')}</div>` : ''}
+        <div class="frow">${chip('All ages', !pk.age, 'setAge(null)')}${ages.map(a => chip(a, pk.age === a, `setAge('${esc(a)}')`)).join('')}</div>
+        <div class="list">${list.map(o => `
+          <button class="opt ${pk.team === o.team && pk.code === o.code && pk.age === o.age ? 'on' : ''}" onclick="pickOur('${esc(o.code)}','${esc(o.age)}',${JSON.stringify(o.team).replace(/"/g, '&quot;')})">
+            <span class="rad"></span><span class="tx">${esc(o.team)}<small>${esc(o.age)} ${esc(o.code)} · ${esc(o.grades.join(', '))}</small></span>
+            ${D.guess && D.guess.team === o.team && D.guess.age === o.age && D.guess.code === o.code ? '<span class="tag">Our guess</span>' : ''}
+          </button>`).join('') || '<div class="empty">No sides match those filters.</div>'}</div>
+        <div class="btns"><button class="btn g" onclick="toStep2()" ${pk.team ? '' : 'disabled'}>Next: opposition</button></div>
       </div>`);
   }
-  function pickOur(i) { pick = { our: i, opp: -1 }; showAll.opp = false; renderLink(); }
-  function pickOpp(i) { pick.opp = i; renderLink(); }
+  function setCode(c) { pk.code = c; if (pk.age && !D.our_options.some(o => (!c || o.code === c) && o.age === pk.age)) pk.age = null; if (pk.team && !D.our_options.some(o => o.team === pk.team && o.code === (c || o.code))) pk.team = null; renderLink(); }
+  function setAge(a) { pk.age = a; renderLink(); }
+  function pickOur(code, age, team) {
+    const changed = pk.team !== team || pk.code !== code || pk.age !== age;
+    pk.code = code; pk.age = age; pk.team = team;
+    if (changed) { pk.sides = null; pk.grade = null; pk.q = ''; if (!(D.guess && D.guess.team === team && D.guess.code === code && D.guess.age === age)) pk.opp = null; }
+    renderLink();
+  }
+  async function toStep2() {
+    if (!pk.team) return;
+    pk.step = 2;
+    if (!pk.sides) {
+      pk.loading = true; renderStep2();
+      try { pk.sides = (await callFn({ action: 'sides', code: pk.code, age: pk.age })).sides; }
+      catch (e) { toast(e.message, 'error'); pk.step = 1; pk.loading = false; renderLink(); return; }
+      pk.loading = false;
+      // Preselect the guess, or the side that matches what the coach typed as the opposition.
+      if (!pk.opp) { const best = pk.sides.find(x => x.score > 0 && !(x.club_id === ourClubIdOf())); if (best) pk.opp = { club_id: best.club_id, team: best.team }; }
+    }
+    renderStep2();
+  }
+  function ourClubIdOf() { const mine = pk.sides && pk.sides.find(x => x.team === pk.team); return mine ? mine.club_id : -1; }
+  function renderStep2() {
+    const ev = D.event;
+    if (pk.loading) { showMain(`<div class="card"><div class="pick-h">Step 2 of 2 · Opposition</div><div class="state" style="padding:40px 0"><div class="spinner"></div>Loading ${esc(pk.age)} ${esc(pk.code)} teams…</div></div>`); return; }
+    const sides = pk.sides || [];
+    const grades = [...new Set(sides.flatMap(x => x.grades))].sort();
+    const q = pk.q.trim().toLowerCase();
+    const list = sides.filter(x => (!pk.grade || x.grades.includes(pk.grade)) && (!q || (x.club + ' ' + x.team).toLowerCase().includes(q)));
+    const sel = x => pk.opp && pk.opp.club_id === x.club_id && pk.opp.team === x.team;
+    showMain(`
+      <div class="card">
+        <div class="pick-h">Step 2 of 2 · Opposition</div>
+        <div class="pick-sub">${esc(pk.team)} · ${esc(pk.age)} ${esc(pk.code)}. ${ev.opposition ? 'You entered "' + esc(ev.opposition) + '" on the event.' : ''} <button class="inline-link" onclick="pk.step=1;renderLink()">Change our team</button></div>
+        <input class="field" type="search" placeholder="Search club or team" value="${esc(pk.q)}" oninput="pk.q=this.value;renderStep2();this.focus();this.setSelectionRange(this.value.length,this.value.length)">
+        ${grades.length > 1 ? `<div class="frow">${chip('All divisions', !pk.grade, 'pk.grade=null;renderStep2()')}${grades.map(g => chip(g, pk.grade === g, `pk.grade=${JSON.stringify(g).replace(/"/g, '&quot;')};renderStep2()`)).join('')}</div>` : ''}
+        <div class="list">${list.slice(0, 60).map(x => `
+          <button class="opt ${sel(x) ? 'on' : ''}" onclick="pk.opp={club_id:${x.club_id},team:${JSON.stringify(x.team).replace(/"/g, '&quot;')}};renderStep2()">
+            <span class="rad"></span><span class="tx">${esc(x.team)}<small>${esc(x.grades.join(', '))}</small></span>
+            ${x.score > 0 && D.guess && D.guess.opp && D.guess.opp.team === x.team && D.guess.opp.club_id === x.club_id ? '<span class="tag">Our guess</span>' : x.score > 0 ? '<span class="tag">Matches event</span>' : ''}
+          </button>`).join('') || '<div class="empty">No teams match.</div>'}
+          ${list.length > 60 ? `<div class="hint">Showing 60 of ${list.length}. Narrow it down with the search box.</div>` : ''}</div>
+        <div class="btns"><button class="btn" onclick="pk.step=1;renderLink()">Back</button><button class="btn g" id="buildBtn" onclick="buildReport()" ${pk.opp ? '' : 'disabled'}>Build report</button></div>
+      </div>`);
+  }
   async function buildReport() {
-    const our = D.our_options[pick.our], opp = our.opps[pick.opp];
-    if (!opp) return;
+    if (!pk.team || !pk.opp) return;
     $('buildBtn').disabled = true;
     $('buildBtn').textContent = 'Building…';
-    await load('link', { our_team: our.team, age: our.age, opp_team: opp.team, opp_club_id: opp.club_id });
+    await load('link', { code: pk.code, age: pk.age, our_team: pk.team, opp_team: pk.opp.team, opp_club_id: pk.opp.club_id });
   }
   async function relink() {
-    pick = null; showAll = { our: false, opp: false };
-    $('main').style.display = 'none'; $('stateLoading').style.display = '';
+    pk = null;
+    showLoading();
     await load('relink');
   }
 

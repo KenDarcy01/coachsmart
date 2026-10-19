@@ -3,8 +3,9 @@
 //
 // Actions (all need the caller's JWT; the caller must be a manager, role level 100+, on the
 // event's team, and the team's scouting switch must be on or the caller must have ai_features):
-//   load    { event_id }                         → report, or the options to link the two teams first
-//   link    { event_id, our_team, age, opp_team, opp_club_id } → saves which sides to compare, then as load
+//   load    { event_id }                         → report, or (link_needed) our club's sides and a guess
+//   sides   { event_id, code, age }              → every side in that code and age, for the opposition choice
+//   link    { event_id, code, age, our_team, opp_team, opp_club_id } → saves which sides to compare, then as load
 //   relink  { event_id }                         → the link sheet again (the saved pair and notes stay until a new link)
 //   notes   { event_id, notes }                  → saves the managers' shared notes
 //   summary { event_id }                         → { summary } AI "short version" (ai_features only), cached
@@ -58,6 +59,13 @@ function storeCode(eventCode: string | null | undefined, female: boolean): strin
   if (c.includes("hurl")) return female ? "Camogie" : "Hurling";
   if (c.includes("football")) return female ? "Ladies Football" : "Football";
   return null;
+}
+
+/** Sort key for ages: U8 … U16, then Minor and the adult grades. */
+function ageRank(age: string): number {
+  const m = age.match(/^U(\d+)$/);
+  if (m) return Number(m[1]);
+  return ["Minor", "Junior", "Intermediate", "Senior", "Adult", "Other"].indexOf(age) + 20;
 }
 
 /** "U13 Boys" → "U13"; "Minor Hurling" → "Minor". */
@@ -166,8 +174,8 @@ serve(async (req) => {
     const aiEnabled = me?.ai_features === true;
     if (!team?.scouting && !aiEnabled) return json({ error: "Scouting reports aren't switched on for this team" }, 403);
 
-    const code = storeCode(codeRow?.event_code, team?.team_female === true);
-    if (!code) return json({ error: "Scouting reports work for football, hurling and camogie matches" }, 400);
+    // The event's code is only a guess for the picker; the coach chooses the code, age and sides.
+    const eventCode = storeCode(codeRow?.event_code, team?.team_female === true);
 
     const { data: club } = await sb.from("clubs")
       .select("club_id, club_name, crest, primary_colour, secondary_colour, third_colour, gaa_club_id")
@@ -188,6 +196,7 @@ serve(async (req) => {
     const year = Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin", year: "numeric" }).format(eventStart));
     const teamAge = ageFrom(squad?.squad_name, team?.team_name, ev.event_title);
     const squadKey = Number(ev.squad_id) || 0;
+    const yearStart = `${year}-01-01`, yearEnd = `${year + 1}-01-01`;
 
     if (action === "notes") {
       const notes = String(body.notes ?? "").slice(0, 8000);
@@ -197,105 +206,122 @@ serve(async (req) => {
       return json({ success: true, data: { saved: true } });
     }
 
-    // ── LINK: the coach picked the two sides ──
-    if (action === "link") {
-      const ourTeam = String(body.our_team || "").trim(), age = String(body.age || "").trim();
-      const oppTeam = String(body.opp_team || "").trim(), oppClubId = Number(body.opp_club_id);
-      if (!ourTeam || !age || !oppTeam || !oppClubId) return json({ error: "Please pick both teams" }, 400);
-      const { data: comps } = await sb.from("gaa_competitions").select("comp_id").eq("code", code).eq("age", age);
-      const compIds = (comps || []).map((c: any) => c.comp_id);
-      const has = async (club: number, name: string) => {
-        if (!compIds.length) return false;
-        const { count } = await sb.from("gaa_games").select("game_id", { count: "exact", head: true })
-          .in("comp_id", compIds).or(`and(home_club_id.eq.${club},home_team.eq."${name.replace(/"/g, "")}"),and(away_club_id.eq.${club},away_team.eq."${name.replace(/"/g, "")}")`);
-        return (count ?? 0) > 0;
-      };
-      if (!(await has(ourClubId, ourTeam)) || !(await has(oppClubId, oppTeam))) return json({ error: "Those teams weren't found in the fixtures" }, 400);
-      await saveLink(sb, ev, user.id, code, age, ourClubId, ourTeam, oppClubId, oppTeam, null, squadKey, club);
-    }
-
-    // ── The saved pair for this event, or find it from the fixture on the day ──
-    let { data: pair } = await sb.from("scouting_reports").select("*").eq("event_id", eventId).maybeSingle();
-    // Relinking shows the sheet again; the saved pair (and its notes) stays until a new pair is picked.
-    if (action === "relink") pair = null;
-
-    const { data: savedLink } = await sb.from("scouting_links").select("gaa_team, age")
-      .eq("team_id", ev.team_id).eq("squad_id", squadKey).eq("code", code).maybeSingle();
-
-    if (!pair && action !== "relink") {
-      // Games for our club within 12 hours of the event: usually exactly one is this match.
-      const from = new Date(eventStart.getTime() - 12 * 3600e3).toISOString();
-      const to = new Date(eventStart.getTime() + 12 * 3600e3).toISOString();
-      const { data: dayGames } = await sb.from("gaa_games").select(`${GAME_COLS}, gaa_competitions!inner(age)`)
-        .eq("code", code).gte("start_at", from).lte("start_at", to)
-        .or(`home_club_id.eq.${ourClubId},away_club_id.eq.${ourClubId}`);
-      const ranked = (dayGames || []).filter((g: any) => g.home_club_id !== g.away_club_id).map((g: any) => {
-        const home = g.home_club_id === ourClubId;
-        const ours = home ? g.home_team : g.away_team, theirs = home ? g.away_team : g.home_team;
-        const age = g.gaa_competitions?.age;
-        const opp = oppScore(ev.opposition, theirs, clubById.get(home ? g.away_club_id : g.home_club_id));
-        const score = opp * 2 + (teamAge && age === teamAge ? 2 : 0) + (savedLink && norm(savedLink.gaa_team) === norm(ours) && savedLink.age === age ? 2 : 0);
-        return { g, ours, theirs, oppClubId: home ? g.away_club_id : g.home_club_id, age, opp, score };
-      }).sort((a: any, b: any) => b.score - a.score);
-      const top = ranked[0];
-      // One game that day (and the opposition matches or wasn't given), or a clear best match.
-      const clear = top && (ranked.length === 1 ? (top.opp > 0 || !ev.opposition) : top.score > ranked[1].score && top.opp > 0);
-      if (clear) {
-        await saveLink(sb, ev, user.id, code, top.age, ourClubId, top.ours, top.oppClubId, top.theirs, top.g.comp_id, squadKey, club);
-        ({ data: pair } = await sb.from("scouting_reports").select("*").eq("event_id", eventId).maybeSingle());
-      }
-    }
-
     const eventInfo = {
       event_id: ev.event_id, title: ev.event_title, date: ev.event_date_time, home_away: ev.home_away,
       location: ev.location_name, opposition: ev.opposition,
     };
 
-    // ── No pair yet: send the options for the link sheet ──
-    if (!pair) {
-      if (action !== "load" && action !== "relink") return json({ error: "Pick the two teams first" }, 400);
-      const ages = teamAge ? [teamAge] : null;
-      let cq = sb.from("gaa_competitions").select("comp_id, name, code, age, grade").eq("code", code);
-      if (ages) cq = cq.in("age", ages);
-      const comps: Comp[] = (await cq).data || [];
-      const compById = new Map(comps.map(c => [c.comp_id, c]));
-      const games: Game[] = comps.length ? await allRows(() => sb.from("gaa_games").select(GAME_COLS)
-        .in("comp_id", comps.map(c => c.comp_id)).gte("start_at", `${year}-01-01`).lt("start_at", `${year + 1}-01-01`)
-        .order("game_id")) : [];
-
-      // Our club's sides in this code (and age, when the team name gives one), each with the teams it has played.
-      const sides = new Map<string, { team: string; age: string; grades: Set<string>; opps: Map<string, any> }>();
+    /** Every side in the competitions of one code and age this season: club, name as listed, grades played. */
+    const sidesIn = async (code: string, age: string) => {
+      const { data: comps } = await sb.from("gaa_competitions").select("comp_id, grade, name").eq("code", code).eq("age", age);
+      const compById = new Map<string, any>((comps || []).map((c: any) => [c.comp_id, c]));
+      const ids = [...compById.keys()];
+      const games: Game[] = ids.length ? await allRows(() => sb.from("gaa_games")
+        .select("game_id, comp_id, home_team, away_team, home_club_id, away_club_id")
+        .in("comp_id", ids).gte("start_at", yearStart).lt("start_at", yearEnd).order("game_id")) : [];
+      const sides = new Map<string, { club_id: number; club: string; team: string; grades: Set<string> }>();
       for (const g of games) {
         for (const side of ["home", "away"] as const) {
-          const clubId = side === "home" ? g.home_club_id : g.away_club_id;
-          if (clubId !== ourClubId) continue;
-          const c = compById.get(g.comp_id);
+          const cid = side === "home" ? g.home_club_id : g.away_club_id;
           const name = side === "home" ? g.home_team : g.away_team;
-          const k = `${norm(name)}|${c?.age}`;
-          if (!sides.has(k)) sides.set(k, { team: name, age: c?.age || "", grades: new Set(), opps: new Map() });
-          const s = sides.get(k)!;
-          if (c?.grade) s.grades.add(c.grade);
-          const oName = side === "home" ? g.away_team : g.home_team, oClub = side === "home" ? g.away_club_id : g.home_club_id;
-          if (oClub && oClub !== ourClubId) {
-            s.opps.set(`${oClub}|${norm(oName)}`, { team: oName, club_id: oClub, score: oppScore(ev.opposition, oName, clubById.get(oClub)) });
-          }
+          if (!cid) continue;
+          const k = `${cid}|${norm(name)}`;
+          if (!sides.has(k)) sides.set(k, { club_id: cid, club: clubById.get(cid)?.name || name, team: name, grades: new Set() });
+          const c = compById.get(g.comp_id);
+          if (c) sides.get(k)!.grades.add(c.grade || c.name);
         }
       }
-      const our_options = [...sides.values()].map(s => ({
-        team: s.team, age: s.age, grades: [...s.grades].join(", "),
-        best: !!savedLink && norm(savedLink.gaa_team) === norm(s.team) && savedLink.age === s.age,
-        opps: [...s.opps.values()].sort((a, b) => b.score - a.score || a.team.localeCompare(b.team)),
-      })).sort((a, b) => Number(b.best) - Number(a.best) || a.age.localeCompare(b.age) || a.team.localeCompare(b.team));
+      return [...sides.values()].map(x => ({ club_id: x.club_id, club: x.club, team: x.team, grades: [...x.grades].sort() }));
+    };
+
+    // ── SIDES: the opposition choices for a code and age ──
+    if (action === "sides") {
+      const code = String(body.code || ""), age = String(body.age || "");
+      if (!code || !age) return json({ error: "code and age required" }, 400);
+      const sides = (await sidesIn(code, age)).map(x => ({ ...x, score: oppScore(ev.opposition, x.team, clubById.get(x.club_id)) }))
+        .sort((a, b) => b.score - a.score || a.club.localeCompare(b.club) || a.team.localeCompare(b.team));
+      return json({ success: true, data: { sides } });
+    }
+
+    // ── LINK: the coach picked the two sides ──
+    if (action === "link") {
+      const code = String(body.code || "").trim(), age = String(body.age || "").trim();
+      const ourTeam = String(body.our_team || "").trim();
+      const oppTeam = String(body.opp_team || "").trim(), oppClubId = Number(body.opp_club_id);
+      if (!code || !age || !ourTeam || !oppTeam || !oppClubId) return json({ error: "Please pick both teams" }, 400);
+      const sides = await sidesIn(code, age);
+      const ok = (cid: number, name: string) => sides.some(x => x.club_id === cid && norm(x.team) === norm(name));
+      if (!ok(ourClubId, ourTeam) || !ok(oppClubId, oppTeam)) return json({ error: "Those teams weren't found in the fixtures" }, 400);
+      await saveLink(sb, ev, user.id, code, age, ourClubId, ourTeam, oppClubId, oppTeam, null, squadKey, club);
+    }
+
+    // ── The saved pair for this event ──
+    let { data: pair } = await sb.from("scouting_reports").select("*").eq("event_id", eventId).maybeSingle();
+    // Relinking shows the picker again; the saved pair (and its notes) stays until a new pair is picked.
+    if (action === "relink") pair = null;
+
+    // ── No pair yet: the picker, with our best guess preselected ──
+    if (!pair) {
+      if (action !== "load" && action !== "relink") return json({ error: "Pick the two teams first" }, 400);
+
+      // Every side our club has fielded this season, in every code and age.
+      const { data: ourGames } = await sb.from("gaa_games")
+        .select("comp_id, home_team, away_team, home_club_id, away_club_id, gaa_competitions!inner(code, age, grade, name)")
+        .or(`home_club_id.eq.${ourClubId},away_club_id.eq.${ourClubId}`)
+        .gte("start_at", yearStart).lt("start_at", yearEnd).limit(3000);
+      const sides = new Map<string, { code: string; age: string; team: string; grades: Set<string> }>();
+      for (const g of ourGames || []) {
+        const c = (g as any).gaa_competitions;
+        for (const side of ["home", "away"] as const) {
+          if ((side === "home" ? g.home_club_id : g.away_club_id) !== ourClubId) continue;
+          const name = side === "home" ? g.home_team : g.away_team;
+          const k = `${c.code}|${c.age}|${norm(name)}`;
+          if (!sides.has(k)) sides.set(k, { code: c.code, age: c.age, team: name, grades: new Set() });
+          sides.get(k)!.grades.add(c.grade || c.name);
+        }
+      }
+
+      // The best guess: the fixture on the event day whose opposition matches what the coach typed,
+      // then what this team used last time, then the event's code and the team's age.
+      const { data: saved } = await sb.from("scouting_links").select("code, gaa_team, age")
+        .eq("team_id", ev.team_id).eq("squad_id", squadKey);
+      const savedLink = (saved || []).find((l: any) => l.code === eventCode) || (saved || [])[0] || null;
+      const from = new Date(eventStart.getTime() - 12 * 3600e3).toISOString();
+      const to = new Date(eventStart.getTime() + 12 * 3600e3).toISOString();
+      const { data: dayGames } = await sb.from("gaa_games")
+        .select("comp_id, home_team, away_team, home_club_id, away_club_id, gaa_competitions!inner(code, age)")
+        .gte("start_at", from).lte("start_at", to)
+        .or(`home_club_id.eq.${ourClubId},away_club_id.eq.${ourClubId}`);
+      const ranked = (dayGames || []).filter((g: any) => g.home_club_id !== g.away_club_id).map((g: any) => {
+        const home = g.home_club_id === ourClubId;
+        const ours = home ? g.home_team : g.away_team, theirs = home ? g.away_team : g.home_team;
+        const oppClub = home ? g.away_club_id : g.home_club_id;
+        const { code, age } = g.gaa_competitions;
+        const opp = oppScore(ev.opposition, theirs, clubById.get(oppClub));
+        const score = opp * 4 + (eventCode && code === eventCode ? 2 : 0) + (teamAge && age === teamAge ? 1 : 0)
+          + (savedLink && norm(savedLink.gaa_team) === norm(ours) && savedLink.age === age && savedLink.code === code ? 2 : 0);
+        return { code, age, ours, theirs, oppClub, score };
+      }).sort((a: any, b: any) => b.score - a.score);
+      const top = ranked[0];
+      const guess = top && top.score > 0
+        ? { code: top.code, age: top.age, team: top.ours, opp: { club_id: top.oppClub, team: top.theirs } }
+        : savedLink ? { code: savedLink.code, age: savedLink.age, team: savedLink.gaa_team, opp: null }
+        : eventCode || teamAge ? { code: eventCode, age: teamAge, team: null, opp: null } : null;
+
+      const our_options = [...sides.values()].map(x => ({ code: x.code, age: x.age, team: x.team, grades: [...x.grades].sort() }))
+        .sort((a, b) => a.code.localeCompare(b.code) || ageRank(a.age) - ageRank(b.age) || a.team.localeCompare(b.team));
 
       return json({
         success: true,
         data: {
-          event: eventInfo, team_name: team?.team_name, squad_name: squad?.squad_name ?? null, code,
+          event: eventInfo, team_name: team?.team_name, squad_name: squad?.squad_name ?? null,
           club: { name: club?.club_name, crest: club?.crest },
-          ai_enabled: aiEnabled, link_needed: true, our_options,
+          ai_enabled: aiEnabled, link_needed: true, our_options, guess,
         },
       });
     }
+
+    const code: string = pair.code;
 
     // ── Build the report ──
     const built = await buildFor(sb, pair, code, year, eventStart, pair.comp_id);
