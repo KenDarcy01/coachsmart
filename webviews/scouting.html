@@ -64,6 +64,7 @@
     .row .d { color: var(--muted); font-size: 12px; }
     .row .o { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .row .o.us { color: var(--green); }
+    .row .o .cm { display: block; color: var(--muted); font-size: 11px; font-weight: 400; }
     .row .sc { font-weight: 600; white-space: nowrap; font-size: 13px; }
     .ha { font-size: 10px; color: var(--muted); font-weight: 700; margin-left: 4px; }
 
@@ -414,27 +415,26 @@
           D.summary ? summaryHtml(D.summary) : '<div class="ai-wait"><div class="spinner sm"></div>Writing a summary…</div>'}</div></div>`;
       }
       h += `<div class="card"><div class="h">Margin game by game</div>${marginChart(r.games)}</div>`;
+      h += `<div class="card"><div class="h">Scored v conceded <em>per game</em></div>${forAgainstChart(r.games)}</div>`;
+      h += `<div class="card"><div class="h">Goals and points</div>${goalsPoints(r.games)}</div>`;
       h += `<div class="card"><div class="h">Every game <em>${r.games.length} result${r.games.length === 1 ? '' : 's'}</em></div>${
-        r.games.map(g => `<div class="row"><span class="d">${esc(fmtDay(g.date))}</span><span class="o ${g.vsUs ? 'us' : ''}">${esc(g.opp)}<span class="ha">${g.home ? 'H' : 'A'}</span></span><span class="sc">${esc(g.us)} v ${esc(g.them)}</span><span class="r ${g.res}">${g.res}</span></div>`).join('')}</div>`;
+        r.games.map(g => `<div class="row"><span class="d">${esc(fmtDay(g.date))}</span><span class="o ${g.vsUs ? 'us' : ''}">${esc(g.opp)}<span class="ha">${g.home ? 'H' : 'A'}</span><small class="cm">${esc(g.comp)}</small></span><span class="sc">${esc(g.us)} v ${esc(g.them)}</span><span class="r ${g.res}">${g.res}</span></div>`).join('')}</div>`;
       if (r.common.length) {
         const cell = xs => { const last = xs[xs.length - 1]; return `<span class="${last.res}">${xs.map(x => x.res + ' ' + (x.m ? signed(x.m) : '0')).join(', ')}</span>`; };
         h += `<div class="card"><div class="h">Same opponents <em>them v us</em></div>
-          <div class="cmp hd"><div>Opponent</div><span>${esc(r.opp.team)}</span><span>${esc(r.us.team)}</span></div>
+          <div class="cmp hd"><div>Opponent</div><span>${esc(r.opp.team)}</span><span>${esc(D.club.name)}</span></div>
           ${r.common.map(c => `<div class="cmp"><div>${esc(c.opp)}</div>${cell(c.them)}${cell(c.us)}</div>`).join('')}</div>`;
+      }
+      if (r.h2h.length) {
+        h += `<div class="card"><div class="h">Their games v ${esc(D.club.name)} <em>from their side</em></div>${
+          r.h2h.map(g => `<div class="row"><span class="d">${esc(fmtDay(g.date))}</span><span class="o">${esc(g.opp)}<span class="ha">${g.home ? 'H' : 'A'}</span><small class="cm">${esc(g.comp)}</small></span><span class="sc">${esc(g.us)} v ${esc(g.them)}</span><span class="r ${g.res}">${g.res}</span></div>`).join('')}</div>`;
       }
     }
 
-    const mrs = D.match_reports || [];
-    if (mrs.length) {
-      h += `<div class="card"><div class="h">Our match reports v them <em>${mrs.length} report${mrs.length === 1 ? '' : 's'}</em></div>${
-        mrs.map((m, i) => `<div class="mr"><div class="quote clamp" id="mr${i}">${esc(m.report)}</div>
-          <div class="by"><span>${esc(fmtDay(m.date))}${m.author ? ' · ' + esc(m.author) : ''}</span>${m.report.length > 300 ? `<button onclick="this.remove();$('mr${i}').classList.remove('clamp')">Read all</button>` : ''}</div></div>`).join('')}</div>`;
-    }
-
-    if (r.table) {
-      h += `<div class="card"><div class="h">${esc(r.table.comp || 'League table')}</div>
+    for (const t of (r.tables || [])) {
+      h += `<div class="card"><div class="h">${esc(t.comp || 'League table')}</div>
         <table class="tbl"><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/-</th><th>Pts</th></tr>
-        ${r.table.rows.map((t, i) => `<tr class="${t.opp ? 'opp' : t.us ? 'us' : ''}"><td>${i + 1}</td><td>${esc(t.team)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${signed(t.diff)}</td><td>${t.pts}</td></tr>`).join('')}
+        ${t.rows.map((x, i) => `<tr class="${x.opp ? 'opp' : x.us ? 'us' : ''}"><td>${i + 1}</td><td>${esc(x.team)}</td><td>${x.p}</td><td>${x.w}</td><td>${x.d}</td><td>${x.l}</td><td>${signed(x.diff)}</td><td>${x.pts}</td></tr>`).join('')}
         </table></div>`;
     }
 
@@ -483,6 +483,35 @@
       const col = g.res === 'W' ? '#87c232' : g.res === 'L' ? '#ef5350' : '#a1a1a2';
       s += `<rect x="${x}" y="${Math.min(a, b) - (g.m ? 0 : 1.5)}" width="${w}" height="${Math.max(3, Math.abs(b - a))}" rx="${Math.min(4, w / 4)}" fill="${col}"><title>${esc(g.opp)} ${esc(g.us)} v ${esc(g.them)}</title></rect>`;
       if (n <= 14) s += `<text x="${x + w / 2}" y="${H - 6}" text-anchor="middle">${esc((g.opp.match(/[A-Z0-9]/g) || []).join('').slice(0, 4))}</text>`;
+    });
+    return s + '</svg>';
+  }
+
+  const goalsOf = sc => Number(String(sc).split('-')[0]) || 0, pointsOf = sc => Number(String(sc).split('-')[1]) || 0;
+  function forAgainstChart(games) {
+    const W = 330, H = 160, L = 28, T = 10, B = 22, n = games.length;
+    const mx = Math.max(10, ...games.map(g => Math.max(g.u, g.t)));
+    const top = Math.ceil(mx / 10) * 10, step = top <= 50 ? 10 : 20;
+    const y = v => T + (top - v) / top * (H - T - B);
+    const bw = (W - L - 4) / n, w = Math.min(14, bw * .36);
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Scored v conceded per game">`;
+    for (let v = 0; v <= top; v += step) s += `<line x1="${L}" x2="${W - 2}" y1="${y(v)}" y2="${y(v)}" stroke="${v ? '#2c313b' : '#4a505c'}"/><text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end">${v}</text>`;
+    games.forEach((g, i) => {
+      const x = L + 2 + i * bw + (bw - 2 * w) / 2;
+      s += `<rect x="${x}" y="${y(g.u)}" width="${w - 1}" height="${Math.max(1, y(0) - y(g.u))}" rx="1.5" fill="#87c232"><title>${esc(g.opp)}: scored ${g.u}</title></rect>`;
+      s += `<rect x="${x + w}" y="${y(g.t)}" width="${w - 1}" height="${Math.max(1, y(0) - y(g.t))}" rx="1.5" fill="#ef5350"><title>${esc(g.opp)}: conceded ${g.t}</title></rect>`;
+      if (n <= 7 || i % 2 === 0) s += `<text x="${x + w}" y="${H - 6}" text-anchor="middle">${esc(fmtDay(g.date))}</text>`;
+    });
+    return s + `</svg><div class="hint"><span style="color:#87c232">■</span> Scored &nbsp; <span style="color:#ef5350">■</span> Conceded</div>`;
+  }
+  function goalsPoints(games) {
+    const rows = [['Scored', games.reduce((a, g) => a + goalsOf(g.us), 0), games.reduce((a, g) => a + pointsOf(g.us), 0), '#87c232'],
+                  ['Conceded', games.reduce((a, g) => a + goalsOf(g.them), 0), games.reduce((a, g) => a + pointsOf(g.them), 0), '#ef5350']];
+    let s = `<svg viewBox="0 0 330 104" width="100%" role="img" aria-label="Share of scores from goals and points">`;
+    rows.forEach(([lab, gl, pt, col], i) => {
+      const y = 8 + i * 48, tot = gl * 3 + pt, w = tot ? 250 * gl * 3 / tot : 0;
+      s += `<text x="0" y="${y + 19}" style="font-size:12px;fill:#f1f4f8">${lab}</text><rect x="74" y="${y}" width="${w.toFixed(1)}" height="26" fill="${col}" rx="3"/><rect x="${(74 + w).toFixed(1)}" y="${y}" width="${(250 - w).toFixed(1)}" height="26" fill="#2c313b" rx="3"/>`;
+      s += `<text x="76" y="${y + 40}">Goals ${gl} (${tot ? Math.round(100 * gl * 3 / tot) : 0}% of total) · Points ${pt}</text>`;
     });
     return s + '</svg>';
   }

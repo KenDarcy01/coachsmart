@@ -40,6 +40,8 @@ export interface GameRow {
 
 export interface Record { p: number; w: number; d: number; l: number }
 
+export interface Table { comp: string; rows: { team: string; p: number; w: number; d: number; l: number; diff: number; pts: number; us: boolean; opp: boolean }[] }
+
 export interface Report {
   opp: { team: string; age: string; code: string };
   us: { team: string };
@@ -50,7 +52,8 @@ export interface Report {
   games: GameRow[];            // oldest first
   common: { opp: string; them: { res: string; m: number }[]; us: { res: string; m: number }[] }[];
   h2h: GameRow[];              // the opposition's games against us, oldest first
-  table: { comp: string; rows: { team: string; p: number; w: number; d: number; l: number; diff: number; pts: number; us: boolean; opp: boolean }[] } | null;
+  table: Table | null;         // the picked competition's table (first of tables)
+  tables: Table[];             // one per competition the opposition has a standing in, picked first
   last_result: string | null;  // date of the newest result used
 }
 
@@ -140,7 +143,7 @@ export function leagueTable(games: Game[], compId: string, us: TeamRef, opp: Tea
 export function buildReport(games: Game[], compList: Comp[], us: TeamRef, opp: TeamRef, code: string, fixtureCompId?: string | null): Report {
   const comps = new Map(compList.map(c => [c.comp_id, c]));
   const theirs = teamGames(games, opp, comps, us);
-  const ours = us.team ? teamGames(games, us, comps) : [];
+  const ours = teamGames(games, us, comps);
 
   const pf = theirs.reduce((s, r) => s + r.u, 0), pa = theirs.reduce((s, r) => s + r.t, 0);
   const n = theirs.length || 1;
@@ -161,22 +164,22 @@ export function buildReport(games: Game[], compList: Comp[], us: TeamRef, opp: T
     });
   }
 
-  // Table: the competition of the coming fixture when it has a table, otherwise the
-  // competition the opposition has played most in this season.
-  let table: Report["table"] = null;
+  // Tables: one per competition the opposition has a standing in (3+ teams), the picked
+  // competition first, then the ones they have played most in.
+  const tables: Table[] = [];
   const counts = new Map<string, number>();
   for (const g of games) {
     if (scored(g) && (isTeam(g, "home", opp, comps) || isTeam(g, "away", opp, comps))) counts.set(g.comp_id, (counts.get(g.comp_id) ?? 0) + 1);
   }
-  const tryComps = [fixtureCompId, ...[...counts.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0])].filter(Boolean) as string[];
+  const tryComps = [...new Set([fixtureCompId, ...[...counts.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0])].filter(Boolean) as string[])];
   for (const id of tryComps) {
     const rows = leagueTable(games, id, us, opp, comps);
     if (rows.length >= 3 && rows.some(r => r.opp)) {
       const c = comps.get(id);
-      table = { comp: c ? (c.grade || c.name) : "", rows };
-      break;
+      tables.push({ comp: c ? (c.grade || c.name) : "", rows });
     }
   }
+  const table = tables[0] ?? null;
 
   const strip = ({ oppKey: _k, ...r }: GameRow & { oppKey: string }) => r;
   return {
@@ -194,6 +197,7 @@ export function buildReport(games: Game[], compList: Comp[], us: TeamRef, opp: T
     common,
     h2h: theirs.filter(r => r.vsUs).map(strip),
     table,
+    tables,
     last_result: theirs.length ? theirs[theirs.length - 1].date : null,
   };
 }

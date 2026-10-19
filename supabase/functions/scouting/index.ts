@@ -405,10 +405,9 @@ serve(async (req) => {
     /** The report screen's data for a pair. */
     async function reportPayload(pair: any) {
       const { report, fixture } = await buildFor(sb, pair, year, eventStart);
-      const [matchReports, notesBy] = await Promise.all([
-        loadMatchReports(sb, clubTeamIds, eventId, clubById.get(pair.opp_club_id), pair.opp_team),
-        pair.notes_by ? sb.from("users").select("first_name, last_name").eq("user_id", pair.notes_by).maybeSingle().then((r: any) => r.data) : null,
-      ]);
+      // Match reports are left out for now (Ken, 2026-10-19): they aren't reliably about this team.
+      const matchReports: any[] = [];
+      const notesBy = pair.notes_by ? (await sb.from("users").select("first_name, last_name").eq("user_id", pair.notes_by).maybeSingle()).data : null;
       return {
         pair_key: pair.pair_key, event: eventInfo, team_name: team?.team_name ?? null, code: pair.code, scope: pair.scope || "all",
         club: { name: club?.club_name, crest: club?.crest },
@@ -440,8 +439,26 @@ async function buildFor(sb: any, pair: any, year: number, eventStart: Date) {
   if (pair.scope === "comp") {
     games = games.filter(g => g.comp_id === pair.comp_id);
   } else {
-    const otherDivisions = new Set((comps || []).filter((c: Comp) => c.comp_id !== pair.comp_id && isLeagueDivision(c.grade || c.name)).map((c: Comp) => c.comp_id));
-    games = games.filter(g => !otherDivisions.has(g.comp_id));
+    // Other league divisions are other teams. A cup, shield or championship counts only when it is
+    // tied to the picked division: at least half of its sides also play in that division.
+    const sideOf = (g: Game, side: "home" | "away") => `${side === "home" ? g.home_club_id : g.away_club_id}|${norm(side === "home" ? g.home_team : g.away_team)}`;
+    const inPicked = new Set<string>();
+    const sidesByComp = new Map<string, Set<string>>();
+    for (const g of games) {
+      for (const side of ["home", "away"] as const) {
+        const k = sideOf(g, side);
+        if (g.comp_id === pair.comp_id) inPicked.add(k);
+        if (!sidesByComp.has(g.comp_id)) sidesByComp.set(g.comp_id, new Set());
+        sidesByComp.get(g.comp_id)!.add(k);
+      }
+    }
+    const keep = new Set<string>([pair.comp_id]);
+    for (const c of comps || []) {
+      if (c.comp_id === pair.comp_id || isLeagueDivision(c.grade || c.name)) continue;
+      const sides = [...(sidesByComp.get(c.comp_id) ?? [])];
+      if (sides.length && sides.filter(k => inPicked.has(k)).length * 2 >= sides.length) keep.add(c.comp_id);
+    }
+    games = games.filter(g => keep.has(g.comp_id));
   }
   const us = { club_id: pair.our_club_id, team: "", age: pair.age };
   const opp = { club_id: pair.opp_club_id, team: pair.opp_team, age: pair.age };

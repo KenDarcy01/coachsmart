@@ -184,7 +184,7 @@ export async function buildScoutingPdf(data: any, club: ClubData, format: "a4" |
     place((c, top) => {
       const yy = top + head(c, "Teams both sides have played", top);
       const fmt = (xs: { res: string; m: number }[]) => xs.map(x => `${x.res} ${x.m ? signed(x.m) : "0"}`).join(", ");
-      const cols: Col[] = [{ h: "Opponent", w: 0.4 }, { h: r.opp.team, w: 0.3 }, { h: r.us.team, w: 0.3 }];
+      const cols: Col[] = [{ h: "Opponent", w: 0.4 }, { h: r.opp.team, w: 0.3 }, { h: T(club.club_name), w: 0.3 }];
       const rows = r.common.map(x => ({
         cells: [x.opp, fmt(x.them), fmt(x.us)],
         color: [null, resColor(x.them[x.them.length - 1].res), resColor(x.us[x.us.length - 1].res)],
@@ -193,20 +193,77 @@ export async function buildScoutingPdf(data: any, club: ClubData, format: "a4" |
     });
   }
 
-  // ── League table ──
-  if (r.table) {
+  // ── Scored v conceded ──
+  if (r.games.length) {
     place((c, top) => {
-      const yy = top + head(c, r.table!.comp || "League table", top);
+      let yy = top + head(c, "Scored v conceded, per game", top);
+      const H = mobile ? 120 : 130, L = 26, n = r.games.length;
+      const mx = Math.max(10, ...r.games.map(g => Math.max(g.u, g.t)));
+      const topV = Math.ceil(mx / 10) * 10, step = topV <= 50 ? 10 : 20;
+      const y0 = yy + 6, plotH = H - 30;
+      const Y = (v: number) => y0 + (topV - v) / topV * plotH;
+      for (let v = 0; v <= topV; v += step) {
+        c.line(M + L, Y(v), M + CW, Y(v), v === 0 ? fixed.muted : fixed.line, v === 0 ? 1 : 0.6);
+        c.textRight(String(v), M + L - 5, Y(v) - 3.5, 7, f.reg, fixed.muted);
+      }
+      const bw = (CW - L) / n, w = Math.min(12, bw * 0.36);
+      r.games.forEach((g, i) => {
+        const x = M + L + i * bw + (bw - 2 * w) / 2;
+        c.rect(x, Y(g.u), w - 1, Math.max(1, Y(0) - Y(g.u)), th.p);
+        c.rect(x + w, Y(g.t), w - 1, Math.max(1, Y(0) - Y(g.t)), LOSS);
+        if (n <= 8 || i % 2 === 0) c.textCenter(T(shortDate(g.date).replace(/ \d{4}$/, "")), x + w, y0 + plotH + 6, 6, f.reg, fixed.muted);
+      });
+      c.rect(M + L, y0 + plotH + 16, 7, 7, th.p); c.text("Scored", M + L + 10, y0 + plotH + 15, 7, f.reg, fixed.muted);
+      c.rect(M + L + 50, y0 + plotH + 16, 7, 7, LOSS); c.text("Conceded", M + L + 60, y0 + plotH + 15, 7, f.reg, fixed.muted);
+      return H + 12 + (yy - top);
+    });
+    const goalsOf = (sc: string) => Number(String(sc).split("-")[0]) || 0, pointsOf = (sc: string) => Number(String(sc).split("-")[1]) || 0;
+    const gf = r.games.reduce((a, g) => a + goalsOf(g.us), 0), pf = r.games.reduce((a, g) => a + pointsOf(g.us), 0);
+    const ga = r.games.reduce((a, g) => a + goalsOf(g.them), 0), pa = r.games.reduce((a, g) => a + pointsOf(g.them), 0);
+    place((c, top) => {
+      let yy = top + head(c, "Goals and points", top);
+      const line = (lab: string, gl: number, pt: number, col: RGB) => {
+        const tot = gl * 3 + pt, barW = CW - 70, w = tot ? barW * gl * 3 / tot : 0;
+        c.text(lab, M, yy + 3, 8.5, f.bold, fixed.ink);
+        c.rrect(M + 64, yy, barW, 14, 3, fixed.line);
+        if (w) c.rrect(M + 64, yy, w, 14, 3, col);
+        c.text(`Goals ${gl} (${tot ? Math.round(100 * gl * 3 / tot) : 0}% of total) · Points ${pt}`, M + 64, yy + 18, 7.5, f.reg, fixed.muted);
+        yy += 34;
+      };
+      line("Scored", gf, pf, th.p);
+      line("Conceded", ga, pa, LOSS);
+      return yy - top;
+    });
+  }
+
+  // ── Their games v us ──
+  if (r.h2h.length) {
+    place((c, top) => {
+      const yy = top + head(c, T(`Their games v ${club.club_name}`), top);
+      const cols: Col[] = mobile
+        ? [{ h: "Date", w: 0.2 }, { h: "Us", w: 0.38 }, { h: "Score", w: 0.24, right: true }, { h: "Result", w: 0.18, right: true }]
+        : [{ h: "Date", w: 0.14 }, { h: "Us", w: 0.3 }, { h: "H/A", w: 0.08 }, { h: "Score", w: 0.16, right: true }, { h: "Result", w: 0.12, right: true }, { h: "Competition", w: 0.2 }];
+      const rows = r.h2h.map(g => ({
+        cells: [shortDate(g.date), g.opp, g.home ? "H" : "A", `${g.us} v ${g.them}`, `${g.res} ${g.m ? signed(g.m) : "0"}`, g.comp].filter((_, i) => !mobile || [0, 1, 3, 4].includes(i)),
+        color: mobile ? [null, null, null, resColor(g.res)] : [null, null, null, null, resColor(g.res), null],
+      }));
+      return yy - top + table(c, yy, cols, rows);
+    });
+  }
+
+  // ── League tables ──
+  for (const t of r.tables || (r.table ? [r.table] : [])) {
+    place((c, top) => {
+      const yy = top + head(c, T(t.comp || "League table"), top);
       const cols: Col[] = [{ h: "#", w: 0.07 }, { h: "Team", w: 0.43 }, { h: "P", w: 0.08 }, { h: "W", w: 0.08 }, { h: "D", w: 0.08 }, { h: "L", w: 0.08 }, { h: "+/-", w: 0.1 }, { h: "Pts", w: 0.08 }];
-      const rows = r.table!.rows.slice(0, 12).map((t, i) => {
-        const col = t.opp ? LOSS : t.us ? th.pText : null;
-        return { cells: [String(i + 1), t.team, String(t.p), String(t.w), String(t.d), String(t.l), signed(t.diff), String(t.pts)], color: Array(8).fill(col), bold: !!col };
+      const rows = t.rows.slice(0, 14).map((x, i) => {
+        const col = x.opp ? LOSS : x.us ? th.pText : null;
+        return { cells: [String(i + 1), x.team, String(x.p), String(x.w), String(x.d), String(x.l), signed(x.diff), String(x.pts)], color: Array(8).fill(col), bold: !!col };
       });
       return yy - top + table(c, yy, cols, rows);
     });
   }
 
-  // ── Our match reports against them ──
   const textBlock = (heading: string, text: string, by: string) => place((c, top) => {
     let yy = top + head(c, heading, top);
     const size = mobile ? 10 : 9.5, lh = size * 1.45;
@@ -217,11 +274,6 @@ export async function buildScoutingPdf(data: any, club: ClubData, format: "a4" |
     if (by) { c.text(T(by), M + 10, yy + 4, 7.5, f.reg, fixed.muted); yy += 14; }
     return yy - top;
   });
-  for (const m of (data.match_reports || []).slice(0, 3)) {
-    const d = irishParts(m.date);
-    const text = String(m.report || "").length > 1200 ? String(m.report).slice(0, 1200).replace(/\s+\S*$/, "") + "…" : m.report;
-    textBlock(`Our match report${d ? `, ${d.date}` : ""}`, text, m.author || "");
-  }
 
   if (includeNotes && String(data.notes || "").trim()) {
     textBlock("Coach notes", data.notes, data.notes_by || "");
