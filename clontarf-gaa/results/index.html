@@ -184,7 +184,7 @@ async function load() {
   }
   const today = startOfToday();
   const from = addDays(today, -S.back), to = addDays(today, S.ahead + 1);
-  const sel = 'start_at,code,home_team,away_team,status,home_score,away_score,home_pts,away_pts,venue,note,home_club_id,away_club_id,comp:gaa_competitions(name,age,grade)';
+  const sel = 'start_at,code,home_team,away_team,status,home_score,away_score,home_pts,away_pts,venue,note,home_club_id,away_club_id,comp:gaa_competitions(name,age,grade,level)';
   const id = S.clubId;
   S.games = await get(`gaa_games?select=${sel}&or=(home_club_id.eq.${id},away_club_id.eq.${id})`
     + `&start_at=gte.${encodeURIComponent(iso(from))}&start_at=lt.${encodeURIComponent(iso(to))}&order=start_at.asc&limit=1000`);
@@ -236,14 +236,18 @@ function filtered() {
   const todayKey = dublinDay(new Date());
   return S.games.map(view).filter(v =>
     (S.code === 'all' || v.g.code === S.code) && (S.age === 'all' || v.age === S.age)
-    && (S.tab === 'results' ? (v.played || v.day < todayKey) : (!v.played && v.day >= todayKey)));
+    && (S.tab === 'results'
+      // CCC1 (U12 and under) don't keep scores, so they only show as fixtures
+      ? (v.played || v.day < todayKey) && v.g.comp?.level !== 'ccc1'
+      : (!v.played && v.day >= todayKey)));
 }
 
 // ── Render ──────────────────────────────────────────────────────────────────
 function renderFilters() {
   document.getElementById('codes').innerHTML = CODES.map(([k, l]) =>
     `<button class="chip${S.code === k ? ' on' : ''}" data-code="${esc(k)}">${esc(l)}</button>`).join('');
-  const ages = [...new Set(S.games.filter(g => S.code === 'all' || g.code === S.code).map(g => g.comp?.age).filter(Boolean))]
+  const ages = [...new Set(S.games.filter(g => (S.code === 'all' || g.code === S.code) && (S.tab === 'fixtures' || g.comp?.level !== 'ccc1'))
+    .map(g => g.comp?.age).filter(Boolean))]
     .sort((a, b) => ageOrder(a) - ageOrder(b));
   if (S.age !== 'all' && !ages.includes(S.age)) ages.push(S.age);
   document.getElementById('age').innerHTML = `<option value="all">All age groups</option>`
