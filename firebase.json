@@ -9,6 +9,12 @@
       ],
       "headers": [
         {
+          "regex": "^/clontarf-gaa/results.*",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
           "source": "/webviews/**",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
