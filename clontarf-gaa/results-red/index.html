@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Clontarf GAA Results and Fixtures</title>
+<link rel="icon" href="../images/clontarf-crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<!--
+  Results and fixtures for Clontarf, read from the CoachSmart season store (gaa_games, topped up nightly
+  from Sportlomo). Made to sit inside the club's Squarespace site in an iframe.
+
+  URL options (all optional):
+    tab=fixtures        open on Fixtures instead of Results
+    code=hurling        football | hurling | camogie | ladies
+    age=U14             one age group (U8 … U16, Minor, Junior, Intermediate, Senior)
+    filters=0           hide the filter row (for a single team's page)
+    title=0             hide the heading
+    weeks=3             weeks shown each way before "Show more" (default 2)
+-->
+<style>
+:root {
+  /* Red-led version: same page as ../results/ with the two club colours swapped */
+  --red: #1B3A6B;
+  --navy: #ED1B2E;
+  --navy-soft: #FDE8EA;
+  --ink: #1B2333;
+  --muted: #5B6478;
+  --line: #E3E7F0;
+  --win: #1E7B46;
+  --win-bg: #E3F4EA;
+  --loss: #B3261E;
+  --loss-bg: #FCE8E6;
+  --draw: #6B5B00;
+  --draw-bg: #FFF5CC;
+  --heading-font: 'Oswald', -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #fff; }
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink); line-height: 1.4; -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 900px; margin: 0 auto; padding: 8px 16px 24px; }
+
+h1 {
+  font-family: var(--heading-font); font-weight: 600; font-size: 28px; letter-spacing: .02em;
+  text-transform: uppercase; color: var(--navy); margin: 4px 0 14px;
+  padding-bottom: 8px; border-bottom: 4px solid var(--red); display: inline-block;
+}
+
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--line); margin-bottom: 14px; }
+.tab {
+  appearance: none; background: none; border: 0; cursor: pointer; padding: 10px 18px 9px;
+  font-family: var(--heading-font); font-weight: 500; font-size: 17px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.tab.on { color: var(--navy); border-bottom-color: var(--red); }
+
+/* Filters */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+.chip {
+  appearance: none; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  border-radius: 999px; padding: 6px 13px; font: inherit; font-size: 14px;
+}
+.chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+select {
+  font: inherit; font-size: 14px; color: var(--ink); border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 30px 6px 13px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ED1B2E' stroke-width='1.6' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center;
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+}
+
+/* Day groups */
+.day {
+  font-family: var(--heading-font); font-weight: 500; font-size: 15px; letter-spacing: .06em;
+  text-transform: uppercase; color: #fff; background: var(--navy); padding: 7px 12px; border-radius: 6px;
+  margin: 18px 0 6px;
+}
+.day:first-child { margin-top: 0; }
+
+.game {
+  display: grid; grid-template-columns: 112px 1fr auto; gap: 4px 14px; align-items: center;
+  padding: 11px 4px; border-bottom: 1px solid var(--line);
+}
+.team { line-height: 1.2; }
+.team .age { font-family: var(--heading-font); font-weight: 600; font-size: 17px; color: var(--red); letter-spacing: .02em; }
+.team .code { display: block; font-size: 12.5px; color: var(--muted); }
+.match .sides { font-weight: 600; font-size: 15.5px; }
+.match .sides .us { color: var(--navy); }
+.match .comp { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.right { text-align: right; white-space: nowrap; }
+.score { font-family: var(--heading-font); font-weight: 500; font-size: 18px; letter-spacing: .02em; }
+.res {
+  display: inline-block; min-width: 24px; text-align: center; border-radius: 5px; padding: 1px 6px;
+  font-family: var(--heading-font); font-weight: 600; font-size: 13px; margin-left: 8px; vertical-align: 2px;
+}
+.res.w { background: var(--win-bg); color: var(--win); }
+.res.l { background: var(--loss-bg); color: var(--loss); }
+.res.d { background: var(--draw-bg); color: var(--draw); }
+.time { font-family: var(--heading-font); font-weight: 500; font-size: 18px; color: var(--navy); }
+.ha { font-size: 12px; color: var(--muted); display: block; }
+.venue { font-size: 12.5px; color: var(--muted); }
+.note { font-size: 12.5px; color: var(--muted); font-style: italic; }
+
+.more {
+  display: block; margin: 18px auto 0; appearance: none; cursor: pointer; background: #fff; color: var(--navy);
+  border: 1.5px solid var(--navy); border-radius: 999px; padding: 9px 22px;
+  font-family: var(--heading-font); font-weight: 500; font-size: 15px; letter-spacing: .06em; text-transform: uppercase;
+}
+.more:hover { background: var(--navy-soft); }
+.empty, .loading { color: var(--muted); padding: 28px 4px; text-align: center; }
+.updated { color: var(--muted); font-size: 12px; margin-top: 18px; text-align: center; }
+
+@media (max-width: 560px) {
+  h1 { font-size: 23px; }
+  .tab { padding: 9px 14px 8px; font-size: 16px; }
+  .game { grid-template-columns: 1fr auto; padding: 10px 2px; }
+  .team { grid-column: 1 / -1; display: flex; gap: 8px; align-items: baseline; }
+  .team .code { display: inline; }
+  .match .sides { font-size: 15px; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">Results &amp; Fixtures</h1>
+  <div class="tabs">
+    <button class="tab" data-tab="results">Results</button>
+    <button class="tab" data-tab="fixtures">Fixtures</button>
+  </div>
+  <div class="filters" id="filters">
+    <div class="chips" id="codes"></div>
+    <select id="age" aria-label="Age group"></select>
+  </div>
+  <div id="list"><div class="loading">Loading…</div></div>
+  <button class="more" id="more" hidden>Show more</button>
+  <div class="updated" id="updated"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const CLUB_KEY = 'clontarf';
+const CLUB_NAME = 'Clontarf';
+const TZ = 'Europe/Dublin';
+
+const P = new URLSearchParams(location.search);
+const CODES = [['all', 'All'], ['Football', 'Football'], ['Hurling', 'Hurling'], ['Camogie', 'Camogie'], ['Ladies Football', 'Ladies Football']];
+const CODE_PARAM = { football: 'Football', hurling: 'Hurling', camogie: 'Camogie', ladies: 'Ladies Football', lgfa: 'Ladies Football' };
+const WEEKS = Math.min(Math.max(parseInt(P.get('weeks')) || 2, 1), 12);
+
+const S = {
+  tab: P.get('tab') === 'fixtures' ? 'fixtures' : 'results',
+  code: CODE_PARAM[(P.get('code') || '').toLowerCase()] || 'all',
+  age: P.get('age') || 'all',
+  back: WEEKS * 7, ahead: WEEKS * 7,   // days loaded each way from today
+  games: [], clubId: null,
+};
+if (P.get('filters') === '0') document.getElementById('filters').hidden = true;
+if (P.get('title') === '0') document.getElementById('title').hidden = true;
+
+// ── Data ────────────────────────────────────────────────────────────────────
+async function get(path) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+  });
+  if (!r.ok) throw new Error(`Load failed (${r.status})`);
+  return r.json();
+}
+const iso = d => d.toISOString();
+const addDays = (d, n) => new Date(d.getTime() + n * 864e5);
+
+async function load() {
+  if (S.clubId == null) {
+    const rows = await get(`gaa_clubs?select=club_id&name_key=eq.${CLUB_KEY}`);
+    if (!rows.length) throw new Error('Club not found');
+    S.clubId = rows[0].club_id;
+  }
+  const today = startOfToday();
+  const from = addDays(today, -S.back), to = addDays(today, S.ahead + 1);
+  const sel = 'start_at,code,home_team,away_team,status,home_score,away_score,home_pts,away_pts,venue,note,home_club_id,away_club_id,comp:gaa_competitions(name,age,grade,level)';
+  const id = S.clubId;
+  S.games = await get(`gaa_games?select=${sel}&or=(home_club_id.eq.${id},away_club_id.eq.${id})`
+    + `&start_at=gte.${encodeURIComponent(iso(from))}&start_at=lt.${encodeURIComponent(iso(to))}&order=start_at.asc&limit=1000`);
+}
+// Midnight today in Dublin, as a Date
+function startOfToday() {
+  const d = new Date(), day = dublinDay(d);
+  const off = d.getTime() - Date.parse(dublinStamp(d) + 'Z');   // Dublin's UTC offset right now
+  return new Date(Date.parse(day + 'T00:00:00Z') + off);
+}
+
+// ── Formatting ──────────────────────────────────────────────────────────────
+const fmtDay = new Intl.DateTimeFormat('en-IE', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' });
+const fmtParts = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+function dublinStamp(d) {
+  const p = Object.fromEntries(fmtParts.formatToParts(d).map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}`;
+}
+const dublinDay = d => dublinStamp(d).slice(0, 10);
+const dublinTime = d => dublinStamp(d).slice(11, 16);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function ageOrder(a) {
+  const m = /^U(\d+)/.exec(a); if (m) return +m[1];
+  return { Minor: 17, Junior: 30, Intermediate: 31, Senior: 32, Adult: 33 }[a] ?? 40;
+}
+// "Clontarf C" -> "C"; "Clontarf" -> ""
+function suffix(team) {
+  const t = (team || '').trim();
+  return t.toLowerCase().startsWith(CLUB_NAME.toLowerCase()) ? t.slice(CLUB_NAME.length).trim() : '';
+}
+
+function view(g) {
+  const home = g.home_club_id === S.clubId;
+  const start = new Date(g.start_at);
+  const us = home ? g.home_team : g.away_team, them = home ? g.away_team : g.home_team;
+  const age = g.comp?.age || '';
+  const sfx = suffix(us);
+  const v = { g, home, start, day: dublinDay(start), time: dublinTime(start), us, them, age, sfx,
+    comp: g.comp?.name || '', played: g.status === 'result' };
+  if (v.played && g.home_pts != null && g.away_pts != null) {
+    const f = home ? g.home_pts : g.away_pts, a = home ? g.away_pts : g.home_pts;
+    v.res = f > a ? 'w' : f < a ? 'l' : 'd';
+  }
+  return v;
+}
+
+function filtered() {
+  const todayKey = dublinDay(new Date());
+  return S.games.map(view).filter(v =>
+    (S.code === 'all' || v.g.code === S.code) && (S.age === 'all' || v.age === S.age)
+    && (S.tab === 'results'
+      // CCC1 (U12 and under) don't keep scores, so they only show as fixtures
+      ? (v.played || v.day < todayKey) && v.g.comp?.level !== 'ccc1'
+      : (!v.played && v.day >= todayKey)));
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function renderFilters() {
+  document.getElementById('codes').innerHTML = CODES.map(([k, l]) =>
+    `<button class="chip${S.code === k ? ' on' : ''}" data-code="${esc(k)}">${esc(l)}</button>`).join('');
+  const ages = [...new Set(S.games.filter(g => (S.code === 'all' || g.code === S.code) && (S.tab === 'fixtures' || g.comp?.level !== 'ccc1'))
+    .map(g => g.comp?.age).filter(Boolean))]
+    .sort((a, b) => ageOrder(a) - ageOrder(b));
+  if (S.age !== 'all' && !ages.includes(S.age)) ages.push(S.age);
+  document.getElementById('age').innerHTML = `<option value="all">All age groups</option>`
+    + ages.map(a => `<option value="${esc(a)}"${a === S.age ? ' selected' : ''}>${esc(a)}</option>`).join('');
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
+}
+
+function row(v) {
+  const sides = v.home
+    ? `<span class="us">${esc(v.us)}</span> v ${esc(v.them)}`
+    : `${esc(v.them)} v <span class="us">${esc(v.us)}</span>`;
+  let right;
+  if (S.tab === 'results') {
+    const sc = v.g.home_score && v.g.away_score ? `${esc(v.g.home_score)} – ${esc(v.g.away_score)}` : '';
+    right = sc
+      ? `<span class="score">${sc}</span>${v.res ? `<span class="res ${v.res}">${v.res.toUpperCase()}</span>` : ''}`
+      : `<span class="note">${esc(v.g.note || 'Result to come')}</span>`;
+  } else {
+    const tbc = v.time === '00:00';
+    right = `<span class="time">${tbc ? 'TBC' : v.time}</span><span class="ha">${v.home ? 'Home' : 'Away'}</span>`;
+  }
+  const extra = S.tab === 'fixtures'
+    ? [v.g.venue && `<span class="venue">${esc(v.g.venue)}</span>`, v.g.note && `<span class="note">${esc(v.g.note)}</span>`].filter(Boolean).join(' · ')
+    : '';
+  return `<div class="game">
+    <div class="team"><span class="age">${esc(v.age)}${v.sfx ? ' ' + esc(v.sfx) : ''}</span><span class="code">${esc(v.g.code)}</span></div>
+    <div class="match"><div class="sides">${sides}</div><div class="comp">${esc(v.comp)}${extra ? ' · ' + extra : ''}</div></div>
+    <div class="right">${right}</div>
+  </div>`;
+}
+
+function render() {
+  renderFilters();
+  const list = filtered();
+  // Results newest day first (games within a day by time); fixtures soonest first
+  const days = new Map();
+  for (const v of list) { if (!days.has(v.day)) days.set(v.day, []); days.get(v.day).push(v); }
+  const keys = [...days.keys()].sort();
+  if (S.tab === 'results') keys.reverse();
+  const html = keys.map(k => {
+    const vs = days.get(k).sort((a, b) => a.start - b.start || ageOrder(a.age) - ageOrder(b.age));
+    return `<div class="day">${fmtDay.format(vs[0].start)}</div>` + vs.map(row).join('');
+  }).join('');
+  document.getElementById('list').innerHTML = html
+    || `<div class="empty">No ${S.tab === 'results' ? 'results in the last' : 'fixtures in the next'} ${Math.round((S.tab === 'results' ? S.back : S.ahead) / 7)} weeks.</div>`;
+  const more = document.getElementById('more');
+  more.hidden = false;
+  more.textContent = S.tab === 'results' ? 'Show earlier results' : 'Show later fixtures';
+  sendHeight();
+}
+
+// Tells the Squarespace page how tall we are, so an optional snippet there can size the iframe
+function sendHeight() {
+  requestAnimationFrame(() => {
+    try { parent.postMessage({ type: 'clontarf-results-height', height: document.documentElement.scrollHeight }, '*'); } catch {}
+  });
+}
+addEventListener('resize', sendHeight);
+
+async function refresh() {
+  const more = document.getElementById('more');
+  more.disabled = true;
+  try {
+    await load();
+    render();
+  } catch (e) {
+    document.getElementById('list').innerHTML = `<div class="empty">Couldn't load games just now. Please try again later.</div>`;
+    more.hidden = true;
+    sendHeight();
+  }
+  more.disabled = false;
+}
+
+// ── Events ──────────────────────────────────────────────────────────────────
+document.querySelector('.tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  S.tab = b.dataset.tab; render();
+});
+document.getElementById('codes').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  S.code = b.dataset.code; S.age = 'all'; render();
+});
+document.getElementById('age').addEventListener('change', e => { S.age = e.target.value; render(); });
+document.getElementById('more').addEventListener('click', () => {
+  if (S.tab === 'results') S.back += 14; else S.ahead += 14;
+  refresh();
+});
+
+refresh();
+</script>
+</body>
+</html>
