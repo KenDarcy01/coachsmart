@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#14181b"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <style>html,body{background:#14181b !important;}</style>
+  <title>Member lookup</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --green: #87c232; --green-dim: rgba(135,194,50,.14);
+      --dark: #14181b; --card: #1e222b; --card2: #262b35;
+      --text: #f1f4f8; --muted: #a1a1a2; --red: #ef5350;
+      --border: rgba(255,255,255,.07); --radius: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); font-size: 16px; -webkit-text-size-adjust: none; }
+    button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+    a { color: var(--green); text-decoration: none; }
+
+    .top { position: sticky; top: 0; z-index: 10; background: var(--dark); padding: 12px 16px 10px; border-bottom: 1px solid var(--border); }
+    .top-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .top-title { font-size: 18px; font-weight: 700; flex: 1; }
+    .back { width: 36px; height: 36px; margin-left: -8px; display: flex; align-items: center; justify-content: center; color: var(--green); }
+    .back svg { width: 26px; height: 26px; }
+    .link-btn { font-size: 13px; color: var(--muted); }
+    .search { position: relative; }
+    .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); }
+    .field { display: block; width: 100%; background: var(--card); border: 1.5px solid transparent; border-radius: 12px; padding: 12px; font: inherit; color: var(--text); font-size: 16px; outline: none; }
+    .search .field { padding-left: 38px; }
+    .field:focus { border-color: rgba(135,194,50,.55); }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+    .body { padding: 14px 16px 60px; max-width: 720px; margin: 0 auto; }
+    .sec { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+    .sec:first-child { margin-top: 0; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+    .row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; }
+    .row .main { flex: 1; min-width: 0; }
+    .row .name { font-weight: 700; font-size: 15px; }
+    .row .sub { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .row .chev { color: var(--muted); font-size: 20px; }
+    .av { width: 38px; height: 38px; border-radius: 50%; background: var(--card2); color: var(--green); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex: none; }
+    .code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 700; color: var(--green); background: var(--green-dim); border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+    .tag { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--card2); border-radius: 99px; padding: 2px 8px; margin-left: 4px; }
+    .tag.off { color: var(--red); }
+
+    .head-name { font-size: 22px; font-weight: 700; }
+    .head-sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+    .kv { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; font-size: 14px; margin-top: 12px; }
+    .kv .k { color: var(--muted); }
+    .kv .v { word-break: break-word; }
+    .tline { padding: 12px 0; border-top: 1px solid var(--border); }
+    .tline:first-of-type { border-top: none; padding-top: 0; }
+    .tline .tn { font-weight: 700; font-size: 15px; }
+    .tline .ts { font-size: 13px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+    .copy { cursor: pointer; }
+
+    .state { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 60px 24px; text-align: center; color: var(--muted); line-height: 1.5; }
+    .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn { width: 100%; min-height: 46px; border-radius: 12px; font-weight: 700; font-size: 15px; background: var(--green); color: #14181b; margin-top: 10px; }
+    .btn:disabled { opacity: .45; }
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--card2); color: var(--green); padding: 10px 20px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="top" id="top" style="display:none">
+    <div class="top-row">
+      <button class="back" id="backBtn" onclick="goBack()" style="display:none" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="top-title" id="title">Member lookup</div>
+      <button class="link-btn" onclick="signOut()">Sign out</button>
+    </div>
+    <div class="search" id="searchBox">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input class="field" id="q" type="search" placeholder="Team, club, member name or code" autocomplete="off" oninput="onType()" onkeydown="if(event.key==='Enter'){clearTimeout(tm);runSearch()}">
+    </div>
+  </div>
+  <div class="body" id="main"><div class="state"><div class="spinner"></div></div></div>
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.min.js"></script>
+<script>
+  // Ken-only search across every club: teams, members, codes, roles and linked users.
+  // Data comes from the member-lookup edge function, which checks the signed-in email.
+  const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+  const FN_URL = SUPABASE_URL + '/functions/v1/member-lookup';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const initials = s => (String(s).match(/\b[A-Za-z]/g) || []).slice(0, 2).join('').toUpperCase();
+  const code = c => c ? `<span class="code copy" onclick="event.stopPropagation();copy('${esc(c)}')">${esc(c)}</span>` : '<span class="sub">none</span>';
+  const fmtDate = d => d ? new Date(d.length === 10 ? d + 'T12:00:00Z' : d).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+  let stack = [];      // views: { kind: 'search' } | { kind: 'team', id } | { kind: 'member', id }
+  let last = null;     // last search result
+  let tm = null;
+
+  async function callFn(payload) {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session ? session.access_token : SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify(payload),
+    });
+    let j = {}; try { j = await res.json(); } catch (_) {}
+    if (res.status === 401) { showSignIn(); throw new Error('signin'); }
+    if (!res.ok || j.error) throw new Error(j.error || 'Something went wrong');
+    return j;
+  }
+
+  function copy(t) {
+    navigator.clipboard?.writeText(t).then(() => toast('Copied ' + t)).catch(() => {});
+  }
+  function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
+  const show = html => { $('main').innerHTML = html; };
+  const loading = () => show('<div class="state"><div class="spinner"></div></div>');
+  const fail = e => { if (e.message !== 'signin') show(`<div class="state">${esc(e.message)}</div>`); };
+
+  // ── Sign in ──────────────────────────────────────────────────────────────
+  function showSignIn(msg = '') {
+    $('top').style.display = 'none';
+    show(`<div class="card" style="margin-top:40px"><div class="head-name" style="font-size:19px">Member lookup</div>
+      <div class="hint" style="margin:4px 0 14px">Sign in with your CoachSmart login.</div>
+      <input class="field" id="email" type="email" placeholder="Email" autocomplete="username" style="margin-bottom:10px">
+      <input class="field" id="password" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')signIn()">
+      <div class="hint" id="signErr" style="color:var(--red)">${esc(msg)}</div>
+      <button class="btn" id="signBtn" onclick="signIn()">Sign in</button></div>`);
+  }
+  async function signIn() {
+    const b = $('signBtn'); b.disabled = true; b.textContent = 'Signing in…';
+    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    if (error) { b.disabled = false; b.textContent = 'Sign in'; $('signErr').textContent = "That email and password didn't work."; return; }
+    ready();
+  }
+  async function signOut() { await sb.auth.signOut(); stack = []; last = null; showSignIn(); }
+
+  function ready() {
+    $('top').style.display = '';
+    stack = [{ kind: 'search' }];
+    render();
+    $('q').focus();
+  }
+
+  // ── Navigation ───────────────────────────────────────────────────────────
+  function go(view) { stack.push(view); render(); window.scrollTo(0, 0); }
+  function goBack() { if (stack.length > 1) { stack.pop(); render(); } }
+
+  function render() {
+    const v = stack[stack.length - 1];
+    $('backBtn').style.display = stack.length > 1 ? '' : 'none';
+    $('searchBox').style.display = v.kind === 'search' ? '' : 'none';
+    document.querySelector('.top-row').style.marginBottom = v.kind === 'search' ? '' : '0';
+    $('title').textContent = v.kind === 'team' ? 'Team' : v.kind === 'member' ? 'Member' : 'Member lookup';
+    if (v.kind === 'search') renderSearch();
+    if (v.kind === 'team') loadTeam(v.id);
+    if (v.kind === 'member') loadMember(v.id);
+  }
+
+  // ── Search ───────────────────────────────────────────────────────────────
+  function onType() { clearTimeout(tm); tm = setTimeout(runSearch, 400); }
+  async function runSearch() {
+    const q = $('q').value.trim();
+    if (q.length < 2) { last = null; renderSearch(); return; }
+    loading();
+    try { last = await callFn({ action: 'search', q }); last.q = q; if ($('q').value.trim() === q) renderSearch(); }
+    catch (e) { fail(e); }
+  }
+
+  function renderSearch() {
+    if (!last) { show('<div class="state">Search for a team (e.g. "Clontarf girls 2013"), a member\'s name, or a team or member code.</div>'); return; }
+    const { teams, members } = last;
+    if (!teams.length && !members.length) { show(`<div class="state">Nothing matches "${esc(last.q)}".</div>`); return; }
+    let h = '';
+    if (teams.length) h += `<div class="sec">Teams (${teams.length})</div>` + teams.map(teamRow).join('');
+    if (members.length) h += `<div class="sec">Members (${members.length})</div>` + members.map(memberRow).join('');
+    if (last.more) h += '<div class="hint">Showing the first matches only. Add more words to narrow it down.</div>';
+    show(h);
+  }
+
+  const teamRow = t => `<button class="row" onclick="go({kind:'team',id:${t.team_id}})">
+      <div class="main"><div class="name">${esc(t.team_name)}</div>
+      <div class="sub">${esc(t.club)} · ${t.members} member${t.members === 1 ? '' : 's'}</div></div>
+      ${code(t.team_code)}<span class="chev">›</span></button>`;
+
+  function memberRow(m) {
+    const teams = m.teams.map(t => `${esc(t.team_name)}${t.roles.length ? ' (' + esc(t.roles.join(', ')) + ')' : ''}${t.status === 'inactive' ? ' <span class="tag off">inactive</span>' : ''}`).join('<br>');
+    return `<button class="row" onclick="go({kind:'member',id:${m.member_id}})">
+      <div class="av">${esc(initials(m.name))}</div>
+      <div class="main"><div class="name">${esc(m.name)}</div><div class="sub">${teams || 'No team'}</div></div>
+      ${code(m.member_code)}<span class="chev">›</span></button>`;
+  }
+
+  // ── Team ─────────────────────────────────────────────────────────────────
+  async function loadTeam(id) {
+    loading();
+    try {
+      const { team: t, members } = await callFn({ action: 'team', team_id: id });
+      const byRole = new Map();
+      members.forEach(m => { const r = (m.teams[0]?.roles[0]) || 'No role'; (byRole.get(r) || byRole.set(r, []).get(r)).push(m); });
+      let h = `<div class="card"><div class="head-name">${esc(t.team_name)}</div><div class="head-sub">${esc(t.club)}</div>
+        <div class="kv"><div class="k">Team code</div><div class="v">${code(t.team_code)}</div>
+        <div class="k">Members</div><div class="v">${t.members}</div>
+        <div class="k">Girls / women</div><div class="v">${t.female ? 'Yes' : 'No'}</div></div></div>`;
+      for (const [role, list] of byRole) h += `<div class="sec">${esc(role)} (${list.length})</div>` + list.map(memberRow).join('');
+      show(h);
+    } catch (e) { fail(e); }
+  }
+
+  // ── Member ───────────────────────────────────────────────────────────────
+  async function loadMember(id) {
+    loading();
+    try {
+      const { member: m } = await callFn({ action: 'member', member_id: id });
+      let h = `<div class="card"><div class="head-name">${esc(m.name)}</div>
+        <div class="kv"><div class="k">Member code</div><div class="v">${code(m.member_code)}</div>
+        ${m.date_of_birth ? `<div class="k">Date of birth</div><div class="v">${fmtDate(m.date_of_birth)}</div>` : ''}
+        ${m.membership_num ? `<div class="k">Membership no.</div><div class="v">${esc(m.membership_num)}</div>` : ''}
+        <div class="k">Added</div><div class="v">${fmtDate(m.created_at)}</div>
+        <div class="k">Member ID</div><div class="v">${m.member_id}</div></div></div>`;
+      h += `<div class="sec">Teams (${m.teams.length})</div><div class="card">` + (m.teams.length ? m.teams.map(t => `<div class="tline">
+          <div class="tn">${esc(t.team_name)}${t.status && t.status !== 'active' ? ` <span class="tag off">${esc(t.status)}</span>` : ''}</div>
+          <div class="ts">${esc(t.club)}<br>Role: ${esc(t.roles.join(', ') || 'none')}${t.squad ? ' · Squad: ' + esc(t.squad) : ''}<br>
+          Team code ${code(t.team_code)}${t.member_team_code && t.member_team_code !== t.team_code ? ` · Member team code ${code(t.member_team_code)}` : ''}</div></div>`).join('') : '<div class="hint" style="margin:0">Not on any team.</div>') + '</div>';
+      h += `<div class="sec">Linked users (${m.users.length})</div><div class="card">` + (m.users.length ? m.users.map(u => `<div class="tline">
+          <div class="tn">${esc(u.name || 'No name')}${u.link ? ` <span class="tag">${esc(u.link)}</span>` : ''}</div>
+          <div class="ts">${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : 'No email'}${u.phone ? `<br><a href="tel:${esc(u.phone)}">${esc(u.phone)}</a>` : ''}</div></div>`).join('') : '<div class="hint" style="margin:0">No app account linked.</div>') + '</div>';
+      show(h);
+    } catch (e) { fail(e); }
+  }
+
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    session ? ready() : showSignIn();
+  })();
+</script>
+</body>
+</html>
