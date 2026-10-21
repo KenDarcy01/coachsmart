@@ -57,6 +57,11 @@
     .tline .tn { font-weight: 700; font-size: 15px; }
     .tline .ts { font-size: 13px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
     .copy { cursor: pointer; }
+    .uline { display: flex; align-items: flex-start; gap: 10px; }
+    .umain { flex: 1; min-width: 0; }
+    .rm { font-size: 13px; font-weight: 700; color: var(--red); padding: 4px 0 4px 8px; }
+    .rm.ok { color: var(--green); }
+    .btn.ghost { background: var(--card2); color: var(--green); margin-top: 12px; }
 
     .state { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 60px 24px; text-align: center; color: var(--muted); line-height: 1.5; }
     .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; }
@@ -151,15 +156,20 @@
   function go(view) { stack.push(view); render(); window.scrollTo(0, 0); }
   function goBack() { if (stack.length > 1) { stack.pop(); render(); } }
 
-  function render() {
+  function setChrome() {
     const v = stack[stack.length - 1];
     $('backBtn').style.display = stack.length > 1 ? '' : 'none';
     $('searchBox').style.display = v.kind === 'search' ? '' : 'none';
     document.querySelector('.top-row').style.marginBottom = v.kind === 'search' ? '' : '0';
-    $('title').textContent = v.kind === 'team' ? 'Team' : v.kind === 'member' ? 'Member' : 'Member lookup';
+    $('title').textContent = { team: 'Team', member: 'Member', link: 'Link someone' }[v.kind] || 'Member lookup';
+  }
+  function render() {
+    const v = stack[stack.length - 1];
+    setChrome();
     if (v.kind === 'search') renderSearch();
     if (v.kind === 'team') loadTeam(v.id);
-    if (v.kind === 'member') loadMember(v.id);
+    if (v.kind === 'member') { if (M && M.member_id === v.id) renderMember(); else loadMember(v.id); }
+    if (v.kind === 'link') renderLink();
   }
 
   // ── Search ───────────────────────────────────────────────────────────────
@@ -213,25 +223,77 @@
   }
 
   // ── Member ───────────────────────────────────────────────────────────────
+  let M = null;   // member on screen
   async function loadMember(id) {
     loading();
+    try { M = (await callFn({ action: 'member', member_id: id })).member; renderMember(); } catch (e) { fail(e); }
+  }
+
+  function renderMember() {
+    const m = M;
+    let h = `<div class="card"><div class="head-name">${esc(m.name)}</div>
+      <div class="kv"><div class="k">Member code</div><div class="v">${code(m.member_code)}</div>
+      ${m.date_of_birth ? `<div class="k">Date of birth</div><div class="v">${fmtDate(m.date_of_birth)}</div>` : ''}
+      ${m.membership_num ? `<div class="k">Membership no.</div><div class="v">${esc(m.membership_num)}</div>` : ''}
+      <div class="k">Added</div><div class="v">${fmtDate(m.created_at)}</div>
+      <div class="k">Member ID</div><div class="v">${m.member_id}</div></div></div>`;
+    h += `<div class="sec">Teams (${m.teams.length})</div><div class="card">` + (m.teams.length ? m.teams.map(t => `<div class="tline">
+        <div class="tn">${esc(t.team_name)}${t.status && t.status !== 'active' ? ` <span class="tag off">${esc(t.status)}</span>` : ''}</div>
+        <div class="ts">${esc(t.club)}<br>Role: ${esc(t.roles.join(', ') || 'none')}${t.squad ? ' · Squad: ' + esc(t.squad) : ''}<br>
+        Team code ${code(t.team_code)}${t.member_team_code && t.member_team_code !== t.team_code ? ` · Member team code ${code(t.member_team_code)}` : ''}</div></div>`).join('') : '<div class="hint" style="margin:0">Not on any team.</div>') + '</div>';
+    h += `<div class="sec">Linked users (${m.users.length})</div><div class="card">` + m.users.map(u => `<div class="tline uline">
+        <div class="umain"><div class="tn">${esc(u.name || 'No name')}${u.link ? ` <span class="tag">${esc(u.link)}</span>` : ''}</div>
+        <div class="ts">${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : 'No email'}${u.phone ? `<br><a href="tel:${esc(u.phone)}">${esc(u.phone)}</a>` : ''}</div></div>
+        ${u.link === 'pending' ? `<button class="rm ok" onclick="approveUser('${u.user_id}', '${esc(u.name || 'this account').replace(/'/g, '')}')">Approve</button>` : ''}
+        ${u.user_member_id ? `<button class="rm" onclick="unlinkUser(${u.user_member_id}, '${esc(u.name || 'this account').replace(/'/g, '')}')">Remove</button>` : ''}</div>`).join('')
+      + (m.users.length ? '' : '<div class="hint" style="margin:0 0 4px">No app account linked.</div>')
+      + `<button class="btn ghost" onclick="go({kind:'link'})">+ Link someone</button></div>`;
+    show(h);
+  }
+
+  async function approveUser(userId, name) {
+    try { M = (await callFn({ action: 'link', member_id: M.member_id, user_id: userId })).member; renderMember(); toast(`Approved ${name}`); } catch (e) { toast(e.message); }
+  }
+  async function unlinkUser(id, name) {
+    if (!confirm(`Remove ${name}'s access to ${M.name}?`)) return;
+    try { M = (await callFn({ action: 'unlink', user_member_id: id })).member; renderMember(); toast('Removed'); } catch (e) { toast(e.message); }
+  }
+
+  // ── Link someone ─────────────────────────────────────────────────────────
+  // Gives another app account access to this member, as the member-code screen does, but approved at once.
+  let ptm = null;
+  function renderLink() {
+    show(`<div class="card"><div class="head-name" style="font-size:19px">Link someone to ${esc(M.name)}</div>
+      <div class="hint" style="margin:4px 0 12px">Search by name or email. They get access to ${esc(M.name)} straight away, no approval needed.</div>
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input class="field" id="pq" type="search" placeholder="Name or email" autocomplete="off" style="background:var(--card2)" oninput="clearTimeout(ptm);ptm=setTimeout(findPeople,400)"></div></div>
+      <div id="people"></div>`);
+    $('pq').focus();
+  }
+  async function findPeople() {
+    const q = $('pq').value.trim();
+    if (q.length < 2) { $('people').innerHTML = ''; return; }
+    $('people').innerHTML = '<div class="state"><div class="spinner"></div></div>';
     try {
-      const { member: m } = await callFn({ action: 'member', member_id: id });
-      let h = `<div class="card"><div class="head-name">${esc(m.name)}</div>
-        <div class="kv"><div class="k">Member code</div><div class="v">${code(m.member_code)}</div>
-        ${m.date_of_birth ? `<div class="k">Date of birth</div><div class="v">${fmtDate(m.date_of_birth)}</div>` : ''}
-        ${m.membership_num ? `<div class="k">Membership no.</div><div class="v">${esc(m.membership_num)}</div>` : ''}
-        <div class="k">Added</div><div class="v">${fmtDate(m.created_at)}</div>
-        <div class="k">Member ID</div><div class="v">${m.member_id}</div></div></div>`;
-      h += `<div class="sec">Teams (${m.teams.length})</div><div class="card">` + (m.teams.length ? m.teams.map(t => `<div class="tline">
-          <div class="tn">${esc(t.team_name)}${t.status && t.status !== 'active' ? ` <span class="tag off">${esc(t.status)}</span>` : ''}</div>
-          <div class="ts">${esc(t.club)}<br>Role: ${esc(t.roles.join(', ') || 'none')}${t.squad ? ' · Squad: ' + esc(t.squad) : ''}<br>
-          Team code ${code(t.team_code)}${t.member_team_code && t.member_team_code !== t.team_code ? ` · Member team code ${code(t.member_team_code)}` : ''}</div></div>`).join('') : '<div class="hint" style="margin:0">Not on any team.</div>') + '</div>';
-      h += `<div class="sec">Linked users (${m.users.length})</div><div class="card">` + (m.users.length ? m.users.map(u => `<div class="tline">
-          <div class="tn">${esc(u.name || 'No name')}${u.link ? ` <span class="tag">${esc(u.link)}</span>` : ''}</div>
-          <div class="ts">${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : 'No email'}${u.phone ? `<br><a href="tel:${esc(u.phone)}">${esc(u.phone)}</a>` : ''}</div></div>`).join('') : '<div class="hint" style="margin:0">No app account linked.</div>') + '</div>';
-      show(h);
-    } catch (e) { fail(e); }
+      const { people } = await callFn({ action: 'people', q });
+      if ($('pq').value.trim() !== q) return;
+      const already = new Set(M.users.map(u => u.user_id));
+      $('people').innerHTML = people.length ? `<div class="sec">App accounts (${people.length})</div>` + people.map(p => {
+        const on = already.has(p.user_id);
+        return `<button class="row" ${on ? 'disabled style="opacity:.5"' : `onclick="linkUser('${p.user_id}', '${esc(p.name).replace(/'/g, '')}')"`}>
+          <div class="av">${esc(initials(p.name))}</div>
+          <div class="main"><div class="name">${esc(p.name || 'No name')}</div>
+          <div class="sub">${esc(p.email || '')}${p.members.length ? '<br>Linked to ' + esc(p.members.join(', ')) : ''}</div></div>
+          ${on ? '<span class="tag">linked</span>' : '<span class="chev">+</span>'}</button>`;
+      }).join('') : `<div class="state">No app account matches "${esc(q)}".</div>`;
+    } catch (e) { $('people').innerHTML = `<div class="state">${esc(e.message)}</div>`; }
+  }
+  async function linkUser(userId, name) {
+    if (!confirm(`Give ${name} access to ${M.name}?`)) return;
+    try {
+      M = (await callFn({ action: 'link', member_id: M.member_id, user_id: userId })).member;
+      stack.pop(); renderMember(); setChrome(); toast(`Linked ${name}`);
+    } catch (e) { toast(e.message); }
   }
 
   (async () => {

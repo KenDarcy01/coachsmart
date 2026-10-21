@@ -6,6 +6,10 @@
 //   search { q }        → teams whose name or team code matches, members whose name or codes match
 //   team   { team_id }  → the team and every member on it
 //   member { member_id } → one member: codes, every team with role and squad, linked users
+//   people { q }        → app accounts whose name or email matches, for linking
+//   link   { member_id, user_id } → gives that account access to the member (active straight away,
+//                                    like an approved member-code request)
+//   unlink { user_member_id }     → removes an account's access (the row is deleted, as when a request is denied)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 
@@ -37,6 +41,9 @@ serve(async (req) => {
     if (body.action === "search") return json(await search(sb, clean(body.q)));
     if (body.action === "team") return json(await team(sb, Number(body.team_id)));
     if (body.action === "member") return json(await member(sb, Number(body.member_id)));
+    if (body.action === "people") return json(await people(sb, clean(body.q)));
+    if (body.action === "link") return json(await link(sb, Number(body.member_id), String(body.user_id || "")));
+    if (body.action === "unlink") return json(await unlink(sb, Number(body.user_member_id)));
     return json({ error: "Unknown action" }, 400);
   } catch (e) {
     console.error(e);
@@ -109,6 +116,57 @@ async function member(sb: any, memberId: number) {
   return m ? { member: m } : { error: "Member not found" };
 }
 
+async function people(sb: any, q: string) {
+  if (q.length < 2) return { people: [] };
+  const words = q.toLowerCase().split(" ");
+  const first = words[0];
+  const { data } = await sb.from("users").select("user_id, first_name, last_name, email_address, phone_number")
+    .or(`first_name.ilike.%${first}%,last_name.ilike.%${first}%,email_address.ilike.%${first}%`).limit(500);
+  const hits = (data || []).filter((u: any) => {
+    const hay = `${u.first_name || ""} ${u.last_name || ""} ${u.email_address || ""}`.toLowerCase();
+    return words.every(w => hay.includes(w));
+  }).slice(0, 30);
+  const ids = hits.map((u: any) => u.user_id);
+  const { data: own } = ids.length ? await sb.from("members").select("user_id, first_name, last_name").in("user_id", ids) : { data: [] };
+  const { data: uml } = ids.length ? await sb.from("user_member_link").select("user_id, member_id, status").in("user_id", ids) : { data: [] };
+  const linked = await byId(sb, "members", "member_id", (uml || []).filter((l: any) => l.status === "active").map((l: any) => l.member_id));
+  return {
+    people: hits.map((u: any) => ({
+      user_id: u.user_id,
+      name: `${u.first_name || ""} ${u.last_name || ""}`.trim(),
+      email: u.email_address, phone: u.phone_number,
+      members: [...new Set([
+        ...(own || []).filter((m: any) => m.user_id === u.user_id),
+        ...(uml || []).filter((l: any) => l.user_id === u.user_id && l.status === "active").map((l: any) => linked.get(l.member_id)).filter(Boolean),
+      ].map((m: any) => `${m.first_name || ""} ${m.last_name || ""}`.trim()))],
+    })).sort((a: any, b: any) => a.name.localeCompare(b.name)),
+  };
+}
+
+async function link(sb: any, memberId: number, userId: string) {
+  if (!memberId || !userId) return { error: "Pick a member and an account" };
+  const { data: m } = await sb.from("members").select("member_id, user_id").eq("member_id", memberId).maybeSingle();
+  if (!m) return { error: "Member not found" };
+  if (m.user_id === userId) return { error: "That is this member's own account" };
+  const { data: existing } = await sb.from("user_member_link").select("user_member_id, status").eq("member_id", memberId).eq("user_id", userId);
+  const active = (existing || []).find((l: any) => l.status === "active");
+  if (active) return { error: "Already linked" };
+  const pending = (existing || []).find((l: any) => l.status === "pending");
+  const { error } = pending
+    ? await sb.from("user_member_link").update({ status: "active" }).eq("user_member_id", pending.user_member_id)
+    : await sb.from("user_member_link").insert({ user_id: userId, member_id: memberId, status: "active" });
+  if (error) return { error: error.message };
+  return member(sb, memberId);
+}
+
+async function unlink(sb: any, userMemberId: number) {
+  const { data: row } = await sb.from("user_member_link").select("member_id").eq("user_member_id", userMemberId).maybeSingle();
+  if (!row) return { error: "Link not found" };
+  const { error } = await sb.from("user_member_link").delete().eq("user_member_id", userMemberId);
+  if (error) return { error: error.message };
+  return member(sb, row.member_id);
+}
+
 /** Members with their codes, team links (role, squad, status) and linked users. onlyTeam limits the links. */
 async function memberRows(sb: any, ids: number[], onlyTeam?: number) {
   ids = [...new Set(ids)].filter(Boolean);
@@ -129,7 +187,7 @@ async function memberRows(sb: any, ids: number[], onlyTeam?: number) {
 
   return (members || []).map((m: any) => {
     const userLinks = new Map<string, any>();
-    if (m.user_id) userLinks.set(m.user_id, { status: "own account" });
+    if (m.user_id) userLinks.set(m.user_id, { status: "own account", own: true });
     for (const u of (uml || []).filter((u: any) => u.member_id === m.member_id)) if (!userLinks.has(u.user_id)) userLinks.set(u.user_id, u);
     return {
       member_id: m.member_id,
@@ -158,6 +216,8 @@ async function memberRows(sb: any, ids: number[], onlyTeam?: number) {
       users: [...userLinks].map(([id, link]) => {
         const u = users.get(id);
         return u ? {
+          user_id: id,
+          user_member_id: link.own ? null : link.user_member_id,
           name: `${u.first_name || ""} ${u.last_name || ""}`.trim(),
           email: u.email_address, phone: u.phone_number,
           link: link.status && link.status !== "active" ? link.status : "",
