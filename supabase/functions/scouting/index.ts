@@ -96,6 +96,8 @@ const pairKeyOf = (ourClubId: number, code: string, age: string, oppClubId: numb
  *  cup, shield, championship or knockout stage? A team plays in one league division, so any other
  *  division is a different team (LGFA names every side after the club). */
 const isLeagueDivision = (grade: string) => /\bdiv(?:ision)?\b/i.test(grade) && !/\b(cup|shield|plate|championship|knock\s*-?out|final|semi|quarter)\b/i.test(grade);
+/** The division number in a grade ("Championship Division 5 Group B" → 5), or null. */
+const divNumber = (grade: string): number | null => { const m = grade.match(/\bdiv(?:ision)?\s*(\d+)/i); return m ? Number(m[1]) : null; };
 
 async function callGemini(apiKey: string, userText: string): Promise<string[]> {
   const body = JSON.stringify({
@@ -439,8 +441,9 @@ async function buildFor(sb: any, pair: any, year: number, eventStart: Date) {
   if (pair.scope === "comp") {
     games = games.filter(g => g.comp_id === pair.comp_id);
   } else {
-    // Other league divisions are other teams. A cup, shield or championship counts only when it is
-    // tied to the picked division: at least half of its sides also play in that division.
+    // Other league divisions are other teams. A championship or cup that names a division number
+    // counts only when it is the picked division's number. One with no number counts only when it
+    // is clearly tied to the picked division: at least two thirds of its sides play in it.
     const sideOf = (g: Game, side: "home" | "away") => `${side === "home" ? g.home_club_id : g.away_club_id}|${norm(side === "home" ? g.home_team : g.away_team)}`;
     const inPicked = new Set<string>();
     const sidesByComp = new Map<string, Set<string>>();
@@ -453,10 +456,14 @@ async function buildFor(sb: any, pair: any, year: number, eventStart: Date) {
       }
     }
     const keep = new Set<string>([pair.comp_id]);
+    const picked = (comps || []).find((c: Comp) => c.comp_id === pair.comp_id);
+    const pickedNum = picked ? divNumber(picked.grade || picked.name) : null;
     for (const c of comps || []) {
       if (c.comp_id === pair.comp_id || isLeagueDivision(c.grade || c.name)) continue;
+      const num = divNumber(c.grade || c.name);
+      if (num !== null) { if (pickedNum !== null && num === pickedNum) keep.add(c.comp_id); continue; }
       const sides = [...(sidesByComp.get(c.comp_id) ?? [])];
-      if (sides.length && sides.filter(k => inPicked.has(k)).length * 2 >= sides.length) keep.add(c.comp_id);
+      if (sides.length && sides.filter(k => inPicked.has(k)).length * 3 >= sides.length * 2) keep.add(c.comp_id);
     }
     games = games.filter(g => keep.has(g.comp_id));
   }
