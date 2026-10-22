@@ -7,6 +7,7 @@
 //   GET /functions/v1/gaa-fixtures?type=discover&search=U13
 //   GET /functions/v1/gaa-fixtures?type=club&club=3561&format=json&results=1
 //   GET /functions/v1/gaa-fixtures?type=club&club=3561&age=U13   (calendar feed)
+//   GET /functions/v1/gaa-fixtures?type=store&code=Ladies%20Football&age=U14   (season store, from the DB)
 //
 // Query params
 //   comp     required (except for type=discover). One or more competition IDs,
@@ -214,6 +215,32 @@ Deno.serve(async (req) => {
       for (const [name, n] of [...raw].sort((a, b) => a[0].localeCompare(b[0]))) lines.push(`  ${n}  ${name}  [${compMeta(name).age}]`);
     }
     return text(lines.join("\n"), 200);
+  }
+
+  // ── Season store read: every game of one code and age this year, from the DB (no Sportlomo call).
+  // ?type=store&code=Ladies%20Football&age=U14[&year=2026]. Public data (anon can read these tables).
+  if (type === "store") {
+    const code = CODES.find((k) => k.toLowerCase() === (q.get("code") ?? "").trim().toLowerCase());
+    const age = (q.get("age") ?? "").trim().toUpperCase();
+    const year = Number(q.get("year") ?? new Date().getFullYear());
+    if (!code || !/^[A-Z0-9]{1,12}$/.test(age) || !(year >= 2020 && year <= 2100)) return text("code, age (and year) required", 400);
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+    const { data: comps, error: ce } = await sb.from("gaa_competitions").select("comp_id, name, grade, age, code").eq("code", code).eq("age", age);
+    if (ce) return text(ce.message, 500);
+    const ids = (comps ?? []).map((c: { comp_id: string }) => c.comp_id);
+    const games: unknown[] = [];
+    for (let from = 0; ids.length; from += 1000) {
+      const { data, error } = await sb.from("gaa_games")
+        .select("game_id, comp_id, start_at, home_team, away_team, home_club_id, away_club_id, status, home_score, away_score, home_pts, away_pts, venue, note")
+        .in("comp_id", ids).gte("start_at", `${year}-01-01`).lt("start_at", `${year + 1}-01-01`).order("start_at").range(from, from + 999);
+      if (error) return text(error.message, 500);
+      games.push(...(data ?? []));
+      if ((data ?? []).length < 1000) break;
+    }
+    const { data: clubs } = await sb.from("gaa_clubs").select("club_id, name");
+    return new Response(JSON.stringify({ code, age, year, comps, clubs, games }), {
+      headers: { ...common, "Cache-Control": "public, max-age=600", "Content-Type": "application/json; charset=utf-8" },
+    });
   }
 
   // ── Camogie club list (Sportlomo's get_clubs; its IDs are the camogie ones) ──
