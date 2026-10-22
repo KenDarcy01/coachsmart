@@ -19,7 +19,7 @@ BEGIN
   INSERT INTO public.clubs (club_name, county, sport_id, crest, primary_colour, secondary_colour, gaa_club_id)
   SELECT 'St Annes', 'Dublin',
          (SELECT sport_id FROM public.clubs WHERE club_id = v_clontarf),
-         '__CREST__', '__PRIMARY__', '#FFFFFF',
+         'https://coachsmart.app/crests/st-annes.png', '#1B5A99', '#FFFFFF',
          (SELECT club_id FROM public.gaa_clubs WHERE name_key = 'stannes' OR 'stannes' = ANY (alias_keys) LIMIT 1)
   RETURNING club_id INTO v_club;
 
