@@ -31,12 +31,16 @@
 //   age      optional. Keep only competitions for this age, e.g. "U13".
 //
 // type=probe (diagnostic, plain text): club, from, to, codes=<extra code_ids>
+// type=store (diagnostic, JSON): the season store's gaa_status() and one club's stored
+//   games with when each was last loaded. Anon key only, so nothing the pages can't read.
+//   club (gaa_clubs name key, default "clontarf"), from, to
 //   results / minutes / name / format as above.
 import {
   buildIcs, type ClubGame, compMeta, discoverComps, filterGames, type Game,
   parseAjaxBody, parseClubGames, parseGames, parseTable,
 } from "./gaa.ts";
 import { AJAX, CODES, fetchClub, SOURCES, UA } from "./source.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.43.4";
 
 const BASE = "https://dublingaa.sportlomo.com/league-2";
 const CACHE_MS = 10 * 60 * 1000;
@@ -213,6 +217,32 @@ Deno.serve(async (req) => {
   }
 
   // ── Camogie club list (Sportlomo's get_clubs; its IDs are the camogie ones) ──
+  // ── Diagnostic: what the season store holds for one club ─────────────────
+  // ?type=store&club=clontarf&from=2026-10-19&to=2026-10-31. Uses the anon key, so
+  // it reads only what the public pages already can (gaa_status, gaa_games).
+  if (type === "store") {
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+    const key = (q.get("club") ?? "clontarf").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const from = q.get("from") ?? isoDay(new Date(Date.now() - 7 * 864e5));
+    const to = q.get("to") ?? isoDay(new Date(Date.now() + 14 * 864e5));
+    const [status, club] = await Promise.all([
+      sb.rpc("gaa_status"),
+      sb.from("gaa_clubs").select("club_id, name").eq("name_key", key).maybeSingle(),
+    ]);
+    let games: unknown = [];
+    if (club.data) {
+      const id = club.data.club_id;
+      const r = await sb.from("gaa_games")
+        .select("start_at, code, home_team, away_team, status, home_score, away_score, venue, note, synced_at, comp:gaa_competitions(name, age)")
+        .or(`home_club_id.eq.${id},away_club_id.eq.${id}`)
+        .gte("start_at", `${from}T00:00:00Z`).lte("start_at", `${to}T23:59:59Z`).order("start_at");
+      games = r.data ?? r.error;
+    }
+    return new Response(JSON.stringify({ now: new Date().toISOString(), status: status.data ?? status.error, club: club.data, games }, null, 1), {
+      headers: { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" },
+    });
+  }
+
   if (type === "clubs") {
     try {
       if (!camogieClubs || Date.now() - camogieClubs.at > 24 * 3600e3) {
