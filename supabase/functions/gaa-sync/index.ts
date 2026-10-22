@@ -9,6 +9,8 @@
 //   { "mode": "nightly", "part": n, "code": c }  week n of six, from two weeks ago
 //   { "mode": "manual", "from": "YYYY-MM-DD", "to": "YYYY-MM-DD", "code"?: c }
 //                                              (at most 15 days; every code if none given)
+//   { "mode": "club", "club": "clontarf" }     one club's games, every code, from two weeks
+//                                              ago to four weeks ahead (the daytime top-up)
 //
 // A window is only written when every source loaded, and it replaces that
 // window's games for the code, so moved or cancelled fixtures don't linger.
@@ -54,16 +56,69 @@ async function loadWindow(from: string, to: string, codes: string[]) {
   });
 }
 
+// One club's games for every code, fetched with Sportlomo's club filter (a handful of
+// small requests), replacing only that club's stored games in the window. Used for
+// the daytime top-up, so fixtures moved during the day show before the nightly load.
+// deno-lint-ignore no-explicit-any
+async function loadOneClub(sb: any, key: string, today: string): Promise<Response> {
+  const { data: club, error } = await sb.from("gaa_clubs").select("club_id, name, gaa_id, camogie_id, lgfa_id")
+    .eq("name_key", key).maybeSingle();
+  if (error) return new Response(error.message, { status: 500 });
+  if (!club) return new Response(`Unknown club ${key}`, { status: 400 });
+  const ids: Record<string, string | null> = {
+    Football: club.gaa_id, Hurling: club.gaa_id, Camogie: club.camogie_id, "Ladies Football": club.lgfa_id,
+  };
+  const codes = CODES.filter((c) => ids[c]);
+  const from = addDays(today, -2 * WINDOW_DAYS), to = addDays(today, (NIGHTLY_PARTS - 2) * WINDOW_DAYS - 1);
+
+  const t0 = Date.now();
+  const { data: started } = await sb.from("gaa_sync_log")
+    .insert({ mode: `club:${key}`, code: null, from_day: from, to_day: to, ok: false, error: "Started, no finish recorded (stopped by a time or CPU limit?)" })
+    .select("sync_id").single();
+  const finish = (ok: boolean, games: number, err?: string) =>
+    started && sb.from("gaa_sync_log").update({ ok, games, seconds: (Date.now() - t0) / 1000, error: err ?? null })
+      .eq("sync_id", started.sync_id);
+  try {
+    const jobs = codes.flatMap((code) =>
+      SOURCES[code].userIds.map((lvl) => fetchClub(ids[code]!, club.name, from, to, code, lvl, { maxPages: 10, strict: true }))
+    );
+    const seen = new Set<string>();
+    const games = (await Promise.all(jobs)).flat().map(row).filter((g) => {
+      if (!g.compId) return false;
+      const k = [g.compId, g.home, g.away, g.start].join("|");
+      return !seen.has(k) && seen.add(k);
+    });
+    // A source having a bad day can answer with nothing: never let that wipe the club's games
+    const { count } = await sb.from("gaa_games").select("game_id", { count: "exact", head: true })
+      .in("code", codes).or(`home_club_id.eq.${club.club_id},away_club_id.eq.${club.club_id}`)
+      .gte("start_at", `${from}T00:00:00Z`).lte("start_at", `${to}T23:59:59Z`);
+    if ((count ?? 0) > 10 && games.length < (count ?? 0) / 2) {
+      throw new Error(`Only ${games.length} games came back where ${count} were stored; kept the stored games`);
+    }
+    const { data, error } = await sb.rpc("gaa_replace_club_window",
+      { p_from: from, p_to: to, p_codes: codes, p_club_id: club.club_id, p_games: games });
+    if (error) throw new Error(error.message);
+    await finish(true, Number(data) || games.length);
+    return Response.json({ mode: "club", club: key, from, to, games: games.length });
+  } catch (e) {
+    const msg = (e as Error).message;
+    console.error(`gaa-sync club ${key} ${from}..${to}: ${msg}`);
+    await finish(false, 0, msg.slice(0, 500));
+    return new Response(msg, { status: 502 });
+  }
+}
+
 Deno.serve(async (req) => {
   if (roleOf(req) !== "service_role") return new Response("Forbidden", { status: 403 });
   const body = await req.json().catch(() => ({}));
   const mode = String(body.mode || "backfill");
   const code = body.code ? String(body.code) : "";
   if (code && !CODES.includes(code)) return new Response(`Unknown code ${code}`, { status: 400 });
-  if (mode !== "manual" && !code) return new Response("code is required", { status: 400 });
+  if (mode !== "manual" && mode !== "club" && !code) return new Response("code is required", { status: 400 });
   const codes = code ? [code] : CODES;
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   const today = dublinToday();
+  if (mode === "club") return await loadOneClub(sb, String(body.club || ""), today);
 
   // Which window to load
   let from: string, to: string;
