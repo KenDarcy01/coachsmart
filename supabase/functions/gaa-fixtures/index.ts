@@ -229,18 +229,34 @@ Deno.serve(async (req) => {
     const from = q.get("from") ?? `${year}-01-01`, to = q.get("to") ?? `${year + 1}-01-01`;
     if (!day.test(from) || !day.test(to)) return text("from/to must be YYYY-MM-DD", 400);
     const part = q.get("part") ?? "all";
+    // Optional comp=<id,id> and team=<name part> narrow the games; fmt=lines returns one pipe-separated game per line.
+    const compFilter = (q.get("comp") ?? "").split(",").map((s) => s.trim()).filter((s) => /^\d+$/.test(s));
+    const teamFilter = (q.get("team") ?? "").trim().replace(/[%_,.()]/g, "");
+    const fmt = q.get("fmt") ?? "json";
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-    const { data: comps, error: ce } = await sb.from("gaa_competitions").select("comp_id, name, grade, age, code").eq("code", code).eq("age", age);
+    const { data: allComps, error: ce } = await sb.from("gaa_competitions").select("comp_id, name, grade, age, code").eq("code", code).eq("age", age);
     if (ce) return text(ce.message, 500);
-    const ids = (comps ?? []).map((c: { comp_id: string }) => c.comp_id);
+    const comps = (allComps ?? []).filter((c: { comp_id: string }) => !compFilter.length || compFilter.includes(String(c.comp_id)));
+    const ids = comps.map((c: { comp_id: string }) => c.comp_id);
     const games: unknown[] = [];
     for (let off = 0; ids.length && part !== "meta"; off += 1000) {
-      const { data, error } = await sb.from("gaa_games")
+      let qb = sb.from("gaa_games")
         .select("game_id, comp_id, start_at, home_team, away_team, home_club_id, away_club_id, status, home_score, away_score, home_pts, away_pts, venue, note")
         .in("comp_id", ids).gte("start_at", from).lt("start_at", to).order("start_at").range(off, off + 999);
+      if (teamFilter) qb = qb.or(`home_team.ilike.%${teamFilter}%,away_team.ilike.%${teamFilter}%`);
+      const { data, error } = await qb;
       if (error) return text(error.message, 500);
       games.push(...(data ?? []));
       if ((data ?? []).length < 1000) break;
+    }
+    if (fmt === "lines") {
+      const clean = (v: unknown) => String(v ?? "").replace(/[|\r\n]/g, " ").trim();
+      const lines: string[] = [];
+      if (part !== "games") for (const c of comps) lines.push(`C|${c.comp_id}|${clean(c.name)}|${clean(c.grade)}`);
+      for (const g of games as Record<string, unknown>[]) {
+        lines.push(`G|${g.game_id}|${g.comp_id}|${String(g.start_at).slice(0, 16)}|${clean(g.home_team)}|${clean(g.away_team)}|${clean(g.home_score)}|${clean(g.away_score)}|${g.status}|${clean(g.venue)}|${clean(g.note)}`);
+      }
+      return text(lines.join("\n"), 200);
     }
     const { data: clubs } = part === "games" ? { data: undefined } : await sb.from("gaa_clubs").select("club_id, name");
     return new Response(JSON.stringify(part === "games" ? { games } : { code, age, year, from, to, comps, clubs, games }), {
