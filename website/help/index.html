@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help — CoachSmart</title>
+<meta name="description" content="Answers for players, parents and coaches using CoachSmart: joining a team, replying to events, notifications, the score keeper, session plans and more.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/images/CoachSmart%20-%20Black%20Icon.PNG">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/legal.css">
+<script>if(/[?&]app=1/.test(location.search))document.documentElement.classList.add('app')</script>
+<style>
+.hw{max-width:1040px;margin:0 auto;padding:0 16px}
+.page-header{padding-bottom:26px}
+.search{position:relative;max-width:560px;margin:24px auto 0}
+.search input{width:100%;background:var(--card);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;color:var(--text);font:inherit;font-size:17px;padding:15px 44px 15px 48px;outline:none;-webkit-appearance:none}
+.search input:focus{border-color:var(--g)}
+.search input::placeholder{color:#8d9196}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.search .mag{position:absolute;left:16px;top:50%;transform:translateY(-50%);pointer-events:none}
+.search .clr{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--muted);font-size:22px;width:36px;height:36px;display:none;cursor:pointer}
+.search.has .clr{display:block}
+.who{display:flex;gap:8px;justify-content:center;margin:16px 0 0;flex-wrap:wrap}
+.who button{background:transparent;border:1.5px solid rgba(255,255,255,.14);color:var(--text);font:inherit;font-weight:600;font-size:15px;padding:8px 16px;border-radius:999px;cursor:pointer}
+.who button.on{border-color:var(--g);color:var(--g)}
+.label{color:var(--muted);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.popular{margin:22px 0 8px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips a{background:var(--card);color:var(--text);padding:9px 14px;border-radius:10px;font-size:15px;font-weight:500}
+.chips a:hover{text-decoration:none;background:var(--card2)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}
+.topic{display:block;background:var(--card);border-radius:16px;padding:18px;color:var(--text)}
+.topic:hover{text-decoration:none;background:var(--card2)}
+.topic .ic{font-size:24px}
+.topic h3{font-size:18px;margin:8px 0 2px}
+.topic p{color:var(--muted);font-size:14.5px;line-height:1.45}
+.topic .n{color:var(--g);font-size:14px;font-weight:600;margin-top:10px;display:block}
+.section{margin:34px 0;scroll-margin-top:100px}
+.section h2{font:32px/1 'Bebas Neue';letter-spacing:.5px;margin-bottom:12px;font-weight:400}
+.qa{background:var(--card);border-radius:14px;margin-bottom:8px;overflow:hidden;scroll-margin-top:100px}
+.qa summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 16px;font-weight:600;font-size:16.5px;line-height:1.4;cursor:pointer}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary .chev{flex:none;transition:transform .2s;color:var(--muted);font-size:22px;line-height:1}
+.qa[open] summary .chev{transform:rotate(90deg);color:var(--g)}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;background:rgba(135,194,50,.15);color:var(--g);padding:2px 7px;border-radius:6px;letter-spacing:.03em;margin-left:6px;vertical-align:2px;white-space:nowrap}
+.qa .body{padding:0 16px 16px;color:#dfe3e8;font-size:15.5px;line-height:1.6}
+.qa .body p+p,.qa .body p+ol,.qa .body ol+p,.qa .body p+ul,.qa .body ul+p{margin-top:8px}
+.qa .body ol,.qa .body ul{padding-left:22px}.qa .body li{margin:4px 0}
+.qa .body b{color:var(--text)}
+.shot{display:flex;gap:14px;align-items:flex-start;margin-top:12px}
+.shot img{width:150px;flex:none;border-radius:18px;border:4px solid #000;box-shadow:0 0 0 1.5px #3a3f48}
+.shot div{color:var(--soft);font-size:15px}
+.note{background:var(--card2);border-left:3px solid var(--g);padding:10px 12px;border-radius:8px;margin-top:10px;font-size:14.5px;color:var(--soft)}
+.empty{display:none;text-align:center;color:var(--muted);padding:30px 0}
+.contact{background:var(--card);border-radius:16px;padding:22px;text-align:center;margin:34px 0 50px}
+.contact h3{font-size:19px}.contact p{color:var(--muted);margin:4px 0 14px}
+.obtn{display:inline-block;border:1.5px solid var(--g);color:var(--g);padding:10px 20px;border-radius:12px;font-weight:600}
+.obtn:hover{text-decoration:none;background:rgba(135,194,50,.1)}
+.searching .grid,.searching .popular{display:none}
+/* in the app: no branding, feels like a native screen */
+.appbar{display:none}
+.app body{background:#14181b}
+.app nav,.app footer,.app .page-header h1,.app .page-header .lead,.app .page-header .page-tag,.app .grid{display:none}
+.app .page-header{padding:0 16px 4px}
+.app .page-header::before{display:none}
+.app .search{margin-top:6px}
+.app .who{justify-content:flex-start}
+.app .appbar{display:flex;align-items:center;gap:6px;height:52px;padding:0 6px;position:sticky;top:0;background:#14181b;z-index:5}
+.appbar button{background:none;border:0;color:var(--text);width:44px;height:44px;display:grid;place-items:center;cursor:pointer}
+.appbar span{font-weight:700;font-size:18px}
+.app .section,.app .qa{scroll-margin-top:60px}
+@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.topic p{display:none}}
+@media(max-width:520px){.shot{flex-direction:column}.shot img{width:170px}}
+</style>
+</head>
+<body>
+
+<div class="appbar"><button id="back" aria-label="Back"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button><span>Help</span></div>
+
+<nav>
+  <a class="logo" href="/"><img src="/logo.svg" alt="">COACH<span class="s">SMART</span></a>
+  <div class="links"><a href="/#attendance">Attendance</a><a href="/#smart">Smart tools</a><a href="/#club">For clubs</a><a href="/help/" class="on">Help</a><a href="/contact.html">Contact</a></div>
+  <a class="btn sm" href="/#download">Get the app</a>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="page-tag">Help</div>
+    <h1>How can we help?</h1>
+    <p class="lead">Answers for players, parents and coaches.</p>
+    <div class="search" id="searchBox">
+      <svg class="mag" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a1a1a2" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search, e.g. reply to training" autocomplete="off">
+      <button class="clr" id="clr" aria-label="Clear">×</button>
+    </div>
+    <div class="who" id="who"><button data-w="all" class="on">All</button><button data-w="p">Players &amp; parents</button><button data-w="c">Coaches</button></div>
+  </div>
+</div>
+
+<main class="hw" id="main">
+  <div class="popular" id="popular"><div class="label">Most asked</div><div class="chips" id="chips"></div></div>
+  <div class="grid" id="grid"></div>
+  <div id="sections"></div>
+  <div class="empty" id="empty">Nothing found. Try other words, or contact us below.</div>
+  <div class="contact"><h3>Still stuck?</h3><p>Send us a message and a real person will get back to you.</p><a class="obtn" id="contactBtn" href="/contact.html">Contact us</a></div>
+</main>
+
+<footer><div class="wrap"><span>© 2026 CoachSmart · Coaching Made Simple</span><span class="flinks"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/data-deletion.html">Data deletion</a><a href="/contact.html">Contact</a></span></div></footer>
+
+<script>
+// Audience: p = players & parents, c = coaches, a = everyone. tag = shown beside the question.
+const TOPICS = [
+ {id:'start', ic:'👋', t:'Getting started', d:'Sign up, join a team, add your child.'},
+ {id:'events', ic:'✅', t:'Events & replies', d:'Going or not, reminders, event details.'},
+ {id:'alerts', ic:'🔔', t:'Notifications', d:'Alerts, reminders and fixing missing ones.'},
+ {id:'coach', ic:'📅', t:'Running your team', d:'Events, members, requests and squads.'},
+ {id:'match', ic:'⏱️', t:'Matchday', d:'Teams, score keeper, live matches, reports.'},
+ {id:'plan', ic:'📋', t:'Planning', d:'Drill library, favourites, session plans.'},
+ {id:'stats', ic:'📊', t:'Stats & scouting', d:'Attendance records, game time, opposition.'},
+ {id:'account', ic:'👤', t:'Your account', d:'Your details, password, deleting your account.'}
+];
+const IMG = s => `<div class="shot"><img src="/assets/${s[0]}-600.jpg" alt="" loading="lazy"><div>${s[1]}</div></div>`;
+const QA = [
+ // Getting started
+ {id:'download', s:'start', a:'a', q:'Where do I get the app?', k:'download install iphone android store pwa',
+  b:`<p>CoachSmart is free on the <a href="https://apps.apple.com/ie/app/coachsmart/id6747903007">App Store</a> and <a href="https://play.google.com/store/apps/details?id=my.coachsmartV2">Google Play</a>. Download it, create an account with your email and a password, and you're ready to join a team.</p>`},
+ {id:'join-child', s:'start', a:'p', q:"How do I join my child's team?", k:'register child son daughter kid family add join team code',
+  b:`<p>Ask the coach for the team joining code, then:</p><ol><li>Open CoachSmart and choose <b>Register someone else</b>.</li><li>Enter your child's name exactly as it's on the team list, or their member code if you have one.</li><li>Enter the team joining code and tap <b>Request to Join</b>.</li></ol><p>The team admin approves the request, and your child's events then show on your home screen.</p><div class="note">More than one child? Do this once for each child. Everything shows in one list.</div>`},
+ {id:'join-self', s:'start', a:'a', q:'How do I join a team as a player or coach?', k:'join myself player coach team code',
+  b:`<p>Choose <b>Join as myself</b>, enter the team joining code the coach gave you, and tap <b>Request to Join</b>. Once the team admin approves you, the team's events appear on your home screen. Already in the app? Go to <b>Teams</b> and tap <b>Join Team</b>.</p>`},
+ {id:'codes', s:'start', a:'a', q:"What's the difference between a team code and a member code?", k:'team code member code difference share',
+  b:`<p>The <b>team code</b> is for the whole team. The coach shares it so people can ask to join.</p><p>A <b>member code</b> belongs to one player. Use it when the player is already on the team list and you want to link your account to them, for example when a second parent wants to get the same child's events.</p>`},
+ {id:'pending', s:'start', a:'a', q:'My request says pending. What now?', k:'pending waiting approval request not approved',
+  b:`<p>The team admin has to approve every request, so nobody joins a team by mistake. They get a notification straight away. If nothing happens after a day or two, give the coach a nudge.</p>`},
+ {id:'two-parents', s:'start', a:'p', q:'Can both parents get the same notifications?', k:'both parents second parent partner share access link',
+  b:`<p>Yes. Each parent signs up with their own email and links to the same child, using the child's member code or the team code. The admin approves it, and you both get the events, reminders and alerts. You can both reply too.</p>`},
+ {id:'many-teams', s:'start', a:'a', q:'I have several teams or clubs. Do I need separate logins?', k:'multiple teams clubs children one login list',
+  b:`<p>No. One login covers everything. Every event from every team and club you're linked to shows in one list on your home screen, with the team name on each event.</p>`},
+ {id:'new-team', s:'start', a:'c', q:'How do I set up a new team?', k:'create new team set up club',
+  b:`<p>Go to <b>Teams</b> and tap <b>Create Team</b>. Pick your club, give the team a name, say whether it's underage and whether it's a girls' or ladies' team, and tap <b>Create Team</b>. You get a team code to share with your players and parents, for example in your WhatsApp group.</p><p>Club not listed yet? Choose <b>Set up a new team</b> and fill in the request form. We'll be in touch within 24 hours to set your club up.</p>`},
+
+ // Events & replies
+ {id:'reply', s:'events', a:'p', q:'How do I reply to training or a match?', k:'reply respond accept decline going not going attendance rsvp',
+  b:`<p>You get a notification when the coach needs a reply. Tap it, or open the event from your home screen, and tap the tick next to each name if they're going, or the cross if not. The coach sees your reply straight away.</p>`+IMG(['event','Each child gets their own row of buttons, so you can say one is going and the other isn\'t.'])},
+ {id:'change', s:'events', a:'p', q:"I can't make it any more. Can I change my reply?", k:'change reply mind cancel decline after accepting',
+  b:`<p>Yes. Open the event and tap the other button. The coach is told that your reply has changed, so you don't need to message them as well.</p>`},
+ {id:'details', s:'events', a:'p', q:'Where do I find the meeting time and directions?', k:'meeting time location directions map where opposition',
+  b:`<p>Open the event. It shows the date and time, meeting time, location, opposition and any notes from the coach. Tap the pin for directions in your maps app, or tap the phone or message icon to contact the coach who created it.</p>`},
+ {id:'no-response', s:'events', a:'p', q:'Some events say "No Response Required". Why?', k:'no response required',
+  b:`<p>The coach has turned off replies for that event, for example a club day or a blitz everyone is going to. It's on your list so you know about it, but you don't need to do anything.</p>`},
+ {id:'cancelled', s:'events', a:'p', q:'How will I know if an event is cancelled?', k:'cancelled cancel event called off',
+  b:`<p>Cancelled events stay on your list with a red <b>CANCELLED</b> label, so you can't miss them. If the coach brings it back, the label disappears.</p>`},
+ {id:'search', s:'events', a:'a', q:'How do I find an old event?', k:'search past events old history',
+  b:`<p>Tap <b>Search Events</b> on the home screen. Pick the team, and optionally the code, event type or opposition, to see past and future events.</p>`},
+
+ // Notifications
+ {id:'reminders', s:'alerts', a:'p', q:'Why do I keep getting reminders?', k:'reminder reminders keep getting stop',
+  b:`<p>Reminders only go to people who haven't replied yet. Reply to the event and the reminders stop. The reminder in your notifications list clears itself once you've answered.</p>`},
+ {id:'no-push', s:'alerts', a:'a', q:"I'm not getting notifications", k:'not getting notifications push missing alerts settings',
+  b:`<ol><li>Check notifications are on for CoachSmart in your phone's <b>Settings</b>.</li><li>Make sure you're signed in. Sign out and back in to refresh your phone's connection.</li><li>Update the app to the latest version.</li><li>Check you're on the team: the event should appear on your home screen.</li></ol><p>Still nothing? Contact us and tell us your phone type and team.</p>`},
+ {id:'bell', s:'alerts', a:'a', q:'Where can I see my notifications?', k:'bell notifications list read unread',
+  b:`<p>Tap the bell at the top of the home screen. Tap a notification to open the event. Press and hold, or use the menu, to mark one as read or unread.</p>`},
+ {id:'coach-alerts', s:'alerts', a:'c', q:'Can I choose which reply changes I hear about?', k:'admin alerts change of attendance notify coach',
+  b:`<p>Yes, for each event. Open it, tap the menu (⋮), then <b>Admin Options</b>. Choose to be told about <b>all attendance changes</b>, or only when someone <b>changes</b> a reply they've already given. You're never told about your own replies.</p>`},
+
+ // Running your team
+ {id:'create-event', s:'coach', a:'c', q:'How do I add training or a match?', k:'create add event training match fixture',
+  b:`<p>Tap <b>Add Event</b> on the home screen. Pick the team, event type, code, date and time, and location. Add the meeting time, opposition, notes or an image if you want. Choose who sees it (the whole team or one squad) and whether you need replies, then tap <b>Create Event</b>. Everyone gets a notification.</p>`},
+ {id:'recurring', s:'coach', a:'c', q:'Can I set up weekly training once?', k:'recurring weekly every week repeat series',
+  b:`<p>Yes. When adding the event, switch on <b>Recurring Event</b>, choose <b>Every Week</b> or <b>Every Second Week</b>, and set the number of weeks (up to 12). Each session is then its own event, so you can change or cancel one without touching the rest.</p>`},
+ {id:'edit-event', s:'coach', a:'c', q:'How do I change or cancel an event?', k:'edit change cancel delete event',
+  b:`<p>Open the event, tap the menu (⋮) and choose <b>Edit Event</b>. Change what you need and tap <b>Update Event</b>. <b>Cancel Event</b> keeps it on everyone's list marked as cancelled. <b>Delete Event</b> removes it completely, so only use it for mistakes.</p>`},
+ {id:'send-reminder', s:'coach', a:'c', q:'How do I remind people who haven\'t replied?', k:'send reminder chase replies',
+  b:`<p>Reminders go out automatically before each event. To send one now, open the event, tap the menu (⋮), then <b>Admin Options</b> and <b>Send Event Reminder</b>. It only goes to people who haven't replied.</p>`},
+ {id:'who-coming', s:'coach', a:'c', q:"How do I see who's coming?", k:'attendance list who is coming going declined no response',
+  b:`<p>Open the event and look at the attendance numbers. Tap them to see who has accepted, declined, or not replied yet, grouped by squad.</p>`+IMG(['accepted','Replies update live, so you can watch the numbers change in the hour before training.'])},
+ {id:'requests', s:'coach', a:'c', q:'How do I approve people who want to join?', k:'approve pending requests join new members shared access',
+  b:`<p>You get a notification for every request. Tap <b>Approve</b> or <b>Decline</b> there, or open <b>Teams</b> and then <b>Pending Requests</b> to see them all. <b>New Members</b> are people joining the team. <b>Shared Access</b> is a parent asking to link to a player who's already on the team.</p>`},
+ {id:'members', s:'coach', a:'c', q:'How do I manage my team list?', k:'team members roster roles remove member export',
+  b:`<p>Open <b>Teams</b>, pick the team, and tap a member to see their details, roles, linked parents and stats. From there you can change their roles or remove them from the team. Use the team menu to export the team list.</p>`},
+ {id:'squads', s:'coach', a:'c', q:'What are squads?', k:'squads panel a b c groups',
+  b:`<p>Squads split a big panel into groups, for example A, B and C, each with its own colour. You can send an event to just one squad, and see attendance and game time per squad. Players can be in a different squad for each code, for example football and hurling.</p>`},
+
+ // Matchday
+ {id:'pick-teams', s:'match', a:'c', q:'How do I pick teams from the players who said yes?', k:'pick teams split lineup publish export google sheets team selector',
+  b:`<p>Open the event's attendance list and put the players who accepted into colour-coded teams. When you're happy, tap <b>Publish Teams</b> so the panel can see them, or <b>Export Teams</b> to CSV, Excel or Google Sheets.</p>`+IMG(['squads','Use the line-up to put players into positions on the pitch.'])},
+ {id:'teamsheet', s:'match', a:'c', tag:'If your team has it', q:'How do I make a teamsheet for the referee?', k:'teamsheet referee pdf lineup',
+  b:`<p>Set your line-up in the team selector, then tap <b>Teamsheet</b>. You get the official layout with your players in position, ready to share or print as a PDF.</p>`},
+ {id:'score-keeper', s:'match', a:'c', q:'How do I keep the score?', k:'score keeper scorekeeper timer clock match stats',
+  b:`<p>Open the match, tap the menu (⋮) and choose <b>Score Keeper</b>. Start the clock at throw-in. Tap the buttons to add goals, points and wides for either side, and name the scorer if you want. The clock runs through each half and stops itself at the end. At full time it asks you to check the score against the referee's.</p>`+IMG(['sk-tap','Tapped a score by mistake? Use Undo, or tap it in the recent list to change it.'])},
+ {id:'offline', s:'match', a:'c', q:'What happens if I lose signal during a match?', k:'offline no signal internet lost connection',
+  b:`<p>Keep scoring. Every score is saved on your phone first and sent when the signal comes back, with nothing lost or doubled. The screen stays awake while the score keeper is open.</p>`},
+ {id:'voice-score', s:'match', a:'c', tag:'If your team has it', q:'Can I keep the score by voice?', k:'voice mic scoring speak',
+  b:`<p>Yes. Switch the score keeper to <b>Voice</b>, hold the mic and say, for example, "Point, Cian" or "Goal for them". It knows your squad's names and shows what it heard before saving.</p>`+IMG(['sk-voice','Hold, speak, check the words. Every mic in CoachSmart works the same way.'])},
+ {id:'follow-live', s:'match', a:'a', q:'How do I follow a match live?', k:'live match follow watch score alerts',
+  b:`<p>When a coach starts the score keeper, the match goes live for the club. Open <b>Matches</b> from the menu, or the match from your home screen, to watch the clock, the score and every score as it happens.</p>`+IMG(['lm-live','The chart shows who was ahead through the match.'])},
+ {id:'live-alerts', s:'match', a:'a', q:'Can I get an alert for every score?', k:'live alerts bell notifications goals half time full time',
+  b:`<p>Tap the bell on the live match to follow it. You start with an alert for every score. Tap the bell again to switch to goals only, or just half time and full time, or to stop. You only get alerts for matches you follow yourself.</p>`+IMG(['lm-alerts','Choose how much you hear about each match.'])},
+ {id:'share-live', s:'match', a:'a', q:"Can family outside the club watch?", k:'share link family grandparents public',
+  b:`<p>Yes. Tap <b>Share</b> on the live match to send a link. Anyone can open it in a browser without the app. Players' names are hidden on the shared link.</p>`},
+ {id:'match-report', s:'match', a:'c', q:'How do I write a match report?', k:'match report write voice summary email',
+  b:`<p>Open the match, tap the menu (⋮) and choose <b>Match Report</b>. Pick the squad and opposition, then type it, or hold the mic and talk it through. CoachSmart tidies it up but keeps your own words. Save it and the report goes out by email. Other coaches on the team can read every report for the match.</p>`},
+ {id:'match-stats', s:'match', a:'c', q:'Where are the match stats?', k:'match stats chart timeline scorers',
+  b:`<p>Open the match, tap the menu (⋮) and choose <b>Match Stats</b>. You'll see the score, a chart of who was ahead, and a timeline of every score, ready to share as a PDF.</p>`+IMG(['sk-ft','The full-time summary is ready as soon as the final whistle goes.'])},
+
+ // Planning
+ {id:'library', s:'plan', a:'c', q:"Where's the drill library?", k:'drills games library resources warm ups',
+  b:`<p>Tap <b>Resources</b>. Warm-ups, drills and games are sorted by age and code, each with a diagram and, where there is one, a video. Tap the heart to add one to your <b>Favourites</b>.</p>`},
+ {id:'add-drill', s:'plan', a:'c', q:'Can I add my own drills?', k:'add own drill upload photo sketch diagram',
+  b:`<p>Yes. In Resources, tap to add a drill. Take a photo of it, sketch it, or describe it by voice. CoachSmart writes it up and draws a clean diagram for your club's library.</p>`+IMG(['add-drill','A rough sketch becomes a tidy diagram.'])},
+ {id:'session-plan', s:'plan', a:'c', tag:'If your team has it', q:'How do I make a session plan?', k:'session plan ai planner training plan',
+  b:`<ol><li>Open <b>Favourites</b> and pick the drills you want, up to 10, in the order you want them.</li><li>Set the length and say what you want to focus on.</li><li>CoachSmart builds a full plan with timings, stations and coaching points, and checks the weather.</li></ol><p>Want a change? Type it or say it, for example "make the warm-up 15 minutes".</p>`+IMG(['plan-build','You can also open the planner from a training event, so the plan is saved with it.'])},
+ {id:'share-plan', s:'plan', a:'c', q:'Can I share a plan with the other coaches?', k:'share plan club plans other coaches',
+  b:`<p>Yes. Save the plan and share it with the club, and it appears under <b>Club Plans</b> for every coach. Your own plans stay under <b>My Plans</b>.</p>`},
+ {id:'pdf', s:'plan', a:'c', q:'Can I print a plan or drill cards?', k:'pdf print share cards',
+  b:`<p>Yes. Plans and drill cards export as PDFs in your club's colours with your crest. Choose A4 for printing or the phone version for sharing in WhatsApp.</p>`+IMG(['plan-pdf','Each drill gets its own card with steps, diagram and a video QR code.'])},
+
+ // Stats & scouting
+ {id:'player-record', s:'stats', a:'c', q:"How do I see a player's attendance record?", k:'player record attendance history stats',
+  b:`<p>Open <b>Analytics</b>, or tap a player in your team list and then <b>Statistics</b>. You'll see training and matches month by month and their last ten events at a glance.</p>`+IMG(['player','Spot the players drifting away before they stop coming.'])},
+ {id:'game-time', s:'stats', a:'c', q:"How do I check who's getting game time?", k:'fair game time picked not picked squads',
+  b:`<p>In <b>Analytics</b>, the Squads view shows every squad place across the season, by squad and by month, including who hasn't been picked yet. Download it as a PDF or Excel.</p>`+IMG(['squad-chart','Find the player who hasn\'t had a game yet.'])},
+ {id:'scouting', s:'stats', a:'c', tag:'If your team has it', q:'What is a scouting report?', k:'scouting opposition report results',
+  b:`<p>Before a match, managers can build a report on the opposition from this season's results: their form, home and away record, margins, results against the same teams, and league tables. Add your own notes, by typing or voice, and share it as a PDF. Notes are shared with the other managers at your club.</p>`},
+
+ // Account
+ {id:'edit-profile', s:'account', a:'a', q:'How do I change my name or default club?', k:'edit profile name details default club',
+  b:`<p>Tap <b>Profile</b>, change your details, and tap <b>Update User Details</b>.</p>`},
+ {id:'password', s:'account', a:'a', q:'I forgot my password', k:'forgot password reset login sign in',
+  b:`<p>On the sign-in screen, tap <b>Forgot password</b> and enter your email. We'll send you a link to set a new one. Check your spam folder if it doesn't arrive.</p>`},
+ {id:'leave', s:'account', a:'a', q:'How do I leave a team?', k:'leave team remove myself stop',
+  b:`<p>Open <b>Teams</b>, tap the member (you or your child) and choose <b>Leave this Team</b>. You'll stop getting that team's events.</p>`},
+ {id:'delete', s:'account', a:'a', q:'How do I delete my account?', k:'delete account remove data gdpr privacy',
+  b:`<p>Tap <b>Profile</b>, then <b>Delete Account</b>, and follow the steps. You won't be able to sign in afterwards. Your club keeps its own team records, such as past attendance and match reports. To have your name and email erased too, email <a href="mailto:privacy@coachsmart.app">privacy@coachsmart.app</a>. See <a href="/data-deletion.html">data deletion</a> for more.</p>`}
+];
+const POPULAR = ['join-child','reply','no-push','change','follow-live'];
+
+const $ = s => document.querySelector(s);
+const inApp = document.documentElement.classList.contains('app');
+let who = 'all';
+
+function render(){
+  $('#chips').innerHTML = POPULAR.map(id => { const x = QA.find(q => q.id === id); return `<a href="#${id}">${short(id, x.q)}</a>`; }).join('');
+  $('#grid').innerHTML = TOPICS.map(t => `<a class="topic" href="#t-${t.id}"><div class="ic">${t.ic}</div><h3>${t.t}</h3><p>${t.d}</p><span class="n" data-n="${t.id}"></span></a>`).join('');
+  $('#sections').innerHTML = TOPICS.map(t => `<section class="section" id="t-${t.id}"><h2>${t.t}</h2>${QA.filter(q => q.s === t.id).map(q =>
+    `<details class="qa" id="${q.id}" data-a="${q.a}"><summary><span>${q.q}${q.tag ? `<span class="tag">${q.tag.toUpperCase()}</span>` : ''}</span><span class="chev">›</span></summary><div class="body">${q.b}</div></details>`).join('')}</section>`).join('');
+}
+function short(id, q){ return ({'join-child':"Join my child's team",'reply':'Reply to an event','no-push':'Not getting notifications','change':'Change my reply','follow-live':'Follow a match live'})[id] || q; }
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ');
+
+function filter(){
+  const words = norm($('#q').value).split(/\s+/).filter(w => w.length > 1);
+  document.body.classList.toggle('searching', words.length > 0);
+  $('#searchBox').classList.toggle('has', $('#q').value.length > 0);
+  let shown = 0;
+  QA.forEach(x => {
+    const el = document.getElementById(x.id);
+    const hay = norm(x.q + ' ' + x.k + ' ' + el.querySelector('.body').textContent);
+    const ok = (who === 'all' || x.a === 'a' || x.a === who) && words.every(w => hay.includes(w));
+    el.style.display = ok ? '' : 'none';
+    if (ok) shown++;
+  });
+  TOPICS.forEach(t => {
+    const n = QA.filter(x => x.s === t.id && document.getElementById(x.id).style.display !== 'none').length;
+    document.getElementById('t-' + t.id).style.display = n ? '' : 'none';
+    const c = document.querySelector(`[data-n="${t.id}"]`); c.textContent = n + (n === 1 ? ' answer ›' : ' answers ›');
+    c.parentElement.style.display = n ? '' : 'none';
+  });
+  $('#empty').style.display = shown ? 'none' : 'block';
+  if (shown === 1) QA.forEach(x => { const el = document.getElementById(x.id); if (el.style.display !== 'none') el.open = true; });
+}
+function openHash(){
+  const id = decodeURIComponent(location.hash.slice(1));
+  const el = id && document.getElementById(id);
+  if (el && el.tagName === 'DETAILS'){ el.style.display = ''; el.open = true; setTimeout(() => el.scrollIntoView({behavior:'smooth', block:'start'}), 50); }
+}
+
+render();
+const p = new URLSearchParams(location.search);
+if (p.get('who') === 'p' || p.get('who') === 'c'){ who = p.get('who'); document.querySelectorAll('#who button').forEach(b => b.classList.toggle('on', b.dataset.w === who)); }
+filter(); openHash();
+window.addEventListener('hashchange', openHash);
+$('#q').addEventListener('input', filter);
+$('#clr').onclick = () => { $('#q').value = ''; filter(); $('#q').focus(); };
+$('#who').onclick = e => { const b = e.target.closest('button'); if (!b) return; who = b.dataset.w; document.querySelectorAll('#who button').forEach(x => x.classList.toggle('on', x === b)); filter(); };
+
+// In the app, links that leave the page open outside the webview, and Back closes the screen.
+function bridge(m){ try { window.FlutterBridge.postMessage(m); return true; } catch(e){ return false; } }
+$('#back').onclick = () => { if (!bridge('close')) history.back(); };
+if (inApp){
+  $('#contactBtn').href = 'mailto:hello@coachsmart.app';
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href]'); if (!a) return;
+    const h = a.getAttribute('href');
+    if (h.startsWith('#')) return;
+    const url = new URL(h, location.href).href;
+    if (bridge('openUrl:' + url)) e.preventDefault();
+  });
+}
+</script>
+</body>
+</html>
