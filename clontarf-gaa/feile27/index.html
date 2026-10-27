@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Féile 2027 Diary · Clontarf Girls 2012</title>
+<meta name="description" content="What to do today: training, home sessions, food and sleep for the Clontarf 2012 girls on the road to Féile 2027.">
+<meta property="og:title" content="Féile 2027 Diary · Clontarf Girls 2012">
+<meta property="og:description" content="Your plan for today, every day until Féile.">
+<meta property="og:image" content="https://coachsmart.app/clontarf-gaa/images/clontarf-crest.png">
+<meta property="og:type" content="website">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1B3A6B">
+<link rel="icon" href="../images/clontarf-crest.png">
+<link rel="apple-touch-icon" href="../images/clontarf-crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="feile27.css">
+</head>
+<body>
+<header class="hero">
+  <div class="hero-in">
+    <img src="../images/clontarf-crest.png" alt="Clontarf GAA crest">
+    <div class="ht">
+      <div class="club">Clontarf GAA · Girls 2012</div>
+      <h1>Road to Féile</h1>
+      <div class="codes"><span>Football</span><span>Camogie</span><span id="phase"></span></div>
+    </div>
+    <div class="count"><b id="count"></b><span id="count-label"></span></div>
+  </div>
+</header>
+
+<nav class="strip" aria-label="Choose a day">
+  <div class="strip-in">
+    <div class="sh">
+      <button id="prev" aria-label="Previous week">‹</button>
+      <span id="week-label"></span>
+      <button id="next" aria-label="Next week">›</button>
+      <button id="today">Today</button>
+    </div>
+    <div id="days" class="days"></div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div id="day"></div>
+  <section class="card">
+    <h2>This week</h2>
+    <div id="week" class="weeklist"></div>
+  </section>
+  <section class="card key">
+    <span class="k-team">⚑ Team training</span><span class="k-snc">◆ Group S&amp;C</span><span class="k-match">★ Match</span><span class="k-home">⌂ Home session</span><span class="k-food">● Food</span><span class="k-rest">☾ Rest</span>
+  </section>
+  <p class="foot">Ticks are saved on this phone only. Team sessions and matches will update from CoachSmart.</p>
+</main>
+
+<script src="plan.js"></script>
+<script src="diary.js"></script>
+</body>
+</html>
