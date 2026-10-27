@@ -66,60 +66,20 @@
     const weekend = dow(d) >= 6 || !!hol;
     const sess = code && code !== 'rest' && code !== 'off' ? sessionFor(code, phase.key) : null;
     const items = [];
-    const food = (t, title, detail) => items.push({ t, kind: 'food', title, detail });
 
     if (code === 'feile') {
-      food('07:30', 'Breakfast, 3 hours before the first game', 'Porridge or cereal with milk, toast, a banana, water');
       items.push({ t: '09:30', kind: 'match', title: 'Féile games', detail: 'Warm up with the team. Be proud of all the work you did.' });
-      food('Between games', 'Small and often', 'Water every break. Banana, rice cakes, jam sandwich, jelly sweets if games are close together');
-      food('After the last game', 'Recover', 'Milk or yogurt drink and a proper meal within the hour');
       return { d, phase, hol, team, code, items, tags: [{ k: 'match', t: 'Féile' }] };
     }
 
-    const match = team.find(e => e.kind === 'match');
-    const evening = team.find(e => e.kind !== 'match' && mins(e.start) >= 16 * 60);
-    const morning = team.find(e => e.kind !== 'match' && mins(e.start) < 13 * 60);
-
-    if (match) {
-      const s = mins(match.start);
-      food(hhmm(s - 180), 'Breakfast, 3 hours before', 'Porridge, cereal or toast with eggs. Water or milk');
-      food(hhmm(s - 75), 'Small snack', 'Banana or a slice of toast with honey. Sip water');
-      items.push({ t: match.start, end: match.end, kind: 'match', title: match.title, detail: match.detail });
-      food(hhmm(s + 90), 'Recovery', 'Milk or yogurt drink plus a sandwich within an hour, then a good lunch');
-    } else if (morning) {
-      food('08:00', 'Breakfast', 'Porridge or cereal with milk and fruit');
-      items.push({ t: morning.start, end: morning.end, kind: morning.kind, title: morning.title, detail: morning.detail });
-      food(hhmm(mins(morning.end) + 30), 'Lunch', 'Carbs plus protein: pasta, a wrap or a toastie with milk');
-    } else {
-      food(weekend ? '09:00' : '07:30', 'Breakfast', weekend ? 'Eggs on toast, porridge or pancakes with fruit' : 'Porridge or cereal with milk. Never skip it');
-      if (!weekend) food('10:45', 'Break-time snack', 'Fruit, yogurt or a cereal bar');
-      if (!(weekend && sess && !evening)) food('13:00', 'Lunch', 'Sandwich or wrap with chicken, tuna, egg or cheese, plus fruit');
-    }
-
-    if (evening) {
-      const s = mins(evening.start), e = mins(evening.end);
-      food(hhmm(s - 180), 'Main fuel, 3 hours before', 'A proper meal or big snack: pasta, a wrap, beans on toast');
-      food(hhmm(s - 60), 'Top-up snack', 'Banana, toast with honey or a scone. Fill your water bottle');
-      items.push({ t: evening.start, end: evening.end, kind: evening.kind, title: evening.title, detail: evening.detail });
-      food(hhmm(e + 30), 'Recovery dinner', 'Within an hour: protein plus carbs, e.g. chicken, rice and veg, then milk or yogurt');
-    } else if (sess) {
-      const at = match ? mins(match.start) + 240 : weekend ? 11 * 60 : 17 * 60;
-      if (!weekend && !match) food('16:00', 'After-school snack', 'Toast, yogurt and fruit, about an hour before the session');
-      if (weekend && !match) food('10:15', 'Small snack', 'Fruit or a yogurt');
+    team.forEach(e => items.push({ t: e.start, end: e.end, kind: e.kind, title: e.title, detail: e.detail }));
+    if (sess) {
+      const at = weekend ? 11 * 60 : 17 * 60;
       items.push({ t: hhmm(at), end: hhmm(at + sess.mins), kind: 'home', title: sess.name, detail: sess.sub, session: sess });
-      if (weekend && !match) food('13:00', 'Lunch', 'Carbs plus protein: pasta, a wrap or a toastie');
-      food('18:30', 'Dinner', 'Protein, carbs and veg. A glass of milk');
-    } else {
-      if (!weekend && !match) food('16:00', 'After-school snack', 'Fruit and a yogurt or toast');
-      food('18:30', 'Dinner', 'Protein, carbs and two colours of veg');
     }
-
     if (code === 'rest' || code === 'off') {
       items.push({ t: 'Any time', kind: 'rest', title: code === 'off' ? 'Day off' : 'Rest day', detail: code === 'off' ? 'No training at all. Enjoy Christmas with your family.' : 'Recovery is training too. A walk or a cycle is fine.' });
     }
-
-    items.push({ t: '21:30', kind: 'habit', title: '5-minute stretch', detail: 'Hips, hamstrings, calves' });
-    items.push({ t: '22:00', kind: 'habit', title: 'Lights out', detail: 'Aim for 9 hours sleep' });
 
     const order = t => /^\d\d:\d\d$/.test(t) ? mins(t) : t === 'Any time' ? -1 : 9999;
     items.sort((a, b) => order(a.t) - order(b.t));
@@ -151,7 +111,7 @@
   // ---- drawing ----
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const ICON = { team: '⚑', snc: '◆', match: '★', home: '⌂', food: '●', rest: '☾', habit: '✓' };
+  const ICON = { team: '⚑', snc: '◆', match: '★', home: '⌂', rest: '☾' };
   let current = clamp(new URLSearchParams(location.search).get('d') || todayIso());
   const openSessions = new Set();
 
@@ -210,9 +170,10 @@
         <div class="ev"><div class="ic">${ICON[it.kind] || '•'}</div><div class="tx">
           <div class="tt">${esc(it.title)}${it.session ? ` <span class="mins">${it.session.mins} min</span>` : ''}</div>
           ${it.detail ? `<div class="td">${esc(it.detail)}</div>` : ''}
-          ${it.session ? `<button class="more" data-open="${d}">${open ? 'Hide the session' : 'Show the session'}</button>${open ? `<div class="sess">${sessionHtml(d, it.session, id)}</div>` : ''}` : ''}
+          ${it.session ? `<button class="more" data-open="${d}">${open ? 'Hide the session' : 'Show the session'}</button>` : ''}
         </div>
         ${id ? `<label class="chk" title="Done"><input type="checkbox" data-tick="${id}" ${ticked(d, id) ? 'checked' : ''}><span></span></label>` : ''}</div>
+        ${open ? `<div class="sess">${sessionHtml(d, it.session, id)}</div>` : ''}
       </li>`;
     }).join('');
 
@@ -233,7 +194,9 @@
       <section class="card"><h2>Every day</h2>
         ${F.HABITS.map(h => `<label class="hab"><input type="checkbox" data-tick="h:${h.id}" ${ticked(d, 'h:' + h.id) ? 'checked' : ''}><span><b>${esc(h.n)}</b><small>${esc(h.d)}</small></span></label>`).join('')}
       </section>
-      <section class="card food"><h2>Food focus: ${esc(tip.t)}</h2><p>${esc(tip.d)}</p></section>`;
+      <section class="card food"><h2>Eating well</h2><p class="tip">${esc(tip)}</p>
+        <details><summary>What good eating looks like</summary><ul>${F.EATING.map(x => `<li><b>${esc(x.t)}.</b> ${esc(x.d)}</li>`).join('')}</ul></details>
+      </section>`;
   }
 
   function weekView() {

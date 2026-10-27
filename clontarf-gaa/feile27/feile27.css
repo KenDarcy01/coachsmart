@@ -115,7 +115,7 @@ button { font: inherit; cursor: pointer; }
 .row.k-habit .tt { font-weight: 500; }
 
 .more { margin-top: 6px; border: 1px solid var(--navy); background: none; color: var(--navy); border-radius: 8px; padding: 4px 10px; font-family: var(--heading-font); font-size: 13px; letter-spacing: .05em; text-transform: uppercase; }
-.sess { margin-top: 10px; }
+.sess { grid-column: 1 / -1; padding: 2px 0 8px; }
 .block { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: #fff; }
 .bh { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--heading-font); }
 .bh b { font-weight: 600; color: var(--navy); text-transform: uppercase; letter-spacing: .04em; font-size: 14px; }
@@ -144,6 +144,14 @@ button { font: inherit; cursor: pointer; }
 .card.ch h2 { color: var(--red-dark); }
 .card.food { border-left: 5px solid var(--food); }
 .card.food h2 { color: var(--food); }
+.card.food .tip { font-size: 15px; }
+.card.food details { margin-top: 10px; border-top: 1px solid var(--line); }
+.card.food summary { cursor: pointer; padding: 10px 0 4px; font-weight: 600; color: var(--navy); list-style: none; display: flex; justify-content: space-between; }
+.card.food summary::-webkit-details-marker { display: none; }
+.card.food summary::after { content: '+'; color: var(--food); font-size: 20px; line-height: 1; }
+.card.food details[open] summary::after { content: '\2212'; }
+.card.food ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; }
+.card.food li { margin-bottom: 6px; }
 .hab { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); cursor: pointer; }
 .card h2 + .hab, .card p + .hab { border-top: 0; }
 .ch .hab { margin-top: 6px; }

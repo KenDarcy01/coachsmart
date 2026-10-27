@@ -142,17 +142,37 @@ window.FEILE = (function () {
     ] };
   }
 
+  // Aerobic base: easy running the girls can talk through, built up slowly.
+  // A high-level dual player already gets plenty of hard running at team
+  // sessions, so home runs stay easy until Competition prep.
   function conditioning(p) {
-    const sets = {
-      foundation: '2 x 6 min: 30 s hard run or skip, 30 s easy',
-      christmas: '2 x 6 min: 30 s hard run or skip, 30 s easy',
-      build: '3 x 6 min: 20 s sprint, 40 s jog, 10 burpees between sets',
-      sharp: '2 x 8 min match-shaped: 15 s sprint, 15 s jog, 30 s walk with a ball skill',
-      taper: '2 x 4 min: 15 s sprint, 45 s walk'
+    const runs = {
+      foundation: [
+        { n: 'Easy run, 20 minutes', d: 'Chat pace: you could hold a conversation. Effort 5 out of 10. New to running? 3 x 6 min with 1 min walks' },
+        { n: '4 strides of 60 m', d: 'Build to about 80% speed, walk back' }
+      ],
+      christmas: [
+        { n: 'Easy run, 25 minutes', d: 'Chat pace. A park loop, a parkrun or a run with family' },
+        { n: '4 strides of 60 m', d: 'Build to about 80% speed, walk back' }
+      ],
+      build: [
+        { n: 'Easy run, 10 minutes', d: 'Chat pace to warm into it' },
+        { n: 'Fartlek: 6 x 1 min steady, 1 min easy', d: 'Steady is effort 7 out of 10: breathing hard, still in control' },
+        { n: 'Easy run, 5 minutes', d: 'Bring it back down' }
+      ],
+      sharp: [
+        { n: 'Easy run, 8 minutes', d: 'Chat pace' },
+        { n: 'Match-shaped: 2 x 8 min', d: '15 s sprint, 15 s jog, 30 s walk with a ball skill on every walk. 3 min rest between' }
+      ],
+      taper: [
+        { n: 'Easy run, 12 minutes', d: 'Relaxed and smooth' },
+        { n: '4 strides of 60 m', d: 'Quick and tall, full walk back' }
+      ]
     };
-    return { title: 'Conditioning', mins: p === 'taper' ? 8 : 15, note: 'No garden? Skipping, high knees or step-ups on the stairs.', items: [
-      { n: 'Intervals', d: sets[p] || sets.foundation }
-    ] };
+    const long = p === 'foundation' || p === 'christmas' || p === 'build';
+    return { title: p === 'sharp' ? 'Match-shaped running' : 'Aerobic run', mins: p === 'taper' ? 14 : long ? 24 : 18,
+      note: 'Grass or a park path where you can, in proper runners. Sore shins, knees or heels: stop and tell a coach.',
+      items: runs[p] || runs.foundation };
   }
 
   function football(p) {
@@ -201,7 +221,7 @@ window.FEILE = (function () {
     const s = {
       A: { name: 'Home session A', sub: 'Strength + football', blocks: [WARMUP, strength(p), football(p), COOLDOWN] },
       B: { name: 'Home session B', sub: 'Speed + camogie', blocks: [WARMUP, speed(p), camogie(p), COOLDOWN] },
-      C: { name: 'Home session C', sub: 'Conditioning + dual skills', blocks: [WARMUP, conditioning(p), WALL21, COOLDOWN] },
+      C: { name: 'Home session C', sub: 'Aerobic run + dual skills', blocks: [WARMUP, conditioning(p), WALL21, COOLDOWN] },
       M: { name: 'Mobility', sub: '10 minutes, easy', blocks: [MOBILITY] },
       T: { name: 'Taper sharpener', sub: 'Short, fast, fresh', blocks: [WARMUP, speed('taper'), MATCHPREP] },
       P: { name: 'Match prep', sub: 'Light touches', blocks: [MATCHPREP] },
@@ -220,16 +240,27 @@ window.FEILE = (function () {
     { id: 'sleep', n: 'Lights out by 22:00', d: '9 hours sleep helps you grow and recover' }
   ];
 
-  const FOOD_TIPS = [
-    { t: 'Iron', d: 'Red meat, eggs, beans, lentils or fortified cereal today. Add an orange or peppers to help it absorb.' },
-    { t: 'Calcium', d: 'Three servings: milk, yogurt or cheese. Your bones are growing faster now than they ever will again.' },
-    { t: 'Carbs are fuel', d: 'Pasta, rice, potatoes, bread or wraps at every main meal on training days.' },
-    { t: 'Protein at every meal', d: 'Eggs at breakfast, chicken or tuna at lunch, meat, fish or beans at dinner.' },
-    { t: 'Colour', d: 'Aim for five colours of fruit and veg across the day.' },
-    { t: 'Snacks that work', d: 'Banana, toast with peanut butter, yogurt, a scone, crackers and cheese.' },
-    { t: 'Drinks', d: 'Water first. Skip energy drinks completely; they are not for under-16s.' },
-    { t: 'Breakfast', d: 'Never skip it. Porridge, cereal with milk, or eggs on toast.' }
+  // Eating well: principles, not menus. No dieting language.
+  const EATING = [
+    { t: 'Eat regularly', d: 'Three meals and a couple of snacks. Breakfast matters most on school days.' },
+    { t: 'Fuel before you play', d: 'Have a meal or a snack in the few hours before training or a match.' },
+    { t: 'Refuel after', d: 'Eat something within about an hour of finishing. A normal dinner counts.' },
+    { t: 'Build a mixed plate', d: 'Some carbs for energy, some protein to repair, and plenty of colour from fruit and veg.' },
+    { t: 'Drink water', d: 'Through the day, and bring a bottle to every session. Energy drinks are not for under-16s.' },
+    { t: 'Iron and calcium', d: 'Girls your age need lots of both: meat, eggs, beans and greens for iron; milk, yogurt and cheese for calcium.' },
+    { t: 'More, not less', d: 'Growing athletes need more food, not less. No diets or cutting out foods. Worried about food or your body? Talk to a parent or coach.' }
   ];
 
-  return { TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, FOOD_TIPS, session };
+  const FOOD_TIPS = [
+    'Big training week? Your body needs more fuel, so listen to your hunger.',
+    'Have a water bottle with you all day today.',
+    'Try to get a colourful plate at dinner.',
+    'A snack after school makes evening training feel easier.',
+    'Some protein at breakfast keeps you going until lunch.',
+    'Eat something within an hour of finishing training.',
+    'Sleep and food are when you get fitter. Training is just the start.',
+    'Fruit is the easiest snack there is. Grab one on the way out.'
+  ];
+
+  return { TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session };
 })();
