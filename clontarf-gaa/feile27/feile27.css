@@ -1,4 +1,5 @@
 :root {
+  --run: #2B6CB0;
   --red: #ED1B2E;
   --red-dark: #C6101F;
   --navy: #1B3A6B;
@@ -182,3 +183,12 @@ button { font: inherit; cursor: pointer; }
   .hero h1 { font-size: 36px; }
   .hero img { width: 66px; height: 66px; }
 }
+
+/* Runs */
+.dot.k-run { background: var(--run); }
+.day.on .dot.k-run { background: #9EC5F0; }
+.tag.k-run { background: #E8F1FB; color: var(--run); border-color: #BBD5F2; }
+.row.k-run .ic { background: var(--run); color: #fff; font-size: 12px; }
+.row.k-run .tt { color: var(--run); }
+.row.k-run { background: linear-gradient(90deg, rgba(43,108,176,.06), transparent); }
+.wl .k-run, .key .k-run { color: var(--run); }
