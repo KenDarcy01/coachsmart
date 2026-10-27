@@ -142,37 +142,40 @@ window.FEILE = (function () {
     ] };
   }
 
-  // Aerobic base: easy running the girls can talk through, built up slowly.
-  // A high-level dual player already gets plenty of hard running at team
-  // sessions, so home runs stay easy until Competition prep.
-  function conditioning(p) {
-    const runs = {
-      foundation: [
-        { n: 'Easy run, 20 minutes', d: 'Chat pace: you could hold a conversation. Effort 5 out of 10. New to running? 3 x 6 min with 1 min walks' },
-        { n: '4 strides of 60 m', d: 'Build to about 80% speed, walk back' }
-      ],
-      christmas: [
-        { n: 'Easy run, 25 minutes', d: 'Chat pace. A park loop, a parkrun or a run with family' },
-        { n: '4 strides of 60 m', d: 'Build to about 80% speed, walk back' }
-      ],
-      build: [
-        { n: 'Easy run, 10 minutes', d: 'Chat pace to warm into it' },
-        { n: 'Fartlek: 6 x 1 min steady, 1 min easy', d: 'Steady is effort 7 out of 10: breathing hard, still in control' },
-        { n: 'Easy run, 5 minutes', d: 'Bring it back down' }
-      ],
-      sharp: [
-        { n: 'Easy run, 8 minutes', d: 'Chat pace' },
-        { n: 'Match-shaped: 2 x 8 min', d: '15 s sprint, 15 s jog, 30 s walk with a ball skill on every walk. 3 min rest between' }
-      ],
-      taper: [
-        { n: 'Easy run, 12 minutes', d: 'Relaxed and smooth' },
-        { n: '4 strides of 60 m', d: 'Quick and tall, full walk back' }
-      ]
-    };
-    const long = p === 'foundation' || p === 'christmas' || p === 'build';
-    return { title: p === 'sharp' ? 'Match-shaped running' : 'Aerobic run', mins: p === 'taper' ? 14 : long ? 24 : 18,
-      note: 'Grass or a park path where you can, in proper runners. Sore shins, knees or heels: stop and tell a coach.',
-      items: runs[p] || runs.foundation };
+  // Aerobic base: two runs a week of their own, built up a little each week.
+  // Thursday is the shorter run, Saturday the longer one. Easy means chat
+  // pace: high-level dual players get their hard running at team sessions,
+  // so the base comes from easy minutes, not from more sprints.
+  const EASY = 'Chat pace: you can talk in full sentences. Effort 5 out of 10. Walk breaks are fine';
+  function run(day, p, week) {
+    const w = Math.max(0, week);
+    const pick = list => list.at(Math.min(w, list.length - 1));
+    const plan = {
+      thu: {
+        foundation: () => ({ mins: pick([15, 15, 18, 18, 20, 20, 20]), main: { n: 'Easy run', d: EASY } }),
+        christmas: () => ({ mins: 20, main: { n: 'Easy run', d: EASY } }),
+        build: () => ({ mins: 22, main: { n: 'Fartlek run', d: '8 min easy, then 6 x 1 min steady (effort 7) with 1 min easy, then 2 min easy' } }),
+        sharp: () => ({ mins: 24, main: { n: 'Match-shaped running', d: '8 min easy, then 2 x 8 min of 15 s sprint, 15 s jog, 30 s walk. 3 min easy between' } }),
+        taper: () => ({ mins: 15, main: { n: 'Easy run', d: 'Relaxed and smooth. Finish feeling fresh' } })
+      },
+      sat: {
+        foundation: () => ({ mins: pick([20, 22, 24, 26, 28, 30, 30]), main: { n: 'Long easy run', d: EASY } }),
+        christmas: () => ({ mins: 30, main: { n: 'Long easy run', d: 'Chat pace. A park loop, a parkrun or a run with family' } }),
+        build: () => ({ mins: pick([30, 32, 35, 35, 38, 40, 30]), main: { n: 'Long easy run', d: EASY } }),
+        sharp: () => ({ mins: 30, main: { n: 'Progression run', d: '20 min easy, then 10 min steady (effort 7). Still in control at the end' } }),
+        taper: () => ({ mins: pick([20, 15]), main: { n: 'Easy run', d: 'Relaxed. Shorter than usual on purpose' } })
+      }
+    }[day];
+    const r = (plan[p] || plan.foundation)();
+    const items = [
+      { n: 'Brisk walk and leg swings', d: '3 minutes to loosen up' },
+      { n: `${r.main.n}, ${r.mins} minutes`, d: r.main.d },
+      { n: '4 strides of 60 m', d: 'Build to about 80% speed, walk back' },
+      { n: 'Calf and hamstring stretch', d: '45 s each side' }
+    ];
+    const note = week >= 0 && p === 'foundation' && day === 'sat' && w > 0 && w < 6 ? `Week ${w + 1}: 2 minutes longer than last week.` : 'Grass or a park path where you can, in proper runners. Sore shins, knees or heels: stop and tell a coach.';
+    return { code: 'R', name: r.main.n, sub: `${r.mins} min${r.main.n.startsWith('Long') || r.main.n === 'Easy run' ? ' at chat pace' : ''}`, mins: r.mins + 6,
+      blocks: [{ title: 'Run', mins: r.mins + 6, note, items }] };
   }
 
   function football(p) {
@@ -221,7 +224,7 @@ window.FEILE = (function () {
     const s = {
       A: { name: 'Home session A', sub: 'Strength + football', blocks: [WARMUP, strength(p), football(p), COOLDOWN] },
       B: { name: 'Home session B', sub: 'Speed + camogie', blocks: [WARMUP, speed(p), camogie(p), COOLDOWN] },
-      C: { name: 'Home session C', sub: 'Aerobic run + dual skills', blocks: [WARMUP, conditioning(p), WALL21, COOLDOWN] },
+      C: { name: 'Home session C', sub: 'Dual skills after the run', blocks: [WALL21, COOLDOWN] },
       M: { name: 'Mobility', sub: '10 minutes, easy', blocks: [MOBILITY] },
       T: { name: 'Taper sharpener', sub: 'Short, fast, fresh', blocks: [WARMUP, speed('taper'), MATCHPREP] },
       P: { name: 'Match prep', sub: 'Light touches', blocks: [MATCHPREP] },
@@ -262,5 +265,5 @@ window.FEILE = (function () {
     'Fruit is the easiest snack there is. Grab one on the way out.'
   ];
 
-  return { TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session };
+  return { TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run };
 })();

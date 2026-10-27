@@ -45,7 +45,8 @@
     const matchTomorrow = loadTeamEvents(add(d, 1)).some(e => e.kind === 'match');
     switch (dow(d)) {
       case 4: return 'F';
-      case 5: return p === 'taper' ? 'T' : 'B';
+      // Match on Sunday: the long run moves to Friday so Saturday stays light.
+      case 5: return p === 'taper' ? 'T' : loadTeamEvents(add(d, 2)).some(e => e.kind === 'match') ? 'C' : 'B';
       case 6: return matchTomorrow ? 'P' : p === 'taper' ? 'T' : 'C';
       default: return 'rest';
     }
@@ -57,6 +58,20 @@
       return { code: 'F', name: 'Skills night', sub: 'Football wall ball + mobility', blocks: [a.blocks[2], F.session('M', p).blocks[0]], mins: 23 };
     }
     return F.session(code, p);
+  }
+
+  // ---- the run for a day, if there is one ----
+  function runFor(d, code, team, phase) {
+    if (team.length || !code) return null;
+    let day = null;
+    if (F.CHRISTMAS[d]) day = code === 'C' ? 'sat' : code === 'M' ? 'thu' : null;
+    else if (code === 'F') day = 'thu';
+    else if (code === 'C') day = 'sat';
+    else if (code === 'T' && dow(d) === 6) day = 'sat';
+    if (!day) return null;
+    const from = phase.from > F.PLAN_START ? phase.from : F.PLAN_START;
+    const week = Math.floor((parse(d) - parse(from)) / DAY / 7);
+    return F.run(day, phase.key, week);
   }
 
   // ---- the day's timeline ----
@@ -73,10 +88,13 @@
     }
 
     team.forEach(e => items.push({ t: e.start, end: e.end, kind: e.kind, title: e.title, detail: e.detail }));
-    if (sess) {
-      const at = weekend ? 11 * 60 : 17 * 60;
-      items.push({ t: hhmm(at), end: hhmm(at + sess.mins), kind: 'home', title: sess.name, detail: sess.sub, session: sess });
+    const run = runFor(d, code, team, phase);
+    let at = weekend ? 10 * 60 + 30 : 17 * 60;
+    if (run) {
+      items.push({ t: hhmm(at), end: hhmm(at + run.mins), kind: 'run', title: run.name, detail: run.sub, session: run });
+      at += run.mins + 10;
     }
+    if (sess) items.push({ t: hhmm(at), end: hhmm(at + sess.mins), kind: 'home', title: sess.name, detail: sess.sub, session: sess });
     if (code === 'rest' || code === 'off') {
       items.push({ t: 'Any time', kind: 'rest', title: code === 'off' ? 'Day off' : 'Rest day', detail: code === 'off' ? 'No training at all. Enjoy Christmas with your family.' : 'Recovery is training too. A walk or a cycle is fine.' });
     }
@@ -86,6 +104,7 @@
 
     const tags = [];
     team.forEach(e => tags.push({ k: e.kind, t: e.title }));
+    if (run) tags.push({ k: 'run', t: run.name });
     if (sess) tags.push({ k: 'home', t: sess.name });
     if (code === 'rest') tags.push({ k: 'rest', t: 'Rest' });
     if (code === 'off') tags.push({ k: 'rest', t: 'Day off' });
@@ -111,7 +130,7 @@
   // ---- drawing ----
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const ICON = { team: '⚑', snc: '◆', match: '★', home: '⌂', rest: '☾' };
+  const ICON = { team: '⚑', snc: '◆', match: '★', run: '➜', home: '⌂', rest: '☾' };
   let current = clamp(new URLSearchParams(location.search).get('d') || todayIso());
   const openSessions = new Set();
 
@@ -164,13 +183,14 @@
     const rows = plan.items.map(it => {
       const tickable = it.session || it.kind === 'team' || it.kind === 'snc' || it.kind === 'match';
       const id = tickable ? 'i:' + (tickIdx++) : null;
-      const open = it.session && openSessions.has(d);
+      const okey = d + ':' + id;
+      const open = it.session && openSessions.has(okey);
       return `<li class="row k-${it.kind}">
         <div class="tm">${esc(it.t)}${it.end ? `<small>${esc(it.end)}</small>` : ''}</div>
         <div class="ev"><div class="ic">${ICON[it.kind] || '•'}</div><div class="tx">
           <div class="tt">${esc(it.title)}${it.session ? ` <span class="mins">${it.session.mins} min</span>` : ''}</div>
           ${it.detail ? `<div class="td">${esc(it.detail)}</div>` : ''}
-          ${it.session ? `<button class="more" data-open="${d}">${open ? 'Hide the session' : 'Show the session'}</button>` : ''}
+          ${it.session ? `<button class="more" data-open="${okey}">${open ? 'Hide' : 'Show what to do'}</button>` : ''}
         </div>
         ${id ? `<label class="chk" title="Done"><input type="checkbox" data-tick="${id}" ${ticked(d, id) ? 'checked' : ''}><span></span></label>` : ''}</div>
         ${open ? `<div class="sess">${sessionHtml(d, it.session, id)}</div>` : ''}
@@ -206,7 +226,7 @@
       const d = add(mon, i);
       if (!within(d, F.VIEW_START, F.FEILE_END)) continue;
       const p = planDay(d);
-      const main = p.items.filter(x => ['team', 'snc', 'match', 'home', 'rest'].includes(x.kind));
+      const main = p.items.filter(x => ['team', 'snc', 'match', 'run', 'home', 'rest'].includes(x.kind));
       html += `<button class="wk${d === current ? ' on' : ''}" data-d="${d}"><span class="wd">${DOW[i].slice(0, 3)} ${+d.slice(8)}</span><span class="wl">${main.map(x => `<span class="k-${x.kind}">${ICON[x.kind]} ${esc(x.title)}${/^\d/.test(x.t) ? ' · ' + x.t : ''}</span>`).join('') || '<span class="k-rest">Rest</span>'}</span></button>`;
     }
     $('#week').innerHTML = html;
