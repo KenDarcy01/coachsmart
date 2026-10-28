@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Clontarf GAA Autumn Review</title>
+<title>Clontarf GAA Season Review</title>
 <link rel="icon" href="../images/clontarf-crest.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
   Printable: the browser's Print / Save as PDF gives a clean A4 report.
 
   URL options (all optional):
-    from=2026-07-01     first day counted (default 1 July of the current season)
+    from=2026-07-01     first day counted (default 1 January of the current year)
     to=2026-10-31       last day counted (default today)
     code=hurling        football | hurling | camogie | ladies
     age=U14             one age group (U12 … U16, Minor, U21, Adult)
@@ -272,12 +272,12 @@ table { border-collapse: collapse; width: 100%; }
   <div class="wrap">
     <img class="crest" src="../images/clontarf-crest.png" alt="Clontarf GAA crest">
     <div class="eyebrow">Cumann Chluain Tarbh</div>
-    <h1 id="title">Autumn <i>’26</i></h1>
+    <h1 id="title">Season <i>’26</i></h1>
     <div class="hero-line">Results Review</div>
     <div class="sub" id="sub">Every team, Under 12 to Adult</div>
     <div class="share no-print">
       <button type="button" class="share-btn" id="share-pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Share PDF</button>
-      <a class="share-link" href="Clontarf-Autumn-Results-2026.pdf" download>Download PDF</a>
+      <a class="share-link" href="Clontarf-Season-Results-2026.pdf" download>Download PDF</a>
     </div>
     <div class="share-msg" id="share-msg" role="status"></div>
   </div>
@@ -325,7 +325,7 @@ function dublinDay(d) {
   return `${p.year}-${p.month}-${p.day}`;
 }
 const TODAY = dublinDay(new Date());
-const SEASON_START = `${TODAY.slice(0, 4)}-07-01`;
+const SEASON_START = `${TODAY.slice(0, 4)}-01-01`;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const fmtDate = (day, year) => `${+day.slice(8, 10)} ${MONTHS[+day.slice(5, 7) - 1]}${year ? ' ' + day.slice(0, 4) : ''}`;
 const addDays = (day, n) => new Date(Date.parse(day + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
@@ -601,6 +601,25 @@ function render() {
     tablePos.set(cid, { pos, n: t.length, me: t[pos - 1] });
     if (t.length >= 6 && pos >= t.length - 1) bottom.push({ g, pos, n: t.length, me: t[pos - 1] });
   }
+  // League titles: a finished league (no fixtures left) with Clontarf clearly top of the table
+  const leagueWins = [];
+  for (const [cid, g] of leagueSeen) {
+    const rows = S.tables.get(cid) || [];
+    if (rows.some(r => r.status !== 'result' && r.home_team !== 'Bye' && r.away_team !== 'Bye')) continue;
+    const t = leagueTable(cid);
+    if (t.length < 3 || t[0].t !== CLUB_NAME || t[1].pts >= t[0].pts) continue;
+    const day = games.filter(x => x.comp_id === cid).map(x => x.day).sort().pop();
+    leagueWins.push({ g, day, me: t[0], n: t.length, lead: t[0].pts - t[1].pts });
+  }
+  leagueWins.sort((a, b) => a.day.localeCompare(b.day));
+  const nWins = titles.length + leagueWins.length;
+  const leagueLine = x => `<b>1st of ${x.n}</b> · ${x.me.w}–${x.me.d}–${x.me.l}, ${x.me.pts} pts, ${x.lead} clear`;
+  const leagueCards = leagueWins.map(x => `<li class="champ"><img src="${CREST}" alt="" class="champ-mark">`
+    + `<div class="champ-kicker">League winners</div><div class="champ-team">${esc(teamName(x.g))}</div>`
+    + `<div class="champ-comp">${esc(honourName(x.g))}</div><div class="champ-score">${leagueLine(x)}</div>`
+    + `<div class="champ-date">Top of the table · ${fmtDate(x.day, true)}</div></li>`).join('');
+  const leagueItems = leagueWins.map(x => `<li><div class="hi-team">${esc(teamName(x.g))}</div><div class="hi-comp">${esc(honourName(x.g))} · league winners</div>`
+    + `<div class="hi-score">${leagueLine(x)}</div></li>`).join('');
 
   const champCards = titles.map(g => `<li class="champ"><img src="${CREST}" alt="" class="champ-mark">`
     + `<div class="champ-kicker">Champions</div><div class="champ-team">${esc(teamName(g))}</div>`
@@ -650,9 +669,9 @@ function render() {
 
   app.innerHTML = `
     <section class="panel">
-      <div class="champions-head"><span class="champions-count">${titles.length}</span><div><h2>Competitions won</h2>
-        <p>${titles.length} title${titles.length === 1 ? '' : 's'} and ${runners.length} runners-up finish${runners.length === 1 ? '' : 'es'}${upcoming.length ? `, with ${upcoming.length} more final${upcoming.length === 1 ? '' : 's'} still to play` : ''}</p></div></div>
-      ${titles.length ? `<ul class="champ-list">${champCards}</ul>` : '<div class="none">No finals won in this selection yet.</div>'}
+      <div class="champions-head"><span class="champions-count">${nWins}</span><div><h2>Competitions won</h2>
+        <p>${nWins} title${nWins === 1 ? '' : 's'} and ${runners.length} runners-up finish${runners.length === 1 ? '' : 'es'}${upcoming.length ? `, with ${upcoming.length} more final${upcoming.length === 1 ? '' : 's'} still to play` : ''}</p></div></div>
+      ${nWins ? `<ul class="champ-list">${champCards}${leagueCards}</ul>` : '<div class="none">No competitions won in this selection yet.</div>'}
     </section>
 
     <section class="headline" aria-label="Totals">
@@ -671,7 +690,7 @@ function render() {
     <section class="panel honours-panel">
       <div class="block-title"><h2>Honours board</h2></div>
       <div class="honour-cols">
-        <section class="hcard hcard-win"><header><span class="hc-n">${titles.length}</span><h3>Winners</h3></header><ul>${titles.map(honourItem).join('') || '<li class="none">None yet</li>'}</ul></section>
+        <section class="hcard hcard-win"><header><span class="hc-n">${nWins}</span><h3>Winners</h3></header><ul>${titles.map(honourItem).join('') + leagueItems || '<li class="none">None yet</li>'}</ul></section>
         <section class="hcard hcard-ru"><header><span class="hc-n">${runners.length}</span><h3>Runners-up</h3></header><ul>${runners.map(honourItem).join('')}${dispHtml}${runners.length || dispHtml ? '' : '<li class="none">None</li>'}</ul></section>
         <section class="hcard hcard-rel"><header><span class="hc-n">0</span><h3>Relegated</h3></header>
           <p class="hc-note">No relegation has been confirmed. ${bottom.length ? `These ${bottom.length} teams are in the bottom two of their league table.` : 'No team is in the bottom two of its league.'}</p><ul>${bottomHtml}</ul></section>
@@ -683,7 +702,7 @@ function render() {
 
     <section class="about">
       <p>Every competitive game with a recorded result in the selected dates, from the fixtures and results that CoachSmart syncs nightly from the Dublin GAA, LGFA and Camogie fixtures systems. Scores are shown with Clontarf first, and margins are in points with a goal worth three.</p>
-      <p>Winners and runners-up come from finals with a recorded result. League positions are worked out from every recorded result in the division, so walkovers and unplayed games can move them. Every team from Under 12 to Adult is included. Under 8 to Under 11 play non-competitive Go Games with no results kept, so they are not in the figures.${walkovers ? ` ${walkovers} walkover${walkovers === 1 ? ' is' : 's are'} left out of the records.` : ''}</p>
+      <p>Winners and runners-up come from finals with a recorded result, plus finished leagues where Clontarf ended clear at the top of the table. League positions are worked out from every recorded result in the division, so walkovers and unplayed games can move them. Every team from Under 12 to Adult is included. Under 8 to Under 11 play non-competitive Go Games with no results kept, so they are not in the figures.${walkovers ? ` ${walkovers} walkover${walkovers === 1 ? ' is' : 's are'} left out of the records.` : ''}</p>
       <p class="updated">${updated} To save a PDF, use your browser's Print and choose Save as PDF.</p>
     </section>`;
 }
@@ -723,8 +742,8 @@ document.getElementById('ko').addEventListener('change', e => { S.ko = e.target.
 document.getElementById('reset').addEventListener('click', resetFilters);
 
 // Share the printed PDF through the phone's share sheet; download it where sharing files isn't supported
-const PDF_URL = 'Clontarf-Autumn-Results-2026.pdf';
-const PDF_NAME = 'Clontarf-Autumn-Results-2026.pdf';
+const PDF_URL = 'Clontarf-Season-Results-2026.pdf';
+const PDF_NAME = 'Clontarf-Season-Results-2026.pdf';
 let pdfFile = null;
 fetch(PDF_URL).then(r => r.ok ? r.blob() : null).then(b => { if (b) pdfFile = new File([b], PDF_NAME, { type: 'application/pdf' }); }).catch(() => {});
 function downloadPdf() {
@@ -738,7 +757,7 @@ document.getElementById('share-pdf').addEventListener('click', async () => {
   if (!pdfFile) { downloadPdf(); return; }
   if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
     try {
-      await navigator.share({ files: [pdfFile], title: 'Clontarf GAA · Autumn ’26 Results Review' });
+      await navigator.share({ files: [pdfFile], title: 'Clontarf GAA · Season ’26 Results Review' });
     } catch (e) {
       if (e.name !== 'AbortError') { downloadPdf(); msg.textContent = 'Sharing isn\'t available here, so the PDF has been downloaded instead.'; }
     }
