@@ -247,6 +247,78 @@ window.FEILE = (function () {
     { id: 'sleep', n: '9 hours sleep', d: 'Sleep is when you grow and recover. Phone out of the bedroom helps' }
   ];
 
+  // "Watch" links for each exercise and drill. Where the GAA's own Activate
+  // warm-up videos cover it, link those; otherwise a YouTube search worded to
+  // find a good demo (GAA coaching channels, physios), so links never go dead.
+  const ACTIVATE = {
+    run: 'https://ulster.gaa.ie/activate/training-videos/phase1/',
+    strength: 'https://ulster.gaa.ie/activate/training-videos/phase2/',
+    agility: 'https://ulster.gaa.ie/activate/training-videos/phase3/'
+  };
+  const WATCH = {
+    'Leg swings': { u: ACTIVATE.strength, by: 'GAA Activate' },
+    'Squat': { u: ACTIVATE.strength, by: 'GAA Activate' },
+    'Split squat': { u: ACTIVATE.strength, by: 'GAA Activate' },
+    'Plank': { u: ACTIVATE.strength, by: 'GAA Activate' },
+    'Plank hold': { u: ACTIVATE.strength, by: 'GAA Activate' },
+    'Side plank': { u: ACTIVATE.strength, by: 'GAA Activate' },
+    'Hamstrings': { u: ACTIVATE.strength, by: 'GAA Activate' },
+    'Jump and stick landing': { u: ACTIVATE.run, by: 'GAA Activate' },
+    'Footwork on a ladder or chalk line': { u: ACTIVATE.agility, by: 'GAA Activate' },
+    'Skip or jog on the spot': { q: 'skipping rope basics for beginners' },
+    'Walking lunge with a twist': { q: 'walking lunge with rotation exercise demo' },
+    'Inchworms': { q: 'inchworm exercise how to' },
+    'Glute bridges and clams': { q: 'glute bridge and clamshell exercise physio' },
+    'Pogo hops then 3 quick 5 m sprints': { q: 'pogo hops exercise youth athletes' },
+    'Push-up': { q: 'incline push up to full push up progression' },
+    'Glute bridge': { q: 'single leg glute bridge exercise physio' },
+    'Single-leg balance': { q: 'single leg balance exercise ACL prevention' },
+    '10 m sprints, different starts': { q: 'acceleration sprint starts drill youth' },
+    '10 m sprints': { q: 'acceleration sprint technique youth' },
+    '5-10-5 shuttle': { q: '5-10-5 pro agility shuttle how to' },
+    'Reactive sprint': { q: 'reactive agility drill youth athletes' },
+    'Standing broad jump': { q: 'standing broad jump test how to' },
+    "World's greatest stretch": { q: "world's greatest stretch how to" },
+    'Hip flexor stretch, half kneeling': { q: 'half kneeling hip flexor stretch physio' },
+    'Hamstring stretch': { q: 'hamstring stretch physio demo' },
+    'Calf stretch on a step': { q: 'calf stretch on a step' },
+    'Calf and hamstring stretch': { q: 'calf and hamstring stretch after running' },
+    'Thoracic rotations on all fours': { q: 'quadruped thoracic rotation exercise' },
+    'Wrist and forearm circles': { q: 'wrist mobility warm up' },
+    'Brisk walk and leg swings': { q: 'leg swings dynamic warm up runners' },
+    'Easy run': { q: 'easy running pace talk test explained' },
+    'Long easy run': { q: 'easy running pace talk test explained' },
+    'Fartlek run': { q: 'fartlek run explained beginners' },
+    'Progression run': { q: 'progression run explained' },
+    'Match-shaped': { q: 'GAA conditioning repeated sprint drill' },
+    'Match-shaped running': { q: 'GAA conditioning repeated sprint drill' },
+    '4 strides of 60 m': { q: 'running strides drill explained' },
+    'Hand-pass wall': { q: 'gaelic football hand pass technique wall' },
+    'High catch': { q: 'gaelic football high catch technique' },
+    'Kick and catch': { q: 'gaelic football kicking drill against wall' },
+    'Solo run': { q: 'gaelic football solo run technique' },
+    'Toe pick-up on the run': { q: 'ladies gaelic football toe pick up technique' },
+    'Shoot at the chalk square': { q: 'gaelic football shooting technique kick pass' },
+    'Hand passes and high catches off the wall': { q: 'gaelic football wall drills' },
+    'Free-kick and point routine': { q: 'gaelic football free kick routine technique' },
+    'Ground strike to wall': { q: 'camogie ground strike drill wall' },
+    'Pull and catch': { q: 'hurling wall ball strike and catch drill' },
+    'First-time overhead pull': { q: 'hurling overhead pull technique' },
+    'Jab lift and roll lift': { q: 'camogie jab lift roll lift technique' },
+    'Solo, sliotar on the hurl': { q: 'camogie solo run technique' },
+    'Point shooting': { q: 'camogie point scoring technique from hand' },
+    'Ground strikes and pull and catch': { q: 'hurling wall ball drills' },
+    'Football wall ball': { q: 'gaelic football hand pass technique wall' },
+    'Camogie wall ball': { q: 'hurling wall ball strike and catch drill' },
+    '100 touches': { q: 'hurling ball touches drill at home' },
+    'Alternate a football kick and a camogie strike at the chalk target': { q: 'GAA wall ball skills at home' }
+  };
+  function watch(name) {
+    const w = WATCH[name] || WATCH[name.split(',')[0]];
+    if (!w) return null;
+    return w.u ? { url: w.u, by: w.by } : { url: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(w.q), by: 'YouTube' };
+  }
+
   // Eating well: principles, not menus. No dieting language.
   const EATING = [
     { t: 'Eat regularly', d: 'Three meals and a couple of snacks. Breakfast matters most on school days.' },
@@ -269,5 +341,5 @@ window.FEILE = (function () {
     'Fruit is the easiest snack there is. Grab one on the way out.'
   ];
 
-  return { TEAM_CODE, TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run };
+  return { TEAM_CODE, TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run, watch };
 })();

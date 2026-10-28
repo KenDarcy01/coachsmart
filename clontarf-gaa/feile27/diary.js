@@ -217,10 +217,15 @@
     $('#next').disabled = add(mon, 7) > F.FEILE_END;
   }
 
+  function watchLink(name) {
+    const w = F.watch(name);
+    return w ? `<a class="watch" href="${esc(w.url)}" target="_blank" rel="noopener" title="${w.by === 'YouTube' ? 'YouTube videos' : 'GAA Activate videos'}">▶ Watch</a>` : '';
+  }
+
   function sessionHtml(d, sess, idx) {
     return sess.blocks.map((b, bi) => `<div class="block"><div class="bh"><b>${esc(b.title)}</b><span>${b.mins} min</span></div>
       ${b.note ? `<p class="bn">${esc(b.note)}</p>` : ''}
-      <ul>${b.items.map((x, xi) => { const id = `x:${idx}:${bi}:${xi}`; return `<li><label><input type="checkbox" data-tick="${id}" ${ticked(d, id) ? 'checked' : ''}><span><b>${esc(x.n)}</b><small>${esc(x.d)}</small></span></label></li>`; }).join('')}</ul></div>`).join('');
+      <ul>${b.items.map((x, xi) => { const id = `x:${idx}:${bi}:${xi}`; return `<li><label><input type="checkbox" data-tick="${id}" ${ticked(d, id) ? 'checked' : ''}><span><b>${esc(x.n)}</b><small>${esc(x.d)}</small></span></label>${watchLink(x.n)}</li>`; }).join('')}</ul></div>`).join('');
   }
 
   function dayView() {
