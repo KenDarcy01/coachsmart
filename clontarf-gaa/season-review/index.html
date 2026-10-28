@@ -58,6 +58,13 @@ b { font-weight: 600; }
 .hero-line { display: flex; align-items: center; gap: 14px; justify-content: center; font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: .28em; text-transform: uppercase; color: var(--blue); }
 .hero-line::before, .hero-line::after { content: ""; width: 64px; height: 2px; background: var(--red); }
 .hero .sub { color: var(--muted); font-size: 13px; margin-top: 10px; }
+.share { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.share-btn { appearance: none; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: var(--red); color: #fff; font: inherit; font-weight: 600; font-size: 15px; padding: 10px 20px; border-radius: 999px; }
+.share-btn svg { width: 18px; height: 18px; }
+.share-btn:hover { background: var(--red-deep); }
+.share-btn[disabled] { opacity: .6; cursor: progress; }
+.share-link { color: var(--blue); font-size: 14px; font-weight: 600; }
+.share-msg { min-height: 18px; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
 .hoops { height: 8px; background: linear-gradient(var(--red) 0 4px, #fff 4px 5px, var(--blue) 5px 8px); }
 
 /* ---------- filters ---------- */
@@ -268,6 +275,11 @@ table { border-collapse: collapse; width: 100%; }
     <h1 id="title">Autumn <i>’26</i></h1>
     <div class="hero-line">Results Review</div>
     <div class="sub" id="sub">Coiste na nÓg CCC2 · Under 13 to Under 16</div>
+    <div class="share no-print">
+      <button type="button" class="share-btn" id="share-pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Share PDF</button>
+      <a class="share-link" href="Clontarf-Autumn-Results-2026.pdf" download>Download PDF</a>
+    </div>
+    <div class="share-msg" id="share-msg" role="status"></div>
   </div>
   <div class="hoops"></div>
 </header>
@@ -701,6 +713,32 @@ document.getElementById('from').addEventListener('change', e => { if (isDay(e.ta
 document.getElementById('to').addEventListener('change', e => { if (isDay(e.target.value)) { S.to = e.target.value; update(); } });
 document.getElementById('ko').addEventListener('change', e => { S.ko = e.target.checked; update(); });
 document.getElementById('reset').addEventListener('click', resetFilters);
+
+// Share the printed PDF through the phone's share sheet; download it where sharing files isn't supported
+const PDF_URL = 'Clontarf-Autumn-Results-2026.pdf';
+const PDF_NAME = 'Clontarf-Autumn-Results-2026.pdf';
+let pdfFile = null;
+fetch(PDF_URL).then(r => r.ok ? r.blob() : null).then(b => { if (b) pdfFile = new File([b], PDF_NAME, { type: 'application/pdf' }); }).catch(() => {});
+function downloadPdf() {
+  const a = document.createElement('a');
+  a.href = PDF_URL; a.download = PDF_NAME;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+document.getElementById('share-pdf').addEventListener('click', async () => {
+  const msg = document.getElementById('share-msg');
+  msg.textContent = '';
+  if (!pdfFile) { downloadPdf(); return; }
+  if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+    try {
+      await navigator.share({ files: [pdfFile], title: 'Clontarf GAA · Autumn ’26 Results Review' });
+    } catch (e) {
+      if (e.name !== 'AbortError') { downloadPdf(); msg.textContent = 'Sharing isn\'t available here, so the PDF has been downloaded instead.'; }
+    }
+  } else {
+    downloadPdf();
+    msg.textContent = 'The PDF has been downloaded. You can share it from your downloads.';
+  }
+});
 
 renderFilters();
 Promise.all([load(), rpc('gaa_status').then(s => { S.status = s; }).catch(() => {})])
