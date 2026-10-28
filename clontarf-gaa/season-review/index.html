@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Clontarf GAA Autumn Review</title>
+<link rel="icon" href="../images/clontarf-crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  Season review for Clontarf: competition wins, honours, results by age group and the full detail,
+  read live from the CoachSmart season store (gaa_games, topped up nightly from Sportlomo).
+  Printable: the browser's Print / Save as PDF gives a clean A4 report.
+
+  URL options (all optional):
+    from=2026-07-01     first day counted (default 1 July of the current season)
+    to=2026-10-31       last day counted (default today)
+    code=hurling        football | hurling | camogie | ladies
+    age=U14             one age group (U13 … U16; CCC2 competitions only)
+-->
+<style>
+:root {
+  --red: #C8232C;        /* club red (clubs.primary_colour #e61e28), deepened so it sits calmly */
+  --red-bright: #F0444C;
+  --red-deep: #A8121A;
+  --red-tint: #FBE6E7;
+  --charcoal: #1D2230;
+  --blue: #2C5C93;       /* club blue (clubs.third_colour), softened */
+  --blue-tint: #E3EEF9;
+  --ink: #1C1E26;
+  --muted: #626775;
+  --line: #E6E7EC;
+  --paper: #FFFFFF;
+  --desk: #F3F3F6;
+  --loss: #C3C7D0;
+  --loss-bg: #EFF0F3;
+  --check-bg: #FFF4D6;
+  --display: 'Oswald', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'Barlow', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--desk); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.4; -webkit-text-size-adjust: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+h1, h2, h3, h4 { font-family: var(--display); margin: 0; text-wrap: balance; }
+b { font-weight: 600; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+
+/* ---------- hero ---------- */
+.hero { background: var(--paper); text-align: center; }
+.hero .wrap { padding-top: 30px; padding-bottom: 24px; }
+.crest { width: 100px; display: block; margin: 0 auto 12px; }
+.eyebrow { font-family: var(--display); font-weight: 500; letter-spacing: .3em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
+.hero h1 { font-weight: 700; font-size: 62px; line-height: 1; text-transform: uppercase; margin: 6px 0 4px; color: var(--ink); }
+.hero h1 i { font-style: normal; color: var(--red); }
+.hero-line { display: flex; align-items: center; gap: 14px; justify-content: center; font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: .28em; text-transform: uppercase; color: var(--blue); }
+.hero-line::before, .hero-line::after { content: ""; width: 64px; height: 2px; background: var(--red); }
+.hero .sub { color: var(--muted); font-size: 13px; margin-top: 10px; }
+.hoops { height: 8px; background: linear-gradient(var(--red) 0 4px, #fff 4px 5px, var(--blue) 5px 8px); }
+
+/* ---------- filters ---------- */
+.filters { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.96); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.filters .wrap { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding-top: 10px; padding-bottom: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { appearance: none; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 999px; padding: 6px 13px; font: inherit; font-size: 13.5px; font-weight: 500; }
+.chip:hover { border-color: var(--red); }
+.chip.on { background: var(--red); border-color: var(--red); color: #fff; }
+.chip:focus-visible, select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+select, input[type=date] { font: inherit; font-size: 13.5px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: #fff; color: var(--ink); }
+.dates { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.check { display: flex; align-items: center; gap: 6px; font-size: 13.5px; cursor: pointer; }
+.reset { margin-left: auto; appearance: none; border: 0; background: none; color: var(--blue); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
+
+main .wrap { display: grid; gap: 34px; padding-top: 30px; padding-bottom: 40px; }
+.panel { background: var(--paper); padding: 26px 28px; box-shadow: 0 1px 2px rgba(28,30,38,.05); }
+.block-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.block-title h2 { font-size: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 8px; }
+.block-title h2::before { content: ""; width: 14px; height: 4px; background: var(--red); }
+.block-title p { margin: 0; color: var(--muted); font-size: 12.5px; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw-W { background: var(--red); } .sw-D { background: var(--blue); } .sw-L { background: var(--loss); }
+.loading, .empty, .error { padding: 40px 0; text-align: center; color: var(--muted); }
+.error { color: var(--red-deep); }
+
+/* champions */
+.champions-head { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.champions-count { font-family: var(--display); font-weight: 700; font-size: 64px; line-height: .9; color: var(--red); }
+.champions-head h2 { font-size: 24px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.champions-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.champ-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.champ { position: relative; overflow: hidden; color: var(--ink); padding: 14px 14px 12px; background: #F6F4F3; border-top: 4px solid var(--red); display: flex; flex-direction: column; gap: 2px; }
+.champ-mark { position: absolute; right: -22px; bottom: -18px; width: 104px; opacity: .09; }
+.champ-kicker { font-family: var(--display); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--red); font-weight: 600; }
+.champ-team { font-family: var(--display); font-size: 20px; line-height: 1.1; font-weight: 600; text-transform: uppercase; }
+.champ-comp { font-size: 12.5px; color: var(--muted); min-height: 34px; }
+.champ-score { font-size: 13px; margin-top: 6px; font-variant-numeric: tabular-nums; position: relative; }
+.champ-score b { font-size: 18px; }
+.champ-date { font-size: 11.5px; color: var(--muted); position: relative; }
+.none { color: var(--muted); font-size: 13px; padding: 6px 0; }
+
+/* headline numbers */
+.headline { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--paper); box-shadow: 0 1px 2px rgba(28,30,38,.05); }
+.headline > div { padding: 18px 10px 14px; text-align: center; }
+.headline > div + div { border-left: 1px solid var(--line); }
+.headline b { display: block; font-family: var(--display); font-weight: 600; font-size: 44px; line-height: 1; font-variant-numeric: tabular-nums; }
+.headline span { display: block; margin-top: 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.headline .hl-win b { color: var(--red); }
+.headline .hl-pct b { color: var(--blue); }
+
+/* charts */
+svg text { font-family: var(--body); }
+.seg-W { fill: var(--red); } .seg-D { fill: var(--blue); } .seg-L { fill: var(--loss); }
+.seg-lbl { font-size: 11.5px; font-weight: 600; fill: #fff; }
+.seg-lbl-L { fill: var(--ink); }
+.ax-lbl { font-family: var(--display); font-size: 13px; font-weight: 500; fill: var(--ink); }
+.ax-num { font-size: 13px; font-weight: 700; fill: var(--red); }
+.ax-tick { font-size: 10px; fill: var(--muted); }
+.grid { stroke: var(--line); stroke-width: 1; }
+.age-chart { width: 100%; height: auto; display: block; }
+.age-chart .row { cursor: pointer; }
+.age-chart .row:hover .ax-lbl { fill: var(--red); }
+.bar { display: block; width: 100%; }
+.code-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.code-tile { border: 1px solid var(--line); padding: 12px 12px 10px; cursor: pointer; background: #fff; text-align: left; font: inherit; color: inherit; }
+.code-tile:hover { border-color: var(--red); }
+.code-tile.on { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+.ct-name { font-family: var(--display); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--red); font-weight: 600; }
+.ct-pct { font-family: var(--display); font-size: 34px; font-weight: 600; line-height: 1.05; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.ct-pct small { font-size: 18px; color: var(--muted); }
+.ct-sub { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+
+/* honours */
+.honour-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.hcard { border: 1px solid var(--line); background: #fff; }
+.hcard header { display: flex; align-items: baseline; gap: 10px; padding: 10px 14px; color: #fff; }
+.hcard-win header { background: var(--charcoal); border-bottom: 4px solid var(--red); }
+.hcard-ru header { background: var(--blue); }
+.hcard-rel header { background: #E9EAEF; color: var(--ink); }
+.hc-n { font-family: var(--display); font-size: 30px; font-weight: 700; line-height: 1; }
+.hcard h3 { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.hcard ul { list-style: none; margin: 0; padding: 0 14px; }
+.hcard li { padding: 7px 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+.hcard li:last-child { border-bottom: 0; }
+.hi-team { font-weight: 700; font-size: 13.5px; }
+.hi-comp { color: var(--muted); font-size: 12px; }
+.hi-score { font-size: 12.5px; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.hi-score span { color: var(--muted); }
+.hi-check { background: var(--check-bg); margin: 0 -14px; padding: 7px 14px !important; }
+.hc-note { margin: 10px 14px 0; font-size: 12px; color: var(--muted); }
+.upcoming { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 18px; }
+.upcoming li { align-content: start; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+.up-date { grid-row: span 3; font-family: var(--display); font-weight: 600; color: var(--red); font-size: 14px; }
+.up-team { font-weight: 700; }
+.up-comp, .up-opp { font-size: 12px; color: var(--muted); }
+
+/* detail */
+.age-section { background: var(--paper); padding: 24px 28px 18px; box-shadow: 0 1px 2px rgba(28,30,38,.05); }
+.age-head { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 10px 24px; padding-bottom: 14px; border-bottom: 3px solid var(--red); }
+.age-name { display: flex; align-items: center; gap: 12px; }
+.age-crest { width: 36px; }
+.age-head h2 { font-size: 40px; font-weight: 700; line-height: 1; color: var(--ink); text-transform: uppercase; }
+.age-stats { display: flex; gap: 22px; justify-content: flex-end; flex-wrap: wrap; }
+.age-stats div { text-align: right; }
+.age-stats b { display: block; font-family: var(--display); font-size: 24px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.age-stats span { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.bar-age { grid-column: 1 / -1; height: 8px; }
+.code-block { margin-top: 18px; }
+.code-head { display: grid; grid-template-columns: auto 1fr 140px; align-items: center; gap: 14px; background: var(--charcoal); color: #fff; padding: 7px 12px; }
+.code-head h3 { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.code-head .rec { color: #B9BFCC; }
+.code-head .rec b { color: #fff; }
+.code-head .seg-W { fill: var(--red-bright); } .code-head .seg-D { fill: #9CC3EC; } .code-head .seg-L { fill: rgba(255,255,255,.3); }
+.bar-code { height: 8px; }
+.comp { margin-top: 12px; }
+.comp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--ink); padding-bottom: 3px; break-after: avoid; }
+.comp-head h4 { font-family: var(--body); font-size: 14px; font-weight: 700; }
+.rec { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rec b { color: var(--ink); font-weight: 700; margin-left: 4px; }
+.rec b:first-child { margin-left: 0; }
+.rec-sep { margin: 0 6px; }
+.pos { font-size: 11px; font-weight: 700; color: var(--blue); background: var(--blue-tint); padding: 1px 6px; border-radius: 3px; margin-left: 8px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+.games th { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; text-align: left; padding: 5px 6px 3px; }
+.games td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.games tr { break-inside: avoid; }
+.c-date { white-space: nowrap; color: var(--muted); width: 56px; font-variant-numeric: tabular-nums; }
+.c-ha { width: 30px; color: var(--muted); }
+.c-score { white-space: nowrap; width: 100px; font-variant-numeric: tabular-nums; }
+.c-m { width: 44px; color: var(--muted); text-align: right !important; font-variant-numeric: tabular-nums; }
+.c-res { width: 64px; text-align: right !important; }
+.stage { display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--blue); border: 1px solid var(--blue); padding: 0 5px; line-height: 15px; }
+.pill { display: inline-block; min-width: 44px; text-align: center; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+.pill-W { background: var(--red-tint); color: #A3161E; }
+.pill-D { background: var(--blue-tint); color: var(--blue); }
+.pill-L { background: var(--loss-bg); color: #555A66; }
+.about { color: var(--muted); font-size: 12px; }
+.about p { margin: 4px 0; max-width: 95ch; }
+.updated { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 720px) {
+  .hero .wrap { padding-top: 22px; padding-bottom: 18px; }
+  .crest { width: 72px; }
+  .hero h1 { font-size: 44px; }
+  .hero-line::before, .hero-line::after { width: 28px; }
+  .panel, .age-section { padding: 18px 16px; }
+  .headline { grid-template-columns: repeat(3, 1fr); }
+  .headline > div:nth-child(4) { border-left: 0; }
+  .headline > div:nth-child(n+4) { border-top: 1px solid var(--line); }
+  .headline b { font-size: 32px; }
+  .code-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .honour-cols, .upcoming { grid-template-columns: 1fr; }
+  .age-head { grid-template-columns: 1fr; }
+  .age-stats { justify-content: flex-start; }
+  .age-stats div { text-align: left; }
+  .code-head { grid-template-columns: 1fr; gap: 4px; }
+  .c-m, .c-ha { display: none; }
+  .reset { margin-left: 0; }
+  .filters { position: static; }
+}
+
+@media print {
+  @page { size: A4; margin: 12mm 0; }
+  body { background: #fff; font-size: 13px; }
+  .filters, .no-print { display: none !important; }
+  .hero { break-after: avoid; }
+  main .wrap { gap: 22px; padding-top: 18px; }
+  .panel, .age-section, .headline { box-shadow: none; }
+  .honours-panel { break-before: page; }
+  .age-section { break-before: page; }
+  thead { display: table-header-group; }
+}
+@media (prefers-reduced-motion: no-preference) { .chip, .code-tile { transition: border-color .15s, background .15s; } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <img class="crest" src="../images/clontarf-crest.png" alt="Clontarf GAA crest">
+    <div class="eyebrow">Cumann Chluain Tarbh</div>
+    <h1 id="title">Autumn <i>’26</i></h1>
+    <div class="hero-line">Results Review</div>
+    <div class="sub" id="sub">Coiste na nÓg CCC2 · Under 13 to Under 16</div>
+  </div>
+  <div class="hoops"></div>
+</header>
+
+<nav class="filters" aria-label="Filters">
+  <div class="wrap">
+    <div class="chips" id="codes"></div>
+    <select id="age" aria-label="Age group"></select>
+    <div class="dates"><label for="from">From</label><input type="date" id="from"><label for="to">to</label><input type="date" id="to"></div>
+    <label class="check"><input type="checkbox" id="ko"> Finals and semi-finals only</label>
+    <button class="reset" id="reset" type="button">Reset filters</button>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap" id="app"><div class="loading">Loading results…</div></div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const CLUB_KEY = 'clontarf';
+const CLUB_NAME = 'Clontarf';
+const TZ = 'Europe/Dublin';
+const CREST = '../images/clontarf-crest.png';
+
+const CODES = ['Football', 'Hurling', 'Ladies Football', 'Camogie'];
+const CODE_PARAM = { football: 'Football', hurling: 'Hurling', camogie: 'Camogie', ladies: 'Ladies Football', lgfa: 'Ladies Football' };
+// Coiste na nÓg CCC2 competitions only (Under 13 to Under 16)
+const LEVEL = 'ccc2';
+const GROUPS = ['U13', 'U14', 'U15', 'U16'];
+const GROUP_LABEL = {};
+const RES_WORD = { W: 'won', D: 'drawn', L: 'lost' };
+
+// ── Dates (all in Dublin time) ──────────────────────────────────────────────
+const fmtParts = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+function dublinDay(d) {
+  const p = Object.fromEntries(fmtParts.formatToParts(d).map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}`;
+}
+const TODAY = dublinDay(new Date());
+const SEASON_START = `${TODAY.slice(0, 4)}-07-01`;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const fmtDate = (day, year) => `${+day.slice(8, 10)} ${MONTHS[+day.slice(5, 7) - 1]}${year ? ' ' + day.slice(0, 4) : ''}`;
+const addDays = (day, n) => new Date(Date.parse(day + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '');
+
+// ── State ───────────────────────────────────────────────────────────────────
+const P = new URLSearchParams(location.search);
+const DEFAULTS = { code: 'all', age: 'all', from: SEASON_START, to: TODAY, ko: false };
+const S = {
+  code: CODE_PARAM[(P.get('code') || '').toLowerCase()] || 'all',
+  age: GROUPS.includes(P.get('age')) ? P.get('age') : 'all',
+  from: isDay(P.get('from')) ? P.get('from') : DEFAULTS.from,
+  to: isDay(P.get('to')) ? P.get('to') : DEFAULTS.to,
+  ko: P.get('ko') === '1',
+  clubId: null, rows: [], tables: new Map(), loadedFrom: null, status: null,
+};
+
+// ── Data ────────────────────────────────────────────────────────────────────
+async function get(path) {
+  const out = [];
+  for (let offset = 0; ; offset += 1000) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, Range: `${offset}-${offset + 999}` },
+    });
+    if (!r.ok) throw new Error(`Load failed (${r.status})`);
+    const rows = await r.json();
+    if (!Array.isArray(rows)) return rows;
+    out.push(...rows);
+    if (rows.length < 1000) return out;
+  }
+}
+async function rpc(fn) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' }, body: '{}',
+  });
+  return r.ok ? r.json() : null;
+}
+
+async function load() {
+  if (S.clubId == null) {
+    const rows = await get(`gaa_clubs?select=club_id&name_key=eq.${CLUB_KEY}`);
+    if (!rows.length) throw new Error('Club not found');
+    S.clubId = rows[0].club_id;
+  }
+  // Clontarf's games from the start of the range to two months ahead (for finals still to come)
+  const from = S.from, to = addDays(TODAY > S.to ? TODAY : S.to, 62);
+  const sel = 'game_id,comp_id,start_at,code,home_team,away_team,status,home_score,away_score,home_pts,away_pts,note,home_club_id,away_club_id,comp:gaa_competitions(name,age,level)';
+  const id = S.clubId;
+  S.rows = await get(`gaa_games?select=${sel}&or=(home_club_id.eq.${id},away_club_id.eq.${id})`
+    + `&start_at=gte.${from}T00:00:00Z&start_at=lt.${to}T00:00:00Z&order=start_at.asc`);
+  S.loadedFrom = S.from;
+  // League tables: every result in each league Clontarf played in
+  const leagueIds = [...new Set(S.rows.filter(r => r.comp?.level === LEVEL && isLeague(r.comp?.name)).map(r => r.comp_id))];
+  S.tables = new Map();
+  for (let i = 0; i < leagueIds.length; i += 40) {
+    const ids = leagueIds.slice(i, i + 40).map(encodeURIComponent).join(',');
+    const all = await get(`gaa_games?select=comp_id,home_team,away_team,home_pts,away_pts,status&comp_id=in.(${ids})`);
+    for (const g of all) {
+      if (!S.tables.has(g.comp_id)) S.tables.set(g.comp_id, []);
+      S.tables.get(g.comp_id).push(g);
+    }
+  }
+}
+const isLeague = name => /League/i.test(name || '') && !/Final|Cup/i.test(name || '');
+
+// ── Shaping ─────────────────────────────────────────────────────────────────
+function stageOf(note, comp) {
+  const n = `${note || ''} ${comp || ''}`;
+  if (/semi|s\/ ?f/i.test(n)) return 'Semi-final';
+  if (/q\/f|\bqf\b|quarter/i.test(n)) return 'Quarter-final';
+  if (/\bfinal\b/i.test(n)) return 'Final';
+  return '';
+}
+const cleanComp = c => (c || '').replace(/^PTSB\s+/, '').trim();
+const shortComp = c => cleanComp(c).replace(/\s*Knockout Stages/, '').replace(/\s+Final$/, '').replace(/\s+20\d\d/, '');
+function honourName(g) {
+  let c = shortComp(g.comp).replace(/\bInter\b/, 'Intermediate');
+  if (/Shield Final/i.test(g.note || '')) c = c.replace(/\bChamp(ionship)?\b/, 'Shield');
+  return c.replace(/\bChamp\b/, 'Championship');
+}
+function shape(r) {
+  const home = r.home_club_id === S.clubId;
+  const age = r.comp?.age || '';
+  const g = {
+    id: r.game_id, comp_id: r.comp_id, day: dublinDay(new Date(r.start_at)), code: r.code, age,
+    group: age, level: r.comp?.level || '', comp: cleanComp(r.comp?.name), note: r.note || '',
+    opp: home ? r.away_team : r.home_team, ha: home ? 'H' : 'A',
+    played: r.status === 'result' && r.home_pts != null && r.away_pts != null,
+    stage: stageOf(r.note, r.comp?.name),
+  };
+  if (g.played) {
+    g.us = home ? r.home_pts : r.away_pts; g.them = home ? r.away_pts : r.home_pts;
+    g.us_s = home ? r.home_score : r.away_score; g.them_s = home ? r.away_score : r.home_score;
+    g.res = g.us > g.them ? 'W' : g.us < g.them ? 'L' : 'D';
+  }
+  return g;
+}
+function teamName(g) {
+  return `${g.age} ${g.code}`;
+}
+function rec(gs) {
+  const r = { P: gs.length, W: 0, D: 0, L: 0, F: 0, A: 0 };
+  for (const g of gs) { r[g.res]++; r.F += g.us; r.A += g.them; }
+  r.pct = r.P ? Math.round(100 * r.W / r.P) : 0;
+  return r;
+}
+// Two finals on the same day against the same team with the scores swapped are one game entered twice
+function disputedIds(finals) {
+  const out = new Set();
+  for (const a of finals) for (const b of finals) {
+    if (a !== b && a.day === b.day && a.opp === b.opp && a.us === b.them && a.them === b.us && a.us !== a.them) { out.add(a.id); out.add(b.id); }
+  }
+  return out;
+}
+function leagueTable(compId) {
+  const t = new Map();
+  for (const g of S.tables.get(compId) || []) {
+    if (g.status !== 'result' || g.home_pts == null || g.away_pts == null) continue;
+    for (const [tm, f, a] of [[g.home_team, g.home_pts, g.away_pts], [g.away_team, g.away_pts, g.home_pts]]) {
+      const x = t.get(tm) || { t: tm, p: 0, w: 0, d: 0, l: 0, diff: 0, pts: 0 };
+      x.p++; x.diff += f - a;
+      if (f > a) { x.w++; x.pts += 2; } else if (f === a) { x.d++; x.pts++; } else x.l++;
+      t.set(tm, x);
+    }
+  }
+  return [...t.values()].sort((a, b) => b.pts - a.pts || b.diff - a.diff);
+}
+const ordinal = n => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
+
+// ── Render helpers ──────────────────────────────────────────────────────────
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function wdlBar(r, cls) {
+  if (!r.P) return '';
+  let x = 0, parts = '';
+  for (const k of ['W', 'D', 'L']) {
+    const w = 100 * r[k] / r.P;
+    if (w > 0) parts += `<rect class="seg-${k}" x="${x.toFixed(2)}" y="0" width="${Math.max(w - .6, .4).toFixed(2)}" height="10" rx="1.2"><title>${r[k]} ${RES_WORD[k]}</title></rect>`;
+    x += w;
+  }
+  return `<svg class="bar ${cls}" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">${parts}</svg>`;
+}
+const legend = '<div class="legend"><span><i class="sw sw-W"></i>Won</span><span><i class="sw sw-D"></i>Drawn</span><span><i class="sw sw-L"></i>Lost</span></div>';
+const recLine = r => `<span class="rec"><b>${r.W}</b>W <b>${r.D}</b>D <b>${r.L}</b>L<span class="rec-sep">·</span>${r.P} played</span>`;
+const pill = res => `<span class="pill pill-${res}">${{ W: 'Won', D: 'Draw', L: 'Lost' }[res]}</span>`;
+const scoreLine = g => `<b>${esc(g.us_s)}</b> – ${esc(g.them_s)} v ${esc(g.opp)}`;
+
+function ageChart(byGroup) {
+  const groups = GROUPS.filter(g => byGroup[g].length);
+  const CW = 560, RH = 34, LW = 92, NW = 54, PW = CW - LW - NW, H = groups.length * RH;
+  let out = '';
+  for (const t of [0, .25, .5, .75, 1]) {
+    const x = (LW + PW * t).toFixed(1);
+    out += `<line class="grid" x1="${x}" x2="${x}" y1="0" y2="${H}"/><text class="ax-tick" x="${x}" y="${H + 14}" text-anchor="middle">${t * 100}%</text>`;
+  }
+  groups.forEach((grp, i) => {
+    const r = rec(byGroup[grp]), y = i * RH, label = GROUP_LABEL[grp] || grp;
+    let x = LW, segs = '';
+    for (const k of ['W', 'D', 'L']) {
+      const w = PW * r[k] / r.P;
+      if (w > 0) {
+        segs += `<rect class="seg-${k}" x="${x.toFixed(1)}" y="${y + 6}" width="${Math.max(w - 2, 1).toFixed(1)}" height="20" rx="3"><title>${esc(label)}: ${r[k]} ${RES_WORD[k]}</title></rect>`;
+        if (w > 26) segs += `<text class="seg-lbl seg-lbl-${k}" x="${(x + w / 2 - 1).toFixed(1)}" y="${y + 20.5}" text-anchor="middle">${r[k]}</text>`;
+      }
+      x += w;
+    }
+    out += `<g class="row" data-age="${grp}"><text class="ax-lbl" x="0" y="${y + 21}">${esc(label)}</text>${segs}<text class="ax-num" x="${CW}" y="${y + 21}" text-anchor="end">${r.pct}%</text></g>`;
+  });
+  out += `<text class="ax-tick" x="${CW}" y="${H + 14}" text-anchor="end">win rate</text>`;
+  return `<svg class="age-chart" viewBox="0 0 ${CW} ${H + 18}" role="img" aria-label="Share of games won, drawn and lost by age group">${out}</svg>`;
+}
+
+function gameRow(g) {
+  const m = g.us - g.them;
+  return `<tr><td class="c-date">${fmtDate(g.day)}</td><td class="c-ha">${g.ha}</td>`
+    + `<td>${esc(g.opp)}${g.stage ? `<span class="stage">${g.stage}</span>` : ''}</td>`
+    + `<td class="c-score"><b>${esc(g.us_s)}</b> – ${esc(g.them_s)}</td><td class="c-m">${m > 0 ? '+' + m : m}</td><td class="c-res">${pill(g.res)}</td></tr>`;
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function renderFilters() {
+  document.getElementById('codes').innerHTML = [['all', 'All codes'], ...CODES.map(c => [c, c])].map(([k, l]) =>
+    `<button class="chip${S.code === k ? ' on' : ''}" data-code="${esc(k)}" aria-pressed="${S.code === k}">${esc(l)}</button>`).join('');
+  document.getElementById('age').innerHTML = `<option value="all">All age groups</option>`
+    + GROUPS.map(a => `<option value="${a}"${a === S.age ? ' selected' : ''}>${esc(GROUP_LABEL[a] || a)}</option>`).join('');
+  document.getElementById('from').value = S.from;
+  document.getElementById('to').value = S.to;
+  document.getElementById('ko').checked = S.ko;
+}
+
+function render() {
+  renderFilters();
+  const app = document.getElementById('app');
+  const all = S.rows.map(shape).filter(g => g.level === LEVEL && GROUPS.includes(g.group));
+  const inScope = g => (S.code === 'all' || g.code === S.code) && (S.age === 'all' || g.group === S.age);
+  const games = all.filter(g => g.played && g.day >= S.from && g.day <= S.to && inScope(g) && (!S.ko || /Final|Semi/.test(g.stage)));
+  const walkovers = all.filter(g => !g.played && g.day >= S.from && g.day <= S.to && /Conceded by/i.test(g.note) && !/Bye/i.test(g.note) && inScope(g)).length;
+  document.getElementById('sub').textContent = `Clontarf GAA · Coiste na nÓg CCC2 · Under 13 to Under 16 · Football, Hurling, Ladies Football and Camogie · ${fmtDate(S.from)} – ${fmtDate(S.to, true)}`;
+
+  if (!games.length) {
+    app.innerHTML = `<div class="panel empty">No results match these filters. <button class="reset" type="button" onclick="resetFilters()">Reset filters</button></div>`;
+    return;
+  }
+  const total = rec(games);
+  const byGroup = Object.fromEntries(GROUPS.map(g => [g, games.filter(x => x.group === g)]));
+
+  // Honours
+  const finals = games.filter(g => g.stage === 'Final');
+  const disputed = disputedIds(finals);
+  const titles = finals.filter(g => !disputed.has(g.id) && g.res === 'W');
+  const runners = finals.filter(g => !disputed.has(g.id) && g.res !== 'W');
+  const dispList = finals.filter(g => disputed.has(g.id));
+  const semis = games.filter(g => g.stage === 'Semi-final');
+  const upcoming = all.filter(g => !g.played && g.day >= TODAY && g.stage === 'Final' && inScope(g)).sort((a, b) => a.day.localeCompare(b.day));
+
+  const leagueSeen = new Map();
+  for (const g of games) if (isLeague(g.comp) && !leagueSeen.has(g.comp_id)) leagueSeen.set(g.comp_id, g);
+  const bottom = [];
+  const tablePos = new Map();
+  for (const [cid, g] of leagueSeen) {
+    const t = leagueTable(cid);
+    const pos = t.findIndex(x => x.t === CLUB_NAME) + 1;
+    if (!pos) continue;
+    tablePos.set(cid, { pos, n: t.length, me: t[pos - 1] });
+    if (t.length >= 6 && pos >= t.length - 1) bottom.push({ g, pos, n: t.length, me: t[pos - 1] });
+  }
+
+  const champCards = titles.map(g => `<li class="champ"><img src="${CREST}" alt="" class="champ-mark">`
+    + `<div class="champ-kicker">Champions</div><div class="champ-team">${esc(teamName(g))}</div>`
+    + `<div class="champ-comp">${esc(honourName(g))}</div><div class="champ-score">${scoreLine(g)}</div>`
+    + `<div class="champ-date">Final · ${fmtDate(g.day, true)}</div></li>`).join('');
+  const honourItem = g => `<li><div class="hi-team">${esc(teamName(g))}</div><div class="hi-comp">${esc(honourName(g))}</div>`
+    + `<div class="hi-score">${scoreLine(g)} <span>· ${fmtDate(g.day)}</span></div></li>`;
+  const dispHtml = dispList.length ? `<li class="hi-check"><div class="hi-team">${esc(teamName(dispList[0]))}</div>`
+    + `<div class="hi-comp">${dispList.map(g => esc(honourName(g))).join(' and ')}</div>`
+    + `<div class="hi-score">Recorded twice on ${fmtDate(dispList[0].day)} with the result reversed. Winner to be confirmed.</div></li>` : '';
+  const bottomHtml = bottom.map(({ g, pos, n, me }) => `<li><div class="hi-team">${esc(teamName(g))}</div><div class="hi-comp">${esc(g.comp)}</div>`
+    + `<div class="hi-score"><b>${ordinal(pos)} of ${n}</b> · ${me.w}–${me.d}–${me.l}, ${me.pts} pts</div></li>`).join('');
+  const upHtml = upcoming.map(g => `<li><span class="up-date">${fmtDate(g.day)}</span><span class="up-team">${esc(teamName(g))}</span>`
+    + `<span class="up-comp">${esc(honourName(g))}</span><span class="up-opp">v ${esc(g.opp)} (${g.ha === 'H' ? 'home' : 'away'})</span></li>`).join('');
+
+  const codeTiles = CODES.map(c => {
+    const r = rec(games.filter(g => g.code === c));
+    if (!r.P) return '';
+    return `<button type="button" class="code-tile${S.code === c ? ' on' : ''}" data-code="${esc(c)}"><div class="ct-name">${esc(c)}</div>`
+      + `<div class="ct-pct">${r.pct}<small>%</small></div><div class="ct-sub">won · ${r.W}–${r.D}–${r.L} from ${r.P}</div>${wdlBar(r, 'bar-code')}</button>`;
+  }).join('');
+
+  // Detail
+  const detail = GROUPS.filter(grp => byGroup[grp].length).map(grp => {
+    const gs = byGroup[grp], r = rec(gs);
+    const codes = CODES.map(code => {
+      const cg = gs.filter(g => g.code === code);
+      if (!cg.length) return '';
+      const comps = new Map();
+      for (const g of cg) { if (!comps.has(g.comp)) comps.set(g.comp, []); comps.get(g.comp).push(g); }
+      const compHtml = [...comps].map(([c, cgs]) => {
+        const tp = tablePos.get(cgs[0].comp_id);
+        return `<div class="comp"><div class="comp-head"><h4>${esc(c)}${tp ? `<span class="pos" title="League position from recorded results">${ordinal(tp.pos)} of ${tp.n}</span>` : ''}</h4>${recLine(rec(cgs))}</div>`
+          + `<div class="tbl"><table class="games"><thead><tr><th>Date</th><th class="c-ha">H/A</th><th>Opponent</th><th class="c-score">Score</th><th class="c-m">+/−</th><th class="c-res">Result</th></tr></thead>`
+          + `<tbody>${cgs.map(gameRow).join('')}</tbody></table></div></div>`;
+      }).join('');
+      const cr = rec(cg);
+      return `<section class="code-block"><div class="code-head"><h3>${esc(code)}</h3>${recLine(cr)}${wdlBar(cr, 'bar-code')}</div>${compHtml}</section>`;
+    }).join('');
+    return `<section class="age-section" id="age-${grp}"><header class="age-head"><div class="age-name"><img src="${CREST}" alt="" class="age-crest"><h2>${esc(GROUP_LABEL[grp] || grp)}</h2></div>`
+      + `<div class="age-stats"><div><b>${r.P}</b><span>Played</span></div><div><b>${r.W}</b><span>Won</span></div><div><b>${r.D}</b><span>Drawn</span></div>`
+      + `<div><b>${r.L}</b><span>Lost</span></div><div><b>${r.pct}%</b><span>Win rate</span></div></div>${wdlBar(r, 'bar-age')}</header>${codes}</section>`;
+  }).join('');
+
+  const st = S.status;
+  const updated = st?.last_ok ? `Results last synced ${new Date(st.last_ok).toLocaleString('en-IE', { timeZone: TZ, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.` : '';
+
+  app.innerHTML = `
+    <section class="panel">
+      <div class="champions-head"><span class="champions-count">${titles.length}</span><div><h2>Competitions won</h2>
+        <p>${titles.length} title${titles.length === 1 ? '' : 's'} and ${runners.length} runners-up finish${runners.length === 1 ? '' : 'es'}${upcoming.length ? `, with ${upcoming.length} more final${upcoming.length === 1 ? '' : 's'} still to play` : ''}</p></div></div>
+      ${titles.length ? `<ul class="champ-list">${champCards}</ul>` : '<div class="none">No finals won in this selection yet.</div>'}
+    </section>
+
+    <section class="headline" aria-label="Totals">
+      <div><b>${total.P}</b><span>Played</span></div><div class="hl-win"><b>${total.W}</b><span>Won</span></div>
+      <div><b>${total.D}</b><span>Drawn</span></div><div><b>${total.L}</b><span>Lost</span></div>
+      <div class="hl-pct"><b>${total.pct}%</b><span>Win rate</span></div>
+    </section>
+
+    <section class="panel">
+      <div class="block-title"><h2>Results by age group</h2>${legend}</div>
+      ${ageChart(byGroup)}
+      <div class="block-title" style="margin-top:24px"><h2>By code</h2><p>Tap a code to filter · ${semis.filter(g => g.res === 'W').length} of ${semis.length} semi-finals won</p></div>
+      <div class="code-tiles">${codeTiles}</div>
+    </section>
+
+    <section class="panel honours-panel">
+      <div class="block-title"><h2>Honours board</h2></div>
+      <div class="honour-cols">
+        <section class="hcard hcard-win"><header><span class="hc-n">${titles.length}</span><h3>Winners</h3></header><ul>${titles.map(honourItem).join('') || '<li class="none">None yet</li>'}</ul></section>
+        <section class="hcard hcard-ru"><header><span class="hc-n">${runners.length}</span><h3>Runners-up</h3></header><ul>${runners.map(honourItem).join('')}${dispHtml}${runners.length || dispHtml ? '' : '<li class="none">None</li>'}</ul></section>
+        <section class="hcard hcard-rel"><header><span class="hc-n">0</span><h3>Relegated</h3></header>
+          <p class="hc-note">No relegation has been confirmed. ${bottom.length ? `These ${bottom.length} teams are in the bottom two of their league table.` : 'No team is in the bottom two of its league.'}</p><ul>${bottomHtml}</ul></section>
+      </div>
+      ${upcoming.length ? `<div class="block-title" style="margin-top:24px"><h2>Finals still to come</h2><p>${upcoming.length} Clontarf team${upcoming.length === 1 ? '' : 's'} through to a final</p></div><ul class="upcoming">${upHtml}</ul>` : ''}
+    </section>
+
+    ${detail}
+
+    <section class="about">
+      <p>Every competitive game with a recorded result in the selected dates, from the fixtures and results that CoachSmart syncs nightly from the Dublin GAA, LGFA and Camogie fixtures systems. Scores are shown with Clontarf first, and margins are in points with a goal worth three.</p>
+      <p>Winners and runners-up come from finals with a recorded result. League positions are worked out from every recorded result in the division, so walkovers and unplayed games can move them. Only CCC2 competitions (Under 13 to Under 16) are included${walkovers ? `, and ${walkovers} walkover${walkovers === 1 ? ' is' : 's are'} left out of the records` : ''}.</p>
+      <p class="updated">${updated} To save a PDF, use your browser's Print and choose Save as PDF.</p>
+    </section>`;
+}
+
+// ── Events ──────────────────────────────────────────────────────────────────
+function syncUrl() {
+  const q = new URLSearchParams();
+  if (S.code !== 'all') q.set('code', Object.keys(CODE_PARAM).find(k => CODE_PARAM[k] === S.code));
+  if (S.age !== 'all') q.set('age', S.age);
+  if (S.from !== DEFAULTS.from) q.set('from', S.from);
+  if (S.to !== DEFAULTS.to) q.set('to', S.to);
+  if (S.ko) q.set('ko', '1');
+  history.replaceState(null, '', q.toString() ? '?' + q : location.pathname);
+}
+async function update() {
+  syncUrl();
+  if (S.from < S.loadedFrom) {
+    document.getElementById('app').innerHTML = '<div class="loading">Loading results…</div>';
+    try { await load(); } catch (e) { return showError(e); }
+  }
+  render();
+}
+function resetFilters() { Object.assign(S, DEFAULTS); update(); }
+function showError(e) {
+  document.getElementById('app').innerHTML = `<div class="panel error">Couldn't load the results (${esc(e.message)}). Check your connection and refresh the page.</div>`;
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-code]');
+  if (c) { S.code = S.code === c.dataset.code && c.classList.contains('code-tile') ? 'all' : c.dataset.code; update(); return; }
+  const a = e.target.closest('.age-chart .row');
+  if (a) { S.age = a.dataset.age; update(); }
+});
+document.getElementById('age').addEventListener('change', e => { S.age = e.target.value; update(); });
+document.getElementById('from').addEventListener('change', e => { if (isDay(e.target.value)) { S.from = e.target.value; update(); } });
+document.getElementById('to').addEventListener('change', e => { if (isDay(e.target.value)) { S.to = e.target.value; update(); } });
+document.getElementById('ko').addEventListener('change', e => { S.ko = e.target.checked; update(); });
+document.getElementById('reset').addEventListener('click', resetFilters);
+
+renderFilters();
+Promise.all([load(), rpc('gaa_status').then(s => { S.status = s; }).catch(() => {})])
+  .then(render, showError);
+</script>
+</body>
+</html>
