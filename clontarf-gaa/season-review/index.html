@@ -18,7 +18,7 @@
     from=2026-07-01     first day counted (default 1 July of the current season)
     to=2026-10-31       last day counted (default today)
     code=hurling        football | hurling | camogie | ladies
-    age=U14             one age group (U13 … U16; CCC2 competitions only)
+    age=U14             one age group (U12 … U16, Minor, U21, Adult)
 -->
 <style>
 :root {
@@ -274,7 +274,7 @@ table { border-collapse: collapse; width: 100%; }
     <div class="eyebrow">Cumann Chluain Tarbh</div>
     <h1 id="title">Autumn <i>’26</i></h1>
     <div class="hero-line">Results Review</div>
-    <div class="sub" id="sub">Coiste na nÓg CCC2 · Under 13 to Under 16</div>
+    <div class="sub" id="sub">Every team, Under 12 to Adult</div>
     <div class="share no-print">
       <button type="button" class="share-btn" id="share-pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Share PDF</button>
       <a class="share-link" href="Clontarf-Autumn-Results-2026.pdf" download>Download PDF</a>
@@ -308,10 +308,14 @@ const CREST = '../images/clontarf-crest.png';
 
 const CODES = ['Football', 'Hurling', 'Ladies Football', 'Camogie'];
 const CODE_PARAM = { football: 'Football', hurling: 'Hurling', camogie: 'Camogie', ladies: 'Ladies Football', lgfa: 'Ladies Football' };
-// Coiste na nÓg CCC2 competitions only (Under 13 to Under 16)
-const LEVEL = 'ccc2';
-const GROUPS = ['U13', 'U14', 'U15', 'U16'];
-const GROUP_LABEL = {};
+// Every team with recorded results. Under 8 to Under 11 play Go Games with no results kept.
+const AGE_GROUP = { U12: 'U12', U13: 'U13', U14: 'U14', U15: 'U15', U16: 'U16', Minor: 'Minor', U18: 'Minor', U21: 'U21',
+  Senior: 'Adult', Intermediate: 'Adult', Junior: 'Adult', Adult: 'Adult', Other: 'Adult' };
+const GROUPS = ['U12', 'U13', 'U14', 'U15', 'U16', 'Minor', 'U21', 'Adult'];
+const GROUP_LABEL = { Minor: 'Minor & U18', U21: 'Under 21' };
+// Within a group, the higher grade comes first
+const AGE_TIER = { Senior: 0, Intermediate: 1, Adult: 2, Junior: 3, Other: 4, Minor: 0, U18: 1 };
+const inGroups = age => GROUPS.includes(AGE_GROUP[age]);
 const RES_WORD = { W: 'won', D: 'drawn', L: 'lost' };
 
 // ── Dates (all in Dublin time) ──────────────────────────────────────────────
@@ -379,9 +383,9 @@ async function load() {
   const earlier = yearStart < S.from ? await get(`gaa_games?select=comp_id,comp:gaa_competitions(name,age,code,level)&or=(home_club_id.eq.${id},away_club_id.eq.${id})`
     + `&start_at=gte.${yearStart}T00:00:00Z&start_at=lt.${S.from}T00:00:00Z`) : [];
   S.spring = new Map();
-  for (const r of earlier) if (!inRange.has(r.comp_id) && r.comp?.level === LEVEL && hasTable(r.comp?.name)) S.spring.set(r.comp_id, r.comp);
+  for (const r of earlier) if (!inRange.has(r.comp_id) && inGroups(r.comp?.age) && hasTable(r.comp?.name)) S.spring.set(r.comp_id, r.comp);
   // Competition tables: every result in each division Clontarf played in this year
-  const tableIds = [...new Set([...S.rows.filter(r => r.comp?.level === LEVEL && (isLeague(r.comp?.name) || hasTable(r.comp?.name))).map(r => r.comp_id), ...S.spring.keys()])];
+  const tableIds = [...new Set([...S.rows.filter(r => inGroups(r.comp?.age) && (isLeague(r.comp?.name) || hasTable(r.comp?.name))).map(r => r.comp_id), ...S.spring.keys()])];
   S.tables = new Map();
   for (let i = 0; i < tableIds.length; i += 40) {
     const ids = tableIds.slice(i, i + 40).map(encodeURIComponent).join(',');
@@ -395,16 +399,20 @@ async function load() {
 const isLeague = name => /League/i.test(name || '') && !/Final|Cup/i.test(name || '');
 // Top division first: Div 1 before Div 2, grade A before B, unnumbered last
 function divKey(name) {
-  let m = /\b(?:Div(?:ision)?|Group|Gp)\.?\s*(\d+)/i.exec(name || '');
-  if (m) return +m[1];
-  m = /\b(?:U\d+|Minor)\s+(?:Football\s+|Hurling\s+)?([A-H])\d?\b/.exec(name || '');
-  return m ? m[1].charCodeAt(0) - 64 : 999;
+  // Whichever grade appears first in the name wins, so "Minor A … Group 3" sorts as grade A
+  const n = /\b(?:Div(?:ision)?|Group|Gp|League|Senior|Junior|Inter(?:mediate)?)\.?\s*(\d+)/i.exec(name || '');
+  const a = /\b(?:U\d+|Under \d+|Minor|Junior)\s+(?:Football\s+|Hurling\s+)?([A-H])\d?\b/.exec(name || '');
+  if (a && (!n || a.index < n.index)) return a[1].charCodeAt(0) - 64;
+  return n ? +n[1] : 999;
 }
 const divCmp = (a, b) => divKey(a) - divKey(b);
+const tierCmp = (a, b) => (AGE_TIER[a] || 0) - (AGE_TIER[b] || 0);
 // Group and league stages get a table; knockout rounds, finals and play-offs don't
 function hasTable(name) {
   name = name || '';
   if (/knockout|\bKO\b|final|playoff/i.test(name)) return false;
+  // A championship with no group or division in its name is the knockout stage
+  if (/champ/i.test(name) && !/group|\bgp\.|\bG\d|div/i.test(name)) return false;
   return !(/cup|shield/i.test(name) && !/\bgp\.|group/i.test(name));
 }
 
@@ -428,7 +436,7 @@ function shape(r) {
   const age = r.comp?.age || '';
   const g = {
     id: r.game_id, comp_id: r.comp_id, day: dublinDay(new Date(r.start_at)), code: r.code, age,
-    group: age, level: r.comp?.level || '', comp: cleanComp(r.comp?.name), note: r.note || '',
+    group: AGE_GROUP[age] || '', level: r.comp?.level || '', comp: cleanComp(r.comp?.name), note: r.note || '',
     opp: home ? r.away_team : r.home_team, ha: home ? 'H' : 'A',
     played: r.status === 'result' && r.home_pts != null && r.away_pts != null,
     stage: stageOf(r.note, r.comp?.name),
@@ -441,7 +449,7 @@ function shape(r) {
   return g;
 }
 function teamName(g) {
-  return `${g.age} ${g.code}`;
+  return `${g.age === 'Other' ? 'Adult' : g.age} ${g.code}`;
 }
 function rec(gs) {
   const r = { P: gs.length, W: 0, D: 0, L: 0, F: 0, A: 0 };
@@ -526,7 +534,7 @@ function springTables(grp) {
   const items = [];
   for (const code of CODES) {
     if (S.code !== 'all' && code !== S.code) continue;
-    const comps = [...S.spring].filter(([, c]) => c.age === grp && c.code === code).sort((a, b) => divCmp(a[1].name, b[1].name) || a[1].name.localeCompare(b[1].name));
+    const comps = [...S.spring].filter(([, c]) => AGE_GROUP[c.age] === grp && c.code === code).sort((a, b) => tierCmp(a[1].age, b[1].age) || divCmp(a[1].name, b[1].name) || a[1].name.localeCompare(b[1].name));
     for (const [cid, c] of comps) {
       const days = (S.tables.get(cid) || []).map(g => dublinDay(new Date(g.start_at))).sort();
       const span = days.length ? ` · ${fmtDate(days[0])} – ${fmtDate(days[days.length - 1])}` : '';
@@ -560,11 +568,11 @@ function renderFilters() {
 function render() {
   renderFilters();
   const app = document.getElementById('app');
-  const all = S.rows.map(shape).filter(g => g.level === LEVEL && GROUPS.includes(g.group));
+  const all = S.rows.map(shape).filter(g => GROUPS.includes(g.group));
   const inScope = g => (S.code === 'all' || g.code === S.code) && (S.age === 'all' || g.group === S.age);
   const games = all.filter(g => g.played && g.day >= S.from && g.day <= S.to && inScope(g) && (!S.ko || /Final|Semi/.test(g.stage)));
   const walkovers = all.filter(g => !g.played && g.day >= S.from && g.day <= S.to && /Conceded by/i.test(g.note) && !/Bye/i.test(g.note) && inScope(g)).length;
-  document.getElementById('sub').textContent = `Clontarf GAA · Coiste na nÓg CCC2 · Under 13 to Under 16 · Football, Hurling, Ladies Football and Camogie · ${fmtDate(S.from)} – ${fmtDate(S.to, true)}`;
+  document.getElementById('sub').textContent = `Clontarf GAA · Every team, Under 12 to Adult · Football, Hurling, Ladies Football and Camogie · ${fmtDate(S.from)} – ${fmtDate(S.to, true)}`;
 
   if (!games.length) {
     app.innerHTML = `<div class="panel empty">No results match these filters. <button class="reset" type="button" onclick="resetFilters()">Reset filters</button></div>`;
@@ -622,7 +630,7 @@ function render() {
       const cg = gs.filter(g => g.code === code);
       if (!cg.length) return '';
       const comps = new Map();
-      for (const g of [...cg].sort((a, b) => divCmp(a.comp, b.comp) || a.day.localeCompare(b.day))) { if (!comps.has(g.comp)) comps.set(g.comp, []); comps.get(g.comp).push(g); }
+      for (const g of [...cg].sort((a, b) => tierCmp(a.age, b.age) || divCmp(a.comp, b.comp) || a.day.localeCompare(b.day))) { if (!comps.has(g.comp)) comps.set(g.comp, []); comps.get(g.comp).push(g); }
       const compHtml = [...comps].map(([c, cgs]) => {
         const tp = tablePos.get(cgs[0].comp_id);
         return `<div class="comp"><div class="comp-head"><h4>${esc(c)}${tp ? `<span class="pos" title="League position from recorded results">${ordinal(tp.pos)} of ${tp.n}</span>` : ''}</h4>${recLine(rec(cgs))}</div>`
@@ -675,7 +683,7 @@ function render() {
 
     <section class="about">
       <p>Every competitive game with a recorded result in the selected dates, from the fixtures and results that CoachSmart syncs nightly from the Dublin GAA, LGFA and Camogie fixtures systems. Scores are shown with Clontarf first, and margins are in points with a goal worth three.</p>
-      <p>Winners and runners-up come from finals with a recorded result. League positions are worked out from every recorded result in the division, so walkovers and unplayed games can move them. Only CCC2 competitions (Under 13 to Under 16) are included${walkovers ? `, and ${walkovers} walkover${walkovers === 1 ? ' is' : 's are'} left out of the records` : ''}.</p>
+      <p>Winners and runners-up come from finals with a recorded result. League positions are worked out from every recorded result in the division, so walkovers and unplayed games can move them. Every team from Under 12 to Adult is included. Under 8 to Under 11 play non-competitive Go Games with no results kept, so they are not in the figures.${walkovers ? ` ${walkovers} walkover${walkovers === 1 ? ' is' : 's are'} left out of the records.` : ''}</p>
       <p class="updated">${updated} To save a PDF, use your browser's Print and choose Save as PDF.</p>
     </section>`;
 }
