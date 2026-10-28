@@ -214,7 +214,8 @@ table { border-collapse: collapse; width: 100%; }
 .ltable .c-pts { font-weight: 700; }
 .ltable tr.me td { background: var(--red-tint); font-weight: 700; }
 .ltable tr.me .c-pos { color: var(--red); }
-.comp .ltable-wrap { max-width: 460px; margin-left: auto; }
+.comp .ltable-wrap { max-width: 560px; margin: 14px auto 4px; }
+.comp .lt-sub { text-align: center; }
 .spring { margin-top: 26px; }
 .spring-head { border-bottom: 2px solid var(--ink); padding-bottom: 4px; margin-bottom: 4px; }
 .spring-head h3 { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
@@ -380,6 +381,14 @@ async function load() {
   }
 }
 const isLeague = name => /League/i.test(name || '') && !/Final|Cup/i.test(name || '');
+// Top division first: Div 1 before Div 2, grade A before B, unnumbered last
+function divKey(name) {
+  let m = /\b(?:Div(?:ision)?|Group|Gp)\.?\s*(\d+)/i.exec(name || '');
+  if (m) return +m[1];
+  m = /\b(?:U\d+|Minor)\s+(?:Football\s+|Hurling\s+)?([A-H])\d?\b/.exec(name || '');
+  return m ? m[1].charCodeAt(0) - 64 : 999;
+}
+const divCmp = (a, b) => divKey(a) - divKey(b);
 // Group and league stages get a table; knockout rounds, finals and play-offs don't
 function hasTable(name) {
   name = name || '';
@@ -505,7 +514,7 @@ function springTables(grp) {
   const items = [];
   for (const code of CODES) {
     if (S.code !== 'all' && code !== S.code) continue;
-    const comps = [...S.spring].filter(([, c]) => c.age === grp && c.code === code).sort((a, b) => a[1].name.localeCompare(b[1].name));
+    const comps = [...S.spring].filter(([, c]) => c.age === grp && c.code === code).sort((a, b) => divCmp(a[1].name, b[1].name) || a[1].name.localeCompare(b[1].name));
     for (const [cid, c] of comps) {
       const days = (S.tables.get(cid) || []).map(g => dublinDay(new Date(g.start_at))).sort();
       const span = days.length ? ` · ${fmtDate(days[0])} – ${fmtDate(days[days.length - 1])}` : '';
@@ -601,7 +610,7 @@ function render() {
       const cg = gs.filter(g => g.code === code);
       if (!cg.length) return '';
       const comps = new Map();
-      for (const g of cg) { if (!comps.has(g.comp)) comps.set(g.comp, []); comps.get(g.comp).push(g); }
+      for (const g of [...cg].sort((a, b) => divCmp(a.comp, b.comp) || a.day.localeCompare(b.day))) { if (!comps.has(g.comp)) comps.set(g.comp, []); comps.get(g.comp).push(g); }
       const compHtml = [...comps].map(([c, cgs]) => {
         const tp = tablePos.get(cgs[0].comp_id);
         return `<div class="comp"><div class="comp-head"><h4>${esc(c)}${tp ? `<span class="pos" title="League position from recorded results">${ordinal(tp.pos)} of ${tp.n}</span>` : ''}</h4>${recLine(rec(cgs))}</div>`
