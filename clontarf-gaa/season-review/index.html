@@ -202,7 +202,28 @@ table { border-collapse: collapse; width: 100%; }
 .about p { margin: 4px 0; max-width: 95ch; }
 .updated { font-size: 12px; color: var(--muted); }
 
+/* competition tables */
+.ltable-wrap { margin-top: 10px; break-inside: avoid; }
+.lt-title { font-size: 12.5px; font-weight: 700; margin-bottom: 2px; }
+.lt-sub { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.ltable { font-size: 12px; font-variant-numeric: tabular-nums; }
+.ltable th { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--ink); }
+.ltable td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+.ltable .c-pos { width: 24px; text-align: left; color: var(--muted); }
+.ltable .c-team { text-align: left; }
+.ltable .c-pts { font-weight: 700; }
+.ltable tr.me td { background: var(--red-tint); font-weight: 700; }
+.ltable tr.me .c-pos { color: var(--red); }
+.comp .ltable-wrap { max-width: 460px; margin-left: auto; }
+.spring { margin-top: 26px; }
+.spring-head { border-bottom: 2px solid var(--ink); padding-bottom: 4px; margin-bottom: 4px; }
+.spring-head h3 { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.spring-head p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.spring-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
+
 @media (max-width: 720px) {
+  .spring-grid { grid-template-columns: 1fr; }
+  .comp .ltable-wrap { max-width: none; }
   .hero .wrap { padding-top: 22px; padding-bottom: 18px; }
   .crest { width: 72px; }
   .hero h1 { font-size: 44px; }
@@ -232,6 +253,7 @@ table { border-collapse: collapse; width: 100%; }
   .panel, .age-section, .headline { box-shadow: none; }
   .honours-panel { break-before: page; }
   .age-section { break-before: page; }
+  .spring { break-before: page; }
   thead { display: table-header-group; }
 }
 @media (prefers-reduced-motion: no-preference) { .chip, .code-tile { transition: border-color .15s, background .15s; } }
@@ -301,7 +323,7 @@ const S = {
   from: isDay(P.get('from')) ? P.get('from') : DEFAULTS.from,
   to: isDay(P.get('to')) ? P.get('to') : DEFAULTS.to,
   ko: P.get('ko') === '1',
-  clubId: null, rows: [], tables: new Map(), loadedFrom: null, status: null,
+  clubId: null, rows: [], tables: new Map(), spring: new Map(), loadedFrom: null, status: null,
 };
 
 // ── Data ────────────────────────────────────────────────────────────────────
@@ -338,12 +360,19 @@ async function load() {
   S.rows = await get(`gaa_games?select=${sel}&or=(home_club_id.eq.${id},away_club_id.eq.${id})`
     + `&start_at=gte.${from}T00:00:00Z&start_at=lt.${to}T00:00:00Z&order=start_at.asc`);
   S.loadedFrom = S.from;
-  // League tables: every result in each league Clontarf played in
-  const leagueIds = [...new Set(S.rows.filter(r => r.comp?.level === LEVEL && isLeague(r.comp?.name)).map(r => r.comp_id))];
+  // Earlier competitions this year (spring), shown as reference tables
+  const yearStart = `${S.from.slice(0, 4)}-01-01`;
+  const inRange = new Set(S.rows.map(r => r.comp_id));
+  const earlier = yearStart < S.from ? await get(`gaa_games?select=comp_id,comp:gaa_competitions(name,age,code,level)&or=(home_club_id.eq.${id},away_club_id.eq.${id})`
+    + `&start_at=gte.${yearStart}T00:00:00Z&start_at=lt.${S.from}T00:00:00Z`) : [];
+  S.spring = new Map();
+  for (const r of earlier) if (!inRange.has(r.comp_id) && r.comp?.level === LEVEL && hasTable(r.comp?.name)) S.spring.set(r.comp_id, r.comp);
+  // Competition tables: every result in each division Clontarf played in this year
+  const tableIds = [...new Set([...S.rows.filter(r => r.comp?.level === LEVEL && (isLeague(r.comp?.name) || hasTable(r.comp?.name))).map(r => r.comp_id), ...S.spring.keys()])];
   S.tables = new Map();
-  for (let i = 0; i < leagueIds.length; i += 40) {
-    const ids = leagueIds.slice(i, i + 40).map(encodeURIComponent).join(',');
-    const all = await get(`gaa_games?select=comp_id,home_team,away_team,home_pts,away_pts,status&comp_id=in.(${ids})`);
+  for (let i = 0; i < tableIds.length; i += 40) {
+    const ids = tableIds.slice(i, i + 40).map(encodeURIComponent).join(',');
+    const all = await get(`gaa_games?select=comp_id,start_at,home_team,away_team,home_pts,away_pts,status,note&comp_id=in.(${ids})`);
     for (const g of all) {
       if (!S.tables.has(g.comp_id)) S.tables.set(g.comp_id, []);
       S.tables.get(g.comp_id).push(g);
@@ -351,6 +380,12 @@ async function load() {
   }
 }
 const isLeague = name => /League/i.test(name || '') && !/Final|Cup/i.test(name || '');
+// Group and league stages get a table; knockout rounds, finals and play-offs don't
+function hasTable(name) {
+  name = name || '';
+  if (/knockout|\bKO\b|final|playoff/i.test(name)) return false;
+  return !(/cup|shield/i.test(name) && !/\bgp\.|group/i.test(name));
+}
 
 // ── Shaping ─────────────────────────────────────────────────────────────────
 function stageOf(note, comp) {
@@ -404,7 +439,7 @@ function disputedIds(finals) {
 function leagueTable(compId) {
   const t = new Map();
   for (const g of S.tables.get(compId) || []) {
-    if (g.status !== 'result' || g.home_pts == null || g.away_pts == null) continue;
+    if (g.status !== 'result' || g.home_pts == null || g.away_pts == null || g.home_team === 'Bye' || g.away_team === 'Bye' || stageOf(g.note, '')) continue;
     for (const [tm, f, a] of [[g.home_team, g.home_pts, g.away_pts], [g.away_team, g.away_pts, g.home_pts]]) {
       const x = t.get(tm) || { t: tm, p: 0, w: 0, d: 0, l: 0, diff: 0, pts: 0 };
       x.p++; x.diff += f - a;
@@ -456,6 +491,31 @@ function ageChart(byGroup) {
   });
   out += `<text class="ax-tick" x="${CW}" y="${H + 14}" text-anchor="end">win rate</text>`;
   return `<svg class="age-chart" viewBox="0 0 ${CW} ${H + 18}" role="img" aria-label="Share of games won, drawn and lost by age group">${out}</svg>`;
+}
+
+function tableHtml(compId, title) {
+  const t = leagueTable(compId);
+  if (t.length < 3 || !t.some(e => e.t === CLUB_NAME)) return '';
+  const rows = t.map((e, i) => `<tr class="${e.t === CLUB_NAME ? 'me' : ''}"><td class="c-pos">${i + 1}</td><td class="c-team">${esc(e.t)}</td>`
+    + `<td>${e.p}</td><td>${e.w}</td><td>${e.d}</td><td>${e.l}</td><td>${e.diff > 0 ? '+' : ''}${e.diff}</td><td class="c-pts">${e.pts}</td></tr>`).join('');
+  return `<div class="ltable-wrap">${title ? `<div class="lt-title">${esc(title)}</div>` : '<div class="lt-title lt-sub">Table</div>'}`
+    + `<div class="tbl"><table class="ltable"><thead><tr><th class="c-pos">#</th><th class="c-team">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/−</th><th class="c-pts">Pts</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+function springTables(grp) {
+  const items = [];
+  for (const code of CODES) {
+    if (S.code !== 'all' && code !== S.code) continue;
+    const comps = [...S.spring].filter(([, c]) => c.age === grp && c.code === code).sort((a, b) => a[1].name.localeCompare(b[1].name));
+    for (const [cid, c] of comps) {
+      const days = (S.tables.get(cid) || []).map(g => dublinDay(new Date(g.start_at))).sort();
+      const span = days.length ? ` · ${fmtDate(days[0])} – ${fmtDate(days[days.length - 1])}` : '';
+      const h = tableHtml(cid, cleanComp(c.name) + span);
+      if (h) items.push(h);
+    }
+  }
+  if (!items.length) return '';
+  return `<section class="spring"><div class="spring-head"><h3>Earlier this year</h3><p>Tables from this year's earlier competitions, for reference, worked out from every recorded result in the division.</p></div>`
+    + `<div class="spring-grid">${items.join('')}</div></section>`;
 }
 
 function gameRow(g) {
@@ -546,14 +606,14 @@ function render() {
         const tp = tablePos.get(cgs[0].comp_id);
         return `<div class="comp"><div class="comp-head"><h4>${esc(c)}${tp ? `<span class="pos" title="League position from recorded results">${ordinal(tp.pos)} of ${tp.n}</span>` : ''}</h4>${recLine(rec(cgs))}</div>`
           + `<div class="tbl"><table class="games"><thead><tr><th>Date</th><th class="c-ha">H/A</th><th>Opponent</th><th class="c-score">Score</th><th class="c-m">+/−</th><th class="c-res">Result</th></tr></thead>`
-          + `<tbody>${cgs.map(gameRow).join('')}</tbody></table></div></div>`;
+          + `<tbody>${cgs.map(gameRow).join('')}</tbody></table></div>${hasTable(c) ? tableHtml(cgs[0].comp_id) : ''}</div>`;
       }).join('');
       const cr = rec(cg);
       return `<section class="code-block"><div class="code-head"><h3>${esc(code)}</h3>${recLine(cr)}${wdlBar(cr, 'bar-code')}</div>${compHtml}</section>`;
     }).join('');
     return `<section class="age-section" id="age-${grp}"><header class="age-head"><div class="age-name"><img src="${CREST}" alt="" class="age-crest"><h2>${esc(GROUP_LABEL[grp] || grp)}</h2></div>`
       + `<div class="age-stats"><div><b>${r.P}</b><span>Played</span></div><div><b>${r.W}</b><span>Won</span></div><div><b>${r.D}</b><span>Drawn</span></div>`
-      + `<div><b>${r.L}</b><span>Lost</span></div><div><b>${r.pct}%</b><span>Win rate</span></div></div>${wdlBar(r, 'bar-age')}</header>${codes}</section>`;
+      + `<div><b>${r.L}</b><span>Lost</span></div><div><b>${r.pct}%</b><span>Win rate</span></div></div>${wdlBar(r, 'bar-age')}</header>${codes}${springTables(grp)}</section>`;
   }).join('');
 
   const st = S.status;
