@@ -192,3 +192,4 @@ button { font: inherit; cursor: pointer; }
 .row.k-run .tt { color: var(--run); }
 .row.k-run { background: linear-gradient(90deg, rgba(43,108,176,.06), transparent); }
 .wl .k-run, .key .k-run { color: var(--run); }
+.pl { font-family: var(--heading-font); font-weight: 500; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px dashed #B8C0D2; border-radius: 999px; padding: 0 7px; margin-left: 4px; vertical-align: 2px; }

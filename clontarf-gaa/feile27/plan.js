@@ -3,12 +3,16 @@
 // CoachSmart events (see loadTeamEvents in diary.js) and everything else on a
 // day is filled in around them.
 window.FEILE = (function () {
+  // CoachSmart team code: Clontarf Girls 2012.
+  const TEAM_CODE = 'TMA47A5';
+
+  // The planned week, used for any week with no events set up in CoachSmart.
   const TEAM = {
     // Weekly pattern: 1 = Monday ... 7 = Sunday.
     weekly: [
-      { dow: 1, start: '18:30', end: '19:45', kind: 'team', title: 'Team training: football', detail: 'Formal training with the coaches' },
-      { dow: 2, start: '18:00', end: '19:00', kind: 'snc', title: 'Group S&C', detail: 'Strength and conditioning with the group' },
-      { dow: 3, start: '18:30', end: '19:45', kind: 'team', title: 'Team training: camogie', detail: 'Formal training with the coaches' }
+      { dow: 1, start: '19:10', end: '20:10', kind: 'team', title: 'Football training', detail: 'Formal training with the coaches' },
+      { dow: 2, start: '19:00', end: '20:00', kind: 'snc', title: 'Group S&C', detail: 'Strength and conditioning with the group' },
+      { dow: 3, start: '20:10', end: '21:10', kind: 'team', title: 'Camogie training', detail: 'Formal training with the coaches' }
     ],
     // No team sessions on these dates (Christmas break).
     off: [['2026-12-21', '2027-01-03']],
@@ -265,5 +269,5 @@ window.FEILE = (function () {
     'Fruit is the easiest snack there is. Grab one on the way out.'
   ];
 
-  return { TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run };
+  return { TEAM_CODE, TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run };
 })();

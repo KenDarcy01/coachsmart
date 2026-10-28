@@ -18,36 +18,89 @@
   const hhmm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   const longDate = d => `${DOW[dow(d) - 1]} ${+d.slice(8)} ${MON[+d.slice(5, 7) - 1]}`;
 
-  // ---- team events: from the plan for now, from CoachSmart later ----
-  // Later this reads the team's events from CoachSmart (training, S&C,
-  // matches) and returns the same shape: [{ date, start, end, kind, title, detail }].
-  function loadTeamEvents(d) {
+  // ---- team events: CoachSmart first, the planned week where none are set up ----
+  // CoachSmart events come from the team-diary edge function. Any week (Mon to
+  // Sun) with at least one CoachSmart event uses only those events; a week
+  // with none falls back to the planned pattern in plan.js, flagged "planned".
+  const FEED = `https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/team-diary?code=${F.TEAM_CODE}&from=${F.VIEW_START}&to=${F.FEILE_END}`;
+  const CACHE = 'feile27:cs';
+  let cs = null; // { at, byDate: { date: [event] }, weeks: Set of Mondays }
+  const monday = d => add(d, 1 - dow(d));
+
+  function useFeed(body, at) {
+    const byDate = {}, weeks = new Set();
+    (body.events || []).forEach(e => {
+      weeks.add(monday(e.date));
+      if (!e.cancelled) (byDate[e.date] = byDate[e.date] || []).push(e);
+    });
+    cs = { at, byDate, weeks };
+  }
+  try { const c = JSON.parse(localStorage.getItem(CACHE)); if (c) useFeed(c.body, c.at); } catch (e) {}
+
+  function fromCs(e) {
+    ['opposition', 'location'].forEach(k => { if (/^tbc$/i.test(e[k] || '')) e[k] = null; });
+    const type = (e.type || '').toLowerCase(), code = e.code === 'Hurling' ? 'Camogie' : e.code;
+    const snc = /s\s*&\s*c/i.test(`${e.title} ${e.code}`);
+    const kind = type === 'match' ? 'match' : snc ? 'snc' : 'team';
+    const fallback = kind === 'match' ? (e.opposition ? `Match v ${e.opposition}` : 'Match') : kind === 'snc' ? 'Group S&C' : `${code && code !== '-' ? code + ' training' : 'Team session'}`;
+    const title = e.title || fallback;
+    const detail = [e.squad, kind === 'match' && e.opposition && !title.toLowerCase().includes(e.opposition.toLowerCase().slice(0, 5)) ? 'v ' + e.opposition : null,
+      e.meet ? 'Meet ' + e.meet : null, e.location].filter(Boolean).join(' · ');
+    return { date: e.date, start: e.start, end: hhmm(mins(e.start) + 60), kind, title, detail, squad: e.squad, cs: true };
+  }
+
+  function plannedEvents(d) {
     const t = F.TEAM, out = [];
     const off = t.off.some(([a, b]) => within(d, a, b));
     if (!off) t.weekly.filter(w => w.dow === dow(d)).forEach(w => out.push({ date: d, ...w }));
-    t.matches.filter(m => m.date === d).forEach(m => out.push({ date: d, kind: 'match', end: hhmm(mins(m.start) + 60), detail: 'Check CoachSmart for the venue and squad', ...m }));
+    t.matches.filter(m => m.date === d).forEach(m => out.push({ date: d, kind: 'match', end: hhmm(mins(m.start) + 60), detail: 'Planned fixture', ...m }));
     (t.camps || []).filter(c => within(d, c.from, c.to)).forEach(c => out.push({ date: d, kind: 'team', ...c }));
+    return out.map(e => ({ ...e, planned: true }));
+  }
+
+  function loadTeamEvents(d) {
+    const out = cs && cs.weeks.has(monday(d)) ? (cs.byDate[d] || []).map(fromCs) : plannedEvents(d);
     return out.sort((a, b) => mins(a.start) - mins(b.start));
+  }
+
+  async function refreshFeed() {
+    try {
+      const r = await fetch(FEED, { cache: 'no-store' });
+      if (!r.ok) throw new Error(r.status);
+      const body = await r.json(), at = new Date().toISOString();
+      useFeed(body, at);
+      try { localStorage.setItem(CACHE, JSON.stringify({ body, at })); } catch (e) {}
+    } catch (e) { console.warn('CoachSmart feed unavailable, using the planned week', e); }
+    render();
   }
 
   const phaseOf = d => F.PHASES.find(p => within(d, p.from, p.to)) || F.PHASES[0];
   const holidayOf = d => F.HOLIDAYS.find(h => within(d, h.from, h.to));
 
   // ---- what to do at home on a day ----
+  // Worked out from the team sessions around the day: light the day before a
+  // match, recovery the day after, the long run on the last free day before
+  // the weekend, and nothing extra on a day with a team session.
   function homeFor(d, team) {
     const p = phaseOf(d).key;
     const toFeile = (parse(F.FEILE_START) - parse(d)) / DAY;
     if (p === 'feile') return 'feile';
     if (toFeile <= 2) return 'rest';
-    if (F.CHRISTMAS[d]) return F.CHRISTMAS[d];
-    if (F.BENCHMARKS.includes(d)) return 'test';
+    if (F.CHRISTMAS[d] && !team.length) return F.CHRISTMAS[d];
     if (team.length) return null;
-    const matchTomorrow = loadTeamEvents(add(d, 1)).some(e => e.kind === 'match');
+    const ev = n => loadTeamEvents(add(d, n));
+    const matchIn = n => ev(n).some(e => e.kind === 'match');
+    if (matchIn(1)) return 'P';
+    if (matchIn(-1)) return 'M';
+    if (F.BENCHMARKS.includes(d)) return 'test';
     switch (dow(d)) {
+      case 1: return 'B';
+      case 2: return 'A';
+      case 3: return 'M';
       case 4: return 'F';
-      // Match on Sunday: the long run moves to Friday so Saturday stays light.
-      case 5: return p === 'taper' ? 'T' : loadTeamEvents(add(d, 2)).some(e => e.kind === 'match') ? 'C' : 'B';
-      case 6: return matchTomorrow ? 'P' : p === 'taper' ? 'T' : 'C';
+      // A match or team session at the weekend: the long run moves to Friday.
+      case 5: return p === 'taper' ? 'T' : matchIn(2) || ev(1).length ? 'C' : 'B';
+      case 6: return p === 'taper' ? 'T' : 'C';
       default: return 'rest';
     }
   }
@@ -64,7 +117,7 @@
   function runFor(d, code, team, phase) {
     if (team.length || !code) return null;
     let day = null;
-    if (F.CHRISTMAS[d]) day = code === 'C' ? 'sat' : code === 'M' ? 'thu' : null;
+    if (F.CHRISTMAS[d] && !team.length) day = code === 'C' ? 'sat' : code === 'M' ? 'thu' : null;
     else if (code === 'F') day = 'thu';
     else if (code === 'C') day = 'sat';
     else if (code === 'T' && dow(d) === 6) day = 'sat';
@@ -87,7 +140,7 @@
       return { d, phase, hol, team, code, items, tags: [{ k: 'match', t: 'Féile' }] };
     }
 
-    team.forEach(e => items.push({ t: e.start, end: e.end, kind: e.kind, title: e.title, detail: e.detail }));
+    team.forEach(e => items.push({ t: e.start, end: e.end, kind: e.kind, title: e.title, detail: e.detail, planned: e.planned }));
     const run = runFor(d, code, team, phase);
     let at = weekend ? 10 * 60 + 30 : 17 * 60;
     if (run) {
@@ -188,7 +241,7 @@
       return `<li class="row k-${it.kind}">
         <div class="tm">${esc(it.t)}${it.end ? `<small>${esc(it.end)}</small>` : ''}</div>
         <div class="ev"><div class="ic">${ICON[it.kind] || '•'}</div><div class="tx">
-          <div class="tt">${esc(it.title)}${it.session ? ` <span class="mins">${it.session.mins} min</span>` : ''}</div>
+          <div class="tt">${esc(it.title)}${it.planned ? ' <span class="pl">Planned</span>' : ''}${it.session ? ` <span class="mins">${it.session.mins} min</span>` : ''}</div>
           ${it.detail ? `<div class="td">${esc(it.detail)}</div>` : ''}
           ${it.session ? `<button class="more" data-open="${okey}">${open ? 'Hide' : 'Show what to do'}</button>` : ''}
         </div>
@@ -232,8 +285,15 @@
     $('#week').innerHTML = html;
   }
 
+  function feedNote() {
+    const el = $('#feed'); if (!el) return;
+    if (!cs) { el.textContent = 'Team sessions shown are the planned week until CoachSmart loads.'; return; }
+    const t = new Date(cs.at);
+    el.textContent = `Team sessions from CoachSmart, updated ${t.toLocaleDateString('en-IE', { day: 'numeric', month: 'short' })} at ${t.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })}. Weeks with nothing set up yet show the planned week.`;
+  }
+
   function render() {
-    hero(); strip(); dayView(); weekView();
+    hero(); strip(); dayView(); weekView(); feedNote();
     const u = new URL(location.href); u.searchParams.set('d', current); history.replaceState(null, '', u);
   }
 
@@ -263,5 +323,6 @@
   }, { passive: true });
 
   render();
+  refreshFeed();
   window.FEILE_DIARY = { planDay, loadTeamEvents };
 })();
