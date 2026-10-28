@@ -15,6 +15,12 @@
           ]
         },
         {
+          "source": "/clontarf-gaa/feile27/**",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
           "source": "/webviews/**",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
