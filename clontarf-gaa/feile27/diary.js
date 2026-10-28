@@ -122,7 +122,7 @@
     else if (code === 'C') day = 'sat';
     else if (code === 'T' && dow(d) === 6) day = 'sat';
     if (!day) return null;
-    const from = phase.from > F.PLAN_START ? phase.from : F.PLAN_START;
+    const from = monday(phase.from > F.PLAN_START ? phase.from : F.PLAN_START);
     const week = Math.floor((parse(d) - parse(from)) / DAY / 7);
     return F.run(day, phase.key, week);
   }
@@ -131,7 +131,6 @@
   function planDay(d) {
     const phase = phaseOf(d), hol = holidayOf(d), team = loadTeamEvents(d);
     const code = homeFor(d, team);
-    const weekend = dow(d) >= 6 || !!hol;
     const sess = code && code !== 'rest' && code !== 'off' ? sessionFor(code, phase.key) : null;
     const items = [];
 
@@ -142,7 +141,8 @@
 
     team.forEach(e => items.push({ t: e.start, end: e.end, kind: e.kind, title: e.title, detail: e.detail, planned: e.planned }));
     const run = runFor(d, code, team, phase);
-    let at = weekend ? 10 * 60 + 30 : 17 * 60;
+    // School days: everything happens in the evening. Weekends: mid-morning.
+    let at = dow(d) >= 6 ? 10 * 60 + 30 : 18 * 60 + 30;
     if (run) {
       items.push({ t: hhmm(at), end: hhmm(at + run.mins), kind: 'run', title: run.name, detail: run.sub, session: run });
       at += run.mins + 10;
@@ -191,10 +191,9 @@
     const today = todayIso();
     const left = Math.max(0, Math.round((parse(F.FEILE_START) - parse(today)) / DAY));
     const p = phaseOf(clamp(today));
-    const started = today >= F.PLAN_START;
     $('#count').textContent = left;
     $('#count-label').textContent = left === 1 ? 'day to Féile' : 'days to Féile';
-    $('#phase').textContent = started ? p.name : 'Starts Mon 2 Nov';
+    $('#phase').textContent = p.name;
   }
 
   function strip() {
@@ -259,7 +258,6 @@
           <div class="score" aria-label="${t.done} of ${t.total} done"><b>${t.done}</b>/${t.total}</div>
         </div>
         <div class="tags">${plan.tags.map(x => `<span class="tag k-${x.k}">${esc(x.t)}</span>`).join('')}</div>
-        ${d < F.PLAN_START ? `<p class="note">The plan starts on Monday 2 November. Use this week to find your wall, pump the ball and check your helmet.</p>` : ''}
         ${plan.d === F.FEILE_START || plan.d === F.FEILE_END ? '' : `<p class="aim">${esc(plan.phase.aim)}</p>`}
         <ol class="timeline">${rows}</ol>
       </div>

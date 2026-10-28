@@ -36,11 +36,11 @@ window.FEILE = (function () {
 
   const FEILE_START = '2027-04-24';
   const FEILE_END = '2027-04-25';
-  const PLAN_START = '2026-11-02';
-  const VIEW_START = '2026-10-26';
+  const PLAN_START = '2026-10-28';
+  const VIEW_START = '2026-10-28';
 
   const PHASES = [
-    { key: 'foundation', name: 'Foundation', from: '2026-10-26', to: '2026-12-13', aim: 'Learn every exercise properly and make wall ball a habit.' },
+    { key: 'foundation', name: 'Foundation', from: '2026-10-28', to: '2026-12-13', aim: 'Learn every exercise properly and make wall ball a habit.' },
     { key: 'christmas', name: 'Christmas block', from: '2026-12-14', to: '2027-01-10', aim: 'Keep it ticking over: short sessions, family time, 24 to 27 Dec fully off.' },
     { key: 'build', name: 'Build', from: '2027-01-11', to: '2027-02-28', aim: 'More rounds, harder intervals, skills from longer range.' },
     { key: 'sharp', name: 'Competition prep', from: '2027-03-01', to: '2027-04-04', aim: 'Match-shaped running and skills when tired.' },
@@ -244,7 +244,7 @@ window.FEILE = (function () {
     { id: 'touch', n: '100 touches', d: 'Sliotar taps, bounces and roll-lifts, both hands' },
     { id: 'water', n: 'Water bottle, 1.5 to 2 L', d: 'Bring it to school and refill' },
     { id: 'stretch', n: '5-minute stretch before bed', d: 'Hips, hamstrings, calves' },
-    { id: 'sleep', n: 'Lights out by 22:00', d: '9 hours sleep helps you grow and recover' }
+    { id: 'sleep', n: '9 hours sleep', d: 'Sleep is when you grow and recover. Phone out of the bedroom helps' }
   ];
 
   // Eating well: principles, not menus. No dieting language.
