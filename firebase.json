@@ -9,7 +9,7 @@
       ],
       "headers": [
         {
-          "regex": "^/clontarf-gaa/results.*",
+          "regex": "^/clontarf-gaa/(results|season-review).*",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache" }
           ]
