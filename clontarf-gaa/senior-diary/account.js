@@ -133,6 +133,13 @@ window.ACCOUNT = (function () {
     if (store[d][id]) delete store[d][id]; else store[d][id] = 1;
     keep(); push(d);
   }
+  // Numbers the player types in (bodyweight, best sets), kept with the day's ticks.
+  const value = (d, id) => (store[d] && typeof store[d][id] === 'string') ? store[d][id] : '';
+  function setValue(d, id, v) {
+    store[d] = store[d] || {};
+    if (v) store[d][id] = v; else delete store[d][id];
+    keep(); push(d);
+  }
 
   async function boot() {
     if (!window.supabase) {
@@ -162,5 +169,5 @@ window.ACCOUNT = (function () {
 
   document.addEventListener('click', e => { if (e.target.closest('#who')) showProfile(false); });
   boot();
-  return { ready, ticked, toggle };
+  return { ready, ticked, toggle, value, setValue };
 })();

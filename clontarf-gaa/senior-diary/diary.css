@@ -216,3 +216,19 @@ body.gated { overflow: hidden; }
 .gbtn { display: block; width: 100%; margin-top: 4px; padding: 12px; background: var(--navy); color: #fff; border: 0; border-radius: 10px; font-family: var(--heading-font); font-size: 16px; letter-spacing: .04em; text-transform: uppercase; }
 .gbtn:disabled { opacity: .6; }
 .glink { display: block; margin: 12px auto 0; background: none; border: 0; color: var(--navy); text-decoration: underline; }
+
+/* Senior diary: numbers to log and the Sunday check-in */
+.num { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.card h2 + .num { border-top: 0; }
+.num span { flex: 1; min-width: 0; }
+.num b { display: block; font-weight: 600; }
+.num small { display: block; font-size: 13px; color: var(--muted); }
+.num input { flex: none; width: 96px; padding: 8px 10px; font: inherit; text-align: center; border: 1px solid var(--rule); border-radius: 10px; color: var(--ink); background: #fff; }
+.card .bn { margin: 0; font-size: 14px; }
+.card.ci { border: 2px solid var(--navy); }
+.card.ci p { font-size: 14px; color: var(--muted); }
+.sum { list-style: none; margin: 10px 0 12px; padding: 0; }
+.sum li { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.sum li:first-child { border-top: 0; }
+.sum i { color: var(--muted); font-weight: 400; }
+a.gbtn { text-align: center; text-decoration: none; }
