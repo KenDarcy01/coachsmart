@@ -1,0 +1,142 @@
+{
+  "_help": "Positions are in % of image width (1 = 1% of width), measured from the top-left. Wrap the green word(s) in *stars*. Use \\n for a headline line break; the subtitle wraps by itself.",
+  "formats": {
+    "iphone-6.9": {
+      "width": 1320,
+      "height": 2868,
+      "style": "iphone",
+      "text": "iphone"
+    },
+    "iphone-6.5": {
+      "width": 1284,
+      "height": 2778,
+      "style": "iphone",
+      "text": "iphone"
+    },
+    "android-phone": {
+      "width": 1080,
+      "height": 1920,
+      "style": "slab",
+      "text": "android"
+    }
+  },
+  "text": {
+    "iphone": {
+      "headlineTop": 13.4,
+      "headlineSize": 9.75,
+      "subtitleTop": 37.5,
+      "subtitleSize": 4.0,
+      "subtitleWidth": 84
+    },
+    "android": {
+      "headlineTop": 9.6,
+      "headlineSize": 9.0,
+      "subtitleTop": 32.2,
+      "subtitleSize": 3.85,
+      "subtitleWidth": 84
+    }
+  },
+  "screens": [
+    {
+      "id": "01-season",
+      "screenshot": "raw/home.png",
+      "headline": "Your entire season,\n*organised*",
+      "subtitle": "Manage schedules for all your teams in one unified calendar.",
+      "subtitleBold": true,
+      "phone": {
+        "iphone": {
+          "x": 9.66,
+          "y": 66.7,
+          "width": 75.6,
+          "rotate": -3.5
+        },
+        "slab": {
+          "x": 8.0,
+          "y": 58.2,
+          "width": 77.4,
+          "rotate": -3.0
+        }
+      }
+    },
+    {
+      "id": "02-attendance",
+      "screenshot": "raw/attendance.png",
+      "headline": "Know Who’s In,\n*instantly*",
+      "subtitle": "Real-time attendance tracking with automated reminders.",
+      "phone": {
+        "iphone": {
+          "x": 13.36,
+          "y": 56.13,
+          "width": 71.66,
+          "rotate": 0
+        },
+        "slab": {
+          "x": 9.07,
+          "y": 45.8,
+          "width": 79.8,
+          "rotate": 0
+        }
+      }
+    },
+    {
+      "id": "03-publish",
+      "screenshot": "raw/publish-teams.png",
+      "headline": "Publish and export\nteams, *easily*",
+      "subtitle": "Quickly split players into teams and export to google sheets, excel or CSV.",
+      "phone": {
+        "iphone": {
+          "x": 10.64,
+          "y": 62.98,
+          "width": 104.0,
+          "rotate": 0
+        },
+        "slab": {
+          "x": 8.7,
+          "y": 58.2,
+          "width": 107.0,
+          "rotate": 0
+        }
+      }
+    },
+    {
+      "id": "04-squads",
+      "screenshot": "raw/squad-menu.png",
+      "headline": "Squad managment,\n*simplified*",
+      "subtitle": "Build squads, assign roles, and share the lineup quickly.",
+      "phone": {
+        "iphone": {
+          "x": 9.55,
+          "y": 62.65,
+          "width": 81.1,
+          "rotate": 0
+        },
+        "slab": {
+          "x": 8.0,
+          "y": 56.2,
+          "width": 84.0,
+          "rotate": 0
+        }
+      }
+    },
+    {
+      "id": "05-team-selector",
+      "screenshot": "raw/team-selector.png",
+      "headline": "Drag & Drop positions\nusing *team selector*",
+      "subtitle": "Simple allocation of match positions that can easily be shared with the players & coaches",
+      "phone": {
+        "iphone": {
+          "x": 5.75,
+          "y": 66.0,
+          "width": 81.0,
+          "rotate": -7.8
+        },
+        "slab": {
+          "x": 3.1,
+          "y": 55.6,
+          "width": 89.8,
+          "rotate": -8.1
+        }
+      }
+    }
+  ]
+}

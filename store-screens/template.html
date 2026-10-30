@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Roboto; font-weight: 400; src: url(fonts/roboto-400.woff2) format("woff2"); }
+  @font-face { font-family: Roboto; font-weight: 500; src: url(fonts/roboto-500.woff2) format("woff2"); }
+  @font-face { font-family: Roboto; font-weight: 700; src: url(fonts/roboto-700.woff2) format("woff2"); }
+  @font-face { font-family: Roboto; font-weight: 900; src: url(fonts/roboto-900.woff2) format("woff2"); }
+
+  /* 1rem = 1% of the image width, set by render() */
+  :root { --green: #87c232; --white: #ffffff; --bg: #000000; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+  body { font-family: Roboto, sans-serif; color: var(--white); position: relative; -webkit-font-smoothing: antialiased; }
+
+  .headline {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-weight: 700; line-height: 1.0; letter-spacing: -0.01em; white-space: pre-line;
+  }
+  .headline em { font-style: normal; color: var(--green); }
+  .subtitle {
+    position: absolute; left: 50%; transform: translateX(-50%); text-align: center;
+    font-weight: 400; line-height: 1.2;
+  }
+  .subtitle.bold { font-weight: 700; }
+
+  .device { position: absolute; transform-origin: 0 0; }
+  .device .body { position: absolute; }
+  .device .screen { position: absolute; overflow: hidden; background: #14181b; }
+  .device .screen img { width: 100%; display: block; }
+  .device .btn { position: absolute; background: linear-gradient(90deg, #2a2a2a, #8a8a8a 50%, #2a2a2a); }
+
+  /* iPhone: metal rim, black inner bezel, big rounded corners */
+  .iphone .body {
+    background: linear-gradient(135deg, #9a9a9a 0%, #3c3c3c 18%, #6e6e6e 50%, #333 82%, #8a8a8a 100%);
+    box-shadow: 0 0 0 0.15rem #1a1a1a, 0 2rem 6rem rgba(0,0,0,0.6);
+  }
+  .iphone .inner { position: absolute; background: #000; }
+
+  /* Android / generic slab: thin rim, small corners */
+  .slab .body {
+    background: linear-gradient(135deg, #7a7a7a, #2e2e2e 30%, #555 60%, #2e2e2e 85%, #6a6a6a);
+    box-shadow: 0 2rem 6rem rgba(0,0,0,0.6);
+  }
+  .slab .inner { position: absolute; background: #000; }
+</style>
+</head>
+<body>
+<script>
+// Called by render.mjs with { screen, format, text } (see screens.json)
+window.render = ({ screen, format, text, imageUrl }) => {
+  document.documentElement.style.fontSize = (window.innerWidth / 100) + 'px';
+  const style = format.style;
+  const p = screen.phone[style];
+
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const h = document.createElement('div');
+  h.className = 'headline';
+  h.style.top = text.headlineTop + 'rem';
+  h.style.fontSize = text.headlineSize + 'rem';
+  h.innerHTML = esc(screen.headline).replace(/\*(.+?)\*/g, '<em>$1</em>');
+  document.body.appendChild(h);
+
+  const s = document.createElement('div');
+  s.className = 'subtitle' + (screen.subtitleBold ? ' bold' : '');
+  s.style.top = text.subtitleTop + 'rem';
+  s.style.fontSize = text.subtitleSize + 'rem';
+  s.style.width = text.subtitleWidth + 'rem';
+  s.textContent = screen.subtitle;
+  document.body.appendChild(s);
+
+  // Geometry in rem, relative to the screen's top-left corner
+  const W = p.width;
+  const g = style === 'iphone'
+    ? { H: W * 2.1727, rim: W * 0.011, bezel: W * 0.035, rOuter: W * 0.165, rScreen: W * 0.13 }
+    : { H: W * 1.598,  rim: W * 0.004, bezel: W * 0.030, rOuter: W * 0.035, rScreen: W * 0.022 };
+
+  const d = document.createElement('div');
+  d.className = 'device ' + style;
+  d.style.left = p.x + 'rem';
+  d.style.top = p.y + 'rem';
+  d.style.transform = `rotate(${p.rotate || 0}deg)`;
+
+  const b = g.bezel, ow = W + 2 * b, oh = g.H + 2 * b;
+  const btns = style === 'iphone'
+    ? [['l', 0.16, 0.035], ['l', 0.25, 0.07], ['l', 0.35, 0.07], ['r', 0.27, 0.11]]
+    : [['r', 0.12, 0.05], ['r', 0.20, 0.08]];
+  for (const [side, at, len] of btns) {
+    const e = document.createElement('div');
+    e.className = 'btn';
+    const t = W * 0.007;
+    e.style.width = t + 'rem';
+    e.style.height = (oh * len) + 'rem';
+    e.style.top = (-b + oh * at) + 'rem';
+    e.style.left = side === 'l' ? (-b - t * 0.8) + 'rem' : (W + b - t * 0.2) + 'rem';
+    e.style.borderRadius = t + 'rem';
+    d.appendChild(e);
+  }
+
+  const body = document.createElement('div');
+  body.className = 'body';
+  Object.assign(body.style, { left: -b + 'rem', top: -b + 'rem', width: ow + 'rem', height: oh + 'rem', borderRadius: g.rOuter + 'rem' });
+  const inner = document.createElement('div');
+  inner.className = 'inner';
+  Object.assign(inner.style, { left: g.rim + 'rem', top: g.rim + 'rem', right: g.rim + 'rem', bottom: g.rim + 'rem', borderRadius: (g.rOuter - g.rim) + 'rem' });
+  body.appendChild(inner);
+  d.appendChild(body);
+
+  const sc = document.createElement('div');
+  sc.className = 'screen';
+  Object.assign(sc.style, { left: 0, top: 0, width: W + 'rem', height: g.H + 'rem', borderRadius: g.rScreen + 'rem' });
+  const img = new Image();
+  img.src = imageUrl;
+  sc.appendChild(img);
+  d.appendChild(sc);
+  document.body.appendChild(d);
+
+  return Promise.all([document.fonts.ready, img.decode()]);
+};
+</script>
+</body>
+</html>
