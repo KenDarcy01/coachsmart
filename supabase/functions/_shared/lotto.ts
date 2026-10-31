@@ -272,7 +272,7 @@ ${inner}
 </div></body></html>`;
 }
 
-async function sendConfirmation(sb: any, cfg: any, ticket: any) {
+export async function sendConfirmation(sb: any, cfg: any, ticket: any) {
   const { data: player } = await sb.from("lotto_players").select("*").eq("player_id", ticket.player_id).maybeSingle();
   if (!player) return;
   const draw = await ensureOpenDraw(sb, cfg);

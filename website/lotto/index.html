@@ -247,6 +247,7 @@ async function load(paid) {
   }
   if (!L.can_pay && !PREVIEW) { message('Coming soon', 'Card payments are being set up.'); return; }
 
+  if (L.test_mode) document.querySelector('.wrap').insertAdjacentHTML('afterbegin', '<div style="background:#fff4d6;border:1.5px solid #f0b429;color:#7a5200;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.45"><b>Test mode.</b> No payment is taken. Tickets, emails and draws work as normal.</div>');
   $('pickTitle').textContent = `Pick ${L.pick_count} numbers`;
   const sel = $('team');
   for (const t of d.teams) sel.insertAdjacentHTML('beforeend', `<option value="${t.team_id}">${esc(t.team_name)}</option>`);
@@ -341,7 +342,7 @@ function renderTotal() {
     const weeks = plan === 'w4' ? 4 : 1;
     $('totalAmt').textContent = euro(week * weeks);
     $('totalSub').textContent = plan === 'weekly' ? `per week · ${n} ${n === 1 ? 'line' : 'lines'}` : `${n} ${n === 1 ? 'line' : 'lines'} · ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
-    $('go').textContent = 'Pay by card';
+    $('go').textContent = L.test_mode ? 'Get tickets (test, no payment)' : 'Pay by card';
     $('go').disabled = false;
   }
 }
@@ -372,7 +373,7 @@ $('go').onclick = async () => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Please check your email address.');
   if (!$('agree18').checked) return fail('You need to be 18 or over to play.');
   if (!$('agreeRules').checked) return fail('Please agree to the lotto rules.');
-  const btn = $('go'); btn.disabled = true; btn.textContent = 'Opening payment…';
+  const btn = $('go'); btn.disabled = true; btn.textContent = L.test_mode ? 'Saving…' : 'Opening payment…';
   try {
     const d = await api({
       action: 'checkout', lines, plan: plan === 'weekly' ? 'weekly' : 'weeks', weeks: plan === 'w4' ? 4 : 1,

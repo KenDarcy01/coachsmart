@@ -57,6 +57,9 @@ button { font: inherit; cursor: pointer; }
 .past:first-of-type { border-top: 0; padding-top: 0; }
 .past .r1 { display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; }
 .past .r2 { color: var(--grey); margin-top: 3px; display: flex; justify-content: space-between; align-items: center; }
+.testbar { background: rgba(255,176,32,.12); border: 1.5px solid #ffb020; color: #ffcf70; border-radius: 12px; padding: 10px 12px; margin: 0 14px 12px; font-size: 13px; line-height: 1.45; }
+.tog { border: 1.5px solid #3a404c; background: var(--card2); color: var(--grey); border-radius: 20px; padding: 6px 14px; font: 600 13px 'DM', sans-serif; }
+.tog.on { border-color: #ffb020; color: #ffcf70; }
 .link { background: none; border: 0; color: var(--g); font: 600 13px 'DM', sans-serif; padding: 0; }
 .balls { letter-spacing: .06em; }
 .hide { display: none !important; }
@@ -90,6 +93,7 @@ button { font: inherit; cursor: pointer; }
 
   <!-- Draw -->
   <div id="tab-draw">
+    <div class="testbar hide" id="testBar"><b>Test mode.</b> No payments are taken and you can draw any time. Clear the test data in Settings before going live.</div>
     <div class="acard"><h3 id="drawHead">This draw</h3>
       <div class="stats"><div class="stat"><div class="v" id="sSales">€0</div><div class="k">sales since last draw</div></div><div class="stat"><div class="v" id="sLines">0</div><div class="k">lines in draw</div></div><div class="stat"><div class="v" id="sPlayers">0</div><div class="k">players</div></div></div>
     </div>
@@ -133,6 +137,11 @@ button { font: inherit; cursor: pointer; }
       <div class="kv"><span>Payments</span><span id="stripeStatus"></span></div>
     </div>
     <button class="abtn g" id="saveBtn">Save settings</button>
+    <div class="acard hide" id="testCard"><h3>Testing</h3>
+      <div class="kv"><span>Test mode (no payment)</span><span><button class="tog" id="testTog">Off</button></span></div>
+      <p class="note" style="text-align:left">Tickets bought on the preview page skip Stripe, emails still go out, and you can draw any time. Only works while the lotto is set up, not live.</p>
+      <div class="kv"><span id="testCount">No test data</span><span><button class="link" id="clearTest">Clear test data</button></span></div>
+    </div>
     <div class="acard"><h3>Lotto admins</h3><div id="admins"></div>
       <div class="kv"><span>Add admin</span><span><input id="newAdmin" type="email" placeholder="Their CoachSmart email"></span></div>
       <button class="link" id="addAdmin" style="margin-top:8px">Add</button>
@@ -211,6 +220,13 @@ function render(v) {
 
   // Draw tab
   $('drawHead').textContent = L.status === 'live' ? 'This draw' : 'This draw (lotto not live yet)';
+  $('testBar').classList.toggle('hide', !v.test?.on);
+  $('testCard').classList.toggle('hide', L.status === 'live');
+  $('testTog').textContent = v.test?.on ? 'On' : 'Off';
+  $('testTog').classList.toggle('on', !!v.test?.on);
+  const tn = v.test?.tickets || 0, dn = v.test?.draws || 0;
+  $('testCount').textContent = tn || dn ? `${tn} test ${tn === 1 ? 'ticket' : 'tickets'}, ${dn} ${dn === 1 ? 'draw' : 'draws'}` : 'No test data';
+  $('clearTest').disabled = !(tn || dn);
   $('sSales').textContent = euro(v.stats.sales_cents);
   $('sLines').textContent = v.stats.lines;
   $('sPlayers').textContent = v.stats.players;
@@ -296,6 +312,16 @@ async function exportDraw(id) {
     a.href = URL.createObjectURL(blob); a.download = `lotto-draw-${id}.csv`; a.click();
   } catch (e) { toast(e.message); }
 }
+
+$('testTog').onclick = async () => {
+  try { render(await api({ action: 'admin_save', lotto_id: lottoId, settings: { test_mode: !V.test?.on } })); toast(V.test?.on ? 'Test mode on' : 'Test mode off'); }
+  catch (e) { toast(e.message); }
+};
+$('clearTest').onclick = async () => {
+  if (!confirm('Delete all test tickets and draws, and put the jackpot back to where it was before testing?')) return;
+  try { render(await api({ action: 'admin_clear_test', lotto_id: lottoId })); toast('Test data cleared'); }
+  catch (e) { toast(e.message); }
+};
 
 $('saveBtn').onclick = async () => {
   const s = {};

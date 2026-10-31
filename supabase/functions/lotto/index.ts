@@ -4,15 +4,20 @@
 //
 // Public actions (anon key): page, checkout, stop
 // Admin actions (signed-in user listed in lotto_admins): admin_load, admin_save,
-//   admin_preview, admin_publish, admin_export, admin_add_admin
+//   admin_preview, admin_publish, admin_export, admin_add_admin, admin_clear_test
+//
+// Test mode (lotto_clubs.test_mode, only while status is 'setup'): checkout skips
+// Stripe and makes the ticket straight away (is_test), weekly test tickets get a
+// free week before each draw, and the admin can draw any time. Clear test data
+// wipes it all before going live.
 //
 // Requires: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, RESEND_API_KEY.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   acct, ballsHtml, clubName, colours, confirmCheckout, corsHeaders, displayName, emailShell, ensureOpenDraw, esc, euro,
-  fmtDate, fromLine, json, MAX_LINES, nextDrawAt, PAGE_BASE, priceFor, salesCloseFor, sendEmails, stripe,
-  syncWithStripe,
+  fmtDate, fromLine, json, MAX_LINES, nextDrawAt, PAGE_BASE, priceFor, salesCloseFor, sendConfirmation, sendEmails,
+  stripe, syncWithStripe,
 } from "../_shared/lotto.ts";
 
 const PUBLIC_FIELDS = [
@@ -44,12 +49,16 @@ const EDITABLE: Record<string, (v: any) => any> = {
     if (!s) return null;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? s : bad("Contact email doesn't look right");
   },
+  test_mode: v => v === true,
   stripe_account_id: v => {
     const s = String(v ?? "").trim();
     if (!s) return null;
     return /^acct_[A-Za-z0-9]+$/.test(s) ? s : bad("Stripe account ID should start with acct_");
   },
 };
+
+// Test mode only counts while the lotto isn't live.
+function testing(cfg: any) { return !!cfg.test_mode && cfg.status === "setup"; }
 
 class UserError extends Error {}
 function bad(msg: string): never { throw new UserError(msg); }
@@ -107,6 +116,7 @@ function publicCfg(cfg: any) {
   out.crest = cfg.clubs?.crest || null;
   out.colours = colours(cfg);
   out.can_pay = !!acct(cfg);
+  out.test_mode = testing(cfg);
   return out;
 }
 
@@ -135,7 +145,12 @@ async function page(sb: any, body: any) {
   // Back from Stripe: confirm straight away rather than waiting for the webhook.
   let paid: any = null;
   let token = body.token ? String(body.token) : "";
-  if (body.paid && acct(cfg) && /^cs_[A-Za-z0-9_]+$/.test(String(body.paid))) {
+  const testPaid = String(body.paid || "").match(/^test_(\d+)$/);
+  if (testPaid && /^[0-9a-f-]{36}$/i.test(token)) {
+    const { data: t } = await sb.from("lotto_tickets").select("lines, plan, weeks_bought, price_cents, lotto_players!inner(token)")
+      .eq("ticket_id", Number(testPaid[1])).eq("lotto_id", cfg.lotto_id).eq("is_test", true).eq("lotto_players.token", token).maybeSingle();
+    if (t) paid = { lines: t.lines, plan: t.plan, weeks: t.weeks_bought, price_cents: t.price_cents };
+  } else if (body.paid && acct(cfg) && /^cs_[A-Za-z0-9_]+$/.test(String(body.paid))) {
     const session = await stripe("GET", `/checkout/sessions/${body.paid}`, null, acct(cfg));
     const { ticket } = await confirmCheckout(sb, cfg, session);
     if (ticket) {
@@ -196,7 +211,8 @@ async function checkout(sb: any, body: any) {
   const cfg = await lottoBySlug(sb, body.slug);
   if (cfg.status === "paused") bad("The lotto is paused at the moment");
   if (cfg.status !== "live" && !body.preview) bad("The lotto isn't open yet");
-  if (!acct(cfg)) bad("Card payments aren't set up yet");
+  const test = testing(cfg);
+  if (!test && !acct(cfg)) bad("Card payments aren't set up yet");
 
   const lines = validLines(cfg, body.lines);
   const plan = body.plan === "weekly" ? "weekly" : "weeks";
@@ -227,9 +243,25 @@ async function checkout(sb: any, body: any) {
   const price = priceFor(cfg, lines.length);
   const { data: ticket, error: tErr } = await sb.from("lotto_tickets").insert({
     lotto_id: cfg.lotto_id, player_id: player.player_id, lines, team_id: teamId, plan, weeks_bought: weeks,
-    price_cents: price, agreed_18_at: new Date().toISOString(),
+    price_cents: price, agreed_18_at: new Date().toISOString(), is_test: test,
   }).select("*").single();
   if (tErr) throw tErr;
+
+  if (test) {
+    // No Stripe: the ticket is paid there and then, and the normal email goes out.
+    const paidAt = new Date().toISOString();
+    const { data: active, error: aErr } = await sb.from("lotto_tickets").update({
+      status: "active", paid_at: paidAt, weeks_paid: plan === "weekly" ? 1 : weeks,
+    }).eq("ticket_id", ticket.ticket_id).select("*").single();
+    if (aErr) throw aErr;
+    const { error: pErr } = await sb.from("lotto_payments").insert({
+      lotto_id: cfg.lotto_id, ticket_id: ticket.ticket_id, amount_cents: plan === "weekly" ? price : price * weeks,
+      kind: "checkout", stripe_ref: `test_${ticket.ticket_id}_1`, paid_at: paidAt,
+    });
+    if (pErr) throw pErr;
+    await sendConfirmation(sb, cfg, active).catch(e => console.error("confirmation email", e));
+    return json({ success: true, data: { url: `${PAGE_BASE}${cfg.slug}?preview=1&t=${player.token}&paid=test_${ticket.ticket_id}` } });
+  }
 
   const base = PAGE_BASE + cfg.slug + (body.preview ? "?preview=1&" : "?");
   const label = `${clubName(cfg)} ${cfg.lotto_name}: ${lines.length} ${lines.length === 1 ? "line" : "lines"}`;
@@ -298,6 +330,11 @@ async function admin(req: Request, sb: any, action: string, body: any) {
     const patch: any = {};
     for (const [k, v] of Object.entries(body.settings || {})) if (EDITABLE[k]) patch[k] = EDITABLE[k](v);
     if (patch.status === "live" && !("stripe_account_id" in patch ? patch.stripe_account_id : acct(cfg))) bad("Add the club's Stripe account before going live");
+    if (patch.status === "live") {
+      const { count } = await sb.from("lotto_tickets").select("ticket_id", { count: "exact", head: true }).eq("lotto_id", lottoId).eq("is_test", true);
+      if (count) bad("Clear the test data before going live");
+      patch.test_mode = false;
+    }
     // The Stripe account belongs to the club (shared with membership), not the lotto.
     if ("stripe_account_id" in patch) {
       const { error } = await sb.from("clubs").update({ stripe_account_id: patch.stripe_account_id }).eq("club_id", cfg.club_id);
@@ -323,7 +360,8 @@ async function admin(req: Request, sb: any, action: string, body: any) {
   if (action === "admin_preview" || action === "admin_publish") {
     const draw = await ensureOpenDraw(sb, cfg);
     const numbers = validLines(cfg, [body.numbers])[0];
-    if (new Date() < new Date(draw.sales_close_at)) bad(`Sales are open until ${fmtDate(new Date(draw.sales_close_at))}`);
+    if (!testing(cfg) && new Date() < new Date(draw.sales_close_at)) bad(`Sales are open until ${fmtDate(new Date(draw.sales_close_at))}`);
+    if (testing(cfg)) await topUpTestWeekly(sb, cfg);
     await syncWithStripe(sb, cfg);
     const outcome = await workOutDraw(sb, cfg, draw, numbers);
     if (action === "admin_preview") return json({ success: true, data: summarise(cfg, outcome) });
@@ -332,6 +370,12 @@ async function admin(req: Request, sb: any, action: string, body: any) {
   }
 
   if (action === "admin_export") return json({ success: true, data: { csv: await exportCsv(sb, cfg, Number(body.draw_id)) } });
+
+  if (action === "admin_clear_test") {
+    if (cfg.status === "live") bad("Test data can only be cleared before the lotto goes live");
+    await clearTestData(sb, cfg);
+    return json({ success: true, data: await adminView(sb, (await sb.from("lotto_clubs").select("*, clubs(club_name, crest, primary_colour, secondary_colour, stripe_account_id)").eq("lotto_id", lottoId).single()).data, ids) });
+  }
 
   if (action === "admin_add_admin") {
     const email = String(body.email || "").trim().toLowerCase();
@@ -342,6 +386,36 @@ async function admin(req: Request, sb: any, action: string, body: any) {
   }
 
   return json({ error: "Unknown action" }, 400);
+}
+
+// Weekly test tickets have no renewals, so each one gets a free week before a draw.
+async function topUpTestWeekly(sb: any, cfg: any) {
+  const { data } = await sb.from("lotto_tickets").select("ticket_id, weeks_paid, draws_entered, price_cents")
+    .eq("lotto_id", cfg.lotto_id).eq("is_test", true).eq("plan", "weekly").eq("status", "active");
+  for (const t of data || []) {
+    if (t.draws_entered < t.weeks_paid) continue;
+    const week = t.weeks_paid + 1;
+    await sb.from("lotto_payments").upsert({
+      lotto_id: cfg.lotto_id, ticket_id: t.ticket_id, amount_cents: t.price_cents, kind: "renewal", stripe_ref: `test_${t.ticket_id}_${week}`,
+    }, { onConflict: "stripe_ref", ignoreDuplicates: true });
+    await sb.from("lotto_tickets").update({ weeks_paid: week }).eq("ticket_id", t.ticket_id).eq("weeks_paid", t.weeks_paid);
+  }
+}
+
+// Before going live: remove test tickets, the draws run while testing, players left
+// with no tickets, and put the jackpot back to where it was before the first test draw.
+async function clearTestData(sb: any, cfg: any) {
+  const { data: draws } = await sb.from("lotto_draws").select("draw_id, draw_at, jackpot_cents, status").eq("lotto_id", cfg.lotto_id).order("draw_at");
+  const firstPublished = (draws || []).find((d: any) => d.status === "published");
+  const run = async (q: any) => { const { error } = await q; if (error) throw error; };
+  if (draws?.length) await run(sb.from("lotto_draws").delete().in("draw_id", draws.map((d: any) => d.draw_id)));
+  await run(sb.from("lotto_tickets").delete().eq("lotto_id", cfg.lotto_id).eq("is_test", true));
+  const { data: players } = await sb.from("lotto_players").select("player_id, lotto_tickets(ticket_id)").eq("lotto_id", cfg.lotto_id);
+  const empty = (players || []).filter((p: any) => !p.lotto_tickets?.length).map((p: any) => p.player_id);
+  if (empty.length) await run(sb.from("lotto_players").delete().in("player_id", empty));
+  if (firstPublished && firstPublished.jackpot_cents != null) {
+    await run(sb.from("lotto_clubs").update({ jackpot_cents: firstPublished.jackpot_cents, updated_at: new Date().toISOString() }).eq("lotto_id", cfg.lotto_id));
+  }
 }
 
 async function adminView(sb: any, cfg: any, ids: number[]) {
@@ -383,6 +457,11 @@ async function adminView(sb: any, cfg: any, ids: number[]) {
     ? await sb.from("users").select("first_name, last_name, email_address").in("user_id", admins.map((a: any) => a.user_id))
     : { data: [] };
 
+  const { count: testTickets } = await sb.from("lotto_tickets").select("ticket_id", { count: "exact", head: true })
+    .eq("lotto_id", cfg.lotto_id).eq("is_test", true);
+  const { count: testDraws } = await sb.from("lotto_draws").select("draw_id", { count: "exact", head: true })
+    .eq("lotto_id", cfg.lotto_id).eq("status", "published");
+
   const { clubs: _c, ...settings } = cfg;
   settings.stripe_account_id = acct(cfg);
   return {
@@ -390,7 +469,8 @@ async function adminView(sb: any, cfg: any, ids: number[]) {
     lottos: (lottos || []).map((l: any) => ({ lotto_id: l.lotto_id, slug: l.slug, club_name: l.clubs?.club_name })),
     admins: (adminUsers || []).map((u: any) => ({ name: [u.first_name, u.last_name].filter(Boolean).join(" "), email: u.email_address })),
     stripe: stripeStatus,
-    draw: open ? { draw_id: open.draw_id, draw_at: open.draw_at, sales_close_at: open.sales_close_at, can_draw: new Date() >= new Date(open.sales_close_at) } : null,
+    draw: open ? { draw_id: open.draw_id, draw_at: open.draw_at, sales_close_at: open.sales_close_at, can_draw: testing(cfg) || new Date() >= new Date(open.sales_close_at) } : null,
+    test: { on: testing(cfg), tickets: testTickets || 0, draws: cfg.status === "live" ? 0 : testDraws || 0 },
     stats: { sales_cents: sales, lines, players, by_team: Object.entries(byTeam).map(([team, cents]) => ({ team, cents })).sort((a, b) => b.cents - a.cents) },
     past: past || [],
   };
