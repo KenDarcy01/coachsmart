@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.10.0";
-import Stripe from "https://esm.sh/stripe@17.2.0?target=es2020";
+import Stripe from "npm:stripe@17.2.0";
 // --- START: INITIALIZATION AND ENVIRONMENT CHECK ---
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 if (!STRIPE_SECRET_KEY) {
