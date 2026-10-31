@@ -247,7 +247,7 @@ async function load(paid) {
   }
   if (!L.can_pay && !PREVIEW) { message('Coming soon', 'Card payments are being set up.'); return; }
 
-  if (L.test_mode) document.querySelector('.wrap').insertAdjacentHTML('afterbegin', '<div style="background:#fff4d6;border:1.5px solid #f0b429;color:#7a5200;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.45"><b>Test mode.</b> No payment is taken. Tickets, emails and draws work as normal.</div>');
+  if (L.test_mode) document.querySelector('.wrap').insertAdjacentHTML('afterbegin', '<div style="background:#fff4d6;border:1.5px solid #f0b429;color:#7a5200;border-radius:12px;padding:10px 12px;margin:14px 0 12px;font-size:13px;line-height:1.45"><b>Test mode.</b> No payment is taken. Tickets, emails and draws work as normal.</div>');
   $('pickTitle').textContent = `Pick ${L.pick_count} numbers`;
   const sel = $('team');
   for (const t of d.teams) sel.insertAdjacentHTML('beforeend', `<option value="${t.team_id}">${esc(t.team_name)}</option>`);
