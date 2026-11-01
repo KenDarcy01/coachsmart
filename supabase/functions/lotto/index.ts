@@ -4,7 +4,7 @@
 //
 // Public actions (anon key): page, checkout, stop
 // Admin actions (signed-in user listed in lotto_admins): admin_load, admin_save,
-//   admin_preview, admin_publish, admin_export, admin_add_admin, admin_clear_test
+//   admin_preview, admin_publish, admin_export, admin_add_admin, admin_clear_test, admin_players
 //
 // Test mode (lotto_clubs.test_mode, only while status is 'setup'): checkout skips
 // Stripe and makes the ticket straight away (is_test), weekly test tickets get a
@@ -371,6 +371,8 @@ async function admin(req: Request, sb: any, action: string, body: any) {
 
   if (action === "admin_export") return json({ success: true, data: { csv: await exportCsv(sb, cfg, Number(body.draw_id)) } });
 
+  if (action === "admin_players") return json({ success: true, data: await playersList(sb, cfg) });
+
   if (action === "admin_clear_test") {
     if (cfg.status === "live") bad("Test data can only be cleared before the lotto goes live");
     await clearTestData(sb, cfg);
@@ -465,7 +467,7 @@ async function adminView(sb: any, cfg: any, ids: number[]) {
   const { clubs: _c, ...settings } = cfg;
   settings.stripe_account_id = acct(cfg);
   return {
-    lotto: { ...settings, club_name: clubName(cfg), crest: cfg.clubs?.crest || null, page_url: PAGE_BASE + cfg.slug },
+    lotto: { ...settings, club_name: clubName(cfg), crest: cfg.clubs?.crest || null, colours: colours(cfg), page_url: PAGE_BASE + cfg.slug },
     lottos: (lottos || []).map((l: any) => ({ lotto_id: l.lotto_id, slug: l.slug, club_name: l.clubs?.club_name })),
     admins: (adminUsers || []).map((u: any) => ({ name: [u.first_name, u.last_name].filter(Boolean).join(" "), email: u.email_address })),
     stripe: stripeStatus,
@@ -474,6 +476,40 @@ async function adminView(sb: any, cfg: any, ids: number[]) {
     stats: { sales_cents: sales, lines, players, by_team: Object.entries(byTeam).map(([team, cents]) => ({ team, cents })).sort((a, b) => b.cents - a.cents) },
     past: past || [],
   };
+}
+
+// Everyone who has bought (unpaid checkouts left out), with their tickets and wins.
+async function playersList(sb: any, cfg: any) {
+  const all = async (q: () => any) => {
+    const out: any[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await q().range(from, from + 999);
+      if (error) throw error;
+      out.push(...(data || []));
+      if (!data || data.length < 1000) return out;
+    }
+  };
+  const [players, tickets, wins] = await Promise.all([
+    all(() => sb.from("lotto_players").select("player_id, name, email, phone, created_at").eq("lotto_id", cfg.lotto_id).order("player_id")),
+    all(() => sb.from("lotto_tickets")
+      .select("ticket_id, player_id, lines, plan, weeks_bought, weeks_paid, draws_entered, status, price_cents, paid_at, cancelled_at, refunded_at, is_test, teams(team_name)")
+      .eq("lotto_id", cfg.lotto_id).neq("status", "pending").order("ticket_id")),
+    all(() => sb.from("lotto_winners").select("player_id, kind, prize_cents, lotto_draws!inner(draw_at, lotto_id)")
+      .eq("lotto_draws.lotto_id", cfg.lotto_id).order("winner_id")),
+  ]);
+  const byPlayer = new Map<number, any>();
+  for (const p of players) byPlayer.set(p.player_id, { ...p, tickets: [], wins: [] });
+  for (const t of tickets) {
+    const p = byPlayer.get(t.player_id);
+    if (!p) continue;
+    p.tickets.push({
+      ticket_id: t.ticket_id, lines: t.lines, plan: t.plan, weeks_bought: t.weeks_bought, status: t.status,
+      weeks_left: Math.max(0, t.weeks_paid - t.draws_entered), draws_entered: t.draws_entered, price_cents: t.price_cents,
+      team_name: t.teams?.team_name || null, paid_at: t.paid_at, stopped_at: t.cancelled_at || t.refunded_at || null, test: !!t.is_test,
+    });
+  }
+  for (const w of wins) byPlayer.get(w.player_id)?.wins.push({ kind: w.kind, prize_cents: w.prize_cents, draw_at: w.lotto_draws?.draw_at });
+  return { players: [...byPlayer.values()].filter(p => p.tickets.length) };
 }
 
 async function eligibleTickets(sb: any, cfg: any, draw: any) {
