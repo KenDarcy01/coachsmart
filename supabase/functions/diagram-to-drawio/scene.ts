@@ -33,6 +33,7 @@ LINES (the "lines" list)
 - pitch_arc: a curved pitch marking with no arrowhead (the small D in front of goal, the large arc, a centre circle). Give 3 points: the start, the point of the arc furthest from the straight line between start and end, and the end.
 - run: a solid line with an arrowhead, meaning a player moves. Give 2 to 12 points tracing the path from where it starts to the arrowhead. For curved or wavy lines, put a point at every bend so the shape is kept.
 - pass: a dashed or dotted line with an arrowhead, meaning a kick, hand pass or strike. Same points rule as run, except that a pass the coach was clearly trying to draw straight (wobbly but heading one way) is straight: give just its 2 ends.
+- shot: an arrow (solid, dashed or dotted) that ends at or over the goalposts, the goal, the bar or a target, meaning a shot at goal or a score attempt. It is a shot, not a pass, even if a player stands near where it ends. Same points rule as pass. End it where the ball goes: over the bar (just above the crossbar between the uprights) for a point, into the goal (between the posts, under the bar) for a goal. If it is unclear, end it over the bar.
 - dotted_line: a dashed or dotted line with no arrowhead (for example a halfway or marker line drawn dotted). Output the whole dotted line as ONE entry, never one entry per dash, even where it runs behind a goal, cone or player. If the coach was trying to draw it straight, give just its 2 ends; only give more points if it is clearly meant to curve.
 
 WHAT TO IGNORE
@@ -85,7 +86,7 @@ export const SCENE_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          kind: { type: "string", enum: ["pitch_line", "pitch_arc", "dotted_line", "run", "pass"] },
+          kind: { type: "string", enum: ["pitch_line", "pitch_arc", "dotted_line", "run", "pass", "shot"] },
           points: { type: "array", items: POINT },
         },
         required: ["kind", "points"],
@@ -109,7 +110,7 @@ export type SceneItem = {
   label: string; team: "home" | "away" | "none";
   x: number; y: number; w: number; h: number;
 };
-export type SceneLine = { kind: "pitch_line" | "pitch_arc" | "dotted_line" | "run" | "pass"; points: Pt[] };
+export type SceneLine = { kind: "pitch_line" | "pitch_arc" | "dotted_line" | "run" | "pass" | "shot"; points: Pt[] };
 export type Scene = { game_name: string; sport: "football" | "hurling" | "unknown"; items: SceneItem[]; lines: SceneLine[];
   symmetry?: { left_right: boolean; top_bottom: boolean } };
 
@@ -160,6 +161,9 @@ const S = {
   runCurve: "edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;",
   pass:     "edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 4;strokeColor=#FFD700;strokeWidth=2.5;",
   passCurve:"edgeStyle=none;curved=1;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 4;strokeColor=#FFD700;strokeWidth=2.5;",
+  // A shot at goal: dashed like a kick, but in its own colour with a solid head.
+  shot:     "edgeStyle=none;html=1;endArrow=block;endFill=1;dashed=1;dashPattern=8 4;strokeColor=#FF4081;strokeWidth=3;",
+  shotCurve:"edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;dashed=1;dashPattern=8 4;strokeColor=#FF4081;strokeWidth=3;",
 };
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -372,9 +376,9 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   // Positions in canvas space.
   const pos = new Map<SceneItem, Pt>(items.map((it) => [it, map(it)]));
   const arrows = lines
-    .filter((l) => l.kind === "run" || l.kind === "pass")
-    // A dotted pass that only wobbles was meant to be straight.
-    .map((l) => ({ kind: l.kind, pts: simplifyPath(l.points.map(map), l.kind === "pass" ? 0.1 : 0.04) }));
+    .filter((l) => l.kind === "run" || l.kind === "pass" || l.kind === "shot")
+    // A dotted pass or shot that only wobbles was meant to be straight.
+    .map((l) => ({ kind: l.kind, pts: simplifyPath(l.points.map(map), l.kind === "run" ? 0.04 : 0.1) }));
   const arcs = lines.filter((l) => l.kind === "pitch_arc").map((l) => {
     const pts = l.points.map(map);
     return pts.length >= 3 ? [pts[0], pts[Math.floor(pts.length / 2)], pts[pts.length - 1]] : [pts[0], pts[pts.length - 1]];
@@ -460,7 +464,8 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   const landed = new Map<Pt, Pt>();
   for (const a of arrows) {
     const n = a.pts.length;
-    land(a.pts[n - 1], a.pts[n - 2]);
+    // A shot goes to the posts, never onto a player standing near them.
+    if (a.kind !== "shot") land(a.pts[n - 1], a.pts[n - 2]);
     land(a.pts[0], a.pts[1]);
   }
   // 2b. Two players linked by a nearly level or upright straight arrow are put exactly level
@@ -625,6 +630,23 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
 
   // Runs and passes: pull the ends back off the circles they start or finish at, leaving a
   // clear gap (coaches prefer arrows that stop short rather than touch).
+  // Shots: an end near the goalposts is put exactly over the bar (a point) or under it
+  // (a goal), centred between the uprights, so it reads clearly as a score attempt.
+  const posts = items.filter((it) => it.kind === "goalposts").map((it) => {
+    const c = pos.get(it)!, { w, h } = mapLen(it.w || 60, it.h || 80);
+    const gw = Math.max(w, 40), gh = Math.max(h, 40), top = c.y - gh / 2;
+    return { x: c.x, top, bar: top + gh * 0.55, gw, gh };
+  });
+  for (const a of arrows) {
+    if (a.kind !== "shot" || !posts.length) continue;
+    const end = a.pts[a.pts.length - 1];
+    let g = posts[0], gd = Infinity;
+    for (const p of posts) { const d = dist(end, { x: p.x, y: (p.top + p.bar) / 2 }); if (d < gd) { gd = d; g = p; } }
+    if (gd > Math.max(g.gw, g.gh) * 1.5) continue;
+    end.x = g.x;
+    end.y = end.y < g.bar ? g.top + g.gh * 0.28 : g.bar + (g.gh - g.gh * 0.55) * 0.45;
+  }
+
   const GAP = 11;
   const ends: { p: Pt; r: number }[] = [
     ...circles.map((c) => ({ p: c.p, r: D / 2 })),
@@ -683,7 +705,8 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     pts[0] = fix(pts[0], pts[1], joinStart);
     pts[n - 1] = fix(pts[n - 1], pts[n - 2], joinEnd);
     const curved = pts.length > 2;
-    edge(a.kind === "pass" ? (curved ? S.passCurve : S.pass) : (curved ? S.runCurve : S.run), pts);
+    edge(a.kind === "shot" ? (curved ? S.shotCurve : S.shot)
+       : a.kind === "pass" ? (curved ? S.passCurve : S.pass) : (curved ? S.runCurve : S.run), pts);
   });
 
   // Equipment, then people on top.
