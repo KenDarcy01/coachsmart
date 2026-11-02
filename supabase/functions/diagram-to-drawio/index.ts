@@ -346,7 +346,7 @@ const REVISE_PROMPT = (instruction: string) => `The coach has seen the diagram d
 
 """${instruction.slice(0, 2000)}"""
 
-Give the whole description again in the same format, with their changes made. Look at the image again where it helps (for example to find something they say you missed, or to check a mark they say is a shadow). Change only what they ask for, and anything that follows directly from it; keep every other item, line and position exactly as before. If they say something is not really there, remove it. If they ask for something that is not in the drawing, add it where they say.`;
+Give the whole description again in the same format, with their changes made. Look at the image again where it helps (for example to find something they say you missed, or to check a mark they say is a shadow). Change only what they ask for, and anything that follows directly from it; keep every other item, line and position exactly as before. If they say something is not really there, remove it. If they ask for something that is not in the drawing, add it where they say. Keep your earlier tidy-up unless they ask for it as they drew it; then place everything as it is in the image. In "tidied", say what you changed this time.`;
 
 // ── legacy: the model writes the draw.io XML itself ──────────────────────────
 async function legacyConvert(apiKey: string, image_base64: string, media_type: string): Promise<ConvertResult> {
