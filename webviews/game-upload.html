@@ -592,6 +592,7 @@
 
 <div class="toast" id="toast"><span class="toast-spinner" id="toastSpinner"></span><span id="toastMsg"></span></div>
 
+<script src="cs-auth.js"></script>
 <script src="cs-mic.js"></script>
 <script src="cs-voice-sheet.js"></script>
 <script>
@@ -830,13 +831,9 @@
   async function standardiseDiagram(img, fix, notes) {
     let errMsg = 'unknown';
     try {
-      const res = await fetch(DIAGRAM_FN_URL, {
+      const res = await CSAuth.fetch(DIAGRAM_FN_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY),
-          'apikey': SUPABASE_ANON_KEY,
-        },
+        headers: { 'Content-Type': 'application/json' },
         // notes: the coach's typed or spoken description, so the drawing is read as they meant it.
         body: JSON.stringify(fix
           ? { image_base64: img.base64, media_type: img.mimeType, scene: fix.scene, instruction: fix.instruction, notes: fix.notes || '' }
@@ -1108,9 +1105,9 @@
     const saveBtn = document.querySelector('.btn-primary[onclick="saveGame()"]');
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
     try {
-      const res = await fetch(EDGE_FN_URL, {
+      const res = await CSAuth.fetch(EDGE_FN_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'save_game', game_name: name,
           game_age:             getSelectedAges(),
@@ -1142,9 +1139,9 @@
 
   // ── Edge function caller ───────────────────────────────────────────────────
   async function callEdgeFunction(payload) {
-    const res = await fetch(EDGE_FN_URL, {
+    const res = await CSAuth.fetch(EDGE_FN_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (WV_TOKEN || SUPABASE_ANON_KEY), 'apikey': SUPABASE_ANON_KEY },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const json = await res.json();
@@ -1685,9 +1682,9 @@
   async function loadAiFlag() {
     if (!WV_TOKEN) return false;
     try {
-      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_my_ai_features', {
+      const res = await CSAuth.fetch(SUPABASE_URL + '/rest/v1/rpc/get_my_ai_features', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + WV_TOKEN, 'apikey': SUPABASE_ANON_KEY },
+        headers: { 'Content-Type': 'application/json' },
         body: '{}',
       });
       return res.ok && (await res.json()) === true;
