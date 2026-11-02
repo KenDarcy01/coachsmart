@@ -214,6 +214,27 @@
     }
 
     /* ── STICKY FOOTER ── */
+    /* ── Import from a document ── */
+    .import-entry { display: none; width: 100%; align-items: center; gap: 12px; text-align: left; background: var(--card); border: 1.5px dashed rgba(135,194,50,0.45); border-radius: var(--radius); padding: 12px 14px; color: var(--text, #f1f4f8); font: inherit; cursor: pointer; }
+    .import-entry .ie-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(135,194,50,0.14); color: var(--green); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .import-entry .ie-title { font-weight: 700; font-size: 15px; }
+    .import-entry .ie-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .imp-head { padding: 4px 16px 10px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+    .imp-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 120px; }
+    .imp-card { display: flex; gap: 12px; align-items: center; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 10px; }
+    .imp-card.off { opacity: 0.5; }
+    .imp-card.saved { border-color: rgba(135,194,50,0.5); }
+    .imp-thumb { width: 84px; height: 84px; border-radius: 10px; background: var(--card2); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; text-align: center; }
+    .imp-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .imp-main { flex: 1; min-width: 0; cursor: pointer; }
+    .imp-name { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .imp-meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    .imp-note { font-size: 12px; margin-top: 4px; }
+    .imp-note.warn { color: #F2C230; } .imp-note.err { color: var(--red); } .imp-note.ok { color: var(--green); }
+    .imp-edit { color: var(--green); font-size: 13px; font-weight: 600; margin-top: 4px; }
+    .imp-tick { width: 30px; height: 30px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.25); background: none; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #14181b; cursor: pointer; }
+    .imp-tick.on { background: var(--green); border-color: var(--green); }
+    .imp-tick svg { width: 18px; height: 18px; opacity: 0; } .imp-tick.on svg { opacity: 1; }
     .sticky-footer {
       padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
     }
@@ -309,6 +330,13 @@
 
   <div class="form-body">
 
+    <!-- ── Or import a whole document (AI users) ── -->
+    <button type="button" class="import-entry" id="importEntry" onclick="document.getElementById('docInput').click()">
+      <span class="ie-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg></span>
+      <span><div class="ie-title">Import from a document</div><div class="ie-sub">Word, PowerPoint or PDF. I'll find the games and draw them for you to check.</div></span>
+    </button>
+    <input type="file" id="docInput" accept=".docx,.pptx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" style="display:none" onchange="importDocument(this)"/>
+
     <!-- ── Step 1: Image (Photo or Sketch) ── -->
     <div>
       <div class="field-label" style="display:flex;align-items:center;justify-content:space-between;">
@@ -384,6 +412,7 @@
         <textarea id="inpDescription" class="text-desc" placeholder="Describe the drill — setup, how to play, variations, coaching points…" oninput="autoResize(this)"></textarea>
         <button class="csv-field-mic" id="descMicBtn" onclick="openDescVoice()" aria-label="Speak instead" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg></button>
       </div>
+      <div id="wordsHint" style="display:none;font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45">No sketch or photo? Just describe the drill, or tap the mic and say it: where the players and cones are and who runs or passes where. We'll draw it for you.</div>
     </div>
 
   </div>
@@ -407,10 +436,26 @@
 </div>
 
 
+<!-- ── SCREEN 2b: IMPORTED GAMES ──────────────────────────────────────────── -->
+<div id="screenImport" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="leaveImport()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="top-bar-title" id="impTitle">Games found</div>
+  </div>
+  <div class="imp-head" id="impHead"></div>
+  <div class="imp-list" id="impList"></div>
+  <div class="sticky-footer">
+    <button class="btn-primary" id="impSaveBtn" onclick="saveImported()">Save games</button>
+  </div>
+</div>
+
+
 <!-- ── SCREEN 3: DRAFT ────────────────────────────────────────────────────── -->
 <div id="screenReview" class="screen">
   <div class="top-bar">
-    <button class="back-btn" onclick="showScreen('screenCreate')">
+    <button class="back-btn" onclick="reviewBack()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div class="top-bar-title">Review &amp; Edit</div>
@@ -594,6 +639,7 @@
 <div class="toast" id="toast"><span class="toast-spinner" id="toastSpinner"></span><span id="toastMsg"></span></div>
 
 <script src="cs-auth.js"></script>
+<script src="cs-doc-extract.js"></script>
 <script src="cs-mic.js"></script>
 <script src="cs-voice-sheet.js"></script>
 <script>
@@ -829,16 +875,19 @@
   // on the page only, so "Fix the drawing" can send it back with the coach's changes.
   let _diag = null;          // { scene, img } while the draft is open
   const _diagUndo = [];      // earlier { scene, image } to step back to
-  async function standardiseDiagram(img, fix, notes) {
+  // img may be null when drawing from a written description (document import): pass drawing.
+  async function standardiseDiagram(img, fix, notes, drawing) {
     let errMsg = 'unknown';
     try {
+      const pic = img ? { image_base64: img.base64, media_type: img.mimeType } : {};
+      const words = (fix && fix.drawing) || drawing || '';
       const res = await CSAuth.fetch(DIAGRAM_FN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // notes: the coach's typed or spoken description, so the drawing is read as they meant it.
-        body: JSON.stringify(fix
-          ? { image_base64: img.base64, media_type: img.mimeType, scene: fix.scene, instruction: fix.instruction, notes: fix.notes || '' }
-          : { image_base64: img.base64, media_type: img.mimeType, notes: notes || '' }),
+        body: JSON.stringify(Object.assign(pic, words ? { drawing: words } : {}, fix
+          ? { scene: fix.scene, instruction: fix.instruction, notes: fix.notes || '' }
+          : { notes: notes || '' })),
       });
       const data = await res.json();
       if (!res.ok || data.error || !data.xml) {
@@ -861,8 +910,14 @@
   async function createDraft() {
     // Gather the source image
     let sourceImg = null, diagramImg = null;
-    if (_activeMediaTab === 'sketch') {
-      if (!_hasDrawn) { showToast('Draw something first', 'error'); return; }
+    const _words = document.getElementById('inpDescription').value.trim();
+    // AI on, no sketch or photo, but the drill is described (typed or by mic): draw it from the words.
+    const _fromWords = _aiEnabled && _words.length >= 20 &&
+      ((_activeMediaTab === 'sketch' && !_hasDrawn) || (_activeMediaTab !== 'sketch' && !_uploadedImages.length));
+    if (_fromWords) {
+      // no picture: diagram and fields both come from the description
+    } else if (_activeMediaTab === 'sketch') {
+      if (!_hasDrawn) { showToast(_aiEnabled ? 'Draw something, or describe the drill below' : 'Draw something first', 'error'); return; }
       const png = await getSketchPng();
       sourceImg = { base64: png.base64, mimeType: 'image/png' };
     } else {
@@ -879,12 +934,12 @@
     }
 
     showScreen('screenProcessing');
-    setStatus('Creating your draft…', 'Reading your diagram…');
+    setStatus('Creating your draft…', _fromWords ? 'Drawing it from your description…' : 'Reading your diagram…');
     _acquireWakeLock();
 
     // Build image array for AI (use original image)
-    const imageArray = [{ base64: sourceImg.base64, mimeType: sourceImg.mimeType }];
-    if (_activeMediaTab === 'photo' && _uploadedImages.length > 1) {
+    const imageArray = sourceImg ? [{ base64: sourceImg.base64, mimeType: sourceImg.mimeType }] : [];
+    if (sourceImg && _activeMediaTab === 'photo' && _uploadedImages.length > 1) {
       _uploadedImages.slice(1).forEach(i => imageArray.push({ base64: i.base64, mimeType: i.mimeType }));
     }
 
@@ -909,7 +964,8 @@
       aiErr = e;
     });
 
-    const stdPromise = standardiseDiagram(diagramImg || sourceImg, null, description).then(r => {
+    const stdPromise = (_fromWords ? standardiseDiagram(null, null, '', description)
+                                   : standardiseDiagram(diagramImg || sourceImg, null, description)).then(r => {
       stdResult = r;
       setStatus('Creating your draft…', aiResult === null ? 'Reading your diagram…' : 'Almost done…');
     });
@@ -919,7 +975,11 @@
       if (aiErr) throw aiErr;
 
       _reviewImage = (stdResult?.base64 && !stdResult?._err) ? stdResult : sourceImg;
-      _diag = (stdResult?.scene && !stdResult?._err) ? { scene: stdResult.scene, img: diagramImg || sourceImg, notes: description } : null;
+      _diag = (stdResult?.scene && !stdResult?._err)
+        ? (_fromWords ? { scene: stdResult.scene, img: null, notes: '', drawing: description }
+                      : { scene: stdResult.scene, img: diagramImg || sourceImg, notes: description })
+        : null;
+      if (_fromWords && !_reviewImage) showToast("Couldn't draw it this time. Go back and try again, or save it without a picture.", 'error');
       setTidied(_diag ? _diag.scene.tidied : '');
       _diagUndo.length = 0;
 
@@ -1061,7 +1121,7 @@
       busyLabel:   'Redrawing…',
       async onSubmit(text) {
         const before = { scene: _diag.scene, image: _reviewImage };
-        const r = await standardiseDiagram(_diag.img, { scene: _diag.scene, instruction: text, notes: _diag.notes });
+        const r = await standardiseDiagram(_diag.img, { scene: _diag.scene, instruction: text, notes: _diag.notes, drawing: _diag.drawing });
         if (!r || r._err || !r.scene) {
           showToast('Could not redraw it — please try again', 'error');
           return false;
@@ -1117,6 +1177,7 @@
   const SAVE_BTN_HTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save';
   let _savedGameId = null;   // set once this draft is saved, so it can't be saved twice
   async function saveGame() {
+    if (_importIdx !== null) { closeImportGame(); return; }
     if (_savedGameId) { showToast('This game is already saved', 'success'); return; }
     const name = document.getElementById('rvName').value.trim();
     if (!name) { showToast('Game name is required', 'error'); document.getElementById('rvName').focus(); return; }
@@ -1160,6 +1221,236 @@
         saveBtn.innerHTML = SAVE_BTN_HTML;
       }
     }
+  }
+
+
+  // ── Import from a document ─────────────────────────────────────────────────
+  // Word/PowerPoint are unzipped here (cs-doc-extract.js); import-games (Fable) finds the games;
+  // each is drawn with diagram-to-drawio (from its picture, or from a written description);
+  // the coach reviews and edits every game, then saves the ones ticked. Nothing is saved
+  // until they tap Save (Ken, 2026-11-02).
+  const IMPORT_FN_URL = SUPABASE_URL + '/functions/v1/import-games';
+  let _imp = null;          // { title, pictures, items: [...] }
+  let _importIdx = null;    // index of the game open in the review screen, or null
+  let _impLeaveArmed = false;
+
+  const optValues = (sel) => [...document.querySelectorAll(sel)].map(e => e.value || e.dataset.age || e.dataset.sport || e.dataset.skill).filter(Boolean);
+  function setChips(cid, key, values) {
+    const lower = (values || []).map(v => String(v).toLowerCase());
+    document.querySelectorAll('#' + cid + ' .chip').forEach(c => c.classList.toggle('selected', lower.includes((c.dataset[key] || '').toLowerCase())));
+  }
+  const escHtml = (t) => String(t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  async function importDocument(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    showScreen('screenProcessing');
+    setStatus('Reading your document…', file.name, '');
+    _acquireWakeLock();
+    try {
+      const doc = await CSDocExtract.read(file);
+      setStatus('Finding the games…', 'Reading every page. This can take a minute or two.');
+      const allowed = {
+        types:  optValues('#rvType option'),
+        ages:   optValues('#ageChips .chip'),
+        codes:  optValues('#sportChips .chip'),
+        skills: optValues('#skillChips .chip'),
+      };
+      const res = await CSAuth.fetch(IMPORT_FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: doc.kind, filename: file.name, text: doc.text, pdf_base64: doc.pdfBase64,
+                               pictures: doc.pictures.map(p => ({ base64: p.base64, mimeType: p.mimeType })), allowed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || ('Import failed (' + res.status + ')'));
+      if (!data.games || !data.games.length) throw new Error("I couldn't find any games or drills in that document");
+
+      const existing = await loadExistingNames();
+      _imp = {
+        title: data.document_title || file.name,
+        pictures: doc.pictures,
+        items: data.games.map(g => ({
+          ...g,
+          on: true, saved: false, drawing_state: 'waiting', image: null, diag: null,
+          original: g.picture >= 0 ? doc.pictures[g.picture] : null,
+          dup: existing.has(String(g.game_name || '').trim().toLowerCase()),
+        })),
+      };
+      renderImport();
+      showScreen('screenImport');
+      drawAllImported();
+    } catch (err) {
+      showScreen('screenCreate');
+      showToast(err.message || 'Could not import that document', 'error');
+    } finally {
+      _releaseWakeLock && _releaseWakeLock();
+    }
+  }
+
+  async function loadExistingNames() {
+    try {
+      const r = await CSAuth.fetch(SUPABASE_URL + '/rest/v1/games?select=game_name', { method: 'GET' });
+      const rows = r.ok ? await r.json() : [];
+      return new Set(rows.map(x => String(x.game_name || '').trim().toLowerCase()));
+    } catch (_) { return new Set(); }
+  }
+
+  async function drawImported(item) {
+    item.drawing_state = 'drawing';
+    renderImport();
+    const words = [item.drawing, item.game_how_to_play ? 'How it runs: ' + item.game_how_to_play : ''].filter(Boolean).join('\n');
+    const r = item.original
+      ? await standardiseDiagram(item.original, null, `${item.game_name}. ${words}`)
+      : await standardiseDiagram(null, null, '', words);
+    if (r && !r._err && r.scene) {
+      item.image = { base64: r.base64, mimeType: r.mimeType };
+      item.diag = { scene: r.scene, img: item.original || null, notes: item.original ? `${item.game_name}. ${words}` : '', drawing: item.original ? '' : words };
+      item.drawing_state = 'done';
+    } else {
+      item.drawing_state = 'failed';
+    }
+    if (_importIdx === null) renderImport();
+  }
+  async function drawAllImported() {
+    const queue = _imp.items.slice();
+    const worker = async () => { while (queue.length) { const it = queue.shift(); await drawImported(it); } };
+    await Promise.all([worker(), worker(), worker()]);
+    if (_importIdx === null) renderImport();
+  }
+
+  function renderImport() {
+    if (!_imp) return;
+    const items = _imp.items;
+    const drawing = items.filter(i => i.drawing_state === 'drawing' || i.drawing_state === 'waiting').length;
+    const picked = items.filter(i => i.on && !i.saved).length;
+    const savedN = items.filter(i => i.saved).length;
+    document.getElementById('impTitle').textContent = `${items.length} game${items.length === 1 ? '' : 's'} found`;
+    document.getElementById('impHead').innerHTML = escHtml(_imp.title) + '<br>' +
+      (savedN === items.length ? 'All saved.' :
+       drawing ? `Drawing the diagrams: ${items.length - drawing} of ${items.length} ready. You can open and check games while the rest are drawn.` :
+       'Tap a game to check and edit it. Untick any you don\'t want, then save.');
+    document.getElementById('impList').innerHTML = items.map((it, i) => {
+      const thumb = it.image ? `<img src="data:${it.image.mimeType};base64,${it.image.base64}" alt=""/>`
+        : it.drawing_state === 'failed' ? (it.original ? `<img src="data:${it.original.mimeType};base64,${it.original.base64}" alt=""/>` : 'No drawing')
+        : 'Drawing…';
+      const meta = [it.game_type, (it.game_age || []).join(', '), (it.game_code || []).join(', ')].filter(Boolean).join(' · ');
+      const note = it.saved ? '<div class="imp-note ok">Saved ✓</div>'
+        : it.save_error ? `<div class="imp-note err">${escHtml(it.save_error)}</div>`
+        : it.dup ? '<div class="imp-note warn">A game with this name already exists</div>'
+        : it.drawing_state === 'failed' ? '<div class="imp-note err">Couldn\'t draw this one. Open it to try again or keep the original.</div>' : '';
+      return `<div class="imp-card${it.on || it.saved ? '' : ' off'}${it.saved ? ' saved' : ''}">
+        <div class="imp-thumb">${thumb}</div>
+        <div class="imp-main" onclick="openImportGame(${i})">
+          <div class="imp-name">${escHtml(it.game_name || 'Untitled')}</div>
+          <div class="imp-meta">${escHtml(meta)}</div>${note}
+          ${it.saved ? '' : '<div class="imp-edit">Check &amp; edit ›</div>'}
+        </div>
+        ${it.saved ? '' : `<button class="imp-tick${it.on ? ' on' : ''}" onclick="toggleImport(${i})" aria-label="Include"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>`}
+      </div>`;
+    }).join('');
+    const btn = document.getElementById('impSaveBtn');
+    if (savedN === items.length) { btn.textContent = 'Done'; btn.disabled = false; btn.onclick = () => goBack(); }
+    else { btn.textContent = picked ? `Save ${picked} game${picked === 1 ? '' : 's'}` : 'Tick games to save'; btn.disabled = !picked || !!drawing; btn.onclick = saveImported;
+      if (drawing && picked) btn.textContent = 'Drawing… ' + btn.textContent; }
+  }
+  function toggleImport(i) { _imp.items[i].on = !_imp.items[i].on; _impLeaveArmed = false; renderImport(); }
+
+  function openImportGame(i) {
+    const it = _imp.items[i];
+    if (it.saved) return;
+    _importIdx = i;
+    populateReviewFields(it);
+    document.getElementById('rvType').value = it.game_type || '';
+    setChips('ageChips', 'age', it.game_age);
+    setChips('sportChips', 'sport', it.game_code);
+    setChips('skillChips', 'skill', it.game_skill);
+    document.getElementById('rvVideoUrl').value = it.game_video || '';
+    _reviewImage = it.image || it.original || null;
+    _diag = it.diag;
+    _diagUndo.length = 0;
+    setTidied(it.diag && it.diag.scene ? it.diag.scene.tidied : '');
+    const card = document.getElementById('rvImageCard');
+    if (_reviewImage) { setDiagramImage(_reviewImage); card.style.display = ''; } else card.style.display = 'none';
+    showDiagFix();
+    const b = document.querySelector('.btn-primary[onclick="saveGame()"]');
+    if (b) { b.disabled = false; b.style.opacity = ''; b.textContent = 'Done'; }
+    showScreen('screenReview');
+    requestAnimationFrame(() => document.querySelectorAll('.review-body textarea').forEach(autoResize));
+    if (it.drawing_state === 'drawing' || it.drawing_state === 'waiting') showToast('Still drawing this one. The picture will appear when you come back.', 'success');
+  }
+  // Back from the review screen: keep the edits and return to the list.
+  function closeImportGame() {
+    const it = _imp.items[_importIdx];
+    it.game_name = document.getElementById('rvName').value.trim();
+    it.game_type = document.getElementById('rvType').value;
+    it.game_age = getSelectedAges(); it.game_code = getSelectedSports(); it.game_skill = getSelectedSkills();
+    it.game_setup = document.getElementById('rvSetup').value.trim();
+    it.game_how_to_play = document.getElementById('rvHowTo').value.trim();
+    it.game_variations = document.getElementById('rvVariations').value.trim();
+    it.game_teaching_points = document.getElementById('rvTeaching').value.trim();
+    it.game_video = document.getElementById('rvVideoUrl').value.trim();
+    // A drawing fixed here replaces the one in the list (unless the list's is still on its way).
+    if (_diag && _diag !== it.diag && it.drawing_state === 'done') { it.diag = _diag; }
+    if (_diag && it.diag === _diag && _reviewImage) it.image = _reviewImage;
+    it.save_error = '';
+    _importIdx = null; _diag = null;
+    const b = document.querySelector('.btn-primary[onclick="saveGame()"]');
+    if (b) b.innerHTML = SAVE_BTN_HTML;
+    renderImport();
+    showScreen('screenImport');
+  }
+  function reviewBack() {
+    if (_importIdx !== null) closeImportGame();
+    else showScreen('screenCreate');
+  }
+  function leaveImport() {
+    const unsaved = _imp && _imp.items.some(i => i.on && !i.saved);
+    if (unsaved && !_impLeaveArmed) { _impLeaveArmed = true; showToast('Games not saved yet. Tap back again to discard them.', 'error'); return; }
+    _imp = null; _impLeaveArmed = false;
+    showScreen('screenCreate');
+  }
+
+  async function saveImported() {
+    const btn = document.getElementById('impSaveBtn');
+    const todo = _imp.items.filter(i => i.on && !i.saved);
+    for (const it of todo) if (!it.game_name || !it.game_type || !(it.game_code || []).length) {
+      showToast(`"${it.game_name || 'Untitled'}" needs a name, type and code. Open it to fix.`, 'error'); return;
+    }
+    btn.disabled = true;
+    let n = 0;
+    for (const it of todo) {
+      btn.textContent = `Saving ${++n} of ${todo.length}…`;
+      const img = it.image || it.original || null;
+      try {
+        const res = await CSAuth.fetch(EDGE_FN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_game', game_name: it.game_name,
+            game_age: it.game_age || [], game_code: it.game_code || [],
+            game_skill: (it.game_skill || []).length ? it.game_skill : null,
+            game_type: it.game_type ? [it.game_type] : null,
+            game_setup: it.game_setup || '', game_how_to_play: it.game_how_to_play || '',
+            game_variations: it.game_variations || '', game_teaching_points: it.game_teaching_points || '',
+            image_base64: img?.base64 || null, image_mime_type: img?.mimeType || null,
+            details_image_base64: it.image && it.original ? it.original.base64 : null,
+            details_image_mime_type: it.image && it.original ? it.original.mimeType : null,
+            game_video: it.game_video || null,
+          }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.success) throw new Error(j.error || 'Save failed');
+        it.saved = true;
+      } catch (e) {
+        it.save_error = 'Not saved: ' + (e.message || 'please try again');
+      }
+      renderImport();
+    }
+    const failed = todo.filter(i => !i.saved).length;
+    showToast(failed ? `${todo.length - failed} saved, ${failed} not saved` : `${todo.length} game${todo.length === 1 ? '' : 's'} saved`, failed ? 'error' : 'success');
+    renderImport();
   }
 
   // ── Edge function caller ───────────────────────────────────────────────────
@@ -1704,6 +1995,8 @@
     document.getElementById('drawingHelpBtn').style.display = on ? 'flex' : 'none';
     document.getElementById('feedbackSection').style.display = on ? '' : 'none';
     document.getElementById('createDraftLabel').textContent = on ? 'Create Draft' : 'Continue';
+    document.getElementById('importEntry').style.display = on ? 'flex' : 'none';
+    document.getElementById('wordsHint').style.display = on ? '' : 'none';
     if (on) document.getElementById('fbRest').innerHTML = CSVoice.restHtml({ label: 'Revise with feedback', placeholder: 'Tell me what to change…', onclick: 'openFbVoice()' });
   }
   async function loadAiFlag() {
