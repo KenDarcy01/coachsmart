@@ -283,7 +283,15 @@ The coach also described this drill in their own words (typed or spoken, so allo
 """${notes.slice(0, 4000)}"""
 Use it to read the drawing the way the coach meant it: what each mark is, how many players and which team, which lines are runs or passes, and the shape of the setup (for example "a 20m square" means the cones form a square). Where the description and an unclear mark disagree, follow the description. If it says something on the page should be ignored, leave it out. Do not add players or equipment that are only mentioned and not drawn, unless the description clearly says where they go.`;
 
-async function sceneConvert(apiKey: string, image_base64: string, media_type: string, revision?: Revision, notes?: string): Promise<ConvertResult> {
+// Drawing from words only: the same description format, but the model designs the layout.
+const FROM_TEXT_PROMPT = (drawing: string) => `There is no picture this time. Instead, design the diagram for this GAA drill from the written description below, as a coach would draw it neatly by hand, and describe it in exactly the format that follows. The grid is square (1000 x 1000). Use the space well: keep everything inside 80-920 on both axes, and keep players at least 70 apart. Draw one clear example of the setup. Read "the image" in the instructions below as this description.
+
+THE DRILL
+"""${drawing}"""
+
+`;
+
+async function sceneConvert(apiKey: string, image_base64: string | null, media_type: string | null, revision?: Revision, notes?: string, drawing?: string): Promise<ConvertResult> {
   const effort = Deno.env.get("DIAGRAM_EFFORT") ?? "high";
   const claudeRes = await fetch(ANTHROPIC_URL, {
     method: "POST",
@@ -301,8 +309,10 @@ async function sceneConvert(apiKey: string, image_base64: string, media_type: st
         {
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type, data: image_base64 } },
-            { type: "text", text: SCENE_PROMPT + (notes ? NOTES_PROMPT(notes) : "") },
+            ...(image_base64 && media_type
+              ? [{ type: "image", source: { type: "base64", media_type, data: image_base64 } }]
+              : []),
+            { type: "text", text: (image_base64 ? "" : FROM_TEXT_PROMPT(drawing || notes || "")) + SCENE_PROMPT + (notes ? NOTES_PROMPT(notes) : "") },
           ],
         },
         ...(revision ? [
@@ -333,7 +343,7 @@ async function sceneConvert(apiKey: string, image_base64: string, media_type: st
     return { error: { error: "Could not read the diagram description", stop_reason: claudeData?.stop_reason, raw: rawText.slice(0, 2000) }, status: 422 };
   }
 
-  const size = imageSize(image_base64) ?? { w: 1000, h: 1000 };
+  const size = (image_base64 && imageSize(image_base64)) || { w: 1000, h: 1000 };
   const xml = sceneToXml(scene, size.w, size.h);
   console.log("v2 scene:", scene.items?.length ?? 0, "items,", scene.lines?.length ?? 0, "lines, image", size.w, "x", size.h);
 
@@ -458,15 +468,17 @@ serve(async (req) => {
   }
 
   try {
-    const { image_base64, media_type, scene: prevScene, instruction, notes: rawNotes } = await req.json();
+    const { image_base64, media_type, scene: prevScene, instruction, notes: rawNotes, drawing: rawDrawing } = await req.json();
     const notes = typeof rawNotes === "string" && rawNotes.trim() ? rawNotes.trim() : undefined;
+    // No picture: draw from a written description of the layout (document import).
+    const drawing = typeof rawDrawing === "string" && rawDrawing.trim() ? rawDrawing.trim().slice(0, 6000) : undefined;
     const revision: Revision | undefined =
       prevScene && typeof prevScene === "object" && Array.isArray(prevScene.items) && typeof instruction === "string" && instruction.trim()
         ? { scene: prevScene, instruction: instruction.trim() }
         : undefined;
 
-    if (!image_base64 || !media_type) {
-      return new Response(JSON.stringify({ error: "image_base64 and media_type are required" }), {
+    if ((!image_base64 || !media_type) && !drawing) {
+      return new Response(JSON.stringify({ error: "image_base64 and media_type (or drawing) are required" }), {
         status: 400,
         headers: { ...corsHeaders, "content-type": "application/json" },
       });
@@ -500,9 +512,9 @@ serve(async (req) => {
 
     const engine = (Deno.env.get("DIAGRAM_ENGINE") ?? "v2").toLowerCase();
     // A revision always uses v2: it is a change to a description only v2 makes.
-    const result = engine === "legacy" && !revision
+    const result = engine === "legacy" && !revision && !drawing
       ? await legacyConvert(apiKey, image_base64, media_type)
-      : await sceneConvert(apiKey, image_base64, media_type, revision, notes);
+      : await sceneConvert(apiKey, image_base64 || null, media_type || null, revision, notes, drawing);
     if ("error" in result) {
       return new Response(JSON.stringify(result.error), {
         status: result.status,

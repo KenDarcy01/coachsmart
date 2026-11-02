@@ -271,6 +271,7 @@ serve(async (req) => {
         game_name, game_age, game_code, game_skill, game_type,
         game_setup, game_how_to_play, game_variations, game_teaching_points,
         image_base64, image_mime_type, game_video,
+        details_image_base64, details_image_mime_type,
       } = body;
 
       if (!game_name?.trim()) {
@@ -299,6 +300,19 @@ serve(async (req) => {
         }
       }
 
+      // The original picture from an imported document, kept beside our redrawn diagram.
+      let detailsUrl: string | null = null;
+      if (details_image_base64 && /^image\/(png|jpeg|gif|webp)$/.test(details_image_mime_type || "")) {
+        const ext = details_image_mime_type === "image/png" ? "png" : details_image_mime_type === "image/gif" ? "gif" : details_image_mime_type === "image/webp" ? "webp" : "jpg";
+        const path = `games/${user.id}-${Date.now()}-orig.${ext}`;
+        const bytes = Uint8Array.from(atob(details_image_base64), (c) => c.charCodeAt(0));
+        const { error: upErr } = await sb.storage.from("coachsmartimages").upload(path, bytes, { contentType: details_image_mime_type });
+        if (!upErr) {
+          const { data: signed } = await sb.storage.from("coachsmartimages").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+          detailsUrl = signed?.signedUrl ?? null;
+        } else console.error("Original picture upload failed:", upErr);
+      }
+
       const toArr = (v: any) => Array.isArray(v) ? v : (v ? [v] : null);
 
       const { data: game, error: insertErr } = await sb
@@ -315,6 +329,7 @@ serve(async (req) => {
           game_teaching_points: game_teaching_points?.trim() || null,
           game_image:           imageUrl,
           game_video:           game_video?.trim() || null,
+          game_details_image:   detailsUrl,
           club_id:              defaultClub,
           created_by:           user.id,
         })
@@ -345,7 +360,7 @@ serve(async (req) => {
 
       const gameId = Number(body.game_id);
       if (!gameId) return json({ error: "game_id is required" }, 400);
-      const { data: game } = await sb.from("games").select("game_id, created_by, game_image").eq("game_id", gameId).maybeSingle();
+      const { data: game } = await sb.from("games").select("game_id, created_by, game_image, game_details_image").eq("game_id", gameId).maybeSingle();
       if (!game) return json({ error: "Game not found" }, 404);
       const isAdmin = GAME_ADMINS.includes((user.email || "").toLowerCase());
       if (!isAdmin && game.created_by !== user.id) return json({ error: "Only the coach who added this game can delete it" }, 403);
@@ -358,9 +373,11 @@ serve(async (req) => {
       if (delErr) return json({ error: "Could not delete game: " + delErr.message }, 500);
 
       // The picture, if it is one of ours (signed or public URL into coachsmartimages).
-      const m = /\/object\/(?:sign|public)\/coachsmartimages\/([^?]+)/.exec(game.game_image || "");
-      if (m) {
-        const { error: rmErr } = await sb.storage.from("coachsmartimages").remove([decodeURIComponent(m[1])]);
+      const paths = [game.game_image, game.game_details_image]
+        .map((u) => /\/object\/(?:sign|public)\/coachsmartimages\/([^?]+)/.exec(u || ""))
+        .filter(Boolean).map((m) => decodeURIComponent(m![1]));
+      if (paths.length) {
+        const { error: rmErr } = await sb.storage.from("coachsmartimages").remove(paths);
         if (rmErr) console.warn("delete_game: picture not removed", rmErr.message);
       }
       console.log("delete_game", gameId, "by", user.id, isAdmin ? "(admin)" : "(creator)");
