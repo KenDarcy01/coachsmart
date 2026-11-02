@@ -13,7 +13,8 @@ import { SCENE_PROMPT, SCENE_SCHEMA, imageSize, sceneToXml, type Scene } from ".
 // DIAGRAM_EFFORT sets the v2 thinking effort (default "high"; "medium" is faster).
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-opus-5-5";
+// Fable 5.1 by default (Ken, 2026-11-02); set the DIAGRAM_MODEL secret to switch back without a redeploy.
+const MODEL = Deno.env.get("DIAGRAM_MODEL") ?? "claude-fable-5-1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
