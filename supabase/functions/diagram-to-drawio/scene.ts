@@ -50,6 +50,11 @@ When unsure, use false.
 SPORT
 Set sport to "hurling" if hurleys, sliotars, a wall-ball setup, or the words hurling or camogie appear; "football" if the drawing or its writing clearly says football; otherwise "unknown".
 
+TIDY UP FOR CLARITY
+The diagram is for other coaches to read at a glance, so you may improve on the sketch where that makes the drill clearer. For example: space players and cones evenly, line up rows and lanes, make a setup the coach clearly meant as a square, line or circle into a neat one, move an item a little so an arrow does not run through a player or cross another arrow, lengthen an arrow too short to read, and start and end each arrow at the player or target it belongs to.
+Never change the drill itself: keep the same players with the same numbers or letters and teams, the same equipment and how many of each, the same moves in the same order and direction, and the same overall layout (what is on the left stays on the left, what is near the goal stays near the goal). Do not add anything that is not drawn, except goalposts where a shot is clearly aimed at a goal that was not drawn.
+In "tidied", say in one short plain sentence what you improved compared with the sketch (for example "Spaced the cones evenly and ended the shot over the bar."). Use "" if you kept it as drawn.
+
 Before answering, scan the whole image from top to bottom twice and check that every player, ball, cone, line and arrow is in your answer.`;
 
 const POINT = {
@@ -93,6 +98,7 @@ export const SCENE_SCHEMA = {
         additionalProperties: false,
       },
     },
+    tidied: { type: "string" },
     symmetry: {
       type: "object",
       properties: { left_right: { type: "boolean" }, top_bottom: { type: "boolean" } },
@@ -100,7 +106,7 @@ export const SCENE_SCHEMA = {
       additionalProperties: false,
     },
   },
-  required: ["game_name", "sport", "items", "lines", "symmetry"],
+  required: ["game_name", "sport", "items", "lines", "symmetry", "tidied"],
   additionalProperties: false,
 };
 
@@ -112,7 +118,7 @@ export type SceneItem = {
 };
 export type SceneLine = { kind: "pitch_line" | "pitch_arc" | "dotted_line" | "run" | "pass" | "shot"; points: Pt[] };
 export type Scene = { game_name: string; sport: "football" | "hurling" | "unknown"; items: SceneItem[]; lines: SceneLine[];
-  symmetry?: { left_right: boolean; top_bottom: boolean } };
+  symmetry?: { left_right: boolean; top_bottom: boolean }; tidied?: string };
 
 // ── Image size (PNG / JPEG header) ───────────────────────────────────────────
 // The model gives positions on a 0–1000 grid stretched over the image, so we need the
@@ -161,9 +167,9 @@ const S = {
   runCurve: "edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;strokeColor=#ffffff;strokeWidth=2.5;",
   pass:     "edgeStyle=none;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 4;strokeColor=#FFD700;strokeWidth=2.5;",
   passCurve:"edgeStyle=none;curved=1;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 4;strokeColor=#FFD700;strokeWidth=2.5;",
-  // A shot at goal: dashed like a kick, but in its own colour with a solid head.
-  shot:     "edgeStyle=none;html=1;endArrow=block;endFill=1;dashed=1;dashPattern=8 4;strokeColor=#FF4081;strokeWidth=3;",
-  shotCurve:"edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;dashed=1;dashPattern=8 4;strokeColor=#FF4081;strokeWidth=3;",
+  // A shot at goal: yellow like a kick (the ball moving), but a solid, thicker line with a filled head.
+  shot:     "edgeStyle=none;html=1;endArrow=block;endFill=1;csShot=1;strokeColor=#FFD700;strokeWidth=3.5;",
+  shotCurve:"edgeStyle=none;curved=1;html=1;endArrow=block;endFill=1;csShot=1;strokeColor=#FFD700;strokeWidth=3.5;",
 };
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

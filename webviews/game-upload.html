@@ -423,6 +423,7 @@
       <div id="rvImageInner"></div>
     </div>
     <div id="diagFix" style="display:none;margin:-4px 0 14px">
+      <div id="diagTidied" style="display:none;color:#a1a1a2;font-size:13px;line-height:1.4;margin:0 2px 8px"></div>
       <div id="diagFixRest"></div>
       <button type="button" id="diagUndo" onclick="undoDiagramFix()" style="display:none;margin-top:6px;background:none;border:0;color:#a1a1a2;font:inherit;font-size:13px;text-decoration:underline;padding:4px 2px">Undo last fix</button>
     </div>
@@ -872,7 +873,7 @@
 
     // Without AI features: no processing, go straight to the form with what was typed
     if (!_aiEnabled) {
-      _reviewImage = sourceImg; _diag = null;
+      _reviewImage = sourceImg; _diag = null; setTidied('');
       showReview({ game_how_to_play: document.getElementById('inpDescription').value.trim() }, null);
       return;
     }
@@ -919,6 +920,7 @@
 
       _reviewImage = (stdResult?.base64 && !stdResult?._err) ? stdResult : sourceImg;
       _diag = (stdResult?.scene && !stdResult?._err) ? { scene: stdResult.scene, img: diagramImg || sourceImg, notes: description } : null;
+      setTidied(_diag ? _diag.scene.tidied : '');
       _diagUndo.length = 0;
 
       if (aiResult.suggested_type)           document.getElementById('rvType').value = aiResult.suggested_type;
@@ -1031,6 +1033,13 @@
     }
     document.getElementById('diagUndo').style.display = on && _diagUndo.length ? '' : 'none';
   }
+  // One line under the diagram saying what the AI tidied compared with the sketch.
+  function setTidied(text) {
+    const el = document.getElementById('diagTidied');
+    text = (text || '').trim();
+    el.textContent = text ? 'Tidied: ' + text : '';
+    el.style.display = text ? '' : 'none';
+  }
   function setDiagramImage(image) {
     _reviewImage = image;
     document.getElementById('rvImageInner').innerHTML = `<img src="data:${image.mimeType};base64,${image.base64}" alt="Diagram"/>`;
@@ -1054,6 +1063,7 @@
         _diagUndo.push(before);
         _diag.scene = r.scene;
         setDiagramImage({ base64: r.base64, mimeType: r.mimeType });
+        setTidied(r.scene.tidied);
         showDiagFix();
         showToast('Drawing updated');
       },
@@ -1064,6 +1074,7 @@
     if (!prev || !_diag) return;
     _diag.scene = prev.scene;
     setDiagramImage(prev.image);
+    setTidied(prev.scene.tidied);
     showDiagFix();
   }
 
@@ -1580,10 +1591,10 @@
     const style=cell.getAttribute('style')||'', isDashed=style.includes('dashed=1'), isCurved=style.includes('curved=1');
     const hasArrow=!style.includes('endArrow=none');
     // Dashed + arrowhead = kick → yellow. Pitch lines (no arrow) = faint white.
-    // Shots (and any arrow with its own colour) use the style's strokeColor and width.
-    const isShot = hasArrow && /strokeColor=#FF4081/i.test(style);
-    const lineColor = isShot ? '#FF4081' : isDashed && hasArrow ? '#FFD700' : isDashed ? 'rgba(255,255,255,0.45)' : '#ffffff';
-    const lineWidth = !hasArrow ? 1.5 : isShot ? 3 : 2.5;
+    // Shots: solid yellow, thicker, filled head.
+    const isShot = hasArrow && style.includes('csShot=1');
+    const lineColor = isShot ? '#FFD700' : isDashed && hasArrow ? '#FFD700' : isDashed ? 'rgba(255,255,255,0.45)' : '#ffffff';
+    const lineWidth = !hasArrow ? 1.5 : isShot ? 3.5 : 2.5;
     const wptArr=geo.querySelector('Array[as="points"]');
     const waypoints=wptArr?Array.from(wptArr.querySelectorAll('mxPoint')).map(p=>({x:parseFloat(p.getAttribute('x')||'0')*s+offX,y:parseFloat(p.getAttribute('y')||'0')*s+offY})):[];
     ctx.save(); ctx.strokeStyle=lineColor; ctx.lineWidth=lineWidth; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash(isDashed?(hasArrow?[8,4]:[6,6]):[]);
@@ -1611,7 +1622,7 @@
     ctx.stroke(); ctx.setLineDash([]);
     if (!hasArrow) { ctx.restore(); return; } // pitch line — no arrowhead
     const fx=waypoints.length>0?waypoints[waypoints.length-1].x:x1, fy=waypoints.length>0?waypoints[waypoints.length-1].y:y1;
-    const angle=Math.atan2(y2-fy,x2-fx), hLen=13;
+    const angle=Math.atan2(y2-fy,x2-fx), hLen=isShot?17:13;
     if(!isDashed||isShot){ctx.fillStyle=isShot?lineColor:'#ffffff';ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.closePath();ctx.fill();}
     else{ctx.strokeStyle=lineColor;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x2-hLen*Math.cos(angle-Math.PI/7),y2-hLen*Math.sin(angle-Math.PI/7));ctx.lineTo(x2,y2);ctx.lineTo(x2-hLen*Math.cos(angle+Math.PI/7),y2-hLen*Math.sin(angle+Math.PI/7));ctx.stroke();}
     ctx.restore();
