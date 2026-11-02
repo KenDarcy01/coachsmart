@@ -16,6 +16,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Can delete any game (Ken, 2026-11-02).
+const GAME_ADMINS = ["ken.darcy@gmail.com"];
+
+
 // ── Call 1: interpret the drill, clean the text, produce a precise spatial description ──
 const TEXT_PROMPT = `You are a GAA (Gaelic Athletic Association) coaching assistant.
 Process the coaching drill and return a JSON object with exactly these fields:
@@ -312,6 +316,7 @@ serve(async (req) => {
           game_image:           imageUrl,
           game_video:           game_video?.trim() || null,
           club_id:              defaultClub,
+          created_by:           user.id,
         })
         .select("game_id")
         .single();
@@ -329,6 +334,39 @@ serve(async (req) => {
     }
 
     // ── update_game: update text fields of a club-owned game ─────────────────
+    // ── delete_game: the game, everyone's favourite links, coach notes, picture ──
+    // Allowed for the coach who added it, or an admin (Ken) for any game.
+    if (action === "delete_game") {
+      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+      const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+      const { data: { user } } = await sb.auth.getUser(jwt);
+      if (!user) return json({ error: "Unauthorized" }, 401);
+
+      const gameId = Number(body.game_id);
+      if (!gameId) return json({ error: "game_id is required" }, 400);
+      const { data: game } = await sb.from("games").select("game_id, created_by, game_image").eq("game_id", gameId).maybeSingle();
+      if (!game) return json({ error: "Game not found" }, 404);
+      const isAdmin = GAME_ADMINS.includes((user.email || "").toLowerCase());
+      if (!isAdmin && game.created_by !== user.id) return json({ error: "Only the coach who added this game can delete it" }, 403);
+
+      const { error: linkErr } = await sb.from("user_game_link").delete().eq("game_id", gameId);
+      if (linkErr) return json({ error: "Could not remove favourites: " + linkErr.message }, 500);
+      const { error: noteErr } = await sb.from("game_coach_notes").delete().eq("game_id", gameId);
+      if (noteErr) return json({ error: "Could not remove notes: " + noteErr.message }, 500);
+      const { error: delErr } = await sb.from("games").delete().eq("game_id", gameId);
+      if (delErr) return json({ error: "Could not delete game: " + delErr.message }, 500);
+
+      // The picture, if it is one of ours (signed or public URL into coachsmartimages).
+      const m = /\/object\/(?:sign|public)\/coachsmartimages\/([^?]+)/.exec(game.game_image || "");
+      if (m) {
+        const { error: rmErr } = await sb.storage.from("coachsmartimages").remove([decodeURIComponent(m[1])]);
+        if (rmErr) console.warn("delete_game: picture not removed", rmErr.message);
+      }
+      console.log("delete_game", gameId, "by", user.id, isAdmin ? "(admin)" : "(creator)");
+      return json({ success: true });
+    }
+
     if (action === "update_game") {
       const SUPABASE_URL      = Deno.env.get("SUPABASE_URL")!;
       const SERVICE_ROLE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
