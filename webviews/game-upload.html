@@ -1300,7 +1300,9 @@
   async function drawImported(item) {
     item.drawing_state = 'drawing';
     renderImport();
-    const words = [item.drawing, item.game_how_to_play ? 'How it runs: ' + item.game_how_to_play : ''].filter(Boolean).join('\n');
+    const words = [item.game_name ? 'Drill: ' + item.game_name : '', item.drawing ? 'Layout: ' + item.drawing : '',
+      item.game_setup ? 'Setup: ' + item.game_setup : '', item.game_how_to_play ? 'How it runs: ' + item.game_how_to_play : '',
+      item.source_text ? 'As written in the coach\'s document:\n' + item.source_text : ''].filter(Boolean).join('\n');
     const r = item.original
       ? await standardiseDiagram(item.original, null, `${item.game_name}. ${words}`)
       : await standardiseDiagram(null, null, '', words);

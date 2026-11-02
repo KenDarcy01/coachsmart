@@ -284,7 +284,7 @@ The coach also described this drill in their own words (typed or spoken, so allo
 Use it to read the drawing the way the coach meant it: what each mark is, how many players and which team, which lines are runs or passes, and the shape of the setup (for example "a 20m square" means the cones form a square). Where the description and an unclear mark disagree, follow the description. If it says something on the page should be ignored, leave it out. Do not add players or equipment that are only mentioned and not drawn, unless the description clearly says where they go.`;
 
 // Drawing from words only: the same description format, but the model designs the layout.
-const FROM_TEXT_PROMPT = (drawing: string) => `There is no picture this time. Instead, design the diagram for this GAA drill from the written description below, as a coach would draw it neatly by hand, and describe it in exactly the format that follows. The grid is square (1000 x 1000). Use the space well: keep everything inside 80-920 on both axes, and keep players at least 70 apart. Draw one clear example of the setup. Read "the image" in the instructions below as this description.
+const FROM_TEXT_PROMPT = (drawing: string) => `There is no picture this time. Instead, design the diagram for this GAA drill from the written description below, as a coach would draw it neatly by hand, and describe it in exactly the format that follows. The grid is square (1000 x 1000). Use the space well: keep everything inside 80-920 on both axes, and keep players at least 70 apart. Draw one clear example of the setup. Read "the image" in the instructions below as this description. Nothing here is hand-drawn, so the rules about reading rough marks do not apply: place everything exactly where the drill needs it, with every player, cone, goal, run, pass and shot the description names, nothing extra, and the arrows going the right way between the right players. Where the layout and the coach's own words differ, the coach's words win. Before answering, check each step of how it runs against your diagram.
 
 THE DRILL
 """${drawing}"""
@@ -330,7 +330,7 @@ async function sceneConvert(apiKey: string, image_base64: string | null, media_t
   }
 
   const claudeData = await claudeRes.json();
-  console.log("v2 stop_reason:", claudeData?.stop_reason, "| usage:", JSON.stringify(claudeData?.usage));
+  console.log("v2", MODEL, effort, image_base64 ? "image" : "text", "stop_reason:", claudeData?.stop_reason, "| usage:", JSON.stringify(claudeData?.usage));
   const rawText: string = (claudeData?.content ?? [])
     .filter((c: any) => c.type === "text")
     .map((c: any) => c.text ?? "")
