@@ -18,7 +18,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = Deno.env.get("IMPORT_MODEL") ?? "claude-fable-5-1";
-const EFFORT = Deno.env.get("IMPORT_EFFORT") ?? "medium";
+const EFFORT = Deno.env.get("IMPORT_EFFORT") ?? "high";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -51,9 +51,10 @@ function schema(allowed: { types: string[]; ages: string[]; codes: string[]; ski
             game_video: { type: "string" },
             picture: { type: "integer" },
             drawing: { type: "string" },
+            source_text: { type: "string" },
           },
           required: ["game_name", "game_type", "game_age", "game_code", "game_skill", "game_setup", "game_how_to_play",
-                     "game_variations", "game_teaching_points", "game_video", "picture", "drawing"],
+                     "game_variations", "game_teaching_points", "game_video", "picture", "drawing", "source_text"],
           additionalProperties: false,
         },
       },
@@ -81,6 +82,7 @@ FIELDS (write for another coach; plain, practical, specific to the code; keep th
 - game_teaching_points: the coaching points the document gives, one per line. If it gives none, add 2-3 short, sensible ones that follow directly from the drill.
 - game_video: a video link given for this drill ("" if none).
 - picture: ${nPics ? `the number of the picture (0 to ${nPics - 1}) that shows this drill's layout, from the [PICTURE n] markers; -1 if none does. A photo of players or a logo is not a layout.` : "-1 (there are no separate pictures)."}
+- source_text: this drill's own words from the document, copied exactly (its whole section, including any layout detail; for PowerPoint include its SHAPES lines). Used to check the diagram.
 - drawing: a precise description of the drill's layout for a diagram, as if telling someone exactly what to draw: the area and its size and shape, where each player, team, cone, ball, goal or wall is (use left/right/top/bottom or the 0-1000 grid if SHAPES are given), and every run, pass and shot as an arrow from where to where, with player numbers or letters. Use two teams (attackers and defenders) where the drill has opposition. Draw one clear example of the setup (for example one group of 4, not all 6 groups). If there is a picture, describe what it shows, read with the text.
 
 ${kind === "pptx" ? "This came from PowerPoint. === SLIDE n === starts each slide. SHAPES lists the shapes drawn on a slide on a 0-1000 grid (x across, y down): ovals and circles are usually players (their text is the number), triangles are cones, lines with arrows are runs (solid) or passes (dashed). NOTES are the speaker notes and often hold the coaching detail.\n" : ""}${kind === "docx" ? "This came from Word. Tables are written row by row with cells separated by |.\n" : ""}In hurling and camogie never say "kick"; say strike, pass or score. Write in Irish/British English.
@@ -146,7 +148,7 @@ serve(async (req) => {
       return json({ error: `AI error ${res.status}`, detail: t.slice(0, 300) }, 502);
     }
     const data = await res.json();
-    console.log("import-games:", kind, "stop", data?.stop_reason, "usage", JSON.stringify(data?.usage), "ms", Date.now() - started);
+    console.log("import-games:", MODEL, EFFORT, kind, "stop", data?.stop_reason, "usage", JSON.stringify(data?.usage), "ms", Date.now() - started);
     if (data?.stop_reason === "refusal") return json({ error: "The AI declined to read this document" }, 422);
     const raw = (data?.content ?? []).filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
     let out: any;
