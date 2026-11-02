@@ -21,6 +21,12 @@
           ]
         },
         {
+          "source": "/crests/**",
+          "headers": [
+            { "key": "Access-Control-Allow-Origin", "value": "*" }
+          ]
+        },
+        {
           "source": "/webviews/**",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
