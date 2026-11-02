@@ -344,6 +344,18 @@
     .heart-btn.fav svg { fill: #EF4444; stroke: #EF4444; }
     #detailHeart { width: 44px; height: 44px; }
     #detailHeart svg { width: 26px; height: 26px; }
+    .edit-game-btn[hidden] { display: none; }
+    .delete-game-btn { color: #ef5350 !important; background: rgba(239,83,80,0.12) !important; border-color: rgba(239,83,80,0.35) !important; }
+    #delOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: flex-end; justify-content: center; z-index: 1000; }
+    #delOverlay.show { display: flex; }
+    #delOverlay .del-card { background: #1e222b; border-radius: 18px 18px 0 0; padding: 22px 18px calc(18px + env(safe-area-inset-bottom)); width: 100%; max-width: 520px; }
+    #delOverlay h3 { margin: 0 0 8px; font-size: 18px; color: #f1f4f8; }
+    #delOverlay p { margin: 0 0 18px; color: #a1a1a2; font-size: 14px; line-height: 1.45; }
+    #delOverlay .del-row { display: flex; gap: 10px; }
+    #delOverlay button { flex: 1; height: 48px; border-radius: 12px; border: 0; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+    #delOverlay .del-cancel { background: #2a2f3a; color: #f1f4f8; }
+    #delOverlay .del-go { background: #e53935; color: #fff; }
+    #delOverlay .del-go:disabled { opacity: 0.6; }
     .edit-game-btn {
       width: 44px; height: 44px; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
@@ -523,6 +535,16 @@
 
 <div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">Loading…</div></div>
 <div id="toast"></div>
+<div id="delOverlay" onclick="if(event.target===this)closeDeleteGame()">
+  <div class="del-card">
+    <h3>Delete this game?</h3>
+    <p id="delText"></p>
+    <div class="del-row">
+      <button class="del-cancel" onclick="closeDeleteGame()">Cancel</button>
+      <button class="del-go" id="delGoBtn" onclick="deleteGame()">Delete</button>
+    </div>
+  </div>
+</div>
 <div id="printCard" aria-hidden="true"></div>
 
 <!-- ── PATHWAY SELECTOR (shown when club has 2+ pathways) ── -->
@@ -677,6 +699,9 @@
     </div>
     <button class="heart-btn" id="detailHeart" onclick="toggleFavFromDetail()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+    <button class="edit-game-btn delete-game-btn" id="detailDeleteBtn" onclick="askDeleteGame()" hidden aria-label="Delete game">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
     </button>
     <button class="edit-game-btn" id="detailEditBtn" onclick="openEditGame(_currentDetailGameId)" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -1533,6 +1558,7 @@ function showDetail(gameId) {
   _currentDetailGameId = g.game_id;
   $('detailHeart').style.display = isSkillGame(g) ? 'none' : '';
   $('detailEditBtn').hidden = !(g.club_id && _myClubId && g.club_id === _myClubId);
+  $('detailDeleteBtn').hidden = !canDeleteGame(g);
   $('detailTitle').textContent = g.game_name;
   const parts = ['<div class="detail-body">'];
   parts.push(`<div class="media-row"><button class="media-btn pdf" onclick="exportGamePdf(${g.game_id})">
@@ -1593,6 +1619,53 @@ function showDetail(gameId) {
 
 // ── Edit Game ─────────────────────────────────────────────────────────────────
 const EDGE_FN_URL = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/ai-process-game';
+
+// ── Delete game (the coach who added it, or Ken for any game) ─────────────────
+const GAME_ADMINS = ['ken.darcy@gmail.com'];
+function _jwtEmail() {
+  try {
+    const p = JSON.parse(atob(WV_TOKEN.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return (p.email || '').toLowerCase();
+  } catch (_) { return ''; }
+}
+function canDeleteGame(g) {
+  if (!g || isSkillGame(g)) return false;
+  const me = _jwtUserId();
+  return GAME_ADMINS.includes(_jwtEmail()) || (!!me && g.created_by === me);
+}
+function askDeleteGame() {
+  const g = allGames.find(x => x.game_id === _currentDetailGameId);
+  if (!g) return;
+  $('delText').textContent = `"${g.game_name}" will be removed for everyone, including from anyone's favourites. Saved session plans keep their copy. This can't be undone.`;
+  $('delGoBtn').disabled = false; $('delGoBtn').textContent = 'Delete';
+  $('delOverlay').classList.add('show');
+}
+function closeDeleteGame() { $('delOverlay').classList.remove('show'); }
+async function deleteGame() {
+  const id = _currentDetailGameId, btn = $('delGoBtn');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  try {
+    let authToken = WV_TOKEN;
+    try { const { data: { session } } = await sb.auth.getSession(); if (session?.access_token) authToken = session.access_token; } catch (_) {}
+    const res = await fetch(EDGE_FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken,
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4' },
+      body: JSON.stringify({ action: 'delete_game', game_id: id }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.success) throw new Error(json.error || 'Delete failed');
+    allGames = allGames.filter(x => x.game_id !== id);
+    favourites.delete(id);
+    closeDeleteGame();
+    showToast('Game deleted');
+    navBack();
+    setTimeout(refreshGames, 400);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Delete';
+    showToast(e.message || 'Could not delete — please try again');
+  }
+}
 
 // ── Edit textarea auto-resize ─────────────────────────────────────────────────
 function efAutoResize(el) {
@@ -2105,7 +2178,7 @@ async function refreshGames() {
     const gamesQuery = sb.from('games').select(
       'game_id,game_name,game_age,game_code,game_type,game_skill,' +
       'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
-      'game_pdf,game_video,game_image,club_id'
+      'game_pdf,game_video,game_image,club_id,created_by'
     );
     if (_myClubId) {
       gamesQuery.or(`club_id.is.null,club_id.eq.${_myClubId}`);
@@ -2156,7 +2229,7 @@ async function boot() {
     const gamesQuery = sb.from('games').select(
       'game_id,game_name,game_age,game_code,game_type,game_skill,' +
       'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
-      'game_pdf,game_video,game_image,club_id'
+      'game_pdf,game_video,game_image,club_id,created_by'
     );
     // Only return public games + this club's games (never another club's)
     if (defaultClub) {
