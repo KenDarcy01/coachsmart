@@ -898,8 +898,8 @@
       const fixedXml = fixCircleStylesClient(data.xml);
       let png = await renderMxGraphToPng(fixedXml), scene = data.scene || null;
       // Drawn from words (no picture): let the AI look at its own drawing once and correct it.
-      // Up to three looks; stop as soon as a look changes nothing.
-      for (let round = 0; !img && !fix && words && scene && round < 3; round++) {
+      // One look (more looks cost a lot on Fable, Ken 2026-11-03).
+      for (let round = 0; !img && !fix && words && scene && round < 1; round++) {
         try {
           const r2 = await CSAuth.fetch(DIAGRAM_FN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ drawing: words, notes: notes || '', scene, check_image_base64: png.base64 }) });
