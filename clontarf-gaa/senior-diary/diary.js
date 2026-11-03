@@ -1,9 +1,31 @@
 // Clontarf Senior Football · off-season diary: works out each day from the
-// block plan (plan.js), then draws it. Ticks and numbers are saved to the
+// plan the coaches published from their Google Sheet (or plan.js until the
+// first publish), then draws it. Ticks and numbers are saved to the
 // player's account (account.js). Layout follows the Féile 2027 kids diary.
 (function () {
-  const P = window.PLAN;
+  let P = window.PLAN;
   const { ticked, toggle, value, setValue } = window.ACCOUNT;
+
+  // The published sheet plan, in the shape the rest of this file uses.
+  // A player's own rows for a day replace the team's slots for that day.
+  function fromSheet(pub) {
+    const blocks = pub.blocks.slice().sort((a, b) => a.from.localeCompare(b.from));
+    const own = pub.own || {};
+    const slot = x => {
+      if (x.kind === 'rest' || !x.code) return { t: x.t, kind: 'rest', title: x.title || 'Off', detail: x.detail || '' };
+      const s = pub.sessions[x.code];
+      return s ? { t: x.t, kind: s.kind, s } : null;
+    };
+    return {
+      FORM: pub.form || window.PLAN.FORM,
+      WEIGHTS: pub.weights || '',
+      BLOCKS: blocks,
+      VIEW_START: blocks[0].from,
+      VIEW_END: blocks[blocks.length - 1].to,
+      slots: d => ((own[d] && own[d].slots) || pub.days[d] || []).map(slot).filter(Boolean),
+      notes: d => (own[d] && own[d].notes) || []
+    };
+  }
   const DAY = 864e5;
   const DOW = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -32,7 +54,7 @@
     const b = blockOf(d);
     if (!b) return { d, items: [] };
     const wk = weekOf(d, b);
-    const items = P.day(dow(d), wk).map((x, i) => ({ ...x, id: 'i:' + i, title: x.s ? x.s.name : x.title, detail: x.s ? x.s.sub : x.detail }));
+    const items = (P.slots ? P.slots(d) : P.day(dow(d), wk)).map((x, i) => ({ ...x, id: 'i:' + i, title: x.s ? x.s.name : x.title, detail: x.s ? x.s.sub : x.detail }));
     return { d, b, wk, items };
   }
   const tickables = plan => plan.items.filter(i => i.s);
@@ -95,22 +117,24 @@
   function checkIn(plan) {
     const mon = monday(plan.d);
     let done = 0, total = 0;
-    const best = {};
+    const best = {}, lifts = [];
     for (let i = 0; i < 7; i++) {
       const d = add(mon, i), p = planDay(d);
       p.items.filter(x => x.kind === 'gym' || x.kind === 'run').forEach(x => { total++; if (ticked(d, x.id)) done++; });
-      ['bench', 'trapbar', 'frontsquat'].forEach(k => { if (value(d, 'lift:' + k)) best[k] = value(d, 'lift:' + k); });
+      p.items.forEach(x => { if (x.s && x.s.track && !lifts.some(l => l.id === x.s.track.id)) lifts.push(x.s.track); });
+      lifts.forEach(l => { if (value(d, 'lift:' + l.id)) best[l.id] = value(d, 'lift:' + l.id); });
     }
     const bw = value(mon, 'bodyweight');
     const row = (l, v) => `<li><span>${l}</span><b>${v ? esc(v) : '<i>not logged</i>'}</b></li>`;
     return `<section class="card ci"><h2>Sunday check-in · Week ${plan.wk}</h2>
       <p>Count only sessions you fully completed. If one was partly done, tell David what changed.</p>
-      <ul class="sum">${row('Sessions done', `${done} of ${total}`)}${row('Monday bodyweight', bw && bw + ' kg')}${row('Bench', best.bench)}${row('Trap bar', best.trapbar)}${row('Front squat', best.frontsquat)}</ul>
-      <a class="gbtn" href="${P.FORM}" target="_blank" rel="noopener">Log your week</a></section>`;
+      <ul class="sum">${row('Sessions done', `${done} of ${total}`)}${row('Monday bodyweight', bw && bw + ' kg')}${lifts.map(l => row(esc(l.n), best[l.id])).join('')}</ul>
+      ${P.FORM ? `<a class="gbtn" href="${esc(P.FORM)}" target="_blank" rel="noopener">Log your week</a>` : ''}</section>`;
   }
 
   function dayView() {
     const plan = planDay(current), d = current;
+    const notes = P.notes ? P.notes(d) : [];
     let tracked = '';
     const rows = plan.items.map(it => {
       const okey = d + ':' + it.id;
@@ -141,8 +165,9 @@
         ${plan.b && dow(d) === 1 ? `<p class="aim">${esc(plan.b.aim)}</p>` : ''}
         <ol class="timeline">${rows}</ol>
       </div>
+      ${notes.length ? `<section class="card note"><h2>From your coach</h2>${notes.map(n => `<p class="bn">${esc(n)}</p>`).join('')}</section>` : ''}
       ${log ? `<section class="card"><h2>Log it</h2>${log}</section>` : ''}
-      ${plan.items.some(x => x.kind === 'gym') ? `<section class="card"><h2>Weights</h2><p class="bn">${esc(P.WEIGHTS)}</p></section>` : ''}
+      ${P.WEIGHTS && plan.items.some(x => x.kind === 'gym') ? `<section class="card"><h2>Weights</h2><p class="bn">${esc(P.WEIGHTS)}</p></section>` : ''}
       ${dow(d) === 7 && plan.b ? checkIn(plan) : ''}`;
   }
 
@@ -203,5 +228,10 @@
     if (Math.abs(dx) > 70) { current = clamp(add(current, dx < 0 ? 1 : -1)); render(); }
   }, { passive: true });
 
-  window.ACCOUNT.ready.then(render);
+  window.ACCOUNT.ready.then(() => {
+    const pub = window.ACCOUNT.published();
+    if (pub) { try { P = fromSheet(pub); } catch (e) { console.warn('Published plan unreadable, using plan.js', e); } }
+    current = clamp(todayIso());
+    render();
+  });
 })();

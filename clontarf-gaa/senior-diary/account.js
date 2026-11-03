@@ -1,6 +1,7 @@
 // Senior team diary: sign-in with the CoachSmart login, the player's details,
 // and ticks saved to their account (so they follow them to any phone).
-// diary.js waits on ACCOUNT.ready before drawing.
+// diary.js waits on ACCOUNT.ready before drawing. Also loads the plan published
+// from the coaches' Google Sheet, and this player's own days and notes.
 window.ACCOUNT = (function () {
   const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
@@ -15,7 +16,7 @@ window.ACCOUNT = (function () {
     { k: 'medical_notes', l: 'Injuries or medical notes', area: true }
   ];
 
-  let sb = null, user = null, profile = null, store = {}, done;
+  let sb = null, user = null, profile = null, store = {}, published = null, done;
   const ready = new Promise(r => { done = r; });
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -99,11 +100,20 @@ window.ACCOUNT = (function () {
     user = u;
     try { store = JSON.parse(localStorage.getItem(cacheKey())) || {}; } catch (e) {}
     gate('<p class="gm">Loading your diary…</p>');
-    const [{ data: p }, { data: rows, error }] = await Promise.all([
+    const [{ data: p }, { data: rows, error }, { data: pub }, { data: mine }] = await Promise.all([
       sb.from('diary_profiles').select('*').eq('user_id', user.id).maybeSingle(),
-      sb.from('diary_ticks').select('day, ticks').eq('user_id', user.id)
+      sb.from('diary_ticks').select('day, ticks').eq('user_id', user.id),
+      // The plan as last published from the coaches' Google Sheet (none yet = plan.js).
+      sb.from('diary_plan').select('plan').order('id', { ascending: false }).limit(1).maybeSingle(),
+      // This player's own days and coach notes (RLS returns only their email's rows).
+      sb.from('diary_player_days').select('day, slots, notes')
     ]);
     if (!error) { store = {}; (rows || []).forEach(r => { store[r.day] = r.ticks; }); keep(); }
+    if (pub && pub.plan && pub.plan.blocks && pub.plan.blocks.length) {
+      const own = {};
+      (mine || []).forEach(r => { own[r.day] = { slots: r.slots, notes: r.notes || [] }; });
+      published = { ...pub.plan, own };
+    }
     profile = p;
     if (!profile) {
       // First visit: start from the name and phone CoachSmart already has.
@@ -169,5 +179,5 @@ window.ACCOUNT = (function () {
 
   document.addEventListener('click', e => { if (e.target.closest('#who')) showProfile(false); });
   boot();
-  return { ready, ticked, toggle, value, setValue };
+  return { ready, ticked, toggle, value, setValue, published: () => published };
 })();
