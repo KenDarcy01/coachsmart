@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import { FROM_TEXT_EXAMPLES } from "./examples.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SCENE_PROMPT, SCENE_SCHEMA, imageSize, sceneToXml, type Scene } from "./scene.ts";
@@ -284,9 +285,23 @@ The coach also described this drill in their own words (typed or spoken, so allo
 Use it to read the drawing the way the coach meant it: what each mark is, how many players and which team, which lines are runs or passes, and the shape of the setup (for example "a 20m square" means the cones form a square). Where the description and an unclear mark disagree, follow the description. If it says something on the page should be ignored, leave it out. Do not add players or equipment that are only mentioned and not drawn, unless the description clearly says where they go.`;
 
 // Drawing from words only: the same description format, but the model designs the layout.
-const FROM_TEXT_PROMPT = (drawing: string) => `There is no picture this time. Instead, design the diagram for this GAA drill from the written description below, as a coach would draw it neatly by hand, and describe it in exactly the format that follows. The grid is square (1000 x 1000). Use the space well: keep everything inside 80-920 on both axes, and keep players at least 70 apart. Draw one clear example of the setup. Read "the image" in the instructions below as this description. Nothing here is hand-drawn, so the rules about reading rough marks do not apply: place everything exactly where the drill needs it, with every player, cone, goal, run, pass and shot the description names, nothing extra, and the arrows going the right way between the right players. Where the layout and the coach's own words differ, the coach's words win. Before answering, check each step of how it runs against your diagram.
+const FROM_TEXT_PROMPT = (drawing: string) => `There is no picture this time. Design the diagram for this GAA drill from the written description below, the way an experienced coach would draw it cleanly for a coaching card, and give it in exactly the format that follows. Read "the image" in the instructions below as this description. Nothing is hand-drawn, so the rules about reading rough marks do not apply: you are placing everything yourself.
 
-THE DRILL
+HOW TO DESIGN IT (these matter more than anything else)
+- Draw ONE diagram of the main drill: one group, one example. Never draw a progression, variation or "bigger square" version beside it; those stay in the text. Draw several groups only when the drill really is several groups working side by side and the picture needs it (for example a row of players at a wall).
+- Use the space: the main area should fill most of the grid (about 100 to 900 both ways). Never two small areas side by side.
+- Cones mark corners or gates exactly; an area is shown by its four corner cones (or pitch lines when it is a marked area), not both unless the drill needs both.
+- Players are circles: home = the team with the ball or the attackers, away = defenders or the inside player. Leave labels empty unless the steps refer to players by a letter or number.
+- Passes between players around the outside of an area are gently curved (three points, the middle one bowed outward about an eighth of the distance) so they do not run through the middle. Runs are short and show the direction of movement. Put the ball beside the player who starts with it, never on top of a player.
+- At most one text caption: a short summary of the drill (under 55 characters) at the top-left, about x 80, y 70. No other text.
+- Keep everything inside 80 to 920 on both axes, players at least 70 apart, and nothing overlapping.
+- Set symmetry left_right and top_bottom to false.
+- Before answering, check each step of how it runs against your diagram: every player, cone, goal, run, pass and shot the steps need is there, going the right way between the right players, and nothing extra.
+
+WORKED EXAMPLES (coach-approved diagrams for other drills, for the style; do not copy their content)
+${FROM_TEXT_EXAMPLES.map((e, i) => `Example ${i + 1}\n"""${e.words}"""\n${JSON.stringify(e.scene)}`).join("\n\n")}
+
+THE DRILL TO DRAW
 """${drawing}"""
 
 `;

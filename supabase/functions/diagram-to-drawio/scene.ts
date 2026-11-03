@@ -729,7 +729,10 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
       const b = Math.round(D * 0.55);
       vertex("", S.ball, c.x - b / 2, c.y - b / 2, b, b);
     } else if (it.kind === "text" && it.label.trim()) {
-      vertex(it.label.trim(), S.text, c.x - 10, c.y - 10, Math.max(60, it.label.length * 9), 20);
+      // Text has a fixed size on the canvas, so keep it inside the picture: slide it left, and wrap a long one.
+      const want = Math.max(60, it.label.trim().length * 8), tw = Math.min(want, cw - 8), wrap = want > tw;
+      const tx = Math.min(Math.max(c.x - 10, 4), cw - tw - 4), th = wrap ? 36 : 20;
+      vertex(it.label.trim(), wrap ? S.text + "whiteSpace=wrap;" : S.text, tx, Math.min(Math.max(c.y - th / 2, 2), ch - th - 2), tw, th);
     }
   }
   for (const c of circles) {
