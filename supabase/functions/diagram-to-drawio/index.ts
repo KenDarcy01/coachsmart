@@ -274,7 +274,8 @@ type ConvertResult =
 // ── v2: the model describes the scene, scene.ts draws it ─────────────────────
 // A revision ("there's no line down the middle, that's a shadow") replays the first answer
 // and asks for the whole description again with only the coach's changes made.
-type Revision = { scene: Scene; instruction: string };
+// A check (drawing from words only) sends the rendered picture back so the model can look at its own result.
+type Revision = { scene: Scene; instruction: string; rendered?: string };
 
 // The coach's own description of the drill (typed or spoken on the upload screen).
 const NOTES_PROMPT = (notes: string) => `
@@ -334,7 +335,9 @@ async function sceneConvert(apiKey: string, image_base64: string | null, media_t
         },
         ...(revision ? [
           { role: "assistant", content: [{ type: "text", text: JSON.stringify(revision.scene) }] },
-          { role: "user", content: [{ type: "text", text: REVISE_PROMPT(revision.instruction) }] },
+          { role: "user", content: revision.rendered
+            ? [{ type: "image", source: { type: "base64", media_type: "image/png", data: revision.rendered } }, { type: "text", text: CHECK_PROMPT }]
+            : [{ type: "text", text: REVISE_PROMPT(revision.instruction) }] },
         ] : []),
       ],
     }),
@@ -374,6 +377,11 @@ const REVISE_PROMPT = (instruction: string) => `The coach has seen the diagram d
 """${instruction.slice(0, 2000)}"""
 
 Give the whole description again in the same format, with their changes made. Look at the image again where it helps (for example to find something they say you missed, or to check a mark they say is a shadow). Change only what they ask for, and anything that follows directly from it; keep every other item, line and position exactly as before. If they say something is not really there, remove it. If they ask for something that is not in the drawing, add it where they say. Keep your earlier tidy-up unless they ask for it as they drew it; then place everything as it is in the image. In "tidied", say what you changed this time.`;
+
+const CHECK_PROMPT = `This picture is the diagram drawn from your description. Look at it as the coach will, against the drill and the design rules above, before anyone sees it:
+- Does it show the drill as the steps describe: every player, cone, goal, run, pass and shot the steps need, arrows going the right way between the right players, and nothing extra?
+- Is it clear at a glance: one diagram of the main drill, filling the space, players spread evenly, nothing overlapping or crowded, arrows not crossing players, the caption short and fully inside the picture?
+Give the whole description again in the same format. If it is already right, give it back unchanged. Otherwise correct only what is wrong. In "tidied", say in one short sentence what the diagram shows or what you corrected.`;
 
 // ── legacy: the model writes the draw.io XML itself ──────────────────────────
 async function legacyConvert(apiKey: string, image_base64: string, media_type: string): Promise<ConvertResult> {
@@ -485,12 +493,15 @@ serve(async (req) => {
   }
 
   try {
-    const { image_base64, media_type, scene: prevScene, instruction, notes: rawNotes, drawing: rawDrawing } = await req.json();
+    const { image_base64, media_type, scene: prevScene, instruction, notes: rawNotes, drawing: rawDrawing, check_image_base64 } = await req.json();
     const notes = typeof rawNotes === "string" && rawNotes.trim() ? rawNotes.trim() : undefined;
     // No picture: draw from a written description of the layout (document import).
     const drawing = typeof rawDrawing === "string" && rawDrawing.trim() ? rawDrawing.trim().slice(0, 6000) : undefined;
+    const okScene = prevScene && typeof prevScene === "object" && Array.isArray(prevScene.items);
     const revision: Revision | undefined =
-      prevScene && typeof prevScene === "object" && Array.isArray(prevScene.items) && typeof instruction === "string" && instruction.trim()
+      okScene && typeof check_image_base64 === "string" && check_image_base64 && drawing && !image_base64
+        ? { scene: prevScene, instruction: "", rendered: check_image_base64 }
+        : okScene && typeof instruction === "string" && instruction.trim()
         ? { scene: prevScene, instruction: instruction.trim() }
         : undefined;
 
