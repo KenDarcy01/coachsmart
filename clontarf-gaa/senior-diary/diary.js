@@ -44,7 +44,8 @@
   // ---- drawing ----
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  let current = clamp(new URLSearchParams(location.search).get('d') || todayIso());
+  // Always open on today. (An old ?d= in a saved link or home-screen icon is ignored.)
+  let current = clamp(todayIso());
   const openSessions = new Set();
 
   function hero() {
@@ -159,8 +160,21 @@
 
   function render() {
     hero(); strip(); dayView(); weekView();
-    const u = new URL(location.href); u.searchParams.set('d', current); history.replaceState(null, '', u);
   }
+  if (new URLSearchParams(location.search).has('d')) history.replaceState(null, '', location.pathname);
+
+  // Coming back to the page (app brought forward, or restored from the back/forward
+  // cache): jump to today if the date has changed or it was away for 10+ minutes.
+  let hiddenAt = Date.now(), shownDay = todayIso();
+  const backToToday = () => {
+    if (todayIso() !== shownDay || Date.now() - hiddenAt > 10 * 60e3) { current = clamp(todayIso()); openSessions.clear(); }
+    shownDay = todayIso(); render();
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) hiddenAt = Date.now(); else window.ACCOUNT.ready.then(backToToday);
+  });
+  window.addEventListener('pagehide', () => { hiddenAt = Date.now(); });
+  window.addEventListener('pageshow', e => { if (e.persisted) window.ACCOUNT.ready.then(backToToday); });
 
   document.addEventListener('click', e => {
     const day = e.target.closest('[data-d]');
