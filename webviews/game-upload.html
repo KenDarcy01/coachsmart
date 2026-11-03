@@ -333,9 +333,9 @@
     <!-- ── Or import a whole document (AI users) ── -->
     <button type="button" class="import-entry" id="importEntry" onclick="document.getElementById('docInput').click()">
       <span class="ie-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg></span>
-      <span><div class="ie-title">Import from a document</div><div class="ie-sub">Word, PowerPoint or PDF. I'll find the games and draw them for you to check.</div></span>
+      <span><div class="ie-title">Import from a document</div><div class="ie-sub">Word, PowerPoint or PDF, or a games file made for you. You check every game before it's saved.</div></span>
     </button>
-    <input type="file" id="docInput" accept=".docx,.pptx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" style="display:none" onchange="importDocument(this)"/>
+    <input type="file" id="docInput" accept=".docx,.pptx,.pdf,.json,application/json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" style="display:none" onchange="importDocument(this)"/>
 
     <!-- ── Step 1: Image (Photo or Sketch) ── -->
     <div>
@@ -640,6 +640,7 @@
 
 <script src="cs-auth.js"></script>
 <script src="cs-doc-extract.js"></script>
+<script src="cs-scene.js"></script>
 <script src="cs-mic.js"></script>
 <script src="cs-voice-sheet.js"></script>
 <script>
@@ -1258,6 +1259,7 @@
     const file = input.files && input.files[0];
     input.value = '';
     if (!file) return;
+    if (/\.json$/i.test(file.name) || file.type === 'application/json') return loadGamesFile(file);
     showScreen('screenProcessing');
     setStatus('Reading your document…', file.name, '');
     _acquireWakeLock();
@@ -1302,6 +1304,37 @@
     }
   }
 
+  // A CoachSmart games file (format "coachsmart-games"), made in a Claude thread from a coach's document
+  // (Ken, 2026-11-03): the games and their finished drawings, drawn here with no AI call. Same review list.
+  async function loadGamesFile(file) {
+    try {
+      const data = JSON.parse(await file.text());
+      if (!data || data.format !== 'coachsmart-games' || !Array.isArray(data.games) || !data.games.length)
+        throw new Error("That file isn't a CoachSmart games file");
+      const existing = await loadExistingNames();
+      const one = (v) => Array.isArray(v) ? (v[0] || '') : (v || '');
+      const many = (v) => Array.isArray(v) ? v : (v ? [v] : []);
+      _imp = {
+        title: data.document_title || file.name,
+        pictures: [],
+        items: data.games.map(g => ({
+          game_name: g.game_name || '', game_type: one(g.game_type), game_age: many(g.game_age), game_code: many(g.game_code),
+          game_skill: many(g.game_skill), game_setup: g.game_setup || '', game_how_to_play: g.game_how_to_play || '',
+          game_variations: g.game_variations || '', game_teaching_points: g.game_teaching_points || '', game_video: g.game_video || '',
+          scene: g.scene || null, size: Array.isArray(g.size) ? g.size : [1000, 1000],
+          on: true, saved: false, drawing_state: 'waiting', image: null, diag: null, original: null,
+          dup: existing.has(String(g.game_name || '').trim().toLowerCase()),
+        })),
+      };
+      renderImport();
+      showScreen('screenImport');
+      drawAllImported();
+    } catch (err) {
+      showScreen('screenCreate');
+      showToast(err.message || 'Could not read that file', 'error');
+    }
+  }
+
   async function loadExistingNames() {
     try {
       const r = await CSAuth.fetch(SUPABASE_URL + '/rest/v1/games?select=game_name', { method: 'GET' });
@@ -1313,6 +1346,17 @@
   async function drawImported(item) {
     item.drawing_state = 'drawing';
     renderImport();
+    if (item.scene) {   // finished drawing from a games file: draw it here, no AI
+      try {
+        const png = await renderMxGraphToPng(fixCircleStylesClient(CSScene.sceneToXml(item.scene, item.size[0], item.size[1])));
+        const words = [item.game_setup ? 'Setup: ' + item.game_setup : '', item.game_how_to_play ? 'How it runs: ' + item.game_how_to_play : ''].filter(Boolean).join('\n');
+        item.image = { base64: png.base64, mimeType: 'image/png' };
+        item.diag = { scene: item.scene, img: null, notes: '', drawing: `Drill: ${item.game_name}\n${words}` };
+        item.drawing_state = 'done';
+      } catch (_) { item.drawing_state = 'failed'; }
+      if (_importIdx === null) renderImport();
+      return;
+    }
     const words = [item.game_name ? 'Drill: ' + item.game_name : '', item.drawing ? 'Layout: ' + item.drawing : '',
       item.game_setup ? 'Setup: ' + item.game_setup : '', item.game_how_to_play ? 'How it runs: ' + item.game_how_to_play : '',
       item.source_text ? 'As written in the coach\'s document:\n' + item.source_text : ''].filter(Boolean).join('\n');
