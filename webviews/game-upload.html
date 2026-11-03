@@ -898,13 +898,17 @@
       const fixedXml = fixCircleStylesClient(data.xml);
       let png = await renderMxGraphToPng(fixedXml), scene = data.scene || null;
       // Drawn from words (no picture): let the AI look at its own drawing once and correct it.
-      if (!img && !fix && words && scene) {
+      // Up to three looks; stop as soon as a look changes nothing.
+      for (let round = 0; !img && !fix && words && scene && round < 3; round++) {
         try {
           const r2 = await CSAuth.fetch(DIAGRAM_FN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ drawing: words, notes: notes || '', scene, check_image_base64: png.base64 }) });
           const d2 = await r2.json();
-          if (r2.ok && d2.xml && d2.scene) { png = await renderMxGraphToPng(fixCircleStylesClient(d2.xml)); scene = d2.scene; }
-        } catch (_) { /* keep the first drawing */ }
+          if (!(r2.ok && d2.xml && d2.scene)) break;
+          const same = JSON.stringify({ i: d2.scene.items, l: d2.scene.lines }) === JSON.stringify({ i: scene.items, l: scene.lines });
+          png = await renderMxGraphToPng(fixCircleStylesClient(d2.xml)); scene = d2.scene;
+          if (same) break;
+        } catch (_) { break; /* keep the drawing so far */ }
       }
       return { base64: png.base64, mimeType: 'image/png', game_name: data.game_name || null,
                suggested_codes: data.suggested_codes || [], scene };

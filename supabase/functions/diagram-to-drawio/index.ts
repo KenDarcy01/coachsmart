@@ -310,7 +310,8 @@ THE DRILL TO DRAW
 `;
 
 async function sceneConvert(apiKey: string, image_base64: string | null, media_type: string | null, revision?: Revision, notes?: string, drawing?: string): Promise<ConvertResult> {
-  const effort = Deno.env.get("DIAGRAM_EFFORT") ?? "high";
+  // Drawing from words has no picture to lean on, so it gets the most thinking (DIAGRAM_TEXT_EFFORT overrides).
+  const effort = image_base64 ? (Deno.env.get("DIAGRAM_EFFORT") ?? "high") : (Deno.env.get("DIAGRAM_TEXT_EFFORT") ?? "max");
   const claudeRes = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
@@ -366,6 +367,8 @@ async function sceneConvert(apiKey: string, image_base64: string | null, media_t
   const size = (image_base64 && imageSize(image_base64)) || { w: 1000, h: 1000 };
   const xml = sceneToXml(scene, size.w, size.h);
   console.log("v2 scene:", scene.items?.length ?? 0, "items,", scene.lines?.length ?? 0, "lines, image", size.w, "x", size.h);
+  // Drill text and scene (no personal data) so diagrams drawn from words can be reviewed and re-rendered.
+  if (!image_base64) console.log("v2 words-scene", JSON.stringify({ check: !!revision?.rendered, drawing: (drawing || "").slice(0, 3000), scene }).slice(0, 12000));
 
   const gameName = scene.game_name?.trim() || null;
   const suggestedCodes = scene.sport === "hurling" ? ["hurling", "camogie"] : scene.sport === "football" ? ["football"] : [];
