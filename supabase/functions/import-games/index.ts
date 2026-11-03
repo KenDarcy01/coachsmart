@@ -130,31 +130,50 @@ serve(async (req) => {
     }
     content.push({ type: "text", text: PROMPT(allowed, kind, kind === "pdf" ? 0 : pictures.length) });
 
-    const started = Date.now();
-    const res = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 32000,
-        thinking: { type: "adaptive" },
-        output_config: { effort: EFFORT, format: { type: "json_schema", schema: schema(allowed) } },
-        messages: [{ role: "user", content }],
-      }),
+    // Fable can think for 2-3 minutes on a long document, and the gateway drops a request that sends
+    // nothing for 150s. So the answer is streamed: a space every 10s keeps it open, then the JSON
+    // (JSON.parse ignores the leading spaces). Errors after this point arrive as { error } with 200.
+    const work = async (): Promise<Response> => {
+      const started = Date.now();
+      const res = await fetch(ANTHROPIC_URL, {
+        method: "POST",
+        headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 32000,
+          thinking: { type: "adaptive" },
+          output_config: { effort: EFFORT, format: { type: "json_schema", schema: schema(allowed) } },
+          messages: [{ role: "user", content }],
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("import-games: Anthropic", res.status, t.slice(0, 500));
+        return json({ error: `AI error ${res.status}`, detail: t.slice(0, 300) }, 502);
+      }
+      const data = await res.json();
+      console.log("import-games:", MODEL, EFFORT, kind, "stop", data?.stop_reason, "usage", JSON.stringify(data?.usage), "ms", Date.now() - started);
+      if (data?.stop_reason === "refusal") return json({ error: "The AI declined to read this document" }, 422);
+      const raw = (data?.content ?? []).filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
+      let out: any;
+      try { out = JSON.parse(raw); } catch (_) { return json({ error: "Could not read the AI's answer", stop_reason: data?.stop_reason }, 502); }
+      const games = (out.games || []).map((g: any) => ({ ...g, picture: Number.isInteger(g.picture) && g.picture >= 0 && g.picture < pictures.length ? g.picture : -1 }));
+      return json({ document_title: out.document_title || "", games });
+    };
+    const enc = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(ctrl) {
+        const beat = setInterval(() => { try { ctrl.enqueue(enc.encode(" ")); } catch (_) { /* closed */ } }, 10000);
+        try {
+          const r = await work();
+          ctrl.enqueue(enc.encode(await r.text()));
+        } catch (e: any) {
+          console.error("import-games:", e?.message);
+          ctrl.enqueue(enc.encode(JSON.stringify({ error: e?.message ?? "Unexpected error" })));
+        } finally { clearInterval(beat); ctrl.close(); }
+      },
     });
-    if (!res.ok) {
-      const t = await res.text();
-      console.error("import-games: Anthropic", res.status, t.slice(0, 500));
-      return json({ error: `AI error ${res.status}`, detail: t.slice(0, 300) }, 502);
-    }
-    const data = await res.json();
-    console.log("import-games:", MODEL, EFFORT, kind, "stop", data?.stop_reason, "usage", JSON.stringify(data?.usage), "ms", Date.now() - started);
-    if (data?.stop_reason === "refusal") return json({ error: "The AI declined to read this document" }, 422);
-    const raw = (data?.content ?? []).filter((c: any) => c.type === "text").map((c: any) => c.text).join("");
-    let out: any;
-    try { out = JSON.parse(raw); } catch (_) { return json({ error: "Could not read the AI's answer", stop_reason: data?.stop_reason }, 502); }
-    const games = (out.games || []).map((g: any) => ({ ...g, picture: Number.isInteger(g.picture) && g.picture >= 0 && g.picture < pictures.length ? g.picture : -1 }));
-    return json({ document_title: out.document_title || "", games });
+    return new Response(stream, { headers: { ...cors, "content-type": "application/json" } });
   } catch (e: any) {
     console.error("import-games:", e?.message);
     return json({ error: e?.message ?? "Unexpected error" }, 500);

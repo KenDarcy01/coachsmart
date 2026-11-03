@@ -543,20 +543,26 @@ serve(async (req) => {
 
     const engine = (Deno.env.get("DIAGRAM_ENGINE") ?? "v2").toLowerCase();
     // A revision always uses v2: it is a change to a description only v2 makes.
-    const result = engine === "legacy" && !revision && !drawing
-      ? await legacyConvert(apiKey, image_base64, media_type)
-      : await sceneConvert(apiKey, image_base64 || null, media_type || null, revision, notes, drawing);
-    if ("error" in result) {
-      return new Response(JSON.stringify(result.error), {
-        status: result.status,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
-    }
-    const { xml, gameName, suggestedCodes, scene } = result;
-
-    return new Response(JSON.stringify({ xml, game_name: gameName, suggested_codes: suggestedCodes, scene: scene ?? null }), {
-      headers: { ...corsHeaders, "content-type": "application/json" },
+    const run = async () => {
+      const result = engine === "legacy" && !revision && !drawing
+        ? await legacyConvert(apiKey, image_base64, media_type)
+        : await sceneConvert(apiKey, image_base64 || null, media_type || null, revision, notes, drawing);
+      if ("error" in result) return result.error;
+      const { xml, gameName, suggestedCodes, scene } = result;
+      return { xml, game_name: gameName, suggested_codes: suggestedCodes, scene: scene ?? null };
+    };
+    // Long thinking can pass the gateway's 150s idle limit, so the answer is streamed with a space
+    // every 10s first (JSON.parse ignores them). Errors from here on come back as { error } with 200.
+    const enc = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(ctrl) {
+        const beat = setInterval(() => { try { ctrl.enqueue(enc.encode(" ")); } catch (_) { /* closed */ } }, 10000);
+        try { ctrl.enqueue(enc.encode(JSON.stringify(await run()))); }
+        catch (e: any) { ctrl.enqueue(enc.encode(JSON.stringify({ error: e?.message ?? "Unexpected error" }))); }
+        finally { clearInterval(beat); ctrl.close(); }
+      },
     });
+    return new Response(stream, { headers: { ...corsHeaders, "content-type": "application/json" } });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message ?? "Unexpected error" }), {
       status: 500,

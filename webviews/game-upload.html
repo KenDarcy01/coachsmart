@@ -1277,7 +1277,7 @@
                                pictures: doc.pictures.map(p => ({ base64: p.base64, mimeType: p.mimeType })), allowed }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || ('Import failed (' + res.status + ')'));
+      if (!res.ok || data.error) throw new Error(data.error || ('Import failed (' + res.status + ')'));
       if (!data.games || !data.games.length) throw new Error("I couldn't find any games or drills in that document");
 
       const existing = await loadExistingNames();
