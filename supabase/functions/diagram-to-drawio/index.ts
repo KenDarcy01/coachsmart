@@ -293,6 +293,8 @@ HOW TO DESIGN IT (these matter more than anything else)
 - Cones mark corners or gates exactly; an area is shown by its four corner cones (or pitch lines when it is a marked area), not both unless the drill needs both.
 - Players are circles: home = the team with the ball or the attackers, away = defenders or the inside player. Leave labels empty unless the steps refer to players by a letter or number.
 - Passes between players around the outside of an area are gently curved (three points, the middle one bowed outward about an eighth of the distance) so they do not run through the middle. Runs are short and show the direction of movement. Put the ball beside the player who starts with it, never on top of a player.
+- Balance the layout: spread the players evenly around the area (three outside players make a triangle, four make a diamond or square), never all on one side with an empty side.
+- Show the whole pattern once: if the ball goes round a group, draw every pass in the cycle back to the start; if players rotate or follow their pass, show one such run.
 - At most one text caption: a short summary of the drill (under 55 characters) at the top-left, about x 80, y 70. No other text.
 - Keep everything inside 80 to 920 on both axes, players at least 70 apart, and nothing overlapping.
 - Set symmetry left_right and top_bottom to false.
