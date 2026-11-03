@@ -18,7 +18,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = Deno.env.get("IMPORT_MODEL") ?? "claude-fable-5-1";
-const EFFORT = Deno.env.get("IMPORT_EFFORT") ?? "xhigh";
+const EFFORT = Deno.env.get("IMPORT_EFFORT") ?? "high";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

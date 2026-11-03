@@ -311,7 +311,7 @@ THE DRILL TO DRAW
 
 async function sceneConvert(apiKey: string, image_base64: string | null, media_type: string | null, revision?: Revision, notes?: string, drawing?: string): Promise<ConvertResult> {
   // Drawing from words has no picture to lean on, so it gets the most thinking (DIAGRAM_TEXT_EFFORT overrides).
-  const effort = image_base64 ? (Deno.env.get("DIAGRAM_EFFORT") ?? "high") : (Deno.env.get("DIAGRAM_TEXT_EFFORT") ?? "max");
+  const effort = image_base64 ? (Deno.env.get("DIAGRAM_EFFORT") ?? "high") : (Deno.env.get("DIAGRAM_TEXT_EFFORT") ?? "high");
   const claudeRes = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
