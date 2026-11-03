@@ -24,8 +24,22 @@ Deno.serve(async (req)=>{
       });
     }
     console.log(`📬 Found ${notifications.length} notification(s) to process`);
-    let pushNotes = notifications.filter((n)=>n.delivery_method === 'push');
-    let emailNotes = notifications.filter((n)=>n.delivery_method === 'email');
+    // Anything still unsent after a day is out of date: mark it delivered without
+    // sending, so it can't keep this job busy forever (35 August join requests
+    // with no delivery_method sat here for three months). created_at is UTC.
+    const staleCutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const isStale = (n) => Date.parse(String(n.created_at).replace(' ', 'T').replace(/(Z|[+-]\d\d(:?\d\d)?)?$/, 'Z')) < staleCutoff;
+    const staleIds = notifications.filter(isStale).map((n)=>n.id);
+    if (staleIds.length > 0) {
+      const { error: staleError } = await supabaseClient.from('notifications')
+        .update({ is_delivered: true, auto_cleared: 'stale_unsent' }).in('id', staleIds);
+      if (staleError) console.error('❌ Stale update error:', staleError.message);
+      else console.log(`🧹 Gave up on ${staleIds.length} notification(s) older than a day`);
+    }
+    const fresh = notifications.filter((n)=>!isStale(n));
+    // No delivery_method means push (push falls back to email when there's no token)
+    let pushNotes = fresh.filter((n)=>(n.delivery_method ?? 'push') === 'push');
+    let emailNotes = fresh.filter((n)=>n.delivery_method === 'email');
     const processedIds = [];
     const emailDeliveredIds = [];
     const deadTokens = [];
