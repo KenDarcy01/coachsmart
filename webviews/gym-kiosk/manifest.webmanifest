@@ -1,0 +1,13 @@
+{
+  "name": "Gym check-in",
+  "short_name": "Gym check-in",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#121316",
+  "theme_color": "#121316",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
