@@ -41,16 +41,8 @@ class V3EventCard extends StatelessWidget {
     final cancelled = isCancelled(e);
     final unanswered = needsReply(e);
     final showButtons = unanswered && (isNext || expanded);
-
-    final leftSub = isNext && t != null
-        ? countdown(t, now)
-        : far && t != null
-            ? _dayText(t)
-            : e.meetTime.trim().isNotEmpty
-                ? 'Meet ${e.meetTime.trim()}'
-                : e.eventType;
-
     final strike = cancelled ? TextDecoration.lineThrough : null;
+    final hasCrest = crestUrl != null && crestUrl!.isNotEmpty;
 
     return Opacity(
       opacity: cancelled ? 0.55 : 1,
@@ -70,95 +62,96 @@ class V3EventCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left column
-                Container(
-                  width: 84,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-                  decoration: const BoxDecoration(
-                    border: Border(right: BorderSide(color: V3.line)),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (crestUrl != null && crestUrl!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: SizedBox(
-                            width: 34,
-                            height: 34,
-                            child: Image.network(crestUrl!,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    const SizedBox.shrink()),
-                          ),
+                // Top row: crest, team + title, time on the right.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (hasCrest)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12, top: 2),
+                        child: SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: Image.network(crestUrl!,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink()),
                         ),
-                      Text(t == null ? '--:--' : hhmm(t),
-                          style: V3.tight(isNext ? 26 : 24,
-                                  weight: FontWeight.w700, height: 1)
-                              .copyWith(decoration: strike)),
-                      const SizedBox(height: 5),
-                      Text(leftSub.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: V3.inter(11.5,
-                              weight: FontWeight.w500,
-                              color: V3.muted,
-                              letterSpacing: .5)),
-                    ],
-                  ),
-                ),
-                // Body
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _teamLine(cancelled),
+                          const SizedBox(height: 3),
+                          Text(e.eventTitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: V3.inter(18, weight: FontWeight.w600, height: 1.2)
+                                  .copyWith(decoration: strike)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        _teamLine(cancelled),
-                        const SizedBox(height: 4),
-                        Text(e.eventTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: V3.inter(18, weight: FontWeight.w600)
+                        Text(t == null ? '--:--' : hhmm(t),
+                            style: V3.tight(22, weight: FontWeight.w700, height: 1)
                                 .copyWith(decoration: strike)),
-                        if (_meta(far).isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(_meta(far),
-                              style: V3.inter(14, color: V3.muted)),
-                        ],
-                        if (e.requestAttendance && !cancelled) ...[
-                          if (isNext) ...[
-                            const SizedBox(height: 10),
-                            _bar(),
-                            const SizedBox(height: 7),
-                            _legend(),
-                          ] else ...[
-                            const SizedBox(height: 10),
-                            Row(children: [
-                              Expanded(child: _bar()),
-                              const SizedBox(width: 10),
-                              _countText(),
-                            ]),
-                          ],
-                        ],
-                        if (showButtons) ...[
-                          const SizedBox(height: 12),
-                          _buttons(),
-                        ],
-                        if (_pills(cancelled, showButtons).isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: _pills(cancelled, showButtons)),
-                        ],
+                        if (isNext && t != null && !cancelled)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(countdown(t, now),
+                                style: V3.inter(12,
+                                    weight: FontWeight.w600, color: V3.green)),
+                          )
+                        else if (far && t != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(_dayText(t),
+                                style: V3.inter(12,
+                                    weight: FontWeight.w500, color: V3.muted)),
+                          ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
+                if (_meta().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(_meta(), style: V3.inter(14, color: V3.muted)),
+                ],
+                if (e.requestAttendance && !cancelled) ...[
+                  if (isNext) ...[
+                    const SizedBox(height: 10),
+                    _bar(),
+                    const SizedBox(height: 7),
+                    _legend(),
+                  ] else ...[
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      Expanded(child: _bar()),
+                      const SizedBox(width: 10),
+                      _countText(),
+                    ]),
+                  ],
+                ],
+                if (showButtons) ...[
+                  const SizedBox(height: 12),
+                  _buttons(),
+                ],
+                if (_pills(cancelled, showButtons).isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: _pills(cancelled, showButtons)),
+                ],
               ],
             ),
           ),
@@ -216,11 +209,12 @@ class V3EventCard extends StatelessWidget {
     );
   }
 
-  String _meta(bool far) {
+  String _meta() {
     final e = event;
     final parts = <String>[];
-    if ((isNext || far) && e.meetTime.trim().isNotEmpty) {
-      parts.add('Meet ${e.meetTime.trim()}');
+    if (e.meetTime.trim().isNotEmpty) parts.add('Meet ${e.meetTime.trim()}');
+    if (e.eventType.isNotEmpty && !e.eventTitle.toLowerCase().contains(e.eventType.toLowerCase())) {
+      parts.add(e.eventType);
     }
     if (e.homeAway.isNotEmpty) parts.add(e.homeAway);
     if (e.locationName.isNotEmpty) parts.add(e.locationName);
