@@ -29,6 +29,7 @@ jobs:
         run: |
           flutter pub get
           flutter build web --release --no-web-resources-cdn --base-href /
+          rm -rf deploy/web && cp -r build/web deploy/web
 
       - name: Make sure the hosting site exists
         env:

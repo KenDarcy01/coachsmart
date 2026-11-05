@@ -19,3 +19,4 @@ android/local.properties
 android/app/.cxx/
 # macOS
 .DS_Store
+deploy/web/

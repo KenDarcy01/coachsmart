@@ -2,7 +2,7 @@
   "hosting": [
     {
       "target": "v3",
-      "public": "../build/web",
+      "public": "web",
       "ignore": ["firebase.json", "**/.*"],
       "rewrites": [{ "source": "**", "destination": "/index.html" }],
       "headers": [
