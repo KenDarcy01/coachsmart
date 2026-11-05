@@ -1,0 +1,16 @@
+{
+  "hosting": [
+    {
+      "target": "v3",
+      "public": "../build/web",
+      "ignore": ["firebase.json", "**/.*"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        }
+      ]
+    }
+  ]
+}

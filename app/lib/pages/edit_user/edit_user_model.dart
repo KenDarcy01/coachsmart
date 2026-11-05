@@ -1,0 +1,52 @@
+import '/backend/api_requests/api_calls.dart';
+import '/flutter_flow/flutter_flow_util.dart';
+import '/flutter_flow/form_field_controller.dart';
+import '/index.dart';
+import 'edit_user_widget.dart' show EditUserWidget;
+import 'package:flutter/material.dart';
+
+class EditUserModel extends FlutterFlowModel<EditUserWidget> {
+  ///  Local state fields for this page.
+
+  int? memberCount;
+
+  int? currentSquad;
+
+  int? currentRole;
+
+  int? currentIndex;
+
+  int? squadSelected;
+
+  bool dataReady = false;
+
+  ///  State fields for stateful widgets in this page.
+
+  // Stores action output result for [Backend Call - API (getEditUserData)] action in EditUser widget.
+  ApiCallResponse? apiUserData;
+  // State field(s) for userFirstName widget.
+  FocusNode? userFirstNameFocusNode;
+  TextEditingController? userFirstNameTextController;
+  String? Function(BuildContext, String?)? userFirstNameTextControllerValidator;
+  // State field(s) for userLastName widget.
+  FocusNode? userLastNameFocusNode;
+  TextEditingController? userLastNameTextController;
+  String? Function(BuildContext, String?)? userLastNameTextControllerValidator;
+  // State field(s) for DropDown widget.
+  int? dropDownValue;
+  FormFieldController<int>? dropDownValueController;
+  // Stores action output result for [Backend Call - API (deleteUser)] action in Button widget.
+  ApiCallResponse? apiResultDeleteUser;
+
+  @override
+  void initState(BuildContext context) {}
+
+  @override
+  void dispose() {
+    userFirstNameFocusNode?.dispose();
+    userFirstNameTextController?.dispose();
+
+    userLastNameFocusNode?.dispose();
+    userLastNameTextController?.dispose();
+  }
+}

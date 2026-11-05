@@ -1,0 +1,8 @@
+{
+  "projects": { "default": "coach-smart-new-mpqa5l" },
+  "targets": {
+    "coach-smart-new-mpqa5l": {
+      "hosting": { "v3": ["coachsmart-v3"] }
+    }
+  }
+}

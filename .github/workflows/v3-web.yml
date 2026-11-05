@@ -1,0 +1,51 @@
+# v3 app preview: builds the Flutter app in app/ for the web and deploys it to
+# its own Firebase Hosting site (coachsmart-v3.web.app). Runs from the dev
+# branch so previews never touch main or the live website.
+name: Deploy v3 web preview
+
+on:
+  push:
+    branches:
+      - claude/project-thread-n4bmwr
+    paths:
+      - 'app/**'
+      - '.github/workflows/v3-web.yml'
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+
+      - name: Build web
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build web --release --no-web-resources-cdn --base-href /
+
+      - name: Make sure the hosting site exists
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx -y firebase-tools@14.10.0 hosting:sites:create coachsmart-v3 --project coach-smart-new-mpqa5l || true
+          rm -f "$RUNNER_TEMP/sa.json"
+
+      - name: Deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: coach-smart-new-mpqa5l
+          target: v3
+          entryPoint: ./app/deploy
+          firebaseToolsVersion: "14.10.0"
