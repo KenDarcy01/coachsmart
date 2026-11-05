@@ -141,7 +141,9 @@ class _DropDownMenuExportWidgetState extends State<DropDownMenuExportWidget> {
                     },
                     text: 'Google Sheets',
                     icon: FaIcon(
-                      FontAwesomeIcons.gofore,
+                      FaIconData(const IconData(/* gofore */ 0xf3a7,
+                          fontFamily: 'FontAwesomeBrands',
+                          fontPackage: 'font_awesome_flutter')),
                       size: 26.0,
                     ),
                     options: FFButtonOptions(
@@ -199,7 +201,9 @@ class _DropDownMenuExportWidgetState extends State<DropDownMenuExportWidget> {
                     },
                     text: 'Microsoft Excel',
                     icon: FaIcon(
-                      FontAwesomeIcons.fileExcel,
+                      FaIconData(const IconData(/* fileExcel */ 0xf1c3,
+                          fontFamily: 'FontAwesomeRegular',
+                          fontPackage: 'font_awesome_flutter')),
                       size: 26.0,
                     ),
                     options: FFButtonOptions(
@@ -257,7 +261,9 @@ class _DropDownMenuExportWidgetState extends State<DropDownMenuExportWidget> {
                     },
                     text: 'CSV File',
                     icon: FaIcon(
-                      FontAwesomeIcons.fileCsv,
+                      FaIconData(const IconData(/* fileCsv */ 0xf6dd,
+                          fontFamily: 'FontAwesomeSolid',
+                          fontPackage: 'font_awesome_flutter')),
                       size: 26.0,
                     ),
                     options: FFButtonOptions(

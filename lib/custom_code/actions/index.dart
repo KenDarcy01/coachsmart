@@ -22,3 +22,4 @@ export 'check_and_navigate_pending.dart' show checkAndNavigatePending;
 export 'setup_notification_listener.dart' show setupNotificationListener;
 export 'update_user_platform.dart' show updateUserPlatform;
 export 'get_current_refresh_token.dart' show getCurrentRefreshToken;
+export 'dismiss_all_notifications.dart' show dismissAllNotifications;

@@ -1,6 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Type;
 
 import '/backend/schema/util/firestore_util.dart';
 
@@ -142,8 +142,12 @@ class EditEventDetailsStruct extends FFFirebaseStruct {
   }
 
   @override
-  int get hashCode => const ListEquality()
-      .hash([userId, createTeams, currentEvent, defaultTeamId]);
+  int get hashCode => const ListEquality().hash([
+        userId,
+        const ListEquality().hash(createTeams),
+        currentEvent,
+        defaultTeamId
+      ]);
 }
 
 EditEventDetailsStruct createEditEventDetailsStruct({

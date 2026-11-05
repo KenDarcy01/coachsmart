@@ -1053,7 +1053,12 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                               },
                                               text: 'Car Pooling',
                                               icon: FaIcon(
-                                                FontAwesomeIcons.carSide,
+                                                FaIconData(const IconData(
+                                                    /* carSide */ 0xf5e4,
+                                                    fontFamily:
+                                                        'FontAwesomeSolid',
+                                                    fontPackage:
+                                                        'font_awesome_flutter')),
                                                 size: 20.0,
                                               ),
                                               options: FFButtonOptions(
@@ -1168,10 +1173,10 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                                   }.withoutNulls,
                                                 );
                                               },
-                                              text: 'AI Session Planner',
-                                              icon: FaIcon(
-                                                FontAwesomeIcons.cloudversify,
-                                                size: 20.0,
+                                              text: 'Session Planner',
+                                              icon: Icon(
+                                                Icons.assignment_add,
+                                                size: 25.0,
                                               ),
                                               options: FFButtonOptions(
                                                 width: 170.0,
@@ -1440,12 +1445,7 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        valueOrDefault<String>(
-                                          FFAppState()
-                                              .userEventDetails
-                                              .createdBy,
-                                          'created_by',
-                                        ),
+                                        'Created By',
                                         textAlign: TextAlign.start,
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -1474,7 +1474,7 @@ class _EventDetailsWidgetState extends State<EventDetailsWidget> {
                                         valueOrDefault<String>(
                                           FFAppState()
                                               .userEventDetails
-                                              .createdByPhoneNumber,
+                                              .createdBy,
                                           'phone_number',
                                         ),
                                         textAlign: TextAlign.start,

@@ -335,9 +335,10 @@ class _UpdatePasswordWidgetState extends State<UpdatePasswordWidget>
                                                                         !_model
                                                                             .newPasswordVisibility);
                                                               },
-                                                              focusNode: FocusNode(
-                                                                  skipTraversal:
-                                                                      true),
+                                                              focusNode: _model
+                                                                  .newPasswordPasswordVisibilityFocusNode
+                                                                ..skipTraversal =
+                                                                    !(false),
                                                               child: Icon(
                                                                 _model.newPasswordVisibility
                                                                     ? Icons
@@ -514,9 +515,10 @@ class _UpdatePasswordWidgetState extends State<UpdatePasswordWidget>
                                                                         !_model
                                                                             .confirmPasswordVisibility);
                                                               },
-                                                              focusNode: FocusNode(
-                                                                  skipTraversal:
-                                                                      true),
+                                                              focusNode: _model
+                                                                  .confirmPasswordPasswordVisibilityFocusNode
+                                                                ..skipTraversal =
+                                                                    !(false),
                                                               child: Icon(
                                                                 _model.confirmPasswordVisibility
                                                                     ? Icons

@@ -30,7 +30,7 @@
     "compile": "cp ../../tsconfig.template.json ./tsconfig-compile.json && tsc --project tsconfig-compile.json"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "private": true
 }

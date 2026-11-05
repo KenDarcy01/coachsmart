@@ -66,3 +66,6 @@ export '/pages/session_planner/session_planner_widget.dart'
     show SessionPlannerWidget;
 export '/pages/favourites_new/favourites_new_widget.dart'
     show FavouritesNewWidget;
+export '/pages/match_report_new/match_report_new_widget.dart'
+    show MatchReportNewWidget;
+export '/pages/live_updates/live_updates_widget.dart' show LiveUpdatesWidget;

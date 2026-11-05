@@ -536,9 +536,10 @@ class _AuthPageWidgetState extends State<AuthPageWidget>
                                                                           !_model
                                                                               .passwordCreateVisibility);
                                                                 },
-                                                                focusNode: FocusNode(
-                                                                    skipTraversal:
-                                                                        true),
+                                                                focusNode: _model
+                                                                    .passwordCreatePasswordVisibilityFocusNode
+                                                                  ..skipTraversal =
+                                                                      !(false),
                                                                 child: Icon(
                                                                   _model.passwordCreateVisibility
                                                                       ? Icons
@@ -718,9 +719,10 @@ class _AuthPageWidgetState extends State<AuthPageWidget>
                                                                           !_model
                                                                               .passwordConfirmVisibility);
                                                                 },
-                                                                focusNode: FocusNode(
-                                                                    skipTraversal:
-                                                                        true),
+                                                                focusNode: _model
+                                                                    .passwordConfirmPasswordVisibilityFocusNode
+                                                                  ..skipTraversal =
+                                                                      !(false),
                                                                 child: Icon(
                                                                   _model.passwordConfirmVisibility
                                                                       ? Icons
@@ -1682,9 +1684,10 @@ class _AuthPageWidgetState extends State<AuthPageWidget>
                                                                         !_model
                                                                             .passwordVisibility);
                                                               },
-                                                              focusNode: FocusNode(
-                                                                  skipTraversal:
-                                                                      true),
+                                                              focusNode: _model
+                                                                  .passwordPasswordVisibilityFocusNode
+                                                                ..skipTraversal =
+                                                                    !(false),
                                                               child: Icon(
                                                                 _model.passwordVisibility
                                                                     ? Icons

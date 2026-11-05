@@ -12,7 +12,23 @@ subprojects {
         if (project.hasProperty("kotlin")) {
             project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
                 kotlinOptions {
-                    jvmTarget = "1.8"
+                    // Match Firebase plugins' Java 17 target and older plugins' targets.
+                    jvmTarget = project.hasProperty("android") && project.android.compileOptions.targetCompatibility.isCompatibleWith(JavaVersion.VERSION_1_8) ? project.android.compileOptions.targetCompatibility.toString() : "1.8"
+                }
+            }
+            if (project.hasProperty("android")) {
+                project.android.kotlinOptions {
+                    // Kotlin 2.2 no longer accepts language/API levels below
+                    // 1.8, which some older plugins still explicitly request.
+                    def minimumSupportedVersion = org.gradle.util.GradleVersion.version("1.8")
+                    if (languageVersion != null &&
+                            org.gradle.util.GradleVersion.version(languageVersion) < minimumSupportedVersion) {
+                        languageVersion = "1.8"
+                    }
+                    if (apiVersion != null &&
+                            org.gradle.util.GradleVersion.version(apiVersion) < minimumSupportedVersion) {
+                        apiVersion = "1.8"
+                    }
                 }
             }
         }
@@ -43,6 +59,6 @@ subprojects {
     project.evaluationDependsOn(':app')
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+tasks.register("clean", Delete) {
+    delete rootProject.layout.buildDirectory
 }

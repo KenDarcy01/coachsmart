@@ -1,18 +1,15 @@
 // Automatic FlutterFlow imports
 import '/backend/backend.dart';
 import '/backend/schema/structs/index.dart';
+import '/flutter_flow/ff_builtin_enums.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'index.dart'; // Imports other custom actions
 import '/flutter_flow/custom_functions.dart'; // Imports custom functions
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide RepeatMode;
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
-
-import 'index.dart'; // Imports other custom actions
-
-import 'index.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -21,23 +18,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // ---------------------------------------------------------------------------
 // DEBUG LOGGER
 // ---------------------------------------------------------------------------
-
 const String _tag = '[NotifHandler]';
 int _bannerInstanceCount = 0;
-
 void _log(String msg) => print('$_tag ✅ $msg');
 void _logWarn(String msg) => print('$_tag ⚠️  $msg');
 void _logError(String msg, [Object? e]) =>
     print('$_tag 🔴 $msg${e != null ? ' | error: $e' : ''}');
 void _logStep(String step, String detail) => print('$_tag ▶ [$step] $detail');
-
 void _logBannerState(
   String location,
   int instanceId, {
@@ -63,23 +56,29 @@ void _logBannerState(
 // ---------------------------------------------------------------------------
 // MODULE-LEVEL STATE
 // ---------------------------------------------------------------------------
-
 SupabaseClient? _activeSupabase;
 String? _activeUserId;
 bool _lifecycleRegistered = false;
+// Follows login / logout so the banner and badge always belong to the
+// signed-in user (before: only started if logged in when the app opened).
+StreamSubscription<AuthState>? _authSubscription;
+bool _pushTapListenerRegistered = false;
+bool _initialMessageHandled = false;
 
 // ---------------------------------------------------------------------------
 // 1. LIFECYCLE
 // ---------------------------------------------------------------------------
-
 class _CooldownManager {
   static bool isActive = true;
 
   static void activate() {
     isActive = true;
+
     _logStep('Cooldown', 'Activated — popups suppressed for 2s');
+
     Future.delayed(const Duration(seconds: 2), () {
       isActive = false;
+
       _logStep('Cooldown', 'Expired — popups now enabled');
     });
   }
@@ -89,12 +88,17 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _logStep('Lifecycle', 'App state → ${state.name}');
+
     if (state == AppLifecycleState.resumed) {
       _CooldownManager.activate();
+
       _refreshNavigatorContext();
+
       if (_activeSupabase != null && _activeUserId != null) {
         _startNotificationStream(_activeSupabase!, _activeUserId!);
+
         _refreshHomeEvents(_activeSupabase!, _activeUserId!);
+
         _updateBadge(_activeSupabase!, _activeUserId!);
       }
     }
@@ -104,30 +108,36 @@ class _LifecycleWatcher extends WidgetsBindingObserver {
 // ---------------------------------------------------------------------------
 // NAVIGATOR CONTEXT + STATE
 // ---------------------------------------------------------------------------
-
 BuildContext? _navigatorContext;
 NavigatorState? _navigatorState;
-
 void _refreshNavigatorContext() {
   try {
     final Element? root = WidgetsBinding.instance.rootElement;
+
     if (root != null) {
       Element? found;
+
       void visitor(Element element) {
         if (found != null) return;
+
         if (element.widget is Navigator) {
           found = element;
         }
+
         element.visitChildren(visitor);
       }
 
       root.visitChildren(visitor);
+
       if (found != null) {
         final el = found!;
+
         _navigatorContext = el;
+
         if (el is StatefulElement && el.state is NavigatorState) {
           _navigatorState = el.state as NavigatorState;
         }
+
         _logStep(
             'NavContext',
             'Navigator refreshed ✓ | '
@@ -144,36 +154,64 @@ void _refreshNavigatorContext() {
 void _initLifecycle() {
   if (_lifecycleRegistered) {
     _logStep('Lifecycle', 'Already registered — skipping duplicate observer');
+
     return;
   }
+
   _lifecycleRegistered = true;
+
   _logStep('Lifecycle', 'Registering watcher');
+
   _CooldownManager.activate();
+
   WidgetsBinding.instance.addObserver(_LifecycleWatcher());
+
   _log('Lifecycle watcher registered');
 }
 
 // ---------------------------------------------------------------------------
 // 2. FIREBASE
 // ---------------------------------------------------------------------------
-
 Future<void> _initFirebase() async {
   if (kIsWeb) {
     _logWarn('Firebase skipped — running on web');
+
     return;
   }
+
   _logStep('Firebase', 'Initialising...');
+
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp();
+
       _log('Firebase initialised ✓');
     } else {
       _log('Firebase already initialised — skipping');
     }
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       _logStep('FCM', 'Token refreshed → ${newToken.substring(0, 16)}...');
+
       FFAppState().fcmToken = newToken;
+
+// Save straight away so pushes keep reaching this phone
+
+      final String? uid = Supabase.instance.client.auth.currentUser?.id;
+
+      if (uid != null && newToken.isNotEmpty) {
+        try {
+          await Supabase.instance.client
+              .from('users')
+              .update({'fcm_token': newToken}).eq('user_id', uid);
+
+          _log('Refreshed FCM token saved to users ✓');
+        } catch (e) {
+          _logError('Saving refreshed FCM token failed', e);
+        }
+      }
     });
+
     _log('FCM token refresh listener attached ✓');
   } catch (e) {
     _logError('Firebase init failed', e);
@@ -183,22 +221,26 @@ Future<void> _initFirebase() async {
 // ---------------------------------------------------------------------------
 // 3. PERMISSIONS
 // ---------------------------------------------------------------------------
-
 Future<void> _requestPermissions() async {
   if (kIsWeb) {
     _logWarn('Permission requests skipped — running on web');
+
     return;
   }
+
   _logStep('Permissions', 'Requesting notifications, microphone, speech...');
+
   try {
     final results = await [
       Permission.notification,
       Permission.microphone,
       Permission.speech,
     ].request();
+
     results.forEach((permission, status) {
       _logStep('Permissions', '${permission.toString()} → ${status.name}');
     });
+
     _log('Permission requests complete ✓');
   } catch (e) {
     _logError('Permission request threw', e);
@@ -208,155 +250,159 @@ Future<void> _requestPermissions() async {
 // ---------------------------------------------------------------------------
 // 4. MARK READ HELPER
 // ---------------------------------------------------------------------------
-
 Future<void> _markNotificationRead(
   SupabaseClient supabase,
   String notificationId,
 ) async {
   _logStep('MarkRead', 'Marking notification $notificationId as read...');
+
   try {
-    await supabase.from('notifications').update({
-      'is_read': true,
-      'when_read': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', notificationId);
+// Plain notifications and event reminders ('attend'): tapping the push
+
+// opens the event, so the reminder is done with. Join/access requests
+
+// stay unread so their Accept/Decline buttons on the Notifications page
+
+// keep working.
+
+    await supabase
+        .from('notifications')
+        .update({
+          'is_read': true,
+          'when_read': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', notificationId)
+        .or('action.is.null,action.eq.attend');
+
     _log('Notification $notificationId marked is_read=true ✓');
   } catch (e) {
     _logError('Failed to mark notification $notificationId as read', e);
+  }
+
+// Bring the bell and the app badge into line straight away.
+
+  final String? userId = supabase.auth.currentUser?.id;
+
+  if (userId != null) {
+    unawaited(_refreshHomeEvents(supabase, userId));
+
+    unawaited(_updateBadge(supabase, userId));
   }
 }
 
 // ---------------------------------------------------------------------------
 // 5. NAVIGATION HELPERS
 // ---------------------------------------------------------------------------
+Future<void> _navigateFromPushLink(String linkPage) =>
+    _navigateToTarget('Navigate', linkPage);
+Future<void> _navigateFromBannerLink(String linkPage, {int? eventId}) =>
+    _navigateToTarget('BannerNav', linkPage, eventId: eventId);
 
-Future<void> _navigateFromPushLink(String linkPage) async {
-  if (linkPage.isEmpty) {
-    _logWarn('navigateFromPushLink — linkPage is empty, skipping');
-    return;
+/// Opens the event when we know it (eventId, or eventID= in a deep link).
+/// Otherwise, if linkPage is a page name such as 'Notifications', opens that.
+Future<void> _navigateToTarget(
+  String step,
+  String linkPage, {
+  int? eventId,
+}) async {
+  int? targetEventId = eventId;
+
+  if (targetEventId == null && linkPage.contains('eventID=')) {
+    try {
+      final String? idStr = Uri.parse(linkPage).queryParameters['eventID'];
+
+      targetEventId = idStr != null ? int.tryParse(idStr) : null;
+    } catch (e) {
+      _logError('[$step] Could not parse link: $linkPage', e);
+    }
   }
-  _logStep('Navigate', 'Push link: $linkPage');
+
+  _logStep(step, 'linkPage=$linkPage | eventId=$targetEventId');
 
   if (kIsWeb) {
-    final String webUrl = linkPage.startsWith('coachsmartv2://coachsmartv2.com')
-        ? linkPage.replaceFirst(
-            'coachsmartv2://coachsmartv2.com',
-            'https://my.coachsmart.app',
-          )
-        : linkPage;
-    _logStep('Navigate', 'Web — launching: $webUrl');
+    final String webUrl = targetEventId != null
+        ? 'https://my.coachsmart.app/eventDetails?eventID=$targetEventId&fromSearch=false'
+        : linkPage.startsWith('coachsmartv2://coachsmartv2.com')
+            ? linkPage.replaceFirst(
+                'coachsmartv2://coachsmartv2.com',
+                'https://my.coachsmart.app',
+              )
+            : '';
+
+    if (webUrl.isEmpty) {
+      _logWarn('[$step] Web — nothing to open');
+
+      return;
+    }
+
+    _logStep(step, 'Web — launching: $webUrl');
+
     try {
       final Uri uri = Uri.parse(webUrl);
+
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
-        _log('Web push navigation launched ✓');
+
+        _log('[$step] Web navigation launched ✓');
       } else {
-        _logError('canLaunchUrl returned false for: $webUrl');
+        _logError('[$step] canLaunchUrl returned false for: $webUrl');
       }
     } catch (e) {
-      _logError('Web push navigation threw', e);
+      _logError('[$step] Web navigation threw', e);
     }
+
     return;
   }
 
   try {
-    final Uri uri = Uri.parse(linkPage);
-    final String? eventIdStr = uri.queryParameters['eventID'];
-    final int? eventId = eventIdStr != null ? int.tryParse(eventIdStr) : null;
-    _logStep('Navigate', 'Parsed — path=${uri.path} | eventId=$eventId');
-    if (eventId == null) {
-      _logError('Could not parse eventID from push link: $linkPage');
-      return;
-    }
     _refreshNavigatorContext();
+
     if (_navigatorContext == null || !_navigatorContext!.mounted) {
-      _logError('Navigator context not available for push navigation');
+      _logError('[$step] Navigator context not available');
+
       return;
     }
-    _navigatorContext!.pushNamed(
-      'EventDetails',
-      queryParameters: {
-        'eventID': eventId.toString(),
-        'fromSearch': 'false',
-      },
-    );
-    _log('Push navigated to EventDetails with eventId=$eventId ✓');
+
+    if (targetEventId != null) {
+      _navigatorContext!.pushNamed(
+        'EventDetails',
+        queryParameters: {
+          'eventID': targetEventId.toString(),
+          'fromSearch': 'false',
+        },
+      );
+
+      _log('[$step] Navigated to EventDetails eventId=$targetEventId ✓');
+    } else if (linkPage.isNotEmpty && !linkPage.contains('://')) {
+      _navigatorContext!.pushNamed(linkPage);
+
+      _log('[$step] Navigated to page "$linkPage" ✓');
+    } else {
+      _logWarn('[$step] No event or page to open');
+    }
   } catch (e) {
-    _logError('Native push navigation threw', e);
-  }
-}
-
-Future<void> _navigateFromBannerLink(String linkPage) async {
-  if (linkPage.isEmpty) {
-    _logWarn('navigateFromBannerLink — linkPage is empty, skipping');
-    return;
-  }
-  _logStep('BannerNav', 'Banner link: $linkPage');
-
-  if (kIsWeb) {
-    final String webUrl = linkPage.startsWith('coachsmartv2://coachsmartv2.com')
-        ? linkPage.replaceFirst(
-            'coachsmartv2://coachsmartv2.com',
-            'https://my.coachsmart.app',
-          )
-        : linkPage;
-    _logStep('BannerNav', 'Web — launching: $webUrl');
-    try {
-      final Uri uri = Uri.parse(webUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-        _log('Web banner navigation launched ✓');
-      } else {
-        _logError('canLaunchUrl returned false for: $webUrl');
-      }
-    } catch (e) {
-      _logError('Web banner navigation threw', e);
-    }
-    return;
-  }
-
-  try {
-    final Uri uri = Uri.parse(linkPage);
-    final String? eventIdStr = uri.queryParameters['eventID'];
-    final int? eventId = eventIdStr != null ? int.tryParse(eventIdStr) : null;
-    _logStep('BannerNav', 'Parsed — path=${uri.path} | eventId=$eventId');
-    if (eventId == null) {
-      _logError('Could not parse eventID from banner link: $linkPage');
-      return;
-    }
-    _refreshNavigatorContext();
-    if (_navigatorContext == null || !_navigatorContext!.mounted) {
-      _logError('Navigator context not available for banner navigation');
-      return;
-    }
-    _navigatorContext!.pushNamed(
-      'EventDetails',
-      queryParameters: {
-        'eventID': eventId.toString(),
-        'fromSearch': 'false',
-      },
-    );
-    _log('Banner navigated to EventDetails with eventId=$eventId ✓');
-  } catch (e) {
-    _logError('Native banner navigation threw', e);
+    _logError('[$step] Navigation threw', e);
   }
 }
 
 // ---------------------------------------------------------------------------
 // 6. HOME EVENTS REFRESH
 // ---------------------------------------------------------------------------
-
 Future<void> _refreshHomeEvents(
   SupabaseClient supabase,
   String userId,
 ) async {
   _logStep('Resume', 'Refreshing home events for user=$userId');
+
   try {
     final result = await supabase
         .rpc('get_user_home_events', params: {'p_user_id': userId});
+
     if (result != null) {
       FFAppState().update(() {
         FFAppState().homePageEvents = UserEventsHomeStruct.fromMap(result);
       });
+
       _log('Home events refreshed on resume ✓');
     } else {
       _logWarn('Resume refresh — RPC returned null');
@@ -369,15 +415,14 @@ Future<void> _refreshHomeEvents(
 // ---------------------------------------------------------------------------
 // 7. SUPABASE STREAM
 // ---------------------------------------------------------------------------
-
 final Set<String> _processedNotificationIds = {};
-
 StreamSubscription<List<Map<String, dynamic>>>? _notificationSubscription;
-
 void cancelNotificationStream() {
   if (_notificationSubscription != null) {
     _notificationSubscription?.cancel();
+
     _notificationSubscription = null;
+
     _log('Notification stream cancelled ✓');
   } else {
     _logWarn('cancelNotificationStream called with no active subscription');
@@ -389,6 +434,7 @@ Future<void> _startNotificationStream(
   String userId,
 ) async {
   cancelNotificationStream();
+
   _logStep('Stream', 'Opening realtime stream for user: $userId');
 
   _notificationSubscription = supabase
@@ -403,12 +449,16 @@ Future<void> _startNotificationStream(
 
           if (data.isEmpty) {
             _logWarn('Stream emitted empty data — skipping');
+
             return;
           }
 
           final alert = data.first;
+
           final String alertId = alert['id']?.toString() ?? 'unknown';
+
           final bool isRead = alert['is_read'] ?? false;
+
           final String? createdAtStr = alert['created_at'];
 
           _logStep(
@@ -424,22 +474,27 @@ Future<void> _startNotificationStream(
           if (_processedNotificationIds.contains(alertId)) {
             _logWarn('Skipping — notification $alertId already '
                 'processed this session');
+
             return;
           }
 
           if (alert['is_delivered'] == true) {
             _logWarn(
                 'Skipping — notification $alertId already delivered via another channel');
+
             return;
           }
 
           if (createdAtStr == null) {
             _logError('Skipping — notification $alertId has null created_at');
+
             return;
           }
 
           final createdAt = DateTime.parse('${createdAtStr}Z').toUtc();
+
           final DateTime nowUtc = DateTime.now().toUtc();
+
           final int ageSeconds = nowUtc.difference(createdAt).inSeconds.abs();
 
           _logStep(
@@ -451,13 +506,16 @@ Future<void> _startNotificationStream(
           if (ageSeconds > 60) {
             _logWarn('Skipping — notification $alertId is ${ageSeconds}s '
                 'old (limit: 60s)');
+
             return;
           }
 
           _processedNotificationIds.add(alertId);
+
           _log('Notification $alertId added to processed set ✓');
 
           _log('Notification $alertId passed all checks — handling');
+
           await _handleNewNotification(supabase, userId, alert);
         },
         onError: (error) {
@@ -471,18 +529,20 @@ Future<void> _startNotificationStream(
 // ---------------------------------------------------------------------------
 // 8. HANDLER
 // ---------------------------------------------------------------------------
-
 Future<void> _handleNewNotification(
   SupabaseClient supabase,
   String userId,
   Map<String, dynamic> alert,
 ) async {
   final String alertId = alert['id'].toString();
+
   _logStep('Handler', 'Processing id=$alertId');
 
   _logStep(
       'Handler', 'Resolving team name from team_id=${alert['team_id']}...');
+
   String teamName = 'CoachSmart';
+
   final int? teamId = alert['team_id'] is int
       ? alert['team_id'] as int
       : int.tryParse(alert['team_id']?.toString() ?? '');
@@ -494,9 +554,12 @@ Future<void> _handleNewNotification(
           .select('team_name')
           .eq('team_id', teamId)
           .single();
+
       final String? resolved = teamResult['team_name']?.toString();
+
       if (resolved != null && resolved.isNotEmpty) {
         teamName = resolved;
+
         _log('Team name resolved: "$teamName" ✓');
       } else {
         _logWarn('team_name was null or empty for team_id=$teamId — '
@@ -514,15 +577,20 @@ Future<void> _handleNewNotification(
   }
 
   _logStep('Handler', 'Calling get_user_home_events RPC for user=$userId...');
+
   try {
     final result = await supabase
         .rpc('get_user_home_events', params: {'p_user_id': userId});
+
     _logStep('Handler', 'RPC result — null=${result == null}');
+
     if (result != null) {
       _logStep('Handler', 'Updating FFAppState.homePageEvents...');
+
       FFAppState().update(() {
         FFAppState().homePageEvents = UserEventsHomeStruct.fromMap(result);
       });
+
       _log('FFAppState.homePageEvents updated ✓');
     } else {
       _logWarn('RPC returned null — home events not refreshed. '
@@ -533,12 +601,14 @@ Future<void> _handleNewNotification(
   }
 
   _logStep('Handler', 'Proceeding to badge update...');
+
   await _updateBadge(supabase, userId);
 
   try {
     await supabase
         .from('notifications')
         .update({'is_delivered': true}).eq('id', alertId);
+
     _log('Notification $alertId marked is_delivered=true ✓');
   } catch (e) {
     _logError('Failed to mark $alertId as is_delivered=true', e);
@@ -548,6 +618,7 @@ Future<void> _handleNewNotification(
     _logWarn('Cooldown still active — popup suppressed for $alertId');
   } else {
     _log('Cooldown clear — triggering popup for $alertId');
+
     await _showPopup(alert, teamName, supabase);
   }
 
@@ -557,7 +628,6 @@ Future<void> _handleNewNotification(
 // ---------------------------------------------------------------------------
 // 9. BADGE
 // ---------------------------------------------------------------------------
-
 Future<void> refreshAppBadge() async {
   if (_activeSupabase != null && _activeUserId != null) {
     await _updateBadge(_activeSupabase!, _activeUserId!);
@@ -567,9 +637,12 @@ Future<void> refreshAppBadge() async {
 Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
   if (kIsWeb) {
     _logWarn('Badge update skipped — not supported on web');
+
     return;
   }
+
   _logStep('Badge', 'Querying unread count for user=$userId...');
+
   try {
     final unreadResponse = await supabase
         .from('notifications')
@@ -578,13 +651,20 @@ Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
         .eq('is_read', false);
 
     final int unreadCount = (unreadResponse as List).length;
+
     _logStep('Badge', 'Unread count = $unreadCount');
 
     final bool supported = await FlutterAppBadger.isAppBadgeSupported();
+
     _logStep('Badge', 'Badge supported: $supported');
 
     if (supported) {
-      FlutterAppBadger.updateBadgeCount(unreadCount);
+      if (unreadCount <= 0) {
+        FlutterAppBadger.removeBadge();
+      } else {
+        FlutterAppBadger.updateBadgeCount(unreadCount);
+      }
+
       _log('App badge set to $unreadCount ✓');
     }
   } catch (e) {
@@ -595,24 +675,28 @@ Future<void> _updateBadge(SupabaseClient supabase, String userId) async {
 // ---------------------------------------------------------------------------
 // 10. POPUP
 // ---------------------------------------------------------------------------
-
 Future<void> _showPopup(
   Map<String, dynamic> alert,
   String teamName,
   SupabaseClient supabase,
 ) async {
   _logStep('Popup', 'Resolving OverlayState...');
+
   _logStep('Popup', 'teamName="$teamName"');
 
   OverlayState? overlay;
+
   String overlaySource = 'none';
 
   try {
     if (_navigatorState != null && _navigatorState!.mounted) {
       final OverlayState? o = _navigatorState!.overlay;
+
       if (o != null) {
         overlay = o;
+
         overlaySource = 'navigatorState.overlay';
+
         _logStep('Popup', 'Overlay resolved via navigatorState.overlay ✓');
       } else {
         _logWarn('navigatorState.overlay is null');
@@ -629,16 +713,22 @@ Future<void> _showPopup(
     try {
       final BuildContext? fc =
           WidgetsBinding.instance.focusManager.primaryFocus?.context;
+
       _logStep(
           'Popup',
           'focusManager context: ${fc != null ? "found" : "null"} | '
               'mounted: ${fc?.mounted}');
+
       if (fc != null && fc.mounted) {
         final NavigatorState? nav = Navigator.maybeOf(fc, rootNavigator: true);
+
         final OverlayState? o = nav?.overlay;
+
         if (o != null) {
           overlay = o;
+
           overlaySource = 'focusManager+rootNavigator';
+
           _logStep(
               'Popup', 'Overlay resolved via focusManager+rootNavigator ✓');
         }
@@ -651,12 +741,17 @@ Future<void> _showPopup(
   if (overlay == null) {
     try {
       _logStep('Popup', 'Strategy 3 — refreshing NavigatorState from tree...');
+
       _refreshNavigatorContext();
+
       if (_navigatorState != null && _navigatorState!.mounted) {
         final OverlayState? o = _navigatorState!.overlay;
+
         if (o != null) {
           overlay = o;
+
           overlaySource = 'fresh navigatorState walk';
+
           _logStep('Popup', 'Overlay resolved via fresh tree walk ✓');
         }
       }
@@ -669,15 +764,23 @@ Future<void> _showPopup(
     _logError('All overlay strategies failed — banner cannot show. '
         'navigatorState='
         '${_navigatorState == null ? "null" : "not mounted"}');
+
     return;
   }
 
   _log('OverlayState resolved via $overlaySource ✓');
 
   final String title = alert['app_title']?.toString() ?? 'New notification';
+
   final String body = alert['app_body']?.toString() ?? '';
+
   final String linkPage = alert['link_page']?.toString() ?? '';
+
   final String notificationId = alert['id'].toString();
+
+  final int? eventId = alert['event_id'] is int
+      ? alert['event_id'] as int
+      : int.tryParse(alert['event_id']?.toString() ?? '');
 
   _logStep(
       'Popup',
@@ -687,31 +790,34 @@ Future<void> _showPopup(
           'notification_id="$notificationId" | '
           'teamName="$teamName"');
 
-  _insertBanner(
-      overlay, title, body, teamName, linkPage, notificationId, supabase);
+  _insertBanner(overlay, title, body, teamName, linkPage, notificationId,
+      supabase, eventId);
 }
 
 // ---------------------------------------------------------------------------
 // 11. BANNER MANAGER
 // ---------------------------------------------------------------------------
-
 OverlayEntry? _activeBannerEntry;
 Timer? _autoDismissTimer;
-
 void _dismissBanner() {
   _logStep(
       'BannerManager',
       'dismissBanner | '
           'entry=${_activeBannerEntry != null ? "exists" : "null"} | '
           'timer=${_autoDismissTimer != null ? "exists" : "null"}');
+
   _autoDismissTimer?.cancel();
+
   _autoDismissTimer = null;
+
   try {
     _activeBannerEntry?.remove();
   } catch (e) {
     _logError('_dismissBanner: entry.remove() threw (already detached?)', e);
   }
+
   _activeBannerEntry = null;
+
   _log('Banner dismissed and removed from overlay ✓');
 }
 
@@ -720,7 +826,9 @@ void _pauseTimer() {
       'BannerManager',
       'pauseTimer | '
           'timer=${_autoDismissTimer != null ? "exists" : "null"}');
+
   _autoDismissTimer?.cancel();
+
   _logStep('BannerManager', 'Auto-dismiss timer paused');
 }
 
@@ -732,6 +840,7 @@ void _insertBanner(
   String linkPage,
   String notificationId,
   SupabaseClient supabase,
+  int? eventId,
 ) {
   _logStep(
       'BannerManager',
@@ -744,12 +853,15 @@ void _insertBanner(
   if (_activeBannerEntry != null) {
     _logStep(
         'BannerManager', 'Removing existing banner before inserting new one');
+
     _autoDismissTimer?.cancel();
+
     try {
       _activeBannerEntry?.remove();
     } catch (e) {
       _logError('insertBanner: existing entry.remove() threw', e);
     }
+
     _activeBannerEntry = null;
   }
 
@@ -763,6 +875,7 @@ void _insertBanner(
       linkPage: linkPage,
       notificationId: notificationId,
       supabase: supabase,
+      eventId: eventId,
       instanceId: instanceId,
       onDismiss: _dismissBanner,
       onDragStart: _pauseTimer,
@@ -771,16 +884,20 @@ void _insertBanner(
 
   try {
     overlay.insert(_activeBannerEntry!);
+
     _log('Banner #$instanceId inserted into overlay ✓');
   } catch (e) {
     _logError('overlay.insert() threw — banner not shown', e);
+
     _activeBannerEntry = null;
+
     return;
   }
 
   _autoDismissTimer = Timer(const Duration(seconds: 4), () {
     _logStep(
         'BannerManager', 'Auto-dismiss timer fired for banner #$instanceId');
+
     _dismissBanner();
   });
 
@@ -790,7 +907,6 @@ void _insertBanner(
 // ---------------------------------------------------------------------------
 // 12. BANNER WIDGET
 // ---------------------------------------------------------------------------
-
 class _SlickBanner extends StatefulWidget {
   const _SlickBanner({
     required this.title,
@@ -799,19 +915,30 @@ class _SlickBanner extends StatefulWidget {
     required this.linkPage,
     required this.notificationId,
     required this.supabase,
+    this.eventId,
     required this.instanceId,
     required this.onDismiss,
     required this.onDragStart,
   });
 
   final String title;
+
   final String body;
+
   final String teamName;
+
   final String linkPage;
+
   final String notificationId;
+
   final SupabaseClient supabase;
+
+  final int? eventId;
+
   final int instanceId;
+
   final VoidCallback onDismiss;
+
   final VoidCallback onDragStart;
 
   @override
@@ -821,14 +948,20 @@ class _SlickBanner extends StatefulWidget {
 class _SlickBannerState extends State<_SlickBanner>
     with SingleTickerProviderStateMixin {
   AnimationController? _ctrl;
+
   Animation<Offset>? _slide;
+
   Animation<double>? _fade;
+
   double _dragOffset = 0.0;
+
   bool _dismissing = false;
 
   void _i(String step, String detail) =>
       _logStep('Banner#${widget.instanceId}.$step', detail);
+
   void _iWarn(String msg) => _logWarn('Banner#${widget.instanceId} — $msg');
+
   void _iError(String msg, [Object? e]) =>
       _logError('Banner#${widget.instanceId} — $msg', e);
 
@@ -851,21 +984,30 @@ class _SlickBannerState extends State<_SlickBanner>
         'called from $caller | '
             'mounted=$mounted | '
             'ctrlNull=${_ctrl == null}');
+
     if (!mounted) {
       _iWarn('safeSetState[$caller] aborted — not mounted');
+
       _dumpState('safeSetState[$caller]:notMounted');
+
       return;
     }
+
     if (_ctrl == null) {
       _iWarn('safeSetState[$caller] aborted — controller is null');
+
       _dumpState('safeSetState[$caller]:ctrlNull');
+
       return;
     }
+
     try {
       setState(fn);
+
       _i('safeSetState', '$caller — setState completed ✓');
     } catch (e) {
       _iError('safeSetState[$caller] setState threw', e);
+
       _dumpState('safeSetState[$caller]:threw');
     }
   }
@@ -873,6 +1015,7 @@ class _SlickBannerState extends State<_SlickBanner>
   @override
   void initState() {
     super.initState();
+
     _i(
         'initState',
         'begin — instance #${widget.instanceId} | '
@@ -885,6 +1028,7 @@ class _SlickBannerState extends State<_SlickBanner>
       vsync: this,
       duration: const Duration(milliseconds: 440),
     );
+
     _i('initState', 'AnimationController created ✓');
 
     _slide = Tween<Offset>(
@@ -895,6 +1039,7 @@ class _SlickBannerState extends State<_SlickBanner>
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInQuart,
     ));
+
     _i('initState', 'slide animation created ✓');
 
     _fade = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -904,17 +1049,21 @@ class _SlickBannerState extends State<_SlickBanner>
         reverseCurve: const Interval(0.6, 1.0, curve: Curves.easeOut),
       ),
     );
+
     _i('initState', 'fade animation created ✓');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _i('postFrameCallback',
           'fired | mounted=$mounted | ctrlNull=${_ctrl == null}');
+
       if (mounted && _ctrl != null) {
         _ctrl!.forward();
+
         _i('postFrameCallback', 'forward() called — animation started ✓');
       } else {
         _iWarn('postFrameCallback — skipping forward() | '
             'mounted=$mounted | ctrlNull=${_ctrl == null}');
+
         _dumpState('postFrameCallback:skipped');
       }
     });
@@ -928,36 +1077,53 @@ class _SlickBannerState extends State<_SlickBanner>
         'dispose',
         'begin | ctrlNull=${_ctrl == null} | '
             'dismissing=$_dismissing');
+
     _ctrl?.dispose();
+
     _ctrl = null;
+
     _i('dispose', 'complete');
+
     super.dispose();
   }
 
   Future<void> _animateOut() async {
     if (_dismissing) {
       _iWarn('animateOut — already dismissing, skipping');
+
       return;
     }
+
     if (!mounted) {
       _iWarn('animateOut — not mounted');
+
       _dumpState('animateOut:notMounted');
+
       return;
     }
+
     if (_ctrl == null) {
       _iWarn('animateOut — controller null, calling onDismiss directly');
+
       _dumpState('animateOut:ctrlNull');
+
       widget.onDismiss();
+
       return;
     }
+
     _dismissing = true;
+
     _i('animateOut', 'starting reverse animation...');
+
     try {
       await _ctrl!.reverse();
+
       _i('animateOut', 'reverse animation complete ✓');
     } catch (e) {
       _iError('animateOut reverse animation threw', e);
     }
+
     if (mounted) {
       widget.onDismiss();
     } else {
@@ -970,6 +1136,7 @@ class _SlickBannerState extends State<_SlickBanner>
         'tap',
         'received | notificationId="${widget.notificationId}" | '
             'linkPage="${widget.linkPage}"');
+
     HapticFeedback.selectionClick();
 
     await Future.wait([
@@ -977,11 +1144,12 @@ class _SlickBannerState extends State<_SlickBanner>
       _animateOut(),
     ]);
 
-    if (widget.linkPage.isNotEmpty) {
+    if (widget.eventId != null || widget.linkPage.isNotEmpty) {
       _i('tap', 'navigating after dismiss');
-      await _navigateFromBannerLink(widget.linkPage);
+
+      await _navigateFromBannerLink(widget.linkPage, eventId: widget.eventId);
     } else {
-      _iWarn('tap — linkPage is empty, no navigation');
+      _iWarn('tap — nothing to open');
     }
   }
 
@@ -994,20 +1162,30 @@ class _SlickBannerState extends State<_SlickBanner>
 
     if (_ctrl == null || _slide == null || _fade == null) {
       _iWarn('build — animations not ready, returning SizedBox.shrink()');
+
       return const SizedBox.shrink();
     }
 
     final double topPad = MediaQuery.of(context).padding.top;
+
     _i('build', 'topPad=$topPad');
 
     const Color cardBg = Color(0xFFE7EBEE);
+
     const Color titleColor = Color(0xFF1E222B);
+
     const Color subtitleColor = Color(0xFFA3A3A3);
+
     const Color pillColor = Color(0x1A1E222B);
+
     const Color borderColor = Color(0x9987C232);
+
     const Color iconBg = Color(0xFF87C232);
+
     const Color iconFg = Color(0xFF1E222B);
+
     const Color shadowColor = Color(0x591E222B);
+
     const Color accentBar = Color(0xFF87C232);
 
     return Stack(
@@ -1020,27 +1198,36 @@ class _SlickBannerState extends State<_SlickBanner>
             behavior: HitTestBehavior.translucent,
             onVerticalDragStart: (_) {
               _i('drag', 'start | dragOffset=$_dragOffset');
+
               widget.onDragStart();
             },
             onVerticalDragUpdate: (details) {
               final double next = _dragOffset + details.delta.dy;
+
               if (next > 8.0) return;
+
               _safeSetState(
                   'dragUpdate', () => _dragOffset = next.clamp(-300.0, 8.0));
             },
             onVerticalDragEnd: (details) {
               final double? velocity = details.primaryVelocity;
+
               final bool flung = (velocity ?? 0) < -500;
+
               _i(
                   'drag',
                   'end | velocity=$velocity | '
                       'flung=$flung | dragOffset=$_dragOffset');
+
               if (flung || _dragOffset < -72) {
                 _i('drag', 'threshold met — dismissing via swipe');
+
                 HapticFeedback.lightImpact();
+
                 _animateOut();
               } else {
                 _i('drag', 'threshold not met — snapping back');
+
                 _safeSetState('dragEnd:snapBack', () => _dragOffset = 0.0);
               }
             },
@@ -1156,17 +1343,19 @@ class _SlickBannerState extends State<_SlickBanner>
                                             ),
                                           ),
                                           const SizedBox(height: 6),
-                                          const Row(
+                                          Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.touch_app_rounded,
                                                 size: 11,
                                                 color: Color(0xFF87C232),
                                               ),
-                                              SizedBox(width: 3),
+                                              const SizedBox(width: 3),
                                               Text(
-                                                'Tap to open event',
-                                                style: TextStyle(
+                                                widget.eventId != null
+                                                    ? 'Tap to open event'
+                                                    : 'Tap to view',
+                                                style: const TextStyle(
                                                   fontSize: 11,
                                                   color: Color(0xFF87C232),
                                                   fontWeight: FontWeight.w500,
@@ -1201,85 +1390,249 @@ class _SlickBannerState extends State<_SlickBanner>
 }
 
 // ---------------------------------------------------------------------------
+// 13. SIGNED-IN USER
+// ---------------------------------------------------------------------------
+Future<void> _startForUser(SupabaseClient supabase, String userId) async {
+  if (_activeUserId == userId && _notificationSubscription != null) {
+    _logStep('Auth', 'Already running for user=$userId');
+
+    return;
+  }
+
+  _log('Starting notifications for user=$userId');
+
+  _activeSupabase = supabase;
+
+  _activeUserId = userId;
+
+  _processedNotificationIds.clear();
+
+  _refreshNavigatorContext();
+
+  await _startNotificationStream(supabase, userId);
+
+  await _updateBadge(supabase, userId);
+}
+
+Future<void> _stopForUser() async {
+  _log('Stopping notifications (signed out)');
+
+  cancelNotificationStream();
+
+  _activeSupabase = null;
+
+  _activeUserId = null;
+
+  _processedNotificationIds.clear();
+
+  if (!kIsWeb) {
+    try {
+      if (await FlutterAppBadger.isAppBadgeSupported()) {
+        FlutterAppBadger.removeBadge();
+      }
+    } catch (e) {
+      _logError('Clearing badge on sign-out failed', e);
+    }
+  }
+}
+
+Future<void> _handlePushTap(RemoteMessage message,
+    {bool coldStart = false}) async {
+  final String? notificationId = message.data['notification_id'];
+
+  final String linkPage = message.data['link_page'] ?? '';
+
+  _logStep('PushTap',
+      'coldStart=$coldStart | notificationId=$notificationId | linkPage=$linkPage');
+
+  final supabase = Supabase.instance.client;
+
+  if (supabase.auth.currentUser == null) {
+    _logWarn('PushTap — nobody signed in, not navigating');
+
+    return;
+  }
+
+  if (notificationId != null && notificationId.isNotEmpty) {
+    await _markNotificationRead(supabase, notificationId);
+  }
+
+  if (coldStart) {
+    await _waitForAppReady();
+  }
+
+  await _openPushTarget(message, linkPage);
+
+// Cold start: check the page really opened, and open it once more if the
+
+// app's start-up replaced it.
+
+  if (coldStart && !kIsWeb) {
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    final String location = _currentLocation();
+
+    final bool isLive =
+        (message.data['live_event_id']?.toString() ?? '').isNotEmpty;
+
+    final String expected = isLive ? 'liveUpdate' : 'eventDetails';
+
+    _logStep('ColdStart', 'Check | location=$location | expected=$expected');
+
+    if (location.isNotEmpty && !location.contains(expected)) {
+      _logWarn('[ColdStart] Page was replaced during start-up, opening again');
+
+      await _openPushTarget(message, linkPage);
+    }
+  }
+}
+
+Future<void> _openPushTarget(RemoteMessage message, String linkPage) async {
+// Live match alerts (score, half time, full time) open the live screen:
+
+// the FlutterFlow page whose route is /liveUpdate, with parameter eventID
+
+  final String liveEventId = message.data['live_event_id']?.toString() ?? '';
+
+  if (liveEventId.isNotEmpty && !kIsWeb) {
+    try {
+      _refreshNavigatorContext();
+
+      if (_navigatorContext != null && _navigatorContext!.mounted) {
+        _navigatorContext!.push('/liveUpdate?eventID=$liveEventId');
+
+        _log('[PushTap] Navigated to /liveUpdate eventId=$liveEventId ✓');
+
+        return;
+      }
+    } catch (e) {
+      _logError('[PushTap] Live page navigation failed, opening the event', e);
+    }
+  }
+
+  await _navigateFromPushLink(linkPage);
+}
+
+/// Cold start: FlutterFlow shows its loading screen for about a second and
+/// loads the signed-in user before it builds Home. A page opened before then
+/// is lost, so wait until the app says it is ready, then let Home build.
+Future<void> _waitForAppReady() async {
+  final AppStateNotifier notifier = AppStateNotifier.instance;
+
+  final DateTime deadline = DateTime.now().add(const Duration(seconds: 15));
+
+  while (notifier.loading && DateTime.now().isBefore(deadline)) {
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+
+  _logStep('ColdStart', 'App ready=${!notifier.loading}');
+
+  await Future.delayed(const Duration(milliseconds: 700));
+}
+
+/// The page currently showing, e.g. '/eventDetails?eventID=12'.
+String _currentLocation() {
+  try {
+    final BuildContext? ctx = appNavigatorKey.currentContext;
+
+    if (ctx == null) return '';
+
+    return GoRouter.of(ctx).getCurrentLocation();
+  } catch (e) {
+    _logError('Could not read the current page', e);
+
+    return '';
+  }
+}
+
+void _registerPushTapListener() {
+  if (kIsWeb || _pushTapListenerRegistered) return;
+
+  _pushTapListenerRegistered = true;
+
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+    _logStep('PushTap', 'onMessageOpenedApp fired | data=${message.data}');
+
+    await _handlePushTap(message);
+  });
+
+  _log('onMessageOpenedApp listener registered ✓');
+}
+
+Future<void> _handleInitialMessageOnce() async {
+  if (kIsWeb || _initialMessageHandled) return;
+
+  _initialMessageHandled = true;
+
+  final RemoteMessage? initialMessage =
+      await FirebaseMessaging.instance.getInitialMessage();
+
+  if (initialMessage != null) {
+    _logStep('PushTap',
+        'getInitialMessage — app launched from a push | data=${initialMessage.data}');
+
+    await _handlePushTap(initialMessage, coldStart: true);
+  } else {
+    _logStep('Init', 'getInitialMessage — normal launch');
+  }
+}
+
+// ---------------------------------------------------------------------------
 // ENTRY POINT
 // ---------------------------------------------------------------------------
-
 Future<void> registerBackgroundMessageHandler() async {
   print('$_tag ════════════════════════════════════════');
+
   print('$_tag registerBackgroundMessageHandler START');
+
   print('$_tag ════════════════════════════════════════');
 
   _initLifecycle();
+
   await _initFirebase();
+
   await _requestPermissions();
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     _logStep('Init', 'Post-frame callback firing...');
 
     final supabase = Supabase.instance.client;
+
+    _registerPushTapListener();
+
+// Start now if already signed in, then follow every login / logout.
+
     final currentUser = supabase.auth.currentUser;
 
-    if (currentUser == null) {
-      _logWarn('No authenticated user found — handler exiting early');
-      return;
+    if (currentUser != null) {
+      await _startForUser(supabase, currentUser.id);
+
+      await _handleInitialMessageOnce();
+    } else {
+      _logWarn('No user yet — will start after login');
     }
 
-    _log('Authenticated user: ${currentUser.id}');
+    await _authSubscription?.cancel();
 
-    _activeSupabase = supabase;
-    _activeUserId = currentUser.id;
+    _authSubscription = supabase.auth.onAuthStateChange.listen((data) async {
+      final AuthChangeEvent event = data.event;
 
-    if (!kIsWeb) {
-      FirebaseMessaging.onMessageOpenedApp
-          .listen((RemoteMessage message) async {
-        _logStep('PushTap', 'onMessageOpenedApp fired | data=${message.data}');
-        final String? notificationId = message.data['notification_id'];
-        final String? linkPage = message.data['link_page'];
-        _logStep(
-            'PushTap', 'notificationId=$notificationId | linkPage=$linkPage');
-        if (notificationId != null && notificationId.isNotEmpty) {
-          await _markNotificationRead(supabase, notificationId);
-        } else {
-          _logWarn('PushTap — notification_id missing from FCM data payload');
-        }
-        if (linkPage != null && linkPage.isNotEmpty) {
-          _logStep('PushTap', 'Navigating: $linkPage');
-          await _navigateFromPushLink(linkPage);
-        } else {
-          _logWarn('PushTap — link_page missing from FCM data payload');
-        }
-      });
-      _log('onMessageOpenedApp listener registered ✓');
+      final String? uid = data.session?.user.id;
 
-      final RemoteMessage? initialMessage =
-          await FirebaseMessaging.instance.getInitialMessage();
-      if (initialMessage != null) {
-        _logStep(
-            'PushTap',
-            'getInitialMessage — app launched from terminated state | '
-                'data=${initialMessage.data}');
-        final String? notificationId = initialMessage.data['notification_id'];
-        final String? linkPage = initialMessage.data['link_page'];
-        if (notificationId != null && notificationId.isNotEmpty) {
-          await _markNotificationRead(supabase, notificationId);
-        }
-        if (linkPage != null && linkPage.isNotEmpty) {
-          _logStep(
-              'InitialMessage', 'Delaying 500ms then navigating: $linkPage');
-          await Future.delayed(const Duration(milliseconds: 500));
-          await _navigateFromPushLink(linkPage);
-        }
-      } else {
-        _logStep(
-            'Init', 'getInitialMessage — no initial message (normal launch)');
+      _logStep('Auth', 'event=${event.name} | user=$uid');
+
+      if (event == AuthChangeEvent.signedOut || uid == null) {
+        if (_activeUserId != null) await _stopForUser();
+
+        return;
       }
-    }
 
-    _refreshNavigatorContext();
+      if (uid != _activeUserId) {
+        await _startForUser(supabase, uid);
 
-    await _startNotificationStream(supabase, currentUser.id);
-
-    await _updateBadge(supabase, currentUser.id);
+        await _handleInitialMessageOnce();
+      }
+    });
 
     _log('registerBackgroundMessageHandler COMPLETE ✓');
   });

@@ -1,6 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Type;
 
 import '/backend/schema/util/firestore_util.dart';
 
@@ -368,12 +368,12 @@ class CreateTeamsStruct extends FFFirebaseStruct {
         memberId,
         teamName,
         adminRole,
-        teamRoles,
+        const ListEquality().hash(teamRoles),
         adminLevel,
-        eventCodes,
-        eventTypes,
+        const ListEquality().hash(eventCodes),
+        const ListEquality().hash(eventTypes),
         authorizedMemberName,
-        squads
+        const ListEquality().hash(squads)
       ]);
 }
 

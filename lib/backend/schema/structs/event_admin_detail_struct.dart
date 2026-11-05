@@ -1,6 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Type;
 
 import '/backend/schema/util/firestore_util.dart';
 
@@ -227,7 +227,7 @@ class EventAdminDetailStruct extends FFFirebaseStruct {
         eventId,
         eventTitle,
         teamId,
-        reminders,
+        const ListEquality().hash(reminders),
         notifyAdminsChanges,
         notifyAdminsAll,
         carPooling,

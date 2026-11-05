@@ -1,6 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Type;
 
 import '/backend/schema/util/firestore_util.dart';
 
@@ -1085,7 +1085,7 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
         eventTitle,
         totalCount,
         locationPin,
-        teamMembers,
+        const ListEquality().hash(teamMembers),
         eventDetails,
         locationName,
         notifyAdminsAll,
@@ -1096,9 +1096,9 @@ class UserEventDetailsStruct extends FFFirebaseStruct {
         userHighestRoleLevel,
         noResponsePlayerCount,
         eventDateTimeFormatted,
-        acceptedAttendanceSummary,
-        declinedAttendanceSummary,
-        noResponseAttendanceSummary,
+        const ListEquality().hash(acceptedAttendanceSummary),
+        const ListEquality().hash(declinedAttendanceSummary),
+        const ListEquality().hash(noResponseAttendanceSummary),
         audienceId,
         eventRoleLevel,
         createdBy,

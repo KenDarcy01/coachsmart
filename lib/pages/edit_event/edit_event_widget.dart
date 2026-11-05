@@ -1544,8 +1544,7 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                       _model.locationPinInputTextController,
                                   focusNode: _model.locationPinInputFocusNode,
                                   autofocus: false,
-                                  textCapitalization:
-                                      TextCapitalization.sentences,
+                                  textCapitalization: TextCapitalization.none,
                                   obscureText: false,
                                   decoration: InputDecoration(
                                     isDense: true,
@@ -1666,7 +1665,7 @@ class _EditEventWidgetState extends State<EditEventWidget> {
                                         return TextEditingValue(
                                           selection: newValue.selection,
                                           text: newValue.text.toCapitalization(
-                                              TextCapitalization.sentences),
+                                              TextCapitalization.none),
                                         );
                                       }),
                                   ],

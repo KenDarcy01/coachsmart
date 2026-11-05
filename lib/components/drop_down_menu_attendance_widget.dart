@@ -112,7 +112,9 @@ class _DropDownMenuAttendanceWidgetState
                       },
                       text: 'Accept',
                       icon: FaIcon(
-                        FontAwesomeIcons.check,
+                        FaIconData(const IconData(/* check */ 0xf00c,
+                            fontFamily: 'FontAwesomeSolid',
+                            fontPackage: 'font_awesome_flutter')),
                         size: 15.0,
                       ),
                       options: FFButtonOptions(

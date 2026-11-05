@@ -79,6 +79,8 @@ class _NotificationsWidgetState extends State<NotificationsWidget> {
 
       logFirebaseEvent('Notifications_custom_action');
       await actions.updateAppBadge();
+      logFirebaseEvent('Notifications_custom_action');
+      await actions.dismissAllNotifications();
       if ((_model.apiMarkAllNotificationAsRead?.succeeded ?? true)) {
         logFirebaseEvent('Notifications_backend_call');
         _model.apiUserNotificationsRead = await GetUserNotificationsCall.call(

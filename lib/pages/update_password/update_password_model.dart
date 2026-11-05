@@ -18,11 +18,13 @@ class UpdatePasswordModel extends FlutterFlowModel<UpdatePasswordWidget> {
       tabBarController != null ? tabBarController!.previousIndex : 0;
 
   // State field(s) for newPassword widget.
+  late FocusNode newPasswordPasswordVisibilityFocusNode;
   FocusNode? newPasswordFocusNode;
   TextEditingController? newPasswordTextController;
   late bool newPasswordVisibility;
   String? Function(BuildContext, String?)? newPasswordTextControllerValidator;
   // State field(s) for confirmPassword widget.
+  late FocusNode confirmPasswordPasswordVisibilityFocusNode;
   FocusNode? confirmPasswordFocusNode;
   TextEditingController? confirmPasswordTextController;
   late bool confirmPasswordVisibility;
@@ -33,7 +35,9 @@ class UpdatePasswordModel extends FlutterFlowModel<UpdatePasswordWidget> {
 
   @override
   void initState(BuildContext context) {
+    newPasswordPasswordVisibilityFocusNode = FocusNode();
     newPasswordVisibility = false;
+    confirmPasswordPasswordVisibilityFocusNode = FocusNode();
     confirmPasswordVisibility = false;
   }
 
@@ -42,8 +46,9 @@ class UpdatePasswordModel extends FlutterFlowModel<UpdatePasswordWidget> {
     tabBarController?.dispose();
     newPasswordFocusNode?.dispose();
     newPasswordTextController?.dispose();
-
+    newPasswordPasswordVisibilityFocusNode.dispose();
     confirmPasswordFocusNode?.dispose();
     confirmPasswordTextController?.dispose();
+    confirmPasswordPasswordVisibilityFocusNode.dispose();
   }
 }

@@ -1,6 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Type;
 
 import '/backend/schema/util/firestore_util.dart';
 
@@ -96,8 +96,8 @@ class UserTeamSummaryStruct extends FFFirebaseStruct {
   }
 
   @override
-  int get hashCode =>
-      const ListEquality().hash([teams, overallHighestRoleLevel]);
+  int get hashCode => const ListEquality()
+      .hash([const ListEquality().hash(teams), overallHighestRoleLevel]);
 }
 
 UserTeamSummaryStruct createUserTeamSummaryStruct({

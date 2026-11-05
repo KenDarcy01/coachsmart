@@ -2,6 +2,7 @@ import '/auth/supabase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
+import '/flutter_flow/ff_builtin_enums.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -597,6 +598,100 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           ),
                                         ),
                                       ),
+                                    if (UserEventsHomeStruct.maybeFromMap(
+                                                (_model.outputHomeLoad
+                                                        ?.jsonBody ??
+                                                    ''))!
+                                            .highestRoleLevel >=
+                                        30)
+                                      Padding(
+                                        padding: EdgeInsetsDirectional.fromSTEB(
+                                            20.0, 10.0, 0.0, 0.0),
+                                        child: InkWell(
+                                          splashColor: Colors.transparent,
+                                          focusColor: Colors.transparent,
+                                          hoverColor: Colors.transparent,
+                                          highlightColor: Colors.transparent,
+                                          onTap: () async {
+                                            logFirebaseEvent(
+                                                'HOME_PAGE_PAGE_Row_k7y1krms_ON_TAP');
+                                            logFirebaseEvent('Row_navigate_to');
+
+                                            context.pushNamed(
+                                              LiveUpdatesWidget.routeName,
+                                              queryParameters: {
+                                                'paramEventId': serializeParam(
+                                                  0,
+                                                  ParamType.int,
+                                                ),
+                                              }.withoutNulls,
+                                            );
+
+                                            logFirebaseEvent(
+                                                'Row_close_dialog_drawer_etc');
+                                            Navigator.pop(context);
+                                          },
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            children: [
+                                              FaIcon(
+                                                FaIconData(const IconData(
+                                                    /* broadcastTower */ 0xf519,
+                                                    fontFamily:
+                                                        'FontAwesomeSolid',
+                                                    fontPackage:
+                                                        'font_awesome_flutter')),
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .coachSmartWhite,
+                                                size: 25.0,
+                                              ),
+                                              Padding(
+                                                padding: EdgeInsetsDirectional
+                                                    .fromSTEB(
+                                                        15.0, 0.0, 0.0, 0.0),
+                                                child: Text(
+                                                  'Live Match Updates',
+                                                  style: FlutterFlowTheme.of(
+                                                          context)
+                                                      .titleSmall
+                                                      .override(
+                                                        font: GoogleFonts
+                                                            .interTight(
+                                                          fontWeight:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .titleSmall
+                                                                  .fontWeight,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .titleSmall
+                                                                  .fontStyle,
+                                                        ),
+                                                        color: FlutterFlowTheme
+                                                                .of(context)
+                                                            .coachSmartWhite,
+                                                        fontSize:
+                                                            isWeb ? 16.0 : 18.0,
+                                                        letterSpacing: 0.0,
+                                                        fontWeight:
+                                                            FlutterFlowTheme.of(
+                                                                    context)
+                                                                .titleSmall
+                                                                .fontWeight,
+                                                        fontStyle:
+                                                            FlutterFlowTheme.of(
+                                                                    context)
+                                                                .titleSmall
+                                                                .fontStyle,
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     Padding(
                                       padding: EdgeInsetsDirectional.fromSTEB(
                                           20.0, 10.0, 0.0, 0.0),
@@ -685,7 +780,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         mainAxisSize: MainAxisSize.max,
                                         children: [
                                           Text(
-                                            'v2.1.13',
+                                            'v2.1.25',
                                             style: FlutterFlowTheme.of(context)
                                                 .titleSmall
                                                 .override(
@@ -722,6 +817,173 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                       ),
                                     ),
                                   ],
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsetsDirectional.fromSTEB(
+                                        0.0, 0.0, 0.0, 20.0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      mainAxisAlignment:
+                                          (FFMainAxisAlignment.end)
+                                              .flutterValue,
+                                      children: [
+                                        Divider(
+                                          thickness: 1.0,
+                                          indent: 15.0,
+                                          endIndent: 15.0,
+                                          color: Color(0xFF3F3F40),
+                                        ),
+                                        Padding(
+                                          padding:
+                                              EdgeInsetsDirectional.fromSTEB(
+                                                  20.0, 0.0, 0.0, 20.0),
+                                          child: InkWell(
+                                            splashColor: Colors.transparent,
+                                            focusColor: Colors.transparent,
+                                            hoverColor: Colors.transparent,
+                                            highlightColor: Colors.transparent,
+                                            onTap: () async {
+                                              logFirebaseEvent(
+                                                  'HOME_PAGE_PAGE_Row_zp83r3j2_ON_TAP');
+                                              logFirebaseEvent(
+                                                  'Row_alert_dialog');
+                                              var confirmDialogResponse =
+                                                  await showDialog<bool>(
+                                                        context: context,
+                                                        builder:
+                                                            (alertDialogContext) {
+                                                          return WebViewAware(
+                                                            child: AlertDialog(
+                                                              title: Text(
+                                                                  'Account Deletion'),
+                                                              content: Text(
+                                                                  'Are you sure you want to Delete your account? You will no longer have access to CoachSmart once you hit confirm?'),
+                                                              actions: [
+                                                                TextButton(
+                                                                  onPressed: () =>
+                                                                      Navigator.pop(
+                                                                          alertDialogContext,
+                                                                          false),
+                                                                  child: Text(
+                                                                      'Cancel'),
+                                                                ),
+                                                                TextButton(
+                                                                  onPressed: () =>
+                                                                      Navigator.pop(
+                                                                          alertDialogContext,
+                                                                          true),
+                                                                  child: Text(
+                                                                      'Confirm'),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        },
+                                                      ) ??
+                                                      false;
+                                              if (confirmDialogResponse) {
+                                                logFirebaseEvent(
+                                                    'Row_backend_call');
+                                                _model.apiResultDeleteUser =
+                                                    await DeleteUserCall.call(
+                                                  supabaseJWTtoken:
+                                                      currentJwtToken,
+                                                );
+
+                                                if ((_model.apiResultDeleteUser
+                                                        ?.succeeded ??
+                                                    true)) {
+                                                  logFirebaseEvent(
+                                                      'Row_show_snack_bar');
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'User Detail Deleted Successfully',
+                                                        style: TextStyle(
+                                                          color: FlutterFlowTheme
+                                                                  .of(context)
+                                                              .primaryText,
+                                                        ),
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                      ),
+                                                      duration: Duration(
+                                                          milliseconds: 4000),
+                                                      backgroundColor:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .coachSmartGreen,
+                                                    ),
+                                                  );
+                                                  logFirebaseEvent(
+                                                      'Row_navigate_to');
+
+                                                  context.pushNamed(
+                                                      AuthPageWidget.routeName);
+                                                }
+                                              }
+
+                                              safeSetState(() {});
+                                            },
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.max,
+                                              children: [
+                                                Icon(
+                                                  Icons.delete_forever,
+                                                  color: Color(0xFFE7434C),
+                                                  size: 30.0,
+                                                ),
+                                                Padding(
+                                                  padding: EdgeInsetsDirectional
+                                                      .fromSTEB(
+                                                          5.0, 0.0, 0.0, 0.0),
+                                                  child: Text(
+                                                    'Delete Your Account',
+                                                    style: FlutterFlowTheme.of(
+                                                            context)
+                                                        .titleSmall
+                                                        .override(
+                                                          font: GoogleFonts
+                                                              .interTight(
+                                                            fontWeight:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .titleSmall
+                                                                    .fontWeight,
+                                                            fontStyle:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .titleSmall
+                                                                    .fontStyle,
+                                                          ),
+                                                          color:
+                                                              Color(0xFFE7434C),
+                                                          fontSize: isWeb
+                                                              ? 14.0
+                                                              : 16.0,
+                                                          letterSpacing: 0.0,
+                                                          fontWeight:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .titleSmall
+                                                                  .fontWeight,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .titleSmall
+                                                                  .fontStyle,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1976,7 +2238,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                                                       children: [
                                                                                         if (eventChildrenItem.responseId == 3)
                                                                                           FaIcon(
-                                                                                            FontAwesomeIcons.check,
+                                                                                            FaIconData(const IconData(/* check */ 0xf00c, fontFamily: 'FontAwesomeSolid', fontPackage: 'font_awesome_flutter')),
                                                                                             color: FlutterFlowTheme.of(context).coachSmartGreen,
                                                                                             size: 30.0,
                                                                                           ),
@@ -1997,7 +2259,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                                                           ),
                                                                                         if (eventChildrenItem.responseId == 0)
                                                                                           FaIcon(
-                                                                                            FontAwesomeIcons.question,
+                                                                                            FaIconData(const IconData(/* question */ 0x3f, fontFamily: 'FontAwesomeSolid', fontPackage: 'font_awesome_flutter')),
                                                                                             color: FlutterFlowTheme.of(context).coachSmartGrey,
                                                                                             size: 25.0,
                                                                                           ),
@@ -2187,7 +2449,11 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           MainAxisAlignment.center,
                                       children: [
                                         FaIcon(
-                                          FontAwesomeIcons.running,
+                                          FaIconData(const IconData(
+                                              /* running */ 0xf70c,
+                                              fontFamily: 'FontAwesomeSolid',
+                                              fontPackage:
+                                                  'font_awesome_flutter')),
                                           color: FlutterFlowTheme.of(context)
                                               .alternate,
                                           size: 25.0,

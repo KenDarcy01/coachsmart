@@ -431,7 +431,10 @@ class _CreateCarPoolWidgetState extends State<CreateCarPoolWidget> {
                                     },
                                     text: 'Create Car Pool',
                                     icon: FaIcon(
-                                      FontAwesomeIcons.carSide,
+                                      FaIconData(const IconData(
+                                          /* carSide */ 0xf5e4,
+                                          fontFamily: 'FontAwesomeSolid',
+                                          fontPackage: 'font_awesome_flutter')),
                                       size: 20.0,
                                     ),
                                     options: FFButtonOptions(

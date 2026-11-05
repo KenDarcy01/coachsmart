@@ -451,14 +451,10 @@ class _DropDownMenuEditWidgetState extends State<DropDownMenuEditWidget> {
                     logFirebaseEvent('convertComponent_navigate_to');
 
                     context.pushNamed(
-                      MatchReportWidget.routeName,
+                      MatchReportNewWidget.routeName,
                       queryParameters: {
-                        'paramEventID': serializeParam(
+                        'paramEventId': serializeParam(
                           widget.paramEventID,
-                          ParamType.int,
-                        ),
-                        'paramRoleLevel': serializeParam(
-                          widget.paramRoleLevel,
                           ParamType.int,
                         ),
                       }.withoutNulls,

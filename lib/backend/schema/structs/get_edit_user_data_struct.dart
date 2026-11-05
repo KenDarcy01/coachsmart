@@ -1,6 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Type;
 
 import '/backend/schema/util/firestore_util.dart';
 
@@ -129,7 +129,11 @@ class GetEditUserDataStruct extends FFFirebaseStruct {
   }
 
   @override
-  int get hashCode => const ListEquality().hash([user, clubs, userMembers]);
+  int get hashCode => const ListEquality().hash([
+        user,
+        const ListEquality().hash(clubs),
+        const ListEquality().hash(userMembers)
+      ]);
 }
 
 GetEditUserDataStruct createGetEditUserDataStruct({

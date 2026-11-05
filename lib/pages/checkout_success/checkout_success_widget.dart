@@ -519,7 +519,9 @@ class _CheckoutSuccessWidgetState extends State<CheckoutSuccessWidget> {
                                 alignment: AlignmentDirectional(0.0, -20.0),
                               ),
                               FaIcon(
-                                FontAwesomeIcons.check,
+                                FaIconData(const IconData(/* check */ 0xf00c,
+                                    fontFamily: 'FontAwesomeSolid',
+                                    fontPackage: 'font_awesome_flutter')),
                                 color: FlutterFlowTheme.of(context)
                                     .coachSmartGreen,
                                 size: 50.0,

@@ -25,6 +25,8 @@ class HomePageModel extends FlutterFlowModel<HomePageWidget> {
   ApiCallResponse? outputHomeLoad;
   // Stores action output result for [Custom Action - checkAndNavigatePending] action in HomePage widget.
   String? pendingEventId;
+  // Stores action output result for [Backend Call - API (deleteUser)] action in Row widget.
+  ApiCallResponse? apiResultDeleteUser;
   // Stores action output result for [Backend Call - API (getUserHomeEvents)] action in scrollingColumn widget.
   ApiCallResponse? outputHomeLoadRefresh;
 

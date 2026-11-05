@@ -1,6 +1,6 @@
 // ignore_for_file: unnecessary_getters_setters
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Type;
 
 import '/backend/schema/util/firestore_util.dart';
 import '/backend/schema/util/schema_util.dart';
@@ -135,8 +135,8 @@ class CreateEventResultStruct extends FFFirebaseStruct {
   }
 
   @override
-  int get hashCode =>
-      const ListEquality().hash([success, eventsCreated, eventIds, message]);
+  int get hashCode => const ListEquality().hash(
+      [success, eventsCreated, const ListEquality().hash(eventIds), message]);
 }
 
 CreateEventResultStruct createCreateEventResultStruct({
