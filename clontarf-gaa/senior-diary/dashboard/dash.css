@@ -23,7 +23,8 @@ button { cursor: pointer; }
 .tabs { max-width: 1200px; margin: 0 auto; display: flex; gap: 4px; padding: 0 12px; overflow-x: auto; }
 .tab { background: none; border: 0; color: rgba(255,255,255,.75); padding: 8px 12px; font-family: var(--heading-font); letter-spacing: .05em; text-transform: uppercase; font-size: 14px; border-bottom: 3px solid transparent; white-space: nowrap; }
 .tab.on { color: #fff; border-color: #fff; }
-#reload { margin-left: auto; text-transform: none; letter-spacing: 0; }
+#reload { margin-left: auto; }
+#reload, #pdf { text-transform: none; letter-spacing: 0; }
 
 .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }

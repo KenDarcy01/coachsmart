@@ -155,7 +155,7 @@
         <div class="tt"><div class="club">Clontarf GAA · Senior Football</div><h1>Diary dashboard</h1></div>
         <div class="me"><span>${esc(D.me)}</span><button class="link" id="out">Sign out</button></div>
       </div>
-      <nav class="tabs">${tab('squad', 'Squad')}${player ? tab('player', esc(name(player))) : ''}${tab('admins', 'Admins')}<button class="tab" id="reload" title="Load the latest">↻ Refresh</button></nav></header>
+      <nav class="tabs">${tab('squad', 'Squad')}${player ? tab('player', esc(name(player))) : ''}${tab('admins', 'Admins')}<button class="tab" id="reload" title="Load the latest">↻ Refresh</button>${view === 'admins' ? '' : '<button class="tab" id="pdf" title="Download what is on screen as a PDF">⤓ PDF</button>'}</nav></header>
       <main class="wrap">${msg ? `<p class="msg">${esc(msg)}</p>` : ''}${body}</main>
       <p class="foot">Plan ${D.plan ? `published from the coaches' sheet ${esc(short(D.plan.published_at.slice(0, 10)))}${D.plan.published_by ? ' by ' + esc(D.plan.published_by) : ''}` : 'from plan.js (not published from the sheet yet)'}. Session ticks only; exercise ticks inside a session are not counted.</p>`;
     msg = '';
@@ -179,7 +179,8 @@
     return `<td class="c ${cls}" title="${esc(tip)}">${s.done}/${s.total}</td>`;
   }
 
-  function squad() {
+  // The squad for the shown week, sorted as chosen (the page and the PDF share this).
+  function squadData() {
     const rows = D.players.map(p => ({ p, w: weekStat(p, week) }));
     const liftIds = [...new Set(rows.flatMap(r => Object.keys(r.w.lifts)))];
     // Lifts planned this week, so their columns show even before anyone logs.
@@ -195,6 +196,11 @@
     const planned = rows.reduce((a, r) => a + r.w.total, 0), done = rows.reduce((a, r) => a + r.w.done, 0);
     const active = rows.filter(r => r.w.done || r.w.bw || Object.keys(r.w.lifts).length).length;
     const bws = rows.filter(r => r.w.bw).length;
+    return { rows, liftIds, planned, done, active, bws };
+  }
+
+  function squad() {
+    const { rows, liftIds, planned, done, active, bws } = squadData();
     const tile = (n, l) => `<div class="tile"><b>${n}</b><span>${l}</span></div>`;
 
     const head = `<tr><th class="nm">Player</th>${DOW.map((x, i) => `<th class="c${add(week, i) === todayIso() ? ' today' : ''}">${x}<small>${+add(week, i).slice(8)}</small></th>`).join('')}
@@ -223,14 +229,16 @@
       </section>`);
   }
 
+  function playerData(p) {
+    const stats = weeks().filter(m => m <= monday(todayIso())).map(m => ({ m, w: weekStat(p, m) }));
+    return { stats, liftIds: [...new Set(stats.flatMap(s => Object.keys(s.w.lifts)))], w: weekStat(p, week) };
+  }
+
   function playerView() {
     const p = player;
-    const ws = weeks().filter(m => m <= monday(todayIso()));
-    const stats = ws.map(m => ({ m, w: weekStat(p, m) }));
-    const liftIds = [...new Set(stats.flatMap(s => Object.keys(s.w.lifts)))];
+    const { stats, liftIds, w } = playerData(p);
     const info = [['Email', p.email], ['Phone', p.phone], ['Date of birth', p.date_of_birth], ['Emergency contact', [p.emergency_name, p.emergency_phone].filter(Boolean).join(' · ')], ['Joined the diary', p.created_at && short(p.created_at.slice(0, 10))]]
       .filter(([, v]) => v).map(([k, v]) => `<div><span>${k}</span><b>${esc(v)}</b></div>`).join('');
-    const w = weekStat(p, week);
     const days = w.days.filter(s => s.total).map(s => {
       const t = ticks(p, s.d);
       return `<li><span class="dd">${DOW[dow(s.d) - 1]} ${+s.d.slice(8)}</span><span>${s.items.map(x => `<span class="chip ${t[x.id] ? 'yes' : s.d < todayIso() ? 'no' : ''}">${t[x.id] ? '✓' : '○'} ${esc(x.name)}</span>`).join('')}</span></li>`;
@@ -264,6 +272,126 @@
     else { view = 'squad'; squad(); }
   }
 
+
+  // ---- PDF download (squad week, or the player page) ----
+  const PDF_LIBS = ['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'];
+  const script = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('Could not load the PDF maker. Check your signal.')); document.head.appendChild(s); });
+  let crest = null;
+  async function pdfLibs() {
+    if (!window.jspdf) { await script(PDF_LIBS[0]); await script(PDF_LIBS[1]); }
+    if (crest === null) {
+      crest = '';
+      try {
+        const blob = await (await fetch('../../images/clontarf-crest.png')).blob();
+        crest = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); });
+      } catch (e) {}
+    }
+  }
+  const NAVY = [27, 58, 107], RED = [237, 27, 46], GREY = [91, 100, 120];
+  const FILL = { full: [[223, 243, 230], [47, 133, 90]], part: [[252, 239, 214], [183, 121, 31]], miss: [[251, 227, 229], [198, 16, 31]] };
+  const dash = v => v || '–';
+  const stamp = () => { const n = new Date(); return `${n.getDate()} ${MON[n.getMonth()]} ${n.getFullYear()}, ${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`; };
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  function pdfHeader(doc, title, sub) {
+    const W = doc.internal.pageSize.getWidth();
+    doc.setFillColor(...NAVY); doc.rect(0, 0, W, 26, 'F');
+    doc.setFillColor(...RED); doc.rect(0, 26, W, 1.6, 'F');
+    let x = 12;
+    if (crest) { try { doc.addImage(crest, 'PNG', 10, 4, 18, 18); x = 32; } catch (e) {} }
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text('CLONTARF GAA · SENIOR FOOTBALL · DIARY', x, 10);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text(title, x, 18);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.text(sub, W - 10, 18, { align: 'right' });
+    doc.setTextColor(...GREY); doc.setFontSize(8);
+    return 36;
+  }
+  function pdfFooter(doc) {
+    const n = doc.getNumberOfPages(), W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+    for (let i = 1; i <= n; i++) {
+      doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(...GREY);
+      doc.text(`Made ${stamp()} by ${D.me}. Confidential: player details for coaches only.`, 10, H - 6);
+      doc.text(`Page ${i} of ${n}`, W - 10, H - 6, { align: 'right' });
+    }
+  }
+  const table = (doc, opts) => doc.autoTable({
+    theme: 'grid', margin: { left: 10, right: 10 },
+    styles: { fontSize: 8.5, cellPadding: 1.8, lineColor: [227, 231, 240], lineWidth: 0.2, textColor: [27, 35, 51] },
+    headStyles: { fillColor: [238, 241, 247], textColor: GREY, fontStyle: 'bold', fontSize: 7.5 },
+    ...opts
+  });
+  function dayClass(s, d) {
+    if (!s.total) return '';
+    return s.done === s.total ? 'full' : s.done ? 'part' : d < todayIso() ? 'miss' : '';
+  }
+  function colour(cls) {
+    return data => { const c = cls(data); if (c && FILL[c]) { data.cell.styles.fillColor = FILL[c][0]; data.cell.styles.textColor = FILL[c][1]; data.cell.styles.fontStyle = 'bold'; } };
+  }
+
+  function squadPdf(doc) {
+    const { rows, liftIds, planned, done, active, bws } = squadData();
+    let y = pdfHeader(doc, 'Squad · ' + weekLabel(week), `${short(week)} to ${short(add(week, 6))} ${add(week, 6).slice(0, 4)}`);
+    doc.setFontSize(10); doc.setTextColor(27, 35, 51);
+    doc.text(`${D.players.length} players signed up  ·  ${active} logged something this week  ·  ${planned ? pct(done, planned) : 0}% of sessions ticked (${done} of ${planned})  ·  ${bws} Monday bodyweights`, 10, y);
+    const dayCols = DOW.map((x, i) => `${x} ${+add(week, i).slice(8)}`);
+    table(doc, {
+      startY: y + 4,
+      head: [['Player', ...dayCols, 'Week', 'Bodyweight', ...liftIds.map(liftName), 'Last saved']],
+      body: rows.map(({ p, w }) => [name(p) + (p.medical_notes ? ' +' : ''), ...w.days.map(s => s.total ? `${s.done}/${s.total}` : '–'),
+        `${w.done}/${w.total}${w.total ? ` (${pct(w.done, w.total)}%)` : ''}`, w.bw ? w.bw + ' kg' : '–', ...liftIds.map(id => dash(w.lifts[id])), ago(savedAt[p.user_id]) || '–']),
+      columnStyles: Object.fromEntries([...DOW.map((_, i) => [i + 1, { halign: 'center' }]), [8, { halign: 'center', fontStyle: 'bold' }], [0, { fontStyle: 'bold' }]]),
+      didParseCell: colour(d => d.section === 'body' && d.column.index >= 1 && d.column.index <= 7 ? dayClass(rows[d.row.index].w.days[d.column.index - 1], add(week, d.column.index - 1)) : '')
+    });
+    doc.setFontSize(7.5); doc.setTextColor(...GREY);
+    doc.text('Sessions ticked of sessions planned each day. Green all done, amber some done, red none on a day that has passed. + has injury or medical notes.', 10, doc.lastAutoTable.finalY + 5);
+    return `senior-diary-squad-${week}.pdf`;
+  }
+
+  function playerPdf(doc, p) {
+    const { stats, liftIds, w } = playerData(p);
+    let y = pdfHeader(doc, name(p), 'Player report');
+    const info = [['Email', p.email], ['Phone', p.phone], ['Date of birth', p.date_of_birth], ['Emergency contact', [p.emergency_name, p.emergency_phone].filter(Boolean).join(' · ')], ['Joined the diary', p.created_at && short(p.created_at.slice(0, 10))]].filter(([, v]) => v);
+    table(doc, { startY: y, theme: 'plain', body: info, styles: { fontSize: 9.5, cellPadding: 1.2 }, columnStyles: { 0: { textColor: GREY, cellWidth: 40 }, 1: { fontStyle: 'bold' } } });
+    y = doc.lastAutoTable.finalY + 3;
+    if (p.medical_notes) {
+      table(doc, { startY: y, head: [['Injuries or medical notes']], body: [[p.medical_notes]], headStyles: { fillColor: FILL.miss[0], textColor: FILL.miss[1], fontSize: 8 }, styles: { fontSize: 9.5 } });
+      y = doc.lastAutoTable.finalY + 3;
+    }
+    doc.setFontSize(11); doc.setTextColor(...NAVY); doc.setFont('helvetica', 'bold'); doc.text('Week by week', 10, y + 5); doc.setFont('helvetica', 'normal');
+    const hist = stats.slice().reverse();
+    table(doc, {
+      startY: y + 8,
+      head: [['Week', 'Starts', 'Sessions', 'Bodyweight', ...liftIds.map(liftName)]],
+      body: hist.length ? hist.map(({ m, w }) => [weekLabel(m), short(m), `${w.done}/${w.total}${w.total ? ` (${pct(w.done, w.total)}%)` : ''}`, w.bw ? w.bw + ' kg' : '–', ...liftIds.map(id => dash(w.lifts[id]))])
+        : [['The plan has not started yet.', '', '', '']],
+      columnStyles: { 2: { halign: 'center' } },
+      didParseCell: colour(d => { if (d.section !== 'body' || d.column.index !== 2 || !hist[d.row.index]) return ''; const x = hist[d.row.index].w; return x.total ? (x.done === x.total ? 'full' : x.done ? 'part' : hist[d.row.index].m < monday(todayIso()) ? 'miss' : '') : ''; })
+    });
+    y = doc.lastAutoTable.finalY;
+    doc.setFontSize(11); doc.setTextColor(...NAVY); doc.setFont('helvetica', 'bold'); doc.text(`${weekLabel(week)} · ${short(week)} to ${short(add(week, 6))}`, 10, y + 9); doc.setFont('helvetica', 'normal');
+    const t = d => ticks(p, d);
+    const days = w.days.filter(s => s.total);
+    const lines = days.flatMap(s => s.items.map((x, i) => ({ s, x, ok: !!t(s.d)[x.id], first: i === 0 })));
+    table(doc, {
+      startY: y + 12,
+      head: [['Day', 'Session', 'Done']],
+      body: lines.length ? lines.map(l => [l.first ? `${DOW[dow(l.s.d) - 1]} ${+l.s.d.slice(8)}` : '', l.x.name, l.ok ? 'Yes' : l.s.d < todayIso() ? 'No' : 'Not yet']) : [['', 'Nothing planned this week.', '']],
+      columnStyles: { 0: { cellWidth: 24, fontStyle: 'bold' }, 2: { cellWidth: 24, halign: 'center' } },
+      didParseCell: colour(d => d.section === 'body' && d.column.index === 2 && lines[d.row.index] ? (lines[d.row.index].ok ? 'full' : lines[d.row.index].s.d < todayIso() ? 'miss' : '') : '')
+    });
+    return `senior-diary-${slug(name(p))}-${week}.pdf`;
+  }
+
+  async function pdf() {
+    await pdfLibs();
+    const playerPage = view === 'player' && player;
+    const doc = new window.jspdf.jsPDF({ orientation: playerPage ? 'portrait' : 'landscape', unit: 'mm', format: 'a4' });
+    const file = playerPage ? playerPdf(doc, player) : squadPdf(doc);
+    pdfFooter(doc);
+    doc.save(file);
+  }
+
   // ---- sign in ----
   function signIn(err = '') {
     centre(`<img src="../../images/clontarf-crest.png" alt="" class="crest">
@@ -294,6 +422,13 @@
     const t = e.target;
     if (t.closest('#out')) { await sb.auth.signOut(); location.reload(); return; }
     if (t.closest('#retry') || t.closest('#reload')) { load(); return; }
+    const pb = t.closest('#pdf');
+    if (pb) {
+      pb.disabled = true; pb.textContent = 'Making PDF…';
+      try { await pdf(); } catch (err) { console.error(err); alert('Could not make the PDF: ' + err.message); }
+      pb.disabled = false; pb.textContent = '⤓ PDF';
+      return;
+    }
     const v = t.closest('[data-view]'); if (v) { view = v.dataset.view; render(); return; }
     const w = t.closest('[data-week]'); if (w && w.dataset.week) { week = w.dataset.week; render(); return; }
     const pr = t.closest('[data-player]');
