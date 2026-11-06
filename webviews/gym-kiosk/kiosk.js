@@ -568,7 +568,10 @@
   let camLog = [];
   const clog = msg => { camLog.push(`${((Date.now() - camLog.t0) / 1000).toFixed(1)}s ${msg}`); if (camLog.length > 12) camLog.splice(0, camLog.length - 12); };
 
+  let lastOpen = 0;
   async function openScanner(eventId) {
+    if (scan && Date.now() - lastOpen < 1500) return; // a double tap must not start the camera twice (iPad ends the first one)
+    lastOpen = Date.now();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' });
     }
@@ -598,11 +601,26 @@
     }, 500);
     const track = s => { const t = s.getVideoTracks()[0]; if (!t) return clog('stream has no video'); const st = t.getSettings ? t.getSettings() : {};
       clog(`got ${t.label || '?'} ${st.facingMode || ''} ${st.width || '?'}x${st.height || '?'}`);
-      t.addEventListener('ended', () => clog('track ended')); t.addEventListener('mute', () => clog('track muted')); t.addEventListener('unmute', () => clog('track unmuted')); };
+      t.addEventListener('ended', () => { clog('track ended'); if (!me.stop && me.stream === s) restart(); }); t.addEventListener('mute', () => clog('track muted')); t.addEventListener('unmute', () => clog('track unmuted')); };
+    // The iPad sometimes switches the camera off a few seconds in: start it again, up to 3 times.
+    let restarts = 0;
+    async function restart() {
+      if (me.stop || restarts >= 3) { if (restarts >= 3) clog('gave up restarting'); return; }
+      restarts++; clog(`restarting camera (${restarts})`);
+      if (me.stream) me.stream.getTracks().forEach(t => t.stop());
+      await new Promise(r => setTimeout(r, 400));
+      if (me.stop) return;
+      try {
+        const s2 = await frontCamera();
+        if (me.stop) { s2.getTracks().forEach(t => t.stop()); return; }
+        me.stream = s2; track(s2); video.srcObject = s2;
+        await video.play().then(() => clog('play ok'), e => clog(`play failed ${e && e.name}`));
+      } catch (e) { clog(`restart error ${e && e.name}`); }
+    }
     let stream;
     try {
       stream = await frontCamera();
-      track(stream);
+      me.stream = stream; track(stream);
     } catch (err) {
       clog(`camera error ${err && err.name}`);
       if (me.stop) return;
@@ -618,13 +636,13 @@
       // Black picture: start the camera again with no preferences at all.
       clog('no picture after 4s, restarting camera');
       stream.getTracks().forEach(t => t.stop());
-      try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); track(stream); }
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); me.stream = stream; track(stream); }
       catch (e) { clog(`restart error ${e && e.name}`); if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' }); }
       if (me.stop) { stream.getTracks().forEach(t => t.stop()); return; }
       me.stream = stream; video.srcObject = stream; await video.play().then(() => clog('play ok'), e => clog(`play failed ${e && e.name}`));
     }
     if (me.stop) return;
-    const info = camInfo(stream);
+    const info = camInfo(me.stream || stream);
     video.classList.toggle('mirror', !/back|rear|environment/i.test(info.label + ' ' + info.facing));
     let detect;
     try { detect = await makeDetector(video); clog('reader ready'); }
