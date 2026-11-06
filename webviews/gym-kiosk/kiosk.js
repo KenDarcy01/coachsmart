@@ -533,6 +533,21 @@
     };
   }
 
+  // Always the front (screen-side) camera so members can see themselves hold up the code.
+  // A plain facingMode is only a preference and iPad Safari can pick the rear camera, so ask for it exactly,
+  // and if that fails pick the camera whose name says front, before falling back to any camera.
+  async function frontCamera() {
+    const size = { width: { ideal: 1280 }, height: { ideal: 720 } };
+    try { return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'user' }, ...size }, audio: false }); }
+    catch (err) { if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) throw err; }
+    try {
+      const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      const front = cams.find(d => /front|user|facetime/i.test(d.label));
+      if (front) return await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: front.deviceId }, ...size }, audio: false });
+    } catch (err) { if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) throw err; }
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', ...size }, audio: false });
+  }
+
   async function openScanner(eventId) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' });
@@ -553,7 +568,7 @@
     const video = el.querySelector('video');
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      stream = await frontCamera();
     } catch (err) {
       if (me.stop) return;
       closeScanner();
