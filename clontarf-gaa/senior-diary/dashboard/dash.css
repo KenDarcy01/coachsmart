@@ -111,3 +111,8 @@ td.c { font-variant-numeric: tabular-nums; border-radius: 6px; }
 .sheet-in span { color: var(--muted); font-size: 13px; word-break: break-all; }
 .sheet-in .small { padding: 10px; }
 .link-dark { background: none; border: 0; color: var(--navy); text-decoration: underline; padding: 6px; }
+
+/* Phones: iPhone Safari zooms in on any field under 16px when it is tapped and stays
+   zoomed, so every field is 16px; and nothing may push the page wider than the screen. */
+html, body { overflow-x: clip; }
+input, textarea, select, .box input, .sort select { font-size: 16px; }
