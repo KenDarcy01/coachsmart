@@ -144,13 +144,15 @@ async function requirePin(device: Device, pin: unknown) {
 
 // ── Pairing ────────────────────────────────────────────────────────────────
 
-/** Which of these teams use the S&C code (linked in club_code_link, or have S&C events). */
+/** Which of these teams use the S&C code (team-only club_code_link row, S&C switched on in team_code_link, or S&C events). */
 async function sncTeamIds(sb: any, teamIds: number[]) {
   const out = new Set<number>();
   const { data: code } = await sb.from("event_codes").select("code_id").eq("event_code", SNC_CODE_NAME).maybeSingle();
   if (!code || !teamIds.length) return out;
   const { data: ccl } = await sb.from("club_code_link").select("team_id").eq("code_id", code.code_id).in("team_id", teamIds);
   for (const r of ccl || []) out.add(r.team_id);
+  const { data: tcl } = await sb.from("team_code_link").select("team_id").eq("code_id", code.code_id).in("team_id", teamIds);
+  for (const r of tcl || []) out.add(r.team_id);
   const { data: ev } = await sb.from("events").select("team_id").eq("event_code_id", code.code_id).in("team_id", teamIds);
   for (const r of ev || []) out.add(r.team_id);
   return out;
@@ -245,6 +247,8 @@ async function clubContext(sb: any, clubId: number): Promise<Ctx> {
   if (clubTeamIds.length) {
     const { data: ccl } = await sb.from("club_code_link").select("team_id").eq("club_id", clubId).eq("code_id", snc).not("team_id", "is", null);
     for (const r of ccl || []) sncTeamIds.add(r.team_id);
+    const { data: tcl } = await sb.from("team_code_link").select("team_id").eq("code_id", snc).in("team_id", clubTeamIds);
+    for (const r of tcl || []) sncTeamIds.add(r.team_id);
     const { data: ev } = await sb.from("events").select("team_id").eq("event_code_id", snc).in("team_id", clubTeamIds);
     for (const r of ev || []) sncTeamIds.add(r.team_id);
   }

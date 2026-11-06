@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Team setup</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#111418">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="cs-colour-picker.js"></script>
+<style>
+:root { --green:#87C232; --dark:#111418; --card:#1E222B; --card2:#252A35; --border:rgba(255,255,255,.07); --text:#E7EBEE; --muted:#8a909a; --red:#e05252; }
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html, body { font-family:'DM Sans',sans-serif; background:var(--dark); color:var(--text); min-height:100%; }
+body { padding-bottom:calc(40px + env(safe-area-inset-bottom)); }
+.wrap { max-width:520px; margin:0 auto; }
+.hdr { padding:calc(16px + env(safe-area-inset-top)) 20px 4px; display:flex; align-items:center; gap:10px; }
+.hdr .chev { background:none; border:none; color:var(--text); font-size:28px; line-height:1; padding:0 6px 4px 0; cursor:pointer; font-family:inherit; }
+.hdr h1 { font-size:21px; font-weight:600; }
+.sub { padding:0 20px; color:var(--muted); font-size:14px; }
+.sec { margin:22px 20px 0; }
+.sec-h { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+.small { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; font-weight:600; }
+.note { font-size:13px; color:var(--muted); }
+.card { background:var(--card); border-radius:14px; overflow:hidden; }
+.row { display:flex; align-items:center; gap:12px; padding:14px 16px; border-top:1px solid var(--border); background:var(--card); }
+.row:first-child { border-top:none; }
+.rn { font-size:16px; font-weight:500; }
+.rs { font-size:13px; color:var(--muted); margin-top:1px; }
+.tg { margin-left:auto; position:relative; width:44px; height:26px; flex-shrink:0; }
+.tg input { opacity:0; width:0; height:0; position:absolute; }
+.tg span { position:absolute; inset:0; border-radius:13px; background:rgba(255,255,255,.14); transition:background .2s; cursor:pointer; }
+.tg span::after { content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; }
+.tg input:checked + span { background:var(--green); }
+.tg input:checked + span::after { transform:translateX(18px); }
+.dotc { width:28px; height:28px; border-radius:8px; flex-shrink:0; border:1px solid rgba(255,255,255,.12); }
+.edit { margin-left:auto; background:none; border:none; color:var(--muted); padding:6px; cursor:pointer; }
+.edit svg { width:18px; height:18px; }
+.drag { color:rgba(255,255,255,.3); cursor:grab; touch-action:none; padding:6px 2px; display:flex; }
+.drag svg { width:16px; height:16px; }
+.row.dragging { position:relative; z-index:5; box-shadow:0 8px 24px rgba(0,0,0,.5); background:#262b36; }
+.add { display:block; width:100%; text-align:left; background:var(--card); border:none; border-top:1px solid var(--border); color:var(--green); font-weight:600; font-size:15px; padding:15px 16px; cursor:pointer; font-family:inherit; }
+.field { padding:12px 16px 14px; }
+.field label { display:block; font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+.in { width:100%; padding:13px 14px; border-radius:10px; background:var(--card2); border:1.5px solid var(--border); color:var(--text); font-size:17px; font-family:inherit; outline:none; -webkit-appearance:none; }
+.in:focus { border-color:var(--green); }
+.btn { width:100%; padding:16px; border-radius:12px; background:var(--green); color:#111418; border:none; font-weight:700; font-size:16px; font-family:inherit; cursor:pointer; }
+.btn:disabled { opacity:.45; }
+.btn-ghost { width:100%; padding:14px; border-radius:12px; background:none; border:1.5px solid var(--border); color:var(--muted); font-size:15px; font-family:inherit; cursor:pointer; }
+.btn-danger { width:100%; padding:14px; border-radius:12px; background:none; border:1.5px solid rgba(224,82,82,.35); color:var(--red); font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; }
+.save-bar { padding:0 16px 14px; display:none; }
+.save-bar.on { display:block; }
+.hint { font-size:13px; color:var(--muted); line-height:1.5; margin-top:10px; }
+.err { color:var(--red); font-size:14px; margin-top:10px; min-height:1px; }
+.team-item { display:flex; align-items:center; justify-content:space-between; padding:16px; border-top:1px solid var(--border); cursor:pointer; }
+.team-item:first-child { border-top:none; }
+.team-item .chev-r { color:var(--muted); font-size:22px; }
+.center { padding:60px 24px; text-align:center; color:var(--muted); }
+.spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin .7s linear infinite; margin:80px auto; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.toast { position:fixed; left:50%; top:calc(14px + env(safe-area-inset-top)); transform:translateX(-50%) translateY(-20px); background:#2b313d; color:var(--text); padding:11px 18px; border-radius:999px; font-size:14px; font-weight:500; opacity:0; transition:all .2s; z-index:300; box-shadow:0 6px 20px rgba(0,0,0,.4); white-space:nowrap; }
+.toast.on { opacity:1; transform:translateX(-50%); }
+.toast.bad { background:#5a2424; }
+/* Edit sheet */
+.sh-dim { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:100; display:none; }
+.sh-dim.on { display:block; }
+.sheet { position:fixed; left:0; right:0; bottom:0; z-index:101; background:var(--card); border-radius:22px 22px 0 0; padding:12px 22px calc(24px + env(safe-area-inset-bottom)); max-width:520px; margin:0 auto; transform:translateY(105%); transition:transform .25s ease, visibility .25s; visibility:hidden; }
+.sheet.on { transform:none; visibility:visible; }
+.grab { width:40px; height:5px; border-radius:3px; background:rgba(255,255,255,.2); margin:0 auto 16px; }
+.sh-t { font-size:19px; font-weight:600; margin-bottom:14px; }
+.sh-field { margin-bottom:14px; }
+.sh-field label { display:block; font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+.colour-btn { display:flex; align-items:center; gap:12px; width:100%; padding:10px 14px; border-radius:10px; background:var(--card2); border:1.5px solid var(--border); color:var(--text); font-size:16px; font-family:inherit; cursor:pointer; }
+.colour-btn .sw { width:30px; height:30px; border-radius:8px; border:1px solid rgba(255,255,255,.15); }
+.colour-btn .hx { margin-left:auto; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="spinner"></div></div>
+
+<div class="sh-dim" id="shDim" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="sh-t" id="shTitle">Squad</div>
+  <div class="sh-field"><label>Name</label><input class="in" id="shName" maxlength="40" placeholder="e.g. Blues"></div>
+  <div class="sh-field"><label>Colour</label><button class="colour-btn" id="shColour" onclick="sheetColour()"><span class="sw" id="shSw"></span><span>Change colour</span><span class="hx" id="shHex"></span></button></div>
+  <div class="sh-field"><label>Grade (optional)</label><input class="in" id="shGrade" maxlength="20" placeholder="e.g. A"></div>
+  <div class="err" id="shErr"></div>
+  <button class="btn" id="shSave" onclick="saveSheet()" style="margin-top:6px">Save</button>
+  <button class="btn-danger" id="shRemove" onclick="removeSquad()" style="margin-top:10px">Remove squad</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>';
+const ICON_DRAG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+
+let teams = [];
+let setup = null;      // get_team_setup result
+let editing = null;    // { squad_id|null, colour }
+
+function toast(msg, bad) {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast on' + (bad ? ' bad' : '');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.className = 'toast', 2400);
+}
+function niceErr(e) {
+  const m = (e && (e.message || e.error_description)) || 'Something went wrong. Please try again.';
+  return m.replace(/^.*?ERROR:\s*/, '');
+}
+
+// ── Sign in ──────────────────────────────────────────────────────────
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showSignIn();
+  await loadTeams();
+}
+
+function showSignIn() {
+  $('app').innerHTML = `
+    <div class="hdr"><h1>Team setup</h1></div>
+    <div class="sec">
+      <div class="note" style="margin-bottom:14px">Sign in with your CoachSmart login.</div>
+      <input class="in" id="email" type="email" placeholder="Email" autocomplete="username" style="margin-bottom:10px">
+      <input class="in" id="password" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')signIn()">
+      <div class="err" id="signErr"></div>
+      <button class="btn" id="signBtn" onclick="signIn()" style="margin-top:14px">Sign in</button>
+    </div>`;
+}
+
+async function signIn() {
+  const b = $('signBtn'); b.disabled = true; b.textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) { b.disabled = false; b.textContent = 'Sign in'; $('signErr').textContent = "That email and password didn't work."; return; }
+  await loadTeams();
+}
+
+async function signOut() { await sb.auth.signOut(); history.replaceState(null, '', location.pathname); showSignIn(); }
+
+// ── Team list ────────────────────────────────────────────────────────
+async function loadTeams() {
+  $('app').innerHTML = '<div class="spinner"></div>';
+  const { data, error } = await sb.rpc('get_my_admin_teams');
+  if (error) { $('app').innerHTML = `<div class="center">${esc(niceErr(error))}</div>`; return; }
+  teams = data || [];
+  const want = +new URLSearchParams(location.search).get('team');
+  if (want && teams.some(t => t.team_id === want)) return openTeam(want, true);
+  if (teams.length === 1) return openTeam(teams[0].team_id, true);
+  showTeams();
+}
+
+function showTeams() {
+  history.replaceState(null, '', location.pathname);
+  const byClub = {};
+  teams.forEach(t => (byClub[t.club_name || 'Other'] ||= []).push(t));
+  $('app').innerHTML = `
+    <div class="hdr"><h1>Team setup</h1></div>
+    <div class="sub">Pick a team to change its details, codes and squads.</div>
+    ${teams.length ? Object.entries(byClub).map(([club, list]) => `
+      <div class="sec"><div class="sec-h"><div class="small">${esc(club)}</div></div>
+        <div class="card">${list.map(t => `<div class="team-item" onclick="openTeam(${t.team_id})"><div class="rn">${esc(t.team_name)}</div><div class="chev-r">›</div></div>`).join('')}</div>
+      </div>`).join('') : '<div class="center">You are not an admin on any team yet.</div>'}
+    <div class="sec"><button class="btn-ghost" onclick="signOut()">Sign out</button></div>`;
+}
+
+// ── One team ─────────────────────────────────────────────────────────
+async function openTeam(id, replace) {
+  $('app').innerHTML = '<div class="spinner"></div>';
+  const { data, error } = await sb.rpc('get_team_setup', { p_team_id: id });
+  if (error) { toast(niceErr(error), true); return showTeams(); }
+  setup = data;
+  history[replace ? 'replaceState' : 'pushState'](null, '', '?team=' + id);
+  render();
+}
+
+window.addEventListener('popstate', () => { if (!new URLSearchParams(location.search).get('team')) showTeams(); });
+
+function render() {
+  const s = setup;
+  const own = s.squads.filter(q => !q.no_team);
+  const nt = s.squads.find(q => q.no_team);
+  $('app').innerHTML = `
+    <div class="hdr">${teams.length > 1 ? '<button class="chev" onclick="showTeams()" aria-label="Back">‹</button>' : ''}<h1>Team setup</h1></div>
+    <div class="sub">${esc(s.team_name)} · ${esc(s.club_name || '')}</div>
+
+    <div class="sec">
+      <div class="sec-h"><div class="small">Team details</div></div>
+      <div class="card">
+        <div class="field"><label>Team name</label><input class="in" id="tName" maxlength="60" value="${esc(s.team_name)}" oninput="detailsChanged()"></div>
+        <div class="row"><div><div class="rn">Under 18 team</div><div class="rs">Juvenile / underage</div></div><label class="tg"><input type="checkbox" id="tJuv" ${s.juvenile ? 'checked' : ''} onchange="detailsChanged()"><span></span></label></div>
+        <div class="row"><div><div class="rn">Female team</div><div class="rs">Hurling shows as Camogie</div></div><label class="tg"><input type="checkbox" id="tFem" ${s.female ? 'checked' : ''} onchange="detailsChanged()"><span></span></label></div>
+        <div class="save-bar" id="detailsSave"><button class="btn" onclick="saveDetails()">Save details</button></div>
+      </div>
+    </div>
+
+    ${s.codes.length ? `
+    <div class="sec">
+      <div class="sec-h"><div class="small">Codes</div></div>
+      <div class="card">
+        ${s.codes.map(c => `<div class="row"><div class="rn">${esc(c.name)}</div><label class="tg"><input type="checkbox" ${c.on ? 'checked' : ''} onchange="toggleCode(${c.code_id}, this)"><span></span></label></div>`).join('')}
+      </div>
+      <div class="hint">Switching a code off hides it when creating events. Old events and squad placements are kept.</div>
+    </div>` : ''}
+
+    <div class="sec">
+      <div class="sec-h"><div class="small">Squads</div>${own.length > 1 ? '<div class="note">Drag to reorder</div>' : ''}</div>
+      <div class="card" id="squadCard">
+        <div id="squadList">${own.map(q => squadRow(q, true)).join('')}</div>
+        ${nt ? squadRow(nt, false) : ''}
+        <button class="add" onclick="openSheet(null)">+ Add a squad</button>
+      </div>
+      <div class="hint">Removing a squad moves its players to No Team. Old events keep their squad.</div>
+    </div>
+
+    ${teams.length > 1 ? '' : '<div class="sec"><button class="btn-ghost" onclick="signOut()">Sign out</button></div>'}`;
+  bindDrag();
+}
+
+function squadRow(q, own) {
+  const players = q.players === 1 ? '1 player' : q.players + ' players';
+  const sub = q.no_team ? (q.players ? players + ' not placed yet' : 'Players start here') : [q.grade ? 'Grade ' + q.grade : '', players].filter(Boolean).join(' · ');
+  return `<div class="row" data-id="${q.squad_id}">
+    ${own ? `<div class="drag" aria-label="Drag">${ICON_DRAG}</div>` : '<div style="width:20px"></div>'}
+    <div class="dotc" style="background:${esc(q.no_team ? '#9aa0a6' : (q.colour || '#9aa0a6'))}"></div>
+    <div><div class="rn">${esc(q.name)}</div><div class="rs">${esc(sub)}</div></div>
+    ${own ? `<button class="edit" onclick="openSheet(${q.squad_id})" aria-label="Edit">${ICON_EDIT}</button>` : ''}
+  </div>`;
+}
+
+// ── Details ──────────────────────────────────────────────────────────
+function detailsChanged() {
+  const changed = $('tName').value.trim() !== setup.team_name || $('tJuv').checked !== setup.juvenile || $('tFem').checked !== setup.female;
+  $('detailsSave').classList.toggle('on', changed);
+}
+async function saveDetails() {
+  const name = $('tName').value.trim();
+  if (!name) return toast('Give the team a name', true);
+  const { data, error } = await sb.rpc('save_team_details', { p_team_id: setup.team_id, p_name: name, p_juvenile: $('tJuv').checked, p_female: $('tFem').checked });
+  if (error) return toast(niceErr(error), true);
+  setup = data; const t = teams.find(x => x.team_id === setup.team_id); if (t) t.team_name = setup.team_name;
+  render(); toast('Team details saved');
+}
+
+// ── Codes ────────────────────────────────────────────────────────────
+async function toggleCode(id, el) {
+  const on = setup.codes.filter(c => c.code_id === id ? el.checked : c.on).map(c => c.code_id);
+  if (!on.length) { el.checked = true; return toast('A team needs at least one code', true); }
+  el.disabled = true;
+  const { data, error } = await sb.rpc('save_team_codes', { p_team_id: setup.team_id, p_code_ids: on });
+  el.disabled = false;
+  if (error) { el.checked = !el.checked; return toast(niceErr(error), true); }
+  setup = data; render();
+  const c = setup.codes.find(x => x.code_id === id);
+  toast(c.name + (c.on ? ' switched on' : ' switched off'));
+}
+
+// ── Squad sheet ──────────────────────────────────────────────────────
+function openSheet(id) {
+  const q = id ? setup.squads.find(x => x.squad_id === id) : null;
+  const used = setup.squads.map(x => (x.colour || '').toUpperCase());
+  editing = { squad_id: id, colour: q ? (q.colour || '#9AA0A6') : (CSColourPicker.DEFAULTS.find(c => !used.includes(c)) || '#2F6FD6') };
+  $('shTitle').textContent = q ? 'Edit ' + q.name : 'Add a squad';
+  $('shName').value = q ? q.name : '';
+  $('shGrade').value = q ? (q.grade || '') : '';
+  $('shErr').textContent = '';
+  $('shRemove').style.display = q ? 'block' : 'none';
+  $('shRemove').textContent = q && q.players ? `Remove squad (${q.players} to No Team)` : 'Remove squad';
+  $('shSave').textContent = q ? 'Save' : 'Add squad';
+  paintSheetColour();
+  $('shDim').classList.add('on'); $('sheet').classList.add('on');
+  if (!q) setTimeout(() => $('shName').focus(), 250);
+}
+function closeSheet() { $('shDim').classList.remove('on'); $('sheet').classList.remove('on'); editing = null; }
+function paintSheetColour() { $('shSw').style.background = editing.colour; $('shHex').textContent = editing.colour.toUpperCase(); }
+function sheetColour() {
+  const name = $('shName').value.trim() || 'Squad';
+  CSColourPicker.open({ title: 'Colour for ' + name, label: name, colour: editing.colour, onPick: hex => { if (editing) { editing.colour = hex; paintSheetColour(); } } });
+}
+async function saveSheet() {
+  const name = $('shName').value.trim();
+  if (!name) { $('shErr').textContent = 'Give the squad a name.'; return; }
+  const b = $('shSave'); b.disabled = true;
+  const { data, error } = await sb.rpc('save_team_squad', { p_team_id: setup.team_id, p_squad_id: editing.squad_id, p_name: name, p_colour: editing.colour, p_grade: $('shGrade').value.trim() });
+  b.disabled = false;
+  if (error) { $('shErr').textContent = niceErr(error); return; }
+  const added = !editing.squad_id;
+  setup = data; closeSheet(); render(); toast(added ? name + ' added' : name + ' saved');
+}
+async function removeSquad() {
+  const q = setup.squads.find(x => x.squad_id === editing.squad_id);
+  if (!confirm(`Remove ${q.name}?` + (q.players ? ` Its ${q.players === 1 ? 'player moves' : q.players + ' players move'} to No Team.` : ''))) return;
+  const { data, error } = await sb.rpc('remove_team_squad', { p_team_id: setup.team_id, p_squad_id: q.squad_id });
+  if (error) { $('shErr').textContent = niceErr(error); return; }
+  setup = data; closeSheet(); render(); toast(q.name + ' removed');
+}
+
+// ── Drag to reorder ──────────────────────────────────────────────────
+function bindDrag() {
+  const list = $('squadList'); if (!list) return;
+  list.querySelectorAll('.drag').forEach(h => h.addEventListener('pointerdown', e => startDrag(e, h.closest('.row'), list)));
+}
+function startDrag(e, row, list) {
+  e.preventDefault();
+  const rows = [...list.children];
+  if (rows.length < 2) return;
+  const startY = e.clientY, h = row.offsetHeight;
+  let idx = rows.indexOf(row), target = idx;
+  row.classList.add('dragging');
+  const move = ev => {
+    const dy = ev.clientY - startY;
+    row.style.transform = `translateY(${dy}px)`;
+    target = Math.max(0, Math.min(rows.length - 1, idx + Math.round(dy / h)));
+    rows.forEach((r, i) => {
+      if (r === row) return;
+      let shift = 0;
+      if (target > idx && i > idx && i <= target) shift = -h;
+      if (target < idx && i < idx && i >= target) shift = h;
+      r.style.transition = 'transform .15s'; r.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
+  };
+  const up = async () => {
+    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+    rows.forEach(r => { r.style.transform = ''; r.style.transition = ''; });
+    row.classList.remove('dragging');
+    if (target === idx) return;
+    const ids = rows.map(r => +r.dataset.id); ids.splice(target, 0, ids.splice(idx, 1)[0]);
+    const { data, error } = await sb.rpc('reorder_team_squads', { p_team_id: setup.team_id, p_squad_ids: ids });
+    if (error) { toast(niceErr(error), true); return render(); }
+    setup = data; render(); toast('Order saved');
+  };
+  document.addEventListener('pointermove', move); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+}
+
+init().catch(e => { console.error(e); $('app').innerHTML = '<div class="center">Could not load. Please refresh.</div>'; });
+</script>
+</body>
+</html>
