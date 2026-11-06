@@ -459,12 +459,50 @@
 
   // ── QR scanner (Chrome on Android has BarcodeDetector built in) ───────
   let scan = null;
+  // QR reader: Chrome on Android has BarcodeDetector built in; elsewhere (iPad Safari) use the bundled jsQR.
+  let jsqrLoading = null;
+  function loadJsQR() {
+    if (window.jsQR) return Promise.resolve(window.jsQR);
+    return (jsqrLoading ||= new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'vendor/jsQR.js?v=1';
+      sc.onload = () => (window.jsQR ? res(window.jsQR) : rej(new Error('jsQR missing')));
+      sc.onerror = () => { jsqrLoading = null; rej(new Error('jsQR failed to load')); };
+      document.head.append(sc);
+    }));
+  }
+
+  async function makeDetector(video) {
+    if ('BarcodeDetector' in window) {
+      try {
+        const formats = await window.BarcodeDetector.getSupportedFormats();
+        if (formats.includes('qr_code')) {
+          const d = new window.BarcodeDetector({ formats: ['qr_code'] });
+          return async () => { const c = await d.detect(video); return c.length ? c[0].rawValue : ''; };
+        }
+      } catch (_) {}
+    }
+    const jsQR = await loadJsQR();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    return async () => {
+      const w = video.videoWidth, hgt = video.videoHeight;
+      if (!w || !hgt) return '';
+      const scale = Math.min(1, 720 / Math.max(w, hgt));
+      canvas.width = Math.round(w * scale); canvas.height = Math.round(hgt * scale);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const r = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+      return r && r.data ? r.data : '';
+    };
+  }
+
   async function openScanner(eventId) {
-    if (!('BarcodeDetector' in window)) {
-      return showDone({ kind: 'err', icon: ICON.info, title: 'QR scanning isn\'t available', where: 'Tap your session and find your name instead.' });
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' });
     }
     closeScanner();
-    const el = h(`<div class="scanner"><video playsinline muted></video><div class="frame"></div>
+    const el = h(`<div class="scanner"><video playsinline muted autoplay></video><div class="frame"></div>
       <div class="hint">Hold your CoachSmart QR code up to the camera</div>
       <div class="bottom"><button class="btn ghost">Cancel</button></div></div>`);
     document.body.append(el);
@@ -473,21 +511,25 @@
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
-    } catch (_) {
-      closeScanner();
-      return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' });
+    } catch (err) {
+      el.remove();
+      const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+      return showDone({ kind: 'err', icon: ICON.info, title: denied ? 'Camera is blocked' : 'Camera not available',
+        where: denied ? 'Allow the camera for this page in the tablet\'s browser settings, then reload. Or tap your session and find your name.' : 'Tap your session and find your name instead.' });
     }
     video.srcObject = stream; await video.play().catch(() => {});
-    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
     scan = { el, stream, stop: false };
+    let detect;
+    try { detect = await makeDetector(video); }
+    catch (_) { closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'QR reader didn\'t load', where: 'Check the Wi-Fi and reload, or tap your session and find your name.' }); }
     const timeout = setTimeout(() => closeScanner(), 45000);
     const loop = async () => {
       if (!scan || scan.stop) return clearTimeout(timeout);
       try {
-        const codes = await detector.detect(video);
-        if (codes.length && codes[0].rawValue) { clearTimeout(timeout); closeScanner(); return onQr(codes[0].rawValue, eventId); }
+        const value = await detect();
+        if (value) { clearTimeout(timeout); closeScanner(); return onQr(value, eventId); }
       } catch (_) {}
-      setTimeout(loop, 180);
+      setTimeout(loop, 200);
     };
     loop();
   }
