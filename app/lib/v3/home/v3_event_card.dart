@@ -92,7 +92,9 @@ class V3EventCard extends StatelessWidget {
                           Text(e.eventTitle,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: V3.inter(18, weight: FontWeight.w600, height: 1.2)
+                              style: V3
+                                  .inter(18,
+                                      weight: FontWeight.w600, height: 1.2)
                                   .copyWith(decoration: strike)),
                         ],
                       ),
@@ -102,7 +104,8 @@ class V3EventCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(t == null ? '--:--' : hhmm(t),
-                            style: V3.tight(22, weight: FontWeight.w700, height: 1)
+                            style: V3
+                                .tight(22, weight: FontWeight.w700, height: 1)
                                 .copyWith(decoration: strike)),
                         if (isNext && t != null && !cancelled)
                           Padding(
@@ -163,8 +166,18 @@ class V3EventCard extends StatelessWidget {
   String _dayText(DateTime t) {
     const d = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const m = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return '${d[t.weekday - 1]} ${t.day} ${m[t.month - 1]}';
   }
@@ -213,7 +226,8 @@ class V3EventCard extends StatelessWidget {
     final e = event;
     final parts = <String>[];
     if (e.meetTime.trim().isNotEmpty) parts.add('Meet ${e.meetTime.trim()}');
-    if (e.eventType.isNotEmpty && !e.eventTitle.toLowerCase().contains(e.eventType.toLowerCase())) {
+    if (e.eventType.isNotEmpty &&
+        !e.eventTitle.toLowerCase().contains(e.eventType.toLowerCase())) {
       parts.add(e.eventType);
     }
     if (e.homeAway.isNotEmpty) parts.add(e.homeAway);
@@ -283,8 +297,7 @@ class V3EventCard extends StatelessWidget {
             const TextSpan(text: ' attending · '),
             TextSpan(
                 text: '${e.noResponseCount} no reply',
-                style: V3.inter(14,
-                    weight: FontWeight.w600, color: V3.amber)),
+                style: V3.inter(14, weight: FontWeight.w600, color: V3.amber)),
           ],
         ),
       );
@@ -362,8 +375,7 @@ class V3EventCard extends StatelessWidget {
         out.add(_pill('✗ Declined', V3.redTint, V3.redText));
       } else if (!showButtons) {
         out.add(GestureDetector(
-            onTap: onExpand,
-            child: _pill('Reply', V3.amber, V3.bg)));
+            onTap: onExpand, child: _pill('Reply', V3.amber, V3.bg)));
       }
     } else {
       out.add(Text('No reply needed',
@@ -379,6 +391,7 @@ class V3EventCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: border != null ? Border.all(color: border) : null,
         ),
-        child: Text(text, style: V3.inter(13, weight: FontWeight.w600, color: fg)),
+        child:
+            Text(text, style: V3.inter(13, weight: FontWeight.w600, color: fg)),
       );
 }

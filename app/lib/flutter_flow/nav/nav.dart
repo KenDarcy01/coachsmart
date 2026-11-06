@@ -566,7 +566,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: EventDetailsWidget.routeName,
               path: EventDetailsWidget.routePath,
-              builder: (context, params) => EventDetailsWidget(
+              builder: (context, params) => V3EventPage(
                 eventID: params.getParam(
                   'eventID',
                   ParamType.int,

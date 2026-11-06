@@ -173,14 +173,15 @@ class _V3HomePageState extends State<V3HomePage> {
     }
   }
 
-  void _openEvent(EventsStruct e) {
-    context.pushNamed(
+  Future<void> _openEvent(EventsStruct e) async {
+    await context.pushNamed(
       EventDetailsWidget.routeName,
       queryParameters: {
         'eventID': serializeParam(e.eventId, ParamType.int),
         'fromSearch': serializeParam(false, ParamType.bool),
       }.withoutNulls,
     );
+    if (mounted) _load(); // replies made on the event page
   }
 
   void _openMatches() {
