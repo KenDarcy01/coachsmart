@@ -404,16 +404,19 @@ td.pts { font-weight: 700; }
 </div>
 
 <script>
-const EDGE = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/gaa-fixtures';
-// Bump when the edge function's output changes, so browsers don't reuse cached data (cached 15 min)
-const DATA_VERSION = 2;
-// Sportlomo keeps three separate organisations, each with its own club IDs:
-// GAA (football + hurling), camogie and ladies football. Clubs are matched
-// across them by name. IDs are only needed to fetch one club over a long
-// date range; short ranges load every club and filter here.
-const ORG_OF = { Football: 'gaa', Hurling: 'gaa', Camogie: 'camogie', 'Ladies Football': 'lgfa' };
-const ORG_PARAM = { gaa: 'club', camogie: 'camogieClub', lgfa: 'lgfaClub' };
-const CLUB_SEED = { Clontarf: { gaa: '3561', camogie: '40597', lgfa: '5346' } };
+// Every game comes from the CoachSmart season store (gaa_games), which the
+// gaa-sync loader tops up from Sportlomo. This page never calls Sportlomo.
+const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+async function rpc(name, body = {}) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`Could not reach the CoachSmart database (${r.status})`);
+  return r.json();
+}
 // Camogie club list name -> names the same club goes by in GAA fixtures
 const CAMOGIE_ALIAS = {
   'Naomh Brid': ['St Brigids'],
@@ -425,9 +428,6 @@ const CAMOGIE_ALIAS = {
   'St Pats Donabate': ['St Patricks Donabate'],
   'Kevins': ['St Kevins'],
 };
-const ALL_CLUBS_MAX_DAYS = 15;   // same limit as the edge function
-const CHUNK_DAYS = 14;           // one request per two weeks of a long range
-const addDaysFrom = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d; };
 const GENDER = { boys: ['Football', 'Hurling'], girls: ['Camogie', 'Ladies Football'] };
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -444,7 +444,6 @@ let venue = recall('gaa_venue', 'all'); // all | home | away (relative to the ch
 // codes/ages/competitions appear switched on.
 let offCodes = new Set(), offAges = new Set(), offComps = new Set();
 let compsOpen = recall('gaa_comps_open', false);
-const standingsCache = {};
 
 // Phone filters sheet
 function toggleSheet(open) {
@@ -459,24 +458,8 @@ function recall(key, dflt) {
 }
 function saveFilters() { store('gaa_gender', gender); store('gaa_band', band); }
 function loadFilters() { gender = recall('gaa_gender', 'all'); band = recall('gaa_band', 'all'); }
-// name -> {gaa, camogie, lgfa} IDs, learned from every game loaded
-function clubDir() {
-  const dir = {};
-  // Fold any entries saved under a camogie/variant name into the club's GAA name
-  for (const [name, ids] of Object.entries(recall('gaa_clubdir', {}))) {
-    const k = canonClub(name);
-    dir[k] = { ...ids, ...dir[k] };
-  }
-  // Camogie IDs come from Sportlomo's camogie club list (a club's camogie team may
-  // never have shown up in a loaded game, so it can't be learned)
-  for (const { id, name } of recall('gaa_camogie_clubs', { list: [] }).list) {
-    const names = [name, ...(CAMOGIE_ALIAS[name.trim()] || [])];
-    const k = Object.keys(dir).find(n => names.some(c => sameClub(n, c)));
-    if (k) dir[k] = { ...dir[k], camogie: id };
-  }
-  for (const [name, ids] of Object.entries(CLUB_SEED)) dir[name] = { ...dir[name], ...ids };   // seeds win
-  return dir;
-}
+// Club names for the picker: every club in the season store, refreshed once a day
+const clubNames = () => recall('gaa_db_clubs', { list: [] }).list;
 const currentClub = () => canonClub(recall('gaa_club_name2', 'Clontarf'));   // '' = all clubs
 const clubKey = n => (n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const sameClub = (a, b) => clubKey(a) === clubKey(b);
@@ -490,7 +473,7 @@ const awayClub = g => canonClub(g.awayClub || g.away);
 // ── Club + dates ───────────────────────────────────────────────────────────
 function renderClubSelect() {
   const sel = currentClub();
-  const names = Object.keys(clubDir());
+  const names = [...clubNames()];
   if (sel && !names.some(n => sameClub(n, sel))) names.push(sel);
   document.getElementById('clubSelect').innerHTML =
     `<option value="" ${sel ? '' : 'selected'}>All clubs</option>` +
@@ -537,72 +520,18 @@ let loadedKey = '';   // what `games` currently holds, e.g. "all|2026-10-05|2026
 async function loadGames() {
   const club = currentClub();
   const { from, to } = dateRange();
-  const days = (Date.parse(to) - Date.parse(from)) / 864e5;
   const allClubs = !club;
   // Every club already loaded for these dates also covers any one club
   if (loadedKey === `all|${from}|${to}` || loadedKey === `${club}|${from}|${to}`) { render(); return; }
   const key = `${allClubs ? 'all' : club}|${from}|${to}`;
 
   const main = document.getElementById('main');
-  if (allClubs && days > ALL_CLUBS_MAX_DAYS) {
-    games = []; loadedKey = '';
-    document.getElementById('liveFilters').style.display = 'none';
-    main.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📅</div>
-        <div class="empty-title">All clubs is limited to two weeks</div>
-        <div class="empty-sub">Choose a club, or "This week" / "Last week + this week".</div>
-      </div>`;
-    return;
-  }
-
   const seq = ++loadSeq;
   main.innerHTML = `
     <div class="empty-state"><div class="spinner"></div><div class="empty-sub">Loading ${allClubs ? 'every club’s' : esc(club)} games…</div></div>`;
   let data;
   try {
-    let url = `${EDGE}?type=club&format=json&results=1&dv=${DATA_VERSION}&from=${from}&to=${to}`;
-    if (allClubs) url += '&club=all';
-    else {
-      const ids = Object.entries(clubDir()).find(([n]) => sameClub(n, club))?.[1] || {};
-      url += `&clubName=${encodeURIComponent(club)}` +
-        Object.entries(ORG_PARAM).map(([org, p]) => ids[org] ? `&${p}=${ids[org]}` : '').join('');
-    }
-    // Long ranges are fetched as two-week chunks (a few at a time) so no single
-    // request runs into the server's time limit; results are merged and de-duplicated.
-    const chunks = [];
-    for (let d = from; d <= to; d = isoDay(addDaysFrom(d, CHUNK_DAYS))) {
-      const end = isoDay(addDaysFrom(d, CHUNK_DAYS - 1));
-      chunks.push([d, end < to ? end : to]);
-    }
-    const getChunk = async ([f, t], tries = 2) => {
-      try {
-        const res = await fetch(url.replace(`from=${from}&to=${to}`, `from=${f}&to=${t}`));
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
-        return await res.json();
-      } catch (e) {
-        if (tries > 1) return getChunk([f, t], tries - 1);
-        throw e;
-      }
-    };
-    const parts = new Array(chunks.length);
-    let next = 0, done = 0;
-    const worker = async () => {
-      while (next < chunks.length && seq === loadSeq) {
-        const i = next++;
-        parts[i] = await getChunk(chunks[i]);
-        if (chunks.length > 1 && seq === loadSeq) {
-          const sub = main.querySelector('.empty-sub');
-          if (sub) sub.textContent = `Loading ${club || 'every club'}’s games… ${Math.round(++done / chunks.length * 100)}%`;
-        }
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(3, chunks.length) }, worker));
-    const seen = new Set();
-    data = parts.flat().filter(g => {
-      const id = [g.competitionId, g.home, g.away, g.start].join('|');
-      return !seen.has(id) && seen.add(id);
-    });
+    data = await rpc('gaa_fixtures', { p_from: from, p_to: to, p_club: allClubs ? null : club });
   } catch (e) {
     if (seq !== loadSeq) return;
     games = []; loadedKey = '';
@@ -619,23 +548,7 @@ async function loadGames() {
   games = data;
   loadedKey = key;
   offCodes.clear(); offAges.clear(); offComps.clear();
-  learnClubs();
   render();
-}
-
-function learnClubs() {
-  const dir = recall('gaa_clubdir', {});
-  games.forEach(g => {
-    const org = ORG_OF[g.code];
-    for (const [name, id] of [[homeClub(g), g.homeClubId], [awayClub(g), g.awayClubId]]) {
-      if (!name || /^bye$/i.test(name)) continue;
-      const k = Object.keys(dir).find(n => sameClub(n, name)) || name;
-      dir[k] = dir[k] || {};
-      if (id && org) dir[k][org] = dir[k][org] || id;
-    }
-  });
-  store('gaa_clubdir', dir);
-  renderClubSelect();
 }
 
 // Games for the chosen club (all of them when "All clubs")
@@ -1294,12 +1207,8 @@ async function openStandings(compId) {
   document.body.appendChild(div);
   try {
     if (!compCache[compId]) {
-      const get = url => fetch(url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
-      const [table, list] = await Promise.all([
-        get(`${EDGE}?comp=${compId}&type=table`),
-        get(`${EDGE}?comp=${compId}&format=json&results=1&dv=${DATA_VERSION}`),
-      ]);
-      compCache[compId] = { table, games: list };
+      const list = await rpc('gaa_fixtures', { p_comp: compId });
+      compCache[compId] = { table: leagueTable(list), games: list };
     }
   } catch (e) {
     if (panel?.compId === compId) document.getElementById('panelBody').innerHTML =
@@ -1311,6 +1220,27 @@ async function openStandings(compId) {
     if (!compCache[compId].table.length) panel.tab = 'results';
     renderPanel();
   }
+}
+// League table worked out from the stored results: 2 points a win, 1 a draw,
+// then score difference, then scores for. Cups, shields and blitzes get no table.
+function leagueTable(list) {
+  const name = list[0]?.competition || '';
+  if (!/league/i.test(name) || /\b(cup|shield|plate|blitz|final)\b/i.test(name)) return [];
+  const rows = {};
+  const row = t => rows[t] = rows[t] || { team: t, played: 0, won: 0, drawn: 0, lost: 0, points: 0, diff: 0, scored: 0 };
+  for (const g of list) {
+    row(g.home); row(g.away);
+    const sc = parseScore(g.score);
+    if (g.kind !== 'result' || !sc || !/\d/.test(g.score)) continue;
+    for (const [t, f, a] of [[g.home, sc.ht, sc.at], [g.away, sc.at, sc.ht]]) {
+      const r = rows[t];
+      r.played++; r.scored += f; r.diff += f - a;
+      if (f > a) { r.won++; r.points += 2; } else if (f === a) { r.drawn++; r.points += 1; } else r.lost++;
+    }
+  }
+  return Object.values(rows)
+    .sort((a, b) => b.points - a.points || b.diff - a.diff || b.scored - a.scored || a.team.localeCompare(b.team))
+    .map((r, i) => ({ ...r, position: i + 1 }));
 }
 function closePanel() { panel = null; document.querySelector('.overlay')?.remove(); }
 function panelTab(t) { panel.tab = t; renderPanel(); }
@@ -1977,16 +1907,12 @@ document.getElementById('rangeSelect').value = recall('gaa_range5', 'thisweek');
 document.getElementById('fromDate').value = isoDay(addDays(-7));
 document.getElementById('toDate').value = isoDay(addDays(35));
 document.getElementById('customDates').style.display = document.getElementById('rangeSelect').value === 'custom' ? '' : 'none';
-// Camogie club list, refreshed once a day; the first load waits for it (briefly)
+// Club list from the season store, refreshed once a day; games load straight away
+loadGames();
 (async () => {
-  const cached = recall('gaa_camogie_clubs', null);
-  if (!cached || Date.now() - cached.at > 864e5) {
-    try {
-      const res = await fetch(`${EDGE}?type=clubs`, { signal: AbortSignal.timeout(8000) });
-      if (res.ok) store('gaa_camogie_clubs', { at: Date.now(), list: (await res.json()).camogie || [] });
-    } catch {}
-  }
-  loadGames();
+  const cached = recall('gaa_db_clubs', null);
+  if (cached && Date.now() - cached.at < 864e5) return;
+  try { store('gaa_db_clubs', { at: Date.now(), list: await rpc('gaa_fixtures_clubs') }); renderClubSelect(); } catch {}
 })();
 </script>
 </body>
