@@ -105,13 +105,13 @@ window.ACCOUNT = (function () {
       sb.from('diary_ticks').select('day, ticks').eq('user_id', user.id),
       // The plan as last published from the coaches' Google Sheet (none yet = plan.js).
       sb.from('diary_plan').select('plan').order('id', { ascending: false }).limit(1).maybeSingle(),
-      // This player's own days and coach notes (RLS returns only their email's rows).
-      sb.from('diary_player_days').select('day, slots, notes')
+      // This player's own days, coach notes, events and activities (RLS returns only their email's rows).
+      sb.from('diary_player_days').select('*')
     ]);
     if (!error) { store = {}; (rows || []).forEach(r => { store[r.day] = r.ticks; }); keep(); }
     if (pub && pub.plan && pub.plan.blocks && pub.plan.blocks.length) {
       const own = {};
-      (mine || []).forEach(r => { own[r.day] = { slots: r.slots, notes: r.notes || [] }; });
+      (mine || []).forEach(r => { own[r.day] = { slots: r.slots, notes: r.notes || [], extras: r.extras || [] }; });
       published = { ...pub.plan, own };
     }
     profile = p;

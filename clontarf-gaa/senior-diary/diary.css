@@ -232,3 +232,11 @@ body.gated { overflow: hidden; }
 .sum li:first-child { border-top: 0; }
 .sum i { color: var(--muted); font-weight: 400; }
 a.gbtn { text-align: center; text-decoration: none; }
+
+/* Events and activities added from the coaches' sheet */
+.dot.k-event { background: var(--food); }
+.tag.k-event { background: #E6F4EC; color: var(--food); border-color: #BFE3CD; }
+.row.k-event .ic { background: #fff; color: var(--food); border: 2px solid var(--food); font-size: 11px; }
+.row.k-event .tt { color: var(--food); }
+.wl .k-event, .key .k-event { color: var(--food); }
+.row .tx > .watch { display: inline-block; margin-top: 4px; }
