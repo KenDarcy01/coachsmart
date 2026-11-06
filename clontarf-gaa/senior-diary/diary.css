@@ -223,6 +223,12 @@ body.gated { overflow: hidden; }
 .num span { flex: 1; min-width: 0; }
 .num b { display: block; font-weight: 600; }
 .num small { display: block; font-size: 13px; color: var(--muted); }
+.num { flex-wrap: wrap; }
+.num .sv { flex-basis: 100%; text-align: right; font-style: normal; font-size: 13px; font-weight: 600; min-height: 0; }
+.num .sv:empty { display: none; }
+.num .sv.busy { color: var(--muted); }
+.num .sv.ok { color: #3f8a12; }
+.num .sv.err { color: #c0392b; }
 .num input { flex: none; width: 96px; padding: 8px 10px; font: inherit; text-align: center; border: 1px solid var(--rule); border-radius: 10px; color: var(--ink); background: #fff; }
 .card .bn { margin: 0; font-size: 14px; }
 .card.ci { border: 2px solid var(--navy); }

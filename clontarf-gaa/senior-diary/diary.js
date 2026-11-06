@@ -4,7 +4,7 @@
 // player's account (account.js). Layout follows the Féile 2027 kids diary.
 (function () {
   let P = window.PLAN;
-  const { ticked, toggle, value, setValue } = window.ACCOUNT;
+  const { ticked, toggle, value, setValue, saved } = window.ACCOUNT;
 
   // The published sheet plan, in the shape the rest of this file uses.
   // A player's own rows for a day replace the team's slots for that day.
@@ -124,7 +124,15 @@
   }
 
   const numField = (d, id, label, hint) => `<label class="num"><span><b>${esc(label)}</b><small>${esc(hint)}</small></span>
-    <input type="text" inputmode="decimal" data-val="${id}" value="${esc(value(d, id))}" placeholder="—"></label>`;
+    <input type="text" inputmode="decimal" enterkeyhint="done" data-val="${id}" value="${esc(value(d, id))}" placeholder="—">
+    <i class="sv${value(d, id) && saved(d) ? ' ok' : ''}" data-sv="${id}" aria-live="polite">${value(d, id) && saved(d) ? '✓ Saved' : ''}</i></label>`;
+
+  // Under a number: "Saving…", then "✓ Saved" only once the account has it, or an error.
+  function showSave(id, state) {
+    const el = document.querySelector(`[data-sv="${id.replace(/"/g, '\\"')}"]`); if (!el) return;
+    el.className = 'sv' + (state ? ' ' + state : '');
+    el.textContent = { busy: 'Saving…', ok: '✓ Saved', err: 'Not saved. Check your signal, then tap the box to try again' }[state] || '';
+  }
 
   // Sunday: the week's numbers in one place, ready for David's form.
   function checkIn(plan) {
@@ -229,7 +237,15 @@
   });
   document.addEventListener('change', e => {
     const v = e.target.dataset && e.target.dataset.val;
-    if (v) { setValue(current, v, e.target.value.trim()); return; }
+    if (v) {
+      const d = current, val = e.target.value.trim(), input = e.target;
+      showSave(v, val ? 'busy' : '');
+      setValue(d, v, val).then(ok => {
+        if (d !== current || input.value.trim() !== val) return;
+        showSave(v, ok ? (val ? 'ok' : '') : 'err');
+      });
+      return;
+    }
     const id = e.target.dataset && e.target.dataset.tick;
     if (!id) return;
     toggle(current, id);
@@ -237,6 +253,13 @@
     const s = document.querySelector('.score'); if (s) s.innerHTML = `<b>${t.done}</b>/${t.total}`;
     strip();
   });
+  // After a failed save, tapping the box and leaving it again retries, even unchanged.
+  document.addEventListener('focusout', e => {
+    const v = e.target.dataset && e.target.dataset.val;
+    const sv = v && document.querySelector(`[data-sv="${v.replace(/"/g, '\\"')}"]`);
+    if (sv && sv.classList.contains('err')) setTimeout(() => { if (sv.classList.contains('err')) e.target.dispatchEvent(new Event('change', { bubbles: true })); }, 0);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.val) e.target.blur(); });
   let x0 = null;
   document.addEventListener('touchstart', e => { if (e.target.closest('.page')) x0 = e.touches[0].clientX; }, { passive: true });
   document.addEventListener('touchend', e => {
