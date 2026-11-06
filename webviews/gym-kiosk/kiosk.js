@@ -25,7 +25,6 @@
   const DONE_MS = 3500;           // how long the "checked in" screen stays up
   const SYNC_MS = 15000;          // try to send queued check-ins this often
   const REFRESH_MS = 60000;       // refresh today's data this often
-  const SELF_UNDO_MS = 5 * 60000; // a member can undo their own tap for this long
 
   const K = { token: 'gk.token', boot: 'gk.boot', queue: 'gk.queue', mine: 'gk.mine', problems: 'gk.problems' };
   const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (_) { return d; } };
@@ -231,6 +230,7 @@
     hold.addEventListener('pointerdown', () => { t = setTimeout(openCoachPin, 2000); });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => hold.addEventListener(ev, () => clearTimeout(t)));
     hold.addEventListener('contextmenu', e => e.preventDefault());
+    hold.addEventListener('touchstart', e => e.preventDefault(), { passive: false }); // no iOS image menu
     return el;
   }
 
@@ -360,7 +360,8 @@
             <span class="av" style="background:${avColour(m.name)}">${esc(initials(m.name))}</span>
             <span class="nm">${esc(m.name)}</span>${isIn ? `<span class="tick">${ICON.tick}</span>` : ''}</button>`);
           if (!letters.has(L)) { btn.id = `L-${L}`; letters.add(L); }
-          btn.onclick = () => (isIn ? showAlready(m, ins.get(k)) : confirmTap(m, isOpen ? null : e.event_id));
+          btn.onclick = () => { if (btn.dataset.held) { delete btn.dataset.held; return; } isIn ? showAlready(m, ins.get(k)) : confirmTap(m, isOpen ? null : e.event_id); };
+          if (isIn) onLongPress(btn, () => confirmUndo(m, ins.get(k)));
           grid.append(btn);
         }
         list.append(sec);
@@ -420,9 +421,26 @@
   }
 
   function showAlready(m, rec) {
-    const mine = rec && S.mine.find(x => x.client_uuid === rec.client_uuid);
-    const canUndo = mine && Date.now() - new Date(mine.at).getTime() < SELF_UNDO_MS;
-    showDone({ kind: 'info', icon: ICON.info, title: `${m.name}, you're already in`, where: `Checked in at ${fmtTime(rec.at)}`, clientUuid: canUndo ? rec.client_uuid : null });
+    showDone({ kind: 'info', icon: ICON.info, title: `${m.name}, you're already in`, where: `Checked in at ${fmtTime(rec.at)}`, clientUuid: rec && rec.client_uuid });
+  }
+
+  /** Press and hold (about 0.7s). Marks the element so the click that follows the hold is ignored. */
+  function onLongPress(el, fn, ms = 700) {
+    let t = null;
+    const cancel = () => clearTimeout(t);
+    el.addEventListener('pointerdown', () => { cancel(); t = setTimeout(() => { el.dataset.held = '1'; if (navigator.vibrate) navigator.vibrate(30); fn(); }, ms); });
+    ['pointerup', 'pointerleave', 'pointercancel', 'pointermove'].forEach(ev => el.addEventListener(ev, e => { if (ev !== 'pointermove' || Math.abs(e.movementX) + Math.abs(e.movementY) > 6) cancel(); }));
+    el.addEventListener('contextmenu', e => e.preventDefault());
+  }
+
+  function confirmUndo(m, rec) {
+    if (!rec) return;
+    const o = overlay(`<div class="card">
+      <div class="big-av" style="background:${avColour(m.name)}">${esc(initials(m.name))}</div>
+      <p>Undo this check-in?</p><h2>${esc(m.name)}</h2><p>Checked in at ${esc(fmtTime(rec.at))}</p>
+      <div class="actions"><button class="btn ghost" data-no>Keep it</button><button class="btn danger" data-yes>Undo check-in</button></div></div>`);
+    o.querySelector('[data-no]').onclick = () => o.remove();
+    o.querySelector('[data-yes]').onclick = () => undoMine(rec.client_uuid);
   }
 
   async function undoMine(clientUuid) {

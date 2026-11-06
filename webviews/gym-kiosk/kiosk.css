@@ -23,7 +23,10 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  overscroll-behavior: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  overscroll-behavior: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+img { -webkit-touch-callout: none; -webkit-user-drag: none; }
+.crest-hold { touch-action: none; -webkit-touch-callout: none; }
+.crest-hold img { pointer-events: none; }
 #app { height: 100%; display: flex; flex-direction: column; }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
 input { font: inherit; }

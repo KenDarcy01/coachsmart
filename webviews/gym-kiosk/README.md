@@ -30,7 +30,7 @@ The club can't be changed from the kiosk. To move a tablet to another club, a cl
 
 Press and hold the crest for 2 seconds, enter the coach PIN. Shows each session's check-ins with **Undo**, anything waiting to sync, anything the server refused, **Refresh now** and **Remove this tablet**.
 
-Members can undo their own check-in from the "Thanks" screen for 5 minutes; after that it needs the coach PIN.
+Members can undo a check-in on the day: tap "Not me? Undo" on the Thanks screen, or press and hold a ticked name. Undoing an earlier day's check-in needs the coach PIN.
 
 ## Offline
 
