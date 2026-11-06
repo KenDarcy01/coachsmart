@@ -533,35 +533,14 @@
     };
   }
 
-  // Front (screen-side) camera so members can see themselves hold up the code.
-  // No size constraints: on iPad they can make Safari pick the rear camera, or give a black picture.
-  // If the camera we got still reports as the rear one, switch to the camera named front.
+  // Camera choice: ask for the front (screen-side) camera with a 720p preference, the request that showed a
+  // picture on Ken's iPad. "Switch camera" steps through every camera the tablet has, by device id.
   const isBlocked = err => err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
   const camInfo = stream => { const t = stream.getVideoTracks()[0]; const st = (t && t.getSettings && t.getSettings()) || {}; return { label: (t && t.label) || '', facing: st.facingMode || '' }; };
-  async function frontCamera() {
-    let stream;
-    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }); }
-    catch (err) { if (isBlocked(err)) throw err; return navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
-    const info = camInfo(stream);
-    if (info.facing === 'user' || /front|facetime|user/i.test(info.label)) return stream;
-    try {
-      const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
-      const front = cams.find(d => /front|facetime|user/i.test(d.label));
-      if (front) {
-        stream.getTracks().forEach(t => t.stop());
-        try { return await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: front.deviceId } }, audio: false }); }
-        catch (err) { if (isBlocked(err)) throw err; return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }); }
-      }
-    } catch (err) { if (isBlocked(err)) throw err; }
-    return stream;
-  }
-  /** Wait until the video is really showing frames. */
-  function framesShowing(video, ms) {
-    return new Promise(res => {
-      const t0 = Date.now();
-      const tick = () => { if (video.videoWidth > 0 && video.readyState >= 2) return res(true); if (Date.now() - t0 > ms) return res(false); setTimeout(tick, 150); };
-      tick();
-    });
+  const SIZE = { width: { ideal: 1280 }, height: { ideal: 720 } };
+  function getCamera(deviceId) {
+    const video = deviceId ? { deviceId: { exact: deviceId }, ...SIZE } : { facingMode: 'user', ...SIZE };
+    return navigator.mediaDevices.getUserMedia({ video, audio: false });
   }
 
   // Live camera status on the scanner, so a screenshot from a tablet shows what the camera is doing.
@@ -578,12 +557,12 @@
     closeScanner();
     const el = h(`<div class="scanner"><video playsinline muted autoplay></video><div class="frame"></div>
       <div class="hint">Hold your CoachSmart QR code up to the camera</div>
-      <div class="bottom"><button type="button" class="btn ghost">Cancel</button></div><div class="cam"></div></div>`);
+      <div class="bottom"><button type="button" class="btn ghost" data-switch>Switch camera</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div><div class="cam"></div></div>`);
     document.body.append(el);
     // Cancel must work at any moment, even while the camera is still starting (iPad asks for permission first).
     const me = { el, stream: null, stop: false };
     scan = me;
-    const btn = el.querySelector('.btn');
+    const btn = el.querySelector('[data-cancel]');
     const cancel = ev => { if (ev) ev.preventDefault(); closeScanner(); };
     btn.addEventListener('pointerup', cancel);
     btn.addEventListener('click', cancel);
@@ -601,49 +580,51 @@
     }, 500);
     const track = s => { const t = s.getVideoTracks()[0]; if (!t) return clog('stream has no video'); const st = t.getSettings ? t.getSettings() : {};
       clog(`got ${t.label || '?'} ${st.facingMode || ''} ${st.width || '?'}x${st.height || '?'}`);
-      t.addEventListener('ended', () => { clog('track ended'); if (!me.stop && me.stream === s) restart(); }); t.addEventListener('mute', () => clog('track muted')); t.addEventListener('unmute', () => clog('track unmuted')); };
-    // The iPad sometimes switches the camera off a few seconds in: start it again, up to 3 times.
+      t.addEventListener('ended', () => { clog('track ended'); if (!me.stop && me.stream === s) start(me.deviceId, true); }); t.addEventListener('mute', () => clog('track muted')); t.addEventListener('unmute', () => clog('track unmuted')); };
+    // Start (or switch to) a camera. If the tablet ends it by itself, try again up to 3 times.
     let restarts = 0;
-    async function restart() {
-      if (me.stop || restarts >= 3) { if (restarts >= 3) clog('gave up restarting'); return; }
-      restarts++; clog(`restarting camera (${restarts})`);
-      if (me.stream) me.stream.getTracks().forEach(t => t.stop());
-      await new Promise(r => setTimeout(r, 400));
-      if (me.stop) return;
-      try {
-        const s2 = await frontCamera();
-        if (me.stop) { s2.getTracks().forEach(t => t.stop()); return; }
-        me.stream = s2; track(s2); video.srcObject = s2;
-        await video.play().then(() => clog('play ok'), e => clog(`play failed ${e && e.name}`));
-      } catch (e) { clog(`restart error ${e && e.name}`); }
+    async function start(deviceId, isRestart) {
+      if (isRestart) { if (restarts >= 3) return clog('gave up restarting'); restarts++; clog(`restarting camera (${restarts})`); }
+      const old = me.stream; me.stream = null;
+      if (old) old.getTracks().forEach(t => t.stop());
+      if (old) await new Promise(r => setTimeout(r, 300));
+      if (me.stop) return false;
+      let s2;
+      try { s2 = await getCamera(deviceId); }
+      catch (err) {
+        clog(`camera error ${err && err.name}`);
+        if (deviceId || isBlocked(err)) throw err;
+        s2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+      if (me.stop) { s2.getTracks().forEach(t => t.stop()); return false; }
+      me.stream = s2; me.deviceId = deviceId || (s2.getVideoTracks()[0] && s2.getVideoTracks()[0].getSettings && s2.getVideoTracks()[0].getSettings().deviceId) || null;
+      track(s2);
+      video.srcObject = s2;
+      await video.play().then(() => clog('play ok'), e => clog(`play failed ${e && e.name}`));
+      const info = camInfo(s2);
+      video.classList.toggle('mirror', !/back|rear|environment/i.test(info.label + ' ' + info.facing));
+      return true;
     }
-    let stream;
+    el.querySelector('[data-switch]').addEventListener('click', async () => {
+      try {
+        const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+        clog(`cameras: ${cams.map(c => c.label || '?').join(', ')}`);
+        if (cams.length < 2) return;
+        const i = cams.findIndex(c => c.deviceId === me.deviceId);
+        restarts = 0;
+        await start(cams[(i + 1) % cams.length].deviceId);
+      } catch (e) { clog(`switch error ${e && e.name}`); }
+    });
     try {
-      stream = await frontCamera();
-      me.stream = stream; track(stream);
+      if (!(await start(null))) return;
     } catch (err) {
-      clog(`camera error ${err && err.name}`);
       if (me.stop) return;
       closeScanner();
-      const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+      const denied = isBlocked(err);
       return showDone({ kind: 'err', icon: ICON.info, title: denied ? 'Camera is blocked' : 'Camera not available',
         where: denied ? 'Allow the camera for this page in the tablet\'s browser settings, then reload. Or tap your session and find your name.' : 'Tap your session and find your name instead.' });
     }
-    if (me.stop) { stream.getTracks().forEach(t => t.stop()); return; }
-    me.stream = stream;
-    video.srcObject = stream; await video.play().then(() => clog('play ok'), e => clog(`play failed ${e && e.name}`));
-    if (!(await framesShowing(video, 4000)) && !me.stop) {
-      // Black picture: start the camera again with no preferences at all.
-      clog('no picture after 4s, restarting camera');
-      stream.getTracks().forEach(t => t.stop());
-      try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); me.stream = stream; track(stream); }
-      catch (e) { clog(`restart error ${e && e.name}`); if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' }); }
-      if (me.stop) { stream.getTracks().forEach(t => t.stop()); return; }
-      me.stream = stream; video.srcObject = stream; await video.play().then(() => clog('play ok'), e => clog(`play failed ${e && e.name}`));
-    }
     if (me.stop) return;
-    const info = camInfo(me.stream || stream);
-    video.classList.toggle('mirror', !/back|rear|environment/i.test(info.label + ' ' + info.facing));
     let detect;
     try { detect = await makeDetector(video); clog('reader ready'); }
     catch (_) { if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'QR reader didn\'t load', where: 'Check the Wi-Fi and reload, or tap your session and find your name.' }); }
