@@ -1,19 +1,20 @@
-/* Gym kiosk: tablet first (landscape ~1280x800 and portrait ~800x1280), big touch targets.
+/* Gym kiosk: light theme, tablet first (landscape ~1280x800 and portrait ~800x1280), big touch targets.
    Club colours come from CoachSmart at runtime: --club (primary), --club-2, --club-3. */
 :root {
   --club: #e61e28;
   --club-2: #ffffff;
   --club-3: #0357a3;
   --on-club: #ffffff;
-  --bg: #121316;
-  --surface: #1c1e23;
-  --surface-2: #262930;
-  --line: #34373f;
-  --text: #f3f4f6;
-  --muted: #a3a7b0;
-  --ok: #2fb35a;
-  --warn: #f0a63a;
-  --bad: #ef5350;
+  --bg: #ffffff;
+  --surface: #f5f6f8;
+  --surface-2: #eaecf0;
+  --line: #d9dce2;
+  --text: #15171a;
+  --muted: #5d636e;
+  --ok: #1e9a4a;
+  --warn: #a86400;
+  --bad: #c62828;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
   --radius: 18px;
   --tap: 72px;
   font-size: clamp(16px, 1.45vmin + 6px, 22px);
@@ -59,7 +60,7 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 1.4rem; -webkit-overfl
 /* Session tiles */
 .tiles { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
 .tile { position: relative; text-align: left; min-height: 9.5rem; padding: 1.2rem 1.3rem 1.1rem 1.6rem; border-radius: var(--radius);
-  background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: .35rem; overflow: hidden; }
+  background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: .35rem; overflow: hidden; box-shadow: var(--shadow); }
 .tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: .55rem; background: var(--stripe, var(--club)); }
 .tile:active { transform: scale(.985); background: var(--surface-2); }
 .tile .time { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
@@ -96,15 +97,15 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 1.4rem; -webkit-overfl
 .person .av { width: 3rem; height: 3rem; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 800; font-size: 1.15rem; color: #fff; }
 .person .nm { font-size: 1.15rem; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .person .tick { width: 1.6rem; height: 1.6rem; flex: none; color: var(--ok); }
-.person.in { border-color: rgba(47,179,90,.55); background: rgba(47,179,90,.1); }
+.person.in { border-color: rgba(30,154,74,.55); background: rgba(30,154,74,.09); }
 .az { flex: none; width: 3.4rem; display: flex; flex-direction: column; justify-content: space-between; padding: 1rem .3rem; touch-action: none; }
 .az button { flex: 1; font-size: .85rem; font-weight: 700; color: var(--muted); min-height: 1.5rem; border-radius: 8px; }
 .az button.has { color: var(--text); }
 .az button:active { background: var(--surface-2); }
 
 /* Overlays */
-.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(8,9,11,.82); display: grid; place-items: center; padding: 1.5rem; animation: fade .15s ease-out; }
-.card { width: min(36rem, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 26px; padding: 2rem; text-align: center; }
+.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(20,22,26,.5); display: grid; place-items: center; padding: 1.5rem; animation: fade .15s ease-out; }
+.card { width: min(36rem, 100%); background: #ffffff; box-shadow: 0 20px 50px rgba(16,24,40,.25); border: 1px solid var(--line); border-radius: 26px; padding: 2rem; text-align: center; }
 .card h2 { margin: .4rem 0 .3rem; font-size: 2.2rem; }
 .card p { margin: .3rem 0; color: var(--muted); font-size: 1.1rem; }
 .card .big-av { width: 6rem; height: 6rem; border-radius: 50%; margin: 0 auto .6rem; display: grid; place-items: center; font-size: 2.2rem; font-weight: 800; color: #fff; }
@@ -160,7 +161,7 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 1.4rem; -webkit-overfl
 .row .small { font-size: .9rem; color: var(--muted); }
 .row .btn { flex: none; min-height: 3.4rem; font-size: 1rem; }
 .pill { font-size: .8rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
-.pill.walk { background: rgba(240,166,58,.18); color: var(--warn); }
+.pill.walk { background: rgba(168,100,0,.12); color: var(--warn); }
 .coach-grid { display: grid; gap: 1.4rem; grid-template-columns: minmax(16rem, 1fr) 2fr; }
 .toast { position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 40; background: #000; color: #fff; padding: 1rem 1.6rem; border-radius: 999px; font-weight: 600; }
 
