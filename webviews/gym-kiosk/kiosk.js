@@ -524,7 +524,7 @@
     return async () => {
       const w = video.videoWidth, hgt = video.videoHeight;
       if (!w || !hgt) return '';
-      const scale = Math.min(1, 720 / Math.max(w, hgt));
+      const scale = Math.min(1, 640 / Math.max(w, hgt)); // smaller frame keeps the iPad responsive to taps
       canvas.width = Math.round(w * scale); canvas.height = Math.round(hgt * scale);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -540,38 +540,52 @@
     closeScanner();
     const el = h(`<div class="scanner"><video playsinline muted autoplay></video><div class="frame"></div>
       <div class="hint">Hold your CoachSmart QR code up to the camera</div>
-      <div class="bottom"><button class="btn ghost">Cancel</button></div></div>`);
+      <div class="bottom"><button type="button" class="btn ghost">Cancel</button></div></div>`);
     document.body.append(el);
-    el.querySelector('.btn').onclick = () => closeScanner();
+    // Cancel must work at any moment, even while the camera is still starting (iPad asks for permission first).
+    const me = { el, stream: null, stop: false };
+    scan = me;
+    const btn = el.querySelector('.btn');
+    const cancel = ev => { if (ev) ev.preventDefault(); closeScanner(); };
+    btn.addEventListener('pointerup', cancel);
+    btn.addEventListener('click', cancel);
+    btn.addEventListener('touchend', cancel);
     const video = el.querySelector('video');
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
     } catch (err) {
-      el.remove();
+      if (me.stop) return;
+      closeScanner();
       const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
       return showDone({ kind: 'err', icon: ICON.info, title: denied ? 'Camera is blocked' : 'Camera not available',
         where: denied ? 'Allow the camera for this page in the tablet\'s browser settings, then reload. Or tap your session and find your name.' : 'Tap your session and find your name instead.' });
     }
+    if (me.stop) { stream.getTracks().forEach(t => t.stop()); return; }
+    me.stream = stream;
     video.srcObject = stream; await video.play().catch(() => {});
-    scan = { el, stream, stop: false };
     let detect;
     try { detect = await makeDetector(video); }
-    catch (_) { closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'QR reader didn\'t load', where: 'Check the Wi-Fi and reload, or tap your session and find your name.' }); }
-    const timeout = setTimeout(() => closeScanner(), 45000);
+    catch (_) { if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'QR reader didn\'t load', where: 'Check the Wi-Fi and reload, or tap your session and find your name.' }); }
+    if (me.stop) return;
+    const timeout = setTimeout(() => { if (scan === me) closeScanner(); }, 45000);
     const loop = async () => {
-      if (!scan || scan.stop) return clearTimeout(timeout);
+      if (me.stop) return clearTimeout(timeout);
       try {
         const value = await detect();
+        if (me.stop) return clearTimeout(timeout);
         if (value) { clearTimeout(timeout); closeScanner(); return onQr(value, eventId); }
       } catch (_) {}
-      setTimeout(loop, 200);
+      setTimeout(loop, 250);
     };
     loop();
   }
   function closeScanner() {
     if (!scan) return;
-    scan.stop = true; scan.stream.getTracks().forEach(t => t.stop()); scan.el.remove(); scan = null;
+    const s = scan; scan = null;
+    s.stop = true;
+    if (s.stream) s.stream.getTracks().forEach(t => t.stop());
+    s.el.remove();
   }
 
   async function onQr(raw, eventId) {
