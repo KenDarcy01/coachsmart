@@ -18,10 +18,15 @@ import '../home/v3_home_data.dart';
 import '../v3_theme.dart';
 
 class V3EventPage extends StatefulWidget {
-  const V3EventPage({super.key, required this.eventID, this.fromSearch});
+  const V3EventPage(
+      {super.key, required this.eventID, this.fromSearch, this.testData});
 
   final int? eventID;
   final bool? fromSearch;
+
+  /// Widget tests pass the RPC result here instead of calling Supabase.
+  @visibleForTesting
+  final Map<String, dynamic>? testData;
 
   // Same route as the FlutterFlow page so every existing pushNamed lands here.
   static String routeName = 'EventDetails';
@@ -52,6 +57,14 @@ class _V3EventPageState extends State<V3EventPage> {
   }
 
   Future<void> _load() async {
+    if (widget.testData != null) {
+      setState(() {
+        _ev = UserEventDetailsStruct.maybeFromMap(widget.testData);
+        _raw = widget.testData!;
+        _loading = false;
+      });
+      return;
+    }
     try {
       final r = await GetUserEventDetailsCall.call(
         pEventId: _eventId,
@@ -567,32 +580,37 @@ class _V3EventPageState extends State<V3EventPage> {
           ),
         );
     final t = _when;
+    // IntrinsicHeight gives the stretched row a bounded height inside the
+    // list; without it the tiles get infinite height and nothing below renders.
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          tile('Meet', e.meetTime.isEmpty && t != null ? hhmm(t) : e.meetTime,
-              e.meetTime.isEmpty ? 'at the start' : ''),
-          const SizedBox(width: 8),
-          tile(
-              e.homeAway.toLowerCase() == 'away' ? 'Away venue' : 'Venue',
-              e.locationName,
-              e.opposition.isNotEmpty && _isMatch ? 'v ${e.opposition}' : ''),
-          if (e.locationPin.isNotEmpty) ...[
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            tile('Meet', e.meetTime.isEmpty && t != null ? hhmm(t) : e.meetTime,
+                e.meetTime.isEmpty ? 'at the start' : ''),
             const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () =>
-                  launchMap(address: e.locationPin, title: e.locationName),
-              child: Container(
-                width: 52,
-                decoration: BoxDecoration(
-                    color: V3.card, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.navigation, color: V3.green, size: 24),
+            tile(
+                e.homeAway.toLowerCase() == 'away' ? 'Away venue' : 'Venue',
+                e.locationName,
+                e.opposition.isNotEmpty && _isMatch ? 'v ${e.opposition}' : ''),
+            if (e.locationPin.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () =>
+                    launchMap(address: e.locationPin, title: e.locationName),
+                child: Container(
+                  width: 52,
+                  decoration: BoxDecoration(
+                      color: V3.card, borderRadius: BorderRadius.circular(14)),
+                  child:
+                      const Icon(Icons.navigation, color: V3.green, size: 24),
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -881,14 +899,16 @@ class _V3EventPageState extends State<V3EventPage> {
         );
 
     return Column(children: [
-      Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        tile('Attending', a, V3.green, const Color(0xFF1F2A19), aLines, 3),
-        const SizedBox(width: 8),
-        tile('No reply', n, const Color(0xFF9A9A9A), V3.card2, nLines, 0),
-        const SizedBox(width: 8),
-        tile('Declined', d, const Color(0xFFC3202A), const Color(0xFF3A1D1D),
-            dLines, 4),
-      ]),
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          tile('Attending', a, V3.green, const Color(0xFF1F2A19), aLines, 3),
+          const SizedBox(width: 8),
+          tile('No reply', n, const Color(0xFF9A9A9A), V3.card2, nLines, 0),
+          const SizedBox(width: 8),
+          tile('Declined', d, const Color(0xFFC3202A), const Color(0xFF3A1D1D),
+              dLines, 4),
+        ]),
+      ),
       const SizedBox(height: 12),
       _bar([
         (a, V3.green),
