@@ -17,7 +17,7 @@
 //   bootstrap {}                       → club, teams, members (short names), today's events and check-ins
 //   checkin   { items: [ { client_uuid, event_id | "auto" | null, member_id | member_code,
 //                          method: "tap" | "qr", checked_in_at } ] } → { results: [...] }
-//   undo      { client_uuid, pin? }    → undo a check-in (no PIN needed within 5 minutes on the same tablet)
+//   undo      { client_uuid, pin? }    → undo a check-in (no PIN needed for today's check-ins; older ones need the coach PIN)
 //   coach     { pin }                  → { ok } when the coach PIN is right (opens coach mode)
 //   unpair    { email, password }      → retires this tablet's token (an admin of the tablet's club)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -27,7 +27,6 @@ const TZ = "Europe/Dublin";
 const SNC_CODE_NAME = "S&C";
 const ADMIN_ROLE_LEVEL = 100;          // roles.role_level: Coach 30, Admin 100, SuperUser 110
 const SUPERUSER_ROLE_LEVEL = 110;
-const SELF_UNDO_MINUTES = 5;
 const MAX_ITEMS = 200;
 const MAX_AGE_DAYS = 7;                // offline check-ins older than this are refused
 
@@ -436,12 +435,12 @@ function done(ctx: Ctx, clientUuid: string, row: any, extra: Record<string, unkn
 async function undo(sb: any, device: Device, body: any) {
   const clientUuid = String(body.client_uuid || "");
   if (!UUID_RE.test(clientUuid)) throw new HttpError(400, "Bad check-in id", "bad_request");
-  const { data: row } = await sb.from("event_checkins").select("checkin_id, club_id, device_id, created_at, status").eq("client_uuid", clientUuid).maybeSingle();
+  const { data: row } = await sb.from("event_checkins").select("checkin_id, club_id, checkin_date, status").eq("client_uuid", clientUuid).maybeSingle();
   if (!row || row.club_id !== device.club_id) throw new HttpError(404, "Check-in not found", "not_found");
   if (row.status !== "active") return { ok: true };
 
-  const recentHere = row.device_id === device.device_id && Date.now() - new Date(row.created_at).getTime() < SELF_UNDO_MINUTES * 60e3;
-  if (!recentHere) await requirePin(device, body.pin);
+  // Members can undo their own check-in on the day (press and hold their name); older ones need a coach.
+  if (row.checkin_date !== dublinDate(new Date())) await requirePin(device, body.pin);
 
   await sb.from("event_checkins").update({ status: "undone", undone_at: new Date().toISOString() }).eq("checkin_id", row.checkin_id);
   return { ok: true };
