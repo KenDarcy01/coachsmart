@@ -157,7 +157,7 @@
         ${STANDALONE ? `<button class="user" id="signOut" title="Sign out">${who} · Sign out</button>` : `<div class="user">${who}</div>`}
       </header>
       <div class="wrap"><nav>${nav.map(([k, l]) => `<a href="#${k}" class="${k === view ? 'on' : ''}">${l}</a>`).join('')}</nav>
-      <main id="main">${inner}</main></div>`;
+      <main id="main">${teamStrip()}${inner}</main></div>`;
     const so = document.getElementById('signOut');
     if (so) so.onclick = async () => { await sb.auth.signOut(); D = null; showSignIn(); };
     const cs = document.getElementById('clubSel');
@@ -165,15 +165,26 @@
     bindFilters();
   }
 
+  /** Teams to offer in the team filter: any team with people or sessions in the data. */
+  function filterTeams() {
+    return D.teams.filter(t => D.scope.teams.includes(t.team_id) || D.members.some(m => m.teams.includes(t.team_id)) || D.events.some(e => e.team_id === t.team_id));
+  }
+  function teamStrip() {
+    const teams = filterTeams();
+    if (teams.length < 2) return '';
+    const cur = teamF() ? teamName(teamF()) : '';
+    return `<div class="strip"><label for="teamSel">Team</label>
+      <select class="sel" id="teamSel"><option value="all">All teams</option>${teams.map(t => `<option value="${t.team_id}" ${String(t.team_id) === String(UI.team) ? 'selected' : ''}>${esc(t.name)}${t.snc ? ' (S&amp;C)' : ''}</option>`).join('')}</select>
+      ${cur ? `<span class="muted">Showing ${esc(cur)} players only</span> <button class="linkbtn" id="teamClear">Show all teams</button>` : ''}</div>`;
+  }
   function filters({ range = true, extra = '' } = {}) {
-    const teams = D.teams.filter(t => D.scope.club_wide || D.scope.teams.includes(t.team_id) || D.members.some(m => m.teams.includes(t.team_id)));
     return `${extra}
-      ${teams.length > 1 ? `<select class="sel" id="teamSel"><option value="all">All teams</option>${teams.map(t => `<option value="${t.team_id}" ${String(t.team_id) === String(UI.team) ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select>` : ''}
       ${range ? `<select class="sel" id="rangeSel">${Object.keys(RANGES).map(k => `<option value="${k}" ${k === UI.range ? 'selected' : ''}>${k === UI.range ? esc(rangeLabel()) : RANGES[k].label}</option>`).join('')}</select>` : ''}
       <button class="btn" id="csvBtn">Export CSV</button>`;
   }
   function bindFilters() {
     const t = document.getElementById('teamSel'); if (t) t.onchange = () => { UI.team = t.value; saveUI(); route(); };
+    const tc = document.getElementById('teamClear'); if (tc) tc.onclick = () => { UI.team = 'all'; saveUI(); route(); };
     const r = document.getElementById('rangeSel'); if (r) r.onchange = () => { UI.range = r.value; saveUI(); route(); };
     const c = document.getElementById('csvBtn'); if (c) c.onclick = () => { if (CSV) downloadCsv(CSV.name, CSV.rows); };
   }
@@ -277,6 +288,10 @@
   }
 
   // ── One session ───────────────────────────────────────────────────────────
+  const FILTER_NAMES = { acc: 'accepted', came: 'who came', walk: 'walk-ins', no: 'no-shows' };
+  const tileBtn = (key, cur, n, label, style = '') =>
+    `<button class="tile tbtn${cur === key ? ' on' : ''}" data-sf="${key}" aria-pressed="${cur === key}"><div class="n" style="${style}">${n}</div><div class="l">${label}</div><div class="d muted">${cur === key ? 'Showing these · tap to clear' : 'Tap to show'}</div></button>`;
+
   function viewSession(id) {
     const e = eventById.get(id);
     if (!e) { location.hash = '#sessions'; return; }
@@ -293,25 +308,32 @@
     ];
     const order = { came: 0, walk: 1, acc: 2, no: 3, dec: 4 };
     rows.sort((x, y) => order[x.st] - order[y.st] || (x.c && y.c ? x.c.at.localeCompare(y.c.at) : name(x.id).localeCompare(name(y.id))));
+    // The tiles filter the list (click again, or "Show everyone", to clear).
+    if (UI.sessFor !== id) { UI.sessFor = id; UI.sessFilter = 'all'; }
+    const F = UI.sessFilter || 'all';
+    const keep = { all: () => true, acc: r => ['came', 'no', 'acc'].includes(r.st), came: r => r.st === 'came', walk: r => r.st === 'walk', no: r => r.st === 'no' };
+    const shown = rows.filter(keep[F] || keep.all);
     const lab = { came: ['came', 'Came'], walk: ['walk', 'Walk-in'], no: ['no', 'No-show'], acc: ['soon', 'Accepted'], dec: ['dec', 'Declined'] };
     CSV = { name: `${fileStem()}-session-${e.date}-${e.event_id}.csv`, rows: [['Player', 'Status', 'Checked in', 'How', 'Check-ins last 4 weeks'],
-      ...rows.map(r => [name(r.id), lab[r.st][1], r.c ? fmtTime(r.c.at) : '', r.c ? how[r.c.method] || r.c.method : '', recent(r.id)])] };
+      ...shown.map(r => [name(r.id), lab[r.st][1], r.c ? fmtTime(r.c.at) : '', r.c ? how[r.c.method] || r.c.method : '', recent(r.id)])] };
     const partial = !e.own ? `<div class="card"><div class="empty">This is another team's session. You see your own players only.</div></div>` : '';
     shell('sessions', `
       <a class="back" href="#sessions">‹ Back to sessions</a>
       <div class="head" style="margin-top:8px"><h2>${esc(e.title)} · ${esc(fmtLong(e.date))}, ${fmtTime(e.time)}</h2><button class="btn" id="csvBtn">Export CSV</button></div>
       <div class="tiles four">
-        <div class="tile"><div class="n">${s.acc.length}</div><div class="l">Accepted</div></div>
-        <div class="tile"><div class="n">${s.came.length}</div><div class="l">Came (accepted and checked in)</div></div>
-        <div class="tile"><div class="n">${s.walk.length}</div><div class="l">Walk-ins</div></div>
-        <div class="tile"><div class="n" style="${s.noShow.length ? 'color:var(--bad)' : ''}">${s.started ? s.noShow.length : '–'}</div><div class="l">${s.started ? 'No-shows' : 'No-shows (not started yet)'}</div></div>
+        ${tileBtn('acc', F, s.acc.length, 'Accepted')}
+        ${tileBtn('came', F, s.came.length, 'Came (accepted and checked in)')}
+        ${tileBtn('walk', F, s.walk.length, 'Walk-ins')}
+        ${tileBtn('no', F, s.started ? s.noShow.length : '–', s.started ? 'No-shows' : 'No-shows (not started yet)', s.noShow.length ? 'color:var(--bad)' : '')}
       </div>${partial}
-      <div class="card"><h3><span style="color:var(--text);font-weight:700;font-size:16px">${teamCell(e.team_id)}</span><span>${rows.length} player${rows.length === 1 ? '' : 's'}${e.location ? ' · ' + esc(e.location) : ''}</span></h3>${rows.length ? `<div class="scroll"><table>
+      <div class="card"><h3><span style="color:var(--text);font-weight:700;font-size:16px">${teamCell(e.team_id)}</span><span>${F === 'all' ? `${rows.length} player${rows.length === 1 ? '' : 's'}` : `Showing ${shown.length} ${FILTER_NAMES[F]} of ${rows.length} · <button class="linkbtn" id="sessAll">Show everyone</button>`}${e.location ? ' · ' + esc(e.location) : ''}</span></h3>${shown.length ? `<div class="scroll"><table>
         <tr><th>Player</th><th>Status</th><th>Checked in</th><th>How</th><th class="num">Check-ins, last 4 weeks</th></tr>
-        ${rows.map(r => `<tr><td>${esc(name(r.id))}</td><td><span class="pill ${lab[r.st][0]}">${lab[r.st][1]}</span></td>
+        ${shown.map(r => `<tr><td>${esc(name(r.id))}</td><td><span class="pill ${lab[r.st][0]}">${lab[r.st][1]}</span></td>
           <td>${r.c ? fmtTime(r.c.at) : '<span class="muted">–</span>'}</td><td>${r.c ? esc(how[r.c.method] || r.c.method) : '<span class="muted">–</span>'}</td>
           <td class="num">${recent(r.id)}</td></tr>`).join('')}
-        </table></div>` : '<div class="empty">Nobody has replied or checked in yet.</div>'}</div>`);
+        </table></div>` : `<div class="empty">${rows.length ? 'Nobody in this group.' : 'Nobody has replied or checked in yet.'}</div>`}</div>`);
+    document.querySelectorAll('[data-sf]').forEach(b => b.onclick = () => { UI.sessFilter = UI.sessFilter === b.dataset.sf ? 'all' : b.dataset.sf; viewSession(id); });
+    const sa = document.getElementById('sessAll'); if (sa) sa.onclick = () => { UI.sessFilter = 'all'; viewSession(id); };
   }
 
   // ── People ────────────────────────────────────────────────────────────────

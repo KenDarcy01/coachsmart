@@ -189,6 +189,14 @@ async function load(sb: any, userId: string, wantClub: number) {
     const p = person(r.member_id);
     if (!p.teams.size && ev?.team_id) p.teams.add(ev.team_id);
   }
+  // Whole-club view: every club team each person is on, so the page can filter by any team
+  // (e.g. a hurling team's players at the S&C sessions), not just the S&C teams.
+  if (clubWide && people.size) {
+    const links = await inChunks<any>([...people.keys()], c =>
+      sb.from("member_team_link").select("member_id, team_id").in("member_id", c).eq("status", "active"));
+    for (const r of links) if (teamName.has(r.team_id)) people.get(r.member_id)?.teams.add(r.team_id);
+  }
+
   // Names (full names: the dashboard is for admins only).
   const ids = [...people.keys()];
   const names = await inChunks<any>(ids, c => sb.from("members").select("member_id, first_name, last_name").in("member_id", c));

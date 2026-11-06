@@ -95,3 +95,15 @@ th.sort { cursor: pointer; } th.sort.on { color: var(--text); }
 }
 .grid2 .meter { width: 64px; }
 .grid2 th, .grid2 td { padding-left: 14px; padding-right: 14px; }
+
+/* Team filter strip at the top of every page */
+.strip { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: -6px 0 16px; padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.strip label { font-weight: 700; font-size: 14px; }
+.strip .sel { min-width: 220px; }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 600; cursor: pointer; font-size: inherit; }
+
+/* Session tiles act as filters */
+.tbtn { text-align: left; cursor: pointer; font: inherit; color: inherit; width: 100%; }
+.tbtn:hover { border-color: var(--accent); }
+.tbtn.on { border: 2px solid var(--accent); padding: 13px 15px; background: #f7faff; }
