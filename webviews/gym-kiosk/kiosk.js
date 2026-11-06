@@ -533,19 +533,35 @@
     };
   }
 
-  // Always the front (screen-side) camera so members can see themselves hold up the code.
-  // A plain facingMode is only a preference and iPad Safari can pick the rear camera, so ask for it exactly,
-  // and if that fails pick the camera whose name says front, before falling back to any camera.
+  // Front (screen-side) camera so members can see themselves hold up the code.
+  // No size constraints: on iPad they can make Safari pick the rear camera, or give a black picture.
+  // If the camera we got still reports as the rear one, switch to the camera named front.
+  const isBlocked = err => err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+  const camInfo = stream => { const t = stream.getVideoTracks()[0]; const st = (t && t.getSettings && t.getSettings()) || {}; return { label: (t && t.label) || '', facing: st.facingMode || '' }; };
   async function frontCamera() {
-    const size = { width: { ideal: 1280 }, height: { ideal: 720 } };
-    try { return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'user' }, ...size }, audio: false }); }
-    catch (err) { if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) throw err; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }); }
+    catch (err) { if (isBlocked(err)) throw err; return navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+    const info = camInfo(stream);
+    if (info.facing === 'user' || /front|facetime|user/i.test(info.label)) return stream;
     try {
       const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
-      const front = cams.find(d => /front|user|facetime/i.test(d.label));
-      if (front) return await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: front.deviceId }, ...size }, audio: false });
-    } catch (err) { if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) throw err; }
-    return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', ...size }, audio: false });
+      const front = cams.find(d => /front|facetime|user/i.test(d.label));
+      if (front) {
+        stream.getTracks().forEach(t => t.stop());
+        try { return await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: front.deviceId } }, audio: false }); }
+        catch (err) { if (isBlocked(err)) throw err; return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }); }
+      }
+    } catch (err) { if (isBlocked(err)) throw err; }
+    return stream;
+  }
+  /** Wait until the video is really showing frames. */
+  function framesShowing(video, ms) {
+    return new Promise(res => {
+      const t0 = Date.now();
+      const tick = () => { if (video.videoWidth > 0 && video.readyState >= 2) return res(true); if (Date.now() - t0 > ms) return res(false); setTimeout(tick, 150); };
+      tick();
+    });
   }
 
   async function openScanner(eventId) {
@@ -555,7 +571,7 @@
     closeScanner();
     const el = h(`<div class="scanner"><video playsinline muted autoplay></video><div class="frame"></div>
       <div class="hint">Hold your CoachSmart QR code up to the camera</div>
-      <div class="bottom"><button type="button" class="btn ghost">Cancel</button></div></div>`);
+      <div class="bottom"><button type="button" class="btn ghost">Cancel</button></div><div class="cam"></div></div>`);
     document.body.append(el);
     // Cancel must work at any moment, even while the camera is still starting (iPad asks for permission first).
     const me = { el, stream: null, stop: false };
@@ -579,6 +595,18 @@
     if (me.stop) { stream.getTracks().forEach(t => t.stop()); return; }
     me.stream = stream;
     video.srcObject = stream; await video.play().catch(() => {});
+    if (!(await framesShowing(video, 4000)) && !me.stop) {
+      // Black picture: start the camera again with no preferences at all.
+      stream.getTracks().forEach(t => t.stop());
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+      catch (_) { if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' }); }
+      if (me.stop) { stream.getTracks().forEach(t => t.stop()); return; }
+      me.stream = stream; video.srcObject = stream; await video.play().catch(() => {});
+    }
+    if (me.stop) return;
+    const info = camInfo(stream);
+    const tag = el.querySelector('.cam'); if (tag) tag.textContent = info.label || info.facing || '';
+    video.classList.toggle('mirror', !/back|rear|environment/i.test(info.label + ' ' + info.facing));
     let detect;
     try { detect = await makeDetector(video); }
     catch (_) { if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'QR reader didn\'t load', where: 'Check the Wi-Fi and reload, or tap your session and find your name.' }); }

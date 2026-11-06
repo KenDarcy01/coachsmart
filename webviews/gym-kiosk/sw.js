@@ -2,8 +2,8 @@
  * App files are network-first (so updates land straight away) with the cached copy as
  * the fallback. The crest image is cached on first use. API calls are never cached;
  * the page keeps its own copy of today's data and a queue of check-ins in localStorage. */
-const CACHE = 'gym-kiosk-v11';
-const SHELL = ['./', './index.html', './kiosk.css?v=8', './kiosk.js?v=9', './manifest.webmanifest', './icon.svg', './icon-180.png', './vendor/jsQR.js?v=1'];
+const CACHE = 'gym-kiosk-v12';
+const SHELL = ['./', './index.html', './kiosk.css?v=9', './kiosk.js?v=10', './manifest.webmanifest', './icon.svg', './icon-180.png', './vendor/jsQR.js?v=1'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
