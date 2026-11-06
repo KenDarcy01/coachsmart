@@ -25,6 +25,7 @@
   const FEED = `https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/team-diary?code=${F.TEAM_CODE}&from=${F.VIEW_START}&to=${F.FEILE_END}`;
   const CACHE = 'feile27:cs';
   let cs = null; // { at, byDate: { date: [event] }, weeks: Set of Mondays }
+  let sheet = null; // the coaches' Google Sheet: { events, activities, notes }, Live rows only
   const monday = d => add(d, 1 - dow(d));
 
   function useFeed(body, at) {
@@ -34,6 +35,7 @@
       if (!e.cancelled) (byDate[e.date] = byDate[e.date] || []).push(e);
     });
     cs = { at, byDate, weeks };
+    sheet = body.sheet || null;
   }
   try { const c = JSON.parse(localStorage.getItem(CACHE)); if (c) useFeed(c.body, c.at); } catch (e) {}
 
@@ -73,6 +75,32 @@
     } catch (e) { console.warn('CoachSmart feed unavailable, using the planned week', e); }
     render();
   }
+
+  // ---- the coaches' sheet: meetups, activities and notes CoachSmart doesn't hold ----
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+  const sheetEvents = d => (sheet && sheet.events || []).filter(e => e.date === d);
+  const sheetActs = d => (sheet && sheet.activities || []).filter(a => within(d, a.from, a.to) && (!a.days || a.days.includes(dow(d))));
+  const sheetNotes = d => (sheet && sheet.notes || []).filter(n => n.scope === 'week' ? monday(n.date) === monday(d) : n.date === d)
+    .sort((a, b) => (a.scope === 'week' ? 0 : 1) - (b.scope === 'week' ? 0 : 1));
+  const ACT_KIND = { 'Run': 'run', 'Rest': 'rest' };
+
+  function sheetItems(d) {
+    const out = sheetEvents(d).map(e => ({
+      t: e.start || 'Any time', end: e.end, kind: 'club', title: e.title, link: e.link,
+      detail: [e.who && e.who !== 'All' ? `${e.who} squad` : null, e.where, e.details].filter(Boolean).join(' · '),
+    }));
+    sheetActs(d).filter(a => a.place !== 'everyday').forEach(a => {
+      const kind = ACT_KIND[a.type] || 'home', rest = kind === 'rest';
+      const session = a.steps && a.steps.length ? { mins: a.mins, sheet: true, blocks: [{ title: a.title, mins: a.mins, video: a.video, sheet: true, items: a.steps.map(x => ({ n: x.n, d: x.d })) }] } : null;
+      out.push({
+        t: a.time || 'Any time', end: a.time && a.mins ? hhmm(mins(a.time) + a.mins) : null, kind, title: a.title, detail: a.sub,
+        mins: a.mins, session, link: !session ? a.video : null, tid: rest ? null : 's:' + slug(a.title), tick: !rest,
+      });
+    });
+    return out;
+  }
+  const sheetDaily = d => sheetActs(d).filter(a => a.place === 'everyday').map(a => ({ id: 's:' + slug(a.title), n: a.title, d: a.sub || '' }));
+  const isTick = i => !!(i.tick || i.session || i.kind === 'team' || i.kind === 'snc' || i.kind === 'match');
 
   const phaseOf = d => F.PHASES.find(p => within(d, p.from, p.to)) || F.PHASES[0];
   const holidayOf = d => F.HOLIDAYS.find(h => within(d, h.from, h.to));
@@ -136,7 +164,7 @@
 
     if (code === 'feile') {
       items.push({ t: '09:30', kind: 'match', title: 'Féile games', detail: 'Warm up with the team. Be proud of all the work you did.' });
-      return { d, phase, hol, team, code, items, tags: [{ k: 'match', t: 'Féile' }] };
+      return { d, phase, hol, team, code, items, tags: [{ k: 'match', t: 'Féile' }], daily: [], notes: sheetNotes(d) };
     }
 
     team.forEach(e => items.push({ t: e.start, end: e.end, kind: e.kind, title: e.title, detail: e.detail, planned: e.planned }));
@@ -152,16 +180,26 @@
       items.push({ t: 'Any time', kind: 'rest', title: code === 'off' ? 'Day off' : 'Rest day', detail: code === 'off' ? 'No training at all. Enjoy Christmas with your family.' : 'Recovery is training too. A walk or a cycle is fine.' });
     }
 
+    // A sheet activity marked "Replaces plan" takes the place of the planned run,
+    // home session or rest day.
+    const replaced = sheetActs(d).some(a => a.replaces);
+    const kept = replaced ? items.filter(i => !['run', 'home', 'rest'].includes(i.kind)) : items;
+    const extra = sheetItems(d);
+    const all = kept.concat(extra);
+
     const order = t => /^\d\d:\d\d$/.test(t) ? mins(t) : t === 'Any time' ? -1 : 9999;
-    items.sort((a, b) => order(a.t) - order(b.t));
+    all.sort((a, b) => order(a.t) - order(b.t));
 
     const tags = [];
     team.forEach(e => tags.push({ k: e.kind, t: e.title }));
-    if (run) tags.push({ k: 'run', t: run.name });
-    if (sess) tags.push({ k: 'home', t: sess.name });
-    if (code === 'rest') tags.push({ k: 'rest', t: 'Rest' });
-    if (code === 'off') tags.push({ k: 'rest', t: 'Day off' });
-    return { d, phase, hol, team, code, items, tags };
+    if (!replaced) {
+      if (run) tags.push({ k: 'run', t: run.name });
+      if (sess) tags.push({ k: 'home', t: sess.name });
+      if (code === 'rest') tags.push({ k: 'rest', t: 'Rest' });
+      if (code === 'off') tags.push({ k: 'rest', t: 'Day off' });
+    }
+    extra.forEach(i => tags.push({ k: i.kind, t: i.title }));
+    return { d, phase, hol, team, code, items: all, tags, daily: sheetDaily(d), notes: sheetNotes(d) };
   }
 
   // ---- ticks, saved on this phone only ----
@@ -175,15 +213,16 @@
     save();
   }
   const dayTicks = plan => {
-    const ids = F.HABITS.map(h => 'h:' + h.id);
-    plan.items.filter(i => i.session || i.kind === 'team' || i.kind === 'snc' || i.kind === 'match').forEach((i, n) => ids.push('i:' + n));
+    const ids = F.HABITS.map(h => 'h:' + h.id).concat((plan.daily || []).map(x => x.id));
+    let n = 0;
+    plan.items.filter(isTick).forEach(i => ids.push(i.tid || 'i:' + n++));
     return { total: ids.length, done: ids.filter(id => ticked(plan.d, id)).length };
   };
 
   // ---- drawing ----
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const ICON = { team: '⚑', snc: '◆', match: '★', run: '➜', home: '⌂', rest: '☾' };
+  const ICON = { team: '⚑', snc: '◆', match: '★', run: '➜', home: '⌂', rest: '☾', club: '✦' };
   let current = clamp(new URLSearchParams(location.search).get('d') || todayIso());
   const openSessions = new Set();
 
@@ -223,30 +262,33 @@
   }
 
   function sessionHtml(d, sess, idx) {
-    return sess.blocks.map((b, bi) => `<div class="block"><div class="bh"><b>${esc(b.title)}</b><span>${b.mins} min</span></div>
+    return sess.blocks.map((b, bi) => `<div class="block"><div class="bh"><b>${esc(b.title)}</b>${b.video ? `<a class="watch" href="${esc(b.video)}" target="_blank" rel="noopener">▶ Watch</a>` : b.mins ? `<span>${b.mins} min</span>` : ''}</div>
       ${b.note ? `<p class="bn">${esc(b.note)}</p>` : ''}
-      <ul>${b.items.map((x, xi) => { const id = `x:${idx}:${bi}:${xi}`; return `<li><label><input type="checkbox" data-tick="${id}" ${ticked(d, id) ? 'checked' : ''}><span><b>${esc(x.n)}</b><small>${esc(x.d)}</small></span></label>${watchLink(x.n)}</li>`; }).join('')}</ul></div>`).join('');
+      <ul>${b.items.map((x, xi) => { const id = `x:${idx}:${bi}:${xi}`; return `<li><label><input type="checkbox" data-tick="${id}" ${ticked(d, id) ? 'checked' : ''}><span><b>${esc(x.n)}</b>${x.d ? `<small>${esc(x.d)}</small>` : ''}</span></label>${b.sheet ? '' : watchLink(x.n)}</li>`; }).join('')}</ul></div>`).join('');
   }
 
   function dayView() {
     const plan = planDay(current);
     const d = current;
-    const tip = F.FOOD_TIPS[Math.round(parse(d) / DAY) % F.FOOD_TIPS.length];
+    const noteTip = plan.notes.filter(n => n.tip).map(n => n.tip).pop();
+    const tip = noteTip || F.FOOD_TIPS[Math.round(parse(d) / DAY) % F.FOOD_TIPS.length];
+    const messages = plan.notes.filter(n => n.message).map(n => n.message);
     const toFeile = Math.round((parse(F.FEILE_START) - parse(d)) / DAY);
     const chIdx = Math.round((parse(d) - parse(F.TOUCHES_12.start)) / DAY);
     const challenge = chIdx >= 0 && chIdx < 12 ? F.TOUCHES_12.days[chIdx] : null;
     let tickIdx = 0;
 
     const rows = plan.items.map(it => {
-      const tickable = it.session || it.kind === 'team' || it.kind === 'snc' || it.kind === 'match';
-      const id = tickable ? 'i:' + (tickIdx++) : null;
+      const id = isTick(it) ? it.tid || 'i:' + (tickIdx++) : null;
+      const chip = it.session ? it.session.mins : it.mins;
       const okey = d + ':' + id;
       const open = it.session && openSessions.has(okey);
       return `<li class="row k-${it.kind}">
         <div class="tm">${esc(it.t)}${it.end ? `<small>${esc(it.end)}</small>` : ''}</div>
         <div class="ev"><div class="ic">${ICON[it.kind] || '•'}</div><div class="tx">
-          <div class="tt">${esc(it.title)}${it.planned ? ' <span class="pl">Planned</span>' : ''}${it.session ? ` <span class="mins">${it.session.mins} min</span>` : ''}</div>
+          <div class="tt">${esc(it.title)}${it.planned ? ' <span class="pl">Planned</span>' : ''}${chip ? ` <span class="mins">${chip} min</span>` : ''}</div>
           ${it.detail ? `<div class="td">${esc(it.detail)}</div>` : ''}
+          ${it.link ? `<a class="lnk" href="${esc(it.link)}" target="_blank" rel="noopener">${it.kind === 'club' ? 'More info' : '▶ Watch'}</a>` : ''}
           ${it.session ? `<button class="more" data-open="${okey}">${open ? 'Hide' : 'Show what to do'}</button>` : ''}
         </div>
         ${id ? `<label class="chk" title="Done"><input type="checkbox" data-tick="${id}" ${ticked(d, id) ? 'checked' : ''}><span></span></label>` : ''}</div>
@@ -263,12 +305,13 @@
           <div class="score" aria-label="${t.done} of ${t.total} done"><b>${t.done}</b>/${t.total}</div>
         </div>
         <div class="tags">${plan.tags.map(x => `<span class="tag k-${x.k}">${esc(x.t)}</span>`).join('')}</div>
+        ${messages.map(m => `<p class="note">${esc(m)}</p>`).join('')}
         ${plan.d === F.FEILE_START || plan.d === F.FEILE_END ? '' : `<p class="aim">${esc(plan.phase.aim)}</p>`}
         <ol class="timeline">${rows}</ol>
       </div>
       ${challenge ? `<section class="card ch"><h2>12 Days of Touches · Day ${chIdx + 1}</h2><p>${esc(challenge)}</p><label class="hab"><input type="checkbox" data-tick="ch" ${ticked(d, 'ch') ? 'checked' : ''}><span>Done it</span></label></section>` : ''}
       <section class="card"><h2>Every day</h2>
-        ${F.HABITS.map(h => `<label class="hab"><input type="checkbox" data-tick="h:${h.id}" ${ticked(d, 'h:' + h.id) ? 'checked' : ''}><span><b>${esc(h.n)}</b><small>${esc(h.d)}</small></span></label>`).join('')}
+        ${F.HABITS.map(h => ({ id: 'h:' + h.id, n: h.n, d: h.d })).concat(plan.daily).map(h => `<label class="hab"><input type="checkbox" data-tick="${esc(h.id)}" ${ticked(d, h.id) ? 'checked' : ''}><span><b>${esc(h.n)}</b>${h.d ? `<small>${esc(h.d)}</small>` : ''}</span></label>`).join('')}
       </section>
       <section class="card food"><h2>Eating well</h2><p class="tip">${esc(tip)}</p>
         <details><summary>What good eating looks like</summary><ul>${F.EATING.map(x => `<li><b>${esc(x.t)}.</b> ${esc(x.d)}</li>`).join('')}</ul></details>
@@ -282,7 +325,7 @@
       const d = add(mon, i);
       if (!within(d, F.VIEW_START, F.FEILE_END)) continue;
       const p = planDay(d);
-      const main = p.items.filter(x => ['team', 'snc', 'match', 'run', 'home', 'rest'].includes(x.kind));
+      const main = p.items.filter(x => ['team', 'snc', 'match', 'run', 'home', 'rest', 'club'].includes(x.kind));
       html += `<button class="wk${d === current ? ' on' : ''}" data-d="${d}"><span class="wd">${DOW[i].slice(0, 3)} ${+d.slice(8)}</span><span class="wl">${main.map(x => `<span class="k-${x.kind}">${ICON[x.kind]} ${esc(x.title)}${/^\d/.test(x.t) ? ' · ' + x.t : ''}</span>`).join('') || '<span class="k-rest">Rest</span>'}</span></button>`;
     }
     $('#week').innerHTML = html;

@@ -12,6 +12,7 @@
   --rule: #DCE3F2;
   --food: #2F855A;
   --gold: #B7791F;
+  --club: #0F766E;
   --display-font: 'Anton', 'Oswald', Impact, sans-serif;
   --heading-font: 'Oswald', -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -105,7 +106,7 @@ button { font: inherit; cursor: pointer; }
 .tx { flex: 1; min-width: 0; }
 .tt { font-weight: 600; }
 .td { font-size: 14px; color: var(--muted); }
-.mins { font-family: var(--heading-font); font-weight: 500; font-size: 12px; color: var(--navy); background: var(--paper); border-radius: 999px; padding: 1px 7px; margin-left: 4px; }
+.mins { white-space: nowrap; font-family: var(--heading-font); font-weight: 500; font-size: 12px; color: var(--navy); background: var(--paper); border-radius: 999px; padding: 1px 7px; margin-left: 4px; }
 .row.k-team .ic, .row.k-snc .ic { background: var(--red); color: #fff; }
 .row.k-match .ic { background: var(--gold); color: #fff; }
 .row.k-home .ic { background: var(--navy); color: #fff; }
@@ -197,3 +198,12 @@ button { font: inherit; cursor: pointer; }
 .block li label { flex: 1; min-width: 0; }
 .watch { flex: none; margin-top: 8px; font-family: var(--heading-font); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--red-dark); text-decoration: none; border: 1px solid #F8C6CB; background: #FFF6F7; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
 .watch:active { background: var(--red); color: #fff; }
+
+/* Club events and extras from the coaches' sheet */
+.dot.k-club { background: var(--club); }
+.day.on .dot.k-club { background: #8FD3CB; }
+.tag.k-club { background: #E6F5F3; color: var(--club); border-color: #A9DCD6; }
+.row.k-club .ic { background: var(--club); color: #fff; font-size: 12px; }
+.row.k-club .tt { color: var(--club); }
+.wl .k-club, .key .k-club { color: var(--club); }
+.lnk { display: inline-block; margin-top: 4px; font-family: var(--heading-font); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--navy); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
