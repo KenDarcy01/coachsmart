@@ -398,7 +398,7 @@ class _V3HomePageState extends State<V3HomePage> {
               child: Row(children: [
                 _clubTile(0, null),
                 for (final c in clubs) ...[
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   _clubTile(c.clubId, c.crest),
                 ],
               ]),
@@ -414,8 +414,8 @@ class _V3HomePageState extends State<V3HomePage> {
     );
   }
 
-  // Club crest 72px with a short green bar under the selected one, like
-  // the v2 strip (Ken, 2026-11-06: no outline, bigger crests).
+  // Club crest 60px with a short green bar under the selected one, like
+  // the v2 strip (Ken, 2026-11-06: no outline; 72 was too big, 52 too small).
   Widget _clubTile(int clubId, String? crest) {
     final on = _selectedClub == clubId;
     final img = crest == null
@@ -432,11 +432,11 @@ class _V3HomePageState extends State<V3HomePage> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Opacity(
           opacity: on ? 1 : .5,
-          child: SizedBox(width: 72, height: 72, child: img),
+          child: SizedBox(width: 60, height: 60, child: img),
         ),
         const SizedBox(height: 6),
         Container(
-          width: 44,
+          width: 38,
           height: 3,
           decoration: BoxDecoration(
             color: on ? V3.green : Colors.transparent,
