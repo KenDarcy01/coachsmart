@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- My gym QR: a member signs in once with their CoachSmart login, adds this page to their
+       home screen, and it opens straight to their QR code for the gym check-in kiosk.
+       Works offline once loaded: the code is kept on the phone. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Gym QR">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="robots" content="noindex">
+  <title>My gym QR</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <style>
+    :root { --club: #e61e28; --club-2: #ffffff; --club-3: #0357a3; --on-club: #fff; --text: #15171a; --muted: #5d636e; --line: #d9dce2; --bad: #c62828; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; min-height: 100%; background: #fff; color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+    button, input { font: inherit; }
+    .bar { background: var(--club); color: var(--on-club); padding: calc(env(safe-area-inset-top) + .8rem) 1.1rem .8rem; display: flex; align-items: center; gap: .8rem;
+      box-shadow: 0 4px 0 var(--club-2), 0 8px 0 var(--club-3); margin-bottom: 8px; }
+    .bar img { width: 2.6rem; height: 2.6rem; border-radius: 50%; background: #fff; padding: .15rem; object-fit: contain; }
+    .bar h1 { margin: 0; font-size: 1.2rem; flex: 1; }
+    main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 1.2rem 1.2rem calc(env(safe-area-inset-bottom) + 1.2rem); gap: 1rem; }
+    .tabs { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; }
+    .tabs button { border: 1px solid var(--line); background: #f5f6f8; border-radius: 999px; padding: .55rem 1rem; font-weight: 600; color: var(--text); }
+    .tabs button.on { background: var(--club); border-color: var(--club); color: var(--on-club); }
+    .qr { width: min(82vw, 60vh, 22rem); aspect-ratio: 1; background: #fff; padding: 0; border-radius: 18px; box-shadow: 0 2px 14px rgba(16,24,40,.12); overflow: hidden; }
+    .qr svg { display: block; width: 100%; height: 100%; }
+    .name { font-size: 1.7rem; font-weight: 800; text-align: center; margin: .2rem 0 0; }
+    .teams { color: var(--muted); text-align: center; font-size: 1rem; }
+    .code { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; color: var(--muted); font-size: 1rem; }
+    .tip { color: var(--muted); font-size: .9rem; text-align: center; max-width: 22rem; }
+    .foot { margin-top: auto; display: flex; gap: 1.2rem; align-items: center; color: var(--muted); font-size: .85rem; }
+    .foot button { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: .5rem; }
+    form { width: min(24rem, 100%); display: flex; flex-direction: column; gap: .9rem; margin-top: .5rem; }
+    label { display: flex; flex-direction: column; gap: .35rem; font-weight: 600; }
+    input { min-height: 3.2rem; border-radius: 12px; border: 1px solid var(--line); padding: 0 .9rem; font-size: 1.05rem; background: #fff; color: var(--text); }
+    input:focus { outline: none; border-color: var(--club); }
+    .go { min-height: 3.4rem; border-radius: 12px; border: 0; background: var(--club); color: var(--on-club); font-weight: 800; font-size: 1.1rem; }
+    .go[disabled] { opacity: .6; }
+    .err { color: var(--bad); font-weight: 600; min-height: 1.2rem; }
+    .intro { color: var(--muted); text-align: center; max-width: 24rem; margin: 0; }
+    .howto { width: min(24rem, 100%); background: #f5f6f8; border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; color: var(--muted); font-size: .92rem; }
+    .howto b { color: var(--text); }
+    .empty { color: var(--muted); text-align: center; max-width: 22rem; }
+  </style>
+</head>
+<body>
+  <header class="bar"><img id="crest" alt="" hidden><h1 id="title">My gym QR</h1></header>
+  <main id="app"></main>
+  <script src="vendor/qrcode.js?v=1"></script>
+  <script src="gym-qr.js?v=1"></script>
+</body>
+</html>
