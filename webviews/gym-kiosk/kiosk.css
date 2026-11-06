@@ -31,8 +31,9 @@ input { font: inherit; }
 
 /* ── Top bar ─────────────────────────────────────────────── */
 .bar { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.4rem; min-height: 5.2rem;
-  background: linear-gradient(90deg, var(--club) 0%, var(--club) 62%, var(--club-3) 100%); color: var(--on-club);
-  box-shadow: inset 0 -4px 0 var(--club-2); flex: none; }
+  background: var(--club); color: var(--on-club); position: relative; z-index: 1;
+  /* Club stripes under the banner: a thin line of the second colour, then the third. */
+  box-shadow: 0 5px 0 var(--club-2), 0 10px 0 var(--club-3); margin-bottom: 10px; flex: none; }
 .bar .crest { width: 3.6rem; height: 3.6rem; object-fit: contain; flex: none; border-radius: 50%;
   background: rgba(255,255,255,.95); padding: .25rem; }
 .bar .crest-blank { width: 3.6rem; height: 3.6rem; border-radius: 50%; background: rgba(255,255,255,.25); flex: none; }
