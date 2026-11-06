@@ -564,6 +564,10 @@
     });
   }
 
+  // Live camera status on the scanner, so a screenshot from a tablet shows what the camera is doing.
+  let camLog = [];
+  const clog = msg => { camLog.push(`${((Date.now() - camLog.t0) / 1000).toFixed(1)}s ${msg}`); if (camLog.length > 12) camLog.splice(0, camLog.length - 12); };
+
   async function openScanner(eventId) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' });
@@ -582,10 +586,25 @@
     btn.addEventListener('click', cancel);
     btn.addEventListener('touchend', cancel);
     const video = el.querySelector('video');
+    video.muted = true; video.playsInline = true; video.setAttribute('playsinline', ''); video.setAttribute('muted', '');
+    camLog = []; camLog.t0 = Date.now(); clog('start');
+    ['loadedmetadata', 'playing', 'pause', 'stalled', 'emptied', 'ended', 'error'].forEach(ev => video.addEventListener(ev, () => clog(`video ${ev}`)));
+    const status = el.querySelector('.cam');
+    const watch = setInterval(() => {
+      if (me.stop) return clearInterval(watch);
+      const t = me.stream && me.stream.getVideoTracks()[0];
+      const now = t ? `${t.label || 'camera'} | track ${t.readyState}${t.muted ? ' muted' : ''}${t.enabled ? '' : ' disabled'}` : 'no camera yet';
+      status.textContent = `${now} | video ${video.videoWidth}x${video.videoHeight} ready ${video.readyState} ${video.paused ? 'paused' : 'playing'}\n${camLog.join('\n')}`;
+    }, 500);
+    const track = s => { const t = s.getVideoTracks()[0]; if (!t) return clog('stream has no video'); const st = t.getSettings ? t.getSettings() : {};
+      clog(`got ${t.label || '?'} ${st.facingMode || ''} ${st.width || '?'}x${st.height || '?'}`);
+      t.addEventListener('ended', () => clog('track ended')); t.addEventListener('mute', () => clog('track muted')); t.addEventListener('unmute', () => clog('track unmuted')); };
     let stream;
     try {
       stream = await frontCamera();
+      track(stream);
     } catch (err) {
+      clog(`camera error ${err && err.name}`);
       if (me.stop) return;
       closeScanner();
       const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
@@ -594,24 +613,24 @@
     }
     if (me.stop) { stream.getTracks().forEach(t => t.stop()); return; }
     me.stream = stream;
-    video.srcObject = stream; await video.play().catch(() => {});
+    video.srcObject = stream; await video.play().then(() => clog('play ok'), e => clog(`play failed ${e && e.name}`));
     if (!(await framesShowing(video, 4000)) && !me.stop) {
       // Black picture: start the camera again with no preferences at all.
+      clog('no picture after 4s, restarting camera');
       stream.getTracks().forEach(t => t.stop());
-      try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
-      catch (_) { if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' }); }
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); track(stream); }
+      catch (e) { clog(`restart error ${e && e.name}`); if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'Camera not available', where: 'Tap your session and find your name instead.' }); }
       if (me.stop) { stream.getTracks().forEach(t => t.stop()); return; }
-      me.stream = stream; video.srcObject = stream; await video.play().catch(() => {});
+      me.stream = stream; video.srcObject = stream; await video.play().then(() => clog('play ok'), e => clog(`play failed ${e && e.name}`));
     }
     if (me.stop) return;
     const info = camInfo(stream);
-    const tag = el.querySelector('.cam'); if (tag) tag.textContent = info.label || info.facing || '';
     video.classList.toggle('mirror', !/back|rear|environment/i.test(info.label + ' ' + info.facing));
     let detect;
-    try { detect = await makeDetector(video); }
+    try { detect = await makeDetector(video); clog('reader ready'); }
     catch (_) { if (me.stop) return; closeScanner(); return showDone({ kind: 'err', icon: ICON.info, title: 'QR reader didn\'t load', where: 'Check the Wi-Fi and reload, or tap your session and find your name.' }); }
     if (me.stop) return;
-    const timeout = setTimeout(() => { if (scan === me) closeScanner(); }, 45000);
+    const timeout = setTimeout(() => { if (scan === me) closeScanner(); }, 120000); // longer while we diagnose the iPad camera
     const loop = async () => {
       if (me.stop) return clearTimeout(timeout);
       try {
