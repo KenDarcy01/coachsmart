@@ -270,8 +270,7 @@ class _V3HomePageState extends State<V3HomePage> {
           ],
         ),
         body: !_loaded
-            ? const Center(
-                child: CircularProgressIndicator(color: V3.green))
+            ? const Center(child: CircularProgressIndicator(color: V3.green))
             : _failed
                 ? _errorBody()
                 : RefreshIndicator(
@@ -367,7 +366,8 @@ class _V3HomePageState extends State<V3HomePage> {
 
   Widget _groupHeader(EventGroup g) => Padding(
         padding: const EdgeInsets.fromLTRB(0, 18, 0, 8),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.baseline,
+        child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(g.label.toUpperCase(),
@@ -382,15 +382,15 @@ class _V3HomePageState extends State<V3HomePage> {
             ]),
       );
 
-  // Club tiles (52px rounded squares, only with 2+ clubs) and the team
-  // filter button on the right.
+  // Club crests (only with 2+ clubs) and the team filter button on the
+  // right.
   Widget _filterRow() {
     final clubs = _realClubs;
     final showClubs = clubs.length >= 2;
     final teams = _teamsForSheet;
     return Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Row(children: [
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         if (showClubs)
           Expanded(
             child: SingleChildScrollView(
@@ -398,7 +398,7 @@ class _V3HomePageState extends State<V3HomePage> {
               child: Row(children: [
                 _clubTile(0, null),
                 for (final c in clubs) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 14),
                   _clubTile(c.clubId, c.crest),
                 ],
               ]),
@@ -414,34 +414,36 @@ class _V3HomePageState extends State<V3HomePage> {
     );
   }
 
+  // Club crest 72px with a short green bar under the selected one, like
+  // the v2 strip (Ken, 2026-11-06: no outline, bigger crests).
   Widget _clubTile(int clubId, String? crest) {
     final on = _selectedClub == clubId;
+    final img = crest == null
+        ? Image.asset('assets/images/Launcher_Icon_v2.png', fit: BoxFit.contain)
+        : Image.network(crest,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) =>
+                const Icon(Icons.shield_outlined, color: V3.muted, size: 40));
     return GestureDetector(
       onTap: () => setState(() {
         _selectedClub = on ? 0 : clubId;
         _selectedTeam = 0;
       }),
-      child: Opacity(
-        opacity: on ? 1 : .55,
-        child: Container(
-          width: 52,
-          height: 52,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: V3.card,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-                color: on ? V3.green : Colors.transparent, width: 2),
-          ),
-          child: crest == null
-              ? Image.asset('assets/images/Launcher_Icon_v2.png',
-                  fit: BoxFit.contain)
-              : Image.network(crest,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.shield_outlined, color: V3.muted)),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Opacity(
+          opacity: on ? 1 : .5,
+          child: SizedBox(width: 72, height: 72, child: img),
         ),
-      ),
+        const SizedBox(height: 6),
+        Container(
+          width: 44,
+          height: 3,
+          decoration: BoxDecoration(
+            color: on ? V3.green : Colors.transparent,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -456,8 +458,8 @@ class _V3HomePageState extends State<V3HomePage> {
           Container(
             width: 52,
             height: 52,
-            decoration: const BoxDecoration(
-                color: V3.card, shape: BoxShape.circle),
+            decoration:
+                const BoxDecoration(color: V3.card, shape: BoxShape.circle),
             child: const Icon(Icons.filter_list, color: V3.muted, size: 26),
           ),
           if (on)
@@ -575,7 +577,9 @@ class _V3HomePageState extends State<V3HomePage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                    n == 1 ? '1 event needs your reply' : '$n events need your reply',
+                    n == 1
+                        ? '1 event needs your reply'
+                        : '$n events need your reply',
                     style: V3.inter(16,
                         weight: FontWeight.w600, color: V3.amberText)),
               ),
@@ -602,14 +606,19 @@ class _V3HomePageState extends State<V3HomePage> {
                   color: const Color(0xFF155B81),
                   borderRadius: BorderRadius.circular(10)),
               child: Text('GAA',
-                  style: V3.tight(11, weight: FontWeight.w800, color: Colors.white)),
+                  style: V3.tight(11,
+                      weight: FontWeight.w800, color: Colors.white)),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('National Draw', style: V3.inter(15, weight: FontWeight.w600)),
-                Text('Support your club', style: V3.inter(13, color: V3.muted)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('National Draw',
+                        style: V3.inter(15, weight: FontWeight.w600)),
+                    Text('Support your club',
+                        style: V3.inter(13, color: V3.muted)),
+                  ]),
             ),
             FilledButton(
               onPressed: () => launchURL(
@@ -630,7 +639,8 @@ class _V3HomePageState extends State<V3HomePage> {
   Widget _empty() => Padding(
         padding: const EdgeInsets.fromLTRB(30, 60, 30, 20),
         child: Column(children: [
-          Text('Nothing coming up', style: V3.inter(18, weight: FontWeight.w600)),
+          Text('Nothing coming up',
+              style: V3.inter(18, weight: FontWeight.w600)),
           const SizedBox(height: 6),
           Text(
               _selectedTeam != 0 || _selectedClub != 0
@@ -730,21 +740,26 @@ class _V3HomePageState extends State<V3HomePage> {
               context.pushNamed(
                 EditUserWidget.routeName,
                 queryParameters: {
-                  'paramUserID': serializeParam(currentUserUid, ParamType.String),
+                  'paramUserID':
+                      serializeParam(currentUserUid, ParamType.String),
                 }.withoutNulls,
               );
             },
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${_home.firstName} ${_home.lastName}',
-                    style: V3.tight(22)),
-                const SizedBox(height: 4),
-                Text(_home.emailAddress, style: V3.inter(14, color: V3.muted)),
-                const SizedBox(height: 8),
-                Text('Edit profile',
-                    style: V3.inter(14, weight: FontWeight.w600, color: V3.green)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${_home.firstName} ${_home.lastName}',
+                        style: V3.tight(22)),
+                    const SizedBox(height: 4),
+                    Text(_home.emailAddress,
+                        style: V3.inter(14, color: V3.muted)),
+                    const SizedBox(height: 8),
+                    Text('Edit profile',
+                        style: V3.inter(14,
+                            weight: FontWeight.w600, color: V3.green)),
+                  ]),
             ),
           ),
           const Divider(color: V3.line, height: 1),
