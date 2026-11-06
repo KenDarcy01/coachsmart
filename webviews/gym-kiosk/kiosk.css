@@ -58,27 +58,37 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 1.4rem; -webkit-overfl
 .h2 .muted { color: var(--muted); }
 .muted { color: var(--muted); }
 
-/* Session tiles */
-.tiles { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
-.tile { position: relative; text-align: left; min-height: 9.5rem; padding: 1.2rem 1.3rem 1.1rem 1.6rem; border-radius: var(--radius);
-  background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: .35rem; overflow: hidden; box-shadow: var(--shadow); }
-.tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: .55rem; background: var(--stripe, var(--club)); }
+/* Session tiles: team name first. 2 across on a landscape tablet (4 teams fit without scrolling), more scroll. */
+.tiles { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr)); }
+.tile { position: relative; text-align: left; min-height: 9rem; padding: 1.1rem 1.3rem 1rem 1.7rem; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: .45rem; overflow: hidden; box-shadow: var(--shadow); }
+.tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: .6rem; background: var(--stripe, var(--club)); }
 .tile:active { transform: scale(.985); background: var(--surface-2); }
-.tile .time { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
-.tile .name { font-size: 1.25rem; font-weight: 700; }
-.tile .meta { color: var(--muted); font-size: .95rem; }
-.tile .count { margin-top: auto; display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; color: var(--ok); }
-.tile.now { border-color: var(--club); box-shadow: 0 0 0 2px var(--club) inset; }
-.tile .badge { position: absolute; top: 1rem; right: 1rem; font-size: .75rem; font-weight: 800; letter-spacing: .06em;
-  padding: .3rem .6rem; border-radius: 999px; background: var(--club); color: var(--on-club); }
-.tile.open { border-style: dashed; background: transparent; --stripe: var(--club-3); }
-.tile.open .time { font-size: 1.55rem; }
+.tile .tile-top { display: flex; align-items: flex-start; gap: .8rem; }
+.tile .team { flex: 1; min-width: 0; font-size: 1.75rem; font-weight: 800; line-height: 1.15; }
+.tile .squad { display: inline-flex; align-items: center; gap: .5rem; font-size: 1.1rem; font-weight: 600; color: var(--muted); }
+.tile .squad i { width: .9rem; height: .9rem; border-radius: 50%; display: inline-block; }
+.tile .tile-bottom { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.tile .when { color: var(--muted); font-size: 1.05rem; }
+.tile .when b { color: var(--text); font-size: 1.35rem; font-variant-numeric: tabular-nums; margin-right: .3rem; }
+.tile .count { display: inline-flex; align-items: center; gap: .35rem; font-weight: 700; color: var(--ok); white-space: nowrap; font-size: 1.1rem; }
+.tile.now { border-color: var(--club); box-shadow: 0 0 0 2px var(--club) inset, var(--shadow); }
+.tile .badge { flex: none; font-size: .8rem; font-weight: 800; letter-spacing: .06em; padding: .35rem .7rem; border-radius: 999px; background: var(--club); color: var(--on-club); }
+.tiles.many .tile { min-height: 7.5rem; }
+.tiles.many .tile .team { font-size: 1.5rem; }
 .empty { padding: 2rem; border-radius: var(--radius); background: var(--surface); color: var(--muted); text-align: center; margin-bottom: 1.1rem; }
 
-.qr-cta { margin-top: 1.4rem; width: 100%; min-height: 6rem; border-radius: var(--radius); display: flex; align-items: center; justify-content: center;
-  gap: 1rem; background: var(--surface-2); border: 1px solid var(--line); font-size: 1.3rem; font-weight: 700; }
-.qr-cta svg { width: 2.6rem; height: 2.6rem; }
-.qr-cta:active { background: var(--line); }
+/* Fixed bottom bar: Open gym + Scan QR, always in the same place */
+.dock { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem 1.4rem calc(1rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line); background: var(--bg); box-shadow: 0 -4px 16px rgba(16,24,40,.06); }
+.dock-btn { min-height: 5.5rem; border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  background: var(--surface-2); border: 1px solid var(--line); }
+.dock-btn:active { background: var(--line); }
+.dock-btn.open { background: var(--club-3); border-color: var(--club-3); color: #fff; }
+.dock-btn.qr { flex-direction: row; gap: .8rem; }
+.dock-btn svg { width: 2.2rem; height: 2.2rem; }
+.dock-title { font-size: 1.3rem; font-weight: 800; }
+.dock-sub { font-size: .95rem; opacity: .9; }
 
 /* Name picker */
 .picker { display: flex; flex: 1; min-height: 0; }
@@ -170,7 +180,6 @@ main { flex: 1; min-height: 0; overflow-y: auto; padding: 1.4rem; -webkit-overfl
 
 /* Portrait tablets */
 @media (orientation: portrait) {
-  .tiles { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
   .coach-grid { grid-template-columns: 1fr; }
   .bar .clock { font-size: 1.6rem; }
 }

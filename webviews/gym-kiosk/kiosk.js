@@ -254,45 +254,48 @@
     const main = h('<main></main>');
     const evs = events();
     const now = Date.now();
-    // "Now" = the session nearest to now that started up to 2 hours ago or starts within the hour.
-    const live = evs.filter(e => { const t = new Date(e.time).getTime(); return t - now < 3600e3 && now - t < 2 * 3600e3; })
-      .sort((a, b) => Math.abs(new Date(a.time) - now) - Math.abs(new Date(b.time) - now))[0];
+    // "Now" = any session that started up to 2 hours ago or starts within the hour (several teams can be in at once).
+    const liveIds = new Set(evs.filter(e => { const t = new Date(e.time).getTime(); return t - now < 3600e3 && now - t < 2 * 3600e3; }).map(e => e.event_id));
 
-    main.append(h(`<div class="h2"><h2>Tap your session</h2><span class="muted">${evs.length ? `${evs.length} today` : ''}</span></div>`));
+    main.append(h(`<div class="h2"><h2>Tap your team's session</h2><span class="muted">${evs.length ? `${evs.length} today` : ''}</span></div>`));
     if (!S.boot) {
       main.append(h('<div class="empty">Loading today\'s sessions…</div>'));
     } else if (!evs.length) {
       main.append(h('<div class="empty">No S&amp;C sessions scheduled today. Use Open gym below.</div>'));
     }
-    const tiles = h('<div class="tiles"></div>');
+    const tick = ICON.tick.replace('<svg', '<svg width="22" height="22"');
+    const tiles = h(`<div class="tiles${evs.length > 4 ? ' many' : ''}"></div>`);
     for (const e of evs) {
-      const t = team(e.team_id); const sq = e.squad_id ? squad(e.squad_id) : null;
+      const t = team(e.team_id);
+      const sq = e.squad_id ? squad(e.squad_id) : null;
       const n = countFor(e.event_id);
-      const tile = h(`<button class="tile${live && live.event_id === e.event_id ? ' now' : ''}" style="--stripe:${esc((sq && sq.colour) || 'var(--club)')}">
-        ${live && live.event_id === e.event_id ? '<span class="badge">NOW</span>' : ''}
-        <span class="time">${esc(fmtTime(e.time))}</span>
-        <span class="name">${esc(e.title)}</span>
-        <span class="meta">${esc(t ? t.name : '')}${sq ? ` · ${esc(sq.name)}` : ''}${e.location ? ` · ${esc(e.location)}` : ''}</span>
-        <span class="count">${n ? `${ICON.tick.replace('<svg', '<svg width="20" height="20"')} ${n} checked in` : '&nbsp;'}</span>
+      const isLive = liveIds.has(e.event_id);
+      const tile = h(`<button class="tile${isLive ? ' now' : ''}" style="--stripe:${esc((sq && sq.colour) || 'var(--club)')}">
+        <span class="tile-top">
+          <span class="team">${esc(t ? t.name : 'Team')}</span>
+          ${isLive ? '<span class="badge">NOW</span>' : ''}
+        </span>
+        ${sq ? `<span class="squad"><i style="background:${esc(sq.colour || 'var(--club)')}"></i>${esc(sq.name)}</span>` : '<span class="squad">Whole team</span>'}
+        <span class="tile-bottom">
+          <span class="when"><b>${esc(fmtTime(e.time))}</b> ${esc(e.title)}${e.location ? ` · ${esc(e.location)}` : ''}</span>
+          <span class="count">${n ? `${tick}${n} in` : ''}</span>
+        </span>
       </button>`);
       tile.onclick = () => go('picker', { eventKey: e.event_id });
       tiles.append(tile);
     }
-    const nOpen = countFor('open');
-    const open = h(`<button class="tile open">
-      <span class="time">Open gym</span>
-      <span class="name">Not at a scheduled session</span>
-      <span class="meta">Any S&amp;C member of the club</span>
-      <span class="count">${nOpen ? `${ICON.tick.replace('<svg', '<svg width="20" height="20"')} ${nOpen} checked in` : '&nbsp;'}</span>
-    </button>`);
-    open.onclick = () => go('picker', { eventKey: 'open' });
-    tiles.append(open);
     main.append(tiles);
-
-    const qr = h(`<button class="qr-cta">${ICON.qr}<span>Scan my QR code</span></button>`);
-    qr.onclick = () => openScanner('auto');
-    main.append(qr);
     app.append(main);
+
+    // Always in the same place, however many sessions there are.
+    const nOpen = countFor('open');
+    const dock = h(`<footer class="dock">
+      <button class="dock-btn open"><span class="dock-title">Open gym</span><span class="dock-sub">Not at a team session${nOpen ? ` · ${nOpen} in` : ''}</span></button>
+      <button class="dock-btn qr">${ICON.qr}<span class="dock-title">Scan my QR code</span></button>
+    </footer>`);
+    dock.querySelector('.open').onclick = () => go('picker', { eventKey: 'open' });
+    dock.querySelector('.qr').onclick = () => openScanner('auto');
+    app.append(dock);
     updateSyncPill(); tickClock();
   }
 
