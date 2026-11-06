@@ -147,7 +147,7 @@
   const initials = s => (String(s).replace(/\b(GAA|CLG|LGFA)\b/gi, '').match(/\b[A-Za-z]/g) || []).slice(0, 2).join('').toUpperCase();
 
   function shell(view, inner) {
-    const nav = [['overview', 'Overview'], ['sessions', 'Sessions'], ['people', 'People']];
+    const nav = [['overview', 'Overview'], ['sessions', 'Sessions'], ['people', 'People'], ['summary', 'Team summary']];
     const crest = D.club.crest ? `<img class="crest" src="${esc(D.club.crest)}" alt="" onerror="this.outerHTML='<div class=crest-blank>${esc(initials(D.club.name))}</div>'">` : `<div class="crest-blank">${esc(initials(D.club.name))}</div>`;
     const who = `${esc(D.me.name || 'Signed in')}<span class="long"> · ${esc(D.scope.club_wide ? 'Whole club' : 'Team admin')}</span>`;
     $app.innerHTML = `
@@ -380,6 +380,105 @@
     document.getElementById('sortSel').onchange = e => { UI.peopleSort = e.target.value; saveUI(); viewPeople(); };
   }
 
+
+  // ── Team summary: simple insights per team, to copy or print for a team's lead mentor ──
+  function teamSummary(teamId, a, b) {
+    const t = today(), effB = b < t ? b : t;
+    const len = daysBetween(a, b) + 1, weeks = Math.max(1, Math.round(len / 7));
+    const squad = D.members.filter(m => m.player && m.teams.includes(teamId));
+    const ids = new Set(squad.map(m => m.id));
+    const stats = (from, to) => {
+      const cks = D.checkins.filter(c => c.date >= from && c.date <= to && ids.has(c.member_id));
+      const evs = D.events.filter(e => e.date >= from && e.date <= to && started(e) &&
+        (e.team_id === teamId || e.accepted.some(id => ids.has(id)) || (ckByEvent.get(e.event_id) || []).some(c => ids.has(c.member_id))));
+      let acc = 0, came = 0, att = 0;
+      const noShows = new Map();
+      for (const e of evs) {
+        const checked = new Set((ckByEvent.get(e.event_id) || []).filter(c => ids.has(c.member_id)).map(c => c.member_id));
+        const ac = e.accepted.filter(id => ids.has(id));
+        acc += ac.length; att += checked.size;
+        for (const id of ac) { if (checked.has(id)) came++; else noShows.set(id, (noShows.get(id) || 0) + 1); }
+      }
+      const per = new Map();
+      for (const c of cks) per.set(c.member_id, (per.get(c.member_id) || 0) + 1);
+      return { cks, evs, acc, came, att, noShows, per, turnup: pct(came, acc) };
+    };
+    const cur = stats(a, effB);
+    const prev = stats(addDays(a, -len), addDays(effB, -len));
+    const cutoff = addDays(t, -14);
+    const top = [...cur.per].sort((x, y) => y[1] - x[1] || name(x[0]).localeCompare(name(y[0]))).slice(0, 5);
+    const notSeen = squad.filter(m => { const l = lastSeen(m.id); return !l || l < cutoff; }).sort((x, y) => x.name.localeCompare(y.name));
+    const repeat = [...cur.noShows].filter(([, n]) => n >= 2).sort((x, y) => y[1] - x[1] || name(x[0]).localeCompare(name(y[0])));
+    return {
+      teamId, squad: squad.length, weeks, sessions: cur.evs.length,
+      avg: cur.evs.length ? Math.round(cur.att / cur.evs.length * 10) / 10 : null,
+      turnup: cur.turnup, turnupPrev: prev.turnup, cks: cur.cks.length, cksPrev: prev.cks.length,
+      reached: cur.per.size, regular: [...cur.per.values()].filter(n => n >= weeks).length,
+      open: cur.cks.filter(c => !c.event_id).length, top, notSeen, repeat,
+    };
+  }
+
+  function summaryText(r, a, b) {
+    const lines = [`${teamName(r.teamId)}: gym summary, ${RANGES[UI.range].label.toLowerCase()} (${fmtShort(a)} – ${fmtShort(b)})`];
+    if (!r.cks && !r.sessions) { lines.push('• No gym activity in this period.'); return lines.join('\n'); }
+    const trend = (x, y, unit) => x === null || y === null || x === y ? '' : ` (${x > y ? 'up' : 'down'} ${Math.abs(x - y)}${unit} on the period before)`;
+    if (r.sessions) lines.push(`• ${r.sessions} session${r.sessions === 1 ? '' : 's'}, average ${r.avg} of the group per session`);
+    if (r.turnup !== null) lines.push(`• ${r.turnup}% of those who said yes turned up${trend(r.turnup, r.turnupPrev, ' pts')}`);
+    lines.push(`• ${r.cks} check-ins in total${trend(r.cks, r.cksPrev, '')}${r.open ? `, ${r.open} of them Open gym` : ''}`);
+    if (r.squad) lines.push(`• ${r.reached} of ${r.squad} players came at least once; ${r.regular} averaged once a week or more`);
+    if (r.top.length) lines.push(`• Most visits: ${r.top.map(([id, n]) => `${name(id)} (${n})`).join(', ')}`);
+    if (r.repeat.length) lines.push(`• Said yes but missed 2+ sessions: ${r.repeat.slice(0, 6).map(([id, n]) => `${name(id)} (${n})`).join(', ')}${r.repeat.length > 6 ? ` and ${r.repeat.length - 6} more` : ''}`);
+    if (r.notSeen.length) lines.push(`• Not seen in the last 14 days: ${r.notSeen.map(m => m.name).join(', ')}`);
+    return lines.join('\n');
+  }
+
+  function viewSummary() {
+    const [a, b] = RANGES[UI.range].span();
+    const teams = (teamF() ? [teamF()] : filterTeams().map(t => t.team_id))
+      .filter(id => D.members.some(m => m.player && m.teams.includes(id)));
+    const reports = teams.map(id => teamSummary(id, a, b)).filter(r => teamF() || r.cks || r.sessions);
+    const big = (n, l, d = '') => `<div class="mini"><div class="n">${n}</div><div class="l">${l}</div>${d}</div>`;
+    const trendTag = (x, y, unit = '') => x === null || y === null || x === y ? '' : `<div class="d ${x > y ? 'up' : 'down'}">${x > y ? '▲' : '▼'} ${Math.abs(x - y)}${unit}</div>`;
+    const list = (items, empty) => items.length ? items.join(', ') : `<span class="muted">${empty}</span>`;
+    CSV = { name: `${fileStem()}-team-summary-${a}.csv`, rows: [['Team', 'Players', 'Sessions', 'Avg per session', 'Turn-up %', 'Check-ins', 'Came at least once', 'Once a week or more', 'Not seen in 14 days'],
+      ...reports.map(r => [teamName(r.teamId), r.squad, r.sessions, r.avg ?? '', r.turnup ?? '', r.cks, r.reached, r.regular, r.notSeen.length])] };
+    shell('summary', `
+      <div class="head"><h2>Team summary</h2>${filters()}</div>
+      <p class="muted" style="margin:-8px 0 16px">A short summary per team to share with its lead mentor. Copy it into WhatsApp or email, or print it.</p>
+      ${reports.length ? reports.map((r, i) => `
+      <div class="card sumcard" id="sum-${i}">
+        <div class="printonly">${esc(D.club.name)} · Gym summary</div>
+        <h3><b>${teamCell(r.teamId)}</b><span>${esc(rangeLabel())}</span></h3>
+        <div class="minis">
+          ${big(r.sessions, 'Sessions')}
+          ${big(r.avg ?? '–', 'Average per session')}
+          ${big(r.turnup === null ? '–' : r.turnup + '%', 'Turn-up (came ÷ said yes)', trendTag(r.turnup, r.turnupPrev, ' pts'))}
+          ${big(`${r.reached}<small>/${r.squad}</small>`, 'Players in at least once')}
+          ${big(r.regular, 'Once a week or more')}
+        </div>
+        <div class="insights">
+          <div><b>Most visits</b>${list(r.top.map(([id, n]) => `${esc(name(id))} (${n})`), 'Nobody yet')}</div>
+          <div><b>Said yes, missed 2+ sessions</b>${list(r.repeat.slice(0, 6).map(([id, n]) => `${esc(name(id))} (${n})`), 'Nobody')}${r.repeat.length > 6 ? ` and ${r.repeat.length - 6} more` : ''}</div>
+          <div><b>Not seen in the last 14 days</b>${list(r.notSeen.map(m => esc(m.name)), 'Everyone has been in')}</div>
+        </div>
+        <div class="sumbtns noprint"><button class="btn primary" data-copy="${i}">Copy summary</button><button class="btn" data-print="${i}">Print or save as PDF</button><span class="muted copied" id="copied-${i}"></span></div>
+      </div>`).join('') : '<div class="card"><div class="empty">No team activity in this period.</div></div>'}`);
+    document.querySelectorAll('[data-copy]').forEach(btn => btn.onclick = async () => {
+      const i = Number(btn.dataset.copy), text = summaryText(reports[i], a, b), done = document.getElementById('copied-' + i);
+      try { await navigator.clipboard.writeText(text); done.textContent = 'Copied. Paste it into WhatsApp or email.'; }
+      catch (_) { window.prompt('Copy this summary:', text); }
+      setTimeout(() => { done.textContent = ''; }, 4000);
+    });
+    document.querySelectorAll('[data-print]').forEach(btn => btn.onclick = () => {
+      const card = document.getElementById('sum-' + btn.dataset.print);
+      document.body.classList.add('printing'); card.classList.add('print-me');
+      const done = () => { document.body.classList.remove('printing'); card.classList.remove('print-me'); window.removeEventListener('afterprint', done); };
+      window.addEventListener('afterprint', done);
+      window.print();
+      setTimeout(done, 1000);
+    });
+  }
+
   function bindRows() {
     document.querySelectorAll('tr[data-ev]').forEach(tr => tr.onclick = () => { location.hash = '#session-' + tr.dataset.ev; });
   }
@@ -392,6 +491,7 @@
     if (m) viewSession(Number(m[1]));
     else if (h === 'sessions') viewSessions();
     else if (h === 'people') viewPeople();
+    else if (h === 'summary') viewSummary();
     else viewOverview();
     window.scrollTo(0, 0);
   }
