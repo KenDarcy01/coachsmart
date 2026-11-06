@@ -106,3 +106,8 @@ td.c { font-variant-numeric: tabular-nums; border-radius: 6px; }
 .box input { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; font-weight: 400; border: 1px solid var(--rule); border-radius: 10px; }
 .box .btn { width: 100%; }
 @media (max-width: 600px) { .me span { display: none; } .top h1 { font-size: 20px; } }
+.sheet { position: fixed; inset: 0; z-index: 20; background: rgba(20, 28, 45, .45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet-in { width: 100%; max-width: 420px; background: #fff; border-radius: 16px 16px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.sheet-in span { color: var(--muted); font-size: 13px; word-break: break-all; }
+.sheet-in .small { padding: 10px; }
+.link-dark { background: none; border: 0; color: var(--navy); text-decoration: underline; padding: 6px; }

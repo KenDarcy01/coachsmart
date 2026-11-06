@@ -139,6 +139,7 @@
       if (!savedAt[r.user_id] || r.updated_at > savedAt[r.user_id]) savedAt[r.user_id] = r.updated_at;
     });
     P = planner(D.plan && D.plan.plan);
+    pdfLibs().catch(() => {});   // ready before the PDF button is tapped (phones need the tap fresh to share)
     const ws = weeks();
     if (!ws.includes(week)) week = monday(todayIso()) < ws[0] ? ws[0] : ws[ws.length - 1];
     render();
@@ -155,7 +156,7 @@
         <div class="tt"><div class="club">Clontarf GAA · Senior Football</div><h1>Diary dashboard</h1></div>
         <div class="me"><span>${esc(D.me)}</span><button class="link" id="out">Sign out</button></div>
       </div>
-      <nav class="tabs">${tab('squad', 'Squad')}${player ? tab('player', esc(name(player))) : ''}${tab('admins', 'Admins')}<button class="tab" id="reload" title="Load the latest">↻ Refresh</button>${view === 'admins' ? '' : '<button class="tab" id="pdf" title="Download what is on screen as a PDF">⤓ PDF</button>'}</nav></header>
+      <nav class="tabs">${tab('squad', 'Squad')}${player ? tab('player', esc(name(player))) : ''}${tab('admins', 'Admins')}<button class="tab" id="reload" title="Load the latest">↻ Refresh</button>${view === 'admins' ? '' : '<button class="tab" id="pdf" title="Download or share what is on screen as a PDF">⤓ PDF</button>'}</nav></header>
       <main class="wrap">${msg ? `<p class="msg">${esc(msg)}</p>` : ''}${body}</main>
       <p class="foot">Plan ${D.plan ? `published from the coaches' sheet ${esc(short(D.plan.published_at.slice(0, 10)))}${D.plan.published_by ? ' by ' + esc(D.plan.published_by) : ''}` : 'from plan.js (not published from the sheet yet)'}. Session ticks only; exercise ticks inside a session are not counted.</p>`;
     msg = '';
@@ -278,15 +279,16 @@
     'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'];
   const script = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('Could not load the PDF maker. Check your signal.')); document.head.appendChild(s); });
   let crest = null;
-  async function pdfLibs() {
-    if (!window.jspdf) { await script(PDF_LIBS[0]); await script(PDF_LIBS[1]); }
-    if (crest === null) {
-      crest = '';
+  let libs = null;
+  function pdfLibs() {
+    libs = libs || (async () => {
+      if (!window.jspdf) { await script(PDF_LIBS[0]); await script(PDF_LIBS[1]); }
       try {
         const blob = await (await fetch('../../images/clontarf-crest.png')).blob();
         crest = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); });
-      } catch (e) {}
-    }
+      } catch (e) { crest = ''; }
+    })().catch(e => { libs = null; throw e; });
+    return libs;
   }
   const NAVY = [27, 58, 107], RED = [237, 27, 46], GREY = [91, 100, 120];
   const FILL = { full: [[223, 243, 230], [47, 133, 90]], part: [[252, 239, 214], [183, 121, 31]], miss: [[251, 227, 229], [198, 16, 31]] };
@@ -383,13 +385,60 @@
     return `senior-diary-${slug(name(p))}-${week}.pdf`;
   }
 
+  // Phones and tablets get the share sheet (Save to Files, WhatsApp, Mail...);
+  // computers download the file as before.
+  const touch = () => matchMedia('(pointer: coarse)').matches || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   async function pdf() {
     await pdfLibs();
     const playerPage = view === 'player' && player;
     const doc = new window.jspdf.jsPDF({ orientation: playerPage ? 'portrait' : 'landscape', unit: 'mm', format: 'a4' });
-    const file = playerPage ? playerPdf(doc, player) : squadPdf(doc);
+    const filename = playerPage ? playerPdf(doc, player) : squadPdf(doc);
     pdfFooter(doc);
-    doc.save(file);
+    const title = playerPage ? `${name(player)} · diary report` : `Senior diary · ${weekLabel(week)}`;
+    const blob = doc.output('blob');
+    const file = new File([blob], filename, { type: 'application/pdf' });
+    let canShare = false;
+    try { canShare = touch() && !!(navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) {}
+    if (canShare) {
+      const r = await share(file, title);
+      if (r === 'done') return;
+      // The phone wants a fresh tap before it opens the share sheet (it can lapse while
+      // the PDF is made): offer a button for it, with Open as a fallback.
+      if (r === 'tap') return shareSheet(file, title, blob);
+    }
+    download(blob, filename);
+  }
+  async function share(file, title) {
+    try {
+      // navigator.share can hang inside some in-app browsers, so cap the wait.
+      await Promise.race([navigator.share({ title, files: [file] }), new Promise((_, no) => setTimeout(() => no(new Error('ShareTimeout')), 15000))]);
+      return 'done';
+    } catch (e) {
+      if (e.name === 'AbortError') return 'done';      // they closed the share sheet
+      if (e.name === 'NotAllowedError') return 'tap';
+      console.warn('Share failed', e);
+      return 'fail';
+    }
+  }
+  function download(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  function shareSheet(file, title, blob) {
+    const box = document.createElement('div');
+    box.className = 'sheet';
+    box.innerHTML = `<div class="sheet-in"><b>Your PDF is ready</b><span>${esc(file.name)}</span>
+      <button class="btn" data-act="share">Share PDF</button><button class="small" data-act="open">Open PDF</button><button class="link-dark" data-act="close">Close</button></div>`;
+    document.body.appendChild(box);
+    box.addEventListener('click', async e => {
+      const act = e.target.dataset && e.target.dataset.act;
+      if (act === 'share') { const r = await share(file, title); if (r === 'fail') download(blob, file.name); box.remove(); }
+      if (act === 'open') { window.open(URL.createObjectURL(blob), '_blank'); box.remove(); }
+      if (act === 'close' || e.target === box) box.remove();
+    });
   }
 
   // ---- sign in ----
