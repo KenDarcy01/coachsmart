@@ -14,7 +14,9 @@ Nothing existing in CoachSmart is changed. RSVPs (`event_attendance`) are never 
 - **Names:** for an event, members of that event's team only, its squad first. Shown as first name + surname initial ("Ken D"); a second or third surname letter only where two people would clash, and a number if they still clash. No photos, member codes or dates of birth ever reach the tablet.
 - **Open gym:** anyone on one of the club's S&C teams, with no session attached.
 - **Walk-in:** not stored; it is any event check-in without an Accept RSVP (no reply or declined). See `view_event_checkins.walk_in`.
-- **QR:** the member's `unique_member_code` as a QR code. Scanned from the home screen it goes to the member's own session today (or Open gym); scanned inside a session it goes to that session. Someone scanning into another team's session is checked in to Open gym instead.
+- **QR:** the member's `unique_member_code` as a QR code. Scanned from the home screen (or Open gym) it goes to the member's own team session if one starts within an hour either side, otherwise Open gym; scanned inside a session it goes to that session. Someone scanning into another team's session is checked in to Open gym instead. Chrome on Android reads QR codes natively; elsewhere (iPad Safari) the bundled jsQR does.
+- **Open gym during a team session:** tapping a name in Open gym while that member's team has a session within an hour asks whether they meant the session.
+- **My gym QR:** members open `https://coachsmart.app/webviews/gym-qr/`, sign in once with their CoachSmart login and add it to their home screen. It shows the QR for every member the login is linked to (a parent sees each child), and keeps working offline.
 
 ## Setting up a tablet (Android)
 

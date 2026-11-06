@@ -15,11 +15,14 @@
 //   pair      { email, password, device_name, pin, club_id? } → { token, device_id, club }   (club admins only)
 //                (no club_id and the admin has more than one club → { clubs: [...] } to pick from)
 //   bootstrap {}                       → club, teams, members (short names), today's events and check-ins
-//   checkin   { items: [ { client_uuid, event_id | "auto" | null, member_id | member_code,
+//   checkin   { items: [ { client_uuid, event_id | "auto" | null, member_id | member_code,   ("auto": own team's
+//                          session within an hour of its start, else Open gym)
 //                          method: "tap" | "qr", checked_in_at } ] } → { results: [...] }
 //   undo      { client_uuid, pin? }    → undo a check-in (no PIN needed for today's check-ins; older ones need the coach PIN)
 //   coach     { pin }                  → { ok } when the coach PIN is right (opens coach mode)
 //   unpair    { email, password }      → retires this tablet's token (an admin of the tablet's club)
+//   my_qr     { access_token }         → the signed-in member app user's linked members and their QR codes
+//                                         (webviews/gym-qr/; no tablet token needed)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 
@@ -28,6 +31,7 @@ const SNC_CODE_NAME = "S&C";
 const ADMIN_ROLE_LEVEL = 100;          // roles.role_level: Coach 30, Admin 100, SuperUser 110
 const SUPERUSER_ROLE_LEVEL = 110;
 const MAX_ITEMS = 200;
+const SESSION_WINDOW_MIN = 60;          // a team session counts from an hour before to an hour after its start
 const MAX_AGE_DAYS = 7;                // offline check-ins older than this are refused
 
 const corsHeaders = {
@@ -51,6 +55,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     if (body.action === "pair") return json(await pair(sb, body));
+    if (body.action === "my_qr") return json(await myQr(sb, body));
 
     const device = await deviceFromToken(sb, req.headers.get("x-kiosk-token") || "");
     switch (body.action) {
@@ -384,7 +389,9 @@ async function checkinOne(sb: any, device: Device, ctx: Ctx, events: (d: string)
   let converted = false;
   const todays = await events(date);
   if (raw.event_id === "auto") {
-    const mine = todays.filter((e: any) => member.teams.includes(e.team_id));
+    // Their own team's session if it starts within an hour either side of the check-in; otherwise Open gym.
+    const mine = todays.filter((e: any) => member.teams.includes(e.team_id)
+      && Math.abs(new Date(e.event_date_time).getTime() - at.getTime()) <= SESSION_WINDOW_MIN * 60e3);
     const score = (e: any) => (e.squad_id && member.squads.includes(e.squad_id) ? 0 : e.squad_id ? 2 : 1) * 1e12
       + Math.abs(new Date(e.event_date_time).getTime() - at.getTime());
     event = mine.sort((a: any, b: any) => score(a) - score(b))[0] || null;
@@ -444,4 +451,44 @@ async function undo(sb: any, device: Device, body: any) {
 
   await sb.from("event_checkins").update({ status: "undone", undone_at: new Date().toISOString() }).eq("checkin_id", row.checkin_id);
   return { ok: true };
+}
+
+// ── My gym QR (member's phone) ──────────────────────────────────────────────
+
+/** The members this CoachSmart login is linked to (themselves, or their children), with each one's
+ *  member code for the QR. Codes go only to the signed-in user's own phone. */
+async function myQr(sb: any, body: any) {
+  const token = String(body.access_token || "");
+  if (!token) throw new HttpError(401, "Please sign in", "signin");
+  const { data: { user } } = await sb.auth.getUser(token);
+  if (!user) throw new HttpError(401, "Please sign in again", "signin");
+
+  const { data: links } = await sb.from("user_member_link").select("member_id, status").eq("user_id", user.id);
+  const ids = (links || []).filter((l: any) => String(l.status || "active").toLowerCase() === "active").map((l: any) => l.member_id);
+  if (!ids.length) return { members: [] };
+  const { data: people } = await sb.from("members").select("member_id, first_name, last_name, unique_member_code, status").in("member_id", ids);
+  const { data: mtl } = await sb.from("member_team_link").select("member_id, team_id").in("member_id", ids).eq("status", "active");
+  const teamIds = [...new Set((mtl || []).map((r: any) => r.team_id))];
+  const { data: teams } = teamIds.length ? await sb.from("teams").select("team_id, team_name, club_id").in("team_id", teamIds) : { data: [] };
+  const clubIds = [...new Set((teams || []).map((t: any) => t.club_id).filter(Boolean))];
+  const { data: clubs } = clubIds.length ? await sb.from("clubs").select("club_id, club_name, crest, primary_colour, secondary_colour, third_colour").in("club_id", clubIds) : { data: [] };
+  const teamById = new Map((teams || []).map((t: any) => [t.team_id, t]));
+
+  const members = (people || [])
+    .filter((p: any) => p.status === "active" && p.unique_member_code)
+    .map((p: any) => {
+      const myTeams = (mtl || []).filter((r: any) => r.member_id === p.member_id).map((r: any) => teamById.get(r.team_id)).filter(Boolean);
+      return {
+        member_id: p.member_id,
+        name: `${String(p.first_name || "").trim()} ${String(p.last_name || "").trim()}`.trim() || "Member",
+        code: p.unique_member_code,
+        teams: myTeams.map((t: any) => t.team_name),
+        club_id: myTeams[0]?.club_id ?? null,
+      };
+    })
+    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+  return {
+    members,
+    clubs: (clubs || []).map((c: any) => ({ club_id: c.club_id, name: c.club_name, crest: c.crest, colours: [c.primary_colour, c.secondary_colour, c.third_colour] })),
+  };
 }

@@ -332,7 +332,7 @@
     const main = h('<main></main>');
     const search = h(`<div class="search"><input type="search" placeholder="Search your name" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
       <button class="qr-small">${ICON.qr}<span>Scan QR</span></button></div>`);
-    search.querySelector('.qr-small').onclick = () => openScanner(isOpen ? null : e.event_id);
+    search.querySelector('.qr-small').onclick = () => openScanner(isOpen ? 'auto' : e.event_id); // Open gym: server still prefers their team's session within the hour
     const list = h('<div></div>');
     main.append(search, list);
     const az = h('<nav class="az" aria-label="Jump to letter"></nav>');
@@ -389,7 +389,20 @@
   }
   function closeOverlays() { document.querySelectorAll('.overlay, .success').forEach(x => x.remove()); clearTimeout(doneTimer); }
 
+  const SESSION_WINDOW_MS = 60 * 60000; // a team session counts from an hour before to an hour after its start
+
+  /** The member's own team sessions starting within an hour either side of now. */
+  function sessionsNear(m) {
+    const now = Date.now();
+    return events().filter(e => m.teams.includes(e.team_id) && Math.abs(new Date(e.time).getTime() - now) <= SESSION_WINDOW_MS)
+      .sort((a, b) => Math.abs(new Date(a.time) - now) - Math.abs(new Date(b.time) - now));
+  }
+
   function confirmTap(m, eventId) {
+    if (eventId == null) {
+      const near = sessionsNear(m)[0];
+      if (near) return askSession(m, near);
+    }
     const e = eventId == null ? null : eventById(eventId);
     const o = overlay(`<div class="card">
       <div class="big-av" style="background:${avColour(m.name)}">${esc(initials(m.name))}</div>
@@ -403,6 +416,29 @@
       showDone({ name: m.name, where: e ? `${fmtTime(e.time)} · ${e.title}` : 'Open gym', clientUuid: item.client_uuid });
       flush();
     };
+  }
+
+  /** Open gym tapped while their team has a session on: did they mean the session? */
+  function askSession(m, e) {
+    const t = team(e.team_id);
+    const o = overlay(`<div class="card">
+      <div class="big-av" style="background:${avColour(m.name)}">${esc(initials(m.name))}</div>
+      <h2>${esc(m.name)}</h2>
+      <p>Your team has a session now:</p>
+      <p><b style="color:var(--text)">${esc(t ? t.name : '')}</b> · ${esc(fmtTime(e.time))} ${esc(e.title)}</p>
+      <p>Check in to that instead of Open gym?</p>
+      <div class="actions"><button class="btn ghost" data-open>No, Open gym</button><button class="btn primary" data-session>Yes, my team's session</button></div></div>`);
+    const go = eventId => {
+      const item = { client_uuid: uuid(), event_id: eventId, member_id: m.id, method: 'tap', checked_in_at: new Date().toISOString() };
+      const ins = checkedIn();
+      const k = keyOf(eventId, m.id);
+      if (ins.has(k)) return showAlready(m, ins.get(k));
+      enqueue(item);
+      showDone({ name: m.name, where: eventId ? `${fmtTime(e.time)} · ${e.title}` : 'Open gym', clientUuid: item.client_uuid });
+      flush();
+    };
+    o.querySelector('[data-session]').onclick = () => go(e.event_id);
+    o.querySelector('[data-open]').onclick = () => go(null);
   }
 
   let doneTimer = null;
