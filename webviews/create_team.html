@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="cs-colour-picker.js"></script>
 <style>
 :root {
   --green:  #87C232;
@@ -215,6 +216,31 @@ html, body {
   display: flex; gap: 10px; align-items: flex-start; margin-bottom: 20px; width: 100%;
 }
 .share-note .wa-icon { flex-shrink: 0; margin-top: 1px; }
+
+/* Codes */
+.code-opt { display:flex; align-items:center; gap:14px; padding:16px; background:var(--card2); border:1.5px solid var(--border); border-radius:12px; margin-bottom:10px; cursor:pointer; }
+.code-opt.sel { border-color:var(--green); background:rgba(135,194,50,.08); }
+.code-opt .co-name { font-size:17px; font-weight:600; }
+.code-opt .co-sub { font-size:13px; color:var(--muted); margin-top:2px; }
+.code-opt .co-box { margin-left:auto; width:26px; height:26px; border-radius:7px; border:2px solid var(--muted); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.code-opt.sel .co-box { background:var(--green); border-color:var(--green); }
+.code-opt .co-box svg { width:16px; height:16px; display:none; }
+.code-opt.sel .co-box svg { display:block; }
+.hint { font-size:13px; color:var(--muted); margin-top:14px; line-height:1.5; }
+
+/* Squads */
+.count-row { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--card2); border:1.5px solid var(--border); border-radius:12px; margin-bottom:18px; }
+.stepper { display:flex; align-items:center; gap:14px; }
+.stepper button { width:40px; height:40px; border-radius:50%; background:var(--card); border:1.5px solid rgba(255,255,255,.15); color:var(--text); font-size:22px; line-height:1; cursor:pointer; font-family:inherit; }
+.stepper button:disabled { opacity:.35; }
+.stepper .num { font-family:'Bebas Neue',sans-serif; font-size:34px; min-width:26px; text-align:center; }
+.sq-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.sq-sw { width:48px; height:48px; border-radius:12px; flex-shrink:0; border:2px solid rgba(255,255,255,.18); cursor:pointer; position:relative; padding:0; }
+.sq-sw::after { content:''; position:absolute; right:-5px; bottom:-5px; width:18px; height:18px; border-radius:50%; background:var(--card2) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23E7EBEE" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>') center/11px no-repeat; border:1.5px solid var(--dark); }
+.sq-row input { flex:1; min-width:0; padding:13px 14px; border-radius:10px; background:var(--card2); border:1.5px solid var(--border); color:var(--text); font-size:17px; font-family:'DM Sans',sans-serif; outline:none; -webkit-appearance:none; }
+.sq-row input:focus { border-color:var(--green); }
+.no-team-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; border:1.5px dashed rgba(255,255,255,.12); color:var(--muted); font-size:14px; margin-top:6px; }
+.no-team-row .nt-dot { width:22px; height:22px; border-radius:6px; background:#9aa0a6; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -241,10 +267,10 @@ html, body {
 <div id="s-1" class="screen">
   <div class="logo-bar"><div class="logo">Coach<span>Smart</span></div></div>
   <div class="progress">
-    <div class="dot active"></div><div class="dot"></div>
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
   </div>
   <div class="content">
-    <div class="step-label">Step 1 of 2</div>
+    <div class="step-label">Step 1 of 4</div>
     <div class="screen-title">Select your club</div>
     <div class="screen-sub">Your team will sit under this club.</div>
     <div class="error-msg" id="err-1"></div>
@@ -268,10 +294,10 @@ html, body {
     </button>
   </div>
   <div class="progress">
-    <div class="dot done"></div><div class="dot active"></div>
+    <div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
   </div>
   <div class="content">
-    <div class="step-label">Step 2 of 2</div>
+    <div class="step-label">Step 2 of 4</div>
     <div class="screen-title">Team details</div>
     <div class="screen-sub">Tell us a bit about your team.</div>
     <div class="error-msg" id="err-2"></div>
@@ -299,7 +325,55 @@ html, body {
         <div class="toggle-track"></div>
       </label>
     </div>
-    <button class="btn-primary" id="btn-create" onclick="createTeam()">Create Team</button>
+    <button class="btn-primary" onclick="goStep3()">Next</button>
+  </div>
+</div>
+
+<!-- Step 3: Codes -->
+<div id="s-3" class="screen">
+  <div class="logo-bar">
+    <div class="logo">Coach<span>Smart</span></div>
+    <button class="back-btn" onclick="goStep(2)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Back
+    </button>
+  </div>
+  <div class="progress">
+    <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="content">
+    <div class="step-label">Step 3 of 4</div>
+    <div class="screen-title">What does this team play?</div>
+    <div class="screen-sub" id="codes-sub">Pick one or more.</div>
+    <div class="error-msg" id="err-3"></div>
+    <div id="codes-list"><div class="clubs-empty">Loading codes…</div></div>
+    <div class="hint">Events, squads and attendance are split by code. You can change this later in Team setup.</div>
+    <button class="btn-primary" style="margin-top:22px" onclick="goStep4()">Next</button>
+  </div>
+</div>
+
+<!-- Step 4: Squads -->
+<div id="s-4" class="screen">
+  <div class="logo-bar">
+    <div class="logo">Coach<span>Smart</span></div>
+    <button class="back-btn" onclick="backFromSquads()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Back
+    </button>
+  </div>
+  <div class="progress">
+    <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
+  </div>
+  <div class="content">
+    <div class="step-label">Step 4 of 4</div>
+    <div class="screen-title">Squads</div>
+    <div class="screen-sub">Split players into groups for training and matches. Tap a colour to change it.</div>
+    <div class="error-msg" id="err-4"></div>
+    <div class="count-row">
+      <div><div style="font-size:16px;font-weight:600">How many squads?</div><div style="font-size:13px;color:var(--muted);margin-top:2px">You can add more later</div></div>
+      <div class="stepper"><button id="sq-minus" onclick="changeSquadCount(-1)">−</button><div class="num" id="sq-count">0</div><button id="sq-plus" onclick="changeSquadCount(1)">+</button></div>
+    </div>
+    <div id="squad-rows"></div>
+    <div class="no-team-row"><div class="nt-dot"></div>No Team: players start here until you place them</div>
+    <button class="btn-primary" id="btn-create" style="margin-top:22px" onclick="createTeam()">Create Team</button>
   </div>
 </div>
 
@@ -340,6 +414,8 @@ const SUCCESS_KEY = 'cs_create_team_success';
 let sb;
 let session  = null;
 let allClubs = [];
+let clubCodes = [];      // [{code_id, name}] for the picked club
+let clubCodesFor = null; // club id clubCodes belongs to
 let state    = freshState();
 
 function decodeJwt(token) {
@@ -348,7 +424,7 @@ function decodeJwt(token) {
 }
 
 function freshState() {
-  return { firstName: '', lastName: '', clubId: null, clubName: '', teamName: '', juvenile: false, female: false, carpool: true };
+  return { firstName: '', lastName: '', clubId: null, clubName: '', teamName: '', juvenile: false, female: false, carpool: true, codeIds: null, squads: [] };
 }
 
 // ── Init ──────────────────────────────────────────────────────────────
@@ -439,6 +515,7 @@ function filterClubs() {
 }
 
 function selectClub(id, name) {
+  if (state.clubId !== id) state.codeIds = null;
   state.clubId   = id;
   state.clubName = name;
   document.getElementById('btn-1').disabled = false;
@@ -460,15 +537,127 @@ function goStep2() {
   goStep(2);
 }
 
-async function createTeam() {
-  const teamName = document.getElementById('team-name').value.trim();
-  if (!teamName) { showErr('err-2', 'Please enter a team name.'); return; }
-  clearErr('err-2');
-
-  state.teamName = teamName;
+function readStep2() {
+  state.teamName = document.getElementById('team-name').value.trim();
   state.juvenile = document.getElementById('tog-juvenile').checked;
   state.female   = document.getElementById('tog-female').checked;
   state.carpool  = false;
+}
+
+// Step 2 (team details) → Step 3 (codes)
+async function goStep3() {
+  readStep2();
+  if (!state.teamName) { showErr('err-2', 'Please enter a team name.'); return; }
+  clearErr('err-2');
+  saveDraftNow();
+  await loadClubCodes();
+  if (!clubCodes.length) { state.codeIds = null; goStep4(true); return; }
+  renderCodes();
+  goStep(3);
+}
+
+async function loadClubCodes() {
+  if (clubCodesFor === state.clubId) return;
+  const { data, error } = await sb.rpc('get_club_codes', { p_club_id: state.clubId });
+  clubCodes = (!error && Array.isArray(data)) ? data : [];
+  clubCodesFor = state.clubId;
+  const valid = clubCodes.map(c => c.code_id);
+  if (state.codeIds) state.codeIds = state.codeIds.filter(id => valid.includes(id));
+  if (!state.codeIds || !state.codeIds.length) {
+    // Single-code club: pick it. Otherwise start with the GAA codes ticked, not extras like S&C.
+    const main = clubCodes.filter(c => ['Football', 'Hurling'].includes(c.name));
+    state.codeIds = clubCodes.length === 1 ? [clubCodes[0].code_id] : main.map(c => c.code_id);
+  }
+}
+
+function codeLabel(c) { return (state.female && c.name === 'Hurling') ? 'Camogie' : c.name; }
+function codeSub(c) {
+  if (c.name === 'Football') return state.female ? 'Ladies / girls football' : 'Gaelic football';
+  if (c.name === 'Hurling') return state.female ? 'Camogie' : 'Hurling';
+  if (c.name === 'S&C') return 'Strength and conditioning';
+  return '';
+}
+
+function renderCodes() {
+  document.getElementById('codes-sub').textContent = 'Pick one or more. These are the codes ' + state.clubName + ' uses.';
+  const tick = '<svg viewBox="0 0 24 24" fill="none" stroke="#111418" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>';
+  document.getElementById('codes-list').innerHTML = clubCodes.map(c => `
+    <div class="code-opt${state.codeIds.includes(c.code_id) ? ' sel' : ''}" onclick="toggleCode(${c.code_id})">
+      <div><div class="co-name">${esc(codeLabel(c))}</div>${codeSub(c) && codeSub(c) !== codeLabel(c) ? `<div class="co-sub">${esc(codeSub(c))}</div>` : ''}</div>
+      <div class="co-box">${tick}</div>
+    </div>`).join('');
+}
+
+function toggleCode(id) {
+  const i = state.codeIds.indexOf(id);
+  if (i >= 0) state.codeIds.splice(i, 1); else state.codeIds.push(id);
+  clearErr('err-3');
+  saveDraftNow();
+  renderCodes();
+}
+
+// Step 3 (codes) → Step 4 (squads)
+function goStep4(skippedCodes) {
+  if (!skippedCodes && clubCodes.length && (!state.codeIds || !state.codeIds.length)) {
+    showErr('err-3', 'Pick at least one code.'); return;
+  }
+  saveDraftNow();
+  renderSquads();
+  goStep(4);
+}
+function backFromSquads() { goStep(clubCodes.length ? 3 : 2); }
+
+function changeSquadCount(delta) {
+  readSquadInputs();
+  const n = Math.max(0, Math.min(10, state.squads.length + delta));
+  while (state.squads.length < n) {
+    const used = state.squads.map(q => q.colour);
+    const colour = CSColourPicker.DEFAULTS.find(c => !used.includes(c)) || CSColourPicker.DEFAULTS[state.squads.length % CSColourPicker.DEFAULTS.length];
+    state.squads.push({ name: '', colour });
+  }
+  state.squads.length = n;
+  saveDraftNow();
+  renderSquads();
+  if (delta > 0) { const ins = document.querySelectorAll('#squad-rows input'); ins[ins.length - 1]?.focus(); }
+}
+
+function renderSquads() {
+  const n = state.squads.length;
+  document.getElementById('sq-count').textContent = n;
+  document.getElementById('sq-minus').disabled = n === 0;
+  document.getElementById('sq-plus').disabled = n >= 10;
+  document.getElementById('squad-rows').innerHTML = state.squads.map((q, i) => `
+    <div class="sq-row">
+      <button class="sq-sw" style="background:${q.colour}" onclick="pickColour(${i})" aria-label="Colour"></button>
+      <input type="text" maxlength="40" placeholder="Squad ${i + 1} name" value="${esc(q.name)}" oninput="state.squads[${i}].name=this.value;saveDraftNow()">
+    </div>`).join('');
+}
+
+function readSquadInputs() {
+  document.querySelectorAll('#squad-rows input').forEach((el, i) => { if (state.squads[i]) state.squads[i].name = el.value; });
+}
+
+function pickColour(i) {
+  readSquadInputs();
+  const q = state.squads[i];
+  CSColourPicker.open({
+    title: 'Colour for ' + (q.name.trim() || 'squad ' + (i + 1)),
+    label: q.name.trim() || 'Squad ' + (i + 1),
+    colour: q.colour,
+    onPick: hex => { q.colour = hex; saveDraftNow(); renderSquads(); }
+  });
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+async function createTeam() {
+  if (!state.teamName) { goStep(2); showErr('err-2', 'Please enter a team name.'); return; }
+  readSquadInputs();
+  const names = state.squads.map(q => q.name.trim());
+  if (names.some(n => !n)) { showErr('err-4', 'Give every squad a name, or lower the number of squads.'); return; }
+  if (names.some(n => n.toLowerCase() === 'no team')) { showErr('err-4', 'No Team is added for you. Pick another name.'); return; }
+  if (new Set(names.map(n => n.toLowerCase())).size !== names.length) { showErr('err-4', 'Two squads have the same name.'); return; }
+  clearErr('err-4');
   saveDraftNow();
 
   const btn = document.getElementById('btn-create');
@@ -484,6 +673,8 @@ async function createTeam() {
       p_car_pooling_allowed: state.carpool,
       p_first_name:          state.firstName,
       p_last_name:           state.lastName,
+      p_code_ids:            (clubCodes.length && state.codeIds && state.codeIds.length) ? state.codeIds : null,
+      p_squads:              state.squads.map(q => ({ name: q.name.trim(), colour: q.colour })),
     });
 
     if (rpcError) throw new Error(rpcError.message || 'Something went wrong. Please try again.');
@@ -492,7 +683,7 @@ async function createTeam() {
     clearDraft();
     showSuccess(state.teamName, result.team_unique_code);
   } catch (err) {
-    showErr('err-2', err.message);
+    showErr('err-4', err.message);
     btn.disabled = false;
     btn.textContent = 'Create Team';
   }
@@ -529,13 +720,13 @@ async function resumeDraft() {
   document.getElementById('team-name').value           = state.teamName  || '';
   document.getElementById('tog-juvenile').checked      = !!state.juvenile;
   document.getElementById('tog-female').checked        = !!state.female;
-  document.getElementById('tog-carpool').checked       = state.carpool !== false;
 
   if (state.clubId) {
     await loadClubs();
     document.getElementById('btn-1').disabled = false;
   }
 
+  if (!Array.isArray(state.squads)) state.squads = [];
   if (state.teamName || state.clubId) goStep(2);
   else                                goStep(1);
 }
