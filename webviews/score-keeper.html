@@ -466,9 +466,14 @@ async function keepAwake(on) {
 // ── Match info helpers ───────────────────────────────────────────────────────
 const types = () => (C && C.score_types) || [];
 const typeById = id => types().find(t => t.id === id) || { id, score_type: 'Score', score_value: null };
-const bigTypes = () => types().filter(t => t.score_value > 0)
+// Every active stat type comes down so voice can record any of them; Tap only
+// shows the team's buttons (button false = voice only). Older data has no flag.
+const btnTypes = () => types().filter(t => t.button !== false);
+const isScoring = t => (t && t.score_value) > 0;
+const sourceTypes = () => types().filter(t => t.source);
+const bigTypes = () => btnTypes().filter(t => t.score_value > 0)
   .sort((a, b) => (b.score_value === 3) - (a.score_value === 3) || (b.score_value === 1) - (a.score_value === 1) || b.score_value - a.score_value);
-const smallTypes = () => types().filter(t => !(t.score_value > 0));
+const smallTypes = () => btnTypes().filter(t => !(t.score_value > 0));
 const goalType = () => types().find(t => t.score_value === 3);
 const pointType = () => types().find(t => t.score_value === 1);
 
@@ -610,13 +615,13 @@ const inFlight = new Set();
 function opFor(a) {
   return a.k === 'correction'
     ? { type: 'correction', id: a.id, score_type: a.st, side: a.side, count: a.n, second: a.sec, half: a.half }
-    : { type: 'score', id: a.id, score_type: a.st, side: a.side, second: a.sec, half: a.half, timer_status: a.run ? 'running' : 'paused', member_id: a.mem || null };
+    : { type: 'score', id: a.id, score_type: a.st, side: a.side, second: a.sec, half: a.half, timer_status: a.run ? 'running' : 'paused', member_id: a.mem || null, from_type: a.fr || null };
 }
 function nowStamp() { return { half: S.clock.half, sec: S.phase === 'play' ? secInHalf() : (S.clock.ended[S.clock.half] != null ? S.clock.ended[S.clock.half] : secInHalf()), run: S.clock.run }; }
 
 function addScore(st, side, opts = {}) {
   const at = opts.at || nowStamp();
-  const a = { id: uuid(), k: 'score', st, side, sec: at.sec, half: at.half, run: at.run, mem: opts.mem || null, n: 1, ts: Date.now() };
+  const a = { id: uuid(), k: 'score', st, side, sec: at.sec, half: at.half, run: at.run, mem: opts.mem || null, fr: opts.fr || null, n: 1, ts: Date.now() };
   S.acts.push(a);
   S.out.push(opFor(a));
   save(); kickSync(300);
@@ -655,7 +660,10 @@ function editAct(id, ch) {
   if ('st' in ch) a.st = ch.st;
   if ('side' in ch) a.side = ch.side;
   if ('mem' in ch) a.mem = ch.mem;
-  if (a.side === 'opp') a.mem = null;
+  if ('fr' in ch) a.fr = ch.fr;
+  // A player on their side only for a non-score he gave away ("free against Luke")
+  if (a.side === 'opp' && isScoring(typeById(a.st))) a.mem = null;
+  if (!isScoring(typeById(a.st))) a.fr = null;
   const q = S.out.find(o => o.id === id && (o.type === 'score' || o.type === 'correction'));
   if (q && !inFlight.has(id)) {
     Object.assign(q, opFor(a));
@@ -663,7 +671,8 @@ function editAct(id, ch) {
     const op = { type: 'edit', id: uuid(), target: id };
     if ('st' in ch) op.score_type = a.st;
     if ('side' in ch) op.side = a.side;
-    if ('mem' in ch || 'side' in ch) op.member_id = a.mem || null;
+    if ('mem' in ch || 'side' in ch || 'st' in ch) op.member_id = a.mem || null;
+    if ('fr' in ch || 'st' in ch) op.from_type = a.fr || null;
     S.out.push(op);
   }
   save(); kickSync(300);
@@ -793,7 +802,7 @@ function renderPill() {
 function mapServerActs(list) {
   return (list || []).map((d, i) => ({
     id: d.id, k: d.kind === 'correction' ? 'correction' : 'score', st: d.score_type, side: d.side,
-    sec: d.second || 0, half: d.half || 1, run: false, mem: d.member_id || null, n: d.count == null ? 1 : d.count,
+    sec: d.second || 0, half: d.half || 1, run: false, mem: d.member_id || null, fr: d.from_type || null, n: d.count == null ? 1 : d.count,
     ts: Date.parse(d.created_at) || i,
   }));
 }
@@ -804,12 +813,12 @@ function mapServerSubs(list) {
 function mergeWithOutbox(acts, subs, out) {
   out.forEach(o => {
     if ((o.type === 'score' || o.type === 'correction') && !acts.some(a => a.id === o.id)) {
-      acts.push({ id: o.id, k: o.type, st: o.score_type, side: o.side, sec: o.second, half: o.half, run: o.timer_status === 'running', mem: o.member_id || null, n: o.type === 'correction' ? o.count : 1, ts: Date.now() });
+      acts.push({ id: o.id, k: o.type, st: o.score_type, side: o.side, sec: o.second, half: o.half, run: o.timer_status === 'running', mem: o.member_id || null, fr: o.from_type || null, n: o.type === 'correction' ? o.count : 1, ts: Date.now() });
     } else if (o.type === 'remove') {
       acts = acts.filter(a => a.id !== o.target);
     } else if (o.type === 'edit') {
       const a = acts.find(x => x.id === o.target);
-      if (a) { if ('score_type' in o) a.st = o.score_type; if ('side' in o) a.side = o.side; if ('member_id' in o) a.mem = o.member_id; }
+      if (a) { if ('score_type' in o) a.st = o.score_type; if ('side' in o) a.side = o.side; if ('member_id' in o) a.mem = o.member_id; if ('from_type' in o) a.fr = o.from_type; }
     } else if (o.type === 'sub' && !subs.some(s => s.id === o.id)) {
       subs.push({ id: o.id, half: o.half, sec: o.second, off: o.member_off, on: o.member_on, ts: Date.now() });
     } else if (o.type === 'remove_sub') {
@@ -951,7 +960,8 @@ function model() {
     hasH2: S.clock.half === 2 || finished,
     nowAbs: S.phase === 'play' ? (S.clock.half === 2 ? halfLen() : 0) + Math.min(secInHalf(), halfLen() * 1.5) : null,
     finished,
-    events: S.acts.map(a => {
+    // Only scores: Wide, Free, Turnover etc. stay off the Stats tab (Ken, 2026-11-07)
+    events: S.acts.filter(a => isScoring(typeById(a.st))).map(a => {
       const t = typeById(a.st);
       return { half: a.half, second: a.sec, side: a.side, value: t.score_value || null, name: t.score_type, kind: a.k, count: a.n, member: a.mem ? fullName(r.get(a.mem)) : '', order: order.indexOf(a.id) };
     }),
@@ -1030,7 +1040,7 @@ function renderTapPad() {
   const col = side => `<div><div class="colh">${esc(side === 'us' ? usName() : oppName())}</div>
     ${all.map(t => `<button class="big v${t.score_value > 0 ? t.score_value : 0}" data-st="${t.id}" data-side="${side}"><span>${esc(t.score_type)}</span><b>${countFor(t.id, side)}</b></button>`).join('')}</div>`;
   $('tapPad').classList.toggle('wait', !started());
-  $('tapPad').innerHTML = types().length ? `<div class="cols">${col('us')}${col('opp')}</div>` : '<div class="empty">No score types set up for this team.</div>';
+  $('tapPad').innerHTML = btnTypes().length ? `<div class="cols">${col('us')}${col('opp')}</div>` : '<div class="empty">No score types set up for this team.</div>';
 }
 
 // Tap = add one. Press and hold = take the last one off.
@@ -1090,7 +1100,10 @@ function takeOneOff(st, side) {
 function actLabel(a) {
   const t = typeById(a.st);
   if (a.k === 'correction') return { t: `Score check: ${a.n > 0 ? '+' : ''}${a.n} ${t.score_type.toLowerCase()}${Math.abs(a.n) !== 1 ? 's' : ''}`, s: a.side === 'us' ? usName() : oppName() };
-  return { t: t.score_type, s: a.side === 'opp' ? oppName() : (a.mem ? memberName(a.mem) || usName() : usName()) };
+  const fr = a.fr && typeById(a.fr);
+  const name = fr && fr.score_type !== 'Score' ? `${t.score_type} from a ${/^\d/.test(fr.score_type) ? fr.score_type : fr.score_type.toLowerCase()}` : t.score_type;
+  if (a.side === 'opp') return { t: name, s: a.mem ? `${oppName()} · against ${memberName(a.mem) || '?'}` : oppName() };
+  return { t: name, s: a.mem ? memberName(a.mem) || usName() : usName() };
 }
 const ICON_OK = '<svg class="st ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const ICON_WAIT = '<svg class="st wait" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>';
@@ -1126,7 +1139,7 @@ $('recent').addEventListener('click', e => {
 // ── Phase cards: half time, full time, done ─────────────────────────────────
 function halfTable(h) {
   const rows = {};
-  S.acts.filter(a => a.half === h || h === 0).forEach(a => {
+  S.acts.filter(a => (a.half === h || h === 0) && isScoring(typeById(a.st))).forEach(a => {
     const t = typeById(a.st);
     const k = t.score_value === 3 ? 'Goals' : t.score_value === 2 ? '2 pointers' : t.score_value === 1 ? 'Points' : t.score_type + (/s$/.test(t.score_type) ? '' : 's');
     rows[k] = rows[k] || { us: 0, opp: 0, o: t.score_value === 3 ? 0 : t.score_value === 1 ? 1 : t.score_value === 2 ? 2 : 3 };
@@ -1410,7 +1423,7 @@ $('howBtn').addEventListener('click', () => {
   openSheet(`<h2>How to use the score keeper <button class="x" data-close>×</button></h2>
     <div class="how">
     <div class="sec">Scoring</div>
-    ${hi('+', 'Tap Goal, Point or 2 Pointer for the team that scored', 'Start the half first. Wide, Free and the rest are further down: scroll to them')}
+    ${hi('+', 'Tap Goal, Point or 2 Pointer for the team that scored', 'Start the half first. Any other stat buttons your team has are further down: scroll to them')}
     <div class="sec">Fix a mistake</div>
     ${hi('↶', 'Tap <b>Undo</b> on the bar that pops up after each tap', 'For a mis-tap you notice straight away')}
     ${hi('☰', 'Tap the score in the Latest list', 'Add the player, change it (Point ↔ Wide, or the other team), or use – / + to take one off or add another')}
@@ -1418,6 +1431,7 @@ $('howBtn').addEventListener('click', () => {
     ${hi('✓', "At half time and full time, check against the ref's score", 'Edit sets it to the ref\'s score, and shows in the timeline as a score check. You can still do it after the match is saved.')}
     <div class="sec">Voice</div>
     ${hi('🎙', 'Switch to Voice, hold the mic and say what happened', '"Point Ciarán", "Goal number 11", "Wide for them", "Two pointer Clontarf". You can say a few in one go.')}
+    ${hi('➕', 'Voice knows every stat, even ones with no button', '"Free to us", "Free against Luke" (a free to them, given away by Luke), "Turnover Luke", "Luke lost it", "Point Murrough free" (a point from a free), "45", "Throw in". Only scores show on the Stats tab and the live screen.')}
     ${hi('⇄', 'Subs: "Sub 17 for 11"', 'Or use Make a sub in the ⋯ menu')}
     ${hi('?', 'It never stops to ask', `"Point" on its own counts for ${esc(usName())}. If it isn't sure of a name it picks the closest player and shows a ? on the card. Tap Change if it's wrong and it remembers for next time.`)}
     <div class="sec">The clock</div>
@@ -1545,7 +1559,9 @@ function openEdit(id) {
   const edit = ch => [a.id].concat(extra.map(x => x.id)).forEach(x => editAct(x, ch));
   const draw = () => {
     const l = actLabel(a);
-    const ourScore = a.side === 'us' && a.k === 'score';
+    const scoring = isScoring(typeById(a.st));
+    const ourScore = a.k === 'score' && (a.side === 'us' || !scoring);
+    const srcs = sourceTypes();
     const r = Array.from(roster().values());
     const op = onPitch();
     const list = (op && op.length ? op : r.sort((x, y) => fullName(x).localeCompare(fullName(y))));
@@ -1554,16 +1570,18 @@ function openEdit(id) {
     const shirt = p => `<button class="shirt ${a.mem === p.id ? 'sel' : ''}" data-p="${p.id}"><b>${p.number != null ? p.number : '·'}</b><span>${esc(shortName(p))}</span></button>`;
     openSheet(`<h2>${esc(l.t)} · ${minute(a.half, a.sec)} <button class="x" data-close>×</button></h2>
       <p class="sub">${esc(l.s)}</p>
-      ${a.k === 'score' ? `<div class="sec">What was it?</div><div class="typepick" id="eType">${types().map(t => `<button data-t="${t.id}" class="${t.id === a.st ? 'on' : ''}">${esc(t.score_type)}</button>`).join('')}</div>` : ''}
-      <div class="sec">Which team?</div><div class="typepick" id="eSide"><button data-s="us" class="${a.side === 'us' ? 'on' : ''}">${esc(usName())}</button><button data-s="opp" class="${a.side === 'opp' ? 'onr' : ''}">${esc(oppName())}</button></div>
+      ${a.k === 'score' ? `<div class="sec">What was it?</div><div class="typepick" id="eType">${types().filter(t => t.button !== false || t.id === a.st).map(t => `<button data-t="${t.id}" class="${t.id === a.st ? 'on' : ''}">${esc(t.score_type)}</button>`).join('')}</div>` : ''}
+      ${a.k === 'score' && scoring && srcs.length ? `<div class="sec">From</div><div class="typepick" id="eFrom"><button data-f="" class="${!a.fr ? 'on' : ''}">Play</button>${srcs.map(t => `<button data-f="${t.id}" class="${a.fr === t.id ? 'on' : ''}">${esc(t.score_type)}</button>`).join('')}</div>` : ''}
+      <div class="sec">${a.k === 'score' && !scoring ? 'Whose ball?' : 'Which team?'}</div><div class="typepick" id="eSide"><button data-s="us" class="${a.side === 'us' ? 'on' : ''}">${esc(usName())}</button><button data-s="opp" class="${a.side === 'opp' ? 'onr' : ''}">${esc(oppName())}</button></div>
       ${a.k === 'score' ? `<div class="stp"><div class="l"><b>How many?</b><span>Add another the same, or take one off</span></div>
         <div class="stepper"><button id="eMinus">–</button><b>${1 + extra.length}</b><button id="ePlus">+</button></div></div>` : ''}
-      ${ourScore && r.length ? `<div class="sec">Who?</div><div class="grid5" id="eWho"><button class="shirt ${!a.mem ? 'sel' : ''}" data-p=""><b>–</b><span>No one</span></button>${list.map(shirt).join('')}${showAll ? rest.map(shirt).join('') : ''}</div>
+      ${ourScore && r.length ? `<div class="sec">${a.side === 'opp' ? 'Against which of ours?' : 'Who?'}</div><div class="grid5" id="eWho"><button class="shirt ${!a.mem ? 'sel' : ''}" data-p=""><b>–</b><span>No one</span></button>${list.map(shirt).join('')}${showAll ? rest.map(shirt).join('') : ''}</div>
         ${rest.length && !showAll ? `<button class="undo-link" id="eAll">Someone else (${rest.length} more)</button>` : ''}` : ''}
       <div class="sheetbtns"><button class="fb" style="color:var(--red)" id="eDel">Remove</button><button class="fb g" data-close>Done</button></div>`, () => render());
     const body = $('sheetBody');
     body.querySelectorAll('#eType [data-t]').forEach(b => b.onclick = () => { edit({ st: Number(b.dataset.t) }); draw(); });
     body.querySelectorAll('#eSide [data-s]').forEach(b => b.onclick = () => { edit({ side: b.dataset.s }); draw(); });
+    body.querySelectorAll('#eFrom [data-f]').forEach(b => b.onclick = () => { edit({ fr: b.dataset.f ? Number(b.dataset.f) : null }); draw(); });
     body.querySelectorAll('#eWho [data-p]').forEach(b => b.onclick = () => {
       const mem = b.dataset.p ? Number(b.dataset.p) : null;
       edit({ mem });
@@ -1675,7 +1693,7 @@ let micAt = null;     // clock when the mic was pressed: scores get this time
 
 function voiceCtx() {
   return {
-    types: types().map(t => ({ id: t.id, name: t.score_type, abbr: t.abbreviated_name, value: t.score_value })),
+    types: types().map(t => ({ id: t.id, name: t.score_type, abbr: t.abbreviated_name, value: t.score_value, source: !!t.source })),
     usName: `${usName()} ${(C.event && C.event.club_name) || ''} ${(C.event && C.event.team_name) || ''}`,
     oppName: oppName(),
     // Line-up and squad first, then the rest of the team, so a name said is always matched
@@ -1699,7 +1717,7 @@ function renderVoice() {
       const a = S.acts.find(x => x.id === c.id);
       if (!a) return '';
       const l = actLabel(a);
-      const who = a.side === 'us' && a.mem ? `${memberName(a.mem)}${c.guess ? '?' : ''} · ${usName()}` : l.s;
+      const who = a.mem ? (a.side === 'us' ? `${memberName(a.mem)}${c.guess ? '?' : ''} · ${usName()}` : `${oppName()} · against ${memberName(a.mem)}${c.guess ? '?' : ''}`) : l.s;
       return `<div class="vcard ${a.side === 'opp' ? 'opp' : ''}"><div class="t">${esc(l.t)} · ${minute(a.half, a.sec)}</div><div class="s">${esc(who)}</div>
         <div class="cd"><i style="animation-duration:${c.ms}ms;animation-delay:-${Date.now() - c.at}ms"></i></div>
         <div class="btns"><button class="btn" data-v="undo" data-id="${c.id}">Undo</button><button class="btn" data-v="change" data-id="${c.id}">Change</button></div></div>`;
@@ -1793,7 +1811,7 @@ async function voiceRequest(extra, signal) {
     headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
     body: JSON.stringify(Object.assign({
       event_id: EVENT_ID, us: usName(), opp: oppName(), aliases: ctx.aliases,
-      types: types().map(t => ({ id: t.id, name: t.score_type, value: t.score_value })),
+      types: types().map(t => ({ id: t.id, name: t.score_type, value: t.score_value, source: !!t.source })),
       players: ctx.players.map(p => ({ id: p.member_id, name: `${p.first_name} ${p.last_name}`.trim(), number: p.number })),
     }, extra)),
   });
@@ -1806,7 +1824,7 @@ function mapAi(d) {
     items: (d.items || []).map(it => it.kind === 'sub'
       ? { kind: 'sub', onId: it.on_id, offId: it.off_id, onHeard: memberName(it.on_id), offHeard: memberName(it.off_id) }
       : { kind: 'score', typeId: it.type_id, typeName: (typeById(it.type_id) || {}).score_type, count: it.count || 1, side: it.side,
-          memberId: it.unsure ? null : it.member_id, heard: it.heard || '', ask: it.unsure ? [it.member_id] : null }),
+          memberId: it.unsure ? null : it.member_id, heard: it.heard || '', ask: it.unsure ? [it.member_id] : null, fromId: it.from_id || null }),
     unknown: d.unknown || [],
     transcript: d.transcript || '',
   };
@@ -1913,14 +1931,16 @@ function applyVoice(res, text, at) {
     // No questions while the coach is watching: no team named means us, an unsure
     // name goes to the best guess (remembered for next time) with a "?" on the card.
     const side = it.side || 'us';
-    let mem = side === 'us' ? it.memberId || null : null, guess = false;
-    if (side === 'us' && !mem && it.ask && it.ask.length) {
+    // Our player on their side only for a non-score he gave away ("free against Luke")
+    const named = side === 'us' || !isScoring(typeById(it.typeId));
+    let mem = named ? it.memberId || null : null, guess = false;
+    if (named && !mem && it.ask && it.ask.length) {
       mem = it.ask[0]; guess = true;
       rememberName(it.heard, mem);
     }
     for (let i = 0; i < it.count; i++) {
-      const a = addScore(it.typeId, side, { at, mem });
-      if (side === 'us' && it.heard) { a.heard = it.heard; save(); }
+      const a = addScore(it.typeId, side, { at, mem, fr: isScoring(typeById(it.typeId)) ? it.fromId || null : null });
+      if (named && it.heard) { a.heard = it.heard; save(); }
       cards.push({ kind: 'act', id: a.id, guess, at: now, ms: guess ? 7000 : 6000 });
     }
   });
