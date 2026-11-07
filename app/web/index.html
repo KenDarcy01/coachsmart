@@ -45,11 +45,16 @@
     
 
   <!-- Status Bar color in Safari browser (iOS) and PWA -->
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#15181e">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#15181e">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#14181b">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#14181b">
 
   <link rel="manifest" href="manifest.json">
-  
+
+  <!-- The iPhone home-screen status bar takes its colour and fade from the
+       page background, so paint it the app's dark colour, not white. -->
+  <style>
+    html, body { background: #14181b; margin: 0; }
+  </style>
 </head>
 <body>
   
