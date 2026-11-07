@@ -394,14 +394,14 @@ class _V3HomePageState extends State<V3HomePage> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
+              // White and larger so the day stands out (Ken, 2026-11-07).
               Text(g.label.toUpperCase(),
-                  style: V3.inter(14,
-                      weight: FontWeight.w700,
-                      color: V3.green,
-                      letterSpacing: .8)),
+                  style: V3.tight(19, weight: FontWeight.w700, color: V3.text)),
               if (g.dateText.isNotEmpty) ...[
                 const SizedBox(width: 8),
-                Text(g.dateText, style: V3.inter(15, color: V3.muted)),
+                Text(g.dateText,
+                    style:
+                        V3.inter(16, weight: FontWeight.w500, color: V3.text)),
               ],
             ]),
       );
