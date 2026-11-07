@@ -415,14 +415,19 @@ class _V3EventPageState extends State<V3EventPage> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
                     children: [
                       _hero(),
-                      _tiles(),
-                      if (_tools().isNotEmpty) _toolsRow(),
+                      // Replying is why most people open an event, so the
+                      // reply rows come first (Ken, 2026-11-07).
                       if (_showReplyBlock) ...[
                         _section('Your reply'),
                         _replyCard(),
                       ],
                       if (_owing.isNotEmpty && (_ev!.paymentRequired))
                         _payButton(),
+                      if (_showReplyBlock ||
+                          (_owing.isNotEmpty && _ev!.paymentRequired))
+                        const SizedBox(height: 14),
+                      _tiles(),
+                      if (_tools().isNotEmpty) _toolsRow(),
                       if (_role >= 20 && _ev!.requestAttendance) ...[
                         _section('Attendance'),
                         _attendance(),
@@ -739,18 +744,18 @@ class _V3EventPageState extends State<V3EventPage> {
       return GestureDetector(
         onTap: busy ? null : () => _reply(m, isGo ? 3 : 4),
         child: Container(
-          height: 38,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          height: 44,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(icon, size: 18, color: fg),
             if (label.isNotEmpty) ...[
               const SizedBox(width: 5),
               Text(label,
-                  style: V3.inter(14, weight: FontWeight.w600, color: fg)),
+                  style: V3.inter(15, weight: FontWeight.w700, color: fg)),
             ],
           ]),
         ),
@@ -762,27 +767,30 @@ class _V3EventPageState extends State<V3EventPage> {
       decoration: BoxDecoration(
           border:
               last ? null : const Border(bottom: BorderSide(color: V3.line))),
-      child: Row(children: [
-        Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          decoration:
-              const BoxDecoration(color: V3.card2, shape: BoxShape.circle),
-          child: Text(name.isEmpty ? '?' : name[0].toUpperCase(),
-              style: V3.tight(15, weight: FontWeight.w700, color: V3.green)),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration:
+                  const BoxDecoration(color: V3.card2, shape: BoxShape.circle),
+              child: Text(name.isEmpty ? '?' : name[0].toUpperCase(),
+                  style:
+                      V3.tight(14, weight: FontWeight.w700, color: V3.green)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Row(children: [
                 Flexible(
                     child: Text(name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: V3.inter(16, weight: FontWeight.w500))),
+                const SizedBox(width: 6),
+                Text(m.roleName, style: V3.inter(13, color: V3.muted)),
                 if (paidEvent && m.memberPaid == 1) ...[
                   const SizedBox(width: 6),
                   Container(
@@ -797,22 +805,26 @@ class _V3EventPageState extends State<V3EventPage> {
                   ),
                 ],
               ]),
-              Text(m.roleName, style: V3.inter(13, color: V3.muted)),
-            ],
-          ),
-        ),
-        if (busy)
-          const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2, color: V3.green))
-        else ...[
-          seg(declined ? '' : 'Attending', going, true, Icons.check),
-          const SizedBox(width: 6),
-          seg(going ? '' : (declined ? 'Declined' : 'Decline'), declined, false,
-              Icons.close),
+            ),
+            if (busy)
+              const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: V3.green)),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(
+                child: seg(going ? 'Attending ✓' : 'Attending', going, true,
+                    Icons.check)),
+            const SizedBox(width: 8),
+            Expanded(
+                child: seg(declined ? 'Declined' : 'Decline', declined, false,
+                    Icons.close)),
+          ]),
         ],
-      ]),
+      ),
     );
   }
 
@@ -900,16 +912,15 @@ class _V3EventPageState extends State<V3EventPage> {
         );
 
     return Column(children: [
-      IntrinsicHeight(
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          tile('Attending', a, V3.green, const Color(0xFF1F2A19), aLines, 3),
-          const SizedBox(width: 8),
-          tile('No reply', n, const Color(0xFF9A9A9A), V3.card2, nLines, 0),
-          const SizedBox(width: 8),
-          tile('Declined', d, const Color(0xFFC3202A), const Color(0xFF3A1D1D),
-              dLines, 4),
-        ]),
-      ),
+      // Each tile is as tall as its own content (Ken, 2026-11-07).
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        tile('Attending', a, V3.green, const Color(0xFF1F2A19), aLines, 3),
+        const SizedBox(width: 8),
+        tile('No reply', n, const Color(0xFF9A9A9A), V3.card2, nLines, 0),
+        const SizedBox(width: 8),
+        tile('Declined', d, const Color(0xFFC3202A), const Color(0xFF3A1D1D),
+            dLines, 4),
+      ]),
       const SizedBox(height: 12),
       _bar([
         (a, V3.green),
