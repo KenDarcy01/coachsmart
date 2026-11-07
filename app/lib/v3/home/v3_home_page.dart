@@ -55,10 +55,21 @@ class _V3HomePageState extends State<V3HomePage> {
     super.dispose();
   }
 
-  // Same start-up steps as the FlutterFlow page: register the push token,
-  // record the platform, then load the home data.
+  // Same start-up steps as the FlutterFlow page, but the home data loads
+  // first; the push token and platform updates run behind it so they
+  // don't delay the list (Ken, 2026-11-07: first load felt slow).
   Future<void> _firstLoad() async {
     logFirebaseEvent('screen_view', parameters: {'screen_name': 'HomePage'});
+    unawaited(_registerDevice());
+    await _load();
+    if (!mounted) return;
+    final pendingEventId = await actions.checkAndNavigatePending();
+    if (pendingEventId != '' && mounted) {
+      context.pushNamed(NotificationsWidget.routeName);
+    }
+  }
+
+  Future<void> _registerDevice() async {
     try {
       await actions.setFCMToken();
       await UsersTable().update(
@@ -72,12 +83,6 @@ class _V3HomePageState extends State<V3HomePage> {
       );
       await actions.updateUserPlatform();
     } catch (_) {}
-    await _load();
-    if (!mounted) return;
-    final pendingEventId = await actions.checkAndNavigatePending();
-    if (pendingEventId != '' && mounted) {
-      context.pushNamed(NotificationsWidget.routeName);
-    }
   }
 
   Future<void> _load() async {
@@ -285,7 +290,21 @@ class _V3HomePageState extends State<V3HomePage> {
           ],
         ),
         body: !_loaded
-            ? const Center(child: CircularProgressIndicator(color: V3.green))
+            ? Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.asset('assets/images/Launcher_Icon_v2.png',
+                        width: 96, height: 96),
+                  ),
+                  const SizedBox(height: 22),
+                  const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.5, color: V3.green)),
+                ]),
+              )
             : _failed
                 ? _errorBody()
                 : RefreshIndicator(

@@ -392,7 +392,7 @@ class _V3EventPageState extends State<V3EventPage> {
           onPressed: _back,
         ),
         centerTitle: true,
-        title: Text(_ev?.eventTitle ?? '',
+        title: Text(_ev?.eventTitle ?? _homeEvent?.eventTitle ?? '',
             maxLines: 1, overflow: TextOverflow.ellipsis, style: V3.tight(17)),
         actions: [
           if (_admin && _ev != null)
@@ -403,7 +403,7 @@ class _V3EventPageState extends State<V3EventPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: V3.green))
+          ? _loadingBody()
           : _error != null
               ? Center(
                   child: Text(_error!, style: V3.inter(15, color: V3.muted)))
@@ -443,6 +443,78 @@ class _V3EventPageState extends State<V3EventPage> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  // The home list already knows this event, so show its title, team and
+  // time at once and let the details fill in (Ken, 2026-11-07: opening an
+  // event felt slow).
+  EventsStruct? get _homeEvent {
+    for (final e in FFAppState().homePageEvents.events) {
+      if (e.eventId == _eventId) return e;
+    }
+    return null;
+  }
+
+  Widget _loadingBody() {
+    final e = _homeEvent;
+    final t = e == null ? null : eventLocalTime(e);
+    final crest = _crestUrl();
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+      children: [
+        if (e != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 6, 0, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (crest.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 14, top: 2),
+                    child: SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Image.network(crest,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) =>
+                              const SizedBox.shrink()),
+                    ),
+                  ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(e.teamName.toUpperCase(),
+                          style: V3.inter(13,
+                              weight: FontWeight.w700,
+                              color: V3.green,
+                              letterSpacing: .6)),
+                      const SizedBox(height: 2),
+                      Text(e.eventTitle,
+                          style: V3.tight(24,
+                              weight: FontWeight.w700, height: 1.15)),
+                      if (t != null) ...[
+                        const SizedBox(height: 6),
+                        Text('${_dayLabel(t)} · ${hhmm(t)}',
+                            style: V3.inter(16, weight: FontWeight.w500)),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const Padding(
+          padding: EdgeInsets.only(top: 40),
+          child: Center(
+              child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.5, color: V3.green))),
+        ),
+      ],
     );
   }
 
