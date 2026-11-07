@@ -109,10 +109,9 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('YOUR REPLY'), findsOneWidget);
     expect(find.text('Attending'), findsWidgets);
-    await tester.scrollUntilVisible(find.text('ATTENDANCE'), 300);
-    expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(find.text('Ken Darcy'), 300);
     expect(find.text('Ken Darcy'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('ATTENDANCE'), 300);
     expect(tester.takeException(), isNull);
   });
 

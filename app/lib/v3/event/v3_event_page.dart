@@ -428,6 +428,10 @@ class _V3EventPageState extends State<V3EventPage> {
                         const SizedBox(height: 14),
                       _tiles(),
                       if (_tools().isNotEmpty) _toolsRow(),
+                      // Then the event detail, and attendance last
+                      // (Ken, 2026-11-07).
+                      _section('Details'),
+                      _details(),
                       if (_role >= 20 && _ev!.requestAttendance) ...[
                         _section('Attendance'),
                         _attendance(),
@@ -436,8 +440,6 @@ class _V3EventPageState extends State<V3EventPage> {
                         _section('Payments'),
                         _payments(),
                       ],
-                      _section('Details'),
-                      _details(),
                     ],
                   ),
                 ),
