@@ -40,7 +40,8 @@ class V3EventCard extends StatelessWidget {
     final t = eventLocalTime(e);
     final cancelled = isCancelled(e);
     final unanswered = needsReply(e);
-    final showButtons = unanswered && (isNext || expanded);
+    // Every unanswered card shows the buttons (Ken, 2026-11-07).
+    final showButtons = unanswered;
     final strike = cancelled ? TextDecoration.lineThrough : null;
     final hasCrest = crestUrl != null && crestUrl!.isNotEmpty;
 

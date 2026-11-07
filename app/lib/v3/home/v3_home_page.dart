@@ -136,6 +136,10 @@ class _V3HomePageState extends State<V3HomePage> {
 
   // ---- actions -----------------------------------------------------------
 
+  // One tap answers for every member of the user's on this event (Ken,
+  // 2026-11-07: parents with two children reply once, then fix one on the
+  // event page if needed). The home RPC carries one member per event, so
+  // the event details RPC supplies the full list.
   Future<void> _reply(EventsStruct e, int responseId) async {
     if (e.memberId == 0) {
       _openEvent(e);
@@ -143,18 +147,37 @@ class _V3HomePageState extends State<V3HomePage> {
     }
     setState(() => _busy.add(e.eventId));
     try {
-      final row = await EventAttendanceTable().insert({
-        'event_id': e.eventId,
-        'member_id': e.memberId,
-        'response_id': responseId,
-      });
-      await NotifyAdminsAttendanceChangeCall.call(
-        supabaseJWTtoken: currentJwtToken,
-        pMemberIdParam: e.memberId,
-        pEventIdParam: e.eventId,
-        pResponseId: responseId,
-        pAttendanceId: row.attendanceId,
-      );
+      var memberIds = <int>[e.memberId];
+      try {
+        final r = await GetUserEventDetailsCall.call(
+          pEventId: e.eventId,
+          pUserId: currentUserUid,
+          supabaseJWTtoken: currentJwtToken,
+        );
+        final d = UserEventDetailsStruct.maybeFromMap(r.jsonBody);
+        final ids = d?.teamMembers
+                .where((m) => m.responseId != responseId)
+                .map((m) => m.memberId)
+                .toList() ??
+            [];
+        if (ids.isNotEmpty) memberIds = ids;
+      } catch (_) {
+        // Fall back to the one member the home list knows about.
+      }
+      for (final memberId in memberIds) {
+        final row = await EventAttendanceTable().insert({
+          'event_id': e.eventId,
+          'member_id': memberId,
+          'response_id': responseId,
+        });
+        await NotifyAdminsAttendanceChangeCall.call(
+          supabaseJWTtoken: currentJwtToken,
+          pMemberIdParam: memberId,
+          pEventIdParam: e.eventId,
+          pResponseId: responseId,
+          pAttendanceId: row.attendanceId,
+        );
+      }
       await _load();
     } catch (err) {
       if (mounted) {
