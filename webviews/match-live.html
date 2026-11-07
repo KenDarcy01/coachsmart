@@ -176,6 +176,8 @@ function model() {
 // ── Drawing ────────────────────────────────────────────────────────────────
 function render() {
   if (!D) return;
+  // A shared link opened on its own (e.g. from WhatsApp) has nowhere to go back to, so hide the chevron
+  $('backBtn').style.visibility = (L.bridge() || history.length > 1) ? '' : 'hidden';
   if (D.error) {
     const msg = { not_allowed: 'This match is only for members of the club.', link_not_found: "This link isn't working any more. Ask for a new one.", not_signed_in: 'Please sign in again.' }[D.error] || "Couldn't load the match.";
     $('main').innerHTML = `<div class="empty">${msg}</div>`;
