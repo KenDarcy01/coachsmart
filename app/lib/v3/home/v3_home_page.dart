@@ -30,7 +30,6 @@ class V3HomePage extends StatefulWidget {
 
 class _V3HomePageState extends State<V3HomePage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  final _firstReplyKey = GlobalKey();
 
   bool _loaded = false;
   bool _failed = false;
@@ -238,14 +237,6 @@ class _V3HomePageState extends State<V3HomePage> {
     if (mounted) context.goNamedAuth(AuthPageWidget.routeName, context.mounted);
   }
 
-  void _scrollToFirstReply() {
-    final ctx = _firstReplyKey.currentContext;
-    if (ctx != null) {
-      Scrollable.ensureVisible(ctx,
-          duration: const Duration(milliseconds: 350), alignment: 0.1);
-    }
-  }
-
   // ---- build -------------------------------------------------------------
 
   @override
@@ -327,28 +318,10 @@ class _V3HomePageState extends State<V3HomePage> {
   Widget _list() {
     final events = _events;
     final groups = groupEvents(events, _now);
-    final needing = events.where(needsReply).length;
-    int? firstReplyId;
-    for (final e in events) {
-      if (needsReply(e)) {
-        firstReplyId = e.eventId;
-        break;
-      }
-    }
-    int? nextId;
-    for (final e in events) {
-      if (!isCancelled(e)) {
-        nextId = e.eventId;
-        break;
-      }
-    }
 
     final children = <Widget>[];
     if (_realClubs.length >= 2 || _teamsForSheet.length >= 2) {
       children.add(_filterRow());
-    }
-    if (needing > 0) {
-      children.add(_replyBanner(needing));
     }
     if (_home.showAdvert) children.add(_advert());
 
@@ -358,21 +331,18 @@ class _V3HomePageState extends State<V3HomePage> {
     for (final g in groups) {
       children.add(_groupHeader(g));
       for (final e in g.events) {
-        children.add(KeyedSubtree(
-          key: e.eventId == firstReplyId ? _firstReplyKey : null,
-          child: V3EventCard(
-            event: e,
-            now: _now,
-            isNext: e.eventId == nextId,
-            isCoach: _isCoachOn(e),
-            far: g.far,
-            expanded: _expanded.contains(e.eventId),
-            busy: _busy.contains(e.eventId),
-            crestUrl: _crestFor(e.clubId),
-            onTap: () => _openEvent(e),
-            onReply: (r) => _reply(e, r),
-            onExpand: () => setState(() => _expanded.add(e.eventId)),
-          ),
+        children.add(V3EventCard(
+          event: e,
+          now: _now,
+          isNext: e.eventId == nextId,
+          isCoach: _isCoachOn(e),
+          far: false,
+          expanded: _expanded.contains(e.eventId),
+          busy: _busy.contains(e.eventId),
+          crestUrl: _crestFor(e.clubId),
+          onTap: () => _openEvent(e),
+          onReply: (r) => _reply(e, r),
+          onExpand: () => setState(() => _expanded.add(e.eventId)),
         ));
       }
     }
@@ -408,37 +378,61 @@ class _V3HomePageState extends State<V3HomePage> {
 
   // Club crests (only with 2+ clubs) and the team filter button on the
   // right.
+  // Crest row (only with 2+ clubs) and a row of team pills under it that
+  // filter the list; tapping the selected pill clears the filter
+  // (Ken, 2026-11-07, replacing the filter button and sheet).
   Widget _filterRow() {
     final clubs = _realClubs;
-    final showClubs = clubs.length >= 2;
     final teams = _teamsForSheet;
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        if (showClubs)
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                _clubTile(0, null),
-                for (final c in clubs) ...[
-                  const SizedBox(width: 12),
-                  _clubTile(c.clubId, c.crest),
-                ],
-              ]),
-            ),
-          )
-        else
-          const Spacer(),
-        if (teams.length >= 2) ...[
-          const SizedBox(width: 8),
-          _filterButton(),
-        ],
-      ]),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (clubs.length >= 2)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              _clubTile(0, null),
+              for (final c in clubs) ...[
+                const SizedBox(width: 12),
+                _clubTile(c.clubId, c.crest),
+              ],
+            ]),
+          ),
+        ),
+      if (teams.length >= 2)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              for (var i = 0; i < teams.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                _teamPill(teams[i]),
+              ],
+            ]),
+          ),
+        ),
+    ]);
+  }
+
+  Widget _teamPill(UserTeamsStruct t) {
+    final on = _selectedTeam == t.teamId;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTeam = on ? 0 : t.teamId),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: on ? V3.green : V3.card,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(t.teamName,
+            style: V3.inter(14,
+                weight: FontWeight.w600, color: on ? V3.bg : V3.text)),
+      ),
     );
   }
 
-  // Club crest 60px with a short green bar under the selected one, like
+  // Club crest 66px with a short green bar under the selected one, like
   // the v2 strip (Ken, 2026-11-06: no outline; 72 was too big, 52 too small).
   Widget _clubTile(int clubId, String? crest) {
     final on = _selectedClub == clubId;
@@ -456,7 +450,7 @@ class _V3HomePageState extends State<V3HomePage> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Opacity(
           opacity: on ? 1 : .5,
-          child: SizedBox(width: 60, height: 60, child: img),
+          child: SizedBox(width: 66, height: 66, child: img),
         ),
         const SizedBox(height: 6),
         Container(
@@ -470,148 +464,6 @@ class _V3HomePageState extends State<V3HomePage> {
       ]),
     );
   }
-
-  Widget _filterButton() {
-    final on = _selectedTeam != 0;
-    return GestureDetector(
-      onTap: _showTeamSheet,
-      child: SizedBox(
-        width: 52,
-        height: 52,
-        child: Stack(clipBehavior: Clip.none, children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration:
-                const BoxDecoration(color: V3.card, shape: BoxShape.circle),
-            child: const Icon(Icons.filter_list, color: V3.muted, size: 26),
-          ),
-          if (on)
-            Positioned(
-              top: -2,
-              right: -2,
-              child: Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                    color: V3.green,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: V3.bg, width: 2)),
-              ),
-            ),
-        ]),
-      ),
-    );
-  }
-
-  void _showTeamSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: V3.card,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (ctx) {
-        final teams = _teamsForSheet;
-        Widget row(int id, String name, Widget lead) {
-          final on = _selectedTeam == id;
-          return InkWell(
-            onTap: () {
-              setState(() => _selectedTeam = id);
-              Navigator.pop(ctx);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: V3.line))),
-              child: Row(children: [
-                SizedBox(width: 30, height: 30, child: lead),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: Text(name,
-                        style: V3.inter(17, weight: FontWeight.w500))),
-                if (on) const Icon(Icons.check, color: V3.green, size: 22),
-              ]),
-            ),
-          );
-        }
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                  width: 40,
-                  height: 5,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFF444A56),
-                      borderRadius: BorderRadius.circular(3))),
-              Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Show events for', style: V3.tight(20))),
-              const SizedBox(height: 4),
-              Flexible(
-                child: ListView(shrinkWrap: true, children: [
-                  row(
-                      0,
-                      'All teams',
-                      Image.asset('assets/images/Launcher_Icon_v2.png',
-                          fit: BoxFit.contain)),
-                  for (final t in teams)
-                    row(
-                        t.teamId,
-                        t.teamName,
-                        _crestFor(t.clubId).isNotEmpty
-                            ? Image.network(_crestFor(t.clubId),
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    const SizedBox.shrink())
-                            : const Icon(Icons.groups, color: V3.muted)),
-                ]),
-              ),
-            ]),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _replyBanner(int n) => Padding(
-        padding: const EdgeInsets.only(top: 14),
-        child: InkWell(
-          onTap: _scrollToFirstReply,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: V3.amberTint,
-              border: Border.all(color: V3.amberLine),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(children: [
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                    color: V3.amber, shape: BoxShape.circle),
-                child: Text('$n',
-                    style: V3.inter(15, weight: FontWeight.w700, color: V3.bg)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                    n == 1
-                        ? '1 event needs your reply'
-                        : '$n events need your reply',
-                    style: V3.inter(16,
-                        weight: FontWeight.w600, color: V3.amberText)),
-              ),
-              const Icon(Icons.chevron_right, color: V3.amberText),
-            ]),
-          ),
-        ),
-      );
 
   // The National Draw box from v2, as a quieter card. Still hard-coded;
   // v3 will make it a club setting.

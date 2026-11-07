@@ -32,7 +32,7 @@ String countdown(DateTime t, DateTime now) {
 
 class EventGroup {
   EventGroup(this.label, this.dateText, this.events, {this.far = false});
-  final String label; // TODAY, TOMORROW, SATURDAY, NEXT WEEK, LATER
+  final String label; // Today, Tomorrow, Saturday ...
   final String dateText; // 'Thu 5 Nov' or ''
   final List<EventsStruct> events;
   final bool far; // cards in far groups show their date instead of meet time
@@ -48,30 +48,21 @@ List<EventGroup> groupEvents(List<EventsStruct> events, DateTime now) {
     final day = DateTime(t.year, t.month, t.day);
     final diff = day.difference(today).inDays;
     String key, label, date = DateFormat('EEE d MMM').format(day);
-    bool far = false;
     if (diff <= 0) {
       key = 'd$diff';
       label = 'Today';
     } else if (diff == 1) {
       key = 'd1';
       label = 'Tomorrow';
-    } else if (diff < 7) {
+    } else {
+      // Day and date for everything else; no "Next week" / "Later"
+      // buckets (Ken, 2026-11-07).
       key = 'd$diff';
       label = DateFormat('EEEE').format(day);
       date = DateFormat('d MMM').format(day);
-    } else if (diff < 14) {
-      key = 'nextweek';
-      label = 'Next week';
-      date = '';
-      far = true;
-    } else {
-      key = 'later';
-      label = 'Later';
-      date = '';
-      far = true;
     }
     if (!groups.containsKey(key)) {
-      groups[key] = EventGroup(label, date, [], far: far);
+      groups[key] = EventGroup(label, date, []);
       order.add(key);
     }
     groups[key]!.events.add(e);
