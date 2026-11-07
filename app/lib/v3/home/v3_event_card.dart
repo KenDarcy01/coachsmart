@@ -338,18 +338,18 @@ class V3EventCard extends StatelessWidget {
       Expanded(
         child: SizedBox(
           height: 44,
-          child: OutlinedButton.icon(
+          child: FilledButton.icon(
             onPressed: busy ? null : () => onReply(4),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: V3.redText,
-              side: const BorderSide(color: V3.red, width: 1.5),
+            style: FilledButton.styleFrom(
+              backgroundColor: V3.red,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
             icon: const Icon(Icons.close, size: 20),
             label: Text('Decline',
                 style:
-                    V3.inter(16, weight: FontWeight.w700, color: V3.redText)),
+                    V3.inter(16, weight: FontWeight.w700, color: Colors.white)),
           ),
         ),
       ),

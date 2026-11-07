@@ -729,11 +729,13 @@ class _V3EventPageState extends State<V3EventPage> {
     final going = m.responseId == 3;
     final declined = m.responseId == 4;
     final name = m.firstName.isNotEmpty ? m.firstName : m.lastName;
+    // Unanswered: solid green Attending and solid red Decline. Answered: the
+    // chosen one stays solid, the other goes grey so the choice is obvious.
+    final answered = going || declined;
     Widget seg(String label, bool on, bool isGo, IconData icon) {
-      final bg = isGo
-          ? (on ? V3.green : V3.card2)
-          : (on ? V3.redTint : Colors.transparent);
-      final fg = isGo ? (on ? V3.bg : V3.text) : V3.redText;
+      final solid = isGo ? V3.green : V3.red;
+      final bg = answered && !on ? V3.card2 : solid;
+      final fg = answered && !on ? V3.muted : (isGo ? V3.bg : Colors.white);
       return GestureDetector(
         onTap: busy ? null : () => _reply(m, isGo ? 3 : 4),
         child: Container(
@@ -742,7 +744,6 @@ class _V3EventPageState extends State<V3EventPage> {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(10),
-            border: isGo || on ? null : Border.all(color: V3.red, width: 1.5),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(icon, size: 18, color: fg),
@@ -1103,17 +1104,18 @@ class _V3EventPageState extends State<V3EventPage> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: OutlinedButton(
+                child: FilledButton(
                   onPressed: () {
                     Navigator.pop(ctx);
                     _reply(m, 4);
                   },
-                  style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: V3.red, width: 1.5),
+                  style: FilledButton.styleFrom(
+                      backgroundColor: V3.red,
+                      foregroundColor: Colors.white,
                       minimumSize: const Size(0, 46)),
                   child: Text('Decline',
                       style: V3.inter(15,
-                          weight: FontWeight.w700, color: V3.redText)),
+                          weight: FontWeight.w700, color: Colors.white)),
                 ),
               ),
             ]),
