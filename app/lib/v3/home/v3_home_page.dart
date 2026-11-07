@@ -334,7 +334,7 @@ class _V3HomePageState extends State<V3HomePage> {
         children.add(V3EventCard(
           event: e,
           now: _now,
-          isNext: e.eventId == nextId,
+          isNext: false, // no next-up highlight (Ken, 2026-11-07)
           isCoach: _isCoachOn(e),
           far: false,
           expanded: _expanded.contains(e.eventId),
