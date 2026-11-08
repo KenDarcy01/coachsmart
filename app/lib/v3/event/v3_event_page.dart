@@ -126,6 +126,7 @@ class _V3EventPageState extends State<V3EventPage> {
   }
 
   String get _status => (_raw['event_status'] ?? '').toString();
+  String get _squadName => (_raw['squad_name'] ?? '').toString();
   bool get _cancelled => _status == 'cancelled';
   bool get _isMatch => (_ev?.eventType ?? '').toLowerCase() == 'match';
   int get _role => _ev?.userHighestRoleLevel ?? 0;
@@ -143,20 +144,9 @@ class _V3EventPageState extends State<V3EventPage> {
       (_ev?.requestAttendance ?? false) &&
       !_fromSearch &&
       !_cancelled &&
-      _members.isNotEmpty &&
-      (_members.length >= 2 || _unanswered.isNotEmpty);
+      _members.isNotEmpty;
 
   String _euro(int cents) => '€${(cents / 100).toStringAsFixed(2)}';
-
-  String _dayLabel(DateTime t) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final day = DateTime(t.year, t.month, t.day);
-    final diff = day.difference(today).inDays;
-    if (diff == 0) return t.hour >= 17 ? 'Tonight' : 'Today';
-    if (diff == 1) return 'Tomorrow';
-    return DateFormat('EEE d MMM').format(t);
-  }
 
   // ---------------------------------------------------------------- actions
 
@@ -401,9 +391,11 @@ class _V3EventPageState extends State<V3EventPage> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
                     children: [
-                      _hero(),
+                      // No header block: the title is in the app bar and
+                      // the date and team sit in Details (Ken, 2026-11-08).
                       // Replying is why most people open an event, so the
                       // reply rows come first (Ken, 2026-11-07).
+                      const SizedBox(height: 4),
                       if (_showReplyBlock) ...[
                         _section('Your reply'),
                         _replyCard(),
@@ -443,36 +435,15 @@ class _V3EventPageState extends State<V3EventPage> {
     return null;
   }
 
-  Widget _loadingBody() {
-    final e = _homeEvent;
-    final t = e == null ? null : eventLocalTime(e);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-      children: [
-        if (e != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(0, 8, 0, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (t != null) _whenLine(t),
-                const SizedBox(height: 2),
-                Text(e.teamName, style: V3.inter(14, color: V3.muted)),
-              ],
-            ),
-          ),
-        const Padding(
-          padding: EdgeInsets.only(top: 40),
-          child: Center(
-              child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: V3.green))),
-        ),
-      ],
-    );
-  }
+  Widget _loadingBody() => const Padding(
+        padding: EdgeInsets.only(top: 80),
+        child: Center(
+            child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2.5, color: V3.green))),
+      );
 
   Widget _section(String text) => Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 8),
@@ -482,77 +453,6 @@ class _V3EventPageState extends State<V3EventPage> {
       );
 
   // Hero: crest, team + squad, title, date · time · countdown, pills.
-  // Plain header under the app bar: when, team, pills. No title card or
-  // crest (Ken, 2026-11-08: it added no value; the title is in the app bar).
-  Widget _hero() {
-    final e = _ev!;
-    final t = _when;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (t != null) _whenLine(t),
-          const SizedBox(height: 2),
-          Text(e.teamName, style: V3.inter(14, color: V3.muted)),
-          if (_heroPills().isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(spacing: 6, runSpacing: 6, children: _heroPills()),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _whenLine(DateTime t) => RichText(
-        text: TextSpan(
-          style: V3.inter(17, weight: FontWeight.w600),
-          children: [
-            TextSpan(text: '${_dayLabel(t)} · '),
-            TextSpan(
-                text: hhmm(t),
-                style: V3.inter(17, weight: FontWeight.w600, color: V3.green)),
-            if (!_cancelled && t.isAfter(DateTime.now()))
-              TextSpan(text: ' · ${countdown(t, DateTime.now())}'),
-          ],
-        ),
-      );
-
-  List<Widget> _heroPills() {
-    final e = _ev!;
-    final out = <Widget>[];
-    if (_cancelled) out.add(_pill('Cancelled', V3.redTint, V3.redText));
-    if (e.homeAway.isNotEmpty) out.add(_pill(e.homeAway, V3.card2, V3.text));
-    if (e.paymentRequired && e.eventPaid > 0 && _owing.isEmpty) {
-      out.add(_pill('Paid', V3.greenTint, V3.green));
-    }
-    if (e.requestAttendance && !_fromSearch && !_cancelled) {
-      if (_members.length == 1 && _unanswered.isEmpty) {
-        final m = _members.first;
-        final going = m.responseId == 3;
-        out.add(GestureDetector(
-          onTap: () => _showChangeReply(m),
-          child: going
-              ? _pill('✓ Attending', V3.greenTint, V3.green)
-              : _pill('✗ Declined', V3.redTint, V3.redText),
-        ));
-      } else if (_unanswered.isNotEmpty) {
-        final n = _unanswered.length;
-        out.add(_pill('$n ${n == 1 ? 'reply' : 'replies'} needed', V3.redTint,
-            V3.redText));
-      }
-    }
-    return out;
-  }
-
-  Widget _pill(String text, Color bg, Color fg) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration:
-            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-        child:
-            Text(text, style: V3.inter(13, weight: FontWeight.w600, color: fg)),
-      );
-
   // Meet / Venue / Directions.
   Widget _tiles() {
     final e = _ev!;
@@ -849,19 +749,35 @@ class _V3EventPageState extends State<V3EventPage> {
     final a = e.acceptedPlayerCount;
     final n = e.noResponsePlayerCount;
     final d = e.declinedPlayerCount;
-    String lines(Iterable<MapEntry<String, int>> roles) => roles
-        .where((r) => r.value > 0)
-        .map((r) => '${r.key}: ${r.value}')
-        .join('\n'); // one role per line
-    final aLines = lines(e.acceptedAttendanceSummary
-        .where((r) => r.roleLevel > 10)
-        .map((r) => MapEntry(r.roleNamePlural, r.memberCount)));
-    final nLines = lines(e.noResponseAttendanceSummary
-        .where((r) => r.roleLevel > 10)
-        .map((r) => MapEntry(r.roleNamePlural, r.memberCount)));
-    final dLines = lines(e.declinedAttendanceSummary
-        .where((r) => r.roleLevel > 10)
-        .map((r) => MapEntry(r.roleNamePlural, r.memberCount)));
+    // Every role appears in every tile, zero included, in one order
+    // (Ken, 2026-11-08). Players (level 10) are the big number itself.
+    final roleOrder = <String>[];
+    void collect(Iterable<({String name, int level})> rs) {
+      for (final r in rs) {
+        if (r.level > 10 && !roleOrder.contains(r.name)) roleOrder.add(r.name);
+      }
+    }
+
+    collect(e.acceptedAttendanceSummary
+        .map((r) => (name: r.roleNamePlural, level: r.roleLevel)));
+    collect(e.noResponseAttendanceSummary
+        .map((r) => (name: r.roleNamePlural, level: r.roleLevel)));
+    collect(e.declinedAttendanceSummary
+        .map((r) => (name: r.roleNamePlural, level: r.roleLevel)));
+    String lines(Map<String, int> counts) =>
+        roleOrder.map((r) => '$r: ${counts[r] ?? 0}').join('\n');
+    final aLines = lines({
+      for (final r in e.acceptedAttendanceSummary)
+        r.roleNamePlural: r.memberCount
+    });
+    final nLines = lines({
+      for (final r in e.noResponseAttendanceSummary)
+        r.roleNamePlural: r.memberCount
+    });
+    final dLines = lines({
+      for (final r in e.declinedAttendanceSummary)
+        r.roleNamePlural: r.memberCount
+    });
 
     Widget tile(String label, int count, Color dot, Color bg, String sub,
             int responseId) =>
@@ -988,6 +904,20 @@ class _V3EventPageState extends State<V3EventPage> {
   Widget _details() {
     final e = _ev!;
     final rows = <Widget>[];
+    final t = _when;
+    if (t != null) {
+      rows.add(_row(
+          'When',
+          '${DateFormat('EEE d MMM').format(t)} · ${hhmm(t)}'
+              '${!_cancelled && t.isAfter(DateTime.now()) ? ' · ${countdown(t, DateTime.now())}' : ''}'));
+    }
+    final team = [
+      e.teamName,
+      if (_squadName.isNotEmpty) _squadName,
+    ].join(' · ');
+    if (team.isNotEmpty) rows.add(_row('Team', team));
+    if (_cancelled) rows.add(_row('Status', 'Cancelled'));
+    if (e.homeAway.isNotEmpty) rows.add(_row('Home / Away', e.homeAway));
     final type = [
       if (e.eventType.isNotEmpty) e.eventType,
       if (e.eventCode.isNotEmpty) e.eventCode,
@@ -1062,58 +992,6 @@ class _V3EventPageState extends State<V3EventPage> {
       );
 
   // ------------------------------------------------------------------ sheets
-
-  void _showChangeReply(TeamMembersStruct m) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: V3.card,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _grab(),
-            Text('Your reply', style: V3.tight(20)),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _reply(m, 3);
-                  },
-                  style: FilledButton.styleFrom(
-                      backgroundColor: V3.green,
-                      foregroundColor: V3.bg,
-                      minimumSize: const Size(0, 46)),
-                  child: Text('Attending',
-                      style:
-                          V3.inter(15, weight: FontWeight.w700, color: V3.bg)),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _reply(m, 4);
-                  },
-                  style: FilledButton.styleFrom(
-                      backgroundColor: V3.red,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(0, 46)),
-                  child: Text('Decline',
-                      style: V3.inter(15,
-                          weight: FontWeight.w700, color: Colors.white)),
-                ),
-              ),
-            ]),
-          ]),
-        ),
-      ),
-    );
-  }
 
   Widget _grab() => Container(
         width: 40,
