@@ -849,11 +849,10 @@ class _V3EventPageState extends State<V3EventPage> {
     final a = e.acceptedPlayerCount;
     final n = e.noResponsePlayerCount;
     final d = e.declinedPlayerCount;
-    final total = a + n + d;
     String lines(Iterable<MapEntry<String, int>> roles) => roles
         .where((r) => r.value > 0)
         .map((r) => '${r.key}: ${r.value}')
-        .join(' · ');
+        .join('\n'); // one role per line
     final aLines = lines(e.acceptedAttendanceSummary
         .where((r) => r.roleLevel > 10)
         .map((r) => MapEntry(r.roleNamePlural, r.memberCount)));
@@ -897,9 +896,9 @@ class _V3EventPageState extends State<V3EventPage> {
           ),
         );
 
-    return Column(children: [
-      // Each tile is as tall as its own content (Ken, 2026-11-07).
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    // Three tiles the same height, no bar underneath (Ken, 2026-11-08).
+    return IntrinsicHeight(
+      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         tile('Attending', a, V3.green, const Color(0xFF1F2A19), aLines, 3),
         const SizedBox(width: 8),
         tile('No reply', n, const Color(0xFF9A9A9A), V3.card2, nLines, 0),
@@ -907,13 +906,7 @@ class _V3EventPageState extends State<V3EventPage> {
         tile('Declined', d, const Color(0xFFC3202A), const Color(0xFF3A1D1D),
             dLines, 4),
       ]),
-      const SizedBox(height: 12),
-      _bar([
-        (a, V3.green),
-        (n, V3.barGrey),
-        (d, V3.red),
-      ], total),
-    ]);
+    );
   }
 
   Widget _bar(List<(int, Color)> parts, int total) => ClipRRect(
