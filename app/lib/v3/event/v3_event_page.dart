@@ -126,7 +126,6 @@ class _V3EventPageState extends State<V3EventPage> {
   }
 
   String get _status => (_raw['event_status'] ?? '').toString();
-  String get _squadName => (_raw['squad_name'] ?? '').toString();
   bool get _cancelled => _status == 'cancelled';
   bool get _isMatch => (_ev?.eventType ?? '').toLowerCase() == 'match';
   int get _role => _ev?.userHighestRoleLevel ?? 0;
@@ -146,18 +145,6 @@ class _V3EventPageState extends State<V3EventPage> {
       !_cancelled &&
       _members.isNotEmpty &&
       (_members.length >= 2 || _unanswered.isNotEmpty);
-
-  String _crestUrl() {
-    final home = FFAppState().homePageEvents;
-    for (final e in home.events) {
-      if (e.eventId == _eventId) {
-        for (final c in home.clubs) {
-          if (c.clubId == e.clubId && c.clubId != 0) return c.crest;
-        }
-      }
-    }
-    return '';
-  }
 
   String _euro(int cents) => '€${(cents / 100).toStringAsFixed(2)}';
 
@@ -459,49 +446,18 @@ class _V3EventPageState extends State<V3EventPage> {
   Widget _loadingBody() {
     final e = _homeEvent;
     final t = e == null ? null : eventLocalTime(e);
-    final crest = _crestUrl();
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
       children: [
         if (e != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, 6, 0, 14),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 14),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (crest.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 14, top: 2),
-                    child: SizedBox(
-                      width: 56,
-                      height: 56,
-                      child: Image.network(crest,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) =>
-                              const SizedBox.shrink()),
-                    ),
-                  ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(e.teamName.toUpperCase(),
-                          style: V3.inter(13,
-                              weight: FontWeight.w700,
-                              color: V3.green,
-                              letterSpacing: .6)),
-                      const SizedBox(height: 2),
-                      Text(e.eventTitle,
-                          style: V3.tight(24,
-                              weight: FontWeight.w700, height: 1.15)),
-                      if (t != null) ...[
-                        const SizedBox(height: 6),
-                        Text('${_dayLabel(t)} · ${hhmm(t)}',
-                            style: V3.inter(16, weight: FontWeight.w500)),
-                      ],
-                    ],
-                  ),
-                ),
+                if (t != null) _whenLine(t),
+                const SizedBox(height: 2),
+                Text(e.teamName, style: V3.inter(14, color: V3.muted)),
               ],
             ),
           ),
@@ -526,70 +482,41 @@ class _V3EventPageState extends State<V3EventPage> {
       );
 
   // Hero: crest, team + squad, title, date · time · countdown, pills.
+  // Plain header under the app bar: when, team, pills. No title card or
+  // crest (Ken, 2026-11-08: it added no value; the title is in the app bar).
   Widget _hero() {
     final e = _ev!;
     final t = _when;
-    final crest = _crestUrl();
-    final team = [
-      e.teamName,
-      if (_squadName.isNotEmpty) _squadName,
-    ].join(' · ');
-    final strike = _cancelled ? TextDecoration.lineThrough : null;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 6, 0, 14),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 14),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (crest.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(right: 14, top: 2),
-              child: SizedBox(
-                width: 56,
-                height: 56,
-                child: Image.network(crest,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-              ),
-            ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(team.toUpperCase(),
-                    style: V3.inter(13,
-                        weight: FontWeight.w700,
-                        color: V3.green,
-                        letterSpacing: .6)),
-                const SizedBox(height: 2),
-                Text(e.eventTitle,
-                    style: V3
-                        .tight(24, weight: FontWeight.w700, height: 1.15)
-                        .copyWith(decoration: strike)),
-                const SizedBox(height: 6),
-                if (t != null)
-                  RichText(
-                    text: TextSpan(
-                      style: V3.inter(16, weight: FontWeight.w500),
-                      children: [
-                        TextSpan(text: '${_dayLabel(t)} · '),
-                        TextSpan(
-                            text: hhmm(t),
-                            style: V3.inter(16,
-                                weight: FontWeight.w600, color: V3.green)),
-                        if (!_cancelled && t.isAfter(DateTime.now()))
-                          TextSpan(text: ' · ${countdown(t, DateTime.now())}'),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Wrap(spacing: 6, runSpacing: 6, children: _heroPills()),
-              ],
-            ),
-          ),
+          if (t != null) _whenLine(t),
+          const SizedBox(height: 2),
+          Text(e.teamName, style: V3.inter(14, color: V3.muted)),
+          if (_heroPills().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, runSpacing: 6, children: _heroPills()),
+          ],
         ],
       ),
     );
   }
+
+  Widget _whenLine(DateTime t) => RichText(
+        text: TextSpan(
+          style: V3.inter(17, weight: FontWeight.w600),
+          children: [
+            TextSpan(text: '${_dayLabel(t)} · '),
+            TextSpan(
+                text: hhmm(t),
+                style: V3.inter(17, weight: FontWeight.w600, color: V3.green)),
+            if (!_cancelled && t.isAfter(DateTime.now()))
+              TextSpan(text: ' · ${countdown(t, DateTime.now())}'),
+          ],
+        ),
+      );
 
   List<Widget> _heroPills() {
     final e = _ev!;
