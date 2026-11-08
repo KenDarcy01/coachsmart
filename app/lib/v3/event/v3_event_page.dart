@@ -803,102 +803,87 @@ class _V3EventPageState extends State<V3EventPage> {
     ]);
   }
 
+  // One row per linked member: two equal buttons with the first name inside,
+  // "✓ Aoife" | "✗ Aoife", as v2 did (Ken, 2026-11-08). Unanswered: both
+  // grey. Chosen: solid green or red; the other goes dim.
   Widget _memberRow(TeamMembersStruct m, bool paidEvent, {required bool last}) {
     final busy = _busy.contains(m.memberId);
     final going = m.responseId == 3;
     final declined = m.responseId == 4;
-    final name = m.firstName.isNotEmpty ? m.firstName : m.lastName;
-    // Unanswered: solid green Attending and solid red Decline. Answered: the
-    // chosen one stays solid, the other goes grey so the choice is obvious.
     final answered = going || declined;
-    Widget seg(String label, bool on, bool isGo, IconData icon) {
-      final solid = isGo ? V3.green : V3.red;
-      final bg = answered && !on ? V3.card2 : solid;
-      final fg = answered && !on ? V3.muted : (isGo ? V3.bg : Colors.white);
-      return GestureDetector(
-        onTap: busy ? null : () => _reply(m, isGo ? 3 : 4),
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(12),
+    final name = m.firstName.isNotEmpty ? m.firstName : m.lastName;
+    const dim = Color(0xFF7C8089);
+
+    Widget button(bool isGo) {
+      final on = isGo ? going : declined;
+      final Color bg;
+      final Color fg;
+      if (on) {
+        bg = isGo ? V3.green : V3.red;
+        fg = isGo ? V3.bg : Colors.white;
+      } else if (answered) {
+        bg = V3.card2;
+        fg = dim;
+      } else {
+        bg = V3.card2;
+        fg = isGo ? V3.text : V3.redText;
+      }
+      return Expanded(
+        child: GestureDetector(
+          onTap: busy ? null : () => _reply(m, isGo ? 3 : 4),
+          child: Container(
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+                color: bg, borderRadius: BorderRadius.circular(12)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(isGo ? Icons.check : Icons.close, size: 18, color: fg),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: V3.inter(15, weight: FontWeight.w700, color: fg)),
+              ),
+              if (isGo && paidEvent && m.memberPaid == 1) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .25),
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text('Paid',
+                      style: V3.inter(11,
+                          weight: FontWeight.w600,
+                          color: on ? V3.bg : V3.green)),
+                ),
+              ],
+            ]),
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 18, color: fg),
-            if (label.isNotEmpty) ...[
-              const SizedBox(width: 5),
-              Text(label,
-                  style: V3.inter(15, weight: FontWeight.w700, color: fg)),
-            ],
-          ]),
         ),
       );
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
           border:
               last ? null : const Border(bottom: BorderSide(color: V3.line))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Container(
-              width: 34,
-              height: 34,
-              alignment: Alignment.center,
-              decoration:
-                  const BoxDecoration(color: V3.card2, shape: BoxShape.circle),
-              child: Text(name.isEmpty ? '?' : name[0].toUpperCase(),
-                  style:
-                      V3.tight(14, weight: FontWeight.w700, color: V3.green)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Row(children: [
-                Flexible(
-                    child: Text(name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: V3.inter(16, weight: FontWeight.w500))),
-                const SizedBox(width: 6),
-                Text(m.roleName, style: V3.inter(13, color: V3.muted)),
-                if (paidEvent && m.memberPaid == 1) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: V3.greenTint,
-                        borderRadius: BorderRadius.circular(10)),
-                    child: Text('Paid',
-                        style: V3.inter(11,
-                            weight: FontWeight.w600, color: V3.green)),
-                  ),
-                ],
-              ]),
-            ),
-            if (busy)
-              const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: V3.green)),
-          ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(
-                child: seg(going ? 'Attending ✓' : 'Attending', going, true,
-                    Icons.check)),
-            const SizedBox(width: 8),
-            Expanded(
-                child: seg(declined ? 'Declined' : 'Decline', declined, false,
-                    Icons.close)),
-          ]),
-        ],
-      ),
+      child: busy
+          ? const SizedBox(
+              height: 44,
+              child: Center(
+                  child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: V3.green))))
+          : Row(children: [
+              button(true),
+              const SizedBox(width: 8),
+              button(false),
+            ]),
     );
   }
 
