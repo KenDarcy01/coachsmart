@@ -638,13 +638,13 @@ class _V3EventPageState extends State<V3EventPage> {
   // One row per linked member, each with its own Attending / Decline
   // buttons. No "All attending / None attending" shortcut and no divider
   // between rows (Ken, 2026-11-09).
+  // No card around the rows either: the buttons sit straight on the page
+  // (Ken, 2026-11-09).
   Widget _replyCard() {
     final e = _ev!;
-    final rows = <Widget>[];
-    for (var i = 0; i < _members.length; i++) {
-      rows.add(_memberRow(_members[i], e.paymentRequired));
-    }
-    return _card(rows);
+    return Column(children: [
+      for (final m in _members) _memberRow(m, e.paymentRequired),
+    ]);
   }
 
   // One row per linked member: two equal buttons with the first name inside,
