@@ -80,18 +80,34 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
       refreshListenable: appStateNotifier,
       navigatorKey: appNavigatorKey,
       errorBuilder: (context, state) =>
-          appStateNotifier.loggedIn ? V3HomePage() : AuthPageWidget(),
+          appStateNotifier.loggedIn ? V3HomePage() : V3SignInPage(),
       routes: [
         FFRoute(
           name: '_initialize',
           path: '/',
           builder: (context, _) =>
-              appStateNotifier.loggedIn ? V3HomePage() : AuthPageWidget(),
+              appStateNotifier.loggedIn ? V3HomePage() : V3SignInPage(),
           routes: [
+            // v3 sign-in screens replace the FlutterFlow Auth_Page and
+            // ForgotPassword pages on the same routes (2026-11-09).
             FFRoute(
-              name: AuthPageWidget.routeName,
-              path: AuthPageWidget.routePath,
-              builder: (context, params) => AuthPageWidget(),
+              name: V3SignInPage.routeName,
+              path: V3SignInPage.routePath,
+              builder: (context, params) => V3SignInPage(),
+            ),
+            FFRoute(
+              name: V3CreateAccountPage.routeName,
+              path: V3CreateAccountPage.routePath,
+              builder: (context, params) => V3CreateAccountPage(),
+            ),
+            FFRoute(
+              name: V3VerifyPage.routeName,
+              path: V3VerifyPage.routePath,
+              builder: (context, params) => V3VerifyPage(
+                email: params.getParam('email', ParamType.String) ?? '',
+                first: params.getParam('first', ParamType.String) ?? '',
+                last: params.getParam('last', ParamType.String) ?? '',
+              ),
             ),
             FFRoute(
               name: GamesAgesWidget.routeName,
@@ -188,9 +204,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
-              name: ForgotPasswordWidget.routeName,
-              path: ForgotPasswordWidget.routePath,
-              builder: (context, params) => ForgotPasswordWidget(),
+              name: V3ResetPasswordPage.routeName,
+              path: V3ResetPasswordPage.routePath,
+              builder: (context, params) => V3ResetPasswordPage(
+                email: params.getParam('email', ParamType.String) ?? '',
+              ),
             ),
             FFRoute(
               name: UpdatePasswordWidget.routeName,

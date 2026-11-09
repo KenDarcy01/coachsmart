@@ -239,7 +239,7 @@ class _V3HomePageState extends State<V3HomePage> {
     GoRouter.of(context).prepareAuthEvent();
     await authManager.signOut();
     GoRouter.of(context).clearRedirectLocation();
-    if (mounted) context.goNamedAuth(AuthPageWidget.routeName, context.mounted);
+    if (mounted) context.goNamedAuth(V3SignInPage.routeName, context.mounted);
   }
 
   // ---- build -------------------------------------------------------------

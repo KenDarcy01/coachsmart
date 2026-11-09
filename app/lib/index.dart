@@ -61,6 +61,10 @@ export '/pages/create_team_new/create_team_new_widget.dart'
 export '/pages/event_details/event_details_widget.dart' show EventDetailsWidget;
 export '/v3/home/v3_home_page.dart' show V3HomePage;
 export '/v3/event/v3_event_page.dart' show V3EventPage;
+export '/v3/auth/v3_sign_in_page.dart' show V3SignInPage;
+export '/v3/auth/v3_create_account_page.dart' show V3CreateAccountPage;
+export '/v3/auth/v3_verify_page.dart' show V3VerifyPage;
+export '/v3/auth/v3_reset_password_page.dart' show V3ResetPasswordPage;
 export '/pages/home_page/home_page_widget.dart' show HomePageWidget;
 export '/pages/resources/resources_widget.dart' show ResourcesWidget;
 export '/pages/resources_add/resources_add_widget.dart' show ResourcesAddWidget;
