@@ -150,10 +150,14 @@ async function handle(sb: any, claim: any): Promise<Record<string, unknown> | nu
   if (!items.length && !phases.length) return null;
   const state = claim.state || {};
   const ev = state.event || {};
+  // When more than one squad of the team is playing under this event, name the
+  // squad ("U12 Boys Blue") so followers know which match the alert is about
+  const squads: any[] = state.squads || [];
+  const squad = squads.length > 1 && state.squad ? String(state.squad.name || "").replace(/\s+(team|squad)$/i, "").trim() : "";
   const n: Names = {
     us: cleanClub(ev.club_name) || ev.team_name || "Us",
     opp: ev.opposition || "Opposition",
-    team: ev.team_name || "",
+    team: [ev.team_name || "", squad].filter(Boolean).join(" "),
   };
   const { data: targets, error } = await sb.rpc("lm_alert_targets", { p_event_id: claim.event_id, p_scorer: claim.scorer });
   if (error) { console.warn("targets", error.message); return { items: items.length, phases, error: "targets: " + error.message }; }
