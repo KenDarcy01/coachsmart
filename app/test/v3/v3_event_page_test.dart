@@ -107,7 +107,7 @@ void main() {
   testWidgets('admin on a paid match shows every section', (tester) async {
     await pump(tester, payload());
     expect(tester.takeException(), isNull);
-    expect(find.text('YOUR REPLY'), findsOneWidget);
+    expect(find.text('YOUR REPLY'), findsNothing);
     expect(find.text('Aoife'), findsNWidgets(2)); // tick and cross buttons
     await tester.scrollUntilVisible(find.text('Ken Darcy'), 300);
     expect(find.text('Ken Darcy'), findsOneWidget);

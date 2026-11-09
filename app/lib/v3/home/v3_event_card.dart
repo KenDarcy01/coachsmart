@@ -291,12 +291,19 @@ class V3EventCard extends StatelessWidget {
                 style: V3.inter(14, weight: FontWeight.w600)),
             const TextSpan(text: ' attending · '),
             TextSpan(
+                text: '${e.declinedCount}',
+                style:
+                    V3.inter(14, weight: FontWeight.w600, color: V3.redText)),
+            const TextSpan(text: ' declined · '),
+            TextSpan(
                 text: '${e.noResponseCount} no reply',
                 style: V3.inter(14, weight: FontWeight.w600, color: V3.amber)),
           ],
         ),
       );
     }
+    // Parents see the same three counts (Ken, 2026-11-09: include declined,
+    // not just attending and no reply).
     return RichText(
       text: TextSpan(
         style: V3.inter(14, weight: FontWeight.w500, color: V3.muted),
@@ -304,7 +311,12 @@ class V3EventCard extends StatelessWidget {
           TextSpan(
               text: '${e.acceptedCount}',
               style: V3.inter(14, weight: FontWeight.w600)),
-          TextSpan(text: ' of $_total'),
+          const TextSpan(text: ' attending · '),
+          TextSpan(
+              text: '${e.declinedCount}',
+              style: V3.inter(14, weight: FontWeight.w600, color: V3.redText)),
+          const TextSpan(text: ' declined · '),
+          TextSpan(text: '${e.noResponseCount} no reply'),
         ],
       ),
     );

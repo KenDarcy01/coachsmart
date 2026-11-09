@@ -132,8 +132,6 @@ class _V3EventPageState extends State<V3EventPage> {
   int get _role => _ev?.userHighestRoleLevel ?? 0;
   bool get _admin => _role >= 100;
   List<TeamMembersStruct> get _members => _ev?.teamMembers ?? const [];
-  List<TeamMembersStruct> get _unanswered =>
-      _members.where((m) => m.responseId == 0).toList();
   List<TeamMembersStruct> get _owing => _members
       .where((m) =>
           m.roleLevel == 10 &&
@@ -171,12 +169,6 @@ class _V3EventPageState extends State<V3EventPage> {
       _snack('Could not save the reply. Please try again.', warn: true);
     } finally {
       if (mounted) setState(() => _busy.remove(m.memberId));
-    }
-  }
-
-  Future<void> _replyAll(int responseId) async {
-    for (final m in _unanswered) {
-      await _reply(m, responseId);
     }
   }
 
@@ -396,10 +388,9 @@ class _V3EventPageState extends State<V3EventPage> {
                       // Replying is why most people open an event, so the
                       // reply rows come first (Ken, 2026-11-07).
                       const SizedBox(height: 4),
-                      if (_showReplyBlock) ...[
-                        _section('Your reply'),
-                        _replyCard(),
-                      ],
+                      // No "Your reply" heading: the name buttons speak for
+                      // themselves (Ken, 2026-11-09).
+                      if (_showReplyBlock) _replyCard(),
                       if (_owing.isNotEmpty && (_ev!.paymentRequired))
                         _payButton(),
                       if (_showReplyBlock ||
@@ -598,42 +589,22 @@ class _V3EventPageState extends State<V3EventPage> {
     );
   }
 
-  // One row per linked member: avatar, name, Paid tag, Attending / Decline.
+  // One row per linked member, each with its own Attending / Decline
+  // buttons. No "All attending / None attending" shortcut and no divider
+  // between rows (Ken, 2026-11-09).
   Widget _replyCard() {
     final e = _ev!;
     final rows = <Widget>[];
     for (var i = 0; i < _members.length; i++) {
-      final m = _members[i];
-      rows.add(
-          _memberRow(m, e.paymentRequired, last: i == _members.length - 1));
+      rows.add(_memberRow(_members[i], e.paymentRequired));
     }
-    return Column(children: [
-      _card(rows),
-      if (_unanswered.length >= 2)
-        Padding(
-          padding: const EdgeInsets.only(top: 2, bottom: 4),
-          child: Row(children: [
-            Expanded(
-                child: TextButton(
-                    onPressed: () => _replyAll(3),
-                    child: Text('All attending',
-                        style: V3.inter(14,
-                            weight: FontWeight.w600, color: V3.green)))),
-            Expanded(
-                child: TextButton(
-                    onPressed: () => _replyAll(4),
-                    child: Text('None attending',
-                        style: V3.inter(14,
-                            weight: FontWeight.w600, color: V3.redText)))),
-          ]),
-        ),
-    ]);
+    return _card(rows);
   }
 
   // One row per linked member: two equal buttons with the first name inside,
   // "✓ Aoife" | "✗ Aoife", as v2 did (Ken, 2026-11-08). Unanswered: both
   // grey. Chosen: solid green or red; the other goes dim.
-  Widget _memberRow(TeamMembersStruct m, bool paidEvent, {required bool last}) {
+  Widget _memberRow(TeamMembersStruct m, bool paidEvent) {
     final busy = _busy.contains(m.memberId);
     final going = m.responseId == 3;
     final declined = m.responseId == 4;
@@ -692,11 +663,8 @@ class _V3EventPageState extends State<V3EventPage> {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-          border:
-              last ? null : const Border(bottom: BorderSide(color: V3.line))),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: busy
           ? const SizedBox(
               height: 44,
