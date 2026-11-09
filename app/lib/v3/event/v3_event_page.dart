@@ -485,8 +485,10 @@ class _V3EventPageState extends State<V3EventPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Meet time if set, else the event start time, with no note
+            // underneath (Ken, 2026-11-09: "at the start" was confusing).
             tile('Meet', e.meetTime.isEmpty && t != null ? hhmm(t) : e.meetTime,
-                e.meetTime.isEmpty ? 'at the start' : ''),
+                ''),
             const SizedBox(width: 8),
             tile(
                 e.homeAway.toLowerCase() == 'away' ? 'Away venue' : 'Venue',
