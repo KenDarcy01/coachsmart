@@ -87,26 +87,32 @@ class _V3TeamsPageState extends State<V3TeamsPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
                 children: [
+                  // Join / Create sit at the top, the user's teams below
+                  // (Ken, 2026-11-09).
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 6, 0, 18),
+                    child: Row(children: [
+                      Expanded(
+                          child: _outlineButton(
+                              Icons.keyboard_alt_outlined,
+                              'Join a team',
+                              () => _open(JoinTeamNewWidget.routeName))),
+                      if (_overall >= 110) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                            child: _outlineButton(Icons.add, 'Create a team',
+                                () => _open(CreateTeamNewWidget.routeName))),
+                      ],
+                    ]),
+                  ),
                   if (_teams!.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 30, 4, 20),
+                      padding: const EdgeInsets.fromLTRB(4, 10, 4, 20),
                       child: Text(
                           'You are not on a team yet. Join one with the code from your coach, or create a new team.',
                           style: V3.inter(15.5, color: V3.muted, height: 1.4)),
                     ),
                   for (final t in _teams!) _teamCard(t),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 18, 0, 10),
-                    child: Text('Add a team',
-                        style: V3.tight(19, weight: FontWeight.w700)),
-                  ),
-                  _outlineButton(
-                      Icons.keyboard_alt_outlined,
-                      'Join a team with a code',
-                      () => _open(JoinTeamNewWidget.routeName)),
-                  if (_overall >= 110)
-                    _outlineButton(Icons.add, 'Create a new team',
-                        () => _open(CreateTeamNewWidget.routeName)),
                 ],
               ),
             ),
@@ -170,21 +176,21 @@ class _V3TeamsPageState extends State<V3TeamsPage> {
   }
 
   Widget _outlineButton(IconData icon, String label, VoidCallback onTap) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: SizedBox(
-          height: 52,
-          child: OutlinedButton.icon(
-            onPressed: onTap,
-            style: OutlinedButton.styleFrom(
-                foregroundColor: V3.green,
-                side: const BorderSide(color: V3.green, width: 1.5),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14))),
-            icon: Icon(icon, size: 22),
-            label: Text(label,
-                style: V3.inter(16, weight: FontWeight.w700, color: V3.green)),
-          ),
+      SizedBox(
+        height: 48,
+        child: OutlinedButton.icon(
+          onPressed: onTap,
+          style: OutlinedButton.styleFrom(
+              foregroundColor: V3.green,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              side: const BorderSide(color: V3.green, width: 1.5),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14))),
+          icon: Icon(icon, size: 20),
+          label: Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: V3.inter(15, weight: FontWeight.w700, color: V3.green)),
         ),
       );
 }
