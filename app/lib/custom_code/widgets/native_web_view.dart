@@ -19,6 +19,7 @@ import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '/v3/web/cs_web_frame.dart';
 
 class NativeWebView extends StatefulWidget {
   const NativeWebView({
@@ -56,7 +57,9 @@ class _NativeWebViewState extends State<NativeWebView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initController();
+    // v3 web build: webview_flutter has no web implementation, so the page
+    // is drawn in an iframe instead (see CsWebFrame). Native is unchanged.
+    if (!kIsWeb) _initController();
   }
 
   @override
@@ -357,6 +360,16 @@ class _NativeWebViewState extends State<NativeWebView>
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return SizedBox(
+        width: widget.width ?? double.infinity,
+        height: widget.height ?? double.infinity,
+        child: CsWebFrame(
+          url: widget.url,
+          onClose: () => widget.onLogout?.call(),
+        ),
+      );
+    }
     final ctrl = _controller;
     if (ctrl == null) {
       return Container(

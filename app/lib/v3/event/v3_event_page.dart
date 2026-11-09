@@ -3,7 +3,6 @@
 // CHOSEN-event-*.png: hero, Meet / Venue / Directions tiles, match tools,
 // your reply, pay, attendance tiles, payments (admins) and a details card.
 // Admin actions sit behind the three-dot Manage sheet.
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
@@ -11,11 +10,11 @@ import '/backend/api_requests/api_calls.dart';
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
 import '/custom_code/actions/index.dart' as actions;
-import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../home/v3_home_data.dart';
 import '../v3_theme.dart';
+import '../web/v3_web_page.dart';
 
 /// Number of users a reminder went to. `populate_event_notifications`
 /// returns one row `{"notifications_created": n}`, n being one notification
@@ -251,12 +250,8 @@ class _V3EventPageState extends State<V3EventPage> {
       };
 
   void _openWeb(String title, String url) {
-    if (kIsWeb) {
-      launchURL(url);
-    } else {
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => _V3WebPage(title: title, url: url)));
-    }
+    Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => V3WebPage(title: title, url: url)));
   }
 
   void _openAttendees(int responseId) {
@@ -1182,23 +1177,3 @@ class _Tool {
 }
 
 // Full-screen webview for the tools that live on coachsmart.app.
-class _V3WebPage extends StatelessWidget {
-  const _V3WebPage({required this.title, required this.url});
-  final String title;
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: V3.bg,
-      body: SafeArea(
-        child: custom_widgets.NativeWebView(
-          width: double.infinity,
-          height: double.infinity,
-          url: url,
-          onLogout: () async => Navigator.of(context).maybePop(),
-        ),
-      ),
-    );
-  }
-}

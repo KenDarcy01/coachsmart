@@ -2,7 +2,6 @@
 // as in /mnt/project-files/coachsmart/app-v3/home-design/CHOSEN-home.png.
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,6 +16,7 @@ import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_event_card.dart';
 import 'v3_home_data.dart';
+import '../web/v3_web_page.dart';
 
 class V3HomePage extends StatefulWidget {
   const V3HomePage({super.key});
@@ -214,12 +214,8 @@ class _V3HomePageState extends State<V3HomePage> {
   void _openMatches() {
     final url =
         'https://coachsmart.app/webviews/matches.html?token=$currentJwtToken';
-    if (kIsWeb) {
-      launchURL(url);
-    } else {
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => V3WebPage(title: 'Matches', url: url)));
-    }
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => V3WebPage(title: 'Matches', url: url)));
   }
 
   void _openResources() {
@@ -701,23 +697,3 @@ class _Tab {
 }
 
 /// A full-screen webview page (native only; on the web the URL opens in a tab).
-class V3WebPage extends StatelessWidget {
-  const V3WebPage({super.key, required this.title, required this.url});
-  final String title;
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: V3.bg,
-      body: SafeArea(
-        child: custom_widgets.NativeWebView(
-          width: double.infinity,
-          height: double.infinity,
-          url: url,
-          onLogout: () async => Navigator.of(context).maybePop(),
-        ),
-      ),
-    );
-  }
-}
