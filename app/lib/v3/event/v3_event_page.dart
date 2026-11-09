@@ -397,6 +397,9 @@ class _V3EventPageState extends State<V3EventPage> {
                           (_owing.isNotEmpty && _ev!.paymentRequired))
                         const SizedBox(height: 14),
                       _tiles(),
+                      // Car pooling gets its own strip under the tiles so it
+                      // is obvious when switched on (Ken, 2026-11-09).
+                      if (_ev!.carPoolingEnabled) _carPoolBar(),
                       if (_tools().isNotEmpty) _toolsRow(),
                       // Then the event detail, and attendance last
                       // (Ken, 2026-11-07).
@@ -557,6 +560,47 @@ class _V3EventPageState extends State<V3EventPage> {
               })));
     }
     return out;
+  }
+
+  void _openCarPool() => _open(CreateCarPoolWidget.routeName, {
+        'paramEventID': serializeParam(_eventId, ParamType.int),
+        'paramRoleLevel': serializeParam(_role, ParamType.int),
+      });
+
+  // Full-width green-outlined strip: car icon, "Car pooling", one line of
+  // what it does, chevron. Shown only when the event has car pooling on.
+  Widget _carPoolBar() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: GestureDetector(
+        onTap: _openCarPool,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+          decoration: BoxDecoration(
+              color: V3.card,
+              border: Border.all(color: V3.green, width: 1.5),
+              borderRadius: BorderRadius.circular(14)),
+          child: Row(children: [
+            const Icon(Icons.directions_car_outlined,
+                color: V3.green, size: 26),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Car pooling',
+                      style: V3.inter(16, weight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text('Offer a lift or find a seat',
+                      style: V3.inter(13.5, color: V3.muted)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: V3.muted, size: 24),
+          ]),
+        ),
+      ),
+    );
   }
 
   Widget _toolsRow() {
@@ -870,7 +914,7 @@ class _V3EventPageState extends State<V3EventPage> {
     );
   }
 
-  // Details card: Type, Opposition, Car pooling, Link, Notes, Created by.
+  // Details card: Type, Opposition, Link, Notes, Created by.
   Widget _details() {
     final e = _ev!;
     final rows = <Widget>[];
@@ -896,13 +940,6 @@ class _V3EventPageState extends State<V3EventPage> {
     if (e.opposition.isNotEmpty) rows.add(_row('Opposition', e.opposition));
     if (e.paymentRequired) {
       rows.add(_row('Cost', '${_euro(e.paymentAmount)} per player'));
-    }
-    if (e.carPoolingEnabled) {
-      rows.add(_row('Car pooling', 'Offer or find seats',
-          onTap: () => _open(CreateCarPoolWidget.routeName, {
-                'paramEventID': serializeParam(_eventId, ParamType.int),
-                'paramRoleLevel': serializeParam(_role, ParamType.int),
-              })));
     }
     if (e.eventLink.isNotEmpty) {
       rows.add(_row('Link', _linkLabel(e.eventLink),
