@@ -129,23 +129,17 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
-              name: MemberDetailsWidget.routeName,
-              path: MemberDetailsWidget.routePath,
-              builder: (context, params) => MemberDetailsWidget(
-                memberID: params.getParam(
-                  'memberID',
-                  ParamType.int,
-                ),
-                teamID: params.getParam(
-                  'teamID',
-                  ParamType.int,
-                ),
+              name: V3MemberPage.routeName,
+              path: V3MemberPage.routePath,
+              builder: (context, params) => V3MemberPage(
+                memberId: params.getParam('memberID', ParamType.int) ?? 0,
+                teamId: params.getParam('teamID', ParamType.int) ?? 0,
               ),
             ),
             FFRoute(
-              name: TeamsWidget.routeName,
-              path: TeamsWidget.routePath,
-              builder: (context, params) => TeamsWidget(),
+              name: V3TeamsPage.routeName,
+              path: V3TeamsPage.routePath,
+              builder: (context, params) => V3TeamsPage(),
             ),
             FFRoute(
               name: CreateTeamWidget.routeName,
@@ -240,13 +234,10 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
-              name: TeamMembersWidget.routeName,
-              path: TeamMembersWidget.routePath,
-              builder: (context, params) => TeamMembersWidget(
-                teamID: params.getParam(
-                  'teamID',
-                  ParamType.int,
-                ),
+              name: V3TeamPage.routeName,
+              path: V3TeamPage.routePath,
+              builder: (context, params) => V3TeamPage(
+                teamId: params.getParam('teamID', ParamType.int) ?? 0,
               ),
             ),
             FFRoute(

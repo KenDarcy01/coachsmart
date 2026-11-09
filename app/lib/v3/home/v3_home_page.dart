@@ -665,7 +665,7 @@ class _V3HomePageState extends State<V3HomePage> {
           const Divider(color: V3.line, height: 1),
           const SizedBox(height: 8),
           item(Icons.groups_sharp, 'Teams',
-              () => context.pushNamed(TeamsWidget.routeName)),
+              () => context.pushNamed(V3TeamsPage.routeName)),
           item(Icons.sports, 'Matches', _openMatches),
           if (role >= 30)
             item(Icons.search, 'Search events',

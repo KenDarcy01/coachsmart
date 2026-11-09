@@ -17,6 +17,24 @@ import '/index.dart';
 import '../home/v3_home_data.dart';
 import '../v3_theme.dart';
 
+/// Number of users a reminder went to. `populate_event_notifications`
+/// returns one row `{"notifications_created": n}`, n being one notification
+/// per user (a parent with two children counts once).
+int reminderCount(dynamic body) {
+  dynamic row = body;
+  if (row is List) row = row.isEmpty ? null : row.first;
+  if (row is Map) row = row['notifications_created'];
+  if (row is int) return row;
+  if (row is num) return row.toInt();
+  return int.tryParse('$row') ?? 0;
+}
+
+String reminderMessage(int n) {
+  if (n <= 0) return 'No reminder needed. Everyone has already replied.';
+  if (n == 1) return 'Reminder sent to 1 person';
+  return 'Reminder sent to $n people';
+}
+
 class V3EventPage extends StatefulWidget {
   const V3EventPage(
       {super.key, required this.eventID, this.fromSearch, this.testData});
@@ -280,8 +298,11 @@ class _V3EventPageState extends State<V3EventPage> {
         pRoleLevel: 10,
         pRoleGrade: 10,
       );
-      _snack(r.succeeded ? 'Reminder sent' : 'Could not send the reminder.',
-          warn: !r.succeeded);
+      if (!r.succeeded) {
+        _snack('Could not send the reminder.', warn: true);
+        return;
+      }
+      _snack(reminderMessage(reminderCount(r.jsonBody)));
     } catch (_) {
       _snack('Could not send the reminder.', warn: true);
     }
@@ -331,10 +352,12 @@ class _V3EventPageState extends State<V3EventPage> {
     return ok ?? false;
   }
 
+  // Messages are centred (Ken, 2026-11-09).
   void _snack(String text, {bool warn = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(text, style: V3.inter(14, color: V3.bg)),
+        content: Text(text,
+            textAlign: TextAlign.center, style: V3.inter(14, color: V3.bg)),
         backgroundColor: warn ? V3.amber : V3.green));
   }
 

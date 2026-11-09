@@ -101,6 +101,7 @@ Future<void> pump(WidgetTester tester, Map<String, dynamic> data) async {
 }
 
 void main() {
+  reminderTests();
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
   setUp(() => tester_binding());
 
@@ -128,4 +129,24 @@ void main() {
 
 void tester_binding() {
   TestWidgetsFlutterBinding.ensureInitialized();
+}
+
+void reminderTests() {
+  test('reminder count reads the RPC result', () {
+    expect(
+        reminderCount([
+          {'notifications_created': 7}
+        ]),
+        7);
+    expect(reminderCount({'notifications_created': '3'}), 3);
+    expect(reminderCount([]), 0);
+    expect(reminderCount(null), 0);
+  });
+
+  test('reminder message wording', () {
+    expect(reminderMessage(0),
+        'No reminder needed. Everyone has already replied.');
+    expect(reminderMessage(1), 'Reminder sent to 1 person');
+    expect(reminderMessage(12), 'Reminder sent to 12 people');
+  });
 }
