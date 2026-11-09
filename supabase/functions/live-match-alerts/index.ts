@@ -153,7 +153,7 @@ async function handle(sb: any, claim: any): Promise<Record<string, unknown> | nu
   // When more than one squad of the team is playing under this event, name the
   // squad ("U12 Boys Blue") so followers know which match the alert is about
   const squads: any[] = state.squads || [];
-  const squad = squads.length > 1 && state.squad ? String(state.squad.name || "").replace(/\s+(team|squad)$/i, "").trim() : "";
+  const squad = squads.length > 1 && state.squad ? (/^\s*no team\s*$/i.test(state.squad.name || "") ? "" : String(state.squad.name || "").replace(/\s+(team|squad)$/i, "").trim()) : "";
   const n: Names = {
     us: cleanClub(ev.club_name) || ev.team_name || "Us",
     opp: ev.opposition || "Opposition",

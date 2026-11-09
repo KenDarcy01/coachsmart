@@ -118,7 +118,7 @@ const time = t => new Date(t).toLocaleTimeString('en-IE', { hour: '2-digit', min
 
 // When an event has more than one squad playing, each squad gets its own row
 // and the venue shows, as squads can play at different grounds
-const squadLabel = m => m.squad_name ? ' ' + L.squadShort(m.squad_name) : '';
+const squadLabel = m => m.squad_name && m.squads_in_event > 1 ? ' ' + L.squadShort(m.squad_name) : '';
 function row(m) {
   const opp = m.opposition || 'Opposition';
   const started = isLive(m) || isDone(m);

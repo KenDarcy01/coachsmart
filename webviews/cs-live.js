@@ -238,7 +238,7 @@
     return SPARE[(i || 0) % SPARE.length];
   }
   // "Blue Team" → "Blue" for tabs; other names as they are
-  const squadShort = n => String(n || '').replace(/\s+(team|squad)$/i, '').trim() || String(n || '');
+  const squadShort = n => /^\s*no team\s*$/i.test(n || '') ? 'Team' : (String(n || '').replace(/\s+(team|squad)$/i, '').trim() || String(n || ''));
   // Minute of the match from a score keeper clock, e.g. 41' or 30+2'
   function minuteOf(timer, skew) {
     const tm = timer || {};
