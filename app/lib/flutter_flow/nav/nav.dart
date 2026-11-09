@@ -243,23 +243,10 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: AttendeeListWidget.routeName,
               path: AttendeeListWidget.routePath,
-              builder: (context, params) => AttendeeListWidget(
-                eventID: params.getParam(
-                  'eventID',
-                  ParamType.int,
-                ),
-                responseID: params.getParam(
-                  'responseID',
-                  ParamType.int,
-                ),
-                teamID: params.getParam(
-                  'teamID',
-                  ParamType.int,
-                ),
-                eventRoleLevel: params.getParam(
-                  'eventRoleLevel',
-                  ParamType.int,
-                ),
+              // v3: one attendance page for every attendee list.
+              builder: (context, params) => V3AttendancePage(
+                eventId: params.getParam('eventID', ParamType.int) ?? 0,
+                responseId: params.getParam('responseID', ParamType.int),
               ),
             ),
             FFRoute(
@@ -411,31 +398,10 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: AttendeeListAdminsWidget.routeName,
               path: AttendeeListAdminsWidget.routePath,
-              builder: (context, params) => AttendeeListAdminsWidget(
-                eventID: params.getParam(
-                  'eventID',
-                  ParamType.int,
-                ),
-                responseID: params.getParam(
-                  'responseID',
-                  ParamType.int,
-                ),
-                teamID: params.getParam(
-                  'teamID',
-                  ParamType.int,
-                ),
-                eventRoleLevel: params.getParam(
-                  'eventRoleLevel',
-                  ParamType.int,
-                ),
-                userRoleLevel: params.getParam(
-                  'userRoleLevel',
-                  ParamType.int,
-                ),
-                eventCodeId: params.getParam(
-                  'eventCodeId',
-                  ParamType.int,
-                ),
+              // v3: one attendance page for every attendee list.
+              builder: (context, params) => V3AttendancePage(
+                eventId: params.getParam('eventID', ParamType.int) ?? 0,
+                responseId: params.getParam('responseID', ParamType.int),
               ),
             ),
             FFRoute(

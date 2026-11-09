@@ -256,21 +256,87 @@ class _V3EventPageState extends State<V3EventPage> {
   }
 
   void _openAttendees(int responseId) {
-    final e = _ev!;
-    final common = {
+    _open(AttendeeListWidget.routeName, {
       'eventID': serializeParam(_eventId, ParamType.int),
       'responseID': serializeParam(responseId, ParamType.int),
-      'teamID': serializeParam(e.teamId, ParamType.int),
-      'eventRoleLevel': serializeParam(e.eventRoleLevel, ParamType.int),
-    };
-    if (_admin && e.teamHasSquads) {
-      _open(AttendeeListAdminsWidget.routeName, {
-        ...common,
-        'userRoleLevel': serializeParam(_role, ParamType.int),
-        'eventCodeId': serializeParam(e.codeId, ParamType.int),
-      });
-    } else {
-      _open(AttendeeListWidget.routeName, common);
+    });
+  }
+
+  /// Lineup (Ken, 2026-11-09): on the event page, not in the squad cards.
+  /// The team selector works from the published match day squads, so ask
+  /// for those first; with more than one squad ask which one, with one go
+  /// straight in.
+  Future<void> _openLineup() async {
+    final e = _ev!;
+    try {
+      final published = await MatchSquadsTable()
+          .queryRows(queryFn: (q) => q.eq('event_id', _eventId).limit(1));
+      if (!mounted) return;
+      if (published.isEmpty) {
+        _snack('Publish the match day squads first (Attending list).',
+            warn: true);
+        return;
+      }
+      var squadId = e.squadId;
+      if (squadId == 0) {
+        final squads = await SquadsTable().queryRows(
+            queryFn: (q) => q
+                .eq('team_id', e.teamId)
+                .order('squad_list_seq', ascending: true));
+        if (!mounted) return;
+        if (squads.length == 1) {
+          squadId = squads.first.squadId;
+        } else if (squads.length > 1) {
+          final picked = await showModalBottomSheet<int>(
+            context: context,
+            backgroundColor: V3.card,
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+            builder: (ctx) => SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                          child: Container(
+                              width: 40,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                  color: V3.barGrey,
+                                  borderRadius: BorderRadius.circular(3)))),
+                      const SizedBox(height: 14),
+                      Text('Lineup for which squad?', style: V3.tight(20)),
+                      const SizedBox(height: 2),
+                      Text('This team has more than one squad.',
+                          style: V3.inter(14, color: V3.muted)),
+                      const SizedBox(height: 6),
+                      for (final s in squads)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: ClipOval(
+                              child: (s.squadImage ?? '').isNotEmpty
+                                  ? Image.network(s.squadImage!,
+                                      width: 30, height: 30, fit: BoxFit.cover)
+                                  : Container(
+                                      width: 30, height: 30, color: V3.green)),
+                          title: Text(s.squadName ?? '',
+                              style: V3.inter(17, weight: FontWeight.w500)),
+                          onTap: () => Navigator.pop(ctx, s.squadId),
+                        ),
+                    ]),
+              ),
+            ),
+          );
+          if (picked == null || !mounted) return;
+          squadId = picked;
+        }
+      }
+      _openWeb('Lineup',
+          'https://coachsmart.app/webviews/team_selector.html?token=$currentJwtToken&eventId=$_eventId&teamId=${e.teamId}&squadId=$squadId');
+    } catch (_) {
+      _snack('Could not open the lineup. Please try again.', warn: true);
     }
   }
 
@@ -572,7 +638,6 @@ class _V3EventPageState extends State<V3EventPage> {
 
   // Match tools by role; Session plan on other event types.
   List<_Tool> _tools() {
-    final e = _ev!;
     final out = <_Tool>[];
     if (_isMatch) {
       if (_role >= 20) {
@@ -598,11 +663,7 @@ class _V3EventPageState extends State<V3EventPage> {
                 })));
       }
       if (_role >= 30 && _teamAllowsLineup) {
-        out.add(_Tool(
-            'Lineup',
-            Icons.grid_view_outlined,
-            () => _openWeb('Lineup',
-                'https://coachsmart.app/webviews/team_selector.html?token=$currentJwtToken&eventId=$_eventId&teamId=${e.teamId}&squadId=${e.squadId}')));
+        out.add(_Tool('Lineup', Icons.grid_view_outlined, _openLineup));
       }
     } else if (_role >= 30 && _teamSessionPlan) {
       out.add(_Tool(

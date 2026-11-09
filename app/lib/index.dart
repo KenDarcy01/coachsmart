@@ -76,3 +76,4 @@ export '/v3/teams/v3_teams_page.dart' show V3TeamsPage;
 export '/v3/teams/v3_team_page.dart' show V3TeamPage;
 export '/v3/teams/v3_member_page.dart' show V3MemberPage;
 export '/v3/event/v3_event_form_page.dart' show V3EventFormPage;
+export '/v3/event/v3_attendance_page.dart' show V3AttendancePage;
