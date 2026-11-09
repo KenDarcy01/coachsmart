@@ -300,44 +300,32 @@ class V3EventCard extends StatelessWidget {
     );
   }
 
+  // Smaller, quieter buttons than the first cut (Ken, 2026-11-09): 36px,
+  // 14px text, still solid green / red so neither reads as pre-selected.
   Widget _buttons() {
+    Widget b(Color bg, Color fg, IconData icon, String label, int id) =>
+        Expanded(
+          child: SizedBox(
+            height: 36,
+            child: FilledButton.icon(
+              onPressed: busy ? null : () => onReply(id),
+              style: FilledButton.styleFrom(
+                backgroundColor: bg,
+                foregroundColor: fg,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: Icon(icon, size: 17),
+              label: Text(label,
+                  style: V3.inter(14, weight: FontWeight.w600, color: fg)),
+            ),
+          ),
+        );
     return Row(children: [
-      Expanded(
-        child: SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            onPressed: busy ? null : () => onReply(3),
-            style: FilledButton.styleFrom(
-              backgroundColor: V3.green,
-              foregroundColor: V3.bg,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: const Icon(Icons.check, size: 20),
-            label: Text('Attending',
-                style: V3.inter(16, weight: FontWeight.w700, color: V3.bg)),
-          ),
-        ),
-      ),
+      b(V3.green, V3.bg, Icons.check, 'Attending', 3),
       const SizedBox(width: 8),
-      Expanded(
-        child: SizedBox(
-          height: 44,
-          child: FilledButton.icon(
-            onPressed: busy ? null : () => onReply(4),
-            style: FilledButton.styleFrom(
-              backgroundColor: V3.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: const Icon(Icons.close, size: 20),
-            label: Text('Decline',
-                style:
-                    V3.inter(16, weight: FontWeight.w700, color: Colors.white)),
-          ),
-        ),
-      ),
+      b(V3.red, Colors.white, Icons.close, 'Decline', 4),
     ]);
   }
 
@@ -358,7 +346,7 @@ class V3EventCard extends StatelessWidget {
         out.add(_pill('✓ Attending', V3.greenTint, V3.green));
       } else if (e.responseId == 4) {
         out.add(_pill('✗ Declined', V3.redTint, V3.redText));
-      } else if (!showButtons) {
+      } else if (!showButtons && canReply(e)) {
         out.add(GestureDetector(
             onTap: onExpand, child: _pill('Reply', V3.amber, V3.bg)));
       }

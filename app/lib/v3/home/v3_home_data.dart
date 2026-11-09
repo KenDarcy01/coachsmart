@@ -72,6 +72,13 @@ List<EventGroup> groupEvents(List<EventsStruct> events, DateTime now) {
 
 bool isCancelled(EventsStruct e) => e.eventStatus == 'cancelled';
 
+/// The user's member on this event can answer at all. The home RPC picks the
+/// user's lowest-level member on the team and includes admins (level 100+)
+/// even though they are not asked to attend; the event page only lists
+/// player-grade members (level below 100), so match it here
+/// (Ken, 2026-11-09: admin on 2018 Boys saw buttons on home but not details).
+bool canReply(EventsStruct e) => e.memberRoleLevel < 100;
+
 /// The user still owes an answer on this event.
 bool needsReply(EventsStruct e) =>
-    e.requestAttendance && e.responseId == 0 && !isCancelled(e);
+    e.requestAttendance && canReply(e) && e.responseId == 0 && !isCancelled(e);
