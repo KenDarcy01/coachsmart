@@ -71,7 +71,7 @@ serve(async (req)=>{
     const { team_name, club_id, team_female } = teamInfo[0];
     // 2. Fetch codes and apply the name swap logic for the Excel Headers
     const teamCodes = await sql`
-      SELECT ec.code_id, 
+      SELECT DISTINCT ec.code_id, 
              CASE 
                WHEN ${team_female} = true AND ec.event_code = 'Hurling' THEN 'Camogie'
                ELSE ec.event_code 
@@ -80,6 +80,7 @@ serve(async (req)=>{
       JOIN public.club_code_link ccl ON ec.code_id = ccl.code_id
       WHERE ccl.club_id = ${club_id} AND ec.code_id != 1
         AND (ccl.team_id IS NULL OR ccl.team_id = ${p_team_id})
+        AND public.team_has_code(${p_team_id}, ec.code_id)
       ORDER BY ec.event_code ASC
     `;
     const members = await sql`

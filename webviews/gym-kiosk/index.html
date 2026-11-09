@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- Gym attendance kiosk. Runs full screen on a tablet in the gym; talks only to the
+       gym-kiosk edge function. See kiosk.js for how it works. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="robots" content="noindex">
+  <title>Gym check-in</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta name="apple-mobile-web-app-title" content="Gym check-in">
+  <link rel="stylesheet" href="kiosk.css?v=12">
+</head>
+<body>
+  <div id="app" aria-live="polite"></div>
+  <script src="kiosk.js?v=14"></script>
+</body>
+</html>

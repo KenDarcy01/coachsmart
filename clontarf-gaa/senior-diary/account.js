@@ -16,7 +16,7 @@ window.ACCOUNT = (function () {
     { k: 'medical_notes', l: 'Injuries or medical notes', area: true }
   ];
 
-  let sb = null, user = null, profile = null, store = {}, published = null, done;
+  let sb = null, user = null, profile = null, store = {}, published = null, synced = false, done;
   const ready = new Promise(r => { done = r; });
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -105,13 +105,13 @@ window.ACCOUNT = (function () {
       sb.from('diary_ticks').select('day, ticks').eq('user_id', user.id),
       // The plan as last published from the coaches' Google Sheet (none yet = plan.js).
       sb.from('diary_plan').select('plan').order('id', { ascending: false }).limit(1).maybeSingle(),
-      // This player's own days and coach notes (RLS returns only their email's rows).
-      sb.from('diary_player_days').select('day, slots, notes')
+      // This player's own days, coach notes, events and activities (RLS returns only their email's rows).
+      sb.from('diary_player_days').select('*')
     ]);
-    if (!error) { store = {}; (rows || []).forEach(r => { store[r.day] = r.ticks; }); keep(); }
+    if (!error) { store = {}; (rows || []).forEach(r => { store[r.day] = r.ticks; }); keep(); synced = true; }
     if (pub && pub.plan && pub.plan.blocks && pub.plan.blocks.length) {
       const own = {};
-      (mine || []).forEach(r => { own[r.day] = { slots: r.slots, notes: r.notes || [] }; });
+      (mine || []).forEach(r => { own[r.day] = { slots: r.slots, notes: r.notes || [], extras: r.extras || [] }; });
       published = { ...pub.plan, own };
     }
     profile = p;
@@ -128,28 +128,41 @@ window.ACCOUNT = (function () {
 
   // ---- ticks: kept on the phone for speed, saved to the account a moment later ----
   const keep = () => { try { localStorage.setItem(cacheKey(), JSON.stringify(store)); } catch (e) {} };
-  const pending = new Map();
+  // A day is "unsaved" from the moment it changes until the account confirms it;
+  // days loaded from the account start out saved. Waiters hear how each save went.
+  const pending = new Map(), unsaved = new Set(), waiters = new Map();
   function push(d) {
+    unsaved.add(d);
     clearTimeout(pending.get(d));
+    const result = new Promise(r => { (waiters.get(d) || waiters.set(d, []).get(d)).push(r); });
     pending.set(d, setTimeout(async () => {
       pending.delete(d);
-      const { error } = await sb.from('diary_ticks').upsert({ user_id: user.id, day: d, ticks: store[d] || {}, updated_at: new Date().toISOString() });
-      if (error) console.warn('Tick not saved to account', error);
+      let error;
+      try {
+        ({ error } = await sb.from('diary_ticks').upsert({ user_id: user.id, day: d, ticks: store[d] || {}, updated_at: new Date().toISOString() }));
+      } catch (e) { error = e; }
+      if (error) console.warn('Not saved to account', error);
+      else if (!pending.has(d)) unsaved.delete(d);
+      const w = waiters.get(d) || []; waiters.delete(d);
+      w.forEach(r => r(!error));
     }, 600));
+    return result;
   }
   const ticked = (d, id) => !!(store[d] && store[d][id]);
   function toggle(d, id) {
     store[d] = store[d] || {};
     if (store[d][id]) delete store[d][id]; else store[d][id] = 1;
-    keep(); push(d);
+    keep(); return push(d);
   }
   // Numbers the player types in (bodyweight, best sets), kept with the day's ticks.
+  // Resolves true once the account has it, false if the save failed.
   const value = (d, id) => (store[d] && typeof store[d][id] === 'string') ? store[d][id] : '';
   function setValue(d, id, v) {
     store[d] = store[d] || {};
     if (v) store[d][id] = v; else delete store[d][id];
-    keep(); push(d);
+    keep(); return push(d);
   }
+  const saved = d => synced && !unsaved.has(d);
 
   async function boot() {
     if (!window.supabase) {
@@ -179,5 +192,5 @@ window.ACCOUNT = (function () {
 
   document.addEventListener('click', e => { if (e.target.closest('#who')) showProfile(false); });
   boot();
-  return { ready, ticked, toggle, value, setValue, published: () => published };
+  return { ready, ticked, toggle, value, setValue, saved, published: () => published };
 })();

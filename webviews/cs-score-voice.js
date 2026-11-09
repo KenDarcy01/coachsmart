@@ -12,11 +12,14 @@
  *
  * An item can also carry:
  *   side: null           nobody named ("Point"): the page asks who
+ *   fromId               what a score came from ("point Murrough free": the Free type's id)
+ *   For a stat that isn't a score, side is whose ball it is now, so "free against
+ *   Luke" = side 'opp' with memberId Luke (he gave it away).
  *   ask: [candidates]    a name we weren't sure about: the page asks "Who was X?"
  *   kind:'sub', onId, offId, onHeard, offHeard
  *
  * ctx = {
- *   types:   [{ id, name, abbr, value }],
+ *   types:   [{ id, name, abbr, value, source }],   source: a score can come from it (Free, 45)
  *   usName:  'Clontarf', oppName: 'Ballymun',
  *   players: [{ member_id, first_name, last_name, number }],  number may be null
  *   aliases: { 'kieran': 123 }   heard name → member_id, saved per team
@@ -119,9 +122,10 @@
     if (/65|sixty/.test(n)) ['65', '65s', 'sixty five'].forEach(w => out.add(w));
     if (/penal/.test(n)) ['penalty', 'penalties', 'pen'].forEach(w => out.add(w));
     if (/mark/.test(n)) ['mark', 'marks'].forEach(w => out.add(w));
-    if (/turn/.test(n)) ['turnover', 'turnovers', 'turn over'].forEach(w => out.add(w));
-    if (/kick ?out/.test(n)) ['kickout', 'kick out', 'kickouts', 'kick outs'].forEach(w => out.add(w));
-    if (/puck ?out/.test(n)) ['puckout', 'puck out', 'puckouts', 'puck outs'].forEach(w => out.add(w));
+    if (/turn/.test(n)) ['turnover', 'turnovers', 'turn over', 'lost it', 'lost the ball', 'lost possession'].forEach(w => out.add(w));
+    if (/throw ?in/.test(n)) ['throw in', 'throwin', 'throw ins', 'throw ball in'].forEach(w => out.add(w));
+    // The puck-out is hurling's kick-out: either word finds whichever the team has
+    if (/kick ?out|puck ?out/.test(n)) ['kickout', 'kick out', 'kickouts', 'kick outs', 'puckout', 'puck out', 'puckouts', 'puck outs'].forEach(w => out.add(w));
     return Array.from(out).map(norm).filter(Boolean).sort((x, y) => y.length - x.length);
   }
 
@@ -129,6 +133,8 @@
     'and then by our number no num nr shirt jersey player who from with of on in at').split(' '));
   const US_WORDS = new Set(['us', 'we', 'ours', 'ourselves', 'home']);
   const OPP_WORDS = new Set(['them', 'they', 'theirs', 'opposition', 'opponents', 'opponent', 'away', 'other', 'oppo', 'opp']);
+  // "free against Luke", "Luke conceded a free", "Luke gave away a free"
+  const AGAINST = /\b(against|conceded|concedes|concede|gave away|gives away|give away|gave|given away)\b/;
 
   function teamWords(name) {
     const stop = new Set(['gaa', 'gfc', 'hc', 'club', 'cumann', 'camogie', 'lgfa', 'ladies', 'football', 'hurling', 'st', 'saint', 'naomh', 'clg', 'the', 'and']);
@@ -238,16 +244,29 @@
         const sub = parseSub(words, ctx, m);
         if (sub) { items.push(sub); return; }
       }
-      // Find the score type (longest phrase wins)
-      let found = null;
+      // Find the stat (longest phrase wins). A score named with a source
+      // ("point Murrough free") is one score from a free, not two stats.
+      const hit = {};
       for (const { t, words: tw } of types) {
         for (const w of tw) {
           const re = new RegExp(`(^| )${w.replace(/[+]/g, '\\+')}( |$)`);
-          if (re.test(c) && (!found || w.length > found.w.length)) found = { t, w };
+          if (re.test(c) && (!hit[t.id] || w.length > hit[t.id].w.length)) hit[t.id] = { t, w };
         }
       }
+      const hits = Object.values(hit).sort((a, b) => b.w.length - a.w.length);
+      const scoreHit = hits.find(h => h.t.value > 0);
+      const srcHit = scoreHit && hits.find(h => h !== scoreHit && h.t.source);
+      const found = scoreHit || hits[0];
       if (!found) { unknown.push(c); return; }
-      const restTxt = c.replace(new RegExp(`(^| )${found.w.replace(/[+]/g, '\\+')}( |$)`), ' ').trim();
+      let restTxt = c.replace(new RegExp(`(^| )${found.w.replace(/[+]/g, '\\+')}( |$)`), ' ').trim();
+      if (srcHit) restTxt = restTxt.replace(new RegExp(`(^| )(off |from )?(a )?${srcHit.w.replace(/[+]/g, '\\+')}( |$)`), ' ').trim();
+      // Who gave it away: "free against Luke", "Luke lost it"
+      const scoring = found.t.value > 0;
+      let against = false;
+      if (!scoring && (AGAINST.test(restTxt) || /^lost /.test(found.w))) {
+        against = true;
+        restTxt = restTxt.replace(new RegExp(AGAINST.source, 'g'), ' ').replace(/\s+/g, ' ').trim();
+      }
       words = restTxt ? restTxt.split(' ') : [];
       // "two wides for them": a small count in front of the type
       let count = 1;
@@ -258,9 +277,14 @@
         words.splice(words.indexOf(before), 1);
       }
       const w = who(words, ctx, m);
+      // Against us (a player or our team named) = their ball; against them = ours
+      let side = w.side;
+      if (against) side = w.side === 'opp' ? 'us' : 'opp';
+      const ourPlayer = side === 'us' || (against && w.side !== 'opp');
       items.push({
-        kind: 'score', typeId: found.t.id, typeName: found.t.name, count,
-        side: w.side, memberId: w.memberId, heard: w.heard, ask: w.ask || null,
+        kind: 'score', typeId: found.t.id, typeName: found.t.name, count, against,
+        side, memberId: ourPlayer ? w.memberId : null, heard: ourPlayer ? w.heard : '', ask: ourPlayer ? (w.ask || null) : null,
+        fromId: srcHit ? srcHit.t.id : null,
       });
     });
     return { items, unknown };

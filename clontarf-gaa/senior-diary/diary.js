@@ -4,13 +4,19 @@
 // player's account (account.js). Layout follows the Féile 2027 kids diary.
 (function () {
   let P = window.PLAN;
-  const { ticked, toggle, value, setValue } = window.ACCOUNT;
+  const { ticked, toggle, value, setValue, saved } = window.ACCOUNT;
 
   // The published sheet plan, in the shape the rest of this file uses.
   // A player's own rows for a day replace the team's slots for that day.
   function fromSheet(pub) {
     const blocks = pub.blocks.slice().sort((a, b) => a.from.localeCompare(b.from));
     const own = pub.own || {};
+    // The diary runs from the first block to the last block, or further if an
+    // event, activity or note falls outside them (e.g. over Christmas).
+    const dated = [...Object.keys(pub.extras || {}), ...Object.keys(pub.notes || {}),
+      ...Object.keys(own).filter(d => (own[d].extras || []).length || (own[d].notes || []).length)].sort();
+    const first = [blocks[0].from, dated[0]].filter(Boolean).sort()[0];
+    const last = [blocks[blocks.length - 1].to, dated[dated.length - 1]].filter(Boolean).sort().pop();
     const slot = x => {
       if (x.kind === 'rest' || !x.code) return { t: x.t, kind: 'rest', title: x.title || 'Off', detail: x.detail || '' };
       const s = pub.sessions[x.code];
@@ -20,10 +26,12 @@
       FORM: pub.form || window.PLAN.FORM,
       WEIGHTS: pub.weights || '',
       BLOCKS: blocks,
-      VIEW_START: blocks[0].from,
-      VIEW_END: blocks[blocks.length - 1].to,
+      VIEW_START: first,
+      VIEW_END: last,
       slots: d => ((own[d] && own[d].slots) || pub.days[d] || []).map(slot).filter(Boolean),
-      notes: d => (own[d] && own[d].notes) || []
+      // Events and activities from the sheet: the squad's, then this player's own.
+      extras: d => [...((pub.extras || {})[d] || []), ...((own[d] && own[d].extras) || [])],
+      notes: d => [...((pub.notes || {})[d] || []), ...((own[d] && own[d].notes) || [])]
     };
   }
   const DAY = 864e5;
@@ -47,14 +55,18 @@
   const weeksIn = b => Math.round((parse(b.to) - parse(b.from)) / DAY / 7 + 1 / 7);
 
   // gym and run sessions count towards the week's five; speed counts with its gym.
-  const CSS = { gym: 'snc', speed: 'match', run: 'run', rest: 'rest' };
-  const ICON = { gym: '◆', speed: '⚡', run: '➜', rest: '☾' };
+  // event = something to know about (no tick); extra = an activity from the sheet.
+  const CSS = { gym: 'snc', speed: 'match', run: 'run', rest: 'rest', event: 'event', extra: 'home' };
+  const ICON = { gym: '◆', speed: '⚡', run: '➜', rest: '☾', event: '●', extra: '✚' };
 
   function planDay(d) {
     const b = blockOf(d);
-    if (!b) return { d, items: [] };
-    const wk = weekOf(d, b);
-    const items = (P.slots ? P.slots(d) : P.day(dow(d), wk)).map((x, i) => ({ ...x, id: 'i:' + i, title: x.s ? x.s.name : x.title, detail: x.s ? x.s.sub : x.detail }));
+    const wk = b ? weekOf(d, b) : null;
+    const plan = b ? (P.slots ? P.slots(d) : P.day(dow(d), wk)) : [];
+    const items = [
+      ...plan.map((x, i) => ({ ...x, id: 'i:' + i, title: x.s ? x.s.name : x.title, detail: x.s ? x.s.sub : x.detail })),
+      ...(P.extras ? P.extras(d) : []).map(x => ({ ...x, id: x.id || 'e:' + x.title }))
+    ];
     return { d, b, wk, items };
   }
   const tickables = plan => plan.items.filter(i => i.s);
@@ -78,7 +90,8 @@
       $('#phase').textContent = b.name;
     } else {
       $('#count').textContent = '–';
-      $('#count-label').textContent = today > P.VIEW_END ? 'next block soon' : 'starts ' + short(P.VIEW_START);
+      const firstBlock = P.BLOCKS[0].from, ahead = P.BLOCKS.find(x => x.from > today);
+      $('#count-label').textContent = ahead ? 'starts ' + short(ahead.from) : today > firstBlock ? 'next block soon' : 'starts ' + short(firstBlock);
       $('#phase').textContent = '';
     }
   }
@@ -90,7 +103,7 @@
       const d = add(mon, i);
       const inRange = within(d, P.VIEW_START, P.VIEW_END);
       const plan = inRange ? planDay(d) : null;
-      const dots = plan ? [...new Set(plan.items.map(x => CSS[x.kind]))].slice(0, 3).map(k => `<i class="dot k-${k}"></i>`).join('') : '';
+      const dots = plan ? [...new Set(plan.items.map(x => CSS[x.kind]))].slice(0, 3).map(k => `<i class="dot k-${k || 'home'}"></i>`).join('') : '';
       const t = plan ? dayTicks(plan) : null;
       const done = t && t.total && t.done === t.total;
       html += `<button class="day${d === current ? ' on' : ''}${d === today ? ' today' : ''}${done ? ' done' : ''}" data-d="${d}" ${inRange ? '' : 'disabled'} aria-label="${longDate(d)}">
@@ -111,7 +124,15 @@
   }
 
   const numField = (d, id, label, hint) => `<label class="num"><span><b>${esc(label)}</b><small>${esc(hint)}</small></span>
-    <input type="text" inputmode="decimal" data-val="${id}" value="${esc(value(d, id))}" placeholder="—"></label>`;
+    <input type="text" inputmode="decimal" enterkeyhint="done" data-val="${id}" value="${esc(value(d, id))}" placeholder="—">
+    <i class="sv${value(d, id) && saved(d) ? ' ok' : ''}" data-sv="${id}" aria-live="polite">${value(d, id) && saved(d) ? '✓ Saved' : ''}</i></label>`;
+
+  // Under a number: "Saving…", then "✓ Saved" only once the account has it, or an error.
+  function showSave(id, state) {
+    const el = document.querySelector(`[data-sv="${id.replace(/"/g, '\\"')}"]`); if (!el) return;
+    el.className = 'sv' + (state ? ' ' + state : '');
+    el.textContent = { busy: 'Saving…', ok: '✓ Saved', err: 'Not saved. Check your signal, then tap the box to try again' }[state] || '';
+  }
 
   // Sunday: the week's numbers in one place, ready for David's form.
   function checkIn(plan) {
@@ -140,20 +161,24 @@
       const okey = d + ':' + it.id;
       const open = it.s && openSessions.has(okey);
       if (it.s && it.s.track) tracked = numField(d, 'lift:' + it.s.track.id, `Best ${it.s.track.n} set`, 'Best clean work set, total kg x reps incl. the bar, e.g. 80x8');
-      return `<li class="row k-${CSS[it.kind]}">
-        <div class="tm">${esc(it.t)}${it.s ? `<small>${it.s.mins} min</small>` : ''}</div>
-        <div class="ev"><div class="ic">${ICON[it.kind]}</div><div class="tx">
+      const more = it.s && it.s.blocks && it.s.blocks.length;
+      const sub = it.kind === 'event' ? (it.end ? `to ${it.end}` : '') : it.s && it.s.mins ? `${it.s.mins} min` : '';
+      const detail = it.kind === 'event' ? [it.where, it.detail].filter(Boolean).join(' · ') : it.detail;
+      return `<li class="row k-${CSS[it.kind] || 'home'}">
+        <div class="tm">${esc(it.t)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>
+        <div class="ev"><div class="ic">${ICON[it.kind] || '✚'}</div><div class="tx">
           <div class="tt">${esc(it.title)}</div>
-          ${it.detail ? `<div class="td">${esc(it.detail)}</div>` : ''}
-          ${it.s ? `<button class="more" data-open="${okey}">${open ? 'Hide' : 'Show what to do'}</button>` : ''}
+          ${detail ? `<div class="td">${esc(detail)}</div>` : ''}
+          ${it.link ? `<a class="watch" href="${esc(it.link)}" target="_blank" rel="noopener">Open link</a>` : ''}
+          ${more ? `<button class="more" data-open="${okey}">${open ? 'Hide' : 'Show what to do'}</button>` : ''}
         </div>
         ${it.s ? `<label class="chk" title="Done"><input type="checkbox" data-tick="${it.id}" ${ticked(d, it.id) ? 'checked' : ''}><span></span></label>` : ''}</div>
-        ${open ? `<div class="sess">${sessionHtml(d, it.s, it.id)}</div>` : ''}
+        ${open && more ? `<div class="sess">${sessionHtml(d, it.s, it.id)}</div>` : ''}
       </li>`;
     }).join('');
 
     const t = dayTicks(plan);
-    const log = [dow(d) === 1 ? numField(d, 'bodyweight', 'Morning bodyweight (kg)', 'After the toilet, before breakfast, same scales') : '', tracked].join('');
+    const log = [plan.b && dow(d) === 1 ? numField(d, 'bodyweight', 'Morning bodyweight (kg)', 'After the toilet, before breakfast, same scales') : '', tracked].join('');
     $('#day').innerHTML = `
       <div class="page">
         <div class="ph">
@@ -161,7 +186,7 @@
           <div class="pm">${plan.b ? `${esc(plan.b.name)} · Week ${plan.wk} of ${weeksIn(plan.b)}` : ''}</div></div>
           ${t.total ? `<div class="score" aria-label="${t.done} of ${t.total} done"><b>${t.done}</b>/${t.total}</div>` : ''}
         </div>
-        <div class="tags">${plan.items.map(x => `<span class="tag k-${CSS[x.kind]}">${esc(x.title)}</span>`).join('')}</div>
+        <div class="tags">${plan.items.map(x => `<span class="tag k-${CSS[x.kind] || 'home'}">${esc(x.title)}</span>`).join('')}</div>
         ${plan.b && dow(d) === 1 ? `<p class="aim">${esc(plan.b.aim)}</p>` : ''}
         <ol class="timeline">${rows}</ol>
       </div>
@@ -178,7 +203,7 @@
       const d = add(mon, i);
       if (!within(d, P.VIEW_START, P.VIEW_END)) continue;
       const p = planDay(d);
-      html += `<button class="wk${d === current ? ' on' : ''}" data-d="${d}"><span class="wd">${DOW[i].slice(0, 3)} ${+d.slice(8)}</span><span class="wl">${p.items.map(x => `<span class="k-${CSS[x.kind]}">${ICON[x.kind]} ${esc(x.title)}</span>`).join('')}</span></button>`;
+      html += `<button class="wk${d === current ? ' on' : ''}" data-d="${d}"><span class="wd">${DOW[i].slice(0, 3)} ${+d.slice(8)}</span><span class="wl">${p.items.map(x => `<span class="k-${CSS[x.kind] || 'home'}">${ICON[x.kind] || '✚'} ${esc(x.title)}</span>`).join('')}</span></button>`;
     }
     $('#week').innerHTML = html;
   }
@@ -212,7 +237,15 @@
   });
   document.addEventListener('change', e => {
     const v = e.target.dataset && e.target.dataset.val;
-    if (v) { setValue(current, v, e.target.value.trim()); return; }
+    if (v) {
+      const d = current, val = e.target.value.trim(), input = e.target;
+      showSave(v, val ? 'busy' : '');
+      setValue(d, v, val).then(ok => {
+        if (d !== current || input.value.trim() !== val) return;
+        showSave(v, ok ? (val ? 'ok' : '') : 'err');
+      });
+      return;
+    }
     const id = e.target.dataset && e.target.dataset.tick;
     if (!id) return;
     toggle(current, id);
@@ -220,6 +253,13 @@
     const s = document.querySelector('.score'); if (s) s.innerHTML = `<b>${t.done}</b>/${t.total}`;
     strip();
   });
+  // After a failed save, tapping the box and leaving it again retries, even unchanged.
+  document.addEventListener('focusout', e => {
+    const v = e.target.dataset && e.target.dataset.val;
+    const sv = v && document.querySelector(`[data-sv="${v.replace(/"/g, '\\"')}"]`);
+    if (sv && sv.classList.contains('err')) setTimeout(() => { if (sv.classList.contains('err')) e.target.dispatchEvent(new Event('change', { bubbles: true })); }, 0);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.val) e.target.blur(); });
   let x0 = null;
   document.addEventListener('touchstart', e => { if (e.target.closest('.page')) x0 = e.touches[0].clientX; }, { passive: true });
   document.addEventListener('touchend', e => {

@@ -9,7 +9,8 @@
 //
 // POST { event_id, text | audio, us, opp, types:[{id,name,value}],
 //        players:[{id,name,number}], aliases:{spoken:member_id} }
-//   → { items:[{kind:'score', type_id, side, member_id, unsure, heard, count}
+//   types may carry source:true (Free, 45: a score can come from one).
+//   → { items:[{kind:'score', type_id, side, member_id, unsure, heard, count, from_id}
 //              |{kind:'sub', on_id, off_id}], unknown:[string], transcript }
 // audio: a short WAV clip (base64) from the app's always-on mic. Gemini
 // listens to it directly, knowing the player names to expect, instead of
@@ -35,7 +36,8 @@ const PROMPT = `You read short spoken commands from a GAA (Gaelic games) coach k
 The words came from phone speech recognition, so they are often misheard: Irish names come out as
 English words or other names (e.g. "Kieran"/"keera" for Ciarán, "Shawn" for Seán, "Fin" for Fionn,
 "Eoin"/"Owen"), and stat words get mangled ("pint"/"pointy"/"appoint" = Point, "gold"/"go" = Goal,
-"two pointer"/"to pointer"/"2.0" = 2 Pointer, "white"/"wild" = Wide). Work out what the coach meant.
+"two pointer"/"to pointer"/"2.0" = 2 Pointer, "white"/"wild" = Wide, "puckout"/"puck out" = Kickout,
+"sixty five"/"65" = 45, "throw-in"/"throw ball in" = Throw in). Work out what the coach meant.
 
 You get our team name, the opposition name, the stat types (id, name, value) and our players (id, name,
 shirt number). One utterance can hold several commands ("point Ciarán and a wide for them").
@@ -44,7 +46,17 @@ Rules:
 - Each command is a stat (score or other stat) or a substitution ("sub 17 for 11", "Jack on for Liam").
 - side: "opp" only if the opposition is named or the coach says them/they/their/opposition. Otherwise "us",
   including when nobody is named at all.
-- member_id: only for side "us". Match the spoken name or shirt number to the players list (sound-alikes,
+- For stats that are not scores (value null: Free, Turnover, Wide, 45, Kickout, Throw in...), side is the
+  team the stat is for: whose free, whose ball, whose wide. "Free to Clontarf" / "free Luke" = side "us"
+  (Luke won it). "Free against Luke" / "Luke gave away a free" / "free to them" = side "opp", member_id Luke
+  (Luke gave it away). "Turnover Luke" = side "us" (Luke won the ball); "turnover against Luke" / "Luke
+  lost it" / "Luke lost the ball" = Turnover, side "opp", member_id Luke. "Free against them" = side "us".
+- A score can say what it came from: "point Clontarf Murrough free", "goal from a 45", "point off a free",
+  "Murrough point free" = ONE item: the score (Point/Goal), member Murrough, from_id = the id of that
+  source stat (only stat types marked source:true). Never make a separate Free item for it. No source
+  said: from_id null.
+- member_id: for side "us", or for side "opp" on a stat that is not a score when one of our players gave
+  it away ("against Luke"). Never on an opposition score. Match the spoken name or shirt number to the players list (sound-alikes,
   first name only, surname only, nicknames). Use the known-names list first. If you are not sure, still give
   your best guess and set unsure true. If no player was mentioned, member_id null.
 - A name that sounds or is spelt a little differently is still that player ("Connor Wilson" = Conor Wilson,
@@ -64,7 +76,7 @@ they appear in the lists (e.g. "Point Conor Wilson", "Wide them"), not everyday 
 Only put something in unknown if it really has no stat in it at all.
 
 Return ONLY JSON:
-{"transcript":"point ciarán","items":[{"kind":"score","type_id":1,"side":"us","member_id":5,"unsure":false,"heard":"ciaran","count":1},
+{"transcript":"point ciarán","items":[{"kind":"score","type_id":1,"side":"us","member_id":5,"unsure":false,"heard":"ciaran","count":1,"from_id":null},
           {"kind":"sub","on_id":7,"off_id":3}],
  "unknown":[]}`;
 
@@ -156,7 +168,8 @@ serve(async (req) => {
     if (!apiKey) return json({ error: "GEMINI_API_KEY not configured" }, 500);
 
     const types = (Array.isArray(body.types) ? body.types : []).slice(0, 40)
-      .map((t: any) => ({ id: Number(t.id), name: String(t.name || "").slice(0, 40), value: t.value == null ? null : Number(t.value) }))
+      .map((t: any) => ({ id: Number(t.id), name: String(t.name || "").slice(0, 40), value: t.value == null ? null : Number(t.value),
+        ...(t.source ? { source: true } : {}) }))
       .filter((t: any) => t.id && t.name);
     const players = (Array.isArray(body.players) ? body.players : []).slice(0, 150)
       .map((p: any) => ({ id: Number(p.id), name: String(p.name || "").slice(0, 60), number: p.number == null ? null : Number(p.number) }))
@@ -202,6 +215,8 @@ serve(async (req) => {
     // is matched here by spelling (Connor ~ Conor, Wolson ~ Wilson).
     const byName = (words: string) => matchPlayer(words, players);
     const typeIds = new Set(types.map((t: any) => t.id));
+    const typeValue = new Map(types.map((t: any) => [t.id, t.value]));
+    const sourceIds = new Set(types.filter((t: any) => t.source).map((t: any) => t.id));
     const playerIds = new Set(players.map((p: any) => p.id));
     const items = (Array.isArray(out.items) ? out.items : []).flatMap((it: any) => {
       if (it?.kind === "sub") {
@@ -212,8 +227,12 @@ serve(async (req) => {
       const typeId = Number(it?.type_id);
       if (!typeIds.has(typeId)) return [];
       const side = it.side === "opp" ? "opp" : "us";
-      let mem = side === "us" && playerIds.has(Number(it.member_id)) ? Number(it.member_id) : null;
+      const scoring = (typeValue.get(typeId) || 0) > 0;
+      // A player on their side only for a non-score they gave away ("free against Luke")
+      const named = side === "us" || !scoring;
+      let mem = named && playerIds.has(Number(it.member_id)) ? Number(it.member_id) : null;
       let unsure = !!it.unsure && !!mem;
+      const fromId = scoring && sourceIds.has(Number(it.from_id)) ? Number(it.from_id) : null;
       if (side === "us" && !mem) {
         const words = typeof it.heard === "string" && it.heard.trim() ? it.heard
           : (out.items.length === 1 && typeof out.transcript === "string" ? out.transcript : "");
@@ -224,6 +243,7 @@ serve(async (req) => {
         kind: "score", type_id: typeId, side, member_id: mem, unsure,
         heard: typeof it.heard === "string" ? it.heard.slice(0, 40) : "",
         count: Math.min(Math.max(Math.round(Number(it.count) || 1), 1), 5),
+        from_id: fromId,
       }];
     });
     // Nothing understood: lean towards a stat anyway, matching the words to

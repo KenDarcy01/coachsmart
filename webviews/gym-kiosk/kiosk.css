@@ -1,0 +1,196 @@
+/* Gym kiosk: light theme, tablet first (landscape ~1280x800 and portrait ~800x1280), big touch targets.
+   Club colours come from CoachSmart at runtime: --club (primary), --club-2, --club-3. */
+:root {
+  --club: #e61e28;
+  --club-2: #ffffff;
+  --club-3: #0357a3;
+  --on-club: #ffffff;
+  --bg: #ffffff;
+  --surface: #f5f6f8;
+  --surface-2: #eaecf0;
+  --line: #d9dce2;
+  --text: #15171a;
+  --muted: #5d636e;
+  --ok: #1e9a4a;
+  --warn: #a86400;
+  --bad: #c62828;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+  --radius: 18px;
+  --tap: 72px;
+  font-size: clamp(16px, 1.45vmin + 6px, 22px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overscroll-behavior: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+img { -webkit-touch-callout: none; -webkit-user-drag: none; }
+.crest-hold { touch-action: none; -webkit-touch-callout: none; }
+.crest-hold img { pointer-events: none; }
+#app { height: 100%; display: flex; flex-direction: column; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+input { font: inherit; }
+.hidden { display: none !important; }
+
+/* ── Top bar ─────────────────────────────────────────────── */
+.bar { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.4rem; min-height: 5.2rem;
+  background: var(--club); color: var(--on-club); position: relative; z-index: 1;
+  /* Club stripes under the banner: a thin line of the second colour, then the third. */
+  box-shadow: 0 5px 0 var(--club-2), 0 10px 0 var(--club-3); margin-bottom: 10px; flex: none; }
+.bar .crest { width: 3.6rem; height: 3.6rem; object-fit: contain; flex: none; border-radius: 50%;
+  background: rgba(255,255,255,.95); padding: .25rem; }
+.bar .crest-blank { width: 3.6rem; height: 3.6rem; border-radius: 50%; background: rgba(255,255,255,.25); flex: none; }
+.bar .title { flex: 1; min-width: 0; }
+.bar h1 { margin: 0; font-size: 1.45rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .sub { font-size: .95rem; opacity: .9; }
+.bar .clock { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.back { display: inline-flex; align-items: center; gap: .4rem; min-height: var(--tap); padding: 0 1.2rem 0 .8rem;
+  border-radius: 999px; background: rgba(0,0,0,.25); color: var(--on-club); font-weight: 600; font-size: 1.05rem; }
+.back svg { width: 1.6rem; height: 1.6rem; }
+
+.sync { display: inline-flex; align-items: center; gap: .45rem; font-size: .85rem; padding: .35rem .8rem;
+  border-radius: 999px; background: rgba(0,0,0,.28); white-space: nowrap; }
+.sync i { width: .7rem; height: .7rem; border-radius: 50%; background: var(--ok); display: inline-block; }
+.sync.off i { background: var(--warn); }
+.sync.bad i { background: var(--bad); }
+
+/* ── Main areas ──────────────────────────────────────────── */
+main { flex: 1; min-height: 0; overflow-y: auto; padding: 1.4rem; -webkit-overflow-scrolling: touch; }
+.h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: 0 0 1rem; }
+.h2 h2 { margin: 0; font-size: 1.35rem; }
+.h2 .muted { color: var(--muted); }
+.muted { color: var(--muted); }
+
+/* Session tiles: team name first. 2 across on a landscape tablet (4 teams fit without scrolling), more scroll. */
+.tiles { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr)); }
+.tile { position: relative; text-align: left; min-height: 9rem; padding: 1.1rem 1.3rem 1rem 1.7rem; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: .45rem; overflow: hidden; box-shadow: var(--shadow); }
+.tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: .6rem; background: var(--stripe, var(--club)); }
+.tile:active { transform: scale(.985); background: var(--surface-2); }
+.tile .tile-top { display: flex; align-items: flex-start; gap: .8rem; }
+.tile .team { flex: 1; min-width: 0; font-size: 1.75rem; font-weight: 800; line-height: 1.15; }
+.tile .squad { display: inline-flex; align-items: center; gap: .5rem; font-size: 1.1rem; font-weight: 600; color: var(--muted); }
+.tile .squad i { width: .9rem; height: .9rem; border-radius: 50%; display: inline-block; }
+.tile .tile-bottom { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.tile .when { color: var(--muted); font-size: 1.05rem; }
+.tile .when b { color: var(--text); font-size: 1.35rem; font-variant-numeric: tabular-nums; margin-right: .3rem; }
+.tile .count { display: inline-flex; align-items: center; gap: .35rem; font-weight: 700; color: var(--ok); white-space: nowrap; font-size: 1.1rem; }
+.tile.now { border-color: var(--club); box-shadow: 0 0 0 2px var(--club) inset, var(--shadow); }
+.tile .badge { flex: none; font-size: .8rem; font-weight: 800; letter-spacing: .06em; padding: .35rem .7rem; border-radius: 999px; background: var(--club); color: var(--on-club); }
+.tiles.many .tile { min-height: 7.5rem; }
+.tiles.many .tile .team { font-size: 1.5rem; }
+.empty { padding: 2rem; border-radius: var(--radius); background: var(--surface); color: var(--muted); text-align: center; margin-bottom: 1.1rem; }
+
+/* Fixed bottom bar: Open gym + Scan QR, always in the same place */
+.dock { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem 1.4rem calc(1rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line); background: var(--bg); box-shadow: 0 -4px 16px rgba(16,24,40,.06); }
+.dock-btn { min-height: 5.5rem; border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  background: var(--surface-2); border: 1px solid var(--line); }
+.dock-btn:active { background: var(--line); }
+.dock-btn.open { background: var(--club-3); border-color: var(--club-3); color: #fff; }
+.dock-btn.qr { flex-direction: row; gap: .8rem; }
+.dock-btn svg { width: 2.2rem; height: 2.2rem; }
+.dock-title { font-size: 1.3rem; font-weight: 800; }
+.dock-sub { font-size: .95rem; opacity: .9; }
+
+/* Name picker */
+.picker { display: flex; flex: 1; min-height: 0; }
+.picker main { padding-right: .6rem; }
+.search { display: flex; gap: .8rem; margin-bottom: 1.1rem; position: sticky; top: -1.4rem; padding-top: 0; z-index: 2; background: var(--bg); padding-bottom: .4rem; }
+.search input { flex: 1; min-height: var(--tap); border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--text); padding: 0 1.4rem; font-size: 1.2rem; outline: none; user-select: text; -webkit-user-select: text; }
+.search input:focus { border-color: var(--club); }
+.search .qr-small { min-height: var(--tap); padding: 0 1.3rem; border-radius: 999px; background: var(--surface-2); display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; }
+.search .qr-small svg { width: 1.6rem; height: 1.6rem; }
+.group h3 { margin: 1.2rem 0 .7rem; font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: .6rem; }
+.group h3 .dot { width: .8rem; height: .8rem; border-radius: 50%; }
+.names { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); }
+.person { display: flex; align-items: center; gap: .7rem; min-height: 5rem; padding: .6rem .8rem .6rem .6rem; border-radius: 16px;
+  background: var(--surface); border: 1px solid var(--line); text-align: left; }
+.person:active { background: var(--surface-2); }
+.person .av { width: 3rem; height: 3rem; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 800; font-size: 1.15rem; color: #fff; }
+.person .nm { font-size: 1.15rem; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person .tick { width: 1.6rem; height: 1.6rem; flex: none; color: var(--ok); }
+.person.in { border-color: rgba(30,154,74,.55); background: rgba(30,154,74,.09); }
+.az { flex: none; width: 3.4rem; display: flex; flex-direction: column; justify-content: space-between; padding: 1rem .3rem; touch-action: none; }
+.az button { flex: 1; font-size: .85rem; font-weight: 700; color: var(--muted); min-height: 1.5rem; border-radius: 8px; }
+.az button.has { color: var(--text); }
+.az button:active { background: var(--surface-2); }
+
+/* Overlays */
+.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(20,22,26,.5); display: grid; place-items: center; padding: 1.5rem; animation: fade .15s ease-out; }
+.card { width: min(36rem, 100%); background: #ffffff; box-shadow: 0 20px 50px rgba(16,24,40,.25); border: 1px solid var(--line); border-radius: 26px; padding: 2rem; text-align: center; }
+.card h2 { margin: .4rem 0 .3rem; font-size: 2.2rem; }
+.card p { margin: .3rem 0; color: var(--muted); font-size: 1.1rem; }
+.card .big-av { width: 6rem; height: 6rem; border-radius: 50%; margin: 0 auto .6rem; display: grid; place-items: center; font-size: 2.2rem; font-weight: 800; color: #fff; }
+.actions { display: flex; gap: 1rem; margin-top: 1.6rem; }
+.btn { flex: 1; min-height: 5rem; border-radius: 18px; font-size: 1.3rem; font-weight: 700; padding: 0 1.2rem; }
+.btn.primary { background: var(--ok); color: #fff; }
+.btn.club { background: var(--club); color: var(--on-club); }
+.btn.ghost { background: var(--surface-2); }
+.btn.danger { background: transparent; border: 2px solid var(--bad); color: var(--bad); }
+.btn:active { filter: brightness(.9); transform: scale(.99); }
+.btn[disabled] { opacity: .5; }
+
+.success { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; text-align: center; background: var(--ok); color: #fff; animation: fade .12s ease-out; padding: 2rem; }
+.success.info { background: var(--club-3); }
+.success.warn { background: #8a5a12; }
+.success.err { background: #8e2323; }
+.success svg { width: 9rem; height: 9rem; }
+.success h2 { font-size: 3rem; margin: .6rem 0 .3rem; }
+.success p { font-size: 1.4rem; margin: .2rem 0; opacity: .95; }
+.success .undo { margin-top: 2rem; min-height: 4rem; padding: 0 2.2rem; border-radius: 999px; background: rgba(0,0,0,.22); color: #fff; font-weight: 700; font-size: 1.15rem; }
+
+/* QR scanner */
+.scanner { position: fixed; inset: 0; z-index: 25; background: #000; display: flex; flex-direction: column; }
+.scanner video { flex: 1; min-height: 0; width: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none; } /* front camera, mirrored like a selfie; iOS video can swallow taps */
+.scanner .frame { position: absolute; left: 50%; top: 50%; width: min(60vmin, 26rem); aspect-ratio: 1; transform: translate(-50%, -55%);
+  border: 6px solid rgba(255,255,255,.9); border-radius: 28px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); pointer-events: none; }
+.scanner .hint { position: absolute; left: 0; right: 0; top: 1.4rem; text-align: center; font-size: 1.5rem; font-weight: 700; color: #fff; text-shadow: 0 2px 8px #000; }
+.scanner .hint { z-index: 2; pointer-events: none; }
+.scanner .bottom { position: absolute; left: 0; right: 0; bottom: 1.6rem; display: flex; justify-content: center; z-index: 3; }
+.scanner .bottom .btn { flex: none; min-width: 16rem; background: #fff; color: #15171a; touch-action: manipulation; }
+
+/* Forms (setup, coach) */
+.form { width: min(34rem, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; }
+.form label { display: flex; flex-direction: column; gap: .4rem; font-weight: 600; }
+.form label span.muted { font-weight: 400; font-size: .9rem; }
+.form input { min-height: 4rem; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  padding: 0 1.1rem; font-size: 1.15rem; user-select: text; -webkit-user-select: text; }
+.form input:focus { outline: none; border-color: var(--club); }
+.form .err { color: var(--bad); min-height: 1.4rem; font-weight: 600; }
+.form h2 { margin: .5rem 0 0; }
+.choice { min-height: 4.5rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; gap: 1rem; padding: 0 1rem; font-weight: 600; font-size: 1.15rem; }
+.choice img { width: 3rem; height: 3rem; object-fit: contain; }
+
+.pinpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin-top: 1.2rem; }
+.pinpad button { min-height: 4.6rem; border-radius: 16px; background: var(--surface-2); font-size: 1.8rem; font-weight: 700; }
+.pinpad button:active { background: var(--line); }
+.pindots { display: flex; justify-content: center; gap: .9rem; margin: 1rem 0 0; min-height: 1.4rem; }
+.pindots i { width: 1.2rem; height: 1.2rem; border-radius: 50%; border: 2px solid var(--muted); }
+.pindots i.on { background: var(--text); border-color: var(--text); }
+
+.list { display: flex; flex-direction: column; gap: .6rem; }
+.row { text-align: left; display: flex; align-items: center; gap: 1rem; padding: .8rem 1rem; min-height: 4.4rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.row .grow { flex: 1; min-width: 0; }
+.row .small { font-size: .9rem; color: var(--muted); }
+.row .btn { flex: none; min-height: 3.4rem; font-size: 1rem; }
+.pill { font-size: .8rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.pill.walk { background: rgba(168,100,0,.12); color: var(--warn); }
+.coach-grid { display: grid; gap: 1.4rem; grid-template-columns: minmax(16rem, 1fr) 2fr; }
+.toast { position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 40; background: #000; color: #fff; padding: 1rem 1.6rem; border-radius: 999px; font-weight: 600; }
+
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+/* Portrait tablets */
+@media (orientation: portrait) {
+  .coach-grid { grid-template-columns: 1fr; }
+  .bar .clock { font-size: 1.6rem; }
+}
+/* Phones (not the target, but keep it usable) */
+@media (max-width: 600px) {
+  .bar { padding: .7rem 1rem; }
+  .bar .sync span { display: none; }
+  .az { display: none; }
+  .actions { flex-direction: column; }
+}

@@ -37,8 +37,15 @@
     return `${base + min}'`;
   }
 
+  // Only scores are shown: Wide, Free, Turnover, 45 etc. stay in the score
+  // keeper's own list but not on the Stats tab or live screen (Ken, 2026-11-07).
+  function scoresOnly(m) {
+    return Object.assign({}, m, { events: (m.events || []).filter(e => e.value > 0) });
+  }
+
   // Walk the events in order, keeping the running score.
   function walk(m) {
+    m = scoresOnly(m);
     const evs = (m.events || []).slice().sort((a, b) =>
       (a.half - b.half) || (a.second - b.second) || ((a.order || 0) - (b.order || 0)));
     const t = { us: { g: 0, p: 0 }, opp: { g: 0, p: 0 } };
@@ -211,6 +218,7 @@
 
   // ── Page sections ─────────────────────────────────────────────────────────
   function chartSection(m) {
+    m = scoresOnly(m);
     const t = totals(m);
     const bl = biggestLeads(m);
     const hs = halfScores(m);
@@ -243,6 +251,7 @@
   }
 
   function timelineSection(m) {
+    m = scoresOnly(m);
     const w = walk(m);
     const NAME = e => e.kind === 'correction'
       ? `Score check: ${e.count > 0 ? '+' : ''}${e.count} ${esc((e.name || '').toLowerCase())}${Math.abs(e.count) !== 1 ? 's' : ''}`
