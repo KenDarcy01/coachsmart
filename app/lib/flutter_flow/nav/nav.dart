@@ -345,18 +345,15 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               builder: (context, params) => SearchPageWidget(),
             ),
             FFRoute(
-              name: CreateEventWidget.routeName,
-              path: CreateEventWidget.routePath,
-              builder: (context, params) => CreateEventWidget(),
+              name: V3EventFormPage.createRouteName,
+              path: V3EventFormPage.createRoutePath,
+              builder: (context, params) => V3EventFormPage(),
             ),
             FFRoute(
-              name: EditEventWidget.routeName,
-              path: EditEventWidget.routePath,
-              builder: (context, params) => EditEventWidget(
-                paramEventId: params.getParam(
-                  'paramEventId',
-                  ParamType.int,
-                ),
+              name: V3EventFormPage.editRouteName,
+              path: V3EventFormPage.editRoutePath,
+              builder: (context, params) => V3EventFormPage(
+                eventId: params.getParam('paramEventId', ParamType.int),
               ),
             ),
             FFRoute(

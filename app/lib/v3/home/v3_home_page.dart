@@ -578,8 +578,10 @@ class _V3HomePageState extends State<V3HomePage> {
         _Tab('Favourites', Icons.favorite,
             () => context.pushNamed(FavouritesNewWidget.routeName)),
       if (role >= 100)
-        _Tab('Add event', Icons.add_circle,
-            () => context.pushNamed(CreateEventWidget.routeName)),
+        _Tab('Add event', Icons.add_circle, () async {
+          await context.pushNamed(V3EventFormPage.createRouteName);
+          if (mounted) _load();
+        }),
     ];
     return Container(
       decoration: const BoxDecoration(

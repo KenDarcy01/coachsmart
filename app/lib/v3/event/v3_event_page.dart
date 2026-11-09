@@ -15,6 +15,7 @@ import '/index.dart';
 import '../home/v3_home_data.dart';
 import '../v3_theme.dart';
 import '../web/v3_web_page.dart';
+import 'v3_series_scope.dart';
 
 /// Number of users a reminder went to. `populate_event_notifications`
 /// returns one row `{"notifications_created": n}`, n being one notification
@@ -303,18 +304,36 @@ class _V3EventPageState extends State<V3EventPage> {
     }
   }
 
-  // Cancel, reinstate or delete: the same status writes as the FlutterFlow
-  // edit page (events.status plus event_attendance.status).
+  // Cancel, reinstate or delete. For a repeating series the admin picks
+  // "just this event" or "this and later events" (Ken, 2026-11-09); the
+  // set_event_series_status RPC writes events.status and
+  // event_attendance.status like the FlutterFlow edit page did.
   Future<void> _setStatus(String status) async {
     try {
-      await EventsTable().update(
-        data: {'status': status},
-        matchingRows: (rows) => rows.eq('event_id', _eventId),
-      );
-      await EventAttendanceTable().update(
-        data: {'status': status},
-        matchingRows: (rows) => rows.eq('event_id', _eventId),
-      );
+      var scope = 'one';
+      final later = await _seriesLater();
+      if (later > 1 && mounted) {
+        final pick = await askSeriesScope(context,
+            action: status == 'active'
+                ? 'Reinstate'
+                : status == 'cancelled'
+                    ? 'Cancel'
+                    : 'Delete',
+            later: later);
+        if (pick == null) return;
+        scope = pick;
+      }
+      final res = await SupaFlow.client.rpc('set_event_series_status', params: {
+        'p_event_id': _eventId,
+        'p_scope': scope,
+        'p_status': status,
+      });
+      final map = res is Map ? res : <String, dynamic>{};
+      if (map['success'] != true) {
+        _snack((map['message'] ?? 'Could not update the event.').toString(),
+            warn: true);
+        return;
+      }
       if (status == 'deleted') {
         if (mounted) _back();
         return;
@@ -323,6 +342,22 @@ class _V3EventPageState extends State<V3EventPage> {
     } catch (_) {
       _snack('Could not update the event.', warn: true);
     }
+  }
+
+  /// How many events of this one's series are on or after it (0 = none).
+  Future<int> _seriesLater() async {
+    try {
+      final r = await GetUserEventEditDetailCall.call(
+          pUserId: currentUserUid,
+          pEventId: _eventId,
+          supabaseJWTtoken: currentJwtToken);
+      final cur =
+          r.jsonBody is Map ? (r.jsonBody as Map)['current_event'] : null;
+      if (cur is Map && cur['series_id'] != null) {
+        return (cur['series_later'] as num?)?.toInt() ?? 0;
+      }
+    } catch (_) {}
+    return 0;
   }
 
   Future<bool> _confirm(String title, String body, String action) async {
@@ -1103,7 +1138,7 @@ class _V3EventPageState extends State<V3EventPage> {
                   item(Icons.edit_outlined, 'Edit event',
                       'Title, time, venue, squad, details', onTap: () {
                     Navigator.pop(ctx);
-                    _open(EditEventWidget.routeName, {
+                    _open(V3EventFormPage.editRouteName, {
                       'paramEventId': serializeParam(_eventId, ParamType.int),
                     });
                   }),
