@@ -669,8 +669,10 @@ class _V3EventPageState extends State<V3EventPage> {
         bg = V3.card2;
         fg = dim;
       } else {
+        // Unanswered: both buttons white so neither looks chosen
+        // (Ken, 2026-11-09).
         bg = V3.card2;
-        fg = isGo ? V3.text : V3.redText;
+        fg = V3.text;
       }
       return Expanded(
         child: GestureDetector(
