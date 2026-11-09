@@ -574,7 +574,8 @@ class _V3HomePageState extends State<V3HomePage> {
   Widget _tabs(int role) {
     final items = <_Tab>[
       _Tab('Home', Icons.home_rounded, null, active: true),
-      _Tab('Matches', Icons.sports, _openMatches),
+      // Matches lives in the main menu for now; five tabs were too squashed
+      // (Ken, 2026-11-09).
       if (_home.isGaaMember && role >= 30)
         _Tab('Resources', Icons.menu_book_rounded, _openResources),
       if (_home.isGaaMember && role >= 30)
