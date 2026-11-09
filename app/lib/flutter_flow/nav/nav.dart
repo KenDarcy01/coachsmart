@@ -528,7 +528,8 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: NotificationsWidget.routeName,
               path: NotificationsWidget.routePath,
-              builder: (context, params) => NotificationsWidget(),
+              // v3 notifications page on the v2 route name.
+              builder: (context, params) => const V3NotificationsPage(),
             ),
             FFRoute(
               name: CreateTeamNewWidget.routeName,

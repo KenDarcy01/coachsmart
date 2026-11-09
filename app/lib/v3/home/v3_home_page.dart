@@ -264,8 +264,10 @@ class _V3HomePageState extends State<V3HomePage> {
             Padding(
               padding: const EdgeInsets.only(right: 6),
               child: IconButton(
-                onPressed: () =>
-                    context.pushNamed(NotificationsWidget.routeName),
+                onPressed: () async {
+                  await context.pushNamed(NotificationsWidget.routeName);
+                  if (mounted) _load();
+                },
                 icon: _home.unreadNotifications > 0
                     ? SizedBox(
                         width: 40,
