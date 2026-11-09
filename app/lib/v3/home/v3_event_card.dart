@@ -237,9 +237,9 @@ class V3EventCard extends StatelessWidget {
     final e = event;
     final tot = _total;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(5),
       child: SizedBox(
-        height: 7,
+        height: 9,
         child: tot == 0
             ? Container(color: V3.line)
             : Row(children: [
@@ -279,44 +279,22 @@ class V3EventCard extends StatelessWidget {
     );
   }
 
+  // Totals under the bar, same colours as the bar: attending green,
+  // no reply grey (not amber), declined red; 15.5px like the venue line
+  // (Ken, 2026-11-09).
   Widget _countText() {
     final e = event;
-    if (isCoach) {
-      return RichText(
-        text: TextSpan(
-          style: V3.inter(14, weight: FontWeight.w500, color: V3.muted),
-          children: [
-            TextSpan(
-                text: '${e.acceptedCount}',
-                style: V3.inter(14, weight: FontWeight.w600)),
-            const TextSpan(text: ' attending · '),
-            TextSpan(
-                text: '${e.declinedCount}',
-                style:
-                    V3.inter(14, weight: FontWeight.w600, color: V3.redText)),
-            const TextSpan(text: ' declined · '),
-            TextSpan(
-                text: '${e.noResponseCount} no reply',
-                style: V3.inter(14, weight: FontWeight.w600, color: V3.amber)),
-          ],
-        ),
-      );
-    }
-    // Parents see the same three counts (Ken, 2026-11-09: include declined,
-    // not just attending and no reply).
+    TextStyle n(Color c) => V3.inter(15.5, weight: FontWeight.w700, color: c);
     return RichText(
       text: TextSpan(
-        style: V3.inter(14, weight: FontWeight.w500, color: V3.muted),
+        style: V3.inter(15.5, weight: FontWeight.w500, color: V3.muted),
         children: [
-          TextSpan(
-              text: '${e.acceptedCount}',
-              style: V3.inter(14, weight: FontWeight.w600)),
+          TextSpan(text: '${e.acceptedCount}', style: n(V3.green)),
           const TextSpan(text: ' attending · '),
-          TextSpan(
-              text: '${e.declinedCount}',
-              style: V3.inter(14, weight: FontWeight.w600, color: V3.redText)),
+          TextSpan(text: '${e.declinedCount}', style: n(V3.redText)),
           const TextSpan(text: ' declined · '),
-          TextSpan(text: '${e.noResponseCount} no reply'),
+          TextSpan(text: '${e.noResponseCount}', style: n(V3.muted)),
+          const TextSpan(text: ' no reply'),
         ],
       ),
     );
