@@ -77,6 +77,27 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;paddin
 .brand{text-align:center;font-size:12px;color:var(--muted);margin:22px 0 0}.brand a{color:var(--green);text-decoration:none;font-weight:600}
 .mc-card{margin:10px 16px 0!important}
 .offline{margin:8px 16px 0;font-size:12.5px;color:var(--amber);text-align:center}
+/* Squads: Both / one tab per squad when an event has more than one match */
+.sq{display:flex;gap:8px;padding:8px 16px 10px;overflow-x:auto;scrollbar-width:none}
+.sq::-webkit-scrollbar{display:none}
+.sq button{flex:1 0 auto;min-width:86px;background:var(--card);border-radius:12px;padding:7px 10px;text-align:center;font-size:14px;font-weight:700;color:var(--muted);border:1.5px solid transparent;white-space:nowrap}
+.sq button.on{background:var(--card2);color:var(--text);border-color:var(--green)}
+.sq small{display:block;font-size:11px;font-weight:700;letter-spacing:.5px;margin-top:2px}
+.sq .l{color:var(--red)}.sq .u{color:var(--amber)}.sq .f{color:var(--muted)}
+.sqd{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:0;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
+.bt{text-align:center;padding:2px 16px 0}.bt .t1{font-size:16px;font-weight:700}.bt .t2{font-size:13px;color:var(--muted);margin-top:2px}
+.smc{display:block;width:calc(100% - 32px);text-align:left;margin:10px 16px 0;background:var(--card);border-radius:18px;padding:12px 14px}
+.smh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.smh b{font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smh .status{flex-shrink:0;font-size:11.5px;padding:4px 10px}
+.status.up{background:rgba(245,165,36,.16);color:var(--amber)}
+.where{font-size:12.5px;color:var(--muted);margin-top:6px}
+.smb{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin-top:8px}
+.smb .sc{font-size:42px}.smb .v{font-family:var(--num);font-size:24px;color:var(--muted)}
+.lastl{margin-top:8px;font-size:13px;background:var(--card2);border-radius:10px;padding:7px 10px}
+.lastl b{color:var(--green)}.lastl b.opp{color:var(--red)}
+.cd{font-family:var(--num);font-size:40px;text-align:center;margin-top:6px;letter-spacing:1px;line-height:1}
+.openl{display:block;text-align:right;color:var(--green);font-weight:700;font-size:13px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -89,6 +110,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;paddin
       <button class="ib hidden" id="shareBtn" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg></button>
     </div>
   </div>
+  <div class="sq hidden" id="squads"></div>
   <div id="main"><div class="empty">Loading the match…</div></div>
 </div>
 <div class="foot hidden" id="foot"></div>
@@ -108,6 +130,12 @@ let tab = null;          // live | stats | timeline (null = pick for the phase)
 let seen = null;         // action ids already shown, so new scores can flash
 let flashUntil = 0, flashId = null;
 let failures = 0;
+// Squads: when an event has more than one squad playing, 'both' shows a card
+// for each and a squad key shows that squad's match. null until the first load.
+const SQUAD_PARAM = L.P.get('squad');
+let view = SQUAD_PARAM != null && SQUAD_PARAM !== '' ? Number(SQUAD_PARAM) : null;
+let loadSeq = 0;
+const multi = () => !!(D && !D.error && (D.squads || []).length > 1);
 
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('on');
@@ -117,8 +145,14 @@ function toast(msg) {
 // ── Reading the match ──────────────────────────────────────────────────────
 async function load() {
   try {
-    const d = PUBLIC ? await L.rpc('get_live_match_public', { p_token: SHARE }) : await L.rpc('get_live_match', { p_event_id: EVENT_ID });
+    const seq = ++loadSeq, want = view === 'both' ? null : view;
+    const d = PUBLIC ? await L.rpc('get_live_match_public_v2', { p_token: SHARE, p_squad: want })
+                     : await L.rpc('get_live_match_v2', { p_event_id: EVENT_ID, p_squad: want });
+    if (seq !== loadSeq) return;   // the squad changed while this was loading
     failures = 0;
+    // First load: open on Both when more than one squad is playing (unless the link names one)
+    if (view === null) view = (d.squads || []).length > 1 ? 'both' : (d.squad ? d.squad.key : null);
+    else if (view !== 'both' && d.squad && d.squad.key !== view && !(d.squads || []).some(x => x.key === view)) view = d.squad.key;
     if (d && d.server_now) skew = Date.now() - Date.parse(d.server_now);
     const first = !D;
     const wasDone = D && (D.phase === 'ft' || D.phase === 'done');
@@ -183,7 +217,16 @@ function render() {
     $('main').innerHTML = `<div class="empty">${msg}</div>`;
     return;
   }
-  document.title = `${D.event.team_name || 'Match'} v ${oppName()}`;
+  renderSquads();
+  if (multi() && view === 'both') {
+    document.title = `${D.event.team_name || 'Matches'} · ${D.squads.length} matches`;
+    keepAwake(D.squads.some(x => x.phase === 'play' || x.phase === 'ht'));
+    renderTop();
+    renderBoth();
+    renderFoot();
+    return;
+  }
+  document.title = `${D.event.team_name || 'Match'}${multi() ? ' ' + L.squadShort(D.squad.name) : ''} v ${oppName()}`;
   keepAwake(D.phase === 'play' || D.phase === 'ht');
   renderTop();
   if (D.phase === 'pre') renderPre(); else renderMatch();
@@ -194,7 +237,10 @@ function renderTop() {
   const st = $('status');
   const ph = D.phase;
   st.classList.remove('hidden', 'live', 'ht');
-  if (ph === 'play') { st.className = 'status live'; st.innerHTML = '<i></i>LIVE'; }
+  if (multi() && view === 'both') {
+    const n = D.squads.filter(x => x.phase === 'play' || x.phase === 'ht').length;
+    if (n) { st.className = 'status live'; st.innerHTML = `<i></i>${n} LIVE`; } else st.className = 'status hidden';
+  } else if (ph === 'play') { st.className = 'status live'; st.innerHTML = '<i></i>LIVE'; }
   else if (ph === 'ht') { st.className = 'status ht'; st.textContent = 'HALF TIME'; }
   else if (ph === 'ft' || ph === 'done') { st.className = 'status'; st.textContent = 'FULL TIME'; }
   else { st.className = 'status'; st.textContent = 'NOT STARTED'; }
@@ -207,6 +253,10 @@ function renderTop() {
 function meta() {
   const ev = D.event;
   const ha = ev.home_away ? ` · ${esc(ev.home_away.charAt(0).toUpperCase() + ev.home_away.slice(1).toLowerCase())}` : '';
+  if (multi()) {
+    const sq = D.squad || {};
+    return `<div class="meta">${esc(ev.team_name || '')} ${esc(L.squadShort(sq.name))} v ${esc(oppName())}${ev.location_name ? ' · ' + esc(ev.location_name) : ''}</div>`;
+  }
   return `<div class="meta">${esc(ev.team_name || '')} v ${esc(oppName())}${ha}</div>`;
 }
 
@@ -319,7 +369,7 @@ function renderMatch() {
     ${PUBLIC ? brand() : ''}`;
   tickClock();
 }
-function renderOffline() { if (D && !D.error && D.phase !== 'pre') renderMatch(); }
+function renderOffline() { if (multi() && view === 'both') renderBoth(); else if (D && !D.error && D.phase !== 'pre') renderMatch(); }
 
 function brand() { return `<div class="brand">Live scores by <a href="https://coachsmart.app" target="_blank" rel="noopener">CoachSmart</a></div>`; }
 
@@ -328,11 +378,125 @@ function renderFoot() {
   const done = D.phase === 'ft' || D.phase === 'done';
   if (PUBLIC || D.error) { f.classList.add('hidden'); return; }
   f.classList.remove('hidden');
-  f.innerHTML = `<button class="btn" data-act="share">${SHARE_SVG}${done ? 'Share result' : 'Share link'}</button>`;
+  const both = multi() && view === 'both';
+  f.innerHTML = `<button class="btn" data-act="share">${SHARE_SVG}${done && !both ? 'Share result' : 'Share link'}</button>`;
 }
+
+// ── Squads ─────────────────────────────────────────────────────────────────
+const sqList = () => (D && D.squads) || [];
+const sqIdx = key => sqList().findIndex(x => x.key === key);
+const sqColour = x => L.squadColour(x, sqIdx(x.key));
+const sqDot = x => `<span class="sqd" style="background:${esc(sqColour(x))}"></span>`;
+const clockTime = t => t ? new Date(t).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Dublin' }) : '';
+function sqMini(x) {
+  if (x.phase === 'play') return '<small class="l">● LIVE</small>';
+  if (x.phase === 'ht') return '<small class="u">HT</small>';
+  if (x.phase === 'ft' || x.phase === 'done') return '<small class="f">FT</small>';
+  return `<small class="u">${esc(clockTime(x.throw_in_at)) || '&nbsp;'}</small>`;
+}
+function renderSquads() {
+  const el = $('squads');
+  if (!multi()) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  const n = sqList().filter(x => x.phase === 'play' || x.phase === 'ht').length;
+  el.classList.remove('hidden');
+  el.innerHTML = `<button data-sq="both" class="${view === 'both' ? 'on' : ''}">${sqList().length === 2 ? 'Both' : 'All'}<small class="${n ? 'l' : 'f'}">${n ? n + ' LIVE' : sqList().length + ' matches'}</small></button>`
+    + sqList().map(x => `<button data-sq="${x.key}" class="${view === x.key ? 'on' : ''}">${sqDot(x)}${esc(L.squadShort(x.name))}${sqMini(x)}</button>`).join('');
+  const on = el.querySelector('button.on');
+  if (on && on.scrollIntoView && el.scrollWidth > el.clientWidth) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+function pickSquad(v) {
+  if (v === view) return;
+  view = v; tab = null; seen = null; flashId = null;
+  const x = sqList().find(q => q.key === v);
+  if (v !== 'both' && D && D.squad && D.squad.key !== v) {
+    // Not loaded yet: show the tab as picked and a short wait, then load it
+    renderSquads();
+    $('status').className = 'status hidden';
+    $('main').innerHTML = `<div class="empty">Loading ${esc(L.squadShort(x ? x.name : ''))}…</div>`;
+  } else render();
+  window.scrollTo(0, 0);
+  load();
+}
+function sqStatus(x) {
+  if (x.phase === 'play') return `<span class="status live"><i></i>LIVE ${esc(L.minuteOf(x.timer, skew))}</span>`;
+  if (x.phase === 'ht') return '<span class="status ht">HALF TIME</span>';
+  if (x.phase === 'ft' || x.phase === 'done') return '<span class="status">FULL TIME</span>';
+  return `<span class="status up">STARTS ${esc(clockTime(x.throw_in_at))}</span>`;
+}
+function untilText(ms) {
+  const m = Math.max(0, Math.round(ms / 60000));
+  if (m >= 1440) return `${Math.floor(m / 1440)} DAY${m >= 2880 ? 'S' : ''}`;
+  return m >= 60 ? `${Math.floor(m / 60)}H ${m % 60}M` : `${m}M`;
+}
+function squadCard(x) {
+  const us = usName(), opp = x.opposition || 'Opposition';
+  const s = x.score || { us: { g: 0, p: 0, t: 0 }, opp: { g: 0, p: 0, t: 0 } };
+  const started = x.phase !== 'pre';
+  const done = x.phase === 'ft' || x.phase === 'done';
+  const when = started ? (done ? clockTime(x.kicked_off_at || x.throw_in_at) : 'started ' + clockTime(x.kicked_off_at)) : '';
+  const where = [x.venue, when].filter(Boolean).join(' · ');
+  let body;
+  if (!started) {
+    const left = Date.parse(x.throw_in_at) - (Date.now() - skew);
+    body = left > 60000
+      ? `<div class="cd" data-cd="${esc(x.throw_in_at)}">${untilText(left)}</div><div class="sub" style="text-align:center">until throw-in</div>`
+      : `<div class="sub" style="text-align:center;margin-top:10px">Due to start. It goes live when the coach starts the clock.</div>`;
+  } else {
+    const d = s.us.t - s.opp.t;
+    let line = '';
+    if (done) line = d === 0 ? '<b>Draw</b>' : `<b class="${d < 0 ? 'opp' : ''}">${esc(d > 0 ? us + ' won' : opp + ' won')} by ${Math.abs(d)}</b>`;
+    else if (x.last) {
+      const what = x.last.value === 3 ? 'Goal' : x.last.type || 'Score';
+      const who = x.last.side === 'us' ? '' : ' ' + opp;
+      const lead = d === 0 ? 'Level' : `${d > 0 ? us : opp} lead by ${Math.abs(d)}`;
+      const mn = CSMatchCharts.minuteLabel({ duration: (x.timer && x.timer.duration_seconds) || 1800 }, x.last.half, x.last.second);
+      line = `<b class="${x.last.side === 'opp' ? 'opp' : ''}">${esc(what + who)}</b> · ${esc(mn)} · ${esc(lead)}`;
+    } else line = 'No scores yet';
+    body = `<div class="smb"><div class="tm"><div class="tn">${esc(us)}</div><div class="sc">${L.gaa(s.us)}</div></div><div class="v">v</div>
+      <div class="tm"><div class="tn">${esc(opp)}</div><div class="sc">${L.gaa(s.opp)}</div></div></div><div class="lastl">${line}</div>`;
+  }
+  return `<button class="smc" data-sq="${x.key}"><div class="smh"><b>${sqDot(x)}${esc(L.squadShort(x.name))} v ${esc(opp)}</b>${sqStatus(x)}</div>
+    ${where ? `<div class="where">📍 ${esc(where)}</div>` : ''}${body}
+    <span class="openl">${done ? 'See stats' : 'Open ' + esc(L.squadShort(x.name))} ›</span></button>`;
+}
+function renderBoth() {
+  const ev = D.event;
+  const day = ev.event_start ? new Date(ev.event_start).toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Dublin' }) : '';
+  const cards = sqList().slice().sort(L.squadOrder).map(squadCard).join('');
+  $('main').innerHTML = `<div class="bt"><div class="t1">${esc(ev.team_name || '')}${ev.event_title ? ' · ' + esc(ev.event_title) : ''}</div>
+      <div class="t2">${esc([day, sqList().length + ' matches'].filter(Boolean).join(' · '))}</div></div>
+    ${failures ? '<div class="offline">No signal. Showing the last scores we got.</div>' : ''}
+    ${cards}
+    ${PUBLIC ? '' : followCard()}
+    <div class="note small" style="text-align:center;margin:12px 24px 0;line-height:1.4">Tap a match for the full live view. Swipe left or right to flick between them.</div>
+    ${PUBLIC ? brand() : ''}`;
+}
+function tickBoth() {
+  document.querySelectorAll('[data-cd]').forEach(el => {
+    const left = Date.parse(el.dataset.cd) - (Date.now() - skew);
+    if (left > 60000) el.textContent = untilText(left);
+  });
+}
+// Swipe left / right between Both and each squad
+(function () {
+  let x0 = null, y0 = null;
+  document.addEventListener('touchstart', e => { if (e.touches.length === 1) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; } }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (x0 === null || !multi()) return;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+    if (e.target.closest && e.target.closest('.sq, .mc-card, svg, canvas')) return;   // leave the tab strip and charts alone
+    const order = ['both', ...sqList().map(q => q.key)];
+    const i = order.indexOf(view), j = i + (dx < 0 ? 1 : -1);
+    if (i >= 0 && j >= 0 && j < order.length) pickSquad(order[j]);
+  }, { passive: true });
+})();
 
 // ── Actions ────────────────────────────────────────────────────────────────
 document.addEventListener('click', e => {
+  const q = e.target.closest('[data-sq]');
+  if (q) { pickSquad(q.dataset.sq === 'both' ? 'both' : Number(q.dataset.sq)); return; }
   const t = e.target.closest('[data-tab]');
   if (t) { tab = t.dataset.tab; renderMatch(); return; }
   const a = e.target.closest('[data-act]');
@@ -363,12 +527,14 @@ async function share() {
   try {
     const tok = await L.rpc('get_live_share_link', { p_event_id: D.event.event_id });
     // Always the coachsmart.app address (the app loads this page from the longer Firebase one)
-    url = `https://coachsmart.app/webviews/match-live.html?share=${tok}`;
+    url = `https://coachsmart.app/webviews/match-live.html?share=${tok}` + (multi() && view !== 'both' ? `&squad=${view}` : '');
   } catch (_) { toast("Couldn't make a link. Check your signal."); return; }
   const done = D.phase === 'ft' || D.phase === 'done';
   const s = D.score;
-  const text = D.phase === 'pre'
-    ? `Follow ${D.event.team_name} v ${oppName()} live`
+  const text = multi() && view === 'both'
+    ? `Follow ${D.event.team_name} live: ` + sqList().map(x => `${L.squadShort(x.name)} v ${x.opposition || 'Opposition'}`).join(', ')
+    : D.phase === 'pre'
+    ? `Follow ${D.event.team_name}${multi() ? ' ' + L.squadShort(D.squad.name) : ''} v ${oppName()} live`
     : `${done ? 'Full time' : D.phase === 'ht' ? 'Half time' : 'Live'}: ${usName()} ${L.gaa(s.us)} ${oppName()} ${L.gaa(s.opp)}`;
   if (navigator.share) {
     try { await navigator.share({ title: document.title, text, url }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
@@ -403,6 +569,12 @@ if (!EVENT_ID && !SHARE) {
   load();
   setInterval(() => {
     if (!D || D.error) return;
+    if (multi() && view === 'both') {
+      tickBoth();
+      // Keep the live minutes on the cards moving
+      if (Date.now() % 15000 < 1000 && sqList().some(x => x.phase === 'play')) renderBoth();
+      return;
+    }
     if (D.phase === 'play') tickClock();
     if (D.phase === 'pre' && $('countdown') && D.event.event_date_time) {
       const left = Date.parse(D.event.event_date_time) - (Date.now() - skew);

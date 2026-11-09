@@ -224,6 +224,38 @@
     });
   }
 
+  // ── Squads ──────────────────────────────────────────────────────────────────
+  // A squad's colour: its own colour, else a colour word in its name ("Blue
+  // Team"), else one from a fixed set by position
+  const NAMED = { blue: '#3b82f6', navy: '#1e3a8a', red: '#e05252', maroon: '#8b1e2d', green: '#22a559', black: '#0b0d0f',
+    white: '#f1f4f8', yellow: '#f5c518', gold: '#d4a017', orange: '#f28c28', purple: '#8b5cf6', grey: '#9aa0a6', gray: '#9aa0a6', pink: '#ec4899', sky: '#38bdf8' };
+  const SPARE = ['#3b82f6', '#e05252', '#f28c28', '#8b5cf6', '#22a559', '#f5c518'];
+  function squadColour(sq, i) {
+    const c = String((sq && sq.colour) || '').trim();
+    if (/^#[0-9a-f]{3,8}$/i.test(c)) return c;
+    const w = String((sq && sq.name) || '').toLowerCase().match(/[a-z]+/g) || [];
+    for (const x of w) if (NAMED[x]) return NAMED[x];
+    return SPARE[(i || 0) % SPARE.length];
+  }
+  // "Blue Team" → "Blue" for tabs; other names as they are
+  const squadShort = n => String(n || '').replace(/\s+(team|squad)$/i, '').trim() || String(n || '');
+  // Minute of the match from a score keeper clock, e.g. 41' or 30+2'
+  function minuteOf(timer, skew) {
+    const tm = timer || {};
+    const dur = tm.duration_seconds || 1800, h = tm.current_half || 1;
+    const sec = halfSeconds(tm, skew || 0);
+    const min = Math.floor(sec / 60) + 1, halfMin = Math.round(dur / 60);
+    return min > halfMin ? `${(h - 1) * halfMin + halfMin}+${min - halfMin}'` : `${(h - 1) * halfMin + min}'`;
+  }
+  // Order for cards: live first, then the next to start, then results (newest first)
+  function squadOrder(a, b) {
+    const rank = s => (s.phase === 'play' || s.phase === 'ht') ? 0 : s.phase === 'pre' ? 1 : 2;
+    const ra = rank(a), rb = rank(b);
+    if (ra !== rb) return ra - rb;
+    const t = s => Date.parse(ra === 1 ? s.throw_in_at : s.kicked_off_at) || 0;
+    return ra === 2 ? t(b) - t(a) : t(a) - t(b);
+  }
+
   function close() {
     if (bridge()) post('close');
     else if (history.length > 1) history.back();
@@ -231,7 +263,7 @@
 
   window.CSLive = {
     P, rpc, listen, post, bridge, signedIn: () => !!token, freshToken,
-    esc, gaa, fmt, pad2, cleanClub, halfSeconds, alertSheet, saveFollow, setFollow, bell, levelLabel, close,
+    esc, gaa, fmt, pad2, cleanClub, halfSeconds, squadColour, squadShort, minuteOf, squadOrder, alertSheet, saveFollow, setFollow, bell, levelLabel, close,
     url: SUPABASE_URL, anon: SUPABASE_ANON,
   };
 })();

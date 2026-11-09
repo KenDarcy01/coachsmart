@@ -77,8 +77,9 @@ async function load() {
     if (d && d.server_now) skew = Date.now() - Date.parse(d.server_now);
     D = d;
     render();
-    const now = (D.matches || []).map(m => m.event_id).join(',');
-    if (now !== ids) { ids = now; pulse.resubscribe((D.matches || []).map(m => m.event_id)); }
+    const evIds = [...new Set((D.matches || []).map(m => m.event_id))];
+    const now = evIds.join(',');
+    if (now !== ids) { ids = now; pulse.resubscribe(evIds); }
   } catch (_) {
     if (!D) $('list').innerHTML = `<div class="empty">Couldn't load matches.<br>Check your signal and try again.</div>`;
   }
@@ -115,21 +116,27 @@ function until(t) {
 function ha(m) { return m.home_away ? m.home_away.charAt(0).toUpperCase() + m.home_away.slice(1).toLowerCase() : ''; }
 const time = t => new Date(t).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Dublin' });
 
+// When an event has more than one squad playing, each squad gets its own row
+// and the venue shows, as squads can play at different grounds
+const squadLabel = m => m.squad_name ? ' ' + L.squadShort(m.squad_name) : '';
 function row(m) {
   const opp = m.opposition || 'Opposition';
   const started = isLive(m) || isDone(m);
-  const sub = started ? `${pill(m)} ${esc(ha(m))}` : `Throw-in ${m.event_date_time ? time(m.event_date_time) : ''}${ha(m) ? ' · ' + esc(ha(m)) : ''}`;
+  const place = m.squads_in_event > 1 && m.venue ? m.venue : ha(m);
+  const sub = started ? `${pill(m)} ${esc(place)}` : `Throw-in ${m.event_date_time ? time(m.event_date_time) : ''}${place ? ' · ' + esc(place) : ''}`;
   const right = started && m.score
     ? `<div class="r">${L.gaa(m.score.us)}<small>v ${L.gaa(m.score.opp)}</small></div>`
     : `<div class="r wait">${m.event_date_time ? until(m.event_date_time) : ''}</div>`;
-  return `<div class="mc" data-open="${m.event_id}"><button class="bell ${following(m) ? 'on' : ''}" data-bell="${m.event_id}" aria-label="Alerts">${BELL}</button>
-    <div class="l"><b>${esc(m.team_name || '')} v ${esc(opp)}</b><small>${sub}</small></div>${right}</div>`;
+  const dot = m.squad_name && m.squads_in_event > 1 ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 5px 1px 0;background:${esc(L.squadColour({ name: m.squad_name, colour: m.squad_colour }, 0))}"></span>` : '';
+  return `<div class="mc" data-open="${m.event_id}" data-squad="${m.squad_key == null ? '' : m.squad_key}"><button class="bell ${following(m) ? 'on' : ''}" data-bell="${m.event_id}" aria-label="Alerts">${BELL}</button>
+    <div class="l"><b>${dot}${esc(m.team_name || '')}${esc(squadLabel(m))} v ${esc(opp)}</b><small>${sub}</small></div>${right}</div>`;
 }
 
 function render() {
   if (!D) return;
   if (D.error) { $('list').innerHTML = '<div class="empty">Please sign in again.</div>'; return; }
-  const all = D.matches || [];
+  // By throw-in time (squads of one event can start at different times)
+  const all = (D.matches || []).slice().sort((a, b) => (Date.parse(a.event_date_time) || 0) - (Date.parse(b.event_date_time) || 0));
   const live = all.filter(isLive);
   const today = all.filter(isToday);
   const fol = all.filter(m => following(m) && !isDone(m));
@@ -160,12 +167,13 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-bell]');
   if (b) { e.stopPropagation(); bellFor(Number(b.dataset.bell)); return; }
   const o = e.target.closest('[data-open]');
-  if (o) openMatch(o.dataset.open);
+  if (o) openMatch(o.dataset.open, o.dataset.squad);
 });
 
-function openMatch(id) {
+function openMatch(id, squad) {
   const p = new URLSearchParams(location.search);
   p.set('event_id', id); p.set('from', 'list');
+  if (squad !== undefined && squad !== '') p.set('squad', squad); else p.delete('squad');
   location.href = 'match-live.html?' + p.toString();
 }
 
@@ -176,7 +184,8 @@ async function bellFor(id) {
   try {
     await L.bell({
       eventId: id, sub: `${m.team_name || ''} v ${m.opposition || 'Opposition'}`, follow: m.follow,
-      onChange: (f, msg) => { m.follow = f; render(); toast(msg); },
+      // Following is per event, so every squad row of the event changes together
+      onChange: (f, msg) => { (D.matches || []).forEach(x => { if (x.event_id === id) x.follow = f; }); render(); toast(msg); },
       onError: () => toast("Couldn't save. Check your signal."),
     });
   } catch (_) { toast("Couldn't save. Check your signal."); }
