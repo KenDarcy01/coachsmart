@@ -293,9 +293,9 @@ class _V3HomePageState extends State<V3HomePage> {
             ? Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(26),
                     child: Image.asset('assets/images/Launcher_Icon_v2.png',
-                        width: 96, height: 96),
+                        width: 120, height: 120),
                   ),
                   const SizedBox(height: 22),
                   const SizedBox(
@@ -403,35 +403,39 @@ class _V3HomePageState extends State<V3HomePage> {
   Widget _filterRow() {
     final clubs = _realClubs;
     final teams = _teamsForSheet;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (clubs.length >= 2)
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(children: [
-              _clubTile(0, null),
-              for (final c in clubs) ...[
-                const SizedBox(width: 12),
-                _clubTile(c.clubId, c.crest),
-              ],
-            ]),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (clubs.length >= 2)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                _clubTile(0, null),
+                for (final c in clubs) ...[
+                  const SizedBox(width: 12),
+                  _clubTile(c.clubId, c.crest),
+                ],
+              ]),
+            ),
           ),
-        ),
-      if (teams.length >= 2)
-        Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(children: [
-              for (var i = 0; i < teams.length; i++) ...[
-                if (i > 0) const SizedBox(width: 8),
-                _teamPill(teams[i]),
-              ],
-            ]),
+        if (teams.length >= 2)
+          Padding(
+            // Room between the crests and the pills (Ken, 2026-11-09).
+            padding: const EdgeInsets.only(top: 18),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                for (var i = 0; i < teams.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  _teamPill(teams[i]),
+                ],
+              ]),
+            ),
           ),
-        ),
-    ]);
+      ]),
+    );
   }
 
   Widget _teamPill(UserTeamsStruct t) {

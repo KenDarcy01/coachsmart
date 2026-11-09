@@ -128,22 +128,14 @@ class V3EventCard extends StatelessWidget {
                 ),
                 if (_meta().isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  Text(_meta(), style: V3.inter(14, color: V3.muted)),
+                  Text(_meta(), style: V3.inter(15.5, color: V3.muted)),
                 ],
+                // Bar on its own row, totals beneath (Ken, 2026-11-09).
                 if (e.requestAttendance && !cancelled) ...[
-                  if (isNext) ...[
-                    const SizedBox(height: 10),
-                    _bar(),
-                    const SizedBox(height: 7),
-                    _legend(),
-                  ] else ...[
-                    const SizedBox(height: 10),
-                    Row(children: [
-                      Expanded(child: _bar()),
-                      const SizedBox(width: 10),
-                      _countText(),
-                    ]),
-                  ],
+                  const SizedBox(height: 10),
+                  _bar(),
+                  const SizedBox(height: 7),
+                  if (isNext) _legend() else _countText(),
                 ],
                 if (showButtons) ...[
                   const SizedBox(height: 12),
@@ -198,24 +190,26 @@ class V3EventCard extends StatelessWidget {
         ),
         if (e.squadName.isNotEmpty && e.squadId != 0) ...[
           const SizedBox(width: 8),
+          // Green outline so the squad stands out (Ken, 2026-11-09).
           Container(
-            padding: const EdgeInsets.fromLTRB(5, 2, 8, 2),
+            padding: const EdgeInsets.fromLTRB(7, 3, 9, 3),
             decoration: BoxDecoration(
-                color: V3.card2, borderRadius: BorderRadius.circular(8)),
+                border: Border.all(color: V3.green, width: 1.5),
+                borderRadius: BorderRadius.circular(8)),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               if (e.squadImage.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(right: 4),
+                  padding: const EdgeInsets.only(right: 5),
                   child: ClipOval(
                     child: Image.network(e.squadImage,
-                        width: 10,
-                        height: 10,
+                        width: 12,
+                        height: 12,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) =>
-                            const SizedBox(width: 10, height: 10)),
+                            const SizedBox(width: 12, height: 12)),
                   ),
                 ),
-              Text(e.squadName, style: V3.inter(12, weight: FontWeight.w600)),
+              Text(e.squadName, style: V3.inter(13.5, weight: FontWeight.w600)),
             ]),
           ),
         ],

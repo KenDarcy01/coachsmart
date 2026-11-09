@@ -17,6 +17,8 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+  <!-- Without this the splash renders at desktop scale until Flutter loads. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
 
   <!-- iOS meta tags & icons -->
@@ -58,7 +60,7 @@
     #splash { position: fixed; inset: 0; background: #14181b; display: flex;
       flex-direction: column; align-items: center; justify-content: center;
       gap: 18px; z-index: 10; transition: opacity .25s ease-out; }
-    #splash img { width: 96px; height: 96px; border-radius: 22px; }
+    #splash img { width: 120px; height: 120px; border-radius: 26px; }
     #splash .bar { width: 120px; height: 4px; border-radius: 2px; background: #2e333e;
       overflow: hidden; }
     #splash .bar i { display: block; width: 40%; height: 100%; background: #87c232;
@@ -68,7 +70,7 @@
   </style>
 </head>
 <body>
-  <div id="splash"><img src="icons/Icon-192.png" alt=""><div class="bar"><i></i></div></div>
+  <div id="splash"><img src="icons/Icon-512.png" alt=""><div class="bar"><i></i></div></div>
   <script>
     window.addEventListener('flutter-first-frame', function () {
       var s = document.getElementById('splash');
