@@ -109,7 +109,7 @@ workflows:
   v3-android-closed-testing:
     name: v3 Android to Play closed testing
     max_build_duration: 60
-    instance_type: linux_x2
+    instance_type: mac_mini_m2  # the free plan only offers Mac machines
     environment:
       <<: *flutter
       android_signing:
