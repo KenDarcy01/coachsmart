@@ -999,6 +999,7 @@ class _V3EventPageState extends State<V3EventPage> {
               GestureDetector(
                 onTap: () => _open(PaymentTransactionsWidget.routeName, {
                   'paramEventID': serializeParam(_eventId, ParamType.int),
+                  'eventTitle': serializeParam(e.eventTitle, ParamType.String),
                 }),
                 child: Text('Details ›',
                     style:
@@ -1226,6 +1227,8 @@ class _V3EventPageState extends State<V3EventPage> {
                       Navigator.pop(ctx);
                       _open(PaymentTransactionsWidget.routeName, {
                         'paramEventID': serializeParam(_eventId, ParamType.int),
+                        'eventTitle':
+                            serializeParam(cur.eventTitle, ParamType.String),
                       });
                     }),
                   if (_cancelled)

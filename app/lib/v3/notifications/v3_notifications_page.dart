@@ -9,6 +9,7 @@ import '/backend/supabase/supabase.dart';
 import '/custom_code/actions/index.dart' as actions;
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
+import '../teams/v3_role_picker.dart';
 import '../v3_theme.dart';
 import 'v3_notifications_models.dart';
 
@@ -158,14 +159,7 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
       _snack('No roles found for this team.', warn: true);
       return;
     }
-    final picked = await showModalBottomSheet<List<int>>(
-      context: context,
-      backgroundColor: V3.card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (ctx) => _RolePicker(roles: roles, title: n.title),
-    );
+    final picked = await pickRoles(context, roles: roles, title: n.title);
     if (picked == null || picked.isEmpty || !mounted) return;
     await _run(n, () async {
       final r = await SupaFlow.client.rpc('confirm_member_join', params: {
@@ -393,78 +387,4 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
       margin: const EdgeInsets.only(top: 14, bottom: 10),
       decoration: BoxDecoration(
           color: V3.barGrey, borderRadius: BorderRadius.circular(3)));
-}
-
-/// Roles for a new member: tick one or more, then Confirm.
-class _RolePicker extends StatefulWidget {
-  const _RolePicker({required this.roles, required this.title});
-  final List roles;
-  final String title;
-  @override
-  State<_RolePicker> createState() => _RolePickerState();
-}
-
-class _RolePickerState extends State<_RolePicker> {
-  final Set<int> _picked = {};
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                  child: Container(
-                      width: 40,
-                      height: 5,
-                      margin: const EdgeInsets.only(top: 14, bottom: 14),
-                      decoration: BoxDecoration(
-                          color: V3.barGrey,
-                          borderRadius: BorderRadius.circular(3)))),
-              Text('Approve with which roles?', style: V3.tight(20)),
-              const SizedBox(height: 2),
-              Text(widget.title, style: V3.inter(14, color: V3.muted)),
-              const SizedBox(height: 6),
-              for (final r in widget.roles)
-                if (r is Map)
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    activeColor: V3.green,
-                    checkColor: V3.bg,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    value: _picked.contains(_id(r['role_id'])),
-                    title: Text('${r['role_name'] ?? ''}',
-                        style: V3.inter(16, weight: FontWeight.w500)),
-                    onChanged: (v) => setState(() => v == true
-                        ? _picked.add(_id(r['role_id']))
-                        : _picked.remove(_id(r['role_id']))),
-                  ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: FilledButton(
-                    onPressed: _picked.isEmpty
-                        ? null
-                        : () => Navigator.pop(context, _picked.toList()),
-                    style: FilledButton.styleFrom(
-                        backgroundColor: V3.green,
-                        disabledBackgroundColor: V3.card2,
-                        foregroundColor: V3.bg,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14))),
-                    child: Text('Confirm',
-                        style: V3.inter(16,
-                            weight: FontWeight.w700,
-                            color: _picked.isEmpty ? V3.muted : V3.bg))),
-              ),
-            ]),
-      ),
-    );
-  }
-
-  int _id(dynamic v) => v is int ? v : int.tryParse('$v') ?? 0;
 }

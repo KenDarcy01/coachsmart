@@ -296,11 +296,9 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: PaymentTransactionsWidget.routeName,
               path: PaymentTransactionsWidget.routePath,
-              builder: (context, params) => PaymentTransactionsWidget(
-                paramEventID: params.getParam(
-                  'paramEventID',
-                  ParamType.int,
-                ),
+              builder: (context, params) => V3PaymentsPage(
+                eventId: params.getParam('paramEventID', ParamType.int) ?? 0,
+                title: params.getParam('eventTitle', ParamType.String),
               ),
             ),
             FFRoute(
@@ -458,11 +456,8 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: PendingRequestsWidget.routeName,
               path: PendingRequestsWidget.routePath,
-              builder: (context, params) => PendingRequestsWidget(
-                paramTeamID: params.getParam(
-                  'paramTeamID',
-                  ParamType.int,
-                ),
+              builder: (context, params) => V3RequestsPage(
+                teamId: params.getParam('paramTeamID', ParamType.int) ?? 0,
               ),
             ),
             FFRoute(
