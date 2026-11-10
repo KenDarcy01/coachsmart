@@ -1,0 +1,123 @@
+# CoachSmart v3 store builds (the Flutter app in app/). Codemagic reads this
+# file from the repository root. Builds run only when a v3 tag is pushed
+# (v3.0.0-1, v3.0.0-2, ...), never on ordinary pushes, so the live app and
+# the web preview are untouched. The Firebase config files are already in
+# app/android/app/google-services.json and app/ios/Runner/GoogleService-Info.plist.
+#
+# Before the first build Ken adds in Codemagic (Teams > Integrations / the
+# app's settings):
+#   - App Store Connect integration named "coachsmart-asc" (an API key with
+#     App Manager access) for iOS signing and the TestFlight upload.
+#   - Android keystore uploaded under Code signing identities as
+#     "coachsmart_upload" (the Play upload key from FlutterFlow, or a new
+#     upload key registered in Play Console).
+#   - Environment group "coachsmart_play" holding
+#     GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (a Play Console service account
+#     JSON with release access) for the Play upload.
+
+definitions:
+  flutter: &flutter
+    flutter: 3.47.9
+    xcode: latest
+    cocoapods: default
+  env: &env
+    APP_DIR: app
+    BUNDLE_ID: my.coachsmartV2
+    BUILD_NAME: "3.0.0"
+  triggers: &triggers
+    events:
+      - tag
+    tag_patterns:
+      - pattern: "v3.*"
+        include: true
+    cancel_previous_builds: true
+  version: &version
+    name: Work out the build number from the tag
+    script: |
+      # v3.0.0-7 -> build name 3.0.0, build number 1007. Tester builds start
+      # at 1000 so they always sit above the FlutterFlow 1.0.x builds (235+).
+      TAG="${CM_TAG:-v3.0.0-0}"
+      NAME="${TAG#v}"; NAME="${NAME%%-*}"
+      SEQ="${TAG##*-}"; case "$SEQ" in ''|*[!0-9]*) SEQ=0;; esac
+      echo "BUILD_NAME=$NAME" >> "$CM_ENV"
+      echo "BUILD_NUMBER=$((1000 + SEQ))" >> "$CM_ENV"
+      echo "Building $NAME ($((1000 + SEQ))) from $TAG"
+  pub: &pub
+    name: Flutter packages
+    script: cd "$APP_DIR" && flutter pub get
+
+workflows:
+  v3-ios-testflight:
+    name: v3 iOS to TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: coachsmart-asc
+    environment:
+      <<: *flutter
+      vars:
+        <<: *env
+    triggering: *triggers
+    scripts:
+      - *version
+      - *pub
+      - name: iOS signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          xcode-project use-profiles --project "$APP_DIR/ios/Runner.xcodeproj"
+      - name: CocoaPods
+        script: cd "$APP_DIR/ios" && pod install
+      - name: Build the IPA
+        script: |
+          cd "$APP_DIR"
+          flutter build ipa --release \
+            --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - app/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - CoachSmart v3 testers
+
+  v3-android-closed-testing:
+    name: v3 Android to Play closed testing
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      <<: *flutter
+      android_signing:
+        - coachsmart_upload
+      groups:
+        - coachsmart_play
+      vars:
+        <<: *env
+    triggering: *triggers
+    scripts:
+      - *version
+      - *pub
+      - name: Point Gradle at the upload key
+        script: |
+          cat > "$APP_DIR/android/key.properties" <<EOT
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=$CM_KEYSTORE_PATH
+          EOT
+      - name: Build the app bundle
+        script: |
+          cd "$APP_DIR"
+          flutter build appbundle --release \
+            --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
+    artifacts:
+      - app/build/app/outputs/bundle/release/*.aab
+      - app/build/app/outputs/mapping/release/mapping.txt
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: v3-testers
+        in_app_update_priority: 0
+        changes_not_sent_for_review: true
