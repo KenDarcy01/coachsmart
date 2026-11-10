@@ -9,7 +9,7 @@
 #   - App Store Connect integration named "coachsmart-asc" (an API key with
 #     App Manager access) for iOS signing and the TestFlight upload.
 #   - Android keystore uploaded under Code signing identities as
-#     "coachsmart_upload" (the Play upload key from FlutterFlow, or a new
+#     "CoachSmart" (the Play upload key from FlutterFlow, or a new
 #     upload key registered in Play Console).
 #   - Environment group "coachsmart_ios" holding CERTIFICATE_PRIVATE_KEY
 #     (an RSA private key in PEM form, marked secret). The build uses it to
@@ -113,7 +113,7 @@ workflows:
     environment:
       <<: *flutter
       android_signing:
-        - coachsmart_upload
+        - CoachSmart
       groups:
         - coachsmart_play
       vars:
