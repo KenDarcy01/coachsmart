@@ -369,6 +369,7 @@ async function sceneConvert(apiKey: string, image_base64: string | null, media_t
   console.log("v2 scene:", scene.items?.length ?? 0, "items,", scene.lines?.length ?? 0, "lines, image", size.w, "x", size.h);
   // Drill text and scene (no personal data) so diagrams drawn from words can be reviewed and re-rendered.
   if (!image_base64) console.log("v2 words-scene", JSON.stringify({ check: !!revision?.rendered, drawing: (drawing || "").slice(0, 3000), scene }).slice(0, 12000));
+  else console.log("v2 photo-scene", JSON.stringify({ fix: revision?.instruction || "", notes: (notes || "").slice(0, 2000), size, scene }).slice(0, 12000));
 
   const gameName = scene.game_name?.trim() || null;
   const suggestedCodes = scene.sport === "hurling" ? ["hurling", "camogie"] : scene.sport === "football" ? ["football"] : [];
