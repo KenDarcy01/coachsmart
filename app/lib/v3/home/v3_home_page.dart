@@ -13,6 +13,7 @@ import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
+import '../profile/v3_profile_models.dart' show PushPref;
 import '../v3_theme.dart';
 import 'v3_event_card.dart';
 import 'v3_home_data.dart';
@@ -71,6 +72,8 @@ class _V3HomePageState extends State<V3HomePage> {
 
   Future<void> _registerDevice() async {
     try {
+      // Push switched off on the profile page: keep the token cleared.
+      if (!await PushPref.enabled()) return;
       await actions.setFCMToken();
       await UsersTable().update(
         data: {
@@ -635,15 +638,10 @@ class _V3HomePageState extends State<V3HomePage> {
       child: SafeArea(
         child: ListView(padding: EdgeInsets.zero, children: [
           InkWell(
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              context.pushNamed(
-                EditUserWidget.routeName,
-                queryParameters: {
-                  'paramUserID':
-                      serializeParam(currentUserUid, ParamType.String),
-                }.withoutNulls,
-              );
+              await context.pushNamed(EditUserWidget.routeName);
+              if (mounted) _load();
             },
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
@@ -656,7 +654,7 @@ class _V3HomePageState extends State<V3HomePage> {
                     Text(_home.emailAddress,
                         style: V3.inter(14, color: V3.muted)),
                     const SizedBox(height: 8),
-                    Text('Edit profile',
+                    Text('Profile and settings',
                         style: V3.inter(14,
                             weight: FontWeight.w600, color: V3.green)),
                   ]),

@@ -162,31 +162,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               builder: (context, params) => SelectTeamsWidget(),
             ),
             FFRoute(
-              name: UserMemberDetailsWidget.routeName,
-              path: UserMemberDetailsWidget.routePath,
-              builder: (context, params) => UserMemberDetailsWidget(
-                memberID: params.getParam(
-                  'memberID',
-                  ParamType.int,
+                name: UserMemberDetailsWidget.routeName,
+                path: UserMemberDetailsWidget.routePath,
+                builder: (context, params) =>
+                    const V3ProfilePage() // v3: members live on the profile page,
                 ),
-                teamID: params.getParam(
-                  'teamID',
-                  ParamType.int,
-                ),
-                memberFullName: params.getParam(
-                  'memberFullName',
-                  ParamType.String,
-                ),
-                teamName: params.getParam(
-                  'teamName',
-                  ParamType.String,
-                ),
-                uniqueMemberCode: params.getParam(
-                  'uniqueMemberCode',
-                  ParamType.String,
-                ),
-              ),
-            ),
             FFRoute(
               name: ValidatePageWidget.routeName,
               path: ValidatePageWidget.routePath,
@@ -205,10 +185,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
-              name: UpdatePasswordWidget.routeName,
-              path: UpdatePasswordWidget.routePath,
-              builder: (context, params) => UpdatePasswordWidget(),
-            ),
+                name: UpdatePasswordWidget.routeName,
+                path: UpdatePasswordWidget.routePath,
+                builder: (context, params) =>
+                    const V3ChangePasswordPage() // v3,
+                ),
             FFRoute(
               name: MatchReportWidget.routeName,
               path: MatchReportWidget.routePath,
@@ -250,15 +231,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
-              name: EditUserWidget.routeName,
-              path: EditUserWidget.routePath,
-              builder: (context, params) => EditUserWidget(
-                paramUserID: params.getParam(
-                  'paramUserID',
-                  ParamType.String,
+                name: EditUserWidget.routeName,
+                path: EditUserWidget.routePath,
+                builder: (context, params) =>
+                    const V3ProfilePage() // v3 profile page,
                 ),
-              ),
-            ),
             FFRoute(
               name: CheckoutSuccessWidget.routeName,
               path: CheckoutSuccessWidget.routePath,

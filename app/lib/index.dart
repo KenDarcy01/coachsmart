@@ -78,3 +78,5 @@ export '/v3/teams/v3_member_page.dart' show V3MemberPage;
 export '/v3/event/v3_event_form_page.dart' show V3EventFormPage;
 export '/v3/event/v3_attendance_page.dart' show V3AttendancePage;
 export '/v3/notifications/v3_notifications_page.dart' show V3NotificationsPage;
+export '/v3/profile/v3_profile_page.dart' show V3ProfilePage;
+export '/v3/profile/v3_change_password_page.dart' show V3ChangePasswordPage;
