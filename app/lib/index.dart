@@ -88,3 +88,6 @@ export '/v3/event/v3_checkout_page.dart'
     show V3CheckoutPage, V3CheckoutSuccessPage, V3CheckoutFailedPage;
 export '/v3/carpool/v3_car_pools_page.dart' show V3CarPoolsPage;
 export '/v3/carpool/v3_car_pool_page.dart' show V3CarPoolPage;
+export '/pages/match_report_new/match_report_new_widget.dart'
+    show MatchReportNewWidget;
+export '/pages/live_updates/live_updates_widget.dart' show LiveUpdatesWidget;

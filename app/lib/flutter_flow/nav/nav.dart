@@ -523,6 +523,26 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               name: FavouritesNewWidget.routeName,
               path: FavouritesNewWidget.routePath,
               builder: (context, params) => FavouritesNewWidget(),
+            ),
+            FFRoute(
+              name: MatchReportNewWidget.routeName,
+              path: MatchReportNewWidget.routePath,
+              builder: (context, params) => MatchReportNewWidget(
+                paramEventId: params.getParam(
+                  'paramEventId',
+                  ParamType.int,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: LiveUpdatesWidget.routeName,
+              path: LiveUpdatesWidget.routePath,
+              builder: (context, params) => LiveUpdatesWidget(
+                paramEventId: params.getParam(
+                  'paramEventId',
+                  ParamType.int,
+                ),
+              ),
             )
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),
