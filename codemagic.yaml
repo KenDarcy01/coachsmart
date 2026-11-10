@@ -40,15 +40,27 @@ definitions:
     script: |
       # v3.0.0-7 -> build name 3.0.0, build number 1007. Tester builds start
       # at 1000 so they always sit above the FlutterFlow 1.0.x builds (235+).
-      TAG="${CM_TAG:-v3.0.0-0}"
+      # Builds started through the Codemagic API have no tag, so they use
+      # Codemagic's own per-workflow build counter instead (1000 + counter).
+      if [ -n "$CM_TAG" ]; then
+        TAG="$CM_TAG"
+        SEQ="${TAG##*-}"; case "$SEQ" in ''|*[!0-9]*) SEQ=0;; esac
+      else
+        TAG="v3.0.0-api"
+        SEQ="${BUILD_NUMBER:-0}"
+      fi
       NAME="${TAG#v}"; NAME="${NAME%%-*}"
-      SEQ="${TAG##*-}"; case "$SEQ" in ''|*[!0-9]*) SEQ=0;; esac
       echo "BUILD_NAME=$NAME" >> "$CM_ENV"
       echo "BUILD_NUMBER=$((1000 + SEQ))" >> "$CM_ENV"
       echo "Building $NAME ($((1000 + SEQ))) from $TAG"
   pub: &pub
     name: Flutter packages
-    script: cd "$APP_DIR" && flutter pub get
+    script: |
+      # Keep every iOS plugin on CocoaPods. With Swift Package Manager on,
+      # Flutter 3.47 adds Firebase through SPM as well as CocoaPods and the
+      # archive fails with "Multiple commands produce ... Metadata.appintents".
+      flutter config --no-enable-swift-package-manager
+      cd "$APP_DIR" && flutter pub get
 
 workflows:
   v3-ios-testflight:
