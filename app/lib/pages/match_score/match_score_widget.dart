@@ -107,7 +107,7 @@ class _MatchScoreWidgetState extends State<MatchScoreWidget> {
               width: double.infinity,
               height: double.infinity,
               url:
-                  'https://coach-smart-new-mpqa5l.web.app/webviews/match-timer.html?eventId=${widget.eventId?.toString()}&currentAuthToken=${widget.currentAuthToken}&refreshToken=${widget.refreshToken}',
+                  'https://coach-smart-new-mpqa5l.web.app/webviews/score-keeper.html?eventId=${widget.eventId?.toString()}&currentAuthToken=${widget.currentAuthToken}&refreshToken=${widget.refreshToken}',
               onPageReady: () async {},
               onComplete: () async {},
               onLogout: () async {
