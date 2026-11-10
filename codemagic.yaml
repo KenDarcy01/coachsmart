@@ -143,4 +143,3 @@ workflows:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
         track: v3-testers
         in_app_update_priority: 0
-        changes_not_sent_for_review: true
