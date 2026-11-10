@@ -11,6 +11,10 @@
 #   - Android keystore uploaded under Code signing identities as
 #     "coachsmart_upload" (the Play upload key from FlutterFlow, or a new
 #     upload key registered in Play Console).
+#   - Environment group "coachsmart_ios" holding CERTIFICATE_PRIVATE_KEY
+#     (an RSA private key in PEM form, marked secret). The build uses it to
+#     create, then reuse, an Apple Distribution certificate for v3. It adds
+#     a certificate; it never revokes the one FlutterFlow uses.
 #   - Environment group "coachsmart_play" holding
 #     GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (a Play Console service account
 #     JSON with release access) for the Play upload.
@@ -55,6 +59,8 @@ workflows:
       app_store_connect: coachsmart-asc
     environment:
       <<: *flutter
+      groups:
+        - coachsmart_ios
       vars:
         <<: *env
     triggering: *triggers
@@ -63,7 +69,12 @@ workflows:
       - *pub
       - name: iOS signing files
         script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          keychain add-certificates
           xcode-project use-profiles --project "$APP_DIR/ios/Runner.xcodeproj"
       - name: CocoaPods
         script: cd "$APP_DIR/ios" && pod install
