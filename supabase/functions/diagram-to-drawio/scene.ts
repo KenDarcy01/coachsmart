@@ -32,6 +32,7 @@ LINES (the "lines" list)
 - pitch_line: a solid straight line with no arrowhead that marks the pitch or an area: end lines, side lines, the 13m, 20m, 45m and 65m lines, halfway, box sides, and any short marker line. Give 2 points, one at each end, following the line as drawn (lines that stop before the edge stop there too).
 - pitch_arc: a curved pitch marking with no arrowhead (the small D in front of goal, the large arc, a centre circle). Give 3 points: the start, the point of the arc furthest from the straight line between start and end, and the end.
 - run: a solid line with an arrowhead, meaning a player moves. Give 2 to 12 points tracing the path from where it starts to the arrowhead. For curved or wavy lines, put a point at every bend so the shape is kept.
+- Runs and passes near cones: coaches usually draw a player running AROUND a cone (rounding it and carrying on, or turning back), not to it. When a line bends at a cone or passes beside it, trace it going round the cone on the side it was drawn, with a point before, beside and after the cone, clear of it, never through it or ending on it. End a line at a cone only when it clearly stops there with the arrowhead at the cone.
 - pass: a dashed or dotted line with an arrowhead, meaning a kick, hand pass or strike. Same points rule as run, except that a pass the coach was clearly trying to draw straight (wobbly but heading one way) is straight: give just its 2 ends.
 - shot: an arrow (solid, dashed or dotted) that ends at or over the goalposts, the goal, the bar or a target, meaning a shot at goal or a score attempt. It is a shot, not a pass, even if a player stands near where it ends. Same points rule as pass. End it where the ball goes: over the bar (just above the crossbar between the uprights) for a point, into the goal (between the posts, under the bar) for a goal. If it is unclear, end it over the bar.
 - dotted_line: a dashed or dotted line with no arrowhead (for example a halfway or marker line drawn dotted). Output the whole dotted line as ONE entry, never one entry per dash, even where it runs behind a goal, cone or player. If the coach was trying to draw it straight, give just its 2 ends; only give more points if it is clearly meant to curve.
@@ -291,6 +292,11 @@ function smoothPath(pts: Pt[]): Pt[] {
   const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
   const at = (t: number, d: number): Pt => ({ x: a.x + ux * t - uy * d, y: a.y + uy * t + ux * d });
   const td = pts.map((p) => ({ t: (p.x - a.x) * ux + (p.y - a.y) * uy, d: -(p.x - a.x) * uy + (p.y - a.y) * ux }));
+  // A run that doubles back or loops (round a cone and back) is kept as drawn: evening it out
+  // would collapse the turn.
+  let pathLen = 0;
+  for (let i = 1; i < pts.length; i++) pathLen += dist(pts[i - 1], pts[i]);
+  if (pathLen > L * 1.8 || td.some((q) => q.t < -L * 0.08 || q.t > L * 1.08)) return pts;
   const ext = td.slice(1, -1).filter((q, i) => {
     // A neighbour on the other side of the line never stops a point being a swing (zig-zags).
     const peak = (n: { d: number }) => Math.sign(n.d) !== Math.sign(q.d) || Math.abs(q.d) >= Math.abs(n.d) - 0.5;
@@ -452,7 +458,8 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   // 5a. Arrows land on what they point at: an end that stops short of (or runs past) a
   // player or cone it is aimed at is moved onto it, and the start onto the player it leaves.
   const joints = new Set<Pt>(arrows.flatMap((a, i) => chained[i] ? [a.pts[0]] : []));
-  const targets = items.filter((it) => ["player", "coach", "cone"].includes(it.kind)).map((it) => pos.get(it)!);
+  // Players only: coaches' runs usually go round a cone, not to it (Ken, 2026-11-10).
+  const targets = items.filter((it) => ["player", "coach"].includes(it.kind)).map((it) => pos.get(it)!);
   const land = (end: Pt, from: Pt) => {
     if (joints.has(end)) return;
     const len = dist(from, end);
@@ -578,7 +585,10 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     .map((it) => { const p = pos.get(it)!; return { p: { ...p }, orig: { ...p }, kind: it.kind as "player" | "coach", item: it }; });
   let nn = Infinity;
   for (let i = 0; i < circles.length; i++) for (let j = i + 1; j < circles.length; j++) nn = Math.min(nn, dist(circles[i].orig, circles[j].orig));
-  let D = Math.max(28, Math.min(42, Number.isFinite(nn) ? nn * 0.95 : 40));
+  // One standard size for every player, however big or small they were sketched (Ken, 2026-11-10).
+  // Crowded players are pushed apart rather than shrunk.
+  void nn;
+  const D = 44;
 
   // Keep circles on their own side of every straight line, then off each other.
   // If a gap between two lines is too tight, shrink every circle a little and retry.
@@ -608,7 +618,7 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
       return now.inside && Math.abs(now.d) < r && Math.sign(o.d || 1) === Math.sign(now.d || 1) && Math.abs(o.d) > 1;
     }));
   };
-  for (let tries = 0; tries < 5 && settle(D / 2); tries++) D = Math.max(24, D * 0.9);
+  settle(D / 2);
 
   const cells: string[] = [];
   let id = 2;
@@ -699,8 +709,41 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     if (len < by * 3) return end;
     return { x: end.x + ((toward.x - end.x) / len) * by, y: end.y + ((toward.y - end.y) / len) * by };
   };
+  // Runs and passes that go past a cone go round it, never through it: a point is added
+  // beside the cone, on the side the line was drawn, so the curve clears it.
+  const conePts = items.filter((it) => it.kind === "cone").map((it) => pos.get(it)!);
+  const roundCones = (pts: Pt[]): Pt[] => {
+    const CLEAR = 36; // canvas px from the cone centre; curves bow inside their points, so allow extra
+    let out = pts.map((p) => ({ ...p }));
+    for (const c of conePts) {
+      if (dist(c, out[0]) < CLEAR + 8 || dist(c, out[out.length - 1]) < CLEAR + 8) continue;
+      // Bend points close to the cone are pushed straight out from it, so a turn round the
+      // cone becomes a clean loop on the side it was drawn.
+      for (let k = 1; k < out.length - 1; k++) {
+        const d = dist(out[k], c);
+        if (d >= CLEAR) continue;
+        let nx = out[k].x - c.x, ny = out[k].y - c.y;
+        if (d < 0.5) { nx = -(out[k + 1].y - out[k - 1].y); ny = out[k + 1].x - out[k - 1].x; }
+        const l = Math.hypot(nx, ny) || 1;
+        out[k] = { x: c.x + (nx / l) * CLEAR, y: c.y + (ny / l) * CLEAR };
+      }
+      // A straight stretch still cutting through the cone gets a point beside it.
+      let bi = -1, bd = Infinity, bq: Pt = c;
+      for (let i = 0; i < out.length - 1; i++) {
+        const a = out[i], b = out[i + 1], L = dist(a, b) || 1;
+        const t = Math.max(0, Math.min(1, ((c.x - a.x) * (b.x - a.x) + (c.y - a.y) * (b.y - a.y)) / (L * L)));
+        const q = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, d = dist(q, c);
+        if (d < bd) { bd = d; bi = i; bq = q; }
+      }
+      if (bi < 0 || bd >= CLEAR * 0.9) continue;
+      let nx = bq.x - c.x, ny = bq.y - c.y, nl = Math.hypot(nx, ny);
+      if (nl < 0.5) { const a = out[bi], b = out[bi + 1], L = dist(a, b) || 1; nx = -(b.y - a.y) / L; ny = (b.x - a.x) / L; nl = 1; }
+      out = [...out.slice(0, bi + 1), { x: c.x + (nx / nl) * CLEAR, y: c.y + (ny / nl) * CLEAR }, ...out.slice(bi + 1)];
+    }
+    return out;
+  };
   arrows.forEach((a, i) => {
-    const pts = a.pts.map((p) => ({ ...p }));
+    const pts = a.kind === "shot" ? a.pts.map((p) => ({ ...p })) : roundCones(a.pts.map((p) => ({ ...p })));
     const n = pts.length;
     const joinStart = !!chained[i], joinEnd = feeds.has(a);
     // A joint on a player (pass to 7, then 7 runs) is trimmed off the player like any end.
