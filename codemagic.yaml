@@ -62,6 +62,19 @@ definitions:
       flutter config --no-enable-swift-package-manager
       cd "$APP_DIR" && flutter pub get
 
+  shorebird_env: &shorebird_env
+    APP_DIR: app
+    BUNDLE_ID: my.coachsmartV2
+    FLUTTER_VERSION: 3.47.9
+  shorebird_install: &shorebird_install
+    name: Install Shorebird
+    script: |
+      # Shorebird (code push) sends Dart-only fixes to installed v3 apps
+      # without a store review. The CLI signs in with SHOREBIRD_TOKEN, a
+      # service account key kept secret in the Codemagic group "shorebird".
+      curl -fsSL https://shorebird.dev/install.sh | bash
+      echo PATH="$HOME/.shorebird/bin:$PATH" >> "$CM_ENV"
+
 workflows:
   v3-ios-testflight:
     name: v3 iOS to TestFlight
@@ -143,3 +156,107 @@ workflows:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
         track: v3-testers
         in_app_update_priority: 0
+
+  # --- Shorebird code push -------------------------------------------------
+  # None of these run on tags or pushes; start them through the Codemagic API
+  # or the Codemagic site.
+
+  # One-off: creates the CoachSmart app in Shorebird and prints the
+  # app/shorebird.yaml it made (the app_id), which is then committed.
+  v3-shorebird-init:
+    name: v3 Shorebird one-off setup
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      flutter: 3.47.9
+      groups:
+        - shorebird
+      vars:
+        <<: *shorebird_env
+    scripts:
+      - *shorebird_install
+      - name: Create the Shorebird app
+        script: |
+          cd "$APP_DIR"
+          if [ -f shorebird.yaml ]; then
+            echo "app/shorebird.yaml is already committed; nothing to do."
+          else
+            shorebird init --display-name "CoachSmart" ${SHOREBIRD_ORG_ID:+--org-id=$SHOREBIRD_ORG_ID}
+          fi
+          echo "----- app/shorebird.yaml -----"
+          cat shorebird.yaml
+          echo "----- changes -----"
+          git status --short
+          git diff
+    artifacts:
+      - app/shorebird.yaml
+
+  # Patch: sends the Dart code on the branch to phones running the release
+  # named in RELEASE_VERSION (e.g. 3.0.0+1007; "latest" = newest release).
+  # Native code, plugins, images and the Flutter version can't change in a
+  # patch; those need a normal store build.
+  v3-ios-patch:
+    name: v3 iOS patch (Shorebird)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: coachsmart-asc
+    environment:
+      flutter: 3.47.9
+      xcode: latest
+      cocoapods: default
+      groups:
+        - coachsmart_ios
+        - shorebird
+      vars:
+        <<: *shorebird_env
+        RELEASE_VERSION: latest
+    scripts:
+      - *shorebird_install
+      - *pub
+      - name: iOS signing files
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles --project "$APP_DIR/ios/Runner.xcodeproj" \
+            --custom-export-options='{"manageAppVersionAndBuildNumber": false}'
+      - name: CocoaPods
+        script: cd "$APP_DIR/ios" && pod install
+      - name: Publish the patch
+        script: |
+          cd "$APP_DIR"
+          shorebird patch ios --release-version="$RELEASE_VERSION" --track=stable \
+            --export-options-plist=/Users/builder/export_options.plist
+
+  v3-android-patch:
+    name: v3 Android patch (Shorebird)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: 3.47.9
+      android_signing:
+        - coachsmart_upload
+      groups:
+        - shorebird
+      vars:
+        <<: *shorebird_env
+        RELEASE_VERSION: latest
+    scripts:
+      - *shorebird_install
+      - *pub
+      - name: Point Gradle at the upload key
+        script: |
+          cat > "$APP_DIR/android/key.properties" <<EOT
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=$CM_KEYSTORE_PATH
+          EOT
+      - name: Publish the patch
+        script: |
+          cd "$APP_DIR"
+          shorebird patch android --release-version="$RELEASE_VERSION" --track=stable
