@@ -14,6 +14,7 @@ import '/custom_code/actions/index.dart' as actions;
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../home/v3_home_data.dart';
+import '../v3_open_location.dart';
 import '../v3_theme.dart';
 import 'v3_series_scope.dart';
 
@@ -624,8 +625,7 @@ class _V3EventPageState extends State<V3EventPage> {
             if (e.locationPin.isNotEmpty) ...[
               const SizedBox(width: 8),
               GestureDetector(
-                onTap: () =>
-                    launchMap(address: e.locationPin, title: e.locationName),
+                onTap: () => openLocationPin(e.locationPin, e.locationName),
                 child: Container(
                   width: 52,
                   decoration: BoxDecoration(
