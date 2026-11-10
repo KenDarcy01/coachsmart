@@ -409,7 +409,7 @@
       <div class="field-label">Description <span class="opt" id="descOpt">(optional)</span></div>
       <!-- Text panel -->
       <div id="textPanel" class="mode-panel" style="position:relative">
-        <textarea id="inpDescription" class="text-desc" placeholder="Describe the drill — setup, how to play, variations, coaching points…" oninput="autoResize(this)"></textarea>
+        <textarea id="inpDescription" class="text-desc" placeholder="Describe the drill — setup, how to play, variations, coaching points…" oninput="autoResize(this); _updateCreateBtn()"></textarea>
         <button class="csv-field-mic" id="descMicBtn" onclick="openDescVoice()" aria-label="Speak instead" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg></button>
       </div>
       <div id="wordsHint" style="display:none;font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45">No sketch or photo? Just describe the drill, or tap the mic and say it: where the players and cones are and who runs or passes where. We'll draw it for you.</div>
@@ -752,7 +752,9 @@
   function _updateCreateBtn() {
     const hasPhoto  = _activeMediaTab === 'photo'  && _uploadedImages.length > 0;
     const hasSketch = _activeMediaTab === 'sketch' && _hasDrawn;
-    document.getElementById('createDraftBtn').disabled = !(hasPhoto || hasSketch);
+    // AI users can skip the picture: a sentence or two of description is enough (drawn from the words).
+    const hasWords  = _aiEnabled && document.getElementById('inpDescription').value.trim().length >= 20;
+    document.getElementById('createDraftBtn').disabled = !(hasPhoto || hasSketch || hasWords);
   }
 
   // ── Photo upload ──────────────────────────────────────────────────────────
@@ -1171,6 +1173,7 @@
         const el = document.getElementById('inpDescription');
         el.value = text;
         autoResize(el);
+        _updateCreateBtn();
       },
     });
   }
@@ -2057,6 +2060,7 @@
     // Import from a document is switched off for now (Ken, 2026-11-10: needs refinement, too expensive).
     document.getElementById('importEntry').style.display = 'none';
     document.getElementById('wordsHint').style.display = on ? '' : 'none';
+    _updateCreateBtn();
     document.getElementById('diagReq').style.display = on ? 'none' : '';
     document.getElementById('diagOpt').style.display = on ? '' : 'none';
     document.getElementById('descOpt').textContent = on ? '(or use this instead)' : '(optional)';
