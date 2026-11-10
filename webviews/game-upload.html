@@ -340,7 +340,7 @@
     <!-- ── Step 1: Image (Photo or Sketch) ── -->
     <div>
       <div class="field-label" style="display:flex;align-items:center;justify-content:space-between;">
-        <span>Diagram / Sketch <span class="req">*</span></span>
+        <span>Diagram / Sketch <span class="req" id="diagReq">*</span><span class="opt" id="diagOpt" style="display:none">(optional)</span></span>
         <button id="drawingHelpBtn" onclick="openDrawingHelp()" style="display:flex;align-items:center;gap:5px;font-size: 13px;font-weight:600;color:var(--muted);background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:4px 10px;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           How to draw
@@ -406,7 +406,7 @@
 
     <!-- ── Step 2: Description (Voice or Text) ── -->
     <div>
-      <div class="field-label">Description <span class="opt">(optional)</span></div>
+      <div class="field-label">Description <span class="opt" id="descOpt">(optional)</span></div>
       <!-- Text panel -->
       <div id="textPanel" class="mode-panel" style="position:relative">
         <textarea id="inpDescription" class="text-desc" placeholder="Describe the drill — setup, how to play, variations, coaching points…" oninput="autoResize(this)"></textarea>
@@ -935,7 +935,7 @@
       const png = await getSketchPng();
       sourceImg = { base64: png.base64, mimeType: 'image/png' };
     } else {
-      if (!_uploadedImages.length) { showToast('Add at least one photo to continue', 'error'); return; }
+      if (!_uploadedImages.length) { showToast(_aiEnabled ? 'Add a photo, or describe the drill below (a sentence or two)' : 'Add at least one photo to continue', 'error'); return; }
       sourceImg = { base64: _uploadedImages[0].base64, mimeType: _uploadedImages[0].mimeType };
       diagramImg = _uploadedImages[0].hires || null;
     }
@@ -2054,8 +2054,12 @@
     document.getElementById('drawingHelpBtn').style.display = on ? 'flex' : 'none';
     document.getElementById('feedbackSection').style.display = on ? '' : 'none';
     document.getElementById('createDraftLabel').textContent = on ? 'Create Draft' : 'Continue';
-    document.getElementById('importEntry').style.display = on ? 'flex' : 'none';
+    // Import from a document is switched off for now (Ken, 2026-11-10: needs refinement, too expensive).
+    document.getElementById('importEntry').style.display = 'none';
     document.getElementById('wordsHint').style.display = on ? '' : 'none';
+    document.getElementById('diagReq').style.display = on ? 'none' : '';
+    document.getElementById('diagOpt').style.display = on ? '' : 'none';
+    document.getElementById('descOpt').textContent = on ? '(or use this instead)' : '(optional)';
     if (on) document.getElementById('fbRest').innerHTML = CSVoice.restHtml({ label: 'Revise with feedback', placeholder: 'Tell me what to change…', onclick: 'openFbVoice()' });
   }
   async function loadAiFlag() {
