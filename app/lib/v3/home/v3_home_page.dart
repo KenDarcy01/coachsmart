@@ -17,7 +17,6 @@ import '../profile/v3_profile_models.dart' show PushPref;
 import '../v3_theme.dart';
 import 'v3_event_card.dart';
 import 'v3_home_data.dart';
-import '../web/v3_web_page.dart';
 
 class V3HomePage extends StatefulWidget {
   const V3HomePage({super.key});

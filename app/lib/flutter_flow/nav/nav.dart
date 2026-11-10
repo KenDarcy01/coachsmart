@@ -7,7 +7,7 @@ import '/backend/schema/structs/index.dart';
 
 import '/backend/supabase/supabase.dart';
 
-import '/auth/base_auth_user_provider.dart';
+import '/auth/supabase_auth/auth_util.dart';
 
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -193,15 +193,10 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: MatchReportWidget.routeName,
               path: MatchReportWidget.routePath,
-              builder: (context, params) => MatchReportWidget(
-                paramEventID: params.getParam(
-                  'paramEventID',
-                  ParamType.int,
-                ),
-                paramRoleLevel: params.getParam(
-                  'paramRoleLevel',
-                  ParamType.int,
-                ),
+              builder: (context, params) => V3WebPage(
+                title: 'Match report',
+                url:
+                    'https://coachsmart.app/webviews/match-report.html?token=$currentJwtToken&eventId=${params.getParam('paramEventID', ParamType.int) ?? 0}',
               ),
             ),
             FFRoute(

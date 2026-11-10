@@ -14,7 +14,6 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../home/v3_home_data.dart';
 import '../v3_theme.dart';
-import '../web/v3_web_page.dart';
 import 'v3_series_scope.dart';
 
 /// Number of users a reminder went to. `populate_event_notifications`
@@ -654,13 +653,13 @@ class _V3EventPageState extends State<V3EventPage> {
             () => _open(MatchStatsWidget.routeName, _matchParams())));
       }
       if (_role >= 30) {
+        // The match report lives on the web page already used by the live
+        // app (webviews/match-report.html), not on a native page.
         out.add(_Tool(
             'Report',
             Icons.description_outlined,
-            () => _open(MatchReportWidget.routeName, {
-                  'paramEventID': serializeParam(_eventId, ParamType.int),
-                  'paramRoleLevel': serializeParam(_role, ParamType.int),
-                })));
+            () => _openWeb('Match report',
+                'https://coachsmart.app/webviews/match-report.html?token=$currentJwtToken&eventId=$_eventId')));
       }
       if (_role >= 30 && _teamAllowsLineup) {
         out.add(_Tool('Lineup', Icons.grid_view_outlined, _openLineup));

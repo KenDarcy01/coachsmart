@@ -82,3 +82,4 @@ export '/v3/profile/v3_profile_page.dart' show V3ProfilePage;
 export '/v3/profile/v3_change_password_page.dart' show V3ChangePasswordPage;
 export '/v3/teams/v3_requests_page.dart' show V3RequestsPage;
 export '/v3/event/v3_payments_page.dart' show V3PaymentsPage;
+export '/v3/web/v3_web_page.dart' show V3WebPage;
