@@ -3,6 +3,7 @@
 // CHOSEN-event-*.png: hero, Meet / Venue / Directions tiles, match tools,
 // your reply, pay, attendance tiles, payments (admins) and a details card.
 // Admin actions sit behind the three-dot Manage sheet.
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
@@ -191,6 +192,9 @@ class _V3EventPageState extends State<V3EventPage> {
 
   // Same flow as the FlutterFlow page: create the Stripe checkout session for
   // every attending player who hasn't paid, then open the checkout page.
+  String get _returnBase =>
+      kIsWeb ? Uri.base.origin : 'https://my.coachsmart.app';
+
   Future<void> _pay() async {
     final e = _ev!;
     final owing = _owing;
@@ -207,8 +211,10 @@ class _V3EventPageState extends State<V3EventPage> {
         appUserID: currentUserUid,
         productName: e.eventTitle,
         amount: e.paymentAmount * owing.length,
-        appSuccessUrl: 'https://my.coachsmart.app/checkoutSuccess',
-        appCancelUrl: 'https://my.coachsmart.app/cehckoutFailed',
+        // On the web the Stripe return lands back on this same site; the
+        // apps keep the my.coachsmart.app links they are registered for.
+        appSuccessUrl: '$_returnBase/checkoutSuccess',
+        appCancelUrl: '$_returnBase/checkoutFailed',
         memberIdsList: owing.map((m) => m.memberId).toList(),
         unitPrice: e.paymentAmount,
       );

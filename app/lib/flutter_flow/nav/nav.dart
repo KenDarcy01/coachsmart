@@ -234,58 +234,40 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: CheckoutSuccessWidget.routeName,
               path: CheckoutSuccessWidget.routePath,
-              builder: (context, params) => CheckoutSuccessWidget(
-                stripeSessionId: params.getParam(
-                  'stripeSessionId',
-                  ParamType.String,
-                ),
+              builder: (context, params) => V3CheckoutSuccessPage(
+                stripeSessionId:
+                    params.getParam('stripeSessionId', ParamType.String) ?? '',
               ),
             ),
             FFRoute(
               name: CheckoutFailedWidget.routeName,
               path: CheckoutFailedWidget.routePath,
-              builder: (context, params) => CheckoutFailedWidget(
-                stripeSessionId: params.getParam(
-                  'stripeSessionId',
-                  ParamType.String,
-                ),
-              ),
+              builder: (context, params) => const V3CheckoutFailedPage(),
             ),
             FFRoute(
               name: CheckoutWidget.routeName,
               path: CheckoutWidget.routePath,
-              builder: (context, params) => CheckoutWidget(
-                paramEventId: params.getParam(
-                  'paramEventId',
-                  ParamType.int,
-                ),
-                paramNumPayments: params.getParam(
-                  'paramNumPayments',
-                  ParamType.int,
-                ),
-                paramPaymentAmount: params.getParam(
-                  'paramPaymentAmount',
-                  ParamType.int,
-                ),
-                paramCheckoutUrl: params.getParam(
-                  'paramCheckoutUrl',
-                  ParamType.String,
-                ),
-                paramPayingMembers: params.getParam<dynamic>(
-                  'paramPayingMembers',
-                  ParamType.JSON,
-                  isList: true,
-                ),
+              builder: (context, params) => V3CheckoutPage(
+                eventId: params.getParam('paramEventId', ParamType.int) ?? 0,
+                numPayments:
+                    params.getParam('paramNumPayments', ParamType.int) ?? 0,
+                paymentAmount:
+                    params.getParam('paramPaymentAmount', ParamType.int) ?? 0,
+                checkoutUrl:
+                    params.getParam('paramCheckoutUrl', ParamType.String) ?? '',
+                payingMembers: params.getParam<dynamic>(
+                      'paramPayingMembers',
+                      ParamType.JSON,
+                      isList: true,
+                    ) ??
+                    const [],
               ),
             ),
             FFRoute(
               name: UnpaidTransactionsWidget.routeName,
               path: UnpaidTransactionsWidget.routePath,
-              builder: (context, params) => UnpaidTransactionsWidget(
-                paramEventID: params.getParam(
-                  'paramEventID',
-                  ParamType.int,
-                ),
+              builder: (context, params) => V3PaymentsPage(
+                eventId: params.getParam('paramEventID', ParamType.int) ?? 0,
               ),
             ),
             FFRoute(
@@ -299,7 +281,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: SearchPageWidget.routeName,
               path: SearchPageWidget.routePath,
-              builder: (context, params) => SearchPageWidget(),
+              builder: (context, params) => const V3SearchPage(),
             ),
             FFRoute(
               name: V3EventFormPage.createRouteName,
@@ -326,33 +308,18 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: CreateCarPoolWidget.routeName,
               path: CreateCarPoolWidget.routePath,
-              builder: (context, params) => CreateCarPoolWidget(
-                paramEventID: params.getParam(
-                  'paramEventID',
-                  ParamType.int,
-                ),
-                paramRoleLevel: params.getParam(
-                  'paramRoleLevel',
-                  ParamType.int,
-                ),
+              builder: (context, params) => V3CarPoolsPage(
+                eventId: params.getParam('paramEventID', ParamType.int) ?? 0,
+                roleLevel:
+                    params.getParam('paramRoleLevel', ParamType.int) ?? 0,
               ),
             ),
             FFRoute(
               name: CarPoolDetailsWidget.routeName,
               path: CarPoolDetailsWidget.routePath,
-              builder: (context, params) => CarPoolDetailsWidget(
-                eventID: params.getParam(
-                  'eventID',
-                  ParamType.int,
-                ),
-                carPoolId: params.getParam(
-                  'carPoolId',
-                  ParamType.int,
-                ),
-                roleLevel: params.getParam(
-                  'roleLevel',
-                  ParamType.int,
-                ),
+              builder: (context, params) => V3CarPoolPage(
+                eventId: params.getParam('eventID', ParamType.int) ?? 0,
+                carPoolId: params.getParam('carPoolId', ParamType.int) ?? 0,
               ),
             ),
             FFRoute(
