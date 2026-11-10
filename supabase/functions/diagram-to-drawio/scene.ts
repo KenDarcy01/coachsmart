@@ -592,33 +592,42 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
 
   // Keep circles on their own side of every straight line, then off each other.
   // If a gap between two lines is too tight, shrink every circle a little and retry.
+  // Ken (2026-11-10): nothing should touch. Players keep a clear gap from each other, from cones
+  // and from pitch and dotted lines; lines win last, so a player never ends up across one.
+  const keepOff = [...straight, ...dotted.filter((l) => l.length === 2).map((l) => [l[0], l[l.length - 1]] as [Pt, Pt])];
+  const coneSpots = items.filter((it) => it.kind === "cone").map((it) => pos.get(it)!);
   const settle = (r: number) => {
     for (const c of circles) c.p = { ...c.orig };
-    for (let pass = 0; pass < 4; pass++) {
-      for (const c of circles) {
-        for (const [a, b] of straight) {
-          const o = lineSide(c.orig, a, b), now = lineSide(c.p, a, b);
-          if (!now.inside || Math.abs(now.d) >= r + 3) continue;
-          const side = o.d >= 0 ? 1 : -1;
-          const push = side * (r + 3) - now.d;
-          c.p = { x: c.p.x + push * now.nx, y: c.p.y + push * now.ny };
-        }
-      }
+    for (let pass = 0; pass < 6; pass++) {
       for (let i = 0; i < circles.length; i++) for (let j = i + 1; j < circles.length; j++) {
-        const a = circles[i], b = circles[j], d = dist(a.p, b.p), need = 2 * r + 3;
+        const a = circles[i], b = circles[j], d = dist(a.p, b.p), need = 2 * r + 8;
         if (d >= need) continue;
         const ux = d > 0.01 ? (b.p.x - a.p.x) / d : 1, uy = d > 0.01 ? (b.p.y - a.p.y) / d : 0, k = (need - d) / 2;
         a.p = { x: a.p.x - ux * k, y: a.p.y - uy * k };
         b.p = { x: b.p.x + ux * k, y: b.p.y + uy * k };
       }
+      for (const c of circles) {
+        for (const [a, b] of keepOff) {
+          const o = lineSide(c.orig, a, b), now = lineSide(c.p, a, b);
+          if (!now.inside || Math.abs(now.d) >= r + 7) continue;
+          const side = o.d >= 0 ? 1 : -1;
+          const push = side * (r + 7) - now.d;
+          c.p = { x: c.p.x + push * now.nx, y: c.p.y + push * now.ny };
+        }
+      }
     }
-    // Clash left over = a circle still sitting on a line it did not start on.
-    return circles.some((c) => straight.some(([a, b]) => {
-      const o = lineSide(c.orig, a, b), now = lineSide(c.p, a, b);
-      return now.inside && Math.abs(now.d) < r && Math.sign(o.d || 1) === Math.sign(now.d || 1) && Math.abs(o.d) > 1;
-    }));
   };
   settle(D / 2);
+  // A cone too close to a player moves away from it (players stay in their rows), taking the
+  // end of any dotted line that meets it.
+  for (let pass = 0; pass < 4; pass++) for (const k of coneSpots) for (const c of circles) {
+    const d = dist(c.p, k), need = D / 2 + 25;
+    if (d >= need) continue;
+    const ux = d > 0.01 ? (k.x - c.p.x) / d : 1, uy = d > 0.01 ? (k.y - c.p.y) / d : 0;
+    const nk = { x: c.p.x + ux * need, y: c.p.y + uy * need }, dx = nk.x - k.x, dy = nk.y - k.y;
+    for (const l of dotted) for (const q of [l[0], l[l.length - 1]]) if (dist(q, k) < 24) { q.x += dx; q.y += dy; }
+    Object.assign(k, nk);
+  }
 
   const cells: string[] = [];
   let id = 2;
@@ -749,10 +758,14 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     // A joint on a player (pass to 7, then 7 runs) is trimmed off the player like any end.
     const fix = (end: Pt, toward: Pt, joint: boolean) => {
       const t = trim(end, toward);
-      return joint && t === end ? back(end, toward, 6) : offBox(t, toward);
+      return joint && t === end ? back(end, toward, 12) : offBox(t, toward);
     };
     pts[0] = fix(pts[0], pts[1], joinStart);
     pts[n - 1] = fix(pts[n - 1], pts[n - 2], joinEnd);
+    // An arrowhead that runs up to where another arrow starts stops short of it, and that
+    // start moves on a little, so the two never touch.
+    if (arrows.some((b, j) => j !== i && dist(pts[n - 1], b.pts[0]) < 20)) pts[n - 1] = back(pts[n - 1], pts[n - 2], 10);
+    if (arrows.some((b, j) => j !== i && dist(pts[0], b.pts[b.pts.length - 1]) < 20)) pts[0] = back(pts[0], pts[1], 8);
     const curved = pts.length > 2;
     edge(a.kind === "shot" ? (curved ? S.shotCurve : S.shot)
        : a.kind === "pass" ? (curved ? S.passCurve : S.pass) : (curved ? S.runCurve : S.run), pts);
