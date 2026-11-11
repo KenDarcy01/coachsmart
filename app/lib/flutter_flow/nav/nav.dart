@@ -468,12 +468,9 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: SessionPlannerWidget.routeName,
               path: SessionPlannerWidget.routePath,
-              builder: (context, params) => SessionPlannerWidget(
-                pEventId: params.getParam(
-                  'pEventId',
-                  ParamType.int,
-                ),
-              ),
+              builder: (context, params) => V3SessionPlanPage(
+                eventId: params.getParam('pEventId', ParamType.int),
+              ), // v3
             ),
             FFRoute(
               name: FavouritesNewWidget.routeName,

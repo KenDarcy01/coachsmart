@@ -672,9 +672,8 @@ class _V3EventPageState extends State<V3EventPage> {
       out.add(_Tool(
           'Session plan',
           Icons.assignment_outlined,
-          () => _open(SessionPlannerWidget.routeName, {
-                'pEventId': serializeParam(_eventId, ParamType.int),
-              })));
+          () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => V3SessionPlanPage(eventId: _eventId)))));
     }
     return out;
   }
