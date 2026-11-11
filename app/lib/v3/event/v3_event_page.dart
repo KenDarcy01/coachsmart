@@ -157,6 +157,10 @@ class _V3EventPageState extends State<V3EventPage> {
           m.responseId == 3 &&
           m.memberPaymentStatus != 'confirmed')
       .toList();
+  // Nothing to pay on a cancelled event. Past events keep the button: the
+  // payment reminder is often sent after the session.
+  bool get _showPay =>
+      (_ev?.paymentRequired ?? false) && !_cancelled && _owing.isNotEmpty;
   bool get _showReplyBlock =>
       (_ev?.requestAttendance ?? false) &&
       !_fromSearch &&
@@ -221,20 +225,38 @@ class _V3EventPageState extends State<V3EventPage> {
         unitPrice: e.paymentAmount,
       );
       final url = StripeCheckoutStruct.maybeFromMap(r.jsonBody)?.checkoutUrl;
+      if (r.statusCode == 409) {
+        // Someone else (the other parent) has paid since the page loaded.
+        _snack('This has already been paid.');
+        await _load();
+        return;
+      }
       if (url == null || url.isEmpty) {
         _snack('Could not start the payment. Please try again.', warn: true);
         return;
       }
       if (!mounted) return;
+      // The server sets the price and leaves out anyone already paid for, so
+      // the summary uses what it sent back when it says.
+      final body = r.jsonBody is Map ? r.jsonBody as Map : const {};
+      final ids = body['memberIds'] is List
+          ? (body['memberIds'] as List).map((v) => '$v').toSet()
+          : null;
+      final paying = ids == null
+          ? owing
+          : owing.where((m) => ids.contains('${m.memberId}')).toList();
+      final unit = body['unitPrice'] is num
+          ? (body['unitPrice'] as num).toInt()
+          : e.paymentAmount;
       await context.pushNamed(
         CheckoutWidget.routeName,
         queryParameters: {
           'paramEventId': serializeParam(_eventId, ParamType.int),
-          'paramNumPayments': serializeParam(owing.length, ParamType.int),
-          'paramPaymentAmount': serializeParam(e.paymentAmount, ParamType.int),
+          'paramNumPayments': serializeParam(paying.length, ParamType.int),
+          'paramPaymentAmount': serializeParam(unit, ParamType.int),
           'paramCheckoutUrl': serializeParam(url, ParamType.String),
           'paramPayingMembers': serializeParam(
-              owing.map((m) => m.toMap()).toList(), ParamType.JSON,
+              paying.map((m) => m.toMap()).toList(), ParamType.JSON,
               isList: true),
         }.withoutNulls,
       );
@@ -516,10 +538,8 @@ class _V3EventPageState extends State<V3EventPage> {
                       // No "Your reply" heading: the name buttons speak for
                       // themselves (Ken, 2026-11-09).
                       if (_showReplyBlock) _replyCard(),
-                      if (_owing.isNotEmpty && (_ev!.paymentRequired))
-                        _payButton(),
-                      if (_showReplyBlock ||
-                          (_owing.isNotEmpty && _ev!.paymentRequired))
+                      if (_showPay) _payButton(),
+                      if (_showReplyBlock || _showPay)
                         const SizedBox(height: 14),
                       _tiles(),
                       // Car pooling gets its own strip under the tiles so it
@@ -851,6 +871,9 @@ class _V3EventPageState extends State<V3EventPage> {
     );
   }
 
+  // Green like every other main action (Ken, 2026-11-11). While checkout is
+  // being made it stays green with a spinner, so it never looks like it
+  // has gone away.
   Widget _payButton() {
     final e = _ev!;
     final owing = _owing;
@@ -862,19 +885,33 @@ class _V3EventPageState extends State<V3EventPage> {
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 2),
       child: SizedBox(
         height: 48,
-        child: FilledButton.icon(
+        child: FilledButton(
           onPressed: _paying ? null : _pay,
           style: FilledButton.styleFrom(
-              backgroundColor: V3.amber,
+              backgroundColor: V3.green,
               foregroundColor: V3.bg,
+              disabledBackgroundColor: V3.green,
+              disabledForegroundColor: V3.bg,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12))),
-          icon: const Icon(Icons.shopping_cart_outlined, size: 20),
-          label: Text(
-              _paying
-                  ? 'Opening checkout…'
-                  : 'Pay ${_euro(e.paymentAmount * owing.length)}$who',
-              style: V3.inter(16, weight: FontWeight.w700, color: V3.bg)),
+          child: _paying
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child:
+                      CircularProgressIndicator(strokeWidth: 2.5, color: V3.bg))
+              : Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.shopping_cart_outlined,
+                      size: 20, color: V3.bg),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                        'Pay ${_euro(e.paymentAmount * owing.length)}$who',
+                        overflow: TextOverflow.ellipsis,
+                        style: V3.inter(16,
+                            weight: FontWeight.w700, color: V3.bg)),
+                  ),
+                ]),
         ),
       ),
     );
