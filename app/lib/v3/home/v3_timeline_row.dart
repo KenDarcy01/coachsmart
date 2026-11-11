@@ -53,13 +53,13 @@ class V3TimelineRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cancelled = isCancelled(e);
     final top = item.showDay ? 14.0 : 8.0;
-    // A thin line before each new day, and each event on its own card, so
-    // the rows stand apart (Ken, 2026-11-11: they rolled into one).
-    final row = Padding(
+    // Each event on its own card so the rows stand apart (Ken, 2026-11-11:
+    // they rolled into one; a line between days was tried and dropped).
+    return Padding(
       padding: EdgeInsets.only(top: top, bottom: 4),
       child: _RailRow(
         firstRow: firstRow,
-        extendUp: item.showDay && !firstRow ? top + 9 : top,
+        extendUp: top,
         day: item.showDay ? _DayMarker(item.day, green: nextDayGreen) : null,
         dot: _Dot(
           next: item.isNext && !cancelled,
@@ -80,17 +80,7 @@ class V3TimelineRow extends StatelessWidget {
         ),
       ),
     );
-    if (!item.showDay || firstRow) return row;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Container(height: 1, color: V3.line),
-        ),
-        row,
-      ],
-    );
+    return row;
   }
 
   Widget _body(bool cancelled) {
