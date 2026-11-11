@@ -97,3 +97,4 @@ export '/v3/match_report/v3_match_report_page.dart' show V3MatchReportPage;
 export '/v3/match_stats/v3_match_stats_page.dart' show V3MatchStatsPage;
 export '/v3/join_team/v3_join_team_page.dart' show V3JoinTeamPage;
 export '/v3/create_team/v3_create_team_page.dart' show V3CreateTeamPage;
+export '/v3/onboarding/v3_onboarding_page.dart' show V3OnboardingPage;

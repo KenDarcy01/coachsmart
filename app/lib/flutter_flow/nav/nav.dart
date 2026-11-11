@@ -411,7 +411,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: OnBoardingWidget.routeName,
               path: OnBoardingWidget.routePath,
-              builder: (context, params) => OnBoardingWidget(),
+              builder: (context, params) => const V3OnboardingPage(), // v3
             ),
             FFRoute(
               name: PendingRequestsWidget.routeName,
