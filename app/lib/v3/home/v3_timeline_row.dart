@@ -343,49 +343,42 @@ class V3TimelineRow extends StatelessWidget {
       return _mark(Icons.close_rounded, V3.red, 'Declined');
     if (!canReply(e)) return const SizedBox.shrink();
     final size = isCoach ? 40.0 : 44.0;
-    Widget square(
-      IconData icon,
-      Color color,
-      double alpha,
-      int id,
-      String label,
-    ) =>
-        Semantics(
+    // Solid green and red buttons (Ken, 2026-11-11); once tapped the pair
+    // becomes the single mark above.
+    Widget square(IconData icon, Color fill, int id, String label) => Semantics(
           button: true,
           label: label,
-          child: InkWell(
-            onTap: busy ? null : () => onReply(id),
+          child: Material(
+            color: fill,
             borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: size,
-              height: size,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: color.withValues(alpha: alpha),
-                  width: 1.5,
+            child: InkWell(
+              onTap: busy ? null : () => onReply(id),
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Center(
+                  child: busy
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: V3.bg,
+                          ),
+                        )
+                      : Icon(icon, size: id == 3 ? 24 : 22, color: V3.bg),
                 ),
               ),
-              child: busy
-                  ? SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: color,
-                      ),
-                    )
-                  : Icon(icon, size: id == 3 ? 20 : 18, color: color),
             ),
           ),
         );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        square(Icons.check_rounded, V3.green, .55, 3, 'Attending'),
-        const SizedBox(width: 6),
-        square(Icons.close_rounded, _mutedSpec, .45, 4, 'Declined'),
+        square(Icons.check_rounded, V3.green, 3, 'Attending'),
+        const SizedBox(width: 8),
+        square(Icons.close_rounded, V3.red, 4, 'Declined'),
       ],
     );
   }
