@@ -45,6 +45,23 @@ class NotifItem {
         action = _s(j['action']),
         actionRefId = _i(j['action_ref_id']);
 
+  NotifItem._read(NotifItem n)
+      : id = n.id,
+        createdAt = n.createdAt,
+        timeLabel = n.timeLabel,
+        title = n.title,
+        body = n.body,
+        isRead = true,
+        teamId = n.teamId,
+        teamName = n.teamName,
+        eventId = n.eventId,
+        memberId = n.memberId,
+        action = n.action,
+        actionRefId = n.actionRefId;
+
+  /// The same row, read.
+  NotifItem asRead() => NotifItem._read(this);
+
   final int id, teamId, eventId, memberId, actionRefId;
   final DateTime? createdAt;
   final String timeLabel, title, body, teamName, action;
@@ -57,8 +74,25 @@ class NotifItem {
   bool get isAccessRequest => action == 'approve_access';
   bool get isRequest => isJoinRequest || isAccessRequest;
 
-  /// Tapping opens the event (reply requests and event alerts).
-  bool get opensEvent => !isRequest && eventId > 0;
+  /// An event reminder: the user's children still need to answer.
+  bool get isAttend => action == 'attend' && eventId > 0;
+
+  /// Needs the user to do something, so it stays unread until done (by this
+  /// user or, for requests and shared children, by someone else). Every other
+  /// row is a plain notice and is marked read 2 seconds after the page opens,
+  /// as the FlutterFlow page does (mark_all_notifications_read only touches
+  /// rows with no action).
+  bool get needsAction => action.isNotEmpty;
+}
+
+/// One of the user's children on an event reminder, with the answer saved
+/// so far (3 going, 4 can't go, anything else no answer).
+class NotifMember {
+  NotifMember(this.memberId, this.name, this.responseId);
+  final int memberId;
+  final String name;
+  int responseId;
+  bool get answered => responseId == 3 || responseId == 4;
 }
 
 /// Items in groups, newest first inside each, groups in Today, Yesterday,

@@ -10,9 +10,9 @@ import '/backend/api_requests/api_calls.dart';
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
 import '/custom_code/actions/index.dart' as actions;
-import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
+import '../notifications/v3_unread.dart';
 import '../profile/v3_profile_models.dart' show PushPref;
 import '../v3_crest_image.dart';
 import '../v3_theme.dart';
@@ -108,6 +108,10 @@ class _V3HomePageState extends State<V3HomePage> {
     }
     FFAppState().homePageEvents = data;
     FFAppState().notificationBadgeCount = data.unreadNotifications;
+    // One count for the bell, the Notifications page and the app badge.
+    V3Unread.instance
+      ..start()
+      ..set(data.unreadNotifications);
     precacheCrests(context, data.clubs.map((c) => c.crest));
     setState(() {
       _failed = false;
@@ -266,21 +270,25 @@ class _V3HomePageState extends State<V3HomePage> {
                   await context.pushNamed(NotificationsWidget.routeName);
                   if (mounted) _load();
                 },
-                icon: _home.unreadNotifications > 0
-                    ? SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: custom_widgets.NotificationBadgeWidget(
-                          width: 40,
-                          height: 40,
-                          iconColor: V3.green,
-                          badgeColor: V3.red,
-                          badgeTextColor: Colors.white,
-                          iconSize: 28,
-                        ),
-                      )
-                    : const Icon(Icons.notifications_sharp,
-                        color: V3.green, size: 28),
+                // Own badge (not NotificationBadgeWidget, whose own tap
+                // handler swallowed this one, so Home never reloaded the
+                // count after Notifications closed).
+                icon: ValueListenableBuilder<int>(
+                  valueListenable: V3Unread.instance.count,
+                  builder: (context, n, _) => n > 0
+                      ? Badge(
+                          label: Text(n > 99 ? '99+' : '$n',
+                              style: V3.inter(12,
+                                  weight: FontWeight.w700,
+                                  color: Colors.white)),
+                          backgroundColor: V3.red,
+                          offset: const Offset(4, -4),
+                          child: const Icon(Icons.notifications_sharp,
+                              color: V3.green, size: 28),
+                        )
+                      : const Icon(Icons.notifications_sharp,
+                          color: V3.green, size: 28),
+                ),
               ),
             ),
           ],

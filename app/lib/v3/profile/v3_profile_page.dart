@@ -2,19 +2,20 @@
 // 2026-11-10) replacing the FlutterFlow Update User Details page in v3.
 // Your details (name, phone, default club) with Save, your members with a
 // sheet (copy code, member page, leave team), account (change password,
-// push notifications, sign out) and about (help, privacy, terms, delete).
+// notification settings, sign out) and about (help, privacy, terms, delete).
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/backend/supabase/supabase.dart';
-import '/custom_code/actions/index.dart' as actions;
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../auth/v3_auth_widgets.dart';
 import '../teams/v3_team_models.dart' show V3Avatar;
 import '../v3_theme.dart';
+import 'v3_notification_settings_page.dart';
 import 'v3_profile_models.dart';
 
 class V3ProfilePage extends StatefulWidget {
@@ -200,29 +201,6 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
       _snack('${m.firstName} has left ${m.teamName}');
     } catch (_) {
       _snack('Could not leave the team. Please try again.', warn: true);
-    }
-  }
-
-  Future<void> _setPush(bool on) async {
-    setState(() => _push = on);
-    await PushPref.setEnabled(on);
-    try {
-      if (on) {
-        await actions.setFCMToken();
-        final t = FFAppState().fcmToken;
-        await UsersTable().update(
-          data: {'fcm_token': t.startsWith('Running on web') ? '' : t},
-          matchingRows: (rows) => rows.eq('user_id', currentUserUid),
-        );
-      } else {
-        await UsersTable().update(
-          data: {'fcm_token': ''},
-          matchingRows: (rows) => rows.eq('user_id', currentUserUid),
-        );
-      }
-      _snack(on ? 'Push notifications on' : 'Push notifications off');
-    } catch (_) {
-      _snack('Could not change notifications. Please try again.', warn: true);
     }
   }
 
@@ -495,13 +473,14 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
           Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => V3ChangePasswordPage(email: d.email)));
         }),
-        _row(Icons.notifications_none, 'Push notifications',
-            'Scores, reminders and requests', null,
-            trailing: Switch(
-                value: _push,
-                activeThumbColor: V3.bg,
-                activeTrackColor: V3.green,
-                onChanged: _setPush)),
+        _row(Icons.notifications_none, 'Notification settings',
+            kIsWeb ? 'By email on the web app' : (_push ? 'Push' : 'Email'),
+            () async {
+          await Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const V3NotificationSettingsPage()));
+          final v = await PushPref.enabled();
+          if (mounted) setState(() => _push = v);
+        }),
         _row(Icons.logout, 'Sign out', null, _signOut, last: true),
       ]),
       _section('About'),
