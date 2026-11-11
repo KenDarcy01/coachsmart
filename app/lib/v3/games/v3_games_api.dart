@@ -91,7 +91,11 @@ class V3GamesApi {
 
   /// Public games plus [clubId]'s games (never another club's).
   Future<List<V3Game>> games(int? clubId) async {
-    final q = SupaFlow.client.from('games').select(kGameColumns);
+    // Hidden (low quality) games have is_active = false (Ken, 2026-11-11).
+    final q = SupaFlow.client
+        .from('games')
+        .select(kGameColumns)
+        .eq('is_active', true);
     final rows = clubId != null
         ? await q.or('club_id.is.null,club_id.eq.$clubId')
         : await q.isFilter('club_id', null);
