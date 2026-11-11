@@ -428,7 +428,9 @@ class _V3HomePageState extends State<V3HomePage> {
               crestUrl: _crestFor(t.clubId),
               clubName: _clubNameFor(t.clubId),
               selected: _selectedTeam == t.teamId,
-              onTap: () => setState(() => _selectedTeam = t.teamId),
+              // Tapping the selected chip clears back to All (Ken, 2026-11-11).
+              onTap: () => setState(() =>
+                  _selectedTeam = _selectedTeam == t.teamId ? 0 : t.teamId),
             ),
           ],
         ],

@@ -143,8 +143,9 @@ void main() {
     expect(find.text('in 2h 50m'), findsOneWidget);
     expect(find.text('Meet 17:30'), findsOneWidget);
     expect(find.text('BOYS 2013'), findsOneWidget);
-    expect(find.text('14 attending'), findsOneWidget);
-    expect(find.text('3 no reply · 2 declined'), findsOneWidget);
+    expect(find.text('14'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
     expect(find.bySemanticsLabel('Attending'), findsOneWidget);
     expect(find.bySemanticsLabel('Declined'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.check_rounded));
@@ -154,7 +155,7 @@ void main() {
   testWidgets('replied event shows the one-word status', (tester) async {
     final e = ev(1, now.add(const Duration(hours: 2)), response: 3);
     await tester.pumpWidget(host(row(e)));
-    expect(find.text('Attending'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
     expect(find.byIcon(Icons.close_rounded), findsNothing);
   });
 
@@ -163,7 +164,7 @@ void main() {
     await tester.pumpWidget(host(row(e, isNext: false)));
     expect(find.text('CANCELLED'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsNothing);
-    expect(find.text('14 attending'), findsNothing);
+    expect(find.text('14'), findsNothing);
   });
 
   testWidgets('paid tag and squad on line 3', (tester) async {
@@ -184,13 +185,8 @@ void main() {
   ) async {
     final e = ev(1, now.add(const Duration(hours: 2)), roleLevel: 100);
     await tester.pumpWidget(host(row(e, isCoach: true)));
-    expect(find.textContaining('14 attending', findRichText: true),
-        findsOneWidget);
-    expect(
-        find.textContaining('3 no reply', findRichText: true), findsOneWidget);
-    expect(
-        find.textContaining('2 declined', findRichText: true), findsOneWidget);
-    expect(find.text('3 no reply · 2 declined'), findsNothing);
+    expect(find.text('14'), findsOneWidget);
+    expect(find.byIcon(Icons.question_mark_rounded), findsNothing);
     expect(find.byIcon(Icons.check_rounded), findsNothing);
   });
 

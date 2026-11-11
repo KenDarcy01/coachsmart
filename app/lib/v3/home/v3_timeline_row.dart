@@ -107,19 +107,22 @@ class V3TimelineRow extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Order: team, squad, title, time (Ken, 2026-11-11).
             Padding(padding: crestRoom, child: _teamTitle(cancelled)),
             if (_hasSquad) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Padding(padding: crestRoom, child: _squadPill(cancelled)),
-              const SizedBox(height: 6),
-              _line1(cancelled),
+              const SizedBox(height: 10),
+              title,
             ] else ...[
-              const SizedBox(height: 6),
-              Padding(padding: crestRoom, child: _line1(cancelled)),
+              const SizedBox(height: 8),
+              Padding(padding: crestRoom, child: title),
             ],
-            const SizedBox(height: 3),
-            title,
+            const SizedBox(height: 8),
+            _line1(cancelled),
             if (!cancelled && e.requestAttendance) ...[
+              const SizedBox(height: 12),
+              _bar(),
               const SizedBox(height: 10),
               _footer(),
             ],
@@ -256,155 +259,133 @@ class V3TimelineRow extends StatelessWidget {
   Widget _footer() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
+      // Tick / buttons first, counts after (Ken, 2026-11-11, trying it).
       children: [
-        Expanded(child: _counts()),
-        const SizedBox(width: 10),
         _replyControl(),
+        const SizedBox(width: 12),
+        Expanded(child: _counts()),
       ],
     );
   }
 
-  Widget _counts() {
-    final ring = Semantics(
+  // Attendance as one bar the width of the card: green attending, grey no
+  // reply, red declined (Ken, 2026-11-11, replacing the dial).
+  Widget _bar() {
+    final a = e.acceptedCount, n = e.noResponseCount, d = e.declinedCount;
+    final total = a + n + d;
+    return Semantics(
       label: attendanceLabel(e),
-      child: _Ring(
-        accepted: e.acceptedCount,
-        total: e.acceptedCount + e.noResponseCount + e.declinedCount,
-      ),
-    );
-    final tabular = [const FontFeature.tabularFigures()];
-    if (isCoach) {
-      // Three equal-weight numbers: no reply is the one a coach acts on.
-      Widget n(int v, String w) => RichText(
-            text: TextSpan(
-              style: V3
-                  .inter(16, color: _mutedSpec)
-                  .copyWith(fontFeatures: tabular),
-              children: [
-                TextSpan(
-                  text: '$v ',
-                  style: V3.inter(16, weight: FontWeight.w700, color: V3.text),
-                ),
-                TextSpan(text: w),
-              ],
-            ),
-          );
-      return Row(
-        children: [
-          ring,
-          const SizedBox(width: 10),
-          Expanded(
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 2,
-              children: [
-                n(e.acceptedCount, 'attending'),
-                n(e.noResponseCount, 'no reply'),
-                n(e.declinedCount, 'declined'),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-    return Row(
-      children: [
-        ring,
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${e.acceptedCount} attending',
-                style: V3
-                    .inter(16, weight: FontWeight.w600, height: 1.25)
-                    .copyWith(fontFeatures: tabular),
-              ),
-              Text(
-                '${e.noResponseCount} no reply · ${e.declinedCount} declined',
-                style: V3
-                    .inter(14, color: _mutedSpec, height: 1.25)
-                    .copyWith(fontFeatures: tabular),
-              ),
-            ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 7,
+            child: total == 0
+                ? Container(color: V3.text.withValues(alpha: .12))
+                : Row(
+                    children: [
+                      if (a > 0)
+                        Expanded(flex: a, child: Container(color: V3.green)),
+                      if (n > 0)
+                        Expanded(flex: n, child: Container(color: V3.barGrey)),
+                      if (d > 0)
+                        Expanded(flex: d, child: Container(color: V3.red)),
+                    ],
+                  ),
           ),
         ),
-      ],
+      ),
+    );
+  }
+
+  // Three dots (green, grey, red) in a row with the totals beside them.
+  Widget _counts() {
+    final tabular = [const FontFeature.tabularFigures()];
+    Widget item(Color dot, int n) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '$n',
+              style: V3
+                  .inter(15, weight: FontWeight.w600, height: 1.2)
+                  .copyWith(fontFeatures: tabular),
+            ),
+          ],
+        );
+    return Padding(
+      padding: const EdgeInsets.only(left: 2),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 4,
+        children: [
+          item(V3.green, e.acceptedCount),
+          item(V3.barGrey, e.noResponseCount),
+          item(V3.red, e.declinedCount),
+        ],
+      ),
     );
   }
 
   // ✓ / ✕ pair until answered; then a one-word status that opens the event.
   Widget _replyControl() {
+    // One large mark once answered: green tick, red cross; nothing when
+    // there is no reply and no buttons to give one (Ken, 2026-11-11).
+    if (e.responseId == 3)
+      return _mark(Icons.check_rounded, V3.green, 'Attending');
+    if (e.responseId == 4)
+      return _mark(Icons.close_rounded, V3.red, 'Declined');
     if (!canReply(e)) return const SizedBox.shrink();
-    if (e.responseId == 3) {
-      return _status(Icons.check_rounded, 'Attending', V3.green);
-    }
-    if (e.responseId == 4) {
-      return _status(Icons.close_rounded, 'Declined', _mutedSpec);
-    }
     final size = isCoach ? 40.0 : 44.0;
-    Widget square(
-      IconData icon,
-      Color color,
-      double alpha,
-      int id,
-      String label,
-    ) =>
-        Semantics(
+    // Solid green and red buttons (Ken, 2026-11-11); once tapped the pair
+    // becomes the single mark above.
+    Widget square(IconData icon, Color fill, int id, String label) => Semantics(
           button: true,
           label: label,
-          child: InkWell(
-            onTap: busy ? null : () => onReply(id),
+          child: Material(
+            color: fill,
             borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: size,
-              height: size,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: color.withValues(alpha: alpha),
-                  width: 1.5,
+            child: InkWell(
+              onTap: busy ? null : () => onReply(id),
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Center(
+                  child: busy
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: V3.bg,
+                          ),
+                        )
+                      : Icon(icon, size: id == 3 ? 24 : 22, color: V3.bg),
                 ),
               ),
-              child: busy
-                  ? SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: color,
-                      ),
-                    )
-                  : Icon(icon, size: id == 3 ? 20 : 18, color: color),
             ),
           ),
         );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        square(Icons.check_rounded, V3.green, .55, 3, 'Attending'),
-        const SizedBox(width: 6),
-        square(Icons.close_rounded, _mutedSpec, .45, 4, 'Declined'),
+        square(Icons.check_rounded, V3.green, 3, 'Attending'),
+        const SizedBox(width: 8),
+        square(Icons.close_rounded, V3.red, 4, 'Declined'),
       ],
     );
   }
 
-  Widget _status(IconData icon, String label, Color color) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: V3.inter(
-              16,
-              weight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
+  Widget _mark(IconData icon, Color color, String label) => Semantics(
+        label: label,
+        child: Icon(icon, size: 36, color: color),
       );
 }
 
@@ -663,52 +644,6 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
 }
 
 /// 26 px attendance ring: green arc for the attending share, faint track.
-class _Ring extends StatelessWidget {
-  const _Ring({required this.accepted, required this.total});
-  final int accepted;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(26, 26),
-      painter: _RingPainter(total == 0 ? 0 : accepted / total),
-    );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  _RingPainter(this.fraction);
-  final double fraction;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = Offset(size.width / 2, size.height / 2);
-    final r = size.width / 2 - 1.75;
-    final track = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
-      ..color = V3.text.withValues(alpha: .12);
-    canvas.drawCircle(c, r, track);
-    if (fraction <= 0) return;
-    final arc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
-      ..color = V3.green;
-    canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r),
-      -math.pi / 2,
-      2 * math.pi * fraction.clamp(0, 1),
-      false,
-      arc,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) => old.fraction != fraction;
-}
-
-/// Cancelled / Paid outline tag (design §5.9).
 class _Tag extends StatelessWidget {
   const _Tag(this.text, {required this.green});
   final String text;
