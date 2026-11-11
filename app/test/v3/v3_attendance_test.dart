@@ -161,7 +161,8 @@ void widgetTests() {
         home: V3AttendancePage(eventId: 1, responseId: 3, testData: sample())));
     await tester.pumpAndSettle();
     expect(find.text('Football Match v Raheny'), findsOneWidget);
-    expect(find.textContaining('Attending ('), findsOneWidget);
+    expect(find.text('Attending'), findsOneWidget);
+    expect(find.textContaining('Attending ('), findsNothing);
     // No status bar: the event page's cards pick the list.
     expect(find.text('No reply'), findsNothing);
     expect(find.text('Match day squads'), findsOneWidget);

@@ -326,10 +326,8 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         // Declined cards pick the list (Ken, 2026-11-11), so the title says
         // which one this is.
         title: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(
-              d == null
-                  ? tabLabel(_tab)
-                  : '${tabLabel(_tab)} (${d.count(_tab)})',
+          // No total in the title (Ken, 2026-11-11).
+          Text(tabLabel(_tab),
               overflow: TextOverflow.ellipsis,
               style: V3.tight(17, weight: FontWeight.w600)),
           if (d != null && d.eventTitle.isNotEmpty)
