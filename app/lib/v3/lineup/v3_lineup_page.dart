@@ -305,7 +305,7 @@ class _V3LineupPageState extends State<V3LineupPage>
           scrolledUnderElevation: 0,
           centerTitle: true,
           leading: IconButton(
-              icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+              icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
               onPressed: () => Navigator.of(context).maybePop()),
           title: Text('Lineup', style: V3.tight(17)),
           actions: [

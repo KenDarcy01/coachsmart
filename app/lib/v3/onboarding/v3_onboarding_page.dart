@@ -604,7 +604,7 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
               ? IconButton(
                   tooltip: 'Back',
                   icon:
-                      const Icon(Icons.chevron_left, color: V3.green, size: 34),
+                      const Icon(Icons.chevron_left, color: V3.green, size: 40),
                   onPressed: _goBack)
               : null,
           title: Text.rich(

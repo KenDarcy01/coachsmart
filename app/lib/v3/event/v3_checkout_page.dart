@@ -49,7 +49,7 @@ class V3CheckoutPage extends StatelessWidget {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text('Checkout', style: V3.tight(20)),
       ),

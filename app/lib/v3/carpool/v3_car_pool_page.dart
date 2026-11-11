@@ -245,7 +245,7 @@ class _V3CarPoolPageState extends State<V3CarPoolPage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text(p == null ? 'Car pool' : "${p.driverName}'s car",
             maxLines: 1, overflow: TextOverflow.ellipsis, style: V3.tight(20)),

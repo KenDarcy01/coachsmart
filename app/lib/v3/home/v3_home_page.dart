@@ -249,13 +249,11 @@ class _V3HomePageState extends State<V3HomePage> {
         .push(MaterialPageRoute(builder: (_) => const V3MatchesPage()));
   }
 
-  void _openResources() {
-    if (_home.clubPathway) {
-      Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => const V3ResourcesPage()));
-    } else {
-      context.pushNamed(GamesAgesWidget.routeName);
-    }
+  // One Coaching tab (games and plans) replaces Resources and Favourites
+  // (Ken, 2026-11-11). Every club gets the same games list.
+  void _openCoaching() {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const V3Coaching()));
   }
 
   Future<void> _signOut() async {
@@ -541,15 +539,7 @@ class _V3HomePageState extends State<V3HomePage> {
       // Matches lives in the main menu for now; five tabs were too squashed
       // (Ken, 2026-11-09).
       if (_home.isGaaMember && role >= 30)
-        _Tab('Resources', Icons.menu_book_rounded, _openResources),
-      if (_home.isGaaMember && role >= 30)
-        _Tab(
-          'Favourites',
-          Icons.favorite,
-          () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const V3FavouritesPage())),
-        ),
+        _Tab('Coaching', Icons.menu_book_rounded, _openCoaching),
       if (role >= 100)
         _Tab('Add event', Icons.add_circle, () async {
           await context.pushNamed(V3EventFormPage.createRouteName);

@@ -259,7 +259,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
         centerTitle: true,
         leading: IconButton(
             tooltip: 'Back',
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 34),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         title: ok && !_switching ? _status(d) : null,
         actions: [

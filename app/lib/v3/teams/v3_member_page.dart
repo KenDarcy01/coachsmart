@@ -319,7 +319,7 @@ class _V3MemberPageState extends State<V3MemberPage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 30),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => context.safePop()),
         title: Text('Member', style: V3.tight(20)),
       ),

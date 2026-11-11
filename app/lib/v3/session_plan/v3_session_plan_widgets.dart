@@ -40,7 +40,7 @@ PreferredSizeWidget spAppBar(BuildContext context, String title,
       scrolledUnderElevation: 0,
       leading: IconButton(
           tooltip: 'Back',
-          icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+          icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
           onPressed: onBack ?? () => Navigator.of(context).maybePop()),
       titleSpacing: 0,
       title: Text(title, overflow: TextOverflow.ellipsis, style: V3.tight(18)),
@@ -107,11 +107,19 @@ class SpButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = outline ? V3.green : Colors.black87;
+    // The spinner sits inside the button that was tapped, with its words.
     final child = busy
-        ? SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.5, color: fg))
+        ? Row(mainAxisSize: MainAxisSize.min, children: [
+            SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: fg)),
+            const SizedBox(width: 10),
+            Flexible(
+                child: Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: V3.inter(17, weight: FontWeight.w700, color: fg))),
+          ])
         : Row(mainAxisSize: MainAxisSize.min, children: [
             if (icon != null) ...[
               Icon(icon, color: fg, size: 20),
@@ -151,8 +159,9 @@ class SpPlanEdit {
     required this.onText,
     required this.onNumber,
     required this.onDuration,
-    required this.onDrillMenu,
+    required this.onMenu,
     this.onOpenGame,
+    this.ai = true,
   });
 
   /// A text field changed (path, value).
@@ -164,8 +173,12 @@ class SpPlanEdit {
   /// The minutes pill of a section was tapped.
   final void Function(String path) onDuration;
 
-  /// The ⋮ of a drill was tapped (drill index).
-  final void Function(int drill) onDrillMenu;
+  /// The ⋮ of a section was tapped: move or remove a drill, and (with
+  /// [ai]) "Change this part".
+  final void Function(SpSection section) onMenu;
+
+  /// AI changes are allowed, so every section gets a ⋮, not only drills.
+  final bool ai;
 
   /// A drill's game name was tapped.
   final void Function(String gameName)? onOpenGame;
@@ -181,6 +194,7 @@ List<Widget> spPlanCards(
   required int version,
   SpPlanEdit? edit,
   Map<String, DateTime> starts = const {},
+  Set<String> changed = const {},
 }) {
   final out = <Widget>[];
   final title = '${plan['session_title'] ?? ''}';
@@ -233,9 +247,10 @@ List<Widget> spPlanCards(
       minutes: mins,
       start: starts[s.path],
       onMinutes: edit == null ? null : () => edit.onDuration(s.path),
-      onMenu: edit == null || s.drill == null
+      changed: changed.contains(s.path),
+      onMenu: edit == null || (s.drill == null && !edit.ai)
           ? null
-          : () => edit.onDrillMenu(s.drill!),
+          : () => edit.onMenu(s),
     ));
     final isPrePost = s.path == 'pre_session' || s.path == 'post_session';
     final name = isPrePost ? '' : '${phase['game_name'] ?? ''}';
@@ -294,8 +309,10 @@ class _SectionHeader extends StatelessWidget {
       this.minutes,
       this.start,
       this.onMinutes,
-      this.onMenu});
+      this.onMenu,
+      this.changed = false});
   final String label, tone;
+  final bool changed;
   final int? minutes;
   final DateTime? start;
   final VoidCallback? onMinutes, onMenu;
@@ -324,6 +341,17 @@ class _SectionHeader extends StatelessWidget {
                   Text(spClock(start!),
                       style: V3.inter(15,
                           weight: FontWeight.w600, color: V3.muted)),
+                if (changed)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: V3.green,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Text('Changed',
+                        style: V3.inter(13,
+                            weight: FontWeight.w700, color: Colors.black87)),
+                  ),
               ]),
         ),
         if (m > 0 || onMinutes != null)
@@ -364,7 +392,7 @@ class _SectionHeader extends StatelessWidget {
         if (onMenu != null)
           IconButton(
             key: ValueKey('menu-$label'),
-            tooltip: 'Drill options',
+            tooltip: 'Options',
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             icon: const Icon(Icons.more_vert, color: V3.muted),
             onPressed: onMenu,
@@ -396,6 +424,7 @@ class _PhaseCard extends StatelessWidget {
     final setup = txt('setup');
     final desc = txt('description');
     final variation = txt('variation');
+    final video = path.endsWith('_session') ? '' : txt('game_video');
     final points = coachingPoints(plan, path);
     final open = edit?.onOpenGame;
     return _Card(
@@ -439,6 +468,24 @@ class _PhaseCard extends StatelessWidget {
             fit: BoxFit.fitWidth,
             placeholder: (_, __) => Container(height: 160, color: V3.card2),
             errorWidget: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        if (video.isNotEmpty)
+          InkWell(
+            onTap: () => openGameVideo(video),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 48),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: V3.line))),
+              child: Row(children: [
+                const Icon(Icons.play_circle_fill, color: V3.green, size: 26),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: Text('Watch the video',
+                        style: V3.inter(16, weight: FontWeight.w600))),
+                const Icon(Icons.open_in_new, color: V3.muted, size: 18),
+              ]),
+            ),
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),

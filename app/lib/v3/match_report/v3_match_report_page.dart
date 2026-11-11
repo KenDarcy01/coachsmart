@@ -645,7 +645,7 @@ PreferredSizeWidget _bar(BuildContext context, String title) => AppBar(
       centerTitle: true,
       leading: IconButton(
           tooltip: 'Back',
-          icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+          icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
           onPressed: () => Navigator.of(context).maybePop()),
       title: Text(title, style: V3.tight(17, weight: FontWeight.w600)),
     );

@@ -65,7 +65,6 @@ class _V3EventPageState extends State<V3EventPage> {
   final Map<int, int> _busy = {};
   bool _paying = false;
   bool _teamAllowsLineup = false;
-  bool _teamSessionPlan = false;
 
   int get _eventId => widget.eventID ?? 0;
   bool get _fromSearch => widget.fromSearch ?? false;
@@ -120,13 +119,12 @@ class _V3EventPageState extends State<V3EventPage> {
     try {
       final row = await SupaFlow.client
           .from('teams')
-          .select('allow_lineup, session_plan')
+          .select('allow_lineup')
           .eq('team_id', teamId)
           .maybeSingle();
       if (!mounted || row == null) return;
       setState(() {
         _teamAllowsLineup = row['allow_lineup'] == true;
-        _teamSessionPlan = row['session_plan'] == true;
       });
     } catch (_) {}
   }
@@ -480,7 +478,7 @@ class _V3EventPageState extends State<V3EventPage> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, color: V3.green, size: 34),
+          icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
           onPressed: _back,
         ),
         centerTitle: true,
@@ -669,12 +667,11 @@ class _V3EventPageState extends State<V3EventPage> {
       if (_role >= 30 && _teamAllowsLineup) {
         out.add(_Tool('Lineup', Icons.grid_view_outlined, _openLineup));
       }
-    } else if (_role >= 30 && _teamSessionPlan) {
-      out.add(_Tool(
-          'Session plan',
-          Icons.assignment_outlined,
-          () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => V3SessionPlanPage(eventId: _eventId)))));
+    } else if (_role >= 30) {
+      // Every coach can plan a session; the team's session plan switch now
+      // only decides whether the AI writer shows (Ken, 2026-11-11).
+      out.add(_Tool('Session plan', Icons.assignment_outlined,
+          () => openCoachingEventPlan(context, _eventId)));
     }
     return out;
   }

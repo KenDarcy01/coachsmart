@@ -164,7 +164,7 @@ class _V3RequestsPageState extends State<V3RequestsPage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text('Requests', style: V3.tight(20)),
       ),

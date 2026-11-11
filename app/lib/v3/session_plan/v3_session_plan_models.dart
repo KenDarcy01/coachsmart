@@ -388,11 +388,13 @@ Map<String, dynamic> generateBody({
       'rotate_stations': rotate,
     };
 
+/// [target] limits the change to one section ("warm_up", "drills.2").
 Map<String, dynamic> reviseBody({
   required int? eventId,
   required String? planId,
   required String feedback,
   required Map plan,
+  String? target,
 }) =>
     {
       'action': 'revise_plan',
@@ -400,6 +402,7 @@ Map<String, dynamic> reviseBody({
       'plan_id': planId,
       'feedback': feedback,
       'existing_plan': plan,
+      if (target != null) 'target': target,
     };
 
 Map<String, dynamic> updateBody(
@@ -424,4 +427,93 @@ String spErrorText(dynamic data, String fallback) {
     }
   }
   return fallback;
+}
+
+// ------------------------------------------------------- changes and saving
+
+const Map<String, String> kSpPhaseNames = {
+  'pre_session': 'Pre-session',
+  'warm_up': 'Warm up',
+  'cool_down': 'Cool down',
+  'post_session': 'Post-session',
+};
+
+/// The name the coach knows a section by: its game, else "Warm up",
+/// "Drill 2" ...
+String sectionName(Map plan, String path) {
+  final s = getPath(plan, path);
+  final n = s is Map ? _s(s['game_name']).trim() : '';
+  if (n.isNotEmpty) return n;
+  if (path.startsWith('drills.')) {
+    return 'Drill ${(int.tryParse(path.split('.')[1]) ?? 0) + 1}';
+  }
+  return kSpPhaseNames[path] ?? path;
+}
+
+/// What "Tell me what to change" altered: the section paths (plus
+/// 'session_title', 'session_objective', 'station_setup') and a name for
+/// each, in plan order.
+class SpChanges {
+  const SpChanges(this.paths, this.names);
+  final Set<String> paths;
+  final List<String> names;
+  bool get isEmpty => names.isEmpty;
+}
+
+String _sectionText(dynamic p) {
+  if (p == null) return '';
+  if (p is! Map) return '$p'.trim();
+  final keys = [
+    for (final k in p.keys)
+      if (k != 'game_image' && k != 'game_video') '$k'
+  ]..sort();
+  return [for (final k in keys) '$k=${p[k]}'].join('|');
+}
+
+/// Compares two versions of a plan section by section (pictures and videos
+/// are ignored; a drill is matched by its game name, else by position).
+SpChanges diffPlans(Map before, Map after) {
+  final paths = <String>{};
+  final names = <String>[];
+  void add(String path, String name, dynamic b, dynamic a) {
+    if (_sectionText(b) == _sectionText(a)) return;
+    paths.add(path);
+    names.add(name);
+  }
+
+  add('session_title', 'Plan name', before['session_title'],
+      after['session_title']);
+  add('session_objective', 'Focus', before['session_objective'],
+      after['session_objective']);
+  for (final k in ['pre_session', 'warm_up']) {
+    add(k, kSpPhaseNames[k]!, before[k], after[k]);
+  }
+  add('station_setup', 'Station setup', before['station_setup'],
+      after['station_setup']);
+  final bd = spDrills(before), ad = spDrills(after);
+  for (var i = 0; i < ad.length; i++) {
+    final name = _s(ad[i]['game_name']);
+    Map? old = i < bd.length ? bd[i] : null;
+    for (final o in bd) {
+      if (name.isNotEmpty && _s(o['game_name']) == name) {
+        old = o;
+        break;
+      }
+    }
+    add('drills.$i', name.isNotEmpty ? name : 'Drill ${i + 1}', old, ad[i]);
+  }
+  for (final k in ['cool_down', 'post_session']) {
+    add(k, kSpPhaseNames[k]!, before[k], after[k]);
+  }
+  return SpChanges(paths, names);
+}
+
+/// The small pill beside "Tap any text to edit": 'Not saved' until the plan
+/// is on the server, then 'Saved' or 'Unsaved changes'. Null for a plan the
+/// coach can only read.
+String? spSavePill(
+    {required bool saved, required bool dirty, bool readOnly = false}) {
+  if (readOnly) return null;
+  if (!saved) return 'Not saved';
+  return dirty ? 'Unsaved changes' : 'Saved';
 }

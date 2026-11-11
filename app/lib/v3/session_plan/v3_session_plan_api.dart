@@ -10,6 +10,8 @@
 // library (V3GamesApi), which uses the same tables and RPC.
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 
@@ -52,3 +54,17 @@ Future<SpResult> spLiveCall(String fn, Map<String, dynamic> body) async {
 
 /// The signed-in user (the edge function takes user_id in the body).
 String spUserId() => currentUserUid;
+
+/// users.ai_features for the signed-in user ("Write the plan for me" and
+/// "Tell me what to change"). Off when it can't be read.
+Future<bool> spAiFeatures() async {
+  try {
+    return await SupaFlow.client.rpc('get_my_ai_features') == true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Bumped whenever a plan is saved, attached, shared or removed, so the
+/// Plans list reloads.
+final ValueNotifier<int> spPlansChanged = ValueNotifier<int>(0);

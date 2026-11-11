@@ -126,7 +126,7 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
         centerTitle: true,
         leading: IconButton(
             tooltip: 'Back',
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 34),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text('Matches', style: V3.tight(18, weight: FontWeight.w700)),
       ),

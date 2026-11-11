@@ -173,7 +173,7 @@ class _V3SearchPageState extends State<V3SearchPage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text('Search events', style: V3.tight(20)),
       ),

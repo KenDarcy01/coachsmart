@@ -39,7 +39,7 @@ class V3AuthScaffold extends StatelessWidget {
                     constraints:
                         const BoxConstraints(minWidth: 40, minHeight: 40),
                     icon: const Icon(Icons.chevron_left,
-                        color: V3.green, size: 30),
+                        color: V3.green, size: 40),
                     onPressed: () => context.safePop(),
                   ),
                 )

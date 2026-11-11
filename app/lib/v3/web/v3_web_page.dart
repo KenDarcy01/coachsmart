@@ -31,8 +31,8 @@ class V3WebPage extends StatelessWidget {
                   height: 44,
                   child: Row(children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          size: 20, color: V3.text),
+                      icon: const Icon(Icons.chevron_left,
+                          size: 40, color: V3.green),
                       onPressed: () => Navigator.of(context).maybePop(),
                     ),
                     Expanded(

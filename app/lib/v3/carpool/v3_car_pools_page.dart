@@ -123,7 +123,7 @@ class _V3CarPoolsPageState extends State<V3CarPoolsPage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text('Car pooling', style: V3.tight(20)),
       ),

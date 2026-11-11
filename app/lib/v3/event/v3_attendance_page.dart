@@ -317,7 +317,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         // No status bar on the page: the event page's Attending / No reply /
         // Declined cards pick the list (Ken, 2026-11-11), so the title says

@@ -308,7 +308,7 @@ class _V3TeamPageState extends State<V3TeamPage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 30),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => context.safePop()),
         title: Text('Team', style: V3.tight(20)),
         actions: [

@@ -277,7 +277,7 @@ class _V3ScoreKeeperPageState extends State<V3ScoreKeeperPage>
       automaticallyImplyLeading: false,
       leading: IconButton(
           tooltip: 'Back',
-          icon: const Icon(Icons.chevron_left, color: V3.green, size: 34),
+          icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
           onPressed: _back),
       titleSpacing: 0,
       centerTitle: true,

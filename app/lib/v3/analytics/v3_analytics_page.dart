@@ -368,7 +368,7 @@ class _V3AnalyticsPageState extends State<V3AnalyticsPage> {
           centerTitle: true,
           leading: IconButton(
               tooltip: onTeamPage ? 'Teams' : 'Back',
-              icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+              icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
               onPressed: () =>
                   onTeamPage ? _closeTeam() : Navigator.of(context).maybePop()),
           title: Text('Club Analytics',

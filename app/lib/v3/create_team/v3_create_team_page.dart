@@ -459,7 +459,7 @@ class _V3CreateTeamPageState extends State<V3CreateTeamPage> {
           centerTitle: true,
           leading: IconButton(
               tooltip: 'Back',
-              icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+              icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
               onPressed: _back),
           title: Text(
               _step == CtStep.success ? 'Team created' : 'Create a team',

@@ -414,7 +414,7 @@ class _V3GameDetailPageState extends State<V3GameDetailPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         titleSpacing: 0,
         title:

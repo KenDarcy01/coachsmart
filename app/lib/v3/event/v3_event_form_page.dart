@@ -660,7 +660,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-            icon: const Icon(Icons.chevron_left, color: V3.green, size: 30),
+            icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text(_editing ? 'Edit event' : 'New event', style: V3.tight(20)),
       ),

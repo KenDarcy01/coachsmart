@@ -600,7 +600,7 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
                 leading: IconButton(
                     tooltip: 'Back',
                     icon: const Icon(Icons.chevron_left,
-                        color: V3.green, size: 32),
+                        color: V3.green, size: 40),
                     onPressed: () => _stage == _Stage.review
                         ? _toStage(_Stage.create)
                         : Navigator.of(context).maybePop()),

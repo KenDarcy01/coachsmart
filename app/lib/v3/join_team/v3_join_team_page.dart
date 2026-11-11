@@ -479,7 +479,7 @@ class _V3JoinTeamPageState extends State<V3JoinTeamPage> {
             centerTitle: true,
             leading: IconButton(
                 tooltip: 'Back',
-                icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
+                icon: const Icon(Icons.chevron_left, color: V3.green, size: 40),
                 onPressed: _back),
             title: Text(
                 _step == JoinStep.newTeam || _step == JoinStep.newTeamSent
