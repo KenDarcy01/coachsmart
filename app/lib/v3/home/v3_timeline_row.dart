@@ -264,6 +264,8 @@ class V3TimelineRow extends StatelessWidget {
     );
   }
 
+  // Ring, then three stacked dots (green, grey, red) with the totals
+  // beside them and no words (Ken, 2026-11-11). Same for coaches.
   Widget _counts() {
     final ring = Semantics(
       label: attendanceLabel(e),
@@ -273,62 +275,37 @@ class V3TimelineRow extends StatelessWidget {
       ),
     );
     final tabular = [const FontFeature.tabularFigures()];
-    if (isCoach) {
-      // Three equal-weight numbers: no reply is the one a coach acts on.
-      Widget n(int v, String w) => RichText(
-            text: TextSpan(
+    Widget line(Color dot, int n) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$n',
               style: V3
-                  .inter(16, color: _mutedSpec)
+                  .inter(14, weight: FontWeight.w600, height: 1.2)
                   .copyWith(fontFeatures: tabular),
-              children: [
-                TextSpan(
-                  text: '$v ',
-                  style: V3.inter(16, weight: FontWeight.w700, color: V3.text),
-                ),
-                TextSpan(text: w),
-              ],
             ),
-          );
-      return Row(
-        children: [
-          ring,
-          const SizedBox(width: 10),
-          Expanded(
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 2,
-              children: [
-                n(e.acceptedCount, 'attending'),
-                n(e.noResponseCount, 'no reply'),
-                n(e.declinedCount, 'declined'),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
+          ],
+        );
     return Row(
       children: [
         ring,
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${e.acceptedCount} attending',
-                style: V3
-                    .inter(16, weight: FontWeight.w600, height: 1.25)
-                    .copyWith(fontFeatures: tabular),
-              ),
-              Text(
-                '${e.noResponseCount} no reply · ${e.declinedCount} declined',
-                style: V3
-                    .inter(14, color: _mutedSpec, height: 1.25)
-                    .copyWith(fontFeatures: tabular),
-              ),
-            ],
-          ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            line(V3.green, e.acceptedCount),
+            const SizedBox(height: 3),
+            line(V3.barGrey, e.noResponseCount),
+            const SizedBox(height: 3),
+            line(V3.red, e.declinedCount),
+          ],
         ),
       ],
     );
@@ -336,12 +313,15 @@ class V3TimelineRow extends StatelessWidget {
 
   // ✓ / ✕ pair until answered; then a one-word status that opens the event.
   Widget _replyControl() {
-    if (!canReply(e)) return const SizedBox.shrink();
-    if (e.responseId == 3) {
-      return _status(Icons.check_rounded, 'Attending', V3.green);
-    }
-    if (e.responseId == 4) {
-      return _status(Icons.close_rounded, 'Declined', _mutedSpec);
+    // One large mark once answered: green tick, red cross; a grey question
+    // mark when there is no reply and no buttons to give one (Ken,
+    // 2026-11-11).
+    if (e.responseId == 3)
+      return _mark(Icons.check_rounded, V3.green, 'Attending');
+    if (e.responseId == 4)
+      return _mark(Icons.close_rounded, V3.red, 'Declined');
+    if (!canReply(e)) {
+      return _mark(Icons.question_mark_rounded, V3.barGrey, 'No reply');
     }
     final size = isCoach ? 40.0 : 44.0;
     Widget square(
@@ -391,20 +371,9 @@ class V3TimelineRow extends StatelessWidget {
     );
   }
 
-  Widget _status(IconData icon, String label, Color color) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: V3.inter(
-              16,
-              weight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
+  Widget _mark(IconData icon, Color color, String label) => Semantics(
+        label: label,
+        child: Icon(icon, size: 36, color: color),
       );
 }
 
