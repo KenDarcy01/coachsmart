@@ -7,8 +7,12 @@
 //      them has an answer, from any screen and by any linked parent;
 //    * join / access requests clear for every admin once one admin acts.
 //  - Nothing opens another page. Reminders carry Going / Can't go buttons
-//    for each of the user's children who hasn't answered, requests carry
-//    Approve / Decline. Only the tapped button shows a spinner.
+//    for every member linked to the user (players, FLOs, coaches); a
+//    member's row greys out once answered and the card is marked read when
+//    all have answered. Requests carry Approve / Decline. Only the tapped
+//    button shows a spinner.
+//  - Every change refreshes V3Unread, so the Home bell and the app badge
+//    match this page.
 //  - A realtime listener on the user's rows reloads the list, so a request
 //    another admin handles, or a child another parent answers, updates live.
 import 'dart:async';
@@ -19,10 +23,10 @@ import '/auth/supabase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
-import '/custom_code/actions/index.dart' as actions;
 import '../teams/v3_role_picker.dart';
 import '../v3_theme.dart';
 import 'v3_notifications_models.dart';
+import 'v3_unread.dart';
 
 class V3NotificationsPage extends StatefulWidget {
   const V3NotificationsPage({super.key, this.testData, this.testMembers});
@@ -117,8 +121,9 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
     }
   }
 
-  /// For each open reminder, the user's children on that event who haven't
-  /// answered yet (the same list the event page shows its buttons for).
+  /// For each open reminder, every member linked to the user on that event
+  /// (players, FLOs, coaches: the list the event page shows its buttons
+  /// for), with any answer already given.
   Future<void> _loadMembers() async {
     final ids = {
       for (final n in _items)
@@ -138,15 +143,34 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
         _members[id] = [
           if (open)
             for (final m in d.teamMembers)
-              if (m.responseId != 3 && m.responseId != 4)
-                NotifMember(
-                    m.memberId,
-                    m.firstName.isNotEmpty ? m.firstName : m.lastName,
-                    m.responseId),
+              NotifMember(
+                  m.memberId,
+                  m.firstName.isNotEmpty ? m.firstName : m.lastName,
+                  m.responseId),
         ];
       } catch (_) {}
     }));
-    if (mounted && ids.isNotEmpty) setState(() {});
+    if (!mounted || ids.isEmpty) return;
+    setState(() {});
+    // A reminder whose members have all answered elsewhere is done: mark
+    // it read so the page, the bell and the badge agree.
+    final done = [
+      for (final n in _items)
+        if (n.isAttend &&
+            !n.isRead &&
+            (_members[n.eventId]?.isNotEmpty ?? false) &&
+            _members[n.eventId]!.every((m) => m.answered))
+          n.id
+    ];
+    if (done.isEmpty) return;
+    try {
+      for (final id in done) {
+        await SupaFlow.client
+            .rpc('mark_notification_read', params: {'p_notification_id': id});
+      }
+      await _load();
+      await _badge();
+    } catch (_) {}
   }
 
   /// Reload when any of the user's rows change (another admin handled a
@@ -182,10 +206,10 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
         backgroundColor: warn ? V3.amber : V3.green));
   }
 
+  /// Bell on Home and the app icon badge follow every change here.
   Future<void> _badge() async {
-    try {
-      await actions.updateAppBadge();
-    } catch (_) {}
+    if (_test) return;
+    await V3Unread.instance.refresh();
   }
 
   // ---------------------------------------------------------------- read
@@ -255,9 +279,11 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
 
   // ---------------------------------------------------------------- replies
 
-  /// Going (3) / Can't go (4) for one child, saved the same way as the
-  /// event page. The server clears the reminder (for every linked parent)
-  /// once all of the user's children on it have answered.
+  /// Going (3) / Can't go (4) for one member, saved the same way as the
+  /// event page. Once answered the member's buttons grey out (changes are
+  /// made on the event page). When every member on the card has answered,
+  /// the reminder is marked read; the server also clears it for any other
+  /// parent linked to the same members.
   Future<void> _reply(NotifItem n, NotifMember m, int responseId) async {
     if (m.responseId == responseId) return;
     final key = '${n.eventId}:${m.memberId}';
@@ -278,7 +304,19 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
         );
       }
       m.responseId = responseId;
-      if (!_test) {
+      final kids = _members[n.eventId] ?? const <NotifMember>[];
+      final allDone = kids.every((k) => k.answered);
+      if (_test) {
+        if (allDone) {
+          setState(() => _items = [
+                for (final x in _items) x.id == n.id ? x.asRead() : x,
+              ]);
+        }
+      } else {
+        if (allDone && !n.isRead) {
+          await SupaFlow.client.rpc('mark_notification_read',
+              params: {'p_notification_id': n.id});
+        }
         await _load();
         await _badge();
       }
@@ -419,11 +457,9 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
   Widget _card(NotifItem n) {
     final liveRequest = n.isRequest && !n.isRead;
     final kids = n.isAttend ? _members[n.eventId] : null;
-    // Reply buttons while the reminder is open, and after a reply made on
-    // this visit so the choice stays visible.
-    final showReplies = kids != null &&
-        kids.isNotEmpty &&
-        (!n.isRead || kids.any((m) => m.answered));
+    // One row per linked member while the reminder is open, and still after
+    // it is read on this visit, greyed, so the answers stay visible.
+    final showReplies = kids != null && kids.isNotEmpty;
     return GestureDetector(
       onLongPress: n.needsAction ? null : () => _longPress(n),
       child: Container(
@@ -482,28 +518,31 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
   }
 
   // "✓ Aoife" | "✗ Aoife", the same buttons as the event page. Unanswered:
-  // both light. Chosen: solid green or red, the other dim. Only the tapped
-  // button shows the spinner.
+  // both light and live; only the tapped button shows the spinner. Once the
+  // member has an answer the row greys out and can't be tapped: the chosen
+  // side keeps its tick or cross on a lighter grey, the other side fades.
+  // Changes after that are made on the event page (Ken, 2026-11-11).
   Widget _replyRow(NotifItem n, NotifMember m) {
     final saving = _replying['${n.eventId}:${m.memberId}'];
-    final going = m.responseId == 3;
-    final declined = m.responseId == 4;
-    const dim = Color(0xFF7C8089);
+    final locked = m.answered && saving == null;
+    const faded = Color(0xFF5C6069);
 
     Widget button(bool isGo) {
-      final on = isGo ? going : declined;
+      final chosen = m.responseId == (isGo ? 3 : 4);
       final Color bg;
       final Color fg;
-      if (on) {
-        bg = isGo ? V3.green : V3.red;
-        fg = isGo ? V3.bg : Colors.white;
+      if (locked) {
+        bg = chosen ? V3.line : V3.card2.withValues(alpha: .5);
+        fg = chosen ? V3.muted : faded;
       } else {
         bg = V3.card2;
-        fg = m.answered ? dim : V3.text;
+        fg = V3.text;
       }
       return Expanded(
         child: GestureDetector(
-          onTap: saving != null ? null : () => _reply(n, m, isGo ? 3 : 4),
+          onTap: locked || saving != null
+              ? null
+              : () => _reply(n, m, isGo ? 3 : 4),
           child: Container(
             height: 42,
             alignment: Alignment.center,

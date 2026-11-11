@@ -114,9 +114,15 @@ void main() {
     // The notice is read; the request and the reminder stay unread.
     expect(dots().where((c) => c != Colors.transparent).length, 2);
 
-    // Replying lights the chosen button.
+    // Answering greys that member's row; the card is read once all have.
     await tester.tap(find.text('Sean').first);
     await tester.pumpAndSettle();
+    expect(dots().where((c) => c != Colors.transparent).length, 2);
+    await tester.tap(find.text('Sean').last); // locked now, no change
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aoife').last);
+    await tester.pumpAndSettle();
+    expect(dots().where((c) => c != Colors.transparent).length, 1);
     expect(find.text('Sean'), findsNWidgets(2));
   });
 }
