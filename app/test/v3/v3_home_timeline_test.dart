@@ -186,7 +186,7 @@ void main() {
     final e = ev(1, now.add(const Duration(hours: 2)), roleLevel: 100);
     await tester.pumpWidget(host(row(e, isCoach: true)));
     expect(find.text('14'), findsOneWidget);
-    expect(find.byIcon(Icons.question_mark_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.question_mark_rounded), findsNothing);
     expect(find.byIcon(Icons.check_rounded), findsNothing);
   });
 

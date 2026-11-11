@@ -110,15 +110,15 @@ class V3TimelineRow extends StatelessWidget {
             // Order: team, squad, title, time (Ken, 2026-11-11).
             Padding(padding: crestRoom, child: _teamTitle(cancelled)),
             if (_hasSquad) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Padding(padding: crestRoom, child: _squadPill(cancelled)),
-              const SizedBox(height: 6),
+              const SizedBox(height: 10),
               title,
             ] else ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Padding(padding: crestRoom, child: title),
             ],
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             _line1(cancelled),
             if (!cancelled && e.requestAttendance) ...[
               const SizedBox(height: 12),
@@ -305,11 +305,11 @@ class V3TimelineRow extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 10,
-              height: 10,
+              width: 14,
+              height: 14,
               decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 7),
             Text(
               '$n',
               style: V3
@@ -334,16 +334,13 @@ class V3TimelineRow extends StatelessWidget {
 
   // ✓ / ✕ pair until answered; then a one-word status that opens the event.
   Widget _replyControl() {
-    // One large mark once answered: green tick, red cross; a grey question
-    // mark when there is no reply and no buttons to give one (Ken,
-    // 2026-11-11).
+    // One large mark once answered: green tick, red cross; nothing when
+    // there is no reply and no buttons to give one (Ken, 2026-11-11).
     if (e.responseId == 3)
       return _mark(Icons.check_rounded, V3.green, 'Attending');
     if (e.responseId == 4)
       return _mark(Icons.close_rounded, V3.red, 'Declined');
-    if (!canReply(e)) {
-      return _mark(Icons.question_mark_rounded, V3.barGrey, 'No reply');
-    }
+    if (!canReply(e)) return const SizedBox.shrink();
     final size = isCoach ? 40.0 : 44.0;
     Widget square(
       IconData icon,
