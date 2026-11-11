@@ -2,11 +2,11 @@
 // taken, Reserve a seat (with a child picker when the user looks after
 // more than one), Cancel my seat, and for the driver Delete car pool.
 // Same data (get_full_car_pool_details), rows (car_pool_detail) and
-// emails (send-email) as v2.
+// rows (car_pool_detail) as v2. Messages go through car_pool_notify, so they
+// arrive as push or email by the same rules as every other notification.
 import 'package:flutter/material.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
-import '/backend/api_requests/api_calls.dart';
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -75,10 +75,15 @@ class _V3CarPoolPageState extends State<V3CarPoolPage> {
         backgroundColor: warn ? V3.amber : V3.green));
   }
 
-  Future<void> _email(String to, String subject, String body) async {
-    if (to.trim().isEmpty) return;
+  /// kind: 'reserved', 'cancelled' or 'pool_cancelled'.
+  Future<void> _notify(int carPoolId, String kind, int memberId) async {
+    if (widget.testData != null) return;
     try {
-      await SendEmailCall.call(recipient: to, subject: subject, body: body);
+      await SupaFlow.client.rpc('car_pool_notify', params: {
+        'p_car_pool_id': carPoolId,
+        'p_kind': kind,
+        'p_member_id': memberId,
+      });
     } catch (_) {}
   }
 
@@ -144,11 +149,7 @@ class _V3CarPoolPageState extends State<V3CarPoolPage> {
       });
       await _load();
       _snack('Seat reserved for ${member.memberName}');
-      final when = '${p.eventDateFormatted} (${p.teamName})';
-      await _email(p.driverEmail, 'Car Pool Reservation',
-          '${member.memberName} has reserved a seat in your car pool for the event on $when');
-      await _email(currentUserEmail, 'Car Pool Reservation',
-          'Confirmation that a car pool seat has been reserved with ${p.driverName} for ${member.memberName}. Please make contact on ${p.driverPhone} to finalise plans for the event on $when');
+      await _notify(p.carPoolId, 'reserved', member.memberId);
     } catch (_) {
       _snack('Could not reserve the seat. Please try again.', warn: true);
     } finally {
@@ -167,11 +168,7 @@ class _V3CarPoolPageState extends State<V3CarPoolPage> {
           .delete(matchingRows: (q) => q.eq('id', r.reservationId));
       await _load();
       _snack('Seat cancelled');
-      final when = '${p.eventDateFormatted} (${p.teamName})';
-      await _email(p.driverEmail, 'Car Pool Cancellation',
-          '${r.memberName} has cancelled the car pool reservation with you for the event on: $when');
-      await _email(r.associatedUserEmail, 'Car Pool Cancellation',
-          'Confirmation that your car pool reservation with ${p.driverName} has been cancelled for the event on $when');
+      await _notify(p.carPoolId, 'cancelled', r.memberId);
     } catch (_) {
       _snack('Could not cancel the seat. Please try again.', warn: true);
     } finally {
@@ -186,14 +183,15 @@ class _V3CarPoolPageState extends State<V3CarPoolPage> {
         'Delete your car pool?',
         n == 0
             ? 'Nobody has reserved a seat yet.'
-            : '$n ${n == 1 ? 'person loses their seat and gets' : 'people lose their seats and get'} an email.',
+            : '$n ${n == 1 ? 'person loses their seat and gets' : 'people lose their seats and get'} a notification.',
         'Delete');
     if (!ok) return;
     setState(() => _busy = true);
     try {
       for (final r in p.reservations) {
-        await _email(r.associatedUserEmail, 'Car Pool Cancellation',
-            'Unfortunately the car pool you reserved for ${r.memberName} with ${p.driverName} has been cancelled. Please look for a different car pool if you still require assistance attending the event. Thanks!');
+        if (r.status == 'reserved') {
+          await _notify(p.carPoolId, 'pool_cancelled', r.memberId);
+        }
         await CarPoolDetailTable().update(
             data: {'status': 'cancelled'},
             matchingRows: (q) => q.eq('id', r.reservationId));
