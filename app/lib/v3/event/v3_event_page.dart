@@ -674,9 +674,9 @@ class _V3EventPageState extends State<V3EventPage> {
       if (_role >= 30 && _teamAllowsLineup) {
         out.add(_Tool('Lineup', Icons.grid_view_outlined, _openLineup));
       }
-    } else if (_role >= 30) {
-      // Every coach can plan a session; the team's session plan switch now
-      // only decides whether the AI writer shows (Ken, 2026-11-11).
+    } else if (_admin) {
+      // Admins only, not coaches (Ken, 2026-11-11); the team's session plan
+      // switch only decides whether the AI writer shows.
       out.add(_Tool('Session plan', Icons.assignment_outlined,
           () => openCoachingEventPlan(context, _eventId)));
     }
