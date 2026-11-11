@@ -28,7 +28,7 @@ void main() {
       }
     ]);
     expect(l.single.choice, 'event');
-    expect(alertChoiceLabel('changes'), 'Only changes of mind');
+    expect(alertChoiceLabel('changes'), 'Changes of mind');
   });
 
   testWidgets('phone: push/email choice and team alerts', (t) async {
@@ -36,13 +36,13 @@ void main() {
     expect(find.text('Push'), findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
     expect(find.text('Girls 2014'), findsOneWidget);
-    expect(find.text('As set on each event'), findsOneWidget);
-    expect(find.text('Off'), findsOneWidget);
+    expect(find.text('Default'), findsOneWidget);
+    expect(find.text('None'), findsOneWidget);
     await t.tap(find.text('Girls 2014'));
     await t.pumpAndSettle();
-    await t.tap(find.text('Only changes of mind').last);
+    await t.tap(find.text('Changes of mind').last);
     await t.pumpAndSettle();
-    expect(find.text('Only changes of mind'), findsOneWidget);
+    expect(find.text('Changes of mind'), findsOneWidget);
   });
 
   testWidgets('web: no push option', (t) async {
