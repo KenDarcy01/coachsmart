@@ -1099,8 +1099,41 @@ serve(async (req) => {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
+    // v3 app only (body.use_game_ids === true): plan with exactly the games in
+    // game_ids, in that order, whether or not the coach has saved (hearted)
+    // them. Only active games the coach may see: public ones and their own
+    // clubs'. Requests without the flag (the v2 app and PWA) are untouched.
+    let pickedLinks: any[] | null = null;
+    if (body.use_game_ids === true && Array.isArray(game_ids) && game_ids.length > 0) {
+      const wanted: number[] = game_ids.map(Number).filter((n: number) => Number.isFinite(n));
+      const { data: pickedGames } = await sb
+        .from("games")
+        .select("game_id, game_name, game_image, game_code, game_type, game_setup, game_how_to_play, game_variations, game_teaching_points, game_video, club_id")
+        .in("game_id", wanted)
+        .eq("is_active", true);
+      let myClubIds: number[] = [];
+      if ((pickedGames || []).some((g: any) => g.club_id != null)) {
+        const { data: pgMembers } = await sb.from("user_member_link").select("member_id").eq("user_id", user_id);
+        const pgMemberIds = (pgMembers || []).map((r: any) => r.member_id);
+        if (pgMemberIds.length > 0) {
+          const { data: pgTeams } = await sb.from("member_team_link").select("teams!inner(club_id)").in("member_id", pgMemberIds);
+          myClubIds = [...new Set((pgTeams || []).map((r: any) => r.teams?.club_id).filter(Boolean))] as number[];
+        }
+      }
+      const allowed = (pickedGames || []).filter((g: any) => g.club_id == null || myClubIds.includes(g.club_id));
+      const ordered = wanted
+        .map((id, i) => {
+          const g = allowed.find((x: any) => x.game_id === id);
+          return g ? { position: i, games: g } : null;
+        })
+        .filter(Boolean);
+      if (ordered.length > 0) pickedLinks = ordered as any[];
+    }
+
     // Fetch all favourite games
-    const { data: allFavLinks } = await sb
+    const { data: allFavLinks } = pickedLinks
+      ? { data: pickedLinks as any }
+      : await sb
       .from("user_game_link")
       .select(`position, games!inner(game_id, game_name, game_image, game_code, game_type, game_setup, game_how_to_play, game_variations, game_teaching_points, game_video)`)
       .eq("user_id", user_id)
@@ -1126,7 +1159,8 @@ serve(async (req) => {
     }
 
     // Filter by event code if known; fall back to all when no match
-    if (eventCodeStr && favLinks) {
+    // (not for the v3 explicit pick above: the coach chose those games)
+    if (eventCodeStr && favLinks && !pickedLinks) {
       const code = eventCodeStr.toLowerCase();
       const filtered = favLinks.filter((f: any) => {
         const codes: string[] = (f.games?.game_code || []).map((c: string) => c.toLowerCase());
