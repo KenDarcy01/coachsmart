@@ -86,6 +86,8 @@ class V3TimelineRow extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          _teamTitle(cancelled),
+                          const SizedBox(height: 4),
                           _line1(cancelled),
                           const SizedBox(height: 3),
                           Text(
@@ -105,8 +107,6 @@ class V3TimelineRow extends StatelessWidget {
                                       : null,
                                 ),
                           ),
-                          const SizedBox(height: 3),
-                          _line3(cancelled),
                         ],
                       ),
                     ),
@@ -182,33 +182,24 @@ class V3TimelineRow extends StatelessWidget {
     );
   }
 
-  // Club (white) · team · squad · venue, all muted but the club.
-  Widget _line3(bool cancelled) {
-    final rest = <String>[
-      e.teamName,
-      if (e.squadName.isNotEmpty && e.squadId != 0) e.squadName,
-      if (!cancelled && e.locationName.trim().isNotEmpty) e.locationName.trim(),
-    ].where((s) => s.isNotEmpty).toList();
-    final base = V3.inter(13, color: _mutedSpec, height: 1.3);
-    return RichText(
-      maxLines: 2,
+  // Team name in green capitals heads each row so events stand apart
+  // (Ken, 2026-11-11). The crest already says which club, so there is no
+  // club · team · venue line. The squad follows the team when there is one.
+  Widget _teamTitle(bool cancelled) {
+    final squad = e.squadName.isNotEmpty && e.squadId != 0 ? e.squadName : '';
+    final text = squad.isEmpty ? e.teamName : '${e.teamName} · $squad';
+    return Text(
+      text.toUpperCase(),
+      maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: base,
-        children: [
-          if (clubName.isNotEmpty)
-            TextSpan(
-              text: clubName,
-              style: base.copyWith(
-                color: cancelled ? _mutedSpec : V3.text,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          if (clubName.isNotEmpty && rest.isNotEmpty)
-            const TextSpan(text: ' · '),
-          TextSpan(text: rest.join(' · ')),
-        ],
-      ),
+      style: V3
+          .tight(
+            13,
+            weight: FontWeight.w800,
+            color: cancelled ? _mutedSpec : V3.green,
+            height: 1.2,
+          )
+          .copyWith(letterSpacing: 1.1),
     );
   }
 
