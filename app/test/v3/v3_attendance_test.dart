@@ -164,8 +164,15 @@ void widgetTests() {
     expect(find.text('Attending'), findsOneWidget);
     expect(find.text('Match day squads'), findsOneWidget);
     expect(find.text('Publish'), findsOneWidget);
-    expect(find.text('PLAYERS'), findsOneWidget);
-    expect(find.text('COACHES'), findsOneWidget);
+    expect(find.text('PLAYERS (3)'), findsOneWidget);
+    expect(find.text('COACHES (1)'), findsOneWidget);
+    // Role pills filter the list; tap again for every role.
+    await tester.tap(find.text('Coaches (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('PLAYERS (3)'), findsNothing);
+    await tester.tap(find.text('Coaches (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('PLAYERS (3)'), findsOneWidget);
     expect(find.text('Aimee Morris'), findsOneWidget);
     expect(find.text('Tom Kelly'), findsNothing); // declined, other tab
     // Squad cards: Blue, Red, none selected, everyone listed.

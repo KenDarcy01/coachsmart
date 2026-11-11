@@ -41,6 +41,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
           ? widget.responseId!
           : kNoReply;
   int? _squadFilter; // null = everyone, 0 = No squad
+  int? _roleFilter; // null = every role
   bool _publishing = false;
   final Set<int> _busy = {};
 
@@ -345,33 +346,34 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
 
   List<Widget> _body(AttendanceData d) {
     final rows = d.rows(_tab, _squadFilter);
-    final groups = d.groups(rows);
+    final allGroups = d.groups(rows);
+    final groups = [
+      for (final g in allGroups)
+        if (_roleFilter == null || g.$1.roleId == _roleFilter) g
+    ];
     return [
       _tabs(d),
       if (d.admin && d.isMatch && _tab == kAttending) _squadStrip(d),
       if (d.hasSquads) _squadCards(d),
+      if (d.roles.isNotEmpty) _rolePills(d, rows),
       if (groups.isEmpty)
         Padding(
             padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
             child: Text(
-                _squadFilter == null
+                _squadFilter == null && _roleFilter == null
                     ? emptyText(_tab)
-                    : 'Nobody here for this squad.',
+                    : 'Nobody here for this filter.',
                 textAlign: TextAlign.center,
                 style: V3.inter(15, color: V3.muted, height: 1.4))),
       for (final g in groups) ...[
         Padding(
           padding: const EdgeInsets.fromLTRB(2, 14, 2, 8),
-          child: Row(children: [
-            Expanded(
-                child: Text(g.$1.plural.toUpperCase(),
-                    style: V3.inter(13,
-                        weight: FontWeight.w700,
-                        color: V3.green,
-                        letterSpacing: .8))),
-            Text('${g.$2.length}',
-                style: V3.inter(13, weight: FontWeight.w600, color: V3.muted)),
-          ]),
+          child: Text(
+              '${g.$1.plural.toUpperCase()} (${{
+                for (final m in g.$2) m.memberId
+              }.length})',
+              style: V3.inter(15,
+                  weight: FontWeight.w700, color: V3.green, letterSpacing: .6)),
         ),
         Container(
           decoration: BoxDecoration(
@@ -545,6 +547,40 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
           );
         },
       ),
+    );
+  }
+
+  /// Role filter pills under the squad cards, each with how many people
+  /// in that role match the tab and squad picked. Tap to show only that
+  /// role, tap again for every role (Ken, 2026-11-11).
+  Widget _rolePills(AttendanceData d, List<AttMember> rows) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 2),
+      child: Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final r in d.roles)
+          Builder(builder: (_) {
+            final sel = _roleFilter == r.roleId;
+            final n = {
+              for (final m in rows)
+                if (m.roleId == r.roleId) m.memberId
+            }.length;
+            return GestureDetector(
+              onTap: () => setState(() => _roleFilter = sel ? null : r.roleId),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                    color: sel ? V3.green : V3.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: sel ? V3.green : V3.line, width: 1.5)),
+                child: Text('${r.plural} ($n)',
+                    style: V3.inter(15,
+                        weight: FontWeight.w600, color: sel ? V3.bg : V3.text)),
+              ),
+            );
+          }),
+      ]),
     );
   }
 
