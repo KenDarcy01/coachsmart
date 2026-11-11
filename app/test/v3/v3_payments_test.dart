@@ -76,4 +76,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Send payment reminders?'), findsNothing);
   });
+
+  testWidgets('paid twice tag, refund confirm and refunded list',
+      (tester) async {
+    final twice = paid(5, 'Aimee Morris', 'Jane Morris', 1000);
+    final d = PaymentsData.fromJson(
+      paidRows: [
+        paid(2, 'Aimee Morris', 'Jane Morris', 1000),
+        {...twice, 'member_id': 2},
+        paid(1, 'Caoimhe Byrne', 'Mary Byrne', 1000),
+      ],
+      unpaidRows: const [],
+      refundRows: [
+        {
+          'payment_id': 9,
+          'member_id': 7,
+          'member_full_name': 'Ella Walsh',
+          'user_full_name': 'Ann Walsh',
+          'amount_paid': 1000,
+          'refunded_at': '2026-11-04T10:00:00Z',
+        }
+      ],
+      price: 1000,
+      title: 'Football Match v Raheny',
+    );
+    expect(d.paidTwice(d.paid.first), isTrue);
+    expect(d.paidTwice(d.paid.last), isFalse);
+    expect(d.refunded.single.subtitle, 'Refunded Wed 4 Nov');
+    await tester
+        .pumpWidget(MaterialApp(home: V3PaymentsPage(eventId: 1, testData: d)));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Paid twice'), findsNWidgets(2));
+    expect(find.text('REFUNDED'), findsOneWidget);
+    expect(find.text('Refunded Wed 4 Nov to Ann Walsh'), findsOneWidget);
+    await tester.tap(find.text('Caoimhe Byrne'));
+    await tester.pumpAndSettle();
+    expect(find.text('Refund €10.00 to Mary Byrne?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Refund €10.00 to Mary Byrne?'), findsNothing);
+  });
 }

@@ -31,6 +31,7 @@ class _V3PaymentsPageState extends State<V3PaymentsPage> {
   PaymentsData? _data;
   bool _loading = true;
   bool _sending = false;
+  int? _refunding; // payment id being refunded
   String? _error;
   int _tab = 0;
 
@@ -54,6 +55,13 @@ class _V3PaymentsPageState extends State<V3PaymentsPage> {
           .rpc('get_event_payment_details_v2', params: {'p_event_id': id});
       final unpaidRows = await SupaFlow.client
           .rpc('get_accepted_unpaid_members', params: {'p_event_id': id});
+      // Refunded payments; older backends without the function just show none.
+      List refundRows = const [];
+      try {
+        final r = await SupaFlow.client
+            .rpc('get_event_refunds', params: {'p_event_id': id});
+        if (r is List) refundRows = r;
+      } catch (_) {}
       final ev = await EventsTable()
           .queryRows(queryFn: (q) => q.eq('event_id', id).limit(1));
       if (!mounted) return;
@@ -61,6 +69,7 @@ class _V3PaymentsPageState extends State<V3PaymentsPage> {
         _data = PaymentsData.fromJson(
           paidRows: paidRows is List ? paidRows : const [],
           unpaidRows: unpaidRows is List ? unpaidRows : const [],
+          refundRows: refundRows,
           price: ev.isNotEmpty ? (ev.first.paymentAmount ?? 0) : 0,
           title: widget.title ??
               (ev.isNotEmpty ? (ev.first.eventTitle ?? '') : ''),
@@ -132,6 +141,63 @@ class _V3PaymentsPageState extends State<V3PaymentsPage> {
       _snack('Could not send the reminders. Please try again.', warn: true);
     } finally {
       if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  // Refund one player's payment through Stripe (refund-event-payment). Team
+  // admins only; the function checks that too.
+  Future<void> _refund(PaidRow r) async {
+    if (_refunding != null) return;
+    final who = r.paidBy.isEmpty ? '' : ' to ${r.paidBy}';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: V3.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('Refund ${euro(r.amount)}$who?', style: V3.tight(20)),
+        content: Text(
+            'This refunds the payment for ${r.memberName} through Stripe. '
+            'It goes back to the card they paid with, usually within 5 to 10 '
+            "days. Stripe keeps its fee. This can't be undone.",
+            style: V3.inter(15, color: V3.muted, height: 1.4)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: V3.inter(15, color: V3.muted))),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                  backgroundColor: V3.red, foregroundColor: Colors.white),
+              child: Text('Refund',
+                  style: V3.inter(15,
+                      weight: FontWeight.w700, color: Colors.white))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _refunding = r.paymentId);
+    try {
+      V3Track.event('payment_refunded', {'event_id': widget.eventId});
+      final res = await SupaFlow.client.functions
+          .invoke('refund-event-payment', body: {'paymentId': r.paymentId});
+      final data = res.data;
+      if (data is Map && data['success'] == true) {
+        _snack('Refunded ${euro(r.amount)} for ${r.memberName}');
+        await _load();
+      } else {
+        throw Exception(data is Map ? data['error'] : null);
+      }
+    } on FunctionException catch (e) {
+      final d = e.details;
+      _snack(
+          d is Map && d['error'] is String
+              ? d['error'] as String
+              : 'The refund did not go through. Please try again.',
+          warn: true);
+    } catch (_) {
+      _snack('The refund did not go through. Please try again.', warn: true);
+    } finally {
+      if (mounted) setState(() => _refunding = null);
     }
   }
 
@@ -240,25 +306,69 @@ class _V3PaymentsPageState extends State<V3PaymentsPage> {
     );
   }
 
+  // Tap a paid player to refund them. A player paid for twice gets a tag so
+  // the extra payment is easy to spot. Refunded payments are listed below.
   Widget _paidList(PaymentsData d) {
-    if (d.paid.isEmpty) {
+    if (d.paid.isEmpty && d.refunded.isEmpty) {
       return Padding(
           padding: const EdgeInsets.fromLTRB(16, 60, 16, 0),
           child: Text('No payments yet.',
               textAlign: TextAlign.center,
               style: V3.inter(15, color: V3.muted)));
     }
-    return _card([
-      for (final r in d.paid)
-        _row(
-          r.memberName,
-          r.subtitle,
-          trailing:
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(euro(r.amount), style: V3.tight(15, weight: FontWeight.w600)),
-            Text('net ${euro(r.net)}', style: V3.inter(12, color: V3.muted)),
-          ]),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (d.paid.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text('Tap a payment to refund it.',
+              style: V3.inter(13.5, color: V3.muted, height: 1.45)),
         ),
+        _card([
+          for (final r in d.paid)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _refund(r),
+              child: _row(
+                r.memberName,
+                r.subtitle,
+                tag: d.paidTwice(r) ? 'Paid twice' : null,
+                trailing: _refunding == r.paymentId
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: V3.green))
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                            Text(euro(r.amount),
+                                style: V3.tight(15, weight: FontWeight.w600)),
+                            Text('net ${euro(r.net)}',
+                                style: V3.inter(12, color: V3.muted)),
+                          ]),
+              ),
+            ),
+        ]),
+      ],
+      if (d.refunded.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 18, 2, 8),
+          child: Text('REFUNDED',
+              style: V3.inter(13,
+                  weight: FontWeight.w700, color: V3.muted, letterSpacing: .8)),
+        ),
+        _card([
+          for (final r in d.refunded)
+            _row(
+              r.memberName,
+              r.paidBy.isEmpty ? r.subtitle : '${r.subtitle} to ${r.paidBy}',
+              trailing: Text(euro(r.amount),
+                  style: V3
+                      .tight(15, weight: FontWeight.w600, color: V3.muted)
+                      .copyWith(decoration: TextDecoration.lineThrough)),
+            ),
+        ]),
+      ],
     ]);
   }
 
@@ -330,7 +440,9 @@ class _V3PaymentsPageState extends State<V3PaymentsPage> {
         ]),
       );
 
-  Widget _row(String name, String sub, {required Widget trailing}) => Padding(
+  Widget _row(String name, String sub,
+          {required Widget trailing, String? tag}) =>
+      Padding(
         padding: const EdgeInsets.symmetric(vertical: 11),
         child: Row(children: [
           V3Avatar(nameInitials(name), size: 36),
@@ -339,6 +451,18 @@ class _V3PaymentsPageState extends State<V3PaymentsPage> {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(name, style: V3.inter(16, weight: FontWeight.w500)),
+              if (tag != null) ...[
+                const SizedBox(height: 3),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: V3.card2, borderRadius: BorderRadius.circular(8)),
+                  child: Text(tag,
+                      style: V3.inter(12,
+                          weight: FontWeight.w600, color: V3.amberText)),
+                ),
+              ],
               if (sub.isNotEmpty) ...[
                 const SizedBox(height: 1),
                 Text(sub, style: V3.inter(13, color: V3.muted)),

@@ -42,6 +42,25 @@ class PaidRow {
   }
 }
 
+/// A refunded payment (get_event_refunds).
+class RefundRow {
+  RefundRow.fromJson(Map j)
+      : paymentId = _i(j['payment_id']),
+        memberName = _s(j['member_full_name']).trim(),
+        paidBy = _s(j['user_full_name']).trim(),
+        amount = _i(j['amount_paid']),
+        refundedAt = DateTime.tryParse(_s(j['refunded_at']))?.toLocal();
+
+  final int paymentId, amount;
+  final String memberName, paidBy;
+  final DateTime? refundedAt;
+
+  /// "Refunded Wed 4 Nov"
+  String get subtitle => refundedAt == null
+      ? 'Refunded'
+      : 'Refunded ${DateFormat('EEE d MMM').format(refundedAt!)}';
+}
+
 class UnpaidRow {
   UnpaidRow.fromJson(Map j)
       : memberId = _i(j['member_id']),
@@ -57,14 +76,20 @@ class PaymentsData {
       {required this.paid,
       required this.unpaid,
       required this.price,
+      this.refunded = const [],
       this.title = ''});
 
   PaymentsData.fromJson(
       {required List paidRows,
       required List unpaidRows,
       required this.price,
+      List refundRows = const [],
       this.title = ''})
-      : paid = [
+      : refunded = [
+          for (final r in refundRows)
+            if (r is Map) RefundRow.fromJson(r)
+        ],
+        paid = [
           for (final r in paidRows)
             if (r is Map) PaidRow.fromJson(r)
         ]..sort((a, b) => a.memberName.compareTo(b.memberName)),
@@ -75,6 +100,18 @@ class PaymentsData {
 
   final List<PaidRow> paid;
   final List<UnpaidRow> unpaid;
+  final List<RefundRow> refunded;
+
+  /// Players paid for more than once (member id -> number of payments).
+  Map<int, int> get paidCounts {
+    final m = <int, int>{};
+    for (final r in paid) {
+      m[r.memberId] = (m[r.memberId] ?? 0) + 1;
+    }
+    return m;
+  }
+
+  bool paidTwice(PaidRow r) => (paidCounts[r.memberId] ?? 0) > 1;
 
   /// events.payment_amount in cents.
   final int price;
