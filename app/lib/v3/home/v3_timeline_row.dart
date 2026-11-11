@@ -309,7 +309,7 @@ class V3TimelineRow extends StatelessWidget {
               height: 14,
               decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 7),
+            const SizedBox(width: 5),
             Text(
               '$n',
               style: V3
@@ -321,7 +321,7 @@ class V3TimelineRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Wrap(
-        spacing: 16,
+        spacing: 10,
         runSpacing: 4,
         children: [
           item(V3.green, e.acceptedCount),
