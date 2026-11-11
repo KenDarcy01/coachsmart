@@ -168,12 +168,12 @@ class V3TimelineRow extends StatelessWidget {
       runSpacing: 4,
       children: [
         // Meet time first in white, start time in green, same size
-        // (Ken, 2026-11-11). No meet time: the start time alone.
+        // (Ken, 2026-11-11). No meet time: the start time alone, in white.
         if (meet.isNotEmpty && !cancelled) ...[
           _timePair('Meet', meet, V3.text, cancelled),
           _timePair('Starts', hhmm(t), V3.green, cancelled),
         ] else
-          _timePair('', hhmm(t), V3.green, cancelled),
+          _timePair('', hhmm(t), V3.text, cancelled),
         if (cd.isNotEmpty)
           Text(
             cd,
