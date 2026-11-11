@@ -199,8 +199,8 @@ flutter:
     - assets/rive_animations/
     - assets/pdfs/
     - assets/jsons/
-
     - assets/environment_values/
+    - shorebird.yaml
   fonts:
     - family: CoachSmartIcons
       fonts:

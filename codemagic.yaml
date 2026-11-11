@@ -28,6 +28,7 @@ definitions:
     APP_DIR: app
     BUNDLE_ID: my.coachsmartV2
     BUILD_NAME: "3.0.0"
+    FLUTTER_VERSION: 3.47.9
   triggers: &triggers
     events:
       - tag
@@ -86,12 +87,14 @@ workflows:
       <<: *flutter
       groups:
         - coachsmart_ios
+        - shorebird
       vars:
         <<: *env
     triggering: *triggers
     scripts:
       - *version
       - *pub
+      - *shorebird_install
       - name: iOS signing files
         script: |
           keychain initialize
@@ -100,13 +103,14 @@ workflows:
             --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
             --create
           keychain add-certificates
-          xcode-project use-profiles --project "$APP_DIR/ios/Runner.xcodeproj"
+          xcode-project use-profiles --project "$APP_DIR/ios/Runner.xcodeproj" \
+            --custom-export-options='{"manageAppVersionAndBuildNumber": false}'
       - name: CocoaPods
         script: cd "$APP_DIR/ios" && pod install
-      - name: Build the IPA
+      - name: Build the IPA (Shorebird release, so it can take patches)
         script: |
           cd "$APP_DIR"
-          flutter build ipa --release \
+          shorebird release ios --flutter-version="$FLUTTER_VERSION" \
             --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \
             --export-options-plist=/Users/builder/export_options.plist
     artifacts:
@@ -129,11 +133,13 @@ workflows:
         - coachsmart_upload
       groups:
         - coachsmart_play
+        - shorebird
       vars:
         <<: *env
     triggering: *triggers
     scripts:
       - *version
+      - *shorebird_install
       - *pub
       - name: Point Gradle at the upload key
         script: |
@@ -143,10 +149,10 @@ workflows:
           keyAlias=$CM_KEY_ALIAS
           storeFile=$CM_KEYSTORE_PATH
           EOT
-      - name: Build the app bundle
+      - name: Build the app bundle (Shorebird release, so it can take patches)
         script: |
           cd "$APP_DIR"
-          flutter build appbundle --release \
+          shorebird release android --flutter-version="$FLUTTER_VERSION" \
             --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
     artifacts:
       - app/build/app/outputs/bundle/release/*.aab
