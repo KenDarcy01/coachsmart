@@ -141,7 +141,7 @@ void main() {
     final e = ev(1, now.add(const Duration(hours: 2, minutes: 50)));
     await tester.pumpWidget(host(row(e, onReply: (r) => replied = r)));
     expect(find.text('in 2h 50m'), findsOneWidget);
-    expect(find.text('Meet 17:30'), findsOneWidget);
+    expect(find.text('Meet 17:30', findRichText: true), findsOneWidget);
     expect(find.text('BOYS 2013'), findsOneWidget);
     expect(find.text('14'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);

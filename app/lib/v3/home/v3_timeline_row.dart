@@ -167,22 +167,13 @@ class V3TimelineRow extends StatelessWidget {
       spacing: 10,
       runSpacing: 4,
       children: [
-        Text(
-          hhmm(t),
-          style: V3
-              .tight(
-            19,
-            weight: FontWeight.w700,
-            color: cancelled ? _mutedSpec : V3.text,
-            height: 1.1,
-          )
-              .copyWith(
-            fontFeatures: const [FontFeature.tabularFigures()],
-            decoration: cancelled ? TextDecoration.lineThrough : null,
-          ),
-        ),
-        if (meet.isNotEmpty && !cancelled)
-          Text('Meet $meet', style: V3.inter(14, color: _mutedSpec)),
+        // Meet time first in white, start time in green, same size
+        // (Ken, 2026-11-11). No meet time: the start time alone.
+        if (meet.isNotEmpty && !cancelled) ...[
+          _timePair('Meet', meet, V3.text, cancelled),
+          _timePair('Starts', hhmm(t), V3.green, cancelled),
+        ] else
+          _timePair('', hhmm(t), V3.green, cancelled),
         if (cd.isNotEmpty)
           Text(
             cd,
@@ -192,6 +183,33 @@ class V3TimelineRow extends StatelessWidget {
         if (!cancelled && e.paymentRequired && e.eventPaid)
           const _Tag('Paid', green: true),
       ],
+    );
+  }
+
+  // A small grey label then a bold time, e.g. "Meet 17:00".
+  Widget _timePair(String label, String time, Color color, bool cancelled) {
+    final timeStyle = V3
+        .tight(
+      19,
+      weight: FontWeight.w700,
+      color: cancelled ? _mutedSpec : color,
+      height: 1.1,
+    )
+        .copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
+      decoration: cancelled ? TextDecoration.lineThrough : null,
+    );
+    if (label.isEmpty) return Text(time, style: timeStyle);
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '$label ',
+            style: V3.inter(14, color: _mutedSpec),
+          ),
+          TextSpan(text: time, style: timeStyle),
+        ],
+      ),
     );
   }
 
