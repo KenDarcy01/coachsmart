@@ -11,7 +11,6 @@ import '/backend/api_requests/api_calls.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
-import '../teams/v3_team_models.dart' show V3Avatar, initials;
 import '../v3_theme.dart';
 import 'v3_attendance_models.dart';
 
@@ -317,7 +316,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
             overflow: TextOverflow.ellipsis,
             style: V3.tight(17, weight: FontWeight.w600)),
         actions: [
-          if (d != null && d.admin && d.isMatch && d.published)
+          if (d != null && d.admin && d.published)
             IconButton(
                 tooltip: 'Export',
                 icon: const Icon(Icons.ios_share, color: V3.green),
@@ -353,7 +352,9 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
     ];
     return [
       _tabs(d),
-      if (d.admin && d.isMatch && _tab == kAttending) _squadStrip(d),
+      // Publish/export for every event type, as in v2 (Ken, 2026-11-11:
+      // training teams too).
+      if (d.admin && _tab == kAttending) _squadStrip(d),
       if (d.hasSquads) _squadCards(d),
       if (d.roles.isNotEmpty) _rolePills(d, rows),
       if (groups.isEmpty)
@@ -433,7 +434,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
     );
   }
 
-  /// Admins on a match: publish the match day squads (needed before the
+  /// Admins: publish the squads (match day squads, or teams for training) (needed before the
   /// export and the lineup), then the published time.
   Widget _squadStrip(AttendanceData d) {
     return Container(
@@ -447,7 +448,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Match day squads',
+          Text(d.isMatch ? 'Match day squads' : 'Teams',
               style: V3.inter(15, weight: FontWeight.w600)),
           Text(publishedLabel(d.publishedAt),
               style: V3.inter(13, color: V3.muted)),
