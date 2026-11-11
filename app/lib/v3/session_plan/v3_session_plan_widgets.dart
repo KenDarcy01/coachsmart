@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '/v3/games/v3_games.dart';
 import '../v3_theme.dart';
@@ -197,6 +198,7 @@ List<Widget> spPlanCards(
   Set<String> changed = const {},
 }) {
   final out = <Widget>[];
+  if (edit != null) out.add(const SpEditHint());
   final title = '${plan['session_title'] ?? ''}';
   if (title.trim().isNotEmpty) {
     out.add(const _SectionHeader(label: 'FOCUS', tone: 'drill'));
@@ -384,6 +386,11 @@ class _SectionHeader extends StatelessWidget {
                     ],
                     Text('$m min',
                         style: V3.inter(15, weight: FontWeight.w700)),
+                    if (onMinutes != null) ...[
+                      const SizedBox(width: 6),
+                      const Icon(Icons.edit_outlined,
+                          size: 15, color: V3.muted),
+                    ],
                   ]),
                 ),
               ),
@@ -575,20 +582,99 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = style ?? V3.inter(16, height: 1.5);
     if (edit == null) return Text(text, style: st);
-    return TextFormField(
-      key: ValueKey('f$version:$path'),
-      initialValue: text,
-      maxLines: null,
-      style: st,
-      cursorColor: V3.green,
-      textCapitalization: TextCapitalization.sentences,
-      decoration: const InputDecoration(
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(vertical: 4),
-          border: InputBorder.none),
-      onChanged: (v) => edit!.onText(path, v),
+    // Editable text is drawn as a soft box with a pencil so it reads as
+    // "tap me"; read-only plans stay plain text (Ken, 2026-11-11).
+    OutlineInputBorder box(Color c, [double w = 1]) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: c, width: w));
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: TextFormField(
+        key: ValueKey('f$version:$path'),
+        initialValue: text,
+        maxLines: null,
+        style: st,
+        cursorColor: V3.green,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: V3.card2,
+            contentPadding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+            suffixIcon: const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Icon(Icons.edit_outlined, size: 17, color: V3.muted),
+            ),
+            suffixIconConstraints:
+                const BoxConstraints(minWidth: 30, minHeight: 24),
+            enabledBorder: box(V3.line),
+            focusedBorder: box(V3.green, 1.5),
+            border: box(V3.line)),
+        onChanged: (v) {
+          SpEditHint.markDone();
+          edit!.onText(path, v);
+        },
+      ),
     );
   }
+}
+
+/// "Tap any boxed text to change it": shown above an editable plan until
+/// the coach has edited something once (remembered on the phone).
+class SpEditHint extends StatefulWidget {
+  const SpEditHint({super.key});
+
+  static const _key = 'v3_plan_edit_hint_done';
+  static final ValueNotifier<bool> _done = ValueNotifier(false);
+  static bool _read = false;
+
+  static void markDone() {
+    if (_done.value) return;
+    _done.value = true;
+    SharedPreferences.getInstance()
+        .then((p) => p.setBool(_key, true))
+        .catchError((_) => false);
+  }
+
+  @override
+  State<SpEditHint> createState() => _SpEditHintState();
+}
+
+class _SpEditHintState extends State<SpEditHint> {
+  @override
+  void initState() {
+    super.initState();
+    if (!SpEditHint._read) {
+      SpEditHint._read = true;
+      SharedPreferences.getInstance().then((p) {
+        if (p.getBool(SpEditHint._key) == true) SpEditHint._done.value = true;
+      }).catchError((_) {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+        valueListenable: SpEditHint._done,
+        builder: (_, done, __) => done
+            ? const SizedBox.shrink()
+            : Container(
+                key: const ValueKey('edit-hint'),
+                margin: const EdgeInsets.only(top: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                    color: V3.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: V3.line)),
+                child: Row(children: [
+                  const Icon(Icons.edit_outlined, size: 18, color: V3.green),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: Text('Tap any boxed text to change it',
+                          style: V3.inter(15, color: V3.muted))),
+                ]),
+              ),
+      );
 }
 
 /// One of the three stat tiles (players, coaches, minutes).
@@ -629,12 +715,27 @@ class SpStat extends StatelessWidget {
                   isDense: true,
                   hintText: '—',
                   hintStyle: st.copyWith(color: V3.muted),
-                  contentPadding: EdgeInsets.zero,
+                  filled: true,
+                  fillColor: V3.card2,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: V3.line)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: V3.green, width: 1.5)),
                   border: InputBorder.none),
-              onChanged: (v) => onChanged!(path, int.tryParse(v)),
+              onChanged: (v) {
+                SpEditHint.markDone();
+                onChanged!(path, int.tryParse(v));
+              },
             ),
-          const SizedBox(height: 2),
-          Text(label, style: V3.inter(14, color: V3.muted)),
+          const SizedBox(height: 4),
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: V3.inter(14, color: V3.muted)),
         ]),
       ),
     );
