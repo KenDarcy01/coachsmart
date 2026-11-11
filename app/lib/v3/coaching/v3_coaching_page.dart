@@ -1,8 +1,10 @@
 // v3 Coaching: one tab for games and session plans, replacing the Resources
 // and Favourites tabs (proposal approved by Ken 2026-11-11).
 //
-//   Games | Plans    a two-part switch under the title
-//   Games            V3CoachingGames: search, filters, heart, + to the plan
+//   Pathway | Plans  a two-part switch under the title ("Games | Plans"
+//                    when the default club has no pathway)
+//   Pathway / Games  V3CoachingGames: the pathway's stages (or a flat games
+//                    list), search, Saved, heart, + to the plan
 //   Plans            built by [plansBuilder] (the plans list lives in its
 //                    own files); a placeholder until one is passed in
 //
@@ -27,7 +29,7 @@ class V3CoachingPage extends StatefulWidget {
     this.testData,
   });
 
-  /// 0 = Games, 1 = Plans.
+  /// 0 = Pathway (Games), 1 = Plans.
   final int initialTab;
 
   /// Builds the Plans half. Null: "Plans are coming soon".
@@ -56,6 +58,10 @@ class _V3CoachingPageState extends State<V3CoachingPage> {
 
   /// Plans is built the first time it is shown, then kept.
   late bool _plansShown = _tab == 1;
+
+  /// The default club has a pathway: the first half is named "Pathway".
+  /// Starts from the last load, then follows what the games view finds.
+  bool _pathway = V3CoachingGames.lastHadPathway;
 
   // Managers (role 100+) can add a game, as the Resources page's + did.
   List<Widget>? _actions() {
@@ -96,6 +102,9 @@ class _V3CoachingPageState extends State<V3CoachingPage> {
       draft: widget.draft,
       onOpenPlan: widget.onOpenPlan,
       pickMode: widget.pickMode,
+      onPathwayChanged: (v) {
+        if (v != _pathway && mounted) setState(() => _pathway = v);
+      },
       testData: widget.testData,
     );
     return Scaffold(
@@ -118,7 +127,7 @@ class _V3CoachingPageState extends State<V3CoachingPage> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
                   child: _Switch(
-                      labels: const ['Games', 'Plans'],
+                      labels: [_pathway ? 'Pathway' : 'Games', 'Plans'],
                       selected: _tab,
                       onTap: _setTab),
                 ),
@@ -139,7 +148,7 @@ class _V3CoachingPageState extends State<V3CoachingPage> {
   }
 }
 
-/// The Games | Plans switch: two halves, each 48 high.
+/// The Pathway | Plans switch: two halves, each 48 high.
 class _Switch extends StatelessWidget {
   const _Switch(
       {required this.labels, required this.selected, required this.onTap});

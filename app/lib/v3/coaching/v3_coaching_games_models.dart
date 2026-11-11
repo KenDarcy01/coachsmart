@@ -1,6 +1,10 @@
-// Rules for the Games half of the v3 Coaching tab: one searchable list of
-// every game the coach can see, with Saved, Stage (or Age), Code and Type
-// filters (Coaching tab proposal, approved by Ken 2026-11-11).
+// Rules for the Games half of the v3 Coaching tab (Coaching tab proposal
+// and the pathway-first rework, both approved by Ken 2026-11-11).
+//
+// A club with a pathway opens on its stages: each stage card shows its ages
+// and how many games it holds, and the games are browsed inside a stage.
+// Search and Saved cut across every stage. A club with no pathway gets one
+// flat list with Saved, Age, Code and Type filters.
 //
 // The stage rule is the Resources page's: a game belongs to a stage when
 // any of its ages is one of the stage's ages, and games with nothing to
@@ -19,7 +23,7 @@ class CoachingStage {
   /// Its place in the pathway (pathway_display_seq, else its position).
   final int number;
 
-  /// What the Stage pill shows once picked: "Stage 1".
+  /// The stage page's title and the tag on a search result: "Stage 1".
   String get label => 'Stage $number';
 }
 
@@ -28,6 +32,91 @@ List<CoachingStage> coachingStages(Pathway p, List<PathwayStage> stages) => [
       for (final (i, s) in stages.indexed)
         CoachingStage(pathway: p, stage: s, number: s.seq != 0 ? s.seq : i + 1)
     ];
+
+final _stageN = RegExp(r'^stage\s*\d+$', caseSensitive: false);
+
+/// The words on a stage card: the stage's description ("Learning to Master
+/// the Ball"). Where a pathway names its stages "Stage 1" and keeps the
+/// words in the description, the description is used; otherwise the name.
+String stageTitle(PathwayStage s) {
+  final name = s.name.trim(), desc = s.desc.trim();
+  if (desc.isNotEmpty && (name.isEmpty || _stageN.hasMatch(name))) return desc;
+  return name;
+}
+
+/// Any longer text to show under [stageTitle] on the stage page; '' when
+/// the title already says it all.
+String stageBlurb(PathwayStage s) {
+  final title = stageTitle(s), name = s.name.trim(), desc = s.desc.trim();
+  if (desc.isNotEmpty && desc != title) return desc;
+  if (name != title && !_stageN.hasMatch(name)) return name;
+  return '';
+}
+
+/// "U4 to U6" for a run of ages, "U8" for one, "U8, U10" when they skip.
+String agesRange(List<String> ages) {
+  final sorted = [...ages]
+    ..sort((a, b) => _ageNumber(a).compareTo(_ageNumber(b)));
+  if (sorted.isEmpty) return '';
+  final first = _ageNumber(sorted.first), last = _ageNumber(sorted.last);
+  if (sorted.length > 1 && last - first == sorted.length - 1) {
+    return '${ageLabel(sorted.first)} to ${ageLabel(sorted.last)}';
+  }
+  return sorted.map(ageLabel).join(', ');
+}
+
+/// The second line of a stage card: "U4 to U6 · 14 games".
+String stageCardLine(List<String> ages, int count) =>
+    [if (ages.isNotEmpty) agesRange(ages), gamesCount(count)].join(' · ');
+
+/// Under the stage page's title: "Learning to Master the Ball · U4 to U6".
+String stageHeading(PathwayStage s) => [
+      if (stageTitle(s).isNotEmpty) stageTitle(s),
+      if (s.ages.isNotEmpty) agesRange(s.ages)
+    ].join(' · ');
+
+/// The heading over a pathway's stages: "TURAS pathway".
+String pathwayHeading(String name) {
+  final n = name.trim();
+  if (n.isEmpty) return 'Pathway';
+  return n.toLowerCase().endsWith('pathway') ? n : '$n pathway';
+}
+
+/// The games a coach sees inside [s], for the Code and Type picked.
+List<V3Game> stageGames(List<V3Game> games, CoachingStage s,
+        {String? code, GameKind? kind}) =>
+    filterGames(
+        games, GamesFilter(ages: s.stage.ages, code: code, kind: kind), {});
+
+/// Games that belong to no stage ("Other games"), for the Code and Type.
+List<V3Game> otherGames(List<V3Game> games, List<CoachingStage> stages,
+        {String? code, GameKind? kind}) =>
+    [
+      for (final g
+          in filterGames(games, GamesFilter(code: code, kind: kind), {}))
+        if (!stages.any((s) => g.matchesAges(s.stage.ages))) g
+    ];
+
+/// The stage tag on a search or Saved result: "Stage 1", "Stages 1, 2"
+/// when its ages span stages, '' when it is in none.
+String stageTag(V3Game g, List<CoachingStage> stages) {
+  final numbers = <int>{
+    for (final s in stages)
+      if (g.matchesAges(s.stage.ages)) s.number
+  }.toList()
+    ..sort();
+  if (numbers.isEmpty) return '';
+  return numbers.length == 1
+      ? 'Stage ${numbers.first}'
+      : 'Stages ${numbers.join(', ')}';
+}
+
+/// The heading over search or Saved results: "3 saved games", "5 games".
+String resultsCountText(int n, {required bool saved}) =>
+    saved ? '$n saved game${n == 1 ? '' : 's'}' : gamesCount(n);
+
+const String kOtherGamesTitle = 'Other games';
+const String kNoStageGamesText = 'No games here yet.';
 
 /// What the coach has typed and picked.
 class GamesFilter {
