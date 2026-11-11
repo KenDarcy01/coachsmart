@@ -107,19 +107,22 @@ class V3TimelineRow extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Order: team, squad, title, time (Ken, 2026-11-11).
             Padding(padding: crestRoom, child: _teamTitle(cancelled)),
             if (_hasSquad) ...[
               const SizedBox(height: 6),
               Padding(padding: crestRoom, child: _squadPill(cancelled)),
               const SizedBox(height: 6),
-              _line1(cancelled),
+              title,
             ] else ...[
-              const SizedBox(height: 6),
-              Padding(padding: crestRoom, child: _line1(cancelled)),
+              const SizedBox(height: 4),
+              Padding(padding: crestRoom, child: title),
             ],
-            const SizedBox(height: 3),
-            title,
+            const SizedBox(height: 4),
+            _line1(cancelled),
             if (!cancelled && e.requestAttendance) ...[
+              const SizedBox(height: 12),
+              _bar(),
               const SizedBox(height: 10),
               _footer(),
             ],
@@ -264,50 +267,68 @@ class V3TimelineRow extends StatelessWidget {
     );
   }
 
-  // Ring, then three stacked dots (green, grey, red) with the totals
-  // beside them and no words (Ken, 2026-11-11). Same for coaches.
-  Widget _counts() {
-    final ring = Semantics(
+  // Attendance as one bar the width of the card: green attending, grey no
+  // reply, red declined (Ken, 2026-11-11, replacing the dial).
+  Widget _bar() {
+    final a = e.acceptedCount, n = e.noResponseCount, d = e.declinedCount;
+    final total = a + n + d;
+    return Semantics(
       label: attendanceLabel(e),
-      child: _Ring(
-        accepted: e.acceptedCount,
-        total: e.acceptedCount + e.noResponseCount + e.declinedCount,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 7,
+            child: total == 0
+                ? Container(color: V3.text.withValues(alpha: .12))
+                : Row(
+                    children: [
+                      if (a > 0)
+                        Expanded(flex: a, child: Container(color: V3.green)),
+                      if (n > 0)
+                        Expanded(flex: n, child: Container(color: V3.barGrey)),
+                      if (d > 0)
+                        Expanded(flex: d, child: Container(color: V3.red)),
+                    ],
+                  ),
+          ),
+        ),
       ),
     );
+  }
+
+  // Three dots (green, grey, red) in a row with the totals beside them.
+  Widget _counts() {
     final tabular = [const FontFeature.tabularFigures()];
-    Widget line(Color dot, int n) => Row(
+    Widget item(Color dot, int n) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 9,
-              height: 9,
+              width: 10,
+              height: 10,
               decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               '$n',
               style: V3
-                  .inter(14, weight: FontWeight.w600, height: 1.2)
+                  .inter(15, weight: FontWeight.w600, height: 1.2)
                   .copyWith(fontFeatures: tabular),
             ),
           ],
         );
-    return Row(
-      children: [
-        ring,
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            line(V3.green, e.acceptedCount),
-            const SizedBox(height: 3),
-            line(V3.barGrey, e.noResponseCount),
-            const SizedBox(height: 3),
-            line(V3.red, e.declinedCount),
-          ],
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 4,
+        children: [
+          item(V3.green, e.acceptedCount),
+          item(V3.barGrey, e.noResponseCount),
+          item(V3.red, e.declinedCount),
+        ],
+      ),
     );
   }
 
@@ -632,52 +653,6 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
 }
 
 /// 26 px attendance ring: green arc for the attending share, faint track.
-class _Ring extends StatelessWidget {
-  const _Ring({required this.accepted, required this.total});
-  final int accepted;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(26, 26),
-      painter: _RingPainter(total == 0 ? 0 : accepted / total),
-    );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  _RingPainter(this.fraction);
-  final double fraction;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = Offset(size.width / 2, size.height / 2);
-    final r = size.width / 2 - 1.75;
-    final track = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
-      ..color = V3.text.withValues(alpha: .12);
-    canvas.drawCircle(c, r, track);
-    if (fraction <= 0) return;
-    final arc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
-      ..color = V3.green;
-    canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r),
-      -math.pi / 2,
-      2 * math.pi * fraction.clamp(0, 1),
-      false,
-      arc,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) => old.fraction != fraction;
-}
-
-/// Cancelled / Paid outline tag (design §5.9).
 class _Tag extends StatelessWidget {
   const _Tag(this.text, {required this.green});
   final String text;
