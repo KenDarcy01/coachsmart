@@ -6,6 +6,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
@@ -356,10 +357,27 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
     switch (pick) {
       case 'add':
         // iPhone and Mac open the subscribe prompt for webcal links; Google
-        // Calendar adds a feed through its own link.
-        await launchURL(android
+        // Calendar adds a feed through its own link. On the web app a new
+        // window is blocked after the wait for the link, so the webcal link
+        // opens in place, and the link is copied too in case nothing opens.
+        final target = android
             ? 'https://calendar.google.com/calendar/r?cid=${Uri.encodeComponent(webcal)}'
-            : webcal);
+            : webcal;
+        await Clipboard.setData(ClipboardData(text: https));
+        var opened = false;
+        try {
+          opened = await launchUrl(Uri.parse(target),
+              webOnlyWindowName: kIsWeb && !android ? '_self' : null);
+        } catch (_) {}
+        if (!mounted) return;
+        if (!opened || kIsWeb) {
+          _snack(android
+              ? 'Link copied. If Google Calendar did not open, add it there '
+                  'with From URL.'
+              : 'Link copied. If nothing opened, go to Settings, Calendar, '
+                  'Accounts, Add Account, Other, Add Subscribed Calendar and '
+                  'paste it.');
+        }
       case 'copy':
         await Clipboard.setData(ClipboardData(text: https));
         _snack('Calendar link copied');
