@@ -483,29 +483,43 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
     final t = await showModalBottomSheet<CreateTeamsStruct>(
       context: context,
       backgroundColor: V3.card,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          _grab(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Which team?', style: V3.tight(20))),
-          ),
-          for (final t in _teams)
-            ListTile(
-              title: Text(t.teamName,
-                  style: V3.inter(16, weight: FontWeight.w500)),
-              subtitle: Text(t.clubName, style: V3.inter(13, color: V3.muted)),
-              trailing: t.teamId == _team?.teamId
-                  ? const Icon(Icons.check, color: V3.green)
-                  : null,
-              onTap: () => Navigator.pop(ctx, t),
+        child: ConstrainedBox(
+          constraints:
+              BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.8),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _grab(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Which team?', style: V3.tight(20))),
             ),
-          const SizedBox(height: 12),
-        ]),
+            Flexible(
+              child: ListView(
+                key: const ValueKey('team-list'),
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: 12),
+                children: [
+                  for (final t in _teams)
+                    ListTile(
+                      title: Text(t.teamName,
+                          style: V3.inter(16, weight: FontWeight.w500)),
+                      subtitle: Text(t.clubName,
+                          style: V3.inter(13, color: V3.muted)),
+                      trailing: t.teamId == _team?.teamId
+                          ? const Icon(Icons.check, color: V3.green)
+                          : null,
+                      onTap: () => Navigator.pop(ctx, t),
+                    ),
+                ],
+              ),
+            ),
+          ]),
+        ),
       ),
     );
     if (t != null) setState(() => _pickTeam(t));
