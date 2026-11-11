@@ -468,12 +468,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: ResourcesWidget.routeName,
               path: ResourcesWidget.routePath,
-              builder: (context, params) => ResourcesWidget(
-                currentAuthToken: params.getParam(
-                  'currentAuthToken',
-                  ParamType.String,
-                ),
-              ),
+              builder: (context, params) => const V3ResourcesPage(), // v3
             ),
             FFRoute(
               name: ResourcesAddWidget.routeName,

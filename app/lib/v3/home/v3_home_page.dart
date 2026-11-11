@@ -222,12 +222,8 @@ class _V3HomePageState extends State<V3HomePage> {
 
   void _openResources() {
     if (_home.clubPathway) {
-      context.pushNamed(
-        ResourcesWidget.routeName,
-        queryParameters: {
-          'currentAuthToken': serializeParam(currentJwtToken, ParamType.String),
-        }.withoutNulls,
-      );
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const V3ResourcesPage()));
     } else {
       context.pushNamed(GamesAgesWidget.routeName);
     }
