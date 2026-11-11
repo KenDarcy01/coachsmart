@@ -52,6 +52,28 @@ serve(async (req)=>{
     }
     // 2. Determine action based on event type
     const session = event.data.object;
+    // A refund made in the Stripe dashboard (2026-11-11): when the whole
+    // charge is refunded, mark its confirmed rows refunded so the app shows
+    // it. Refunds made from the app are recorded by refund-event-payment.
+    // (Needs charge.refunded ticked on this endpoint in Stripe.)
+    if (event.type === 'charge.refunded') {
+      const charge: any = session;
+      if (charge.refunded === true && charge.payment_intent) {
+        const pi = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id;
+        const sessions = await stripe.checkout.sessions.list({ payment_intent: pi, limit: 5 });
+        const ids = sessions.data.map((s: any) => s.id);
+        const now = new Date().toISOString();
+        await supabase.from('event_user_member_payment')
+          .update({ payment_status: 'refunded', refunded_at: now, stripe_payment_intent_id: pi })
+          .eq('stripe_payment_intent_id', pi).eq('payment_status', 'confirmed');
+        if (ids.length) {
+          await supabase.from('event_user_member_payment')
+            .update({ payment_status: 'refunded', refunded_at: now, stripe_payment_intent_id: pi })
+            .in('stripe_session_id', ids).eq('payment_status', 'confirmed');
+        }
+      }
+      return new Response(JSON.stringify({ received: true }), { status: 200 });
+    }
     let paymentStatus;
     let logMessage;
     // Initialize financial tracking variables
@@ -185,7 +207,15 @@ serve(async (req)=>{
         tax_amount: taxPerMember
       }));
     // Perform the batch UPSERT into the new table
-    const { error: dbError } = await supabase.from('event_user_member_payment').upsert(insertData, {
+    // Never turn a refunded row back into a paid one (Stripe can resend).
+    const { data: doneRows } = await supabase.from('event_user_member_payment')
+      .select('member_id').eq('stripe_session_id', session_id).in('payment_status', ['refunded', 'refunding']);
+    const done = new Set((doneRows || []).map((r: any) => Number(r.member_id)));
+    const toWrite = insertData.filter((r: any) => !done.has(Number(r.member_id)));
+    if (toWrite.length === 0) {
+      return new Response(JSON.stringify({ received: true, already_refunded: true }), { status: 200 });
+    }
+    const { error: dbError } = await supabase.from('event_user_member_payment').upsert(toWrite, {
       onConflict: 'stripe_session_id, member_id'
     });
     if (dbError) {

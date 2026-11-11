@@ -55,6 +55,24 @@ export async function recordEventPayment(sb: any, session: any, account: string 
     gross_amount: unitPrice,
     tax_amount: Math.round(tax / n),
   }));
-  const { error } = await sb.from("event_user_member_payment").upsert(rows, { onConflict: "stripe_session_id, member_id" });
+  // Never turn a refunded row back into a paid one (Stripe can resend).
+  const { data: doneRows } = await sb.from("event_user_member_payment")
+    .select("member_id").eq("stripe_session_id", full.id).in("payment_status", ["refunded", "refunding"]);
+  const done = new Set((doneRows || []).map((r: any) => Number(r.member_id)));
+  const toWrite = rows.filter((r) => !done.has(r.member_id));
+  if (!toWrite.length) return;
+  const { error } = await sb.from("event_user_member_payment").upsert(toWrite, { onConflict: "stripe_session_id, member_id" });
   if (error) throw new Error("event payment upsert failed: " + error.message);
+}
+
+// A whole charge refunded in the club's Stripe dashboard: mark its rows.
+export async function markChargeRefunded(sb: any, charge: any, account: string | null) {
+  if (charge?.refunded !== true || !charge.payment_intent) return;
+  const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent.id;
+  const list = await stripe("GET", "/checkout/sessions", { payment_intent: pi, limit: 5 }, account);
+  const ids = (list.data || []).map((s: any) => s.id);
+  if (!ids.length) return;
+  await sb.from("event_user_member_payment")
+    .update({ payment_status: "refunded", refunded_at: new Date().toISOString(), stripe_payment_intent_id: pi })
+    .in("stripe_session_id", ids).eq("payment_status", "confirmed");
 }

@@ -8,7 +8,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { acct, confirmCheckout, json, loadLotto, recordInvoice, refundCharge, verifyStripeSignature } from "../_shared/lotto.ts";
-import { isEventPayment, recordEventPayment } from "./event-payment.ts";
+import { isEventPayment, markChargeRefunded, recordEventPayment } from "./event-payment.ts";
 
 serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -41,6 +41,8 @@ serve(async (req) => {
         if (cfg) await recordInvoice(sb, ticket, obj);
       }
     } else if (event.type === "charge.refunded") {
+      // Team event payments on the club's account (no-op for lotto charges).
+      await markChargeRefunded(sb, obj, event.account || null);
       const { data: cfg } = await sb.from("lotto_clubs").select("*, clubs!inner(club_name, crest, primary_colour, secondary_colour, stripe_account_id)")
         .eq("clubs.stripe_account_id", event.account || "-").limit(1).maybeSingle();
       if (cfg) await refundCharge(sb, cfg, obj);
