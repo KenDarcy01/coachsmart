@@ -1,6 +1,8 @@
-// v3 Home. Same data as the FlutterFlow page (get_user_home_events), laid out
-// as in /mnt/project-files/coachsmart/app-v3/home-design/CHOSEN-home.png.
+// v3 Home: the Timeline design in docs/design/home-v3/HOME-V3-DESIGN.md.
+// Same data as the FlutterFlow page (get_user_home_events); a team chip bar
+// over one rail of events with a day numeral per day and in-place replies.
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,8 +18,9 @@ import '../notifications/v3_unread.dart';
 import '../profile/v3_profile_models.dart' show PushPref;
 import '../v3_crest_image.dart';
 import '../v3_theme.dart';
-import 'v3_event_card.dart';
 import 'v3_home_data.dart';
+import 'v3_team_chip.dart';
+import 'v3_timeline_row.dart';
 
 class V3HomePage extends StatefulWidget {
   const V3HomePage({super.key});
@@ -34,9 +37,7 @@ class _V3HomePageState extends State<V3HomePage> {
 
   bool _loaded = false;
   bool _failed = false;
-  int _selectedClub = 0;
-  int _selectedTeam = 0;
-  final Set<int> _expanded = {};
+  int _selectedTeam = 0; // persists while the app is open; All on cold start
   final Set<int> _busy = {};
   DateTime _now = DateTime.now();
   Timer? _tick;
@@ -79,8 +80,8 @@ class _V3HomePageState extends State<V3HomePage> {
         data: {
           'fcm_token':
               FFAppState().fcmToken == 'Running on web. FCM setup skipped.'
-                  ? ''
-                  : FFAppState().fcmToken,
+              ? ''
+              : FFAppState().fcmToken,
         },
         matchingRows: (rows) => rows.eqOrNull('user_id', currentUserUid),
       );
@@ -122,24 +123,28 @@ class _V3HomePageState extends State<V3HomePage> {
 
   UserEventsHomeStruct get _home => FFAppState().homePageEvents;
 
-  List<ClubsStruct> get _realClubs =>
-      _home.clubs.where((c) => c.clubId != 0).toList();
-
-  List<UserTeamsStruct> get _teamsForSheet => _home.userTeams
-      .where((t) =>
-          t.teamId != 0 && (_selectedClub == 0 || t.clubId == _selectedClub))
-      .toList();
+  /// Chips in the order user_teams arrives, without the "All Teams" row.
+  List<UserTeamsStruct> get _teams =>
+      _home.userTeams.where((t) => t.teamId != 0).toList();
 
   List<EventsStruct> get _events => _home.events
-      .where((e) =>
-          (_selectedClub == 0 || e.clubId == _selectedClub) &&
-          (_selectedTeam == 0 || e.teamId == _selectedTeam) &&
-          e.eventStatus != 'deleted')
+      .where(
+        (e) =>
+            (_selectedTeam == 0 || e.teamId == _selectedTeam) &&
+            e.eventStatus != 'deleted',
+      )
       .toList();
 
   String _crestFor(int clubId) {
     for (final c in _home.clubs) {
       if (c.clubId == clubId) return c.crest;
+    }
+    return '';
+  }
+
+  String _clubNameFor(int clubId) {
+    for (final c in _home.clubs) {
+      if (c.clubId == clubId) return c.clubName;
     }
     return '';
   }
@@ -152,12 +157,27 @@ class _V3HomePageState extends State<V3HomePage> {
   // 2026-11-07: parents with two children reply once, then fix one on the
   // event page if needed). The home RPC carries one member per event, so
   // the event details RPC supplies the full list.
+  //
+  // The row updates in place straight away and is put back if the write
+  // fails (design §5.8, §9); nothing reloads the whole list.
   Future<void> _reply(EventsStruct e, int responseId) async {
     if (e.memberId == 0) {
       _openEvent(e);
       return;
     }
-    setState(() => _busy.add(e.eventId));
+    final before = (
+      response: e.responseId,
+      accepted: e.acceptedCount,
+      declined: e.declinedCount,
+      noReply: e.noResponseCount,
+    );
+    setState(() {
+      _busy.add(e.eventId);
+      e.responseId = responseId;
+      e.noResponseCount = math.max(0, e.noResponseCount - 1);
+      if (responseId == 3) e.acceptedCount = e.acceptedCount + 1;
+      if (responseId == 4) e.declinedCount = e.declinedCount + 1;
+    });
     try {
       var memberIds = <int>[e.memberId];
       try {
@@ -167,7 +187,8 @@ class _V3HomePageState extends State<V3HomePage> {
           supabaseJWTtoken: currentJwtToken,
         );
         final d = UserEventDetailsStruct.maybeFromMap(r.jsonBody);
-        final ids = d?.teamMembers
+        final ids =
+            d?.teamMembers
                 .where((m) => m.responseId != responseId)
                 .map((m) => m.memberId)
                 .toList() ??
@@ -190,21 +211,26 @@ class _V3HomePageState extends State<V3HomePage> {
           pAttendanceId: row.attendanceId,
         );
       }
-      await _load();
     } catch (err) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Could not save your reply. Please try again.',
-                style: V3.inter(14, color: V3.bg)),
-            backgroundColor: V3.amber));
+        setState(() {
+          e.responseId = before.response;
+          e.acceptedCount = before.accepted;
+          e.declinedCount = before.declined;
+          e.noResponseCount = before.noReply;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not save your reply. Please try again.',
+              style: V3.inter(14, color: V3.bg),
+            ),
+            backgroundColor: V3.amber,
+          ),
+        );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _busy.remove(e.eventId);
-          _expanded.remove(e.eventId);
-        });
-      }
+      if (mounted) setState(() => _busy.remove(e.eventId));
     }
   }
 
@@ -246,6 +272,7 @@ class _V3HomePageState extends State<V3HomePage> {
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
     final role = _home.highestRoleLevel;
+    final coach = role >= 30;
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -257,11 +284,12 @@ class _V3HomePageState extends State<V3HomePage> {
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
+          toolbarHeight: 56,
           leading: IconButton(
             icon: const Icon(Icons.menu, color: V3.green, size: 28),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
-          title: Text('Home', style: V3.tight(20)),
+          title: Text('Home', style: V3.inter(17, weight: FontWeight.w600)),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 6),
@@ -270,24 +298,35 @@ class _V3HomePageState extends State<V3HomePage> {
                   await context.pushNamed(NotificationsWidget.routeName);
                   if (mounted) _load();
                 },
-                // Own badge (not NotificationBadgeWidget, whose own tap
-                // handler swallowed this one, so Home never reloaded the
-                // count after Notifications closed).
+                // An 8 px green dot, not a number (design §5.1). Own widget
+                // rather than NotificationBadgeWidget, whose tap handler
+                // swallowed this one.
                 icon: ValueListenableBuilder<int>(
                   valueListenable: V3Unread.instance.count,
-                  builder: (context, n, _) => n > 0
-                      ? Badge(
-                          label: Text(n > 99 ? '99+' : '$n',
-                              style: V3.inter(12,
-                                  weight: FontWeight.w700,
-                                  color: Colors.white)),
-                          backgroundColor: V3.red,
-                          offset: const Offset(4, -4),
-                          child: const Icon(Icons.notifications_sharp,
-                              color: V3.green, size: 28),
-                        )
-                      : const Icon(Icons.notifications_sharp,
-                          color: V3.green, size: 28),
+                  builder: (context, n, _) => Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(
+                        Icons.notifications_sharp,
+                        color: V3.green,
+                        size: 28,
+                      ),
+                      if (n > 0)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Container(
+                            key: const Key('v3-home-bell-dot'),
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: V3.green,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -295,283 +334,203 @@ class _V3HomePageState extends State<V3HomePage> {
         ),
         body: !_loaded
             ? Center(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
-                    child: Image.asset('assets/images/Launcher_Icon_v2.png',
-                        width: 120, height: 120),
-                  ),
-                  const SizedBox(height: 22),
-                  const SizedBox(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(26),
+                      child: Image.asset(
+                        'assets/images/Launcher_Icon_v2.png',
+                        width: 120,
+                        height: 120,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    const SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: V3.green)),
-                ]),
+                        strokeWidth: 2.5,
+                        color: V3.green,
+                      ),
+                    ),
+                  ],
+                ),
               )
             : _failed
-                ? _errorBody()
-                : RefreshIndicator(
-                    color: V3.green,
-                    backgroundColor: V3.card,
-                    onRefresh: _load,
-                    child: _list(),
+            ? _errorBody()
+            : Column(
+                children: [
+                  _chipBar(),
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: V3.green,
+                      backgroundColor: V3.card,
+                      onRefresh: _load,
+                      child: _timeline(),
+                    ),
                   ),
-        bottomNavigationBar: _loaded && !_failed ? _tabs(role) : null,
+                ],
+              ),
+        // Parents get no bottom bar (design §5.10).
+        bottomNavigationBar: _loaded && !_failed && coach ? _tabs(role) : null,
       ),
     );
   }
 
   Widget _errorBody() => Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text("Couldn't load your events",
-              style: V3.inter(18, weight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text('Check your connection and try again.',
-              style: V3.inter(15, color: V3.muted)),
-          const SizedBox(height: 16),
-          FilledButton(
-              onPressed: _load,
-              style: FilledButton.styleFrom(
-                  backgroundColor: V3.green, foregroundColor: V3.bg),
-              child: const Text('Retry')),
-        ]),
-      );
-
-  Widget _list() {
-    final events = _events;
-    final groups = groupEvents(events, _now);
-
-    final children = <Widget>[];
-    if (_realClubs.length >= 2 || _teamsForSheet.length >= 2) {
-      children.add(_filterRow());
-    }
-    if (_home.showAdvert) children.add(_advert());
-
-    if (events.isEmpty) {
-      children.add(_empty());
-    }
-    for (final g in groups) {
-      children.add(_groupHeader(g));
-      for (final e in g.events) {
-        children.add(V3EventCard(
-          event: e,
-          now: _now,
-          isNext: false, // no next-up highlight (Ken, 2026-11-07)
-          isCoach: _isCoachOn(e),
-          far: false,
-          expanded: _expanded.contains(e.eventId),
-          busy: _busy.contains(e.eventId),
-          crestUrl: _crestFor(e.clubId),
-          onTap: () => _openEvent(e),
-          onReply: (r) => _reply(e, r),
-          onExpand: () => setState(() => _expanded.add(e.eventId)),
-        ));
-      }
-    }
-    if (events.isNotEmpty && _selectedTeam != 0) {
-      children.add(_endNote());
-    }
-    children.add(const SizedBox(height: 24));
-
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      children: children,
-    );
-  }
-
-  Widget _groupHeader(EventGroup g) => Padding(
-        padding: const EdgeInsets.fromLTRB(0, 18, 0, 8),
-        child: Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              // White and larger so the day stands out (Ken, 2026-11-07).
-              Text(g.label.toUpperCase(),
-                  style: V3.tight(19, weight: FontWeight.w700, color: V3.text)),
-              if (g.dateText.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                Text(g.dateText,
-                    style:
-                        V3.inter(16, weight: FontWeight.w500, color: V3.text)),
-              ],
-            ]),
-      );
-
-  // Club crests (only with 2+ clubs) and the team filter button on the
-  // right.
-  // Crest row (only with 2+ clubs) and a row of team pills under it that
-  // filter the list; tapping the selected pill clears the filter
-  // (Ken, 2026-11-07, replacing the filter button and sheet).
-  Widget _filterRow() {
-    final clubs = _realClubs;
-    final teams = _teamsForSheet;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (clubs.length >= 2)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                _clubTile(0, null),
-                for (final c in clubs) ...[
-                  const SizedBox(width: 12),
-                  _clubTile(c.clubId, c.crest),
-                ],
-              ]),
-            ),
-          ),
-        if (teams.length >= 2)
-          Padding(
-            // Room between the crests and the pills (Ken, 2026-11-09).
-            padding: const EdgeInsets.only(top: 18),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: [
-                for (var i = 0; i < teams.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 8),
-                  _teamPill(teams[i]),
-                ],
-              ]),
-            ),
-          ),
-      ]),
-    );
-  }
-
-  Widget _teamPill(UserTeamsStruct t) {
-    final on = _selectedTeam == t.teamId;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedTeam = on ? 0 : t.teamId),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: on ? V3.green : V3.card,
-          borderRadius: BorderRadius.circular(20),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          "Couldn't load your events",
+          style: V3.inter(18, weight: FontWeight.w600),
         ),
-        child: Text(t.teamName,
-            style: V3.inter(14,
-                weight: FontWeight.w600, color: on ? V3.bg : V3.text)),
+        const SizedBox(height: 8),
+        Text(
+          'Check your connection and try again.',
+          style: V3.inter(15, color: V3.muted),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: _load,
+          style: FilledButton.styleFrom(
+            backgroundColor: V3.green,
+            foregroundColor: V3.bg,
+          ),
+          child: const Text('Retry'),
+        ),
+      ],
+    ),
+  );
+
+  // ---- team chips (design §5.2) -------------------------------------------
+
+  Widget _chipBar() {
+    final teams = _teams;
+    return SizedBox(
+      height: 52,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        children: [
+          V3TeamChip(
+            label: 'All',
+            selected: _selectedTeam == 0,
+            onTap: () => setState(() => _selectedTeam = 0),
+          ),
+          for (final t in teams) ...[
+            const SizedBox(width: 8),
+            V3TeamChip(
+              label: t.teamName,
+              crestUrl: _crestFor(t.clubId),
+              clubName: _clubNameFor(t.clubId),
+              selected: _selectedTeam == t.teamId,
+              onTap: () => setState(() => _selectedTeam = t.teamId),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  // Club crest 66px with a short green bar under the selected one, like
-  // the v2 strip (Ken, 2026-11-06: no outline; 72 was too big, 52 too small).
-  Widget _clubTile(int clubId, String? crest) {
-    final on = _selectedClub == clubId;
-    final img = crest == null
-        ? Image.asset('assets/images/Launcher_Icon_v2.png', fit: BoxFit.contain)
-        : V3CrestImage(crest,
-            size: 66,
-            fallback:
-                const Icon(Icons.shield_outlined, color: V3.muted, size: 40));
-    return GestureDetector(
-      onTap: () => setState(() {
-        _selectedClub = on ? 0 : clubId;
-        _selectedTeam = 0;
-      }),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Opacity(
-          opacity: on ? 1 : .5,
-          child: SizedBox(width: 66, height: 66, child: img),
+  // ---- timeline (design §5.3 to §6.8) -------------------------------------
+
+  Widget _timeline() {
+    final items = buildTimeline(_events, _now);
+    final green = nextDay(items);
+    final children = <Widget>[];
+    if (_home.showAdvert) children.add(_advert());
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
+      if (item.quiet) {
+        children.add(V3QuietDayRow(day: item.day, firstRow: i == 0));
+        continue;
+      }
+      final e = item.event!;
+      children.add(
+        V3TimelineRow(
+          key: ValueKey('event-${e.eventId}'),
+          item: item,
+          now: _now,
+          isCoach: _isCoachOn(e),
+          busy: _busy.contains(e.eventId),
+          firstRow: i == 0,
+          nextDayGreen: green != null && item.day.isAtSameMomentAs(green),
+          crestUrl: _crestFor(e.clubId),
+          clubName: _clubNameFor(e.clubId),
+          onTap: () => _openEvent(e),
+          onReply: (r) => _reply(e, r),
         ),
-        const SizedBox(height: 6),
-        Container(
-          width: 38,
-          height: 3,
-          decoration: BoxDecoration(
-            color: on ? V3.green : Colors.transparent,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-      ]),
+      );
+    }
+    children.add(const SizedBox(height: 24));
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      children: children,
     );
   }
 
   // The National Draw box from v2, as a quieter card. Still hard-coded;
   // v3 will make it a club setting.
   Widget _advert() => Padding(
-        padding: const EdgeInsets.only(top: 14),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          decoration: BoxDecoration(
-              color: V3.card, borderRadius: BorderRadius.circular(14)),
-          child: Row(children: [
-            Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                  color: const Color(0xFF155B81),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Text('GAA',
-                  style: V3.tight(11,
-                      weight: FontWeight.w800, color: Colors.white)),
+    padding: const EdgeInsets.only(top: 10, bottom: 4),
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: V3.card,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF155B81),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('National Draw',
-                        style: V3.inter(15, weight: FontWeight.w600)),
-                    Text('Support your club',
-                        style: V3.inter(13, color: V3.muted)),
-                  ]),
+            child: Text(
+              'GAA',
+              style: V3.tight(11, weight: FontWeight.w800, color: Colors.white),
             ),
-            FilledButton(
-              onPressed: () => launchURL(
-                  'https://buy.stripe.com/00w9ATfp29iqe7N3Tmds404?client_reference_id=$currentUserUid'),
-              style: FilledButton.styleFrom(
-                  backgroundColor: V3.green,
-                  foregroundColor: V3.bg,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10))),
-              child: Text('Buy tickets',
-                  style: V3.inter(14, weight: FontWeight.w600, color: V3.bg)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'National Draw',
+                  style: V3.inter(15, weight: FontWeight.w600),
+                ),
+                Text('Support your club', style: V3.inter(13, color: V3.muted)),
+              ],
             ),
-          ]),
-        ),
-      );
-
-  Widget _empty() => Padding(
-        padding: const EdgeInsets.fromLTRB(30, 60, 30, 20),
-        child: Column(children: [
-          Text('Nothing coming up',
-              style: V3.inter(18, weight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Text(
-              _selectedTeam != 0 || _selectedClub != 0
-                  ? 'No upcoming events for this filter. Tap All teams to see everything.'
-                  : 'New events from your teams will show up here.',
-              textAlign: TextAlign.center,
-              style: V3.inter(15, color: V3.muted, height: 1.5)),
-        ]),
-      );
-
-  Widget _endNote() {
-    String name = 'this team';
-    for (final t in _home.userTeams) {
-      if (t.teamId == _selectedTeam) name = t.teamName;
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 30, 30, 10),
-      child: Column(children: [
-        Text("That's everything for $name",
-            textAlign: TextAlign.center,
-            style: V3.inter(18, weight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        Text('Pull down to refresh, or tap the filter to see your other teams.',
-            textAlign: TextAlign.center,
-            style: V3.inter(15, color: V3.muted, height: 1.5)),
-      ]),
-    );
-  }
+          ),
+          FilledButton(
+            onPressed: () => launchURL(
+              'https://buy.stripe.com/00w9ATfp29iqe7N3Tmds404?client_reference_id=$currentUserUid',
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: V3.green,
+              foregroundColor: V3.bg,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              'Buy tickets',
+              style: V3.inter(14, weight: FontWeight.w600, color: V3.bg),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   // ---- bottom tabs ---------------------------------------------------------
 
@@ -584,10 +543,12 @@ class _V3HomePageState extends State<V3HomePage> {
         _Tab('Resources', Icons.menu_book_rounded, _openResources),
       if (_home.isGaaMember && role >= 30)
         _Tab(
-            'Favourites',
-            Icons.favorite,
-            () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const V3FavouritesPage()))),
+          'Favourites',
+          Icons.favorite,
+          () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const V3FavouritesPage())),
+        ),
       if (role >= 100)
         _Tab('Add event', Icons.add_circle, () async {
           await context.pushNamed(V3EventFormPage.createRouteName);
@@ -596,7 +557,9 @@ class _V3HomePageState extends State<V3HomePage> {
     ];
     return Container(
       decoration: const BoxDecoration(
-          color: V3.tabBar, border: Border(top: BorderSide(color: V3.line))),
+        color: V3.tabBar,
+        border: Border(top: BorderSide(color: V3.line)),
+      ),
       child: SafeArea(
         top: false,
         child: SizedBox(
@@ -610,13 +573,20 @@ class _V3HomePageState extends State<V3HomePage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(t.icon,
-                            size: 26, color: t.active ? V3.green : V3.muted),
+                        Icon(
+                          t.icon,
+                          size: 26,
+                          color: t.active ? V3.green : V3.muted,
+                        ),
                         const SizedBox(height: 4),
-                        Text(t.label,
-                            style: V3.inter(12,
-                                weight: FontWeight.w500,
-                                color: t.active ? V3.green : V3.muted)),
+                        Text(
+                          t.label,
+                          style: V3.inter(
+                            12,
+                            weight: FontWeight.w500,
+                            color: t.active ? V3.green : V3.muted,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -632,60 +602,81 @@ class _V3HomePageState extends State<V3HomePage> {
 
   Widget _drawer(int role) {
     Widget item(IconData icon, String label, VoidCallback onTap) => ListTile(
-          leading: Icon(icon, color: V3.text, size: 28),
-          title: Text(label, style: V3.tight(18, weight: FontWeight.w400)),
-          onTap: () {
-            Navigator.pop(context);
-            onTap();
-          },
-        );
+      leading: Icon(icon, color: V3.text, size: 28),
+      title: Text(label, style: V3.tight(18, weight: FontWeight.w400)),
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+    );
     return Drawer(
       backgroundColor: V3.bg,
       child: SafeArea(
-        child: ListView(padding: EdgeInsets.zero, children: [
-          InkWell(
-            onTap: () async {
-              Navigator.pop(context);
-              await context.pushNamed(EditUserWidget.routeName);
-              if (mounted) _load();
-            },
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
-              child: Column(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            InkWell(
+              onTap: () async {
+                Navigator.pop(context);
+                await context.pushNamed(EditUserWidget.routeName);
+                if (mounted) _load();
+              },
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${_home.firstName} ${_home.lastName}',
-                        style: V3.tight(22)),
+                    Text(
+                      '${_home.firstName} ${_home.lastName}',
+                      style: V3.tight(22),
+                    ),
                     const SizedBox(height: 4),
-                    Text(_home.emailAddress,
-                        style: V3.inter(14, color: V3.muted)),
+                    Text(
+                      _home.emailAddress,
+                      style: V3.inter(14, color: V3.muted),
+                    ),
                     const SizedBox(height: 8),
-                    Text('Profile and settings',
-                        style: V3.inter(14,
-                            weight: FontWeight.w600, color: V3.green)),
-                  ]),
+                    Text(
+                      'Profile and settings',
+                      style: V3.inter(
+                        14,
+                        weight: FontWeight.w600,
+                        color: V3.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          const Divider(color: V3.line, height: 1),
-          const SizedBox(height: 8),
-          item(Icons.groups_sharp, 'Teams',
-              () => context.pushNamed(V3TeamsPage.routeName)),
-          item(Icons.sports, 'Matches', _openMatches),
-          if (role >= 30)
-            item(Icons.search, 'Search events',
-                () => context.pushNamed(SearchPageWidget.routeName)),
-          if (role >= 30)
+            const Divider(color: V3.line, height: 1),
+            const SizedBox(height: 8),
             item(
+              Icons.groups_sharp,
+              'Teams',
+              () => context.pushNamed(V3TeamsPage.routeName),
+            ),
+            item(Icons.sports, 'Matches', _openMatches),
+            if (role >= 30)
+              item(
+                Icons.search,
+                'Search events',
+                () => context.pushNamed(SearchPageWidget.routeName),
+              ),
+            if (role >= 30)
+              item(
                 Icons.auto_graph,
                 'Analytics',
-                () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const V3AnalyticsPage()))),
-          item(Icons.logout, 'Sign out', _signOut),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Text('v3 preview', style: V3.inter(14, color: V3.green)),
-          ),
-        ]),
+                () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const V3AnalyticsPage()),
+                ),
+              ),
+            item(Icons.logout, 'Sign out', _signOut),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Text('v3 preview', style: V3.inter(14, color: V3.green)),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -41,6 +41,7 @@ class EventsStruct extends FFFirebaseStruct {
     bool? notifyAdminsChanges,
     String? createdByPhoneNumber,
     String? eventDateTimeFormatted,
+    String? eventDateTime,
     int? userHighestRoleOnTeam,
     bool? eventPaid,
     bool? paymentRequired,
@@ -82,6 +83,7 @@ class EventsStruct extends FFFirebaseStruct {
         _notifyAdminsChanges = notifyAdminsChanges,
         _createdByPhoneNumber = createdByPhoneNumber,
         _eventDateTimeFormatted = eventDateTimeFormatted,
+        _eventDateTime = eventDateTime,
         _userHighestRoleOnTeam = userHighestRoleOnTeam,
         _eventPaid = eventPaid,
         _paymentRequired = paymentRequired,
@@ -350,6 +352,14 @@ class EventsStruct extends FFFirebaseStruct {
 
   bool hasEventDateTimeFormatted() => _eventDateTimeFormatted != null;
 
+  // "event_date_time" field (raw ISO timestamp, added 2026-11-11 for the v3
+  // Home timeline; older RPC versions omit it).
+  String? _eventDateTime;
+  String get eventDateTime => _eventDateTime ?? '';
+  set eventDateTime(String? val) => _eventDateTime = val;
+
+  bool hasEventDateTime() => _eventDateTime != null;
+
   // "user_highest_role_on_team" field.
   int? _userHighestRoleOnTeam;
   int get userHighestRoleOnTeam => _userHighestRoleOnTeam ?? 0;
@@ -438,6 +448,7 @@ class EventsStruct extends FFFirebaseStruct {
         notifyAdminsChanges: data['notify_admins_changes'] as bool?,
         createdByPhoneNumber: data['created_by_phone_number'] as String?,
         eventDateTimeFormatted: data['event_date_time_formatted'] as String?,
+        eventDateTime: data['event_date_time'] as String?,
         userHighestRoleOnTeam:
             castToType<int>(data['user_highest_role_on_team']),
         eventPaid: data['event_paid'] as bool?,
@@ -485,6 +496,7 @@ class EventsStruct extends FFFirebaseStruct {
         'notify_admins_changes': _notifyAdminsChanges,
         'created_by_phone_number': _createdByPhoneNumber,
         'event_date_time_formatted': _eventDateTimeFormatted,
+        'event_date_time': _eventDateTime,
         'user_highest_role_on_team': _userHighestRoleOnTeam,
         'event_paid': _eventPaid,
         'payment_required': _paymentRequired,
