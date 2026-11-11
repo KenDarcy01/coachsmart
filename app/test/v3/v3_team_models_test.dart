@@ -142,8 +142,8 @@ void main() {
     ];
     final cards = teamSquadCards(r, 2, squads);
     expect(cards.map((c) => c.name), ['Blue', 'Red', 'No squad']);
-    expect(cards[0].count, 2);
-    expect(cards[0].lines, ['Players: 1', 'Coaches: 1']);
+    expect(cards[0].count, 1); // players only
+    expect(cards[0].lines, ['Coaches: 1']);
     expect(cards[2].count, 1);
     final ordered = orderBySquad(r.groups.first.members, 2, squads);
     expect(ordered.map((m) => m.firstName), ['Beth', 'Amy', 'Cara']);

@@ -366,9 +366,12 @@ List<TeamSquadCard> teamSquadCards(
         for (final m in g.members)
           if (memberSquadId(m, codeId) == squadId) m.memberId
       };
-      ids.addAll(inGroup);
-      if (inGroup.isNotEmpty)
+      // The big number is the players; the lines are every other role.
+      if (g.roleLevel == 10) {
+        ids.addAll(inGroup);
+      } else if (inGroup.isNotEmpty) {
         lines.add('${g.roleNamePlural}: ${inGroup.length}');
+      }
     }
     return TeamSquadCard(squadId, s, ids.length, lines);
   }

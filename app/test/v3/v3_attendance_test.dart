@@ -134,7 +134,7 @@ void main() {
     final att = d.squadCards(kAttending);
     expect(att.map((c) => c.name), ['Blue', 'Red']);
     expect(att[0].count, 2); // Aimee + Ken
-    expect(att[0].lines, ['Players: 2', 'Coaches: 1']);
+    expect(att[0].lines, ['Coaches: 1']);
     final none = d.squadCards(kNoReply);
     expect(none.map((c) => c.name), ['Blue', 'Red', 'No squad']);
     expect(none.last.count, 1);
@@ -180,7 +180,8 @@ void widgetTests() {
     // Squad cards: Blue, Red, none selected, everyone listed.
     expect(find.text('All'), findsNothing);
     expect(find.text('Blue'), findsWidgets);
-    expect(find.textContaining('Players: 2'), findsOneWidget);
+    expect(find.textContaining('Coaches: 1'), findsWidgets);
+    expect(find.textContaining('Players:'), findsNothing);
     expect(find.text('Anna Ryan'), findsOneWidget);
     // Tap Blue to filter, tap again to show everyone.
     await tester.tap(find.text('Blue').first);

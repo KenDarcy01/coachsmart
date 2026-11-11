@@ -138,12 +138,18 @@ class AttendanceData {
     final out = <SquadCard>[];
     SquadCard card(int? squadId, String name, AttSquad? squad) {
       final rs = rows(tab, squadId);
+      // The big number is the players; the lines below are every other role
+      // (Ken, 2026-11-11).
       final lines = <String>[
         for (final g in groups(rs))
-          '${g.$1.plural}: ${{for (final m in g.$2) m.memberId}.length}'
+          if (g.$1.roleLevel != 10)
+            '${g.$1.plural}: ${{for (final m in g.$2) m.memberId}.length}'
       ];
-      return SquadCard(
-          squadId, name, squad, {for (final m in rs) m.memberId}.length, lines);
+      final players = {
+        for (final m in rs)
+          if (m.roleLevel == 10) m.memberId
+      }.length;
+      return SquadCard(squadId, name, squad, players, lines);
     }
 
     for (final s in squads) {
