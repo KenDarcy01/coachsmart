@@ -175,7 +175,8 @@ void main() {
     );
     await tester.pumpWidget(host(row(e)));
     expect(find.text('PAID'), findsOneWidget);
-    expect(find.text('BOYS 2013 · BLUE'), findsOneWidget);
+    expect(find.text('BOYS 2013'), findsOneWidget);
+    expect(find.text('Blue'), findsOneWidget);
   });
 
   testWidgets('coach footer is three numbers; admins get no reply pair', (

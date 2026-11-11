@@ -181,10 +181,14 @@ workflows:
           if [ -f shorebird.yaml ]; then
             echo "app/shorebird.yaml is already committed; nothing to do."
           else
+            # shorebird init reads the Android flavors through gradlew, which
+            # is not committed; --config-only writes it without a full build.
+            flutter pub get
+            flutter build apk --config-only
             shorebird init --display-name "CoachSmart" ${SHOREBIRD_ORG_ID:+--org-id=$SHOREBIRD_ORG_ID}
           fi
           echo "----- app/shorebird.yaml -----"
-          cat shorebird.yaml
+          cat shorebird.yaml || exit 1
           echo "----- changes -----"
           git status --short
           git diff

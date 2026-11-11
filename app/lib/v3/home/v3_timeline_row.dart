@@ -13,8 +13,8 @@ import 'v3_home_data.dart';
 
 /// Where the rail sits, measured from the row's left edge: 44 px day column,
 /// 4 px gap, then the centre of the 24 px dot column.
-const double kRailDayWidth = 44;
-const double kRailDotWidth = 24;
+const double kRailDayWidth = 32;
+const double kRailDotWidth = 20;
 const double kRailGap = 4;
 const double kRailX = kRailDayWidth + kRailGap + kRailDotWidth / 2;
 
@@ -52,9 +52,11 @@ class V3TimelineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cancelled = isCancelled(e);
-    final top = item.showDay ? 22.0 : 8.0;
+    final top = item.showDay ? 14.0 : 8.0;
+    // Each event on its own card so the rows stand apart (Ken, 2026-11-11:
+    // they rolled into one; a line between days was tried and dropped).
     return Padding(
-      padding: EdgeInsets.only(top: top, bottom: 10),
+      padding: EdgeInsets.only(top: top, bottom: 4),
       child: _RailRow(
         firstRow: firstRow,
         extendUp: top,
@@ -64,69 +66,71 @@ class V3TimelineRow extends StatelessWidget {
           cancelled: cancelled,
           quiet: false,
         ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Crest sits on the team-title line, not in a
-                          // column of its own, so the text gets the full
-                          // width (Ken, 2026-11-11).
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: _teamTitle(cancelled)),
-                              const SizedBox(width: 10),
-                              Opacity(
-                                opacity: cancelled ? .45 : 1,
-                                child: _crest(),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          _line1(cancelled),
-                          const SizedBox(height: 3),
-                          Text(
-                            e.eventTitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: V3
-                                .inter(
-                                  19,
-                                  weight: FontWeight.w600,
-                                  color: cancelled ? _mutedSpec : V3.text,
-                                  height: 1.25,
-                                )
-                                .copyWith(
-                                  decoration: cancelled
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                if (!cancelled && e.requestAttendance) ...[
-                  const SizedBox(height: 10),
-                  _footer(),
-                ],
-              ],
+        child: Material(
+          color: V3.card,
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+              child: _body(cancelled),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _body(bool cancelled) {
+    // The crest owns only the top-right corner: the team title and the line
+    // under it leave room for it, everything below runs full width
+    // (Ken, 2026-11-11: a 48 px crest column left a blank line).
+    const crestRoom = EdgeInsets.only(right: 58);
+    final title = Text(
+      e.eventTitle,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: V3
+          .inter(
+            19,
+            weight: FontWeight.w600,
+            color: cancelled ? _mutedSpec : V3.text,
+            height: 1.25,
+          )
+          .copyWith(
+            decoration: cancelled ? TextDecoration.lineThrough : null,
+          ),
+    );
+    return Stack(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(padding: crestRoom, child: _teamTitle(cancelled)),
+            if (_hasSquad) ...[
+              const SizedBox(height: 6),
+              Padding(padding: crestRoom, child: _squadPill(cancelled)),
+              const SizedBox(height: 6),
+              _line1(cancelled),
+            ] else ...[
+              const SizedBox(height: 6),
+              Padding(padding: crestRoom, child: _line1(cancelled)),
+            ],
+            const SizedBox(height: 3),
+            title,
+            if (!cancelled && e.requestAttendance) ...[
+              const SizedBox(height: 10),
+              _footer(),
+            ],
+          ],
+        ),
+        Positioned(
+          top: 0,
+          right: 0,
+          child: Opacity(opacity: cancelled ? .45 : 1, child: _crest()),
+        ),
+      ],
     );
   }
 
@@ -135,8 +139,8 @@ class V3TimelineRow extends StatelessWidget {
   Widget _crest() {
     final initial = clubName.isNotEmpty ? clubName[0].toUpperCase() : '?';
     final fallback = Container(
-      width: 28,
-      height: 28,
+      width: 48,
+      height: 48,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: Color(0xFF252A34),
@@ -144,10 +148,10 @@ class V3TimelineRow extends StatelessWidget {
       ),
       child: Text(
         initial,
-        style: V3.tight(13, weight: FontWeight.w700, color: _mutedSpec),
+        style: V3.tight(16, weight: FontWeight.w700, color: _mutedSpec),
       ),
     );
-    return V3CrestImage(crestUrl, size: 28, fallback: fallback);
+    return V3CrestImage(crestUrl, size: 48, fallback: fallback);
   }
 
   // Time · Meet · countdown (next event only) · tags.
@@ -190,12 +194,10 @@ class V3TimelineRow extends StatelessWidget {
 
   // Team name in green capitals heads each row so events stand apart
   // (Ken, 2026-11-11). The crest already says which club, so there is no
-  // club · team · venue line. The squad follows the team when there is one.
+  // club · team · venue line.
   Widget _teamTitle(bool cancelled) {
-    final squad = e.squadName.isNotEmpty && e.squadId != 0 ? e.squadName : '';
-    final text = squad.isEmpty ? e.teamName : '${e.teamName} · $squad';
     return Text(
-      text.toUpperCase(),
+      e.teamName.toUpperCase(),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
       style: V3
@@ -206,6 +208,48 @@ class V3TimelineRow extends StatelessWidget {
             height: 1.2,
           )
           .copyWith(letterSpacing: 1.1),
+    );
+  }
+
+  bool get _hasSquad => e.squadName.isNotEmpty && e.squadId != 0;
+
+  // The squad on its own line as a green-outlined pill with its image,
+  // as on the earlier card (Ken, 2026-11-11: make it stand out).
+  Widget _squadPill(bool cancelled) {
+    final color = cancelled ? _mutedSpec : V3.green;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: color, width: 1.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (e.squadImage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: ClipOval(
+                child: Image.network(
+                  e.squadImage,
+                  width: 18,
+                  height: 18,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const SizedBox(width: 18, height: 18),
+                ),
+              ),
+            ),
+          Text(
+            e.squadName,
+            style: V3.inter(
+              15,
+              weight: FontWeight.w600,
+              color: cancelled ? _mutedSpec : V3.text,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -374,10 +418,10 @@ class V3QuietDayRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 22, bottom: 10),
+      padding: const EdgeInsets.only(top: 14, bottom: 4),
       child: _RailRow(
         firstRow: firstRow,
-        extendUp: 22,
+        extendUp: 14,
         day: _DayMarker(day, green: false),
         dot: const _Dot(next: false, cancelled: false, quiet: true),
         child: Padding(
@@ -417,7 +461,7 @@ class _RailRow extends StatelessWidget {
         Positioned(
           left: kRailX - 1,
           top: -extendUp,
-          bottom: -10,
+          bottom: -4,
           width: 2,
           child: _Rail(fadeFromTop: firstRow),
         ),
@@ -483,7 +527,7 @@ class _DayMarker extends StatelessWidget {
           '${day.day}',
           style: V3
               .tight(
-            30,
+            22,
             weight: FontWeight.w800,
             color: green ? V3.green : V3.text,
             height: 1,
@@ -497,10 +541,10 @@ class _DayMarker extends StatelessWidget {
         Text(
           _wd[day.weekday - 1],
           style: V3.inter(
-            12,
+            10,
             weight: FontWeight.w700,
             color: _mutedSpec,
-            letterSpacing: 1.2,
+            letterSpacing: 1,
           ),
         ),
       ],
