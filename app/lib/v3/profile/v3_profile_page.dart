@@ -3,7 +3,7 @@
 // Your details (name, phone, default club) with Save, your members with a
 // sheet (copy code, member page, leave team), account (change password,
 // notification settings, sign out) and about (help, privacy, terms, delete).
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,6 +14,7 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../auth/v3_auth_widgets.dart';
 import '../teams/v3_team_models.dart' show V3Avatar;
+import '../tracking/v3_track.dart';
 import '../v3_theme.dart';
 import 'v3_notification_settings_page.dart';
 import 'v3_profile_models.dart';
@@ -300,6 +301,74 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
     }
   }
 
+  // ------------------------------------------------------- calendar feed
+
+  /// The private calendar link (calendar-feed edge function). Phones
+  /// subscribe once and refresh it themselves (Ken, 2026-11-11).
+  static const _feedBase =
+      'gyfporsbdftvtakdvukt.supabase.co/functions/v1/calendar-feed?t=';
+
+  Future<String?> _calendarToken({bool reset = false}) async {
+    try {
+      final t = await SupaFlow.client
+          .rpc('get_my_calendar_token', params: {'p_reset': reset});
+      return t is String && t.isNotEmpty ? t : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _calendar() async {
+    final android = defaultTargetPlatform == TargetPlatform.android;
+    final pick = await _sheet<String>(
+        'Add events to my calendar',
+        'Your CoachSmart events appear in your calendar and stay up to date '
+            'as they change. Calendars check for changes every hour or so, '
+            'so the app is still the quickest place to see a change.',
+        [
+          _Item(Icons.event_available_outlined,
+              android ? 'Add to Google Calendar' : 'Add to this phone', 'add'),
+          _Item(Icons.copy, 'Copy the calendar link', 'copy'),
+          _Item(Icons.refresh, 'Get a new link', 'reset'),
+          _Item(Icons.close, 'Cancel', ''),
+        ]);
+    if (pick == null || pick.isEmpty || !mounted) return;
+    if (pick == 'reset') {
+      final r = await _sheet<bool>(
+          'Get a new calendar link?',
+          'Calendars using the old link stop getting your events. '
+              'Add your calendar again with the new link.',
+          [
+            _Item(Icons.refresh, 'Get a new link', true, red: true),
+            _Item(Icons.close, 'Cancel', false),
+          ]);
+      if (r != true || !mounted) return;
+    }
+    final token = await _calendarToken(reset: pick == 'reset');
+    if (!mounted) return;
+    if (token == null) {
+      _snack('Could not get your calendar link. Please try again.', warn: true);
+      return;
+    }
+    final https = 'https://$_feedBase$token';
+    final webcal = 'webcal://$_feedBase$token';
+    V3Track.event('calendar_feed', {'action': pick});
+    switch (pick) {
+      case 'add':
+        // iPhone and Mac open the subscribe prompt for webcal links; Google
+        // Calendar adds a feed through its own link.
+        await launchURL(android
+            ? 'https://calendar.google.com/calendar/r?cid=${Uri.encodeComponent(webcal)}'
+            : webcal);
+      case 'copy':
+        await Clipboard.setData(ClipboardData(text: https));
+        _snack('Calendar link copied');
+      case 'reset':
+        await Clipboard.setData(ClipboardData(text: https));
+        _snack('New calendar link copied. Add it to your calendar again.');
+    }
+  }
+
   Future<bool> _confirm(String title, String body, String yes) async {
     final r = await _sheet<bool>(title, body, [
       _Item(Icons.logout, yes, true, red: true),
@@ -483,6 +552,8 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
           final v = await PushPref.enabled();
           if (mounted) setState(() => _push = v);
         }),
+        _row(Icons.event_available_outlined, 'Add events to my calendar',
+            'Your events show in your phone calendar', _calendar),
         _row(Icons.logout, 'Sign out', null, _signOut, last: true),
       ]),
       _section('About'),
