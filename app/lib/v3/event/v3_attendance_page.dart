@@ -551,25 +551,36 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
   Widget _row(AttendanceData d, AttMember m, {required bool last}) {
     final busy = _busy.contains(m.memberId);
     final squad = d.squad(m.squadId);
-    final squadLine = Row(mainAxisSize: MainAxisSize.min, children: [
+    // Squad under the name: a big pill (dot/picture 26px, 16px text) so it
+    // is easy to tap to move squads (Ken, 2026-11-11).
+    final squadText = Row(mainAxisSize: MainAxisSize.min, children: [
       if (squad != null) ...[
-        _SquadDot(squad, size: 12),
-        const SizedBox(width: 6),
+        _SquadDot(squad, size: 26),
+        const SizedBox(width: 8),
       ],
       Text(squad != null ? squad.squadName : 'No squad',
-          style: V3.inter(13, color: V3.muted)),
+          style: V3.inter(16,
+              weight: FontWeight.w500, color: d.admin ? V3.text : V3.muted)),
       if (d.admin && d.hasSquads) ...[
-        const SizedBox(width: 2),
-        const Icon(Icons.unfold_more, size: 15, color: V3.muted),
+        const SizedBox(width: 4),
+        const Icon(Icons.unfold_more, size: 20, color: V3.muted),
       ],
     ]);
+    final squadLine = d.admin
+        ? Container(
+            constraints: const BoxConstraints(minHeight: 40),
+            padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
+            decoration: BoxDecoration(
+                color: V3.card2, borderRadius: BorderRadius.circular(20)),
+            child: squadText)
+        : squadText;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
           border:
               last ? null : const Border(bottom: BorderSide(color: V3.line))),
       child: Row(children: [
-        V3Avatar(initials(m.firstName, m.lastName), size: 36),
+        V3Avatar(initials(m.firstName, m.lastName), size: 42),
         const SizedBox(width: 12),
         Expanded(
           child: GestureDetector(
@@ -577,9 +588,9 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
             onTap: d.admin ? () => _openMember(m) : null,
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(m.memberName, style: V3.inter(16, weight: FontWeight.w500)),
+              Text(m.memberName, style: V3.inter(18, weight: FontWeight.w600)),
               if (d.hasSquads) ...[
-                const SizedBox(height: 2),
+                const SizedBox(height: 6),
                 d.admin
                     ? GestureDetector(
                         behavior: HitTestBehavior.opaque,
