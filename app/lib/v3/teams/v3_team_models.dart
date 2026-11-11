@@ -369,7 +369,8 @@ List<TeamSquadCard> teamSquadCards(
       // The big number is the players; the lines are every other role.
       if (g.roleLevel == 10) {
         ids.addAll(inGroup);
-      } else if (inGroup.isNotEmpty) {
+      } else if (g.roleLevel < 100) {
+        // Grade 10 roles only (FLO, Coach), zero or not (Ken, 2026-11-11).
         lines.add('${g.roleNamePlural}: ${inGroup.length}');
       }
     }

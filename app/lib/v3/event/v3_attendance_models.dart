@@ -140,10 +140,15 @@ class AttendanceData {
       final rs = rows(tab, squadId);
       // The big number is the players; the lines below are every other role
       // (Ken, 2026-11-11).
+      // Every listed role (all grade 10) but Player gets a line, zero or not
+      // (Ken, 2026-11-11).
       final lines = <String>[
-        for (final g in groups(rs))
-          if (g.$1.roleLevel != 10)
-            '${g.$1.plural}: ${{for (final m in g.$2) m.memberId}.length}'
+        for (final r in roles)
+          if (r.roleLevel != 10)
+            '${r.plural}: ${{
+              for (final m in rs)
+                if (m.roleId == r.roleId) m.memberId
+            }.length}'
       ];
       final players = {
         for (final m in rs)
