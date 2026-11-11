@@ -290,7 +290,7 @@ class _V3HomePageState extends State<V3HomePage> {
             icon: const Icon(Icons.menu, color: V3.green, size: 28),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
-          title: Text('Home', style: V3.inter(17, weight: FontWeight.w600)),
+          title: Text('Home (updated)', style: V3.inter(17, weight: FontWeight.w600)),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 6),
