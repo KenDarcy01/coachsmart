@@ -477,7 +477,8 @@ class _V3HomePageState extends State<V3HomePage> {
     children.add(const SizedBox(height: 24));
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      // Narrow side margins: the event text needs the width (Ken, 2026-11-11).
+      padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
       children: children,
     );
   }

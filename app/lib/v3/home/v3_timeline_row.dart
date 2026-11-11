@@ -13,8 +13,8 @@ import 'v3_home_data.dart';
 
 /// Where the rail sits, measured from the row's left edge: 44 px day column,
 /// 4 px gap, then the centre of the 24 px dot column.
-const double kRailDayWidth = 44;
-const double kRailDotWidth = 24;
+const double kRailDayWidth = 32;
+const double kRailDotWidth = 20;
 const double kRailGap = 4;
 const double kRailX = kRailDayWidth + kRailGap + kRailDotWidth / 2;
 
@@ -73,7 +73,7 @@ class V3TimelineRow extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
               child: _body(cancelled),
             ),
           ),
@@ -547,7 +547,7 @@ class _DayMarker extends StatelessWidget {
           '${day.day}',
           style: V3
               .tight(
-            30,
+            22,
             weight: FontWeight.w800,
             color: green ? V3.green : V3.text,
             height: 1,
@@ -561,10 +561,10 @@ class _DayMarker extends StatelessWidget {
         Text(
           _wd[day.weekday - 1],
           style: V3.inter(
-            12,
+            10,
             weight: FontWeight.w700,
             color: _mutedSpec,
-            letterSpacing: 1.2,
+            letterSpacing: 1,
           ),
         ),
       ],
