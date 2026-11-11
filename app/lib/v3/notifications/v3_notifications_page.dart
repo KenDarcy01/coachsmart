@@ -24,6 +24,7 @@ import '/backend/api_requests/api_calls.dart';
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
 import '../teams/v3_role_picker.dart';
+import '../profile/v3_notification_settings_page.dart';
 import '../v3_theme.dart';
 import 'v3_notifications_models.dart';
 import 'v3_unread.dart';
@@ -417,6 +418,13 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
             icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text('Notifications', style: V3.tight(20)),
+        actions: [
+          IconButton(
+              tooltip: 'Notification settings',
+              icon: const Icon(Icons.settings_outlined, color: V3.green),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const V3NotificationSettingsPage()))),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: V3.green))

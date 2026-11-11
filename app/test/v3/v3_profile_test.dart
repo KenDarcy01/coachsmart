@@ -87,7 +87,7 @@ void main() {
     expect(find.text('Clontarf GAA'), findsOneWidget);
     expect(find.text('Aoife Darcy'), findsOneWidget);
     expect(find.text('Change password'), findsOneWidget);
-    expect(find.text('Push notifications'), findsOneWidget);
+    expect(find.text('Notification settings'), findsOneWidget);
     expect(find.text('Delete account'), findsOneWidget);
     // Save is disabled until something changes.
     final save = find.widgetWithText(TextButton, 'Save');
