@@ -299,35 +299,25 @@ class _V3HomePageState extends State<V3HomePage> {
                   await context.pushNamed(NotificationsWidget.routeName);
                   if (mounted) _load();
                 },
-                // An 8 px green dot, not a number (design §5.1). Own widget
-                // rather than NotificationBadgeWidget, whose tap handler
-                // swallowed this one.
+                // Red badge with the unread count, as in v2 (Ken,
+                // 2026-11-11; the design's green dot was dropped). Own
+                // widget rather than NotificationBadgeWidget, whose tap
+                // handler swallowed this one.
                 icon: ValueListenableBuilder<int>(
                   valueListenable: V3Unread.instance.count,
-                  builder: (context, n, _) => Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(
-                        Icons.notifications_sharp,
-                        color: V3.green,
-                        size: 28,
-                      ),
-                      if (n > 0)
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: Container(
-                            key: const Key('v3-home-bell-dot'),
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: V3.green,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                  builder: (context, n, _) => n > 0
+                      ? Badge(
+                          label: Text(n > 99 ? '99+' : '$n',
+                              style: V3.inter(12,
+                                  weight: FontWeight.w700,
+                                  color: Colors.white)),
+                          backgroundColor: V3.red,
+                          offset: const Offset(4, -4),
+                          child: const Icon(Icons.notifications_sharp,
+                              color: V3.green, size: 28),
+                        )
+                      : const Icon(Icons.notifications_sharp,
+                          color: V3.green, size: 28),
                 ),
               ),
             ),
