@@ -193,11 +193,9 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: MatchReportWidget.routeName,
               path: MatchReportWidget.routePath,
-              builder: (context, params) => V3WebPage(
-                title: 'Match report',
-                url:
-                    'https://coachsmart.app/webviews/match-report.html?token=$currentJwtToken&eventId=${params.getParam('paramEventID', ParamType.int) ?? 0}',
-              ),
+              builder: (context, params) => V3MatchReportPage(
+                  eventId: params.getParam('paramEventID', ParamType.int) ??
+                      0), // v3
             ),
             FFRoute(
               name: MatchReportDetailWidget.routeName,
@@ -430,20 +428,10 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: MatchStatsWidget.routeName,
               path: MatchStatsWidget.routePath,
-              builder: (context, params) => MatchStatsWidget(
-                eventId: params.getParam(
-                  'eventId',
-                  ParamType.int,
-                ),
-                teamId: params.getParam(
-                  'teamId',
-                  ParamType.int,
-                ),
-                currentAuthToken: params.getParam(
-                  'currentAuthToken',
-                  ParamType.String,
-                ),
-              ),
+              builder: (context, params) => V3MatchStatsPage(
+                eventId: params.getParam('eventId', ParamType.int) ?? 0,
+                teamId: params.getParam('teamId', ParamType.int),
+              ), // v3
             ),
             FFRoute(
               name: MemberAnalyticsWidget.routeName,
@@ -527,22 +515,18 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: MatchReportNewWidget.routeName,
               path: MatchReportNewWidget.routePath,
-              builder: (context, params) => MatchReportNewWidget(
-                paramEventId: params.getParam(
-                  'paramEventId',
-                  ParamType.int,
-                ),
-              ),
+              builder: (context, params) => V3MatchReportPage(
+                  eventId: params.getParam('paramEventId', ParamType.int) ??
+                      0), // v3
             ),
             FFRoute(
               name: LiveUpdatesWidget.routeName,
               path: LiveUpdatesWidget.routePath,
-              builder: (context, params) => LiveUpdatesWidget(
-                paramEventId: params.getParam(
-                  'paramEventId',
-                  ParamType.int,
-                ),
-              ),
+              // Live match alerts push /liveUpdate?eventID=<id>.
+              builder: (context, params) => V3MatchLivePage(
+                  eventId: params.getParam('paramEventId', ParamType.int) ??
+                      params.getParam('eventID', ParamType.int) ??
+                      0), // v3
             )
           ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),

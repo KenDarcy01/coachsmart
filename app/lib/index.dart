@@ -91,3 +91,7 @@ export '/v3/carpool/v3_car_pool_page.dart' show V3CarPoolPage;
 export '/pages/match_report_new/match_report_new_widget.dart'
     show MatchReportNewWidget;
 export '/pages/live_updates/live_updates_widget.dart' show LiveUpdatesWidget;
+export '/v3/matches/v3_matches_page.dart' show V3MatchesPage;
+export '/v3/matches/v3_match_live_page.dart' show V3MatchLivePage;
+export '/v3/match_report/v3_match_report_page.dart' show V3MatchReportPage;
+export '/v3/match_stats/v3_match_stats_page.dart' show V3MatchStatsPage;

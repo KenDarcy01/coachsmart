@@ -652,20 +652,18 @@ class _V3EventPageState extends State<V3EventPage> {
       out.add(_Tool(
           'Live',
           Icons.visibility_outlined,
-          () => _openWeb('Live',
-              'https://coachsmart.app/webviews/match-live.html?token=$currentJwtToken&eventId=$_eventId')));
+          () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => V3MatchLivePage(eventId: _eventId)))));
       if (_role >= 20) {
         out.add(_Tool('Stats', Icons.bar_chart,
             () => _open(MatchStatsWidget.routeName, _matchParams())));
       }
       if (_role >= 30) {
-        // The match report lives on the web page already used by the live
-        // app (webviews/match-report.html), not on a native page.
         out.add(_Tool(
             'Report',
             Icons.description_outlined,
-            () => _openWeb('Match report',
-                'https://coachsmart.app/webviews/match-report.html?token=$currentJwtToken&eventId=$_eventId')));
+            () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => V3MatchReportPage(eventId: _eventId)))));
       }
       if (_role >= 30 && _teamAllowsLineup) {
         out.add(_Tool('Lineup', Icons.grid_view_outlined, _openLineup));

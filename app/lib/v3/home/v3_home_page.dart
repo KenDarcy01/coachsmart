@@ -216,10 +216,8 @@ class _V3HomePageState extends State<V3HomePage> {
   }
 
   void _openMatches() {
-    final url =
-        'https://coachsmart.app/webviews/matches.html?token=$currentJwtToken';
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => V3WebPage(title: 'Matches', url: url)));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const V3MatchesPage()));
   }
 
   void _openResources() {
