@@ -116,7 +116,9 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         'p_user_id': currentUserUid,
       });
       await _load();
-      _snack('Match day squads published');
+      _snack(_data?.isMatch == false
+          ? 'Teams published'
+          : 'Match day squads published');
     } catch (_) {
       _snack('Could not publish the squads. Please try again.', warn: true);
     } finally {
@@ -457,16 +459,33 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         SizedBox(
           height: 36,
           child: d.published
-              ? OutlinedButton.icon(
-                  onPressed: _export,
-                  style: OutlinedButton.styleFrom(
-                      foregroundColor: V3.green,
-                      side: const BorderSide(color: V3.green, width: 1.5),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10))),
-                  icon: const Icon(Icons.ios_share, size: 16),
-                  label: Text('Export',
-                      style: V3.inter(13, weight: FontWeight.w600)))
+              ? Row(mainAxisSize: MainAxisSize.min, children: [
+                  // Publish again after moving people between squads.
+                  TextButton(
+                      onPressed: _publishing ? null : _publish,
+                      style: TextButton.styleFrom(
+                          foregroundColor: V3.green,
+                          padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      child: _publishing
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: V3.green))
+                          : Text('Republish',
+                              style: V3.inter(13,
+                                  weight: FontWeight.w600, color: V3.green))),
+                  OutlinedButton.icon(
+                      onPressed: _export,
+                      style: OutlinedButton.styleFrom(
+                          foregroundColor: V3.green,
+                          side: const BorderSide(color: V3.green, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10))),
+                      icon: const Icon(Icons.ios_share, size: 16),
+                      label: Text('Export',
+                          style: V3.inter(13, weight: FontWeight.w600))),
+                ])
               : FilledButton.icon(
                   onPressed: _publishing ? null : _publish,
                   style: FilledButton.styleFrom(
