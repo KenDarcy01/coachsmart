@@ -79,7 +79,20 @@ class V3TimelineRow extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _teamTitle(cancelled),
+                          // Crest sits on the team-title line, not in a
+                          // column of its own, so the text gets the full
+                          // width (Ken, 2026-11-11).
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _teamTitle(cancelled)),
+                              const SizedBox(width: 10),
+                              Opacity(
+                                opacity: cancelled ? .45 : 1,
+                                child: _crest(),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 4),
                           _line1(cancelled),
                           const SizedBox(height: 3),
@@ -103,15 +116,6 @@ class V3TimelineRow extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Crest on the right so the text has the full width
-                    // (Ken, 2026-11-11: text was too small to read).
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2, left: 12),
-                      child: Opacity(
-                        opacity: cancelled ? .45 : 1,
-                        child: _crest(),
-                      ),
-                    ),
                   ],
                 ),
                 if (!cancelled && e.requestAttendance) ...[
@@ -131,8 +135,8 @@ class V3TimelineRow extends StatelessWidget {
   Widget _crest() {
     final initial = clubName.isNotEmpty ? clubName[0].toUpperCase() : '?';
     final fallback = Container(
-      width: 40,
-      height: 40,
+      width: 28,
+      height: 28,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: Color(0xFF252A34),
@@ -140,10 +144,10 @@ class V3TimelineRow extends StatelessWidget {
       ),
       child: Text(
         initial,
-        style: V3.tight(16, weight: FontWeight.w700, color: _mutedSpec),
+        style: V3.tight(13, weight: FontWeight.w700, color: _mutedSpec),
       ),
     );
-    return V3CrestImage(crestUrl, size: 40, fallback: fallback);
+    return V3CrestImage(crestUrl, size: 28, fallback: fallback);
   }
 
   // Time · Meet · countdown (next event only) · tags.
@@ -192,7 +196,7 @@ class V3TimelineRow extends StatelessWidget {
     final text = squad.isEmpty ? e.teamName : '${e.teamName} · $squad';
     return Text(
       text.toUpperCase(),
-      maxLines: 1,
+      maxLines: 2,
       overflow: TextOverflow.ellipsis,
       style: V3
           .tight(
