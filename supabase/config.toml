@@ -421,6 +421,10 @@ verify_jwt = false
 [functions.team-diary]
 verify_jwt = false
 
+# Calendar feed: phones fetch it with a private token, no login
+[functions.calendar-feed]
+verify_jwt = false
+
 # Club lotto: public ticket page (anon key) and the Stripe Connect webhook (signed by Stripe)
 [functions.lotto-webhook]
 verify_jwt = false
