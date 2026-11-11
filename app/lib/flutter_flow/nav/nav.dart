@@ -423,7 +423,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: JoinTeamNewWidget.routeName,
               path: JoinTeamNewWidget.routePath,
-              builder: (context, params) => JoinTeamNewWidget(),
+              builder: (context, params) => const V3JoinTeamPage(), // v3
             ),
             FFRoute(
               name: MatchStatsWidget.routeName,
@@ -456,7 +456,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: CreateTeamNewWidget.routeName,
               path: CreateTeamNewWidget.routePath,
-              builder: (context, params) => CreateTeamNewWidget(),
+              builder: (context, params) => const V3CreateTeamPage(), // v3
             ),
             FFRoute(
               name: EventDetailsWidget.routeName,
