@@ -285,6 +285,12 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
         (euroToCents(_amount.text.trim()) ?? 0) <= 0) {
       return 'Enter the payment amount.';
     }
+    // Stripe won't take a card payment under 50c.
+    if (_payment &&
+        _paymentsOn &&
+        (euroToCents(_amount.text.trim()) ?? 0) < 50) {
+      return 'The lowest amount is €0.50.';
+    }
     return null;
   }
 

@@ -23,6 +23,8 @@ import '/auth/supabase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
+import '/flutter_flow/flutter_flow_util.dart';
+import '/index.dart';
 import '../teams/v3_role_picker.dart';
 import '../profile/v3_notification_settings_page.dart';
 import '../v3_theme.dart';
@@ -470,13 +472,27 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
     );
   }
 
+  Future<void> _openEvent(int eventId) async {
+    await context.pushNamed(
+      EventDetailsWidget.routeName,
+      queryParameters: {
+        'eventID': serializeParam(eventId, ParamType.int),
+        'fromSearch': serializeParam(false, ParamType.bool),
+      }.withoutNulls,
+    );
+  }
+
   Widget _card(NotifItem n) {
     final liveRequest = n.isRequest && !n.isRead;
     final kids = n.isAttend ? _members[n.eventId] : null;
     // One row per linked member while the reminder is open, and still after
     // it is read on this visit, greyed, so the answers stay visible.
     final showReplies = kids != null && kids.isNotEmpty;
+    // A plain notice about an event (a payment reminder, a change) opens
+    // that event, where the parent can reply or pay.
+    final opensEvent = n.eventId > 0 && !n.isRequest && !showReplies;
     return GestureDetector(
+      onTap: opensEvent ? () => _openEvent(n.eventId) : null,
       onLongPress: n.needsAction ? null : () => _longPress(n),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),

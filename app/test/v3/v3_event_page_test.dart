@@ -117,6 +117,33 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  Map<String, dynamic> owing({String status = 'active'}) {
+    final p = payload(role: 10);
+    p['event_status'] = status;
+    // Seán says yes and has not been paid for.
+    (p['team_members'] as List)[1]['response_id'] = 3;
+    return p;
+  }
+
+  testWidgets('green Pay button for the attending player not paid for',
+      (tester) async {
+    await pump(tester, owing());
+    expect(tester.takeException(), isNull);
+    expect(find.text('Pay €10.00 for Seán'), findsOneWidget);
+    final b = tester.widget<FilledButton>(find.ancestor(
+        of: find.text('Pay €10.00 for Seán'),
+        matching: find.byType(FilledButton)));
+    expect(b.style!.backgroundColor!.resolve({}), const Color(0xFF87C232));
+    expect(b.style!.backgroundColor!.resolve({WidgetState.disabled}),
+        const Color(0xFF87C232));
+  });
+
+  testWidgets('no Pay button on a cancelled event', (tester) async {
+    await pump(tester, owing(status: 'cancelled'));
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Pay €'), findsNothing);
+  });
+
   testWidgets('player on a free training session shows details',
       (tester) async {
     await pump(
