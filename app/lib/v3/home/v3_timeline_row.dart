@@ -75,13 +75,6 @@ class V3TimelineRow extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2, right: 12),
-                      child: Opacity(
-                        opacity: cancelled ? .45 : 1,
-                        child: _crest(),
-                      ),
-                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +89,7 @@ class V3TimelineRow extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: V3
                                 .inter(
-                                  16,
+                                  19,
                                   weight: FontWeight.w600,
                                   color: cancelled ? _mutedSpec : V3.text,
                                   height: 1.25,
@@ -108,6 +101,15 @@ class V3TimelineRow extends StatelessWidget {
                                 ),
                           ),
                         ],
+                      ),
+                    ),
+                    // Crest on the right so the text has the full width
+                    // (Ken, 2026-11-11: text was too small to read).
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, left: 12),
+                      child: Opacity(
+                        opacity: cancelled ? .45 : 1,
+                        child: _crest(),
                       ),
                     ),
                   ],
@@ -158,7 +160,7 @@ class V3TimelineRow extends StatelessWidget {
           hhmm(t),
           style: V3
               .tight(
-            18,
+            22,
             weight: FontWeight.w700,
             color: cancelled ? _mutedSpec : V3.text,
             height: 1.1,
@@ -169,11 +171,11 @@ class V3TimelineRow extends StatelessWidget {
           ),
         ),
         if (meet.isNotEmpty && !cancelled)
-          Text('Meet $meet', style: V3.inter(13, color: _mutedSpec)),
+          Text('Meet $meet', style: V3.inter(16, color: _mutedSpec)),
         if (cd.isNotEmpty)
           Text(
             cd,
-            style: V3.inter(12, weight: FontWeight.w700, color: V3.green),
+            style: V3.inter(15, weight: FontWeight.w700, color: V3.green),
           ),
         if (cancelled) const _Tag('Cancelled', green: false),
         if (!cancelled && e.paymentRequired && e.eventPaid)
@@ -194,7 +196,7 @@ class V3TimelineRow extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: V3
           .tight(
-            13,
+            16,
             weight: FontWeight.w800,
             color: cancelled ? _mutedSpec : V3.green,
             height: 1.2,
@@ -228,13 +230,12 @@ class V3TimelineRow extends StatelessWidget {
       Widget n(int v, String w) => RichText(
             text: TextSpan(
               style: V3
-                  .inter(12.5, color: _mutedSpec)
+                  .inter(16, color: _mutedSpec)
                   .copyWith(fontFeatures: tabular),
               children: [
                 TextSpan(
                   text: '$v ',
-                  style:
-                      V3.inter(12.5, weight: FontWeight.w700, color: V3.text),
+                  style: V3.inter(16, weight: FontWeight.w700, color: V3.text),
                 ),
                 TextSpan(text: w),
               ],
@@ -269,13 +270,13 @@ class V3TimelineRow extends StatelessWidget {
               Text(
                 '${e.acceptedCount} attending',
                 style: V3
-                    .inter(12.5, weight: FontWeight.w600, height: 1.25)
+                    .inter(16, weight: FontWeight.w600, height: 1.25)
                     .copyWith(fontFeatures: tabular),
               ),
               Text(
                 '${e.noResponseCount} no reply · ${e.declinedCount} declined',
                 style: V3
-                    .inter(11.5, color: _mutedSpec, height: 1.25)
+                    .inter(14, color: _mutedSpec, height: 1.25)
                     .copyWith(fontFeatures: tabular),
               ),
             ],
@@ -294,7 +295,7 @@ class V3TimelineRow extends StatelessWidget {
     if (e.responseId == 4) {
       return _status(Icons.close_rounded, 'Declined', _mutedSpec);
     }
-    final size = isCoach ? 36.0 : 40.0;
+    final size = isCoach ? 40.0 : 44.0;
     Widget square(
       IconData icon,
       Color color,
@@ -345,12 +346,12 @@ class V3TimelineRow extends StatelessWidget {
   Widget _status(IconData icon, String label, Color color) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
+          Icon(icon, size: 20, color: color),
           const SizedBox(width: 6),
           Text(
             label,
             style: V3.inter(
-              isCoach ? 12.5 : 13,
+              16,
               weight: FontWeight.w600,
               color: color,
             ),
@@ -379,7 +380,7 @@ class V3QuietDayRow extends StatelessWidget {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             'Nothing on today',
-            style: V3.inter(14, color: _mutedSpec),
+            style: V3.inter(17, color: _mutedSpec),
           ),
         ),
       ),
@@ -478,7 +479,7 @@ class _DayMarker extends StatelessWidget {
           '${day.day}',
           style: V3
               .tight(
-            26,
+            30,
             weight: FontWeight.w800,
             color: green ? V3.green : V3.text,
             height: 1,
@@ -492,7 +493,7 @@ class _DayMarker extends StatelessWidget {
         Text(
           _wd[day.weekday - 1],
           style: V3.inter(
-            10,
+            12,
             weight: FontWeight.w700,
             color: _mutedSpec,
             letterSpacing: 1.2,
@@ -677,7 +678,7 @@ class _Tag extends StatelessWidget {
       child: Text(
         text.toUpperCase(),
         style: V3.inter(
-          11,
+          13,
           weight: FontWeight.w700,
           color: color,
           letterSpacing: .66,

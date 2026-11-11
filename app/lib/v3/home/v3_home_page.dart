@@ -448,7 +448,7 @@ class _V3HomePageState extends State<V3HomePage> {
     // (Ken, 2026-11-11).
     children.add(Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: Text('Events', style: V3.tight(20, weight: FontWeight.w700)),
+      child: Text('Events', style: V3.tight(24, weight: FontWeight.w700)),
     ));
     for (var i = 0; i < items.length; i++) {
       final item = items[i];

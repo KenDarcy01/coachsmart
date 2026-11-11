@@ -74,7 +74,7 @@ class V3TeamChip extends StatelessWidget {
               Text(
                 label,
                 style: V3.inter(
-                  14,
+                  16,
                   weight: FontWeight.w600,
                   color: selected ? V3.text : muted,
                 ),
