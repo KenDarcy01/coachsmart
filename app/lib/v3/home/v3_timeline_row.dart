@@ -83,62 +83,53 @@ class V3TimelineRow extends StatelessWidget {
   }
 
   Widget _body(bool cancelled) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // The crest owns only the top-right corner: the team title and the line
+    // under it leave room for it, everything below runs full width
+    // (Ken, 2026-11-11: a 48 px crest column left a blank line).
+    const crestRoom = EdgeInsets.only(right: 58);
+    final title = Text(
+      e.eventTitle,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: V3
+          .inter(
+            19,
+            weight: FontWeight.w600,
+            color: cancelled ? _mutedSpec : V3.text,
+            height: 1.25,
+          )
+          .copyWith(
+            decoration: cancelled ? TextDecoration.lineThrough : null,
+          ),
+    );
+    return Stack(
       children: [
-        Row(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Crest sits on the team-title line, not in a
-                  // column of its own, so the text gets the full
-                  // width (Ken, 2026-11-11).
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _teamTitle(cancelled)),
-                      const SizedBox(width: 10),
-                      Opacity(
-                        opacity: cancelled ? .45 : 1,
-                        child: _crest(),
-                      ),
-                    ],
-                  ),
-                  if (_hasSquad) ...[
-                    const SizedBox(height: 6),
-                    _squadPill(cancelled),
-                  ],
-                  const SizedBox(height: 6),
-                  _line1(cancelled),
-                  const SizedBox(height: 3),
-                  Text(
-                    e.eventTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: V3
-                        .inter(
-                          19,
-                          weight: FontWeight.w600,
-                          color: cancelled ? _mutedSpec : V3.text,
-                          height: 1.25,
-                        )
-                        .copyWith(
-                          decoration:
-                              cancelled ? TextDecoration.lineThrough : null,
-                        ),
-                  ),
-                ],
-              ),
-            ),
+            Padding(padding: crestRoom, child: _teamTitle(cancelled)),
+            if (_hasSquad) ...[
+              const SizedBox(height: 6),
+              Padding(padding: crestRoom, child: _squadPill(cancelled)),
+              const SizedBox(height: 6),
+              _line1(cancelled),
+            ] else ...[
+              const SizedBox(height: 6),
+              Padding(padding: crestRoom, child: _line1(cancelled)),
+            ],
+            const SizedBox(height: 3),
+            title,
+            if (!cancelled && e.requestAttendance) ...[
+              const SizedBox(height: 10),
+              _footer(),
+            ],
           ],
         ),
-        if (!cancelled && e.requestAttendance) ...[
-          const SizedBox(height: 10),
-          _footer(),
-        ],
+        Positioned(
+          top: 0,
+          right: 0,
+          child: Opacity(opacity: cancelled ? .45 : 1, child: _crest()),
+        ),
       ],
     );
   }
