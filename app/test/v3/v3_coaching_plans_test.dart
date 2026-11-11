@@ -561,17 +561,14 @@ void main() {
       await t.tap(find.byKey(const ValueKey('rotate')));
       await t.pump();
       await t.tap(find.byKey(const ValueKey('write-plan')));
-      // The button's spinner keeps turning behind the question.
-      await t.pump();
-      await t.pump(const Duration(milliseconds: 400));
-      // Zombie Chief is not a saved game yet: ask, then save it.
-      expect(find.text('Save this game first?'), findsOneWidget);
-      expect(api.count('generate'), 0);
-      await t.tap(find.byKey(const ValueKey('save-games')));
       await t.pumpAndSettle();
-      expect(games.calls, ['toggle:1']);
+      // Zombie Chief is not a saved game: it is used anyway, and the
+      // coach's Saved list is left alone.
+      expect(find.text('Save this game first?'), findsNothing);
+      expect(games.calls, isEmpty);
       final g = api.last('generate')!;
       expect(g['game_ids'], [2, 1]);
+      expect(g['use_game_ids'], isTrue);
       expect(g['duration_mins'], 60);
       expect(g['player_count'], 15);
       expect(g['session_notes'], 'Lots of touches');

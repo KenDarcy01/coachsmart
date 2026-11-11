@@ -215,73 +215,11 @@ class _V3PlanBuilderPageState extends State<V3PlanBuilderPage> {
     return true;
   }
 
-  /// The plan writer only reads the coach's saved games, so games added
-  /// with + that are not saved yet are saved first (after asking).
-  Future<bool> _saveGamesForAi() async {
-    final Set<int> saved;
-    try {
-      saved = await widget.gamesApi.favouriteIds();
-    } catch (_) {
-      return true; // can't tell; let the server decide
-    }
-    final missing = [
-      for (final g in _draft.games)
-        if (!saved.contains(g.gameId)) g
-    ];
-    if (missing.isEmpty || !mounted) return true;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: V3.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-            missing.length == 1 ? 'Save this game first?' : 'Save these games?',
-            style: V3.tight(20)),
-        content: Text(
-            'The plan is written from your saved games. '
-            '${missing.map((g) => g.name).join(', ')} '
-            '${missing.length == 1 ? "isn't" : "aren't"} saved yet. '
-            'Saving adds ${missing.length == 1 ? 'it' : 'them'} to your '
-            'Saved games.',
-            style: V3.inter(16, color: V3.muted, height: 1.45)),
-        actions: [
-          TextButton(
-              style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text('Cancel', style: V3.inter(16, color: V3.muted))),
-          TextButton(
-              key: const ValueKey('save-games'),
-              style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Save and carry on',
-                  style:
-                      V3.inter(16, weight: FontWeight.w700, color: V3.green))),
-        ],
-      ),
-    );
-    if (ok != true) return false;
-    for (final g in missing) {
-      await widget.gamesApi.toggleFavourite(g.gameId);
-    }
-    return true;
-  }
-
   /// "Write the plan for me".
   Future<void> _write() async {
     if (!_start('ai')) return;
     final eventId = _eventId;
     try {
-      final bool ready;
-      try {
-        ready = await _saveGamesForAi();
-      } catch (_) {
-        _fail('ai', 'Your games could not be saved. Please try again.');
-        return;
-      }
-      if (!ready) {
-        if (mounted) setState(() => _busy = null);
-        return;
-      }
       final notes = _notes.text.trim();
       final r = await widget.api.plan({
         ...generateBody(
@@ -290,6 +228,9 @@ class _V3PlanBuilderPageState extends State<V3PlanBuilderPage> {
             minutes: _length,
             gameIds: [for (final g in _draft.games) g.gameId],
             rotate: _rotate),
+        // Plan with exactly these games, saved (hearted) or not; the server
+        // added this for v3 (Ken approved 2026-11-11).
+        'use_game_ids': true,
         if (_players != null) 'player_count': _players,
         if (notes.isNotEmpty) 'session_notes': notes,
       });
@@ -303,8 +244,8 @@ class _V3PlanBuilderPageState extends State<V3PlanBuilderPage> {
         _fail(
             'ai',
             d['error'] == 'no_favourites'
-                ? 'The plan is written from your saved games, and none were '
-                    'found. Save your games (the heart) and try again.'
+                ? 'None of those games could be used. Add games and try '
+                    'again.'
                 : spErrorText(
                     d, 'The plan could not be written. Please try again.'));
         return;
