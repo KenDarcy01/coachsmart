@@ -535,6 +535,7 @@ serve(async (req) => {
         sb.from("user_game_link")
           .select("position, games!inner(game_id, game_name, game_image, game_code, game_type, game_age, game_video)")
           .eq("user_id", user_id)
+          .eq("games.is_active", true)
           .order("position"),
         allowedPromise,
       ]);
