@@ -99,3 +99,4 @@ export '/v3/join_team/v3_join_team_page.dart' show V3JoinTeamPage;
 export '/v3/create_team/v3_create_team_page.dart' show V3CreateTeamPage;
 export '/v3/onboarding/v3_onboarding_page.dart' show V3OnboardingPage;
 export '/v3/member_stats/v3_member_stats_page.dart' show V3MemberStatsPage;
+export '/v3/lineup/v3_lineup_page.dart' show V3LineupPage;

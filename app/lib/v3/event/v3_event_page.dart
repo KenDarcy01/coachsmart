@@ -256,11 +256,6 @@ class _V3EventPageState extends State<V3EventPage> {
         'currentAuthToken': serializeParam(currentJwtToken, ParamType.String),
       };
 
-  void _openWeb(String title, String url) {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => V3WebPage(title: title, url: url)));
-  }
-
   void _openAttendees(int responseId) {
     _open(AttendeeListWidget.routeName, {
       'eventID': serializeParam(_eventId, ParamType.int),
@@ -339,8 +334,10 @@ class _V3EventPageState extends State<V3EventPage> {
           squadId = picked;
         }
       }
-      _openWeb('Lineup',
-          'https://coachsmart.app/webviews/team_selector.html?token=$currentJwtToken&eventId=$_eventId&teamId=${e.teamId}&squadId=$squadId');
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => V3LineupPage(
+              eventId: _eventId, teamId: e.teamId, squadId: squadId)));
     } catch (_) {
       _snack('Could not open the lineup. Please try again.', warn: true);
     }
