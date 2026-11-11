@@ -126,6 +126,10 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
     }
   }
 
+  // The user's own sign-in token, not the anon key (Ken, 2026-11-11).
+  String get _token =>
+      SupaFlow.client.auth.currentSession?.accessToken ?? currentJwtToken;
+
   Future<void> _export() async {
     final d = _data!;
     final pick = await _sheet<String>('Export the squads', [
@@ -145,11 +149,13 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
             matchSquadId: d.matchSquadId);
       } else if (pick == 'xls') {
         r = await ExportToXLSCall.call(
+            supabaseKey: _token,
             eventId: widget.eventId,
             userEmail: currentUserEmail,
             matchSquadId: d.matchSquadId);
       } else {
         r = await ExportToCSVCall.call(
+            supabaseKey: _token,
             eventId: widget.eventId,
             userEmail: currentUserEmail,
             matchSquadId: d.matchSquadId);

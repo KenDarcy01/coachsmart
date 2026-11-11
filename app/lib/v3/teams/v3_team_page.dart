@@ -127,8 +127,12 @@ class _V3TeamPageState extends State<V3TeamPage> {
   }
 
   Future<void> _export() async {
+    // Send the user's own sign-in token, not the anon key (Ken, 2026-11-11).
     final r = await ExportTeamListXLSCall.call(
-        pTeamId: widget.teamId, userEmail: currentUserEmail);
+        supabaseKey:
+            SupaFlow.client.auth.currentSession?.accessToken ?? currentJwtToken,
+        pTeamId: widget.teamId,
+        userEmail: currentUserEmail);
     if (!mounted) return;
     _snack(r.succeeded
         ? 'The team list is on its way to $currentUserEmail.'
