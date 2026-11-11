@@ -40,7 +40,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
       (widget.responseId == kAttending || widget.responseId == kDeclined)
           ? widget.responseId!
           : kNoReply;
-  int? _squadFilter; // null = All, 0 = No squad
+  int? _squadFilter; // null = everyone, 0 = No squad
   bool _publishing = false;
   final Set<int> _busy = {};
 
@@ -486,62 +486,59 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
     );
   }
 
-  /// Squad cards as on the v2 page: name, count, role counts. Tap filters.
+  /// Squad cards as on the v2 page: wide cards with the squad name, its
+  /// picture, the count and role counts (Ken, 2026-11-11: bigger, no All
+  /// card). Tap a card to show only that squad, tap it again for everyone.
   Widget _squadCards(AttendanceData d) {
     final cards = d.squadCards(_tab);
     return SizedBox(
-      height: 150,
+      height: 168,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.only(bottom: 8),
         itemCount: cards.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, i) {
           final c = cards[i];
           final sel = c.squadId == _squadFilter;
+          final pic = c.squad != null
+              ? _SquadDot(c.squad!, size: 44)
+              : Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                      color: V3.barGrey, shape: BoxShape.circle));
           return GestureDetector(
-            onTap: () => setState(() => _squadFilter = c.squadId),
+            onTap: () => setState(() => _squadFilter = sel ? null : c.squadId),
             child: Container(
-              width: 132,
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+              width: 250,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
               decoration: BoxDecoration(
                   color: V3.card,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: sel ? V3.green : V3.line, width: 1.5)),
+                  border: Border.all(
+                      color: sel ? V3.green : V3.line, width: sel ? 2 : 1.5)),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      c.squadId == null
-                          ? Container(
-                              width: 20,
-                              height: 20,
-                              decoration: const BoxDecoration(
-                                  color: V3.green, shape: BoxShape.circle))
-                          : c.squad != null
-                              ? _SquadDot(c.squad!, size: 20)
-                              : Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: const BoxDecoration(
-                                      color: V3.barGrey,
-                                      shape: BoxShape.circle)),
-                      const SizedBox(width: 7),
                       Expanded(
                           child: Text(c.name,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: V3.inter(14, weight: FontWeight.w600))),
+                              style: V3.inter(18,
+                                  weight: FontWeight.w600, color: V3.green))),
+                      const SizedBox(width: 8),
+                      pic,
                     ]),
-                    const SizedBox(height: 4),
                     Text('${c.count}',
                         style:
-                            V3.tight(26, weight: FontWeight.w700, height: 1.1)),
+                            V3.tight(34, weight: FontWeight.w700, height: 1.1)),
                     const SizedBox(height: 4),
                     Expanded(
                       child: Text(c.lines.join('\n'),
                           overflow: TextOverflow.fade,
-                          style: V3.inter(12, color: V3.muted, height: 1.4)),
+                          style: V3.inter(15, color: V3.muted, height: 1.35)),
                     ),
                   ]),
             ),

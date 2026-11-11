@@ -104,21 +104,36 @@ class AttendanceData {
           if (squadId == null || m.squadId == squadId) m
       ];
 
-  /// Role groups in role order for the rows given, empty groups left out.
+  /// Role groups in role sequence for the rows given, empty groups left
+  /// out. Inside a role, members go by squad sequence (no squad last), then
+  /// by name as the server sends them (Ken, 2026-11-11).
   List<(AttRole, List<AttMember>)> groups(List<AttMember> rows) => [
         for (final r in roles)
           if (rows.any((m) => m.roleId == r.roleId))
             (
               r,
-              [
+              _bySquad([
                 for (final m in rows)
                   if (m.roleId == r.roleId) m
-              ]
+              ])
             )
       ];
 
-  /// Squad cards for one tab: All, each squad, and No squad when anyone on
-  /// the tab has none. Count = distinct people, lines = "Players: 7" per role.
+  int _squadRank(int squadId) {
+    final i = squads.indexWhere((s) => s.squadId == squadId);
+    return i < 0 ? squads.length : i;
+  }
+
+  List<AttMember> _bySquad(List<AttMember> ms) {
+    final order = {for (var i = 0; i < ms.length; i++) ms[i]: i};
+    return [...ms]..sort((a, b) {
+        final c = _squadRank(a.squadId).compareTo(_squadRank(b.squadId));
+        return c != 0 ? c : order[a]!.compareTo(order[b]!);
+      });
+  }
+
+  /// Squad cards for one tab: each squad, and No squad when anyone on the
+  /// tab has none (no All card, Ken 2026-11-11: nothing selected = all). Count = distinct people, lines = "Players: 7" per role.
   List<SquadCard> squadCards(int tab) {
     final out = <SquadCard>[];
     SquadCard card(int? squadId, String name, AttSquad? squad) {
@@ -131,7 +146,6 @@ class AttendanceData {
           squadId, name, squad, {for (final m in rs) m.memberId}.length, lines);
     }
 
-    out.add(card(null, 'All', null));
     for (final s in squads) {
       out.add(card(s.squadId, s.squadName, s));
     }
@@ -151,7 +165,7 @@ class AttendanceData {
 
 class SquadCard {
   const SquadCard(this.squadId, this.name, this.squad, this.count, this.lines);
-  final int? squadId; // null = All, 0 = No squad
+  final int? squadId; // 0 = No squad
   final String name;
   final AttSquad? squad;
   final int count;

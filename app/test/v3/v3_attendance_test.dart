@@ -120,24 +120,23 @@ void main() {
     final d = AttendanceData.fromJson(sample());
     final all = d.groups(d.rows(kAttending, null));
     expect(all.map((g) => g.$1.plural), ['Players', 'Coaches']);
+    // Inside a role: squad sequence first (Blue, then Red), then name.
     expect(all.first.$2.map((m) => m.memberName),
-        ['Aimee Morris', 'Anna Ryan', 'Ken Darcy']);
+        ['Aimee Morris', 'Ken Darcy', 'Anna Ryan']);
     final red = d.groups(d.rows(kAttending, 12));
     expect(red.length, 1);
     expect(red.first.$2.single.memberName, 'Anna Ryan');
     expect(d.rows(kNoReply, 0).single.memberName, 'Fiadh Nolan');
   });
 
-  test('squad cards: All, each squad, No squad only when someone has none', () {
+  test('squad cards: each squad, No squad only when someone has none', () {
     final d = AttendanceData.fromJson(sample());
     final att = d.squadCards(kAttending);
-    expect(att.map((c) => c.name), ['All', 'Blue', 'Red']);
-    expect(att[0].count, 3);
-    expect(att[0].lines, ['Players: 3', 'Coaches: 1']);
-    expect(att[1].count, 2); // Aimee + Ken
-    expect(att[1].lines, ['Players: 2', 'Coaches: 1']);
+    expect(att.map((c) => c.name), ['Blue', 'Red']);
+    expect(att[0].count, 2); // Aimee + Ken
+    expect(att[0].lines, ['Players: 2', 'Coaches: 1']);
     final none = d.squadCards(kNoReply);
-    expect(none.map((c) => c.name), ['All', 'Blue', 'Red', 'No squad']);
+    expect(none.map((c) => c.name), ['Blue', 'Red', 'No squad']);
     expect(none.last.count, 1);
   });
 
@@ -169,9 +168,18 @@ void widgetTests() {
     expect(find.text('COACHES'), findsOneWidget);
     expect(find.text('Aimee Morris'), findsOneWidget);
     expect(find.text('Tom Kelly'), findsNothing); // declined, other tab
-    // Squad cards: All, Blue, Red.
-    expect(find.text('All'), findsOneWidget);
-    expect(find.textContaining('Players: 3'), findsOneWidget);
+    // Squad cards: Blue, Red, none selected, everyone listed.
+    expect(find.text('All'), findsNothing);
+    expect(find.text('Blue'), findsWidgets);
+    expect(find.textContaining('Players: 2'), findsOneWidget);
+    expect(find.text('Anna Ryan'), findsOneWidget);
+    // Tap Blue to filter, tap again to show everyone.
+    await tester.tap(find.text('Blue').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Anna Ryan'), findsNothing);
+    await tester.tap(find.text('Blue').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Anna Ryan'), findsOneWidget);
     // Switch to Declined.
     await tester.tap(find.text('Declined'));
     await tester.pumpAndSettle();
