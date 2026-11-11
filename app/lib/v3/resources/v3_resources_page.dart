@@ -13,6 +13,8 @@
 // Games are public ones plus the user's default club's own.
 import 'package:flutter/material.dart';
 
+import '/app_state.dart';
+import '../game_upload/v3_game_upload_page.dart';
 import '../games/v3_games.dart';
 import '../v3_theme.dart';
 import 'v3_resources_api.dart';
@@ -164,15 +166,36 @@ class _V3ResourcesPageState extends State<V3ResourcesPage>
             child: _PathwayStages(lib: _lib, stages: stages))));
   }
 
+  // Managers (role 100+) can add a game, as the old Resources page's + did.
+  List<Widget>? _addAction() {
+    if (widget.testData != null ||
+        FFAppState().homePageEvents.highestRoleLevel < 100) {
+      return null;
+    }
+    return [
+      IconButton(
+        tooltip: 'Add a game or drill',
+        icon: const Icon(Icons.add, color: V3.green, size: 30),
+        onPressed: () async {
+          final saved = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(builder: (_) => const V3GameUploadPage()));
+          if (saved == true) _lib.refresh();
+        },
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (_mode) {
       case _Mode.loading:
-        return const _Scaffold(
+        return _Scaffold(
+            actions: _addAction(),
             title: 'Resources',
             child: Center(child: CircularProgressIndicator(color: V3.green)));
       case _Mode.error:
         return _Scaffold(
+          actions: _addAction(),
           title: 'Resources',
           child: _Message(
               title: 'Something went wrong',
@@ -181,13 +204,18 @@ class _V3ResourcesPageState extends State<V3ResourcesPage>
               onAction: _boot),
         );
       case _Mode.fallback:
-        return _Scaffold(title: 'Resources', child: _FallbackStages(lib: _lib));
+        return _Scaffold(
+            actions: _addAction(),
+            title: 'Resources',
+            child: _FallbackStages(lib: _lib));
       case _Mode.pathway:
         return _Scaffold(
+            actions: _addAction(),
             title: 'Player Pathway',
             child: _PathwayStages(lib: _lib, stages: _stages));
       case _Mode.select:
         return _Scaffold(
+          actions: _addAction(),
           title: 'Resources',
           child: ListView(padding: const EdgeInsets.all(16), children: [
             const _Label('Select a pathway'),
@@ -232,8 +260,10 @@ void _openGame(BuildContext context, _Lib lib, V3Game g) {
 }
 
 class _Scaffold extends StatelessWidget {
-  const _Scaffold({required this.title, required this.child, this.bottom});
+  const _Scaffold(
+      {required this.title, required this.child, this.bottom, this.actions});
   final String title;
+  final List<Widget>? actions;
   final Widget child;
   final PreferredSizeWidget? bottom;
 
@@ -252,6 +282,7 @@ class _Scaffold extends StatelessWidget {
         title:
             Text(title, overflow: TextOverflow.ellipsis, style: V3.tight(17)),
         bottom: bottom,
+        actions: actions,
       ),
       body: child,
     );

@@ -458,12 +458,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: ResourcesAddWidget.routeName,
               path: ResourcesAddWidget.routePath,
-              builder: (context, params) => ResourcesAddWidget(
-                currentAuthToken: params.getParam(
-                  'currentAuthToken',
-                  ParamType.String,
-                ),
-              ),
+              builder: (context, params) => const V3GameUploadPage(), // v3
             ),
             FFRoute(
               name: SessionPlannerWidget.routeName,
