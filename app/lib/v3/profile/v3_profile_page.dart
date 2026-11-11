@@ -6,6 +6,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
@@ -327,8 +328,14 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
             'as they change. Calendars check for changes every hour or so, '
             'so the app is still the quickest place to see a change.',
         [
-          _Item(Icons.event_available_outlined,
-              android ? 'Add to Google Calendar' : 'Add to this phone', 'add'),
+          // Google on every phone (Ken uses it on his iPhone, 2026-11-11);
+          // Apple's own calendar everywhere but Android.
+          _Item(Icons.event_available_outlined, 'Add to Google Calendar',
+              'google'),
+          if (!android)
+            _Item(Icons.event_available_outlined, 'Add to Apple Calendar',
+                'apple'),
+          _Item(Icons.ios_share, 'Share with my family', 'share'),
           _Item(Icons.copy, 'Copy the calendar link', 'copy'),
           _Item(Icons.refresh, 'Get a new link', 'reset'),
           _Item(Icons.close, 'Cancel', ''),
@@ -355,28 +362,44 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
     final webcal = 'webcal://$_feedBase$token';
     V3Track.event('calendar_feed', {'action': pick});
     switch (pick) {
-      case 'add':
-        // iPhone and Mac open the subscribe prompt for webcal links; Google
-        // Calendar adds a feed through its own link. On the web app a new
-        // window is blocked after the wait for the link, so the webcal link
-        // opens in place, and the link is copied too in case nothing opens.
-        final target = android
+      case 'google':
+      case 'apple':
+        // webcal links open Apple's subscribe prompt; Google Calendar adds a
+        // feed through its own link and then syncs it to the Google app. On
+        // the web app a new window is blocked after the wait for the link,
+        // so links open in place, and the link is copied too as a backup.
+        final google = pick == 'google';
+        final target = google
             ? 'https://calendar.google.com/calendar/r?cid=${Uri.encodeComponent(webcal)}'
             : webcal;
         await Clipboard.setData(ClipboardData(text: https));
         var opened = false;
         try {
           opened = await launchUrl(Uri.parse(target),
-              webOnlyWindowName: kIsWeb && !android ? '_self' : null);
+              webOnlyWindowName: kIsWeb ? '_self' : null);
         } catch (_) {}
         if (!mounted) return;
         if (!opened || kIsWeb) {
-          _snack(android
-              ? 'Link copied. If Google Calendar did not open, add it there '
-                  'with From URL.'
+          _snack(google
+              ? 'Link copied. If Google Calendar did not open, add it at '
+                  'calendar.google.com, Other calendars, From URL.'
               : 'Link copied. If nothing opened, go to Settings, Calendar, '
                   'Accounts, Add Account, Other, Add Subscribed Calendar and '
                   'paste it.');
+        }
+      case 'share':
+        // One link per family: a partner who adds this link (rather than
+        // their own) sees the same events in their calendar (Ken, 2026-11-11).
+        final text =
+            'Our CoachSmart events for your calendar. Add this link as '
+            'a subscribed calendar (Google: Other calendars, From URL):\n$https';
+        try {
+          if (kIsWeb) throw UnsupportedError('web');
+          await SharePlus.instance
+              .share(ShareParams(text: text, subject: 'CoachSmart calendar'));
+        } catch (_) {
+          await Clipboard.setData(ClipboardData(text: text));
+          _snack('Calendar link copied. Paste it into a message.');
         }
       case 'copy':
         await Clipboard.setData(ClipboardData(text: https));
