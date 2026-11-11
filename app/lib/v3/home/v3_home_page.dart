@@ -80,8 +80,8 @@ class _V3HomePageState extends State<V3HomePage> {
         data: {
           'fcm_token':
               FFAppState().fcmToken == 'Running on web. FCM setup skipped.'
-              ? ''
-              : FFAppState().fcmToken,
+                  ? ''
+                  : FFAppState().fcmToken,
         },
         matchingRows: (rows) => rows.eqOrNull('user_id', currentUserUid),
       );
@@ -187,8 +187,7 @@ class _V3HomePageState extends State<V3HomePage> {
           supabaseJWTtoken: currentJwtToken,
         );
         final d = UserEventDetailsStruct.maybeFromMap(r.jsonBody);
-        final ids =
-            d?.teamMembers
+        final ids = d?.teamMembers
                 .where((m) => m.responseId != responseId)
                 .map((m) => m.memberId)
                 .toList() ??
@@ -358,20 +357,20 @@ class _V3HomePageState extends State<V3HomePage> {
                 ),
               )
             : _failed
-            ? _errorBody()
-            : Column(
-                children: [
-                  _chipBar(),
-                  Expanded(
-                    child: RefreshIndicator(
-                      color: V3.green,
-                      backgroundColor: V3.card,
-                      onRefresh: _load,
-                      child: _timeline(),
-                    ),
+                ? _errorBody()
+                : Column(
+                    children: [
+                      _chipBar(),
+                      Expanded(
+                        child: RefreshIndicator(
+                          color: V3.green,
+                          backgroundColor: V3.card,
+                          onRefresh: _load,
+                          child: _timeline(),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
         // Parents get no bottom bar (design §5.10).
         bottomNavigationBar: _loaded && !_failed && coach ? _tabs(role) : null,
       ),
@@ -379,30 +378,30 @@ class _V3HomePageState extends State<V3HomePage> {
   }
 
   Widget _errorBody() => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          "Couldn't load your events",
-          style: V3.inter(18, weight: FontWeight.w600),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Couldn't load your events",
+              style: V3.inter(18, weight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Check your connection and try again.',
+              style: V3.inter(15, color: V3.muted),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _load,
+              style: FilledButton.styleFrom(
+                backgroundColor: V3.green,
+                foregroundColor: V3.bg,
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Check your connection and try again.',
-          style: V3.inter(15, color: V3.muted),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _load,
-          style: FilledButton.styleFrom(
-            backgroundColor: V3.green,
-            foregroundColor: V3.bg,
-          ),
-          child: const Text('Retry'),
-        ),
-      ],
-    ),
-  );
+      );
 
   // ---- team chips (design §5.2) -------------------------------------------
 
@@ -475,62 +474,64 @@ class _V3HomePageState extends State<V3HomePage> {
   // The National Draw box from v2, as a quieter card. Still hard-coded;
   // v3 will make it a club setting.
   Widget _advert() => Padding(
-    padding: const EdgeInsets.only(top: 10, bottom: 4),
-    child: Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: V3.card,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFF155B81),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              'GAA',
-              style: V3.tight(11, weight: FontWeight.w800, color: Colors.white),
-            ),
+        padding: const EdgeInsets.only(top: 10, bottom: 4),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            color: V3.card,
+            borderRadius: BorderRadius.circular(14),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'National Draw',
-                  style: V3.inter(15, weight: FontWeight.w600),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF155B81),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                Text('Support your club', style: V3.inter(13, color: V3.muted)),
-              ],
-            ),
-          ),
-          FilledButton(
-            onPressed: () => launchURL(
-              'https://buy.stripe.com/00w9ATfp29iqe7N3Tmds404?client_reference_id=$currentUserUid',
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: V3.green,
-              foregroundColor: V3.bg,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                child: Text(
+                  'GAA',
+                  style: V3.tight(11,
+                      weight: FontWeight.w800, color: Colors.white),
+                ),
               ),
-            ),
-            child: Text(
-              'Buy tickets',
-              style: V3.inter(14, weight: FontWeight.w600, color: V3.bg),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'National Draw',
+                      style: V3.inter(15, weight: FontWeight.w600),
+                    ),
+                    Text('Support your club',
+                        style: V3.inter(13, color: V3.muted)),
+                  ],
+                ),
+              ),
+              FilledButton(
+                onPressed: () => launchURL(
+                  'https://buy.stripe.com/00w9ATfp29iqe7N3Tmds404?client_reference_id=$currentUserUid',
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: V3.green,
+                  foregroundColor: V3.bg,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Buy tickets',
+                  style: V3.inter(14, weight: FontWeight.w600, color: V3.bg),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   // ---- bottom tabs ---------------------------------------------------------
 
@@ -602,13 +603,13 @@ class _V3HomePageState extends State<V3HomePage> {
 
   Widget _drawer(int role) {
     Widget item(IconData icon, String label, VoidCallback onTap) => ListTile(
-      leading: Icon(icon, color: V3.text, size: 28),
-      title: Text(label, style: V3.tight(18, weight: FontWeight.w400)),
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-    );
+          leading: Icon(icon, color: V3.text, size: 28),
+          title: Text(label, style: V3.tight(18, weight: FontWeight.w400)),
+          onTap: () {
+            Navigator.pop(context);
+            onTap();
+          },
+        );
     return Drawer(
       backgroundColor: V3.bg,
       child: SafeArea(

@@ -77,10 +77,10 @@ class TimelineItem {
   }) : quiet = false;
 
   TimelineItem.quietDay(this.time)
-    : event = null,
-      showDay = true,
-      isNext = false,
-      quiet = true;
+      : event = null,
+        showDay = true,
+        isNext = false,
+        quiet = true;
 
   final EventsStruct? event;
   final DateTime time;

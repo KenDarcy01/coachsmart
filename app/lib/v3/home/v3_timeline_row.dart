@@ -158,15 +158,15 @@ class V3TimelineRow extends StatelessWidget {
           hhmm(t),
           style: V3
               .tight(
-                18,
-                weight: FontWeight.w700,
-                color: cancelled ? _mutedSpec : V3.text,
-                height: 1.1,
-              )
+            18,
+            weight: FontWeight.w700,
+            color: cancelled ? _mutedSpec : V3.text,
+            height: 1.1,
+          )
               .copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-                decoration: cancelled ? TextDecoration.lineThrough : null,
-              ),
+            fontFeatures: const [FontFeature.tabularFigures()],
+            decoration: cancelled ? TextDecoration.lineThrough : null,
+          ),
         ),
         if (meet.isNotEmpty && !cancelled)
           Text('Meet $meet', style: V3.inter(13, color: _mutedSpec)),
@@ -235,19 +235,20 @@ class V3TimelineRow extends StatelessWidget {
     if (isCoach) {
       // Three equal-weight numbers: no reply is the one a coach acts on.
       Widget n(int v, String w) => RichText(
-        text: TextSpan(
-          style: V3
-              .inter(12.5, color: _mutedSpec)
-              .copyWith(fontFeatures: tabular),
-          children: [
-            TextSpan(
-              text: '$v ',
-              style: V3.inter(12.5, weight: FontWeight.w700, color: V3.text),
+            text: TextSpan(
+              style: V3
+                  .inter(12.5, color: _mutedSpec)
+                  .copyWith(fontFeatures: tabular),
+              children: [
+                TextSpan(
+                  text: '$v ',
+                  style:
+                      V3.inter(12.5, weight: FontWeight.w700, color: V3.text),
+                ),
+                TextSpan(text: w),
+              ],
             ),
-            TextSpan(text: w),
-          ],
-        ),
-      );
+          );
       return Row(
         children: [
           ring,
@@ -309,36 +310,37 @@ class V3TimelineRow extends StatelessWidget {
       double alpha,
       int id,
       String label,
-    ) => Semantics(
-      button: true,
-      label: label,
-      child: InkWell(
-        onTap: busy ? null : () => onReply(id),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: size,
-          height: size,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
+    ) =>
+        Semantics(
+          button: true,
+          label: label,
+          child: InkWell(
+            onTap: busy ? null : () => onReply(id),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: color.withValues(alpha: alpha),
-              width: 1.5,
+            child: Container(
+              width: size,
+              height: size,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: color.withValues(alpha: alpha),
+                  width: 1.5,
+                ),
+              ),
+              child: busy
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: color,
+                      ),
+                    )
+                  : Icon(icon, size: id == 3 ? 20 : 18, color: color),
             ),
           ),
-          child: busy
-              ? SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: color,
-                  ),
-                )
-              : Icon(icon, size: id == 3 ? 20 : 18, color: color),
-        ),
-      ),
-    );
+        );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -350,20 +352,20 @@ class V3TimelineRow extends StatelessWidget {
   }
 
   Widget _status(IconData icon, String label, Color color) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, size: 16, color: color),
-      const SizedBox(width: 6),
-      Text(
-        label,
-        style: V3.inter(
-          isCoach ? 12.5 : 13,
-          weight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    ],
-  );
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: V3.inter(
+              isCoach ? 12.5 : 13,
+              weight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      );
 }
 
 /// Today's "Nothing on today" row (design §6.6).
@@ -485,15 +487,15 @@ class _DayMarker extends StatelessWidget {
           '${day.day}',
           style: V3
               .tight(
-                26,
-                weight: FontWeight.w800,
-                color: green ? V3.green : V3.text,
-                height: 1,
-              )
+            26,
+            weight: FontWeight.w800,
+            color: green ? V3.green : V3.text,
+            height: 1,
+          )
               .copyWith(
-                letterSpacing: -0.52,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            letterSpacing: -0.52,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
         const SizedBox(height: 4),
         Text(
