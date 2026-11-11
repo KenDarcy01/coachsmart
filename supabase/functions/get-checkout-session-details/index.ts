@@ -65,12 +65,7 @@ serve(async (req)=>{
     }
     // 4. Retrieve the Stripe Checkout Session
     // We expand 'line_items' and 'payment_intent' to get full transaction details
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: [
-        'line_items',
-        'payment_intent'
-      ]
-    });
+    const session = await retrieveAnywhere(stripe, sessionId);
     console.log(`Step 4: Stripe Session Retrieved. Status: ${session.payment_status}`); // LOG 4
     // 5. Check if the session was successful
     if (session.payment_status !== 'paid') {
@@ -143,3 +138,23 @@ serve(async (req)=>{
     console.log('--- get-checkout-session-details execution finished ---'); // LOG END
   }
 });
+
+
+// Event payments can be made on a club's own Stripe account (2026-11-11), so
+// look there when the session is not on the CoachSmart account.
+async function retrieveAnywhere(stripe: any, sessionId: string) {
+  const opts = { expand: ['line_items', 'payment_intent'] };
+  try {
+    return await stripe.checkout.sessions.retrieve(sessionId, opts);
+  } catch (e) {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.3');
+    const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+    const { data } = await sb.from('clubs').select('stripe_account_id').not('stripe_account_id', 'is', null);
+    for (const c of data || []) {
+      try {
+        return await stripe.checkout.sessions.retrieve(sessionId, opts, { stripeAccount: c.stripe_account_id });
+      } catch (_) { /* not this club */ }
+    }
+    throw e;
+  }
+}

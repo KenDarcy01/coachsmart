@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
-// Stripe Connect webhook for the club lotto. Set up in Stripe as a Connect
+// Stripe Connect webhook for the club lotto, and for team event payments
+// made on a club's own account (event-payment.ts). Set up in Stripe as a Connect
 // endpoint ("events on connected accounts") pointing at this function, with:
 //   checkout.session.completed, checkout.session.async_payment_succeeded,
 //   invoice.paid, customer.subscription.deleted, charge.refunded
@@ -7,6 +8,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { acct, confirmCheckout, json, loadLotto, recordInvoice, refundCharge, verifyStripeSignature } from "../_shared/lotto.ts";
+import { isEventPayment, recordEventPayment } from "./event-payment.ts";
 
 serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -22,7 +24,11 @@ serve(async (req) => {
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
   try {
-    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+    if ((event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded")
+        && isEventPayment(obj)) {
+      // A team event payment made on the club's own account (not the lotto).
+      await recordEventPayment(sb, obj, event.account || null);
+    } else if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const cfg = await lottoFor(sb, obj.metadata?.lotto_id, event.account);
       if (cfg) await confirmCheckout(sb, cfg, obj);
     } else if (event.type === "invoice.paid") {
