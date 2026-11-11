@@ -247,14 +247,16 @@ class _V3HomePageState extends State<V3HomePage> {
   }
 
   void _openMatches() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(settings: const RouteSettings(name: 'V3MatchesPage'), builder: (_) => const V3MatchesPage()));
+    Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3MatchesPage'),
+        builder: (_) => const V3MatchesPage()));
   }
 
   void _openResources() {
     if (_home.clubPathway) {
-      Navigator.of(context)
-          .push(MaterialPageRoute(settings: const RouteSettings(name: 'V3ResourcesPage'), builder: (_) => const V3ResourcesPage()));
+      Navigator.of(context).push(MaterialPageRoute(
+          settings: const RouteSettings(name: 'V3ResourcesPage'),
+          builder: (_) => const V3ResourcesPage()));
     } else {
       context.pushNamed(GamesAgesWidget.routeName);
     }
@@ -442,6 +444,12 @@ class _V3HomePageState extends State<V3HomePage> {
     final green = nextDay(items);
     final children = <Widget>[];
     if (_home.showAdvert) children.add(_advert());
+    // A white "Events" heading separates the chips from the rail
+    // (Ken, 2026-11-11).
+    children.add(Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Text('Events', style: V3.tight(20, weight: FontWeight.w700)),
+    ));
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
       if (item.quiet) {
@@ -550,7 +558,9 @@ class _V3HomePageState extends State<V3HomePage> {
           Icons.favorite,
           () => Navigator.of(
             context,
-          ).push(MaterialPageRoute(settings: const RouteSettings(name: 'V3FavouritesPage'), builder: (_) => const V3FavouritesPage())),
+          ).push(MaterialPageRoute(
+              settings: const RouteSettings(name: 'V3FavouritesPage'),
+              builder: (_) => const V3FavouritesPage())),
         ),
       if (role >= 100)
         _Tab('Add event', Icons.add_circle, () async {
@@ -670,7 +680,9 @@ class _V3HomePageState extends State<V3HomePage> {
                 Icons.auto_graph,
                 'Analytics',
                 () => Navigator.of(context).push(
-                  MaterialPageRoute(settings: const RouteSettings(name: 'V3AnalyticsPage'), builder: (_) => const V3AnalyticsPage()),
+                  MaterialPageRoute(
+                      settings: const RouteSettings(name: 'V3AnalyticsPage'),
+                      builder: (_) => const V3AnalyticsPage()),
                 ),
               ),
             item(Icons.logout, 'Sign out', _signOut),
