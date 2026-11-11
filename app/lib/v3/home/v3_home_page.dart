@@ -412,10 +412,11 @@ class _V3HomePageState extends State<V3HomePage> {
   Widget _chipBar() {
     final teams = _teams;
     return SizedBox(
-      height: 52,
+      // Room above and below the chips (Ken, 2026-11-11: too tight).
+      height: 68,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         children: [
           V3TeamChip(
             label: 'All',
@@ -447,7 +448,7 @@ class _V3HomePageState extends State<V3HomePage> {
     // A white "Events" heading separates the chips from the rail
     // (Ken, 2026-11-11).
     children.add(Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 10, bottom: 6),
       child: Text('Events', style: V3.tight(24, weight: FontWeight.w700)),
     ));
     for (var i = 0; i < items.length; i++) {

@@ -93,7 +93,11 @@ class V3TimelineRow extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
+                          if (_hasSquad) ...[
+                            const SizedBox(height: 6),
+                            _squadPill(cancelled),
+                          ],
+                          const SizedBox(height: 6),
                           _line1(cancelled),
                           const SizedBox(height: 3),
                           Text(
@@ -135,8 +139,8 @@ class V3TimelineRow extends StatelessWidget {
   Widget _crest() {
     final initial = clubName.isNotEmpty ? clubName[0].toUpperCase() : '?';
     final fallback = Container(
-      width: 28,
-      height: 28,
+      width: 48,
+      height: 48,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: Color(0xFF252A34),
@@ -144,10 +148,10 @@ class V3TimelineRow extends StatelessWidget {
       ),
       child: Text(
         initial,
-        style: V3.tight(13, weight: FontWeight.w700, color: _mutedSpec),
+        style: V3.tight(16, weight: FontWeight.w700, color: _mutedSpec),
       ),
     );
-    return V3CrestImage(crestUrl, size: 28, fallback: fallback);
+    return V3CrestImage(crestUrl, size: 48, fallback: fallback);
   }
 
   // Time · Meet · countdown (next event only) · tags.
@@ -190,12 +194,10 @@ class V3TimelineRow extends StatelessWidget {
 
   // Team name in green capitals heads each row so events stand apart
   // (Ken, 2026-11-11). The crest already says which club, so there is no
-  // club · team · venue line. The squad follows the team when there is one.
+  // club · team · venue line.
   Widget _teamTitle(bool cancelled) {
-    final squad = e.squadName.isNotEmpty && e.squadId != 0 ? e.squadName : '';
-    final text = squad.isEmpty ? e.teamName : '${e.teamName} · $squad';
     return Text(
-      text.toUpperCase(),
+      e.teamName.toUpperCase(),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
       style: V3
@@ -206,6 +208,48 @@ class V3TimelineRow extends StatelessWidget {
             height: 1.2,
           )
           .copyWith(letterSpacing: 1.1),
+    );
+  }
+
+  bool get _hasSquad => e.squadName.isNotEmpty && e.squadId != 0;
+
+  // The squad on its own line as a green-outlined pill with its image,
+  // as on the earlier card (Ken, 2026-11-11: make it stand out).
+  Widget _squadPill(bool cancelled) {
+    final color = cancelled ? _mutedSpec : V3.green;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: color, width: 1.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (e.squadImage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: ClipOval(
+                child: Image.network(
+                  e.squadImage,
+                  width: 18,
+                  height: 18,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const SizedBox(width: 18, height: 18),
+                ),
+              ),
+            ),
+          Text(
+            e.squadName,
+            style: V3.inter(
+              15,
+              weight: FontWeight.w600,
+              color: cancelled ? _mutedSpec : V3.text,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
