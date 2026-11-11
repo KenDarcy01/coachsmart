@@ -2179,7 +2179,7 @@ async function refreshGames() {
       'game_id,game_name,game_age,game_code,game_type,game_skill,' +
       'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
       'game_pdf,game_video,game_image,club_id,created_by'
-    );
+    ).eq('is_active', true);
     if (_myClubId) {
       gamesQuery.or(`club_id.is.null,club_id.eq.${_myClubId}`);
     } else {
@@ -2230,7 +2230,7 @@ async function boot() {
       'game_id,game_name,game_age,game_code,game_type,game_skill,' +
       'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
       'game_pdf,game_video,game_image,club_id,created_by'
-    );
+    ).eq('is_active', true);
     // Only return public games + this club's games (never another club's)
     if (defaultClub) {
       gamesQuery.or(`club_id.is.null,club_id.eq.${defaultClub}`);

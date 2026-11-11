@@ -979,7 +979,7 @@ async function boot() {
       'game_id,game_name,game_age,game_code,game_type,game_skill,' +
       'game_setup,game_how_to_play,game_variations,game_teaching_points,' +
       'game_pdf,game_video,game_image'
-    );
+    ).eq('is_active', true);
 
     if (error) {
       console.warn('games:', error.message);
