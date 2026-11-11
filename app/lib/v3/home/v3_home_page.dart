@@ -14,6 +14,7 @@ import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../profile/v3_profile_models.dart' show PushPref;
+import '../v3_crest_image.dart';
 import '../v3_theme.dart';
 import 'v3_event_card.dart';
 import 'v3_home_data.dart';
@@ -107,6 +108,7 @@ class _V3HomePageState extends State<V3HomePage> {
     }
     FFAppState().homePageEvents = data;
     FFAppState().notificationBadgeCount = data.unreadNotifications;
+    precacheCrests(context, data.clubs.map((c) => c.crest));
     setState(() {
       _failed = false;
       _loaded = true;
@@ -461,9 +463,9 @@ class _V3HomePageState extends State<V3HomePage> {
     final on = _selectedClub == clubId;
     final img = crest == null
         ? Image.asset('assets/images/Launcher_Icon_v2.png', fit: BoxFit.contain)
-        : Image.network(crest,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) =>
+        : V3CrestImage(crest,
+            size: 66,
+            fallback:
                 const Icon(Icons.shield_outlined, color: V3.muted, size: 40));
     return GestureDetector(
       onTap: () => setState(() {

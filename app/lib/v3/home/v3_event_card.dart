@@ -3,6 +3,7 @@
 // title, meta line, attendance bar (or Attending / Decline buttons), pills.
 import 'package:flutter/material.dart';
 import '/backend/schema/structs/index.dart';
+import '../v3_crest_image.dart';
 import '../v3_theme.dart';
 import 'v3_home_data.dart';
 
@@ -75,14 +76,7 @@ class V3EventCard extends StatelessWidget {
                     if (hasCrest)
                       Padding(
                         padding: const EdgeInsets.only(right: 12, top: 2),
-                        child: SizedBox(
-                          width: 52,
-                          height: 52,
-                          child: Image.network(crestUrl!,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) =>
-                                  const SizedBox.shrink()),
-                        ),
+                        child: V3CrestImage(crestUrl, size: 52),
                       ),
                     Expanded(
                       child: Column(

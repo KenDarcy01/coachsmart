@@ -3,6 +3,7 @@
 // FlutterFlow structs miss the newer fields, so the raw JSON is read here.
 import 'package:flutter/material.dart';
 
+import '../v3_crest_image.dart';
 import '../v3_theme.dart';
 
 int _i(dynamic v) =>
@@ -211,9 +212,9 @@ class V3Crest extends StatelessWidget {
             borderRadius: BorderRadius.circular(size * .22)),
         child: url.isEmpty
             ? Icon(Icons.shield_outlined, color: V3.muted, size: size * .5)
-            : Image.network(url,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Icon(Icons.shield_outlined,
+            : V3CrestImage(url,
+                size: size * .84,
+                fallback: Icon(Icons.shield_outlined,
                     color: V3.muted, size: size * .5)),
       );
 }
