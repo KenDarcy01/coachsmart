@@ -120,7 +120,7 @@ List<Widget> coachingCodeTypePills(
           sheet: true,
           on: c.code != null,
           onTap: () => coachingPickCode(context, c, games, extraCodes)),
-      const SizedBox(width: 8),
+      const SizedBox(width: 10),
       CoachingPill(
           key: const ValueKey('pill-type'),
           label: c.kind == null ? 'Type' : coachingKindLabel(c.kind!),
@@ -137,7 +137,7 @@ class CoachingPillRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         alignment: Alignment.centerLeft,
-        height: 56,
+        height: 64,
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -418,8 +418,11 @@ class CoachingPill extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
         onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.only(left: 16, right: sheet ? 8 : 16),
+        // A fixed 44 high with roomy sides so the pills don't look squeezed
+        // (Ken, 2026-11-11).
+        child: Container(
+          height: 44,
+          padding: EdgeInsets.only(left: 18, right: sheet ? 10 : 18),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (icon != null) ...[
               Icon(icon, size: 18, color: on ? V3.bg : kHeartRed),

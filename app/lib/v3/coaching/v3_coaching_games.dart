@@ -200,7 +200,7 @@ class V3CoachingGamesState extends State<V3CoachingGames>
             label: 'All',
             on: !_saved && _age == null && _c.code == null && _c.kind == null,
             onTap: _clearFilters),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
       ],
       CoachingPill(
           key: const ValueKey('pill-saved'),
@@ -208,7 +208,7 @@ class V3CoachingGamesState extends State<V3CoachingGames>
           icon: _saved ? Icons.favorite : Icons.favorite_border,
           on: _saved,
           onTap: () => setState(() => _saved = !_saved)),
-      const SizedBox(width: 8),
+      const SizedBox(width: 10),
       if (!pathway) ...[
         CoachingPill(
             key: const ValueKey('pill-age'),
@@ -216,7 +216,7 @@ class V3CoachingGamesState extends State<V3CoachingGames>
             sheet: true,
             on: _age != null,
             onTap: _pickAge),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
       ],
       ...coachingCodeTypePills(context, _c, _c.games),
     ]);
