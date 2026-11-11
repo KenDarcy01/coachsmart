@@ -3,6 +3,7 @@
 // Crests move to the public Supabase "crests" bucket as small PNGs with a
 // long cache header (2026-11-11); the URLs come from clubs.crest.
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 class V3CrestImage extends StatelessWidget {
@@ -23,16 +24,29 @@ class V3CrestImage extends StatelessWidget {
       height: size,
       child: u.isEmpty
           ? empty
-          : CachedNetworkImage(
-              imageUrl: u,
-              width: size,
-              height: size,
-              fit: BoxFit.contain,
-              fadeInDuration: const Duration(milliseconds: 120),
-              fadeOutDuration: Duration.zero,
-              placeholder: (_, __) => const SizedBox.shrink(),
-              errorWidget: (_, __, ___) => empty,
-            ),
+          // On the web, CachedNetworkImage draws through an HTML platform
+          // view that goes black after leaving and coming back to a page
+          // (Ken, 2026-11-11), so the web uses Image.network and the
+          // browser cache (crests carry a one-year cache header).
+          : kIsWeb
+              ? Image.network(u,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                  frameBuilder: (_, child, frame, sync) =>
+                      sync || frame != null ? child : const SizedBox.shrink(),
+                  errorBuilder: (_, __, ___) => empty)
+              : CachedNetworkImage(
+                  imageUrl: u,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.contain,
+                  fadeInDuration: const Duration(milliseconds: 120),
+                  fadeOutDuration: Duration.zero,
+                  placeholder: (_, __) => const SizedBox.shrink(),
+                  errorWidget: (_, __, ___) => empty,
+                ),
     );
   }
 }
@@ -43,7 +57,8 @@ final Set<String> _precached = {};
 void precacheCrests(BuildContext context, Iterable<String?> urls) {
   for (final u in urls) {
     if (u == null || u.isEmpty || !_precached.add(u)) continue;
-    precacheImage(CachedNetworkImageProvider(u), context,
-        onError: (_, __) => _precached.remove(u));
+    final ImageProvider p =
+        kIsWeb ? NetworkImage(u) : CachedNetworkImageProvider(u);
+    precacheImage(p, context, onError: (_, __) => _precached.remove(u));
   }
 }

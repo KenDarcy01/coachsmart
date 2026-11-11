@@ -616,8 +616,6 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
           border:
               last ? null : const Border(bottom: BorderSide(color: V3.line))),
       child: Row(children: [
-        V3Avatar(initials(m.firstName, m.lastName), size: 42),
-        const SizedBox(width: 12),
         Expanded(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
