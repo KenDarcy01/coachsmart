@@ -21,6 +21,7 @@ import '../v3_theme.dart';
 import 'v3_home_data.dart';
 import 'v3_team_chip.dart';
 import 'v3_timeline_row.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3HomePage extends StatefulWidget {
   const V3HomePage({super.key});
@@ -61,7 +62,7 @@ class _V3HomePageState extends State<V3HomePage> {
   // first; the push token and platform updates run behind it so they
   // don't delay the list (Ken, 2026-11-07: first load felt slow).
   Future<void> _firstLoad() async {
-    logFirebaseEvent('screen_view', parameters: {'screen_name': 'HomePage'});
+    V3Track.screen('HomePage');
     unawaited(_registerDevice());
     await _load();
     if (!mounted) return;
@@ -202,6 +203,7 @@ class _V3HomePageState extends State<V3HomePage> {
           'member_id': memberId,
           'response_id': responseId,
         });
+        V3Track.attendance(e.eventId, responseId, 'home');
         await NotifyAdminsAttendanceChangeCall.call(
           supabaseJWTtoken: currentJwtToken,
           pMemberIdParam: memberId,
@@ -245,15 +247,17 @@ class _V3HomePageState extends State<V3HomePage> {
   }
 
   void _openMatches() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const V3MatchesPage()));
+    Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3MatchesPage'),
+        builder: (_) => const V3MatchesPage()));
   }
 
   // One Coaching tab (games and plans) replaces Resources and Favourites
   // (Ken, 2026-11-11). Every club gets the same games list.
   void _openCoaching() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const V3Coaching()));
+    Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3Coaching'),
+        builder: (_) => const V3Coaching()));
   }
 
   Future<void> _signOut() async {
@@ -438,6 +442,12 @@ class _V3HomePageState extends State<V3HomePage> {
     final green = nextDay(items);
     final children = <Widget>[];
     if (_home.showAdvert) children.add(_advert());
+    // A white "Events" heading separates the chips from the rail
+    // (Ken, 2026-11-11).
+    children.add(Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Text('Events', style: V3.tight(24, weight: FontWeight.w700)),
+    ));
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
       if (item.quiet) {
@@ -658,7 +668,9 @@ class _V3HomePageState extends State<V3HomePage> {
                 Icons.auto_graph,
                 'Analytics',
                 () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const V3AnalyticsPage()),
+                  MaterialPageRoute(
+                      settings: const RouteSettings(name: 'V3AnalyticsPage'),
+                      builder: (_) => const V3AnalyticsPage()),
                 ),
               ),
             item(Icons.logout, 'Sign out', _signOut),

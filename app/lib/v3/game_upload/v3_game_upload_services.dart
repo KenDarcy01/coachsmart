@@ -12,6 +12,7 @@ import '/backend/supabase/supabase.dart';
 import '../games/v3_games.dart';
 import '../games/v3_scene.dart';
 import 'v3_game_upload_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3GameUploadServices {
   const V3GameUploadServices();
@@ -35,6 +36,7 @@ class V3GameUploadServices {
 
   Future<Map<String, dynamic>> _invoke(
       String fn, Map<String, dynamic> body) async {
+    V3Track.feature(fn, body['action']);
     try {
       final res = await SupaFlow.client.functions.invoke(fn, body: body);
       return _asMap(res.data);

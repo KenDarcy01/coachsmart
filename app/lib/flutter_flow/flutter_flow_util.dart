@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '/v3/tracking/v3_track.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -40,6 +42,7 @@ final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
 /// Observers notified of navigation on this app's navigator, in order.
 final List<NavigatorObserver> ffNavigatorObservers = <NavigatorObserver>[
   routeObserver,
+  V3TrackObserver(), // v3 screen views
 ];
 
 T valueOrDefault<T>(T? value, T defaultValue) =>

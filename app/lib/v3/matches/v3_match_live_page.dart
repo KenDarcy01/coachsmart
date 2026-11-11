@@ -19,6 +19,7 @@ import '../v3_theme.dart';
 import 'v3_live_shared.dart';
 import 'v3_match_charts.dart';
 import 'v3_matches_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3MatchLivePage extends StatefulWidget {
   const V3MatchLivePage(
@@ -236,6 +237,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
     final text = '${d.shareText(_view)} $url';
     try {
       if (kIsWeb) throw UnsupportedError('web');
+      V3Track.event('live_match_shared', {'event_id': d.event.eventId});
       await SharePlus.instance.share(ShareParams(
           text: text, subject: '${d.event.teamName} v ${d.oppName}'));
     } catch (_) {

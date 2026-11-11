@@ -369,6 +369,7 @@ class _V3SessionPlanPageState extends State<V3SessionPlanPage> {
     final hearts = _hearts;
     if (hearts == null) return;
     await Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'SpGamePage'),
         builder: (_) => SpGamePage(
             gameId: gameId,
             call: (fn, b) => _callFn(fn, b),
@@ -424,6 +425,7 @@ class _V3SessionPlanPageState extends State<V3SessionPlanPage> {
     final hearts = _hearts;
     if (hearts == null) return;
     await Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'SpAddGamesPage'),
         builder: (_) => SpAddGamesPage(
             api: widget.gamesApi,
             favourites: hearts,
@@ -517,6 +519,7 @@ class _V3SessionPlanPageState extends State<V3SessionPlanPage> {
 
   Future<void> _pickSaved() async {
     final id = await Navigator.of(context).push<String>(MaterialPageRoute(
+        settings: const RouteSettings(name: 'SpSavedPlansPage'),
         builder: (_) =>
             SpSavedPlansPage(call: (fn, b) => _callFn(fn, b), userId: _uid)));
     if (id == null || !mounted) return;

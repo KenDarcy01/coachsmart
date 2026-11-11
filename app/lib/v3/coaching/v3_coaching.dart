@@ -24,13 +24,15 @@ class V3Coaching extends StatelessWidget {
 
 /// The games list as a picker: + adds to the plan in progress, Done returns.
 void openGamePicker(BuildContext context) {
-  Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const V3CoachingPage(pickMode: true)));
+  Navigator.of(context).push(MaterialPageRoute(
+      settings: const RouteSettings(name: 'V3CoachingAddGames'),
+      builder: (_) => const V3CoachingPage(pickMode: true)));
 }
 
 /// The one plan builder, for the plan in progress.
 void openPlanBuilder(BuildContext context) {
   Navigator.of(context).push(MaterialPageRoute(
+      settings: const RouteSettings(name: 'V3PlanBuilderPage'),
       builder: (_) => const V3PlanBuilderPage(onAddGames: openGamePicker)));
 }
 

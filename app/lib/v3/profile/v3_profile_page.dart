@@ -471,12 +471,14 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
       _card([
         _row(Icons.lock_outline, 'Change password', null, () {
           Navigator.of(context).push(MaterialPageRoute(
+              settings: const RouteSettings(name: 'V3ChangePasswordPage'),
               builder: (_) => V3ChangePasswordPage(email: d.email)));
         }),
         _row(Icons.notifications_none, 'Notification settings',
             kIsWeb ? 'By email on the web app' : (_push ? 'Push' : 'Email'),
             () async {
           await Navigator.of(context).push(MaterialPageRoute(
+              settings: const RouteSettings(name: 'V3NotificationSettingsPage'),
               builder: (_) => const V3NotificationSettingsPage()));
           final v = await PushPref.enabled();
           if (mounted) setState(() => _push = v);

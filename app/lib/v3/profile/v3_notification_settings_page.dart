@@ -43,17 +43,9 @@ class AdminAlertPref {
 }
 
 const kAlertChoices = <(String, String, String)>[
-  (
-    'event',
-    'As set on each event',
-    'Every answer or only changes of mind, whichever the event says'
-  ),
-  (
-    'changes',
-    'Only changes of mind',
-    'When someone switches from going to not going, or back'
-  ),
-  ('off', 'Off', 'No attendance alerts for this team'),
+  ('event', 'Default', 'Alerts as set on each event'),
+  ('changes', 'Changes of mind', 'Only when someone changes their answer'),
+  ('off', 'None', 'No attendance alerts'),
 ];
 
 String alertChoiceLabel(String c) => kAlertChoices
@@ -176,7 +168,7 @@ class _V3NotificationSettingsPageState
               const SizedBox(height: 14),
               Text(t.teamName, style: V3.tight(19)),
               const SizedBox(height: 4),
-              Text('Attendance alerts for you only',
+              Text('Your attendance alerts',
                   style: V3.inter(13.5, color: V3.muted)),
               const SizedBox(height: 8),
               for (final c in kAlertChoices)
@@ -232,8 +224,7 @@ class _V3NotificationSettingsPageState
               children: [
                 _section('How we reach you'),
                 if (_web)
-                  _note('On the web app your notifications come by email. '
-                      'Use the CoachSmart phone app to get them as push.')
+                  _note('On the web app, notifications come by email.')
                 else ...[
                   _card([
                     _choiceRow(
@@ -243,15 +234,11 @@ class _V3NotificationSettingsPageState
                         () => _setPush(false),
                         busy: _busyPush && !_push, last: true),
                   ]),
-                  _hint('If you sign in on the web app, notifications switch '
-                      'to email until you open the phone app again.'),
                 ],
                 if (_teams.isNotEmpty) ...[
                   _section('Attendance alerts'),
-                  _hint('Each event says whether admins hear about every '
-                      'answer or only changes of mind. You can turn that '
-                      'down for yourself here. Join requests always come '
-                      'through.'),
+                  _hint(
+                      'Choose which attendance alerts you get for each team.'),
                   const SizedBox(height: 8),
                   _card([
                     for (final (i, t) in _teams.indexed)

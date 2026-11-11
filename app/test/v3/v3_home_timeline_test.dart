@@ -142,6 +142,7 @@ void main() {
     await tester.pumpWidget(host(row(e, onReply: (r) => replied = r)));
     expect(find.text('in 2h 50m'), findsOneWidget);
     expect(find.text('Meet 17:30'), findsOneWidget);
+    expect(find.text('BOYS 2013'), findsOneWidget);
     expect(find.text('14 attending'), findsOneWidget);
     expect(find.text('3 no reply · 2 declined'), findsOneWidget);
     expect(find.bySemanticsLabel('Attending'), findsOneWidget);
@@ -163,7 +164,6 @@ void main() {
     expect(find.text('CANCELLED'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsNothing);
     expect(find.text('14 attending'), findsNothing);
-    expect(find.textContaining('Club Astro', findRichText: true), findsNothing);
   });
 
   testWidgets('paid tag and squad on line 3', (tester) async {
@@ -175,7 +175,7 @@ void main() {
     );
     await tester.pumpWidget(host(row(e)));
     expect(find.text('PAID'), findsOneWidget);
-    expect(find.textContaining('Blue', findRichText: true), findsOneWidget);
+    expect(find.text('BOYS 2013 · BLUE'), findsOneWidget);
   });
 
   testWidgets('coach footer is three numbers; admins get no reply pair', (

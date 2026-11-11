@@ -11,6 +11,7 @@ import '../v3_theme.dart';
 import 'v3_requests_models.dart';
 import 'v3_role_picker.dart';
 import 'v3_team_models.dart' show V3Avatar, initials;
+import '/v3/tracking/v3_track.dart';
 
 class V3RequestsPage extends StatefulWidget {
   const V3RequestsPage(
@@ -107,6 +108,7 @@ class _V3RequestsPageState extends State<V3RequestsPage> {
         title: _teamName.isEmpty ? r.name : '${r.name} · $_teamName');
     if (picked == null || picked.isEmpty || !mounted) return;
     await _run(r, () async {
+      V3Track.event('team_request_approved', {'from': 'teams'});
       final x = await SupaFlow.client.rpc('confirm_member_join', params: {
         'p_member_team_id': r.refId,
         'p_role_ids': picked,
@@ -117,18 +119,21 @@ class _V3RequestsPageState extends State<V3RequestsPage> {
   }
 
   Future<void> _declineJoin(TeamRequest r) => _run(r, () async {
+        V3Track.event('team_request_declined', {'from': 'teams'});
         await SupaFlow.client
             .rpc('deny_member_join', params: {'p_member_team_id': r.refId});
         return 'Request declined';
       });
 
   Future<void> _approveAccess(TeamRequest r) => _run(r, () async {
+        V3Track.event('team_request_approved', {'from': 'teams'});
         await SupaFlow.client.rpc('confirm_user_member_access',
             params: {'p_user_member_id': r.refId});
         return 'Access given';
       });
 
   Future<void> _declineAccess(TeamRequest r) => _run(r, () async {
+        V3Track.event('team_request_declined', {'from': 'teams'});
         await SupaFlow.client.rpc('deny_user_member_access',
             params: {'p_user_member_id': r.refId});
         return 'Access declined';

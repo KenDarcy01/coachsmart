@@ -13,6 +13,7 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_attendance_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3AttendancePage extends StatefulWidget {
   const V3AttendancePage(
@@ -97,6 +98,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         'member_id': m.memberId,
         'response_id': responseId,
       });
+      V3Track.attendance(widget.eventId, responseId, 'coach');
       await _load();
       _snack(responseId == kAttending
           ? '${m.firstName} marked as attending'
@@ -111,6 +113,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
   Future<void> _publish() async {
     setState(() => _publishing = true);
     try {
+      V3Track.event('squad_published', {'event_id': widget.eventId});
       await SupaFlow.client.rpc('create_match_squad_from_attendance', params: {
         'p_event_id': widget.eventId,
         'p_user_id': currentUserUid,

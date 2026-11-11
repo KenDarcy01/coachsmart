@@ -28,6 +28,7 @@ import '../profile/v3_notification_settings_page.dart';
 import '../v3_theme.dart';
 import 'v3_notifications_models.dart';
 import 'v3_unread.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3NotificationsPage extends StatefulWidget {
   const V3NotificationsPage({super.key, this.testData, this.testMembers});
@@ -296,6 +297,7 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
           'member_id': m.memberId,
           'response_id': responseId,
         });
+        V3Track.attendance(n.eventId, responseId, 'notification');
         await NotifyAdminsAttendanceChangeCall.call(
           supabaseJWTtoken: currentJwtToken,
           pMemberIdParam: m.memberId,
@@ -346,6 +348,7 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
     final picked = await pickRoles(context, roles: roles, title: n.title);
     if (picked == null || picked.isEmpty || !mounted) return;
     await _run(n, 'approve', () async {
+      V3Track.event('team_request_approved', {'from': 'notifications'});
       final r = await SupaFlow.client.rpc('confirm_member_join', params: {
         'p_member_team_id': n.actionRefId,
         'p_role_ids': picked,
@@ -360,18 +363,21 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
   }
 
   Future<void> _declineJoin(NotifItem n) => _run(n, 'decline', () async {
+        V3Track.event('team_request_declined', {'from': 'notifications'});
         await SupaFlow.client.rpc('deny_member_join',
             params: {'p_member_team_id': n.actionRefId});
         return 'Request declined';
       });
 
   Future<void> _approveAccess(NotifItem n) => _run(n, 'approve', () async {
+        V3Track.event('team_request_approved', {'from': 'notifications'});
         await SupaFlow.client.rpc('confirm_user_member_access',
             params: {'p_user_member_id': n.actionRefId});
         return 'Access approved';
       });
 
   Future<void> _declineAccess(NotifItem n) => _run(n, 'decline', () async {
+        V3Track.event('team_request_declined', {'from': 'notifications'});
         await SupaFlow.client.rpc('deny_user_member_access',
             params: {'p_user_member_id': n.actionRefId});
         return 'Access declined';
@@ -423,6 +429,8 @@ class _V3NotificationsPageState extends State<V3NotificationsPage> {
               tooltip: 'Notification settings',
               icon: const Icon(Icons.settings_outlined, color: V3.green),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  settings:
+                      const RouteSettings(name: 'V3NotificationSettingsPage'),
                   builder: (_) => const V3NotificationSettingsPage()))),
         ],
       ),

@@ -13,6 +13,7 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '../teams/v3_team_models.dart' show V3Avatar;
 import '../v3_theme.dart';
 import 'v3_car_pool_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3CarPoolPage extends StatefulWidget {
   const V3CarPoolPage(
@@ -79,6 +80,7 @@ class _V3CarPoolPageState extends State<V3CarPoolPage> {
   Future<void> _notify(int carPoolId, String kind, int memberId) async {
     if (widget.testData != null) return;
     try {
+      V3Track.event('car_pool_action', {'kind': kind});
       await SupaFlow.client.rpc('car_pool_notify', params: {
         'p_car_pool_id': carPoolId,
         'p_kind': kind,

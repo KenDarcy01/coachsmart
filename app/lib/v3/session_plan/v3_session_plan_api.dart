@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
+import '/v3/tracking/v3_track.dart';
 
 /// A call's outcome: [ok] for a 2xx reply, [data] the decoded JSON body
 /// (also on errors, so the server's message can be shown).
@@ -44,6 +45,7 @@ dynamic _decode(dynamic d) {
 
 /// The live call: supabase functions.invoke, which sends the session token.
 Future<SpResult> spLiveCall(String fn, Map<String, dynamic> body) async {
+  V3Track.feature(fn, body['action']);
   try {
     final res = await SupaFlow.client.functions.invoke(fn, body: body);
     return SpResult(res.status >= 200 && res.status < 300, _decode(res.data));

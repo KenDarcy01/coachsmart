@@ -18,6 +18,7 @@ import 'package:flutter/foundation.dart';
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import 'v3_game_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 /// Thrown by [V3GamesApi] calls with a message fit to show the coach.
 class V3GamesError implements Exception {
@@ -110,6 +111,7 @@ class V3GamesApi {
   Future<void> toggleFavourite(int gameId) async {
     await SupaFlow.client
         .rpc('toggle_user_game_link', params: {'p_game_id': gameId});
+    V3Track.event('favourite_toggled', {'game_id': gameId});
   }
 
   /// My private coaching note for a game, '' when none.
@@ -128,6 +130,7 @@ class V3GamesApi {
     await SupaFlow.client.from('game_coach_notes').upsert(
         {'game_id': gameId, 'user_id': userId, 'notes': notes},
         onConflict: 'game_id,user_id');
+    V3Track.event('coach_note_saved', {'game_id': gameId});
   }
 
   /// The printable game card. Returns the PDF bytes and its file name.
@@ -182,6 +185,7 @@ class V3GamesApi {
 
   Future<Map<String, dynamic>> _invoke(
       String fn, Map<String, dynamic> body) async {
+    V3Track.feature(fn, body['action']);
     try {
       final res = await SupaFlow.client.functions.invoke(fn, body: body);
       final d = res.data;

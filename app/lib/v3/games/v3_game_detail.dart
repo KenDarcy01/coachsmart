@@ -84,6 +84,7 @@ class V3GameDetailView extends StatelessWidget {
           child: GestureDetector(
             onTap: onOpenImage ??
                 () => Navigator.of(context).push(MaterialPageRoute(
+                    settings: const RouteSettings(name: 'V3ImageViewerPage'),
                     builder: (_) => V3ImageViewerPage(
                         imageUrl: g.image.trim(), title: g.name))),
             child: ClipRRect(
@@ -361,6 +362,7 @@ class _V3GameDetailPageState extends State<V3GameDetailPage> {
 
   Future<void> _edit() async {
     final saved = await Navigator.of(context).push<V3Game>(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3GameEditPage'),
         builder: (_) => V3GameEditPage(game: _g, api: widget.api)));
     if (saved == null || !mounted) return;
     setState(() => _g = saved);

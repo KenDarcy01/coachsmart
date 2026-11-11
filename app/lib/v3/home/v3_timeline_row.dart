@@ -75,17 +75,25 @@ class V3TimelineRow extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2, right: 12),
-                      child: Opacity(
-                        opacity: cancelled ? .45 : 1,
-                        child: _crest(),
-                      ),
-                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Crest sits on the team-title line, not in a
+                          // column of its own, so the text gets the full
+                          // width (Ken, 2026-11-11).
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _teamTitle(cancelled)),
+                              const SizedBox(width: 10),
+                              Opacity(
+                                opacity: cancelled ? .45 : 1,
+                                child: _crest(),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
                           _line1(cancelled),
                           const SizedBox(height: 3),
                           Text(
@@ -94,7 +102,7 @@ class V3TimelineRow extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: V3
                                 .inter(
-                                  16,
+                                  19,
                                   weight: FontWeight.w600,
                                   color: cancelled ? _mutedSpec : V3.text,
                                   height: 1.25,
@@ -105,8 +113,6 @@ class V3TimelineRow extends StatelessWidget {
                                       : null,
                                 ),
                           ),
-                          const SizedBox(height: 3),
-                          _line3(cancelled),
                         ],
                       ),
                     ),
@@ -129,8 +135,8 @@ class V3TimelineRow extends StatelessWidget {
   Widget _crest() {
     final initial = clubName.isNotEmpty ? clubName[0].toUpperCase() : '?';
     final fallback = Container(
-      width: 40,
-      height: 40,
+      width: 28,
+      height: 28,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: Color(0xFF252A34),
@@ -138,10 +144,10 @@ class V3TimelineRow extends StatelessWidget {
       ),
       child: Text(
         initial,
-        style: V3.tight(16, weight: FontWeight.w700, color: _mutedSpec),
+        style: V3.tight(13, weight: FontWeight.w700, color: _mutedSpec),
       ),
     );
-    return V3CrestImage(crestUrl, size: 40, fallback: fallback);
+    return V3CrestImage(crestUrl, size: 28, fallback: fallback);
   }
 
   // Time · Meet · countdown (next event only) · tags.
@@ -158,7 +164,7 @@ class V3TimelineRow extends StatelessWidget {
           hhmm(t),
           style: V3
               .tight(
-            18,
+            22,
             weight: FontWeight.w700,
             color: cancelled ? _mutedSpec : V3.text,
             height: 1.1,
@@ -169,11 +175,11 @@ class V3TimelineRow extends StatelessWidget {
           ),
         ),
         if (meet.isNotEmpty && !cancelled)
-          Text('Meet $meet', style: V3.inter(13, color: _mutedSpec)),
+          Text('Meet $meet', style: V3.inter(16, color: _mutedSpec)),
         if (cd.isNotEmpty)
           Text(
             cd,
-            style: V3.inter(12, weight: FontWeight.w700, color: V3.green),
+            style: V3.inter(15, weight: FontWeight.w700, color: V3.green),
           ),
         if (cancelled) const _Tag('Cancelled', green: false),
         if (!cancelled && e.paymentRequired && e.eventPaid)
@@ -182,33 +188,24 @@ class V3TimelineRow extends StatelessWidget {
     );
   }
 
-  // Club (white) · team · squad · venue, all muted but the club.
-  Widget _line3(bool cancelled) {
-    final rest = <String>[
-      e.teamName,
-      if (e.squadName.isNotEmpty && e.squadId != 0) e.squadName,
-      if (!cancelled && e.locationName.trim().isNotEmpty) e.locationName.trim(),
-    ].where((s) => s.isNotEmpty).toList();
-    final base = V3.inter(13, color: _mutedSpec, height: 1.3);
-    return RichText(
+  // Team name in green capitals heads each row so events stand apart
+  // (Ken, 2026-11-11). The crest already says which club, so there is no
+  // club · team · venue line. The squad follows the team when there is one.
+  Widget _teamTitle(bool cancelled) {
+    final squad = e.squadName.isNotEmpty && e.squadId != 0 ? e.squadName : '';
+    final text = squad.isEmpty ? e.teamName : '${e.teamName} · $squad';
+    return Text(
+      text.toUpperCase(),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: base,
-        children: [
-          if (clubName.isNotEmpty)
-            TextSpan(
-              text: clubName,
-              style: base.copyWith(
-                color: cancelled ? _mutedSpec : V3.text,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          if (clubName.isNotEmpty && rest.isNotEmpty)
-            const TextSpan(text: ' · '),
-          TextSpan(text: rest.join(' · ')),
-        ],
-      ),
+      style: V3
+          .tight(
+            16,
+            weight: FontWeight.w800,
+            color: cancelled ? _mutedSpec : V3.green,
+            height: 1.2,
+          )
+          .copyWith(letterSpacing: 1.1),
     );
   }
 
@@ -237,13 +234,12 @@ class V3TimelineRow extends StatelessWidget {
       Widget n(int v, String w) => RichText(
             text: TextSpan(
               style: V3
-                  .inter(12.5, color: _mutedSpec)
+                  .inter(16, color: _mutedSpec)
                   .copyWith(fontFeatures: tabular),
               children: [
                 TextSpan(
                   text: '$v ',
-                  style:
-                      V3.inter(12.5, weight: FontWeight.w700, color: V3.text),
+                  style: V3.inter(16, weight: FontWeight.w700, color: V3.text),
                 ),
                 TextSpan(text: w),
               ],
@@ -278,13 +274,13 @@ class V3TimelineRow extends StatelessWidget {
               Text(
                 '${e.acceptedCount} attending',
                 style: V3
-                    .inter(12.5, weight: FontWeight.w600, height: 1.25)
+                    .inter(16, weight: FontWeight.w600, height: 1.25)
                     .copyWith(fontFeatures: tabular),
               ),
               Text(
                 '${e.noResponseCount} no reply · ${e.declinedCount} declined',
                 style: V3
-                    .inter(11.5, color: _mutedSpec, height: 1.25)
+                    .inter(14, color: _mutedSpec, height: 1.25)
                     .copyWith(fontFeatures: tabular),
               ),
             ],
@@ -303,7 +299,7 @@ class V3TimelineRow extends StatelessWidget {
     if (e.responseId == 4) {
       return _status(Icons.close_rounded, 'Declined', _mutedSpec);
     }
-    final size = isCoach ? 36.0 : 40.0;
+    final size = isCoach ? 40.0 : 44.0;
     Widget square(
       IconData icon,
       Color color,
@@ -354,12 +350,12 @@ class V3TimelineRow extends StatelessWidget {
   Widget _status(IconData icon, String label, Color color) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
+          Icon(icon, size: 20, color: color),
           const SizedBox(width: 6),
           Text(
             label,
             style: V3.inter(
-              isCoach ? 12.5 : 13,
+              16,
               weight: FontWeight.w600,
               color: color,
             ),
@@ -388,7 +384,7 @@ class V3QuietDayRow extends StatelessWidget {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             'Nothing on today',
-            style: V3.inter(14, color: _mutedSpec),
+            style: V3.inter(17, color: _mutedSpec),
           ),
         ),
       ),
@@ -487,7 +483,7 @@ class _DayMarker extends StatelessWidget {
           '${day.day}',
           style: V3
               .tight(
-            26,
+            30,
             weight: FontWeight.w800,
             color: green ? V3.green : V3.text,
             height: 1,
@@ -501,7 +497,7 @@ class _DayMarker extends StatelessWidget {
         Text(
           _wd[day.weekday - 1],
           style: V3.inter(
-            10,
+            12,
             weight: FontWeight.w700,
             color: _mutedSpec,
             letterSpacing: 1.2,
@@ -686,7 +682,7 @@ class _Tag extends StatelessWidget {
       child: Text(
         text.toUpperCase(),
         style: V3.inter(
-          11,
+          13,
           weight: FontWeight.w700,
           color: color,
           letterSpacing: .66,

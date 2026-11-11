@@ -4,6 +4,7 @@
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import 'v3_lineup_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 SupabaseClient get _sb => SupaFlow.client;
 
@@ -157,4 +158,5 @@ Future<void> saveLineup(LineupBoard b,
       .single();
   final details = b.details(row['lineup_id'] as int);
   if (details.isNotEmpty) await _sb.from('lineup_details').insert(details);
+  V3Track.event('lineup_saved', {'players': details.length});
 }

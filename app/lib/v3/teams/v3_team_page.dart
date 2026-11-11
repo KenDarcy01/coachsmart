@@ -14,6 +14,7 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_team_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3TeamPage extends StatefulWidget {
   const V3TeamPage({super.key, required this.teamId});
@@ -113,6 +114,7 @@ class _V3TeamPageState extends State<V3TeamPage> {
         'Join ${r.teamName} on CoachSmart. Open the app, choose Join a team and enter the code ${r.teamCode}. Get CoachSmart at https://coachsmart.app';
     try {
       if (kIsWeb) throw UnsupportedError('web');
+      V3Track.event('team_code_shared');
       await SharePlus.instance.share(
           ShareParams(text: text, subject: 'Join ${r.teamName} on CoachSmart'));
     } catch (_) {

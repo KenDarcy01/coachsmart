@@ -688,6 +688,7 @@ class _SpSavedPlansPageState extends State<SpSavedPlansPage> {
 
   Future<void> _preview(SpPlanSummary p) async {
     final use = await Navigator.of(context).push<bool>(MaterialPageRoute(
+        settings: const RouteSettings(name: 'SpPlanPreviewPage'),
         builder: (_) => SpPlanPreviewPage(
             call: widget.call, userId: widget.userId, summary: p)));
     if (use == true && mounted) Navigator.of(context).pop(p.planId);
@@ -1126,6 +1127,8 @@ class _SpAddGamesPageState extends State<SpAddGamesPage> {
                             },
                             onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute(
+                                    settings:
+                                        const RouteSettings(name: 'SpGamePage'),
                                     builder: (_) => SpGamePage(
                                         gameId: g.gameId,
                                         call: widget.call,

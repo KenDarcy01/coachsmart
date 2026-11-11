@@ -160,6 +160,7 @@ class _V3ScoreKeeperPageState extends State<V3ScoreKeeperPage>
   void _report() {
     ctl.keepAwake(false);
     Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3MatchReportPage'),
         builder: (_) => V3MatchReportPage(eventId: widget.eventId)));
   }
 
