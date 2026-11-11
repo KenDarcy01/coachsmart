@@ -23,6 +23,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import 'sk_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 // ---------------------------------------------------------------- backend
 
@@ -114,7 +115,8 @@ class SupabaseSkBackend implements SkBackend {
 
   @override
   Future<void> finalise(int id) =>
-      _rpc('finalise_match_stats', {'p_match_stats_id': id});
+      _rpc('finalise_match_stats', {'p_match_stats_id': id})
+          .whenComplete(() => V3Track.event('score_keeper_finished'));
 
   @override
   Future<Map<String, dynamic>?> reset(int id) async =>

@@ -17,6 +17,7 @@ import '../home/v3_home_data.dart';
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
 import 'v3_series_scope.dart';
+import '/v3/tracking/v3_track.dart';
 
 /// Number of users a reminder went to. `populate_event_notifications`
 /// returns one row `{"notifications_created": n}`, n being one notification
@@ -177,6 +178,7 @@ class _V3EventPageState extends State<V3EventPage> {
         'member_id': m.memberId,
         'response_id': responseId,
       });
+      V3Track.attendance(_eventId, responseId, 'event');
       await NotifyAdminsAttendanceChangeCall.call(
         supabaseJWTtoken: currentJwtToken,
         pMemberIdParam: m.memberId,
@@ -337,6 +339,7 @@ class _V3EventPageState extends State<V3EventPage> {
       }
       if (!mounted) return;
       await Navigator.of(context).push(MaterialPageRoute(
+          settings: const RouteSettings(name: 'V3LineupPage'),
           builder: (_) => V3LineupPage(
               eventId: _eventId, teamId: e.teamId, squadId: squadId)));
     } catch (_) {
@@ -393,6 +396,7 @@ class _V3EventPageState extends State<V3EventPage> {
         if (pick == null) return;
         scope = pick;
       }
+      V3Track.event('event_status_set', {'status': status, 'scope': scope});
       final res = await SupaFlow.client.rpc('set_event_series_status', params: {
         'p_event_id': _eventId,
         'p_scope': scope,
@@ -648,12 +652,14 @@ class _V3EventPageState extends State<V3EventPage> {
             'Score',
             Icons.timer_outlined,
             () => Navigator.of(context).push(MaterialPageRoute(
+                settings: const RouteSettings(name: 'V3ScoreKeeperPage'),
                 builder: (_) => V3ScoreKeeperPage(eventId: _eventId)))));
       }
       out.add(_Tool(
           'Live',
           Icons.visibility_outlined,
           () => Navigator.of(context).push(MaterialPageRoute(
+              settings: const RouteSettings(name: 'V3MatchLivePage'),
               builder: (_) => V3MatchLivePage(eventId: _eventId)))));
       if (_role >= 20) {
         out.add(_Tool('Stats', Icons.bar_chart,
@@ -664,6 +670,7 @@ class _V3EventPageState extends State<V3EventPage> {
             'Report',
             Icons.description_outlined,
             () => Navigator.of(context).push(MaterialPageRoute(
+                settings: const RouteSettings(name: 'V3MatchReportPage'),
                 builder: (_) => V3MatchReportPage(eventId: _eventId)))));
       }
       if (_role >= 30 && _teamAllowsLineup) {
@@ -674,6 +681,7 @@ class _V3EventPageState extends State<V3EventPage> {
           'Session plan',
           Icons.assignment_outlined,
           () => Navigator.of(context).push(MaterialPageRoute(
+              settings: const RouteSettings(name: 'V3SessionPlanPage'),
               builder: (_) => V3SessionPlanPage(eventId: _eventId)))));
     }
     return out;

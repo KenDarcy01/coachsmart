@@ -341,6 +341,7 @@ class _V3SessionPlanPageState extends State<V3SessionPlanPage> {
   void _openMyPlans() {
     FocusScope.of(context).unfocus();
     Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3MyPlansPage'),
         builder: (_) =>
             V3MyPlansPage(api: widget.api, eventId: widget.eventId)));
   }

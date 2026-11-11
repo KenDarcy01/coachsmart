@@ -23,6 +23,7 @@ import '../auth/v3_auth_widgets.dart' show V3Field;
 import '../v3_theme.dart';
 import 'v3_onboarding_backend.dart';
 import 'v3_onboarding_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3OnboardingPage extends StatefulWidget {
   const V3OnboardingPage({super.key, this.testBackend, this.onFinished});
@@ -248,6 +249,7 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
     _setError(ObScreen.details, null);
     try {
       await _api.saveDetails(first, last);
+      V3Track.event('onboarding_details_saved');
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -357,6 +359,7 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
     _joiningCode = code;
     dynamic data;
     try {
+      V3Track.event('join_team', {'via': 'new_member', 'from': 'onboarding'});
       data = await _api.createMemberByCode(_regFirst, _regLast, code);
     } catch (_) {
       if (!mounted) return;
@@ -417,6 +420,8 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
     try {
       problem = obAccessError(
           await _api.requestMemberAccess(f!.memberId!, _joiningCode));
+      V3Track.event(
+          'join_team', {'via': 'existing_member', 'from': 'onboarding'});
     } catch (_) {
       problem = obTryAgain;
     }
@@ -560,6 +565,7 @@ class _V3OnboardingPageState extends State<V3OnboardingPage> {
         _reqEmail.text.trim().isNotEmpty ? _reqEmail.text.trim() : _api.email;
     setState(() => _busy = true);
     _setError(ObScreen.newTeam, null);
+    V3Track.event('new_team_requested', {'from': 'onboarding'});
     final err = await _api.requestNewTeam(obNewTeamBody(
         name: name,
         email: email,

@@ -72,6 +72,7 @@ class _V3FavouritesPageState extends State<V3FavouritesPage> {
     if (!mounted || widget.eventId == null || !_ai) return;
     // Event-attach mode: open My Plans directly.
     final r = await Navigator.of(context).push<String>(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3MyPlansPage'),
         builder: (_) =>
             V3MyPlansPage(api: widget.api, eventId: widget.eventId)));
     if (r != 'build' && mounted) Navigator.of(context).maybePop();
@@ -221,6 +222,7 @@ class _V3FavouritesPageState extends State<V3FavouritesPage> {
   void _build() {
     if (_picked.isEmpty) return;
     Navigator.of(context).push(MaterialPageRoute(
+      settings: const RouteSettings(name: 'V3SessionSetupPage'),
       builder: (_) => V3SessionSetupPage(
         gameIds: [..._picked],
         durationMins: widget.durationMins,
@@ -232,6 +234,7 @@ class _V3FavouritesPageState extends State<V3FavouritesPage> {
   }
 
   void _openMyPlans() => Navigator.of(context).push(MaterialPageRoute(
+      settings: const RouteSettings(name: 'V3MyPlansPage'),
       builder: (_) => V3MyPlansPage(api: widget.api, eventId: widget.eventId)));
 
   // ----------------------------------------------------------- quick look

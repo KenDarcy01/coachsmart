@@ -81,6 +81,7 @@ class _V3MyPlansPageState extends State<V3MyPlansPage> {
   Future<void> _push(Map<String, dynamic> plan, Map d) async {
     final id = d['plan_id'];
     await Navigator.of(context).push(MaterialPageRoute(
+      settings: const RouteSettings(name: 'V3SessionPlanPage'),
       builder: (_) => V3SessionPlanPage(
         plan: plan,
         planId: id is int ? id : int.tryParse('${id ?? ''}'),

@@ -1,6 +1,7 @@
 // Thin wrapper over Supabase auth for the v3 screens. Messages are the
 // plain-English ones users see.
 import '/backend/supabase/supabase.dart';
+import '/v3/tracking/v3_track.dart';
 
 const kConfirmedUrl =
     'https://coach-smart-new-mpqa5l.web.app/auth/confirmed.html';
@@ -14,6 +15,7 @@ class V3AuthService {
       {void Function()? notConfirmed}) async {
     try {
       await _auth.signInWithPassword(email: email.trim(), password: password);
+      V3Track.event('login', {'method': 'email'});
       return null;
     } on AuthException catch (e) {
       final m = e.message.toLowerCase();
@@ -43,6 +45,7 @@ class V3AuthService {
   static Future<({String? error, bool signedIn})> signUp(
       String email, String password, String first, String last) async {
     try {
+      V3Track.event('sign_up_started');
       final res = await _auth.signUp(
         email: email.trim(),
         password: password,

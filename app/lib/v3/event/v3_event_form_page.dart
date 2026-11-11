@@ -16,6 +16,7 @@ import '/backend/supabase/supabase.dart';
 import '/flutter_flow/upload_data.dart';
 import '../v3_theme.dart';
 import 'v3_series_scope.dart';
+import '/v3/tracking/v3_track.dart';
 
 const int kMatchTypeId = 2;
 
@@ -351,6 +352,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
           return;
         }
         final n = (map['events_updated'] as num?)?.toInt() ?? 1;
+        V3Track.event('event_edited', {'scope': scope, 'events': n});
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(n == 1 ? 'Event saved' : '$n events saved',
@@ -361,6 +363,11 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
         }
         return;
       }
+      V3Track.event('event_created', {
+        'team_id': _team!.teamId,
+        'event_type_id': _typeId,
+        'repeat': _repeat.type,
+      });
       final res = await SupaFlow.client.rpc('create_recurring_events', params: {
         'p_recurring_type': _repeat.type,
         'p_num_weeks': _repeat.type == 0 ? 0 : _repeat.weeks,

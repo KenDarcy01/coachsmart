@@ -110,6 +110,7 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
 
   Future<void> _open(LiveMatchRow m) async {
     await Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3MatchLivePage'),
         builder: (_) =>
             V3MatchLivePage(eventId: m.eventId, squad: m.squadKey)));
     if (mounted && !_test) _pulse?.refresh(); // follows changed there

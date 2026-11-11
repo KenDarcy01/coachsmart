@@ -10,7 +10,9 @@ Future initFirebase() async {
             projectId: "coach-smart-new-mpqa5l",
             storageBucket: "coach-smart-new-mpqa5l.firebasestorage.app",
             messagingSenderId: "1026672336817",
-            appId: "1:1026672336817:web:fed7e4298c2f3fbd4ca790"));
+            appId: "1:1026672336817:web:fed7e4298c2f3fbd4ca790",
+            // GA4 web stream of the same Firebase web app (v3 analytics).
+            measurementId: "G-2F2NW7DMXL"));
   } else {
     await Firebase.initializeApp();
   }

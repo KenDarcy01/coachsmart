@@ -17,6 +17,7 @@ import 'v3_lineup_api.dart';
 import 'v3_lineup_models.dart';
 import 'v3_lineup_paint.dart';
 import 'v3_teamsheet.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3LineupPage extends StatefulWidget {
   const V3LineupPage(
@@ -173,6 +174,7 @@ class _V3LineupPageState extends State<V3LineupPage>
       final name = lineupFileName(d.teamName);
       if (widget.testData != null) return;
       final box = _shareKey.currentContext?.findRenderObject() as RenderBox?;
+      V3Track.event('teamsheet_shared');
       await SharePlus.instance.share(ShareParams(
         files: [XFile.fromData(png, mimeType: 'image/png', name: name)],
         fileNameOverrides: [name],
@@ -200,6 +202,7 @@ class _V3LineupPageState extends State<V3LineupPage>
       final bytes = await buildTeamsheetPdf(ts, DateTime.now());
       if (!mounted) return;
       await Navigator.of(context).push(MaterialPageRoute(
+          settings: const RouteSettings(name: 'V3TeamsheetPage'),
           builder: (_) => V3TeamsheetPage(
               bytes: bytes, fileName: teamsheetFileName(d.teamName))));
     } catch (_) {

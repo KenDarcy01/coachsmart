@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import '../v3_theme.dart';
 import 'v3_join_team_api.dart';
 import 'v3_join_team_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 class V3JoinTeamPage extends StatefulWidget {
   const V3JoinTeamPage({super.key, this.api});
@@ -218,6 +219,7 @@ class _V3JoinTeamPageState extends State<V3JoinTeamPage> {
     _joiningCode = code;
     dynamic data;
     try {
+      V3Track.event('join_team', {'via': 'new_member', 'from': 'join'});
       data = await _api.createMemberByCode(
           firstName: _reg.firstName, lastName: _reg.lastName, code: code);
     } catch (_) {
@@ -280,6 +282,7 @@ class _V3JoinTeamPageState extends State<V3JoinTeamPage> {
     try {
       err = accessRequestError(
           await _api.requestMemberAccess(f!.memberId!, _joiningCode));
+      V3Track.event('join_team', {'via': 'existing_member', 'from': 'join'});
     } catch (_) {
       err = kTryAgain;
     }
@@ -396,6 +399,7 @@ class _V3JoinTeamPageState extends State<V3JoinTeamPage> {
       _errors.remove(JoinStep.newTeam);
     });
     try {
+      V3Track.event('new_team_requested', {'from': 'join'});
       await _api.requestNewTeam(newTeamBody(
           name: name,
           email: email,

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
 import 'v3_matches_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 // ───────────────────────────────────────────────────────────── live updates
 
@@ -129,6 +130,8 @@ class LivePulse with WidgetsBindingObserver {
 
 Future<LiveFollow> _setFollow(int eventId, String? level,
     {bool kickoff = true, bool names = true}) async {
+  V3Track.event(level == null ? 'live_match_unfollowed' : 'live_match_followed',
+      {'event_id': eventId, 'level': level});
   final r = await SupaFlow.client.rpc('set_live_follow', params: {
     'p_event_id': eventId,
     'p_level': level,

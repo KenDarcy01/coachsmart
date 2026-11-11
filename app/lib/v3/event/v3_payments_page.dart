@@ -8,6 +8,7 @@ import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
 import 'v3_payments_models.dart';
 import '../teams/v3_team_models.dart' show V3Avatar;
+import '/v3/tracking/v3_track.dart';
 
 class V3PaymentsPage extends StatefulWidget {
   const V3PaymentsPage(
@@ -115,6 +116,7 @@ class _V3PaymentsPageState extends State<V3PaymentsPage> {
     if (ok != true || !mounted) return;
     setState(() => _sending = true);
     try {
+      V3Track.event('payment_reminder_sent', {'event_id': widget.eventId});
       final r = await SupaFlow.client.rpc('send_event_payment_reminders',
           params: {'p_event_id': widget.eventId});
       if (r is Map && r['success'] == false) {

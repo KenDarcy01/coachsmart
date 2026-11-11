@@ -14,6 +14,7 @@ import 'auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import 'backend/firebase/firebase_config.dart';
 import 'flutter_flow/flutter_flow_util.dart';
+import '/v3/tracking/v3_track.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,7 +88,9 @@ class _MyAppState extends State<MyApp> {
     userStream = coachSmartV2SupabaseUserStream()
       ..listen((user) {
         _appStateNotifier.update(user);
+        V3Track.identify(user.loggedIn ? user.uid : null);
       });
+    V3Track.start();
     jwtTokenStream.listen((_) {});
     Future.delayed(
       Duration(milliseconds: 1000),

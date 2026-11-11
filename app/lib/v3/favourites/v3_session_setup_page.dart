@@ -115,6 +115,7 @@ class _V3SessionSetupPageState extends State<V3SessionSetupPage> {
       final id = d['plan_id'];
       final planId = id is int ? id : int.tryParse('${id ?? ''}');
       await Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3SessionPlanPage'),
         builder: (_) => V3SessionPlanPage(
           plan: plan is Map ? Map<String, dynamic>.from(plan) : {},
           planId: planId,
@@ -149,6 +150,7 @@ class _V3SessionSetupPageState extends State<V3SessionSetupPage> {
           actions: [
             MyPlansPill(
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    settings: const RouteSettings(name: 'V3MyPlansPage'),
                     builder: (_) => V3MyPlansPage(
                         api: widget.api, eventId: widget.eventId)))),
           ],

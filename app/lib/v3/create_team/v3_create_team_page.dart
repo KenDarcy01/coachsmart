@@ -16,6 +16,7 @@ import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
 import 'v3_create_team_models.dart';
+import '/v3/tracking/v3_track.dart';
 
 /// The steps of the flow.
 enum CtStep { loading, resume, club, details, codes, squads, success }
@@ -388,6 +389,7 @@ class _V3CreateTeamPageState extends State<V3CreateTeamPage> {
         }
         result = widget.testData!['result'];
       } else {
+        V3Track.event('team_created');
         result = await SupaFlow.client.rpc('create_team_with_admin',
             params: createTeamParams(_d, clubHasCodes: _codes.isNotEmpty));
       }

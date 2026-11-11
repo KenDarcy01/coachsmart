@@ -161,6 +161,7 @@ class _V3ResourcesPageState extends State<V3ResourcesPage>
     }
     if (!mounted) return;
     Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3PathwayStages'),
         builder: (_) => _Scaffold(
             title: 'Player Pathway',
             child: _PathwayStages(lib: _lib, stages: stages))));
@@ -178,7 +179,9 @@ class _V3ResourcesPageState extends State<V3ResourcesPage>
         icon: const Icon(Icons.add, color: V3.green, size: 30),
         onPressed: () async {
           final saved = await Navigator.of(context).push<bool>(
-              MaterialPageRoute(builder: (_) => const V3GameUploadPage()));
+              MaterialPageRoute(
+                  settings: const RouteSettings(name: 'V3GameUploadPage'),
+                  builder: (_) => const V3GameUploadPage()));
           if (saved == true) _lib.refresh();
         },
       ),
@@ -246,6 +249,7 @@ void _snack(BuildContext context, String text, {bool warn = false}) {
 /// Opens a game on the shared detail page and keeps lists in step.
 void _openGame(BuildContext context, _Lib lib, V3Game g) {
   Navigator.of(context).push(MaterialPageRoute(
+      settings: const RouteSettings(name: 'V3GameDetailPage'),
       builder: (_) => V3GameDetailPage(
             game: g,
             api: lib.api,
@@ -576,6 +580,7 @@ class _PathwayStages extends StatelessWidget {
               ages: s.agesLabel,
               count: stageResourceCount(s, lib.games),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  settings: const RouteSettings(name: 'V3PathwayStage'),
                   builder: (_) => _StagePage(lib: lib, stage: s))),
             ),
       ]),
@@ -620,6 +625,7 @@ class _StagePageState extends State<_StagePage> {
       return;
     }
     Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3ImageViewerPage'),
         builder: (_) => V3ImageViewerPage(
             imageUrl: d.imageLink, title: d.heading, subtitle: d.subheading)));
   }
@@ -719,6 +725,7 @@ class _FallbackStages extends StatelessWidget {
               ages: s.agesLabel,
               count: fallbackStageCount(s, lib.games),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  settings: const RouteSettings(name: 'V3PathwayGames'),
                   builder: (_) => _FallbackGamesPage(lib: lib, stage: s))),
             ),
         ]);

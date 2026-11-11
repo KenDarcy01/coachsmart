@@ -310,8 +310,9 @@ class _V3MatchReportPageState extends State<V3MatchReportPage> {
   }
 
   void _openDetail(MrReport r) {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => V3MatchReportDetailPage(report: r)));
+    Navigator.of(context).push(MaterialPageRoute(
+        settings: const RouteSettings(name: 'V3MatchReportDetailPage'),
+        builder: (_) => V3MatchReportDetailPage(report: r)));
   }
 
   // ------------------------------------------------------------ build

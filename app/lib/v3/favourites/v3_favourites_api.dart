@@ -18,6 +18,7 @@ import 'package:flutter/foundation.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
+import '/v3/tracking/v3_track.dart';
 
 /// An edge function's answer: [ok] is false for a non-2xx status, and
 /// [data] then holds the error body (`error`, `message`, `refusal`...).
@@ -52,6 +53,7 @@ class V3FavouritesApi {
     try {
       await SupaFlow.client
           .rpc('toggle_user_game_link', params: {'p_game_id': gameId});
+      V3Track.event('favourite_toggled', {'game_id': gameId});
       return true;
     } catch (_) {
       return false;
@@ -93,6 +95,7 @@ class V3FavouritesApi {
   }
 
   Future<FavResult> invoke(String fn, Map<String, dynamic> body) async {
+    V3Track.feature(fn, body['action']);
     try {
       final res = await SupaFlow.client.functions.invoke(fn, body: body);
       return FavResult(true, _map(res.data));
