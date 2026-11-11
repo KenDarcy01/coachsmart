@@ -643,8 +643,11 @@ class _V3EventPageState extends State<V3EventPage> {
     final out = <_Tool>[];
     if (_isMatch) {
       if (_role >= 20) {
-        out.add(_Tool('Score', Icons.timer_outlined,
-            () => _open(MatchScoreWidget.routeName, _matchParams())));
+        out.add(_Tool(
+            'Score',
+            Icons.timer_outlined,
+            () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => V3ScoreKeeperPage(eventId: _eventId)))));
       }
       out.add(_Tool(
           'Live',

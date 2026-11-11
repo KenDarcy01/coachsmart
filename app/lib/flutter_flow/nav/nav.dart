@@ -384,24 +384,9 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: MatchScoreWidget.routeName,
               path: MatchScoreWidget.routePath,
-              builder: (context, params) => MatchScoreWidget(
-                eventId: params.getParam(
-                  'eventId',
-                  ParamType.int,
-                ),
-                teamId: params.getParam(
-                  'teamId',
-                  ParamType.int,
-                ),
-                currentAuthToken: params.getParam(
-                  'currentAuthToken',
-                  ParamType.String,
-                ),
-                refreshToken: params.getParam(
-                  'refreshToken',
-                  ParamType.String,
-                ),
-              ),
+              builder: (context, params) => V3ScoreKeeperPage(
+                eventId: params.getParam('eventId', ParamType.int) ?? 0,
+              ), // v3
             ),
             FFRoute(
               name: OnBoardingWidget.routeName,
