@@ -52,85 +52,105 @@ class V3TimelineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cancelled = isCancelled(e);
-    final top = item.showDay ? 22.0 : 8.0;
-    return Padding(
-      padding: EdgeInsets.only(top: top, bottom: 10),
+    final top = item.showDay ? 14.0 : 8.0;
+    // A thin line before each new day, and each event on its own card, so
+    // the rows stand apart (Ken, 2026-11-11: they rolled into one).
+    final row = Padding(
+      padding: EdgeInsets.only(top: top, bottom: 4),
       child: _RailRow(
         firstRow: firstRow,
-        extendUp: top,
+        extendUp: item.showDay && !firstRow ? top + 9 : top,
         day: item.showDay ? _DayMarker(item.day, green: nextDayGreen) : null,
         dot: _Dot(
           next: item.isNext && !cancelled,
           cancelled: cancelled,
           quiet: false,
         ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Crest sits on the team-title line, not in a
-                          // column of its own, so the text gets the full
-                          // width (Ken, 2026-11-11).
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: _teamTitle(cancelled)),
-                              const SizedBox(width: 10),
-                              Opacity(
-                                opacity: cancelled ? .45 : 1,
-                                child: _crest(),
-                              ),
-                            ],
-                          ),
-                          if (_hasSquad) ...[
-                            const SizedBox(height: 6),
-                            _squadPill(cancelled),
-                          ],
-                          const SizedBox(height: 6),
-                          _line1(cancelled),
-                          const SizedBox(height: 3),
-                          Text(
-                            e.eventTitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: V3
-                                .inter(
-                                  19,
-                                  weight: FontWeight.w600,
-                                  color: cancelled ? _mutedSpec : V3.text,
-                                  height: 1.25,
-                                )
-                                .copyWith(
-                                  decoration: cancelled
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                if (!cancelled && e.requestAttendance) ...[
-                  const SizedBox(height: 10),
-                  _footer(),
-                ],
-              ],
+        child: Material(
+          color: V3.card,
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: _body(cancelled),
             ),
           ),
         ),
       ),
+    );
+    if (!item.showDay || firstRow) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Container(height: 1, color: V3.line),
+        ),
+        row,
+      ],
+    );
+  }
+
+  Widget _body(bool cancelled) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Crest sits on the team-title line, not in a
+                  // column of its own, so the text gets the full
+                  // width (Ken, 2026-11-11).
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _teamTitle(cancelled)),
+                      const SizedBox(width: 10),
+                      Opacity(
+                        opacity: cancelled ? .45 : 1,
+                        child: _crest(),
+                      ),
+                    ],
+                  ),
+                  if (_hasSquad) ...[
+                    const SizedBox(height: 6),
+                    _squadPill(cancelled),
+                  ],
+                  const SizedBox(height: 6),
+                  _line1(cancelled),
+                  const SizedBox(height: 3),
+                  Text(
+                    e.eventTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: V3
+                        .inter(
+                          19,
+                          weight: FontWeight.w600,
+                          color: cancelled ? _mutedSpec : V3.text,
+                          height: 1.25,
+                        )
+                        .copyWith(
+                          decoration:
+                              cancelled ? TextDecoration.lineThrough : null,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (!cancelled && e.requestAttendance) ...[
+          const SizedBox(height: 10),
+          _footer(),
+        ],
+      ],
     );
   }
 
@@ -418,10 +438,10 @@ class V3QuietDayRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 22, bottom: 10),
+      padding: const EdgeInsets.only(top: 14, bottom: 4),
       child: _RailRow(
         firstRow: firstRow,
-        extendUp: 22,
+        extendUp: 14,
         day: _DayMarker(day, green: false),
         dot: const _Dot(next: false, cancelled: false, quiet: true),
         child: Padding(
@@ -461,7 +481,7 @@ class _RailRow extends StatelessWidget {
         Positioned(
           left: kRailX - 1,
           top: -extendUp,
-          bottom: -10,
+          bottom: -4,
           width: 2,
           child: _Rail(fadeFromTop: firstRow),
         ),
