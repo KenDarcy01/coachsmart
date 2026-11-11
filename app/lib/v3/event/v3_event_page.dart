@@ -61,7 +61,8 @@ class _V3EventPageState extends State<V3EventPage> {
   Map<String, dynamic> _raw = {};
   bool _loading = true;
   String? _error;
-  final Set<int> _busy = {}; // member ids with a reply being saved
+  // member id -> the reply being saved, so only the tapped button spins.
+  final Map<int, int> _busy = {};
   bool _paying = false;
   bool _teamAllowsLineup = false;
   bool _teamSessionPlan = false;
@@ -169,7 +170,7 @@ class _V3EventPageState extends State<V3EventPage> {
 
   Future<void> _reply(TeamMembersStruct m, int responseId) async {
     if (m.responseId == responseId) return;
-    setState(() => _busy.add(m.memberId));
+    setState(() => _busy[m.memberId] = responseId);
     try {
       final row = await EventAttendanceTable().insert({
         'event_id': _eventId,
@@ -767,7 +768,8 @@ class _V3EventPageState extends State<V3EventPage> {
   // "✓ Aoife" | "✗ Aoife", as v2 did (Ken, 2026-11-08). Unanswered: both
   // grey. Chosen: solid green or red; the other goes dim.
   Widget _memberRow(TeamMembersStruct m, bool paidEvent) {
-    final busy = _busy.contains(m.memberId);
+    final busy = _busy.containsKey(m.memberId);
+    final saving = _busy[m.memberId];
     final going = m.responseId == 3;
     final declined = m.responseId == 4;
     final answered = going || declined;
@@ -798,8 +800,16 @@ class _V3EventPageState extends State<V3EventPage> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
                 color: bg, borderRadius: BorderRadius.circular(12)),
+            // The tapped button shows the spinner in place of its tick or
+            // cross; the rest of the row stays put (Ken, 2026-11-11).
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(isGo ? Icons.check : Icons.close, size: 18, color: fg),
+              if (saving == (isGo ? 3 : 4))
+                SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: fg))
+              else
+                Icon(isGo ? Icons.check : Icons.close, size: 18, color: fg),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(name,
@@ -829,20 +839,11 @@ class _V3EventPageState extends State<V3EventPage> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
-      child: busy
-          ? const SizedBox(
-              height: 44,
-              child: Center(
-                  child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: V3.green))))
-          : Row(children: [
-              button(true),
-              const SizedBox(width: 8),
-              button(false),
-            ]),
+      child: Row(children: [
+        button(true),
+        const SizedBox(width: 8),
+        button(false),
+      ]),
     );
   }
 
