@@ -97,6 +97,7 @@ export '/v3/match_report/v3_match_report_page.dart' show V3MatchReportPage;
 export '/v3/match_stats/v3_match_stats_page.dart' show V3MatchStatsPage;
 export '/v3/score_keeper/v3_score_keeper_page.dart' show V3ScoreKeeperPage;
 export '/v3/session_plan/v3_session_plan_page.dart' show V3SessionPlanPage;
+export '/v3/favourites/v3_favourites_page.dart' show V3FavouritesPage;
 export '/v3/join_team/v3_join_team_page.dart' show V3JoinTeamPage;
 export '/v3/create_team/v3_create_team_page.dart' show V3CreateTeamPage;
 export '/v3/onboarding/v3_onboarding_page.dart' show V3OnboardingPage;

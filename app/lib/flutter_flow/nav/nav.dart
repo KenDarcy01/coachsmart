@@ -379,7 +379,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: FavouritesWidget.routeName,
               path: FavouritesWidget.routePath,
-              builder: (context, params) => FavouritesWidget(),
+              builder: (context, params) => const V3FavouritesPage(), // v3
             ),
             FFRoute(
               name: MatchScoreWidget.routeName,
@@ -475,7 +475,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: FavouritesNewWidget.routeName,
               path: FavouritesNewWidget.routePath,
-              builder: (context, params) => FavouritesNewWidget(),
+              builder: (context, params) => const V3FavouritesPage(), // v3
             ),
             FFRoute(
               name: MatchReportNewWidget.routeName,

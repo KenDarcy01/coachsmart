@@ -575,8 +575,11 @@ class _V3HomePageState extends State<V3HomePage> {
       if (_home.isGaaMember && role >= 30)
         _Tab('Resources', Icons.menu_book_rounded, _openResources),
       if (_home.isGaaMember && role >= 30)
-        _Tab('Favourites', Icons.favorite,
-            () => context.pushNamed(FavouritesNewWidget.routeName)),
+        _Tab(
+            'Favourites',
+            Icons.favorite,
+            () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const V3FavouritesPage()))),
       if (role >= 100)
         _Tab('Add event', Icons.add_circle, () async {
           await context.pushNamed(V3EventFormPage.createRouteName);
