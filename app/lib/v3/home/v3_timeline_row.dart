@@ -80,7 +80,6 @@ class V3TimelineRow extends StatelessWidget {
         ),
       ),
     );
-    return row;
   }
 
   Widget _body(bool cancelled) {
