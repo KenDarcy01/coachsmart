@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '/v3/web/v3_safe_area.dart';
 import '/custom_code/actions/index.dart' as actions;
 import 'package:provider/provider.dart';
 import 'package:flutter/gestures.dart';
@@ -115,6 +117,20 @@ class _MyAppState extends State<MyApp> {
       ),
       themeMode: _themeMode,
       routerConfig: _router,
+      // Web build: add the iPhone home-bar inset that Flutter web leaves out,
+      // so snack bars, bottom bars and sheets clear it.
+      builder: (context, child) {
+        final inset = kIsWeb ? webBottomInset() : 0.0;
+        final mq = MediaQuery.of(context);
+        if (inset <= mq.viewPadding.bottom) return child!;
+        return MediaQuery(
+          data: mq.copyWith(
+            padding: mq.padding.copyWith(bottom: inset),
+            viewPadding: mq.viewPadding.copyWith(bottom: inset),
+          ),
+          child: child!,
+        );
+      },
     );
   }
 }
