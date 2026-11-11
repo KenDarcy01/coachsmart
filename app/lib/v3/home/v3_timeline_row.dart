@@ -259,10 +259,11 @@ class V3TimelineRow extends StatelessWidget {
   Widget _footer() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
+      // Tick / buttons first, counts after (Ken, 2026-11-11, trying it).
       children: [
-        Expanded(child: _counts()),
-        const SizedBox(width: 10),
         _replyControl(),
+        const SizedBox(width: 12),
+        Expanded(child: _counts()),
       ],
     );
   }
@@ -319,7 +320,7 @@ class V3TimelineRow extends StatelessWidget {
           ],
         );
     return Padding(
-      padding: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.only(left: 2),
       child: Wrap(
         spacing: 10,
         runSpacing: 4,
