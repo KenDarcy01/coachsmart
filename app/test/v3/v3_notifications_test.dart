@@ -64,33 +64,59 @@ void main() {
     expect(g.map((x) => x.$1), ['Today', 'Earlier']);
   });
 
-  test('kinds: join and access requests, event alerts', () {
+  test('kinds: requests and reminders need an action, notices do not', () {
     final n1 =
         NotifItem.fromJson(row(1, DateTime.now(), action: 'approve_member'));
     final n2 = NotifItem.fromJson(
         row(2, DateTime.now(), action: 'attend', eventId: 7));
     final n3 = NotifItem.fromJson(row(3, DateTime.now(), eventId: 7));
     expect(n1.isJoinRequest, isTrue);
-    expect(n1.opensEvent, isFalse);
-    expect(n2.opensEvent, isTrue);
-    expect(n3.opensEvent, isTrue);
+    expect(n1.needsAction, isTrue);
+    expect(n2.isAttend, isTrue);
+    expect(n2.needsAction, isTrue);
+    expect(n3.needsAction, isFalse);
+    expect(n3.asRead().isRead, isTrue);
   });
 
-  testWidgets('page shows groups, Mark all read and live request buttons',
-      (tester) async {
+  testWidgets(
+      'notices go read after 2 seconds, requests and reminders stay unread '
+      'with their buttons, and nothing opens another page', (tester) async {
     final now = DateTime.now();
     await tester.pumpWidget(MaterialApp(
         home: V3NotificationsPage(testData: [
       row(1, now, action: 'approve_member'),
       row(2, now, eventId: 7),
-      row(3, now.subtract(const Duration(days: 1)), read: true),
-    ])));
-    await tester.pumpAndSettle();
+      row(3, now, action: 'attend', eventId: 8),
+      row(4, now.subtract(const Duration(days: 1)), read: true),
+    ], testMembers: {
+      8: [NotifMember(11, 'Sean', 0), NotifMember(12, 'Aoife', 0)],
+    })));
+    await tester.pump();
     expect(find.text('TODAY'), findsOneWidget);
     expect(find.text('YESTERDAY'), findsOneWidget);
-    expect(find.text('Mark all read'), findsOneWidget);
+    expect(find.text('Mark all read'), findsNothing);
     expect(find.text('Approve'), findsOneWidget);
     expect(find.text('Decline'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    expect(find.text('Sean'), findsNWidgets(2));
+    expect(find.text('Aoife'), findsNWidgets(2));
+    expect(find.byIcon(Icons.chevron_right), findsNothing);
+
+    Iterable<Color?> dots() => tester
+        .widgetList<Container>(find.byType(Container))
+        .map((c) => c.decoration)
+        .whereType<BoxDecoration>()
+        .where((d) => d.shape == BoxShape.circle)
+        .map((d) => d.color);
+    expect(dots().where((c) => c != Colors.transparent).length, 3);
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    // The notice is read; the request and the reminder stay unread.
+    expect(dots().where((c) => c != Colors.transparent).length, 2);
+
+    // Replying lights the chosen button.
+    await tester.tap(find.text('Sean').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Sean'), findsNWidgets(2));
   });
 }
