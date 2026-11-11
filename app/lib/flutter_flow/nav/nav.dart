@@ -364,12 +364,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: AnalyticsWidget.routeName,
               path: AnalyticsWidget.routePath,
-              builder: (context, params) => AnalyticsWidget(
-                currentAuthToken: params.getParam(
-                  'currentAuthToken',
-                  ParamType.String,
-                ),
-              ),
+              builder: (context, params) => const V3AnalyticsPage(), // v3
             ),
             FFRoute(
               name: GameDetailsWidget.routeName,

@@ -90,4 +90,62 @@ void main() {
     expect(countsLine(1, 0, 0), '1 player');
     expect(countsLine(24, 3, 1), '24 players · 3 coaches · 1 admin');
   });
+
+  test('team squad cards and squad order for one code', () {
+    final r = TeamRoster.fromJson({
+      'team_id': 5,
+      'club_codes': [
+        {'code_id': 2, 'event_code': 'Football'},
+      ],
+      'role_groups': [
+        {
+          'role_level': 10,
+          'role_name': 'Player',
+          'role_name_plural': 'Players',
+          'members': [
+            {
+              'member_id': 1,
+              'first_name': 'Amy',
+              'squad_codes': [
+                {'code_id': 2, 'squad_id': 12}
+              ]
+            },
+            {
+              'member_id': 2,
+              'first_name': 'Beth',
+              'squad_codes': [
+                {'code_id': 2, 'squad_id': 11}
+              ]
+            },
+            {'member_id': 3, 'first_name': 'Cara'},
+          ],
+        },
+        {
+          'role_level': 30,
+          'role_name': 'Coach',
+          'role_name_plural': 'Coaches',
+          'members': [
+            {
+              'member_id': 9,
+              'first_name': 'Pat',
+              'squad_codes': [
+                {'code_id': 2, 'squad_id': 11}
+              ]
+            },
+          ],
+        },
+      ],
+    });
+    const squads = [
+      TeamSquad(11, 'Blue', '', '#2266cc'),
+      TeamSquad(12, 'Red', '', ''),
+    ];
+    final cards = teamSquadCards(r, 2, squads);
+    expect(cards.map((c) => c.name), ['Blue', 'Red', 'No squad']);
+    expect(cards[0].count, 2);
+    expect(cards[0].lines, ['Players: 1', 'Coaches: 1']);
+    expect(cards[2].count, 1);
+    final ordered = orderBySquad(r.groups.first.members, 2, squads);
+    expect(ordered.map((m) => m.firstName), ['Beth', 'Amy', 'Cara']);
+  });
 }

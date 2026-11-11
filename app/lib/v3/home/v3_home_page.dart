@@ -671,13 +671,8 @@ class _V3HomePageState extends State<V3HomePage> {
             item(
                 Icons.auto_graph,
                 'Analytics',
-                () => context.pushNamed(
-                      AnalyticsWidget.routeName,
-                      queryParameters: {
-                        'currentAuthToken':
-                            serializeParam(currentJwtToken, ParamType.String),
-                      }.withoutNulls,
-                    )),
+                () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const V3AnalyticsPage()))),
           item(Icons.logout, 'Sign out', _signOut),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),

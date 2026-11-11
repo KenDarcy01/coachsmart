@@ -325,3 +325,74 @@ String countsLine(int players, int coaches, int admins) {
     if (admins > 0) p(admins, 'admin', 'admins'),
   ].join(' · ');
 }
+
+/// One of the team's squads (squads table), in squad_list_seq order.
+class TeamSquad {
+  const TeamSquad(this.squadId, this.name, this.image, this.colour);
+  final int squadId;
+  final String name, image, colour;
+
+  Color get colourValue {
+    final hex = colour.replaceAll('#', '');
+    if (hex.length == 6) {
+      final v = int.tryParse(hex, radix: 16);
+      if (v != null) return Color(0xFF000000 | v);
+    }
+    return V3.green;
+  }
+}
+
+/// A squad card on the Team page: squad (null = No squad), distinct people
+/// in it for the code picked, and "Players: 12" lines per role.
+class TeamSquadCard {
+  const TeamSquadCard(this.squadId, this.squad, this.count, this.lines);
+  final int squadId; // 0 = No squad
+  final TeamSquad? squad;
+  final int count;
+  final List<String> lines;
+  String get name => squad?.name ?? 'No squad';
+}
+
+int memberSquadId(TeamMember m, int codeId) => m.squadFor(codeId)?.squadId ?? 0;
+
+/// Squad cards for one code: each squad, then No squad when anyone has none.
+List<TeamSquadCard> teamSquadCards(
+    TeamRoster r, int codeId, List<TeamSquad> squads) {
+  TeamSquadCard card(int squadId, TeamSquad? s) {
+    final ids = <int>{};
+    final lines = <String>[];
+    for (final g in r.groups) {
+      final inGroup = {
+        for (final m in g.members)
+          if (memberSquadId(m, codeId) == squadId) m.memberId
+      };
+      ids.addAll(inGroup);
+      if (inGroup.isNotEmpty)
+        lines.add('${g.roleNamePlural}: ${inGroup.length}');
+    }
+    return TeamSquadCard(squadId, s, ids.length, lines);
+  }
+
+  final anyNone =
+      r.groups.any((g) => g.members.any((m) => memberSquadId(m, codeId) == 0));
+  return [
+    for (final s in squads) card(s.squadId, s),
+    if (anyNone) card(0, null),
+  ];
+}
+
+/// Members in squad order (squad_list_seq, no squad last), then by name.
+List<TeamMember> orderBySquad(
+    List<TeamMember> members, int? codeId, List<TeamSquad> squads) {
+  if (codeId == null) return members;
+  int rank(TeamMember m) {
+    final i = squads.indexWhere((s) => s.squadId == memberSquadId(m, codeId));
+    return i < 0 ? squads.length : i;
+  }
+
+  final order = {for (var i = 0; i < members.length; i++) members[i]: i};
+  return [...members]..sort((a, b) {
+      final c = rank(a).compareTo(rank(b));
+      return c != 0 ? c : order[a]!.compareTo(order[b]!);
+    });
+}

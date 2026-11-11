@@ -100,3 +100,4 @@ export '/v3/create_team/v3_create_team_page.dart' show V3CreateTeamPage;
 export '/v3/onboarding/v3_onboarding_page.dart' show V3OnboardingPage;
 export '/v3/member_stats/v3_member_stats_page.dart' show V3MemberStatsPage;
 export '/v3/lineup/v3_lineup_page.dart' show V3LineupPage;
+export '/v3/analytics/v3_analytics_page.dart' show V3AnalyticsPage;

@@ -1,6 +1,7 @@
 // v3 Team page: crest and counts, team code with Share, pending strip,
-// code chips, search, then members grouped by role with squad chips.
-// Mockup: app-v3/teams-design/tm-team.png.
+// code chips, squad cards, role pills, search, then members grouped by role
+// with a big squad pill under each name. Looks like the attendance page
+// (Ken approved 2026-11-11).
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,6 +32,9 @@ class _V3TeamPageState extends State<V3TeamPage> {
   TeamSummary? _summary;
   bool _failed = false;
   int? _codeId; // which code's squads are shown
+  List<TeamSquad> _squads = const [];
+  int? _squadFilter; // null = everyone, 0 = No squad
+  String? _roleFilter; // role group plural name, null = every role
   final _search = TextEditingController();
 
   bool get _admin => (_roster?.userRoleLevel ?? 0) >= 100;
@@ -77,7 +81,17 @@ class _V3TeamPageState extends State<V3TeamPage> {
           }
         }
       }
+      final squadRows = await SquadsTable().queryRows(
+          queryFn: (q) => q
+              .eq('team_id', widget.teamId)
+              .order('squad_list_seq', ascending: true));
+      if (!mounted) return;
       setState(() {
+        _squads = [
+          for (final q in squadRows)
+            TeamSquad(q.squadId, q.squadName ?? '', q.squadImage ?? '',
+                q.squadColour ?? '')
+        ];
         _roster = roster;
         _summary = summary;
         _failed = false;
@@ -322,8 +336,12 @@ class _V3TeamPageState extends State<V3TeamPage> {
                           onTap: _openPending),
                     ),
                   if (_admin && r.codes.length > 1) _codeChips(r),
+                  if (_codeId != null && _squads.isNotEmpty) _squadCards(r),
+                  _rolePills(r),
                   _searchField(),
-                  for (final g in r.groups) ..._group(g),
+                  for (final g in r.groups)
+                    if (_roleFilter == null || g.roleNamePlural == _roleFilter)
+                      ..._group(g),
                 ],
               ),
             ),
@@ -403,15 +421,18 @@ class _V3TeamPageState extends State<V3TeamPage> {
         child: Wrap(spacing: 8, runSpacing: 8, children: [
           for (final c in r.codes)
             GestureDetector(
-              onTap: () => setState(() => _codeId = c.codeId),
+              onTap: () => setState(() {
+                _codeId = c.codeId;
+                _squadFilter = null;
+              }),
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                     color: c.codeId == _codeId ? V3.green : V3.card,
                     borderRadius: BorderRadius.circular(20)),
                 child: Text(c.name,
-                    style: V3.inter(14.5,
+                    style: V3.inter(15,
                         weight: FontWeight.w600,
                         color: c.codeId == _codeId ? V3.bg : V3.muted)),
               ),
@@ -449,49 +470,217 @@ class _V3TeamPageState extends State<V3TeamPage> {
         ),
       );
 
-  List<Widget> _group(RoleGroup g) {
+  /// Members of a group that pass the search and squad filter.
+  List<TeamMember> _visible(RoleGroup g) {
     final q = _search.text.trim().toLowerCase();
-    final members = q.isEmpty
-        ? g.members
-        : g.members.where((m) => m.fullName.toLowerCase().contains(q)).toList();
+    final code = _codeId;
+    return [
+      for (final m in g.members)
+        if ((q.isEmpty || m.fullName.toLowerCase().contains(q)) &&
+            (_squadFilter == null ||
+                (code != null && memberSquadId(m, code) == _squadFilter)))
+          m
+    ];
+  }
+
+  /// Wide squad cards as on the attendance page: name, picture, count and
+  /// role lines. Tap to show only that squad, tap again for everyone.
+  Widget _squadCards(TeamRoster r) {
+    final cards = teamSquadCards(r, _codeId!, _squads);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SizedBox(
+        height: 168,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(bottom: 8),
+          itemCount: cards.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (_, i) {
+            final c = cards[i];
+            final sel = c.squadId == _squadFilter;
+            return GestureDetector(
+              onTap: () =>
+                  setState(() => _squadFilter = sel ? null : c.squadId),
+              child: Container(
+                width: 250,
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                decoration: BoxDecoration(
+                    color: V3.card,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: sel ? V3.green : V3.line, width: sel ? 2 : 1.5)),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Expanded(
+                            child: Text(c.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: V3.inter(18,
+                                    weight: FontWeight.w600, color: V3.green))),
+                        const SizedBox(width: 8),
+                        _squadPic(c.squad, 44),
+                      ]),
+                      Text('${c.count}',
+                          style: V3.tight(34,
+                              weight: FontWeight.w700, height: 1.1)),
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: Text(c.lines.join('\n'),
+                            overflow: TextOverflow.fade,
+                            style: V3.inter(15, color: V3.muted, height: 1.35)),
+                      ),
+                    ]),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Role filter pills with how many people in each role match the search
+  /// and squad picked. Tap to show only that role, tap again for all.
+  Widget _rolePills(TeamRoster r) {
+    final groups = [
+      for (final g in r.groups)
+        if (g.members.isNotEmpty) g
+    ];
+    if (groups.length < 2) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final g in groups)
+          Builder(builder: (_) {
+            final sel = _roleFilter == g.roleNamePlural;
+            final n = {for (final m in _visible(g)) m.memberId}.length;
+            return GestureDetector(
+              onTap: () =>
+                  setState(() => _roleFilter = sel ? null : g.roleNamePlural),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                    color: sel ? V3.green : V3.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: sel ? V3.green : V3.line, width: 1.5)),
+                child: Text('${g.roleNamePlural} ($n)',
+                    style: V3.inter(15,
+                        weight: FontWeight.w600, color: sel ? V3.bg : V3.text)),
+              ),
+            );
+          }),
+      ]),
+    );
+  }
+
+  TeamSquad? _squad(int id) {
+    for (final s in _squads) {
+      if (s.squadId == id) return s;
+    }
+    return null;
+  }
+
+  Widget _squadPic(TeamSquad? s, double size) {
+    Widget dot(Color c) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: c, shape: BoxShape.circle));
+    if (s == null) return dot(V3.barGrey);
+    if (s.image.isNotEmpty) {
+      return ClipOval(
+          child: Image.network(s.image,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => dot(s.colourValue)));
+    }
+    return dot(s.colourValue);
+  }
+
+  List<Widget> _group(RoleGroup g) {
+    final code = _codeId;
+    final members = orderBySquad(_visible(g), code, _squads);
     if (members.isEmpty) return const [];
-    final showSquad = g.roleLevel == 10 && _codeId != null;
     return [
       Padding(
-        padding: const EdgeInsets.fromLTRB(0, 14, 0, 2),
-        child: Row(children: [
-          Text(g.roleNamePlural, style: V3.tight(17, weight: FontWeight.w700)),
-          const Spacer(),
-          Text('${members.length}',
-              style: V3.inter(14, weight: FontWeight.w600, color: V3.muted)),
+        padding: const EdgeInsets.fromLTRB(2, 16, 2, 8),
+        child: Text(
+            '${g.roleNamePlural.toUpperCase()} (${{
+              for (final m in members) m.memberId
+            }.length})',
+            style: V3.inter(15,
+                weight: FontWeight.w700, color: V3.green, letterSpacing: .6)),
+      ),
+      Container(
+        decoration: BoxDecoration(
+            color: V3.card, borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        child: Column(children: [
+          for (var i = 0; i < members.length; i++)
+            _row(members[i], code, last: i == members.length - 1),
         ]),
       ),
-      for (final m in members)
-        InkWell(
-          onTap: _canOpenMember ? () => _openMember(m) : null,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: V3.line))),
-            child: Row(children: [
-              V3Avatar(initials(m.firstName, m.lastName),
-                  highlight: g.roleLevel >= 100),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: Text(m.fullName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: V3.inter(16.5, weight: FontWeight.w500))),
-              if (showSquad)
-                V3SquadChip(m.squadFor(_codeId!),
-                    onTap: _admin ? () => _pickSquad(m) : null),
-              if (_canOpenMember) ...[
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, color: V3.muted, size: 22),
+    ];
+  }
+
+  Widget _row(TeamMember m, int? code, {required bool last}) {
+    final squad = code == null ? null : _squad(memberSquadId(m, code));
+    final squadText = Row(mainAxisSize: MainAxisSize.min, children: [
+      if (squad != null) ...[
+        _squadPic(squad, 26),
+        const SizedBox(width: 8),
+      ],
+      Flexible(
+        child: Text(squad?.name ?? 'No squad',
+            overflow: TextOverflow.ellipsis,
+            style: V3.inter(16,
+                weight: FontWeight.w500, color: _admin ? V3.text : V3.muted)),
+      ),
+      if (_admin) ...[
+        const SizedBox(width: 4),
+        const Icon(Icons.unfold_more, size: 20, color: V3.muted),
+      ],
+    ]);
+    final squadLine = _admin
+        ? GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _pickSquad(m),
+            child: Container(
+                constraints: const BoxConstraints(minHeight: 40),
+                padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
+                decoration: BoxDecoration(
+                    color: V3.card2, borderRadius: BorderRadius.circular(20)),
+                child: squadText))
+        : squadText;
+    return InkWell(
+      onTap: _canOpenMember ? () => _openMember(m) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+            border:
+                last ? null : const Border(bottom: BorderSide(color: V3.line))),
+        child: Row(children: [
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(m.fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: V3.inter(18, weight: FontWeight.w600)),
+              if (code != null && _squads.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                squadLine,
               ],
             ]),
           ),
-        ),
-    ];
+          if (_canOpenMember)
+            const Icon(Icons.chevron_right, color: V3.muted, size: 26),
+        ]),
+      ),
+    );
   }
 }
