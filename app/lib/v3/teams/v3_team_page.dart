@@ -692,9 +692,9 @@ class _V3TeamPageState extends State<V3TeamPage> {
 }
 
 /// Squad cards grow so every role line shows (Ken, 2026-11-11: Admins was
-/// cut off). 168 fits two lines; each extra line adds 21.
+/// cut off). 126 with no role lines; each line adds 21.
 double _cardsHeight(Iterable<int> lines) {
-  var most = 2;
+  var most = 0; // grows and shrinks with the role lines (Ken, 2026-11-11)
   for (final n in lines) {
     if (n > most) most = n;
   }
