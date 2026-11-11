@@ -30,6 +30,9 @@ jobs:
           flutter pub get
           flutter build web --release --no-web-resources-cdn --base-href /
           rm -rf deploy/web && cp -r build/web deploy/web
+          # Icon fonts are trimmed per build; hash their names so phones
+          # never keep an old copy missing the new icons.
+          python3 deploy/version_fonts.py deploy/web
 
       - name: Make sure the hosting site exists
         env:
