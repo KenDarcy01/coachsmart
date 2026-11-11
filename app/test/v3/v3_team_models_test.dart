@@ -45,8 +45,9 @@ void main() {
       'club_id': 1,
       'user_highest_role_level': 30,
       'club_codes': [
-        {'code_id': 2, 'event_code': 'Hurling'},
-        {'code_id': 1, 'event_code': 'Football'},
+        {'code_id': 3, 'event_code': 'Hurling'},
+        {'code_id': 2, 'event_code': 'Football'},
+        {'code_id': 1, 'event_code': '-'},
       ],
       'role_groups': [
         {
@@ -77,7 +78,8 @@ void main() {
     expect(r.groups.map((g) => g.roleLevel).toList(), [10, 30]);
     expect(r.groups.first.members.map((m) => m.firstName).toList(),
         ['Amy', 'Pat', 'Zoe']);
-    expect(r.codes.first.codeId, 1);
+    // "-" (code 1) is left out for squads; real codes sorted by id.
+    expect(r.codes.map((c) => c.codeId).toList(), [2, 3]);
     expect(r.count((l) => l >= 10), 3);
     expect(r.count((l) => l >= 20), 1);
     expect(r.member(7)!.squadFor(1)!.squadId, 3);

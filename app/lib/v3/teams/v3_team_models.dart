@@ -105,7 +105,13 @@ class TeamRoster {
         userRoleLevel = _i(j['user_highest_role_level']),
         groups = _l(j['role_groups']).map(RoleGroup.fromJson).toList()
           ..sort((a, b) => a.roleLevel.compareTo(b.roleLevel)),
-        codes = _l(j['club_codes']).map(ClubCode.fromJson).toList()
+        // Code 1 is "-" (events with no code). v2 still lists it, but v3
+        // never uses it for squads (Ken, 2026-11-11): event squads fall
+        // back to the team's first real code (get_updated_event_code).
+        codes = _l(j['club_codes'])
+            .map(ClubCode.fromJson)
+            .where((c) => c.codeId > 1)
+            .toList()
           ..sort((a, b) => a.codeId.compareTo(b.codeId));
   final int teamId, clubId, userRoleLevel;
   final String teamName, teamCode;
