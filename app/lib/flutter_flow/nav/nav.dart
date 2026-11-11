@@ -436,16 +436,9 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: MemberAnalyticsWidget.routeName,
               path: MemberAnalyticsWidget.routePath,
-              builder: (context, params) => MemberAnalyticsWidget(
-                memberId: params.getParam(
-                  'memberId',
-                  ParamType.int,
-                ),
-                memberName: params.getParam(
-                  'memberName',
-                  ParamType.String,
-                ),
-              ),
+              builder: (context, params) => V3MemberStatsPage(
+                  memberId:
+                      params.getParam('memberId', ParamType.int) ?? 0), // v3
             ),
             FFRoute(
               name: NotificationsWidget.routeName,
