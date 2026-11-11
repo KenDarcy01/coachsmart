@@ -93,7 +93,7 @@ class V3TimelineRow extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: V3
           .inter(
-            19,
+            17,
             weight: FontWeight.w600,
             color: cancelled ? _mutedSpec : V3.text,
             height: 1.25,
@@ -168,7 +168,7 @@ class V3TimelineRow extends StatelessWidget {
           hhmm(t),
           style: V3
               .tight(
-            22,
+            19,
             weight: FontWeight.w700,
             color: cancelled ? _mutedSpec : V3.text,
             height: 1.1,
@@ -179,11 +179,11 @@ class V3TimelineRow extends StatelessWidget {
           ),
         ),
         if (meet.isNotEmpty && !cancelled)
-          Text('Meet $meet', style: V3.inter(16, color: _mutedSpec)),
+          Text('Meet $meet', style: V3.inter(14, color: _mutedSpec)),
         if (cd.isNotEmpty)
           Text(
             cd,
-            style: V3.inter(15, weight: FontWeight.w700, color: V3.green),
+            style: V3.inter(13, weight: FontWeight.w700, color: V3.green),
           ),
         if (cancelled) const _Tag('Cancelled', green: false),
         if (!cancelled && e.paymentRequired && e.eventPaid)
@@ -202,7 +202,7 @@ class V3TimelineRow extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: V3
           .tight(
-            16,
+            14,
             weight: FontWeight.w800,
             color: cancelled ? _mutedSpec : V3.green,
             height: 1.2,

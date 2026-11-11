@@ -446,8 +446,8 @@ class _V3HomePageState extends State<V3HomePage> {
     // A white "Events" heading separates the chips from the rail
     // (Ken, 2026-11-11).
     children.add(Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 6),
-      child: Text('Events', style: V3.tight(24, weight: FontWeight.w700)),
+      padding: const EdgeInsets.only(top: 10, bottom: 12),
+      child: Text('Events', style: V3.tight(18, weight: FontWeight.w700)),
     ));
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
