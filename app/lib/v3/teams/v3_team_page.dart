@@ -490,7 +490,7 @@ class _V3TeamPageState extends State<V3TeamPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: SizedBox(
-        height: 168,
+        height: _cardsHeight(cards.map((c) => c.lines.length)),
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.only(bottom: 8),
@@ -683,4 +683,14 @@ class _V3TeamPageState extends State<V3TeamPage> {
       ),
     );
   }
+}
+
+/// Squad cards grow so every role line shows (Ken, 2026-11-11: Admins was
+/// cut off). 168 fits two lines; each extra line adds 21.
+double _cardsHeight(Iterable<int> lines) {
+  var most = 2;
+  for (final n in lines) {
+    if (n > most) most = n;
+  }
+  return 126 + 21.0 * most;
 }

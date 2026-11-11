@@ -150,9 +150,9 @@ void main() {
   });
 }
 
-// Widget smoke test: the page renders tabs, squad cards and rows from data.
+// Widget smoke test: the page renders squad cards and rows from data.
 void widgetTests() {
-  testWidgets('attendance page shows tabs, squad cards and grouped rows',
+  testWidgets('attendance page shows squad cards and grouped rows',
       (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 1200 * 3);
     tester.view.devicePixelRatio = 3;
@@ -161,7 +161,9 @@ void widgetTests() {
         home: V3AttendancePage(eventId: 1, responseId: 3, testData: sample())));
     await tester.pumpAndSettle();
     expect(find.text('Football Match v Raheny'), findsOneWidget);
-    expect(find.text('Attending'), findsOneWidget);
+    expect(find.textContaining('Attending ('), findsOneWidget);
+    // No status bar: the event page's cards pick the list.
+    expect(find.text('No reply'), findsNothing);
     expect(find.text('Match day squads'), findsOneWidget);
     expect(find.text('Publish'), findsOneWidget);
     expect(find.text('PLAYERS (3)'), findsOneWidget);
@@ -187,8 +189,13 @@ void widgetTests() {
     await tester.tap(find.text('Blue').first);
     await tester.pumpAndSettle();
     expect(find.text('Anna Ryan'), findsOneWidget);
-    // Switch to Declined.
-    await tester.tap(find.text('Declined'));
+    // The declined list opens on its own from the event page's card.
+    await tester.pumpWidget(MaterialApp(
+        home: V3AttendancePage(
+            key: const ValueKey(4),
+            eventId: 1,
+            responseId: 4,
+            testData: sample())));
     await tester.pumpAndSettle();
     expect(find.text('Tom Kelly'), findsOneWidget);
     expect(find.text('Aimee Morris'), findsNothing);

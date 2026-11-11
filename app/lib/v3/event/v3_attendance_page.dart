@@ -1,5 +1,5 @@
-// v3 Attendance: who is attending, who has not replied and who declined,
-// on one page with tabs. Replaces the FlutterFlow AttendeeList and
+// v3 Attendance: who is attending, who has not replied or who declined;
+// the event page's cards pick which list opens. Replaces the FlutterFlow AttendeeList and
 // AttendeeListAdmins pages in v3 only (the v2 app keeps its own pages).
 // Ken (2026-11-09): squad cards at the top like today, squad under the name
 // on the second row (admins tap it to move the member), no Lineup button in
@@ -35,7 +35,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
   AttendanceData? _data;
   bool _loading = true;
   String? _error;
-  late int _tab =
+  late final int _tab =
       (widget.responseId == kAttending || widget.responseId == kDeclined)
           ? widget.responseId!
           : kNoReply;
@@ -313,10 +313,21 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         leading: IconButton(
             icon: const Icon(Icons.chevron_left, color: V3.green, size: 32),
             onPressed: () => Navigator.of(context).maybePop()),
-        title: Text(
-            d?.eventTitle.isNotEmpty == true ? d!.eventTitle : 'Attendance',
-            overflow: TextOverflow.ellipsis,
-            style: V3.tight(17, weight: FontWeight.w600)),
+        // No status bar on the page: the event page's Attending / No reply /
+        // Declined cards pick the list (Ken, 2026-11-11), so the title says
+        // which one this is.
+        title: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(
+              d == null
+                  ? tabLabel(_tab)
+                  : '${tabLabel(_tab)} (${d.count(_tab)})',
+              overflow: TextOverflow.ellipsis,
+              style: V3.tight(17, weight: FontWeight.w600)),
+          if (d != null && d.eventTitle.isNotEmpty)
+            Text(d.eventTitle,
+                overflow: TextOverflow.ellipsis,
+                style: V3.inter(13, color: V3.muted)),
+        ]),
         actions: [
           if (d != null && d.admin && d.published)
             IconButton(
@@ -353,7 +364,6 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         if (_roleFilter == null || g.$1.roleId == _roleFilter) g
     ];
     return [
-      _tabs(d),
       // Publish/export for every event type, as in v2 (Ken, 2026-11-11:
       // training teams too).
       if (d.admin && _tab == kAttending) _squadStrip(d),
@@ -389,51 +399,6 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         ),
       ],
     ];
-  }
-
-  Widget _tabs(AttendanceData d) {
-    Widget seg(int tab, Color on) {
-      final sel = _tab == tab;
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => setState(() {
-            _tab = tab;
-            _squadFilter = null;
-          }),
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(
-                color: sel ? V3.card : Colors.transparent,
-                borderRadius: BorderRadius.circular(9)),
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text('${d.count(tab)}',
-                  style: V3.tight(16,
-                      weight: FontWeight.w700,
-                      color: sel ? on : V3.text,
-                      height: 1.15)),
-              Text(tabLabel(tab),
-                  style: V3.inter(13,
-                      weight: FontWeight.w600,
-                      color: sel ? on : V3.muted,
-                      height: 1.2)),
-            ]),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-          color: V3.card2, borderRadius: BorderRadius.circular(12)),
-      child: Row(children: [
-        seg(kAttending, V3.green),
-        seg(kNoReply, V3.text),
-        seg(kDeclined, V3.redText),
-      ]),
-    );
   }
 
   /// Admins: publish the squads (match day squads, or teams for training) (needed before the
@@ -514,7 +479,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
   Widget _squadCards(AttendanceData d) {
     final cards = d.squadCards(_tab);
     return SizedBox(
-      height: 168,
+      height: _cardsHeight(cards.map((c) => c.lines.length)),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(bottom: 8),
@@ -714,4 +679,14 @@ class _SquadDot extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(color: _colour, shape: BoxShape.circle));
+}
+
+/// Squad cards grow so every role line shows (Ken, 2026-11-11: Admins was
+/// cut off). 168 fits two lines; each extra line adds 21.
+double _cardsHeight(Iterable<int> lines) {
+  var most = 2;
+  for (final n in lines) {
+    if (n > most) most = n;
+  }
+  return 126 + 21.0 * most;
 }
