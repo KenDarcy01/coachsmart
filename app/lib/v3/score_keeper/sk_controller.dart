@@ -537,7 +537,9 @@ class SkController extends ChangeNotifier {
     final st = s?.setup;
     final t = hhmm(st?.throwAt);
     return SkDraft(
-      opp: st != null ? st.opp : c!.eventOpposition,
+      // Starts empty on a new match: the event's opposition box often lists
+      // several teams, so the scorer must type who they are playing.
+      opp: st?.opp ?? '',
       squadId: st?.squadId,
       dur: st?.dur ?? 1800,
       inj: st?.inj ?? 300,
