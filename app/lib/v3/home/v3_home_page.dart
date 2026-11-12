@@ -353,19 +353,13 @@ class _V3HomePageState extends State<V3HomePage> {
               )
             : _failed
                 ? _errorBody()
-                : Column(
-                    children: [
-                      _greeting(),
-                      _chipBar(),
-                      Expanded(
-                        child: RefreshIndicator(
-                          color: V3.green,
-                          backgroundColor: V3.card,
-                          onRefresh: _load,
-                          child: _timeline(),
-                        ),
-                      ),
-                    ],
+                // The greeting scrolls away with the events; the team chips
+                // stay pinned at the top (Ken, 2026-11-12: no fixed panel).
+                : RefreshIndicator(
+                    color: V3.green,
+                    backgroundColor: V3.card,
+                    onRefresh: _load,
+                    child: _timeline(),
                   ),
         // Parents get no bottom bar (design §5.10).
         bottomNavigationBar: _loaded && !_failed && coach ? _tabs(role) : null,
@@ -421,6 +415,11 @@ class _V3HomePageState extends State<V3HomePage> {
     return (todayN, restN);
   }
 
+  /// Upcoming events still waiting for this user's answer, all teams.
+  int get _toReply => _home.events
+      .where((e) => e.eventStatus != 'deleted' && needsReply(e))
+      .length;
+
   Widget _greeting() {
     final h = _now.hour;
     final part = h < 12 ? 'morning' : (h < 18 ? 'afternoon' : 'evening');
@@ -437,6 +436,7 @@ class _V3HomePageState extends State<V3HomePage> {
           ? '$today · no more this week'
           : '$today · $restN more this week';
     }
+    final toReply = _toReply;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
       child: Column(
@@ -454,6 +454,17 @@ class _V3HomePageState extends State<V3HomePage> {
           const SizedBox(height: 2),
           // Today's count, then what is left this week (Ken, 2026-11-12).
           Text(week, style: V3.inter(15, weight: FontWeight.w600)),
+          // How many still need an answer, or "all up to date" when none
+          // do (Ken, 2026-11-12).
+          const SizedBox(height: 2),
+          Text(
+            toReply == 0
+                ? "You're all up to date"
+                : (toReply == 1
+                    ? '1 event to reply to'
+                    : '$toReply events to reply to'),
+            style: V3.inter(15, weight: FontWeight.w600, color: V3.green),
+          ),
         ],
       ),
     );
@@ -526,11 +537,22 @@ class _V3HomePageState extends State<V3HomePage> {
       );
     }
     children.add(const SizedBox(height: 24));
-    return ListView(
+    return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      // Narrow side margins: the event text needs the width (Ken, 2026-11-11).
-      padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
-      children: children,
+      slivers: [
+        // Centred as in the version Ken picked (2026-11-12 06:44).
+        SliverToBoxAdapter(child: Center(child: _greeting())),
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _PinnedChips(_chipBar()),
+        ),
+        SliverPadding(
+          // Narrow side margins: the event text needs the width (Ken,
+          // 2026-11-11).
+          padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
+          sliver: SliverList(delegate: SliverChildListDelegate(children)),
+        ),
+      ],
     );
   }
 
@@ -749,3 +771,22 @@ class _Tab {
 }
 
 /// A full-screen webview page (native only; on the web the URL opens in a tab).
+
+/// Keeps the team chips pinned under the app bar while the greeting and
+/// events scroll.
+class _PinnedChips extends SliverPersistentHeaderDelegate {
+  _PinnedChips(this.child);
+  final Widget child;
+
+  @override
+  double get minExtent => 68;
+  @override
+  double get maxExtent => 68;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
+      ColoredBox(color: V3.bg, child: child);
+
+  @override
+  bool shouldRebuild(_PinnedChips old) => true;
+}

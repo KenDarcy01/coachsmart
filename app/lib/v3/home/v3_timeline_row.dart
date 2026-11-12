@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '/backend/schema/structs/index.dart';
 import '../v3_crest_image.dart';
+import '../v3_open_location.dart';
 import '../v3_theme.dart';
 import 'v3_home_data.dart';
 
@@ -120,6 +121,12 @@ class V3TimelineRow extends StatelessWidget {
             ],
             const SizedBox(height: 8),
             _line1(cancelled),
+            // Venue on its own line with a pin; tap opens maps (Ken,
+            // 2026-11-12, option 1).
+            if (e.locationName.trim().isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _location(cancelled),
+            ],
             if (!cancelled && e.requestAttendance) ...[
               const SizedBox(height: 12),
               _bar(),
@@ -134,6 +141,38 @@ class V3TimelineRow extends StatelessWidget {
           child: Opacity(opacity: cancelled ? .45 : 1, child: _crest()),
         ),
       ],
+    );
+  }
+
+  Widget _location(bool cancelled) {
+    final row = Row(
+      children: [
+        Icon(Icons.location_on,
+            size: 18, color: cancelled ? _mutedSpec : V3.green),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            e.locationName.trim(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: V3.inter(15, color: cancelled ? _mutedSpec : V3.text),
+          ),
+        ),
+      ],
+    );
+    if (cancelled) return row;
+    return Semantics(
+      button: true,
+      label: 'Open ${e.locationName.trim()} in maps',
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => openLocationPin(e.locationPin, e.locationName),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 32),
+          child: row,
+        ),
+      ),
     );
   }
 
