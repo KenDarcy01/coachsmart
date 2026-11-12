@@ -13,6 +13,7 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_attendance_models.dart';
+import 'v3_event_teams.dart';
 import '/v3/tracking/v3_track.dart';
 
 class V3AttendancePage extends StatefulWidget {
@@ -416,66 +417,79 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       decoration: BoxDecoration(
           color: V3.card, borderRadius: BorderRadius.circular(14)),
-      child: Row(children: [
-        const Icon(Icons.grid_view_outlined, color: V3.green, size: 24),
-        const SizedBox(width: 12),
-        Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(d.isMatch ? 'Match day squads' : 'Teams',
-              style: V3.inter(15, weight: FontWeight.w600)),
-          Text(publishedLabel(d.publishedAt),
-              style: V3.inter(13, color: V3.muted)),
-        ])),
-        const SizedBox(width: 8),
-        SizedBox(
-          height: 36,
-          child: d.published
-              ? Row(mainAxisSize: MainAxisSize.min, children: [
-                  // Publish again after moving people between squads.
-                  TextButton(
-                      onPressed: _publishing ? null : _publish,
-                      style: TextButton.styleFrom(
-                          foregroundColor: V3.green,
-                          padding: const EdgeInsets.symmetric(horizontal: 8)),
-                      child: _publishing
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: V3.green))
-                          : Text('Republish',
-                              style: V3.inter(13,
-                                  weight: FontWeight.w600, color: V3.green))),
-                  OutlinedButton.icon(
-                      onPressed: _export,
-                      style: OutlinedButton.styleFrom(
-                          foregroundColor: V3.green,
-                          side: const BorderSide(color: V3.green, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
-                      icon: const Icon(Icons.ios_share, size: 16),
-                      label: Text('Export',
-                          style: V3.inter(13, weight: FontWeight.w600))),
-                ])
-              : FilledButton.icon(
-                  onPressed: _publishing ? null : _publish,
-                  style: FilledButton.styleFrom(
-                      backgroundColor: V3.green,
-                      foregroundColor: V3.bg,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10))),
-                  icon: _publishing
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: V3.bg))
-                      : const Icon(Icons.publish, size: 16),
-                  label: Text(d.published ? 'Republish' : 'Publish',
-                      style:
-                          V3.inter(13, weight: FontWeight.w700, color: V3.bg))),
-        ),
+      child: Column(children: [
+        Row(children: [
+          const Icon(Icons.grid_view_outlined, color: V3.green, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(d.isMatch ? 'Match day squads' : 'Teams',
+                    style: V3.inter(15, weight: FontWeight.w600)),
+                Text(publishedLabel(d.publishedAt),
+                    style: V3.inter(13, color: V3.muted)),
+              ])),
+          const SizedBox(width: 8),
+          SizedBox(
+            height: 36,
+            child: d.published
+                ? Row(mainAxisSize: MainAxisSize.min, children: [
+                    // Publish again after moving people between squads.
+                    TextButton(
+                        onPressed: _publishing ? null : _publish,
+                        style: TextButton.styleFrom(
+                            foregroundColor: V3.green,
+                            padding: const EdgeInsets.symmetric(horizontal: 8)),
+                        child: _publishing
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: V3.green))
+                            : Text('Republish',
+                                style: V3.inter(13,
+                                    weight: FontWeight.w600, color: V3.green))),
+                    OutlinedButton.icon(
+                        onPressed: _export,
+                        style: OutlinedButton.styleFrom(
+                            foregroundColor: V3.green,
+                            side: const BorderSide(color: V3.green, width: 1.5),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10))),
+                        icon: const Icon(Icons.ios_share, size: 16),
+                        label: Text('Export',
+                            style: V3.inter(13, weight: FontWeight.w600))),
+                  ])
+                : FilledButton.icon(
+                    onPressed: _publishing ? null : _publish,
+                    style: FilledButton.styleFrom(
+                        backgroundColor: V3.green,
+                        foregroundColor: V3.bg,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10))),
+                    icon: _publishing
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: V3.bg))
+                        : const Icon(Icons.publish, size: 16),
+                    label: Text(d.published ? 'Republish' : 'Publish',
+                        style: V3.inter(13,
+                            weight: FontWeight.w700, color: V3.bg))),
+          ),
+        ]),
+        // Ken, 2026-11-12: the new way to share the teams; off on every
+        // event until an admin turns it on. Rebuilt after each publish so
+        // the families-told count stays right.
+        if (d.published &&
+            (widget.testData == null || widget.testData!['teams'] is Map))
+          V3ShareTeamsSwitch(
+              key: ValueKey('share-${d.matchSquadId}'),
+              eventId: widget.eventId,
+              testData: widget.testData?['teams'] as Map<String, dynamic>?,
+              onSnack: _snack),
       ]),
     );
   }

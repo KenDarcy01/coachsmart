@@ -290,7 +290,10 @@ class _V3HomePageState extends State<V3HomePage> {
             icon: const Icon(Icons.menu, color: V3.green, size: 28),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
-          title: Text('Home', style: V3.inter(17, weight: FontWeight.w600)),
+          // Just the CS mark in place of "Home" (Ken, 2026-11-12: logo
+          // only, no wordmark).
+          title: Image.asset('assets/images/cs_mark.png',
+              height: 26, semanticLabel: 'CoachSmart'),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 6),
@@ -352,6 +355,7 @@ class _V3HomePageState extends State<V3HomePage> {
                 ? _errorBody()
                 : Column(
                     children: [
+                      _greeting(),
                       _chipBar(),
                       Expanded(
                         child: RefreshIndicator(
@@ -395,6 +399,66 @@ class _V3HomePageState extends State<V3HomePage> {
         ),
       );
 
+  // ---- greeting (option B, Ken 2026-11-12) ---------------------------------
+
+  /// Events today, and events from tomorrow to the end of this week
+  /// (Monday to Sunday), not cancelled or deleted, across all teams.
+  (int, int) get _todayAndRestOfWeek {
+    final today = DateTime(_now.year, _now.month, _now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final weekEnd = today.add(Duration(days: 8 - today.weekday));
+    var todayN = 0, restN = 0;
+    for (final e in _home.events) {
+      if (e.eventStatus == 'deleted' || isCancelled(e)) continue;
+      final t = eventLocalTime(e);
+      if (t == null || t.isBefore(today) || !t.isBefore(weekEnd)) continue;
+      if (t.isBefore(tomorrow)) {
+        todayN++;
+      } else {
+        restN++;
+      }
+    }
+    return (todayN, restN);
+  }
+
+  Widget _greeting() {
+    final h = _now.hour;
+    final part = h < 12 ? 'morning' : (h < 18 ? 'afternoon' : 'evening');
+    final name = _home.firstName.trim();
+    final (todayN, restN) = _todayAndRestOfWeek;
+    final String week;
+    if (todayN == 0 && restN == 0) {
+      week = 'Nothing on this week';
+    } else {
+      final today = todayN == 0
+          ? 'Nothing today'
+          : (todayN == 1 ? '1 event today' : '$todayN events today');
+      week = restN == 0
+          ? '$today · no more this week'
+          : '$today · $restN more this week';
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            name.isEmpty ? 'Good $part' : 'Good $part, $name',
+            style: V3.tight(26, weight: FontWeight.w700, height: 1.15),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            DateFormat('EEEE d MMMM').format(_now),
+            style: V3.inter(15, color: const Color(0xFFA1A1A2)),
+          ),
+          const SizedBox(height: 2),
+          // Today's count, then what is left this week (Ken, 2026-11-12).
+          Text(week, style: V3.inter(15, weight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
   // ---- team chips (design §5.2) -------------------------------------------
 
   Widget _chipBar() {
@@ -435,12 +499,9 @@ class _V3HomePageState extends State<V3HomePage> {
     final green = nextDay(items);
     final children = <Widget>[];
     if (_home.showAdvert) children.add(_advert());
-    // A white "Events" heading separates the chips from the rail
-    // (Ken, 2026-11-11).
-    children.add(Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 12),
-      child: Text('Events', style: V3.tight(18, weight: FontWeight.w700)),
-    ));
+    // The greeting above the chips now heads the page; the "Events" title
+    // went with option B (Ken, 2026-11-12).
+    children.add(const SizedBox(height: 6));
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
       if (item.quiet) {
