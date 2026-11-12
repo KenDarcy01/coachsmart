@@ -818,9 +818,9 @@ class _V3LineupPageState extends State<V3LineupPage>
                           borderRadius: BorderRadius.circular(14))),
                   icon: const Icon(Icons.ios_share, size: 22),
                   label: Text(_busy == 'share' ? 'Generating…' : 'Share',
-                      style: V3
-                          .inter(17, weight: FontWeight.w700)
-                          .copyWith(color: null)),
+                      style: V3.inter(17,
+                          weight: FontWeight.w700,
+                          color: empty || busy ? V3.muted : V3.bg)),
                 ),
               ),
             ),

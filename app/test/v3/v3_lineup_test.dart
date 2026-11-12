@@ -193,7 +193,8 @@ void main() {
   testWidgets('share image renders', (tester) async {
     await tester.runAsync(() async {
       final d = LineupData.fromJson(sample());
-      final png = await renderLineupPng(d, d.initialBoard(), scale: 1);
+      final png =
+          await renderLineupPng(d, d.initialBoard(), scale: 1, webFonts: false);
       expect(png.length, greaterThan(1000));
     });
   });

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../v3_theme.dart';
 import 'v3_lineup_models.dart';
@@ -237,12 +238,28 @@ TextPainter _text(String s, TextStyle st, {double? maxW, TextAlign? align}) =>
         ellipsis: '…')
       ..layout(maxWidth: maxW ?? double.infinity);
 
-/// The lineup image: team name and event, the pitch with each jersey and
-/// name, then the subs in two numbered columns (as the web page draws it).
+/// The lineup image, a line-for-line copy of the v2 export
+/// (generateLineupCanvas in webviews/team_selector.html): Bebas Neue team
+/// name, DM Sans names, a plain mown pitch, jerseys, name pills and the
+/// subs in two numbered columns. Ken (2026-11-12) prefers it to the earlier
+/// v3 image, which reused the on-screen pitch.
 Future<Uint8List> renderLineupPng(LineupData d, LineupBoard b,
-    {double scale = 3}) async {
-  const pw = 380.0, pad = 12.0, hdr = 66.0, jw = 44.0, jh = jw * 44 / 40;
-  const ph = pw * 484 / 300;
+    {double scale = 3, bool webFonts = true}) async {
+  // Same as the web: wait up to 1.5s for the fonts, then draw anyway.
+  String? bebas, dm;
+  if (webFonts) {
+    try {
+      bebas = GoogleFonts.bebasNeue().fontFamily;
+      dm = GoogleFonts.dmSans().fontFamily;
+      await GoogleFonts.pendingFonts()
+          .timeout(const Duration(milliseconds: 1500));
+    } catch (_) {}
+  }
+  TextStyle sans(double size, FontWeight w, Color col) =>
+      TextStyle(fontFamily: dm, fontSize: size, fontWeight: w, color: col);
+
+  const pw = 380.0, pad = 12.0, hdr = 66.0, jh0 = 44.0 * 44 / 40;
+  final ph = (pw * 145 / 90).roundToDouble();
   const nameW = pw * 0.30 - 8;
   final subs = b.subs.entries.toList()..sort((a, c) => a.key - c.key);
   final subRows = (subs.length / 2).ceil();
@@ -254,70 +271,106 @@ Future<Uint8List> renderLineupPng(LineupData d, LineupBoard b,
   final c = Canvas(rec);
   c.scale(scale);
   c.drawRect(Rect.fromLTWH(0, 0, tw, th), Paint()..color = V3.bg);
+  // Header: club colour bar, team, event.
   c.drawRect(const Rect.fromLTWH(0, 0, tw, 5), Paint()..color = d.kit.primary);
   c.drawRect(const Rect.fromLTWH(0, 5, tw, 2), Paint()..color = d.kit.stripe);
-  _text(
-          (d.teamName.isEmpty ? 'Line-up' : d.teamName).toUpperCase(),
-          const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-              color: V3.text),
-          maxW: pw)
-      .paint(c, const Offset(pad, 14));
-  _text(
-          d.imageSub,
-          const TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w500, color: V3.muted),
-          maxW: pw)
-      .paint(c, const Offset(pad, 45));
+  final title = _text(
+      (d.teamName.isEmpty ? 'Line-up' : d.teamName).toUpperCase(),
+      TextStyle(fontFamily: bebas, fontSize: 26, color: V3.text),
+      maxW: pw);
+  title.paint(c, Offset(pad, 40 - _baseline(title)));
+  final sub = _text(d.imageSub, sans(12, FontWeight.w500, V3.muted), maxW: pw);
+  sub.paint(c, Offset(pad, 58 - _baseline(sub)));
 
-  const pitch = Rect.fromLTWH(pad, hdr, pw, ph);
-  paintPitch(c, pitch);
-  c.drawRRect(
-      RRect.fromRectAndRadius(pitch, const Radius.circular(10)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = const Color(0xD9FFFFFF));
+  // Pitch: soft mowing stripes and plain white lines.
+  const py = hdr;
+  final pitch = Rect.fromLTWH(pad, py, pw, ph);
+  final pitchR = RRect.fromRectAndRadius(pitch, const Radius.circular(10));
+  c.save();
+  c.clipRRect(pitchR);
+  final sh = ph / 10;
+  for (var i = 0; i < 10; i++) {
+    c.drawRect(
+        Rect.fromLTWH(pad, py + i * sh, pw, sh + 1),
+        Paint()
+          ..color =
+              i.isOdd ? const Color(0xFF3D8C3A) : const Color(0xFF357E33));
+  }
+  Paint ln(Color col, [double w = 1.5]) => Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = w
+    ..color = col;
+  final white70 = ln(const Color(0xB3FFFFFF));
+  final sqw = pw * 0.149, sqh = ph * 0.033, sqx = pad + (pw - sqw) / 2;
+  c.drawRect(Rect.fromLTWH(sqx, py, sqw, sqh), white70);
+  c.drawRect(Rect.fromLTWH(sqx, py + ph - sqh, sqw, sqh), white70);
+  final lrw = pw * 0.217, lrh = ph * 0.095, lrx = pad + (pw - lrw) / 2;
+  c.drawRect(Rect.fromLTWH(lrx, py, lrw, lrh), white70);
+  c.drawRect(Rect.fromLTWH(lrx, py + ph - lrh, lrw, lrh), white70);
+  final white45 = ln(const Color(0x73FFFFFF));
+  for (final yp in const [0.146, 0.328, 0.474, 0.526, 0.672, 0.854]) {
+    c.drawLine(
+        Offset(pad, py + yp * ph), Offset(pad + pw, py + yp * ph), white45);
+  }
+  final r = pw * 0.149;
+  c.drawArc(
+      Rect.fromCircle(center: Offset(pad + pw / 2, py + ph * .146), radius: r),
+      0,
+      3.14159265,
+      false,
+      white45);
+  c.drawArc(
+      Rect.fromCircle(center: Offset(pad + pw / 2, py + ph * .854), radius: r),
+      3.14159265,
+      3.14159265,
+      false,
+      white45);
+  c.drawPath(
+      _dashed(
+          Path()
+            ..moveTo(pad, py + ph / 2)
+            ..lineTo(pad + pw, py + ph / 2),
+          6,
+          4),
+      ln(const Color(0x99FFFFFF)));
+  c.restore();
+  c.drawRRect(pitchR, ln(const Color(0xD9FFFFFF), 2));
 
+  // Players: jersey on the spot, first name / surname under it.
   for (final pos in positionsFor(b.format)) {
     final id = b.assign[pos.n];
     final pl = id == null ? null : d.player(id);
-    final cx = pad + pos.x / 100 * pw, cy = hdr + dispY(pos.y) / 100 * ph;
-    paintJersey(c,
-        Rect.fromCenter(center: Offset(cx, cy), width: jw, height: jh), pos.n,
-        keeper: pos.n == 1, filled: pl != null, kit: d.kit);
+    final cx = pad + pos.x / 100 * pw, cy = py + dispY(pos.y) / 100 * ph;
+    _v2Jersey(c, cx, cy, pos.n, pos.n == 1, pl != null, d.kit);
     if (pl == null) continue;
-    final lines = nameLines(pl.name);
-    final tps = [
-      for (var i = 0; i < lines.length; i++)
-        _fitText(lines[i], nameW, i == 0 ? FontWeight.w700 : FontWeight.w600)
-    ];
-    final w = tps.map((t) => t.width).reduce((a, b) => a > b ? a : b) + 12;
-    final h = lines.length * 14.0 + 5;
-    final ly = cy + jh / 2 + 2;
+    final parts = pl.name.trim().split(RegExp(r'\s+'));
+    final lines =
+        parts.length > 1 ? [parts[0], parts.sublist(1).join(' ')] : [parts[0]];
+    final tps = <TextPainter>[];
+    for (var i = 0; i < lines.length; i++) {
+      final w = i == 0 ? FontWeight.w700 : FontWeight.w600;
+      final probe = _text(lines[i], sans(12, FontWeight.w700, Colors.white));
+      final fs = probe.width > nameW
+          ? (12 * nameW / probe.width).clamp(8.5, 12.0).toDouble()
+          : 12.0;
+      tps.add(_text(lines[i], sans(fs, w, Colors.white), maxW: nameW));
+    }
+    final pillW = tps.map((t) => t.width).reduce((a, b) => a > b ? a : b) + 12;
+    final pillH = lines.length * 14.0 + 5;
+    final ly = cy + jh0 / 2 + 2;
     c.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(cx - w / 2, ly, w, h), const Radius.circular(5)),
+        RRect.fromRectAndRadius(Rect.fromLTWH(cx - pillW / 2, ly, pillW, pillH),
+            const Radius.circular(5)),
         Paint()..color = const Color(0x99000000));
     for (var i = 0; i < tps.length; i++) {
-      tps[i].paint(
-          c,
-          Offset(cx - tps[i].width / 2,
-              ly + 3 + i * 14 + (14 - tps[i].height) / 2));
+      tps[i].paint(c, Offset(cx - tps[i].width / 2, ly + 3 + i * 14));
     }
   }
 
+  // Subs: numbered, two columns.
   if (subs.isNotEmpty) {
-    var y = hdr + ph + pad + 6;
-    _text(
-            'SUBSTITUTES',
-            const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: .5,
-                color: V3.green))
+    var y = py + ph + pad + 6;
+    _text('SUBSTITUTES', sans(11, FontWeight.w700, V3.green))
         .paint(c, Offset(pad, y));
     y += 22;
     const colW = pw / 2;
@@ -329,29 +382,22 @@ Future<Uint8List> renderLineupPng(LineupData d, LineupBoard b,
           RRect.fromRectAndRadius(
               Rect.fromLTWH(x, yy, 24, 18), const Radius.circular(4)),
           Paint()..color = d.kit.primary);
-      final n = _text(
-          '${subShirt(b.format, subs[i].key)}',
-          TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: numberColour(d.kit.primary)));
-      n.paint(c, Offset(x + 12 - n.width / 2, yy + 9 - n.height / 2));
-      final t = _text(
-          pl.name,
-          const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w500, color: V3.text),
-          maxW: colW - 40);
-      t.paint(c, Offset(x + 32, yy + 9 - t.height / 2));
+      final n = _text('${subShirt(b.format, subs[i].key)}',
+          sans(11, FontWeight.w800, numberColour(d.kit.primary)));
+      n.paint(c, Offset(x + 12 - n.width / 2, yy + 9.5 - n.height / 2));
+      final t =
+          _text(pl.name, sans(13, FontWeight.w500, V3.text), maxW: colW - 40);
+      t.paint(c, Offset(x + 32, yy + 9.5 - t.height / 2));
     }
   }
   final brand = _text(
       'COACHSMART',
-      const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
+      TextStyle(
+          fontFamily: bebas,
+          fontSize: 12,
           letterSpacing: 1,
-          color: Color(0xB387C232)));
-  brand.paint(c, Offset(pad + pw - brand.width, th - 6 - brand.height));
+          color: const Color(0xB387C232)));
+  brand.paint(c, Offset(pad + pw - brand.width, th - 6 - _baseline(brand)));
 
   final img = await rec
       .endRecording()
@@ -361,14 +407,61 @@ Future<Uint8List> renderLineupPng(LineupData d, LineupBoard b,
   return png!.buffer.asUint8List();
 }
 
-TextPainter _fitText(String s, double maxW, FontWeight w) {
-  var fs = 12.0;
-  var tp =
-      _text(s, TextStyle(fontSize: fs, fontWeight: w, color: Colors.white));
-  if (tp.width > maxW) {
-    fs = (12 * maxW / tp.width).clamp(8.5, 12);
-    tp = _text(s, TextStyle(fontSize: fs, fontWeight: w, color: Colors.white),
-        maxW: maxW);
+double _baseline(TextPainter t) =>
+    t.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+
+/// The v2 export's jersey (drawCanvasJersey): 46px wide, no collar line,
+/// number outlined in black.
+void _v2Jersey(Canvas c, double cx, double cy, int number, bool keeper,
+    bool filled, KitColours kit) {
+  const jw = 46.0, jh = jw * 44 / 40, s = jw / 40;
+  c.save();
+  c.translate(cx - jw / 2, cy - jh / 2);
+  c.scale(s, s);
+  final path = jerseyPath();
+  if (filled) {
+    c.drawPath(path, Paint()..color = keeper ? kit.keeper : kit.primary);
+    if (!keeper) {
+      c.save();
+      c.clipPath(path);
+      c.drawRect(const Rect.fromLTWH(0, 18, 40, 7),
+          Paint()..color = kit.stripe.withValues(alpha: .85));
+      c.restore();
+    }
+  } else {
+    c.drawPath(path, Paint()..color = const Color(0x26FFFFFF));
   }
-  return tp;
+  final stroke = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5 / s
+    ..color = filled ? const Color(0xD9FFFFFF) : const Color(0x8CFFFFFF);
+  c.drawPath(filled ? path : _dashed(path, 3 / s, 2 / s), stroke);
+  final fs = filled ? 14.0 : 11.0;
+  final yn = filled && !keeper ? 21.0 : 26.0;
+  TextPainter tp(Paint? fg, Color? col) => TextPainter(
+      text: TextSpan(
+          text: '$number',
+          style: TextStyle(
+              fontSize: fs,
+              fontWeight: FontWeight.w800,
+              foreground: fg,
+              color: col)),
+      textDirection: TextDirection.ltr)
+    ..layout();
+  final outline = tp(
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4 / s
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0xCC000000),
+      null);
+  final fill = tp(
+      null,
+      filled
+          ? numberColour(keeper ? kit.keeper : kit.primary)
+          : const Color(0xE6FFFFFF));
+  final at = Offset(20 - fill.width / 2, yn - fill.height / 2);
+  outline.paint(c, at);
+  fill.paint(c, at);
+  c.restore();
 }
