@@ -403,7 +403,7 @@ class _V3EventPageState extends State<V3EventPage> {
                       const SizedBox(height: 14),
                       Text('Lineup for which squad?', style: V3.tight(20)),
                       const SizedBox(height: 2),
-                      Text('You can switch squads on the lineup page too.',
+                      Text('Go back and pick again to see another squad.',
                           style: V3.inter(14, color: V3.muted)),
                       const SizedBox(height: 6),
                       for (final s in squads)
@@ -431,10 +431,7 @@ class _V3EventPageState extends State<V3EventPage> {
       await Navigator.of(context).push(MaterialPageRoute(
           settings: const RouteSettings(name: 'V3LineupPage'),
           builder: (_) => V3LineupPage(
-              eventId: _eventId,
-              teamId: e.teamId,
-              squadId: squadId,
-              squads: squads)));
+              eventId: _eventId, teamId: e.teamId, squadId: squadId)));
     } catch (_) {
       _snack('Could not open the lineup. Please try again.', warn: true);
     }

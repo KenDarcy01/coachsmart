@@ -25,18 +25,15 @@ class V3LineupPage extends StatefulWidget {
       required this.eventId,
       required this.teamId,
       this.squadId,
-      this.squads = const [],
       this.testData});
 
   final int eventId;
   final int teamId;
 
   /// The squad picked on the event page; null or 0 means every squad.
+  /// The page shows only that squad; to see another, go back and pick it
+  /// (Ken, 2026-11-12: no squad tabs here).
   final int? squadId;
-
-  /// Squads published for this event; with two or more the page shows a
-  /// tab per squad to switch between (Ken, 2026-11-12).
-  final List<LineupSquad> squads;
 
   /// Widget tests pass the loaded data here instead of calling Supabase.
   @visibleForTesting
@@ -56,7 +53,7 @@ class _V3LineupPageState extends State<V3LineupPage>
   Future<bool>? _saving;
   String? _busy; // 'save', 'share' or 'teamsheet'
   bool _dragging = false;
-  late int? _squadId = widget.squadId;
+  int? get _squadId => widget.squadId;
   // The pitch position lit up under the finger while dragging. As on the
   // web lineup: the nearest jersey whose centre is within 36px of the
   // finger, so it lights before the finger is exactly on it (Ken,
@@ -113,40 +110,6 @@ class _V3LineupPageState extends State<V3LineupPage>
       });
     }
   }
-
-  // Another squad's tab: save this one quietly, then load that squad.
-  Future<void> _switchSquad(int id) async {
-    if (id == _squadId) return;
-    await _persist(quiet: true);
-    if (!mounted) return;
-    setState(() {
-      _squadId = id;
-      _loading = true;
-      _error = null;
-      _over = null;
-    });
-    await _load();
-  }
-
-  Widget _squadTabs() => SizedBox(
-        height: 56,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          children: [
-            for (final sq in widget.squads)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _Pill(
-                  label: sq.name,
-                  on: sq.id == _squadId,
-                  pad: 18,
-                  onTap: () => _switchSquad(sq.id),
-                ),
-              ),
-          ],
-        ),
-      );
 
   void _snack(String text, {bool warn = false}) {
     if (!mounted) return;
@@ -374,10 +337,7 @@ class _V3LineupPageState extends State<V3LineupPage>
               ),
           ],
         ),
-        body: Column(children: [
-          if (widget.squads.length > 1) _squadTabs(),
-          Expanded(child: _body(d)),
-        ]),
+        body: _body(d),
       ),
     );
   }
@@ -872,13 +832,8 @@ class _V3LineupPageState extends State<V3LineupPage>
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill(
-      {required this.label,
-      required this.on,
-      required this.onTap,
-      this.pad = 0});
+  const _Pill({required this.label, required this.on, required this.onTap});
   final String label;
-  final double pad;
   final bool on;
   final VoidCallback onTap;
 
@@ -890,7 +845,6 @@ class _Pill extends StatelessWidget {
           duration: const Duration(milliseconds: 120),
           height: 44,
           alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: pad),
           decoration: BoxDecoration(
             color: on ? V3.green : Colors.transparent,
             borderRadius: BorderRadius.circular(22),

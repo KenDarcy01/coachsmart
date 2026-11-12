@@ -278,25 +278,17 @@ void widgetTests() {
     expect(find.text('Ryan'), findsOneWidget);
   });
 
-  testWidgets('squad tabs show with two or more published squads',
-      (tester) async {
+  testWidgets('shows only the picked squad, no squad tabs', (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
         home: V3LineupPage(
-            eventId: 1,
-            teamId: 7,
-            squadId: 2,
-            squads: const [LineupSquad(2, 'Blue'), LineupSquad(3, 'Red')],
-            testData: sample())));
-    await tester.pumpAndSettle();
-    expect(find.text('Blue'), findsOneWidget);
-    expect(find.text('Red'), findsOneWidget);
-    await tester.tap(find.text('Red'));
+            eventId: 1, teamId: 7, squadId: 2, testData: sample())));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('Lineup'), findsOneWidget);
+    expect(find.text('Blue'), findsNothing);
   });
 
   testWidgets('empty state uses the web wording', (tester) async {
