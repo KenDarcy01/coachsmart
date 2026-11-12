@@ -51,6 +51,11 @@ class _V3LineupPageState extends State<V3LineupPage>
   Future<bool>? _saving;
   String? _busy; // 'save', 'share' or 'teamsheet'
   bool _dragging = false;
+  // The pitch position lit up under the finger while dragging. As on the
+  // web lineup: the nearest jersey whose centre is within 36px of the
+  // finger, so it lights before the finger is exactly on it (Ken,
+  // 2026-11-12).
+  int? _over;
   final _pitchKey = GlobalKey();
   final _shareKey = GlobalKey();
 
@@ -418,7 +423,10 @@ class _V3LineupPageState extends State<V3LineupPage>
         HapticFeedback.selectionClick();
         setState(() => _dragging = true);
       },
-      onDragEnd: (_) => setState(() => _dragging = false),
+      onDragEnd: (_) => setState(() {
+        _dragging = false;
+        _over = null;
+      }),
       onDraggableCanceled: (_, offset) {
         // A pitch player let go off the pitch comes off (as on the web).
         if (data.from != DragFrom.pos) return;
@@ -517,6 +525,42 @@ class _V3LineupPageState extends State<V3LineupPage>
     final room = gap - jh - 4;
     final nameW = w * .30 - 10;
     final hit = jh < 48 ? 48.0 : jh;
+    int? nearest(Offset global) {
+      final box = _pitchKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null) return null;
+      final p = box.globalToLocal(global);
+      int? best;
+      var bestD = kDropRadius;
+      for (final pos in positionsFor(_board.format)) {
+        final d =
+            (p - Offset(pos.x / 100 * w, dispY(pos.y) / 100 * h)).distance;
+        if (d < bestD) {
+          bestD = d;
+          best = pos.n;
+        }
+      }
+      return best;
+    }
+
+    return DragTarget<LineupDrag>(
+      onMove: (det) {
+        final n = nearest(det.offset);
+        if (n != _over) setState(() => _over = n);
+      },
+      onLeave: (_) {
+        if (_over != null) setState(() => _over = null);
+      },
+      onAcceptWithDetails: (det) {
+        final n = nearest(det.offset);
+        setState(() => _over = null);
+        if (n != null) _change(() => _board.dropOnPosition(det.data, n));
+      },
+      builder: (ctx, cand, _) => _pitchStack(d, w, h, jw, jh, hit, room, nameW),
+    );
+  }
+
+  Widget _pitchStack(LineupData d, double w, double h, double jw, double jh,
+      double hit, double room, double nameW) {
     return Stack(clipBehavior: Clip.none, children: [
       Positioned.fill(
         child: DecoratedBox(
@@ -572,11 +616,9 @@ class _V3LineupPageState extends State<V3LineupPage>
             painter: JerseyPainter(pos.n,
                 keeper: keeper, filled: filled, kit: d.kit, highlight: over)));
 
-    final target = DragTarget<LineupDrag>(
-      onAcceptWithDetails: (det) =>
-          _change(() => _board.dropOnPosition(det.data, pos.n)),
-      builder: (ctx, cand, _) {
-        final over = cand.isNotEmpty;
+    final target = Builder(
+      builder: (ctx) {
+        final over = _over == pos.n;
         Widget face = AnimatedScale(
             scale: over ? 1.2 : 1,
             duration: const Duration(milliseconds: 120),

@@ -21,6 +21,10 @@ class LinePos {
 const kFormats = [9, 11, 13, 15];
 const kSubSlots = 5;
 
+/// A drag lights up (and drops on) the nearest jersey whose centre is
+/// within this many pixels of the finger, as on the web lineup.
+const kDropRadius = 36.0;
+
 const Map<int, List<LinePos>> kLineupPositions = {
   15: [
     LinePos(1, 'GK', 50, 92),

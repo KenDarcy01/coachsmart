@@ -238,6 +238,29 @@ void widgetTests() {
     expect(find.text('Anna R.'), findsOneWidget);
   });
 
+  testWidgets('the jersey under the finger lights up while dragging',
+      (tester) async {
+    await pump(tester, sample(saved: false));
+    bool lit() =>
+        tester.widgetList<CustomPaint>(find.byType(CustomPaint)).any((c) =>
+            c.painter is JerseyPainter &&
+            (c.painter as JerseyPainter).highlight);
+    expect(lit(), isFalse);
+    final from = tester.getCenter(find.text('Anna Ryan'));
+    final to = tester.getCenter(find.text('FF')) - const Offset(0, 22);
+    final g = await tester.startGesture(from);
+    await tester.pump(const Duration(milliseconds: 50));
+    await g.moveBy(const Offset(0, 40));
+    await tester.pump();
+    // 30px off the jersey's centre still lights it, as on the web.
+    await g.moveTo(to + const Offset(30, 0));
+    await tester.pump();
+    expect(lit(), isTrue);
+    await g.up();
+    await tester.pumpAndSettle();
+    expect(find.text('Ryan'), findsOneWidget);
+  });
+
   testWidgets('empty state uses the web wording', (tester) async {
     await pump(tester, {'message': 'No players have accepted for this event'});
     expect(
