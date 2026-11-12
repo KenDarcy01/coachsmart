@@ -16,6 +16,7 @@ import '/index.dart';
 import '../home/v3_home_data.dart';
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
+import 'v3_event_teams.dart';
 import 'v3_series_scope.dart';
 import '/v3/tracking/v3_track.dart';
 
@@ -66,6 +67,8 @@ class _V3EventPageState extends State<V3EventPage> {
   final Map<int, int> _busy = {};
   bool _paying = false;
   bool _teamAllowsLineup = false;
+  // Bumped on every load so pull to refresh reloads the teams card too.
+  int _teamsTick = 0;
 
   int get _eventId => widget.eventID ?? 0;
   bool get _fromSearch => widget.fromSearch ?? false;
@@ -102,6 +105,7 @@ class _V3EventPageState extends State<V3EventPage> {
       FFAppState().userEventDetails = ev;
       setState(() {
         _ev = ev;
+        _teamsTick++;
         _raw = r.jsonBody is Map ? Map<String, dynamic>.from(r.jsonBody) : {};
         _loading = false;
         _error = null;
@@ -541,6 +545,15 @@ class _V3EventPageState extends State<V3EventPage> {
                       if (_showPay) _payButton(),
                       if (_showReplyBlock || _showPay)
                         const SizedBox(height: 14),
+                      // Published teams, once an admin shares them
+                      // (Ken, 2026-11-12).
+                      if (widget.testData == null ||
+                          widget.testData!['teams'] is Map)
+                        V3EventTeamsCard(
+                            key: ValueKey('teams-$_teamsTick'),
+                            eventId: _eventId,
+                            testData: widget.testData?['teams']
+                                as Map<String, dynamic>?),
                       _tiles(),
                       // Car pooling gets its own strip under the tiles so it
                       // is obvious when switched on (Ken, 2026-11-09).
