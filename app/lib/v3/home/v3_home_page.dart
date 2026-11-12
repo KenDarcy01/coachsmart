@@ -5,7 +5,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
@@ -291,20 +290,10 @@ class _V3HomePageState extends State<V3HomePage> {
             icon: const Icon(Icons.menu, color: V3.green, size: 28),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
-          // COACHSMART wordmark in the top bar; the CS mark sits in the
-          // greeting (Ken, 2026-11-12, final header).
-          title: Text.rich(
-            TextSpan(
-              style: GoogleFonts.bebasNeue(
-                  fontSize: 26, letterSpacing: 1.5, height: 1),
-              children: const [
-                TextSpan(
-                    text: 'COACH', style: TextStyle(color: Color(0xFFA3AAB3))),
-                TextSpan(text: 'SMART', style: TextStyle(color: V3.green)),
-              ],
-            ),
-            semanticsLabel: 'CoachSmart',
-          ),
+          // Just the CS mark in place of "Home" (Ken, 2026-11-12: logo
+          // only, no wordmark).
+          title: Image.asset('assets/images/cs_mark.png',
+              height: 26, semanticLabel: 'CoachSmart'),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 6),
@@ -448,36 +437,23 @@ class _V3HomePageState extends State<V3HomePage> {
           ? '$today · no more this week'
           : '$today · $restN more this week';
     }
-    // Full width so the block sits on the left margin, not centred
-    // (Ken, 2026-11-12).
-    return Container(
-      width: double.infinity,
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // CS mark to the left of the greeting (Ken, 2026-11-12).
-          Image.asset('assets/images/cs_mark.png',
-              height: 40, excludeFromSemantics: true),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name.isEmpty ? 'Good $part' : 'Good $part, $name',
-                  style: V3.tight(26, weight: FontWeight.w700, height: 1.15),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat('EEEE d MMMM').format(_now),
-                  style: V3.inter(15, color: const Color(0xFFA1A1A2)),
-                ),
-                const SizedBox(height: 2),
-                // Today's count, then what is left this week (Ken, 2026-11-12).
-                Text(week, style: V3.inter(15, weight: FontWeight.w600)),
-              ],
-            ),
+          Text(
+            name.isEmpty ? 'Good $part' : 'Good $part, $name',
+            style: V3.tight(26, weight: FontWeight.w700, height: 1.15),
           ),
+          const SizedBox(height: 4),
+          Text(
+            DateFormat('EEEE d MMMM').format(_now),
+            style: V3.inter(15, color: const Color(0xFFA1A1A2)),
+          ),
+          const SizedBox(height: 2),
+          // Today's count, then what is left this week (Ken, 2026-11-12).
+          Text(week, style: V3.inter(15, weight: FontWeight.w600)),
         ],
       ),
     );
