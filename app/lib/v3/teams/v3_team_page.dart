@@ -12,6 +12,7 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_team_models.dart';
+import 'v3_squad_setup_page.dart';
 import '/v3/tracking/v3_track.dart';
 import '../v3_share.dart';
 
@@ -38,6 +39,10 @@ class _V3TeamPageState extends State<V3TeamPage> {
   final _search = TextEditingController();
 
   bool get _admin => (_roster?.userRoleLevel ?? 0) >= 100;
+
+  /// SuperUser (role_level 110): squad setup, super users only for now
+  /// (Ken, 2026-11-12).
+  bool get _superUser => (_roster?.userRoleLevel ?? 0) >= 110;
   bool get _canOpenMember => (_roster?.userRoleLevel ?? 0) >= 30;
 
   @override
@@ -138,6 +143,13 @@ class _V3TeamPageState extends State<V3TeamPage> {
     await context.pushNamed(PendingRequestsWidget.routeName, queryParameters: {
       'paramTeamID': serializeParam(widget.teamId, ParamType.int)!,
     });
+    if (mounted) _load();
+  }
+
+  Future<void> _openSquadSetup() async {
+    V3Track.event('squad_setup_opened');
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => V3SquadSetupPage(teamId: widget.teamId)));
     if (mounted) _load();
   }
 
@@ -286,6 +298,17 @@ class _V3TeamPageState extends State<V3TeamPage> {
               _openPending();
             },
           ),
+          if (_superUser)
+            ListTile(
+              key: const ValueKey('team-squad-setup'),
+              leading: const Icon(Icons.groups_2_outlined, color: V3.text),
+              title: Text('Set up squads',
+                  style: V3.inter(16, weight: FontWeight.w500)),
+              onTap: () {
+                Navigator.pop(context);
+                _openSquadSetup();
+              },
+            ),
           const SizedBox(height: 10),
         ]),
       ),
