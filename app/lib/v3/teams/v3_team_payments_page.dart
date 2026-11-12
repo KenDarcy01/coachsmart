@@ -5,7 +5,7 @@
 // checks. Backend: team-stripe edge function (status / start / set_payments).
 //
 // The payments switch only turns on once Stripe says the account can take
-// payments. Teams that took payments before Connect ("legacy") keep using the
+// payments and Ken has approved the team (stripe-approvals page). Teams that took payments before Connect ("legacy") keep using the
 // CoachSmart account until they connect.
 //
 // Opening Stripe is two taps (get the link, then open it) so the browser never
@@ -36,11 +36,12 @@ class _TeamStripe {
         due = (m['due'] as num?)?.toInt() ?? 0,
         name = m['name'] as String?,
         payments = m['payments'] == true,
+        approved = m['approved'] == true,
         legacy = m['legacy'] == true;
   final bool connected, ready, detailsSubmitted, payoutsEnabled;
   final int due;
   final String? name;
-  final bool payments, legacy;
+  final bool payments, approved, legacy;
 }
 
 class _V3TeamPaymentsPageState extends State<V3TeamPaymentsPage>
@@ -174,7 +175,7 @@ class _V3TeamPaymentsPageState extends State<V3TeamPaymentsPage>
                       style: V3.inter(14, color: V3.muted)),
                   const SizedBox(height: 10),
                   _statusCard(s),
-                  if (s.ready) ...[
+                  if (s.ready && s.approved) ...[
                     const SizedBox(height: 12),
                     _switchCard(s),
                   ],
@@ -196,7 +197,14 @@ class _V3TeamPaymentsPageState extends State<V3TeamPaymentsPage>
     final IconData icon;
     final Color colour, tint;
     final String title, body;
-    if (s.ready) {
+    if (s.ready && !s.approved) {
+      icon = Icons.hourglass_top;
+      colour = V3.amberText;
+      tint = V3.amberTint;
+      title = 'Waiting for CoachSmart to approve';
+      body =
+          'Your Stripe account is set up. CoachSmart checks each team before payments go live, and you will get an email once it is approved.';
+    } else if (s.ready) {
       icon = Icons.check_circle;
       colour = V3.green;
       tint = V3.greenTint;
