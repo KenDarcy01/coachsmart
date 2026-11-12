@@ -17,6 +17,7 @@ import '../home/v3_home_data.dart';
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
 import 'v3_event_teams.dart';
+import 'v3_reminder_sheet.dart';
 import 'v3_series_scope.dart';
 import '/v3/tracking/v3_track.dart';
 
@@ -395,7 +396,9 @@ class _V3EventPageState extends State<V3EventPage> {
         _snack('Could not send the reminder.', warn: true);
         return;
       }
-      _snack(reminderMessage(reminderCount(r.jsonBody)));
+      final n = reminderCount(r.jsonBody);
+      V3Track.event('reminder_sent', {'count': n});
+      _snack(reminderMessage(n));
     } catch (_) {
       _snack('Could not send the reminder.', warn: true);
     }
@@ -1186,6 +1189,13 @@ class _V3EventPageState extends State<V3EventPage> {
   // Manage sheet for admins (role 100+).
   void _showManage() {
     final e = _ev!;
+    // Last-sent line under "Send reminder"; filled in when it loads.
+    ReminderPreview? reminder;
+    void Function(void Function())? refreshSheet;
+    fetchReminderPreview(_eventId).then((p) {
+      reminder = p;
+      refreshSheet?.call(() {});
+    }).catchError((_) {});
     showModalBottomSheet(
       context: context,
       backgroundColor: V3.card,
@@ -1194,8 +1204,14 @@ class _V3EventPageState extends State<V3EventPage> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
+          refreshSheet = (f) {
+            if (ctx.mounted) setSheet(f);
+          };
           Widget item(IconData icon, String title, String sub,
-              {VoidCallback? onTap, Widget? trailing, bool red = false}) {
+              {VoidCallback? onTap,
+              Widget? trailing,
+              bool red = false,
+              Color? subColor}) {
             final color = red ? V3.redText : V3.text;
             return InkWell(
               onTap: onTap,
@@ -1218,7 +1234,8 @@ class _V3EventPageState extends State<V3EventPage> {
                             style: V3.inter(17,
                                 weight: FontWeight.w500, color: color)),
                         if (sub.isNotEmpty)
-                          Text(sub, style: V3.inter(13, color: V3.muted)),
+                          Text(sub,
+                              style: V3.inter(13, color: subColor ?? V3.muted)),
                       ],
                     ),
                   ),
@@ -1262,9 +1279,14 @@ class _V3EventPageState extends State<V3EventPage> {
                     });
                   }),
                   item(Icons.notifications_outlined, 'Send reminder',
-                      "Push to everyone who hasn't replied", onTap: () {
+                      reminderMenuLine(reminder, DateTime.now()),
+                      subColor: reminder?.lastAt != null ? V3.amberText : null,
+                      onTap: () async {
                     Navigator.pop(ctx);
-                    _sendReminder();
+                    V3Track.event('reminder_sheet_open');
+                    final go = await showReminderSheet(context, _eventId,
+                        preview: reminder);
+                    if (go) _sendReminder();
                   }),
                   item(Icons.notifications_outlined, 'Alert admins on changes',
                       'Attending to declined and back only',
