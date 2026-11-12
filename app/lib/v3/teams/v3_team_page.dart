@@ -15,6 +15,8 @@ import 'v3_team_models.dart';
 import 'v3_squad_setup_page.dart';
 import '/v3/tracking/v3_track.dart';
 import '../v3_share.dart';
+import '/v3/v3_squads.dart';
+import '/v3/v3_squad_write.dart';
 
 class V3TeamPage extends StatefulWidget {
   const V3TeamPage({super.key, required this.teamId});
@@ -94,8 +96,9 @@ class _V3TeamPageState extends State<V3TeamPage> {
       setState(() {
         _squads = [
           for (final q in squadRows)
-            TeamSquad(q.squadId, q.squadName ?? '', q.squadImage ?? '',
-                q.squadColour ?? '')
+            if (!isNoTeamSquad(q.squadName))
+              TeamSquad(q.squadId, q.squadName ?? '', q.squadImage ?? '',
+                  q.squadColour ?? '')
         ];
         _roster = roster;
         _summary = summary;
@@ -195,26 +198,27 @@ class _V3TeamPageState extends State<V3TeamPage> {
                     style: V3.tight(20)),
                 const SizedBox(height: 6),
                 for (final s in squads)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: ClipOval(
-                        child: (s.squadImage ?? '').isNotEmpty
-                            ? Image.network(s.squadImage!,
-                                width: 30, height: 30, fit: BoxFit.cover)
-                            : Container(
-                                width: 30, height: 30, color: V3.green)),
-                    title: Text(s.squadName ?? '',
-                        style: V3.inter(17, weight: FontWeight.w500)),
-                    trailing: s.squadId == current
-                        ? const Icon(Icons.check, color: V3.green)
-                        : null,
-                    onTap: () => Navigator.pop(context, s.squadId),
-                  ),
+                  if (!isNoTeamSquad(s.squadName))
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: ClipOval(
+                          child: (s.squadImage ?? '').isNotEmpty
+                              ? Image.network(s.squadImage!,
+                                  width: 30, height: 30, fit: BoxFit.cover)
+                              : Container(
+                                  width: 30, height: 30, color: V3.green)),
+                      title: Text(s.squadName ?? '',
+                          style: V3.inter(17, weight: FontWeight.w500)),
+                      trailing: s.squadId == current
+                          ? const Icon(Icons.check, color: V3.green)
+                          : null,
+                      onTap: () => Navigator.pop(context, s.squadId),
+                    ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.remove_circle_outline,
                       color: V3.muted, size: 28),
-                  title: Text('No squad',
+                  title: Text(kUnassigned,
                       style: V3.inter(17,
                           weight: FontWeight.w500, color: V3.muted)),
                   trailing: current == 0
@@ -228,30 +232,11 @@ class _V3TeamPageState extends State<V3TeamPage> {
     );
     if (picked == null || picked == current || !mounted) return;
     try {
-      final existing = await MemberSquadLinkTable().queryRows(
-          queryFn: (q) => q
-              .eq('member_id', m.memberId)
-              .eq('team_id', widget.teamId)
-              .eq('code_id', codeId));
-      if (existing.isNotEmpty) {
-        if (picked == 0) {
-          await MemberSquadLinkTable().delete(
-              matchingRows: (q) =>
-                  q.eq('member_squad_id', existing.first.memberSquadId));
-        } else {
-          await MemberSquadLinkTable().update(
-              data: {'squad_id': picked},
-              matchingRows: (q) =>
-                  q.eq('member_squad_id', existing.first.memberSquadId));
-        }
-      } else if (picked != 0) {
-        await MemberSquadLinkTable().insert({
-          'member_id': m.memberId,
-          'squad_id': picked,
-          'code_id': codeId,
-          'team_id': widget.teamId,
-        });
-      }
+      await v3SetMemberSquad(
+          memberId: m.memberId,
+          teamId: widget.teamId,
+          codeId: codeId,
+          squadId: picked);
       await _load();
     } catch (_) {
       if (mounted) _snack('Could not change the squad. Please try again.');
@@ -657,7 +642,7 @@ class _V3TeamPageState extends State<V3TeamPage> {
         const SizedBox(width: 8),
       ],
       Flexible(
-        child: Text(squad?.name ?? 'No squad',
+        child: Text(squad?.name ?? kUnassigned,
             overflow: TextOverflow.ellipsis,
             style: V3.inter(16,
                 weight: FontWeight.w500, color: _admin ? V3.text : V3.muted)),

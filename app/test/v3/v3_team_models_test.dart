@@ -118,6 +118,13 @@ void main() {
               ]
             },
             {'member_id': 3, 'first_name': 'Cara'},
+            {
+              'member_id': 4,
+              'first_name': 'Dee',
+              'squad_codes': [
+                {'code_id': 2, 'squad_id': 99, 'squad_name': 'No Team'}
+              ]
+            },
           ],
         },
         {
@@ -141,11 +148,11 @@ void main() {
       TeamSquad(12, 'Red', '', ''),
     ];
     final cards = teamSquadCards(r, 2, squads);
-    expect(cards.map((c) => c.name), ['Blue', 'Red', 'No squad']);
+    expect(cards.map((c) => c.name), ['Blue', 'Red', 'Unassigned']);
     expect(cards[0].count, 1); // players only
     expect(cards[0].lines, ['Coaches: 1']);
-    expect(cards[2].count, 1);
+    expect(cards[2].count, 2); // no squad and No Team are both Unassigned
     final ordered = orderBySquad(r.groups.first.members, 2, squads);
-    expect(ordered.map((m) => m.firstName), ['Beth', 'Amy', 'Cara']);
+    expect(ordered.map((m) => m.firstName), ['Beth', 'Amy', 'Cara', 'Dee']);
   });
 }

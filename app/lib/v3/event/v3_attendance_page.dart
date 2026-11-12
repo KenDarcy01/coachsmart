@@ -15,6 +15,8 @@ import '../v3_theme.dart';
 import 'v3_attendance_models.dart';
 import 'v3_event_teams.dart';
 import '/v3/tracking/v3_track.dart';
+import '/v3/v3_squads.dart';
+import '/v3/v3_squad_write.dart';
 
 class V3AttendancePage extends StatefulWidget {
   const V3AttendancePage(
@@ -182,36 +184,17 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
       for (final s in d.squads)
         _SheetItem(null, s.squadName, null, s.squadId,
             leading: _SquadDot(s, size: 26), selected: s.squadId == m.squadId),
-      _SheetItem(Icons.remove_circle_outline, 'No squad', null, 0,
+      _SheetItem(Icons.remove_circle_outline, kUnassigned, null, 0,
           selected: m.squadId == 0, muted: true),
     ]);
     if (picked == null || picked == m.squadId || !mounted) return;
     setState(() => _busy.add(m.memberId));
     try {
-      final existing = await MemberSquadLinkTable().queryRows(
-          queryFn: (q) => q
-              .eq('member_id', m.memberId)
-              .eq('team_id', d.teamId)
-              .eq('code_id', d.codeId));
-      if (existing.isNotEmpty) {
-        if (picked == 0) {
-          await MemberSquadLinkTable().delete(
-              matchingRows: (q) =>
-                  q.eq('member_squad_id', existing.first.memberSquadId));
-        } else {
-          await MemberSquadLinkTable().update(
-              data: {'squad_id': picked},
-              matchingRows: (q) =>
-                  q.eq('member_squad_id', existing.first.memberSquadId));
-        }
-      } else if (picked != 0) {
-        await MemberSquadLinkTable().insert({
-          'member_id': m.memberId,
-          'squad_id': picked,
-          'code_id': d.codeId,
-          'team_id': d.teamId,
-        });
-      }
+      await v3SetMemberSquad(
+          memberId: m.memberId,
+          teamId: d.teamId,
+          codeId: d.codeId,
+          squadId: picked);
       await _load();
     } catch (_) {
       _snack('Could not change the squad. Please try again.', warn: true);
@@ -600,7 +583,7 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
         _SquadDot(squad, size: 26),
         const SizedBox(width: 8),
       ],
-      Text(squad != null ? squad.squadName : 'No squad',
+      Text(squad != null ? squad.squadName : kUnassigned,
           style: V3.inter(16,
               weight: FontWeight.w500, color: d.admin ? V3.text : V3.muted)),
       if (d.admin && d.hasSquads) ...[

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../v3_crest_image.dart';
 import '../v3_theme.dart';
+import '/v3/v3_squads.dart';
 
 int _i(dynamic v) =>
     v is int ? v : (v is num ? v.toInt() : int.tryParse('$v') ?? 0);
@@ -50,9 +51,12 @@ class SquadCode {
   SquadCode.fromJson(Map<String, dynamic> j)
       : codeId = _i(j['code_id']),
         codeName = _s(j['code_name']),
-        squadId = _i(j['squad_id']),
-        squadName = _s(j['squad_name']),
-        squadImage = _s(j['squad_image']);
+        // No Team counts as Unassigned (0), the same as no squad.
+        squadId = isNoTeamSquad(_s(j['squad_name'])) ? 0 : _i(j['squad_id']),
+        squadName =
+            isNoTeamSquad(_s(j['squad_name'])) ? '' : _s(j['squad_name']),
+        squadImage =
+            isNoTeamSquad(_s(j['squad_name'])) ? '' : _s(j['squad_image']);
   final int codeId, squadId;
   final String codeName, squadName, squadImage;
 }
@@ -255,7 +259,7 @@ class V3SquadChip extends StatelessWidget {
           ),
           const SizedBox(width: 6),
         ],
-        Text(none ? 'No squad' : s.squadName,
+        Text(none ? kUnassigned : s.squadName,
             style: V3.inter(13,
                 weight: FontWeight.w600, color: none ? V3.muted : V3.text)),
         if (onTap != null) ...[
@@ -350,7 +354,7 @@ class TeamSquadCard {
   final TeamSquad? squad;
   final int count;
   final List<String> lines;
-  String get name => squad?.name ?? 'No squad';
+  String get name => squad?.name ?? kUnassigned;
 }
 
 int memberSquadId(TeamMember m, int codeId) => m.squadFor(codeId)?.squadId ?? 0;

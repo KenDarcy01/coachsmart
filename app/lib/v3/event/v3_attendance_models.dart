@@ -2,6 +2,7 @@
 // (one call: event, squads, visible roles, members with their latest reply)
 // plus the grouping the page shows (Ken, 2026-11-09: squad cards at the top
 // as today, squad under each name, tabs Attending / No reply / Declined).
+import '/v3/v3_squads.dart';
 
 const int kAttending = 3;
 const int kDeclined = 4;
@@ -40,8 +41,10 @@ class AttMember {
         lastName = _s(j['last_name']),
         roleId = _i(j['role_id']),
         roleLevel = _i(j['role_level']),
-        squadId = _i(j['squad_id']),
-        squadName = _s(j['squad_name']),
+        // No Team counts as Unassigned (0), the same as no squad.
+        squadId = isNoTeamSquad(_s(j['squad_name'])) ? 0 : _i(j['squad_id']),
+        squadName =
+            isNoTeamSquad(_s(j['squad_name'])) ? '' : _s(j['squad_name']),
         responseId = j['response_id'] == null ? kNoReply : _i(j['response_id']);
   final int memberId, roleId, roleLevel, squadId, responseId;
   final String memberName, firstName, lastName, squadName;
@@ -67,7 +70,9 @@ class AttendanceData {
             j['match_squad_id'] == null ? 0 : _i(j['match_squad_id']),
         publishedAt = DateTime.tryParse(_s(j['published_at']))?.toLocal(),
         squads = [
-          for (final s in (j['squads'] as List? ?? [])) AttSquad.fromJson(s)
+          for (final s in (j['squads'] as List? ?? []))
+            if (s is Map && !isNoTeamSquad(_s(s['squad_name'])))
+              AttSquad.fromJson(s)
         ],
         roles = [
           for (final r in (j['roles'] as List? ?? [])) AttRole.fromJson(r)
@@ -161,7 +166,7 @@ class AttendanceData {
       out.add(card(s.squadId, s.squadName, s));
     }
     if (onTab(tab).any((m) => m.squadId == 0)) {
-      out.add(card(0, 'No squad', null));
+      out.add(card(0, kUnassigned, null));
     }
     return out;
   }

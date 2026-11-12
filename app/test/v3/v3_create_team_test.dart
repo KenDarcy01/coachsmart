@@ -64,7 +64,7 @@ void main() {
       expect(squadsError([CtSquad('Blue', '#2F6FD6'), CtSquad(' ', '#fff')]),
           'Give every squad a name, or lower the number of squads.');
       expect(squadsError([CtSquad('no team', '#2F6FD6')]),
-          'No Team is added for you. Pick another name.');
+          'Unassigned is added for you. Pick another name.');
       expect(squadsError([CtSquad('Blue', '#2F6FD6'), CtSquad('blue ', '#1')]),
           'Two squads have the same name.');
     });

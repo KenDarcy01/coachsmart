@@ -107,7 +107,9 @@ String disabledLine(SetupSquad s) {
 String? squadNameError(String name, List<SetupSquad> squads, {int? squadId}) {
   final n = name.trim();
   if (n.isEmpty) return 'Give the squad a name.';
-  if (n.toLowerCase() == 'no team') return 'That name is kept for No Team.';
+  if (n.toLowerCase() == 'no team' || n.toLowerCase() == 'unassigned') {
+    return 'That name is kept for Unassigned.';
+  }
   for (final s in squads) {
     if (s.squadId != squadId && s.name.toLowerCase() == n.toLowerCase()) {
       return 'There is already a squad called ${s.name}.';

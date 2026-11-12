@@ -969,7 +969,8 @@ class _V3CreateTeamPageState extends State<V3CreateTeamPage> {
                     borderRadius: BorderRadius.circular(7))),
             const SizedBox(width: 12),
             Expanded(
-                child: Text('No Team: players start here until you place them',
+                child: Text(
+                    'Unassigned: players start here until you place them',
                     style: V3.inter(15, color: V3.muted))),
           ]),
         ),

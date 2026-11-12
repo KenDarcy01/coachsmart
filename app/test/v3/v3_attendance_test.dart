@@ -136,7 +136,7 @@ void main() {
     expect(att[0].count, 2); // Aimee + Ken
     expect(att[0].lines, ['Coaches: 1']);
     final none = d.squadCards(kNoReply);
-    expect(none.map((c) => c.name), ['Blue', 'Red', 'No squad']);
+    expect(none.map((c) => c.name), ['Blue', 'Red', 'Unassigned']);
     expect(none.last.count, 1);
   });
 

@@ -10,6 +10,8 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_team_models.dart';
+import '/v3/v3_squads.dart';
+import '/v3/v3_squad_write.dart';
 
 class V3MemberPage extends StatefulWidget {
   const V3MemberPage({super.key, required this.memberId, required this.teamId});
@@ -206,26 +208,27 @@ class _V3MemberPageState extends State<V3MemberPage> {
                 Text('${code.name} squad', style: V3.tight(20)),
                 const SizedBox(height: 6),
                 for (final s in squads)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: ClipOval(
-                        child: (s.squadImage ?? '').isNotEmpty
-                            ? Image.network(s.squadImage!,
-                                width: 30, height: 30, fit: BoxFit.cover)
-                            : Container(
-                                width: 30, height: 30, color: V3.green)),
-                    title: Text(s.squadName ?? '',
-                        style: V3.inter(17, weight: FontWeight.w500)),
-                    trailing: s.squadId == current
-                        ? const Icon(Icons.check, color: V3.green)
-                        : null,
-                    onTap: () => Navigator.pop(context, s.squadId),
-                  ),
+                  if (!isNoTeamSquad(s.squadName))
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: ClipOval(
+                          child: (s.squadImage ?? '').isNotEmpty
+                              ? Image.network(s.squadImage!,
+                                  width: 30, height: 30, fit: BoxFit.cover)
+                              : Container(
+                                  width: 30, height: 30, color: V3.green)),
+                      title: Text(s.squadName ?? '',
+                          style: V3.inter(17, weight: FontWeight.w500)),
+                      trailing: s.squadId == current
+                          ? const Icon(Icons.check, color: V3.green)
+                          : null,
+                      onTap: () => Navigator.pop(context, s.squadId),
+                    ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.remove_circle_outline,
                       color: V3.muted, size: 28),
-                  title: Text('No squad',
+                  title: Text(kUnassigned,
                       style: V3.inter(17,
                           weight: FontWeight.w500, color: V3.muted)),
                   trailing: current == 0
@@ -238,32 +241,13 @@ class _V3MemberPageState extends State<V3MemberPage> {
       ),
     );
     if (picked == null || picked == current || !mounted) return;
-    await _run(() async {
-      final existing = await MemberSquadLinkTable().queryRows(
-          queryFn: (q) => q
-              .eq('member_id', widget.memberId)
-              .eq('team_id', widget.teamId)
-              .eq('code_id', code.codeId));
-      if (existing.isNotEmpty) {
-        if (picked == 0) {
-          await MemberSquadLinkTable().delete(
-              matchingRows: (q) =>
-                  q.eq('member_squad_id', existing.first.memberSquadId));
-        } else {
-          await MemberSquadLinkTable().update(
-              data: {'squad_id': picked},
-              matchingRows: (q) =>
-                  q.eq('member_squad_id', existing.first.memberSquadId));
-        }
-      } else if (picked != 0) {
-        await MemberSquadLinkTable().insert({
-          'member_id': widget.memberId,
-          'squad_id': picked,
-          'code_id': code.codeId,
-          'team_id': widget.teamId,
-        });
-      }
-    }, 'Could not change the squad.');
+    await _run(
+        () => v3SetMemberSquad(
+            memberId: widget.memberId,
+            teamId: widget.teamId,
+            codeId: code.codeId,
+            squadId: picked),
+        'Could not change the squad.');
   }
 
   Future<void> _remove() async {

@@ -96,7 +96,7 @@ void main() {
     final d = SquadSetup.fromJson(sample());
     final all = [...d.squads, ...d.disabled];
     expect(squadNameError(' ', all), 'Give the squad a name.');
-    expect(squadNameError('no team', all), 'That name is kept for No Team.');
+    expect(squadNameError('no team', all), 'That name is kept for Unassigned.');
     expect(
         squadNameError('blues', all), 'There is already a squad called Blues.');
     expect(squadNameError('Oranges', all), isNotNull);

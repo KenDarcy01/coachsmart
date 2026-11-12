@@ -109,8 +109,9 @@ String? squadsError(List<CtSquad> squads) {
   if (names.any((n) => n.isEmpty)) {
     return 'Give every squad a name, or lower the number of squads.';
   }
-  if (names.any((n) => n.toLowerCase() == 'no team')) {
-    return 'No Team is added for you. Pick another name.';
+  if (names.any(
+      (n) => n.toLowerCase() == 'no team' || n.toLowerCase() == 'unassigned')) {
+    return 'Unassigned is added for you. Pick another name.';
   }
   if (names.map((n) => n.toLowerCase()).toSet().length != names.length) {
     return 'Two squads have the same name.';

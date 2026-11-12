@@ -13,6 +13,7 @@ import '../create_team/v3_create_team_models.dart'
 import '../create_team/v3_create_team_page.dart' show V3SquadColourSheet;
 import '../v3_theme.dart';
 import 'v3_squad_setup_models.dart';
+import '/v3/v3_squads.dart';
 import '/v3/tracking/v3_track.dart';
 
 class V3SquadSetupPage extends StatefulWidget {
@@ -134,7 +135,7 @@ class _V3SquadSetupPageState extends State<V3SquadSetupPage> {
                   child: Text(
                       s.players == 0
                           ? '${s.name} stops showing when you create events or pick squads.'
-                          : 'The ${s.players == 1 ? 'player' : '${s.players} players'} in ${s.name} move to No Team. ${s.name} stops showing when you create events or pick squads.',
+                          : 'The ${s.players == 1 ? 'player' : '${s.players} players'} in ${s.name} become Unassigned. ${s.name} stops showing when you create events or pick squads.',
                       style: V3.inter(15,
                           color: const Color(0xFFF3C4C6), height: 1.45)),
                 ),
@@ -257,7 +258,7 @@ class _V3SquadSetupPageState extends State<V3SquadSetupPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(2, 12, 2, 0),
                     child: Text(
-                        'Turning a squad off moves its players to No Team and hides it from new events. Past events, match reports and stats keep its name. You can turn it back on any time.',
+                        'Turning a squad off makes its players Unassigned and hides it from new events. Past events, match reports and stats keep its name. You can turn it back on any time.',
                         style: V3.inter(13, color: V3.muted, height: 1.45)),
                   ),
                 ],
@@ -360,7 +361,8 @@ class _V3SquadSetupPageState extends State<V3SquadSetupPage> {
         Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(s.name, style: V3.inter(16, weight: FontWeight.w500)),
+            Text(v3SquadName(s.name),
+                style: V3.inter(16, weight: FontWeight.w500)),
             const SizedBox(height: 1),
             Text(
                 s.noTeam
