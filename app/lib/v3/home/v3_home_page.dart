@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
@@ -290,7 +291,31 @@ class _V3HomePageState extends State<V3HomePage> {
             icon: const Icon(Icons.menu, color: V3.green, size: 28),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
-          title: Text('Home', style: V3.inter(17, weight: FontWeight.w600)),
+          // CS mark and COACHSMART wordmark in place of "Home" (Ken,
+          // 2026-11-12, option A with the greeting).
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset('assets/images/cs_mark.png',
+                  height: 20, semanticLabel: 'CoachSmart'),
+              const SizedBox(width: 8),
+              ExcludeSemantics(
+                child: Text.rich(
+                  TextSpan(
+                    style: GoogleFonts.bebasNeue(
+                        fontSize: 24, letterSpacing: 1.5, height: 1),
+                    children: const [
+                      TextSpan(
+                          text: 'COACH',
+                          style: TextStyle(color: Color(0xFFA3AAB3))),
+                      TextSpan(
+                          text: 'SMART', style: TextStyle(color: V3.green)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 6),
