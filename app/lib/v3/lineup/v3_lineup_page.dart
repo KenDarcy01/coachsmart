@@ -426,8 +426,10 @@ class _V3LineupPageState extends State<V3LineupPage>
         ]),
       );
 
+  // The name sits centred under the finger, as on the web lineup
+  // (Ken, 2026-11-12).
   Widget _ghost(String name) => FractionalTranslation(
-        translation: const Offset(-.5, -1.7),
+        translation: const Offset(-.5, -.5),
         child: Material(
           color: Colors.transparent,
           child: Container(
@@ -447,8 +449,8 @@ class _V3LineupPageState extends State<V3LineupPage>
         ),
       );
 
-  /// Shared Draggable setup: the ghost sits above the finger and the drop
-  /// spot is the finger itself.
+  /// Shared Draggable setup: the ghost is centred on the finger, which is
+  /// also the drop spot.
   Widget _draggable(
       {required LineupDrag data,
       required String name,
