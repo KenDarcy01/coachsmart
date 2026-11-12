@@ -352,6 +352,7 @@ class _V3HomePageState extends State<V3HomePage> {
                 ? _errorBody()
                 : Column(
                     children: [
+                      _greeting(),
                       _chipBar(),
                       Expanded(
                         child: RefreshIndicator(
@@ -395,6 +396,49 @@ class _V3HomePageState extends State<V3HomePage> {
         ),
       );
 
+  // ---- greeting (option B, Ken 2026-11-12) ---------------------------------
+
+  /// Events from now to the end of this week (Monday to Sunday), not
+  /// cancelled or deleted, across all teams.
+  int get _eventsThisWeek {
+    final today = DateTime(_now.year, _now.month, _now.day);
+    final weekEnd = today.add(Duration(days: 8 - today.weekday));
+    var n = 0;
+    for (final e in _home.events) {
+      if (e.eventStatus == 'deleted' || isCancelled(e)) continue;
+      final t = eventLocalTime(e);
+      if (t != null && !t.isBefore(today) && t.isBefore(weekEnd)) n++;
+    }
+    return n;
+  }
+
+  Widget _greeting() {
+    final h = _now.hour;
+    final part = h < 12 ? 'morning' : (h < 18 ? 'afternoon' : 'evening');
+    final name = _home.firstName.trim();
+    final n = _eventsThisWeek;
+    final week = n == 0
+        ? 'Nothing on this week'
+        : (n == 1 ? '1 event this week' : '$n events this week');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            name.isEmpty ? 'Good $part' : 'Good $part, $name',
+            style: V3.tight(26, weight: FontWeight.w700, height: 1.15),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${DateFormat('EEEE d MMMM').format(_now)} · $week',
+            style: V3.inter(15, color: const Color(0xFFA1A1A2)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ---- team chips (design §5.2) -------------------------------------------
 
   Widget _chipBar() {
@@ -435,12 +479,9 @@ class _V3HomePageState extends State<V3HomePage> {
     final green = nextDay(items);
     final children = <Widget>[];
     if (_home.showAdvert) children.add(_advert());
-    // A white "Events" heading separates the chips from the rail
-    // (Ken, 2026-11-11).
-    children.add(Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 12),
-      child: Text('Events', style: V3.tight(18, weight: FontWeight.w700)),
-    ));
+    // The greeting above the chips now heads the page; the "Events" title
+    // went with option B (Ken, 2026-11-12).
+    children.add(const SizedBox(height: 6));
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
       if (item.quiet) {
