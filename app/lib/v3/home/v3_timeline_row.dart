@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 
 import '/backend/schema/structs/index.dart';
 import '../v3_crest_image.dart';
-import '../v3_open_location.dart';
 import '../v3_theme.dart';
 import 'v3_home_data.dart';
 
@@ -121,8 +120,7 @@ class V3TimelineRow extends StatelessWidget {
             ],
             const SizedBox(height: 8),
             _line1(cancelled),
-            // Venue on its own line with a pin; tap opens maps (Ken,
-            // 2026-11-12, option 1).
+            // Venue on its own line with a pin (Ken, 2026-11-12, option 1).
             if (e.locationName.trim().isNotEmpty) ...[
               const SizedBox(height: 6),
               _location(cancelled),
@@ -160,20 +158,9 @@ class V3TimelineRow extends StatelessWidget {
         ),
       ],
     );
-    if (cancelled) return row;
-    return Semantics(
-      button: true,
-      label: 'Open ${e.locationName.trim()} in maps',
-      excludeSemantics: true,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => openLocationPin(e.locationPin, e.locationName),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 32),
-          child: row,
-        ),
-      ),
-    );
+    // Display only: a tap anywhere on the card opens the event (Ken,
+    // 2026-11-12: the venue no longer opens maps from Home).
+    return row;
   }
 
   // Crest from clubs.crest; a circle with the club's initial when missing
