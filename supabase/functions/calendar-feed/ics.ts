@@ -82,6 +82,43 @@ export function localStamp(iso: string, minutes = 0): string {
   return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}T${p(d.getUTCHours())}${p(d.getUTCMinutes())}00`;
 }
 
+/**
+ * Minutes before the start that the meet time asks for, or null when it isn't
+ * one clear time (Ken, 2026-11-11: entries start at the meet time). The field
+ * is typed freely: "18:30", "9.30am", "1245", "30 mins before" work; two times,
+ * "TBC" or notes fall back to the start time. Without am/pm the reading at or
+ * before the start is used ("6:45" for a 19:10 start is 18:45), and a meet
+ * more than four hours early is treated as a typo.
+ */
+export function meetLead(meet: string | null, startIso: string): number | null {
+  const t = tidy(meet).toLowerCase();
+  if (!t) return null;
+  const before = t.match(/^(\d{1,3})\s*(?:m|min|mins|minutes)\s*(?:before)?$/);
+  if (before) {
+    const n = +before[1];
+    return n > 0 && n <= 240 ? n : null;
+  }
+  const m = t.match(/^(\d{1,2})(?:\s*[:.]\s*(\d{2}))?\s*(am|pm)?$/) ??
+    t.match(/^(\d{1,2})(\d{2})\s*(am|pm)?$/);
+  if (!m) return null;
+  let h = +m[1];
+  const min = m[2] ? +m[2] : 0;
+  if (h > 23 || min > 59) return null;
+  const s = startIso.match(/T(\d{2}):(\d{2})/);
+  if (!s) return null;
+  const start = +s[1] * 60 + +s[2];
+  const options: number[] = [];
+  if (m[3]) {
+    if (h > 12 || h === 0) return null;
+    options.push(((h % 12) + (m[3] === "pm" ? 12 : 0)) * 60 + min);
+  } else {
+    options.push(h * 60 + min);
+    if (h >= 1 && h < 12) options.push((h + 12) * 60 + min);
+  }
+  const leads = options.map((o) => start - o).filter((d) => d >= 0 && d <= 240);
+  return leads.length ? Math.min(...leads) : null;
+}
+
 function utcStamp(d: Date): string {
   return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
@@ -100,7 +137,9 @@ export function eventLines(e: FeedEvent, now: Date): string[] {
     notes.push(`v ${opp}${ha ? ` (${ha})` : ""}`);
   }
   if (tidy(e.squad_name)) notes.push(`Squad: ${tidy(e.squad_name)}`);
+  const lead = meetLead(e.meet_time, e.local_time);
   if (tidy(e.meet_time)) notes.push(`Meet: ${tidy(e.meet_time)}`);
+  if (lead) notes.push(`Starts: ${e.local_time.slice(11, 16)}`);
   if (tidy(e.event_details)) notes.push("", tidy(e.event_details));
   const pin = tidy(e.location_pin);
   if (/^https?:\/\//i.test(pin)) notes.push("", `Map: ${pin}`);
@@ -110,7 +149,7 @@ export function eventLines(e: FeedEvent, now: Date): string[] {
     "BEGIN:VEVENT",
     `UID:event-${e.event_id}@coachsmart.app`,
     `DTSTAMP:${utcStamp(now)}`,
-    `DTSTART;TZID=Europe/Dublin:${localStamp(e.local_time)}`,
+    `DTSTART;TZID=Europe/Dublin:${localStamp(e.local_time, -(lead ?? 0))}`,
     `DTEND;TZID=Europe/Dublin:${localStamp(e.local_time, MINUTES[type.toLowerCase()] ?? 60)}`,
     `SUMMARY:${esc(summary)}`,
     `DESCRIPTION:${esc(notes.join("\n").replace(/^\n+/, ""))}`,
