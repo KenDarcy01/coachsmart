@@ -81,7 +81,7 @@ serve(async (req)=>{
       WHERE ccl.club_id = ${club_id} AND ec.code_id != 1
         AND (ccl.team_id IS NULL OR ccl.team_id = ${p_team_id})
         AND public.team_has_code(${p_team_id}, ec.code_id)
-      ORDER BY ec.event_code ASC
+      ORDER BY 2 ASC
     `;
     const members = await sql`
       WITH member_roles AS (
@@ -169,6 +169,7 @@ serve(async (req)=>{
       }
     });
   } catch (err) {
+    console.error('export_team_list_xls failed:', err?.message ?? err);
     return new Response(JSON.stringify({
       error: err.message
     }), {
