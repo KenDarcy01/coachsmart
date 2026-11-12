@@ -95,7 +95,8 @@ Map<String, dynamic> payload({
 
 Future<void> pump(WidgetTester tester, Map<String, dynamic> data) async {
   await tester.pumpWidget(MaterialApp(
-    home: V3EventPage(eventID: 1, fromSearch: false, testData: data),
+    home: V3EventPage(
+        key: UniqueKey(), eventID: 1, fromSearch: false, testData: data),
   ));
   await tester.pumpAndSettle();
 }
@@ -125,17 +126,53 @@ void main() {
     return p;
   }
 
-  testWidgets('green Pay button for the attending player not paid for',
+  testWidgets('amber pay banner for the attending player not paid for',
       (tester) async {
     await pump(tester, owing());
     expect(tester.takeException(), isNull);
-    expect(find.text('Pay €10.00 for Seán'), findsOneWidget);
-    final b = tester.widget<FilledButton>(find.ancestor(
-        of: find.text('Pay €10.00 for Seán'),
-        matching: find.byType(FilledButton)));
-    expect(b.style!.backgroundColor!.resolve({}), const Color(0xFF87C232));
-    expect(b.style!.backgroundColor!.resolve({WidgetState.disabled}),
-        const Color(0xFF87C232));
+    expect(find.text('€10 due for Seán'), findsOneWidget);
+    expect(find.text('Pay €10'), findsOneWidget);
+  });
+
+  testWidgets('match: opposition card, Meet with throw-in, tools by role',
+      (tester) async {
+    await pump(tester, payload(role: 100));
+    expect(tester.takeException(), isNull);
+    expect(find.text('v Raheny'), findsOneWidget);
+    expect(find.text('Match · Football'), findsOneWidget);
+    expect(find.text('Throw-in 10:00'), findsOneWidget);
+    expect(find.text('Directions ›'), findsOneWidget);
+    expect(find.text('Stats'), findsOneWidget);
+    expect(find.text('14 of 14 paid · €140'), findsOneWidget);
+
+    await pump(tester, payload(role: 30));
+    expect(find.text('Stats'), findsOneWidget);
+    expect(find.text('Lineup'), findsNothing);
+    expect(find.textContaining('paid · €'), findsNothing);
+
+    await pump(tester, payload(role: 20));
+    expect(find.text('Score'), findsOneWidget);
+    expect(find.text('Stats'), findsNothing);
+    expect(find.text('Report'), findsNothing);
+
+    await pump(tester, payload(role: 10));
+    expect(find.text('Live'), findsOneWidget);
+    expect(find.text('Score'), findsNothing);
+  });
+
+  testWidgets('cancelled: red banner, Reinstate for admins only',
+      (tester) async {
+    await pump(tester, owing(status: 'cancelled'));
+    expect(tester.takeException(), isNull);
+    expect(find.text('Cancelled'), findsOneWidget);
+    expect(find.text('WAS'), findsOneWidget);
+    final p = payload(role: 30)..['event_status'] = 'cancelled';
+    await pump(tester, p);
+    expect(find.text('Cancelled'), findsOneWidget);
+    expect(find.text('Reinstate'), findsNothing);
+    final a = payload(role: 100)..['event_status'] = 'cancelled';
+    await pump(tester, a);
+    expect(find.text('Reinstate'), findsOneWidget);
   });
 
   testWidgets('no Pay button on a cancelled event', (tester) async {

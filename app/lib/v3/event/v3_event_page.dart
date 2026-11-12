@@ -1,8 +1,9 @@
 // v3 Event details. Same data as the FlutterFlow page (get_user_event_details)
-// laid out as in /mnt/project-files/coachsmart/app-v3/event-details/
-// CHOSEN-event-*.png: hero, Meet / Venue / Directions tiles, match tools,
-// your reply, pay, attendance tiles, payments (admins) and a details card.
-// Admin actions sit behind the three-dot Manage sheet.
+// in layout A of /mnt/project-files/coachsmart/app-v3/event-details-redesign/
+// (Ken, 2026-11-12): replies, opposition card, Meet / Venue tiles, one banner
+// per extra (cancelled, pay, payments summary, car pool), teams and tools by
+// role (Parent, FLO, Coach, Admin), attendance, details. Admin actions sit
+// behind the three-dot Manage sheet.
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
@@ -16,6 +17,7 @@ import '/index.dart';
 import '../home/v3_home_data.dart';
 import '../session_plan/v3_plan_view_page.dart';
 import '../session_plan/v3_session_plan_api.dart' show spPlansChanged;
+import '../v3_crest_image.dart';
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
 import 'v3_event_teams.dart';
@@ -72,6 +74,10 @@ class _V3EventPageState extends State<V3EventPage> {
   bool _teamAllowsLineup = false;
   // Bumped on every load so pull to refresh reloads the teams card too.
   int _teamsTick = 0;
+  // Car pool summary for the green strip: open lifts and free seats.
+  int? _lifts;
+  int _seatsFree = 0;
+  bool _reminding = false;
 
   int get _eventId => widget.eventID ?? 0;
   bool get _fromSearch => widget.fromSearch ?? false;
@@ -123,6 +129,7 @@ class _V3EventPageState extends State<V3EventPage> {
       });
       _loadTeamFlags(ev.teamId);
       _loadPlan();
+      if (ev.carPoolingEnabled) _loadCarPools();
     } catch (e) {
       setState(() {
         _loading = false;
@@ -146,6 +153,31 @@ class _V3EventPageState extends State<V3EventPage> {
   Future<void> _editPlan() async {
     await openCoachingEventPlan(context, _eventId);
     _loadPlan();
+  }
+
+  Future<void> _loadCarPools() async {
+    try {
+      final r = await GetEventCarPoolsCall.call(
+          pEventId: _eventId,
+          pUserId: currentUserUid,
+          supabaseJWTtoken: currentJwtToken);
+      final body = r.jsonBody;
+      final pools = body is Map && body['car_pools'] is List
+          ? body['car_pools'] as List
+          : const [];
+      var free = 0;
+      for (final p in pools) {
+        if (p is Map && p['free_seats'] is num) {
+          free += (p['free_seats'] as num).toInt();
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _lifts = pools.length;
+          _seatsFree = free;
+        });
+      }
+    } catch (_) {}
   }
 
   // Team feature switches that gate the Lineup and Session plan tools.
@@ -200,7 +232,10 @@ class _V3EventPageState extends State<V3EventPage> {
       !_cancelled &&
       _members.isNotEmpty;
 
-  String _euro(int cents) => '€${(cents / 100).toStringAsFixed(2)}';
+  // "€10" for whole euros, "€7.50" otherwise.
+  String _euro(int cents) => cents % 100 == 0
+      ? '€${cents ~/ 100}'
+      : '€${(cents / 100).toStringAsFixed(2)}';
 
   // ---------------------------------------------------------------- actions
 
@@ -572,36 +607,39 @@ class _V3EventPageState extends State<V3EventPage> {
                       const SizedBox(height: 4),
                       // No "Your reply" heading: the name buttons speak for
                       // themselves (Ken, 2026-11-09).
-                      if (_showReplyBlock) _replyCard(),
-                      if (_showPay) _payButton(),
-                      if (_showReplyBlock || _showPay)
-                        const SizedBox(height: 14),
-                      // Published teams, once an admin shares them
-                      // (Ken, 2026-11-12).
+                      // Layout A (Ken, 2026-11-12): replies, the
+                      // opposition, Meet and Venue, one banner per extra,
+                      // teams, tools, attendance, then details.
+                      if (_cancelled) _cancelBanner(),
+                      if (_showReplyBlock) ...[
+                        _replyCard(),
+                        const SizedBox(height: 10),
+                      ],
+                      if (_isMatch && _ev!.opposition.trim().isNotEmpty)
+                        _oppositionCard(),
+                      _tiles(),
+                      if (_showPay) _payBanner(),
+                      if (_admin && _ev!.paymentRequired && !_cancelled)
+                        _paidSummaryBanner(),
+                      // Published teams (Ken, 2026-11-12), by role.
                       if (widget.testData == null ||
                           widget.testData!['teams'] is Map)
                         V3EventTeamsCard(
                             key: ValueKey('teams-$_teamsTick'),
                             eventId: _eventId,
+                            role: _role,
+                            onEdit: () => _openAttendees(3),
+                            onSnack: _snack,
                             testData: widget.testData?['teams']
                                 as Map<String, dynamic>?),
-                      _tiles(),
-                      // Car pooling gets its own strip under the tiles so it
-                      // is obvious when switched on (Ken, 2026-11-09).
-                      if (_ev!.carPoolingEnabled) _carPoolBar(),
-                      if (_tools().isNotEmpty) _toolsRow(),
-                      // Then the event detail, and attendance last
-                      // (Ken, 2026-11-07).
-                      _section('Details'),
-                      _details(),
+                      if (_ev!.carPoolingEnabled && !_cancelled) _carPoolBar(),
+                      if (_tools().isNotEmpty && !_cancelled) _toolsRow(),
                       if (_role >= 20 && _ev!.requestAttendance) ...[
                         _section('Attendance'),
                         _attendance(),
                       ],
-                      if (_admin && _ev!.paymentRequired) ...[
-                        _section('Payments'),
-                        _payments(),
-                      ],
+                      _section('Details'),
+                      _details(),
                     ],
                   ),
                 ),
@@ -635,74 +673,323 @@ class _V3EventPageState extends State<V3EventPage> {
                 weight: FontWeight.w700, color: V3.green, letterSpacing: .8)),
       );
 
-  // Hero: crest, team + squad, title, date · time · countdown, pills.
-  // Meet / Venue / Directions.
+  // Opposition card on matches: crest slot, "v Opposition", what kind of
+  // match, and a Home / Away pill (Ken, 2026-11-12, layout A).
+  Widget _oppositionCard() {
+    final e = _ev!;
+    final ha = e.homeAway.trim();
+    final home = ha.toLowerCase() == 'home';
+    final sub = [
+      'Match',
+      if (e.eventCode.isNotEmpty) e.eventCode,
+    ].join(' · ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+          color: V3.card, borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [
+        V3CrestImage(null,
+            size: 38,
+            fallback: Container(
+                decoration: const BoxDecoration(
+                    color: V3.card2, shape: BoxShape.circle),
+                child: const Icon(Icons.shield_outlined,
+                    color: V3.muted, size: 20))),
+        const SizedBox(width: 12),
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('v ${e.opposition.trim()}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: V3.tight(18, weight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(sub, style: V3.inter(13, color: V3.muted)),
+          ]),
+        ),
+        if (ha.isNotEmpty) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+                color: home ? const Color(0xFF26351A) : V3.card2,
+                borderRadius: BorderRadius.circular(20)),
+            child: Text(ha[0].toUpperCase() + ha.substring(1).toLowerCase(),
+                style: V3.inter(13,
+                    weight: FontWeight.w600, color: home ? V3.green : V3.text)),
+          ),
+        ],
+      ]),
+    );
+  }
+
+  // Meet and Venue tiles. Meet shows the meet time as typed ("9:30 / 10:30",
+  // "TBC") or the start, with the start underneath; Venue wraps to two
+  // lines with Directions under it. A cancelled event shows WAS with the
+  // time struck through (Ken, 2026-11-12, layout A).
   Widget _tiles() {
     final e = _ev!;
-    Widget tile(String label, String value, String sub) => Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: V3.card, borderRadius: BorderRadius.circular(14)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label.toUpperCase(),
-                    style: V3.inter(12,
-                        weight: FontWeight.w500,
-                        color: V3.muted,
-                        letterSpacing: .5)),
-                const SizedBox(height: 4),
-                Text(value.isEmpty ? '—' : value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: V3.inter(17, weight: FontWeight.w600)),
-                if (sub.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(sub,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: V3.inter(13, color: V3.muted)),
-                ],
-              ],
-            ),
-          ),
-        );
     final t = _when;
+    final start = t == null ? '' : hhmm(t);
+    final day = t == null ? '' : DateFormat('EEE d MMM').format(t);
+    final meet = e.meetTime.trim();
+    final meetValue = meet.isNotEmpty ? meet : start;
+    final meetSub = _cancelled || meet.isEmpty || start.isEmpty
+        ? day
+        : '${_isMatch ? 'Throw-in' : 'Start'} $start';
+    final venue = e.locationName.trim();
+    final venueTbc = venue.isEmpty || venue.toUpperCase() == 'TBC';
+    final canGo = !venueTbc && e.locationPin.isNotEmpty;
+
+    Widget label(String text) => Text(text.toUpperCase(),
+        style: V3.inter(12,
+            weight: FontWeight.w500, color: V3.muted, letterSpacing: .5));
+
+    final meetTile = Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+          color: V3.card, borderRadius: BorderRadius.circular(14)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        label(_cancelled ? 'Was' : 'Meet'),
+        const SizedBox(height: 4),
+        Text(meetValue.isEmpty ? '—' : meetValue,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: _cancelled
+                ? V3
+                    .tight(22, weight: FontWeight.w600, color: V3.muted)
+                    .copyWith(decoration: TextDecoration.lineThrough)
+                : V3.tight(22,
+                    weight: FontWeight.w600,
+                    color: meet.toUpperCase() == 'TBC' ? V3.amber : V3.text)),
+        if (meetSub.isNotEmpty) ...[
+          const SizedBox(height: 3),
+          Text(meetSub,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: V3.inter(13, color: V3.muted)),
+        ],
+      ]),
+    );
+
+    final venueTile = GestureDetector(
+      onTap: canGo ? () => openLocationPin(e.locationPin, venue) : null,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: V3.card, borderRadius: BorderRadius.circular(14)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          label(e.homeAway.toLowerCase() == 'away' ? 'Away venue' : 'Venue'),
+          const SizedBox(height: 4),
+          Text(venueTbc ? 'TBC' : venue,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: V3.tight(18,
+                  weight: FontWeight.w600,
+                  color: venueTbc ? V3.amber : V3.text)),
+          if (venueTbc || canGo) ...[
+            const SizedBox(height: 3),
+            Text(venueTbc ? 'To be confirmed' : 'Directions ›',
+                style: V3.inter(13,
+                    weight: canGo ? FontWeight.w600 : FontWeight.w400,
+                    color: canGo ? V3.green : V3.muted)),
+          ],
+        ]),
+      ),
+    );
+
     // IntrinsicHeight gives the stretched row a bounded height inside the
     // list; without it the tiles get infinite height and nothing below renders.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Meet time if set, else the event start time, with no note
-            // underneath (Ken, 2026-11-09: "at the start" was confusing).
-            tile('Meet', e.meetTime.isEmpty && t != null ? hhmm(t) : e.meetTime,
-                ''),
+            Expanded(flex: 10, child: meetTile),
             const SizedBox(width: 8),
-            tile(
-                e.homeAway.toLowerCase() == 'away' ? 'Away venue' : 'Venue',
-                e.locationName,
-                e.opposition.isNotEmpty && _isMatch ? 'v ${e.opposition}' : ''),
-            if (e.locationPin.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => openLocationPin(e.locationPin, e.locationName),
-                child: Container(
-                  width: 52,
-                  decoration: BoxDecoration(
-                      color: V3.card, borderRadius: BorderRadius.circular(14)),
-                  child:
-                      const Icon(Icons.navigation, color: V3.green, size: 24),
-                ),
-              ),
-            ],
+            Expanded(flex: 13, child: venueTile),
           ],
         ),
       ),
     );
+  }
+
+  // One coloured banner per extra: icon, title, a muted line, an optional
+  // button on the right.
+  Widget _banner({
+    required IconData icon,
+    required Color tint,
+    required Color bg,
+    required Color border,
+    required String title,
+    String sub = '',
+    Widget? action,
+    VoidCallback? onTap,
+    double borderWidth = 1,
+    Color? titleColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+              color: bg,
+              border: Border.all(color: border, width: borderWidth),
+              borderRadius: BorderRadius.circular(14)),
+          child: Row(children: [
+            Icon(icon, color: tint, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: V3.inter(15,
+                            weight: FontWeight.w600,
+                            color: titleColor ?? tint)),
+                    if (sub.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(sub,
+                          style: V3.inter(13, color: V3.muted, height: 1.3)),
+                    ],
+                  ]),
+            ),
+            if (action != null) ...[const SizedBox(width: 10), action],
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _bannerButton(String text, Color bg, Color fg, VoidCallback? onTap,
+          {bool busy = false, Color? outline}) =>
+      SizedBox(
+        height: 38,
+        child: TextButton(
+          onPressed: busy ? null : onTap,
+          style: TextButton.styleFrom(
+              backgroundColor: bg,
+              foregroundColor: fg,
+              disabledBackgroundColor: bg,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              shape: RoundedRectangleBorder(
+                  side: outline == null
+                      ? BorderSide.none
+                      : BorderSide(color: outline, width: 1.5),
+                  borderRadius: BorderRadius.circular(10))),
+          child: busy
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: fg))
+              : Text(text,
+                  style: V3.inter(14, weight: FontWeight.w700, color: fg)),
+        ),
+      );
+
+  static const _redText = Color(0xFFFF8A8E);
+  static const _amberBg = Color(0xFF2B2512);
+  static const _amberLine = Color(0xFF6B5520);
+
+  // Red banner at the top of a cancelled event. The events table keeps no
+  // reason, who or when, so the line is generic. Admins reinstate here.
+  Widget _cancelBanner() => _banner(
+        icon: Icons.block,
+        tint: _redText,
+        bg: const Color(0xFF3A1D1F),
+        border: const Color(0xFF6B2A2E),
+        title: 'Cancelled',
+        sub: 'This event is not going ahead.',
+        action: _admin
+            ? _bannerButton('Reinstate', Colors.transparent, _redText,
+                () => _setStatus('active'),
+                outline: _redText)
+            : null,
+      );
+
+  // Amber banner for a parent who owes: "€10 due for Aoife", who has paid
+  // underneath, and the Pay button (replaces the green Pay button).
+  Widget _payBanner() {
+    final e = _ev!;
+    final owing = _owing;
+    final names = owing
+        .map((m) => m.firstName.isNotEmpty ? m.firstName : m.lastName)
+        .where((n) => n.isNotEmpty)
+        .toList();
+    final paid = _members
+        .where((m) =>
+            m.roleLevel == 10 &&
+            m.responseId == 3 &&
+            m.memberPaymentStatus == 'confirmed')
+        .map((m) => m.firstName)
+        .where((n) => n.isNotEmpty)
+        .toList();
+    final amount = _euro(e.paymentAmount * owing.length);
+    return _banner(
+      icon: Icons.euro,
+      tint: V3.amber,
+      bg: _amberBg,
+      border: _amberLine,
+      title: names.isEmpty ? '$amount due' : '$amount due for ${_and(names)}',
+      sub: paid.isEmpty ? '' : '${_and(paid)} paid',
+      action:
+          _bannerButton('Pay $amount', V3.amber, V3.bg, _pay, busy: _paying),
+    );
+  }
+
+  String _and(List<String> names) => names.length <= 1
+      ? names.join()
+      : '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
+
+  // Admins on a paid event: "12 of 18 paid · €120" and Remind. Coaches
+  // never see payments. Tapping the banner opens the payments page.
+  Widget _paidSummaryBanner() {
+    final e = _ev!;
+    final paid = e.newNumPayments;
+    final of = e.acceptedPlayerCount;
+    final unpaid = of - paid > 0 ? of - paid : 0;
+    return _banner(
+      icon: Icons.euro,
+      tint: V3.amber,
+      bg: _amberBg,
+      border: _amberLine,
+      title: '$paid of $of paid · ${_euro(e.newGrossAmount)}',
+      sub: unpaid == 0
+          ? 'Everyone attending has paid'
+          : '$unpaid attending ${unpaid == 1 ? 'player has' : 'players have'} not paid yet',
+      onTap: () => _open(PaymentTransactionsWidget.routeName, {
+        'paramEventID': serializeParam(_eventId, ParamType.int),
+        'eventTitle': serializeParam(e.eventTitle, ParamType.String),
+      }),
+      action: unpaid == 0
+          ? const Icon(Icons.chevron_right, color: V3.muted, size: 22)
+          : _bannerButton('Remind $unpaid', V3.amber, V3.bg, _remindUnpaid,
+              busy: _reminding),
+    );
+  }
+
+  Future<void> _remindUnpaid() async {
+    setState(() => _reminding = true);
+    try {
+      V3Track.event('payment_reminder_sent', {'event_id': _eventId});
+      final r = await SupaFlow.client.rpc('send_event_payment_reminders',
+          params: {'p_event_id': _eventId});
+      if (r is Map && r['success'] == false) throw Exception(r['message']);
+      final sent = r is Map ? (r['sent'] ?? 0) : 0;
+      _snack(sent == 0
+          ? 'Nobody to remind: no app user is linked to those players.'
+          : sent == 1
+              ? 'Reminder sent to 1 person'
+              : 'Reminders sent to $sent people');
+    } catch (_) {
+      _snack('Could not send the reminders. Please try again.', warn: true);
+    } finally {
+      if (mounted) setState(() => _reminding = false);
+    }
   }
 
   // Match tools by role; Session plan on other event types.
@@ -723,7 +1010,9 @@ class _V3EventPageState extends State<V3EventPage> {
           () => Navigator.of(context).push(MaterialPageRoute(
               settings: const RouteSettings(name: 'V3MatchLivePage'),
               builder: (_) => V3MatchLivePage(eventId: _eventId)))));
-      if (_role >= 20) {
+      // Parent: Live. FLO: Score, Live. Coach: + Stats, Report. Admin:
+      // + Lineup (Ken, 2026-11-12: coaches can't make a lineup).
+      if (_role >= 30) {
         out.add(_Tool('Stats', Icons.bar_chart,
             () => _open(MatchStatsWidget.routeName, _matchParams())));
       }
@@ -735,7 +1024,7 @@ class _V3EventPageState extends State<V3EventPage> {
                 settings: const RouteSettings(name: 'V3MatchReportPage'),
                 builder: (_) => V3MatchReportPage(eventId: _eventId)))));
       }
-      if (_role >= 30 && _teamAllowsLineup) {
+      if (_admin && _teamAllowsLineup) {
         out.add(_Tool('Lineup', Icons.grid_view_outlined, _openLineup));
       }
     } else if (_role >= 30) {
@@ -763,6 +1052,13 @@ class _V3EventPageState extends State<V3EventPage> {
         'paramRoleLevel': serializeParam(_role, ParamType.int),
       });
 
+  String _carPoolLine() {
+    final n = _lifts;
+    if (n == null || n == 0) return 'Offer a lift or find a seat';
+    return '$n ${n == 1 ? 'lift' : 'lifts'} · '
+        '$_seatsFree ${_seatsFree == 1 ? 'seat' : 'seats'} free';
+  }
+
   // Full-width green-outlined strip: car icon, "Car pooling", one line of
   // what it does, chevron. Shown only when the event has car pooling on.
   Widget _carPoolBar() {
@@ -787,8 +1083,7 @@ class _V3EventPageState extends State<V3EventPage> {
                   Text('Car pooling',
                       style: V3.inter(16, weight: FontWeight.w700)),
                   const SizedBox(height: 2),
-                  Text('Offer a lift or find a seat',
-                      style: V3.inter(13.5, color: V3.muted)),
+                  Text(_carPoolLine(), style: V3.inter(13.5, color: V3.muted)),
                 ],
               ),
             ),
@@ -926,52 +1221,6 @@ class _V3EventPageState extends State<V3EventPage> {
     );
   }
 
-  // Green like every other main action (Ken, 2026-11-11). While checkout is
-  // being made it stays green with a spinner, so it never looks like it
-  // has gone away.
-  Widget _payButton() {
-    final e = _ev!;
-    final owing = _owing;
-    final names = owing.map((m) => m.firstName).where((n) => n.isNotEmpty);
-    final who = owing.length == 1
-        ? ' for ${names.isEmpty ? 'this event' : names.first}'
-        : ' for ${owing.length} players';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 10, 0, 2),
-      child: SizedBox(
-        height: 48,
-        child: FilledButton(
-          onPressed: _paying ? null : _pay,
-          style: FilledButton.styleFrom(
-              backgroundColor: V3.green,
-              foregroundColor: V3.bg,
-              disabledBackgroundColor: V3.green,
-              disabledForegroundColor: V3.bg,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12))),
-          child: _paying
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child:
-                      CircularProgressIndicator(strokeWidth: 2.5, color: V3.bg))
-              : Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.shopping_cart_outlined,
-                      size: 20, color: V3.bg),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                        'Pay ${_euro(e.paymentAmount * owing.length)}$who',
-                        overflow: TextOverflow.ellipsis,
-                        style: V3.inter(16,
-                            weight: FontWeight.w700, color: V3.bg)),
-                  ),
-                ]),
-        ),
-      ),
-    );
-  }
-
   // Attending · No reply · Declined tiles with per-role lines, then a bar.
   Widget _attendance() {
     final e = _ev!;
@@ -1054,82 +1303,6 @@ class _V3EventPageState extends State<V3EventPage> {
     );
   }
 
-  Widget _bar(List<(int, Color)> parts, int total) => ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: SizedBox(
-          height: 8,
-          child: total == 0
-              ? Container(color: V3.line)
-              : Row(children: [
-                  for (final p in parts)
-                    if (p.$1 > 0)
-                      Expanded(flex: p.$1, child: Container(color: p.$2)),
-                ]),
-        ),
-      );
-
-  // Admin payments block: gross, net, paid v attending, link to details.
-  Widget _payments() {
-    final e = _ev!;
-    final paid = e.newNumPayments;
-    final attending = e.acceptedPlayerCount;
-    final projected = e.paymentAmount * attending;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: V3.card, borderRadius: BorderRadius.circular(14)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_euro(e.newGrossAmount),
-                        style: V3.tight(26, weight: FontWeight.w700)),
-                    Text('Net ${_euro(e.newNetAmount)} after fees',
-                        style: V3.inter(14, color: V3.muted)),
-                  ],
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _open(PaymentTransactionsWidget.routeName, {
-                  'paramEventID': serializeParam(_eventId, ParamType.int),
-                  'eventTitle': serializeParam(e.eventTitle, ParamType.String),
-                }),
-                child: Text('Details ›',
-                    style:
-                        V3.inter(14, weight: FontWeight.w600, color: V3.green)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _bar([
-            (paid, V3.green),
-            (attending - paid > 0 ? attending - paid : 0, V3.barGrey),
-          ], attending > paid ? attending : paid),
-          const SizedBox(height: 8),
-          RichText(
-            text: TextSpan(
-              style: V3.inter(14, color: V3.muted),
-              children: [
-                TextSpan(
-                    text: '$paid of $attending',
-                    style: V3.inter(14, weight: FontWeight.w600)),
-                TextSpan(
-                    text:
-                        ' attending have paid · projected ${_euro(projected)}'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Details card: Type, Opposition, Link, Notes, Created by.
   Widget _details() {
     final e = _ev!;
@@ -1146,14 +1319,19 @@ class _V3EventPageState extends State<V3EventPage> {
       if (_squadName.isNotEmpty) _squadName,
     ].join(' · ');
     if (team.isNotEmpty) rows.add(_row('Team', team));
-    if (_cancelled) rows.add(_row('Status', 'Cancelled'));
-    if (e.homeAway.isNotEmpty) rows.add(_row('Home / Away', e.homeAway));
+    // Opposition and Home / Away sit in the opposition card on matches.
+    final oppCard = _isMatch && e.opposition.trim().isNotEmpty;
+    if (e.homeAway.isNotEmpty && !oppCard) {
+      rows.add(_row('Home / Away', e.homeAway));
+    }
     final type = [
       if (e.eventType.isNotEmpty) e.eventType,
       if (e.eventCode.isNotEmpty) e.eventCode,
     ].join(' · ');
     if (type.isNotEmpty) rows.add(_row('Type', type));
-    if (e.opposition.isNotEmpty) rows.add(_row('Opposition', e.opposition));
+    if (e.opposition.isNotEmpty && !oppCard) {
+      rows.add(_row('Opposition', e.opposition));
+    }
     if (e.paymentRequired) {
       rows.add(_row('Cost', '${_euro(e.paymentAmount)} per player'));
     }

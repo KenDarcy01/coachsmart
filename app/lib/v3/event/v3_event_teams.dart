@@ -153,9 +153,16 @@ class _Dot extends StatelessWidget {
 /// only, and only once the teams are published.
 class V3ShareTeamsSwitch extends StatefulWidget {
   const V3ShareTeamsSwitch(
-      {super.key, required this.eventId, this.testData, this.onSnack});
+      {super.key,
+      required this.eventId,
+      this.testData,
+      this.onSnack,
+      this.bare = false});
   final int eventId;
   final void Function(String text, {bool warn})? onSnack;
+
+  /// Inside a card (the event page): no rule or gap above.
+  final bool bare;
 
   @visibleForTesting
   final Map<String, dynamic>? testData;
@@ -234,11 +241,13 @@ class _V3ShareTeamsSwitchState extends State<V3ShareTeamsSwitch> {
     final t = _t;
     final on = t?.shared ?? false;
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: EdgeInsets.only(top: widget.bare ? 0 : 10),
       child: Container(
         padding: const EdgeInsets.only(top: 10),
-        decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: V3.line))),
+        decoration: widget.bare
+            ? null
+            : const BoxDecoration(
+                border: Border(top: BorderSide(color: V3.line))),
         child: Row(children: [
           const Icon(Icons.groups_outlined, color: V3.green, size: 24),
           const SizedBox(width: 12),
@@ -277,11 +286,27 @@ class _V3ShareTeamsSwitchState extends State<V3ShareTeamsSwitch> {
 
 // --------------------------------------------------------- parent's view
 
-/// "Teams" on the event page: the caller's own children and their team,
-/// then "See all teams". Shows nothing until an admin turns sharing on.
+/// "Teams" on the event page, by role (Ken, 2026-11-12, layout A).
+/// Parent: "Your team", one row per child, then See all teams; nothing
+/// until an admin shares. FLO and coach: the squads with player counts,
+/// read only, once shared. Admin: the "Show teams to parents" switch, the
+/// squads and Edit teams, as soon as the teams are published.
 class V3EventTeamsCard extends StatefulWidget {
-  const V3EventTeamsCard({super.key, required this.eventId, this.testData});
+  const V3EventTeamsCard(
+      {super.key,
+      required this.eventId,
+      this.role = 10,
+      this.onEdit,
+      this.onSnack,
+      this.testData});
   final int eventId;
+
+  /// The viewer's highest role level on the team.
+  final int role;
+
+  /// Admins: opens the page where teams are picked and published.
+  final VoidCallback? onEdit;
+  final void Function(String text, {bool warn})? onSnack;
 
   @visibleForTesting
   final Map<String, dynamic>? testData;
@@ -314,64 +339,146 @@ class _V3EventTeamsCardState extends State<V3EventTeamsCard> {
     if (mounted) setState(() => _t = t);
   }
 
+  Widget _heading(String text) => Padding(
+        padding: const EdgeInsets.only(top: 6, bottom: 8),
+        child: Text(text,
+            style: V3.inter(13,
+                weight: FontWeight.w700, color: V3.green, letterSpacing: .8)),
+      );
+
+  Widget _rows(List<Widget> rows) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+            color: V3.card, borderRadius: BorderRadius.circular(14)),
+        child: Column(children: [
+          for (var i = 0; i < rows.length; i++)
+            Container(
+              decoration: BoxDecoration(
+                  border: i == rows.length - 1
+                      ? null
+                      : const Border(bottom: BorderSide(color: V3.line))),
+              child: rows[i],
+            ),
+        ]),
+      );
+
+  Widget _link(String text, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          child: Row(children: [
+            Expanded(
+                child: Text(text,
+                    style: V3.inter(15,
+                        weight: FontWeight.w600, color: V3.green))),
+            const Icon(Icons.chevron_right, color: V3.green, size: 22),
+          ]),
+        ),
+      );
+
+  void _seeAll(EventTeams t) {
+    V3Track.event('teams_viewed', {'event_id': widget.eventId});
+    showAllTeams(context, t);
+  }
+
+  List<Widget> _squadRows(EventTeams t) => [
+        for (final s in t.squads)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Row(children: [
+              _Dot(s.colour, s.image, size: 12),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text(s.name,
+                      style: V3.inter(15, weight: FontWeight.w500))),
+              Text(
+                  '${s.players.length} '
+                  '${s.players.length == 1 ? 'player' : 'players'}',
+                  style: V3.inter(14, color: V3.muted)),
+            ]),
+          ),
+      ];
+
   @override
   Widget build(BuildContext context) {
     final t = _t;
-    if (t == null || !t.visible) return const SizedBox.shrink();
+    if (t == null || t.error.isNotEmpty) return const SizedBox.shrink();
+    final admin = t.isAdmin || widget.role >= 100;
+
+    // Admin: switch, squads, Edit teams, once published.
+    if (admin) {
+      if (!t.published || t.squads.isEmpty) return const SizedBox.shrink();
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _heading('TEAMS'),
+        _rows([
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: V3ShareTeamsSwitch(
+                eventId: widget.eventId,
+                testData: widget.testData,
+                onSnack: widget.onSnack,
+                bare: true),
+          ),
+          ..._squadRows(t),
+          if (widget.onEdit != null) _link('Edit teams', widget.onEdit!),
+        ]),
+        const SizedBox(height: 10),
+      ]);
+    }
+
+    if (!t.visible) return const SizedBox.shrink();
+
+    // FLO and coach: read only.
+    if (widget.role >= 20) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _heading('TEAMS'),
+        _rows([
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child:
+                Text('Shown to parents', style: V3.inter(14, color: V3.muted)),
+          ),
+          ..._squadRows(t),
+          _link('See all teams', () => _seeAll(t)),
+        ]),
+        const SizedBox(height: 10),
+      ]);
+    }
+
+    // Parent.
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Padding(
-        padding: const EdgeInsets.only(top: 2, bottom: 8),
-        child: Text(t.mine.isEmpty ? 'TEAMS' : 'YOUR TEAM',
-            style: V3.inter(13,
-                weight: FontWeight.w700, color: V3.green, letterSpacing: .8)),
-      ),
-      if (t.mine.isNotEmpty)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-              color: V3.card, borderRadius: BorderRadius.circular(14)),
-          child: Column(children: [
-            for (var i = 0; i < t.mine.length; i++)
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: BoxDecoration(
-                    border: i == t.mine.length - 1
-                        ? null
-                        : const Border(bottom: BorderSide(color: V3.line))),
-                child: Row(children: [
-                  Expanded(
-                      child: Text(t.mine[i].firstName,
-                          style: V3.inter(16, weight: FontWeight.w500))),
-                  if (t.mine[i].onTeam) ...[
-                    _Dot(t.mine[i].colour, t.mine[i].image, size: 14),
-                    const SizedBox(width: 8),
-                    Text(t.mine[i].squadName,
-                        style: V3.inter(16, weight: FontWeight.w600)),
-                  ] else
-                    Text('Not on a team yet',
-                        style: V3.inter(15, color: V3.muted)),
-                ]),
-              ),
-          ]),
-        ),
-      const SizedBox(height: 8),
-      SizedBox(
-        height: 44,
-        child: TextButton(
-          onPressed: () {
-            V3Track.event('teams_viewed', {'event_id': widget.eventId});
-            showAllTeams(context, t);
-          },
-          style: TextButton.styleFrom(
-              backgroundColor: V3.card2,
-              foregroundColor: V3.text,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12))),
-          child: Text('See all teams',
-              style: V3.inter(15, weight: FontWeight.w700)),
-        ),
-      ),
-      const SizedBox(height: 14),
+      _heading(t.mine.isEmpty ? 'TEAMS' : 'YOUR TEAM'),
+      _rows([
+        for (final m in t.mine)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Row(children: [
+              Expanded(
+                  child: Text(m.firstName,
+                      style: V3.inter(16, weight: FontWeight.w500))),
+              if (m.onTeam)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: squadColour(m.colour).withValues(alpha: .15),
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    _Dot(m.colour, m.image, size: 10),
+                    const SizedBox(width: 6),
+                    Text(m.squadName,
+                        style: V3.inter(14,
+                            weight: FontWeight.w600,
+                            color: squadColour(m.colour))),
+                  ]),
+                )
+              else
+                Text('Not on a team yet', style: V3.inter(15, color: V3.muted)),
+            ]),
+          ),
+        _link('See all teams', () => _seeAll(t)),
+      ]),
+      const SizedBox(height: 10),
     ]);
   }
 }
