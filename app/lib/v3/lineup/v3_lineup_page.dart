@@ -25,6 +25,7 @@ class V3LineupPage extends StatefulWidget {
       required this.eventId,
       required this.teamId,
       this.squadId,
+      this.squads = const [],
       this.testData});
 
   final int eventId;
@@ -32,6 +33,10 @@ class V3LineupPage extends StatefulWidget {
 
   /// The squad picked on the event page; null or 0 means every squad.
   final int? squadId;
+
+  /// Squads published for this event; with two or more the page shows a
+  /// tab per squad to switch between (Ken, 2026-11-12).
+  final List<LineupSquad> squads;
 
   /// Widget tests pass the loaded data here instead of calling Supabase.
   @visibleForTesting
@@ -51,6 +56,7 @@ class _V3LineupPageState extends State<V3LineupPage>
   Future<bool>? _saving;
   String? _busy; // 'save', 'share' or 'teamsheet'
   bool _dragging = false;
+  late int? _squadId = widget.squadId;
   // The pitch position lit up under the finger while dragging. As on the
   // web lineup: the nearest jersey whose centre is within 36px of the
   // finger, so it lights before the finger is exactly on it (Ken,
@@ -84,7 +90,7 @@ class _V3LineupPageState extends State<V3LineupPage>
           await fetchLineupJson(
               eventId: widget.eventId,
               teamId: widget.teamId,
-              squadId: widget.squadId);
+              squadId: _squadId);
       final d = LineupData.fromJson(j);
       if (!mounted) return;
       setState(() {
@@ -107,6 +113,40 @@ class _V3LineupPageState extends State<V3LineupPage>
       });
     }
   }
+
+  // Another squad's tab: save this one quietly, then load that squad.
+  Future<void> _switchSquad(int id) async {
+    if (id == _squadId) return;
+    await _persist(quiet: true);
+    if (!mounted) return;
+    setState(() {
+      _squadId = id;
+      _loading = true;
+      _error = null;
+      _over = null;
+    });
+    await _load();
+  }
+
+  Widget _squadTabs() => SizedBox(
+        height: 56,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          children: [
+            for (final sq in widget.squads)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _Pill(
+                  label: sq.name,
+                  on: sq.id == _squadId,
+                  pad: 18,
+                  onTap: () => _switchSquad(sq.id),
+                ),
+              ),
+          ],
+        ),
+      );
 
   void _snack(String text, {bool warn = false}) {
     if (!mounted) return;
@@ -141,7 +181,7 @@ class _V3LineupPageState extends State<V3LineupPage>
           await saveLineup(snap,
               eventId: widget.eventId,
               teamId: widget.teamId,
-              squadId: widget.squadId);
+              squadId: _squadId);
         }
         if (!quiet) _snack('Lineup saved!');
         return true;
@@ -201,7 +241,7 @@ class _V3LineupPageState extends State<V3LineupPage>
       final ts = await fetchTeamsheet(
           eventId: widget.eventId,
           teamId: widget.teamId,
-          squadId: widget.squadId,
+          squadId: _squadId,
           teamName: d.teamName,
           players: d.players);
       final bytes = await buildTeamsheetPdf(ts, DateTime.now());
@@ -339,24 +379,31 @@ class _V3LineupPageState extends State<V3LineupPage>
               ),
           ],
         ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator(color: V3.green))
-            : _error != null || d!.hasMessage
-                ? Center(
-                    child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(_error ?? d!.message,
-                            textAlign: TextAlign.center,
-                            style: V3.inter(17, color: V3.muted))))
-                : Column(children: [
-                    _formats(),
-                    _strip(d),
-                    Expanded(child: _pitchArea(d)),
-                    _bench(d),
-                    _actions(),
-                  ]),
+        body: Column(children: [
+          if (widget.squads.length > 1) _squadTabs(),
+          Expanded(child: _body(d)),
+        ]),
       ),
     );
+  }
+
+  Widget _body(LineupData? d) {
+    return _loading
+        ? const Center(child: CircularProgressIndicator(color: V3.green))
+        : _error != null || d!.hasMessage
+            ? Center(
+                child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(_error ?? d!.message,
+                        textAlign: TextAlign.center,
+                        style: V3.inter(17, color: V3.muted))))
+            : Column(children: [
+                _formats(),
+                _strip(d),
+                Expanded(child: _pitchArea(d)),
+                _bench(d),
+                _actions(),
+              ]);
   }
 
   Widget _formats() => Padding(
@@ -828,8 +875,13 @@ class _V3LineupPageState extends State<V3LineupPage>
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.on, required this.onTap});
+  const _Pill(
+      {required this.label,
+      required this.on,
+      required this.onTap,
+      this.pad = 0});
   final String label;
+  final double pad;
   final bool on;
   final VoidCallback onTap;
 
@@ -841,6 +893,7 @@ class _Pill extends StatelessWidget {
           duration: const Duration(milliseconds: 120),
           height: 44,
           alignment: Alignment.center,
+          padding: EdgeInsets.symmetric(horizontal: pad),
           decoration: BoxDecoration(
             color: on ? V3.green : Colors.transparent,
             borderRadius: BorderRadius.circular(22),

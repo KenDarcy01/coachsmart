@@ -153,6 +153,23 @@ void main() {
     expect(numberColour(const Color(0xFF004A2F)), const Color(0xFFFFFFFF));
   });
 
+  test('published squads: each player\'s newest row, no blanks', () {
+    expect(
+        publishedSquadIds([
+          {'member_id': 1, 'squad_id': 3},
+          {'member_id': 1, 'squad_id': 2},
+          {'member_id': 2, 'squad_id': 2},
+          {'member_id': 4, 'squad_id': null},
+        ]),
+        {3, 2});
+    expect(
+        publishedSquadIds([
+          {'member_id': 1, 'squad_id': 3},
+          {'member_id': 1, 'squad_id': 2},
+        ]),
+        {3});
+  });
+
   test('teamsheet helpers and PDF', () async {
     expect(tsDob('2012-03-04'), '04/03/2012');
     expect(tsDob(null), 'blank');
@@ -259,6 +276,27 @@ void widgetTests() {
     await g.up();
     await tester.pumpAndSettle();
     expect(find.text('Ryan'), findsOneWidget);
+  });
+
+  testWidgets('squad tabs show with two or more published squads',
+      (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+        home: V3LineupPage(
+            eventId: 1,
+            teamId: 7,
+            squadId: 2,
+            squads: const [LineupSquad(2, 'Blue'), LineupSquad(3, 'Red')],
+            testData: sample())));
+    await tester.pumpAndSettle();
+    expect(find.text('Blue'), findsOneWidget);
+    expect(find.text('Red'), findsOneWidget);
+    await tester.tap(find.text('Red'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Lineup'), findsOneWidget);
   });
 
   testWidgets('empty state uses the web wording', (tester) async {

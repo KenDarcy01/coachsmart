@@ -160,3 +160,36 @@ Future<void> saveLineup(LineupBoard b,
   if (details.isNotEmpty) await _sb.from('lineup_details').insert(details);
   V3Track.event('lineup_saved', {'players': details.length});
 }
+
+/// The squads in this event's latest published match day squad, in the
+/// team's squad order (Ken, 2026-11-12: Lineup offers only these). A
+/// player's squad is their newest row; "No team" doesn't count.
+Future<List<LineupSquad>> fetchPublishedSquads(int eventId) async {
+  final ms = await _sb
+      .from('match_squads')
+      .select('match_squad_id')
+      .eq('event_id', eventId)
+      .order('match_squad_id', ascending: false)
+      .limit(1);
+  if (ms.isEmpty) return const [];
+  final rows = await _sb
+      .from('match_squad_details')
+      .select('id,member_id,squad_id')
+      .eq('match_squad_id', ms.first['match_squad_id'])
+      .order('id', ascending: false);
+  final ids = publishedSquadIds(rows);
+  if (ids.isEmpty) return const [];
+  final sq = await _sb
+      .from('squads')
+      .select('squad_id,squad_name,squad_image,squad_list_seq')
+      .inFilter('squad_id', ids.toList())
+      .order('squad_list_seq', ascending: true);
+  return [
+    for (final s in sq)
+      if (!'${s['squad_name'] ?? ''}'
+          .trim()
+          .toLowerCase()
+          .startsWith('no team'))
+        LineupSquad.fromJson(s)
+  ];
+}

@@ -400,3 +400,28 @@ double rowGap(int format, double h) {
   }
   return gap;
 }
+
+/// A squad Lineup can open: one tab on the lineup page.
+class LineupSquad {
+  const LineupSquad(this.id, this.name, [this.image = '']);
+  LineupSquad.fromJson(Map j)
+      : id = _i(j['squad_id']),
+        name = '${j['squad_name'] ?? ''}',
+        image = '${j['squad_image'] ?? ''}';
+  final int id;
+  final String name, image;
+}
+
+/// match_squad_details newest first: the squads players are in now (each
+/// player's newest row decides).
+Set<int> publishedSquadIds(List rows) {
+  final seen = <int>{};
+  final out = <int>{};
+  for (final r in rows) {
+    final m = r as Map;
+    if (!seen.add(_i(m['member_id']))) continue;
+    final s = _i(m['squad_id']);
+    if (s > 0) out.add(s);
+  }
+  return out;
+}

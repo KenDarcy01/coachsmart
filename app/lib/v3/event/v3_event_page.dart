@@ -17,6 +17,8 @@ import '/index.dart';
 import '../home/v3_home_data.dart';
 import '../session_plan/v3_plan_view_page.dart';
 import '../session_plan/v3_session_plan_api.dart' show spPlansChanged;
+import '../lineup/v3_lineup_api.dart' show fetchPublishedSquads;
+import '../lineup/v3_lineup_models.dart' show LineupSquad;
 import '../v3_crest_image.dart';
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
@@ -357,8 +359,9 @@ class _V3EventPageState extends State<V3EventPage> {
 
   /// Lineup (Ken, 2026-11-09): on the event page, not in the squad cards.
   /// The team selector works from the published match day squads, so ask
-  /// for those first; with more than one squad ask which one, with one go
-  /// straight in.
+  /// for those first. Only squads with players published for this event
+  /// are offered; with more than one ask which, and the lineup page shows
+  /// a tab per squad to switch between (Ken, 2026-11-12).
   Future<void> _openLineup() async {
     final e = _ev!;
     try {
@@ -371,14 +374,12 @@ class _V3EventPageState extends State<V3EventPage> {
         return;
       }
       var squadId = e.squadId;
+      var squads = const <LineupSquad>[];
       if (squadId == 0) {
-        final squads = await SquadsTable().queryRows(
-            queryFn: (q) => q
-                .eq('team_id', e.teamId)
-                .order('squad_list_seq', ascending: true));
+        squads = await fetchPublishedSquads(_eventId);
         if (!mounted) return;
         if (squads.length == 1) {
-          squadId = squads.first.squadId;
+          squadId = squads.first.id;
         } else if (squads.length > 1) {
           final picked = await showModalBottomSheet<int>(
             context: context,
@@ -402,21 +403,21 @@ class _V3EventPageState extends State<V3EventPage> {
                       const SizedBox(height: 14),
                       Text('Lineup for which squad?', style: V3.tight(20)),
                       const SizedBox(height: 2),
-                      Text('This team has more than one squad.',
+                      Text('You can switch squads on the lineup page too.',
                           style: V3.inter(14, color: V3.muted)),
                       const SizedBox(height: 6),
                       for (final s in squads)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: ClipOval(
-                              child: (s.squadImage ?? '').isNotEmpty
-                                  ? Image.network(s.squadImage!,
+                              child: s.image.isNotEmpty
+                                  ? Image.network(s.image,
                                       width: 30, height: 30, fit: BoxFit.cover)
                                   : Container(
                                       width: 30, height: 30, color: V3.green)),
-                          title: Text(s.squadName ?? '',
+                          title: Text(s.name,
                               style: V3.inter(17, weight: FontWeight.w500)),
-                          onTap: () => Navigator.pop(ctx, s.squadId),
+                          onTap: () => Navigator.pop(ctx, s.id),
                         ),
                     ]),
               ),
@@ -430,7 +431,10 @@ class _V3EventPageState extends State<V3EventPage> {
       await Navigator.of(context).push(MaterialPageRoute(
           settings: const RouteSettings(name: 'V3LineupPage'),
           builder: (_) => V3LineupPage(
-              eventId: _eventId, teamId: e.teamId, squadId: squadId)));
+              eventId: _eventId,
+              teamId: e.teamId,
+              squadId: squadId,
+              squads: squads)));
     } catch (_) {
       _snack('Could not open the lineup. Please try again.', warn: true);
     }
