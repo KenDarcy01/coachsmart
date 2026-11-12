@@ -131,10 +131,10 @@ async function notifyPayer(sb: any, row: any, teamId: number | null, teamName: s
       is_read: false,
       delivery_method: user?.fcm_token ? "push" : "email",
       created_at: new Date().toISOString(),
-      push_title: teamName || "Refund",
-      push_body: `${euro(amount)} refunded for ${name} — ${what}`,
+      push_title: teamName ? `${teamName}: Refund` : "Refund",
+      push_body: `${euro(amount)} refunded for ${name} for ${teamName ? `${teamName}, ` : ""}${what}.`,
       app_title: `Refund for ${name}`,
-      app_body: `${euro(amount)} refunded for ${name} for ${what}. It goes back to the card you paid with, usually within 5 to 10 days.`,
+      app_body: `${euro(amount)} refunded for ${name} for ${teamName ? `${teamName}, ` : ""}${what}. It goes back to the card you paid with, usually within 5 to 10 days.`,
       action: null,
     });
   } catch (e) {

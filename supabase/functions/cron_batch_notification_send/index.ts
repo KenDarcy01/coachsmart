@@ -40,6 +40,14 @@ Deno.serve(async (req)=>{
     // No delivery_method means push (push falls back to email when there's no token)
     let pushNotes = fresh.filter((n)=>(n.delivery_method ?? 'push') === 'push');
     let emailNotes = fresh.filter((n)=>n.delivery_method === 'email');
+    // Team names, so every push title and email subject says which team it's about
+    const teamIds = [...new Set(fresh.map((n)=>n.team_id).filter(Boolean))];
+    const teamNameMap = new Map();
+    if (teamIds.length > 0) {
+      const { data: teamRows } = await supabaseClient.from('teams').select('team_id, team_name').in('team_id', teamIds);
+      (teamRows || []).forEach((t)=>teamNameMap.set(t.team_id, String(t.team_name || '').trim()));
+    }
+    const teamOf = (n)=>(n.team_id ? teamNameMap.get(n.team_id) || '' : '');
     const processedIds = [];
     const emailDeliveredIds = [];
     const deadTokens = [];
@@ -71,12 +79,32 @@ Deno.serve(async (req)=>{
           emailNotes.push(...notes);
           return;
         }
-        const isBatch = notes.length > 1;
-        const displayTitle = notes[0].push_title;
-        const displayBody = isBatch ? `You have ${notes.length} new updates from ${notes[0].push_title}.` : notes[0].push_body;
         // Newest first, so a tap on a batched push opens the latest item
         notes.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
         const latestNote = notes[0];
+        const isBatch = notes.length > 1;
+        let displayTitle;
+        let displayBody;
+        if (!isBatch) {
+          displayTitle = withTeam(latestNote.push_title || latestNote.app_title || 'CoachSmart', teamOf(latestNote));
+          displayBody = latestNote.push_body || latestNote.app_body || '';
+        } else {
+          // "Clontarf Boys 2015: 3 new updates", or across teams
+          // "3 new updates" / "Clontarf Boys 2015 (2), Clontarf Girls 2014 (1)"
+          const perTeam = new Map();
+          notes.forEach((n)=>{
+            const t = teamOf(n);
+            perTeam.set(t, (perTeam.get(t) || 0) + 1);
+          });
+          const named = [...perTeam.keys()].filter(Boolean);
+          if (perTeam.size === 1) {
+            displayTitle = withTeam(`${notes.length} new updates`, named[0] || '');
+            displayBody = `Latest: ${latestNote.push_body || latestNote.app_body || ''}`;
+          } else {
+            displayTitle = `${notes.length} new updates`;
+            displayBody = [...perTeam.entries()].map(([t, c])=>`${t || 'CoachSmart'} (${c})`).join(', ');
+          }
+        }
         const eventIdNum = noteEventId(latestNote);
         const eventId = eventIdNum ? String(eventIdNum) : '';
         // The app opens EventDetails from an eventID in link_page. Since link_page
@@ -213,7 +241,10 @@ Deno.serve(async (req)=>{
             || [ev.event_codes?.event_code, ev.event_types?.event_type].filter(Boolean).join(' ')
             || 'Event';
           const eventDisplayTitle = ev.opposition ? `${baseTitle} vs. ${ev.opposition}` : baseTitle;
-          eventDataMap.set(ev.event_id, { eventDisplayTitle, formattedDate });
+          const shortDate = dt.toLocaleDateString('en-IE', {
+            timeZone: 'Europe/Dublin', weekday: 'short', day: 'numeric', month: 'short',
+          });
+          eventDataMap.set(ev.event_id, { eventDisplayTitle, formattedDate, shortDate });
         });
       }
 
@@ -222,6 +253,7 @@ Deno.serve(async (req)=>{
       const emailsToSend = validEmailNotes.map((n) => {
         const firstName = n.users?.first_name || 'there';
         const title = n.app_title || 'Notification';
+        const teamName = teamOf(n);
         const body = n.app_body || '';
 
         const eventIdNum = noteEventId(n);
@@ -255,6 +287,30 @@ Deno.serve(async (req)=>{
             badgeLabel = 'ATTENDANCE CHANGED';
             badgeColor = '#888888';
           }
+        } else if (titleLower.startsWith('new event') || / new events$/.test(titleLower)) {
+          badgeLabel = 'NEW EVENT';
+          badgeColor = '#87C232';
+        } else if (titleLower.startsWith('event changed')) {
+          badgeLabel = 'EVENT CHANGED';
+          badgeColor = '#4a9eff';
+        } else if (titleLower.startsWith('event cancelled')) {
+          badgeLabel = 'CANCELLED';
+          badgeColor = '#e05252';
+        } else if (titleLower.startsWith('event removed')) {
+          badgeLabel = 'REMOVED';
+          badgeColor = '#e05252';
+        } else if (titleLower.startsWith('teams are out') || titleLower.startsWith('team change')) {
+          badgeLabel = titleLower.startsWith('team change') ? 'TEAM CHANGE' : 'TEAMS ARE OUT';
+          badgeColor = '#87C232';
+        } else if (titleLower.startsWith('payment due')) {
+          badgeLabel = 'PAYMENT DUE';
+          badgeColor = '#87C232';
+        } else if (titleLower.startsWith('refund')) {
+          badgeLabel = 'REFUND';
+          badgeColor = '#4a9eff';
+        } else if (titleLower.startsWith('car pool')) {
+          badgeLabel = titleLower.includes('cancelled') ? 'CAR POOL CANCELLED' : 'CAR POOL';
+          badgeColor = titleLower.includes('cancelled') ? '#e05252' : '#87C232';
         } else if (titleLower.includes('not approved')) {
           badgeLabel = 'NOT APPROVED';
           badgeColor = '#e05252';
@@ -276,8 +332,10 @@ Deno.serve(async (req)=>{
           : body;
 
         const eventCardHtml = eventData
-          ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;"><tr><td style="background:#2c313a;border-left:4px solid #87C232;padding:16px 18px;border-radius:0 8px 8px 0;"><p style="margin:0 0 6px 0;color:#e7ebee;font-size:16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">${eventData.eventDisplayTitle}</p><p style="margin:0;color:#87C232;font-size:13px;font-family:Arial,Helvetica,sans-serif;">${eventData.formattedDate}</p></td></tr></table>`
-          : '';
+          ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;"><tr><td style="background:#2c313a;border-left:4px solid #87C232;padding:16px 18px;border-radius:0 8px 8px 0;">${teamName ? `<p style="margin:0 0 4px 0;color:#a1a1a2;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-family:Arial,Helvetica,sans-serif;">${esc(teamName)}</p>` : ''}<p style="margin:0 0 6px 0;color:#e7ebee;font-size:16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">${eventData.eventDisplayTitle}</p><p style="margin:0;color:#87C232;font-size:13px;font-family:Arial,Helvetica,sans-serif;">${eventData.formattedDate}</p></td></tr></table>`
+          : (teamName
+            ? `<p style="margin:0 0 16px 0;color:#a1a1a2;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-family:Arial,Helvetica,sans-serif;">${esc(teamName)}</p>`
+            : '');
 
         const badgeHtml = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;"><tr><td><span style="display:inline-block;background:${badgeColor};color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 12px;border-radius:4px;font-family:Arial,Helvetica,sans-serif;">${badgeLabel}</span></td></tr></table>`;
 
@@ -288,7 +346,7 @@ Deno.serve(async (req)=>{
           _id: n.id,
           from: 'CoachSmart <noreply@coachsmart.app>',
           to: [n.users.email_address],
-          subject: title,
+          subject: emailSubject(title, teamName, eventData),
           html,
         };
       });
@@ -360,6 +418,25 @@ Deno.serve(async (req)=>{
 // HELPERS
 // ---------------------------------------------------------------------------
 // Event id from the event_id column, falling back to an eventID= deep link
+// "Clontarf Boys 2015: Request Approved". Leaves a title that already names the team.
+function withTeam(title: string, teamName: string): string {
+  if (!teamName || String(title).toLowerCase().includes(teamName.toLowerCase())) return title;
+  return `${teamName}: ${title}`;
+}
+
+// Email subject: always the team first. Event news also says which event,
+// e.g. "Clontarf Boys 2015: Event cancelled, Football Training Fri 14 Nov".
+function emailSubject(title: string, teamName: string, eventData): string {
+  const t = String(title || 'Notification').toLowerCase();
+  const isEventNews = /^(new event|event changed|event cancelled|event removed|teams are out|team change)/.test(t) || / new events$/.test(t);
+  const suffix = isEventNews && eventData ? `, ${eventData.eventDisplayTitle} ${eventData.shortDate}` : '';
+  return withTeam(`${title}${suffix}`, teamName);
+}
+
+function esc(s: string): string {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function noteEventId(n): number | null {
   if (n.event_id) return Number(n.event_id);
   const m = n.link_page?.match(/eventID=(\d+)/);
