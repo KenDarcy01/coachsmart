@@ -4,7 +4,7 @@
 // payments go straight to the team's bank. Stripe hosts the sign-up form and
 // does the ID and bank checks; we never see bank details.
 //
-// POST { action, team_id } with the user's JWT. Team admins only (is_team_admin).
+// POST { action, team_id } with the user's JWT. Team admins only (role grade 100 on the team).
 //   status        -> the team's Stripe state (live from Stripe, cached on teams)
 //   start         -> creates the account if needed, returns { url } for Stripe's
 //                    sign-up form (also used to finish or update details)
@@ -40,12 +40,9 @@ serve(async (req) => {
   const teamId = Number(body.team_id);
   if (!Number.isInteger(teamId) || teamId <= 0) return json({ error: "Missing team_id." }, 400);
 
-  const asUser = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    auth: { persistSession: false },
-    global: { headers: { Authorization: auth } },
-  });
-  const { data: isAdmin } = await asUser.rpc("is_team_admin", { p_team_id: teamId });
-  if (isAdmin !== true) return json({ error: "Only team admins can set up payments." }, 403);
+  // Same rule as is_team_admin (an active admin-grade role on this team),
+  // checked here because that function isn't callable by app users.
+  if (!(await isTeamAdmin(sb, user.id, teamId))) return json({ error: "Only team admins can set up payments." }, 403);
 
   const { data: team } = await sb.from("teams")
     .select("team_id, team_name, payments, stripe_account_id, stripe_charges_enabled, stripe_ready_at")
@@ -138,3 +135,15 @@ async function status(sb: any, team: any, stripe: any) {
   };
 }
 
+
+async function isTeamAdmin(sb: any, userId: string, teamId: number) {
+  const { data: links } = await sb.from("user_member_link").select("member_id, status").eq("user_id", userId);
+  const memberIds = (links || []).filter((l: any) => (l.status ?? "active") === "active").map((l: any) => l.member_id);
+  if (!memberIds.length) return false;
+  const { data: mtl } = await sb.from("member_team_link").select("member_team_id")
+    .eq("team_id", teamId).eq("status", "active").in("member_id", memberIds);
+  const mtIds = (mtl || []).map((r: any) => r.member_team_id);
+  if (!mtIds.length) return false;
+  const { data: roles } = await sb.from("member_team_role_link").select("roles(role_grade)").in("member_team_id", mtIds);
+  return (roles || []).some((r: any) => Number(r.roles?.role_grade) === 100);
+}
