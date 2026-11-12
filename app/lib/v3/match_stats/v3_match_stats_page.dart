@@ -19,12 +19,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
 import 'v3_match_charts.dart';
 import 'v3_match_stats_models.dart';
+import '../v3_share.dart';
 
 enum _Screen { loading, error, waiting, picker, chart }
 
@@ -428,10 +428,10 @@ class _V3MatchStatsPageState extends State<V3MatchStatsPage>
           build: (_) => pw.Image(pw.MemoryImage(png.buffer.asUint8List()),
               fit: pw.BoxFit.fill)));
       final w = walk(chartModel(s, DateTime.now()));
-      await Printing.sharePdf(
-          bytes: await doc.save(),
-          filename:
-              pdfFileName(s.title, s.oppName, w.us, w.opp, DateTime.now()));
+      final bytes = await doc.save();
+      if (!mounted) return;
+      await V3Share.pdf(context, bytes,
+          name: pdfFileName(s.title, s.oppName, w.us, w.opp, DateTime.now()));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

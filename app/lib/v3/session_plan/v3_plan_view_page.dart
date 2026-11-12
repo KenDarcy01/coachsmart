@@ -11,6 +11,7 @@ import 'package:printing/printing.dart';
 import '../v3_theme.dart';
 import 'v3_session_plan_api.dart';
 import 'v3_session_plan_models.dart';
+import '../v3_share.dart';
 
 /// The event's active plan id, or null when it has none (or can't be read).
 Future<String?> spEventPlanId(int eventId, {SpCall call = spLiveCall}) async {
@@ -129,7 +130,7 @@ class _V3PlanViewPageState extends State<V3PlanViewPage> {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14))),
                           onPressed: () =>
-                              Printing.sharePdf(bytes: bytes, filename: _name),
+                              V3Share.pdf(context, bytes, name: _name),
                           icon: const Icon(Icons.ios_share),
                           label: Text('Share plan',
                               style: V3.inter(17,

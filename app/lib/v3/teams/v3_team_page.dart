@@ -2,10 +2,8 @@
 // code chips, squad cards, role pills, search, then members grouped by role
 // with a big squad pill under each name. Looks like the attendance page
 // (Ken approved 2026-11-11).
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
@@ -15,6 +13,7 @@ import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_team_models.dart';
 import '/v3/tracking/v3_track.dart';
+import '../v3_share.dart';
 
 class V3TeamPage extends StatefulWidget {
   const V3TeamPage({super.key, required this.teamId});
@@ -112,15 +111,9 @@ class _V3TeamPageState extends State<V3TeamPage> {
     final r = _roster!;
     final text =
         'Join ${r.teamName} on CoachSmart. Open the app, choose Join a team and enter the code ${r.teamCode}. Get CoachSmart at https://coachsmart.app';
-    try {
-      if (kIsWeb) throw UnsupportedError('web');
-      V3Track.event('team_code_shared');
-      await SharePlus.instance.share(
-          ShareParams(text: text, subject: 'Join ${r.teamName} on CoachSmart'));
-    } catch (_) {
-      await Clipboard.setData(ClipboardData(text: text));
-      if (mounted) _snack('Invite text copied. Paste it into a message.');
-    }
+    V3Track.event('team_code_shared');
+    await V3Share.text(context, text,
+        subject: 'Join ${r.teamName} on CoachSmart');
   }
 
   Future<void> _copyCode() async {

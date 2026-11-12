@@ -13,6 +13,7 @@ import 'package:printing/printing.dart';
 import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
 import 'v3_lineup_models.dart';
+import '../v3_share.dart';
 
 class TsPerson {
   const TsPerson(this.irish, this.english, this.mem, [this.dob]);
@@ -454,8 +455,7 @@ class V3TeamsheetPage extends StatelessWidget {
                     foregroundColor: V3.bg,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14))),
-                onPressed: () =>
-                    Printing.sharePdf(bytes: bytes, filename: fileName),
+                onPressed: () => V3Share.pdf(context, bytes, name: fileName),
                 icon: const Icon(Icons.ios_share),
                 label: Text('Share teamsheet',
                     style: V3.inter(17, weight: FontWeight.w700, color: V3.bg)),

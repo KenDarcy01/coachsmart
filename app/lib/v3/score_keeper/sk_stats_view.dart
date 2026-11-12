@@ -8,7 +8,6 @@ import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '../match_stats/v3_match_charts.dart';
 import '../match_stats/v3_match_stats_models.dart';
@@ -16,6 +15,7 @@ import '../v3_theme.dart';
 import 'sk_controller.dart';
 import 'sk_models.dart';
 import 'sk_widgets.dart';
+import '../v3_share.dart';
 
 class SkStatsView extends StatefulWidget {
   const SkStatsView({super.key, required this.ctl});
@@ -61,9 +61,10 @@ class _SkStatsViewState extends State<SkStatsView> {
           build: (_) => pw.Image(pw.MemoryImage(png.buffer.asUint8List()),
               fit: pw.BoxFit.fill)));
       final w = ctl.totals();
-      await Printing.sharePdf(
-          bytes: await doc.save(),
-          filename: skPdfName(ctl.us, ctl.opp, w.us, w.opp));
+      final bytes = await doc.save();
+      if (!mounted) return;
+      await V3Share.pdf(context, bytes,
+          name: skPdfName(ctl.us, ctl.opp, w.us, w.opp));
     } catch (_) {
       ctl.toast("Couldn't make the PDF. Try again.");
     } finally {

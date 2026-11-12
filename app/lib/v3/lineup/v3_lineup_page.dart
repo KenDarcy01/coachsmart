@@ -10,7 +10,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../v3_theme.dart';
 import 'v3_lineup_api.dart';
@@ -18,6 +17,7 @@ import 'v3_lineup_models.dart';
 import 'v3_lineup_paint.dart';
 import 'v3_teamsheet.dart';
 import '/v3/tracking/v3_track.dart';
+import '../v3_share.dart';
 
 class V3LineupPage extends StatefulWidget {
   const V3LineupPage(
@@ -218,15 +218,10 @@ class _V3LineupPageState extends State<V3LineupPage>
       final png = await renderLineupPng(d, _board);
       final name = lineupFileName(d.teamName);
       if (widget.testData != null) return;
-      final box = _shareKey.currentContext?.findRenderObject() as RenderBox?;
       V3Track.event('teamsheet_shared');
-      await SharePlus.instance.share(ShareParams(
-        files: [XFile.fromData(png, mimeType: 'image/png', name: name)],
-        fileNameOverrides: [name],
-        title: 'CoachSmart Lineup',
-        sharePositionOrigin:
-            box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-      ));
+      if (!mounted) return;
+      await V3Share.file(_shareKey.currentContext ?? context, png,
+          name: name, mimeType: 'image/png', title: 'CoachSmart Lineup');
     } catch (_) {
       _snack('Could not generate — try again', warn: true);
     } finally {

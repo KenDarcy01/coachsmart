@@ -39,7 +39,7 @@ class _CsWebFrameState extends State<CsWebFrame> {
         ..style.height = '100%'
         ..style.backgroundColor = '#111418';
       frame.setAttribute('allow',
-          'microphone; camera; clipboard-write; clipboard-read; fullscreen');
+          'microphone; camera; clipboard-write; clipboard-read; fullscreen; web-share');
       frame.setAttribute('allowfullscreen', 'true');
       return frame;
     });

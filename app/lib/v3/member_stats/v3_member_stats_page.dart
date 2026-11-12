@@ -16,11 +16,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
 import 'v3_member_stats_models.dart';
+import '../v3_share.dart';
 
 // The web page's reply colours (yes / no / no reply), kept so the ring, dots
 // and bars read the same as v2.
@@ -184,10 +184,11 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
       img.dispose();
       final name = _data!.name;
       if (mounted) ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      await Printing.sharePdf(
-          bytes: await doc.save(),
-          filename: pdfFileName(name),
-          subject: name.isNotEmpty ? '$name – stats' : 'Player stats');
+      final bytes = await doc.save();
+      if (!mounted) return;
+      await V3Share.pdf(context, bytes,
+          name: pdfFileName(name),
+          title: name.isNotEmpty ? '$name – stats' : 'Player stats');
     } catch (_) {
       _snack('Could not create the PDF', warn: true);
     } finally {

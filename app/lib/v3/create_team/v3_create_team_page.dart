@@ -6,10 +6,8 @@
 // picked codes (team_has_code). The web page stays for the old app.
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
@@ -17,6 +15,7 @@ import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
 import 'v3_create_team_models.dart';
 import '/v3/tracking/v3_track.dart';
+import '../v3_share.dart';
 
 /// The steps of the flow.
 enum CtStep { loading, resume, club, details, codes, squads, success }
@@ -426,18 +425,8 @@ class _V3CreateTeamPageState extends State<V3CreateTeamPage> {
   Future<void> _shareCode() async {
     final text =
         'Join ${_d.teamName} on CoachSmart. Open the app, choose Join a team and enter the code $_teamCode. Get CoachSmart at https://coachsmart.app';
-    try {
-      if (kIsWeb) throw UnsupportedError('web');
-      await SharePlus.instance.share(ShareParams(
-          text: text, subject: 'Join ${_d.teamName} on CoachSmart'));
-    } catch (_) {
-      await Clipboard.setData(ClipboardData(text: text));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Invite text copied. Paste it into a message.',
-              textAlign: TextAlign.center, style: V3.inter(14, color: V3.bg)),
-          backgroundColor: V3.green));
-    }
+    await V3Share.text(context, text,
+        subject: 'Join ${_d.teamName} on CoachSmart');
   }
 
   // ----------------------------------------------------------------- build

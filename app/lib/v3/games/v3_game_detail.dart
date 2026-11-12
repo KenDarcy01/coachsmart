@@ -7,7 +7,6 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../v3_theme.dart';
@@ -16,6 +15,7 @@ import 'v3_game_edit_page.dart';
 import 'v3_game_models.dart';
 import 'v3_games_api.dart';
 import 'v3_image_viewer.dart';
+import '../v3_share.dart';
 
 /// Opens a video (or any link) in the browser / YouTube app.
 Future<bool> openGameVideo(String url) async {
@@ -352,7 +352,8 @@ class _V3GameDetailPageState extends State<V3GameDetailPage> {
     setState(() => _pdfBusy = true);
     try {
       final (bytes, name) = await widget.api.gameCardPdf(_g.gameId);
-      await Printing.sharePdf(bytes: bytes, filename: name, subject: _g.name);
+      if (!mounted) return;
+      await V3Share.pdf(context, bytes, name: name, title: _g.name);
     } catch (_) {
       _snack('Could not generate PDF — please try again', warn: true);
     } finally {

@@ -17,6 +17,7 @@ import '../v3_theme.dart';
 import 'v3_analytics_charts.dart';
 import 'v3_analytics_models.dart';
 import 'v3_analytics_pdf.dart';
+import '../v3_share.dart';
 
 class V3AnalyticsPage extends StatefulWidget {
   const V3AnalyticsPage({super.key, this.testData, this.testNow});
@@ -338,8 +339,8 @@ class _V3AnalyticsPageState extends State<V3AnalyticsPage> {
       }
       final bytes =
           await buildReportPdf(r, DateTime.now(), base: base, bold: bold);
-      await Printing.sharePdf(
-          bytes: bytes, filename: '${pdfFileBase(r.fileBase)}.pdf');
+      if (!mounted) return;
+      await V3Share.pdf(context, bytes, name: '${pdfFileBase(r.fileBase)}.pdf');
     } catch (_) {
       _snack('Could not create the PDF');
     } finally {

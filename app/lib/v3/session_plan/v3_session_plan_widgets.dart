@@ -4,13 +4,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '/v3/games/v3_games.dart';
 import '../v3_theme.dart';
 import 'v3_session_plan_api.dart';
 import 'v3_session_plan_models.dart';
+import '../v3_share.dart';
 
 /// The label the session plan uses for a game's variations (as its PDF).
 const String kSpHarder = 'Make it harder';
@@ -1044,7 +1044,8 @@ class _SpGamePageState extends State<SpGamePage> {
     setState(() => _pdfBusy = true);
     try {
       final (bytes, name) = await widget.api.gameCardPdf(widget.gameId);
-      await Printing.sharePdf(bytes: bytes, filename: name);
+      if (!mounted) return;
+      await V3Share.pdf(context, bytes, name: name);
     } catch (_) {
       if (mounted) {
         spSnack(context, 'Could not generate PDF — please try again',

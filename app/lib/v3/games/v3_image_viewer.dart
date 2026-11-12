@@ -5,38 +5,26 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:share_plus/share_plus.dart';
+import 'package:flutter/foundation.dart';
+
+import '../v3_share.dart';
 
 import '../v3_theme.dart';
 
-/// Shares a picture as a file, falling back to its link (web
-/// shareCurrentImage()). Returns a message to show, or null.
-Future<String?> shareImageUrl(String url, String title, {Rect? origin}) async {
+/// A picture's bytes and file name, or null when it could not be fetched.
+Future<(Uint8List, String, String)?> fetchShareImage(
+    String url, String title) async {
   if (url.isEmpty) return null;
   try {
     final r = await http.get(Uri.parse(url));
-    if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
-      final type = r.headers['content-type'] ?? '';
-      final ext = type.contains('png') ? 'png' : 'jpg';
-      final safe = title.replaceAll(RegExp(r'[^A-Za-z0-9 _-]'), '').trim();
-      final name = '${safe.isEmpty ? 'image' : safe}.$ext';
-      await SharePlus.instance.share(ShareParams(files: [
-        XFile.fromData(r.bodyBytes,
-            mimeType: type.isEmpty ? 'image/$ext' : type, name: name)
-      ], fileNameOverrides: [
-        name
-      ], title: title, sharePositionOrigin: origin));
-      return null;
-    }
+    if (r.statusCode != 200 || r.bodyBytes.isEmpty) return null;
+    final type = r.headers['content-type'] ?? '';
+    final ext = type.contains('png') ? 'png' : 'jpg';
+    final safe = title.replaceAll(RegExp(r'[^A-Za-z0-9 _-]'), '').trim();
+    final name = '${safe.isEmpty ? 'image' : safe}.$ext';
+    return (r.bodyBytes, name, type.isEmpty ? 'image/$ext' : type);
   } catch (_) {
-    // Fall through to sharing the link.
-  }
-  try {
-    await SharePlus.instance.share(ShareParams(
-        uri: Uri.tryParse(url), title: title, sharePositionOrigin: origin));
     return null;
-  } catch (_) {
-    return 'Could not share';
   }
 }
 
@@ -60,6 +48,8 @@ class _V3ImageViewerPageState extends State<V3ImageViewerPage> {
   final _zoom = TransformationController();
   final _shareKey = GlobalKey();
   TapDownDetails? _tap;
+  late Future<(Uint8List, String, String)?> _file;
+  (Uint8List, String, String)? _fileNow;
 
   @override
   void dispose() {
@@ -67,15 +57,31 @@ class _V3ImageViewerPageState extends State<V3ImageViewerPage> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    // Fetched now so Share opens the tray straight from the tap.
+    _file = fetchShareImage(widget.imageUrl, widget.title)
+      ..then((f) => _fileNow = f);
+  }
+
   Future<void> _share() async {
-    final box = _shareKey.currentContext?.findRenderObject() as RenderBox?;
-    final msg = await shareImageUrl(widget.imageUrl, widget.title,
-        origin: box == null ? null : box.localToGlobal(Offset.zero) & box.size);
-    if (msg != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(msg, style: V3.inter(14, color: V3.bg)),
-          backgroundColor: V3.amber));
+    final ctx = _shareKey.currentContext ?? context;
+    final ready = _fileNow;
+    if (ready != null) {
+      await V3Share.file(ctx, ready.$1,
+          name: ready.$2, mimeType: ready.$3, title: widget.title);
+      return;
     }
+    final f = await _file;
+    if (!mounted) return;
+    if (f == null) {
+      // The picture could not be fetched: share its link instead.
+      await V3Share.text(ctx, widget.imageUrl, subject: widget.title);
+      return;
+    }
+    await V3Share.file(ctx, f.$1,
+        name: f.$2, mimeType: f.$3, title: widget.title);
   }
 
   void _doubleTap() {
