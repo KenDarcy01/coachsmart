@@ -152,6 +152,13 @@ void main() {
     expect(replied, 3);
   });
 
+  testWidgets('venue shows on its own line with a pin', (tester) async {
+    final e = ev(1, now.add(const Duration(hours: 2)));
+    await tester.pumpWidget(host(row(e)));
+    expect(find.text('Club Astro'), findsOneWidget);
+    expect(find.byIcon(Icons.location_on), findsOneWidget);
+  });
+
   testWidgets('replied event shows the one-word status', (tester) async {
     final e = ev(1, now.add(const Duration(hours: 2)), response: 3);
     await tester.pumpWidget(host(row(e)));
