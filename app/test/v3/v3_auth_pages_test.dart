@@ -43,7 +43,8 @@ void main() {
     expect(PasswordRules.ok('Clontarf2026'), isFalse);
   });
 
-  testWidgets('verify shows six boxes and the address', (tester) async {
+  testWidgets('verify asks for the email link and shows the address',
+      (tester) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -53,8 +54,9 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.textContaining('ken.darcy@gmail.com', findRichText: true),
         findsOneWidget);
-    expect(find.byType(V3CodeInput), findsOneWidget);
-    expect(find.textContaining('Resend code'), findsOneWidget);
+    expect(find.byType(V3CodeInput), findsNothing);
+    expect(find.textContaining('Resend email'), findsOneWidget);
+    expect(find.text('Go to sign in'), findsOneWidget);
   });
 
   testWidgets('reset starts with email only', (tester) async {
@@ -64,7 +66,7 @@ void main() {
     await tester.pumpWidget(_app(const V3ResetPasswordPage()));
     await tester.pump();
     expect(tester.takeException(), isNull);
-    expect(find.text('Send code'), findsOneWidget);
-    expect(find.text('Set new password'), findsNothing);
+    expect(find.text('Send link'), findsOneWidget);
+    expect(find.byType(V3CodeInput), findsNothing);
   });
 }

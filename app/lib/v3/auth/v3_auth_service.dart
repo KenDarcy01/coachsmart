@@ -6,6 +6,10 @@ import '/v3/tracking/v3_track.dart';
 const kConfirmedUrl =
     'https://coach-smart-new-mpqa5l.web.app/auth/confirmed.html';
 
+/// Where the reset email's link opens, the same page v2 uses (Ken,
+/// 2026-11-12: v3 sign-up and reset work by email link like v2 for now).
+const kResetPasswordUrl = 'https://my.coachsmart.app/updatePassword';
+
 class V3AuthService {
   static GoTrueClient get _auth => SupaFlow.client.auth;
 
@@ -14,8 +18,14 @@ class V3AuthService {
   static Future<String?> signIn(String email, String password,
       {void Function()? notConfirmed}) async {
     try {
-      await _auth.signInWithPassword(email: email.trim(), password: password);
+      final res = await _auth.signInWithPassword(
+          email: email.trim(), password: password);
       V3Track.event('login', {'method': 'email'});
+      // First sign-in after tapping the confirm link: carry the name given
+      // at sign-up into public.users.
+      final meta = res.user?.userMetadata ?? const {};
+      await ensureProfile(
+          '${meta['first_name'] ?? ''}', '${meta['last_name'] ?? ''}');
       return null;
     } on AuthException catch (e) {
       final m = e.message.toLowerCase();
@@ -109,7 +119,8 @@ class V3AuthService {
 
   static Future<String?> sendRecoveryCode(String email) async {
     try {
-      await _auth.resetPasswordForEmail(email.trim());
+      await _auth.resetPasswordForEmail(email.trim(),
+          redirectTo: kResetPasswordUrl);
       return null;
     } on AuthException catch (e) {
       return e.message;

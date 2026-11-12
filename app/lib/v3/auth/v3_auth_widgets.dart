@@ -204,9 +204,14 @@ class V3PrimaryButton extends StatelessWidget {
 
 /// "Resend code · 0:42" that becomes a tappable link when the timer ends.
 class V3ResendButton extends StatefulWidget {
-  const V3ResendButton({super.key, required this.onResend, this.seconds = 60});
+  const V3ResendButton(
+      {super.key,
+      required this.onResend,
+      this.seconds = 60,
+      this.label = 'Resend code'});
   final Future<void> Function() onResend;
   final int seconds;
+  final String label;
   @override
   State<V3ResendButton> createState() => _V3ResendButtonState();
 }
@@ -258,7 +263,7 @@ class _V3ResendButtonState extends State<V3ResendButton> {
               }
             },
       child: Text(
-        waiting ? 'Resend code · $mm:$ss' : 'Resend code',
+        waiting ? '${widget.label} · $mm:$ss' : widget.label,
         style: V3.inter(16,
             weight: FontWeight.w600,
             color: waiting ? V3.green.withValues(alpha: .7) : V3.green),
