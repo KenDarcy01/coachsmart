@@ -3,7 +3,7 @@
 // and the club admin's settings and draw.
 //
 // Public actions (anon key): page, checkout, stop
-// Admin actions (signed-in user listed in lotto_admins): admin_load, admin_save,
+// Admin actions (signed-in user listed in lotto_admins): admin_load, admin_save, admin_stripe_connect,
 //   admin_preview, admin_publish, admin_export, admin_add_admin, admin_clear_test, admin_players
 //
 // Test mode (lotto_clubs.test_mode, only while status is 'setup'): checkout skips
@@ -325,6 +325,30 @@ async function admin(req: Request, sb: any, action: string, body: any) {
   const { data: cfg } = await sb.from("lotto_clubs").select("*, clubs(club_name, crest, primary_colour, secondary_colour, stripe_account_id)").eq("lotto_id", lottoId).single();
 
   if (action === "admin_load") return json({ success: true, data: await adminView(sb, cfg, ids) });
+
+  // Connect the club's Stripe account (Standard) through Stripe's own sign-up
+  // form (2026-11-12). Creates the account on first use; later taps reopen the
+  // form to finish or update details. Money from the lotto goes straight to it.
+  if (action === "admin_stripe_connect") {
+    let account = acct(cfg);
+    if (!account) {
+      const a = await stripe("POST", "/accounts", {
+        type: "standard",
+        country: "IE",
+        email: cfg.contact_email || user.email || undefined,
+        metadata: { club_id: String(cfg.club_id), lotto_id: String(lottoId) },
+      });
+      const { data: saved } = await sb.from("clubs").update({ stripe_account_id: a.id })
+        .eq("club_id", cfg.club_id).is("stripe_account_id", null).select("stripe_account_id");
+      if (saved?.length) account = a.id;
+      else account = (await sb.from("clubs").select("stripe_account_id").eq("club_id", cfg.club_id).single()).data?.stripe_account_id;
+    }
+    const back = "https://coachsmart.app/lotto/admin.html?lotto=" + lottoId;
+    const link = await stripe("POST", "/account_links", {
+      account, type: "account_onboarding", refresh_url: back + "&stripe=retry", return_url: back + "&stripe=done",
+    });
+    return json({ success: true, data: { url: link.url } });
+  }
 
   if (action === "admin_save") {
     const patch: any = {};

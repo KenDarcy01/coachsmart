@@ -166,8 +166,9 @@ button { font: inherit; cursor: pointer; }
     <div class="acard"><h3>Club</h3>
       <div class="kv"><span>Licence</span><span><input data-k="licence_text" placeholder="e.g. Lottery licence no. 123/26" maxlength="200"></span></div>
       <div class="kv"><span>Contact email</span><span><input data-k="contact_email" type="email" placeholder="lotto@club.ie"></span></div>
-      <div class="kv"><span>Stripe account</span><span><input data-k="stripe_account_id" placeholder="acct_…"></span></div>
       <div class="kv"><span>Payments</span><span id="stripeStatus"></span></div>
+      <div class="kv"><span></span><span><button class="link" id="stripeBtn">Connect Stripe</button></span></div>
+      <p class="note" style="text-align:left">Ticket money goes straight to the club's own Stripe account and on to the club's bank. Stripe handles the sign-up and ID checks.</p>
     </div>
     <button class="abtn g" id="saveBtn">Save settings</button>
     <div class="acard hide" id="testCard"><h3>Testing</h3>
@@ -193,7 +194,7 @@ const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 let JWT = params.get('token') || '';   // opened from the app
 let V = null;                          // admin view
-let lottoId = null;
+let lottoId = Number(params.get('lotto')) || null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function euro(c) { const v = (c || 0) / 100; return '€' + (Number.isInteger(v) ? v.toLocaleString('en-IE') : v.toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })); }
@@ -374,6 +375,8 @@ function render(v) {
   $('share').textContent = L.page_url.replace('https://', '') + (L.status === 'setup' ? '?preview=1' : '');
   const st = v.stripe;
   $('stripeStatus').innerHTML = st.connected ? (st.charges_enabled ? `<span class="ok">Stripe connected ✓</span>` : `<span class="warn">Connected, finish setup in Stripe</span>`) : (L.stripe_account_id ? `<span class="warn">Not found</span>` : `<span class="warn">Not connected</span>`);
+  $('stripeBtn').textContent = st.connected && st.charges_enabled ? 'Open Stripe' : (L.stripe_account_id ? 'Finish Stripe setup' : 'Connect Stripe');
+  $('stripeBtn').dataset.ready = st.connected && st.charges_enabled ? '1' : '';
   $('admins').innerHTML = v.admins.map(a => `<div class="kv"><span>${esc(a.name || a.email)}</span><span style="font-weight:400;color:var(--grey);font-size:13px">${esc(a.email)}</span></div>`).join('');
 }
 
@@ -431,6 +434,16 @@ $('clearTest').onclick = async () => {
   try { render(await api({ action: 'admin_clear_test', lotto_id: lottoId })); toast('Test data cleared'); }
   catch (e) { toast(e.message); }
 };
+
+// Stripe's own sign-up form for the club's account (or its dashboard once ready).
+$('stripeBtn').onclick = async () => {
+  if ($('stripeBtn').dataset.ready) { window.open('https://dashboard.stripe.com', '_blank'); return; }
+  $('stripeBtn').disabled = true; $('stripeBtn').textContent = 'Opening Stripe…';
+  try { const d = await api({ action: 'admin_stripe_connect' }); location.href = d.url; }
+  catch (e) { toast(e.message); $('stripeBtn').disabled = false; $('stripeBtn').textContent = 'Connect Stripe'; }
+};
+if (params.get('stripe') === 'done') setTimeout(() => toast('Stripe details saved'), 600);
+if (params.get('stripe') === 'retry') setTimeout(() => toast('That Stripe link expired, tap Finish Stripe setup again'), 600);
 
 $('saveBtn').onclick = async () => {
   const s = {};

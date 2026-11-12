@@ -12,11 +12,14 @@
 //   counts as paid.
 // - Each checkout is logged as 'pending' rows in event_user_member_payment;
 //   the webhook turns them into 'confirmed'. Every reader ignores 'pending'.
-// - When the club has a Stripe Connect account that can take payments
-//   (clubs.stripe_account_id), the checkout is made on the club's account so
-//   the money goes straight to the club, as the lotto does. Those payments
-//   are recorded by the Connect webhook (lotto-webhook). Otherwise it is made
-//   on the CoachSmart account as before.
+// - Team Stripe Connect (2026-11-12): when the team has its own Stripe
+//   account that can take payments (teams.stripe_account_id, set up through
+//   team-stripe), the checkout is made on the team's account so the money goes
+//   straight to the team. Those payments are recorded by the Connect webhook
+//   (lotto-webhook). The club account (clubs.stripe_account_id) is the lotto's
+//   and is never used for team payments. A team that has never had a ready
+//   account but has payments on (the teams from before Connect) stays on the
+//   CoachSmart account; any other team can't take payments until it connects.
 // The answer adds memberIds, unitPrice and amount next to checkoutUrl.
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@13.11.0?no-dts&no-std';
@@ -40,9 +43,6 @@ serve(async (req) => {
   if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405);
 
   try {
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-    if (!stripeSecretKey) throw new Error('STRIPE_SECRET_KEY environment variable is not set.');
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
     const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
       auth: { persistSession: false }
     });
@@ -69,7 +69,7 @@ serve(async (req) => {
     // The event sets the price.
     const { data: ev, error: evErr } = await sb
       .from('events')
-      .select('event_id, payment_required, payment_amount, status, teams(club_id, clubs(stripe_account_id))')
+      .select('event_id, team_id, payment_required, payment_amount, status, teams(payments, stripe_account_id, stripe_ready_at)')
       .eq('event_id', appEventId)
       .maybeSingle();
     if (evErr) throw new Error(evErr.message);
@@ -95,8 +95,11 @@ serve(async (req) => {
 
     // Checkouts still open for these players: a paid one counts as paid, an
     // open one is closed so it can't be paid as well.
-    const club = (ev as any).teams?.clubs;
-    const clubAccount: string | null = club?.stripe_account_id || null;
+    const team = (ev as any).teams || {};
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) throw new Error('STRIPE_SECRET_KEY environment variable is not set.');
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
+    const teamAccount: string | null = team.stripe_account_id || null;
     const openSessions = new Set<string>();
     // Stripe closes a checkout after 24 hours, so older ones can be skipped.
     const dayAgo = Date.now() - 25 * 3600 * 1000;
@@ -107,7 +110,7 @@ serve(async (req) => {
       }
     }
     for (const sid of openSessions) {
-      const acct = await sessionAccount(stripe, sid, clubAccount);
+      const acct = await sessionAccount(stripe, sid, teamAccount);
       if (!acct.session) continue;
       const s = acct.session;
       const ids: number[] = safeIds(s.metadata?.member_ids);
@@ -126,15 +129,20 @@ serve(async (req) => {
     if (toPay.length === 0) return reply({ error: 'already_paid' }, 409);
     const amount = unitPrice * toPay.length;
 
-    // The club's own Stripe account when it can take payments.
+    // The team's own Stripe account when it can take payments.
     let account: string | null = null;
-    if (clubAccount) {
+    if (teamAccount) {
       try {
-        const a = await stripe.accounts.retrieve(clubAccount);
-        if (a.charges_enabled) account = clubAccount;
+        const a = await stripe.accounts.retrieve(teamAccount);
+        if (a.charges_enabled) account = teamAccount;
       } catch (e) {
-        console.warn(`Club account ${clubAccount} not usable: ${(e as Error).message}`);
+        console.warn(`Team account ${teamAccount} not usable: ${(e as Error).message}`);
       }
+    }
+    // CoachSmart never holds a team's money: only the teams from before
+    // Connect (payments on, never had a ready account) fall back to it.
+    if (!account && !(team.payments && !team.stripe_ready_at)) {
+      return reply({ error: 'This team has not set up payments yet.' }, 409);
     }
 
     const sep = appSuccessUrl.includes('?') ? '&' : '?';
@@ -165,6 +173,7 @@ serve(async (req) => {
         member_id: memberId,
         stripe_session_id: session.id,
         stripe_checkout_url: session.url,
+        stripe_account_id: account,
         amount_paid: unitPrice,
         gross_amount: unitPrice,
         event_title: title
@@ -189,14 +198,14 @@ function safeIds(json: unknown): number[] {
   }
 }
 
-// Find a checkout on the CoachSmart account or, failing that, the club's.
-async function sessionAccount(stripe: any, sid: string, clubAccount: string | null) {
+// Find a checkout on the CoachSmart account or, failing that, the team's.
+async function sessionAccount(stripe: any, sid: string, teamAccount: string | null) {
   try {
     return { session: await stripe.checkout.sessions.retrieve(sid), account: null };
   } catch (_) { /* not on the platform account */ }
-  if (clubAccount) {
+  if (teamAccount) {
     try {
-      return { session: await stripe.checkout.sessions.retrieve(sid, {}, { stripeAccount: clubAccount }), account: clubAccount };
+      return { session: await stripe.checkout.sessions.retrieve(sid, {}, { stripeAccount: teamAccount }), account: teamAccount };
     } catch (_) { /* not found */ }
   }
   return { session: null, account: null };
