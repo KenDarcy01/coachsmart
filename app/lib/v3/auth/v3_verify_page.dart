@@ -1,5 +1,6 @@
-// v3 Check your email: the 6-digit code from the sign-up email, typed in the
-// app. Falls back gracefully if the email only carried a link.
+// v3 Check your email: sign-up is confirmed by tapping the link in the
+// email, the same as v2 (Ken, 2026-11-12). The 6-digit code version is
+// parked until the email templates carry a code.
 import 'package:flutter/material.dart';
 
 import '/flutter_flow/flutter_flow_util.dart';
@@ -23,44 +24,15 @@ class V3VerifyPage extends StatefulWidget {
 }
 
 class _V3VerifyPageState extends State<V3VerifyPage> {
-  final _code = TextEditingController();
-  bool _busy = false;
   String? _error;
   String? _notice;
-
-  @override
-  void dispose() {
-    _code.dispose();
-    super.dispose();
-  }
-
-  Future<void> _continue() async {
-    if (_code.text.length != 6 || _busy) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    GoRouter.of(context).prepareAuthEvent();
-    final err = await V3AuthService.verifySignUp(widget.email, _code.text);
-    if (!mounted) return;
-    if (err != null) {
-      setState(() {
-        _busy = false;
-        _error = err;
-      });
-      return;
-    }
-    await V3AuthService.ensureProfile(widget.first, widget.last);
-    if (!mounted) return;
-    context.goNamedAuth(V3HomePage.routeName, context.mounted);
-  }
 
   Future<void> _resend() async {
     final err = await V3AuthService.resendSignUpCode(widget.email);
     if (!mounted) return;
     setState(() {
       _error = err;
-      _notice = err == null ? 'A new code is on its way.' : null;
+      _notice = err == null ? 'A new email is on its way.' : null;
     });
   }
 
@@ -70,18 +42,18 @@ class _V3VerifyPageState extends State<V3VerifyPage> {
       children: [
         V3AuthTitle('Check your email',
             subtitle: Text.rich(TextSpan(children: [
-              const TextSpan(text: 'We sent a 6-digit code to '),
+              const TextSpan(text: 'We sent a link to '),
               TextSpan(
                   text: widget.email,
                   style: V3.inter(16, weight: FontWeight.w700, height: 1.4)),
               const TextSpan(
                   text:
-                      ". Enter it here and you're in, no need to leave the app."),
+                      '. Tap it to confirm your account, then come back here and sign in.'),
             ]))),
-        V3CodeInput(
-            controller: _code,
-            autofocus: true,
-            onCompleted: (_) => _continue()),
+        Text(
+          "Can't see it? Check your spam or junk folder.",
+          style: V3.inter(15, color: V3.muted, height: 1.4),
+        ),
         const SizedBox(height: 20),
         V3ErrorText(_error),
         if (_notice != null)
@@ -91,11 +63,10 @@ class _V3VerifyPageState extends State<V3VerifyPage> {
                 style: V3.inter(15, color: V3.green, weight: FontWeight.w500)),
           ),
         V3PrimaryButton(
-            label: 'Continue',
-            onPressed: _code.text.length == 6 ? _continue : null,
-            busy: _busy),
+            label: 'Go to sign in',
+            onPressed: () => context.goNamed(V3SignInPage.routeName)),
         const SizedBox(height: 10),
-        Center(child: V3ResendButton(onResend: _resend)),
+        Center(child: V3ResendButton(onResend: _resend, label: 'Resend email')),
         const SizedBox(height: 6),
         Center(
           child: Text.rich(TextSpan(
@@ -115,12 +86,6 @@ class _V3VerifyPageState extends State<V3VerifyPage> {
               ),
             ],
           )),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'If the email only has a link, tapping it confirms your account too. Then come back and sign in.',
-          textAlign: TextAlign.center,
-          style: V3.inter(13.5, color: V3.muted, height: 1.4),
         ),
       ],
     );

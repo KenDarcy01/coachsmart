@@ -20,6 +20,7 @@ import '../session_plan/v3_session_plan_api.dart' show spPlansChanged;
 import '../v3_crest_image.dart';
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
+import 'v3_event_notify_sheet.dart';
 import 'v3_event_teams.dart';
 import 'v3_reminder_sheet.dart';
 import 'v3_series_scope.dart';
@@ -471,9 +472,46 @@ class _V3EventPageState extends State<V3EventPage> {
   // "just this event" or "this and later events" (Ken, 2026-11-09); the
   // set_event_series_status RPC writes events.status and
   // event_attendance.status like the FlutterFlow edit page did.
-  Future<void> _setStatus(String status) async {
+  // Cancel or delete through the "Tell the team" sheet (Ken, 2026-11-12):
+  // the series choice, who would be told and the action in one step.
+  Future<void> _cancelOrDelete(EventAction a) async {
+    final e = _ev;
+    if (e == null) return;
+    final later = await _seriesLater();
+    if (!mounted) return;
+    final t = _when;
+    final pick = await showEventActionSheet(context,
+        action: a,
+        title: e.eventTitle,
+        when: t == null ? '' : notifyWhen(t),
+        venue: e.locationName,
+        eventId: _eventId,
+        later: later);
+    if (pick == null) return;
+    final n = await _setStatus(
+        a == EventAction.cancel ? 'cancelled' : 'deleted',
+        scope: pick.scope);
+    if (n == 0) return;
     try {
-      var scope = 'one';
+      final told = await notifyEventChange(_eventId, a,
+          note: pick.note, events: n, tell: pick.tell);
+      V3Track.event('event_change_notify',
+          {'kind': a.name, 'tell': pick.tell, 'told': told});
+      if (pick.tell) {
+        _snack(told == 1 ? '1 person told' : '$told people told');
+      }
+    } catch (_) {
+      if (pick.tell) _snack('Could not tell the team.', warn: true);
+    }
+  }
+
+  /// Returns how many events changed (0 when it failed or was dismissed).
+  Future<int> _setStatus(String status, {String? scope}) async {
+    try {
+      if (scope != null) {
+        return await _applyStatus(status, scope);
+      }
+      scope = 'one';
       final later = await _seriesLater();
       if (later > 1 && mounted) {
         final pick = await askSeriesScope(context,
@@ -483,9 +521,18 @@ class _V3EventPageState extends State<V3EventPage> {
                     ? 'Cancel'
                     : 'Delete',
             later: later);
-        if (pick == null) return;
+        if (pick == null) return 0;
         scope = pick;
       }
+      return await _applyStatus(status, scope);
+    } catch (_) {
+      _snack('Could not update the event.', warn: true);
+      return 0;
+    }
+  }
+
+  Future<int> _applyStatus(String status, String scope) async {
+    try {
       V3Track.event('event_status_set', {'status': status, 'scope': scope});
       final res = await SupaFlow.client.rpc('set_event_series_status', params: {
         'p_event_id': _eventId,
@@ -496,15 +543,18 @@ class _V3EventPageState extends State<V3EventPage> {
       if (map['success'] != true) {
         _snack((map['message'] ?? 'Could not update the event.').toString(),
             warn: true);
-        return;
+        return 0;
       }
+      final n = (map['events_updated'] as num?)?.toInt() ?? 1;
       if (status == 'deleted') {
         if (mounted) _back();
-        return;
+        return n;
       }
       await _load();
+      return n;
     } catch (_) {
       _snack('Could not update the event.', warn: true);
+      return 0;
     }
   }
 
@@ -522,28 +572,6 @@ class _V3EventPageState extends State<V3EventPage> {
       }
     } catch (_) {}
     return 0;
-  }
-
-  Future<bool> _confirm(String title, String body, String action) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: V3.card,
-        title: Text(title, style: V3.tight(20)),
-        content: Text(body, style: V3.inter(15, color: V3.muted)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text('Keep', style: V3.inter(15, color: V3.muted))),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(action,
-                  style: V3.inter(15,
-                      weight: FontWeight.w600, color: V3.redText))),
-        ],
-      ),
-    );
-    return ok ?? false;
   }
 
   // Messages are centred (Ken, 2026-11-09).
@@ -1535,24 +1563,14 @@ class _V3EventPageState extends State<V3EventPage> {
                     })
                   else
                     item(Icons.cancel_outlined, 'Cancel event', '', red: true,
-                        onTap: () async {
+                        onTap: () {
                       Navigator.pop(ctx);
-                      if (await _confirm(
-                          'Cancel this event?',
-                          'It stays on the list marked cancelled. You can reinstate it later.',
-                          'Cancel event')) {
-                        _setStatus('cancelled');
-                      }
+                      _cancelOrDelete(EventAction.cancel);
                     }),
                   item(Icons.delete_outline, 'Delete event', '', red: true,
-                      onTap: () async {
+                      onTap: () {
                     Navigator.pop(ctx);
-                    if (await _confirm(
-                        'Delete this event?',
-                        'It disappears from everyone\'s list. This cannot be undone from the app.',
-                        'Delete')) {
-                      _setStatus('deleted');
-                    }
+                    _cancelOrDelete(EventAction.delete);
                   }),
                 ]),
               ),

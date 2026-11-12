@@ -15,6 +15,7 @@ import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/upload_data.dart';
 import '../v3_theme.dart';
+import 'v3_event_notify_sheet.dart';
 import 'v3_series_scope.dart';
 import '/v3/tracking/v3_track.dart';
 
@@ -347,6 +348,21 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
           scope = pick;
           setState(() => _saving = true);
         }
+        // "Tell the team" step (Ken, 2026-11-12), off by default.
+        setState(() => _saving = false);
+        final tell = await showEventActionSheet(context,
+            action: EventAction.edit,
+            title: _messageTitle,
+            when: notifyWhen(start),
+            venue: _venue.text.trim(),
+            // Who the event is for after the change.
+            teamId: _team!.teamId,
+            audienceId: _audienceId,
+            squadId: _squadId,
+            codeId: _codeId,
+            note: editNote(changes, start, _venue.text.trim()));
+        if (tell == null) return;
+        setState(() => _saving = true);
         final res = await SupaFlow.client.rpc('update_event_series', params: {
           'p_event_id': widget.eventId,
           'p_scope': scope,
@@ -361,6 +377,9 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
         }
         final n = (map['events_updated'] as num?)?.toInt() ?? 1;
         V3Track.event('event_edited', {'scope': scope, 'events': n});
+        if (tell.tell && widget.eventId != null) {
+          await _tellTeam(widget.eventId!, EventAction.edit, tell.note, n);
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(n == 1 ? 'Event saved' : '$n events saved',
@@ -371,6 +390,24 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
         }
         return;
       }
+      // "Tell the team" step (Ken, 2026-11-12), off by default.
+      setState(() => _saving = false);
+      final sessions = _repeat.sessions();
+      final tell = await showEventActionSheet(context,
+          action: EventAction.create,
+          title: _messageTitle,
+          when: notifyWhen(start),
+          venue: _venue.text.trim(),
+          teamId: _team!.teamId,
+          audienceId: _audienceId,
+          squadId: _squadId,
+          codeId: _codeId,
+          events: sessions,
+          seriesLine: sessions > 1
+              ? '${_repeat.label()} from ${notifyWhen(start)}'
+              : '');
+      if (tell == null) return;
+      setState(() => _saving = true);
       V3Track.event('event_created', {
         'team_id': _team!.teamId,
         'event_type_id': _typeId,
@@ -411,6 +448,10 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
         return;
       }
       final n = (map['events_created'] as num?)?.toInt() ?? 1;
+      final ids = map['event_ids'];
+      if (tell.tell && ids is List && ids.isNotEmpty && ids.first is num) {
+        await _tellTeam((ids.first as num).toInt(), EventAction.create, '', n);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(n == 1 ? 'Event created' : '$n events created',
@@ -425,6 +466,22 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
               : 'Could not create the event.',
           warn: true);
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  // The event's name as the message shows it (title, or code + type).
+  String get _messageTitle {
+    final t = _title.text.trim();
+    if (t.isNotEmpty) return t;
+    return '$_codeName $_typeName'.trim();
+  }
+
+  Future<void> _tellTeam(int eventId, EventAction a, String note, int n) async {
+    try {
+      final told = await notifyEventChange(eventId, a, note: note, events: n);
+      V3Track.event('event_change_notify', {'kind': a.name, 'told': told});
+    } catch (_) {
+      _snack('Saved, but could not tell the team.', warn: true);
     }
   }
 
