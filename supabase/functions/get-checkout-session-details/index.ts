@@ -140,8 +140,9 @@ serve(async (req)=>{
 });
 
 
-// Event payments can be made on a club's own Stripe account (2026-11-11), so
-// look there when the session is not on the CoachSmart account.
+// Event payments can be made on a team's own Stripe account (team Stripe
+// Connect, 2026-11-12), so look there when the session is not on the
+// CoachSmart account. The payment rows say which account it was.
 async function retrieveAnywhere(stripe: any, sessionId: string) {
   const opts = { expand: ['line_items', 'payment_intent'] };
   try {
@@ -149,11 +150,12 @@ async function retrieveAnywhere(stripe: any, sessionId: string) {
   } catch (e) {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.3');
     const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-    const { data } = await sb.from('clubs').select('stripe_account_id').not('stripe_account_id', 'is', null);
-    for (const c of data || []) {
+    const { data } = await sb.from('event_user_member_payment').select('stripe_account_id')
+      .eq('stripe_session_id', sessionId).not('stripe_account_id', 'is', null).limit(1);
+    for (const r of data || []) {
       try {
-        return await stripe.checkout.sessions.retrieve(sessionId, opts, { stripeAccount: c.stripe_account_id });
-      } catch (_) { /* not this club */ }
+        return await stripe.checkout.sessions.retrieve(sessionId, opts, { stripeAccount: r.stripe_account_id });
+      } catch (_) { /* not on this account */ }
     }
     throw e;
   }

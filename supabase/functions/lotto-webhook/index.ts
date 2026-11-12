@@ -1,14 +1,15 @@
 // deno-lint-ignore-file no-explicit-any
 // Stripe Connect webhook for the club lotto, and for team event payments
-// made on a club's own account (event-payment.ts). Set up in Stripe as a Connect
+// made on a team's own account (event-payment.ts). Set up in Stripe as a Connect
 // endpoint ("events on connected accounts") pointing at this function, with:
 //   checkout.session.completed, checkout.session.async_payment_succeeded,
-//   invoice.paid, customer.subscription.deleted, charge.refunded
+//   invoice.paid, customer.subscription.deleted, charge.refunded,
+//   account.updated (team sign-up state)
 // Requires: LOTTO_STRIPE_WEBHOOK_SECRET (the endpoint's signing secret).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { acct, confirmCheckout, json, loadLotto, recordInvoice, refundCharge, verifyStripeSignature } from "../_shared/lotto.ts";
-import { isEventPayment, markChargeRefunded, recordEventPayment } from "./event-payment.ts";
+import { isEventPayment, markChargeRefunded, recordEventPayment, syncTeamAccount } from "./event-payment.ts";
 
 serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -20,13 +21,16 @@ serve(async (req) => {
     return json({ error: "Bad signature" }, 400);
   }
   const event = JSON.parse(body);
+  // Stripe also sends test-mode events from connected accounts to a live
+  // Connect endpoint; nothing here uses test mode, so they are ignored.
+  if (event.livemode === false) return json({ received: true, ignored: "test mode" });
   const obj = event.data?.object || {};
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
   try {
     if ((event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded")
         && isEventPayment(obj)) {
-      // A team event payment made on the club's own account (not the lotto).
+      // A team event payment made on the team's own account (not the lotto).
       await recordEventPayment(sb, obj, event.account || null);
     } else if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const cfg = await lottoFor(sb, obj.metadata?.lotto_id, event.account);
@@ -41,11 +45,13 @@ serve(async (req) => {
         if (cfg) await recordInvoice(sb, ticket, obj);
       }
     } else if (event.type === "charge.refunded") {
-      // Team event payments on the club's account (no-op for lotto charges).
+      // Team event payments on a team's account (no-op for lotto charges).
       await markChargeRefunded(sb, obj, event.account || null);
       const { data: cfg } = await sb.from("lotto_clubs").select("*, clubs!inner(club_name, crest, primary_colour, secondary_colour, stripe_account_id)")
         .eq("clubs.stripe_account_id", event.account || "-").limit(1).maybeSingle();
       if (cfg) await refundCharge(sb, cfg, obj);
+    } else if (event.type === "account.updated") {
+      await syncTeamAccount(sb, obj);
     } else if (event.type === "customer.subscription.deleted") {
       const ticket = await ticketForSub(sb, obj.id);
       if (ticket && ticket.status === "active") {

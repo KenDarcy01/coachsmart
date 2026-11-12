@@ -3,7 +3,7 @@
 // payment from the app. Body { paymentId } (event_user_member_payment row).
 // - Caller must be signed in and an admin of the event's team (is_event_admin).
 // - Refunds that row's amount through Stripe on the account the payment was
-//   made on (CoachSmart's, or the club's Connect account). When a parent
+//   made on (CoachSmart's, or the team's own Connect account). When a parent
 //   paid for several players in one checkout, only this player's share goes
 //   back. Stripe keeps its fee.
 // - The row becomes 'refunded' (refund_id, refunded_at, refunded_by), so the
@@ -40,7 +40,7 @@ serve(async (req) => {
   if (!Number.isInteger(paymentId) || paymentId <= 0) return json({ error: "Missing paymentId." }, 400);
 
   const { data: row } = await sb.from("event_user_member_payment")
-    .select("payment_id, event_id, member_id, user_id, payment_status, amount_paid, stripe_session_id, stripe_payment_intent_id, event_title")
+    .select("payment_id, event_id, member_id, user_id, payment_status, amount_paid, stripe_session_id, stripe_payment_intent_id, stripe_account_id, event_title")
     .eq("payment_id", paymentId).maybeSingle();
   if (!row) return json({ error: "Payment not found." }, 404);
 
@@ -65,9 +65,11 @@ serve(async (req) => {
 
   try {
     const { data: ev } = await sb.from("events")
-      .select("event_id, team_id, teams(team_name, clubs(stripe_account_id))").eq("event_id", row.event_id).maybeSingle();
-    const clubAccount: string | null = (ev as any)?.teams?.clubs?.stripe_account_id || null;
-    const found = await findPaymentIntent(row, clubAccount);
+      .select("event_id, team_id, teams(team_name, stripe_account_id)").eq("event_id", row.event_id).maybeSingle();
+    // The account the payment was made on: the team's own Stripe account
+    // (team Stripe Connect, 2026-11-12) or the CoachSmart account.
+    const teamAccount: string | null = row.stripe_account_id || (ev as any)?.teams?.stripe_account_id || null;
+    const found = await findPaymentIntent(row, teamAccount);
     if (!found) throw new Error("Could not find this payment in Stripe.");
 
     const refund = await stripe("POST", "/refunds", {
@@ -96,8 +98,10 @@ serve(async (req) => {
 });
 
 // The payment intent and the Stripe account it lives on.
-async function findPaymentIntent(row: any, clubAccount: string | null) {
-  const accounts: (string | null)[] = [null, ...(clubAccount ? [clubAccount] : [])];
+async function findPaymentIntent(row: any, teamAccount: string | null) {
+  const accounts: (string | null)[] = row.stripe_account_id
+    ? [row.stripe_account_id]
+    : [null, ...(teamAccount ? [teamAccount] : [])];
   for (const account of accounts) {
     try {
       if (row.stripe_payment_intent_id) {
@@ -141,3 +145,4 @@ async function notifyPayer(sb: any, row: any, teamId: number | null, teamName: s
     console.warn("refund notification failed", (e as Error).message);
   }
 }
+

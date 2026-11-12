@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#14181b"/>
+  <meta name="robots" content="noindex"/>
+  <title>Stripe setup</title>
+  <!-- Where Stripe sends a team admin back after the team's Stripe sign-up
+       (team-stripe edge function, 2026-11-12). ?s=done or ?s=expired. -->
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #14181b; color: #f1f4f8;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; }
+    .wrap { max-width: 420px; margin: 0 auto; padding: 72px 24px; text-align: center; }
+    .tick { width: 72px; height: 72px; border-radius: 50%; background: rgba(135,194,50,.14); color: #87c232;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 22px; font-size: 36px; }
+    .tick.warn { background: rgba(240,180,32,.14); color: #f0b420; }
+    h1 { font-size: 24px; margin: 0 0 10px; }
+    p { color: #a1a1a2; font-size: 16px; line-height: 1.5; margin: 0 0 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="tick" id="icon">✓</div>
+    <h1 id="title">Stripe details saved</h1>
+    <p id="body">Go back to the app. The team's Payments page shows whether Stripe has finished its checks.</p>
+    <p>You can close this page.</p>
+  </div>
+  <script>
+    if (new URLSearchParams(location.search).get('s') === 'expired') {
+      document.getElementById('icon').textContent = '!';
+      document.getElementById('icon').className = 'tick warn';
+      document.getElementById('title').textContent = 'That link has expired';
+      document.getElementById('body').textContent = 'Go back to the app and tap Continue setup on the team\'s Payments page to pick up where you left off.';
+    }
+  </script>
+</body>
+</html>
