@@ -454,16 +454,17 @@ class _V3HomePageState extends State<V3HomePage> {
           const SizedBox(height: 2),
           // Today's count, then what is left this week (Ken, 2026-11-12).
           Text(week, style: V3.inter(15, weight: FontWeight.w600)),
-          // How many still need an answer (Ken, 2026-11-12).
-          if (toReply > 0) ...[
-            const SizedBox(height: 2),
-            Text(
-              toReply == 1
-                  ? '1 event to reply to'
-                  : '$toReply events to reply to',
-              style: V3.inter(15, weight: FontWeight.w600, color: V3.green),
-            ),
-          ],
+          // How many still need an answer, or "all up to date" when none
+          // do (Ken, 2026-11-12).
+          const SizedBox(height: 2),
+          Text(
+            toReply == 0
+                ? "You're all up to date"
+                : (toReply == 1
+                    ? '1 event to reply to'
+                    : '$toReply events to reply to'),
+            style: V3.inter(15, weight: FontWeight.w600, color: V3.green),
+          ),
         ],
       ),
     );
