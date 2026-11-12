@@ -2,7 +2,7 @@
 // in layout A of /mnt/project-files/coachsmart/app-v3/event-details-redesign/
 // (Ken, 2026-11-12): replies, opposition card, Meet / Venue tiles, one banner
 // per extra (cancelled, pay, payments summary, car pool), teams and tools by
-// role (Parent, FLO, Coach, Admin), attendance, details. Admin actions sit
+// role (Parent, FLO, Coach, Admin), details, then teams and attendance. Admin actions sit
 // behind the three-dot Manage sheet.
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -641,7 +641,7 @@ class _V3EventPageState extends State<V3EventPage> {
                       // themselves (Ken, 2026-11-09).
                       // Layout A (Ken, 2026-11-12): replies, the
                       // opposition, Meet and Venue, one banner per extra,
-                      // teams, tools, attendance, then details.
+                      // tools, details, then teams and attendance.
                       if (_cancelled) _cancelBanner(),
                       if (_showReplyBlock) ...[
                         _replyCard(),
@@ -653,6 +653,13 @@ class _V3EventPageState extends State<V3EventPage> {
                       if (_showPay) _payBanner(),
                       if (_admin && _ev!.paymentRequired && !_cancelled)
                         _paidSummaryBanner(),
+                      if (_ev!.carPoolingEnabled && !_cancelled) _carPoolBar(),
+                      if (_tools().isNotEmpty && !_cancelled) _toolsRow(),
+                      // Details above teams and attendance (Ken,
+                      // 2026-11-12).
+                      _section('Details'),
+                      _details(),
+                      const SizedBox(height: 10),
                       // Published teams (Ken, 2026-11-12), by role.
                       if (widget.testData == null ||
                           widget.testData!['teams'] is Map)
@@ -664,14 +671,10 @@ class _V3EventPageState extends State<V3EventPage> {
                             onSnack: _snack,
                             testData: widget.testData?['teams']
                                 as Map<String, dynamic>?),
-                      if (_ev!.carPoolingEnabled && !_cancelled) _carPoolBar(),
-                      if (_tools().isNotEmpty && !_cancelled) _toolsRow(),
                       if (_role >= 20 && _ev!.requestAttendance) ...[
                         _section('Attendance'),
                         _attendance(),
                       ],
-                      _section('Details'),
-                      _details(),
                     ],
                   ),
                 ),
