@@ -8,10 +8,8 @@
 // flick between them. A single match looks as before.
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '/backend/supabase/supabase.dart';
@@ -20,6 +18,7 @@ import 'v3_live_shared.dart';
 import 'v3_match_charts.dart';
 import 'v3_matches_models.dart';
 import '/v3/tracking/v3_track.dart';
+import '../v3_share.dart';
 
 class V3MatchLivePage extends StatefulWidget {
   const V3MatchLivePage(
@@ -62,6 +61,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
   int? _flashId;
   DateTime _flashUntil = DateTime.fromMillisecondsSinceEpoch(0);
   int _loadSeq = 0;
+  String? _shareToken;
   bool _switching = false;
   bool _awake = false;
   LivePulse? _pulse;
@@ -141,6 +141,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
         _data = d;
       });
       _keepAwake();
+      if (first && !d.hasError) _prefetchShareToken();
     } catch (_) {
       if (seq != _loadSeq || !mounted) return;
       setState(() {
@@ -218,32 +219,41 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
     });
   }
 
+  /// The share link token, fetched when the page opens so that Share opens
+  /// the tray straight from the tap (iPhone web needs that). One link per
+  /// match, so fetching it early makes nothing new.
+  Future<void> _prefetchShareToken() async {
+    if (_test || _shareToken != null) return;
+    try {
+      final tok = await SupaFlow.client
+          .rpc('get_live_share_link', params: {'p_event_id': widget.eventId});
+      if (tok != null && '$tok'.isNotEmpty) _shareToken = '$tok';
+    } catch (_) {}
+  }
+
   Future<void> _share() async {
     final d = _data;
     if (d == null || d.hasError) return;
-    String url;
-    try {
-      final tok = await SupaFlow.client
-          .rpc('get_live_share_link', params: {'p_event_id': d.event.eventId});
-      // Always the coachsmart.app address, so anyone can open it
-      url = LiveMatchData.shareUrl('$tok', d.multi ? _view : null);
-    } catch (_) {
-      if (mounted) {
-        liveSnack(context, "Couldn't make a link. Check your signal.",
-            warn: true);
+    if (_shareToken == null) {
+      try {
+        final tok = await SupaFlow.client.rpc('get_live_share_link',
+            params: {'p_event_id': d.event.eventId});
+        _shareToken = '$tok';
+      } catch (_) {
+        if (mounted) {
+          liveSnack(context, "Couldn't make a link. Check your signal.",
+              warn: true);
+        }
+        return;
       }
-      return;
+      if (!mounted) return;
     }
+    // Always the coachsmart.app address, so anyone can open it
+    final url = LiveMatchData.shareUrl(_shareToken!, d.multi ? _view : null);
     final text = '${d.shareText(_view)} $url';
-    try {
-      if (kIsWeb) throw UnsupportedError('web');
-      V3Track.event('live_match_shared', {'event_id': d.event.eventId});
-      await SharePlus.instance.share(ShareParams(
-          text: text, subject: '${d.event.teamName} v ${d.oppName}'));
-    } catch (_) {
-      await Clipboard.setData(ClipboardData(text: text));
-      if (mounted) liveSnack(context, 'Link copied. Paste it into a message.');
-    }
+    V3Track.event('live_match_shared', {'event_id': d.event.eventId});
+    await V3Share.text(context, text,
+        subject: '${d.event.teamName} v ${d.oppName}');
   }
 
   // ---------------------------------------------------------------- build

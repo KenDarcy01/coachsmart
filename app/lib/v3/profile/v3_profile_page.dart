@@ -6,7 +6,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
@@ -20,6 +19,7 @@ import '../tracking/v3_track.dart';
 import '../v3_theme.dart';
 import 'v3_notification_settings_page.dart';
 import 'v3_profile_models.dart';
+import '../v3_share.dart';
 
 class V3ProfilePage extends StatefulWidget {
   const V3ProfilePage({super.key, this.testData});
@@ -393,14 +393,7 @@ class _V3ProfilePageState extends State<V3ProfilePage> {
         final text =
             'Our CoachSmart events for your calendar. Add this link as '
             'a subscribed calendar (Google: Other calendars, From URL):\n$https';
-        try {
-          if (kIsWeb) throw UnsupportedError('web');
-          await SharePlus.instance
-              .share(ShareParams(text: text, subject: 'CoachSmart calendar'));
-        } catch (_) {
-          await Clipboard.setData(ClipboardData(text: text));
-          _snack('Calendar link copied. Paste it into a message.');
-        }
+        await V3Share.text(context, text, subject: 'CoachSmart calendar');
       case 'copy':
         await Clipboard.setData(ClipboardData(text: https));
         _snack('Calendar link copied');

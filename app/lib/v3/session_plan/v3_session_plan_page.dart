@@ -28,7 +28,6 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:printing/printing.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '/v3/games/v3_games.dart';
@@ -37,6 +36,7 @@ import '../v3_theme.dart';
 import 'v3_session_plan_api.dart';
 import 'v3_session_plan_models.dart';
 import 'v3_session_plan_widgets.dart';
+import '../v3_share.dart';
 
 enum _Screen { loading, off, error, setup, plan }
 
@@ -1118,7 +1118,8 @@ class _V3SessionPlanPageState extends State<V3SessionPlanPage> {
       final pdf = '${r.map['pdf'] ?? ''}';
       if (!r.ok || pdf.isEmpty) throw Exception();
       final name = '${r.map['filename'] ?? 'session-plan.pdf'}';
-      await Printing.sharePdf(bytes: base64Decode(pdf), filename: name);
+      if (!mounted) return;
+      await V3Share.pdf(context, base64Decode(pdf), name: name);
     } catch (_) {
       _snack('Could not generate PDF — please try again', warn: true);
     } finally {
