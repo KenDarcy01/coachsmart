@@ -14,6 +14,8 @@ import '/custom_code/actions/index.dart' as actions;
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
 import '../home/v3_home_data.dart';
+import '../session_plan/v3_plan_view_page.dart';
+import '../session_plan/v3_session_plan_api.dart' show spPlansChanged;
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
 import 'v3_event_teams.dart';
@@ -78,6 +80,14 @@ class _V3EventPageState extends State<V3EventPage> {
   void initState() {
     super.initState();
     _load();
+    // A plan saved, attached or removed anywhere updates View plan.
+    spPlansChanged.addListener(_loadPlan);
+  }
+
+  @override
+  void dispose() {
+    spPlansChanged.removeListener(_loadPlan);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -112,12 +122,30 @@ class _V3EventPageState extends State<V3EventPage> {
         _error = null;
       });
       _loadTeamFlags(ev.teamId);
+      _loadPlan();
     } catch (e) {
       setState(() {
         _loading = false;
         _error = 'This event could not be loaded.';
       });
     }
+  }
+
+  // The session's plan, for View plan (coaches and admins) and the
+  // Create / Edit plan label (admins). Matches have no plan tools.
+  String? _planId;
+
+  Future<void> _loadPlan() async {
+    if (_ev == null || _isMatch || _role < 30 || widget.testData != null) {
+      return;
+    }
+    final id = await spEventPlanId(_eventId);
+    if (mounted) setState(() => _planId = id);
+  }
+
+  Future<void> _editPlan() async {
+    await openCoachingEventPlan(context, _eventId);
+    _loadPlan();
   }
 
   // Team feature switches that gate the Lineup and Session plan tools.
@@ -710,11 +738,22 @@ class _V3EventPageState extends State<V3EventPage> {
       if (_role >= 30 && _teamAllowsLineup) {
         out.add(_Tool('Lineup', Icons.grid_view_outlined, _openLineup));
       }
-    } else if (_admin) {
-      // Admins only, not coaches (Ken, 2026-11-11); the team's session plan
-      // switch only decides whether the AI writer shows.
-      out.add(_Tool('Session plan', Icons.assignment_outlined,
-          () => openCoachingEventPlan(context, _eventId)));
+    } else if (_role >= 30) {
+      // View plan: the branded phone PDF for coaches and admins once the
+      // session has a plan. Create / Edit plan: admins only (Ken, 2026-11-12).
+      final planId = _planId;
+      if (planId != null) {
+        out.add(_Tool(
+            'View plan',
+            Icons.description_outlined,
+            () => Navigator.of(context).push(MaterialPageRoute(
+                settings: const RouteSettings(name: 'V3PlanViewPage'),
+                builder: (_) => V3PlanViewPage(planId: planId)))));
+      }
+      if (_admin) {
+        out.add(_Tool(planId == null ? 'Create plan' : 'Edit plan',
+            Icons.assignment_outlined, _editPlan));
+      }
     }
     return out;
   }
