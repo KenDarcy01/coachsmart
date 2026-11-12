@@ -95,7 +95,8 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
   String _homeAway = 'Home';
   DateTime? _date;
   TimeOfDay? _time;
-  TimeOfDay? _meet;
+  // Meet time is free text again (Ken, 2026-11-12): "9:30 / 10:30", "TBC".
+  final _meet = TextEditingController();
   RepeatRule _repeat = RepeatRule.none;
   bool _askReplies = true;
   bool _payment = false;
@@ -119,6 +120,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
   @override
   void dispose() {
     for (final c in [
+      _meet,
       _opposition,
       _title,
       _venue,
@@ -225,7 +227,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
       _date = DateTime(dt.year, dt.month, dt.day);
       _time = TimeOfDay(hour: dt.hour, minute: dt.minute);
     }
-    _meet = parseMeetTime(e.meetTime);
+    _meet.text = e.meetTime.trim();
     _askReplies = e.requestAttendance;
     _opposition.text = e.opposition;
     _title.text = e.eventTitle;
@@ -325,7 +327,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
           'request_attendance': _askReplies,
           'event_details': _notes.text.trim(),
           'event_link': _link.text.trim(),
-          'meet_time': formatMeetTime(_meet),
+          'meet_time': _meetText,
           'opposition': _isMatch ? _opposition.text.trim() : null,
           'event_image': image,
           if (_paymentsOn) 'payment_required': _payment && amount != null,
@@ -389,7 +391,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
         'p_location_name': _venue.text.trim(),
         'p_location_pin': _pin.text.trim(),
         'p_home_away': _isMatch ? _homeAway : null,
-        'p_meet_time': formatMeetTime(_meet),
+        'p_meet_time': _meetText,
         'p_opposition': _isMatch ? _opposition.text.trim() : null,
         'p_event_details': _notes.text.trim(),
         'p_event_link': _link.text.trim(),
@@ -450,12 +452,12 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
     if (d != null) setState(() => _date = d);
   }
 
-  Future<void> _pickTime(bool meet) async {
+  String? get _meetText => _meet.text.trim().isEmpty ? null : _meet.text.trim();
+
+  Future<void> _pickTime() async {
     final t = await showTimePicker(
       context: context,
-      initialTime: meet
-          ? (_meet ?? _time ?? TimeOfDay.now())
-          : (_time ?? TimeOfDay.now()),
+      initialTime: _time ?? TimeOfDay.now(),
       builder: (ctx, child) => _pickerTheme(
           ctx,
           MediaQuery(
@@ -463,13 +465,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
               child: child!)),
     );
     if (t == null) return;
-    setState(() {
-      if (meet) {
-        _meet = t;
-      } else {
-        _time = t;
-      }
-    });
+    setState(() => _time = t);
   }
 
   Widget _pickerTheme(BuildContext ctx, Widget? child) => Theme(
@@ -813,16 +809,8 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
                 'Starts',
                 _value(_time == null ? null : _fmt(_time!), 'Pick a time',
                     green: true),
-                onTap: () => _pickTime(false)),
-            _row('Meet at',
-                _value(_meet == null ? null : _fmt(_meet!), 'Same as start'),
-                onTap: () => _pickTime(true),
-                trailing: _meet != null
-                    ? IconButton(
-                        icon:
-                            const Icon(Icons.close, color: V3.muted, size: 20),
-                        onPressed: () => setState(() => _meet = null))
-                    : null),
+                onTap: _pickTime),
+            _row('Meet at', _text(_meet, 'e.g. 9:30, 9:30 / 10:30 or TBC')),
             if (!_editing)
               _row('Repeat', Text(_repeat.label(), style: V3.inter(15.5)),
                   onTap: _repeatSheet),
