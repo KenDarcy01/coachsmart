@@ -76,6 +76,8 @@ serve(async (req) => {
       payment_intent: found.pi,
       amount,
       reason: "requested_by_customer",
+      // On a team's own account, CoachSmart's fee for this share goes back too.
+      ...(found.account ? { refund_application_fee: true } : {}),
       metadata: { payment_id: String(paymentId), member_id: String(row.member_id), event_id: String(row.event_id) },
     }, found.account);
 

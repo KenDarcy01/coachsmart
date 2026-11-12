@@ -20,6 +20,7 @@
 //   and is never used for team payments. A team that has never had a ready
 //   account but has payments on (the teams from before Connect) stays on the
 //   CoachSmart account; any other team can't take payments until it connects.
+//   A team account is only used once Ken has approved it (stripe_approved_at).
 // The answer adds memberIds, unitPrice and amount next to checkoutUrl.
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@13.11.0?no-dts&no-std';
@@ -69,7 +70,7 @@ serve(async (req) => {
     // The event sets the price.
     const { data: ev, error: evErr } = await sb
       .from('events')
-      .select('event_id, team_id, payment_required, payment_amount, status, teams(payments, stripe_account_id, stripe_ready_at)')
+      .select('event_id, team_id, payment_required, payment_amount, status, teams(payments, stripe_account_id, stripe_ready_at, stripe_approved_at, stripe_fee_bps)')
       .eq('event_id', appEventId)
       .maybeSingle();
     if (evErr) throw new Error(evErr.message);
@@ -131,7 +132,7 @@ serve(async (req) => {
 
     // The team's own Stripe account when it can take payments.
     let account: string | null = null;
-    if (teamAccount) {
+    if (teamAccount && team.stripe_approved_at) {
       try {
         const a = await stripe.accounts.retrieve(teamAccount);
         if (a.charges_enabled) account = teamAccount;
@@ -142,7 +143,22 @@ serve(async (req) => {
     // CoachSmart never holds a team's money: only the teams from before
     // Connect (payments on, never had a ready account) fall back to it.
     if (!account && !(team.payments && !team.stripe_ready_at)) {
-      return reply({ error: 'This team has not set up payments yet.' }, 409);
+      return reply({ error: teamAccount && !team.stripe_approved_at
+        ? 'This team is waiting for CoachSmart to approve its payments.'
+        : 'This team has not set up payments yet.' }, 409);
+    }
+
+    // CoachSmart's cut on a team's own account (2026-11-12): an application
+    // fee Stripe moves to the CoachSmart account. Per team (stripe_fee_bps)
+    // or the default (payment_settings). 0 to start. Comes out of the team's
+    // money; the parent pays the price the coach set.
+    let feeBps = 0;
+    if (account) {
+      if (team.stripe_fee_bps != null) feeBps = Number(team.stripe_fee_bps) || 0;
+      else {
+        const { data: ps } = await sb.from('payment_settings').select('default_fee_bps').eq('id', 1).maybeSingle();
+        feeBps = Number(ps?.default_fee_bps) || 0;
+      }
     }
 
     const sep = appSuccessUrl.includes('?') ? '&' : '?';
@@ -160,6 +176,9 @@ serve(async (req) => {
         ...(account ? { stripe_account: account } : {})
       },
       client_reference_id: userId,
+      ...(account && feeBps > 0 && Math.round(amount * feeBps / 10000) > 0
+        ? { payment_intent_data: { application_fee_amount: Math.round(amount * feeBps / 10000) } }
+        : {}),
       success_url: `${appSuccessUrl}${sep}stripeSessionId={CHECKOUT_SESSION_ID}`,
       cancel_url: appCancelUrl
     }, account ? { stripeAccount: account } : undefined);
@@ -174,6 +193,7 @@ serve(async (req) => {
         stripe_session_id: session.id,
         stripe_checkout_url: session.url,
         stripe_account_id: account,
+        platform_fee_amount: account ? Math.round(unitPrice * feeBps / 10000) : null,
         amount_paid: unitPrice,
         gross_amount: unitPrice,
         event_title: title

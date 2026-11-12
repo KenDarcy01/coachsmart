@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#14181b"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <title>Team payments</title>
+  <!-- Ken only (2026-11-12): approve teams' Stripe accounts and set the
+       CoachSmart fee. Data from the stripe-admin edge function, which checks
+       the signed-in email. Linked from the "Approve payments" email. -->
+  <style>
+    :root { --green:#87c232; --gdim:rgba(135,194,50,.14); --dark:#14181b; --card:#1e222b; --card2:#262b35;
+      --text:#f1f4f8; --muted:#a1a1a2; --red:#ef5350; --amber:#f5a524; --adim:rgba(245,165,36,.14); --border:rgba(255,255,255,.07); }
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    html,body { background:var(--dark); }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif; color:var(--text); font-size:16px; -webkit-text-size-adjust:none; }
+    button { cursor:pointer; border:none; font:inherit; -webkit-tap-highlight-color:transparent; }
+    .top { position:sticky; top:0; z-index:5; background:var(--dark); padding:14px 16px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; }
+    .top h1 { font-size:19px; flex:1; }
+    .link { background:none; color:var(--muted); font-size:14px; }
+    .body { padding:14px 16px 60px; max-width:640px; margin:0 auto; }
+    .sec { font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:20px 0 8px; }
+    .card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:10px; }
+    .card.focus { box-shadow:0 0 0 2px var(--green); }
+    .name { font-size:17px; font-weight:700; }
+    .sub { font-size:14px; color:var(--muted); margin-top:3px; line-height:1.45; word-break:break-word; }
+    .pill { display:inline-block; font-size:12px; font-weight:700; border-radius:99px; padding:3px 10px; margin-top:10px; }
+    .pill.ok { color:var(--green); background:var(--gdim); }
+    .pill.wait { color:var(--amber); background:var(--adim); }
+    .pill.off { color:var(--muted); background:var(--card2); }
+    .btn { width:100%; min-height:48px; border-radius:12px; font-weight:700; font-size:16px; background:var(--green); color:#14181b; margin-top:12px; }
+    .btn.ghost { background:var(--card2); color:var(--red); }
+    .btn:disabled { opacity:.45; }
+    .fee { display:flex; align-items:center; gap:10px; margin-top:12px; font-size:14px; color:var(--muted); }
+    .fee input { width:84px; background:var(--card2); border:1.5px solid transparent; border-radius:10px; padding:10px; color:var(--text); font:inherit; font-size:16px; text-align:right; }
+    .fee input:focus { outline:none; border-color:rgba(135,194,50,.55); }
+    .fee .save { background:none; color:var(--green); font-weight:700; font-size:14px; padding:8px 4px; }
+    .field { display:block; width:100%; background:var(--card2); border:1.5px solid transparent; border-radius:12px; padding:13px; font:inherit; color:var(--text); font-size:16px; margin-bottom:10px; }
+    .field:focus { outline:none; border-color:rgba(135,194,50,.55); }
+    .hint { font-size:13px; color:var(--muted); line-height:1.45; margin-top:8px; }
+    .err { color:var(--red); }
+    .state { text-align:center; color:var(--muted); padding:60px 20px; line-height:1.5; }
+    .spinner { width:34px; height:34px; border:3px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; margin:60px auto; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:var(--card2); color:var(--green); padding:10px 20px; border-radius:20px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; }
+    .toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+  <div class="top" id="top" style="display:none"><h1>Team payments</h1><button class="link" onclick="signOut()">Sign out</button></div>
+  <div class="body" id="main"><div class="spinner"></div></div>
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+  const FN_URL = SUPABASE_URL + '/functions/v1/stripe-admin';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const focusTeam = Number(new URLSearchParams(location.search).get('team')) || null;
+  const pct = bps => (Number(bps) / 100).toLocaleString('en-IE', { maximumFractionDigits: 2 });
+  let D = null;
+
+  function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2200); }
+
+  async function call(payload) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { showSignIn(); throw new Error('signin'); }
+    const res = await fetch(FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify(payload),
+    });
+    let j = {}; try { j = await res.json(); } catch (_) {}
+    if (res.status === 401) { showSignIn('Please sign in again.'); throw new Error('signin'); }
+    if (!res.ok || !j.success) throw new Error(j.error || 'Something went wrong');
+    return j.data;
+  }
+
+  function showSignIn(msg = '') {
+    $('top').style.display = 'none';
+    $('main').innerHTML = `<div class="card" style="margin-top:40px"><div class="name">Team payments</div>
+      <div class="hint" style="margin:4px 0 14px">Sign in with your CoachSmart login.</div>
+      <input class="field" id="email" type="email" placeholder="Email" autocomplete="username">
+      <input class="field" id="password" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')signIn()">
+      <div class="hint err" id="signErr">${esc(msg)}</div>
+      <button class="btn" id="signBtn" onclick="signIn()">Sign in</button></div>`;
+  }
+  async function signIn() {
+    const b = $('signBtn'); b.disabled = true; b.textContent = 'Signing in…';
+    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    if (error) { b.disabled = false; b.textContent = 'Sign in'; $('signErr').textContent = "That email and password didn't work."; return; }
+    load();
+  }
+  async function signOut() { await sb.auth.signOut(); showSignIn(); }
+
+  async function load() {
+    $('main').innerHTML = '<div class="spinner"></div>';
+    try { D = await call({ action: 'list', team_id: focusTeam || undefined }); render(); }
+    catch (e) { if (e.message !== 'signin') $('main').innerHTML = `<div class="state">${esc(e.message)}</div>`; }
+  }
+
+  function teamCard(t) {
+    const pill = t.approved_at
+      ? (t.payments ? '<span class="pill ok">Approved · taking payments</span>' : '<span class="pill ok">Approved · payments switched off</span>')
+      : (t.ready ? '<span class="pill wait">Waiting for your approval</span>' : '<span class="pill off">Still in Stripe setup</span>');
+    const who = t.connected_by ? `Set up by ${esc(t.connected_by.name || '')}${t.connected_by.email ? ' · ' + esc(t.connected_by.email) : ''}` : '';
+    const stripeLine = [t.stripe_name ? 'Stripe name: ' + esc(t.stripe_name) : '', t.stripe_type ? esc(t.stripe_type.replace('_', ' ')) : '',
+      t.ready ? (t.payouts ? 'bank payouts on' : 'no bank payouts yet') : ''].filter(Boolean).join(' · ');
+    const action = t.approved_at
+      ? `<button class="btn ghost" onclick="act('unapprove', ${t.team_id}, this)">Stop this team's payments</button>`
+      : `<button class="btn" onclick="act('approve', ${t.team_id}, this)">Approve</button>`;
+    return `<div class="card${t.team_id === focusTeam ? ' focus' : ''}" id="t${t.team_id}">
+      <div class="name">${esc(t.team_name)}</div>
+      <div class="sub">${esc(t.club_name || '')}</div>
+      ${who ? `<div class="sub">${who}</div>` : ''}
+      ${stripeLine ? `<div class="sub">${stripeLine}</div>` : ''}
+      ${pill}
+      ${action}
+      <div class="fee">CoachSmart fee <input id="fee${t.team_id}" type="number" inputmode="decimal" min="0" max="20" step="0.1"
+        placeholder="${pct(D.default_fee_bps)}" value="${t.fee_bps === null || t.fee_bps === undefined ? '' : pct(t.fee_bps)}"> %
+        <button class="save" onclick="teamFee(${t.team_id}, this)">Save</button></div>
+      <div class="hint">Leave the fee empty to use the default (${pct(D.default_fee_bps)}%).</div>
+    </div>`;
+  }
+
+  function render() {
+    $('top').style.display = '';
+    const waiting = D.teams.filter(t => !t.approved_at && t.ready);
+    const setup = D.teams.filter(t => !t.approved_at && !t.ready);
+    const approved = D.teams.filter(t => t.approved_at);
+    const focus = D.teams.find(t => t.team_id === focusTeam);
+    let h = '';
+    if (focus) h += `<div class="sec">This team</div>` + teamCard(focus);
+    const group = (title, arr) => {
+      const cards = arr.filter(t => t.team_id !== focusTeam).map(teamCard).join('');
+      if (cards) h += `<div class="sec">${title}</div>` + cards;
+    };
+    group('Waiting for approval', waiting);
+    group('Still in Stripe setup', setup);
+    group('Approved', approved);
+    if (!D.teams.length) h += `<div class="state">No team has connected Stripe yet.</div>`;
+    h += `<div class="sec">CoachSmart fee</div><div class="card">
+      <div class="sub" style="margin:0">Taken from each payment to a team's own Stripe account and paid to the CoachSmart Stripe account. Parents pay the price the coach set.</div>
+      <div class="fee">Default <input id="defFee" type="number" inputmode="decimal" min="0" max="20" step="0.1" value="${pct(D.default_fee_bps)}"> %
+        <button class="save" onclick="defaultFee(this)">Save</button></div></div>`;
+    if (D.legacy.length) h += `<div class="sec">Still paid to CoachSmart</div><div class="card"><div class="sub" style="margin:0">These teams take payments on the CoachSmart account until they connect their own Stripe.</div>
+      ${D.legacy.map(t => `<div class="sub" style="margin-top:8px;color:var(--text)">${esc(t.team_name)}${t.club_name ? ' · ' + esc(t.club_name) : ''}</div>`).join('')}</div>`;
+    $('main').innerHTML = h;
+  }
+
+  async function act(action, teamId, btn) {
+    if (action === 'unapprove' && !confirm("Stop this team's payments? Parents won't be able to pay until you approve it again.")) return;
+    btn.disabled = true;
+    try { D = await call({ action, team_id: teamId }); render(); toast(action === 'approve' ? 'Approved. The team has been emailed.' : 'Payments stopped'); }
+    catch (e) { if (e.message !== 'signin') { toast(e.message); btn.disabled = false; } }
+  }
+  const toBps = v => v === '' ? null : Math.round(Number(String(v).replace(',', '.')) * 100);
+  async function teamFee(teamId, btn) {
+    const bps = toBps($('fee' + teamId).value.trim());
+    btn.disabled = true;
+    try { D = await call({ action: 'team_fee', team_id: teamId, bps }); render(); toast('Fee saved'); }
+    catch (e) { if (e.message !== 'signin') { toast(e.message); btn.disabled = false; } }
+  }
+  async function defaultFee(btn) {
+    const bps = toBps($('defFee').value.trim() || '0');
+    btn.disabled = true;
+    try { D = await call({ action: 'default_fee', bps }); render(); toast('Default fee saved'); }
+    catch (e) { if (e.message !== 'signin') { toast(e.message); btn.disabled = false; } }
+  }
+
+  sb.auth.getSession().then(({ data }) => data.session ? load() : showSignIn());
+</script>
+</body>
+</html>

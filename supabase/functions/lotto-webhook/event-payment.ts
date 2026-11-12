@@ -90,7 +90,7 @@ export async function markChargeRefunded(sb: any, charge: any, account: string |
 // keep the team's cached state in step. Lotto (club) accounts are ignored.
 export async function syncTeamAccount(sb: any, account: any) {
   if (!account?.id) return;
-  const { data: team } = await sb.from("teams").select("team_id, stripe_ready_at")
+  const { data: team } = await sb.from("teams").select("team_id, stripe_ready_at, stripe_approved_at")
     .eq("stripe_account_id", account.id).maybeSingle();
   if (!team) return;
   const ready = !!account.charges_enabled;
@@ -102,5 +102,48 @@ export async function syncTeamAccount(sb: any, account: any) {
     stripe_updated_at: now,
     ...(ready && !team.stripe_ready_at ? { stripe_ready_at: now } : {}),
   }).eq("team_id", team.team_id);
+  if (ready && !team.stripe_approved_at) {
+    try { await notifyStripeReady(sb, team.team_id); } catch (e) { console.error("notifyStripeReady", (e as Error).message); }
+  }
 }
 
+
+// ── Tell Ken a team's Stripe account is ready for his approval ───────────────
+// Once per account (teams.stripe_notified_at), with a link to his approvals
+// page (webviews/stripe-approvals.html, his login only).
+const APPROVER_EMAIL = "ken.darcy@gmail.com";
+const APPROVALS_PAGE = "https://coachsmart.app/webviews/stripe-approvals.html";
+
+export async function notifyStripeReady(sb: any, teamId: number) {
+  const { data: claimed } = await sb.from("teams").update({ stripe_notified_at: new Date().toISOString() })
+    .eq("team_id", teamId).is("stripe_notified_at", null).is("stripe_approved_at", null)
+    .select("team_id, team_name, stripe_connected_by, clubs(club_name)");
+  const t = claimed?.[0];
+  if (!t) return;
+  let who = "";
+  if (t.stripe_connected_by) {
+    const { data: u } = await sb.from("users").select("first_name, last_name, email_address")
+      .eq("user_id", t.stripe_connected_by).maybeSingle();
+    if (u) who = [[u.first_name, u.last_name].filter(Boolean).join(" "), u.email_address].filter(Boolean).join(", ");
+  }
+  const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  const team = `${t.team_name || "A team"}${t.clubs?.club_name ? ` (${t.clubs.club_name})` : ""}`;
+  const link = `${APPROVALS_PAGE}?team=${t.team_id}`;
+  const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:16px;color:#1B2333">
+<h2 style="font-size:19px;margin:0 0 12px">${esc(team)} is ready to take payments</h2>
+<p style="margin:0 0 8px">The team has finished its Stripe setup${who ? `. Set up by ${esc(who)}` : ""}.</p>
+<p style="margin:0 0 18px">Its payments stay off until you approve it.</p>
+<p style="margin:0"><a href="${esc(link)}" style="display:inline-block;background:#87c232;color:#14181b;font-weight:700;text-decoration:none;padding:13px 22px;border-radius:12px">Review and approve</a></p>
+</div>`;
+  const key = Deno.env.get("RESEND_API_KEY");
+  if (!key) { console.error("notifyStripeReady: RESEND_API_KEY not set"); return; }
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "CoachSmart <no-reply@coachsmart.app>", to: [APPROVER_EMAIL],
+      subject: `Approve payments: ${team}`, html,
+    }),
+  });
+  if (!res.ok) console.error("notifyStripeReady email", res.status, await res.text());
+}
