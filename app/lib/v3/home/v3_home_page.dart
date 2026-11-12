@@ -437,7 +437,10 @@ class _V3HomePageState extends State<V3HomePage> {
           ? '$today · no more this week'
           : '$today · $restN more this week';
     }
-    return Padding(
+    // Full width so the block sits on the left margin, not centred
+    // (Ken, 2026-11-12).
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
