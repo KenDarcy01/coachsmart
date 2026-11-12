@@ -2,6 +2,7 @@
 // code chips, squad cards, role pills, search, then members grouped by role
 // with a big squad pill under each name. Looks like the attendance page
 // (Ken approved 2026-11-11).
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,6 +14,7 @@ import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_team_models.dart';
 import 'v3_squad_setup_page.dart';
+import 'v3_team_payments_page.dart';
 import '/v3/tracking/v3_track.dart';
 import '../v3_share.dart';
 import '/v3/v3_squads.dart';
@@ -146,6 +148,18 @@ class _V3TeamPageState extends State<V3TeamPage> {
     await context.pushNamed(PendingRequestsWidget.routeName, queryParameters: {
       'paramTeamID': serializeParam(widget.teamId, ParamType.int)!,
     });
+    if (mounted) _load();
+  }
+
+  // Team Stripe Connect (2026-11-12): web preview only until Ken approves it
+  // for the phone builds.
+  bool get _showPayments => _admin && kIsWeb;
+
+  Future<void> _openPayments() async {
+    V3Track.event('team_payments_opened');
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => V3TeamPaymentsPage(
+            teamId: widget.teamId, teamName: _roster?.teamName ?? '')));
     if (mounted) _load();
   }
 
@@ -336,6 +350,7 @@ class _V3TeamPageState extends State<V3TeamPage> {
                 children: [
                   _header(r),
                   _codeCard(r),
+                  if (_showPayments) _paymentsRow(),
                   if (_admin && (_summary?.pending ?? 0) > 0)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -380,6 +395,32 @@ class _V3TeamPageState extends State<V3TeamPage> {
       ]),
     );
   }
+
+  Widget _paymentsRow() => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Material(
+          color: V3.card,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            key: const ValueKey('team-payments-row'),
+            borderRadius: BorderRadius.circular(14),
+            onTap: _openPayments,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+              child: Row(children: [
+                const Icon(Icons.account_balance_outlined,
+                    color: V3.green, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Payments · get paid to your bank',
+                      style: V3.inter(15, weight: FontWeight.w600)),
+                ),
+                const Icon(Icons.chevron_right, color: V3.muted),
+              ]),
+            ),
+          ),
+        ),
+      );
 
   Widget _codeCard(TeamRoster r) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
