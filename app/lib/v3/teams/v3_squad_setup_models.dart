@@ -81,6 +81,9 @@ class SquadSetup {
   }
 }
 
+/// Grade choices on the squad sheet (reporting only, Ken 2026-11-12).
+const kSquadGrades = ['A', 'B', 'C', 'D', 'E'];
+
 /// "14 players", "1 player", "No players yet".
 String playersLine(int n) =>
     n == 0 ? 'No players yet' : '$n ${n == 1 ? 'player' : 'players'}';

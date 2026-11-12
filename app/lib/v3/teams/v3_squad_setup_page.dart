@@ -103,7 +103,7 @@ class _V3SquadSetupPageState extends State<V3SquadSetupPage> {
     final ok = await _run(
         () => widget.api.save(
             widget.teamId, squad?.squadId, result.name, result.colour,
-            grade: squad?.grade ?? ''),
+            grade: result.grade),
         done: squad == null
             ? '${result.name.trim()} added.'
             : '${result.name.trim()} saved.');
@@ -367,7 +367,11 @@ class _V3SquadSetupPageState extends State<V3SquadSetupPage> {
                     ? (s.players == 0
                         ? 'Everyone is placed'
                         : '${playersLine(s.players)} not placed yet')
-                    : playersLine(s.players),
+                    : [
+                        if (s.grade.trim().isNotEmpty)
+                          'Grade ${s.grade.trim()}',
+                        playersLine(s.players),
+                      ].join(' · '),
                 style: V3.inter(13, color: V3.muted)),
           ]),
         ),
@@ -440,9 +444,11 @@ class _Grab extends StatelessWidget {
 }
 
 class _SheetResult {
-  const _SheetResult(this.name, this.colour, {this.turnOff = false});
+  const _SheetResult(this.name, this.colour,
+      {this.grade = '', this.turnOff = false});
   final String name;
   final String colour;
+  final String grade;
   final bool turnOff;
 }
 
@@ -462,6 +468,7 @@ class _SquadSheet extends StatefulWidget {
 class _SquadSheetState extends State<_SquadSheet> {
   late final _name = TextEditingController(text: widget.squad?.name ?? '');
   late String _colour = widget.colour.toUpperCase();
+  late String _grade = widget.squad?.grade.trim() ?? '';
   String? _error;
 
   @override
@@ -493,7 +500,39 @@ class _SquadSheetState extends State<_SquadSheet> {
       setState(() => _error = err);
       return;
     }
-    Navigator.pop(context, _SheetResult(_name.text.trim(), _colour));
+    Navigator.pop(
+        context, _SheetResult(_name.text.trim(), _colour, grade: _grade));
+  }
+
+  /// Grade is for reporting only: shown here (super users) and nowhere
+  /// a coach or parent looks (Ken, 2026-11-12).
+  Widget _gradeRow() {
+    final options = ['', ...kSquadGrades];
+    if (_grade.isNotEmpty && !options.contains(_grade)) options.add(_grade);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('GRADE · ONLY SUPER USERS SEE THIS',
+          style: V3
+              .inter(12, weight: FontWeight.w600, color: V3.muted)
+              .copyWith(letterSpacing: 0.6)),
+      const SizedBox(height: 8),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final g in options)
+          ChoiceChip(
+            key: ValueKey('ss-grade-${g.isEmpty ? 'none' : g}'),
+            label: Text(g.isEmpty ? 'None' : g),
+            selected: _grade == g,
+            showCheckmark: false,
+            onSelected: (_) => setState(() => _grade = g),
+            labelStyle: V3.inter(14,
+                weight: FontWeight.w600, color: _grade == g ? V3.bg : V3.text),
+            selectedColor: V3.green,
+            backgroundColor: V3.card2,
+            side: BorderSide.none,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+      ]),
+    ]);
   }
 
   @override
@@ -626,6 +665,8 @@ class _SquadSheetState extends State<_SquadSheet> {
                     ),
                   ),
                 ]),
+                const SizedBox(height: 18),
+                _gradeRow(),
                 const SizedBox(height: 20),
                 SizedBox(
                   height: 52,

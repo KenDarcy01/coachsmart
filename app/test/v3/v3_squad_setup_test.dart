@@ -137,6 +137,18 @@ void main() {
     expect(api.calls.single, 'save 2 Reds Two #D63B3B B');
   });
 
+  testWidgets('grade can be changed and shows on the row', (t) async {
+    final api = await pump(t);
+    expect(find.text('Grade B · 13 players'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('ss-edit-1')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('ss-grade-A')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('ss-save')));
+    await t.pumpAndSettle();
+    expect(api.calls.single, 'save 1 Blues #2F6FD6 A');
+  });
+
   testWidgets('turn off asks first, turn on', (t) async {
     final api = await pump(t);
     await t.tap(find.byKey(const ValueKey('ss-edit-2')));
