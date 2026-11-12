@@ -12,6 +12,11 @@ class V3 {
   static const muted = Color(0xFFB5B8BE);
   static const red = Color(0xFFE5484D);
   static const redText = Color(0xFFFF7B7F);
+
+  /// proxyDecorator for ReorderableListView: the dragged card keeps the dark
+  /// look instead of the default white Material behind it (Ken, 2026-11-12).
+  static Widget dragProxy(Widget child, int index, Animation<double> a) =>
+      Material(color: Colors.transparent, child: child);
   static const amber = Color(0xFFF5A524);
   static const amberText = Color(0xFFFFC861);
   static const line = Color(0xFF2E333E);

@@ -988,6 +988,50 @@ class _V3SessionPlanPageState extends State<V3SessionPlanPage> {
 
   // --------------------------------------------------------- club sharing
 
+  bool _removing = false;
+
+  Future<void> _removeFromSession() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: V3.card,
+        title: Text('Remove this plan?', style: V3.tight(20)),
+        content: Text(
+            'The session will have no plan. Plans saved in Coaching stay as '
+            'they are.',
+            style: V3.inter(15, color: V3.muted, height: 1.4)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: V3.inter(15, color: V3.text))),
+          TextButton(
+              key: const ValueKey('remove-plan-yes'),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('Remove',
+                  style: V3.inter(15,
+                      weight: FontWeight.w700, color: V3.redText))),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    setState(() => _removing = true);
+    try {
+      final r = await _call({'action': 'deactivate_plan', 'plan_id': _planId});
+      if (!mounted) return;
+      if (!r.ok || r.map['ok'] != true) {
+        _snack('Could not remove the plan', warn: true);
+        return;
+      }
+      spPlansChanged.value++;
+      _snack('Plan removed from this session');
+      Navigator.of(context).maybePop();
+    } catch (_) {
+      _snack('Network error', warn: true);
+    } finally {
+      if (mounted) setState(() => _removing = false);
+    }
+  }
+
   Future<void> _shareWithClub(bool shared) async {
     if (_shareBusy) return;
     if (_planId == null || _dirty) {
@@ -1251,6 +1295,7 @@ class _V3SessionPlanPageState extends State<V3SessionPlanPage> {
       ReorderableListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         buildDefaultDragHandles: false,
+        proxyDecorator: V3.dragProxy,
         header: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch, children: header),
         footer: footer,
@@ -1558,6 +1603,22 @@ class _V3SessionPlanPageState extends State<V3SessionPlanPage> {
                 outline: true,
                 busy: _saving,
                 onPressed: _save),
+          // Take a plan off a session, e.g. one attached by mistake (Ken,
+          // 2026-11-12). Saved plans in the library are not touched.
+          if (!_readOnly && _eventId != null && _planId != null) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                key: const ValueKey('remove-plan'),
+                onPressed: _removing ? null : _removeFromSession,
+                style: TextButton.styleFrom(foregroundColor: V3.redText),
+                icon: const Icon(Icons.delete_outline, size: 20),
+                label: Text('Remove plan from this session',
+                    style: V3.inter(15,
+                        weight: FontWeight.w600, color: V3.redText)),
+              ),
+            ),
+          ],
           if (!_readOnly &&
               _eventId == null &&
               (widget.direct || _clubId != null)) ...[

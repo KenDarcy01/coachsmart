@@ -398,6 +398,7 @@ class _V3PlanBuilderPageState extends State<V3PlanBuilderPage> {
         body: ReorderableListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           buildDefaultDragHandles: false,
+          proxyDecorator: V3.dragProxy,
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           header: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
