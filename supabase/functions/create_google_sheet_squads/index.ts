@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import postgres from "https://deno.land/x/postgresjs@v3.3.3/mod.js";
 import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
+import { assertEventStaffEmail } from "../_shared/export-guard.ts";
 
 const RequestSchema = z.object({
   event_id: z.coerce.string(),
@@ -230,6 +231,7 @@ const handler = async (request: Request): Promise<Response> => {
   try {
     const body = await request.json();
     const { event_id, user_email, match_squad_id } = RequestSchema.parse(body);
+    await assertEventStaffEmail(sql, event_id, user_email);
 
     // ── STEP 1: DB query + Google auth in parallel ────────────────────────
     console.log("[STEP 1/3] Querying database and getting Google token...");

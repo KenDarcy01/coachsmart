@@ -4,6 +4,7 @@ import { Resend } from 'https://esm.sh/resend@3.2.0';
 import ExcelJS from 'https://esm.sh/exceljs@4.4.0';
 import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
 import { encodeBase64 } from "https://deno.land/std@0.203.0/encoding/base64.ts";
+import { assertEventStaffEmail } from "../_shared/export-guard.ts";
 const RequestSchema = z.object({
   event_id: z.coerce.string(),
   user_email: z.string().email(),
@@ -92,6 +93,7 @@ const handler = async (request)=>{
   try {
     const body = await request.json();
     const { event_id, user_email, match_squad_id } = RequestSchema.parse(body);
+    await assertEventStaffEmail(sql, event_id, user_email);
     // 1. Database Retrieval (Including team_female join)
     console.log("[STEP 1/5] Fetching data & constructing title...");
     const rows = await sql`

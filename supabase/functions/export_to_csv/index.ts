@@ -3,6 +3,7 @@ import postgres from "https://deno.land/x/postgresjs@v3.3.3/mod.js";
 import { Resend } from 'https://esm.sh/resend@3.2.0';
 import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
 import { encodeBase64 } from "https://deno.land/std@0.203.0/encoding/base64.ts";
+import { assertEventStaffEmail } from "../_shared/export-guard.ts";
 const RequestSchema = z.object({
   event_id: z.coerce.string(),
   user_email: z.string().email(),
@@ -41,6 +42,7 @@ const handler = async (request)=>{
   try {
     const body = await request.json();
     const { event_id, user_email, match_squad_id } = RequestSchema.parse(body);
+    await assertEventStaffEmail(sql, event_id, user_email);
     // 1. Database Retrieval
     console.log("[STEP 1/4] Fetching data and constructing title...");
     const rows = await sql`

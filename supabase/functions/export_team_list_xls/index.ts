@@ -4,6 +4,7 @@ import { Resend } from 'https://esm.sh/resend@3.2.0';
 import ExcelJS from 'https://esm.sh/exceljs@4.4.0';
 import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
 import { encodeBase64 } from "https://deno.land/std@0.203.0/encoding/base64.ts";
+import { assertTeamStaffEmail } from "../_shared/export-guard.ts";
 const RequestSchema = z.object({
   p_team_id: z.coerce.number(),
   user_email: z.string().email()
@@ -65,6 +66,7 @@ serve(async (req)=>{
   }
   try {
     const { p_team_id, user_email } = RequestSchema.parse(await req.json());
+    await assertTeamStaffEmail(sql, p_team_id, user_email);
     // 1. Fetch team info including the team_female flag
     const teamInfo = await sql`SELECT team_name, club_id, team_female FROM public.teams WHERE team_id = ${p_team_id}`;
     if (!teamInfo.length) throw new Error("Team not found.");
