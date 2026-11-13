@@ -16,6 +16,7 @@ import 'v3_game_models.dart';
 import 'v3_games_api.dart';
 import 'v3_image_viewer.dart';
 import '../v3_share.dart';
+import '../tracking/v3_track.dart';
 
 /// Opens a video (or any link) in the browser / YouTube app.
 Future<bool> openGameVideo(String url) async {
@@ -81,26 +82,14 @@ class V3GameDetailView extends StatelessWidget {
       if (g.image.trim().isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(bottom: 22),
-          child: GestureDetector(
+          child: V3GameImage(
+            url: g.image.trim(),
+            gameId: g.gameId,
             onTap: onOpenImage ??
                 () => Navigator.of(context).push(MaterialPageRoute(
                     settings: const RouteSettings(name: 'V3ImageViewerPage'),
                     builder: (_) => V3ImageViewerPage(
                         imageUrl: g.image.trim(), title: g.name))),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: CachedNetworkImage(
-                imageUrl: g.image.trim(),
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
-                placeholder: (_, __) => Container(
-                    height: 200,
-                    color: V3.card2,
-                    alignment: Alignment.center,
-                    child: const CircularProgressIndicator(color: V3.green)),
-                errorWidget: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
           ),
         ),
       if (g.howToPlay.trim().isNotEmpty)
@@ -127,6 +116,85 @@ class V3GameDetailView extends StatelessWidget {
       shrinkWrap: shrinkWrap,
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       children: children,
+    );
+  }
+}
+
+/// A game's diagram. If it fails to load it says so with a "Tap to try
+/// again" box (it used to vanish, which looked like the game had no
+/// picture), retries once by itself, and logs the failure to analytics.
+class V3GameImage extends StatefulWidget {
+  const V3GameImage(
+      {super.key, required this.url, this.gameId = 0, this.onTap});
+  final String url;
+  final int gameId;
+  final VoidCallback? onTap;
+
+  @override
+  State<V3GameImage> createState() => _V3GameImageState();
+}
+
+class _V3GameImageState extends State<V3GameImage> {
+  int _attempt = 0;
+  bool _failed = false;
+
+  void _onError(Object error) {
+    if (_failed) return;
+    _failed = true;
+    V3Track.event('game_image_failed', {
+      'game_id': widget.gameId,
+      'attempt': _attempt,
+      'error': '$error'.length > 90 ? '$error'.substring(0, 90) : '$error',
+    });
+    // One quiet retry before asking the coach to tap.
+    if (_attempt == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _retry());
+    }
+  }
+
+  Future<void> _retry() async {
+    if (!mounted) return;
+    await CachedNetworkImage.evictFromCache(widget.url);
+    if (!mounted) return;
+    setState(() {
+      _attempt++;
+      _failed = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _failed ? _retry() : widget.onTap?.call(),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: CachedNetworkImage(
+          key: ValueKey(_attempt),
+          imageUrl: widget.url,
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
+          placeholder: (_, __) => Container(
+              height: 200,
+              color: V3.card2,
+              alignment: Alignment.center,
+              child: const CircularProgressIndicator(color: V3.green)),
+          errorWidget: (_, __, error) {
+            _onError(error);
+            return Container(
+              height: 160,
+              color: V3.card2,
+              alignment: Alignment.center,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.refresh, color: V3.green, size: 30),
+                const SizedBox(height: 8),
+                Text("Picture didn't load", style: V3.inter(16)),
+                const SizedBox(height: 2),
+                Text('Tap to try again', style: V3.inter(14, color: V3.muted)),
+              ]),
+            );
+          },
+        ),
+      ),
     );
   }
 }
