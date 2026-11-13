@@ -53,6 +53,9 @@ class V3MemberStatsPage extends StatefulWidget {
 
 class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
   MemberStats? _data;
+
+  /// squad_id -> squads.squad_colour, for the Squad selections bars.
+  Map<int, String> _squadColours = const {};
   bool _loading = true;
   String? _error;
   late Filters _f;
@@ -86,7 +89,10 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
         return;
       }
       final d = MemberStats.fromJson(r);
+      final colours = await _loadSquadColours(d);
+      if (!mounted) return;
       setState(() {
+        _squadColours = colours;
         final keep = _data != null;
         _data = d;
         if (!keep) _f = Filters.initial(d.options);
@@ -98,6 +104,32 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
       _fail('Failed to load data: ${e.message}');
     } catch (e) {
       _fail('Failed to load data: $e');
+    }
+  }
+
+  /// Each picked squad's own colour. Read straight from squads so the
+  /// shared get_member_analytics RPC (also used by v2) stays unchanged.
+  Future<Map<int, String>> _loadSquadColours(MemberStats d) async {
+    final ids = {for (final s in d.selections) s.squadId}.whereType<int>();
+    if (ids.isEmpty) return const {};
+    if (widget.testData != null) {
+      final m = widget.testData!['squadColours'];
+      return m is Map
+          ? {for (final e in m.entries) int.parse('${e.key}'): '${e.value}'}
+          : const {};
+    }
+    try {
+      final rows = await SupaFlow.client
+          .from('squads')
+          .select('squad_id,squad_colour')
+          .inFilter('squad_id', ids.toList());
+      return {
+        for (final r in rows)
+          if (r['squad_colour'] != null)
+            (r['squad_id'] as num).toInt(): '${r['squad_colour']}'
+      };
+    } catch (_) {
+      return const {};
     }
   }
 
@@ -765,25 +797,36 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
   }
 
   List<Widget> _squadSection(MemberStats d, StatsView v) {
-    final cards = squadCards(d, v);
+    final cards = squadCards(d, v, _squadColours);
     if (cards.isEmpty) return [];
+    // One full-width card per code, stacked, so squad names fit.
     return [
       _heading('Squad selections'),
-      _grid([
-        for (final c in cards)
-          _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _codeName(c.code),
-            const SizedBox(height: 4),
-            for (final (i, r) in c.rows.indexed)
-              _squadRow(c, r, i, cards.length),
-          ])),
-      ]),
+      for (final (i, c) in cards.indexed) ...[
+        if (i > 0) const SizedBox(height: 12),
+        _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _codeName(c.code),
+          const SizedBox(height: 4),
+          for (final r in c.rows) _squadRow(c, r, cards.length),
+        ])),
+      ],
     ];
   }
 
-  Widget _squadRow(SquadCard c, (String, int) r, int i, int codes) {
+  /// The squad's own colour for its bar. Near-black squads are lifted to a
+  /// charcoal that still shows on the dark card; no colour falls back to green.
+  Color _squadBarColour(String? hex) {
+    final h = (hex ?? '').replaceAll('#', '').trim();
+    final v = h.length == 6 ? int.tryParse(h, radix: 16) : null;
+    if (v == null) return V3.green;
+    final c = Color(0xFF000000 | v);
+    return c.computeLuminance() < 0.03 ? const Color(0xFF5A606C) : c;
+  }
+
+  Widget _squadRow(SquadCard c, (String, int, String?) r, int codes) {
     final sel = _focus?.key == 'squad:${c.code}|${r.$1}';
     final share = pct(r.$2, c.total);
+    final colour = _squadBarColour(r.$3);
     return InkWell(
       onTap: () =>
           _setFocus(StatsFocus.squad(c.code, r.$1, showCode: codes > 1)),
@@ -815,12 +858,7 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
             height: 10,
             child: CustomPaint(
                 size: Size.infinite,
-                painter: _BarPainter([
-                  (
-                    share / 100,
-                    i == 0 ? V3.green : V3.green.withValues(alpha: 0.6)
-                  )
-                ], V3.card2)),
+                painter: _BarPainter([(share / 100, colour)], V3.card2)),
           ),
         ]),
       ),

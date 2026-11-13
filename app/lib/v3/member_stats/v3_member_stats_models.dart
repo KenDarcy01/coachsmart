@@ -6,6 +6,8 @@
 // the tap-to-focus that narrows the Matches and History lists, and the row
 // wording. Kept in one place so the page and the tests share them.
 
+import '../v3_squads.dart';
+
 const List<String> kMon = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -55,13 +57,14 @@ class MsEvent {
         opposition = _sN(j['opposition']),
         homeAway = _sN(j['home_away']),
         responseId = _iN(j['response_id']),
+        squadId = _iN(j['squad_id']),
         squadName = _sN(j['squad_name']),
         roleName = _sN(j['role_name']);
 
   final int eventId;
   final String? title, type, code, teamName, opposition, homeAway;
   final String? squadName, roleName;
-  final int? teamId, responseId;
+  final int? teamId, responseId, squadId;
   final DateTime? date;
 
   /// A "-" or blank code means the event isn't tied to a code.
@@ -84,8 +87,9 @@ class MsMatch {
   MsMatch(this.e, this.selection);
   final MsEvent e;
   final MsEvent? selection;
-  String? get squad =>
-      selection == null ? null : (_nz(selection!.squadName) ?? 'Selected');
+  String? get squad => selection == null
+      ? null
+      : (_nz(v3SquadName(selection!.squadName)) ?? 'Selected');
 }
 
 String? _nz(String? s) => s == null || s.isEmpty ? null : s;
@@ -468,25 +472,33 @@ class SquadCard {
   SquadCard(this.code, this.rows, this.total);
   final String code;
 
-  /// (squad, times picked), most first.
-  final List<(String, int)> rows;
+  /// (squad, times picked, squad colour as stored e.g. "#d32f2f"), most first.
+  final List<(String, int, String?)> rows;
   final int total;
 }
 
 /// How often the member was picked for each squad, one card per code.
-List<SquadCard> squadCards(MemberStats d, StatsView v) {
+/// [colours] maps squad_id to the squad's own colour (squads.squad_colour).
+List<SquadCard> squadCards(MemberStats d, StatsView v,
+    [Map<int, String> colours = const {}]) {
   final byCode = <String, Map<String, int>>{};
+  final colourOf = <String, String?>{};
   for (final m in v.matches) {
     if (m.selection == null) continue;
     final counts = byCode.putIfAbsent(d.codeOf(m.e), () => {});
     counts[m.squad!] = (counts[m.squad!] ?? 0) + 1;
+    final id = m.selection!.squadId;
+    colourOf[m.squad!] ??= id == null ? null : colours[id];
   }
   final codes = byCode.keys.toList()..sort();
   return [
     for (final c in codes)
       () {
         final ranked = _rankDesc(byCode[c]!);
-        return SquadCard(c, ranked, ranked.fold(0, (n, r) => n + r.$2));
+        return SquadCard(
+            c,
+            [for (final r in ranked) (r.$1, r.$2, colourOf[r.$1])],
+            ranked.fold(0, (n, r) => n + r.$2));
       }()
   ];
 }

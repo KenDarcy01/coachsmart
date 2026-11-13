@@ -123,7 +123,7 @@ void main() {
     expect(cards[1].matches, 2);
     final sq = squadCards(d, v);
     expect(sq.single.code, 'Football');
-    expect(sq.single.rows, [('Blue', 2)]);
+    expect(sq.single.rows, [('Blue', 2, null)]);
     final bars = monthBars(v, now);
     expect(bars.length, 11); // Jan to Nov
     expect(bars.first.label, 'J');
