@@ -94,11 +94,16 @@ RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = 'public'
 AS $$
+DECLARE
+  v_before boolean := false;
 BEGIN
-  IF current_user IN ('authenticated', 'anon')
-     AND COALESCE(NEW.ai_features, false) IS DISTINCT FROM
-         CASE WHEN TG_OP = 'INSERT' THEN false
-              ELSE COALESCE(OLD.ai_features, false) END THEN
+  IF current_user NOT IN ('authenticated', 'anon') THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'UPDATE' THEN
+    v_before := COALESCE(OLD.ai_features, false);
+  END IF;
+  IF COALESCE(NEW.ai_features, false) <> v_before THEN
     RAISE EXCEPTION 'AI features can only be switched on by CoachSmart'
       USING ERRCODE = 'insufficient_privilege';
   END IF;
