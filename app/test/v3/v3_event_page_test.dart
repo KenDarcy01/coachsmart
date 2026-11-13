@@ -138,8 +138,8 @@ void main() {
       (tester) async {
     await pump(tester, payload(role: 100));
     expect(tester.takeException(), isNull);
-    expect(find.text('v Raheny'), findsOneWidget);
-    expect(find.text('Match · Football'), findsOneWidget);
+    expect(find.text('CLONTARF V RAHENY', findRichText: true), findsOneWidget);
+    expect(find.text('MATCH · FOOTBALL'), findsOneWidget);
     expect(find.text('Throw-in 10:00'), findsOneWidget);
     expect(find.text('Directions ›'), findsOneWidget);
     expect(find.text('Stats'), findsOneWidget);

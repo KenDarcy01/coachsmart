@@ -6,6 +6,7 @@
 // behind the three-dot Manage sheet.
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
@@ -44,6 +45,51 @@ String reminderMessage(int n) {
   if (n <= 0) return 'No reminder needed. Everyone has already replied.';
   if (n == 1) return 'Reminder sent to 1 person';
   return 'Reminder sent to $n people';
+}
+
+/// "Floodlights" look (Ken, 2026-11-13): near-black page with a green glow
+/// at the top, outlined cards, Bebas Neue numbers and headings in neon
+/// green. Mockup: app-v3/event-details-bold/vibe-T2.png. Tools keep the
+/// "Club colours" solid squares (Ken's amendment).
+class FL {
+  static const bg = Color(0xFF07090A);
+  static const card = Color(0xFF0F1214);
+  static const line = Color(0xFF20252B);
+  static const rowLine = Color(0xFF1A1E23);
+  static const neon = Color(0xFF9BE33A);
+  static const neonEdge = Color(0xFFB6FF5A);
+  static const label = Color(0xFF6B7280);
+  static const sub = Color(0xFF8A9099);
+  static const off = Color(0xFF545A63);
+  static const red = Color(0xFFFF5A5F);
+  static const toolText = Color(0xFFD6D9DE);
+  static const goEdge = Color(0xFF2B3A14);
+  static const noEdge = Color(0xFF3A1517);
+
+  static TextStyle bebas(double size,
+          {Color color = V3.text,
+          double letterSpacing = 1,
+          double? height,
+          List<Shadow>? glow}) =>
+      GoogleFonts.bebasNeue(
+          fontSize: size,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+          shadows: glow);
+
+  /// Small grey capitals for labels (MEET, VENUE, WHEN).
+  static TextStyle caps({Color color = label, double spacing = 1.6}) => V3
+      .inter(11, weight: FontWeight.w700, color: color, letterSpacing: spacing);
+
+  static List<Shadow> glowOf(Color c, [double a = .5, double r = 16]) =>
+      [Shadow(color: c.withValues(alpha: a), blurRadius: r)];
+
+  static BoxDecoration box({Color edge = line, double radius = 16}) =>
+      BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(color: edge));
 }
 
 class V3EventPage extends StatefulWidget {
@@ -597,9 +643,11 @@ class _V3EventPageState extends State<V3EventPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: V3.bg,
+      backgroundColor: FL.bg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: V3.bg,
+        backgroundColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
@@ -607,8 +655,11 @@ class _V3EventPageState extends State<V3EventPage> {
           onPressed: _back,
         ),
         centerTitle: true,
-        title: Text(_ev?.eventTitle ?? _homeEvent?.eventTitle ?? '',
-            maxLines: 1, overflow: TextOverflow.ellipsis, style: V3.tight(17)),
+        title: Text(
+            (_ev?.eventTitle ?? _homeEvent?.eventTitle ?? '').toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: FL.bebas(26, letterSpacing: 1.4)),
         actions: [
           if (_admin && _ev != null)
             IconButton(
@@ -617,64 +668,92 @@ class _V3EventPageState extends State<V3EventPage> {
             ),
         ],
       ),
-      body: _loading
-          ? _loadingBody()
-          : _error != null
-              ? Center(
-                  child: Text(_error!, style: V3.inter(15, color: V3.muted)))
-              : RefreshIndicator(
-                  color: V3.green,
-                  backgroundColor: V3.card,
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                    children: [
-                      // No header block: the title is in the app bar and
-                      // the date and team sit in Details (Ken, 2026-11-08).
-                      // Replying is why most people open an event, so the
-                      // reply rows come first (Ken, 2026-11-07).
-                      const SizedBox(height: 4),
-                      // No "Your reply" heading: the name buttons speak for
-                      // themselves (Ken, 2026-11-09).
-                      // Layout A (Ken, 2026-11-12): replies, the
-                      // opposition, Meet and Venue, one banner per extra,
-                      // tools, details, then teams and attendance.
-                      if (_cancelled) _cancelBanner(),
-                      if (_showReplyBlock) ...[
-                        _replyCard(),
-                        const SizedBox(height: 10),
-                      ],
-                      if (_isMatch && _ev!.opposition.trim().isNotEmpty)
-                        _oppositionCard(),
-                      _tiles(),
-                      if (_showPay) _payBanner(),
-                      if (_admin && _ev!.paymentRequired && !_cancelled)
-                        _paidSummaryBanner(),
-                      if (_ev!.carPoolingEnabled && !_cancelled) _carPoolBar(),
-                      if (_tools().isNotEmpty && !_cancelled) _toolsRow(),
-                      // Details above teams and attendance (Ken,
-                      // 2026-11-12).
-                      _section('Details'),
-                      _details(),
-                      const SizedBox(height: 10),
-                      // Published teams (Ken, 2026-11-12), by role.
-                      if (widget.testData == null ||
-                          widget.testData!['teams'] is Map)
-                        V3EventTeamsCard(
-                            key: ValueKey('teams-$_teamsTick'),
-                            eventId: _eventId,
-                            role: _role,
-                            onEdit: () => _openAttendees(3),
-                            onSnack: _snack,
-                            testData: widget.testData?['teams']
-                                as Map<String, dynamic>?),
-                      if (_role >= 20 && _ev!.requestAttendance) ...[
-                        _section('Attendance'),
-                        _attendance(),
-                      ],
-                    ],
-                  ),
-                ),
+      body: Stack(children: [
+        // Floodlight glow behind the top of the page.
+        Positioned(
+          left: -80,
+          right: -80,
+          top: -160,
+          height: 420,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(colors: [
+                  FL.neon.withValues(alpha: .22),
+                  FL.neon.withValues(alpha: 0),
+                ], stops: const [
+                  0,
+                  .7
+                ]),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(
+              top: MediaQuery.paddingOf(context).top + kToolbarHeight),
+          child: _loading
+              ? _loadingBody()
+              : _error != null
+                  ? Center(
+                      child:
+                          Text(_error!, style: V3.inter(15, color: V3.muted)))
+                  : RefreshIndicator(
+                      color: FL.neon,
+                      backgroundColor: FL.card,
+                      onRefresh: _load,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                        children: [
+                          // No header block: the title is in the app bar and
+                          // the date and team sit in Details (Ken, 2026-11-08).
+                          // Replying is why most people open an event, so the
+                          // reply rows come first (Ken, 2026-11-07).
+                          const SizedBox(height: 4),
+                          // No "Your reply" heading: the name buttons speak for
+                          // themselves (Ken, 2026-11-09).
+                          // Layout A (Ken, 2026-11-12): replies, the
+                          // opposition, Meet and Venue, one banner per extra,
+                          // tools, details, then teams and attendance.
+                          if (_cancelled) _cancelBanner(),
+                          if (_showReplyBlock) ...[
+                            _replyCard(),
+                            const SizedBox(height: 10),
+                          ],
+                          if (_isMatch && _ev!.opposition.trim().isNotEmpty)
+                            _oppositionCard(),
+                          _tiles(),
+                          if (_showPay) _payBanner(),
+                          if (_admin && _ev!.paymentRequired && !_cancelled)
+                            _paidSummaryBanner(),
+                          if (_ev!.carPoolingEnabled && !_cancelled)
+                            _carPoolBar(),
+                          if (_tools().isNotEmpty && !_cancelled) _toolsRow(),
+                          // Details above teams and attendance (Ken,
+                          // 2026-11-12).
+                          _section('Details'),
+                          _details(),
+                          const SizedBox(height: 10),
+                          // Published teams (Ken, 2026-11-12), by role.
+                          if (widget.testData == null ||
+                              widget.testData!['teams'] is Map)
+                            V3EventTeamsCard(
+                                key: ValueKey('teams-$_teamsTick'),
+                                eventId: _eventId,
+                                role: _role,
+                                onEdit: () => _openAttendees(3),
+                                onSnack: _snack,
+                                testData: widget.testData?['teams']
+                                    as Map<String, dynamic>?),
+                          if (_role >= 20 && _ev!.requestAttendance) ...[
+                            _section('Attendance'),
+                            _attendance(),
+                          ],
+                        ],
+                      ),
+                    ),
+        ),
+      ]),
     );
   }
 
@@ -698,68 +777,117 @@ class _V3EventPageState extends State<V3EventPage> {
                     strokeWidth: 2.5, color: V3.green))),
       );
 
+  // Bebas heading in neon green with a fading green rule after it
+  // (Floodlights, Ken 2026-11-13).
   Widget _section(String text) => Padding(
-        padding: const EdgeInsets.only(top: 16, bottom: 8),
-        child: Text(text.toUpperCase(),
-            style: V3.inter(13,
-                weight: FontWeight.w700, color: V3.green, letterSpacing: .8)),
+        padding: const EdgeInsets.only(top: 18, bottom: 10),
+        child: Row(children: [
+          Text(text.toUpperCase(),
+              style:
+                  FL.bebas(22, color: FL.neon, letterSpacing: 1.6, height: 1)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: const BoxDecoration(
+                  gradient:
+                      LinearGradient(colors: [FL.goEdge, Color(0x002B3A14)])),
+            ),
+          ),
+        ]),
       );
 
-  // Opposition card on matches: crest slot, "v Opposition", what kind of
-  // match, and a Home / Away pill (Ken, 2026-11-12, layout A).
+  // Opposition card on matches, as a scoreboard line: crest, "CLONTARF V
+  // RAHENY" in Bebas (the V muted), "MATCH · FOOTBALL" in small capitals,
+  // and an outlined HOME / AWAY badge (Floodlights, Ken 2026-11-13).
   Widget _oppositionCard() {
     final e = _ev!;
     final ha = e.homeAway.trim();
-    final home = ha.toLowerCase() == 'home';
     final sub = [
       'Match',
       if (e.eventCode.isNotEmpty) e.eventCode,
-    ].join(' · ');
+    ].join(' · ').toUpperCase();
+    final club = _club;
+    final ours = club.name.isNotEmpty ? club.name : _clubFromTeam(e.teamName);
+    final bebas = FL.bebas(30, letterSpacing: 1, height: 1);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: V3.card, borderRadius: BorderRadius.circular(14)),
+      decoration: FL.box(),
       child: Row(children: [
-        V3CrestImage(null,
-            size: 38,
+        V3CrestImage(club.crest.isEmpty ? null : club.crest,
+            size: 40,
             fallback: Container(
                 decoration: const BoxDecoration(
-                    color: V3.card2, shape: BoxShape.circle),
+                    color: Color(0xFF1A1E23), shape: BoxShape.circle),
                 child: const Icon(Icons.shield_outlined,
-                    color: V3.muted, size: 20))),
+                    color: FL.label, size: 20))),
         const SizedBox(width: 12),
         Expanded(
           child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('v ${e.opposition.trim()}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: V3.tight(18, weight: FontWeight.w700)),
-            const SizedBox(height: 2),
-            Text(sub, style: V3.inter(13, color: V3.muted)),
+              Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            Text.rich(
+              TextSpan(children: [
+                if (ours.isNotEmpty) TextSpan(text: '${ours.toUpperCase()} '),
+                TextSpan(text: 'V ', style: bebas.copyWith(color: FL.off)),
+                TextSpan(text: e.opposition.trim().toUpperCase()),
+              ]),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: bebas,
+            ),
+            const SizedBox(height: 4),
+            Text(sub, style: FL.caps(spacing: 1.4)),
           ]),
         ),
         if (ha.isNotEmpty) ...[
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 2),
             decoration: BoxDecoration(
-                color: home ? const Color(0xFF26351A) : V3.card2,
-                borderRadius: BorderRadius.circular(20)),
-            child: Text(ha[0].toUpperCase() + ha.substring(1).toLowerCase(),
-                style: V3.inter(13,
-                    weight: FontWeight.w600, color: home ? V3.green : V3.text)),
+                border: Border.all(color: FL.neon, width: 1.5),
+                borderRadius: BorderRadius.circular(8)),
+            child: Text(ha.toUpperCase(),
+                style: FL.bebas(18, color: FL.neon, letterSpacing: 1.4)),
           ),
         ],
       ]),
     );
   }
 
+  /// The event's club name and crest, from what Home already loaded.
+  ({String name, String crest}) get _club {
+    final id = _homeEvent?.clubId ?? 0;
+    if (id != 0) {
+      for (final c in FFAppState().homePageEvents.clubs) {
+        if (c.clubId == id) return (name: c.clubName, crest: c.crest);
+      }
+    }
+    return (name: '', crest: '');
+  }
+
+  // "Clontarf GAA Boys 2014" -> "Clontarf": the words before GAA, CLG, a
+  // grade or an age.
+  String _clubFromTeam(String team) {
+    final out = <String>[];
+    for (final w in team.split(RegExp(r'\s+'))) {
+      if (RegExp(
+              r'^(GAA|CLG|LGFA|Boys|Girls|Ladies|Camogie|Hurling|Football|Minor|Senior|Junior|U\d+|\d+)$',
+              caseSensitive: false)
+          .hasMatch(w)) {
+        break;
+      }
+      out.add(w);
+    }
+    return out.join(' ');
+  }
+
   // Meet and Venue tiles. Meet shows the meet time as typed ("9:30 / 10:30",
   // "TBC") or the start, with the start underneath; Venue wraps to two
   // lines with Directions under it. A cancelled event shows WAS with the
-  // time struck through (Ken, 2026-11-12, layout A).
+  // time struck through (Ken, 2026-11-12, layout A). Floodlights: values
+  // in neon Bebas with a glow (Ken, 2026-11-13).
   Widget _tiles() {
     final e = _ev!;
     final t = _when;
@@ -774,33 +902,36 @@ class _V3EventPageState extends State<V3EventPage> {
     final venueTbc = venue.isEmpty || venue.toUpperCase() == 'TBC';
     final canGo = !venueTbc && e.locationPin.isNotEmpty;
 
-    Widget label(String text) => Text(text.toUpperCase(),
-        style: V3.inter(12,
-            weight: FontWeight.w500, color: V3.muted, letterSpacing: .5));
+    TextStyle value(Color c, {bool strike = false}) {
+      final st = FL.bebas(38,
+          color: c,
+          letterSpacing: .8,
+          height: 1,
+          glow: strike ? null : FL.glowOf(c));
+      return strike
+          ? st.copyWith(
+              decoration: TextDecoration.lineThrough, decorationColor: FL.sub)
+          : st;
+    }
 
     final meetTile = Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: V3.card, borderRadius: BorderRadius.circular(14)),
+      padding: const EdgeInsets.all(14),
+      decoration: FL.box(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        label(_cancelled ? 'Was' : 'Meet'),
-        const SizedBox(height: 4),
-        Text(meetValue.isEmpty ? '—' : meetValue,
-            maxLines: 2,
+        Text(_cancelled ? 'WAS' : 'MEET', style: FL.caps()),
+        const SizedBox(height: 6),
+        Text(meetValue.isEmpty ? '—' : meetValue.toUpperCase(),
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: _cancelled
-                ? V3
-                    .tight(22, weight: FontWeight.w600, color: V3.muted)
-                    .copyWith(decoration: TextDecoration.lineThrough)
-                : V3.tight(22,
-                    weight: FontWeight.w600,
-                    color: meet.toUpperCase() == 'TBC' ? V3.amber : V3.text)),
+                ? value(FL.sub, strike: true)
+                : value(meet.toUpperCase() == 'TBC' ? V3.amber : FL.neon)),
         if (meetSub.isNotEmpty) ...[
-          const SizedBox(height: 3),
+          const SizedBox(height: 6),
           Text(meetSub,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: V3.inter(13, color: V3.muted)),
+              style: V3.inter(13, weight: FontWeight.w500, color: FL.sub)),
         ],
       ]),
     );
@@ -808,24 +939,22 @@ class _V3EventPageState extends State<V3EventPage> {
     final venueTile = GestureDetector(
       onTap: canGo ? () => openLocationPin(e.locationPin, venue) : null,
       child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-            color: V3.card, borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.all(14),
+        decoration: FL.box(),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          label(e.homeAway.toLowerCase() == 'away' ? 'Away venue' : 'Venue'),
-          const SizedBox(height: 4),
-          Text(venueTbc ? 'TBC' : venue,
-              maxLines: 2,
+          Text(e.homeAway.toLowerCase() == 'away' ? 'AWAY VENUE' : 'VENUE',
+              style: FL.caps()),
+          const SizedBox(height: 6),
+          Text(venueTbc ? 'TBC' : venue.toUpperCase(),
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: V3.tight(18,
-                  weight: FontWeight.w600,
-                  color: venueTbc ? V3.amber : V3.text)),
+              style: value(venueTbc ? V3.amber : FL.neon)
+                  .copyWith(fontSize: venue.length > 14 ? 28 : 38)),
           if (venueTbc || canGo) ...[
-            const SizedBox(height: 3),
+            const SizedBox(height: 6),
             Text(venueTbc ? 'To be confirmed' : 'Directions ›',
                 style: V3.inter(13,
-                    weight: canGo ? FontWeight.w600 : FontWeight.w400,
-                    color: canGo ? V3.green : V3.muted)),
+                    weight: FontWeight.w600, color: canGo ? V3.text : FL.sub)),
           ],
         ]),
       ),
@@ -839,9 +968,9 @@ class _V3EventPageState extends State<V3EventPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(flex: 10, child: meetTile),
-            const SizedBox(width: 8),
-            Expanded(flex: 13, child: venueTile),
+            Expanded(child: meetTile),
+            const SizedBox(width: 10),
+            Expanded(child: venueTile),
           ],
         ),
       ),
@@ -871,7 +1000,7 @@ class _V3EventPageState extends State<V3EventPage> {
           decoration: BoxDecoration(
               color: bg,
               border: Border.all(color: border, width: borderWidth),
-              borderRadius: BorderRadius.circular(14)),
+              borderRadius: BorderRadius.circular(16)),
           child: Row(children: [
             Icon(icon, color: tint, size: 24),
             const SizedBox(width: 12),
@@ -1101,9 +1230,9 @@ class _V3EventPageState extends State<V3EventPage> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
           decoration: BoxDecoration(
-              color: V3.card,
-              border: Border.all(color: V3.green, width: 1.5),
-              borderRadius: BorderRadius.circular(14)),
+              color: FL.card,
+              border: Border.all(color: FL.neon, width: 1.5),
+              borderRadius: BorderRadius.circular(16)),
           child: Row(children: [
             const Icon(Icons.directions_car_outlined,
                 color: V3.green, size: 26),
@@ -1126,6 +1255,8 @@ class _V3EventPageState extends State<V3EventPage> {
     );
   }
 
+  // Tool row: outlined cards, each with a solid colour square holding a
+  // white icon and a bold label (Ken, 2026-11-13).
   Widget _toolsRow() {
     final tools = _tools();
     return Padding(
@@ -1139,15 +1270,22 @@ class _V3EventPageState extends State<V3EventPage> {
                 onTap: tools[i].onTap,
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(4, 12, 4, 10),
-                  decoration: BoxDecoration(
-                      color: V3.card, borderRadius: BorderRadius.circular(14)),
+                  decoration: FL.box(),
                   child: Column(children: [
-                    Icon(tools[i].icon, color: V3.muted, size: 24),
-                    const SizedBox(height: 6),
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                          color: tools[i].colour,
+                          borderRadius: BorderRadius.circular(12)),
+                      child: Icon(tools[i].icon, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(height: 7),
                     Text(tools[i].label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: V3.inter(12, weight: FontWeight.w500)),
+                        style: V3.inter(12.5,
+                            weight: FontWeight.w700, color: Colors.white)),
                   ]),
                 ),
               ),
@@ -1180,32 +1318,42 @@ class _V3EventPageState extends State<V3EventPage> {
     final declined = m.responseId == 4;
     final answered = going || declined;
     final name = m.firstName.isNotEmpty ? m.firstName : m.lastName;
-    const dim = Color(0xFF7C8089);
-
     Widget button(bool isGo) {
       final on = isGo ? going : declined;
       final Color bg;
       final Color fg;
+      Color edge = FL.line;
+      List<BoxShadow>? glow;
       if (on) {
-        bg = isGo ? V3.green : V3.red;
-        fg = isGo ? V3.bg : Colors.white;
+        // Floodlights: the chosen reply glows (Ken, 2026-11-13).
+        bg = isGo ? FL.neon : V3.red;
+        fg = isGo ? FL.bg : Colors.white;
+        edge = isGo ? FL.neonEdge : const Color(0xFFFF7B7F);
+        glow = [
+          BoxShadow(
+              color: (isGo ? FL.neon : V3.red).withValues(alpha: .45),
+              blurRadius: 24)
+        ];
       } else if (answered) {
-        bg = V3.card2;
-        fg = dim;
+        bg = FL.card;
+        fg = FL.off;
       } else {
         // Unanswered: both buttons white so neither looks chosen
         // (Ken, 2026-11-09).
-        bg = V3.card2;
+        bg = FL.card;
         fg = V3.text;
       }
       return Expanded(
         child: GestureDetector(
           onTap: busy ? null : () => _reply(m, isGo ? 3 : 4),
           child: Container(
-            height: 44,
+            height: 48,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: bg, borderRadius: BorderRadius.circular(12)),
+                color: bg,
+                border: Border.all(color: edge),
+                boxShadow: glow,
+                borderRadius: BorderRadius.circular(14)),
             // The tapped button shows the spinner in place of its tick or
             // cross; the rest of the row stays put (Ken, 2026-11-11).
             child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1221,7 +1369,7 @@ class _V3EventPageState extends State<V3EventPage> {
                 child: Text(name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: V3.inter(15, weight: FontWeight.w700, color: fg)),
+                    style: V3.inter(17, weight: FontWeight.w700, color: fg)),
               ),
               if (isGo && paidEvent && m.memberPaid == 1) ...[
                 const SizedBox(width: 6),
@@ -1234,7 +1382,7 @@ class _V3EventPageState extends State<V3EventPage> {
                   child: Text('Paid',
                       style: V3.inter(11,
                           weight: FontWeight.w600,
-                          color: on ? V3.bg : V3.green)),
+                          color: on ? FL.bg : FL.neon)),
                 ),
               ],
             ]),
@@ -1289,33 +1437,33 @@ class _V3EventPageState extends State<V3EventPage> {
         r.roleNamePlural: r.memberCount
     });
 
-    Widget tile(String label, int count, Color dot, Color bg, String sub,
-            int responseId) =>
+    // Outlined tiles, big Bebas numbers: Attending neon with a glow, No
+    // reply white, Declined red with a glow (Floodlights, Ken 2026-11-13).
+    Widget tile(String label, int count, Color colour, Color edge, bool glow,
+            String sub, int responseId) =>
         Expanded(
           child: GestureDetector(
             onTap: () => _openAttendees(responseId),
             child: Container(
               padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-              decoration: BoxDecoration(
-                  color: bg, borderRadius: BorderRadius.circular(14)),
+              decoration: FL.box(edge: edge),
               child: Column(children: [
-                Text(label, style: V3.inter(14)),
-                const SizedBox(height: 6),
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(
-                      width: 18,
-                      height: 18,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration:
-                          BoxDecoration(color: dot, shape: BoxShape.circle)),
-                  Text('$count',
-                      style: V3.tight(28, weight: FontWeight.w700, height: 1)),
-                ]),
+                Text(label.toUpperCase(),
+                    maxLines: 1, style: FL.caps(color: FL.sub, spacing: 1.4)),
+                const SizedBox(height: 4),
+                Text('$count',
+                    style: FL.bebas(52,
+                        color: colour,
+                        height: 1,
+                        glow: glow ? FL.glowOf(colour, .55, 18) : null)),
                 if (sub.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(sub,
                       textAlign: TextAlign.center,
-                      style: V3.inter(12, color: V3.muted, height: 1.35)),
+                      style: V3.inter(12,
+                          weight: FontWeight.w500,
+                          color: FL.sub,
+                          height: 1.55)),
                 ],
               ]),
             ),
@@ -1325,12 +1473,11 @@ class _V3EventPageState extends State<V3EventPage> {
     // Three tiles the same height, no bar underneath (Ken, 2026-11-08).
     return IntrinsicHeight(
       child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        tile('Attending', a, V3.green, const Color(0xFF1F2A19), aLines, 3),
+        tile('Attending', a, FL.neon, FL.goEdge, true, aLines, 3),
         const SizedBox(width: 8),
-        tile('No reply', n, const Color(0xFF9A9A9A), V3.card2, nLines, 0),
+        tile('No reply', n, const Color(0xFFE7E9EC), FL.line, false, nLines, 0),
         const SizedBox(width: 8),
-        tile('Declined', d, const Color(0xFFC3202A), const Color(0xFF3A1D1D),
-            dLines, 4),
+        tile('Declined', d, FL.red, FL.noEdge, true, dLines, 4),
       ]),
     );
   }
@@ -1391,12 +1538,14 @@ class _V3EventPageState extends State<V3EventPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-              width: 92, child: Text(k, style: V3.inter(15, color: V3.muted))),
+              width: 96,
+              child: Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text(k.toUpperCase(), style: FL.caps(spacing: 1.4)))),
           Expanded(
               child: Text(v,
                   style: V3.inter(15,
-                      color: onTap != null ? V3.green : V3.text,
-                      height: 1.35))),
+                      color: onTap != null ? FL.neon : V3.text, height: 1.35))),
           if (onTap != null)
             const Padding(
               padding: EdgeInsets.only(left: 8),
@@ -1410,15 +1559,14 @@ class _V3EventPageState extends State<V3EventPage> {
 
   Widget _card(List<Widget> rows) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-            color: V3.card, borderRadius: BorderRadius.circular(14)),
+        decoration: FL.box(),
         child: Column(children: [
           for (var i = 0; i < rows.length; i++)
             Container(
               decoration: BoxDecoration(
                   border: i == rows.length - 1
                       ? null
-                      : const Border(bottom: BorderSide(color: V3.line))),
+                      : const Border(bottom: BorderSide(color: FL.rowLine))),
               child: rows[i],
             ),
         ]),
@@ -1591,6 +1739,16 @@ class _Tool {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+
+  /// Each tool's own colour (Club colours tool row, Ken 2026-11-13).
+  Color get colour => switch (label) {
+        'Score' => const Color(0xFFF5A524),
+        'Live' => const Color(0xFFE5484D),
+        'Stats' || 'View plan' => const Color(0xFF4C8DF6),
+        'Report' => const Color(0xFFA78BFA),
+        'Lineup' => const Color(0xFF2DD4BF),
+        _ => const Color(0xFFF5A524), // Create / Edit plan
+      };
 }
 
 // Full-screen webview for the tools that live on coachsmart.app.

@@ -8,6 +8,7 @@
 // 20261112063000_event_team_shares.sql). Export stays as it is.
 // Design: /mnt/project-files/coachsmart/app-v3/published-teams/design.md
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
@@ -339,24 +340,42 @@ class _V3EventTeamsCardState extends State<V3EventTeamsCard> {
     if (mounted) setState(() => _t = t);
   }
 
+  // Floodlights heading and card, matching the event page (2026-11-13).
   Widget _heading(String text) => Padding(
-        padding: const EdgeInsets.only(top: 6, bottom: 8),
-        child: Text(text,
-            style: V3.inter(13,
-                weight: FontWeight.w700, color: V3.green, letterSpacing: .8)),
+        padding: const EdgeInsets.only(top: 8, bottom: 10),
+        child: Row(children: [
+          Text(text,
+              style: GoogleFonts.bebasNeue(
+                  fontSize: 22,
+                  height: 1,
+                  color: const Color(0xFF9BE33A),
+                  letterSpacing: 1.6)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: [Color(0xFF2B3A14), Color(0x002B3A14)])),
+            ),
+          ),
+        ]),
       );
 
   Widget _rows(List<Widget> rows) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-            color: V3.card, borderRadius: BorderRadius.circular(14)),
+            color: const Color(0xFF0F1214),
+            border: Border.all(color: const Color(0xFF20252B)),
+            borderRadius: BorderRadius.circular(16)),
         child: Column(children: [
           for (var i = 0; i < rows.length; i++)
             Container(
               decoration: BoxDecoration(
                   border: i == rows.length - 1
                       ? null
-                      : const Border(bottom: BorderSide(color: V3.line))),
+                      : const Border(
+                          bottom: BorderSide(color: Color(0xFF1A1E23)))),
               child: rows[i],
             ),
         ]),
@@ -370,8 +389,10 @@ class _V3EventTeamsCardState extends State<V3EventTeamsCard> {
             Expanded(
                 child: Text(text,
                     style: V3.inter(15,
-                        weight: FontWeight.w600, color: V3.green))),
-            const Icon(Icons.chevron_right, color: V3.green, size: 22),
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF9BE33A)))),
+            const Icon(Icons.chevron_right,
+                color: const Color(0xFF9BE33A), size: 22),
           ]),
         ),
       );
