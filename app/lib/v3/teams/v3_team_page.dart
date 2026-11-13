@@ -49,6 +49,12 @@ class _V3TeamPageState extends State<V3TeamPage> {
   bool get _superUser => (_roster?.userRoleLevel ?? 0) >= 110;
   bool get _canOpenMember => (_roster?.userRoleLevel ?? 0) >= 30;
 
+  /// Parents and players see only their own children's squads: no squad
+  /// cards, no squad under other players, list in name order (Ken,
+  /// 2026-11-13). FLOs, coaches and admins see every squad.
+  bool get _seesAllSquads => (_roster?.userRoleLevel ?? 0) >= 20;
+  Set<int> _mine = const {}; // members linked to the signed-in user
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +77,8 @@ class _V3TeamPageState extends State<V3TeamPage> {
         GetUserTeamSummaryCall.call(
             pUserId: currentUserUid, supabaseJWTtoken: currentJwtToken),
       ]);
+      final links = await UserMemberLinkTable()
+          .queryRows(queryFn: (q) => q.eq('user_id', currentUserUid));
       if (!mounted) return;
       final r = results[0];
       if (!r.succeeded || r.jsonBody is! Map) {
@@ -107,6 +115,12 @@ class _V3TeamPageState extends State<V3TeamPage> {
         ];
         _roster = roster;
         _summary = summary;
+        _mine = {
+          for (final l in links)
+            if (l.memberId != null &&
+                (l.data['status'] ?? 'active') == 'active')
+              l.memberId!
+        };
         _failed = false;
         _codeId ??= roster.codes.isNotEmpty ? roster.codes.first.codeId : null;
       });
@@ -361,7 +375,8 @@ class _V3TeamPageState extends State<V3TeamPage> {
                           onTap: _openPending),
                     ),
                   if (_admin && r.codes.length > 1) _codeChips(r),
-                  if (_codeId != null && _squads.isNotEmpty) _squadCards(r),
+                  if (_codeId != null && _squads.isNotEmpty && _seesAllSquads)
+                    _squadCards(r),
                   _rolePills(r),
                   _searchField(),
                   for (final g in r.groups)
@@ -654,7 +669,11 @@ class _V3TeamPageState extends State<V3TeamPage> {
 
   List<Widget> _group(RoleGroup g) {
     final code = _codeId;
-    final members = orderBySquad(_visible(g), code, _squads);
+    final members = _seesAllSquads
+        ? orderBySquad(_visible(g), code, _squads)
+        : (_visible(g)
+          ..sort((a, b) =>
+              a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase())));
     if (members.isEmpty) return const [];
     return [
       Padding(
@@ -722,7 +741,9 @@ class _V3TeamPageState extends State<V3TeamPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: V3.inter(18, weight: FontWeight.w600)),
-              if (code != null && _squads.isNotEmpty) ...[
+              if (code != null &&
+                  _squads.isNotEmpty &&
+                  (_seesAllSquads || _mine.contains(m.memberId))) ...[
                 const SizedBox(height: 6),
                 squadLine,
               ],
