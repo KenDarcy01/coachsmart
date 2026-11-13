@@ -1021,15 +1021,15 @@ List<TeamRank> teamRanking(AnCtx ctx, String sort) {
 // ------------------------------------------------------------------ players
 
 const kPlayerSorts = [
-  ('low', 'Lowest'),
   ('high', 'Highest'),
+  ('low', 'Lowest'),
   ('dropping', 'Dropping'),
   ('rising', 'Rising'),
   ('noreply', 'No reply'),
 ];
 const kTeamPlayerSorts = [
-  ('low', 'Lowest first'),
   ('high', 'Highest first'),
+  ('low', 'Lowest first'),
   ('noreply', 'No reply'),
 ];
 

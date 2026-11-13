@@ -57,8 +57,8 @@ class _V3AnalyticsPageState extends State<V3AnalyticsPage> {
   AnCustom? _custom;
   int? _teamPage;
   String _teamSort = 'att';
-  String _playerSort = 'low';
-  String _teamPlayerSort = 'low';
+  String _playerSort = 'high';
+  String _teamPlayerSort = 'high';
   String _q = '';
   final Set<String> _expanded = {};
 
