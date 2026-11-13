@@ -786,38 +786,11 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
     ];
   }
 
-  /// The squad's colour for its bar. Most squads have no colour stored
-  /// (or the #ffffff default), so a colour word in the name wins ("Blue
-  /// Team"), then a stored colour, then green. Near-black is lifted to a
-  /// charcoal that shows on the dark card.
-  static const _named = {
-    'red': 0xFFE53935,
-    'blue': 0xFF3B82F6,
-    'navy': 0xFF3F5BA9,
-    'green': 0xFF22A559,
-    'yellow': 0xFFF5C518,
-    'gold': 0xFFD4A017,
-    'amber': 0xFFF59E0B,
-    'orange': 0xFFF28C28,
-    'purple': 0xFF8B5CF6,
-    'maroon': 0xFF9F1D35,
-    'pink': 0xFFEC4899,
-    'sky': 0xFF38BDF8,
-    'grey': 0xFF9AA0A6,
-    'gray': 0xFF9AA0A6,
-    'silver': 0xFFC0C4CC,
-    'white': 0xFFE2E6EE,
-    'black': 0xFF5A606C,
-  };
-
-  Color _squadBarColour(String name, String? hex) {
-    for (final w in RegExp('[a-z]+').allMatches(name.toLowerCase())) {
-      final c = _named[w.group(0)];
-      if (c != null) return Color(c);
-    }
-    final h = (hex ?? '').replaceAll('#', '').trim().toLowerCase();
-    final v =
-        h.length == 6 && h != 'ffffff' ? int.tryParse(h, radix: 16) : null;
+  /// The squad's own colour for its bar. Near-black squads are lifted to a
+  /// charcoal that still shows on the dark card; no colour falls back to green.
+  Color _squadBarColour(String? hex) {
+    final h = (hex ?? '').replaceAll('#', '').trim();
+    final v = h.length == 6 ? int.tryParse(h, radix: 16) : null;
     if (v == null) return V3.green;
     final c = Color(0xFF000000 | v);
     return c.computeLuminance() < 0.03 ? const Color(0xFF5A606C) : c;
@@ -826,7 +799,7 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
   Widget _squadRow(SquadCard c, (String, int, String?) r, int codes) {
     final sel = _focus?.key == 'squad:${c.code}|${r.$1}';
     final share = pct(r.$2, c.total);
-    final colour = _squadBarColour(r.$1, r.$3);
+    final colour = _squadBarColour(r.$3);
     return InkWell(
       onTap: () =>
           _setFocus(StatsFocus.squad(c.code, r.$1, showCode: codes > 1)),
