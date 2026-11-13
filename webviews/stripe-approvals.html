@@ -120,10 +120,10 @@
       ${stripeLine ? `<div class="sub">${stripeLine}</div>` : ''}
       ${pill}
       ${action}
-      <div class="fee">CoachSmart fee <input id="fee${t.team_id}" type="number" inputmode="decimal" min="0" max="20" step="0.1"
+      <div class="fee">Fee for this team <input id="fee${t.team_id}" type="number" inputmode="decimal" min="0" max="20" step="0.1"
         placeholder="${pct(D.default_fee_bps)}" value="${t.fee_bps === null || t.fee_bps === undefined ? '' : pct(t.fee_bps)}"> %
         <button class="save" onclick="teamFee(${t.team_id}, this)">Save</button></div>
-      <div class="hint">Leave the fee empty to use the default (${pct(D.default_fee_bps)}%).</div>
+      <div class="hint">Only set this to give this team a different fee. Leave it empty and the team pays the default fee for every team (now ${pct(D.default_fee_bps)}%).</div>
     </div>`;
   }
 
@@ -145,7 +145,7 @@
     if (!D.teams.length) h += `<div class="state">No team has connected Stripe yet.</div>`;
     h += `<div class="sec">CoachSmart fee</div><div class="card">
       <div class="sub" style="margin:0">Taken from each payment to a team's own Stripe account and paid to the CoachSmart Stripe account. Parents pay the price the coach set.</div>
-      <div class="fee">Default <input id="defFee" type="number" inputmode="decimal" min="0" max="20" step="0.1" value="${pct(D.default_fee_bps)}"> %
+      <div class="fee">Fee for every team <input id="defFee" type="number" inputmode="decimal" min="0" max="20" step="0.1" value="${pct(D.default_fee_bps)}"> %
         <button class="save" onclick="defaultFee(this)">Save</button></div></div>`;
     if (D.legacy.length) h += `<div class="sec">Still paid to CoachSmart</div><div class="card"><div class="sub" style="margin:0">These teams take payments on the CoachSmart account until they connect their own Stripe.</div>
       ${D.legacy.map(t => `<div class="sub" style="margin-top:8px;color:var(--text)">${esc(t.team_name)}${t.club_name ? ' · ' + esc(t.club_name) : ''}</div>`).join('')}</div>`;
