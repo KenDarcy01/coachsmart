@@ -41,7 +41,7 @@ class Report {
 String _trend(AnTrend? t) => t == null ? '' : ' · ${t.text}';
 
 RepSection heroSection(AnCtx ctx, AnTotals t) => RepSection('', lines: [
-      '${t.pct}% · ${fmtN(t.acc)} of ${fmtN(t.total)} places filled',
+      '${t.pct}% attendance',
       'Replied ${t.replied}% · ${plural(t.nr, 'no reply', 'no replies')}${_trend(trendLine(ctx, t.pct))}',
     ]);
 

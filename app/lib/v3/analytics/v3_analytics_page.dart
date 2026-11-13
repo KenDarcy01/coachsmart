@@ -876,7 +876,7 @@ class _V3AnalyticsPageState extends State<V3AnalyticsPage> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${fmtN(t.acc)} of ${fmtN(t.total)} places filled',
+                    Text('${t.pct}% attendance',
                         style: V3.inter(17, weight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text(
