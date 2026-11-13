@@ -106,6 +106,24 @@ void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
   setUp(() => tester_binding());
 
+  test('opposition crest matches the club name', () {
+    const clubs = <CrestClub>[
+      (id: 1, name: 'Clontarf GAA', crest: 'c.png'),
+      (id: 4, name: 'GAA', crest: 'g.png'),
+      (id: 8, name: 'Raheny GAA', crest: 'r.png'),
+      (id: 10, name: 'St Annes', crest: 's.png'),
+      (id: 11, name: 'Kilmacud Crokes', crest: 'k.png'),
+    ];
+    expect(opponentCrest('Raheny', clubs, 1), 'r.png');
+    expect(opponentCrest('Raheny GAA B', clubs, 1), 'r.png');
+    expect(opponentCrest("St. Anne's", clubs, 1), 's.png');
+    expect(opponentCrest('Kilmacud Crokes 2', clubs, 1), 'k.png');
+    expect(opponentCrest('Na Fianna', clubs, 1), '');
+    expect(opponentCrest('Internal', clubs, 1), '');
+    expect(opponentCrest('Clontarf', clubs, 1), '');
+    expect(opponentCrest('Rahenyville', clubs, 1), '');
+  });
+
   testWidgets('admin on a paid match shows every section', (tester) async {
     await pump(tester, payload());
     expect(tester.takeException(), isNull);

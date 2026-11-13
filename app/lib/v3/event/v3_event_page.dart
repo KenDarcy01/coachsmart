@@ -46,6 +46,58 @@ String reminderMessage(int n) {
   return 'Reminder sent to $n people';
 }
 
+/// A club with its crest, for the opposition card.
+typedef CrestClub = ({int id, String name, String crest});
+
+/// The crest of the club named in [opposition] ("Raheny", "Raheny GAA B",
+/// "Kilmacud Crokes 2"), matched on the club's name without GAA / CLG /
+/// FC / Rugby. Skips our own club, so internal games fall back. Empty when
+/// nothing matches.
+String opponentCrest(String opposition, List<CrestClub> clubs, int ownClubId) {
+  String norm(String v) {
+    final t = v
+        .toLowerCase()
+        .replaceAll("'", '')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .trim();
+    return ' $t ';
+  }
+
+  final opp = norm(opposition);
+  var best = '';
+  var bestLen = 0;
+  for (final c in clubs) {
+    if (c.id == ownClubId || c.crest.isEmpty) continue;
+    final key = norm(c.name)
+        .replaceAll(
+            RegExp(r' (gaa|clg|gfc|hc|fc|afc|rfc|rugby|camogie|lgfa) '), ' ')
+        .trim();
+    if (key.length < 4) continue; // "GAA", "Soccer" test clubs
+    if (opp.startsWith(' $key ') && key.length > bestLen) {
+      best = c.crest;
+      bestLen = key.length;
+    }
+  }
+  return best;
+}
+
+// Clubs and crests, loaded once per app run.
+List<CrestClub>? _crestClubs;
+Future<List<CrestClub>> _loadCrestClubs() async {
+  final cached = _crestClubs;
+  if (cached != null) return cached;
+  final rows =
+      await SupaFlow.client.from('clubs').select('club_id,club_name,crest');
+  return _crestClubs = [
+    for (final r in rows)
+      (
+        id: (r['club_id'] as num?)?.toInt() ?? 0,
+        name: '${r['club_name'] ?? ''}',
+        crest: '${r['crest'] ?? ''}'
+      )
+  ];
+}
+
 class V3EventPage extends StatefulWidget {
   const V3EventPage(
       {super.key, required this.eventID, this.fromSearch, this.testData});
@@ -75,6 +127,9 @@ class _V3EventPageState extends State<V3EventPage> {
   final Map<int, int> _busy = {};
   bool _paying = false;
   bool _teamAllowsLineup = false;
+  // Opposition card crest: theirs when the name matches a club we know,
+  // otherwise ours (Ken, 2026-11-13).
+  String _oppCrest = '';
   // Bumped on every load so pull to refresh reloads the teams card too.
   int _teamsTick = 0;
   // Car pool summary for the green strip: open lifts and free seats.
@@ -188,13 +243,24 @@ class _V3EventPageState extends State<V3EventPage> {
     try {
       final row = await SupaFlow.client
           .from('teams')
-          .select('allow_lineup')
+          .select('allow_lineup,club_id')
           .eq('team_id', teamId)
           .maybeSingle();
       if (!mounted || row == null) return;
       setState(() {
         _teamAllowsLineup = row['allow_lineup'] == true;
       });
+      final opp = _ev?.opposition.trim() ?? '';
+      if (!_isMatch || opp.isEmpty) return;
+      final own = (row['club_id'] as num?)?.toInt() ?? 0;
+      final clubs = await _loadCrestClubs();
+      var crest = opponentCrest(opp, clubs, own);
+      if (crest.isEmpty) {
+        for (final c in clubs) {
+          if (c.id == own) crest = c.crest;
+        }
+      }
+      if (mounted) setState(() => _oppCrest = crest);
     } catch (_) {}
   }
 
@@ -721,7 +787,7 @@ class _V3EventPageState extends State<V3EventPage> {
       decoration: BoxDecoration(
           color: V3.card, borderRadius: BorderRadius.circular(14)),
       child: Row(children: [
-        V3CrestImage(null,
+        V3CrestImage(_oppCrest.isEmpty ? null : _oppCrest,
             size: 38,
             fallback: Container(
                 decoration: const BoxDecoration(
