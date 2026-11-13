@@ -21,8 +21,12 @@ import '/v3/v3_squads.dart';
 import '/v3/v3_squad_write.dart';
 
 class V3TeamPage extends StatefulWidget {
-  const V3TeamPage({super.key, required this.teamId});
+  const V3TeamPage({super.key, required this.teamId, this.testData});
   final int teamId;
+
+  /// Tests and screenshots only: {roster, role, squads, mine} instead of
+  /// loading from Supabase.
+  final Map<String, dynamic>? testData;
 
   // Same route as the FlutterFlow TeamMembers page.
   static String routeName = 'TeamMembers';
@@ -58,6 +62,21 @@ class _V3TeamPageState extends State<V3TeamPage> {
   @override
   void initState() {
     super.initState();
+    final t = widget.testData;
+    if (t != null) {
+      final roster =
+          TeamRoster.fromJson(Map<String, dynamic>.from(t['roster'] as Map))
+            ..userRoleLevel = t['role'] as int? ?? 0;
+      _roster = roster;
+      _squads = [
+        for (final q in (t['squads'] as List? ?? const []).whereType<Map>())
+          TeamSquad(
+              q['squad_id'] as int, '${q['name']}', '', '${q['colour'] ?? ''}')
+      ];
+      _mine = {...(t['mine'] as List? ?? const []).whereType<int>()};
+      _codeId = roster.codes.isNotEmpty ? roster.codes.first.codeId : null;
+      return;
+    }
     _load();
   }
 
