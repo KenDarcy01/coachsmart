@@ -82,7 +82,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
   bool get _editing => widget.eventId != null;
 
   List<CreateTeamsStruct> _teams = [];
-  Map<int, bool> _paymentsAllowed = {}; // teamId -> teams.payments (when sent)
+  Map<int, bool> _paymentsAllowed = {}; // teamId -> payments on AND verified Stripe account
   CurrentEventStruct? _current;
   Map<String, dynamic> _currentRaw = {};
   bool _loading = true, _failed = false, _saving = false;
@@ -164,6 +164,28 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
       for (final t in (body['create_teams'] as List? ?? [])) {
         if (t is Map && t['payments'] == true)
           pay[(t['team_id'] as num).toInt()] = true;
+      }
+      // Ken (2026-11-13): payments only for teams with a verified Stripe
+      // Connect account (connected, charges enabled, approved by CoachSmart).
+      // Other teams don't see the payment fields at all; editing an older
+      // paid event leaves its payment as it was (the fields aren't sent).
+      if (pay.isNotEmpty) {
+        try {
+          final rows = await SupaFlow.client
+              .from('teams')
+              .select('team_id, stripe_account_id, stripe_charges_enabled, stripe_approved_at')
+              .inFilter('team_id', pay.keys.toList());
+          final verified = <int>{
+            for (final t in (rows as List).whereType<Map>())
+              if (t['stripe_account_id'] != null &&
+                  t['stripe_charges_enabled'] == true &&
+                  t['stripe_approved_at'] != null)
+                (t['team_id'] as num).toInt()
+          };
+          pay.removeWhere((id, _) => !verified.contains(id));
+        } catch (_) {
+          pay.clear();
+        }
       }
       _teams = teams;
       _paymentsAllowed = pay;
