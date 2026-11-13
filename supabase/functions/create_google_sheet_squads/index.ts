@@ -1,3 +1,4 @@
+// Exports go only to the team's staff (see ../_shared/export-guard.ts, 2026-11-13).
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import postgres from "https://deno.land/x/postgresjs@v3.3.3/mod.js";
 import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
