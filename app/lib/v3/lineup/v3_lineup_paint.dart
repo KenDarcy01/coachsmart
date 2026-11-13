@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
 import '../v3_theme.dart';
 import 'v3_lineup_models.dart';
@@ -255,6 +256,7 @@ Future<Uint8List> renderLineupPng(LineupData d, LineupBoard b,
           .timeout(const Duration(milliseconds: 1500));
     } catch (_) {}
   }
+  final crest = await _crestImage(d.crestUrl);
   TextStyle sans(double size, FontWeight w, Color col) =>
       TextStyle(fontFamily: dm, fontSize: size, fontWeight: w, color: col);
 
@@ -274,13 +276,29 @@ Future<Uint8List> renderLineupPng(LineupData d, LineupBoard b,
   // Header: club colour bar, team, event.
   c.drawRect(const Rect.fromLTWH(0, 0, tw, 5), Paint()..color = d.kit.primary);
   c.drawRect(const Rect.fromLTWH(0, 5, tw, 2), Paint()..color = d.kit.stripe);
+  // Club crest top left, as tall as the title and event lines together
+  // (Ken, 2026-11-13); the text moves right of it. No crest, no gap.
+  var tx = pad;
+  if (crest != null) {
+    const box = 46.0;
+    final k = box / (crest.width > crest.height ? crest.width : crest.height);
+    final w = crest.width * k, h = crest.height * k;
+    c.drawImageRect(
+        crest,
+        Rect.fromLTWH(0, 0, crest.width.toDouble(), crest.height.toDouble()),
+        Rect.fromLTWH(pad + (box - w) / 2, 14 + (box - h) / 2, w, h),
+        Paint()..filterQuality = FilterQuality.high);
+    tx = pad + box + 10;
+  }
+  final textW = pw - (tx - pad);
   final title = _text(
       (d.teamName.isEmpty ? 'Line-up' : d.teamName).toUpperCase(),
       TextStyle(fontFamily: bebas, fontSize: 26, color: V3.text),
-      maxW: pw);
-  title.paint(c, Offset(pad, 40 - _baseline(title)));
-  final sub = _text(d.imageSub, sans(12, FontWeight.w500, V3.muted), maxW: pw);
-  sub.paint(c, Offset(pad, 58 - _baseline(sub)));
+      maxW: textW);
+  title.paint(c, Offset(tx, 40 - _baseline(title)));
+  final sub =
+      _text(d.imageSub, sans(12, FontWeight.w500, V3.muted), maxW: textW);
+  sub.paint(c, Offset(tx, 58 - _baseline(sub)));
 
   // Pitch: soft mowing stripes and plain white lines.
   const py = hdr;
@@ -404,7 +422,24 @@ Future<Uint8List> renderLineupPng(LineupData d, LineupBoard b,
       .toImage((tw * scale).round(), (th * scale).round());
   final png = await img.toByteData(format: ui.ImageByteFormat.png);
   img.dispose();
+  crest?.dispose();
   return png!.buffer.asUint8List();
+}
+
+/// The crest for the share image, or null if there is none or it fails to
+/// load within 3 seconds (the image is then drawn without it).
+Future<ui.Image?> _crestImage(String url) async {
+  if (url.isEmpty) return null;
+  try {
+    final r =
+        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 3));
+    if (r.statusCode != 200) return null;
+    final codec =
+        await ui.instantiateImageCodec(r.bodyBytes, targetHeight: 276);
+    return (await codec.getNextFrame()).image;
+  } catch (_) {
+    return null;
+  }
 }
 
 double _baseline(TextPainter t) =>

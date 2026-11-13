@@ -273,6 +273,7 @@ class LineupData {
         teamsheet = j['teamsheet'] == true,
         kit = KitColours.fromClub(j['club'] is Map ? j['club'] : null),
         imageSub = _s(j['image_sub']),
+        crestUrl = j['club'] is Map ? _s(j['club']['crest']) : '',
         players = [
           for (final p in (j['players'] as List? ?? const []))
             if (p is Map) LineupPlayer(_i(p['member_id']), _s(p['name']))
@@ -283,6 +284,9 @@ class LineupData {
   /// accepted, ...): shown instead of the pitch.
   final String message;
   final String teamName, imageSub;
+
+  /// The club crest (clubs.crest), drawn top left of the share image.
+  final String crestUrl;
   final bool teamsheet;
   final KitColours kit;
   final List<LineupPlayer> players;

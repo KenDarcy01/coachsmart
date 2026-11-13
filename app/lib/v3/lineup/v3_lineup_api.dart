@@ -21,7 +21,7 @@ Future<Map<String, dynamic>> fetchLineupJson(
     team = await _sb
         .from('teams')
         .select(
-            'team_name,teamsheet,clubs(primary_colour,secondary_colour,third_colour)')
+            'team_name,teamsheet,clubs(primary_colour,secondary_colour,third_colour,crest)')
         .eq('team_id', teamId);
   } catch (_) {
     team = await _sb
