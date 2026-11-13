@@ -34,6 +34,7 @@ class _V3MemberPageState extends State<V3MemberPage> {
   bool _busy = false;
 
   bool get _admin => (_roster?.userRoleLevel ?? 0) >= 100;
+  bool get _superUser => (_roster?.userRoleLevel ?? 0) >= 110;
   TeamMember? get _rosterMember => _roster?.member(widget.memberId);
 
   @override
@@ -57,11 +58,14 @@ class _V3MemberPageState extends State<V3MemberPage> {
             queryFn: (q) => q
                 .eq('member_id', widget.memberId)
                 .eq('team_id', widget.teamId)),
+        GetUserTeamSummaryCall.call(
+            pUserId: currentUserUid, supabaseJWTtoken: currentJwtToken),
       ]);
       if (!mounted) return;
       final d = results[0] as ApiCallResponse;
       final r = results[1] as ApiCallResponse;
       final links = results[2] as List<MemberTeamLinkRow>;
+      final summary = results[3] as ApiCallResponse;
       if (!d.succeeded || d.jsonBody is! Map) {
         setState(() => _failed = true);
         return;
@@ -70,7 +74,10 @@ class _V3MemberPageState extends State<V3MemberPage> {
         _m = MemberDetails.fromJson(
             Map<String, dynamic>.from(d.jsonBody as Map));
         _roster = r.succeeded && r.jsonBody is Map
-            ? TeamRoster.fromJson(Map<String, dynamic>.from(r.jsonBody as Map))
+            ? (TeamRoster.fromJson(Map<String, dynamic>.from(r.jsonBody as Map))
+              // Your role on this team, not your highest on any team.
+              ..userRoleLevel = roleOnTeam(
+                  summary.succeeded ? summary.jsonBody : null, widget.teamId))
             : null;
         _joined = links.isNotEmpty ? links.first.createdAt : null;
         _failed = false;
@@ -451,12 +458,18 @@ class _V3MemberPageState extends State<V3MemberPage> {
   }
 
   Widget _roles(MemberDetails m) {
-    final roles = m.validRoles.isNotEmpty ? m.validRoles : m.roles;
+    // Only a SuperUser can give or take SuperUser; others don't see the
+    // chip unless the member already has it (roles review, 2026-11-13).
+    final roles = (m.validRoles.isNotEmpty ? m.validRoles : m.roles)
+        .where((r) => r.roleLevel < 110 || _superUser || m.hasRole(r.roleId))
+        .toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Wrap(spacing: 8, runSpacing: 8, children: [
         for (final r in roles)
           GestureDetector(
-            onTap: _admin && !_busy ? () => _toggleRole(r) : null,
+            onTap: _admin && !_busy && (r.roleLevel < 110 || _superUser)
+                ? () => _toggleRole(r)
+                : null,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(

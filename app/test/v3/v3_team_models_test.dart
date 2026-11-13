@@ -3,6 +3,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:coach_smart_v2/v3/teams/v3_team_models.dart';
 
 void main() {
+  test('roleOnTeam uses the role on that team, SuperUser counts everywhere',
+      () {
+    Map t(int id, int lvl) => {'team_id': id, 'team_highest_role_level': lvl};
+    final mary = {
+      'teams': [t(1, 100), t(2, 10)]
+    };
+    expect(roleOnTeam(mary, 1), 100);
+    expect(roleOnTeam(mary, 2), 10); // parent here, admin elsewhere
+    expect(roleOnTeam(mary, 3), 0); // not on the team
+    final su = {
+      'teams': [t(1, 110), t(2, 10)]
+    };
+    expect(roleOnTeam(su, 2), 110);
+    expect(roleOnTeam(null, 1), 0);
+  });
+
   test('TeamSummary parses counts and sorts roles highest first', () {
     final t = TeamSummary.fromJson({
       'team_id': '12',

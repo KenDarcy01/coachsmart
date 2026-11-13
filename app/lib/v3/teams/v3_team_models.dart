@@ -100,6 +100,24 @@ class ClubCode {
   final String name;
 }
 
+/// The user's role on [teamId] from a get_user_team_summary response: their
+/// highest role on that team, or 110 when they are a SuperUser on any team
+/// (Ken, 2026-11-12: a super user is a super user on every team they're on).
+/// 0 when the team isn't in the summary (not on it, or the call failed), so
+/// nothing admin-only shows by mistake (roles review, 2026-11-13).
+int roleOnTeam(dynamic summaryBody, int teamId) {
+  final teams = summaryBody is Map ? summaryBody['teams'] : null;
+  if (teams is! List) return 0;
+  var mine = 0, overall = 0;
+  for (final t in teams.whereType<Map>()) {
+    final level = _i(t['team_highest_role_level']);
+    if (level > overall) overall = level;
+    if (_i(t['team_id']) == teamId && level > mine) mine = level;
+  }
+  if (mine == 0) return 0;
+  return overall >= 110 ? 110 : mine;
+}
+
 class TeamRoster {
   TeamRoster.fromJson(Map<String, dynamic> j)
       : teamId = _i(j['team_id']),
@@ -117,7 +135,12 @@ class TeamRoster {
             .where((c) => c.codeId > 1)
             .toList()
           ..sort((a, b) => a.codeId.compareTo(b.codeId));
-  final int teamId, clubId, userRoleLevel;
+  final int teamId, clubId;
+
+  /// The signed-in user's role on THIS team. The RPC's
+  /// user_highest_role_level counts every team the user is on, so the pages
+  /// replace it with [roleOnTeam] (roles review, 2026-11-13).
+  int userRoleLevel;
   final String teamName, teamCode;
   final List<RoleGroup> groups;
   final List<ClubCode> codes;

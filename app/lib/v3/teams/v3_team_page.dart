@@ -81,6 +81,9 @@ class _V3TeamPageState extends State<V3TeamPage> {
           TeamRoster.fromJson(Map<String, dynamic>.from(r.jsonBody as Map));
       TeamSummary? summary;
       final s = results[1];
+      // Your role on this team, not your highest on any team.
+      roster.userRoleLevel =
+          roleOnTeam(s.succeeded ? s.jsonBody : null, widget.teamId);
       if (s.succeeded && s.jsonBody is Map) {
         final teams = (s.jsonBody as Map)['teams'];
         if (teams is List) {

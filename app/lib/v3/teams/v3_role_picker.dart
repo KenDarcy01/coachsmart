@@ -33,7 +33,9 @@ class _V3RolePickerState extends State<V3RolePicker> {
   List<Map> get _roles {
     final l = [
       for (final r in widget.roles)
-        if (r is Map) r
+        // Never approve someone straight in as SuperUser (roles review,
+        // 2026-11-13); a SuperUser can add it on the member page.
+        if (r is Map && _i(r['role_level']) < 110) r
     ];
     l.sort((a, b) => _i(a['role_level']).compareTo(_i(b['role_level'])));
     return l;
