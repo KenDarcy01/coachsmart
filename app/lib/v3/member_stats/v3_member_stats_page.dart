@@ -1,6 +1,6 @@
 // v3 Member stats: one member's attendance and match selections, a native
 // copy of webviews/member-analytics.html (the v2 app keeps the web page).
-// Same RPC (get_member_analytics), same sections, filters and wording:
+// RPC get_member_analytics_v3 (every invited event, see the migration), same sections, filters and wording:
 // period switch, code / event type / team filters, attendance ring with the
 // last ten events, trainings and matches cards, a card per code, squad
 // selections, coming up, attendance by month, matches and history lists,
@@ -54,8 +54,6 @@ class V3MemberStatsPage extends StatefulWidget {
 class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
   MemberStats? _data;
 
-  /// squad_id -> squads.squad_colour, for the Squad selections bars.
-  Map<int, String> _squadColours = const {};
   bool _loading = true;
   String? _error;
   late Filters _f;
@@ -78,7 +76,7 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
   Future<void> _load() async {
     try {
       final dynamic r = widget.testData ??
-          await SupaFlow.client.rpc('get_member_analytics',
+          await SupaFlow.client.rpc('get_member_analytics_v3',
               params: {'p_member_id': widget.memberId});
       if (!mounted) return;
       if (r is! Map) {
@@ -88,11 +86,12 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
         });
         return;
       }
+      if (r['error'] != null) {
+        _fail('${r['error']}');
+        return;
+      }
       final d = MemberStats.fromJson(r);
-      final colours = await _loadSquadColours(d);
-      if (!mounted) return;
       setState(() {
-        _squadColours = colours;
         final keep = _data != null;
         _data = d;
         if (!keep) _f = Filters.initial(d.options);
@@ -104,32 +103,6 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
       _fail('Failed to load data: ${e.message}');
     } catch (e) {
       _fail('Failed to load data: $e');
-    }
-  }
-
-  /// Each picked squad's own colour. Read straight from squads so the
-  /// shared get_member_analytics RPC (also used by v2) stays unchanged.
-  Future<Map<int, String>> _loadSquadColours(MemberStats d) async {
-    final ids = {for (final s in d.selections) s.squadId}.whereType<int>();
-    if (ids.isEmpty) return const {};
-    if (widget.testData != null) {
-      final m = widget.testData!['squadColours'];
-      return m is Map
-          ? {for (final e in m.entries) int.parse('${e.key}'): '${e.value}'}
-          : const {};
-    }
-    try {
-      final rows = await SupaFlow.client
-          .from('squads')
-          .select('squad_id,squad_colour')
-          .inFilter('squad_id', ids.toList());
-      return {
-        for (final r in rows)
-          if (r['squad_colour'] != null)
-            (r['squad_id'] as num).toInt(): '${r['squad_colour']}'
-      };
-    } catch (_) {
-      return const {};
     }
   }
 
@@ -797,7 +770,7 @@ class _V3MemberStatsPageState extends State<V3MemberStatsPage> {
   }
 
   List<Widget> _squadSection(MemberStats d, StatsView v) {
-    final cards = squadCards(d, v, _squadColours);
+    final cards = squadCards(d, v);
     if (cards.isEmpty) return [];
     // One full-width card per code, stacked, so squad names fit.
     return [

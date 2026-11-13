@@ -1,6 +1,7 @@
 // v3 Club Analytics: pure data and rules behind the native copy of
 // webviews/dashboard-app.html. Everything here is a plain function of the
-// get_club_comparison_dashboard result so it can be unit tested.
+// get_club_analytics_v3 result (or the older get_club_comparison_dashboard
+// shape) so it can be unit tested.
 import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:ui' show Color;
@@ -374,6 +375,28 @@ AnData normalise(Map json, Set<int> adminTeamIds, int clubId, DateTime from) {
     if (id == null || !adminTeamIds.contains(id)) continue;
     final female = t['team_female'] == true;
     final roles = <AnRoleGroup>[];
+    // get_club_analytics_v3 sends the roster once as [id, name, role, level]
+    // and each event as id lists; the v2 RPC sent full member rows.
+    final people = <int, (String, String)>{};
+    if (t['people'] is List) {
+      final byRole = <String, (int, List<AnRosterMember>)>{};
+      for (final p in t['people'] as List) {
+        if (p is! List || p.length < 3) continue;
+        final pid = _int(p[0]);
+        if (pid == null) continue;
+        final name = _str(p[1]);
+        final role = _str(p[2]).isEmpty ? 'Player' : _str(p[2]);
+        people[pid] = (name, role);
+        final g = byRole.putIfAbsent(
+            role, () => (p.length > 3 ? _int(p[3]) ?? 999 : 999, []));
+        g.$2.add(AnRosterMember(pid, name));
+      }
+      final groups = byRole.entries.toList()
+        ..sort((a, b) => a.value.$1 - b.value.$1);
+      for (final g in groups) {
+        roles.add(AnRoleGroup(g.key, g.value.$2.length, g.value.$2));
+      }
+    }
     for (final r in (t['member_roles'] as List? ?? const [])) {
       if (r is! Map) continue;
       roles.add(AnRoleGroup(_str(r['role']), _int(r['count']) ?? 0, [
@@ -400,19 +423,22 @@ AnData normalise(Map json, Set<int> adminTeamIds, int clubId, DateTime from) {
         type: _str(e['type']),
         opposition: _str(e['opposition']),
         homeAway: _str(e['home_away']),
-        members: [
-          for (final m in (e['members'] as List? ?? const []))
-            if (m is Map)
-              AnMember(
-                id: _int(m['member_id']) ?? 0,
-                name: _str(m['name']),
-                role: _str(m['role']).isEmpty ? 'Player' : _str(m['role']),
-                response: _str(m['response']).isEmpty
-                    ? 'no_response'
-                    : _str(m['response']),
-                squadId: realSquad(_int(m['squad_id'])),
-              )
-        ],
+        members: e['members'] == null && t['people'] is List
+            ? _compactMembers(e, people, realSquad)
+            : [
+                for (final m in (e['members'] as List? ?? const []))
+                  if (m is Map)
+                    AnMember(
+                      id: _int(m['member_id']) ?? 0,
+                      name: _str(m['name']),
+                      role:
+                          _str(m['role']).isEmpty ? 'Player' : _str(m['role']),
+                      response: _str(m['response']).isEmpty
+                          ? 'no_response'
+                          : _str(m['response']),
+                      squadId: realSquad(_int(m['squad_id'])),
+                    )
+              ],
       ));
     }
   }
@@ -425,6 +451,57 @@ AnData normalise(Map json, Set<int> adminTeamIds, int clubId, DateTime from) {
       teams: teams,
       squads: squads,
       events: events);
+}
+
+/// One event's members from the compact rows: ids that said yes (y), no (n)
+/// or haven't replied (x), and match picks (p: [member, squad]). By name.
+List<AnMember> _compactMembers(
+    Map e, Map<int, (String, String)> people, int? Function(int?) realSquad) {
+  final picks = <int, int?>{};
+  for (final p in (e['p'] as List? ?? const [])) {
+    if (p is List && p.length > 1) {
+      final id = _int(p[0]);
+      if (id != null) picks[id] = realSquad(_int(p[1]));
+    }
+  }
+  final out = <AnMember>[];
+  void add(String key, String response) {
+    for (final v in (e[key] as List? ?? const [])) {
+      final id = _int(v);
+      if (id == null) continue;
+      final who = people[id];
+      out.add(AnMember(
+          id: id,
+          name: who?.$1 ?? 'Player',
+          role: who?.$2 ?? 'Player',
+          response: response,
+          squadId: picks[id]));
+    }
+  }
+
+  add('y', 'accepted');
+  add('n', 'declined');
+  add('x', 'no_response');
+  return stableSort(out, (a, b) => _cmpText(a.name, b.name));
+}
+
+/// The data for [newer]'s period plus the older events in [older], which
+/// covers the time before it (the comparison period loaded afterwards).
+AnData mergeOlder(AnData newer, AnData older) {
+  final ids = {for (final e in newer.events) e.id};
+  final squads = {...older.squads, ...newer.squads};
+  squadColours(squads);
+  return AnData(
+      clubId: newer.clubId,
+      from: older.from.isBefore(newer.from) ? older.from : newer.from,
+      clubName: newer.clubName,
+      teams: newer.teams,
+      squads: squads,
+      events: [
+        ...newer.events,
+        for (final e in older.events)
+          if (!ids.contains(e.id)) e
+      ]);
 }
 
 // ------------------------------------------------------------------- period

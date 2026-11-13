@@ -192,6 +192,81 @@ void modelTests() {
     expect(d.squads[52]!.hex, isNot(d.squads[51]!.hex));
   });
 
+  test('compact v3 rows: roster once, id lists per event, merge older', () {
+    Map ev(int id, String date, List y, List n, List x, [List p = const []]) =>
+        {
+          'event_id': id,
+          'date': date,
+          'title': 'Training',
+          'code': 'Hurling',
+          'type': 'Training',
+          'y': y,
+          'n': n,
+          'x': x,
+          'p': p,
+        };
+    Map json(List events) => {
+          'club_name': 'Clontarf',
+          'squads': [
+            {
+              'squad_id': 4,
+              'squad_name': 'Red',
+              'team_id': 1,
+              'colour': '#e53935'
+            }
+          ],
+          'teams': [
+            {
+              'team_id': 1,
+              'team_name': 'U14 Girls',
+              'team_female': true,
+              'people': [
+                [10, 'Aoife B', 'Player', 10],
+                [11, 'Ciara D', 'Player', 10],
+                [12, 'Pat Coach', 'Coach', 30],
+              ],
+              'events': events,
+            }
+          ],
+        };
+    final now = normalise(
+        json([
+          ev(2, '2026-03-02T19:00:00Z', [
+            10
+          ], [
+            11
+          ], [
+            12
+          ], [
+            [10, 4]
+          ])
+        ]),
+        {1},
+        1,
+        DateTime(2026));
+    final e = now.events.single;
+    expect(e.code, 'Camogie');
+    expect([for (final m in e.members) m.name],
+        ['Aoife B', 'Ciara D', 'Pat Coach']);
+    expect([for (final m in e.members) m.response],
+        ['accepted', 'declined', 'no_response']);
+    expect(e.members.first.squadId, 4);
+    expect(e.total, 3);
+    expect(e.nr, 1);
+    expect(
+        [for (final r in now.teams.single.roles) r.role], ['Player', 'Coach']);
+    final older = normalise(
+        json([
+          ev(1, '2025-03-02T19:00:00Z', [], [], [10, 11])
+        ]),
+        {1},
+        1,
+        DateTime(2025));
+    final all = mergeOlder(now, older);
+    expect(all.from, DateTime(2025));
+    expect([for (final e in all.events) e.id], [2, 1]);
+  });
+
   test('clubs and default club', () {
     final clubs = clubsOf([
       const AdminTeam(1, 'A', 9, 'Zeta'),

@@ -1,6 +1,6 @@
 // v3 Club Analytics: a native copy of webviews/dashboard-app.html, opened
-// from the v3 Home menu. Teams, Players and Squads tabs over one
-// get_club_comparison_dashboard call, with the period, the filter sheet,
+// from the v3 Home menu. Teams, Players and Squads tabs over
+// get_club_analytics_v3 (the period first, then the comparison period), with the period, the filter sheet,
 // the team page, the event / squad / roster sheets and PDF sharing.
 // Only teams where the user holds a grade 100 (admin) role are shown.
 import 'dart:async';
@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
@@ -95,29 +96,29 @@ class _V3AnalyticsPageState extends State<V3AnalyticsPage> {
   Future<void> _start() async {
     try {
       final td = widget.testData;
-      List<AdminTeam> teams;
-      dynamic defClub;
       if (td != null) {
-        teams = [
+        final teams = [
           for (final t in (td['admin_teams'] as List? ?? const []))
             AdminTeam.fromJson(t as Map)
         ];
-        defClub = td['default_club'];
-      } else {
-        teams = await _fetchAdminTeams();
-        if (teams.isNotEmpty) defClub = await _fetchDefaultClub();
-      }
-      if (teams.isEmpty) {
-        _update(() {
-          _denied = true;
-          _loading = false;
-        });
+        if (teams.isEmpty) {
+          _update(() {
+            _denied = true;
+            _loading = false;
+          });
+          return;
+        }
+        _adminTeamIds = {for (final t in teams) t.teamId};
+        _clubs = clubsOf(teams);
+        _clubId = defaultClubFor(_clubs, td['default_club']);
+        await _loadData();
         return;
       }
-      _adminTeamIds = {for (final t in teams) t.teamId};
-      _clubs = clubsOf(teams);
-      _clubId = defaultClubFor(_clubs, defClub);
-      await _loadData();
+      // Show the last result saved on this phone straight away, then
+      // refresh it from the server.
+      final cached = await _readCache();
+      if (cached != null && mounted) _show(cached, fromCache: true);
+      await _loadData(fresh: true);
     } catch (_) {
       _update(() {
         _loading = false;
@@ -126,113 +127,144 @@ class _V3AnalyticsPageState extends State<V3AnalyticsPage> {
     }
   }
 
-  /// Teams where the user holds an admin (grade 100) role.
-  Future<List<AdminTeam>> _fetchAdminTeams() async {
-    final c = SupaFlow.client;
-    final uml = await c
-        .from('user_member_link')
-        .select('member_id')
-        .eq('user_id', currentUserUid);
-    if (uml.isEmpty) return [];
-    final mtl = await c
-        .from('member_team_link')
-        .select('member_team_id,team_id')
-        .inFilter('member_id', [for (final r in uml) r['member_id']]);
-    if (mtl.isEmpty) return [];
-    final mtlMap = {for (final r in mtl) r['member_team_id']: r['team_id']};
-    final mtrl = await c
-        .from('member_team_role_link')
-        .select('member_team_id,role_id')
-        .inFilter('member_team_id', [for (final r in mtl) r['member_team_id']]);
-    if (mtrl.isEmpty) return [];
-    final roles = await c
-        .from('roles')
-        .select('role_id')
-        .inFilter('role_id', {for (final r in mtrl) r['role_id']}.toList())
-        .eq('role_grade', 100);
-    if (roles.isEmpty) return [];
-    final adminRoleIds = {for (final r in roles) r['role_id']};
-    final teamIds = {
-      for (final r in mtrl)
-        if (adminRoleIds.contains(r['role_id']) &&
-            mtlMap[r['member_team_id']] != null)
-          mtlMap[r['member_team_id']]
-    }.toList();
-    if (teamIds.isEmpty) return [];
-    final teams = await c
-        .from('teams')
-        .select('team_id,team_name,club_id')
-        .inFilter('team_id', teamIds);
-    if (teams.isEmpty) return [];
-    final clubs = await c
-        .from('clubs')
-        .select('club_id,club_name')
-        .inFilter('club_id', {for (final t in teams) t['club_id']}.toList());
-    final clubMap = {for (final c in clubs) c['club_id']: c['club_name']};
-    return [
-      for (final t in teams)
-        AdminTeam.fromJson({...t, 'club_name': clubMap[t['club_id']] ?? 'Club'})
-    ];
+  /// get_club_analytics_v3: the caller's admin teams plus compact data for
+  /// one club (null = the default club) between [from] and [to].
+  Future<Map> _fetch(int? clubId, DateTime from, DateTime to) async {
+    if (widget.testData != null) {
+      return widget.testData!['dashboard'] as Map? ?? {};
+    }
+    final r = await SupaFlow.client.rpc('get_club_analytics_v3', params: {
+      'p_club_id': clubId,
+      'p_start_date': from.toUtc().toIso8601String(),
+      'p_end_date': to.toUtc().toIso8601String(),
+    });
+    return r is Map ? r : {};
   }
 
-  Future<dynamic> _fetchDefaultClub() async {
+  /// Takes the admin teams from a live result. False when there are none.
+  bool _takeAdmin(Map json) {
+    if (json['admin_teams'] is! List) return true; // test data
+    final teams = [
+      for (final t in json['admin_teams'] as List)
+        if (t is Map) AdminTeam.fromJson(t)
+    ];
+    if (teams.isEmpty) return false;
+    _adminTeamIds = {for (final t in teams) t.teamId};
+    _clubs = clubsOf(teams);
+    final id = json['club_id'];
+    if (id is num) _clubId = id.toInt();
+    return true;
+  }
+
+  /// Shows a current-period result. Returns the parsed data, or null.
+  AnData? _show(({Map json, DateTime from}) r, {bool fromCache = false}) {
+    if (!_takeAdmin(r.json)) {
+      if (!fromCache) {
+        _update(() {
+          _denied = true;
+          _loading = false;
+        });
+      }
+      return null;
+    }
+    final data = normalise(r.json, _adminTeamIds, _clubId, r.from);
+    _f.rebuild(data);
+    _update(() {
+      _data = data;
+      _loading = false;
+      _error = null;
+    });
+    return data;
+  }
+
+  String get _cacheKey => 'v3_club_analytics_$currentUserUid';
+
+  Future<({Map json, DateTime from})?> _readCache() async {
     try {
-      final r = await SupaFlow.client
-          .from('users')
-          .select('default_club')
-          .eq('user_id', currentUserUid)
-          .maybeSingle();
-      return r?['default_club'];
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey);
+      if (raw == null) return null;
+      final c = jsonDecode(raw);
+      if (c is! Map || c['json'] is! Map) return null;
+      final from = DateTime.tryParse('${c['from']}');
+      // Only reuse it for the period the page opens on.
+      if (from == null || from != (_range.from ?? kAllFrom)) return null;
+      return (json: c['json'] as Map, from: from);
     } catch (_) {
       return null;
     }
   }
 
-  Future<void> _loadData() async {
-    final need = needFrom(_range);
+  Future<void> _writeCache(Map json, DateTime from) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey,
+          jsonEncode({'from': from.toIso8601String(), 'json': json}));
+    } catch (_) {}
+  }
+
+  /// Loads the period first so the page shows quickly, then the comparison
+  /// period before it (for the "on last year" trends) in the background.
+  /// [fresh] refreshes the current period even when it's already shown.
+  Future<void> _loadData({bool fresh = false}) async {
+    final r = _range;
+    final need = needFrom(r);
+    final curFrom = r.from ?? kAllFrom;
     final d = _data;
-    if (d != null && d.clubId == _clubId && !d.from.isAfter(need)) {
+    final sameClub = d != null && d.clubId == _clubId;
+    if (!fresh && sameClub && !d.from.isAfter(need)) {
       _update(() {});
       return;
     }
     final seq = ++_seq;
-    _update(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      Map json;
-      if (widget.testData != null) {
-        json = widget.testData!['dashboard'] as Map? ?? {};
-      } else {
-        final r =
-            await SupaFlow.client.rpc('get_club_comparison_dashboard', params: {
-          'p_club_id': _clubId,
-          'p_start_date': need.toUtc().toIso8601String(),
-          'p_end_date': DateTime.now().toUtc().toIso8601String(),
+    AnData? data;
+    if (!fresh && sameClub && !d.from.isAfter(curFrom)) {
+      data = d; // only the comparison is missing
+    } else {
+      // A refresh behind cached data keeps the page up; else a spinner.
+      if (!(fresh && d != null)) {
+        _update(() {
+          _loading = true;
+          _error = null;
         });
-        json = r is Map ? r : {};
       }
-      if (seq != _seq) return;
-      if (json['error'] != null) {
+      try {
+        final json =
+            await _fetch(_clubs.isEmpty ? null : _clubId, curFrom, _now);
+        if (seq != _seq) return;
+        if (json['error'] != null) {
+          _update(() {
+            _loading = false;
+            _error = "Couldn't load club data: ${json['error']}";
+          });
+          return;
+        }
+        data = _show((json: json, from: curFrom));
+        if (data == null) return;
+        if (widget.testData == null &&
+            r.from == periodRange(AnPeriod.season, null, _now).from) {
+          unawaited(_writeCache(json, curFrom));
+        }
+      } catch (e) {
+        if (seq != _seq) return;
         _update(() {
           _loading = false;
-          _error = "Couldn't load club data: ${json['error']}";
+          if (_data == null || !fresh) _error = "Couldn't load club data";
         });
         return;
       }
-      final data = normalise(json, _adminTeamIds, _clubId, need);
-      _f.rebuild(data);
-      _update(() {
-        _data = data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (seq != _seq) return;
-      _update(() {
-        _loading = false;
-        _error = "Couldn't load club data";
-      });
+    }
+    final prevFrom = r.prevFrom;
+    if (prevFrom == null || !data.from.isAfter(prevFrom)) return;
+    try {
+      final json = await _fetch(_clubId, prevFrom, data.from);
+      if (seq != _seq || json['error'] != null) return;
+      final merged =
+          mergeOlder(data, normalise(json, _adminTeamIds, _clubId, prevFrom));
+      _f.rebuild(merged);
+      _update(() => _data = merged);
+    } catch (_) {
+      // The page still works; it just shows no trend.
     }
   }
 

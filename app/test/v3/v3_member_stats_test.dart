@@ -39,6 +39,7 @@ Map<String, dynamic> sel(int id, String date, String code, String squad,
       'team_name': 'U14 Girls',
       'squad_id': 1,
       'squad_name': squad,
+      'squad_colour': '#1E88E5',
       'role_id': 1,
       'role_name': role,
     };
@@ -123,7 +124,7 @@ void main() {
     expect(cards[1].matches, 2);
     final sq = squadCards(d, v);
     expect(sq.single.code, 'Football');
-    expect(sq.single.rows, [('Blue', 2, null)]);
+    expect(sq.single.rows, [('Blue', 2, '#1E88E5')]);
     final bars = monthBars(v, now);
     expect(bars.length, 11); // Jan to Nov
     expect(bars.first.label, 'J');

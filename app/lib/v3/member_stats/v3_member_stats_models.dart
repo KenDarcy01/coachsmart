@@ -1,5 +1,6 @@
-// Data for the v3 member stats page: the result of get_member_analytics
-// (member, active teams, every event the member has a reply for, and the
+// Data for the v3 member stats page: the result of get_member_analytics_v3
+// (member, active teams, every event the member was invited to with their
+// reply or none, and the
 // latest match squad pick per event) plus the pure rules the web page
 // webviews/member-analytics.html applies: period ranges, the code / event
 // type / team filters, attendance counts, monthly bars, squad selections,
@@ -59,11 +60,12 @@ class MsEvent {
         responseId = _iN(j['response_id']),
         squadId = _iN(j['squad_id']),
         squadName = _sN(j['squad_name']),
+        squadColour = _sN(j['squad_colour']),
         roleName = _sN(j['role_name']);
 
   final int eventId;
   final String? title, type, code, teamName, opposition, homeAway;
-  final String? squadName, roleName;
+  final String? squadName, squadColour, roleName;
   final int? teamId, responseId, squadId;
   final DateTime? date;
 
@@ -478,17 +480,15 @@ class SquadCard {
 }
 
 /// How often the member was picked for each squad, one card per code.
-/// [colours] maps squad_id to the squad's own colour (squads.squad_colour).
-List<SquadCard> squadCards(MemberStats d, StatsView v,
-    [Map<int, String> colours = const {}]) {
+/// Each row carries the squad's own colour (squads.squad_colour).
+List<SquadCard> squadCards(MemberStats d, StatsView v) {
   final byCode = <String, Map<String, int>>{};
   final colourOf = <String, String?>{};
   for (final m in v.matches) {
     if (m.selection == null) continue;
     final counts = byCode.putIfAbsent(d.codeOf(m.e), () => {});
     counts[m.squad!] = (counts[m.squad!] ?? 0) + 1;
-    final id = m.selection!.squadId;
-    colourOf[m.squad!] ??= id == null ? null : colours[id];
+    colourOf[m.squad!] ??= m.selection!.squadColour;
   }
   final codes = byCode.keys.toList()..sort();
   return [
