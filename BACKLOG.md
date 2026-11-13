@@ -53,6 +53,20 @@ Populate via trigger on `event_attendance` INSERT/UPDATE/DELETE and on `member_t
 
 ---
 
+## Security before the v3 flip (Christmas 2026, Ken 2026-11-13)
+
+From the roles review (thread "Review what each role can see and do", doc https://claude.ai/artifact/63q6a3p94sYadSuGfjDUrk). Safe fixes shipped 2026-11-13 (migration 20261113063000, export guard, v3 per-team role).
+
+| # | Item | Notes |
+|---|---|---|
+| [ ] | Move v3's direct table writes into checked functions | roles, squad moves, member name, event flags, lineups, attendance replies, car pool seats, leave team, profile/settings. v3-only functions, no v2 impact |
+| [ ] | Replace "any signed-in" RLS policies with team-membership policies | users, members, member_team_link, member_team_role_link, member_squad_link, squads (grade), teams, events, event_attendance, match_squads, payments… Only after v2/old PWA are gone |
+| [ ] | Caller checks on shared functions | confirm/deny joins, remove_member_from_team, create_recurring_events, save_onboarding_details, create_match_squad_from_attendance, get_edit_user_data, payment details, dashboards; revoke anon execute |
+| [ ] | Caller checks on edge functions | send-email, send-push-notification, trigger-push-notification, get-google-token, event_match_report_email |
+| [ ] | Scoring and team creation | upsert_match_stats / sync_match_actions must check team membership; create_team_with_admin SuperUser-only |
+
+---
+
 ## Data Integrity — Soft Deletes
 
 Hard deletes currently cause permanent, unrecoverable data loss. The fix is to add a `status` column to top-level parent tables only — child records are naturally excluded when the parent is filtered, so no child tables need their own status column.
