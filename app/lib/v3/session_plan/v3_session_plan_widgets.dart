@@ -1,7 +1,6 @@
 // Session plan pieces: the plan cards (editable or read-only), the saved
 // plans picker with its preview, a game's detail and the "add games from the
 // library" list. Used by V3SessionPlanPage.
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -469,13 +468,7 @@ class _PhaseCard extends StatelessWidget {
             ),
           ),
         if (image.isNotEmpty)
-          CachedNetworkImage(
-            imageUrl: image,
-            width: double.infinity,
-            fit: BoxFit.fitWidth,
-            placeholder: (_, __) => Container(height: 160, color: V3.card2),
-            errorWidget: (_, __, ___) => const SizedBox.shrink(),
-          ),
+          V3GameImage(url: image, radius: 0, spinner: false),
         if (video.isNotEmpty)
           InkWell(
             onTap: () => openGameVideo(video),

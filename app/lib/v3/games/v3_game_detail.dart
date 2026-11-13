@@ -6,6 +6,8 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart'
+    show ImageRenderMethodForWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -125,10 +127,19 @@ class V3GameDetailView extends StatelessWidget {
 /// picture), retries once by itself, and logs the failure to analytics.
 class V3GameImage extends StatefulWidget {
   const V3GameImage(
-      {super.key, required this.url, this.gameId = 0, this.onTap});
+      {super.key,
+      required this.url,
+      this.gameId = 0,
+      this.onTap,
+      this.radius = 14,
+      this.spinner = true});
   final String url;
   final int gameId;
   final VoidCallback? onTap;
+  final double radius;
+
+  /// Spinner while loading; false shows a plain grey box (session plans).
+  final bool spinner;
 
   @override
   State<V3GameImage> createState() => _V3GameImageState();
@@ -164,38 +175,52 @@ class _V3GameImageState extends State<V3GameImage> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _failed ? _retry() : widget.onTap?.call(),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: CachedNetworkImage(
-          key: ValueKey(_attempt),
-          imageUrl: widget.url,
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-          placeholder: (_, __) => Container(
-              height: 200,
-              color: V3.card2,
-              alignment: Alignment.center,
-              child: const CircularProgressIndicator(color: V3.green)),
-          errorWidget: (_, __, error) {
-            _onError(error);
-            return Container(
-              height: 160,
-              color: V3.card2,
-              alignment: Alignment.center,
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.refresh, color: V3.green, size: 30),
-                const SizedBox(height: 8),
-                Text("Picture didn't load", style: V3.inter(16)),
-                const SizedBox(height: 2),
-                Text('Tap to try again', style: V3.inter(14, color: V3.muted)),
-              ]),
-            );
-          },
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    return LayoutBuilder(builder: (context, box) {
+      // Decode at the size shown, not the full 1800px upload: full-size
+      // diagrams use ~13 MB each on the GPU and iPhone Safari drops them
+      // (black boxes after scrolling, or a failed load). HttpGet on web so
+      // the resize applies there too (HtmlImage ignores it).
+      final w = box.maxWidth.isFinite ? box.maxWidth : 400.0;
+      final px = (w * dpr).round().clamp(200, 1200);
+      return GestureDetector(
+        onTap: () => _failed ? _retry() : widget.onTap?.call(),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(widget.radius),
+          child: CachedNetworkImage(
+            key: ValueKey(_attempt),
+            imageUrl: widget.url,
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+            memCacheWidth: px,
+            imageRenderMethodForWeb: ImageRenderMethodForWeb.HttpGet,
+            placeholder: (_, __) => Container(
+                height: widget.spinner ? 200 : 160,
+                color: V3.card2,
+                alignment: Alignment.center,
+                child: widget.spinner
+                    ? const CircularProgressIndicator(color: V3.green)
+                    : null),
+            errorWidget: (_, __, error) {
+              _onError(error);
+              return Container(
+                height: 160,
+                color: V3.card2,
+                alignment: Alignment.center,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.refresh, color: V3.green, size: 30),
+                  const SizedBox(height: 8),
+                  Text("Picture didn't load", style: V3.inter(16)),
+                  const SizedBox(height: 2),
+                  Text('Tap to try again',
+                      style: V3.inter(14, color: V3.muted)),
+                ]),
+              );
+            },
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
