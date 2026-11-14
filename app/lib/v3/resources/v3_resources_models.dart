@@ -242,7 +242,14 @@ List<FallbackStage> visibleFallbackStages(List<V3Game> games) => games.isEmpty
           if (fallbackStageCount(s, games) > 0) s
       ];
 
-const List<String> kFallbackSports = ['All', 'Football', 'Hurling', 'Camogie'];
+const List<String> kFallbackSports = [
+  'All',
+  'Football',
+  'Hurling',
+  'Camogie',
+  'Soccer',
+  'Rugby'
+];
 const List<String> kFallbackTypes = ['All', 'Games', 'Warmups', 'Drill'];
 
 List<V3Game> fallbackStageGames(FallbackStage s, List<V3Game> games) => [

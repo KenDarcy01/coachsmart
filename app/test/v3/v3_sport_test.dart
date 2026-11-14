@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:coach_smart_v2/v3/game_upload/v3_game_upload_models.dart';
+import 'package:coach_smart_v2/v3/games/v3_game_models.dart';
 import 'package:coach_smart_v2/v3/sport/v3_sport.dart';
 
 void main() {
@@ -44,5 +46,29 @@ void main() {
     expect(V3Sport.rugby.shortClub('Clontarf Rugby'), 'Clontarf');
     expect(V3Sport.soccer.shortClub('Clontarf FC'), 'Clontarf');
     expect(V3Sport.soccer.shortClub('FC'), 'FC');
+  });
+
+  test('games carry a sport, GAA when missing', () {
+    expect(V3Game.fromJson({'game_id': 1, 'game_name': 'x'}).sportId, 1);
+    final g = V3Game.fromJson({'game_id': 2, 'game_name': 'y', 'sport_id': 3});
+    expect(g.sportId, 3);
+    expect(g.copyWith(name: 'z').sportId, 3);
+    expect(g.toJson()['sport_id'], 3);
+  });
+
+  test('game codes and skills per sport', () {
+    expect(V3Sport.gaa.pickCode, isTrue);
+    expect(V3Sport.soccer.pickCode, isFalse);
+    expect(V3Sport.rugby.gameCodes, ['Rugby']);
+    expect(guVisibleSkills(['Soccer'], sport: V3Sport.soccer),
+        contains('First Touch'));
+    expect(guVisibleSkills(['Rugby'], sport: V3Sport.rugby),
+        isNot(contains('Handpass')));
+    expect(guVisibleSkills(['Hurling']), isNot(contains('Kick Pass')));
+    expect(
+        guSaveProblem(name: 'x', type: 'Game', codes: [], sport: V3Sport.rugby),
+        'Please select a Code (Rugby)');
+    expect(guRevisePlaceholder(['Soccer'], sport: V3Sport.soccer),
+        isNot(contains('kick')));
   });
 }

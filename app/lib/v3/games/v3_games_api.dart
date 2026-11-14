@@ -19,6 +19,7 @@ import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import 'v3_game_models.dart';
 import '/v3/tracking/v3_track.dart';
+import '/v3/sport/v3_sport.dart';
 
 /// Thrown by [V3GamesApi] calls with a message fit to show the coach.
 class V3GamesError implements Exception {
@@ -90,13 +91,16 @@ class V3GamesApi {
     }
   }
 
-  /// Public games plus [clubId]'s games (never another club's).
+  /// Public games plus [clubId]'s games (never another club's), for the
+  /// club's sport only (multi-sport, Ken 2026-11-14).
   Future<List<V3Game>> games(int? clubId) async {
+    final sport = await V3Sport.forClub(clubId);
     // Hidden (low quality) games have is_active = false (Ken, 2026-11-11).
     final q = SupaFlow.client
         .from('games')
         .select(kGameColumns)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('sport_id', sport.id);
     final rows = clubId != null
         ? await q.or('club_id.is.null,club_id.eq.$clubId')
         : await q.isFilter('club_id', null);

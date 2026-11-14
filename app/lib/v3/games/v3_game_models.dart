@@ -11,7 +11,8 @@
 /// The columns every games query selects (same list as the web page).
 const String kGameColumns = 'game_id,game_name,game_age,game_code,game_type,'
     'game_skill,game_setup,game_how_to_play,game_variations,'
-    'game_teaching_points,game_pdf,game_video,game_image,club_id,created_by';
+    'game_teaching_points,game_pdf,game_video,game_image,club_id,created_by,'
+    'sport_id';
 
 /// Accounts that may delete any game (mirrors GAME_ADMINS in the web page
 /// and in the ai-process-game edge function, which enforces it).
@@ -60,6 +61,7 @@ class V3Game {
     this.image = '',
     this.clubId,
     this.createdBy = '',
+    this.sportId = 1,
   });
 
   factory V3Game.fromJson(Map j) => V3Game(
@@ -78,6 +80,7 @@ class V3Game {
         image: _s(j['game_image']),
         clubId: _iN(j['club_id']),
         createdBy: _s(j['created_by']),
+        sportId: _iN(j['sport_id']) ?? 1,
       );
 
   final int gameId;
@@ -101,6 +104,9 @@ class V3Game {
   /// auth user id of the coach who added it ('' for older rows).
   final String createdBy;
 
+  /// games.sport_id: 1 GAA, 2 Soccer, 3 Rugby (V3Sport.fromId).
+  final int sportId;
+
   Map<String, dynamic> toJson() => {
         'game_id': gameId,
         'game_name': name,
@@ -117,6 +123,7 @@ class V3Game {
         'game_image': image,
         'club_id': clubId,
         'created_by': createdBy,
+        'sport_id': sportId,
       };
 
   V3Game copyWith({
@@ -146,6 +153,7 @@ class V3Game {
         image: image ?? this.image,
         clubId: clubId,
         createdBy: createdBy,
+        sportId: sportId,
       );
 
   Iterable<String> get _typesLower => types.map((t) => t.toLowerCase());

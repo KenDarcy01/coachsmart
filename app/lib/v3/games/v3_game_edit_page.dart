@@ -10,9 +10,9 @@ import '../v3_theme.dart';
 import 'v3_drill_diagram.dart';
 import 'v3_game_models.dart';
 import 'v3_games_api.dart';
+import '../sport/v3_sport.dart';
 
 /// Sport choices on the edit form (several allowed).
-const List<String> kEditSports = ['Football', 'Hurling', 'Camogie'];
 
 /// Type choices on the edit form (one at a time).
 const List<String> kEditTypes = ['Game', 'Warmup', 'Drill', 'Skills', 'Video'];
@@ -35,8 +35,12 @@ class _V3GameEditPageState extends State<V3GameEditPage> {
   late final _vars = TextEditingController(text: widget.game.variations);
   late final _tps = TextEditingController(text: widget.game.teachingPoints);
   late final _video = TextEditingController(text: widget.game.video);
+  // The game's own sport decides the code choices (multi-sport, Ken
+  // 2026-11-14): GAA Football/Hurling/Camogie, soccer and rugby one code.
+  late final V3Sport _sport = V3Sport.fromId(widget.game.sportId);
+  late final List<String> _codeOpts = _sport.gameCodes;
   late final Set<String> _sports = {
-    for (final s in kEditSports)
+    for (final s in _codeOpts)
       if (widget.game.codes.any((c) => c.toLowerCase() == s.toLowerCase())) s
   };
   late final Set<String> _types = {
@@ -85,10 +89,12 @@ class _V3GameEditPageState extends State<V3GameEditPage> {
           : null;
       final edit = GameEdit(
         name: _name.text.trim(),
-        codes: [
-          for (final s in kEditSports)
-            if (_sports.contains(s)) s
-        ],
+        codes: _sport.pickCode
+            ? [
+                for (final s in _codeOpts)
+                  if (_sports.contains(s)) s
+              ]
+            : _codeOpts,
         types: [
           for (final t in kEditTypes)
             if (_types.contains(t)) t
@@ -181,14 +187,16 @@ class _V3GameEditPageState extends State<V3GameEditPage> {
         children: [
           _label('Name'),
           _field(_name, 'Game name'),
-          _label('Sport'),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final s in kEditSports)
-              _chip(s, _sports.contains(s), () {
-                setState(() =>
-                    _sports.contains(s) ? _sports.remove(s) : _sports.add(s));
-              }),
-          ]),
+          if (_sport.pickCode) ...[
+            _label('Sport'),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final s in _codeOpts)
+                _chip(s, _sports.contains(s), () {
+                  setState(() =>
+                      _sports.contains(s) ? _sports.remove(s) : _sports.add(s));
+                }),
+            ]),
+          ],
           _label('Type'),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final t in kEditTypes)

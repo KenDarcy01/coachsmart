@@ -3,9 +3,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../sport/v3_sport.dart';
+
 /// Options on the draft form (the web page's select and chips).
 const kGuTypes = ['Game', 'Drill', 'Skill', 'Warmup', 'Video'];
 const kGuAges = ['U6', 'U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'Adult'];
+
+/// GAA defaults; other sports take theirs from V3Sport (multi-sport).
 const kGuCodes = ['Football', 'Hurling', 'Camogie'];
 const kGuSkills = [
   'Handpass',
@@ -128,7 +132,9 @@ List<String> guDraftCodes(List<String> diagramCodes, String? sport) =>
 
 /// Hurling and camogie have no kick pass: the chip is hidden when only
 /// those codes are picked.
-List<String> guVisibleSkills(List<String> codes) {
+List<String> guVisibleSkills(List<String> codes,
+    {V3Sport sport = V3Sport.gaa}) {
+  if (!sport.isGaa) return sport.gameSkills;
   final noKick = codes.isNotEmpty && !codes.contains('Football');
   return [
     for (final s in kGuSkills)
@@ -226,11 +232,12 @@ Map<String, dynamic> guReviseBody(
 String? guSaveProblem(
     {required String name,
     required String? type,
-    required List<String> codes}) {
+    required List<String> codes,
+    V3Sport sport = V3Sport.gaa}) {
   if (name.trim().isEmpty) return 'Game name is required';
   if (type == null || type.isEmpty) return 'Please select a Type';
   if (codes.isEmpty) {
-    return 'Please select a Code (Football / Hurling / Camogie)';
+    return 'Please select a Code (${sport.gameCodes.join(' / ')})';
   }
   return null;
 }
@@ -351,7 +358,11 @@ String guTidied(Map? scene) {
 }
 
 /// Example for the revise panel; hurling and camogie never say kick.
-String guRevisePlaceholder(List<String> codes) {
+String guRevisePlaceholder(List<String> codes, {V3Sport sport = V3Sport.gaa}) {
+  if (!sport.isGaa) {
+    return 'e.g. make the setup shorter, add a U10 variation, focus more on '
+        'passing';
+  }
   final noKick = codes.isNotEmpty && !codes.contains('Football');
   return 'e.g. make the setup shorter, add a U10 variation, focus more on '
       '${noKick ? 'scoring' : 'kicking'}';

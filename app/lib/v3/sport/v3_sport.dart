@@ -26,6 +26,8 @@ class V3Sport {
     required this.ball,
     required this.pitch,
     required this.clubSuffixes,
+    required this.gameCodes,
+    required this.gameSkills,
   });
 
   final V3SportKind kind;
@@ -55,7 +57,17 @@ class V3Sport {
   /// "Clontarf GAA" -> "Clontarf".
   final List<String> clubSuffixes;
 
+  /// Codes a game can be tagged with (games.game_code). One code means
+  /// there is nothing to pick.
+  final List<String> gameCodes;
+
+  /// Skill chips for games and drills.
+  final List<String> gameSkills;
+
   bool get isGaa => kind == V3SportKind.gaa;
+
+  /// More than one code to pick from (GAA); soccer and rugby have one.
+  bool get pickCode => gameCodes.length > 1;
 
   /// The ball for a code: a sliotar in hurling and camogie.
   String ballFor(String? code) {
@@ -90,6 +102,17 @@ class V3Sport {
     ball: 'ball',
     pitch: 'pitch',
     clubSuffixes: ['GAA', 'GFC', 'CLG', 'HC', 'LGFA', 'Camogie Club'],
+    gameCodes: ['Football', 'Hurling', 'Camogie'],
+    gameSkills: [
+      'Handpass',
+      'Kick Pass',
+      'Catching',
+      'Solo',
+      'Shooting',
+      'Tackling',
+      'Blocking',
+      'Fielding'
+    ],
   );
 
   static const soccer = V3Sport(
@@ -102,6 +125,17 @@ class V3Sport {
     ball: 'ball',
     pitch: 'pitch',
     clubSuffixes: ['FC', 'AFC', 'United', 'Football Club'],
+    gameCodes: ['Soccer'],
+    gameSkills: [
+      'Passing',
+      'First Touch',
+      'Dribbling',
+      'Shooting',
+      'Heading',
+      'Tackling',
+      'Defending',
+      'Goalkeeping'
+    ],
   );
 
   static const rugby = V3Sport(
@@ -114,6 +148,17 @@ class V3Sport {
     ball: 'ball',
     pitch: 'pitch',
     clubSuffixes: ['RFC', 'RFU', 'Rugby Club', 'Rugby'],
+    gameCodes: ['Rugby'],
+    gameSkills: [
+      'Passing',
+      'Catching',
+      'Tackling',
+      'Rucking',
+      'Evasion',
+      'Running Lines',
+      'Kicking',
+      'Contact'
+    ],
   );
 
   static const all = [gaa, soccer, rugby];
@@ -140,6 +185,44 @@ class V3Sport {
       final s = fromId(id is int ? id : int.tryParse('${id ?? ''}'));
       _teamCache[teamId] = s;
       return s;
+    } catch (_) {
+      return gaa;
+    }
+  }
+
+  static final Map<int, V3Sport> _clubCache = {};
+
+  /// The club's sport, read once per club and kept. GAA when unknown.
+  static Future<V3Sport> forClub(int? clubId) async {
+    if (clubId == null) return gaa;
+    final hit = _clubCache[clubId];
+    if (hit != null) return hit;
+    try {
+      final r = await SupaFlow.client
+          .from('clubs')
+          .select('sport_id')
+          .eq('club_id', clubId)
+          .maybeSingle();
+      final id = r?['sport_id'];
+      final s = fromId(id is int ? id : int.tryParse('${id ?? ''}'));
+      _clubCache[clubId] = s;
+      return s;
+    } catch (_) {
+      return gaa;
+    }
+  }
+
+  /// The signed-in user's sport: their default club's (users.default_club).
+  static Future<V3Sport> mine(String userId) async {
+    if (userId.isEmpty) return gaa;
+    try {
+      final r = await SupaFlow.client
+          .from('users')
+          .select('default_club')
+          .eq('user_id', userId)
+          .maybeSingle();
+      final v = r?['default_club'];
+      return await forClub(v is int ? v : int.tryParse('${v ?? ''}'));
     } catch (_) {
       return gaa;
     }

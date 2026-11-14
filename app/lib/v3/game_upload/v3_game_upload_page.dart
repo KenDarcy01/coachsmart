@@ -21,6 +21,8 @@ import '../match_report/v3_voice_sheet.dart';
 import '../v3_theme.dart';
 import 'v3_game_upload_models.dart';
 import 'v3_game_upload_services.dart';
+import '../sport/v3_sport.dart';
+import '/auth/supabase_auth/auth_util.dart';
 
 enum _Stage { create, processing, review }
 
@@ -95,6 +97,12 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
   String _tidied = '';
   String? _type;
   List<String> _ages = [], _codes = [], _skills = [];
+
+  // The coach's club sport (multi-sport, Ken 2026-11-14): its codes and
+  // skills. Soccer and rugby have one code, set without asking.
+  V3Sport _sport = V3Sport.gaa;
+  List<String> get _codeOpts => _sport.gameCodes;
+  List<String> get _skillOpts => _sport.isGaa ? kGuSkills : _sport.gameSkills;
   final _video = TextEditingController();
   final _name = TextEditingController();
   final _setup = TextEditingController();
@@ -113,6 +121,16 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
     _desc.addListener(() => setState(() {}));
     _sketch.addListener(() => setState(() {}));
     _loadAi();
+    _loadSport();
+  }
+
+  Future<void> _loadSport() async {
+    final s = await V3Sport.mine(currentUserUid);
+    if (!mounted || s == _sport) return;
+    setState(() {
+      _sport = s;
+      if (!s.pickCode) _codes = [...s.gameCodes];
+    });
   }
 
   Future<void> _loadAi() async {
@@ -277,7 +295,7 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
   void _openFbVoice() => _voice(
         title: 'Revise the draft',
         subtitle: 'Say or type what you would like changed.',
-        placeholder: guRevisePlaceholder(_codes),
+        placeholder: guRevisePlaceholder(_codes, sport: _sport),
         submitLabel: 'Revise',
         busyLabel: 'Revising…',
         onSubmit: _revise,
@@ -483,9 +501,11 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
     final draft = GuDraft.fromJson(ai!);
     _type = guMatchType(draft.type) ?? _type;
     _ages = guPreselect(kGuAges, _ages, draft.ages);
-    _codes = guPreselect(
-        kGuCodes, _codes, guDraftCodes(s?.codes ?? const [], draft.sport));
-    _skills = guPreselect(kGuSkills, _skills, draft.skills);
+    _codes = _sport.pickCode
+        ? guPreselect(
+            _codeOpts, _codes, guDraftCodes(s?.codes ?? const [], draft.sport))
+        : [..._codeOpts];
+    _skills = guPreselect(_skillOpts, _skills, draft.skills);
     _showReview(draft);
     // A clear written title on the diagram beats the AI's guess.
     if (s?.gameName != null) _name.text = s!.gameName!;
@@ -540,14 +560,15 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
       _say('This game is already saved');
       return;
     }
-    final problem = guSaveProblem(name: _name.text, type: _type, codes: _codes);
+    final problem = guSaveProblem(
+        name: _name.text, type: _type, codes: _codes, sport: _sport);
     if (problem != null) {
       _say(problem, error: true);
       if (_name.text.trim().isEmpty) _nameFocus.requestFocus();
       return;
     }
     FocusScope.of(context).unfocus();
-    final visible = guVisibleSkills(_codes);
+    final visible = guVisibleSkills(_codes, sport: _sport);
     setState(() => _saving = true);
     try {
       final r = await _svc.aiProcessGame(guSaveBody(
@@ -852,7 +873,7 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
   Widget _buildReview() {
     final img = _reviewImage;
     final showFix = _ai && _diag != null;
-    final skills = guVisibleSkills(_codes);
+    final skills = guVisibleSkills(_codes, sport: _sport);
     return ListView(
       // A new list, so each draft opens at the top.
       key: ValueKey('v3-game-review-$_reviewRound'),
@@ -912,21 +933,23 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
             selected: _ages,
             onTap: (o) => setState(() => _ages = _toggle(_ages, o, kGuAges))),
         const SizedBox(height: 20),
-        const _Label('Code', required: true),
-        const SizedBox(height: 10),
-        _Chips(
-            options: kGuCodes,
-            selected: _codes,
-            onTap: (o) =>
-                setState(() => _codes = _toggle(_codes, o, kGuCodes))),
-        const SizedBox(height: 20),
+        if (_sport.pickCode) ...[
+          const _Label('Code', required: true),
+          const SizedBox(height: 10),
+          _Chips(
+              options: _codeOpts,
+              selected: _codes,
+              onTap: (o) =>
+                  setState(() => _codes = _toggle(_codes, o, _codeOpts))),
+          const SizedBox(height: 20),
+        ],
         const _Label('Skills', optional: '(optional)'),
         const SizedBox(height: 10),
         _Chips(
             options: skills,
             selected: _skills,
             onTap: (o) =>
-                setState(() => _skills = _toggle(_skills, o, kGuSkills))),
+                setState(() => _skills = _toggle(_skills, o, _skillOpts))),
         const SizedBox(height: 20),
         const _Label('Video Link', optional: '(optional)'),
         const SizedBox(height: 10),
