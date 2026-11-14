@@ -1047,7 +1047,9 @@ class _Clock extends StatelessWidget {
         final injMax = s.injLen > 60 ? s.injLen : 60;
         final main = (sec / dur).clamp(0.0, 1.0) * (inj ? .8 : 1);
         final extra = inj ? ((sec - dur) / injMax).clamp(0.0, 1.0) * .2 : 0.0;
-        final time = fmtClock((h - 1) * dur + sec);
+        // Counts down the time left in the half; in injury time it counts
+        // up the extra time.
+        final time = inj ? '+${fmtClock(sec - dur)}' : fmtClock(dur - sec);
         return Semantics(
           liveRegion: false,
           label: '$hn, $time${paused ? ', paused' : ''}',
@@ -1057,7 +1059,7 @@ class _Clock extends StatelessWidget {
                 TextSpan(text: '${hn.toUpperCase()} · '),
                 if (inj)
                   TextSpan(
-                      text: 'INJURY TIME +${fmtClock(sec - dur)}',
+                      text: 'INJURY TIME',
                       style: skCaps(color: V3.amber))
                 else
                   TextSpan(
