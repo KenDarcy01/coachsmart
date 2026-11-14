@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:coach_smart_v2/v3/event/v3_event_page.dart';
+import 'package:coach_smart_v2/v3/matches/v3_matches_models.dart';
 
 Map<String, dynamic> payload({
   String type = 'Match',
@@ -174,8 +175,41 @@ void main() {
     expect(find.text('Report'), findsNothing);
 
     await pump(tester, payload(role: 10));
-    expect(find.text('Live'), findsOneWidget);
+    expect(find.text('Live'), findsNothing);
     expect(find.text('Score'), findsNothing);
+    expect(find.text('LIVE NOW'), findsNothing);
+    expect(find.text('Watch live'), findsNothing);
+  });
+
+  testWidgets('live match: red bar and Watch live pill for everyone',
+      (tester) async {
+    await pump(tester, payload(role: 10)..['live'] = true);
+    expect(tester.takeException(), isNull);
+    expect(find.text('LIVE NOW'), findsOneWidget);
+    expect(find.text('Follow the match'), findsOneWidget);
+    expect(find.text('Watch live'), findsOneWidget);
+    expect(find.text('Live'), findsNothing);
+  });
+
+  test('a match is live in play or at half time, within 4 hours', () {
+    final now = DateTime.utc(2026, 11, 14, 15);
+    LiveMatchData d(String phase, DateTime at) => LiveMatchData.fromJson({
+          'phase': phase,
+          'squads': [
+            {'key': 1, 'phase': phase, 'kicked_off_at': at.toIso8601String()}
+          ]
+        });
+    expect(
+        matchIsLive(d('play', now.subtract(const Duration(minutes: 20))), now),
+        isTrue);
+    expect(matchIsLive(d('ht', now.subtract(const Duration(minutes: 35))), now),
+        isTrue);
+    expect(matchIsLive(d('ft', now), now), isFalse);
+    expect(matchIsLive(d('pre', now), now), isFalse);
+    expect(matchIsLive(d('play', now.subtract(const Duration(days: 14))), now),
+        isFalse);
+    expect(matchIsLive(LiveMatchData.fromJson({'error': 'not_allowed'}), now),
+        isFalse);
   });
 
   testWidgets('cancelled: red banner, Reinstate for admins only',

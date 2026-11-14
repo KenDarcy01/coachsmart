@@ -4,6 +4,8 @@
 // per extra (cancelled, pay, payments summary, car pool), teams and tools by
 // role (Parent, FLO, Coach, Admin), details, then teams and attendance. Admin actions sit
 // behind the three-dot Manage sheet.
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
@@ -19,6 +21,7 @@ import '../session_plan/v3_plan_view_page.dart';
 import '../session_plan/v3_session_plan_api.dart' show spPlansChanged;
 import '../lineup/v3_lineup_api.dart' show fetchPublishedSquads;
 import '../lineup/v3_lineup_models.dart' show LineupSquad;
+import '../matches/v3_matches_models.dart' show LiveMatchData, isLivePhase;
 import '../v3_crest_image.dart';
 import '../v3_open_location.dart';
 import '../v3_theme.dart';
@@ -44,6 +47,19 @@ String reminderMessage(int n) {
   if (n <= 0) return 'No reminder needed. Everyone has already replied.';
   if (n == 1) return 'Reminder sent to 1 person';
   return 'Reminder sent to $n people';
+}
+
+/// Live on the event page (Ken, 2026-11-14): only while a scorer is running
+/// the match. A squad counts as live in play or at half time, and only
+/// within 4 hours of throw-in, so a timer nobody stopped doesn't stay live.
+bool matchIsLive(LiveMatchData d, DateTime now) {
+  if (d.hasError) return false;
+  bool fresh(DateTime? at) =>
+      at == null || now.difference(at) < const Duration(hours: 4);
+  if (d.squads.isNotEmpty) {
+    return d.squads.any((s) => isLivePhase(s.phase) && fresh(s.kickedOffAt));
+  }
+  return isLivePhase(d.phase);
 }
 
 /// A club with its crest, for the opposition card.
@@ -130,6 +146,10 @@ class _V3EventPageState extends State<V3EventPage> {
   // Opposition card crest: theirs when the name matches a club we know,
   // otherwise ours (Ken, 2026-11-13).
   String _oppCrest = '';
+  // A scorer is running this match now: the red LIVE bar and the Watch
+  // live pill show; otherwise there is no Live anywhere (Ken, 2026-11-14).
+  bool _live = false;
+  Timer? _liveTimer;
   // Bumped on every load so pull to refresh reloads the teams card too.
   int _teamsTick = 0;
   // Car pool summary for the green strip: open lifts and free seats.
@@ -151,6 +171,7 @@ class _V3EventPageState extends State<V3EventPage> {
   @override
   void dispose() {
     spPlansChanged.removeListener(_loadPlan);
+    _liveTimer?.cancel();
     super.dispose();
   }
 
@@ -159,6 +180,7 @@ class _V3EventPageState extends State<V3EventPage> {
       setState(() {
         _ev = UserEventDetailsStruct.maybeFromMap(widget.testData);
         _raw = widget.testData!;
+        _live = widget.testData!['live'] == true;
         _loading = false;
       });
       return;
@@ -187,6 +209,7 @@ class _V3EventPageState extends State<V3EventPage> {
       });
       _loadTeamFlags(ev.teamId);
       _loadPlan();
+      _loadLive();
       if (ev.carPoolingEnabled) _loadCarPools();
     } catch (e) {
       setState(() {
@@ -195,6 +218,25 @@ class _V3EventPageState extends State<V3EventPage> {
       });
     }
   }
+
+  Future<void> _loadLive() async {
+    if (!_isMatch || _cancelled || widget.testData != null) return;
+    try {
+      final r = await SupaFlow.client
+          .rpc('get_live_match_v2', params: {'p_event_id': _eventId});
+      final live = matchIsLive(
+          LiveMatchData.fromJson(r is Map ? r : const {}), DateTime.now());
+      if (mounted && live != _live) setState(() => _live = live);
+    } catch (_) {}
+    // Check again while the page is open, so the bar comes and goes.
+    _liveTimer ??= Timer.periodic(const Duration(seconds: 60), (_) {
+      if (mounted) _loadLive();
+    });
+  }
+
+  void _openLive() => Navigator.of(context).push(MaterialPageRoute(
+      settings: const RouteSettings(name: 'V3MatchLivePage'),
+      builder: (_) => V3MatchLivePage(eventId: _eventId)));
 
   // The session's plan, for View plan (coaches and admins) and the
   // Create / Edit plan label (admins). Matches have no plan tools.
@@ -705,6 +747,7 @@ class _V3EventPageState extends State<V3EventPage> {
                       // Layout A (Ken, 2026-11-12): replies, the
                       // opposition, Meet and Venue, one banner per extra,
                       // tools, details, then teams and attendance.
+                      if (_live && !_cancelled) _liveBar(),
                       if (_cancelled) _cancelBanner(),
                       if (_showReplyBlock) ...[
                         _replyCard(),
@@ -771,6 +814,56 @@ class _V3EventPageState extends State<V3EventPage> {
                 weight: FontWeight.w700, color: V3.green, letterSpacing: .8)),
       );
 
+  // Full-width red bar at the very top while the match is live.
+  Widget _liveBar() => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: GestureDetector(
+          onTap: _openLive,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: BoxDecoration(
+                color: V3.red,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                      color: V3.red.withValues(alpha: .35),
+                      blurRadius: 18,
+                      offset: const Offset(0, 4))
+                ]),
+            child: Row(children: [
+              Container(
+                width: 18,
+                height: 18,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .3),
+                    shape: BoxShape.circle),
+                child: Container(
+                    width: 9,
+                    height: 9,
+                    decoration: const BoxDecoration(
+                        color: Colors.white, shape: BoxShape.circle)),
+              ),
+              const SizedBox(width: 10),
+              Text('LIVE NOW',
+                  style: V3.inter(14,
+                      weight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 1.2)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Follow the match',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: V3.inter(15,
+                        weight: FontWeight.w500, color: Colors.white)),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.white, size: 24),
+            ]),
+          ),
+        ),
+      );
+
   // Opposition card on matches: crest slot, "v Opposition", what kind of
   // match, and a Home / Away pill (Ken, 2026-11-12, layout A).
   Widget _oppositionCard() {
@@ -804,6 +897,32 @@ class _V3EventPageState extends State<V3EventPage> {
                 style: V3.tight(18, weight: FontWeight.w700)),
             const SizedBox(height: 2),
             Text(sub, style: V3.inter(13, color: V3.muted)),
+            if (_live) ...[
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _openLive,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF3A1D1F),
+                      border: Border.all(color: const Color(0xFF6B2A2E)),
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFFFF8A8E), shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                    Text('Watch live',
+                        style: V3.inter(13,
+                            weight: FontWeight.w600,
+                            color: const Color(0xFFFF8A8E))),
+                  ]),
+                ),
+              ),
+            ],
           ]),
         ),
         if (ha.isNotEmpty) ...[
@@ -1102,14 +1221,9 @@ class _V3EventPageState extends State<V3EventPage> {
                 settings: const RouteSettings(name: 'V3ScoreKeeperPage'),
                 builder: (_) => V3ScoreKeeperPage(eventId: _eventId)))));
       }
-      out.add(_Tool(
-          'Live',
-          Icons.visibility_outlined,
-          () => Navigator.of(context).push(MaterialPageRoute(
-              settings: const RouteSettings(name: 'V3MatchLivePage'),
-              builder: (_) => V3MatchLivePage(eventId: _eventId)))));
-      // Parent: Live. FLO: Score, Live. Coach: + Stats, Report. Admin:
-      // + Lineup (Ken, 2026-11-12: coaches can't make a lineup).
+      // No Live tool: Live shows as the red bar and the Watch live pill,
+      // and only while the match is live (Ken, 2026-11-14). FLO: Score.
+      // Coach: + Stats, Report. Admin: + Lineup (Ken, 2026-11-12).
       if (_role >= 30) {
         out.add(_Tool('Stats', Icons.bar_chart,
             () => _open(MatchStatsWidget.routeName, _matchParams())));
