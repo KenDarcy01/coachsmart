@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow">
+<title>Clontarf Boys 2016 v Raheny · Match stats</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Clontarf navy band with red/white stripe (same look as the scouting reports). Clontarf = red, Raheny = blue. */
+:root{
+  --bg:#f2f5f8;--card:#fff;--fg:#122033;--muted:#566476;--line:#d7dee7;--grid:#e6ebf1;
+  --us:#D41426;--us-soft:#fbe0e3;--opp:#2f6fd0;--opp-soft:#e0eafb;
+  --band:#1B3A6B;--band-sub:#c9d5ea;--eyebrow:#ffb3ba;
+  --display:'Barlow Condensed','Arial Narrow',Impact,sans-serif;--body:'Source Sans 3',system-ui,-apple-system,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1522;--card:#132033;--fg:#ecf1f7;--muted:#a9b6c7;--line:#243650;--grid:#1d2d44;
+  --us:#f04a59;--us-soft:#3d1c24;--opp:#5b8ee6;--opp-soft:#1a2d4d;--band:#142c52;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0c1522;--card:#132033;--fg:#ecf1f7;--muted:#a9b6c7;--line:#243650;--grid:#1d2d44;
+  --us:#f04a59;--us-soft:#3d1c24;--opp:#5b8ee6;--opp-soft:#1a2d4d;--band:#142c52;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;padding-bottom:env(safe-area-inset-bottom,0)}
+.band{background:var(--band);color:#fff;padding-top:env(safe-area-inset-top,0)}
+.band-in{max-width:760px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-left,0)) 18px;display:flex;gap:16px;align-items:center}
+.crest{flex:none;width:76px;height:76px}.crest img{width:100%;height:100%;object-fit:contain}
+.stripe{display:grid;grid-template-columns:2fr 1fr 2fr;height:6px}.stripe i:nth-child(odd){background:#D41426}.stripe i:nth-child(2){background:#fff}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--eyebrow);font-weight:700}
+h1,h2{font-family:var(--display);font-weight:700;line-height:1.02;margin:0;text-transform:uppercase;letter-spacing:.01em}
+h1{font-size:38px}
+h2{font-size:25px;display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:5px;height:21px;background:var(--us);border-radius:2px;flex:none}
+.band .sub{color:var(--band-sub);margin:4px 0 0}
+.wrap{max-width:760px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-left,0)) 48px;display:flex;flex-direction:column;gap:28px}
+section{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.note{font-size:13.5px;color:var(--muted);margin:0}
+/* scoreboard */
+.board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;text-align:center}
+.side-name{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.03em}
+.side-name i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.big{font-family:var(--display);font-weight:700;font-size:56px;line-height:1;font-variant-numeric:tabular-nums}
+.tot{color:var(--muted);font-size:15px;font-weight:600}
+.vs{font-family:var(--display);color:var(--muted);font-size:20px}
+.result{margin-top:12px;text-align:center}
+.pill{display:inline-block;background:var(--us);color:#fff;font-weight:700;border-radius:999px;padding:4px 14px;font-size:15px}
+.ht{margin-top:8px;color:var(--muted);font-size:14.5px}
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:600px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px}
+.tile .lab{font-size:13px;color:var(--muted);font-weight:600}
+.tile .vals{display:flex;align-items:baseline;gap:6px;font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
+.tile .vals b{font-size:34px;line-height:1.05}.tile .vals span{color:var(--muted);font-size:18px}
+.mini{display:flex;height:6px;gap:2px;margin-top:6px}.mini i{border-radius:3px}
+/* segmented */
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;align-self:flex-start}
+.seg button{border:0;background:none;color:var(--muted);font:600 14px var(--body);padding:6px 14px;border-radius:999px;cursor:pointer}
+.seg button.on{background:var(--card);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+/* butterfly */
+.bf{display:flex;flex-direction:column;gap:12px}
+.bf-row{display:grid;grid-template-columns:36px 1fr 1fr 36px;align-items:center;gap:6px}
+.bf-row .lab{grid-column:1/-1;text-align:center;font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:-4px}
+.bf-row .n{font-family:var(--display);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.bf-row .n.l{text-align:right}
+.bar{height:14px;display:flex}.bar.l{justify-content:flex-end}
+.bar i{height:100%;transition:width .35s}
+.bar.l i{background:var(--us);border-radius:4px 0 0 4px}.bar.r i{background:var(--opp);border-radius:0 4px 4px 0}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+/* scorers */
+.scorers{display:flex;flex-direction:column;gap:10px}
+.sc{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center}
+.rank{font-family:var(--display);font-weight:700;color:var(--muted);font-size:20px;text-align:center}
+.sc-name{font-weight:700}.sc-name small{font-weight:400;color:var(--muted)}
+.sc-bar{display:flex;gap:2px;height:10px;margin-top:4px}
+.sc-bar i{border-radius:3px;height:100%}
+.sc-bar .g{background:var(--us)}.sc-bar .p{background:var(--us);opacity:.45}
+.sc-score{text-align:right;font-family:var(--display);font-weight:700;font-size:24px;font-variant-numeric:tabular-nums;line-height:1}
+.sc-score small{display:block;font-family:var(--body);font-size:12.5px;color:var(--muted);font-weight:600}
+.star{display:flex;gap:14px;align-items:center;background:linear-gradient(135deg,var(--band),#2a4f8a);color:#fff;border-radius:14px;padding:16px}
+.star .num{font-family:var(--display);font-size:46px;font-weight:700;line-height:1}
+.star .t{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--eyebrow);font-weight:700}
+.star .nm{font-family:var(--display);font-size:26px;font-weight:700;text-transform:uppercase;line-height:1.05}
+.star .ds{color:var(--band-sub);font-size:14px}
+.stars{display:grid;grid-template-columns:1fr;gap:10px}@media(min-width:600px){.stars{grid-template-columns:1fr 1fr}}
+/* chart */
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
+.tip{position:fixed;pointer-events:none;background:var(--fg);color:var(--bg);font-size:13px;padding:6px 9px;border-radius:8px;opacity:0;transition:opacity .1s;z-index:9;max-width:220px;line-height:1.35}
+/* lists */
+.two{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:600px){.two{grid-template-columns:1fr 1fr}}
+.list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.list li{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.dots{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}.dots i{width:10px;height:10px;border-radius:50%}
+.card h3{margin:0 0 10px;font-size:16px}
+/* timeline */
+.tl{display:flex;flex-direction:column;gap:0}
+.tl-h{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:18px;margin:6px 0 6px;color:var(--muted)}
+.ev{display:grid;grid-template-columns:44px 1fr 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--grid);font-size:14.5px}
+.ev .min{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600;text-align:right;padding-right:4px}
+.ev .u,.ev .o{display:flex;gap:6px;align-items:center}
+.ev .o{justify-content:flex-end;text-align:right}
+.tag{font-size:11.5px;font-weight:700;border-radius:5px;padding:1px 6px;letter-spacing:.03em;white-space:nowrap}
+.ev .u .tag{background:var(--us-soft);color:var(--us)}.ev .o .tag{background:var(--opp-soft);color:var(--opp)}
+.ev.score .tag{color:#fff}.ev.score .u .tag{background:var(--us)}.ev.score .o .tag{background:var(--opp)}
+.ev .rs{font-variant-numeric:tabular-nums;font-weight:700}
+.ev:not(.score){font-size:13.5px;color:var(--muted)}
+.tl-more{margin-top:10px;align-self:center;border:1px solid var(--line);background:var(--card);color:var(--fg);font:600 14px var(--body);border-radius:999px;padding:8px 18px;cursor:pointer}
+footer{color:var(--muted);font-size:13px;text-align:center}
+</style></head>
+<body>
+<header class="band"><div class="band-in"><div class="crest"><img src="clontarf-gaa.png" alt="Clontarf GAA crest"></div>
+<div><div class="eyebrow">Match stats · Sat 14 Nov 2026</div><h1>Clontarf Boys 2016 v Raheny</h1><p class="sub">Football · Blue Team · Home, P23</p></div></div>
+<div class="stripe"><i></i><i></i><i></i></div></header>
+
+<main class="wrap">
+<section>
+  <div class="card">
+    <div class="board">
+      <div><div class="side-name"><i style="background:var(--us)"></i>Clontarf</div><div class="big" id="usScore"></div><div class="tot" id="usTot"></div></div>
+      <div class="vs">v</div>
+      <div><div class="side-name"><i style="background:var(--opp)"></i>Raheny</div><div class="big" id="opScore"></div><div class="tot" id="opTot"></div></div>
+    </div>
+    <div class="result"><span class="pill" id="resPill"></span><div class="ht" id="htLine"></div></div>
+  </div>
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section>
+  <h2>How the game went</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--us)"></i>Clontarf</span><span><i style="background:var(--opp)"></i>Raheny</span><span>● goal</span></div>
+    <div id="flow"></div>
+    <p class="note" id="flowNote"></p>
+  </div>
+</section>
+
+<section>
+  <h2>Head to head</h2>
+  <div class="seg" id="halfSeg"><button data-h="0" class="on">Full game</button><button data-h="1">1st half</button><button data-h="2">2nd half</button></div>
+  <div class="card"><div class="bf" id="bf"></div></div>
+</section>
+
+<section>
+  <h2>Scorers</h2>
+  <div class="stars" id="stars"></div>
+  <div class="card"><div class="scorers" id="scorers"></div></div>
+</section>
+
+<section>
+  <h2>Scores by 5 minutes</h2>
+  <div class="card"><div class="legend"><span><i style="background:var(--us)"></i>Clontarf</span><span><i style="background:var(--opp)"></i>Raheny</span></div><div id="buckets"></div><p class="note">Points value scored in each five minute spell (a goal counts 3).</p></div>
+</section>
+
+<section>
+  <h2>Shooting and frees</h2>
+  <div class="two">
+    <div class="card"><h3>Shots per player</h3><ul class="list" id="shots"></ul><p class="note" id="shotsNote" style="margin-top:10px"></p></div>
+    <div class="card"><h3>Frees</h3><ul class="list" id="frees"></ul><p class="note" id="freesNote" style="margin-top:10px"></p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Every moment</h2>
+  <div class="card"><div class="tl" id="tl"></div></div>
+</section>
+
+<footer>Recorded live with the CoachSmart score keeper.</footer>
+</main>
+<div class="tip" id="tip"></div>
+
+<script>
+// [half, second, side, type, playerKey, fromFree]  types: G P W F 45
+const P={jo:'James O',as:'Alastair S',jl:'Jack L',dn:'Danny O',fn:'Finn N',ht:'Harry T',fr:'Fionn R',mb:'Matthew B',pd:'Paddy D',te:'Tadhg E'};
+const E=[[1,11,'us','G','jo'],[1,63,'opp','F'],[1,71,'opp','P',null,1],[1,140,'us','P','as'],[1,196,'us','F','mb'],[1,227,'us','W','pd'],[1,253,'opp','W'],[1,277,'opp','P'],[1,451,'opp','W'],[1,462,'opp','W'],[1,533,'opp','W'],[1,557,'opp','G'],[1,573,'opp','W'],[1,611,'us','G','as'],[1,633,'us','G','dn'],[1,713,'opp','W'],[1,745,'opp','W'],[1,767,'us','P','jl'],[1,916,'us','G','as'],[1,943,'us','P','fn'],[1,1001,'us','P','fn'],[1,1020,'us','W','jl'],[1,1060,'opp','P'],[1,1101,'opp','W'],[1,1125,'opp','F'],[1,1139,'us','G','jo'],[1,1170,'opp','P'],[1,1274,'us','W','jl'],[1,1419,'opp','F','dn'],[1,1429,'opp','P'],[1,1460,'opp','W'],[1,1535,'us','W','dn'],[1,1556,'us','G','jo'],[1,1607,'us','P','ht'],[1,1632,'opp','P'],
+[2,44,'us','P','dn'],[2,67,'us','P','jl'],[2,156,'us','W'],[2,185,'opp','F'],[2,200,'us','W'],[2,237,'opp','45'],[2,246,'opp','P'],[2,275,'opp','P'],[2,321,'us','45'],[2,336,'us','W'],[2,360,'opp','P'],[2,396,'us','F','mb'],[2,422,'opp','F'],[2,450,'opp','P'],[2,483,'us','45'],[2,609,'opp','W'],[2,626,'opp','G'],[2,657,'us','W'],[2,733,'opp','F','te'],[2,744,'opp','F','jo'],[2,815,'opp','F','jl'],[2,824,'opp','W'],[2,857,'us','F','mb'],[2,867,'us','P','ht'],[2,881,'us','F','mb'],[2,898,'us','W'],[2,927,'opp','F'],[2,952,'us','P','jl'],[2,991,'opp','W'],[2,1015,'opp','F','as'],[2,1045,'us','F','mb'],[2,1054,'us','G','jl'],[2,1072,'us','W'],[2,1097,'us','F','mb'],[2,1120,'us','W'],[2,1156,'opp','W'],[2,1181,'us','W','jl'],[2,1211,'opp','F','jo'],[2,1221,'opp','P'],[2,1252,'opp','W'],[2,1299,'us','P','fr'],[2,1351,'opp','45'],[2,1390,'us','F','mb'],[2,1416,'opp','W'],[2,1462,'opp','F','jl']]
+ .map(([h,s,side,t,p,ff])=>({h,s,side,t,p:p||null,ff:!!ff}));
+
+const rep=(s,n)=>Array(n).fill(s).join('');
+const $=id=>document.getElementById(id);
+const cnt=(f)=>E.filter(f).length;
+const sc=(side,h)=>{const g=cnt(e=>e.side==side&&e.t=='G'&&(!h||e.h==h)),p=cnt(e=>e.side==side&&e.t=='P'&&(!h||e.h==h));return {g,p,tot:g*3+p}};
+const fmt=x=>`${x.g}-${String(x.p).padStart(2,'0')}`;
+const mm=s=>`${Math.floor(s/60)}'`;
+const us=sc('us'),op=sc('opp'),usH=sc('us',1),opH=sc('opp',1);
+$('usScore').textContent=fmt(us);$('opScore').textContent=fmt(op);
+$('usTot').textContent=us.tot+' points';$('opTot').textContent=op.tot+' points';
+$('resPill').textContent=`Clontarf won by ${us.tot-op.tot}`;
+$('htLine').textContent=`Half time: ${fmt(usH)} (${usH.tot}) to ${fmt(opH)} (${opH.tot})`;
+
+// tiles
+const shots=side=>cnt(e=>e.side==side&&['G','P','W'].includes(e.t));
+const scoresN=side=>cnt(e=>e.side==side&&['G','P'].includes(e.t));
+const tile=(lab,a,b,suffix='')=>{const t=a+b||1;return `<div class="tile"><div class="lab">${lab}</div><div class="vals"><b style="color:var(--us)">${a}${suffix}</b><span>v</span><b style="color:var(--opp)">${b}${suffix}</b></div><div class="mini"><i style="width:${a/t*100}%;background:var(--us)"></i><i style="width:${b/t*100}%;background:var(--opp)"></i></div></div>`};
+const conv=s=>Math.round(scoresN(s)/shots(s)*100);
+$('tiles').innerHTML=tile('Shots',shots('us'),shots('opp'))+tile('Shots scored',conv('us'),conv('opp'),'%')+tile('Wides',cnt(e=>e.side=='us'&&e.t=='W'),cnt(e=>e.side=='opp'&&e.t=='W'))+tile('Frees won',cnt(e=>e.side=='us'&&e.t=='F'),cnt(e=>e.side=='opp'&&e.t=='F'));
+
+// tooltip
+const tip=$('tip');
+function showTip(ev,html){tip.innerHTML=html;tip.style.opacity=1;const x=Math.min(ev.clientX+12,innerWidth-230);tip.style.left=x+'px';tip.style.top=(ev.clientY-48)+'px'}
+function hideTip(){tip.style.opacity=0}
+document.addEventListener('scroll',hideTip,{passive:true});
+
+// score flow: cumulative totals over the two halves
+(function(){
+  const W=360,H=230,L=24,R=18,T=10,B=30,gap=10;
+  const h1len=28*60,h2len=26*60,pw=(W-L-R-gap);const w1=pw*h1len/(h1len+h2len),w2=pw-w1;
+  const x=(h,s)=>h==1?L+s/h1len*w1:L+w1+gap+s/h2len*w2;
+  const ymax=35,y=v=>T+(H-T-B)*(1-v/ymax);
+  let g='';
+  for(let v=0;v<=ymax;v+=5){g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`}
+  [[1,0,'0'],[1,600,'10'],[1,1200,'20'],[2,0,'0'],[2,600,'10'],[2,1200,'20']].forEach(([h,s,l])=>g+=`<text x="${x(h,s)}" y="${H-12}" text-anchor="middle">${l}'</text>`);
+  g+=`<text x="${L+w1/2}" y="${H}" text-anchor="middle" style="font-weight:600">1st half</text><text x="${L+w1+gap+w2/2}" y="${H}" text-anchor="middle" style="font-weight:600">2nd half</text>`;
+  g+=`<rect x="${L+w1+2}" y="${T}" width="${gap-4}" height="${H-T-B}" fill="var(--grid)" rx="3"/>`;
+  const marks=[];
+  ['opp','us'].forEach(side=>{
+    let tot=0,d='',pts=[];
+    [1,2].forEach(h=>{
+      d+=(h==1?'M':'M')+x(h,0)+','+y(tot);
+      E.filter(e=>e.h==h&&e.side==side&&(e.t=='G'||e.t=='P')).forEach(e=>{d+=` H${x(h,e.s)} V${y(tot+=(e.t=='G'?3:1))}`;pts.push({e,tot})});
+      d+=` H${x(h,h==1?1632:1462)}`;
+    });
+    const col=side=='us'?'var(--us)':'var(--opp)';
+    g+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    pts.forEach(({e,tot})=>{marks.push({e,tot,side,col});if(e.t=='G')g+=`<circle cx="${x(e.h,e.s)}" cy="${y(tot)}" r="5" fill="${col}" stroke="var(--card)" stroke-width="2"/>`});
+    const last=pts[pts.length-1];g+=`<text x="${x(2,1462)+4}" y="${y(last.tot)+4}" style="fill:var(--fg);font-weight:700;font-size:12px">${last.tot}</text>`;
+  });
+  marks.forEach((m,i)=>g+=`<circle data-i="${i}" cx="${x(m.e.h,m.e.s)}" cy="${y(m.tot)}" r="11" fill="transparent" style="cursor:pointer"/>`);
+  $('flow').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Running score chart">${g}</svg>`;
+  $('flow').querySelectorAll('circle[data-i]').forEach(c=>{const m=marks[c.dataset.i];
+    const html=`<b>${mm(m.e.s)} ${m.e.h==1?'1st':'2nd'} half</b><br>${m.side=='us'?'Clontarf':'Raheny'} ${m.e.t=='G'?'goal':'point'}${m.e.p?' · '+P[m.e.p]:''}${m.e.ff?' (free)':''}<br>${m.side=='us'?'Clontarf':'Raheny'} now on ${m.tot}`;
+    c.addEventListener('pointerenter',ev=>showTip(ev,html));c.addEventListener('pointerdown',ev=>showTip(ev,html));c.addEventListener('pointerleave',hideTip)});
+  })();
+// recompute the 2nd-half sentence from data
+(function(){const u2=sc('us',2),o2=sc('opp',2);const d=u2.tot-o2.tot;
+  $('flowNote').textContent=`Three Clontarf goals inside the first 11 minutes set it up, and it was ${usH.tot}–${opH.tot} at half time. Second half: Clontarf ${fmt(u2)} (${u2.tot}), Raheny ${fmt(o2)} (${o2.tot})${d==0?', level':d>0?`, Clontarf by ${d}`:`, Raheny by ${-d}`}.`})();
+
+// head to head
+function drawBF(h){
+  const f=(side,t)=>cnt(e=>e.side==side&&e.t==t&&(!h||e.h==h));
+  const rows=[['Total score',(s)=>sc(s,h).tot],['Goals',s=>f(s,'G')],['Points',s=>f(s,'P')],['Shots',s=>cnt(e=>e.side==s&&['G','P','W'].includes(e.t)&&(!h||e.h==h))],['Wides',s=>f(s,'W')],['Frees won',s=>f(s,'F')],['45s',s=>f(s,'45')]];
+  $('bf').innerHTML=rows.map(([lab,fn])=>{const a=fn('us'),b=fn('opp'),m=Math.max(a,b,1);
+    return `<div class="bf-row"><div class="lab">${lab}</div><div class="n l" style="color:var(--us)">${a}</div><div class="bar l"><i style="width:${a/m*100}%"></i></div><div class="bar r"><i style="width:${b/m*100}%"></i></div><div class="n" style="color:var(--opp)">${b}</div></div>`}).join('');
+}
+drawBF(0);
+$('halfSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('halfSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x==b));drawBF(+b.dataset.h)});
+
+// scorers
+(function(){
+  const m={};E.filter(e=>e.side=='us'&&(e.t=='G'||e.t=='P')).forEach(e=>{const r=m[e.p]||(m[e.p]={g:0,p:0});e.t=='G'?r.g++:r.p++});
+  const list=Object.entries(m).map(([k,r])=>({k,...r,tot:r.g*3+r.p})).sort((a,b)=>b.tot-a.tot||b.g-a.g);
+  const max=list[0].tot;
+  $('scorers').innerHTML=list.map((r,i)=>`<div class="sc"><div class="rank">${i+1}</div><div><div class="sc-name">${P[r.k]}</div><div class="sc-bar">${rep(`<i class="g" style="width:${3/max*100}%"></i>`,r.g)}${rep(`<i class="p" style="width:${1/max*100}%"></i>`,r.p)}</div></div><div class="sc-score">${r.g}-${r.p}<small>${r.tot} pt${r.tot==1?"":"s"}</small></div></div>`).join('')
+   +`<div class="legend" style="margin-top:4px"><span><i style="background:var(--us)"></i>goal (3)</span><span><i style="background:var(--us);opacity:.45"></i>point (1)</span></div>`;
+  const top=list[0],hat=list.find(r=>r.g>=3);
+  const goalsBy=new Set(E.filter(e=>e.side=='us'&&e.t=='G').map(e=>e.p)).size,scorersN=list.length;
+  $('stars').innerHTML=
+   `<div class="star"><div class="num">${hat?hat.g:top.g}</div><div><div class="t">${hat?'Hat-trick':'Top scorer'}</div><div class="nm">${P[(hat||top).k]}</div><div class="ds">${hat?'Three goals, top scorer with '+hat.tot+' points':top.tot+' points'}</div></div></div>`+
+   `<div class="star"><div class="num">${scorersN}</div><div><div class="t">Spread the scores</div><div class="nm">${scorersN} scorers</div><div class="ds">${goalsBy} different goalscorers</div></div></div>`;
+})();
+
+// 5 minute buckets
+(function(){
+  const W=360,H=200,L=22,R=4,T=16,B=36;const bk=[];
+  [[1,6],[2,5]].forEach(([h,n])=>{for(let i=0;i<n;i++)bk.push({h,i,us:0,opp:0})});
+  E.filter(e=>e.t=='G'||e.t=='P').forEach(e=>{const i=Math.min(Math.floor(e.s/300),e.h==1?5:4);const b=bk.find(b=>b.h==e.h&&b.i==i);b[e.side]+=e.t=='G'?3:1});
+  const ymax=Math.max(...bk.flatMap(b=>[b.us,b.opp]),1)+1;const n=bk.length,gw=(W-L-R)/n,bw=Math.min(18,(gw-10)/2);
+  const y=v=>T+(H-T-B)*(1-v/ymax);let g='';
+  for(let v=0;v<=ymax;v+=2)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  bk.forEach((b,k)=>{const cx=L+gw*k+gw/2;
+    [['us',-1],['opp',1]].forEach(([s,d])=>{const v=b[s];if(!v)return;const x0=d<0?cx-bw-1:cx+1;g+=`<path d="M${x0},${y(0)} V${y(v)+4} q0,-4 4,-4 h${bw-8} q4,0 4,4 V${y(0)} Z" fill="var(--${s})"/><text x="${x0+bw/2}" y="${y(v)-4}" text-anchor="middle" style="fill:var(--fg);font-weight:700">${v}</text>`});
+    const lab=b.h==1&&b.i==5?"25'+":b.h==2&&b.i==4?"20'+":`${b.i*5}'`;
+    g+=`<text x="${cx}" y="${H-20}" text-anchor="middle">${lab}</text>`;
+    g+=`<rect x="${L+gw*k}" y="${T}" width="${gw}" height="${H-T-B}" fill="transparent" data-k="${k}"/>`;});
+  g+=`<line x1="${L+gw*6}" x2="${L+gw*6}" y1="${T}" y2="${H-B}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
+  g+=`<text x="${L+gw*3}" y="${H-2}" text-anchor="middle" style="font-weight:600">1st half</text><text x="${L+gw*8.5}" y="${H-2}" text-anchor="middle" style="font-weight:600">2nd half</text>`;
+  $('buckets').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Scores in each five minutes">${g}</svg>`;
+  $('buckets').querySelectorAll('rect[data-k]').forEach(r=>{const b=bk[r.dataset.k];const html=`<b>${b.h==1?'1st':'2nd'} half, ${b.i*5}–${b.i*5+5} min</b><br>Clontarf ${b.us} · Raheny ${b.opp}`;
+    r.addEventListener('pointerenter',ev=>showTip(ev,html));r.addEventListener('pointerdown',ev=>showTip(ev,html));r.addEventListener('pointerleave',hideTip)});
+})();
+
+// shots + frees
+(function(){
+  const m={};E.filter(e=>e.side=='us'&&['G','P','W'].includes(e.t)&&e.p).forEach(e=>{(m[e.p]=m[e.p]||[]).push(e.t)});
+  const order={G:0,P:1,W:2};
+  const rows=Object.entries(m).sort((a,b)=>b[1].length-a[1].length||b[1].filter(t=>t!='W').length-a[1].filter(t=>t!='W').length);
+  $('shots').innerHTML=rows.map(([k,ts])=>`<li><span>${P[k]} <small style="color:var(--muted)">${ts.filter(t=>t!='W').length}/${ts.length}</small></span><span class="dots">${ts.sort((a,b)=>order[a]-order[b]).map(t=>`<i title="${t}" style="${t=='W'?'border:2px solid var(--muted);background:transparent':t=='G'?'background:var(--us)':'background:var(--us);opacity:.5'}"></i>`).join('')}</span></li>`).join('');
+  const untag=cnt(e=>e.side=='us'&&e.t=='W'&&!e.p);
+  $('shotsNote').innerHTML=`Solid red = goal, light red = point, ring = wide. ${untag} of our ${cnt(e=>e.side=='us'&&e.t=='W')} wides had no player tagged.`;
+  const won={},gave={};
+  E.filter(e=>e.t=='F'&&e.p).forEach(e=>{const o=e.side=='us'?won:gave;o[e.p]=(o[e.p]||0)+1});
+  const li=(o,col)=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<li><span>${P[k]}</span><span class="dots">${rep(`<i style="background:${col}"></i>`,n)}<b style="margin-left:6px">${n}</b></span></li>`).join('');
+  $('frees').innerHTML=`<li style="font-weight:700">Won by</li>${li(won,'var(--us)')}<li style="font-weight:700;margin-top:6px">Given away by</li>${li(gave,'var(--opp)')}`;
+  const ug=cnt(e=>e.side=='opp'&&e.t=='F'&&!e.p);
+  $('freesNote').textContent=`Clontarf won ${cnt(e=>e.side=='us'&&e.t=='F')} frees and gave away ${cnt(e=>e.side=='opp'&&e.t=='F')} (${ug} with no player tagged). Raheny scored 1 point from a free.`;
+})();
+
+// timeline
+(function(){
+  const name={G:'Goal',P:'Point',W:'Wide',F:'Free',45:'45'};
+  let u=0,o=0,ug=0,up=0,og=0,op=0,html='',showAll=false;
+  const rows=[];
+  E.forEach(e=>{const isS=e.t=='G'||e.t=='P';
+    if(isS){if(e.side=='us'){e.t=='G'?ug++:up++}else{e.t=='G'?og++:op++}}
+    let who=e.p?P[e.p]:'';if(e.t=='F'&&e.p&&e.side=='opp')who='given away by '+P[e.p];
+    const lab=e.t=='F'?(e.side=='us'?'Free to us':'Free to Raheny'):name[e.t]+(e.ff?' (free)':'');
+    const cell=`<span class="tag">${lab}</span><span>${who}</span>`;
+    rows.push({h:e.h,isS,html:`<div class="ev ${isS?'score':''}"><div class="min">${mm(e.s)}</div><div class="u">${e.side=='us'?cell:''}${e.side=='opp'&&isS?`<span class="rs">${ug}-${up} v ${og}-${op}</span>`:''}</div><div class="o">${e.side=='opp'?(e.p?`<span>${who}</span><span class="tag">${lab}</span>`:`<span class="tag">${lab}</span>`):''}${e.side=='us'&&isS?`<span class="rs">${ug}-${up} v ${og}-${op}</span>`:''}</div></div>`});
+  });
+  function draw(){let out='',h=0;rows.filter(r=>showAll||r.isS).forEach(r=>{if(r.h!=h){h=r.h;out+=`<div class="tl-h">${h==1?'1st half':'2nd half'}</div>`}out+=r.html});
+    $('tl').innerHTML=out+`<button class="tl-more" id="tlMore">${showAll?'Scores only':'Show wides, frees and 45s too'}</button>`;
+    $('tlMore').onclick=()=>{showAll=!showAll;draw()}}
+  draw();
+})();
+</script>
+</body></html>
