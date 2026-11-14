@@ -65,11 +65,33 @@ const POINT = {
   additionalProperties: false,
 };
 
+// Multi-sport (Ken, 2026-11-14): the v3 app sends body.sport for a soccer or rugby club.
+// Without it every prompt stays exactly as before (GAA), so v2 is unchanged.
+export type DrillSport = "soccer" | "rugby";
+export const SPORT_NOTE: Record<DrillSport, string> = {
+  soccer: `SPORT FOR THIS DRILL: SOCCER (association football). The instructions below were written for GAA; read them for soccer:
+- goalposts means a soccer goal: two posts and a crossbar with a net, nothing above the bar. x, y = centre; w = width between the posts; h = height of the frame including the net.
+- pitch lines are soccer markings: touchlines, goal lines, halfway line, the penalty area (18-yard box), the six-yard box, the penalty spot area and the centre circle. There is no 13m, 20m, 45m or 65m line, no D and no 2-point arc in soccer.
+- pass is any pass along the ground or in the air (never a hand pass); shot is a shot at goal that ends inside the goal frame, never over the bar.
+- player numbers do not follow the GAA "sum to 17" rule; use colours, shading and grouping to tell the teams apart.
+- Write every word in soccer terms. Set sport to "soccer".
+
+`,
+  rugby: `SPORT FOR THIS DRILL: RUGBY UNION. The instructions below were written for GAA; read them for rugby:
+- goalposts means rugby posts: a tall H with no net. x, y = centre; w = width between the uprights; h = from the top of the uprights to the ground.
+- pitch lines are rugby markings: touchlines, try lines, dead-ball lines, the 22m lines, the 10m lines and halfway (often dashed). There are no 13m, 20m, 45m or 65m lines, no D and no arc.
+- pass is a hand pass (always sideways or backwards in play) or a kick; run is a carry or support line; shot is a kick at goal, ending above the crossbar between the uprights. A try is a run that ends over the try line, not a shot.
+- player numbers do not follow the GAA "sum to 17" rule; use colours, shading and grouping to tell attack and defence apart.
+- Write every word in rugby terms. Set sport to "rugby".
+
+`,
+};
+
 export const SCENE_SCHEMA = {
   type: "object",
   properties: {
     game_name: { type: "string" },
-    sport: { type: "string", enum: ["football", "hurling", "unknown"] },
+    sport: { type: "string", enum: ["football", "hurling", "soccer", "rugby", "unknown"] },
     items: {
       type: "array",
       items: {
@@ -118,7 +140,7 @@ export type SceneItem = {
   x: number; y: number; w: number; h: number;
 };
 export type SceneLine = { kind: "pitch_line" | "pitch_arc" | "dotted_line" | "run" | "pass" | "shot"; points: Pt[] };
-export type Scene = { game_name: string; sport: "football" | "hurling" | "unknown"; items: SceneItem[]; lines: SceneLine[];
+export type Scene = { game_name: string; sport: "football" | "hurling" | "soccer" | "rugby" | "unknown"; items: SceneItem[]; lines: SceneLine[];
   symmetry?: { left_right: boolean; top_bottom: boolean }; tidied?: string };
 
 // ── Image size (PNG / JPEG header) ───────────────────────────────────────────
@@ -158,6 +180,9 @@ const S = {
   ball:     "ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#555555;shadow=0;",
   cone:     "triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FF6D00;gradientColor=#FFAB40;gradientDirection=north;strokeColor=#E65100;shadow=1;",
   goal:     "gaa_goalpost;whiteSpace=wrap;html=1;",
+  // Multi-sport (2026-11-14): only the v3 app asks for these (body.sport).
+  soccerGoal: "soccer_goal;whiteSpace=wrap;html=1;",
+  rugbyPosts: "rugby_posts;whiteSpace=wrap;html=1;",
   wall:     "rounded=0;whiteSpace=wrap;html=1;fillColor=#455A64;strokeColor=#B0BEC5;strokeWidth=3;fontColor=#ffffff;fontSize=16;fontStyle=1;",
   zone:     "rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;opacity=12;strokeColor=#ffffff;strokeWidth=1.5;fontColor=#ffffff;fontSize=13;fontStyle=1;",
   text:     "text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontColor=#ffffff;fontSize=13;fontStyle=1;",
@@ -660,7 +685,9 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
   const posts = items.filter((it) => it.kind === "goalposts").map((it) => {
     const c = pos.get(it)!, { w, h } = mapLen(it.w || 60, it.h || 80);
     const gw = Math.max(w, 40), gh = Math.max(h, 40), top = c.y - gh / 2;
-    return { x: c.x, top, bar: top + gh * 0.55, gw, gh };
+    // Multi-sport: a soccer goal's bar is near the top, rugby's low down.
+    const frac = scene.sport === "soccer" ? 0.18 : scene.sport === "rugby" ? 0.62 : 0.55;
+    return { x: c.x, top, bar: top + gh * frac, gw, gh };
   });
   for (const a of arrows) {
     if (a.kind !== "shot" || !posts.length) continue;
@@ -669,7 +696,9 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     for (const p of posts) { const d = dist(end, { x: p.x, y: (p.top + p.bar) / 2 }); if (d < gd) { gd = d; g = p; } }
     if (gd > Math.max(g.gw, g.gh) * 1.5) continue;
     end.x = g.x;
-    end.y = end.y < g.bar ? g.top + g.gh * 0.28 : g.bar + (g.gh - g.gh * 0.55) * 0.45;
+    if (scene.sport === "soccer") end.y = g.bar + (g.top + g.gh - g.bar) * 0.45; // always in the goal
+    else if (scene.sport === "rugby") end.y = g.top + (g.bar - g.top) * 0.5; // always over the bar
+    else end.y = end.y < g.bar ? g.top + g.gh * 0.28 : g.bar + (g.gh - g.gh * 0.55) * 0.45;
   }
 
   const GAP = 11;
@@ -777,7 +806,8 @@ export function sceneToXml(scene: Scene, imgW: number, imgH: number): string {
     if (it.kind === "goalposts") {
       const { w, h } = mapLen(it.w || 60, it.h || 80);
       const gw = Math.max(w, 40), gh = Math.max(h, 40);
-      vertex("", S.goal, c.x - gw / 2, c.y - gh / 2, gw, gh);
+      const gs = scene.sport === "soccer" ? S.soccerGoal : scene.sport === "rugby" ? S.rugbyPosts : S.goal;
+      vertex("", gs, c.x - gw / 2, c.y - gh / 2, gw, gh);
     } else if (it.kind === "cone") {
       const w = Math.round(D * 0.6), h = Math.round(D * 0.7);
       vertex("", S.cone, c.x - w / 2, c.y - h / 2, w, h);

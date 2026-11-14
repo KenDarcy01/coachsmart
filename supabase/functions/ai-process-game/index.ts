@@ -20,6 +20,32 @@ const corsHeaders = {
 const GAME_ADMINS = ["ken.darcy@gmail.com"];
 
 
+// ── Multi-sport (Ken, 2026-11-14) ────────────────────────────────────────────
+// A game tagged Soccer or Rugby (only the v3 app sends these codes) gets the
+// prompts in that sport's words. Any other request (v2, GAA) is unchanged.
+type DrillSport = "Soccer" | "Rugby";
+const SPORT_SKILLS: Record<DrillSport, string[]> = {
+  Soccer: ["Passing", "First Touch", "Dribbling", "Shooting", "Heading", "Tackling", "Defending", "Goalkeeping"],
+  Rugby: ["Passing", "Catching", "Tackling", "Rucking", "Evasion", "Running Lines", "Kicking", "Contact"],
+};
+function drillSport(codes: unknown): DrillSport | null {
+  const list = (Array.isArray(codes) ? codes : codes ? [codes] : []).map((c) => String(c).toLowerCase());
+  if (list.includes("soccer")) return "Soccer";
+  if (list.includes("rugby")) return "Rugby";
+  return null;
+}
+function forSport(prompt: string, sport: DrillSport | null): string {
+  if (!sport) return prompt;
+  const name = sport === "Soccer" ? "soccer" : "rugby union";
+  return prompt
+    .replace(/GAA \(Gaelic Athletic Association\)/g, name)
+    .replace(/\bGAA\b/g, name)
+    .replace(/exactly one of "Football", "Hurling", or "Camogie"\. Infer from context if not stated\./, `exactly "${sport}".`)
+    .replace(/\["Handpass","Kick Pass","Catching","Solo","Shooting","Tackling","Blocking","Fielding"\]/, JSON.stringify(SPORT_SKILLS[sport]))
+    .replace(/hand-passes/g, "passes")
+    + `\n\nThis is a ${name} drill: use ${name} terms only, never GAA words (no hand pass, solo, puck-out, sliotar, 45 or 65).`;
+}
+
 // ── Call 1: interpret the drill, clean the text, produce a precise spatial description ──
 const TEXT_PROMPT = `You are a GAA (Gaelic Athletic Association) coaching assistant.
 Process the coaching drill and return a JSON object with exactly these fields:
@@ -515,10 +541,13 @@ serve(async (req) => {
       }
 
       const codes = (Array.isArray(game_code) ? game_code : game_code ? [game_code] : []) as string[];
+      const sport = drillSport(codes);
       const hasFootball = codes.some(c => c.toLowerCase() === "football");
       const hasHurling  = codes.some(c => c.toLowerCase() === "hurling" || c.toLowerCase() === "camogie");
       let sportLine = "";
-      if (hasFootball && hasHurling) {
+      if (sport) {
+        sportLine = `Sport: ${sport}.`;
+      } else if (hasFootball && hasHurling) {
         sportLine = "Sport: Multiple codes.";
       } else if (hasFootball) {
         sportLine = "Sport: Football. Use 'football' when referring to the ball.";
@@ -542,7 +571,7 @@ serve(async (req) => {
 
       let result: any;
       try {
-        const raw = await callGemini(apiKey, SPLIT_VOICE_PROMPT, parts);
+        const raw = await callGemini(apiKey, forSport(SPLIT_VOICE_PROMPT, sport), parts);
         result = parseJson(raw);
       } catch (err) {
         console.error("split_voice failed:", err);
@@ -569,7 +598,8 @@ serve(async (req) => {
 
     // ── Revise with feedback ──────────────────────────────────────────────────
     if (action === "revise_with_feedback") {
-      const { game_name, game_setup, game_how_to_play, game_variations, game_teaching_points, feedback } = body;
+      const { game_name, game_setup, game_how_to_play, game_variations, game_teaching_points, feedback, game_code } = body;
+      const sport = drillSport(game_code);
 
       if (!feedback?.trim()) {
         return new Response(JSON.stringify({ error: "feedback is required" }), {
@@ -588,7 +618,7 @@ serve(async (req) => {
 
       let result: any;
       try {
-        const raw = await callGemini(apiKey, REVISE_FEEDBACK_PROMPT, [{ text: inputText }]);
+        const raw = await callGemini(apiKey, forSport(REVISE_FEEDBACK_PROMPT, sport), [{ text: inputText }]);
         result = parseJson(raw);
       } catch (err) {
         console.error("revise_with_feedback failed:", err);

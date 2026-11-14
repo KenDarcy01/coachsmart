@@ -2,7 +2,7 @@
 import { FROM_TEXT_EXAMPLES } from "./examples.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SCENE_PROMPT, SCENE_SCHEMA, imageSize, sceneToXml, type Scene } from "./scene.ts";
+import { SCENE_PROMPT, SCENE_SCHEMA, SPORT_NOTE, imageSize, sceneToXml, type DrillSport, type Scene } from "./scene.ts";
 
 // Requires ANTHROPIC_API_KEY set as a Supabase secret:
 //   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
@@ -286,7 +286,7 @@ The coach also described this drill in their own words (typed or spoken, so allo
 Use it to read the drawing the way the coach meant it: what each mark is, how many players and which team, which lines are runs or passes, and the shape of the setup (for example "a 20m square" means the cones form a square). Where the description and an unclear mark disagree, follow the description. If it says something on the page should be ignored, leave it out. Do not add players or equipment that are only mentioned and not drawn, unless the description clearly says where they go.`;
 
 // Drawing from words only: the same description format, but the model designs the layout.
-const FROM_TEXT_PROMPT = (drawing: string) => `There is no picture this time. Design the diagram for this GAA drill from the written description below, the way an experienced coach would draw it cleanly for a coaching card, and give it in exactly the format that follows. Read "the image" in the instructions below as this description. Nothing is hand-drawn, so the rules about reading rough marks do not apply: you are placing everything yourself.
+const FROM_TEXT_PROMPT = (drawing: string, sport?: DrillSport) => `There is no picture this time. Design the diagram for this ${sport === "soccer" ? "soccer" : sport === "rugby" ? "rugby" : "GAA"} drill from the written description below, the way an experienced coach would draw it cleanly for a coaching card, and give it in exactly the format that follows. Read "the image" in the instructions below as this description. Nothing is hand-drawn, so the rules about reading rough marks do not apply: you are placing everything yourself.
 
 HOW TO DESIGN IT (these matter more than anything else)
 - Draw ONE diagram of the main drill: one group, one example. Never draw a progression, variation or "bigger square" version beside it; those stay in the text. Draw several groups only when the drill really is several groups working side by side and the picture needs it (for example a row of players at a wall).
@@ -309,7 +309,7 @@ THE DRILL TO DRAW
 
 `;
 
-async function sceneConvert(apiKey: string, image_base64: string | null, media_type: string | null, revision?: Revision, notes?: string, drawing?: string): Promise<ConvertResult> {
+async function sceneConvert(apiKey: string, image_base64: string | null, media_type: string | null, revision?: Revision, notes?: string, drawing?: string, sport?: DrillSport): Promise<ConvertResult> {
   // Drawing from words has no picture to lean on, so it gets the most thinking (DIAGRAM_TEXT_EFFORT overrides).
   const effort = image_base64 ? (Deno.env.get("DIAGRAM_EFFORT") ?? "high") : (Deno.env.get("DIAGRAM_TEXT_EFFORT") ?? "high");
   const claudeRes = await fetch(ANTHROPIC_URL, {
@@ -331,7 +331,7 @@ async function sceneConvert(apiKey: string, image_base64: string | null, media_t
             ...(image_base64 && media_type
               ? [{ type: "image", source: { type: "base64", media_type, data: image_base64 } }]
               : []),
-            { type: "text", text: (image_base64 ? "" : FROM_TEXT_PROMPT(drawing || notes || "")) + SCENE_PROMPT + (notes ? NOTES_PROMPT(notes) : "") },
+            { type: "text", text: (sport ? SPORT_NOTE[sport] : "") + (image_base64 ? "" : FROM_TEXT_PROMPT(drawing || notes || "", sport)) + SCENE_PROMPT + (notes ? NOTES_PROMPT(notes) : "") },
           ],
         },
         ...(revision ? [
@@ -364,6 +364,7 @@ async function sceneConvert(apiKey: string, image_base64: string | null, media_t
     return { error: { error: "Could not read the diagram description", stop_reason: claudeData?.stop_reason, raw: rawText.slice(0, 2000) }, status: 422 };
   }
 
+  if (sport) scene.sport = sport;
   const size = (image_base64 && imageSize(image_base64)) || { w: 1000, h: 1000 };
   const xml = sceneToXml(scene, size.w, size.h);
   console.log("v2 scene:", scene.items?.length ?? 0, "items,", scene.lines?.length ?? 0, "lines, image", size.w, "x", size.h);
@@ -372,7 +373,8 @@ async function sceneConvert(apiKey: string, image_base64: string | null, media_t
   else console.log("v2 photo-scene", JSON.stringify({ fix: revision?.instruction || "", notes: (notes || "").slice(0, 2000), size, scene }).slice(0, 12000));
 
   const gameName = scene.game_name?.trim() || null;
-  const suggestedCodes = scene.sport === "hurling" ? ["hurling", "camogie"] : scene.sport === "football" ? ["football"] : [];
+  const suggestedCodes = scene.sport === "hurling" ? ["hurling", "camogie"] : scene.sport === "football" ? ["football"]
+    : scene.sport === "soccer" || scene.sport === "rugby" ? [scene.sport] : [];
   return { xml, gameName, suggestedCodes, scene };
 }
 
@@ -497,7 +499,9 @@ serve(async (req) => {
   }
 
   try {
-    const { image_base64, media_type, scene: prevScene, instruction, notes: rawNotes, drawing: rawDrawing, check_image_base64 } = await req.json();
+    const { image_base64, media_type, scene: prevScene, instruction, notes: rawNotes, drawing: rawDrawing, check_image_base64, sport: rawSport } = await req.json();
+    // v3 only: a soccer or rugby club's drill. Anything else (v2) stays GAA.
+    const sport: DrillSport | undefined = rawSport === "soccer" || rawSport === "rugby" ? rawSport : undefined;
     const notes = typeof rawNotes === "string" && rawNotes.trim() ? rawNotes.trim() : undefined;
     // No picture: draw from a written description of the layout (document import).
     const drawing = typeof rawDrawing === "string" && rawDrawing.trim() ? rawDrawing.trim().slice(0, 6000) : undefined;
@@ -545,9 +549,9 @@ serve(async (req) => {
     const engine = (Deno.env.get("DIAGRAM_ENGINE") ?? "v2").toLowerCase();
     // A revision always uses v2: it is a change to a description only v2 makes.
     const run = async () => {
-      const result = engine === "legacy" && !revision && !drawing
+      const result = engine === "legacy" && !revision && !drawing && !sport
         ? await legacyConvert(apiKey, image_base64, media_type)
-        : await sceneConvert(apiKey, image_base64 || null, media_type || null, revision, notes, drawing);
+        : await sceneConvert(apiKey, image_base64 || null, media_type || null, revision, notes, drawing, sport);
       if ("error" in result) return result.error;
       const { xml, gameName, suggestedCodes, scene } = result;
       return { xml, game_name: gameName, suggested_codes: suggestedCodes, scene: scene ?? null };
