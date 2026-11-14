@@ -201,12 +201,13 @@ Map<String, dynamic> guUnwrapAi(Map r) {
 }
 
 /// Fields and pictures to a draft (action split_voice).
-Map<String, dynamic> guSplitVoiceBody(
-        String description, List<GuImage> images) =>
+/// Soccer and rugby send their code so the AI writes in that sport's words.
+Map<String, dynamic> guSplitVoiceBody(String description, List<GuImage> images,
+        {V3Sport sport = V3Sport.gaa}) =>
     {
       'action': 'split_voice',
       'voice_transcript': description,
-      'game_code': <String>[],
+      'game_code': sport.isGaa ? <String>[] : sport.gameCodes,
       'images': [for (final i in images) i.toJson()],
     };
 
@@ -217,9 +218,11 @@ Map<String, dynamic> guReviseBody(
         required String howTo,
         required String variations,
         required String teaching,
-        required String feedback}) =>
+        required String feedback,
+        V3Sport sport = V3Sport.gaa}) =>
     {
       'action': 'revise_with_feedback',
+      if (!sport.isGaa) 'game_code': sport.gameCodes,
       'game_name': name.trim(),
       'game_setup': setup.trim(),
       'game_how_to_play': howTo.trim(),
@@ -287,11 +290,16 @@ class GuFix {
 /// ([drawing]); [fix] redraws an earlier scene; [notes] is the coach's
 /// description so the drawing is read as they meant it.
 Map<String, dynamic> guDiagramBody(
-    {GuImage? image, GuFix? fix, String notes = '', String? drawing}) {
+    {GuImage? image,
+    GuFix? fix,
+    String notes = '',
+    String? drawing,
+    V3Sport sport = V3Sport.gaa}) {
   final words = (fix?.drawing?.isNotEmpty == true ? fix!.drawing : null) ??
       (drawing?.isNotEmpty == true ? drawing : null) ??
       '';
   return {
+    if (!sport.isGaa) 'sport': sport.name.toLowerCase(),
     if (image != null) 'image_base64': image.base64,
     if (image != null) 'media_type': image.mimeType,
     if (words.isNotEmpty) 'drawing': words,
@@ -309,8 +317,10 @@ Map<String, dynamic> guCheckBody(
         {required String drawing,
         required String notes,
         required Map scene,
-        required String pngBase64}) =>
+        required String pngBase64,
+        V3Sport sport = V3Sport.gaa}) =>
     {
+      if (!sport.isGaa) 'sport': sport.name.toLowerCase(),
       'drawing': drawing,
       'notes': notes,
       'scene': scene,

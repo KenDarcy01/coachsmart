@@ -326,6 +326,9 @@ const _sBall =
 const _sCone =
     'triangle;direction=north;whiteSpace=wrap;html=1;fillColor=#FF6D00;gradientColor=#FFAB40;gradientDirection=north;strokeColor=#E65100;shadow=1;';
 const _sGoal = 'gaa_goalpost;whiteSpace=wrap;html=1;';
+// Multi-sport (Ken, 2026-11-14): the scene's sport picks the goal.
+const _sSoccerGoal = 'soccer_goal;whiteSpace=wrap;html=1;';
+const _sRugbyPosts = 'rugby_posts;whiteSpace=wrap;html=1;';
 const _sWall =
     'rounded=0;whiteSpace=wrap;html=1;fillColor=#455A64;strokeColor=#B0BEC5;strokeWidth=3;fontColor=#ffffff;fontSize=16;fontStyle=1;';
 const _sZone =
@@ -1165,7 +1168,13 @@ V3Diagram sceneToDiagram(V3Scene scene, num imgW0, num imgH0) {
   }
 
   // Shots: an end near the goalposts goes exactly over (a point) or under
-  // (a goal) the bar.
+  // (a goal) the bar. Soccer shots always go in the goal, rugby kicks at
+  // goal always over the bar.
+  final barFrac = scene.sport == 'soccer'
+      ? 0.18
+      : scene.sport == 'rugby'
+          ? 0.62
+          : 0.55;
   final posts = [
     for (final it in items)
       if (it.kind == 'goalposts')
@@ -1173,7 +1182,7 @@ V3Diagram sceneToDiagram(V3Scene scene, num imgW0, num imgH0) {
           final c = pos[it]!, sz = mapLen(_or(it.w, 60), _or(it.h, 80));
           final gw = math.max(sz.w, 40.0), gh = math.max(sz.h, 40.0);
           final top = c.y - gh / 2;
-          return (x: c.x, top: top, bar: top + gh * 0.55, gw: gw, gh: gh);
+          return (x: c.x, top: top, bar: top + gh * barFrac, gw: gw, gh: gh);
         }()
   ];
   for (final a in arrows) {
@@ -1190,9 +1199,14 @@ V3Diagram sceneToDiagram(V3Scene scene, num imgW0, num imgH0) {
     }
     if (gd > math.max(g.gw, g.gh) * 1.5) continue;
     end.x = g.x;
-    end.y = end.y < g.bar
-        ? g.top + g.gh * 0.28
-        : g.bar + (g.gh - g.gh * 0.55) * 0.45;
+    final over =
+        scene.sport == 'rugby' || (scene.sport != 'soccer' && end.y < g.bar);
+    final gaa = scene.sport != 'soccer' && scene.sport != 'rugby';
+    end.y = over
+        ? (gaa ? g.top + g.gh * 0.28 : g.top + (g.bar - g.top) * 0.5)
+        : (gaa
+            ? g.bar + (g.gh - g.gh * 0.55) * 0.45
+            : g.bar + (g.top + g.gh - g.bar) * 0.45);
   }
 
   // Runs and passes stop short of the circles they start or finish at.
@@ -1370,7 +1384,12 @@ V3Diagram sceneToDiagram(V3Scene scene, num imgW0, num imgH0) {
     if (it.kind == 'goalposts') {
       final sz = mapLen(_or(it.w, 60), _or(it.h, 80));
       final gw = math.max(sz.w, 40.0), gh = math.max(sz.h, 40.0);
-      vertex('', _sGoal, c.x - gw / 2, c.y - gh / 2, gw, gh);
+      final gs = scene.sport == 'soccer'
+          ? _sSoccerGoal
+          : scene.sport == 'rugby'
+              ? _sRugbyPosts
+              : _sGoal;
+      vertex('', gs, c.x - gw / 2, c.y - gh / 2, gw, gh);
     } else if (it.kind == 'cone') {
       final w = _jsRound(dd * 0.6), h = _jsRound(dd * 0.7);
       vertex('', _sCone, c.x - w / 2, c.y - h / 2, w, h);
@@ -1426,6 +1445,10 @@ Color? _css(String? s) {
 String? _styleVal(String style, String key) =>
     RegExp('(?:^|;)$key=([^;,\\s]+)').firstMatch(style)?[1];
 
+/// Font for diagram labels when the style names none; null = the system
+/// font (as on phones). Tools that render diagrams off-device set it.
+String? diagramLabelFont;
+
 void _text(Canvas c, String text, Offset at,
     {required double size,
     required Color color,
@@ -1438,7 +1461,7 @@ void _text(Canvas c, String text, Offset at,
               color: color,
               fontSize: size,
               fontWeight: FontWeight.bold,
-              fontFamily: family)),
+              fontFamily: family ?? diagramLabelFont)),
       textDirection: TextDirection.ltr,
       maxLines: 1)
     ..layout();
@@ -1496,6 +1519,10 @@ void paintDiagram(Canvas canvas, V3Diagram d) {
     final st = c.style, val = c.value;
     if (st.contains('gaa_goalpost')) {
       _paintGoalpost(canvas, x, y, w, h);
+    } else if (st.contains('soccer_goal')) {
+      _paintGoalpost(canvas, x, y, w, h, soccer: true);
+    } else if (st.contains('rugby_posts')) {
+      _paintRugbyPosts(canvas, x, y, w, h);
     } else if (st.contains('ellipse')) {
       final cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
       final fc = (_styleVal(st, 'fillColor') ?? '#C62828').toLowerCase();
@@ -1731,9 +1758,12 @@ void _paintEdge(
   }
 }
 
-void _paintGoalpost(Canvas c, double x, double y, double w, double h) {
+/// GAA posts: an H with a net under the bar. [soccer]: a goal frame with
+/// a net and nothing above the bar (the bar sits near the top).
+void _paintGoalpost(Canvas c, double x, double y, double w, double h,
+    {bool soccer = false}) {
   final post = math.max(3.0, math.min(6.0, w * 0.045));
-  final cbY = y + h * 0.55, goalH = y + h - cbY;
+  final cbY = y + h * (soccer ? 0.18 : 0.55), goalH = y + h - cbY;
   final sInset = w * .10, sRise = goalH * .38, backBarY = cbY - sRise;
   c.drawRect(Rect.fromLTWH(x, cbY, w, goalH),
       Paint()..color = const Color(0x33000000));
@@ -1754,10 +1784,41 @@ void _paintGoalpost(Canvas c, double x, double y, double w, double h) {
     ..color = const Color(0x8CFFFFFF)
     ..strokeWidth = math.max(1.5, post * .55)
     ..strokeCap = StrokeCap.round;
-  c.drawLine(Offset(x, cbY), Offset(x + sInset, backBarY), side);
-  c.drawLine(Offset(x + w, cbY), Offset(x + w - sInset, backBarY), side);
+  if (!soccer) {
+    c.drawLine(Offset(x, cbY), Offset(x + sInset, backBarY), side);
+    c.drawLine(Offset(x + w, cbY), Offset(x + w - sInset, backBarY), side);
+    c.drawLine(
+        Offset(x + sInset, backBarY), Offset(x + w - sInset, backBarY), side);
+  }
+  final top = soccer ? cbY : y;
+  final frame = [
+    (Offset(x, top), Offset(x, y + h)),
+    (Offset(x + w, top), Offset(x + w, y + h)),
+    (Offset(x, cbY), Offset(x + w, cbY)),
+  ];
+  final shadow = Paint()
+    ..color = const Color(0x66000000)
+    ..strokeWidth = post
+    ..strokeCap = StrokeCap.square
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+  final white = Paint()
+    ..color = Colors.white
+    ..strokeWidth = post
+    ..strokeCap = StrokeCap.square;
+  for (final (p, q) in frame) {
+    c.drawLine(p, q, shadow);
+  }
+  for (final (p, q) in frame) {
+    c.drawLine(p, q, white);
+  }
   c.drawLine(
-      Offset(x + sInset, backBarY), Offset(x + w - sInset, backBarY), side);
+      Offset(x, y + h), Offset(x + w, y + h), white..strokeWidth = post * .7);
+}
+
+/// Rugby posts: a tall H with the bar low down and no net.
+void _paintRugbyPosts(Canvas c, double x, double y, double w, double h) {
+  final post = math.max(3.0, math.min(6.0, w * 0.045));
+  final cbY = y + h * 0.62;
   final frame = [
     (Offset(x, y), Offset(x, y + h)),
     (Offset(x + w, y), Offset(x + w, y + h)),
@@ -1778,8 +1839,11 @@ void _paintGoalpost(Canvas c, double x, double y, double w, double h) {
   for (final (p, q) in frame) {
     c.drawLine(p, q, white);
   }
-  c.drawLine(
-      Offset(x, y + h), Offset(x + w, y + h), white..strokeWidth = post * .7);
+  // Post pads at the foot of each upright.
+  final pad = Paint()..color = const Color(0xFF1565C0);
+  final pw = post * 2.4, ph = h * 0.12;
+  c.drawRect(Rect.fromLTWH(x - pw / 2, y + h - ph, pw, ph), pad);
+  c.drawRect(Rect.fromLTWH(x + w - pw / 2, y + h - ph, pw, ph), pad);
 }
 
 /// A CustomPainter of a diagram, scaled to fit a square.

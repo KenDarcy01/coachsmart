@@ -333,8 +333,12 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
       {GuFix? fix, String notes = '', String? drawing}) async {
     final dpr = MediaQuery.devicePixelRatioOf(context).clamp(1.0, 3.0);
     try {
-      final a = GuDiagramAnswer.fromJson(await _svc.diagram(
-          guDiagramBody(image: img, fix: fix, notes: notes, drawing: drawing)));
+      final a = GuDiagramAnswer.fromJson(await _svc.diagram(guDiagramBody(
+          image: img,
+          fix: fix,
+          notes: notes,
+          drawing: drawing,
+          sport: _sport)));
       if (!a.ok) return _Std(error: a.error);
       var png = await _draw(a, img, dpr);
       var scene = a.scene;
@@ -349,7 +353,8 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
               drawing: words,
               notes: notes,
               scene: scene,
-              pngBase64: base64Encode(png))));
+              pngBase64: base64Encode(png),
+              sport: _sport)));
           if (b.xml != null && b.scene != null) {
             png = await _draw(b, null, dpr);
             scene = b.scene;
@@ -454,7 +459,9 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
     Map<String, dynamic>? ai;
     _Std? std;
     Object? aiErr;
-    final aiF = _svc.aiProcessGame(guSplitVoiceBody(words, images)).then((r) {
+    final aiF = _svc
+        .aiProcessGame(guSplitVoiceBody(words, images, sport: _sport))
+        .then((r) {
       ai = guUnwrapAi(r);
       if (mounted) {
         _status('Creating your draft…',
@@ -535,7 +542,8 @@ class _V3GameUploadPageState extends State<V3GameUploadPage> {
               howTo: _howTo.text,
               variations: _variations.text,
               teaching: _teaching.text,
-              feedback: feedback))));
+              feedback: feedback,
+              sport: _sport))));
       if (!mounted) return false;
       setState(() {
         _name.text = d.name;
