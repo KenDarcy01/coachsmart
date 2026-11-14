@@ -1015,13 +1015,14 @@ function renderClock() {
   if (!S || S.phase !== 'play') return;
   const sec = secInHalf(), dur = halfLen(), h = S.clock.half;
   const inj = sec > dur;
-  const matchSec = (h - 1) * dur + sec;
+  // Counts down the time left in the half; in injury time it counts up the extra time
+  const shown = inj ? '+' + fmt(sec - dur) : fmt(Math.max(0, dur - sec));
   const el = $('clock');
   el.classList.toggle('inj', inj);
   el.classList.toggle('paused', !S.clock.run && sec > 0);
   const hn = h === 1 ? 'First half' : 'Second half';
-  $('clockLbl').innerHTML = inj ? `${hn} · <b>Injury time +${fmt(sec - dur)}</b>` : `${hn} · ${Math.round(dur / 60)} min${!S.clock.run && sec > 0 ? ' · paused' : ''}`;
-  $('clockT').textContent = fmt(matchSec);
+  $('clockLbl').innerHTML = inj ? `${hn} · <b>Injury time</b>` : `${hn} · ${Math.round(dur / 60)} min${!S.clock.run && sec > 0 ? ' · paused' : ''}`;
+  $('clockT').textContent = shown;
   const bars = $('clockBar').children;
   const injMax = Math.max(injLen(), 60);
   bars[0].style.width = (Math.min(sec / dur, 1) * (inj ? 80 : 100)) + '%';
