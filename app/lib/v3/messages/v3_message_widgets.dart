@@ -1,0 +1,511 @@
+// v3 Important message pop-up and News bar + sheet (Ken, 2026-11-14).
+// Mockups: /mnt/project-files/coachsmart/app-v3/important-messages/.
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import 'package:intl/intl.dart';
+
+import '/flutter_flow/flutter_flow_util.dart' show launchURL;
+import '../v3_crest_image.dart';
+import '../v3_theme.dart';
+import 'v3_messages_models.dart';
+
+/// The small square the message is "from": the club crest, or the CS mark
+/// for CoachSmart-wide messages.
+class V3MessageBadge extends StatelessWidget {
+  const V3MessageBadge(this.message, {super.key, this.size = 36});
+  final AppMessage message;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: V3.bg,
+        borderRadius: BorderRadius.circular(size * 0.22),
+        border: Border.all(color: V3.line),
+      ),
+      child: Text('CS',
+          style:
+              V3.tight(size * 0.36, weight: FontWeight.w700, color: V3.green)),
+    );
+    if (message.crest.isEmpty) return cs;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.22),
+      child: V3CrestImage(message.crest, size: size, fallback: cs),
+    );
+  }
+}
+
+String _when(DateTime? t) {
+  if (t == null) return '';
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(t.year, t.month, t.day);
+  final hm = DateFormat('HH:mm').format(t);
+  if (day == today) return 'Today $hm';
+  if (day == today.subtract(const Duration(days: 1))) return 'Yesterday $hm';
+  return DateFormat('EEE d MMM').format(t);
+}
+
+// ---------------------------------------------------------------------------
+// Important pop-up
+
+/// Shows each important message in turn. X or "Got it" marks it read for
+/// this user (it then never shows again); closing the app first means it
+/// shows again on the next open.
+Future<void> showImportantMessages(
+    BuildContext context, List<AppMessage> messages, MessagesApi api) async {
+  if (messages.isEmpty) return;
+  await showGeneralDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    barrierLabel: 'Important message',
+    barrierColor: const Color(0xB8050709),
+    transitionDuration: const Duration(milliseconds: 220),
+    pageBuilder: (_, __, ___) => _ImportantFlow(messages: messages, api: api),
+    transitionBuilder: (_, a, __, child) => FadeTransition(
+      opacity: a,
+      child: ScaleTransition(
+          scale: Tween(begin: 0.96, end: 1.0)
+              .animate(CurvedAnimation(parent: a, curve: Curves.easeOut)),
+          child: child),
+    ),
+  );
+}
+
+class _ImportantFlow extends StatefulWidget {
+  const _ImportantFlow({required this.messages, required this.api});
+  final List<AppMessage> messages;
+  final MessagesApi api;
+
+  @override
+  State<_ImportantFlow> createState() => _ImportantFlowState();
+}
+
+class _ImportantFlowState extends State<_ImportantFlow> {
+  int _i = 0;
+
+  void _dismiss() {
+    final m = widget.messages[_i];
+    // Fire and forget: if it fails the message simply shows again next time.
+    unawaited(widget.api.dismiss(m.id).catchError((_) {}));
+    if (_i + 1 < widget.messages.length) {
+      setState(() => _i++);
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final n = widget.messages.length;
+    return PopScope(
+      canPop: false,
+      child: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: V3ImportantCard(
+                  key: ValueKey(widget.messages[_i].id),
+                  message: widget.messages[_i],
+                  position: n > 1 ? '${_i + 1} of $n messages' : '',
+                  onDismiss: _dismiss,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class V3ImportantCard extends StatelessWidget {
+  const V3ImportantCard(
+      {super.key,
+      required this.message,
+      required this.onDismiss,
+      this.position = ''});
+
+  final AppMessage message;
+  final VoidCallback onDismiss;
+  final String position;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = message;
+    final fromLine = m.scope == 'all'
+        ? 'From CoachSmart'
+        : (m.scope == 'club' ? 'From the club' : 'From the team');
+    return Material(
+      color: V3.card,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: V3.line),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(height: 6, color: V3.amber),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 10, 0),
+              child: Row(
+                children: [
+                  V3MessageBadge(m),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(m.fromName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: V3.inter(14, weight: FontWeight.w600)),
+                        Text(
+                            [fromLine, _when(m.startsAt)]
+                                .where((s) => s.isNotEmpty)
+                                .join(' · '),
+                            style: V3.inter(12.5, color: V3.muted)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: onDismiss,
+                    style: IconButton.styleFrom(
+                        backgroundColor: V3.card2,
+                        fixedSize: const Size(38, 38)),
+                    icon: const Icon(Icons.close, color: V3.text, size: 22),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: V3.amberTint,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text('IMPORTANT',
+                      style: V3.inter(11.5,
+                          weight: FontWeight.w700,
+                          color: V3.amberText,
+                          letterSpacing: 0.6)),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+              child: Text(m.title,
+                  style: V3.tight(23, weight: FontWeight.w700, height: 1.2)),
+            ),
+            if (m.body.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+                child: Text(m.body,
+                    style: V3.inter(15,
+                        color: const Color(0xFFD5D8DE), height: 1.5)),
+              ),
+            if (m.linkUrl.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                child: Material(
+                  color: V3.card2,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => launchURL(m.linkUrl),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      child: Row(children: [
+                        Expanded(
+                          child: Text(
+                              m.linkLabel.isEmpty ? 'Read more' : m.linkLabel,
+                              style: V3.inter(14,
+                                  weight: FontWeight.w500, color: V3.green)),
+                        ),
+                        const Icon(Icons.chevron_right, color: V3.green),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+              child: SizedBox(
+                height: 50,
+                child: FilledButton(
+                  onPressed: onDismiss,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: V3.green,
+                    foregroundColor: V3.bg,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text('Got it',
+                      style:
+                          V3.inter(16, weight: FontWeight.w700, color: V3.bg)),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+              child: Text(position,
+                  textAlign: TextAlign.center,
+                  style: V3.inter(12.5, color: V3.muted)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// News bar
+
+/// One line under the app bar. Several items rotate every 5 seconds; a tap
+/// opens the News sheet. Hidden when there is no news.
+class V3NewsBar extends StatefulWidget {
+  const V3NewsBar({super.key, required this.news, required this.onTap});
+  final List<AppMessage> news;
+  final VoidCallback onTap;
+
+  @override
+  State<V3NewsBar> createState() => _V3NewsBarState();
+}
+
+class _V3NewsBarState extends State<V3NewsBar> {
+  int _i = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _restart();
+  }
+
+  @override
+  void didUpdateWidget(V3NewsBar old) {
+    super.didUpdateWidget(old);
+    if (old.news.length != widget.news.length) {
+      _i = 0;
+      _restart();
+    }
+  }
+
+  void _restart() {
+    _timer?.cancel();
+    if (widget.news.length > 1) {
+      _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (mounted) setState(() => _i = (_i + 1) % widget.news.length);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final news = widget.news;
+    if (news.isEmpty) return const SizedBox.shrink();
+    final m = news[_i % news.length];
+    final unread = news.any((n) => !n.seen);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
+      child: Material(
+        color: V3.card,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: widget.onTap,
+          child: Container(
+            height: 40,
+            padding: const EdgeInsets.only(left: 8, right: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: unread ? V3.nextLine : V3.line),
+            ),
+            child: Row(
+              children: [
+                V3MessageBadge(m, size: 24),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    transitionBuilder: (child, a) => FadeTransition(
+                      opacity: a,
+                      child: SlideTransition(
+                        position:
+                            Tween(begin: const Offset(0, 0.4), end: Offset.zero)
+                                .animate(a),
+                        child: child,
+                      ),
+                    ),
+                    child: Align(
+                      key: ValueKey(m.id),
+                      alignment: Alignment.centerLeft,
+                      child: Text.rich(
+                        TextSpan(children: [
+                          TextSpan(
+                              text: '${m.title}  ',
+                              style: V3.inter(13.5, weight: FontWeight.w600)),
+                          TextSpan(
+                              text: m.body.replaceAll('\n', ' '),
+                              style: V3.inter(13.5, color: V3.muted)),
+                        ]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (news.length > 1)
+                  Row(children: [
+                    for (var k = 0; k < news.length && k < 5; k++)
+                      Container(
+                        width: 5,
+                        height: 5,
+                        margin: const EdgeInsets.only(left: 3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: k == _i % news.length ? V3.green : V3.barGrey,
+                        ),
+                      ),
+                  ])
+                else
+                  const Icon(Icons.chevron_right, color: V3.muted, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Every live news item, newest first; opening it marks them seen.
+Future<void> showNewsSheet(
+    BuildContext context, List<AppMessage> news, MessagesApi api) async {
+  final unseen = [
+    for (final n in news)
+      if (!n.seen) n.id
+  ];
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: V3.card,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+    builder: (ctx) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.7,
+      maxChildSize: 0.92,
+      minChildSize: 0.4,
+      builder: (ctx, scroll) => ListView(
+        controller: scroll,
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                  color: V3.barGrey, borderRadius: BorderRadius.circular(3)),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text('News', style: V3.tight(20, weight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          for (final n in news) _NewsRow(n),
+        ],
+      ),
+    ),
+  );
+  if (unseen.isEmpty) return;
+  for (final n in news) {
+    n.seen = true;
+  }
+  unawaited(api.markSeen(unseen).catchError((_) {}));
+}
+
+class _NewsRow extends StatelessWidget {
+  const _NewsRow(this.m);
+  final AppMessage m;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: V3.line))),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            V3MessageBadge(m, size: 30),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      [m.fromName, _when(m.startsAt)]
+                          .where((s) => s.isNotEmpty)
+                          .join(' · '),
+                      style: V3.inter(12, color: V3.muted)),
+                  const SizedBox(height: 3),
+                  Text(m.title, style: V3.inter(15, weight: FontWeight.w600)),
+                  if (m.body.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(m.body,
+                        style: V3.inter(13.5,
+                            color: const Color(0xFFCFD2D8), height: 1.45)),
+                  ],
+                  if (m.linkUrl.isNotEmpty)
+                    GestureDetector(
+                      onTap: () => launchURL(m.linkUrl),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                            m.linkLabel.isEmpty ? 'Read more' : m.linkLabel,
+                            style: V3.inter(13.5,
+                                weight: FontWeight.w600, color: V3.green)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (!m.seen)
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(top: 6, left: 8),
+                decoration: const BoxDecoration(
+                    color: V3.green, shape: BoxShape.circle),
+              ),
+          ],
+        ),
+      );
+}

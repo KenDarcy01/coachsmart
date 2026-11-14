@@ -1,0 +1,256 @@
+// v3 Important messages (pop-up on open) and News (bar on Home), Ken
+// 2026-11-14. Super users send for now. Data and calls kept apart from the
+// widgets so tests run without a network. Functions: migration
+// 20261114170000_app_messages.sql.
+import '/backend/supabase/supabase.dart';
+
+int _int(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}') ?? 0;
+String _s(dynamic v) => v == null ? '' : '$v';
+DateTime? _date(dynamic v) => DateTime.tryParse(_s(v))?.toLocal();
+
+enum MessageKind { important, news }
+
+enum MessageAudience { all, players, staff }
+
+extension MessageAudienceText on MessageAudience {
+  String get label => switch (this) {
+        MessageAudience.all => 'Everyone',
+        MessageAudience.players => 'Players and parents',
+        MessageAudience.staff => 'Coaches and admins',
+      };
+}
+
+class AppMessage {
+  AppMessage({
+    required this.id,
+    required this.kind,
+    required this.title,
+    this.body = '',
+    this.linkUrl = '',
+    this.linkLabel = '',
+    this.fromName = '',
+    this.crest = '',
+    this.scope = 'all',
+    this.clubId,
+    this.teamIds = const [],
+    this.audience = MessageAudience.all,
+    this.startsAt,
+    this.endsAt,
+    this.seen = false,
+    this.endedAt,
+    this.reach = 0,
+    this.seenCount = 0,
+    this.dismissedCount = 0,
+    this.teamNames = const [],
+  });
+
+  factory AppMessage.fromJson(Map j) => AppMessage(
+        id: _int(j['id']),
+        kind: j['kind'] == 'news' ? MessageKind.news : MessageKind.important,
+        title: _s(j['title']),
+        body: _s(j['body']),
+        linkUrl: _s(j['link_url']),
+        linkLabel: _s(j['link_label']),
+        fromName: _s(j['from_name']),
+        crest: _s(j['crest']),
+        scope: _s(j['scope']).isEmpty ? 'all' : _s(j['scope']),
+        clubId: j['club_id'] == null ? null : _int(j['club_id']),
+        teamIds: [
+          if (j['team_ids'] is List)
+            for (final t in j['team_ids'] as List) _int(t)
+        ],
+        audience: MessageAudience.values.firstWhere(
+            (a) => a.name == _s(j['audience']),
+            orElse: () => MessageAudience.all),
+        startsAt: _date(j['starts_at']),
+        endsAt: _date(j['ends_at']),
+        seen: j['seen'] == true,
+        endedAt: _date(j['ended_at']),
+        reach: _int(j['reach']),
+        seenCount: _int(j['seen_count']),
+        dismissedCount: _int(j['dismissed_count']),
+        teamNames: [
+          if (j['team_names'] is List)
+            for (final t in j['team_names'] as List) _s(t)
+        ],
+      );
+
+  final int id;
+  final MessageKind kind;
+  final String title;
+  final String body;
+  final String linkUrl;
+  final String linkLabel;
+  final String fromName;
+  final String crest;
+
+  /// all (CoachSmart), club or team.
+  final String scope;
+  final int? clubId;
+  final List<int> teamIds;
+  final MessageAudience audience;
+  final DateTime? startsAt;
+  final DateTime? endsAt;
+
+  /// News only: this user opened it in the News sheet.
+  bool seen;
+
+  // Sender's list only.
+  final DateTime? endedAt;
+  final int reach;
+  final int seenCount;
+  final int dismissedCount;
+  final List<String> teamNames;
+
+  bool get isNews => kind == MessageKind.news;
+
+  /// Live, scheduled or ended, for the sender's Messages page.
+  String status(DateTime now) {
+    if (endedAt != null || (endsAt != null && !endsAt!.isAfter(now))) {
+      return 'ended';
+    }
+    if (startsAt != null && startsAt!.isAfter(now)) return 'scheduled';
+    return 'live';
+  }
+
+  /// "Whole club", "U12 Boys", "Everyone on CoachSmart" for the sender.
+  String get sentTo {
+    if (teamNames.isNotEmpty) return teamNames.join(', ');
+    if (scope == 'club') return fromName.isEmpty ? 'Whole club' : fromName;
+    return 'Everyone on CoachSmart';
+  }
+}
+
+class MyMessages {
+  const MyMessages(
+      {this.important = const [],
+      this.news = const [],
+      this.isSuperUser = false});
+
+  factory MyMessages.fromJson(Map j) => MyMessages(
+        important: [
+          if (j['important'] is List)
+            for (final m in (j['important'] as List).whereType<Map>())
+              AppMessage.fromJson(m)
+        ],
+        news: [
+          if (j['news'] is List)
+            for (final m in (j['news'] as List).whereType<Map>())
+              AppMessage.fromJson(m)
+        ],
+        isSuperUser: j['is_super_user'] == true,
+      );
+
+  final List<AppMessage> important;
+  final List<AppMessage> news;
+  final bool isSuperUser;
+
+  int get unreadNews => news.where((n) => !n.seen).length;
+}
+
+class TargetTeam {
+  const TargetTeam(this.teamId, this.name);
+  final int teamId;
+  final String name;
+}
+
+class TargetClub {
+  const TargetClub(this.clubId, this.name, this.crest, this.teams);
+
+  factory TargetClub.fromJson(Map j) => TargetClub(
+        _int(j['club_id']),
+        _s(j['club_name']),
+        _s(j['crest']),
+        [
+          if (j['teams'] is List)
+            for (final t in (j['teams'] as List).whereType<Map>())
+              TargetTeam(_int(t['team_id']), _s(t['team_name']))
+        ],
+      );
+
+  final int clubId;
+  final String name;
+  final String crest;
+  final List<TargetTeam> teams;
+}
+
+class MessagesApi {
+  const MessagesApi();
+
+  Future<MyMessages> mine() async {
+    final r = await SupaFlow.client.rpc('get_my_app_messages');
+    return MyMessages.fromJson(r is Map ? r : const {});
+  }
+
+  Future<void> dismiss(int id) =>
+      SupaFlow.client.rpc('dismiss_app_message', params: {'p_message_id': id});
+
+  Future<void> markSeen(List<int> ids) => ids.isEmpty
+      ? Future.value()
+      : SupaFlow.client
+          .rpc('mark_app_messages_seen', params: {'p_message_ids': ids});
+
+  Future<List<AppMessage>> sent() async {
+    final r = await SupaFlow.client.rpc('get_sent_app_messages');
+    return [
+      if (r is List)
+        for (final m in r.whereType<Map>()) AppMessage.fromJson(m)
+    ];
+  }
+
+  Future<List<TargetClub>> targets() async {
+    final r = await SupaFlow.client.rpc('get_app_message_targets');
+    return [
+      if (r is List)
+        for (final c in r.whereType<Map>()) TargetClub.fromJson(c)
+    ];
+  }
+
+  Future<int> count(int? clubId, List<int> teamIds, MessageAudience a) async {
+    final r = await SupaFlow.client.rpc('count_app_message_audience', params: {
+      'p_club_id': clubId,
+      'p_team_ids': teamIds,
+      'p_audience': a.name,
+    });
+    return _int(r);
+  }
+
+  Future<int> save({
+    int? id,
+    required MessageKind kind,
+    required String title,
+    required String body,
+    String linkUrl = '',
+    String linkLabel = '',
+    int? clubId,
+    List<int> teamIds = const [],
+    MessageAudience audience = MessageAudience.all,
+    required DateTime startsAt,
+    required DateTime endsAt,
+  }) async {
+    final r = await SupaFlow.client.rpc('save_app_message', params: {
+      'p_id': id,
+      'p_kind': kind.name,
+      'p_title': title.trim(),
+      'p_body': body.trim(),
+      'p_link_url': linkUrl.trim(),
+      'p_link_label': linkLabel.trim(),
+      'p_club_id': clubId,
+      'p_team_ids': teamIds,
+      'p_audience': audience.name,
+      'p_starts_at': startsAt.toUtc().toIso8601String(),
+      'p_ends_at': endsAt.toUtc().toIso8601String(),
+    });
+    return _int(r);
+  }
+
+  Future<void> end(int id, {bool delete = false}) => SupaFlow.client
+      .rpc('end_app_message', params: {'p_id': id, 'p_delete': delete});
+}
+
+/// Adds https:// when a sender types a bare address.
+String normaliseLink(String url) {
+  final u = url.trim();
+  if (u.isEmpty) return '';
+  return u.contains('://') ? u : 'https://$u';
+}

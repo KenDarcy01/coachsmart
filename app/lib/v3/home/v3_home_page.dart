@@ -21,6 +21,9 @@ import '../v3_theme.dart';
 import 'v3_home_data.dart';
 import 'v3_team_chip.dart';
 import 'v3_timeline_row.dart';
+import '../messages/v3_message_widgets.dart';
+import '../messages/v3_messages_models.dart';
+import '../messages/v3_messages_page.dart';
 import '/v3/tracking/v3_track.dart';
 
 class V3HomePage extends StatefulWidget {
@@ -33,7 +36,7 @@ class V3HomePage extends StatefulWidget {
   State<V3HomePage> createState() => _V3HomePageState();
 }
 
-class _V3HomePageState extends State<V3HomePage> {
+class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool _loaded = false;
@@ -43,9 +46,15 @@ class _V3HomePageState extends State<V3HomePage> {
   DateTime _now = DateTime.now();
   Timer? _tick;
 
+  // Important pop-ups and the news bar (Ken, 2026-11-14).
+  static const _messagesApi = MessagesApi();
+  MyMessages _msgs = const MyMessages();
+  bool _popupOpen = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tick = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
@@ -54,6 +63,7 @@ class _V3HomePageState extends State<V3HomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tick?.cancel();
     super.dispose();
   }
@@ -66,10 +76,50 @@ class _V3HomePageState extends State<V3HomePage> {
     unawaited(_registerDevice());
     await _load();
     if (!mounted) return;
+    await _loadMessages(popUp: true);
+    if (!mounted) return;
     final pendingEventId = await actions.checkAndNavigatePending();
     if (pendingEventId != '' && mounted) {
       context.pushNamed(NotificationsWidget.routeName);
     }
+  }
+
+  // Back in the app from the background counts as opening it: unread
+  // important messages pop up again.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _loaded && !_failed) {
+      _loadMessages(popUp: true);
+    }
+  }
+
+  Future<void> _loadMessages({bool popUp = false}) async {
+    try {
+      final m = await _messagesApi.mine();
+      if (!mounted) return;
+      setState(() => _msgs = m);
+      if (popUp && m.important.isNotEmpty && !_popupOpen) {
+        _popupOpen = true;
+        await showImportantMessages(context, m.important, _messagesApi);
+        _popupOpen = false;
+        if (mounted)
+          setState(() => _msgs =
+              MyMessages(news: _msgs.news, isSuperUser: _msgs.isSuperUser));
+      }
+    } catch (_) {
+      // No messages is fine; Home works without them.
+    }
+  }
+
+  Future<void> _refresh() async {
+    await _load();
+    await _loadMessages();
+  }
+
+  Future<void> _openNews() async {
+    V3Track.event('news_opened');
+    await showNewsSheet(context, _msgs.news, _messagesApi);
+    if (mounted) setState(() {});
   }
 
   Future<void> _registerDevice() async {
@@ -358,8 +408,13 @@ class _V3HomePageState extends State<V3HomePage> {
                 : RefreshIndicator(
                     color: V3.green,
                     backgroundColor: V3.card,
-                    onRefresh: _load,
-                    child: _timeline(),
+                    onRefresh: _refresh,
+                    child: Column(
+                      children: [
+                        V3NewsBar(news: _msgs.news, onTap: _openNews),
+                        Expanded(child: _timeline()),
+                      ],
+                    ),
                   ),
         // Parents get no bottom bar (design §5.10).
         bottomNavigationBar: _loaded && !_failed && coach ? _tabs(role) : null,
@@ -749,6 +804,17 @@ class _V3HomePageState extends State<V3HomePage> {
                       settings: const RouteSettings(name: 'V3AnalyticsPage'),
                       builder: (_) => const V3AnalyticsPage()),
                 ),
+              ),
+            if (_msgs.isSuperUser)
+              item(
+                Icons.campaign_outlined,
+                'Messages',
+                () async {
+                  await Navigator.of(context).push(MaterialPageRoute(
+                      settings: const RouteSettings(name: 'V3MessagesPage'),
+                      builder: (_) => const V3MessagesPage()));
+                  if (mounted) _loadMessages(popUp: true);
+                },
               ),
             item(Icons.logout, 'Sign out', _signOut),
             Padding(
