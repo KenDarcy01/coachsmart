@@ -80,6 +80,8 @@ class EventTeams {
         isAdmin = j['is_admin'] == true,
         published = j['published'] == true,
         familiesTold = _i(j['families_told']),
+        newSince = _i(j['new_since']),
+        outSince = _i(j['out_since']),
         mine = [
           for (final m in (j['mine'] as List? ?? []))
             MyPlayer.fromJson(m as Map)
@@ -92,6 +94,10 @@ class EventTeams {
   final bool shared, isAdmin, published;
   final DateTime? sharedAt;
   final int familiesTold;
+
+  /// Admins only: players who said yes after the teams were published, and
+  /// published players who now say no (Ken, 2026-11-15).
+  final int newSince, outSince;
   final List<MyPlayer> mine;
   final List<TeamSquad> squads;
 
@@ -382,6 +388,30 @@ class _V3EventTeamsCardState extends State<V3EventTeamsCard> {
         ),
       );
 
+  /// "2 said yes since publishing · 1 can't make it now".
+  static String changesLabel(int newSince, int outSince) => [
+        if (newSince > 0) '$newSince said yes since publishing',
+        if (outSince > 0) "$outSince can't make it now",
+      ].join(' · ');
+
+  Widget _changes(EventTeams t) => InkWell(
+        onTap: widget.onEdit,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(children: [
+            const Icon(Icons.info_outline, color: V3.amberText, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+                child: Text(changesLabel(t.newSince, t.outSince),
+                    style: V3.inter(14, color: V3.amberText))),
+            if (widget.onEdit != null)
+              Text('Republish',
+                  style: V3.inter(14,
+                      weight: FontWeight.w600, color: V3.green)),
+          ]),
+        ),
+      );
+
   void _seeAll(EventTeams t) {
     V3Track.event('teams_viewed', {'event_id': widget.eventId});
     showAllTeams(context, t);
@@ -426,6 +456,7 @@ class _V3EventTeamsCardState extends State<V3EventTeamsCard> {
                 bare: true),
           ),
           ..._squadRows(t),
+          if (t.newSince > 0 || t.outSince > 0) _changes(t),
           if (widget.onEdit != null) _link('Edit teams', widget.onEdit!),
         ]),
         const SizedBox(height: 10),
