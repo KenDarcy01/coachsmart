@@ -211,18 +211,29 @@ class V3ImportantCard extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
-              child: Text(m.title,
-                  style: V3.tight(23, weight: FontWeight.w700, height: 1.2)),
-            ),
-            if (m.body.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
-                child: Text(m.body,
-                    style: V3.inter(15,
-                        color: const Color(0xFFD5D8DE), height: 1.5)),
+            // With a link, tapping the message opens it too (Ken, 2026-11-15).
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: m.linkUrl.isEmpty ? null : () => launchURL(m.linkUrl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+                    child: Text(m.title,
+                        style:
+                            V3.tight(23, weight: FontWeight.w700, height: 1.2)),
+                  ),
+                  if (m.body.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+                      child: Text(m.body,
+                          style: V3.inter(15,
+                              color: const Color(0xFFD5D8DE), height: 1.5)),
+                    ),
+                ],
               ),
+            ),
             if (m.linkUrl.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
@@ -457,55 +468,62 @@ class _NewsRow extends StatelessWidget {
   final AppMessage m;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: V3.line))),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            V3MessageBadge(m, size: 30),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                      [m.fromName, _when(m.startsAt)]
-                          .where((s) => s.isNotEmpty)
-                          .join(' · '),
-                      style: V3.inter(12, color: V3.muted)),
-                  const SizedBox(height: 3),
-                  Text(m.title, style: V3.inter(15, weight: FontWeight.w600)),
-                  if (m.body.isNotEmpty) ...[
+  // With a link, a tap anywhere on the item opens it (Ken, 2026-11-15).
+  Widget build(BuildContext context) => InkWell(
+        onTap: m.linkUrl.isEmpty ? null : () => launchURL(m.linkUrl),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: V3.line))),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              V3MessageBadge(m, size: 30),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        [m.fromName, _when(m.startsAt)]
+                            .where((s) => s.isNotEmpty)
+                            .join(' · '),
+                        style: V3.inter(12, color: V3.muted)),
                     const SizedBox(height: 3),
-                    Text(m.body,
-                        style: V3.inter(13.5,
-                            color: const Color(0xFFCFD2D8), height: 1.45)),
-                  ],
-                  if (m.linkUrl.isNotEmpty)
-                    GestureDetector(
-                      onTap: () => launchURL(m.linkUrl),
-                      child: Padding(
+                    Text(m.title, style: V3.inter(15, weight: FontWeight.w600)),
+                    if (m.body.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(m.body,
+                          style: V3.inter(13.5,
+                              color: const Color(0xFFCFD2D8), height: 1.45)),
+                    ],
+                    if (m.linkUrl.isNotEmpty)
+                      Padding(
                         padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                            m.linkLabel.isEmpty ? 'Read more' : m.linkLabel,
-                            style: V3.inter(13.5,
-                                weight: FontWeight.w600, color: V3.green)),
+                        child: Row(children: [
+                          Flexible(
+                            child: Text(
+                                m.linkLabel.isEmpty ? 'Read more' : m.linkLabel,
+                                style: V3.inter(13.5,
+                                    weight: FontWeight.w600, color: V3.green)),
+                          ),
+                          const Icon(Icons.chevron_right,
+                              color: V3.green, size: 18),
+                        ]),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (!m.seen)
-              Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.only(top: 6, left: 8),
-                decoration: const BoxDecoration(
-                    color: V3.green, shape: BoxShape.circle),
-              ),
-          ],
+              if (!m.seen)
+                Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.only(top: 6, left: 8),
+                  decoration: const BoxDecoration(
+                      color: V3.green, shape: BoxShape.circle),
+                ),
+            ],
+          ),
         ),
       );
 }
