@@ -30,10 +30,13 @@ class TeamPlayer {
   TeamPlayer.fromJson(Map j)
       : memberId = _i(j['member_id']),
         name = _s(j['name']),
-        mine = j['mine'] == true;
+        mine = j['mine'] == true,
+        // Coaches and FLOs are in the published team too; only players
+        // count (Ken, 2026-11-15). Missing = player, for older servers.
+        player = j['player'] != false;
   final int memberId;
   final String name;
-  final bool mine;
+  final bool mine, player;
 }
 
 class TeamSquad {
@@ -49,6 +52,9 @@ class TeamSquad {
   final int squadId;
   final String name, colour, image;
   final List<TeamPlayer> players;
+
+  /// Players only, as on the Attendance squad card.
+  int get playerCount => players.where((p) => p.player).length;
 }
 
 /// One of the caller's own children; squadId 0 = not on a team.
@@ -392,8 +398,8 @@ class _V3EventTeamsCardState extends State<V3EventTeamsCard> {
                   child: Text(s.name,
                       style: V3.inter(15, weight: FontWeight.w500))),
               Text(
-                  '${s.players.length} '
-                  '${s.players.length == 1 ? 'player' : 'players'}',
+                  '${s.playerCount} '
+                  '${s.playerCount == 1 ? 'player' : 'players'}',
                   style: V3.inter(14, color: V3.muted)),
             ]),
           ),
@@ -550,7 +556,7 @@ class _AllTeamsSheetState extends State<_AllTeamsSheet> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       _Dot(squads[i].colour, squads[i].image, size: 10),
                       const SizedBox(width: 6),
-                      Text('${squads[i].name} ${squads[i].players.length}',
+                      Text('${squads[i].name} ${squads[i].playerCount}',
                           style: V3.inter(13,
                               weight: FontWeight.w600,
                               color: on ? V3.bg : V3.muted)),
