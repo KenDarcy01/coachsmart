@@ -285,8 +285,9 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
             style: V3.inter(14, color: V3.muted));
     final right = m.started && m.score != null
         ? Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(m.score!.us.gaa, style: scoreStyle(24)),
-            Text('v ${m.score!.opp.gaa}', style: V3.inter(13, color: V3.muted)),
+            Text(m.score!.us.text, style: scoreStyle(24)),
+            Text('v ${m.score!.opp.text}',
+                style: V3.inter(13, color: V3.muted)),
           ])
         : Text(m.eventDateTime == null ? '' : untilLabel(m.eventDateTime!, now),
             style: V3.inter(15, weight: FontWeight.w600, color: V3.muted));

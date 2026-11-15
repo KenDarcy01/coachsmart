@@ -307,16 +307,16 @@ void main() {
     ]);
     final w = m.walk();
     expect(w.length, 5);
-    expect(w.last.us.gaa, '0-05');
-    expect(w.last.opp.gaa, '1-00');
+    expect(w.last.us.text, '0-05');
+    expect(w.last.opp.text, '1-00');
     expect(m.minuteLabel(1, 1810), "30+1'");
     expect(m.minuteLabel(2, 100), "32'");
     final (ud, ua, od, oa) = m.biggestLeads;
     expect((ud, ua), (2, "36'"));
     expect((od, oa), (2, "4'"));
-    expect(m.halfScores[1]!.us.gaa, '0-03');
-    expect(m.halfScores[2]!.us.gaa, '0-02');
-    expect(m.scorers.map((s) => '${s.$1} ${s.$2.gaa}'),
+    expect(m.halfScores[1]!.us.text, '0-03');
+    expect(m.halfScores[2]!.us.text, '0-02');
+    expect(m.scorers.map((s) => '${s.$1} ${s.$2.text}'),
         ['Aoife 0-03', 'Ciara 0-01', ' 0-01']);
   });
 

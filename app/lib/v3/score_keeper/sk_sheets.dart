@@ -8,6 +8,7 @@ import '../v3_theme.dart';
 import 'sk_controller.dart';
 import 'sk_models.dart';
 import 'sk_widgets.dart';
+import '../sport/v3_sport.dart';
 
 Widget _live(SkController ctl, Widget Function() build) =>
     ListenableBuilder(listenable: ctl, builder: (_, __) => build());
@@ -65,19 +66,44 @@ Future<void> showSkHowTo(BuildContext context, SkController ctl) {
           ),
         ]),
       );
+  // Examples in the team's sport.
+  final kind = ctl.c?.sport.kind ?? V3SportKind.gaa;
+  final (tapWhat, mixUp, sayIt, sayMore, alone) = switch (kind) {
+    V3SportKind.soccer => (
+        'Tap Goal for the team that scored',
+        'Goal ↔ Shot off target',
+        '"Goal Ciarán", "Goal number 9", "Shot off target for them", "Corner Clontarf". You can say a few in one go.',
+        '"Free kick to us", "Free kick against Luke" (a free kick to them, given away by Luke), "Yellow card Luke", "Turnover Luke", "Goal Murrough penalty" (a goal from a penalty), "Corner". Only scores show on the Stats tab and the live screen.',
+        'Goal',
+      ),
+    V3SportKind.rugby => (
+        'Tap Try, Conversion or Penalty goal for the team that scored',
+        'Conversion ↔ Missed kick',
+        '"Try Ciarán", "Try number 11", "Conversion", "Penalty goal for them". You can say a few in one go.',
+        '"Penalty to us", "Missed kick", "Yellow card Luke", "Turnover Luke", "Lineout", "Scrum". Only scores show on the Stats tab and the live screen.',
+        'Try',
+      ),
+    V3SportKind.gaa => (
+        'Tap Goal, Point or 2 Pointer for the team that scored',
+        'Point ↔ Wide',
+        '"Point Ciarán", "Goal number 11", "Wide for them", "Two pointer Clontarf". You can say a few in one go.',
+        '"Free to us", "Free against Luke" (a free to them, given away by Luke), "Turnover Luke", "Luke lost it", "Point Murrough free" (a point from a free), "45", "Throw in". Only scores show on the Stats tab and the live screen.',
+        'Point',
+      ),
+  };
   return showSkSheet<void>(context,
       title: 'How to use the score keeper',
       body: (_) => Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               sec('Scoring'),
-              hi('+', 'Tap Goal, Point or 2 Pointer for the team that scored',
+              hi('+', tapWhat,
                   'Start the half first. Any other stat buttons your team has are further down: scroll to them'),
               sec('Fix a mistake'),
               hi('↶', 'Tap Undo on the bar that pops up after each tap',
                   'For a mis-tap you notice straight away'),
               hi('☰', 'Tap the score in the Latest list',
-                  'Add the player, change it (Point ↔ Wide, or the other team), or use – / + to take one off or add another'),
+                  'Add the player, change it ($mixUp, or the other team), or use – / + to take one off or add another'),
               hi('✋', 'Press and hold a button to take one off',
                   'You feel a buzz when it works'),
               hi(
@@ -86,13 +112,13 @@ Future<void> showSkHowTo(BuildContext context, SkController ctl) {
                   "Edit sets it to the ref's score, and shows in the timeline as a score check. You can still do it after the match is saved."),
               sec('Voice'),
               hi('🎙', 'Switch to Voice, hold the mic and say what happened',
-                  '"Point Ciarán", "Goal number 11", "Wide for them", "Two pointer Clontarf". You can say a few in one go.'),
+                  sayIt),
               hi('➕', 'Voice knows every stat, even ones with no button',
-                  '"Free to us", "Free against Luke" (a free to them, given away by Luke), "Turnover Luke", "Luke lost it", "Point Murrough free" (a point from a free), "45", "Throw in". Only scores show on the Stats tab and the live screen.'),
+                  sayMore),
               hi('⇄', 'Subs: "Sub 17 for 11"',
                   'Or use Make a sub in the ⋯ menu'),
               hi('?', 'It never stops to ask',
-                  '"Point" on its own counts for ${ctl.us}. If it isn\'t sure of a name it picks the closest player and shows a ? on the card. Tap Change if it\'s wrong and it remembers for next time.'),
+                  '"$alone" on its own counts for ${ctl.us}. If it isn\'t sure of a name it picks the closest player and shows a ? on the card. Tap Change if it\'s wrong and it remembers for next time.'),
               sec('The clock'),
               hi('❚❚', 'Pause for stoppages, End half when the ref blows',
                   'The clock turns amber in injury time. If you forget, the half ends by itself when injury time is up'),
@@ -223,7 +249,8 @@ Future<String?> showSkMenu(BuildContext context, SkController ctl) {
                       : 'Off. Tap to keep the screen on.'),
               if (s.phase == 'done')
                 mi(ctx, 'again', Icons.replay, 'Start a new record',
-                    'Keeps this one, starts again from 0-00', red: true)
+                    'Keeps this one, starts again from ${ctl.c?.sport.zeroScore ?? '0-00'}',
+                    red: true)
               else if (s.phase != 'setup')
                 mi(ctx, 'reset', Icons.replay, 'Reset match',
                     'Clears the clock and every score',
@@ -241,7 +268,7 @@ Future<void> confirmSkReset(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _sub(again
-                  ? 'This match stays saved. A new record starts at 0-00 with the clock at zero.'
+                  ? 'This match stays saved. A new record starts at ${ctl.c?.sport.zeroScore ?? '0-00'} with the clock at zero.'
                   : "This clears the clock and every score for this match. It can't be undone."),
               SkSheetButtons(
                 left: _close(ctx, 'Cancel'),
@@ -456,6 +483,7 @@ Future<void> showSkSubEdit(BuildContext context, SkController ctl, String id) {
 /// Half-time / full-time: set the score to the ref's.
 Future<void> showSkCorrect(BuildContext context, SkController ctl) {
   final c = ctl.c!;
+  if (!c.sport.isGaa) return _showSkCorrectByType(context, ctl);
   if (c.goalType == null || c.pointType == null) {
     ctl.toast('This team has no Goal and Point score types');
     return Future.value();
@@ -552,6 +580,112 @@ Future<void> showSkCorrect(BuildContext context, SkController ctl) {
                           Navigator.of(ctx).pop();
                           ctl.saveCorrection(rec, v['us.g']!, v['us.p']!,
                               v['opp.g']!, v['opp.p']!);
+                        }),
+                  ),
+                ]);
+          }));
+}
+
+/// Soccer and rugby: a row for each kind of score (Try, Conversion,
+/// Penalty goal...) for each side, and the total.
+Future<void> _showSkCorrectByType(BuildContext context, SkController ctl) {
+  final c = ctl.c!, st = ctl.s!;
+  final types = c.scoringTypes;
+  if (types.isEmpty) {
+    ctl.toast('This team has no score types');
+    return Future.value();
+  }
+  final v = <(int, String), int>{
+    for (final side in ['us', 'opp'])
+      for (final t in types) (t.id, side): countFor(st, t.id, side)
+  };
+  final was = Map.of(v);
+  final ph = st.phase;
+  final label = ph == 'ht'
+      ? 'half-time '
+      : ph == 'ft' || ph == 'done'
+          ? 'full-time '
+          : '';
+  int total(String side) =>
+      types.fold(0, (n, t) => n + (v[(t.id, side)] ?? 0) * (t.value ?? 0));
+  String plural(String n) => n.endsWith('s') ? n : '${n}s';
+  return showSkSheet<void>(context,
+      close: false,
+      title: 'Correct the ${label}score',
+      body: (ctx) => StatefulBuilder(builder: (ctx, set) {
+            Widget row((int, String) k, SkType t) {
+              final d = v[k]! - was[k]!;
+              final name = plural(t.name);
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: V3.line))),
+                child: Row(children: [
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Flexible(
+                              child: Text(name,
+                                  style: V3.inter(17, weight: FontWeight.w500)),
+                            ),
+                            if (d != 0)
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                    color: V3.amber.withValues(alpha: .15),
+                                    borderRadius: BorderRadius.circular(6)),
+                                child: Text('${d > 0 ? '+' : ''}$d',
+                                    style: V3.inter(14,
+                                        weight: FontWeight.w700,
+                                        color: V3.amber)),
+                              ),
+                          ]),
+                          Text('Recorded ${was[k]}',
+                              style: V3.inter(14, color: V3.muted)),
+                        ]),
+                  ),
+                  SkStepper(
+                      value: v[k]!,
+                      label: name.toLowerCase(),
+                      onMinus: () =>
+                          set(() => v[k] = (v[k]! - 1).clamp(0, 999)),
+                      onPlus: () => set(() => v[k] = v[k]! + 1)),
+                ]),
+              );
+            }
+
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _sub(
+                      "Set it to the ref's score. Your recorded scores stay as they are, and the change shows in the timeline as a score check."),
+                  SkSec(ctl.us),
+                  for (final t in types) row((t.id, 'us'), t),
+                  SkSec(ctl.opp, red: true),
+                  for (final t in types) row((t.id, 'opp'), t),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: Row(children: [
+                      Expanded(
+                          child: Text('New score',
+                              style: V3.inter(16, color: V3.muted))),
+                      Text('${total('us')} v ${total('opp')}',
+                          style: skNum(30)),
+                    ]),
+                  ),
+                  SkSheetButtons(
+                    left: _close(ctx, 'Cancel'),
+                    right: SkButton(
+                        label: 'Save score',
+                        height: 54,
+                        tone: SkTone.green,
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          ctl.saveCorrectionByType(v);
                         }),
                   ),
                 ]);

@@ -7,6 +7,8 @@
 // keeper's own list (cs-match-charts.js scoresOnly, Ken 2026-11-07).
 import 'dart:math' as math;
 
+import '/v3/sport/v3_sport.dart';
+
 // ------------------------------------------------------------------ parsing
 
 int _int(dynamic v, [int fallback = 0]) {
@@ -245,9 +247,11 @@ class MsSession {
     required this.timer,
     required this.events,
     required this.subs,
+    this.sport = V3Sport.gaa,
   });
 
   final int id;
+  final V3Sport sport;
   final int eventId;
   final String teamName;
   final String opposition;
@@ -305,6 +309,7 @@ class MsSession {
       timer: r['timer'] is Map ? MsTimer.fromJson(r['timer']) : MsTimer(),
       events: evs,
       subs: subs,
+      sport: V3Sport.fromId(r['sport_id'] == null ? 1 : _int(r['sport_id'])),
     );
   }
 }
@@ -322,11 +327,15 @@ class MatchModel {
     required this.finished,
     required this.events,
     required this.subs,
+    this.sport = V3Sport.gaa,
   });
 
   final String usName;
   final String oppName;
   final int duration;
+
+  /// GAA counts goals and points ("1-05"); soccer and rugby a plain total.
+  final V3Sport sport;
   final bool hasH2;
   final double? nowAbs;
   final bool finished;
@@ -345,7 +354,8 @@ class MatchModel {
         for (final e in events)
           if ((e.value ?? 0) > 0) e
       ],
-      subs: subs);
+      subs: subs,
+      sport: sport);
 }
 
 MatchModel chartModel(MsSession s, DateTime now) {
@@ -366,6 +376,7 @@ MatchModel chartModel(MsSession s, DateTime now) {
     finished: s.finished,
     events: s.events,
     subs: s.subs,
+    sport: s.sport,
   );
 }
 
@@ -391,12 +402,15 @@ String minuteLabel(MatchModel m, int half, int sec) {
 }
 
 class _Tally {
+  _Tally(this.sport);
+  final V3Sport sport;
   int g = 0;
   int p = 0;
   int get total => g * 3 + p;
+  String get text => sport.score(g, p);
   void add(MsEvent e) {
     if (e.value == null) return;
-    if (e.value == 3) {
+    if (sport.isGoal(e.value)) {
       g += e.n;
     } else {
       p += e.n * e.value!;
@@ -418,11 +432,13 @@ class WalkRow {
 }
 
 class Walk {
-  Walk(this.rows, this.usG, this.usP, this.oppG, this.oppP);
+  Walk(this.rows, this.usG, this.usP, this.oppG, this.oppP,
+      {this.sport = V3Sport.gaa});
   final List<WalkRow> rows;
   final int usG, usP, oppG, oppP;
-  String get us => gaa(usG, usP);
-  String get opp => gaa(oppG, oppP);
+  final V3Sport sport;
+  String get us => sport.score(usG, usP);
+  String get opp => sport.score(oppG, oppP);
   int get usT => usG * 3 + usP;
   int get oppT => oppG * 3 + oppP;
 }
@@ -436,14 +452,14 @@ int _cmpEv(MsEvent a, MsEvent b) {
 /// Walk the scores in order, keeping the running score.
 Walk walk(MatchModel m) {
   final evs = [...m.scoresOnly().events]..sort(_cmpEv);
-  final us = _Tally(), opp = _Tally();
+  final us = _Tally(m.sport), opp = _Tally(m.sport);
   final rows = <WalkRow>[];
   for (final e in evs) {
     (e.isUs ? us : opp).add(e);
-    rows.add(WalkRow(e, absSec(m, e.half, e.second), gaa(us.g, us.p),
-        gaa(opp.g, opp.p), us.total, opp.total));
+    rows.add(WalkRow(e, absSec(m, e.half, e.second), us.text, opp.text,
+        us.total, opp.total));
   }
-  return Walk(rows, us.g, us.p, opp.g, opp.p);
+  return Walk(rows, us.g, us.p, opp.g, opp.p, sport: m.sport);
 }
 
 class MatchAxis {
@@ -497,7 +513,7 @@ LeadSeries leadSeries(MatchModel m) {
   pts.add((math.max(endX, pts.last.$1), d));
   final goals = [
     for (final r in w.rows)
-      if (r.scoring && r.e.value == 3 && !r.e.isCorrection)
+      if (r.scoring && m.sport.isBigScore(r.e.value) && !r.e.isCorrection)
         (r.abs, r.diff, r.e.isUs)
   ];
   return LeadSeries(pts, maxD, goals, ax);
@@ -566,11 +582,11 @@ Map<int, (String, String)> halfScores(MatchModel m) {
   return {
     for (final h in [1, 2])
       h: () {
-        final us = _Tally(), opp = _Tally();
+        final us = _Tally(m.sport), opp = _Tally(m.sport);
         for (final e in s.events.where((e) => e.half == h)) {
           (e.isUs ? us : opp).add(e);
         }
-        return (gaa(us.g, us.p), gaa(opp.g, opp.p));
+        return (us.text, opp.text);
       }()
   };
 }
@@ -620,7 +636,8 @@ class Scorer {
 List<Scorer> scorers(MatchModel m) {
   final by = <String, (_Tally, Map<String, int>)>{};
   for (final e in m.scoresOnly().events.where((e) => e.isUs)) {
-    final b = by.putIfAbsent(e.member, () => (_Tally(), <String, int>{}));
+    final b =
+        by.putIfAbsent(e.member, () => (_Tally(m.sport), <String, int>{}));
     if (e.value == null) {
       b.$2[e.name] = (b.$2[e.name] ?? 0) + e.n;
     } else {
@@ -630,7 +647,7 @@ List<Scorer> scorers(MatchModel m) {
   final list = <(int, Scorer)>[];
   var i = 0;
   by.forEach((k, v) {
-    final s = Scorer(k, gaa(v.$1.g, v.$1.p), v.$1.total, v.$2);
+    final s = Scorer(k, v.$1.text, v.$1.total, v.$2);
     if (s.total > 0 || s.other.isNotEmpty) list.add((i, s));
     i++;
   });
@@ -656,7 +673,8 @@ class TlItem {
         who = '',
         tag = TlTag.none,
         ours = true,
-        goal = false;
+        goal = false,
+        tagText = '';
   TlItem.event(
       {required this.minute,
       required this.label,
@@ -664,7 +682,8 @@ class TlItem {
       required this.score,
       required this.tag,
       required this.ours,
-      required this.goal})
+      required this.goal,
+      this.tagText = ''})
       : kind = TlKind.event,
         fullTime = false;
   TlItem.sub(this.minute, this.label, this.who)
@@ -673,7 +692,8 @@ class TlItem {
         tag = TlTag.none,
         ours = true,
         goal = false,
-        fullTime = false;
+        fullTime = false,
+        tagText = '';
   TlItem.run(this.label, this.ours)
       : kind = TlKind.run,
         minute = '',
@@ -681,7 +701,8 @@ class TlItem {
         score = '',
         tag = TlTag.none,
         goal = false,
-        fullTime = false;
+        fullTime = false,
+        tagText = '';
   TlItem.empty(this.label)
       : kind = TlKind.empty,
         minute = '',
@@ -690,7 +711,8 @@ class TlItem {
         tag = TlTag.none,
         ours = true,
         goal = false,
-        fullTime = false;
+        fullTime = false,
+        tagText = '';
 
   final TlKind kind;
   final String minute;
@@ -701,6 +723,9 @@ class TlItem {
   final bool ours;
   final bool goal;
   final bool fullTime;
+
+  /// The tag's words: GOAL, TRY, +2 or CHECK.
+  final String tagText;
 }
 
 /// The timeline, newest first: full time (or now) at the top, throw-in at
@@ -708,7 +733,8 @@ class TlItem {
 List<TlItem> timeline(MatchModel full) {
   final m = full.scoresOnly();
   final w = walk(m);
-  final throwIn = TlItem.band('Throw-in', '0-00 v 0-00');
+  final zero = m.sport.zeroScore;
+  final throwIn = TlItem.band(m.sport.matchStart, '$zero v $zero');
   final items = <(int, int, int, WalkRow?, MsSub?)>[];
   var i = 0;
   for (final r in w.rows) {
@@ -727,7 +753,7 @@ List<TlItem> timeline(MatchModel full) {
   String? lastSide;
   var run = 0;
   var htShown = false;
-  var last = ('0-00', '0-00');
+  var last = (zero, zero);
   for (var k = 0; k < items.length; k++) {
     final it = items[k];
     if (it.$1 == 2 && !htShown) {
@@ -748,9 +774,9 @@ List<TlItem> timeline(MatchModel full) {
         : (e.name.isEmpty ? 'Score' : e.name);
     final tag = e.isCorrection
         ? TlTag.check
-        : e.value == 3
+        : m.sport.isBigScore(e.value)
             ? (e.isUs ? TlTag.goalUs : TlTag.goalOpp)
-            : e.value == 2
+            : m.sport.isTwoPointer(e.value)
                 ? TlTag.plus2
                 : TlTag.none;
     final who = (e.isUs ? m.usName : m.oppName) +
@@ -762,7 +788,13 @@ List<TlItem> timeline(MatchModel full) {
         score: r.scoring ? '${r.us} v ${r.opp}' : '',
         tag: tag,
         ours: e.isUs,
-        goal: e.value == 3 && !e.isCorrection));
+        goal: m.sport.isBigScore(e.value) && !e.isCorrection,
+        tagText: switch (tag) {
+          TlTag.goalUs || TlTag.goalOpp => m.sport.bigScoreName.toUpperCase(),
+          TlTag.plus2 => '+2',
+          TlTag.check => 'CHECK',
+          TlTag.none => '',
+        }));
     if (r.scoring && !e.isCorrection) {
       run = e.side == lastSide ? run + 1 : 1;
       lastSide = e.side;

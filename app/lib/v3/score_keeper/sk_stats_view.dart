@@ -395,7 +395,8 @@ class SkTimelineRow extends StatelessWidget {
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   Text(it.label, style: V3.inter(16)),
-                                  if (it.tag != TlTag.none) _Tag(it.tag),
+                                  if (it.tag != TlTag.none)
+                                    _Tag(it.tag, it.tagText),
                                 ]),
                             if (it.who.isNotEmpty)
                               Text(it.who,
@@ -427,14 +428,15 @@ class SkTimelineRow extends StatelessWidget {
 }
 
 class _Tag extends StatelessWidget {
-  const _Tag(this.tag);
+  const _Tag(this.tag, this.label);
   final TlTag tag;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final (text, bg, fg) = switch (tag) {
-      TlTag.goalUs => ('GOAL', V3.green, V3.bg),
-      TlTag.goalOpp => ('GOAL', kOppRed, Colors.white),
+      TlTag.goalUs => (label, V3.green, V3.bg),
+      TlTag.goalOpp => (label, kOppRed, Colors.white),
       TlTag.plus2 => ('+2', V3.amber, V3.bg),
       _ => ('CHECK', V3.amber, V3.bg),
     };

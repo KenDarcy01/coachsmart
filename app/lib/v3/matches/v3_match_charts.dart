@@ -148,10 +148,11 @@ class LeadChartPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5);
     canvas.restore();
-    for (final r in rows.where((r) => r.e.value == 3 && !r.e.correction)) {
+    for (final r in rows
+        .where((r) => m.sport.isBigScore(r.e.value) && !r.e.correction)) {
       final c = Offset(x(r.abs), y(r.us.t - r.opp.t));
       canvas.drawCircle(c, 9, Paint()..color = r.e.side == 'us' ? _usC : _oppC);
-      _label(canvas, 'G', c + const Offset(0, 4), V3.bg,
+      _label(canvas, m.sport.bigScoreName[0], c + const Offset(0, 4), V3.bg,
           weight: FontWeight.w800, align: TextAlign.center);
     }
     _label(canvas, '${m.usName} ahead', const Offset(l + 4, t + 11), _usC,
@@ -224,9 +225,9 @@ class RaceChartPainter extends CustomPainter {
         yo -= 7;
       }
     }
-    _label(canvas, tot.us.gaa, Offset(x(endX) + 6, yu), _usC,
+    _label(canvas, tot.us.text, Offset(x(endX) + 6, yu), _usC,
         size: 12, weight: FontWeight.w700);
-    _label(canvas, tot.opp.gaa, Offset(x(endX) + 6, yo), _oppC,
+    _label(canvas, tot.opp.text, Offset(x(endX) + 6, yo), _oppC,
         size: 12, weight: FontWeight.w700);
     canvas.restore();
   }
@@ -355,9 +356,9 @@ class ChartSection extends StatelessWidget {
           Column(children: [
             hrow('', m.usName.toUpperCase(), m.oppName.toUpperCase(),
                 head: true),
-            hrow('1st half', hs[1]!.us.gaa, hs[1]!.opp.gaa),
-            if (m.hasH2) hrow('2nd half', hs[2]!.us.gaa, hs[2]!.opp.gaa),
-            hrow(m.finished ? 'Final' : 'Now', t.us.gaa, t.opp.gaa,
+            hrow('1st half', hs[1]!.us.text, hs[1]!.opp.text),
+            if (m.hasH2) hrow('2nd half', hs[2]!.us.text, hs[2]!.opp.text),
+            hrow(m.finished ? 'Final' : 'Now', t.us.text, t.opp.text,
                 bold: true, last: true),
           ])),
       if (named)
@@ -377,7 +378,7 @@ class ChartSection extends StatelessWidget {
                     child: Text(r.$1.isEmpty ? 'No player named' : r.$1,
                         style: V3.inter(16,
                             color: r.$1.isEmpty ? V3.muted : V3.text))),
-                Text(r.$2.gaa, style: scoreStyle(20)),
+                Text(r.$2.text, style: scoreStyle(20)),
               ]),
             ),
         ])),
@@ -395,7 +396,8 @@ class TimelineSection extends StatelessWidget {
     final items = m.timeline();
     if (items.isEmpty) {
       return Column(children: [
-        _band(const TimelineItem.band('Throw-in', '0-00 v 0-00')),
+        _band(TimelineItem.band(
+            m.sport.matchStart, '${m.sport.zeroScore} v ${m.sport.zeroScore}')),
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Text('No scores yet', style: V3.inter(15, color: V3.muted))),
@@ -444,12 +446,16 @@ class TimelineSection extends StatelessWidget {
       case TimelineKind.score:
         final r = it.row!;
         final opp = r.e.side == 'opp';
-        final goal = r.e.value == 3 && !r.e.correction;
+        final goal = m.sport.isBigScore(r.e.value) && !r.e.correction;
         final (tag, tagBg, tagFg) = r.e.correction
             ? ('CHECK', _amberC, V3.bg)
             : goal
-                ? ('GOAL', opp ? _oppC : _usC, opp ? Colors.white : V3.bg)
-                : r.e.value == 2
+                ? (
+                    m.sport.bigScoreName.toUpperCase(),
+                    opp ? _oppC : _usC,
+                    opp ? Colors.white : V3.bg
+                  )
+                : m.sport.isTwoPointer(r.e.value)
                     ? ('+2', _amberC, V3.bg)
                     : ('', V3.card, V3.text);
         return _row(
@@ -473,7 +479,7 @@ class TimelineSection extends StatelessWidget {
                   ),
               ]),
           small: it.right,
-          right: '${r.us.gaa} v ${r.opp.gaa}',
+          right: '${r.us.text} v ${r.opp.text}',
         );
     }
   }

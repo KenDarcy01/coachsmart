@@ -531,6 +531,24 @@ class SkController extends ChangeNotifier {
     toast(changed > 0 ? "Score set to the ref's" : 'No change');
   }
 
+  /// Soccer and rugby: sets each kind of score to the ref's count
+  /// ({(type id, side): new count}); score checks for the difference.
+  void saveCorrectionByType(Map<(int, String), int> want) {
+    final st = s!;
+    var changed = 0;
+    final at = stamp();
+    want.forEach((k, n) {
+      final d = n - countFor(st, k.$1, k.$2);
+      if (d == 0) return;
+      addCorrection(st, k.$1, k.$2, d, at, nowMs);
+      changed++;
+    });
+    if (st.phase == 'ht') st.checked[1] = true;
+    if (st.phase == 'ft') st.checked[2] = true;
+    _commit();
+    toast(changed > 0 ? "Score set to the ref's" : 'No change');
+  }
+
   // ---------------------------------------------------------------- setup
 
   SkDraft draft() {
@@ -853,7 +871,8 @@ class SkController extends ChangeNotifier {
                 name: t.name,
                 abbr: t.abbr,
                 value: t.value,
-                source: t.source)
+                source: t.source,
+                gaa: c!.sport.isGaa)
         ],
         usName: '$us ${c!.clubName} ${c!.teamName}',
         oppName: opp,

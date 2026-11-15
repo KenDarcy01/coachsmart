@@ -12,6 +12,8 @@ import 'dart:ui' show Color;
 
 import 'package:intl/intl.dart';
 
+import '/v3/sport/v3_sport.dart';
+
 int _i(dynamic v) =>
     v is int ? v : (v is num ? v.toInt() : int.tryParse('$v') ?? 0);
 int? _iN(dynamic v) => v == null ? null : _i(v);
@@ -24,13 +26,16 @@ List _l(dynamic v) => v is List ? v : const [];
 
 String pad2(int n) => n.toString().padLeft(2, '0');
 
-/// "Clontarf GAA" → "Clontarf".
-String cleanClub(String n) => n
-    .replaceAll(
-        RegExp(r'\b(GAA|GFC|CLG|HC|LGFA|Camogie Club)\b', caseSensitive: false),
-        '')
-    .replaceAll(RegExp(r'\s{2,}'), ' ')
-    .trim();
+/// "Clontarf GAA" → "Clontarf" ("Clontarf RFC" for rugby).
+String cleanClub(String n, {V3Sport sport = V3Sport.gaa}) => sport.isGaa
+    ? n
+        .replaceAll(
+            RegExp(r'\b(GAA|GFC|CLG|HC|LGFA|Camogie Club)\b',
+                caseSensitive: false),
+            '')
+        .replaceAll(RegExp(r'\s{2,}'), ' ')
+        .trim()
+    : sport.shortClub(n);
 
 /// mm:ss from seconds.
 String fmtClock(num sec) {
@@ -185,24 +190,37 @@ String untilCaps(Duration left) {
 // ───────────────────────────────────────────────────────────── shared parts
 
 class ScoreLine {
-  const ScoreLine(this.g, this.p, this.t);
-  ScoreLine.fromJson(Map j)
+  const ScoreLine(this.g, this.p, this.t, {this.plain = false});
+  ScoreLine.fromJson(Map j, {this.plain = false})
       : g = _i(j['g']),
         p = _i(j['p']),
         t = j['t'] == null ? _i(j['g']) * 3 + _i(j['p']) : _i(j['t']);
   final int g, p, t;
 
-  /// 1-05
-  String get gaa => '$g-${pad2(p)}';
+  /// Soccer and rugby: just the total.
+  final bool plain;
+
+  /// "1-05" (GAA) or "17" (soccer, rugby).
+  String get text => plain ? '$t' : '$g-${pad2(p)}';
 }
 
 class LiveScore {
-  const LiveScore(this.us, this.opp);
-  LiveScore.fromJson(Map j)
-      : us = ScoreLine.fromJson(_m(j['us'])),
-        opp = ScoreLine.fromJson(_m(j['opp']));
+  const LiveScore(this.us, this.opp, {this.sport = V3Sport.gaa});
+
+  /// lm_score adds "sport" for soccer (2) and rugby (3); none means GAA.
+  factory LiveScore.fromJson(Map j) {
+    final sport = V3Sport.fromId(j['sport'] == null ? 1 : _i(j['sport']));
+    return LiveScore(ScoreLine.fromJson(_m(j['us']), plain: !sport.isGaa),
+        ScoreLine.fromJson(_m(j['opp']), plain: !sport.isGaa),
+        sport: sport);
+  }
   static const zero = LiveScore(ScoreLine(0, 0, 0), ScoreLine(0, 0, 0));
+  static LiveScore zeroFor(V3Sport sport) => LiveScore(
+      ScoreLine(0, 0, 0, plain: !sport.isGaa),
+      ScoreLine(0, 0, 0, plain: !sport.isGaa),
+      sport: sport);
   final ScoreLine us, opp;
+  final V3Sport sport;
   int get diff => us.t - opp.t;
 }
 
@@ -516,8 +534,11 @@ class LiveMatchData {
     return null;
   }
 
+  /// The sport, from the live score (GAA when it doesn't say).
+  V3Sport get sport => score?.sport ?? (squad?.score?.sport ?? V3Sport.gaa);
+
   String get usName {
-    final c = cleanClub(event.clubName);
+    final c = cleanClub(event.clubName, sport: sport);
     if (c.isNotEmpty) return c;
     return event.teamName.isNotEmpty ? event.teamName : 'Us';
   }
@@ -579,6 +600,7 @@ class LiveMatchData {
           ? (half == 2 ? dur : 0) + (sec < dur * 1.5 ? sec : dur * 1.5)
           : null,
       finished: finished,
+      sport: sport,
       events: [
         for (final a in actions)
           MatchEv(
@@ -603,9 +625,9 @@ class LiveMatchData {
     if (phase == 'pre') {
       return 'Follow ${event.teamName}${multi && squad != null ? ' ${squad!.short}' : ''} v $oppName live';
     }
-    final s = score ?? LiveScore.zero;
+    final s = score ?? LiveScore.zeroFor(sport);
     final what = done ? 'Full time' : (phase == 'ht' ? 'Half time' : 'Live');
-    return '$what: $usName ${s.us.gaa} $oppName ${s.opp.gaa}';
+    return '$what: $usName ${s.us.text} $oppName ${s.opp.text}';
   }
 
   /// The coachsmart.app link (the web page, so anyone can open it).
@@ -640,8 +662,13 @@ class MatchModel {
       required this.nowAbs,
       required this.finished,
       required this.events,
-      this.subs = const []});
+      this.subs = const [],
+      this.sport = V3Sport.gaa});
   final String usName, oppName;
+
+  /// GAA counts goals and points; soccer and rugby just add up.
+  final V3Sport sport;
+  bool get _plain => !sport.isGaa;
   final int duration;
   final bool hasH2, finished;
   final double? nowAbs;
@@ -684,7 +711,7 @@ class MatchModel {
     final rows = <WalkRow>[];
     for (final e in evs) {
       final n = e.correction ? e.count : 1;
-      if (e.value == 3) {
+      if (sport.isGoal(e.value)) {
         if (e.side == 'us') {
           ug += n;
         } else {
@@ -697,15 +724,20 @@ class MatchModel {
           op += n * e.value;
         }
       }
-      rows.add(WalkRow(e, absSec(e.half, e.second),
-          ScoreLine(ug, up, ug * 3 + up), ScoreLine(og, op, og * 3 + op)));
+      rows.add(WalkRow(
+          e,
+          absSec(e.half, e.second),
+          ScoreLine(ug, up, ug * 3 + up, plain: _plain),
+          ScoreLine(og, op, og * 3 + op, plain: _plain)));
     }
     return rows;
   }
 
   LiveScore get totals {
     final w = walk();
-    return w.isEmpty ? LiveScore.zero : LiveScore(w.last.us, w.last.opp);
+    return w.isEmpty
+        ? LiveScore.zeroFor(sport)
+        : LiveScore(w.last.us, w.last.opp, sport: sport);
   }
 
   /// Each side's biggest lead and when: (us lead, us at, opp lead, opp at).
@@ -734,7 +766,7 @@ class MatchModel {
       for (final e in scores.where((e) => e.half == h)) {
         final n = e.correction ? e.count : 1;
         final us = e.side == 'us';
-        if (e.value == 3) {
+        if (sport.isGoal(e.value)) {
           if (us) {
             ug += n;
           } else {
@@ -746,8 +778,9 @@ class MatchModel {
           op += n * e.value;
         }
       }
-      out[h] = LiveScore(
-          ScoreLine(ug, up, ug * 3 + up), ScoreLine(og, op, og * 3 + op));
+      out[h] = LiveScore(ScoreLine(ug, up, ug * 3 + up, plain: _plain),
+          ScoreLine(og, op, og * 3 + op, plain: _plain),
+          sport: sport);
     }
     return out;
   }
@@ -758,7 +791,7 @@ class MatchModel {
     for (final e in scores.where((e) => e.side == 'us')) {
       final v = by.putIfAbsent(e.member, () => [0, 0]);
       final n = e.correction ? e.count : 1;
-      if (e.value == 3) {
+      if (sport.isGoal(e.value)) {
         v[0] += n;
       } else {
         v[1] += n * e.value;
@@ -769,7 +802,8 @@ class MatchModel {
         if (x.value[0] * 3 + x.value[1] > 0)
           (
             x.key,
-            ScoreLine(x.value[0], x.value[1], x.value[0] * 3 + x.value[1])
+            ScoreLine(x.value[0], x.value[1], x.value[0] * 3 + x.value[1],
+                plain: _plain)
           )
     ];
     out.sort((a, b) {
@@ -798,14 +832,15 @@ class MatchModel {
       return a - b;
     });
     final sorted = [for (final i in idx) items[i]];
+    final zero = sport.zeroScore;
     final out = <TimelineItem>[
-      const TimelineItem.band('Throw-in', '0-00 v 0-00'),
+      TimelineItem.band(sport.matchStart, '$zero v $zero'),
     ];
     final rows = <TimelineItem>[];
     String? lastSide;
     var run = 0;
     var htShown = false;
-    var lastUs = '0-00', lastOpp = '0-00';
+    var lastUs = zero, lastOpp = zero;
     for (var i = 0; i < sorted.length; i++) {
       final it = sorted[i];
       if (it.$1 == 2 && !htShown) {
@@ -819,8 +854,8 @@ class MatchModel {
         continue;
       }
       final r = it.$3!;
-      lastUs = r.us.gaa;
-      lastOpp = r.opp.gaa;
+      lastUs = r.us.text;
+      lastOpp = r.opp.text;
       rows.add(TimelineItem.score(
           r,
           minuteLabel(r.e.half, r.e.second),
@@ -851,7 +886,7 @@ class MatchModel {
     final t = totals;
     out.addAll(rows);
     out.add(TimelineItem.band(
-        finished ? 'Full time' : 'Now', '${t.us.gaa} v ${t.opp.gaa}',
+        finished ? 'Full time' : 'Now', '${t.us.text} v ${t.opp.text}',
         ft: finished));
     return out.reversed.toList();
   }

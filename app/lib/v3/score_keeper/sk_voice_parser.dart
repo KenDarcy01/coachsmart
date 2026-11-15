@@ -19,12 +19,17 @@ class VoiceType {
       required this.name,
       this.abbr = '',
       this.value,
-      this.source = false});
+      this.source = false,
+      this.gaa = true});
   final int id;
   final String name;
   final String abbr;
   final int? value;
   final bool source;
+
+  /// GAA words (goal = 3, point = 1); false for soccer and rugby, which go
+  /// by the type's name only.
+  final bool gaa;
 }
 
 class VoicePlayer {
@@ -227,6 +232,7 @@ List<String> _typeWords(VoiceType t) {
   final n = voiceNorm(t.name), a = voiceNorm(t.abbr);
   final out = <String>{n};
   void add(List<String> w) => out.addAll(w);
+  if (!t.gaa) return _otherSportWords(n, out);
   if (a.length > 1 && !RegExp(r'^(p|g|w)$').hasMatch(a)) out.add(a);
   if (t.value == 3 || n.contains('goal'))
     add(['goal', 'goals', 'gold', 'goel']);
@@ -283,6 +289,65 @@ List<String> _typeWords(VoiceType t) {
   return list;
 }
 
+/// Soccer and rugby words, by the type's name. Exact names, so "penalty"
+/// never also finds "penalty goal" or "penalty try".
+List<String> _otherSportWords(String n, Set<String> out) {
+  // No short names (ON, TO, OS clash with everyday words).
+  void add(List<String> w) => out.addAll(w);
+  switch (n) {
+    case 'goal':
+      add(['goal', 'goals', 'gold', 'goel', 'scored']);
+    case 'shot on target':
+      add(['on target', 'shot saved', 'saved', 'save', 'shot on goal']);
+    case 'shot off target':
+      add(['off target', 'shot wide', 'wide', 'wides', 'missed', 'miss']);
+    case 'corner':
+      add(['corner', 'corners', 'corner kick']);
+    case 'free kick':
+      add(['free kick', 'free kicks', 'free', 'frees', 'foul']);
+    case 'penalty':
+      add(['penalty', 'penalties', 'pen', 'spot kick']);
+    case 'yellow card':
+      add(['yellow card', 'yellow', 'booked', 'booking']);
+    case 'red card':
+      add(['red card', 'red', 'sent off', 'sending off']);
+    case 'offside':
+      add(['offside', 'off side', 'offsides']);
+    case 'goal kick':
+      add(['goal kick', 'goal kicks', 'kick out']);
+    case 'throw in':
+      add(['throw in', 'throwin', 'throw ins']);
+    case 'try':
+      add(['try', 'tries', 'tri', 'trie', 'touch down']);
+    case 'conversion':
+      add(['conversion', 'conversions', 'converted', 'convert', 'converts']);
+    case 'penalty goal':
+      add(['penalty goal', 'pen goal', 'penalty kick', 'penalty over']);
+    case 'drop goal':
+      add(['drop goal', 'drop goals', 'drop kick']);
+    case 'penalty try':
+      add(['penalty try', 'pen try']);
+    case 'missed kick':
+      add([
+        'missed kick',
+        'missed',
+        'miss',
+        'kick missed',
+        'missed conversion'
+      ]);
+    case 'lineout':
+      add(['lineout', 'line out', 'lineouts', 'line outs']);
+    case 'scrum':
+      add(['scrum', 'scrums']);
+  }
+  if (n.contains('turn')) {
+    add(['turnover', 'turnovers', 'turn over', 'lost it', 'lost the ball']);
+  }
+  final list = out.map(voiceNorm).where((w) => w.isNotEmpty).toList();
+  list.sort((x, y) => y.length - x.length);
+  return list;
+}
+
 final _filler = ('a an the for to by from scored score scores got get gets '
         'was is it its that this and then by our number no num nr shirt '
         'jersey player who from with of on in at')
@@ -310,6 +375,7 @@ List<String> voiceTeamWords(String name) {
   const stop = {
     'gaa', 'gfc', 'hc', 'club', 'cumann', 'camogie', 'lgfa', 'ladies', //
     'football', 'hurling', 'st', 'saint', 'naomh', 'clg', 'the', 'and',
+    'fc', 'afc', 'rfc', 'rugby',
   };
   return voiceNorm(name)
       .split(' ')

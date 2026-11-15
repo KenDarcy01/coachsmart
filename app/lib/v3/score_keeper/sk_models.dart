@@ -13,6 +13,7 @@ import 'dart:math' as math;
 import 'package:uuid/uuid.dart';
 
 import '../match_stats/v3_match_stats_models.dart';
+import '../sport/v3_sport.dart';
 
 const _uuid = Uuid();
 String skId() => _uuid.v4();
@@ -163,24 +164,38 @@ class SkInfo {
   String get eventCode => _str(event['event_code']);
   String get eventType => _str(event['event_type']);
 
+  /// The team's sport (get_score_keeper_state sends sport_id; GAA if not).
+  V3Sport get sport => V3Sport.fromId(_intOrNull(event['sport_id']));
+
   SkType typeById(int id) =>
       types.where((t) => t.id == id).firstOrNull ?? SkType.unknown(id);
 
   /// Tap shows only the team's buttons; voice can record any stat.
   List<SkType> get btnTypes => types.where((t) => t.button).toList();
   List<SkType> get sourceTypes => types.where((t) => t.source).toList();
-  SkType? get goalType => types.where((t) => t.value == 3).firstOrNull;
-  SkType? get pointType => types.where((t) => t.value == 1).firstOrNull;
 
-  /// Scores first (goal, point, then the rest by value), then the other
-  /// stats in their own order.
+  /// GAA's Goal and Point (null in soccer and rugby, which check the
+  /// score type by type).
+  SkType? get goalType =>
+      sport.isGaa ? types.where((t) => t.value == 3).firstOrNull : null;
+  SkType? get pointType =>
+      sport.isGaa ? types.where((t) => t.value == 1).firstOrNull : null;
+
+  /// Every scoring type, biggest first (the score check in soccer/rugby).
+  List<SkType> get scoringTypes => types.where((t) => t.scoring).toList()
+    ..sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+
+  /// Scores first (GAA: goal, point, then the rest by value; others by
+  /// value), then the other stats in their own order.
   List<SkType> get padTypes {
     final big = btnTypes.where((t) => t.scoring).toList();
-    int rank(SkType t) => t.value == 3
+    int rank(SkType t) => !sport.isGaa
         ? 0
-        : t.value == 1
-            ? 1
-            : 2;
+        : t.value == 3
+            ? 0
+            : t.value == 1
+                ? 1
+                : 2;
     big.sort((a, b) {
       final r = rank(a) - rank(b);
       return r != 0 ? r : (b.value ?? 0) - (a.value ?? 0);
@@ -189,12 +204,15 @@ class SkInfo {
   }
 }
 
-String cleanClub(String n) => n
-    .replaceAll(
-        RegExp(r'\b(GAA|GFC|CLG|HC|LGFA|Camogie Club)\b', caseSensitive: false),
-        '')
-    .replaceAll(RegExp(r'\s{2,}'), ' ')
-    .trim();
+String cleanClub(String n, {V3Sport sport = V3Sport.gaa}) => sport.isGaa
+    ? n
+        .replaceAll(
+            RegExp(r'\b(GAA|GFC|CLG|HC|LGFA|Camogie Club)\b',
+                caseSensitive: false),
+            '')
+        .replaceAll(RegExp(r'\s{2,}'), ' ')
+        .trim()
+    : sport.shortClub(n);
 
 // ----------------------------------------------------------------- state
 
@@ -896,7 +914,7 @@ String memberName(SkState? s, SkInfo c, int? id) =>
 // ---------------------------------------------------------------- labels
 
 String usName(SkInfo c) {
-  final club = cleanClub(c.clubName);
+  final club = cleanClub(c.clubName, sport: c.sport);
   if (club.isNotEmpty) return club;
   return c.teamName.isNotEmpty ? c.teamName : 'Us';
 }
@@ -956,6 +974,7 @@ MatchModel skMatchModel(SkState s, SkInfo c, int nowMs) {
             math.min(secInHalf(s, nowMs), dur * 1.5).toDouble()
         : null,
     finished: finished,
+    sport: c.sport,
     events: [
       for (final a in s.acts)
         if (c.typeById(a.st).scoring)
@@ -986,11 +1005,12 @@ List<(String, int, int)> halfTable(SkState s, SkInfo c, int h) {
     if (!(a.half == h || h == 0)) continue;
     final t = c.typeById(a.st);
     if (!t.scoring) continue;
-    final k = t.value == 3
+    final gaa = c.sport.isGaa;
+    final k = gaa && t.value == 3
         ? 'Goals'
-        : t.value == 2
+        : gaa && t.value == 2
             ? '2 pointers'
-            : t.value == 1
+            : gaa && t.value == 1
                 ? 'Points'
                 : t.name + (t.name.endsWith('s') ? '' : 's');
     final r = rows.putIfAbsent(
@@ -998,13 +1018,15 @@ List<(String, int, int)> halfTable(SkState s, SkInfo c, int h) {
         () => [
               0,
               0,
-              t.value == 3
-                  ? 0
-                  : t.value == 1
-                      ? 1
-                      : t.value == 2
-                          ? 2
-                          : 3
+              !gaa
+                  ? 100 - (t.value ?? 0) // biggest score first
+                  : t.value == 3
+                      ? 0
+                      : t.value == 1
+                          ? 1
+                          : t.value == 2
+                              ? 2
+                              : 3
             ]);
     r[a.side == 'us' ? 0 : 1] += a.isCorrection ? a.n : 1;
   }

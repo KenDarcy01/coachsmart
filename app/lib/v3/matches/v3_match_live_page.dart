@@ -17,6 +17,7 @@ import '../v3_theme.dart';
 import 'v3_live_shared.dart';
 import 'v3_match_charts.dart';
 import 'v3_matches_models.dart';
+import '/v3/sport/v3_sport.dart';
 import '/v3/tracking/v3_track.dart';
 import '../v3_share.dart';
 
@@ -550,8 +551,9 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
                 style: diff < 0 ? boldOpp : bold);
       } else if (x.last != null) {
         final l = x.last!;
-        final what =
-            l.value == 3 ? 'Goal' : (l.type.isEmpty ? 'Score' : l.type);
+        final what = (x.score?.sport ?? V3Sport.gaa).isGoal(l.value)
+            ? 'Goal'
+            : (l.type.isEmpty ? 'Score' : l.type);
         final who = l.side == 'us' ? '' : ' $opp';
         final lead = diff == 0
             ? 'Level'
@@ -574,7 +576,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
                       weight: FontWeight.w600,
                       color: V3.muted,
                       letterSpacing: 1)),
-              Text(v.gaa, style: scoreStyle(40)),
+              Text(v.text, style: scoreStyle(40)),
             ]),
           );
       body = Column(children: [
@@ -668,7 +670,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
 
   Widget _board(LiveMatchData d) {
     final pre = d.phase == 'pre';
-    final s = d.score ?? LiveScore.zero;
+    final s = d.score ?? LiveScore.zeroFor(d.sport);
     final diff = s.diff;
     final (midText, midBg, midFg) = pre
         ? ('v', V3.card2, V3.muted)
@@ -695,7 +697,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
                     color: V3.muted,
                     letterSpacing: 1)),
             const SizedBox(height: 2),
-            Text(pre ? '–' : x.gaa, style: scoreStyle(48)),
+            Text(pre ? '–' : x.text, style: scoreStyle(48)),
             if (!pre) Text('${x.t} pts', style: V3.inter(14, color: V3.muted)),
           ]),
         );
@@ -890,12 +892,12 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
     final isNew = a.id == _flashId && DateTime.now().isBefore(_flashUntil);
     final opp = a.side == 'opp';
     final who = !opp ? (a.member.isNotEmpty ? a.member : d.usName) : d.oppName;
-    final s = d.score ?? LiveScore.zero;
+    final s = d.score ?? LiveScore.zeroFor(d.sport);
     final diff = s.diff;
     final lead = diff == 0
         ? 'Level'
         : '${diff > 0 ? d.usName : d.oppName} lead by ${diff.abs()}';
-    final letter = t?.value == 3 ? 'G' : (t?.value == 2 ? '2' : 'P');
+    final letter = d.sport.scoreLetter(t?.value, t?.name ?? '');
     final c = opp ? V3.red : V3.green;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -918,7 +920,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-                '${t?.value == 3 ? 'GOAL' : ((t?.name.isNotEmpty ?? false) ? t!.name : 'Score')} · $who',
+                '${d.sport.isBigScore(t?.value) ? d.sport.bigScoreName.toUpperCase() : ((t?.name.isNotEmpty ?? false) ? t!.name : 'Score')} · $who',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: V3.inter(16, weight: FontWeight.w700)),
@@ -975,7 +977,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
                     overflow: TextOverflow.ellipsis,
                     style: V3.inter(16)),
               ),
-              Text('${rows[i].us.gaa} · ${rows[i].opp.gaa}',
+              Text('${rows[i].us.text} · ${rows[i].opp.text}',
                   style: scoreStyle(19)),
             ]),
           ),

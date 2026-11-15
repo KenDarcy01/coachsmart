@@ -128,7 +128,7 @@ class LeadChartPainter extends CustomPainter {
     for (final g in s.goals) {
       final c = Offset(x(g.$1), y(g.$2));
       canvas.drawCircle(c, 9, Paint()..color = g.$3 ? V3.green : kOppRed);
-      _text(canvas, 'G', Offset(c.dx, c.dy + 4),
+      _text(canvas, m.sport.bigScoreName[0], Offset(c.dx, c.dy + 4),
           size: 11,
           color: V3.bg,
           weight: FontWeight.w800,

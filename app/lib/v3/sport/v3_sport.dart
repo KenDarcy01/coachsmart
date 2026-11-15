@@ -84,6 +84,37 @@ class V3Sport {
       ? '$goals-${points.toString().padLeft(2, '0')}'
       : '${goals * 3 + points}';
 
+  /// The score before anything is scored: "0-00", or "0".
+  String get zeroScore => score(0, 0);
+
+  /// Counts as a goal in the score (GAA only: a 3-point score is a goal and
+  /// shows on the left of "1-05"). Soccer and rugby add every score to the
+  /// total.
+  bool isGoal(int? value) => isGaa && value == 3;
+
+  /// The big score that gets a marker on charts and the timeline: a GAA
+  /// goal, any soccer goal, a rugby try (5) or penalty try (7).
+  bool isBigScore(int? value) => switch (kind) {
+        V3SportKind.gaa => value == 3,
+        V3SportKind.soccer => (value ?? 0) > 0,
+        V3SportKind.rugby => (value ?? 0) >= 5,
+      };
+
+  /// Name of the big score: Goal, Goal, Try.
+  String get bigScoreName => kind == V3SportKind.rugby ? 'Try' : 'Goal';
+
+  /// The short letter on a score's badge: G, 2 or P in GAA; otherwise the
+  /// initials of the score's name (T, C, PG, G).
+  String scoreLetter(int? value, String name) {
+    if (isGaa) return value == 3 ? 'G' : (value == 2 ? '2' : 'P');
+    final w = name.trim().split(RegExp(r'\s+')).where((x) => x.isNotEmpty);
+    final l = w.take(2).map((x) => x[0].toUpperCase()).join();
+    return l.isEmpty ? '•' : l;
+  }
+
+  /// A GAA two-pointer (gets a "+2" tag).
+  bool isTwoPointer(int? value) => isGaa && value == 2;
+
   /// "Clontarf GAA" -> "Clontarf", "Clontarf RFC" -> "Clontarf".
   String shortClub(String name) {
     final re = RegExp('\\b(${clubSuffixes.map(RegExp.escape).join('|')})\\b',
