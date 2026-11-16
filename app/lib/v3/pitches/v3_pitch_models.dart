@@ -595,6 +595,30 @@ class Booking {
   bool get confirmed => status == 'confirmed';
   bool get offsite => status == 'offsite';
 
+  /// The same booking at a new place and time (shown at once on a drop).
+  Booking moved(int pitchId, int part, DateTime start, DateTime end) => Booking(
+      bookingId: bookingId,
+      start: start,
+      end: end,
+      pitchId: pitchId,
+      part: part,
+      kind: kind,
+      title: title,
+      teamId: teamId,
+      teamName: teamName,
+      female: female,
+      eventId: eventId,
+      gameId: gameId,
+      status: status,
+      note: note,
+      referee: referee,
+      dressingRooms: dressingRooms,
+      rolledFrom: rolledFrom,
+      code: code,
+      eventTitle: eventTitle,
+      opposition: opposition,
+      groupId: groupId);
+
   bool overlaps(Booking o) =>
       start.isBefore(o.end) && o.start.isBefore(end) && (part & o.part) != 0;
 }

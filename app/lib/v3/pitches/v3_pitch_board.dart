@@ -124,14 +124,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
           part = alt;
         }
         await _quick(
-            c.saveBooking({
-              'booking_id': booking.bookingId,
-              'pitch_id': pitch.pitchId,
-              'part': part,
-              'starts_at': isoLocal(s),
-              'ends_at': isoLocal(e),
-              'following': true,
-            }),
+            c.moveBooking(booking, pitch.pitchId, part, s, e),
             '${c.titleOf(booking)} moved to ${pitch.name} ${timeOf(s)}'
             '${booking.kind == 'training' ? ' for this and following weeks' : ''}.');
     }

@@ -76,7 +76,8 @@ class PitchController extends ChangeNotifier {
       return null;
     } catch (e) {
       busy = false;
-      notifyListeners();
+      // Puts back anything shown early (a move or a new group session).
+      await load(force: true);
       return pitchErrorText(e);
     }
   }
@@ -127,6 +128,26 @@ class PitchController extends ChangeNotifier {
   Future<String?> saveBooking(Map<String, dynamic> p) =>
       run(() => api.saveBooking(club.clubId, p));
 
+  /// Moves a booking on the board straight away, then saves it. The week is
+  /// reloaded afterwards, which also puts it back if the save fails.
+  Future<String?> moveBooking(
+      Booking b, int pitchId, int part, DateTime start, DateTime end) {
+    final list = board?.bookings;
+    final i = list?.indexWhere((x) => x.bookingId == b.bookingId) ?? -1;
+    if (list != null && i >= 0) {
+      list[i] = b.moved(pitchId, part, start, end);
+      notifyListeners();
+    }
+    return run(() => api.saveBooking(club.clubId, {
+          'booking_id': b.bookingId,
+          'pitch_id': pitchId,
+          'part': part,
+          'starts_at': isoLocal(start),
+          'ends_at': isoLocal(end),
+          'following': true,
+        }));
+  }
+
   Future<String?> deleteBooking(Booking b, {bool following = true}) => run(
       () => api.deleteBooking(club.clubId, b.bookingId, following: following));
 
@@ -139,16 +160,34 @@ class PitchController extends ChangeNotifier {
 
   /// Puts a group (a team placeholder) on a pitch for training.
   Future<String?> placeGroup(
-          PitchGroup g, Pitch pitch, DateTime start, DateTime end, int part) =>
-      saveBooking({
-        'group_id': g.groupId,
-        'pitch_id': pitch.pitchId,
-        'part': part,
-        'starts_at': isoLocal(start),
-        'ends_at': isoLocal(end),
-        'kind': 'training',
-        'status': 'confirmed',
-      });
+      PitchGroup g, Pitch pitch, DateTime start, DateTime end, int part) {
+    // Show it on the board straight away; the reload brings the real one.
+    final list = board?.bookings;
+    if (list != null) {
+      try {
+        list.add(Booking(
+            bookingId: -DateTime.now().millisecondsSinceEpoch,
+            pitchId: pitch.pitchId,
+            part: part,
+            start: start,
+            end: end,
+            teamId: g.teamId,
+            groupId: g.groupId));
+        notifyListeners();
+      } on UnsupportedError {
+        // A fixed list (an empty board): just wait for the reload.
+      }
+    }
+    return saveBooking({
+      'group_id': g.groupId,
+      'pitch_id': pitch.pitchId,
+      'part': part,
+      'starts_at': isoLocal(start),
+      'ends_at': isoLocal(end),
+      'kind': 'training',
+      'status': 'confirmed',
+    });
+  }
 
   Future<String?> publish() => run(() => api.publishWeek(club.clubId, monday));
 

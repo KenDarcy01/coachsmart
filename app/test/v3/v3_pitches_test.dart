@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -8,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:coach_smart_v2/v3/pitches/v3_pitch_api.dart';
+import 'package:coach_smart_v2/v3/pitches/v3_pitch_controller.dart';
 import 'package:coach_smart_v2/v3/pitches/v3_pitch_models.dart';
 import 'package:coach_smart_v2/v3/pitches/v3_pitches_page.dart';
 
@@ -255,6 +257,17 @@ Map<String, dynamic> boardWithGroups() {
   return b;
 }
 
+/// Holds every save until [release] is called.
+class SlowPitchApi extends FakePitchApi {
+  final _gate = Completer<void>();
+  void release() => _gate.complete();
+  @override
+  Future<void> saveBooking(int clubId, Map<String, dynamic> booking) async {
+    await _gate.future;
+    await super.saveBooking(clubId, booking);
+  }
+}
+
 class FakePitchApi extends PitchApi {
   FakePitchApi({this.officer = true});
   final bool officer;
@@ -500,6 +513,24 @@ void main() {
       });
       expect(PitchBoard.fromJson(j).matchedOn(day).map((e) => e.eventId),
           isNot(contains(51)));
+    });
+
+    test('a dropped booking moves on the board before the save returns',
+        () async {
+      final api = SlowPitchApi();
+      final c = PitchController(FakePitchApi.clontarf, api: api, today: _today);
+      await c.load();
+      final b = c.board!.bookings.firstWhere((x) => x.bookingId == 10);
+      final to = DateTime(2026, 11, 21, 19);
+      final done = c.moveBooking(
+          b, 1, PitchPart.full, to, to.add(const Duration(hours: 1)));
+      final now = c.board!.bookings.firstWhere((x) => x.bookingId == 10);
+      expect(now.start, to);
+      expect(now.pitchId, 1);
+      expect(api.saved, isEmpty);
+      api.release();
+      expect(await done, isNull);
+      expect(api.saved.single['booking_id'], 10);
     });
 
     test('slot lookup', () {
