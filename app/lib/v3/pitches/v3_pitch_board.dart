@@ -86,7 +86,9 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
       {DateTime? onDay}) async {
     final board = c.board!;
     final day = onDay ?? c.day;
-    final slot = pitch.slotAt(day.weekday, minute);
+    var slot = pitch.slotAt(day.weekday, minute);
+    // A long slot (held all day) does not set the time: use the drop point.
+    if (slot != null && slot.closes - slot.opens > 120) slot = null;
     final startMin = slot?.opens ?? (minute ~/ 15) * 15;
     final start = atMinutes(day, startMin);
     switch (d) {
@@ -527,6 +529,11 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                   for (final s in slots) {
                     if (s.opens <= m && m < s.closes) held = s;
                   }
+                  // A long slot (a pitch held all day) is not one session:
+                  // start where tapped, with the usual length.
+                  if (held != null && held.closes - held.opens > 120) {
+                    held = null;
+                  }
                   final at = held?.opens ?? (m ~/ 15) * 15;
                   _open(BookingSheet(
                       c: c,
@@ -581,7 +588,8 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
           left: 2,
           right: 2,
           child: GestureDetector(
-            onTap: closure != null
+            // Long slots let the tap through to the column (time where tapped).
+            onTap: closure != null || s.closes - s.opens > 120
                 ? null
                 : () => _open(BookingSheet(
                     c: c,
