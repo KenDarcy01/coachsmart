@@ -513,7 +513,7 @@ const kCodeColours = {
   PitchCode.hurling: _boys,
   PitchCode.camogie: _girls,
   PitchCode.ladies: _girls,
-  PitchCode.other: Color(0xFFB5B8BE),
+  PitchCode.other: Color(0xFF34B27B),
 };
 
 const kCodeNames = {
