@@ -550,8 +550,8 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             left: 0,
             right: 0,
             child: Container(height: 1, color: PT.line.withValues(alpha: 0.6))),
-      // Times the club's sheet marks not available: hatched. A gap between
-      // held slots is left plain.
+      // Not available: the sheet's marks, plus any time outside the slots
+      // on an astro (grass gaps stay plain).
       for (final bl in board.blocksOn(p.pitchId, day.weekday))
         if (bl.slot.closes > lo && bl.slot.opens < hi)
           Positioned(

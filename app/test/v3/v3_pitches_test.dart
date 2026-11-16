@@ -680,6 +680,16 @@ void main() {
     expect(find.text('Monday 16 November'), findsOneWidget);
   });
 
+  test('astro: time outside its slots is No slot; grass gaps stay plain', () {
+    final b = PitchBoard.fromJson(boardWithGroups());
+    final dcc = b.blocksOn(2, 6);
+    String l(PitchBlock x) => '${x.slot.label} ${x.reason}';
+    expect(dcc.map(l),
+        containsAll(['15:40–17:00 No slot', '08:00–09:00 No slot']));
+    expect(dcc.any((x) => x.slot.opens == 9 * 60), isFalse);
+    expect(b.blocksOn(3, 6), isEmpty);
+  });
+
   testWidgets('laptop: availability, add a not-available time', (t) async {
     final api = FakePitchApi();
     await _pump(t, const Size(1440, 900), api);

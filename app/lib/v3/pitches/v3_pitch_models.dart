@@ -263,6 +263,26 @@ class PitchBlock {
   Map<String, dynamic> toJson() => {...slot.toJson(), 'reason': reason};
 }
 
+/// Times between 08:00 and 22:00 that are neither held [slots] nor
+/// already in [blocks], as "No slot" blocks.
+List<PitchBlock> noSlotGaps(
+    List<PitchSlot> slots, List<PitchBlock> blocks, int weekday) {
+  final taken = [
+    for (final s in slots) (s.opens, s.closes),
+    for (final b in blocks) (b.slot.opens, b.slot.closes),
+  ]..sort((a, b) => a.$1.compareTo(b.$1));
+  final out = <PitchBlock>[];
+  var at = 8 * 60;
+  for (final (o, c) in taken) {
+    if (o - at >= 5) out.add(PitchBlock(PitchSlot(weekday, at, o), 'No slot'));
+    if (c > at) at = c;
+  }
+  if (22 * 60 - at >= 5) {
+    out.add(PitchBlock(PitchSlot(weekday, at, 22 * 60), 'No slot'));
+  }
+  return out;
+}
+
 class PitchSlot {
   const PitchSlot(this.weekday, this.opens, this.closes);
   factory PitchSlot.fromJson(Map j) => PitchSlot(_int(j['weekday']),
@@ -858,10 +878,28 @@ class PitchBoard {
   /// (pitch id, block): times marked not available.
   final List<(int, PitchBlock)> blocks;
 
-  List<PitchBlock> blocksOn(int pitchId, int weekday) => [
-        for (final (id, b) in blocks)
-          if (id == pitchId && b.slot.weekday == weekday) b
-      ];
+  /// Not-available times on a day. On an astro, every time outside the
+  /// slots the club holds is "No slot" too (Ken, 2026-11-16); on grass a
+  /// gap between slots is left plain.
+  List<PitchBlock> blocksOn(int pitchId, int weekday) {
+    final own = [
+      for (final (id, b) in blocks)
+        if (id == pitchId && b.slot.weekday == weekday) b
+    ];
+    Pitch? p;
+    for (final x in pitches) {
+      if (x.pitchId == pitchId) p = x;
+    }
+    if (p == null || p.surface != 'astro' || p.slots.isEmpty) return own;
+    return [
+      ...own,
+      ...noSlotGaps([
+        for (final s in p.slots)
+          if (s.weekday == weekday) s
+      ], own, weekday)
+    ];
+  }
+
   final List<BoardEvent> events;
   final List<BoardFixture> fixtures;
   final List<PitchTeam> teams;

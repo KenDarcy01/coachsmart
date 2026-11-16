@@ -186,7 +186,8 @@ class _PitchAvailabilityViewState extends State<PitchAvailabilityView> {
         children: [
           Text(
               'Free times are the slots the club holds. Not available times are '
-              'shaded on the day board. Tap a time to change it, or + to add one. '
+              'shaded on the day board. On an astro, any time outside its '
+              'slots is shaded too. Tap a time to change it, or + to add one. '
               'Update them here when the clocks change.',
               style: PT.inter(14, color: PT.muted)),
           const SizedBox(height: 12),
@@ -223,6 +224,7 @@ class _PitchAvailabilityViewState extends State<PitchAvailabilityView> {
                   for (var d = 1; d <= 7; d++)
                     _DayRow(
                       weekday: d,
+                      astro: p.surface == 'astro',
                       slots: [
                         for (final s in p.slots)
                           if (s.weekday == d) s
@@ -288,6 +290,7 @@ const _dayStart = 8 * 60, _dayEnd = 22 * 60;
 class _DayRow extends StatelessWidget {
   const _DayRow(
       {required this.weekday,
+      this.astro = false,
       required this.slots,
       required this.blocks,
       required this.accent,
@@ -295,6 +298,9 @@ class _DayRow extends StatelessWidget {
       required this.onSlot,
       required this.onBlock});
   final int weekday;
+
+  /// On an astro, time outside the held slots is shaded as "No slot".
+  final bool astro;
   final List<PitchSlot> slots;
   final List<PitchBlock> blocks;
   final Color accent;
@@ -350,7 +356,11 @@ class _DayRow extends StatelessWidget {
                               color: PT.slot,
                               border: Border.all(color: PT.slotLine),
                               borderRadius: BorderRadius.circular(5)))),
-                  for (final b in blocks)
+                  for (final b in [
+                    ...blocks,
+                    if (astro && slots.isNotEmpty)
+                      ...noSlotGaps(slots, blocks, weekday)
+                  ])
                     Positioned(
                         left: x(b.slot.opens),
                         width: x(b.slot.closes) - x(b.slot.opens),
