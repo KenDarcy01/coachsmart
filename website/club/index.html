@@ -412,10 +412,13 @@ function build(D, year) {
 }
 // ── This week (Ken, 2026-11-16) ───────────────────────────────────
 // Default view. Results tab: the week's results, go games, CoachSmart matches
-// and training; Fixtures tab: every game that week. Mon-Sun, opens on the current week.
+// and training; Fixtures tab: every game that week. Mon-Sun; Results open on the latest weekend, Fixtures on the current week.
 const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 function mondayOf(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }
-function defaultWeek() { return mondayOf(new Date()); } // Ken 2026-11-16: always open on the current week
+// Results open on the week with the latest weekend: Monday to Wednesday that's last
+// week (Ken 2026-11-16: on a Monday the new week has no results yet). Fixtures
+// always open on the current week.
+function defaultWeek() { const n = new Date(), m = mondayOf(n); return tab === 'results' && n.getDay() >= 1 && n.getDay() <= 3 ? addDays(m, -7) : m; }
 function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function weekLabel(m) { const e = addDays(m, 6); return `Mon ${m.getDate()}${m.getMonth() !== e.getMonth() ? ' ' + MONL[m.getMonth()] : ''} – Sun ${e.getDate()} ${MONL[e.getMonth()]}`; }
@@ -481,7 +484,8 @@ function weekView(sel) {
   return tab === 'fixtures' ? fixturesView(sel) : resultsWeekView(sel);
 }
 function resultsWeekView(sel) {
-  const { games, we, wg, end } = weekData(sel), now = new Date();
+  // Only what has already happened counts here; later games go under Coming up.
+  const wd = weekData(sel), now = new Date(), { games, end } = wd, we = wd.we.filter(e => e.d < now), wg = wd.wg.filter(g => g.d < now);
   // Link each CoachSmart match to its league game on the same day.
   const csMatch = we.filter(e => e.match);
   wg.forEach(g => { const e = g.row && g.row.team && csMatch.find(x => x.row === g.row && ymd(x.d) === ymd(g.d) && !x.used); if (e) { e.used = true; g.cs = e; } });
@@ -511,7 +515,7 @@ function resultsWeekView(sel) {
   let right = '';
   if (hl.length) right += `<div class="card"><h3>Highlights</h3><div class="hl">${hl.map(([k, b, s]) => `<div class="hli"><div class="k">${k}</div><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join('')}</div></div>`;
   if (mt.length) right += `<div class="card"><h3>Matches on CoachSmart<small>players who said yes</small></h3>${[...mt].sort((a, b) => b.yes - a.yes).map(e => `<a class="cm" href="${href({ g: e.row.group, t: e.row.key })}"><b>${esc(e.row.name)}</b><span class="m">${esc(e.row.ageLabel)} · ${DAY[e.d.getDay()].slice(0, 3)}</span><span class="cmv">${e.yes} player${e.yes === 1 ? '' : 's'}</span>${e.live ? '<span class="live">scored live</span>' : ''}</a>`).join('')}</div>`;
-  const from = new Date(Math.max(+now, +end)), up = games.filter(g => g.d >= from && g.d < addDays(from, 7) && !goG(g)).sort((a, b) => a.d - b.d);
+  const from = now, up = games.filter(g => g.d >= from && g.d < addDays(from, 7) && !goG(g)).sort((a, b) => a.d - b.d);
   if (up.length) right += `<div class="card"><h3>Coming up<small>next 7 days</small></h3>${up.slice(0, 8).map(g => `<div class="fx"><span class="d">${DAY[g.d.getDay()].slice(0, 3)} ${g.d.getDate()} · ${tm(g.d)}</span><span class="dot" style="background:var(--${g.code})"></span><span>${esc(gName(g))} v ${esc(g.opp)} <span class="m">· ${g.home ? 'home' : 'away'}</span></span></div>`).join('')}${`<button class="more" onclick="setTab('fixtures')">See all fixtures ›</button>`}</div>`;
   h += `<div class="side2"><div>${left}</div><div class="rcol">${right}</div></div>`;
   // Training this week v the team's season average.
