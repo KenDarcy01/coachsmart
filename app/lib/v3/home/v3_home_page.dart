@@ -53,7 +53,17 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 
   /// Club the user can open the pitch planner (officer) or published
   /// pitch plan (member) for; null hides the menu item.
-  int? _pitchClub;
+  List<int> _pitchClubs = const [];
+
+  /// The pitch planner club: one of the user's own clubs first (a
+  /// SuperUser can plan for every club).
+  int? get _pitchClub {
+    if (_pitchClubs.isEmpty) return null;
+    final mine = {for (final c in _home.clubs) c.clubId};
+    return _pitchClubs.firstWhere(mine.contains,
+        orElse: () => _pitchClubs.first);
+  }
+
   bool _popupOpen = false;
 
   @override
@@ -73,7 +83,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       var clubs = await api.clubs();
       if (clubs.isEmpty) clubs = await api.memberClubs();
       if (mounted && clubs.isNotEmpty) {
-        setState(() => _pitchClub = clubs.first.clubId);
+        setState(() => _pitchClubs = [for (final c in clubs) c.clubId]);
       }
     } catch (_) {
       // No pitch planner for this user.

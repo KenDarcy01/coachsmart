@@ -15,9 +15,12 @@ class PitchApi {
   /// Clubs the signed-in user can plan pitches for.
   Future<List<PitchClub>> clubs() async {
     final r = await _rpc('get_my_officer_clubs', {});
+    // The function returns {clubs: [...], is_super_user}; accept a bare
+    // list too.
+    final list = r is Map ? r['clubs'] : r;
     return [
-      if (r is List)
-        for (final c in r.whereType<Map>()) PitchClub.fromJson(c)
+      if (list is List)
+        for (final c in list.whereType<Map>()) PitchClub.fromJson(c)
     ];
   }
 
