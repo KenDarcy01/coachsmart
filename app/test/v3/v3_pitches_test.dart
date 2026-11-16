@@ -434,11 +434,30 @@ void main() {
     await _shot(t, 'pp-place');
   });
 
+  testWidgets('laptop: tap an empty part of a pitch to add a booking',
+      (t) async {
+    await _pump(t, const Size(1440, 900), FakePitchApi());
+    await t.tap(find.text('+ New booking'));
+    await t.pumpAndSettle();
+    expect(find.text('New booking'), findsOneWidget);
+    expect(find.text('Add booking'), findsOneWidget);
+    Navigator.of(t.element(find.text('New booking'))).pop();
+    await t.pumpAndSettle();
+    // Pitch 19 at 08:30: no held slot there, so the grid itself takes the tap.
+    final head = t.getRect(find.text('Pitch 19'));
+    await t.tapAt(Offset(head.center.dx, head.bottom + 60));
+    await t.pumpAndSettle();
+    expect(find.text('New booking'), findsOneWidget);
+  });
+
   testWidgets('phone: day by pitch', (t) async {
     await _pump(t, const Size(390, 1400), FakePitchApi());
     expect(find.textContaining('need a pitch'), findsOneWidget);
     expect(find.textContaining('1 clash'), findsOneWidget);
     await _shot(t, 'pp-phone');
+    await t.tap(find.text('Add a booking').first);
+    await t.pumpAndSettle();
+    expect(find.text('New booking'), findsOneWidget);
   });
 
   testWidgets('member: published week, read-only', (t) async {

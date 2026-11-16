@@ -307,6 +307,28 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
     }
 
     final children = <Widget>[
+      // Tap anywhere on the column for a new booking at that time (a held
+      // slot under the finger sets the time and length).
+      Positioned.fill(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: closure != null
+              ? null
+              : (d) {
+                  final m = lo + (d.localPosition.dy / _pxPerMin).floor();
+                  PitchSlot? held;
+                  for (final s in slots) {
+                    if (s.opens <= m && m < s.closes) held = s;
+                  }
+                  final at = held?.opens ?? (m ~/ 15) * 15;
+                  _open(BookingSheet(
+                      c: c,
+                      pitch: p,
+                      at: atMinutes(day, at.clamp(lo, hi - 15)),
+                      minutes: held == null ? null : held.closes - held.opens));
+                },
+        ),
+      ),
       // Hour lines.
       for (var m = lo; m < hi; m += 60)
         Positioned(
@@ -324,8 +346,11 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
           child: GestureDetector(
             onTap: closure != null
                 ? null
-                : () => _open(
-                    BookingSheet(c: c, pitch: p, at: atMinutes(day, s.opens))),
+                : () => _open(BookingSheet(
+                    c: c,
+                    pitch: p,
+                    at: atMinutes(day, s.opens),
+                    minutes: s.closes - s.opens)),
             child: Container(
               decoration: BoxDecoration(
                   color: PT.slot,

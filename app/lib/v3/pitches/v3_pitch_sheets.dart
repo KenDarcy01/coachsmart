@@ -454,9 +454,13 @@ class BookingSheet extends StatefulWidget {
       this.booking,
       this.pitch,
       this.at,
+      this.minutes,
       this.group});
   final PitchController c;
   final Booking? booking;
+
+  /// Length preset for a new booking (e.g. the held slot tapped).
+  final int? minutes;
 
   /// Preset when a group was dropped on an empty slot.
   final PitchGroup? group;
@@ -474,7 +478,7 @@ class _BookingSheetState extends State<BookingSheet> {
   late String _kind = b?.kind ?? 'training';
   late DateTime _start = b?.start ?? widget.at ?? DateTime.now();
   late int _minutes = b == null
-      ? widget.c.board!.durations.training
+      ? widget.minutes ?? widget.c.board!.durations.training
       : b!.end.difference(b!.start).inMinutes;
   late int? _groupId = b?.groupId ?? widget.group?.groupId;
   late final _title = TextEditingController(text: b?.title ?? '');

@@ -245,6 +245,27 @@ class _PitchCard extends StatelessWidget {
                 faint: true,
                 onTap: () => open(PlaceSheet(
                     c: c, item: c.itemOfEvent(e), pitch: pitch, at: e.start))),
+          if (closure == null)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => open(BookingSheet(
+                  c: c,
+                  pitch: pitch,
+                  at: atMinutes(day, free.isEmpty ? 18 * 60 : free.first.opens),
+                  minutes: free.isEmpty
+                      ? null
+                      : free.first.closes - free.first.opens)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                child: Row(children: [
+                  Icon(Icons.add, size: 18, color: c.club.accent),
+                  const SizedBox(width: 6),
+                  Text('Add a booking',
+                      style: PT.inter(14,
+                          weight: FontWeight.w600, color: c.club.accent)),
+                ]),
+              ),
+            ),
         ]),
       ),
     );

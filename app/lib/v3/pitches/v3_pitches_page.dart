@@ -222,6 +222,11 @@ class _V3PitchesPageState extends State<_PitchesBody> {
         actions: [
           if (_officer && _tab == PitchTab.board && _c?.board != null) ...[
             IconButton(
+                tooltip: 'New booking',
+                onPressed: () => showPitchSheet(context,
+                    BookingSheet(c: _c!, at: atMinutes(_c!.day, 18 * 60))),
+                icon: Icon(Icons.add, color: onAccent(club.band))),
+            IconButton(
                 tooltip: 'Close a pitch',
                 onPressed: () =>
                     showPitchSheet(context, ClosePitchSheet(c: _c!)),
@@ -357,6 +362,11 @@ class _V3PitchesPageState extends State<_PitchesBody> {
         if (d != null) c.pickDay(d);
       }),
       const SizedBox(width: 14),
+      _hBtn(
+          '+ New booking',
+          () => showPitchSheet(
+              context, BookingSheet(c: c, at: atMinutes(c.day, 18 * 60)))),
+      const SizedBox(width: 8),
       _hBtn('Close a pitch',
           () => showPitchSheet(context, ClosePitchSheet(c: c))),
       const SizedBox(width: 8),
