@@ -7,7 +7,7 @@
 import 'package:flutter/material.dart';
 
 import '../v3_crest_image.dart';
-import '../v3_theme.dart';
+import 'v3_pitch_theme.dart';
 import '/v3/tracking/v3_track.dart';
 import 'v3_pitch_api.dart';
 import 'v3_pitch_board.dart';
@@ -20,7 +20,9 @@ import 'v3_pitch_sheets.dart';
 
 enum PitchTab { board, groups, setup, published }
 
-class V3PitchesPage extends StatefulWidget {
+/// The planner is a light page so the club's colours and crest sit on
+/// white (Ken, 2026-11-16); the rest of v3 stays dark.
+class V3PitchesPage extends StatelessWidget {
   const V3PitchesPage(
       {super.key, this.clubId, this.api = const PitchApi(), this.today});
 
@@ -34,10 +36,22 @@ class V3PitchesPage extends StatefulWidget {
   final DateTime? today;
 
   @override
-  State<V3PitchesPage> createState() => _V3PitchesPageState();
+  Widget build(BuildContext context) => Theme(
+      data: PT.theme(PT.text),
+      child: _PitchesBody(clubId: clubId, api: api, today: today));
 }
 
-class _V3PitchesPageState extends State<V3PitchesPage> {
+class _PitchesBody extends StatefulWidget {
+  const _PitchesBody({this.clubId, required this.api, this.today});
+  final int? clubId;
+  final PitchApi api;
+  final DateTime? today;
+
+  @override
+  State<_PitchesBody> createState() => _V3PitchesPageState();
+}
+
+class _V3PitchesPageState extends State<_PitchesBody> {
   List<PitchClub> _officerClubs = [];
   List<PitchClub> _memberClubs = [];
   PitchClub? _club;
@@ -120,12 +134,12 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Publish the week of ${m.day} ${kMonths[m.month - 1]}?',
-                    style: V3.tight(20)),
+                    style: PT.tight(20)),
                 const SizedBox(height: 6),
                 Text(
                     'Club members see this week\'s pitches in the app, as it is now. '
                     'Keep moving things after; publish again to update what they see.',
-                    style: V3.inter(15, color: V3.muted)),
+                    style: PT.inter(15, color: PT.muted)),
                 const SizedBox(height: 16),
                 Row(children: [
                   Expanded(
@@ -151,27 +165,27 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
     final wide = MediaQuery.sizeOf(context).width >= kWide;
     if (!_loaded) {
       return const Scaffold(
-          backgroundColor: V3.bg,
-          body: Center(child: CircularProgressIndicator(color: V3.muted)));
+          backgroundColor: PT.bg,
+          body: Center(child: CircularProgressIndicator(color: PT.muted)));
     }
     final club = _club;
     if (club == null) {
       return Scaffold(
-        backgroundColor: V3.bg,
-        appBar: AppBar(backgroundColor: V3.bg, foregroundColor: V3.text),
+        backgroundColor: PT.bg,
+        appBar: AppBar(backgroundColor: PT.bg, foregroundColor: PT.text),
         body: Center(
             child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(_error ?? 'Nothing to show.',
               textAlign: TextAlign.center,
-              style: V3.inter(16, color: V3.muted)),
+              style: PT.inter(16, color: PT.muted)),
         )),
       );
     }
     final content = _content(club, wide);
     if (wide) {
       return Scaffold(
-        backgroundColor: V3.bg,
+        backgroundColor: PT.bg,
         body: SafeArea(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             _Side(
@@ -190,17 +204,19 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
       );
     }
     return Scaffold(
-      backgroundColor: V3.bg,
+      backgroundColor: PT.bg,
       appBar: AppBar(
-        backgroundColor: Color.lerp(club.band, V3.bg, 0.35),
-        foregroundColor: V3.text,
+        backgroundColor: club.band,
+        foregroundColor: onAccent(club.band),
+        surfaceTintColor: Colors.transparent,
         titleSpacing: 0,
         title: Row(children: [
           V3CrestImage(club.crest, size: 30),
           const SizedBox(width: 10),
           Expanded(
             child: Text(_officer ? 'Pitches' : '${club.name} pitches',
-                overflow: TextOverflow.ellipsis, style: V3.tight(20)),
+                overflow: TextOverflow.ellipsis,
+                style: PT.tight(20, color: onAccent(club.band))),
           ),
         ]),
         actions: [
@@ -209,37 +225,37 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
                 tooltip: 'Close a pitch',
                 onPressed: () =>
                     showPitchSheet(context, ClosePitchSheet(c: _c!)),
-                icon: const Icon(Icons.block, color: V3.text)),
+                icon: Icon(Icons.block, color: onAccent(club.band))),
             IconButton(
                 tooltip: 'Publish week',
                 onPressed: _publish,
                 icon: Icon(Icons.campaign_outlined,
                     color: _c!.board!.changedSincePublish
-                        ? club.accent
-                        : V3.text)),
+                        ? PT.amber
+                        : onAccent(club.band))),
           ]
         ],
       ),
       body: content,
       bottomNavigationBar: _officer
           ? NavigationBar(
-              backgroundColor: V3.tabBar,
+              backgroundColor: PT.tabBar,
               indicatorColor: club.accent.withValues(alpha: 0.2),
               selectedIndex: _tab.index,
               onDestinationSelected: (i) =>
                   setState(() => _tab = PitchTab.values[i]),
-              labelTextStyle: WidgetStatePropertyAll(V3.inter(12)),
+              labelTextStyle: WidgetStatePropertyAll(PT.inter(12)),
               destinations: const [
                   NavigationDestination(
-                      icon: Icon(Icons.view_week_outlined, color: V3.muted),
+                      icon: Icon(Icons.view_week_outlined, color: PT.muted),
                       label: 'Day'),
                   NavigationDestination(
-                      icon: Icon(Icons.groups_outlined, color: V3.muted),
+                      icon: Icon(Icons.groups_outlined, color: PT.muted),
                       label: 'Groups'),
                   NavigationDestination(
-                      icon: Icon(Icons.tune, color: V3.muted), label: 'Setup'),
+                      icon: Icon(Icons.tune, color: PT.muted), label: 'Setup'),
                   NavigationDestination(
-                      icon: Icon(Icons.visibility_outlined, color: V3.muted),
+                      icon: Icon(Icons.visibility_outlined, color: PT.muted),
                       label: 'Published'),
                 ])
           : null,
@@ -262,8 +278,8 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
                   padding: const EdgeInsets.all(24),
                   child: Text(c.error!,
                       textAlign: TextAlign.center,
-                      style: V3.inter(15, color: V3.muted)))
-              : const CircularProgressIndicator(color: V3.muted));
+                      style: PT.inter(15, color: PT.muted)))
+              : const CircularProgressIndicator(color: PT.muted));
     }
     final body = switch (_tab) {
       PitchTab.board => wide ? PitchDayBoard(c: c) : PitchPhoneDay(c: c),
@@ -279,7 +295,7 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
               top: 0,
               left: 0,
               right: 0,
-              child: LinearProgressIndicator(minHeight: 2, color: V3.muted)),
+              child: LinearProgressIndicator(minHeight: 2, color: PT.muted)),
       ]);
     }
     return Padding(
@@ -287,7 +303,7 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _header(c),
         if (c.busy || c.loading)
-          const LinearProgressIndicator(minHeight: 2, color: V3.muted)
+          const LinearProgressIndicator(minHeight: 2, color: PT.muted)
         else
           const SizedBox(height: 2),
         const SizedBox(height: 12),
@@ -302,7 +318,7 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
     if (_tab != PitchTab.board) {
       return Row(children: [
         Text(_tab == PitchTab.groups ? 'Groups' : 'Pitches and venues',
-            style: V3.tight(26)),
+            style: PT.tight(26)),
         const Spacer(),
       ]);
     }
@@ -316,14 +332,14 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
     return Row(children: [
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(longDay(c.day), style: V3.tight(26)),
+          Text(longDay(c.day), style: PT.tight(26)),
           Text(
               [
                 '${board.pitches.length} pitch${board.pitches.length == 1 ? '' : 'es'}',
                 '$n booking${n == 1 ? '' : 's'}',
                 if (c.rolledNote != null) c.rolledNote!,
               ].join(' · '),
-              style: V3.inter(13.5, color: V3.muted)),
+              style: PT.inter(13.5, color: PT.muted)),
         ]),
       ),
       _hBtn('‹', () => c.shiftDays(-1)),
@@ -355,7 +371,7 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
   }
 
   Widget _hBtn(String label, VoidCallback onTap) => Material(
-        color: V3.card,
+        color: PT.card,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -363,9 +379,9 @@ class _V3PitchesPageState extends State<V3PitchesPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
             decoration: BoxDecoration(
-                border: Border.all(color: V3.line),
+                border: Border.all(color: PT.line),
                 borderRadius: BorderRadius.circular(10)),
-            child: Text(label, style: V3.inter(13.5, weight: FontWeight.w600)),
+            child: Text(label, style: PT.inter(13.5, weight: FontWeight.w600)),
           ),
         ),
       );
@@ -402,15 +418,15 @@ class _Side extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
               child: Row(children: [
-                Icon(icon, size: 20, color: on ? accent : V3.muted),
+                Icon(icon, size: 20, color: on ? accent : PT.muted),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: V3.inter(15,
+                      style: PT.inter(15,
                           weight: on ? FontWeight.w600 : FontWeight.w400,
-                          color: on ? accent : V3.text)),
+                          color: on ? accent : PT.text)),
                 ),
               ]),
             ),
@@ -423,19 +439,18 @@ class _Side extends StatelessWidget {
       width: 220,
       padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
       decoration: const BoxDecoration(
-          border: Border(right: BorderSide(color: V3.line))),
+          color: PT.card, border: Border(right: BorderSide(color: PT.line))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           IconButton(
               tooltip: 'Back',
               onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back, color: V3.muted, size: 20)),
+              icon: const Icon(Icons.arrow_back, color: PT.muted, size: 20)),
         ]),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [club.band, V3.bg]),
-              borderRadius: BorderRadius.circular(12)),
+              color: club.band, borderRadius: BorderRadius.circular(12)),
           child: Row(children: [
             V3CrestImage(club.crest, size: 42),
             const SizedBox(width: 10),
@@ -446,9 +461,12 @@ class _Side extends StatelessWidget {
                     Text(club.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: V3.inter(15, weight: FontWeight.w700)),
+                        style: PT.inter(15,
+                            weight: FontWeight.w700,
+                            color: onAccent(club.band))),
                     Text(officer ? 'Pitch planner' : 'Pitches',
-                        style: V3.inter(12.5, color: const Color(0xFFD6D9DE))),
+                        style: PT.inter(12.5,
+                            color: onAccent(club.band).withValues(alpha: 0.8))),
                   ]),
             ),
           ]),
@@ -462,20 +480,20 @@ class _Side extends StatelessWidget {
         ],
         if (clubs.length > 1) ...[
           const SizedBox(height: 14),
-          Text('Club', style: V3.inter(12, color: V3.muted)),
+          Text('Club', style: PT.inter(12, color: PT.muted)),
           for (final c in clubs)
             if (c.clubId != club.clubId)
               TextButton(
                   onPressed: () => onClub(c),
                   child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(c.name, style: V3.inter(14)))),
+                      child: Text(c.name, style: PT.inter(14)))),
         ],
         const Spacer(),
         Padding(
           padding: const EdgeInsets.only(left: 6),
           child: Text('Powered by CoachSmart',
-              style: V3.inter(11.5, color: const Color(0xFF6B6F76))),
+              style: PT.inter(11.5, color: PT.faint)),
         ),
       ]),
     );

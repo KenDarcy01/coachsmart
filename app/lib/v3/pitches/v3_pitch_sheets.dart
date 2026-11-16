@@ -4,7 +4,7 @@
 // pitch.
 import 'package:flutter/material.dart';
 
-import '../v3_theme.dart';
+import 'v3_pitch_theme.dart';
 import 'v3_pitch_controller.dart';
 import 'v3_pitch_models.dart';
 
@@ -16,7 +16,7 @@ Future<T?> showPitchSheet<T>(BuildContext context, Widget child) {
     return showDialog<T>(
         context: context,
         builder: (_) => Dialog(
-            backgroundColor: V3.card,
+            backgroundColor: PT.card,
             insetPadding: const EdgeInsets.all(24),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -28,7 +28,7 @@ Future<T?> showPitchSheet<T>(BuildContext context, Widget child) {
   return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: V3.card,
+      backgroundColor: PT.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => Padding(
@@ -41,8 +41,8 @@ Future<T?> showPitchSheet<T>(BuildContext context, Widget child) {
 
 void pitchSnack(BuildContext context, String text) =>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: V3.card2,
-        content: Text(text, style: V3.inter(15, weight: FontWeight.w500))));
+        backgroundColor: PT.card2,
+        content: Text(text, style: PT.inter(15, weight: FontWeight.w500))));
 
 // ------------------------------------------------------------------ bits
 
@@ -71,10 +71,10 @@ class _Frame extends StatelessWidget {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (tag != null) ...[tag!, const SizedBox(height: 8)],
-              Text(title, style: V3.tight(21)),
+              Text(title, style: PT.tight(21)),
               if (subtitle.isNotEmpty) ...[
                 const SizedBox(height: 3),
-                Text(subtitle, style: V3.inter(14, color: V3.muted)),
+                Text(subtitle, style: PT.inter(14, color: PT.muted)),
               ],
               const SizedBox(height: 10),
               ...children,
@@ -96,7 +96,7 @@ class _Frame extends StatelessWidget {
 }
 
 class PitchTag extends StatelessWidget {
-  const PitchTag(this.text, {super.key, this.colour = V3.amberText, this.bg});
+  const PitchTag(this.text, {super.key, this.colour = PT.amberText, this.bg});
   final String text;
   final Color colour;
   final Color? bg;
@@ -107,7 +107,7 @@ class PitchTag extends StatelessWidget {
             color: bg ?? colour.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(6)),
         child: Text(text,
-            style: V3.inter(12, weight: FontWeight.w600, color: colour)),
+            style: PT.inter(12, weight: FontWeight.w600, color: colour)),
       );
 }
 
@@ -130,7 +130,7 @@ class PitchButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final fill = accent;
     return Material(
-      color: fill ?? V3.card2,
+      color: fill ?? PT.card2,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -141,15 +141,15 @@ class PitchButton extends StatelessWidget {
           child: Center(
             child: Text(label,
                 textAlign: TextAlign.center,
-                style: V3.inter(compact ? 14 : 15,
+                style: PT.inter(compact ? 14 : 15,
                     weight: FontWeight.w600,
                     color: onTap == null
-                        ? V3.muted
+                        ? PT.muted
                         : fill != null
                             ? onAccent(fill)
                             : danger
-                                ? V3.redText
-                                : V3.text)),
+                                ? PT.redText
+                                : PT.text)),
           ),
         ),
       ),
@@ -165,15 +165,15 @@ class _Kv extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: V3.line))),
+            border: Border(bottom: BorderSide(color: PT.line))),
         child: Row(children: [
-          Text(k, style: V3.inter(15, color: V3.muted)),
+          Text(k, style: PT.inter(15, color: PT.muted)),
           const SizedBox(width: 12),
           Expanded(
               child: Text(v,
                   textAlign: TextAlign.right,
                   style:
-                      V3.inter(15, weight: FontWeight.w500, color: V3.text))),
+                      PT.inter(15, weight: FontWeight.w500, color: PT.text))),
         ]),
       );
 }
@@ -181,18 +181,18 @@ class _Kv extends StatelessWidget {
 InputDecoration pitchInput(String label, {String? hint}) => InputDecoration(
       labelText: label,
       hintText: hint,
-      labelStyle: V3.inter(14, color: V3.muted),
-      hintStyle: V3.inter(14, color: V3.muted),
+      labelStyle: PT.inter(14, color: PT.muted),
+      hintStyle: PT.inter(14, color: PT.muted),
       filled: true,
-      fillColor: V3.bg,
+      fillColor: PT.bg,
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: V3.line)),
+          borderSide: const BorderSide(color: PT.line)),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: V3.line)),
+          borderSide: const BorderSide(color: PT.line)),
     );
 
 class _Chips<T> extends StatelessWidget {
@@ -216,13 +216,13 @@ class _Chips<T> extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                  color: v == selected ? accent.withValues(alpha: 0.18) : V3.bg,
-                  border: Border.all(color: v == selected ? accent : V3.line),
+                  color: v == selected ? accent.withValues(alpha: 0.18) : PT.bg,
+                  border: Border.all(color: v == selected ? accent : PT.line),
                   borderRadius: BorderRadius.circular(20)),
               child: Text(label(v),
-                  style: V3.inter(13.5,
+                  style: PT.inter(13.5,
                       weight: FontWeight.w600,
-                      color: v == selected ? accent : V3.text)),
+                      color: v == selected ? accent : PT.text)),
             ),
           )
       ]);
@@ -333,7 +333,7 @@ class _PlaceSheetState extends State<PlaceSheet> {
       children: [
         _Kv('When', _when(item.start)),
         Row(children: [
-          Expanded(child: Text('Needs', style: V3.inter(15, color: V3.muted))),
+          Expanded(child: Text('Needs', style: PT.inter(15, color: PT.muted))),
           IconButton(
               onPressed: _minutes > 15
                   ? () => setState(() {
@@ -341,18 +341,18 @@ class _PlaceSheetState extends State<PlaceSheet> {
                         _picked = null;
                       })
                   : null,
-              icon: const Icon(Icons.remove, color: V3.muted, size: 18)),
-          Text('$_minutes min', style: V3.inter(15, weight: FontWeight.w600)),
+              icon: const Icon(Icons.remove, color: PT.muted, size: 18)),
+          Text('$_minutes min', style: PT.inter(15, weight: FontWeight.w600)),
           IconButton(
               onPressed: () => setState(() {
                     _minutes += 5;
                     _picked = null;
                   }),
-              icon: const Icon(Icons.add, color: V3.muted, size: 18)),
+              icon: const Icon(Icons.add, color: PT.muted, size: 18)),
         ]),
         const SizedBox(height: 6),
         Text(opts.isEmpty ? 'Nothing free that day' : 'Free pitches',
-            style: V3.inter(15, weight: FontWeight.w600)),
+            style: PT.inter(15, weight: FontWeight.w600)),
         const SizedBox(height: 4),
         for (final o in opts.take(8))
           _OptionRow(
@@ -365,18 +365,18 @@ class _PlaceSheetState extends State<PlaceSheet> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
                 'That part of ${pick.pitch.name} is already in use then.',
-                style: V3.inter(14, color: V3.redText)),
+                style: PT.inter(14, color: PT.redText)),
           ),
         if (item.kind == 'match') ...[
           const SizedBox(height: 12),
           TextField(
               controller: _ref,
-              style: V3.inter(15),
+              style: PT.inter(15),
               decoration: pitchInput('Referee (optional)')),
           const SizedBox(height: 8),
           TextField(
               controller: _rooms,
-              style: V3.inter(15),
+              style: PT.inter(15),
               decoration:
                   pitchInput('Dressing rooms (optional)', hint: '1 & 2')),
         ],
@@ -385,7 +385,7 @@ class _PlaceSheetState extends State<PlaceSheet> {
           Text(
               'The pitch goes onto the ${c.group(item.event!.teamName)} event, '
               'so coaches and parents see it.',
-              style: V3.inter(13.5, color: V3.muted)),
+              style: PT.inter(13.5, color: PT.muted)),
         ],
       ],
     );
@@ -412,21 +412,21 @@ class _OptionRow extends StatelessWidget {
         margin: const EdgeInsets.only(top: 6),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-            color: selected ? accent.withValues(alpha: 0.12) : V3.bg,
-            border: Border.all(color: selected ? accent : V3.line),
+            color: selected ? accent.withValues(alpha: 0.12) : PT.bg,
+            border: Border.all(color: selected ? accent : PT.line),
             borderRadius: BorderRadius.circular(12)),
         child: Row(children: [
           Container(
               width: 9,
               height: 9,
               decoration: BoxDecoration(
-                  color: o.exact && !half ? V3.green : V3.amber,
+                  color: o.exact && !half ? PT.green : PT.amber,
                   shape: BoxShape.circle)),
           const SizedBox(width: 10),
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(o.pitch.name, style: V3.inter(15, weight: FontWeight.w600)),
+              Text(o.pitch.name, style: PT.inter(15, weight: FontWeight.w600)),
               Text(
                   [
                     o.pitch.venue,
@@ -434,7 +434,7 @@ class _OptionRow extends StatelessWidget {
                     '${timeOf(o.start)}–${timeOf(o.end)}',
                     if (!o.exact) 'later slot',
                   ].where((s) => s.isNotEmpty).join(' · '),
-                  style: V3.inter(13, color: V3.muted)),
+                  style: PT.inter(13, color: PT.muted)),
             ]),
           ),
           if (selected) Icon(Icons.check_circle, color: accent, size: 20),
@@ -512,7 +512,7 @@ class _BookingSheetState extends State<BookingSheet> {
                           : b!.kind == 'match'
                               ? 'Match'
                               : 'Booking',
-              colour: linked ? V3.green : V3.amberText),
+              colour: linked ? PT.green : PT.amberText),
       title: title,
       subtitle: isNew ? '' : _when(b!.start, b!.end),
       actions: [
@@ -566,14 +566,14 @@ class _BookingSheetState extends State<BookingSheet> {
           DropdownButtonFormField<int?>(
             initialValue: _groupId,
             isExpanded: true,
-            dropdownColor: V3.card2,
-            style: V3.inter(15),
+            dropdownColor: PT.card2,
+            style: PT.inter(15),
             decoration: pitchInput('Group'),
             items: [
               DropdownMenuItem<int?>(
                   value: null,
                   child: Text('No group (type a name)',
-                      style: V3.inter(15, color: V3.muted))),
+                      style: PT.inter(15, color: PT.muted))),
               for (final g in groups)
                 DropdownMenuItem<int?>(
                     value: g.groupId,
@@ -588,7 +588,7 @@ class _BookingSheetState extends State<BookingSheet> {
           const SizedBox(height: 8),
         ],
         if (isNew) ...[
-          Text('What', style: V3.inter(14, color: V3.muted)),
+          Text('What', style: PT.inter(14, color: PT.muted)),
           const SizedBox(height: 6),
           _Chips<String>(
               values: const ['training', 'match', 'other'],
@@ -604,7 +604,7 @@ class _BookingSheetState extends State<BookingSheet> {
         if (!linked)
           TextField(
               controller: _title,
-              style: V3.inter(15),
+              style: PT.inter(15),
               decoration: pitchInput(
                   _groupId == null ? 'Name' : 'Extra label (optional)',
                   hint: 'Nursery, All Stars, Schools…')),
@@ -612,8 +612,8 @@ class _BookingSheetState extends State<BookingSheet> {
         DropdownButtonFormField<int>(
           initialValue: _pitch?.pitchId,
           isExpanded: true,
-          dropdownColor: V3.card2,
-          style: V3.inter(15),
+          dropdownColor: PT.card2,
+          style: PT.inter(15),
           decoration: pitchInput('Pitch'),
           items: [
             for (final p in board.pitches)
@@ -644,7 +644,7 @@ class _BookingSheetState extends State<BookingSheet> {
             child: TextField(
               controller: _time,
               enabled: !_fixedTime,
-              style: V3.inter(15),
+              style: PT.inter(15),
               decoration: pitchInput('Starts', hint: '18:40'),
               onChanged: (v) {
                 final m = parseHhmm(v);
@@ -656,45 +656,45 @@ class _BookingSheetState extends State<BookingSheet> {
           IconButton(
               onPressed:
                   _minutes > 15 ? () => setState(() => _minutes -= 5) : null,
-              icon: const Icon(Icons.remove, color: V3.muted, size: 18)),
-          Text('$_minutes min', style: V3.inter(15, weight: FontWeight.w600)),
+              icon: const Icon(Icons.remove, color: PT.muted, size: 18)),
+          Text('$_minutes min', style: PT.inter(15, weight: FontWeight.w600)),
           IconButton(
               onPressed: () => setState(() => _minutes += 5),
-              icon: const Icon(Icons.add, color: V3.muted, size: 18)),
+              icon: const Icon(Icons.add, color: PT.muted, size: 18)),
         ]),
         if (_pitch != null) ...[
           const SizedBox(height: 6),
           Text(
               '${kWeekdays[_start.weekday - 1]} ${timeOf(_start)}–${timeOf(end)}'
               '${_pitch!.slotAt(_start.weekday, minutesOf(_start)) == null ? ' · outside the club\'s slots' : ''}',
-              style: V3.inter(13.5, color: V3.muted)),
+              style: PT.inter(13.5, color: PT.muted)),
         ],
         if (clash)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text('That part of ${_pitch!.name} is already in use then.',
-                style: V3.inter(14, color: V3.redText)),
+                style: PT.inter(14, color: PT.redText)),
           ),
         if (_kind == 'match') ...[
           const SizedBox(height: 10),
           TextField(
               controller: _ref,
-              style: V3.inter(15),
+              style: PT.inter(15),
               decoration: pitchInput('Referee')),
           const SizedBox(height: 8),
           TextField(
               controller: _rooms,
-              style: V3.inter(15),
+              style: PT.inter(15),
               decoration: pitchInput('Dressing rooms', hint: '1 & 2')),
         ],
         const SizedBox(height: 8),
         TextField(
             controller: _note,
-            style: V3.inter(15),
+            style: PT.inter(15),
             decoration: pitchInput('Note (optional)')),
         if (!isNew && b!.kind == 'training') ...[
           const SizedBox(height: 12),
-          Text('Weekly slot', style: V3.inter(14, color: V3.muted)),
+          Text('Weekly slot', style: PT.inter(14, color: PT.muted)),
           const SizedBox(height: 6),
           _Chips<bool>(
               values: const [true, false],
@@ -708,7 +708,7 @@ class _BookingSheetState extends State<BookingSheet> {
           Text(
               'The team\'s event shows this pitch. Moving the slot more than '
               '45 minutes from the event\'s time unlinks it, and the coach keeps their own time.',
-              style: V3.inter(13, color: V3.muted)),
+              style: PT.inter(13, color: PT.muted)),
         ],
       ],
     );
@@ -776,8 +776,8 @@ class _ClosePitchSheetState extends State<ClosePitchSheet> {
         DropdownButtonFormField<int>(
           initialValue: _pitch?.pitchId,
           isExpanded: true,
-          dropdownColor: V3.card2,
-          style: V3.inter(15),
+          dropdownColor: PT.card2,
+          style: PT.inter(15),
           decoration: pitchInput('Pitch'),
           items: [
             for (final p in board.pitches)
@@ -811,7 +811,7 @@ class _ClosePitchSheetState extends State<ClosePitchSheet> {
         const SizedBox(height: 10),
         TextField(
             controller: _reason,
-            style: V3.inter(15),
+            style: PT.inter(15),
             decoration: pitchInput('Reason')),
         const SizedBox(height: 10),
         Text(
@@ -819,7 +819,7 @@ class _ClosePitchSheetState extends State<ClosePitchSheet> {
                 ? 'Nothing booked on it this week.'
                 : '$affected booking${affected == 1 ? '' : 's'} this week will need a new pitch.',
             style:
-                V3.inter(14, color: affected == 0 ? V3.muted : V3.amberText)),
+                PT.inter(14, color: affected == 0 ? PT.muted : PT.amberText)),
       ],
     );
   }

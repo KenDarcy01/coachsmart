@@ -5,7 +5,7 @@
 // the day is shaded ("No slot").
 import 'package:flutter/material.dart';
 
-import '../v3_theme.dart';
+import 'v3_pitch_theme.dart';
 import 'v3_pitch_controller.dart';
 import 'v3_pitch_models.dart';
 import 'v3_pitch_sheets.dart';
@@ -147,7 +147,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
       Expanded(
         child: Container(
           decoration: BoxDecoration(
-              color: V3.card, borderRadius: BorderRadius.circular(14)),
+              color: PT.card, borderRadius: BorderRadius.circular(14)),
           clipBehavior: Clip.antiAlias,
           child: Column(children: [
             if (venues.length > 1)
@@ -172,7 +172,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                 child: pitches.isEmpty
                     ? Center(
                         child: Text('Add your pitches in Setup to start.',
-                            style: V3.inter(15, color: V3.muted)))
+                            style: PT.inter(15, color: PT.muted)))
                     : _grid(board, pitches)),
             _legend(board),
           ]),
@@ -218,7 +218,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
               // Pitch names.
               Container(
                 decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: V3.line))),
+                    border: Border(bottom: BorderSide(color: PT.line))),
                 child: Row(children: [
                   const SizedBox(width: _timeCol),
                   for (final p in pitches)
@@ -232,14 +232,14 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                               Text(p.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: V3.inter(14, weight: FontWeight.w600)),
+                                  style: PT.inter(14, weight: FontWeight.w600)),
                               Text(
                                   [p.venue, p.surfaceLabel]
                                       .where((s) => s.isNotEmpty)
                                       .join(' · '),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: V3.inter(11.5, color: V3.muted)),
+                                  style: PT.inter(11.5, color: PT.muted)),
                             ]),
                       ),
                     ),
@@ -261,7 +261,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                                   top: (m - lo) * _pxPerMin + 2,
                                   left: 10,
                                   child: Text(hhmm(m),
-                                      style: V3.inter(11, color: V3.muted)),
+                                      style: PT.inter(11, color: PT.muted)),
                                 )
                             ]),
                           ),
@@ -313,7 +313,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             top: y(m),
             left: 0,
             right: 0,
-            child: Container(height: 1, color: V3.line.withValues(alpha: 0.6))),
+            child: Container(height: 1, color: PT.line.withValues(alpha: 0.6))),
       // Held slots.
       for (final s in slots)
         Positioned(
@@ -328,8 +328,8 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                     BookingSheet(c: c, pitch: p, at: atMinutes(day, s.opens))),
             child: Container(
               decoration: BoxDecoration(
-                  color: const Color(0xFF242A33),
-                  border: Border.all(color: const Color(0xFF2F3642)),
+                  color: PT.slot,
+                  border: Border.all(color: PT.slotLine),
                   borderRadius: BorderRadius.circular(6)),
               alignment: Alignment.topRight,
               padding: const EdgeInsets.fromLTRB(0, 3, 6, 0),
@@ -338,8 +338,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                       !booked.any((b) =>
                           minutesOf(b.start) < s.closes &&
                           minutesOf(b.end) > s.opens)
-                  ? Text('Free',
-                      style: V3.inter(10.5, color: const Color(0xFF59606B)))
+                  ? Text('Free', style: PT.inter(10.5, color: PT.faint))
                   : null,
             ),
           ),
@@ -394,7 +393,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             borderRadius: BorderRadius.circular(8)),
         foregroundDecoration: clashes.contains(b.bookingId)
             ? BoxDecoration(
-                border: Border.all(color: V3.red, width: 2),
+                border: Border.all(color: PT.red, width: 2),
                 borderRadius: BorderRadius.circular(8))
             : null,
         child: _blockText(
@@ -427,18 +426,18 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         child: GestureDetector(
           onTap: () => _reopen(closure, p),
           child: Container(
-            color: const Color(0xCC2A2025),
+            color: const Color(0xE6FBEFEF),
             alignment: Alignment.center,
             padding: const EdgeInsets.all(8),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('Closed',
                   style:
-                      V3.inter(14, weight: FontWeight.w600, color: V3.redText)),
+                      PT.inter(14, weight: FontWeight.w600, color: PT.redText)),
               if (closure.reason.isNotEmpty)
                 Text(closure.reason,
                     textAlign: TextAlign.center,
-                    style: V3.inter(12, color: V3.muted)),
-              Text('tap to reopen', style: V3.inter(11, color: V3.muted)),
+                    style: PT.inter(12, color: PT.muted)),
+              Text('tap to reopen', style: PT.inter(11, color: PT.muted)),
             ]),
           ),
         ),
@@ -460,7 +459,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         decoration: BoxDecoration(
             color:
                 cand.isNotEmpty ? c.club.accent.withValues(alpha: 0.06) : null,
-            border: const Border(left: BorderSide(color: V3.line))),
+            border: const Border(left: BorderSide(color: PT.line))),
         child: Stack(clipBehavior: Clip.none, children: children),
       ),
     );
@@ -484,13 +483,13 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Reopen ${p.name}?', style: V3.tight(20)),
+                Text('Reopen ${p.name}?', style: PT.tight(20)),
                 const SizedBox(height: 6),
                 Text(
                     'Closed ${cl.from.day}/${cl.from.month}'
                     '${cl.to != cl.from ? ' to ${cl.to.day}/${cl.to.month}' : ''}'
                     '${cl.reason.isEmpty ? '' : ' (${cl.reason})'}.',
-                    style: V3.inter(15, color: V3.muted)),
+                    style: PT.inter(15, color: PT.muted)),
                 const SizedBox(height: 16),
                 Row(children: [
                   Expanded(
@@ -518,16 +517,16 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                 child: Text(title,
                     maxLines: tall ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
-                    style: V3.inter(12.5,
+                    style: PT.inter(12.5,
                         weight: FontWeight.w600,
                         height: 1.2,
-                        color: faint ? V3.muted : V3.text)),
+                        color: faint ? PT.muted : PT.text)),
               ),
               if (tall)
                 Text(sub,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: V3.inter(11, color: const Color(0xFFC8CCD2))),
+                    style: PT.inter(11, color: PT.muted)),
             ]);
       });
 
@@ -536,7 +535,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       decoration:
-          const BoxDecoration(border: Border(top: BorderSide(color: V3.line))),
+          const BoxDecoration(border: Border(top: BorderSide(color: PT.line))),
       child: Row(children: [
         for (final code
             in PitchCode.values.where((x) => x != PitchCode.other)) ...[
@@ -546,7 +545,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
               decoration: BoxDecoration(
                   color: codeColour(code), shape: BoxShape.circle)),
           const SizedBox(width: 5),
-          Text(kCodeNames[code]!, style: V3.inter(12, color: V3.muted)),
+          Text(kCodeNames[code]!, style: PT.inter(12, color: PT.muted)),
           const SizedBox(width: 14),
         ],
         Expanded(
@@ -555,12 +554,12 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: V3.inter(12, color: V3.muted)),
+              style: PT.inter(12, color: PT.muted)),
         ),
         if (n > 0) ...[
           const SizedBox(width: 14),
           Text('● $n clash${n == 1 ? '' : 'es'}',
-              style: V3.inter(12, weight: FontWeight.w600, color: V3.redText)),
+              style: PT.inter(12, weight: FontWeight.w600, color: PT.redText)),
         ],
       ]),
     );
@@ -584,11 +583,11 @@ class _Chip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
               color: on ? accent.withValues(alpha: 0.16) : Colors.transparent,
-              border: Border.all(color: on ? accent : V3.line),
+              border: Border.all(color: on ? accent : PT.line),
               borderRadius: BorderRadius.circular(18)),
           child: Text(label,
-              style: V3.inter(12.5,
-                  weight: FontWeight.w600, color: on ? accent : V3.text)),
+              style: PT.inter(12.5,
+                  weight: FontWeight.w600, color: on ? accent : PT.text)),
         ),
       );
 }
@@ -619,12 +618,12 @@ class _Inbox extends StatelessWidget {
             Expanded(
               child: Text(t.toUpperCase(),
                   overflow: TextOverflow.ellipsis,
-                  style: V3.inter(12,
+                  style: PT.inter(12,
                       weight: FontWeight.w700,
                       color: accent,
                       letterSpacing: 0.6)),
             ),
-            Text('$n', style: V3.inter(12, color: V3.muted)),
+            Text('$n', style: PT.inter(12, color: PT.muted)),
           ]),
         );
 
@@ -632,7 +631,7 @@ class _Inbox extends StatelessWidget {
       head('Needs a pitch', items.length),
       if (items.isEmpty)
         Text('Nothing waiting this week.',
-            style: V3.inter(13.5, color: V3.muted)),
+            style: PT.inter(13.5, color: PT.muted)),
       for (final i in [...today, ...later])
         _drag(
             DragItem(i),
@@ -641,7 +640,7 @@ class _Inbox extends StatelessWidget {
       head('Groups · training this week', groups.length),
       if (groups.isEmpty)
         Text('No groups yet. Add them in Groups.',
-            style: V3.inter(13.5, color: V3.muted)),
+            style: PT.inter(13.5, color: PT.muted)),
       for (final g in groups)
         _drag(
             DragGroup(g),
@@ -653,7 +652,7 @@ class _Inbox extends StatelessWidget {
                 at: atMinutes(c.day, 18 * 60)))),
       const SizedBox(height: 8),
       Text('Drag a card or a group onto a pitch, or tap it.',
-          style: V3.inter(12.5, color: V3.muted)),
+          style: PT.inter(12.5, color: PT.muted)),
       const SizedBox(height: 16),
     ]);
   }
@@ -685,21 +684,21 @@ class _ItemCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(11, 9, 10, 9),
         decoration: BoxDecoration(
-            color: V3.card,
+            color: PT.card,
             border: Border(left: BorderSide(color: col, width: 4)),
             borderRadius: BorderRadius.circular(12)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(item.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: V3.inter(14, weight: FontWeight.w600)),
+              style: PT.inter(14, weight: FontWeight.w600)),
           const SizedBox(height: 2),
           Text(
               '${kWeekdays[item.start.weekday - 1]} ${item.start.day} · ${timeOf(item.start)}'
               '${item.subtitle.isEmpty ? '' : ' · ${item.subtitle}'}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: V3.inter(12, color: V3.muted)),
+              style: PT.inter(12, color: PT.muted)),
           const SizedBox(height: 6),
           Row(children: [
             PitchTag(item.fixture != null
@@ -711,7 +710,7 @@ class _ItemCard extends StatelessWidget {
                         : 'Event'),
             if (item.fixture != null) ...[
               const SizedBox(width: 6),
-              const PitchTag('From league', colour: Color(0xFF4DA3FF)),
+              const PitchTag('From league', colour: Color(0xFF1F6FD1)),
             ],
           ]),
         ]),
@@ -729,25 +728,25 @@ class _GroupCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 8, 10, 8),
       decoration: BoxDecoration(
-          color: V3.card,
+          color: PT.card,
           border: Border(left: BorderSide(color: col, width: 4)),
           borderRadius: BorderRadius.circular(12)),
       child: Row(children: [
         Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(g.name, style: V3.inter(14, weight: FontWeight.w600)),
+            Text(g.name, style: PT.inter(14, weight: FontWeight.w600)),
             Text(g.teamId == null ? 'Not on CoachSmart' : g.teamName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: V3.inter(11.5, color: V3.muted)),
+                style: PT.inter(11.5, color: PT.muted)),
           ]),
         ),
         if (g.sessions > 0)
           PitchTag('${g.booked}/${g.sessions}',
-              colour: g.short ? V3.amberText : V3.green)
+              colour: g.short ? PT.amberText : PT.green)
         else if (g.booked > 0)
-          PitchTag('${g.booked}', colour: V3.green),
+          PitchTag('${g.booked}', colour: PT.green),
       ]),
     );
   }

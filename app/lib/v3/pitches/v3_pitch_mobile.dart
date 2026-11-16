@@ -3,7 +3,7 @@
 // No dragging on the phone: tap to place, move or edit.
 import 'package:flutter/material.dart';
 
-import '../v3_theme.dart';
+import 'v3_pitch_theme.dart';
 import 'v3_pitch_board.dart' show codeColour, bookingCode;
 import 'v3_pitch_controller.dart';
 import 'v3_pitch_models.dart';
@@ -35,38 +35,38 @@ class PitchPhoneDay extends StatelessWidget {
           const SizedBox(height: 10),
           if (clashes.isNotEmpty)
             _Banner(
-                colour: V3.redTint,
+                colour: PT.redTint,
                 text: clashes.length == 1
                     ? '1 clash: ${c.titleOf(clashes.first.$1)} and ${c.titleOf(clashes.first.$2)} '
                         'on ${board.pitch(clashes.first.$1.pitchId)?.name ?? ''} at ${timeOf(clashes.first.$1.start)}. Tap one to fix.'
                     : '${clashes.length} clashes today. Tap a red booking to fix it.',
-                textColour: const Color(0xFFFFB3B5)),
+                textColour: PT.redText),
           if (inbox.isNotEmpty)
             _Banner(
-                colour: V3.amberTint,
+                colour: PT.amberTint,
                 big: '${inbox.length}',
                 text: 'need a pitch this week',
-                textColour: V3.amberText,
+                textColour: PT.amberText,
                 onTap: () => open(_InboxList(c: c, items: inbox))),
           if (short.isNotEmpty)
             _Banner(
-                colour: V3.card,
+                colour: PT.card,
                 big: '${short.length}',
                 text:
                     'group${short.length == 1 ? '' : 's'} short of training slots: '
                     '${short.take(4).map((g) => g.name).join(', ')}${short.length > 4 ? '…' : ''}',
-                textColour: V3.muted),
+                textColour: PT.muted),
           if (c.rolledNote != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: Text(c.rolledNote!, style: V3.inter(13, color: V3.muted)),
+              child: Text(c.rolledNote!, style: PT.inter(13, color: PT.muted)),
             ),
           if (board.pitches.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 30),
               child: Center(
                   child: Text('Add your pitches in Setup to start.',
-                      style: V3.inter(15, color: V3.muted))),
+                      style: PT.inter(15, color: PT.muted))),
             ),
           for (final p in board.pitches)
             _PitchCard(c: c, pitch: p, clashIds: clashIds, open: open),
@@ -84,7 +84,7 @@ class _DayStrip extends StatelessWidget {
     return Row(children: [
       IconButton(
           onPressed: () => c.shiftDays(-7),
-          icon: const Icon(Icons.chevron_left, color: V3.muted)),
+          icon: const Icon(Icons.chevron_left, color: PT.muted)),
       for (var i = 0; i < 7; i++)
         Expanded(
           child: GestureDetector(
@@ -96,16 +96,16 @@ class _DayStrip extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 decoration: BoxDecoration(
-                    color: on ? accent : V3.card,
+                    color: on ? accent : PT.card,
                     borderRadius: BorderRadius.circular(10)),
                 child: Column(children: [
                   Text(kWeekdays[i],
-                      style: V3.inter(11,
-                          color: on ? onAccent(accent) : V3.muted)),
+                      style: PT.inter(11,
+                          color: on ? onAccent(accent) : PT.muted)),
                   Text('${d.day}',
-                      style: V3.inter(16,
+                      style: PT.inter(16,
                           weight: FontWeight.w700,
-                          color: on ? onAccent(accent) : V3.text)),
+                          color: on ? onAccent(accent) : PT.text)),
                 ]),
               );
             }),
@@ -113,7 +113,7 @@ class _DayStrip extends StatelessWidget {
         ),
       IconButton(
           onPressed: () => c.shiftDays(7),
-          icon: const Icon(Icons.chevron_right, color: V3.muted)),
+          icon: const Icon(Icons.chevron_right, color: PT.muted)),
     ]);
   }
 }
@@ -142,10 +142,10 @@ class _Banner extends StatelessWidget {
             if (big != null) ...[
               Text(big!,
                   style:
-                      V3.inter(20, weight: FontWeight.w700, color: textColour)),
+                      PT.inter(20, weight: FontWeight.w700, color: textColour)),
               const SizedBox(width: 10),
             ],
-            Expanded(child: Text(text, style: V3.inter(14, color: textColour))),
+            Expanded(child: Text(text, style: PT.inter(14, color: textColour))),
             if (onTap != null) Icon(Icons.chevron_right, color: textColour),
           ]),
         ),
@@ -189,26 +189,26 @@ class _PitchCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.fromLTRB(12, 11, 12, 6),
         decoration: BoxDecoration(
-            color: V3.card, borderRadius: BorderRadius.circular(14)),
+            color: PT.card, borderRadius: BorderRadius.circular(14)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Flexible(
                 child: Text(pitch.name,
                     overflow: TextOverflow.ellipsis,
-                    style: V3.inter(16, weight: FontWeight.w600))),
+                    style: PT.inter(16, weight: FontWeight.w600))),
             const SizedBox(width: 8),
             Expanded(
                 child: Text(pitch.venue,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: V3.inter(12.5, color: V3.muted))),
+                    style: PT.inter(12.5, color: PT.muted))),
             if (closure != null)
-              const PitchTag('Closed', colour: V3.redText)
+              const PitchTag('Closed', colour: PT.redText)
             else if (hasClash)
-              const PitchTag('Clash', colour: V3.redText)
+              const PitchTag('Clash', colour: PT.redText)
             else if (free.isNotEmpty)
               PitchTag('${free.length} free slot${free.length == 1 ? '' : 's'}',
-                  colour: V3.green),
+                  colour: PT.green),
           ]),
           if (closure != null)
             _row(context, 'All day',
@@ -220,7 +220,7 @@ class _PitchCard extends StatelessWidget {
                   slots.isEmpty && pitch.slots.isNotEmpty
                       ? 'No slot today'
                       : 'Nothing booked',
-                  style: V3.inter(13.5, color: V3.muted)),
+                  style: PT.inter(13.5, color: PT.muted)),
             ),
           for (final b in bookings)
             _row(
@@ -259,11 +259,11 @@ class _PitchCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: V3.line))),
+              border: Border(top: BorderSide(color: PT.line))),
           child: Row(children: [
             SizedBox(
                 width: 92,
-                child: Text(when, style: V3.inter(13, color: V3.muted))),
+                child: Text(when, style: PT.inter(13, color: PT.muted))),
             if (bar != null)
               Container(
                   width: 4,
@@ -277,15 +277,15 @@ class _PitchCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(what,
-                        style: V3.inter(14.5,
+                        style: PT.inter(14.5,
                             weight: FontWeight.w500,
                             color: red
-                                ? V3.redText
+                                ? PT.redText
                                 : faint
-                                    ? V3.muted
-                                    : V3.text)),
+                                    ? PT.muted
+                                    : PT.text)),
                     if (sub != null && sub.isNotEmpty)
-                      Text(sub, style: V3.inter(12, color: V3.muted)),
+                      Text(sub, style: PT.inter(12, color: PT.muted)),
                   ]),
             ),
           ]),
@@ -304,7 +304,7 @@ class _InboxList extends StatelessWidget {
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             children: [
-              Text('Needs a pitch', style: V3.tight(20)),
+              Text('Needs a pitch', style: PT.tight(20)),
               const SizedBox(height: 8),
               for (final i in items)
                 GestureDetector(
@@ -316,7 +316,7 @@ class _InboxList extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                        color: V3.bg,
+                        color: PT.bg,
                         border: Border(
                             left: BorderSide(
                                 color: codeColour(i.codeKey), width: 4)),
@@ -325,11 +325,11 @@ class _InboxList extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(i.title,
-                              style: V3.inter(15, weight: FontWeight.w600)),
+                              style: PT.inter(15, weight: FontWeight.w600)),
                           Text(
                               '${kWeekdays[i.start.weekday - 1]} ${i.start.day} · ${timeOf(i.start)}'
                               '${i.subtitle.isEmpty ? '' : ' · ${i.subtitle}'}',
-                              style: V3.inter(12.5, color: V3.muted)),
+                              style: PT.inter(12.5, color: PT.muted)),
                         ]),
                   ),
                 ),

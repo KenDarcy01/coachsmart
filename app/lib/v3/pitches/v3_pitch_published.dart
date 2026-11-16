@@ -3,7 +3,7 @@
 // with a search box to find your own group.
 import 'package:flutter/material.dart';
 
-import '../v3_theme.dart';
+import 'v3_pitch_theme.dart';
 import 'v3_pitch_api.dart';
 import 'v3_pitch_board.dart' show codeColour;
 import 'v3_pitch_models.dart';
@@ -130,36 +130,36 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
     final head = Row(children: [
       IconButton(
           onPressed: () => _shift(-1),
-          icon: const Icon(Icons.chevron_left, color: V3.muted)),
+          icon: const Icon(Icons.chevron_left, color: PT.muted)),
       Expanded(
         child: Column(children: [
           Text(
               'Week of ${_monday.day} ${kMonths[_monday.month - 1].substring(0, 3)}'
               ' – ${sunday.day} ${kMonths[sunday.month - 1].substring(0, 3)}',
-              style: V3.tight(18)),
+              style: PT.tight(18)),
           if (w?.publishedAt != null)
             Text(
                 'Published ${w!.publishedAt!.day}/${w.publishedAt!.month} at ${timeOf(w.publishedAt!)}',
-                style: V3.inter(12.5, color: V3.muted)),
+                style: PT.inter(12.5, color: PT.muted)),
         ]),
       ),
       IconButton(
           onPressed: () => _shift(1),
-          icon: const Icon(Icons.chevron_right, color: V3.muted)),
+          icon: const Icon(Icons.chevron_right, color: PT.muted)),
     ]);
 
     final children = <Widget>[
       head,
       const SizedBox(height: 8),
       TextField(
-        style: V3.inter(15),
+        style: PT.inter(15),
         onChanged: (v) => setState(() => _find = v.trim().toLowerCase()),
         decoration: InputDecoration(
             hintText: 'Find your group (U14 Boys, Nursery…)',
-            hintStyle: V3.inter(14, color: V3.muted),
-            prefixIcon: const Icon(Icons.search, color: V3.muted),
+            hintStyle: PT.inter(14, color: PT.muted),
+            prefixIcon: const Icon(Icons.search, color: PT.muted),
             filled: true,
-            fillColor: V3.card,
+            fillColor: PT.card,
             isDense: true,
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -169,17 +169,17 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
     ];
 
     if (_error != null) {
-      children.add(Text(_error!, style: V3.inter(15, color: V3.muted)));
+      children.add(Text(_error!, style: PT.inter(15, color: PT.muted)));
     } else if (w == null) {
       children.add(const Center(
           child: Padding(
               padding: EdgeInsets.all(30),
-              child: CircularProgressIndicator(color: V3.muted))));
+              child: CircularProgressIndicator(color: PT.muted))));
     } else if (w.publishedAt == null) {
       children.add(Padding(
         padding: const EdgeInsets.symmetric(vertical: 30),
         child: Text('This week\'s pitches aren\'t published yet.',
-            textAlign: TextAlign.center, style: V3.inter(15, color: V3.muted)),
+            textAlign: TextAlign.center, style: PT.inter(15, color: PT.muted)),
       ));
     } else {
       for (var i = 0; i < 7; i++) {
@@ -201,7 +201,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
         children.add(Padding(
           padding: const EdgeInsets.fromLTRB(2, 10, 2, 6),
           child: Text(longDay(day).toUpperCase(),
-              style: V3.inter(12.5,
+              style: PT.inter(12.5,
                   weight: FontWeight.w700, color: accent, letterSpacing: 0.6)),
         ));
         for (final c in closed) {
@@ -209,12 +209,12 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(
                 '${w.pitches[c.pitchId]?.$1 ?? 'A pitch'} closed${c.reason.isEmpty ? '' : ': ${c.reason}'}',
-                style: V3.inter(13.5, color: V3.redText)),
+                style: PT.inter(13.5, color: PT.redText)),
           ));
         }
         children.add(Container(
           decoration: BoxDecoration(
-              color: V3.card, borderRadius: BorderRadius.circular(14)),
+              color: PT.card, borderRadius: BorderRadius.circular(14)),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Column(children: [
             for (var k = 0; k < list.length; k++) _row(w, list[k], k > 0),
@@ -229,7 +229,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
                   ? 'Nothing on the pitches this week.'
                   : 'No slots for "$_find" this week.',
               textAlign: TextAlign.center,
-              style: V3.inter(15, color: V3.muted)),
+              style: PT.inter(15, color: PT.muted)),
         ));
       }
     }
@@ -250,12 +250,12 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-          border: line ? const Border(top: BorderSide(color: V3.line)) : null),
+          border: line ? const Border(top: BorderSide(color: PT.line)) : null),
       child: Row(children: [
         SizedBox(
             width: 96,
             child: Text('${timeOf(b.start)}–${timeOf(b.end)}',
-                style: V3.inter(13, color: V3.muted))),
+                style: PT.inter(13, color: PT.muted))),
         Container(
             width: 4,
             height: 34,
@@ -269,7 +269,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
                 b.kind == 'match' && b.opposition.isNotEmpty
                     ? '${b.name} v ${b.opposition}'
                     : b.name,
-                style: V3.inter(15, weight: FontWeight.w600)),
+                style: PT.inter(15, weight: FontWeight.w600)),
             Text(
                 [
                   if (p != null) p.$1,
@@ -279,7 +279,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
                   if (b.rooms.isNotEmpty) 'Rooms ${b.rooms}',
                   if (b.referee.isNotEmpty) 'Ref ${b.referee}',
                 ].join(' · '),
-                style: V3.inter(12.5, color: V3.muted)),
+                style: PT.inter(12.5, color: PT.muted)),
           ]),
         ),
       ]),

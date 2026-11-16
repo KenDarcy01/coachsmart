@@ -161,8 +161,8 @@ double _saturation(Color c) {
   return (mx - mn) / (1 - (2 * l - 1).abs());
 }
 
-const _pageBg = Color(0xFF14181B);
-const _green = Color(0xFF87C232);
+const _pageBg = Color(0xFFFFFFFF);
+const _green = Color(0xFF3F7D0B);
 
 Color pickAccent(List<String> hexes) {
   for (final h in hexes) {

@@ -5,7 +5,7 @@
 // for every team at the club, on CoachSmart or not (Ken, 2026-11-16).
 import 'package:flutter/material.dart';
 
-import '../v3_theme.dart';
+import 'v3_pitch_theme.dart';
 import 'v3_pitch_api.dart';
 import 'v3_pitch_controller.dart';
 import 'v3_pitch_models.dart';
@@ -73,17 +73,17 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                   children: [
                     TextField(
                         controller: name,
-                        style: V3.inter(15),
+                        style: PT.inter(15),
                         decoration: pitchInput('Name', hint: "St Anne's Park")),
                     const SizedBox(height: 8),
                     TextField(
                         controller: address,
-                        style: V3.inter(15),
+                        style: PT.inter(15),
                         decoration: pitchInput('Address (optional)')),
                     const SizedBox(height: 8),
                     TextField(
                         controller: pin,
-                        style: V3.inter(15),
+                        style: PT.inter(15),
                         decoration: pitchInput('Map link (optional)',
                             hint: 'Goes onto events placed here')),
                     const SizedBox(height: 4),
@@ -92,9 +92,9 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                         value: rented,
                         activeThumbColor: c.club.accent,
                         title:
-                            Text('Rented / council pitch', style: V3.inter(15)),
+                            Text('Rented / council pitch', style: PT.inter(15)),
                         subtitle: Text('Only the slots you set show as free',
-                            style: V3.inter(13, color: V3.muted)),
+                            style: PT.inter(13, color: PT.muted)),
                         onChanged: (x) => set(() => rented = x)),
                   ],
                   accent: c.club.accent,
@@ -138,13 +138,13 @@ class _PitchSetupViewState extends State<PitchSetupView> {
           accent: c.club.accent,
           children: [
             Text('${u.events} event${u.events == 1 ? '' : 's'} use this name.',
-                style: V3.inter(14, color: V3.muted)),
+                style: PT.inter(14, color: PT.muted)),
             const SizedBox(height: 8),
             for (final p in pitches)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(p.name, style: V3.inter(15)),
-                subtitle: Text(p.venue, style: V3.inter(13, color: V3.muted)),
+                title: Text(p.name, style: PT.inter(15)),
+                subtitle: Text(p.venue, style: PT.inter(13, color: PT.muted)),
                 onTap: () => Navigator.pop(context, p),
               )
           ],
@@ -184,7 +184,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                 TextField(
                     controller: f[k],
                     keyboardType: TextInputType.number,
-                    style: V3.inter(15),
+                    style: PT.inter(15),
                     decoration: pitchInput(labels[k]!)),
                 const SizedBox(height: 8),
               ]
@@ -209,10 +209,10 @@ class _PitchSetupViewState extends State<PitchSetupView> {
   Widget build(BuildContext context) {
     final s = _setup;
     if (_error != null) {
-      return Center(child: Text(_error!, style: V3.inter(15, color: V3.muted)));
+      return Center(child: Text(_error!, style: PT.inter(15, color: PT.muted)));
     }
     if (s == null) {
-      return const Center(child: CircularProgressIndicator(color: V3.muted));
+      return const Center(child: CircularProgressIndicator(color: PT.muted));
     }
     final wide = MediaQuery.sizeOf(context).width >= kWide;
     final accent = c.club.accent;
@@ -224,7 +224,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Text(
               'Start with a venue (your club grounds, a council park, a rented astro), then add its pitches and the slots you hold.',
-              style: V3.inter(15, color: V3.muted)),
+              style: PT.inter(15, color: PT.muted)),
         ),
       Align(
           alignment: Alignment.centerLeft,
@@ -241,19 +241,19 @@ class _PitchSetupViewState extends State<PitchSetupView> {
         title: 'Event names to link',
         child: s.unmatched.isEmpty
             ? Text('Every event location matches a pitch.',
-                style: V3.inter(14, color: V3.muted))
+                style: PT.inter(14, color: PT.muted))
             : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(
                     'Locations coaches typed that match no pitch yet. Link one and those events show on the board.',
-                    style: V3.inter(13.5, color: V3.muted)),
+                    style: PT.inter(13.5, color: PT.muted)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 6, runSpacing: 6, children: [
                   for (final u in s.unmatched.take(20))
                     ActionChip(
-                      backgroundColor: V3.bg,
-                      side: const BorderSide(color: V3.line),
+                      backgroundColor: PT.bg,
+                      side: const BorderSide(color: PT.line),
                       label: Text('${u.location} (${u.events})',
-                          style: V3.inter(13)),
+                          style: PT.inter(13)),
                       onPressed: _busy ? null : () => _link(u),
                     )
                 ]),
@@ -264,7 +264,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
         title: 'Default lengths',
         action: TextButton(
             onPressed: _busy ? null : _editDurations,
-            child: Text('Edit', style: V3.inter(14, color: accent))),
+            child: Text('Edit', style: PT.inter(14, color: accent))),
         child: Column(children: [
           _kv('Match, up to U12', '${s.durations.u12} min'),
           _kv('Match, U13 to U16', '${s.durations.u16} min'),
@@ -288,8 +288,8 @@ class _PitchSetupViewState extends State<PitchSetupView> {
   Widget _kv(String k, String v) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(children: [
-          Expanded(child: Text(k, style: V3.inter(14, color: V3.muted))),
-          Text(v, style: V3.inter(14, weight: FontWeight.w500)),
+          Expanded(child: Text(k, style: PT.inter(14, color: PT.muted))),
+          Text(v, style: PT.inter(14, weight: FontWeight.w500)),
         ]),
       );
 
@@ -298,10 +298,10 @@ class _PitchSetupViewState extends State<PitchSetupView> {
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: V3.card, borderRadius: BorderRadius.circular(14)),
+            color: PT.card, borderRadius: BorderRadius.circular(14)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Expanded(child: Text(title, style: V3.tight(17))),
+            Expanded(child: Text(title, style: PT.tight(17))),
             if (action != null) action,
           ]),
           const SizedBox(height: 8),
@@ -315,25 +315,25 @@ class _PitchSetupViewState extends State<PitchSetupView> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: V3.card, borderRadius: BorderRadius.circular(14)),
+          color: PT.card, borderRadius: BorderRadius.circular(14)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(v.name, style: V3.tight(18)),
+              Text(v.name, style: PT.tight(18)),
               Text(
                   [
                     if (v.address.isNotEmpty) v.address,
                     v.rented ? 'rented' : 'club grounds',
                     if (v.pin.isNotEmpty) 'map pin set',
                   ].join(' · '),
-                  style: V3.inter(13, color: V3.muted)),
+                  style: PT.inter(13, color: PT.muted)),
             ]),
           ),
           TextButton(
               onPressed: _busy ? null : () => _editVenue(v),
-              child: Text('Edit', style: V3.inter(14, color: accent))),
+              child: Text('Edit', style: PT.inter(14, color: accent))),
         ]),
         const SizedBox(height: 6),
         for (final p in v.pitches)
@@ -342,20 +342,20 @@ class _PitchSetupViewState extends State<PitchSetupView> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: V3.line))),
+                  border: Border(top: BorderSide(color: PT.line))),
               child:
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 SizedBox(
                     width: wide ? 150 : 110,
                     child: Text(p.name,
-                        style: V3.inter(15, weight: FontWeight.w600))),
+                        style: PT.inter(15, weight: FontWeight.w600))),
                 Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(p.subtitle, style: V3.inter(13.5)),
+                        Text(p.subtitle, style: PT.inter(13.5)),
                         Text(_slotSummary(p),
-                            style: V3.inter(12.5, color: V3.muted)),
+                            style: PT.inter(12.5, color: PT.muted)),
                         if (p.aliases.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
@@ -365,9 +365,9 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 7, vertical: 2),
                                   decoration: BoxDecoration(
-                                      color: V3.card2,
+                                      color: PT.card2,
                                       borderRadius: BorderRadius.circular(6)),
-                                  child: Text(a, style: V3.inter(11.5)),
+                                  child: Text(a, style: PT.inter(11.5)),
                                 )
                             ]),
                           ),
@@ -376,14 +376,14 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                 IconButton(
                     tooltip: 'Remove',
                     onPressed: _busy ? null : () => _removePitch(p),
-                    icon: const Icon(Icons.close, size: 18, color: V3.muted)),
+                    icon: const Icon(Icons.close, size: 18, color: PT.muted)),
               ]),
             ),
           ),
         const SizedBox(height: 4),
         TextButton(
             onPressed: _busy ? null : () => _editPitch(v),
-            child: Text('+ Add a pitch', style: V3.inter(14, color: accent))),
+            child: Text('+ Add a pitch', style: PT.inter(14, color: accent))),
       ]),
     );
   }
@@ -422,7 +422,7 @@ class _SimpleSheet extends StatelessWidget {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: V3.tight(20)),
+                    Text(title, style: PT.tight(20)),
                     const SizedBox(height: 12),
                     ...children,
                   ]),
@@ -501,13 +501,13 @@ class _PitchEditorState extends State<_PitchEditor> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                 decoration: BoxDecoration(
-                    color: on(v) ? accent.withValues(alpha: 0.16) : V3.bg,
-                    border: Border.all(color: on(v) ? accent : V3.line),
+                    color: on(v) ? accent.withValues(alpha: 0.16) : PT.bg,
+                    border: Border.all(color: on(v) ? accent : PT.line),
                     borderRadius: BorderRadius.circular(18)),
                 child: Text(label(v),
-                    style: V3.inter(13,
+                    style: PT.inter(13,
                         weight: FontWeight.w600,
-                        color: on(v) ? accent : V3.text)),
+                        color: on(v) ? accent : PT.text)),
               ),
             )
         ]);
@@ -519,7 +519,7 @@ class _PitchEditorState extends State<_PitchEditor> {
       children: [
         TextField(
             controller: _name,
-            style: V3.inter(15),
+            style: PT.inter(15),
             decoration: pitchInput('Name', hint: 'Pitch 34, Club Astro')),
         const SizedBox(height: 12),
         chips<String>(
@@ -542,16 +542,16 @@ class _PitchEditorState extends State<_PitchEditor> {
             contentPadding: EdgeInsets.zero,
             value: p.floodlit,
             activeThumbColor: accent,
-            title: Text('Floodlights', style: V3.inter(15)),
+            title: Text('Floodlights', style: PT.inter(15)),
             onChanged: (x) => setState(() => p = p.copyWith(floodlit: x))),
-        Text('Also called', style: V3.inter(14, color: V3.muted)),
+        Text('Also called', style: PT.inter(14, color: PT.muted)),
         const SizedBox(height: 6),
         Wrap(spacing: 6, runSpacing: 6, children: [
           for (final a in p.aliases)
             InputChip(
-              backgroundColor: V3.bg,
-              side: const BorderSide(color: V3.line),
-              label: Text(a, style: V3.inter(13)),
+              backgroundColor: PT.bg,
+              side: const BorderSide(color: PT.line),
+              label: Text(a, style: PT.inter(13)),
               onDeleted: () => setState(
                   () => p = p.copyWith(aliases: [...p.aliases]..remove(a))),
             ),
@@ -559,7 +559,7 @@ class _PitchEditorState extends State<_PitchEditor> {
         const SizedBox(height: 6),
         TextField(
           controller: _alias,
-          style: V3.inter(15),
+          style: PT.inter(15),
           decoration: pitchInput('Add a name', hint: 'P34, St Annes No 34'),
           onSubmitted: (v) {
             if (v.trim().isEmpty) return;
@@ -571,9 +571,9 @@ class _PitchEditorState extends State<_PitchEditor> {
         ),
         const SizedBox(height: 16),
         Text('Slots the club holds',
-            style: V3.inter(15, weight: FontWeight.w600)),
+            style: PT.inter(15, weight: FontWeight.w600)),
         Text('Leave empty for open 08:00–22:00 every day.',
-            style: V3.inter(13, color: V3.muted)),
+            style: PT.inter(13, color: PT.muted)),
         const SizedBox(height: 8),
         for (var d = 1; d <= 7; d++)
           if (p.slots.any((s) => s.weekday == d))
@@ -584,7 +584,7 @@ class _PitchEditorState extends State<_PitchEditor> {
                 SizedBox(
                     width: 40,
                     child: Text(kWeekdays[d - 1],
-                        style: V3.inter(13.5, color: V3.muted))),
+                        style: PT.inter(13.5, color: PT.muted))),
                 Expanded(
                   child: Wrap(spacing: 4, runSpacing: 4, children: [
                     for (final s
@@ -592,9 +592,9 @@ class _PitchEditorState extends State<_PitchEditor> {
                           ..sort((a, b) => a.opens.compareTo(b.opens))))
                       InputChip(
                         visualDensity: VisualDensity.compact,
-                        backgroundColor: V3.bg,
-                        side: const BorderSide(color: V3.line),
-                        label: Text(s.label, style: V3.inter(12)),
+                        backgroundColor: PT.bg,
+                        side: const BorderSide(color: PT.line),
+                        label: Text(s.label, style: PT.inter(12)),
                         onDeleted: () => setState(() =>
                             p = p.copyWith(slots: [...p.slots]..remove(s))),
                       )
@@ -606,10 +606,10 @@ class _PitchEditorState extends State<_PitchEditor> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-              color: V3.bg, borderRadius: BorderRadius.circular(12)),
+              color: PT.bg, borderRadius: BorderRadius.circular(12)),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Add slots', style: V3.inter(14, weight: FontWeight.w600)),
+            Text('Add slots', style: PT.inter(14, weight: FontWeight.w600)),
             const SizedBox(height: 8),
             chips<int>(
                 [1, 2, 3, 4, 5, 6, 7],
@@ -621,20 +621,20 @@ class _PitchEditorState extends State<_PitchEditor> {
               Expanded(
                   child: TextField(
                       controller: _from,
-                      style: V3.inter(15),
+                      style: PT.inter(15),
                       decoration: pitchInput('From'))),
               const SizedBox(width: 6),
               Expanded(
                   child: TextField(
                       controller: _to,
-                      style: V3.inter(15),
+                      style: PT.inter(15),
                       decoration: pitchInput('To'))),
               const SizedBox(width: 6),
               Expanded(
                   child: TextField(
                       controller: _each,
                       keyboardType: TextInputType.number,
-                      style: V3.inter(15),
+                      style: PT.inter(15),
                       decoration:
                           pitchInput('Each (min)', hint: '0 = one slot'))),
             ]),
@@ -673,14 +673,14 @@ class PitchGroupsView extends StatelessWidget {
                   children: [
                     TextField(
                         controller: name,
-                        style: V3.inter(15),
+                        style: PT.inter(15),
                         decoration: pitchInput('Name',
                             hint: 'U14 Boys, Nursery, All Stars')),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       initialValue: code,
-                      dropdownColor: V3.card2,
-                      style: V3.inter(15),
+                      dropdownColor: PT.card2,
+                      style: PT.inter(15),
                       decoration: pitchInput('Code (sets the colour)'),
                       items: [
                         for (final k in kGroupCodes)
@@ -692,14 +692,14 @@ class PitchGroupsView extends StatelessWidget {
                     DropdownButtonFormField<int?>(
                       initialValue: team,
                       isExpanded: true,
-                      dropdownColor: V3.card2,
-                      style: V3.inter(15),
+                      dropdownColor: PT.card2,
+                      style: PT.inter(15),
                       decoration: pitchInput('CoachSmart team'),
                       items: [
                         DropdownMenuItem<int?>(
                             value: null,
                             child: Text('Not on CoachSmart',
-                                style: V3.inter(15, color: V3.muted))),
+                                style: PT.inter(15, color: PT.muted))),
                         for (final t in board.teams)
                           if (!taken.contains(t.teamId))
                             DropdownMenuItem<int?>(
@@ -713,17 +713,17 @@ class PitchGroupsView extends StatelessWidget {
                     Row(children: [
                       Expanded(
                           child: Text('Training slots a week',
-                              style: V3.inter(15, color: V3.muted))),
+                              style: PT.inter(15, color: PT.muted))),
                       IconButton(
                           onPressed:
                               sessions > 0 ? () => set(() => sessions--) : null,
-                          icon: const Icon(Icons.remove, color: V3.muted)),
+                          icon: const Icon(Icons.remove, color: PT.muted)),
                       Text('$sessions',
-                          style: V3.inter(16, weight: FontWeight.w600)),
+                          style: PT.inter(16, weight: FontWeight.w600)),
                       IconButton(
                           onPressed:
                               sessions < 7 ? () => set(() => sessions++) : null,
-                          icon: const Icon(Icons.add, color: V3.muted)),
+                          icon: const Icon(Icons.add, color: PT.muted)),
                     ]),
                   ],
                 )));
@@ -756,7 +756,7 @@ class PitchGroupsView extends StatelessWidget {
           Text(
               'One group per team that uses the pitches, on CoachSmart or not. '
               'Drag a group onto the board to give it a weekly training slot.',
-              style: V3.inter(14, color: V3.muted)),
+              style: PT.inter(14, color: PT.muted)),
           const SizedBox(height: 12),
           Wrap(spacing: 8, runSpacing: 8, children: [
             SizedBox(
@@ -784,7 +784,7 @@ class PitchGroupsView extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                 decoration: BoxDecoration(
-                    color: V3.card,
+                    color: PT.card,
                     border: Border(
                         left:
                             BorderSide(color: codeColour(g.codeKey), width: 4)),
@@ -795,17 +795,17 @@ class PitchGroupsView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(g.name,
-                              style: V3.inter(15, weight: FontWeight.w600)),
+                              style: PT.inter(15, weight: FontWeight.w600)),
                           Text(
                               '${g.code} · ${g.teamId == null ? 'not on CoachSmart' : g.teamName}',
-                              style: V3.inter(12.5, color: V3.muted)),
+                              style: PT.inter(12.5, color: PT.muted)),
                         ]),
                   ),
                   PitchTag(
                       g.sessions == 0
                           ? '${g.booked} this week'
                           : '${g.booked} of ${g.sessions} this week',
-                      colour: g.short ? V3.amberText : V3.green),
+                      colour: g.short ? PT.amberText : PT.green),
                 ]),
               ),
             ),

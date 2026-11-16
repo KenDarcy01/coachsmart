@@ -356,13 +356,14 @@ void main() {
       expect(ageOf('Minor'), 18);
     });
 
-    test('club accent: a clear club colour that reads on the dark page', () {
+    test('club accent: a clear club colour that reads on the white page', () {
       expect(pickAccent(['#e61e28', '#ffffff']), const Color(0xFFE61E28));
-      // Navy is too dark, so Ardcairn gets its orange.
-      expect(pickAccent(['#1e3f94', '#f04e23']), const Color(0xFFF04E23));
-      expect(pickAccent(['#6e1a2a', '#e8b230']), const Color(0xFFE8B230));
+      // On white the club's main colour usually reads; a pale one is skipped.
+      expect(pickAccent(['#1e3f94', '#f04e23']), const Color(0xFF1E3F94));
+      expect(pickAccent(['#6e1a2a', '#e8b230']), const Color(0xFF6E1A2A));
+      expect(pickAccent(['#ffe600', '#1e3f94']), const Color(0xFF1E3F94));
       // Nothing usable: CoachSmart green.
-      expect(pickAccent(['#ffffff', '#000000']), const Color(0xFF87C232));
+      expect(pickAccent(['#ffffff', '#000000']), const Color(0xFF3F7D0B));
     });
 
     test('clashes need the same part of a pitch at the same time', () {
