@@ -82,6 +82,7 @@ class _PitchAvailabilityViewState extends State<PitchAvailabilityView> {
         _TimeSheet(
             accent: c.club.accent,
             pitch: p.name,
+            hourly: p.surface == 'grass',
             weekday: weekday,
             slot: slot,
             block: block));
@@ -439,11 +440,15 @@ class _TimeSheet extends StatefulWidget {
   const _TimeSheet(
       {required this.accent,
       required this.pitch,
+      this.hourly = false,
       required this.weekday,
       this.slot,
       this.block});
   final Color accent;
   final String pitch;
+
+  /// Grass slots default to on the hour, an hour each (Ken, 2026-11-16).
+  final bool hourly;
   final int weekday;
   final PitchSlot? slot;
   final PitchBlock? block;
@@ -457,7 +462,8 @@ class _TimeSheetState extends State<_TimeSheet> {
       text: hhmm(widget.slot?.opens ?? widget.block?.slot.opens ?? 18 * 60));
   late final _to = TextEditingController(
       text: hhmm(widget.slot?.closes ?? widget.block?.slot.closes ?? 19 * 60));
-  final _each = TextEditingController();
+  late final _each =
+      TextEditingController(text: widget.hourly && !_editing ? '60' : '');
   late final Set<int> _days = {widget.weekday};
   String? _problem;
 
