@@ -12,7 +12,9 @@
  *     name ('Point'), kind ('score'|'correction'), count (1, or +/-n for corrections),
  *     member ('Ciarán Byrne' or '')
  *   }],
- *   subs: [{ half, second, on, off }]
+ *   subs: [{ half, second, on, off }],
+ *   sport                       2 soccer, 3 rugby (left out for GAA): plain
+ *                               totals, no "1-05" goals, try/goal markers
  * }
  */
 (function () {
@@ -21,6 +23,14 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad2 = n => String(n).padStart(2, '0');
   const gaa = (g, p) => `${g}-${pad2(p)}`;
+  // Multi-sport: GAA shows "1-05" with a 3 as a goal; soccer and rugby add
+  // up a plain total. The big score gets the marker: a GAA goal, a soccer
+  // goal, a rugby try (5) or penalty try (7).
+  const other = m => m.sport === 2 || m.sport === 3;
+  const isGoal = (m, v) => !other(m) && v === 3;
+  const isBig = (m, v) => m.sport === 2 ? v > 0 : m.sport === 3 ? v >= 5 : v === 3;
+  const fmtS = (m, g, p) => other(m) ? String(g * 3 + p) : gaa(g, p);
+  const bigName = m => m.sport === 3 ? 'TRY' : 'GOAL';
   const poss = n => /s$/i.test(n || '') ? `${n}'` : `${n}'s`;
 
   // Absolute match second, with injury time squeezed onto the end of its half
@@ -53,12 +63,12 @@
     evs.forEach(e => {
       const n = e.kind === 'correction' ? (e.count || 0) : 1;
       if (e.value) {
-        if (e.value === 3) t[e.side].g += n; else t[e.side].p += n * e.value;
+        if (isGoal(m, e.value)) t[e.side].g += n; else t[e.side].p += n * e.value;
       }
       rows.push(Object.assign({}, e, {
         abs: absSec(m, e.half, e.second),
         scoring: !!e.value,
-        us: gaa(t.us.g, t.us.p), opp: gaa(t.opp.g, t.opp.p),
+        us: fmtS(m, t.us.g, t.us.p), opp: fmtS(m, t.opp.g, t.opp.p),
         usT: t.us.g * 3 + t.us.p, oppT: t.opp.g * 3 + t.opp.p,
       }));
     });
@@ -68,7 +78,7 @@
   function totals(m) {
     const w = walk(m);
     return {
-      us: gaa(w.us.g, w.us.p), opp: gaa(w.opp.g, w.opp.p),
+      us: fmtS(m, w.us.g, w.us.p), opp: fmtS(m, w.opp.g, w.opp.p),
       usT: w.us.g * 3 + w.us.p, oppT: w.opp.g * 3 + w.opp.p,
     };
   }
@@ -119,10 +129,10 @@
     s += `<path d="${line}" fill="none" stroke="#87c232" stroke-width="2.5" clip-path="url(#${uid}u)"/>`;
     s += `<path d="${line}" fill="none" stroke="#e05252" stroke-width="2.5" clip-path="url(#${uid}d)"/>`;
     s += `<path d="${line}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1" clip-path="url(#${uid}u)" style="display:none"/>`;
-    w.rows.filter(r => r.scoring && r.value === 3 && r.kind !== 'correction').forEach(r => {
+    w.rows.filter(r => r.scoring && isBig(m, r.value) && r.kind !== 'correction').forEach(r => {
       const dd = r.usT - r.oppT;
       s += `<circle cx="${x(r.abs)}" cy="${y(dd)}" r="9" fill="${r.side === 'us' ? '#87c232' : '#e05252'}"/>`;
-      s += `<text x="${x(r.abs)}" y="${y(dd) + 4}" font-size="11" font-weight="800" fill="#14181b" text-anchor="middle">G</text>`;
+      s += `<text x="${x(r.abs)}" y="${y(dd) + 4}" font-size="11" font-weight="800" fill="#14181b" text-anchor="middle">${bigName(m)[0]}</text>`;
     });
     s += `<text x="${L + 4}" y="${T + 11}" fill="#87c232" font-size="11" font-weight="700">${esc(m.usName)} ahead</text>`;
     s += `<text x="${L + 4}" y="${T + ch - 4}" fill="#e05252" font-size="11" font-weight="700">${esc(m.oppName)} ahead</text>`;
@@ -181,9 +191,9 @@
       const t = { us: { g: 0, p: 0 }, opp: { g: 0, p: 0 } };
       (m.events || []).filter(e => e.half === h && e.value).forEach(e => {
         const n = e.kind === 'correction' ? (e.count || 0) : 1;
-        if (e.value === 3) t[e.side].g += n; else t[e.side].p += n * e.value;
+        if (isGoal(m, e.value)) t[e.side].g += n; else t[e.side].p += n * e.value;
       });
-      out[h] = { us: gaa(t.us.g, t.us.p), opp: gaa(t.opp.g, t.opp.p) };
+      out[h] = { us: fmtS(m, t.us.g, t.us.p), opp: fmtS(m, t.opp.g, t.opp.p) };
     });
     return out;
   }
@@ -206,12 +216,12 @@
       const k = e.member || '';
       by[k] = by[k] || { g: 0, p: 0, other: {} };
       const n = e.kind === 'correction' ? (e.count || 0) : 1;
-      if (e.value === 3) by[k].g += n;
+      if (isGoal(m, e.value)) by[k].g += n;
       else if (e.value) by[k].p += n * e.value;
       else by[k].other[e.name] = (by[k].other[e.name] || 0) + n;
     });
     return Object.entries(by)
-      .map(([name, v]) => ({ name, score: gaa(v.g, v.p), total: v.g * 3 + v.p, other: v.other }))
+      .map(([name, v]) => ({ name, score: fmtS(m, v.g, v.p), total: v.g * 3 + v.p, other: v.other }))
       .filter(r => r.total > 0 || Object.keys(r.other).length)
       .sort((a, b) => (a.name === '') - (b.name === '') || b.total - a.total);
   }
@@ -256,11 +266,12 @@
     const NAME = e => e.kind === 'correction'
       ? `Score check: ${e.count > 0 ? '+' : ''}${e.count} ${esc((e.name || '').toLowerCase())}${Math.abs(e.count) !== 1 ? 's' : ''}`
       : esc(e.name || 'Score');
-    let out = `<div class="mc-band"><span>Throw-in</span><b>0-00 v 0-00</b></div>`;
+    const zero = fmtS(m, 0, 0);
+    let out = `<div class="mc-band"><span>${other(m) ? 'Kick-off' : 'Throw-in'}</span><b>${zero} v ${zero}</b></div>`;
     const items = w.rows.map(r => ({ t: 'ev', half: r.half, second: r.second, r }))
       .concat((m.subs || []).map(s => ({ t: 'sub', half: s.half, second: s.second, s })))
       .sort((a, b) => (a.half - b.half) || (a.second - b.second));
-    let lastSide = null, run = 0, htShown = false, lastScore = { us: '0-00', opp: '0-00' };
+    let lastSide = null, run = 0, htShown = false, lastScore = { us: zero, opp: zero };
     const rows = [];
     items.forEach((it, i) => {
       if (it.half === 2 && !htShown) {
@@ -275,10 +286,10 @@
       const r = it.r;
       lastScore = { us: r.us, opp: r.opp };
       const tag = r.kind === 'correction' ? '<span class="mc-tag a">CHECK</span>'
-        : r.value === 3 ? `<span class="mc-tag ${r.side === 'us' ? 'g' : 'r'}">GOAL</span>`
-        : r.value === 2 ? '<span class="mc-tag a">+2</span>' : '';
+        : isBig(m, r.value) ? `<span class="mc-tag ${r.side === 'us' ? 'g' : 'r'}">${bigName(m)}</span>`
+        : !other(m) && r.value === 2 ? '<span class="mc-tag a">+2</span>' : '';
       const who = (r.side === 'us' ? m.usName : m.oppName) + (r.member ? ' · ' + r.member : '');
-      rows.push(`<div class="mc-ev ${r.side === 'opp' ? 'opp' : ''} ${r.value === 3 && r.kind !== 'correction' ? 'goal' : ''} ${r.scoring ? '' : 'stat'}">
+      rows.push(`<div class="mc-ev ${r.side === 'opp' ? 'opp' : ''} ${isBig(m, r.value) && r.kind !== 'correction' ? 'goal' : ''} ${r.scoring ? '' : 'stat'}">
         <span class="mn">${minuteLabel(m, r.half, r.second)}</span>
         <span class="wh">${NAME(r)}${tag}<small>${esc(who)}</small></span>
         <span class="rs">${r.scoring ? `${r.us}<i>v</i>${r.opp}` : ''}</span></div>`);

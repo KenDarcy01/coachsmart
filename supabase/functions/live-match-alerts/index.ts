@@ -20,7 +20,15 @@ const MAX_RUN_MS = 100_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const pad2 = (n: number) => String(n).padStart(2, "0");
-const gaa = (s: { g: number; p: number }) => `${s.g}-${pad2(s.p)}`;
+// A side's score: "1-05" in GAA. Soccer and rugby (lm_score adds sport 2/3)
+// show the plain total.
+const gaa = (s: { g: number; p: number; t?: number; sport?: number }) =>
+  (s.sport ?? 0) > 1 ? String(s.t ?? s.g * 3 + s.p) : `${s.g}-${pad2(s.p)}`;
+// Multi-sport: a goal only in GAA; the "goals only" alert level means a
+// soccer goal or a rugby try (5) / penalty try (7).
+const sportOf = (state: any) => Number(state?.score?.sport) || 1;
+const isGoal = (sport: number, v: number) => sport === 1 && v === 3;
+const isBig = (sport: number, v: number) => sport === 2 ? v > 0 : sport === 3 ? v >= 5 : v === 3;
 const cleanClub = (n: string) =>
   String(n || "").replace(/\b(GAA|GFC|CLG|HC|LGFA|Camogie Club)\b/gi, "").replace(/\s{2,}/g, " ").trim();
 
@@ -110,7 +118,8 @@ function leadText(n: Names, s: any) {
 
 // One message per score. score is the score just after this one.
 function scoreMessage(n: Names, state: any, item: any, score: any, names: boolean) {
-  const what = item.value === 3 ? "GOAL" : item.type;
+  const sp = sportOf(state);
+  const what = isBig(sp, Number(item.value)) ? (sp === 3 ? "TRY" : "GOAL") : item.type;
   const team = item.side === "us" ? n.us : n.opp;
   const who = item.side === "us" ? (names && item.member ? item.member : n.us) : n.opp;
   // Says which side scored, e.g. "GOAL Clontarf · Clontarf 1-03 Ballymun 0-02"
@@ -120,14 +129,14 @@ function scoreMessage(n: Names, state: any, item: any, score: any, names: boolea
 }
 
 // The score after each item: the current score with later items taken off
-function runningScores(items: any[], now: any) {
+function runningScores(items: any[], now: any, sport = 1) {
   const cur = { us: { ...now.us }, opp: { ...now.opp } };
   const out: any[] = new Array(items.length);
   for (let i = items.length - 1; i >= 0; i--) {
     out[i] = { us: { ...cur.us }, opp: { ...cur.opp } };
     const side = items[i].side === "us" ? cur.us : cur.opp;
     const v = Number(items[i].value) || 0;
-    if (v === 3) side.g = Math.max(0, side.g - 1); else side.p = Math.max(0, side.p - v);
+    if (isGoal(sport, v)) side.g = Math.max(0, side.g - 1); else side.p = Math.max(0, side.p - v);
     side.t = side.g * 3 + side.p;
   }
   return out;
@@ -135,7 +144,7 @@ function runningScores(items: any[], now: any) {
 
 function phaseMessage(n: Names, state: any, phase: string) {
   const s = state.score;
-  if (phase === "ko") return { title: `Throw-in · ${n.team} v ${n.opp}`, body: "Tap to watch live." };
+  if (phase === "ko") return { title: `${sportOf(state) > 1 ? "Kick-off" : "Throw-in"} · ${n.team} v ${n.opp}`, body: "Tap to watch live." };
   if (phase === "h2") return { title: `Second half · ${scoreLine(n, s)}`, body: `${n.team}. Second half under way. Tap to watch live.` };
   if (phase === "ht") return { title: `Half time · ${scoreLine(n, s)}`, body: `${n.team}. Tap for the chart and scorers.` };
   const d = s.us.t - s.opp.t;
@@ -155,7 +164,9 @@ async function handle(sb: any, claim: any): Promise<Record<string, unknown> | nu
   const squads: any[] = state.squads || [];
   const squad = squads.length > 1 && state.squad ? (/^\s*no team\s*$/i.test(state.squad.name || "") ? "" : String(state.squad.name || "").replace(/\s+(team|squad)$/i, "").trim()) : "";
   const n: Names = {
-    us: cleanClub(ev.club_name) || ev.team_name || "Us",
+    us: (sportOf(state) > 1
+      ? String(ev.club_name || "").replace(/\b(RFC|RFU|AFC|FC|Rugby Football Club|Rugby Club|Football Club)\b/gi, "").replace(/\s{2,}/g, " ").trim()
+      : cleanClub(ev.club_name)) || ev.team_name || "Us",
     opp: ev.opposition || "Opposition",
     team: [ev.team_name || "", squad].filter(Boolean).join(" "),
   };
@@ -163,7 +174,8 @@ async function handle(sb: any, claim: any): Promise<Record<string, unknown> | nu
   if (error) { console.warn("targets", error.message); return { items: items.length, phases, error: "targets: " + error.message }; }
 
   const result = phases.includes("ft") ? "ft" : phases.includes("ht") ? "ht" : null;
-  const scores = runningScores(items, state.score);
+  const sport = sportOf(state);
+  const scores = runningScores(items, state.score, sport);
   const jobs: Promise<string[]>[] = [];
   const results: string[] = [];
   for (const t of targets || []) {
@@ -172,7 +184,7 @@ async function handle(sb: any, claim: any): Promise<Record<string, unknown> | nu
     if (phases.includes("ko") && t.kickoff && !result) msgs.push(phaseMessage(n, state, "ko"));
     if (phases.includes("h2") && t.kickoff && !result) msgs.push(phaseMessage(n, state, "h2"));
     items.forEach((it, i) => {
-      if (t.level === "all" || (t.level === "goals" && it.value === 3)) msgs.push(scoreMessage(n, state, it, scores[i], t.names));
+      if (t.level === "all" || (t.level === "goals" && isBig(sport, Number(it.value)))) msgs.push(scoreMessage(n, state, it, scores[i], t.names));
     });
     if (result) msgs.push(phaseMessage(n, state, result));
     if (!msgs.length) continue;

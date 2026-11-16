@@ -204,6 +204,7 @@ function model() {
       return { half: a.half, second: a.second, side: a.side, value: t.value || null, name: t.name, kind: a.kind, count: a.count, member: a.member || '' };
     }),
     subs: (D.subs || []).map(s => ({ half: s.half, second: s.second, on: s.on || '', off: s.off || '' })),
+    sport: D.score && D.score.sport,
   };
 }
 
@@ -267,7 +268,7 @@ function board(score, done) {
     : d === 0 ? `<div class="mid lvl">${done ? 'DRAW' : 'Level'}</div>`
     : done ? `<div class="mid ${d < 0 ? 'opp' : ''}">${d > 0 ? 'WON' : 'LOST'} by ${Math.abs(d)}</div>`
     : `<div class="mid ${d < 0 ? 'opp' : ''}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}</div>`;
-  const side = (n, x) => `<div class="tm"><div class="tn">${esc(n)}</div><div class="sc">${D.phase === 'pre' ? '–' : L.gaa(x)}</div>${D.phase === 'pre' ? '' : `<div class="tot">${x.t} pts</div>`}</div>`;
+  const side = (n, x) => `<div class="tm"><div class="tn">${esc(n)}</div><div class="sc">${D.phase === 'pre' ? '–' : L.gaa(x)}</div>${D.phase === 'pre' || x.sport > 1 ? '' : `<div class="tot">${x.t} pts</div>`}</div>`;
   return `<div class="board">${side(usName(), s.us)}${mid}${side(oppName(), s.opp)}</div>`;
 }
 
@@ -327,9 +328,14 @@ function lastScoreCard(m) {
   const who = a.side === 'us' ? (a.member || usName()) : oppName();
   const s = D.score, d = s.us.t - s.opp.t;
   const lead = d === 0 ? 'Level' : `${d > 0 ? usName() : oppName()} ${Math.abs(d) === 1 ? 'lead by 1' : 'lead by ' + Math.abs(d)}`;
-  const letter = t.value === 3 ? 'G' : t.value === 2 ? '2' : 'P';
+  // Soccer (2) and rugby (3): initials of the score (T, C, PG) and TRY/GOAL
+  const sp = s.sport;
+  const big = sp === 2 ? t.value > 0 : sp === 3 ? t.value >= 5 : t.value === 3;
+  const letter = sp > 1
+    ? ((t.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '•')
+    : t.value === 3 ? 'G' : t.value === 2 ? '2' : 'P';
   return `<div class="flash ${isNew ? 'new' : ''} ${a.side === 'opp' ? 'opp' : ''}"><div class="gb">${letter}</div>
-    <div style="min-width:0"><b>${t.value === 3 ? 'GOAL' : esc(t.name || 'Score')} · ${esc(who)}</b>
+    <div style="min-width:0"><b>${big ? (sp === 3 ? 'TRY' : 'GOAL') : esc(t.name || 'Score')} · ${esc(who)}</b>
     <small>${CSMatchCharts.minuteLabel(m, a.half, a.second)}${isNew ? ' · just now' : ''} · ${esc(lead)}</small></div></div>`;
 }
 
@@ -446,7 +452,7 @@ function squadCard(x) {
     let line = '';
     if (done) line = d === 0 ? '<b>Draw</b>' : `<b class="${d < 0 ? 'opp' : ''}">${esc(d > 0 ? us + ' won' : opp + ' won')} by ${Math.abs(d)}</b>`;
     else if (x.last) {
-      const what = x.last.value === 3 ? 'Goal' : x.last.type || 'Score';
+      const what = !(s.sport > 1) && x.last.value === 3 ? 'Goal' : x.last.type || 'Score';
       const who = x.last.side === 'us' ? '' : ' ' + opp;
       const lead = d === 0 ? 'Level' : `${d > 0 ? us : opp} lead by ${Math.abs(d)}`;
       const mn = CSMatchCharts.minuteLabel({ duration: (x.timer && x.timer.duration_seconds) || 1800 }, x.last.half, x.last.second);

@@ -116,7 +116,9 @@
   // ── Bits of text ────────────────────────────────────────────────────────────
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad2 = n => String(n).padStart(2, '0');
-  const gaa = s => s ? `${s.g}-${pad2(s.p)}` : '–';
+  // A side's score: "1-05" in GAA; soccer and rugby sides carry sport and
+  // show the plain total.
+  const gaa = s => s ? (s.sport > 1 ? String(s.t) : `${s.g}-${pad2(s.p)}`) : '–';
   const cleanClub = n => String(n || '').replace(/\b(GAA|GFC|CLG|HC|LGFA|Camogie Club)\b/gi, '').replace(/\s{2,}/g, ' ').trim();
   const fmt = sec => { sec = Math.max(0, Math.floor(sec)); return `${pad2(Math.floor(sec / 60))}:${pad2(sec % 60)}`; };
 
