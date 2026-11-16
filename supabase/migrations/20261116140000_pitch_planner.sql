@@ -225,12 +225,13 @@ BEGIN
   SELECT gaa_club_id INTO v_gaa FROM clubs WHERE club_id = p_club;
 
   WITH ev AS (
-    SELECT e.event_id, e.team_id, t.team_name, e.event_title, e.opposition, e.home_away,
-           e.location_name, e.status, et.event_type,
+    SELECT e.event_id, e.team_id, t.team_name, t.team_female, ec.event_code, e.event_title,
+           e.opposition, e.home_away, e.location_name, e.status, et.event_type,
            (e.event_date_time AT TIME ZONE 'UTC') AS starts_at
       FROM events e
       JOIN teams t ON t.team_id = e.team_id
       LEFT JOIN event_types et ON et.event_type_id = e.event_type_id
+      LEFT JOIN event_codes ec ON ec.code_id = e.event_code_id
      WHERE t.club_id = p_club
        AND (e.event_date_time AT TIME ZONE 'UTC') >= v_from
        AND (e.event_date_time AT TIME ZONE 'UTC') <  v_to
@@ -259,6 +260,10 @@ BEGIN
              ORDER BY v.sort, v.venue_id, p.sort, p.pitch_id)
         FROM pitches p JOIN pitch_venues v ON v.venue_id = p.venue_id
        WHERE p.club_id = p_club AND p.is_active AND v.is_active), '[]'::jsonb),
+    'teams', coalesce((
+      SELECT jsonb_agg(jsonb_build_object('team_id', t.team_id, 'team_name', t.team_name,
+               'female', t.team_female) ORDER BY t.team_name)
+        FROM teams t WHERE t.club_id = p_club), '[]'::jsonb),
     'closures', coalesce((
       SELECT jsonb_agg(jsonb_build_object('closure_id', c.closure_id, 'pitch_id', c.pitch_id,
                'starts_on', c.starts_on, 'ends_on', c.ends_on, 'reason', c.reason))
@@ -270,6 +275,7 @@ BEGIN
                'starts_at', to_char(b.starts_at, 'YYYY-MM-DD"T"HH24:MI:SS'),
                'ends_at', to_char(b.ends_at, 'YYYY-MM-DD"T"HH24:MI:SS'),
                'kind', b.kind, 'title', b.title, 'team_id', b.team_id, 'team_name', t.team_name,
+               'female', t.team_female, 'event_code', ec.event_code,
                'event_id', b.event_id, 'gaa_game_id', b.gaa_game_id, 'status', b.status,
                'note', b.note, 'referee', b.referee, 'dressing_rooms', b.dressing_rooms,
                'rolled_from', b.rolled_from, 'event_status', e.status, 'code', g.code,
@@ -279,12 +285,14 @@ BEGIN
         LEFT JOIN teams t ON t.team_id = b.team_id
         LEFT JOIN events e ON e.event_id = b.event_id
         LEFT JOIN gaa_games g ON g.game_id = b.gaa_game_id
+        LEFT JOIN event_codes ec ON ec.code_id = e.event_code_id
        WHERE b.club_id = p_club AND b.starts_at < v_to AND b.ends_at > v_from), '[]'::jsonb),
     -- Events with no booking: matched_pitch_id is the pitch their location
     -- names (if any). Away matches are left out.
     'events', coalesce((
       SELECT jsonb_agg(jsonb_build_object(
                'event_id', ev.event_id, 'team_id', ev.team_id, 'team_name', ev.team_name,
+               'female', ev.team_female, 'code', ev.event_code,
                'title', ev.event_title, 'opposition', ev.opposition, 'home_away', ev.home_away,
                'location', ev.location_name, 'status', ev.status, 'type', ev.event_type,
                'starts_at', to_char(ev.starts_at, 'YYYY-MM-DD"T"HH24:MI:SS'),
@@ -443,6 +451,7 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'Booking not found'; END IF;
     v_event := coalesce(v_event, v_old.event_id);
     v_game  := coalesce(v_game, v_old.gaa_game_id);
+    IF NOT p ? 'team_id' THEN v_team := v_old.team_id; END IF;
   END IF;
 
   IF v_status <> 'offsite' THEN
