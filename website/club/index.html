@@ -329,6 +329,7 @@ function gameBucket(g) {
   const female = FEMALE[code], ag = String(g[3] || ''), m = /^U(\d{1,2})$/i.exec(ag);
   if (m && Number(m[1]) <= 16) return { key: (female ? 'G' : 'B') + Number(m[1]), code, age: Number(m[1]), female };
   if (/minor|^u1[78]$/i.test(ag)) return { key: (female ? 'G' : 'B') + 'minor', code, age: 17, female };
+  if (/^u2[01]$/i.test(ag)) return { key: (female ? 'G' : 'B') + 'u21', code, age: 21, female };
   return { key: 'adult-' + code, code, age: 99, female };
 }
 function build(D, year) {
@@ -337,6 +338,11 @@ function build(D, year) {
   const [pf, pt] = range(), inP = g => g.d >= pf && g.d < pt, hy = new Date(new Date().getFullYear(), 0, 1);
   const byBucket = {}; games.forEach(g => (byBucket[g.b.key] = byBucket[g.b.key] || []).push(g));
   const rows = [], claimed = new Set();
+  // Ken 2026-11-16: adult, minor and U21 results split into their individual teams (sides).
+  const yearGames = g => period === 'last' ? inP(g) : g.d >= hy;
+  const split = {};
+  for (const [key, gs] of Object.entries(byBucket)) if (key.startsWith('adult-') || /minor|u21$/.test(key)) split[key] = buildSides(gs.filter(yearGames)).filter(sd => sd.div != null || Object.keys(sd.comps).length).map(sd => ({ ...sd, games: Object.values(sd.comps).flat().sort((a, b) => b.d - a.d) }));
+  const takeSide = (key, code) => { const sd = (split[key] || []).find(x => x.code === code && !x.taken && x.div != null); if (sd) sd.taken = true; return sd; };
   for (const t of D.teams) {
     const events = t.trn_events + t.m_events;
     if (/test/i.test(t.team_name) || (t.players === 0 && events === 0)) continue;
@@ -346,13 +352,28 @@ function build(D, year) {
     if (period !== 'last' && 'last_event' in t && (!t.last_event || new Date(t.last_event) < Date.now() - 91 * 864e5)) continue;
     const meta = teamMeta(t, year);
     let gs;
-    if (meta.bucket === 'adult') { gs = games.filter(g => g.b.key.startsWith('adult-') && meta.codes.includes(g.code)); meta.codes.forEach(c => claimed.add('adult-' + c)); }
+    if (meta.bucket === 'adult' || /minor$/.test(meta.bucket)) {
+      // A CoachSmart adult or minor team is the top side of each of its codes.
+      gs = meta.codes.map(c => takeSide(meta.bucket === 'adult' ? 'adult-' + c : meta.bucket, c)).filter(Boolean).flatMap(sd => sd.games);
+    }
     else { gs = (byBucket[meta.bucket] || []).filter(g => meta.codes.includes(g.code)); claimed.add(meta.bucket); }
     rows.push({ key: 't' + t.team_id, team: t, name: cleanName(t.team_name, D.club.club_name), age: meta.age, ageLabel: meta.age == null || meta.age > 18 ? 'Adult' : meta.age >= 17 ? 'Minor' : 'U' + meta.age, group: meta.group, codes: meta.codes, games: gs.filter(inP), hgames: gs.filter(g => g.d >= hy), onCS: true, events });
   }
   // Sides with league games but no CoachSmart team: results only.
+  for (const [key, sds] of Object.entries(split)) {
+    for (const sd of sds) {
+      if (sd.taken || !sd.games.some(inP)) continue;
+      const b = byBucket[key][0].b, cn = CN[sd.code], many = sds.filter(x => x.code === sd.code && x.div != null).length > 1, L = sd.div != null && many ? String.fromCharCode(65 + sd.idx) : '';
+      let name, ageLabel, age;
+      if (key.startsWith('adult-')) { name = sd.grade ? cn + ' ' + sd.grade : 'Adult ' + cn.toLowerCase() + (L ? ' ' + L : ''); ageLabel = 'Adult'; age = 99; }
+      else if (key.endsWith('u21')) { name = 'U21 ' + cn.toLowerCase() + (L ? ' ' + L : ''); ageLabel = 'U21'; age = 19; }
+      else { name = 'Minor ' + cn.toLowerCase() + (L ? ' ' + L : ''); ageLabel = 'Minor'; age = 17; }
+      if (sd.div == null) name += ' (other games)';
+      rows.push({ key: 'g' + key + '-' + sd.code + (sd.idx ?? 'x'), team: null, name, sideLabel: sd.div != null ? sd.label : null, sideIdx: sd.idx ?? 9, age, ageLabel, group: 'adult', codes: [sd.code], games: sd.games.filter(inP), hgames: sd.games.filter(g => g.d >= hy), onCS: false });
+    }
+  }
   for (const [key, gs] of Object.entries(byBucket)) {
-    if (claimed.has(key) || !gs.some(inP)) continue;
+    if (split[key] || claimed.has(key) || !gs.some(inP)) continue;
     const b = gs[0].b;
     let name, ageLabel, group;
     if (key.startsWith('adult-')) { name = 'Adult ' + CN[b.code].toLowerCase(); ageLabel = 'Adult'; group = 'adult'; }
@@ -360,7 +381,7 @@ function build(D, year) {
     else { name = (b.female ? 'Girls ' : 'Boys ') + (year - b.age); ageLabel = 'U' + b.age; group = groupOfAge(b.age); }
     rows.push({ key: 'g' + key, team: null, name, age: b.age, ageLabel, group, codes: [...new Set(gs.filter(inP).map(g => g.code))].sort((x, y) => 'FBHULGCA'.indexOf(x) - 'FBHULGCA'.indexOf(y)), games: gs.filter(inP), hgames: gs.filter(g => g.d >= hy), onCS: false });
   }
-  const order = r => [r.age ?? 98, r.age === 99 ? 'FBHULGCA'.indexOf(r.codes[0]) : 0, r.onCS ? 0 : 1, /girl/i.test(r.name) ? 1 : 0];
+  const order = r => [r.age ?? 98, r.age == null || r.age > 16 ? 'FBHULGCA'.indexOf(r.codes[0]) : 0, r.onCS ? 0 : 1, r.sideIdx ?? 0, /girl/i.test(r.name) ? 1 : 0];
   rows.sort((a, b) => { const x = order(a), y = order(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i]; return a.name.localeCompare(b.name); });
   rows.forEach(r => r.health = health(r));
   return { rows, games: games.filter(inP), year };
@@ -474,11 +495,20 @@ function divOf(comp) { const m = /\b(?:div(?:ision)?\.?|afl|ahl)\s*(\d+)/i.exec(
 // shields and championships join the side whose division at that time is nearest.
 function tierOf(comp) {
   let m = /\b(?:div(?:ision)?\.?|afl|ahl)\s*(\d+)/i.exec(comp); if (m) return { t: Number(m[1]), label: 'Div ' + m[1] };
+  m = /\bleague\s*(\d{1,2})(?!\d)/i.exec(comp); if (m) return { t: Number(m[1]), label: 'Div ' + m[1] };
   m = /grading.*group\s*(\d+)/i.exec(comp); if (m) return { t: Number(m[1]), label: 'Grading group ' + m[1] };
   m = /\b(?:football|hurling|camogie)\s+([A-H])\b/i.exec(comp); if (m) return { t: m[1].toUpperCase().charCodeAt(0) - 64, label: 'Grade ' + m[1].toUpperCase() };
+  m = /\b(?:minor|under\s*\d+|u-?\d+)\s+([A-H])\d?\b/i.exec(comp); if (m) return { t: m[1].toUpperCase().charCodeAt(0) - 64, label: 'Grade ' + m[1].toUpperCase() };
+  m = /\bsenior\s*(\d*)/i.exec(comp); if (m) return { t: Number(m[1] || 1), label: 'Senior' + (m[1] ? ' ' + m[1] : ''), grade: true };
+  m = /\binter(?:mediate)?\s*(\d*)/i.exec(comp); if (m) return { t: 2 + Number(m[1] || 1), label: 'Intermediate' + (m[1] ? ' ' + m[1] : ''), grade: true };
+  m = /\bjunior\s*(\d+|[A-Z]\b)/i.exec(comp); if (m) { const v = /\d/.test(m[1]) ? Number(m[1]) : m[1].toUpperCase().charCodeAt(0) - 64; return { t: 4 + v, label: 'Junior ' + m[1].toUpperCase(), grade: true }; }
   return null;
 }
 const isMain = comp => !/cup|shield|champ|knock|final|f[ée]ile|plate|play.?off/i.test(comp);
+const KO = /knock|final|play.?off|semi|quarter/i;
+const stemOf = n => n.replace(/\s+(knock|final|play.?off|semi|quarter).*$/i, '').replace(/\s+(group|gp\.?|g)\s*\w+$/i, '').trim();
+// Ken 2026-11-16: championships and cups are a phase too (each side enters one),
+// matched to the sides by rank; knockout-only competitions join the nearest side.
 function buildSides(gs) {
   const out = [];
   for (const code of CODES) {
@@ -486,23 +516,41 @@ function buildSides(gs) {
     const comps = {};
     cg.forEach(g => { const c = comps[g.comp] = comps[g.comp] || { name: g.comp, games: [], tier: tierOf(g.comp), first: g.d, last: g.d }; c.games.push(g); if (g.d < c.first) c.first = g.d; if (g.d > c.last) c.last = g.d; });
     const all = Object.values(comps), tiered = all.filter(c => c.tier);
-    let main = tiered.filter(c => isMain(c.name)); if (!main.length) main = tiered;
-    main.sort((a, b) => a.first - b.first);
-    const phases = [];
-    main.forEach(c => { const p = phases[phases.length - 1]; if (p && c.first <= Math.min(...p.map(x => +x.last))) p.push(c); else phases.push([c]); });
-    const n = Math.max(0, ...phases.map(p => p.length)), sides = [...Array(n)].map(() => ({ code, comps: {}, steps: [] }));
-    phases.forEach(p => p.sort((a, b) => a.tier.t - b.tier.t).forEach((c, i) => { const sd = sides[Math.min(i, n - 1)]; sd.steps.push(c); sd.comps[c.name] = c.games; }));
-    const other = { code, div: null, comps: {} };
-    all.filter(c => !main.includes(c)).forEach(c => {
-      if (!c.tier || !n) { other.comps[c.name] = c.games; return; }
-      const at = sd => { const before = sd.steps.filter(x => x.first <= c.first); return (before.length ? before[before.length - 1] : sd.steps[0]).tier.t; };
-      const best = sides.map((sd, i) => ({ sd, i, d: Math.abs(at(sd) - c.tier.t) })).sort((a, b) => a.d - b.d || a.i - b.i)[0].sd;
-      best.comps[c.name] = c.games;
+    const main = tiered.filter(c => isMain(c.name)), mainNames = new Set(main.map(c => c.name));
+    const fams = {}, join = [];
+    tiered.filter(c => !main.includes(c)).forEach(c => {
+      const st = stemOf(c.name);
+      if (mainNames.has(st)) { join.push([c, st]); return; }
+      // Same kind and grade = same competition (group stage and its knockout).
+      const fk = compKind(c.name) + '|' + c.tier.label;
+      const f = fams[fk] = fams[fk] || { name: st, comps: [], tier: null, first: c.first, last: c.last, ko: true };
+      f.comps.push(c); if (!KO.test(c.name)) { f.ko = false; f.tier = f.tier || c.tier; }
+      if (c.first < f.first) f.first = c.first; if (c.last > f.last) f.last = c.last;
     });
-    sides.forEach(sd => {
-      const lastMain = sd.steps[sd.steps.length - 1];
-      sd.div = lastMain.tier.t; sd.label = lastMain.tier.label;
-      if (/grading/i.test(sd.label)) { const later = Object.keys(sd.comps).map(k => comps[k]).filter(c => c.tier && !/grading/i.test(c.tier.label)).sort((a, b) => b.last - a.last)[0]; if (later) sd.label = later.tier.label; }
+    Object.values(fams).forEach(f => { f.tier = f.tier || f.comps[0].tier; if (/championship|cup/i.test(f.name) && !f.comps.some(c => KO.test(c.name))) f.ko = false; });
+    // A family with no knockout word at all (e.g. "Under 21 B Football Championship") is a phase entry too.
+    Object.values(fams).forEach(f => { if (f.comps.every(c => !KO.test(c.name))) f.ko = false; });
+    const phase = list => { const ps = []; [...list].sort((a, b) => a.first - b.first).forEach(c => { const p = ps[ps.length - 1]; if (p && c.first <= Math.min(...p.map(x => +x.last))) p.push(c); else ps.push([c]); }); return ps; };
+    const pm = phase(main), pf = phase(Object.values(fams).filter(f => !f.ko));
+    const n = Math.max(0, ...pm.map(p => p.length), ...pf.map(p => p.length)), sides = [...Array(n)].map(() => ({ code, comps: {}, steps: [] }));
+    const put = (sd, c) => { (c.comps || [c]).forEach(x => sd.comps[x.name] = x.games); sd.steps.push(c); };
+    pm.forEach(p => p.sort((a, b) => a.tier.t - b.tier.t).forEach((c, i) => put(sides[Math.min(i, n - 1)], c)));
+    pf.forEach(p => p.sort((a, b) => a.tier.t - b.tier.t).forEach((f, i) => put(sides[Math.min(i, n - 1)], f)));
+    join.forEach(([c, st]) => { const sd = sides.find(x => st in x.comps); if (sd) sd.comps[c.name] = c.games; });
+    const other = { code, div: null, comps: {} };
+    all.filter(c => !c.tier).forEach(c => other.comps[c.name] = c.games);
+    Object.values(fams).filter(f => f.ko).forEach(f => {
+      if (!n) { f.comps.forEach(c => other.comps[c.name] = c.games); return; }
+      const at = sd => { const st = [...sd.steps].sort((a, b) => a.first - b.first), before = st.filter(x => x.first <= f.first); return (before.length ? before[before.length - 1] : st[0]).tier.t; };
+      const best = sides.map((sd, i) => ({ sd, i, d: Math.abs(at(sd) - f.tier.t) })).sort((a, b) => a.d - b.d || a.i - b.i)[0].sd;
+      f.comps.forEach(c => best.comps[c.name] = c.games);
+    });
+    sides.forEach((sd, i) => {
+      const st = [...sd.steps].sort((a, b) => a.first - b.first), mains = st.filter(x => !x.comps), lab = (mains.length ? mains : st);
+      let pick = lab.filter(x => !/grading/i.test(x.tier.label)); if (!pick.length) pick = st.filter(x => !/grading/i.test(x.tier.label)); if (!pick.length) pick = lab;
+      const last = pick[pick.length - 1];
+      sd.div = last.tier.t; sd.label = last.tier.label; sd.idx = i;
+      const gr = st.filter(x => x.tier.grade); sd.grade = gr.length ? gr[gr.length - 1].tier.label : null;
       const o = {}; Object.keys(sd.comps).sort((a, b) => sd.comps[a][0].d - sd.comps[b][0].d).forEach(k => o[k] = sd.comps[k]); sd.comps = o;
       out.push(sd);
     });
@@ -612,7 +660,7 @@ function teamCard(r, g, code) {
    ${form(gs)}</a>`;
 }
 function sub(r, ct) {
-  if (!r.onCS) return '<small class="flag">Not on CoachSmart · results only</small>';
+  if (!r.onCS) return `<small class="flag">${r.sideLabel ? esc(r.sideLabel) + ' · ' : ''}Not on CoachSmart · results only</small>`;
   const t = r.team, n = ct && ct.byCode && ct.codePlayers != null ? `${ct.codePlayers} of ${t.players} players play ${ct.byCode.toLowerCase()}` : t.players + ' player' + (t.players === 1 ? '' : 's');
   if (!r.events) return '<small class="flag">Not using CoachSmart yet</small>';
   if (t.players < 5) return `<small class="flag">Only ${n} on CoachSmart</small>`;
