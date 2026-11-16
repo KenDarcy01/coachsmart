@@ -511,6 +511,17 @@ void main() {
     await t.tap(find.text('U14 Boys v Raheny'));
     await t.pumpAndSettle();
     expect(find.text('Free pitches'), findsOneWidget);
+    // Picking another pitch moves the tick and the button to it.
+    final second = find
+        .descendant(
+            of: find.byType(Dialog), matching: find.textContaining('Pitch'))
+        .evaluate()
+        .map((e) => (e.widget as Text).data ?? '')
+        .firstWhere((s) => RegExp(r'^Pitch \w+$').hasMatch(s));
+    await t.tap(find.text(second).last);
+    await t.pumpAndSettle();
+    expect(find.text('Place on $second'), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
     await _shot(t, 'pp-place');
   });
 

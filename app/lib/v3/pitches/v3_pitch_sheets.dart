@@ -288,7 +288,12 @@ class _PlaceSheetState extends State<PlaceSheet> {
     final item = widget.item;
     final accent = c.club.accent;
     final opts = _options;
-    final pick = _picked ?? (opts.isEmpty ? null : opts.first);
+    // The options are rebuilt on every build, so find the picked one again
+    // by pitch, part and time rather than by identity.
+    final pick = (_picked == null
+            ? null
+            : opts.where((o) => _same(o, _picked!)).firstOrNull) ??
+        (opts.isEmpty ? null : opts.first);
     final b = c.board!;
     final busy = pick != null &&
         !b.isFree(pick.pitch, pick.start, pick.end, pick.part,
@@ -357,7 +362,7 @@ class _PlaceSheetState extends State<PlaceSheet> {
         for (final o in opts.take(8))
           _OptionRow(
               option: o,
-              selected: pick == o,
+              selected: pick != null && _same(pick, o),
               accent: accent,
               onTap: () => setState(() => _picked = o)),
         if (busy)
@@ -391,6 +396,11 @@ class _PlaceSheetState extends State<PlaceSheet> {
     );
   }
 }
+
+bool _same(PlaceOption a, PlaceOption b) =>
+    a.pitch.pitchId == b.pitch.pitchId &&
+    a.part == b.part &&
+    a.start == b.start;
 
 class _OptionRow extends StatelessWidget {
   const _OptionRow(
