@@ -131,13 +131,13 @@ class _SkSetupFormState extends State<SkSetupForm> {
           ],
           onChanged: (v) => setState(() => d.squadId = v),
         ),
-        _label('Throw-in time and venue, if different'),
+        _label('${c.sport.matchStart} time and venue, if different'),
         Row(children: [
           SizedBox(
             width: 140,
             child: Semantics(
               button: true,
-              label: 'Throw-in time',
+              label: '${c.sport.matchStart} time',
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
                 onTap: _pickTime,

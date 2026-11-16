@@ -112,6 +112,51 @@ class V3Sport {
     return l.isEmpty ? '•' : l;
   }
 
+  /// "throw-in" / "kick-off", for the middle of a sentence.
+  String get matchStartLower => matchStart.toLowerCase();
+
+  /// The alert choices for following a live match: (key, title, small).
+  /// Soccer has no "goals only" (every score is a goal); rugby's is tries.
+  List<(String, String, String)> get alertLevels => [
+        switch (kind) {
+          V3SportKind.gaa => (
+              'all',
+              'Every score',
+              'Goals, points and 2 pointers, both teams, plus half time and full time'
+            ),
+          V3SportKind.soccer => (
+              'all',
+              'Every goal',
+              'Both teams, plus half time and full time'
+            ),
+          V3SportKind.rugby => (
+              'all',
+              'Every score',
+              'Tries, conversions and penalty goals, both teams, plus half time and full time'
+            ),
+        },
+        if (kind != V3SportKind.soccer)
+          (
+            'goals',
+            kind == V3SportKind.rugby ? 'Tries only' : 'Goals only',
+            'Plus half time and full time'
+          ),
+        ('result', 'Half time and full time only', 'No alerts for scores'),
+        ('off', 'Stop following', 'No alerts for this match'),
+      ];
+
+  /// A follow level in a sentence: "Every score", "Tries, half time and
+  /// full time".
+  String levelLabel(String l) => switch (l) {
+        'all' => kind == V3SportKind.soccer ? 'Every goal' : 'Every score',
+        'goals' => kind == V3SportKind.rugby
+            ? 'Tries, half time and full time'
+            : 'Goals, half time and full time',
+        'result' => 'Half time and full time',
+        'off' => 'No alerts',
+        _ => '',
+      };
+
   /// A GAA two-pointer (gets a "+2" tag).
   bool isTwoPointer(int? value) => isGaa && value == 2;
 
@@ -193,6 +238,21 @@ class V3Sport {
   );
 
   static const all = [gaa, soccer, rugby];
+
+  /// The sport a code belongs to (event_codes.event_code): Soccer, Rugby,
+  /// or GAA for Football and Hurling; null for "-", S&C or unknown.
+  static V3Sport? fromCode(String? code) {
+    final c = (code ?? '').trim().toLowerCase();
+    if (c.isEmpty) return null;
+    for (final s in all) {
+      if (s.codes.any((x) => x.toLowerCase() == c)) return s;
+    }
+    return c == 'camogie' ? gaa : null;
+  }
+
+  /// A team's sport if [forTeam] has already read it, else null.
+  static V3Sport? cachedTeam(int? teamId) =>
+      teamId == null ? null : _teamCache[teamId];
 
   /// The sport for clubs.sport_id; GAA when unknown.
   static V3Sport fromId(int? id) =>

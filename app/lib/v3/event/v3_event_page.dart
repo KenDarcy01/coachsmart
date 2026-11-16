@@ -29,6 +29,7 @@ import 'v3_event_notify_sheet.dart';
 import 'v3_event_teams.dart';
 import 'v3_reminder_sheet.dart';
 import 'v3_series_scope.dart';
+import '/v3/sport/v3_sport.dart';
 import '/v3/tracking/v3_track.dart';
 
 /// Number of users a reminder went to. `populate_event_notifications`
@@ -954,7 +955,7 @@ class _V3EventPageState extends State<V3EventPage> {
     final meetValue = meet.isNotEmpty ? meet : start;
     final meetSub = _cancelled || meet.isEmpty || start.isEmpty
         ? day
-        : '${_isMatch ? 'Throw-in' : 'Start'} $start';
+        : '${_isMatch ? (V3Sport.fromCode(e.eventCode) ?? V3Sport.cachedTeam(e.teamId) ?? V3Sport.gaa).matchStart : 'Start'} $start';
     final venue = e.locationName.trim();
     final venueTbc = venue.isEmpty || venue.toUpperCase() == 'TBC';
     final canGo = !venueTbc && e.locationPin.isNotEmpty;
