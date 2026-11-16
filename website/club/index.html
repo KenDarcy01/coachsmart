@@ -466,8 +466,59 @@ function periodLabel() { return { season: seasonYear + ' season', '3m': 'last 3 
 function pct(p) { return p == null ? '<span class="pct m">–</span>' : `<span class="pct ${cls(p)}">${p}%</span>`; }
 function listText(a) { return a.length <= 2 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
 function divOf(comp) { const m = /\b(?:div(?:ision)?\.?|afl|ahl)\s*(\d+)/i.exec(comp); return m ? Number(m[1]) : null; }
+// Sides (Ken 2026-11-16): a team plays a run of competitions one after another
+// (e.g. spring grading league, then the main league, then a cup), so a side is
+// a chain of competitions, not one per division. Main competitions (leagues,
+// grading groups, phases) that run at the same time are different sides; each
+// later phase is matched to the sides by rank (best division first). Cups,
+// shields and championships join the side whose division at that time is nearest.
+function tierOf(comp) {
+  let m = /\b(?:div(?:ision)?\.?|afl|ahl)\s*(\d+)/i.exec(comp); if (m) return { t: Number(m[1]), label: 'Div ' + m[1] };
+  m = /grading.*group\s*(\d+)/i.exec(comp); if (m) return { t: Number(m[1]), label: 'Grading group ' + m[1] };
+  m = /\b(?:football|hurling|camogie)\s+([A-H])\b/i.exec(comp); if (m) return { t: m[1].toUpperCase().charCodeAt(0) - 64, label: 'Grade ' + m[1].toUpperCase() };
+  return null;
+}
+const isMain = comp => !/cup|shield|champ|knock|final|f[ée]ile|plate|play.?off/i.test(comp);
+function buildSides(gs) {
+  const out = [];
+  for (const code of CODES) {
+    const cg = gs.filter(g => g.code === code); if (!cg.length) continue;
+    const comps = {};
+    cg.forEach(g => { const c = comps[g.comp] = comps[g.comp] || { name: g.comp, games: [], tier: tierOf(g.comp), first: g.d, last: g.d }; c.games.push(g); if (g.d < c.first) c.first = g.d; if (g.d > c.last) c.last = g.d; });
+    const all = Object.values(comps), tiered = all.filter(c => c.tier);
+    let main = tiered.filter(c => isMain(c.name)); if (!main.length) main = tiered;
+    main.sort((a, b) => a.first - b.first);
+    const phases = [];
+    main.forEach(c => { const p = phases[phases.length - 1]; if (p && c.first <= Math.min(...p.map(x => +x.last))) p.push(c); else phases.push([c]); });
+    const n = Math.max(0, ...phases.map(p => p.length)), sides = [...Array(n)].map(() => ({ code, comps: {}, steps: [] }));
+    phases.forEach(p => p.sort((a, b) => a.tier.t - b.tier.t).forEach((c, i) => { const sd = sides[Math.min(i, n - 1)]; sd.steps.push(c); sd.comps[c.name] = c.games; }));
+    const other = { code, div: null, comps: {} };
+    all.filter(c => !main.includes(c)).forEach(c => {
+      if (!c.tier || !n) { other.comps[c.name] = c.games; return; }
+      const at = sd => { const before = sd.steps.filter(x => x.first <= c.first); return (before.length ? before[before.length - 1] : sd.steps[0]).tier.t; };
+      const best = sides.map((sd, i) => ({ sd, i, d: Math.abs(at(sd) - c.tier.t) })).sort((a, b) => a.d - b.d || a.i - b.i)[0].sd;
+      best.comps[c.name] = c.games;
+    });
+    sides.forEach(sd => {
+      const lastMain = sd.steps[sd.steps.length - 1];
+      sd.div = lastMain.tier.t; sd.label = lastMain.tier.label;
+      if (/grading/i.test(sd.label)) { const later = Object.keys(sd.comps).map(k => comps[k]).filter(c => c.tier && !/grading/i.test(c.tier.label)).sort((a, b) => b.last - a.last)[0]; if (later) sd.label = later.tier.label; }
+      const o = {}; Object.keys(sd.comps).sort((a, b) => sd.comps[a][0].d - sd.comps[b][0].d).forEach(k => o[k] = sd.comps[k]); sd.comps = o;
+      out.push(sd);
+    });
+    if (Object.keys(other.comps).length) out.push(other);
+  }
+  return out;
+}
 function compKind(comp) { return /shield/i.test(comp) ? 'Shield' : /champ/i.test(comp) ? 'Championship' : /league|afl|ahl/i.test(comp) ? 'League' : /cup/i.test(comp) ? 'Cup' : /féile|feile/i.test(comp) ? 'Féile' : 'Other'; }
-function shortComp(comp) { const k = compKind(comp), d = divOf(comp); return k === 'Other' || k === 'Cup' || k === 'Féile' ? comp.replace(/^(LGFA|Camogie)\s+/i, '') : k + (d ? ' Div ' + d : ''); }
+function shortComp(comp) {
+  if (/grading/i.test(comp)) { const t = tierOf(comp); return 'Grading league' + (t ? ' ' + t.label.replace('Grading group', 'group') : ''); }
+  const ph = /phase\s+(one|two|three|1|2|3)\b.*?(g(?:roup|p)\.?\s*\w+)?$/i.exec(comp);
+  if (ph) return 'Phase ' + ph[1].toLowerCase() + (ph[2] ? ' · ' + ph[2].replace(/^gp\.?\s*/i, 'Group ') : '');
+  if (/knock/i.test(comp)) return shortComp(comp.replace(/knock.*$/i, '')) + ' knockout';
+  const k = compKind(comp), d = divOf(comp);
+  if (k === 'Cup' && d) { const gp = /group\s+(\w+)\s*$/i.exec(comp); return 'Cup Div ' + d + (gp ? ' · Group ' + gp[1] : ''); }
+  return k === 'Other' || k === 'Cup' || k === 'Féile' ? comp.replace(/^(LGFA|Camogie)\s+/i, '') : k + (d ? ' Div ' + d : ''); }
 
 // ── Officers (SuperUser only) ─────────────────────────────────────
 async function officers() {
@@ -654,16 +705,7 @@ function codeView(sel) {
 function teamView(sel) {
   const r = model.rows.find(x => x.key === sel.t), c = sel.c && r.codes.includes(sel.c) ? sel.c : null;
   const t = r.team, gs = c ? r.games.filter(x => x.code === c) : r.games, res = wdl(gs);
-  const sidesBy = {};
-  gs.forEach(g => { const d = divOf(g.comp), k = g.code + '|' + (d ?? 'x'); (sidesBy[k] = sidesBy[k] || { code: g.code, div: d, comps: {} }); (sidesBy[k].comps[g.comp] = sidesBy[k].comps[g.comp] || []).push(g); });
-  const grp = Object.values(sidesBy), hasLeague = s => Object.keys(s.comps).some(q => compKind(q) === 'League');
-  for (const s of grp.filter(s => s.div != null && !hasLeague(s))) {
-    const L = grp.filter(x => x !== s && x.code === s.code && x.div != null && hasLeague(x)).sort((a, b) => Math.abs(a.div - s.div) - Math.abs(b.div - s.div) || a.div - b.div)[0];
-    if (L) { Object.entries(s.comps).forEach(([q, g]) => L.comps[q] = (L.comps[q] || []).concat(g)); delete sidesBy[s.code + '|' + s.div]; }
-  }
-  const ORD = ['League', 'Championship', 'Shield', 'Cup'];
-  Object.values(sidesBy).forEach(s => { const o = {}; Object.keys(s.comps).sort((a, b) => ORD.indexOf(compKind(a)) - ORD.indexOf(compKind(b))).forEach(k => o[k] = s.comps[k]); s.comps = o; });
-  const sides = Object.values(sidesBy).sort((a, b) => CODES.indexOf(a.code) - CODES.indexOf(b.code) || (a.div ?? 99) - (b.div ?? 99));
+  const sides = buildSides(gs);
   const letters = {}; sides.forEach(s => { if (s.div == null) return; letters[s.code] = (letters[s.code] || 0) + 1; s.letter = String.fromCharCode(64 + letters[s.code]); });
   const multi = q => sides.filter(s => s.code === q && s.div != null).length > 1;
   const codes = (c ? [c] : r.codes).map((q, i) => i ? CN[q].toLowerCase() : CN[q]).join(' and ');
@@ -683,7 +725,7 @@ function teamView(sel) {
     h += `<div class="kpis">${wdlKpi(res)}${kpi('Games played', res.n, res.u ? res.u + ' with no score kept' : 'all scored')}</div>
       <div class="att"><span>This side isn’t on CoachSmart, so there’s no attendance. Results come from the league fixtures.</span></div>`;
   }
-  h += `<div class="two"><div class="card"><h3>Sides and competitions</h3>${sides.length ? sides.map(s => { const x = wdl(Object.values(s.comps).flat()); return `<div class="side-row"><div><div class="sn"><span class="dot" style="background:var(--${s.code})"></span>${CN[s.code]}${s.div != null && multi(s.code) ? ' ' + s.letter : ''} <small>${s.div != null ? 'Div ' + s.div : 'Other'}</small></div><div style="margin-top:8px;display:flex">${wbar(x)}</div></div><div class="comps">${Object.entries(s.comps).map(([q, g]) => { const y = wdl(g); return `<div><span>${esc(shortComp(q))}</span><b>${y.w + y.d + y.l ? y.w + '-' + y.d + '-' + y.l : y.n + ' played'}</b></div>`; }).join('')}</div></div>`; }).join('') : '<div class="empty">No league games in this period.</div>'}</div>
+  h += `<div class="two"><div class="card"><h3>Sides and competitions</h3>${sides.length ? sides.map(s => { const x = wdl(Object.values(s.comps).flat()); return `<div class="side-row"><div><div class="sn"><span class="dot" style="background:var(--${s.code})"></span>${CN[s.code]}${s.div != null && multi(s.code) ? ' ' + s.letter : ''} <small>${s.div != null ? esc(s.label) : 'Other'}</small></div><div style="margin-top:8px;display:flex">${wbar(x)}</div></div><div class="comps">${Object.entries(s.comps).map(([q, g]) => { const y = wdl(g); return `<div><span>${esc(shortComp(q))}</span><b>${y.w + y.d + y.l ? y.w + '-' + y.d + '-' + y.l : y.n + ' played'}</b></div>`; }).join('')}</div></div>`; }).join('') : '<div class="empty">No league games in this period.</div>'}</div>
    <div class="card"><h3>Recent results</h3>${recent(gs)}</div></div>`;
   return h;
 }
