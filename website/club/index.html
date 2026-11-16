@@ -27,6 +27,21 @@ a{color:inherit;text-decoration:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
+.posl{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:6px}.posl b{font-size:14px}.posl span:last-child{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ltr{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:11px 0;font:inherit;font-size:14px;cursor:pointer;text-align:left;color:inherit}
+.ltr .chev,.comps .clk span::after{color:var(--muted)}.ltr .chev{margin-left:4px}
+.comps .clk{cursor:pointer;border-radius:6px}.comps .clk:hover{background:var(--tint)}.comps .clk span{text-decoration:underline;text-decoration-color:#0002;text-underline-offset:3px}
+.comps em{font-style:normal;color:var(--club);font-weight:700;font-size:12px;text-decoration:none}
+.csub{color:var(--muted);font-size:14px;margin:-6px 0 10px}.csub .dot{margin-right:6px}.csub b{color:var(--club)}.csub small{font-size:12px}
+.lnote{color:var(--muted);font-size:12px;margin-top:6px}
+.ch{font-size:15px;margin:16px 0 4px;display:flex;justify-content:space-between}.ch small{color:var(--muted);font-weight:500}
+.cg{display:grid;grid-template-columns:62px 1fr auto 72px;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 0;font-size:14px}
+.cg .d{color:var(--muted);font-size:12.5px}.cg .o small{color:var(--muted)}.cg .s{font-weight:700;text-align:right}.cg .s.g{color:var(--good)}.cg .s.r{color:var(--bad)}.cg .s.m{color:var(--muted);font-weight:500}.cg .mg{font-size:12px;color:var(--muted);text-align:right}
+.lt{border-top:1px solid var(--line);padding:10px 0}.lt summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.lt summary::-webkit-details-marker{display:none}
+.lt .lp{margin-left:auto;font-weight:700;color:var(--club)}
+.lt table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}.lt th{color:var(--muted);font-weight:500;text-align:right;padding:4px 6px}.lt th:nth-child(2){text-align:left}
+.lt td{padding:5px 6px;text-align:right;border-top:1px solid var(--line)}.lt td:nth-child(2){text-align:left}.lt td:first-child{color:var(--muted);width:22px}
+.lt tr.me td{background:var(--tint);font-weight:700}.lt tr.us td{font-weight:600}
 .rnd{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f4;color:#3b4250;margin-left:6px;vertical-align:2px;white-space:nowrap}.rnd.f{background:#fdf1cf;color:#8a5a00}.rt .rnd{margin-left:0}
 /* loading (Ken 2026-11-16): bar at the top, page dimmed, label pill */
 .ldbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:20;overflow:hidden;display:none}
@@ -255,7 +270,7 @@ let clubId = Number(P.get('club')) || null;
 let period = P.get('period') || 'week';
 let tab = P.get('tab') === 'fixtures' ? 'fixtures' : 'results', weekStart = null, W = null, Dseason = null;
 let seasonYear = new Date().getFullYear();
-let myClubs = null, isSuper = false, D = null, model = null;
+let myClubs = null, isSuper = false, D = null, model = null, STD = null, FIX = {}, stdP = null, CREF = [];
 
 // ── Colours ───────────────────────────────────────────────────────
 function lum(hex) {
@@ -349,18 +364,12 @@ async function boot() {
   if (error) return state('Something went wrong loading your clubs. Please try again.');
   myClubs = data.clubs || []; isSuper = !!data.is_super_user;
   if (!myClubs.length) return state('This dashboard is for club officers, and ' + (session.user.email || 'this account') + ' isn’t one yet. Sign in with a SuperUser account, or ask CoachSmart to add you as an officer of your club.', true);
-  if (!clubId) {
-    if (myClubs.length === 1) clubId = myClubs[0].club_id;
-    else return clubPicker();
-  }
+  // The link decides the club (Ken 2026-11-16): no club picker, no Change club.
+  if (!clubId) return state('Open the dashboard from your club’s link, for example coachsmart.app/club/?club=1.', true);
   load();
 }
 function state(msg, withOut) {
   $('app').innerHTML = `<div class="state">${esc(msg)}${withOut ? '<br><br><button class="link" onclick="signOut()">Sign out</button>' : ''}</div>`;
-}
-function clubPicker() {
-  $('app').innerHTML = `<div class="band"><div><h1>Club dashboard</h1><div class="sub">Pick a club</div></div></div>
-   <div class="picker">${myClubs.map(c => `<a class="pick" href="?club=${c.club_id}">${c.crest ? `<img src="${esc(c.crest)}" alt="">` : ''}${esc(c.club_name)}</a>`).join('')}</div>`;
 }
 
 // ── Period ────────────────────────────────────────────────────────
@@ -390,8 +399,14 @@ function chips() {
 async function load() {
   try { return await load0(); } finally { unbusy(); }
 }
+// League tables for this season (Ken 2026-11-16), loaded once.
+function ensureStandings() {
+  return stdP = stdP || sb.rpc('get_club_standings', { p_club_id: clubId, p_from: new Date(seasonYear, 0, 1).toISOString() })
+    .then(({ data, error }) => { STD = !error && data && data.comps ? data.comps : {}; FIX = (!error && data && data.fixtures) || {}; }, () => { STD = {}; });
+}
 async function load0() {
-  if (period === 'week') return loadWeek();
+  const sp = ensureStandings();
+  if (period === 'week') { await sp; return loadWeek(); }
   const [from, to] = range();
   if (!D) state('Loading…');
   const { data, error } = await sb.rpc('get_club_dashboard', { p_club_id: clubId, p_from: from.toISOString(), p_to: to.toISOString() });
@@ -401,7 +416,7 @@ async function load0() {
   if (data.error) return state('Club not found.');
   D = data; brand(D.club); document.title = D.club.club_name + ' · Club dashboard';
   model = build(D, period === 'last' ? seasonYear - 1 : seasonYear);
-  route();
+  await sp; route();
 }
 
 // ── Model ─────────────────────────────────────────────────────────
@@ -506,6 +521,7 @@ function setUrl() { const u = new URL(location); u.searchParams.set('period', pe
 function stepWeek(n) { weekStart = addDays(weekStart, 7 * n); setUrl(); busy('Loading ' + weekLabel(weekStart) + '…'); loadWeek().finally(unbusy); }
 function setTab(t) { tab = t; weekStart = defaultWeek(); setUrl(); busy(t === 'fixtures' ? 'Loading fixtures…' : 'Loading results…'); loadWeek().finally(unbusy); }
 async function loadWeek() {
+  const sp = ensureStandings();
   if (!weekStart) { const w = P.get('week'); weekStart = w && /^\d{4}-\d\d-\d\d$/.test(w) ? mondayOf(new Date(w + 'T12:00:00')) : defaultWeek(); }
   if (!Dseason) {
     state('Loading…');
@@ -519,7 +535,7 @@ async function loadWeek() {
   if (!model || model.forWeek !== true) { const p0 = period; period = 'season'; model = build(D, seasonYear); period = p0; model.forWeek = true; }
   const { data, error } = await sb.rpc('get_club_week', { p_club_id: clubId, p_from: weekStart.toISOString(), p_to: addDays(weekStart, 14).toISOString() });
   if (error || data.error) return state('Something went wrong loading the week. Please try again.');
-  W = data; route();
+  W = data; await sp; route();
 }
 function evCode(e) { const cs = e.row.codes; return e.code === 2 ? cs[0] : e.code === 3 ? cs[cs.length - 1] : null; }
 function weekGame(g) { return { d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], venue: g[11], note: g[12], b: gameBucket(g) }; }
@@ -859,6 +875,48 @@ function wbar(x) {
   const n = x.w + x.d + x.l; if (!n) return '<span class="wbar"></span>';
   return `<span class="wbar"><i style="width:${x.w / n * 100}%;background:var(--good)"></i><i style="width:${x.d / n * 100}%;background:#b9bec7"></i><i style="width:${x.l / n * 100}%;background:var(--bad)"></i></span>`;
 }
+// ── League positions (Ken 2026-11-16) ─────────────────────────────
+function ordinal(n) { const v = n % 100; return n + (v >= 11 && v <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'); }
+// Every competition this row played this season that has a table, latest first.
+function positions(r, code) {
+  if (!STD) return [];
+  const by = {};
+  (r.hgames || []).forEach(g => { if ((!code || g.code === code) && STD[g.comp]) (by[g.comp] = by[g.comp] || []).push(g); });
+  return Object.entries(by).map(([comp, gs]) => {
+    const rows = STD[comp], ds = new Set(gs.map(g => ymd(g.d)));
+    const mine = rows.map((x, i) => ({ x, i })).filter(o => o.x[1]);
+    const o = mine.length > 1 ? mine.find(o => (o.x[9] || []).some(d => ds.has(d))) || mine[0] : mine[0];
+    if (!o) return null;
+    return { comp, code: gs[0].code, pos: o.i + 1, n: rows.length, rows, me: o.i, last: Math.max(...gs.map(g => +g.d)) };
+  }).filter(Boolean).sort((a, b) => b.last - a.last);
+}
+function posLine(r, code) {
+  const p = positions(r, code)[0]; if (!p) return '';
+  return `<div class="posl"><span class="dot" style="background:var(--${p.code})"></span><b>${ordinal(p.pos)}</b> of ${p.n}<span>· ${esc(shortComp(p.comp))}</span></div>`;
+}
+function tablesCard(r, code) {
+  const ps = positions(r, code); if (!ps.length) return '';
+  return `<div class="card"><h3>League positions<small>${seasonYear} season · tap one to see the table and games</small></h3>${ps.map(p => `<button class="ltr" onclick="openComp(${cref(r, p.comp)})"><span class="dot" style="background:var(--${p.code})"></span><b>${esc(shortComp(p.comp))}</b><span class="lp">${ordinal(p.pos)} of ${p.n}</span><span class="chev">›</span></button>`).join('')}</div>`;
+}
+// A competition sheet (Ken 2026-11-16): the table with this team highlighted,
+// plus all their results and fixtures in it.
+function cref(r, comp) { CREF.push([r.key, comp]); return CREF.length - 1; }
+function openComp(i) {
+  const [key, comp] = CREF[i], r = model.rows.find(x => x.key === key); if (!r) return;
+  const gs = (r.hgames || []).filter(g => g.comp === comp && !/^bye$/i.test(g.opp)).sort((a, b) => a.d - b.d), code = gs[0] && gs[0].code;
+  const p = positions(r).find(x => x.comp === comp), now = new Date();
+  const myName = p ? p.rows[p.me][0] : null, seen = new Set(gs.map(g => +g.d));
+  const fx = (FIX[comp] || []).filter(f => (!myName || f[1] === myName) && !seen.has(+new Date(f[0])) && new Date(f[0]) >= now);
+  let h = `<h2><span>${esc(shortComp(comp))}</span><button onclick="closeSheet()">×</button></h2>
+   <div class="csub">${code ? `<span class="dot" style="background:var(--${code})"></span>` : ''}${esc(r.name)}${code ? ' · ' + CN[code].toLowerCase() : ''}${p ? ` · <b>${ordinal(p.pos)} of ${p.n}</b>` : ''}<br><small>${esc(comp)}</small></div>`;
+  if (p) h += `<div class="lt"><table><tr><th></th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Diff</th><th>Pts</th></tr>${p.rows.map((x, k) => `<tr class="${k === p.me ? 'me' : x[1] ? 'us' : ''}"><td>${k + 1}</td><td>${esc(x[0])}</td><td>${x[2]}</td><td>${x[3]}</td><td>${x[4]}</td><td>${x[5]}</td><td>${x[6] - x[7] > 0 ? '+' : ''}${x[6] - x[7]}</td><td><b>${x[8]}</b></td></tr>`).join('')}</table><div class="lnote">Worked out from the results we hold: 2 points a win, 1 a draw, then score difference.</div></div>`;
+  else h += `<div class="lnote" style="margin-bottom:6px">No table for this one (knockout or too few games).</div>`;
+  h += `<h3 class="ch">Results<small>${gs.length}</small></h3>` + (gs.length ? gs.map(g => { const has = g.up != null && g.tp != null, d = has ? g.up - g.tp : 0;
+    return `<div class="cg"><span class="d">${g.d.getDate()} ${MON[g.d.getMonth()]}</span><span class="o">v ${esc(g.opp)} <small>${g.home ? 'home' : 'away'}</small>${rChip(g)}</span><span class="s ${has ? d > 0 ? 'g' : d < 0 ? 'r' : '' : 'm'}">${has ? esc(g.us) + ' : ' + esc(g.them) : 'No score'}</span><span class="mg">${has ? d > 0 ? 'Won by ' + d : d < 0 ? 'Lost by ' + -d : 'Draw' : ''}</span></div>`; }).join('') : '<div class="empty">No games played yet.</div>');
+  h += `<h3 class="ch">Fixtures<small>${fx.length || 'none left'}</small></h3>` + (fx.length ? fx.map(f => { const d = new Date(f[0]);
+    return `<div class="cg"><span class="d">${DAY[d.getDay()].slice(0, 3)} ${d.getDate()} ${MON[d.getMonth()]}</span><span class="o">v ${esc(f[2])} <small>${f[3] ? 'home' : 'away'}${f[4] ? ' · ' + esc(f[4]) : ''}</small></span><span class="s m">${tm(d)}</span><span class="mg"></span></div>`; }).join('') : '<div class="empty">No fixtures left in this competition.</div>');
+  $('sbox').innerHTML = h; $('sheet').classList.add('on');
+}
 function codeLine(code, gs) {
   const x = wdl(gs.filter(g => g.code === code)); if (!x.n) return '';
   const s = x.w + x.d + x.l;
@@ -915,6 +973,7 @@ function teamCard(r, g, code) {
    ${t && (tp != null || mp != null) ? `<div class="duo">${miniAtt(avg(t.trn_yes, t.trn_events), tp, 'training')}${miniAtt(avg(t.m_yes, t.m_events), mp, 'matches')}</div>
    <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted);font-size:12px">Trend</span>${spark(t, 220, 30)}</div>` : ''}
    ${codes.map(c => codeLine(c, gs)).join('') || '<div class="empty">No league games</div>'}
+   ${codes.map(c => posLine(r, c)).join('')}
    ${form(gs)}</a>`;
 }
 function sub(r, ct) {
@@ -954,7 +1013,7 @@ function sidebar(sel) {
 function shell(sel, body) {
   const c = D.club;
   return `<div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club dashboard · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
-   <div class="right">${chips()}<div class="links">${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}${myClubs.length > 1 ? '<button onclick="location.href=\'?\'">Change club</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+   <div class="right">${chips()}<div class="links">${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
    <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
 }
 
@@ -1039,8 +1098,8 @@ function teamView(sel) {
     h += `<div class="kpis">${wdlKpi(res)}${kpi('Games played', res.n, res.u ? res.u + ' with no score kept' : 'all scored')}</div>
       <div class="att"><span>This side isn’t on CoachSmart, so there’s no attendance. Results come from the league fixtures.</span></div>`;
   }
-  h += `<div class="two"><div class="card"><h3>Sides and competitions</h3>${sides.length ? sides.map(s => { const x = wdl(Object.values(s.comps).flat()); return `<div class="side-row"><div><div class="sn"><span class="dot" style="background:var(--${s.code})"></span>${CN[s.code]}${s.div != null && multi(s.code) ? ' ' + s.letter : ''} <small>${s.div != null ? esc(s.label) : 'Other'}</small></div><div style="margin-top:8px;display:flex">${wbar(x)}</div></div><div class="comps">${Object.entries(s.comps).map(([q, g]) => { const y = wdl(g); return `<div><span>${esc(shortComp(q))}</span><b>${y.w + y.d + y.l ? y.w + '-' + y.d + '-' + y.l : y.n + ' played'}</b></div>`; }).join('')}</div></div>`; }).join('') : '<div class="empty">No league games in this period.</div>'}</div>
-   <div class="card"><h3>Recent results</h3>${recent(gs)}</div></div>`;
+  h += `<div class="two"><div class="card"><h3>Sides and competitions</h3>${sides.length ? sides.map(s => { const x = wdl(Object.values(s.comps).flat()); return `<div class="side-row"><div><div class="sn"><span class="dot" style="background:var(--${s.code})"></span>${CN[s.code]}${s.div != null && multi(s.code) ? ' ' + s.letter : ''} <small>${s.div != null ? esc(s.label) : 'Other'}</small></div><div style="margin-top:8px;display:flex">${wbar(x)}</div></div><div class="comps">${Object.entries(s.comps).map(([q, g]) => { const y = wdl(g), p = positions(r).find(x => x.comp === q); return `<div class="clk" onclick="openComp(${cref(r, q)})"><span>${esc(shortComp(q))}${p ? ` <em>${ordinal(p.pos)}/${p.n}</em>` : ''}</span><b>${y.w + y.d + y.l ? y.w + '-' + y.d + '-' + y.l : y.n + ' played'}</b></div>`; }).join('')}</div></div>`; }).join('') : '<div class="empty">No league games in this period.</div>'}</div>
+   <div class="card"><h3>Recent results</h3>${recent(gs)}</div></div>${tablesCard(r, c)}`;
   return h;
 }
 function recent(gs, withTeam) {
@@ -1057,6 +1116,7 @@ function recent(gs, withTeam) {
 function selection() { const p = new URLSearchParams(location.hash.slice(1)); return { g: p.get('g'), c: p.get('c'), t: p.get('t') }; }
 function render() {
   if (!model) return;
+  CREF = [];
   const sel = selection();
   if (sel.t && !model.rows.some(r => r.key === sel.t)) sel.t = null;
   if (sel.g && !GNAME[sel.g]) sel.g = null;
