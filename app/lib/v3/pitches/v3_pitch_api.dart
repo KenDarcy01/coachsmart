@@ -1,0 +1,112 @@
+// v3 Pitch planner: the calls the pages make (all checked functions; only
+// club officers get through). Tests pass a fake.
+import '/backend/supabase/supabase.dart';
+
+import 'v3_pitch_models.dart';
+
+class PitchApi {
+  const PitchApi();
+
+  Future<dynamic> _rpc(String fn, Map<String, dynamic> params) =>
+      SupaFlow.client.rpc(fn, params: params);
+
+  String _d(DateTime d) => isoLocal(dayOf(d)).substring(0, 10);
+
+  /// Clubs the signed-in user can plan pitches for.
+  Future<List<PitchClub>> clubs() async {
+    final r = await _rpc('get_my_officer_clubs', {});
+    return [
+      if (r is List)
+        for (final c in r.whereType<Map>()) PitchClub.fromJson(c)
+    ];
+  }
+
+  Future<PitchBoard> board(int clubId, DateTime from, DateTime to) async {
+    final r = await _rpc('pitch_board_v2',
+        {'p_club': clubId, 'p_from': _d(from), 'p_to': _d(to)});
+    return PitchBoard.fromJson(r is Map ? r : const {});
+  }
+
+  /// Copies last week's training into the week starting [monday] (once).
+  Future<int> rollWeek(int clubId, DateTime monday) async {
+    final r = await _rpc(
+        'pitch_roll_week', {'p_club': clubId, 'p_monday': _d(monday)});
+    return r is int ? r : int.tryParse('$r') ?? 0;
+  }
+
+  Future<PitchSetup> setup(int clubId) async {
+    final r = await _rpc('pitch_setup', {'p_club': clubId});
+    return PitchSetup.fromJson(r is Map ? r : const {});
+  }
+
+  Future<void> saveVenue(int clubId, Map<String, dynamic> venue) =>
+      _rpc('pitch_venue_save', {'p_club': clubId, 'p': venue});
+
+  Future<void> savePitch(int clubId, Map<String, dynamic> pitch) =>
+      _rpc('pitch_save', {'p_club': clubId, 'p': pitch});
+
+  Future<void> saveDurations(int clubId, PitchDurations d) => _rpc(
+      'pitch_settings_save', {'p_club': clubId, 'p_durations': d.toJson()});
+
+  Future<void> saveClosure(
+          int clubId, int pitchId, DateTime from, DateTime to, String reason) =>
+      _rpc('pitch_closure_save', {
+        'p_club': clubId,
+        'p': {
+          'pitch_id': pitchId,
+          'starts_on': _d(from),
+          'ends_on': _d(to),
+          'reason': reason
+        }
+      });
+
+  Future<void> deleteClosure(int clubId, int closureId) =>
+      _rpc('pitch_closure_delete', {'p_club': clubId, 'p_closure': closureId});
+
+  Future<void> saveBooking(int clubId, Map<String, dynamic> booking) =>
+      _rpc('pitch_booking_save_v2', {'p_club': clubId, 'p': booking});
+
+  Future<void> saveGroup(int clubId, Map<String, dynamic> group) =>
+      _rpc('pitch_group_save', {'p_club': clubId, 'p': group});
+
+  /// Adds a group for each CoachSmart team that has none; returns how many.
+  Future<int> syncGroups(int clubId) async {
+    final r = await _rpc('pitch_groups_sync', {'p_club': clubId});
+    return r is int ? r : int.tryParse('$r') ?? 0;
+  }
+
+  Future<void> publishWeek(int clubId, DateTime monday) =>
+      _rpc('pitch_publish_week', {'p_club': clubId, 'p_monday': _d(monday)});
+
+  /// Clubs whose published pitch plan the user can read (members).
+  Future<List<PitchClub>> memberClubs() async {
+    final r = await _rpc('pitch_member_clubs', {});
+    return [
+      if (r is List)
+        for (final c in r.whereType<Map>()) PitchClub.fromJson(c)
+    ];
+  }
+
+  Future<Map> publishedWeek(int clubId, DateTime monday) async {
+    final r = await _rpc(
+        'pitch_published_week', {'p_club': clubId, 'p_monday': _d(monday)});
+    return r is Map ? r : const {};
+  }
+
+  Future<void> deleteBooking(int clubId, int bookingId,
+          {bool following = true}) =>
+      _rpc('pitch_booking_delete',
+          {'p_club': clubId, 'p_booking': bookingId, 'p_following': following});
+}
+
+/// A readable message for a failed call.
+String pitchErrorText(Object e) {
+  final s = '$e';
+  final m = RegExp(r'message: ([^,}]+)').firstMatch(s);
+  final msg = (m?.group(1) ?? s).trim();
+  if (msg.contains('Only club')) return 'Only club officers can do that.';
+  if (msg.contains('SocketException') || msg.contains('Failed host')) {
+    return 'No connection. Try again.';
+  }
+  return msg.length > 160 ? 'Something went wrong. Try again.' : msg;
+}

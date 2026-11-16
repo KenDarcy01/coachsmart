@@ -1,0 +1,449 @@
+import 'dart:io';
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'package:coach_smart_v2/v3/pitches/v3_pitch_api.dart';
+import 'package:coach_smart_v2/v3/pitches/v3_pitch_models.dart';
+import 'package:coach_smart_v2/v3/pitches/v3_pitches_page.dart';
+
+// Saturday 21 November 2026, a week from the club's own sheet.
+final _today = DateTime(2026, 11, 21);
+
+List<Map<String, dynamic>> _hourly(int day, int from, int to,
+        [int each = 60]) =>
+    [
+      for (var m = from * 60; m + each <= to * 60; m += each)
+        {
+          'weekday': day,
+          'opens':
+              '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}',
+          'closes':
+              '${((m + each) ~/ 60).toString().padLeft(2, '0')}:${((m + each) % 60).toString().padLeft(2, '0')}'
+        }
+    ];
+
+Map<String, dynamic> _pitch(int id, String name, String venue,
+        {String surface = 'grass',
+        int split = 1,
+        bool lights = false,
+        List<Map<String, dynamic>> hours = const []}) =>
+    {
+      'pitch_id': id,
+      'venue_id': venue.hashCode,
+      'venue': venue,
+      'name': name,
+      'surface': surface,
+      'split': split,
+      'floodlit': lights,
+      'hours': hours,
+    };
+
+Map<String, dynamic> _b(int id, int pitch, String from, String to, String title,
+        {int part = 15,
+        String kind = 'training',
+        String code = 'Football',
+        int? group,
+        bool female = false}) =>
+    {
+      'booking_id': id,
+      'pitch_id': pitch,
+      'part': part,
+      'starts_at': '2026-11-21T$from:00',
+      'ends_at': '2026-11-21T$to:00',
+      'kind': kind,
+      'title': title,
+      'status': 'confirmed',
+      'code': code,
+      'female': female,
+      'group_id': group,
+    };
+
+Map<String, dynamic> sampleBoard() => {
+      'durations': {'u12': 50, 'u16': 60, 'adult': 90, 'training': 60},
+      'pitches': [
+        _pitch(1, 'Clubhouse Astro', 'Clubhouse',
+            surface: 'astro',
+            split: 2,
+            lights: true,
+            hours: [
+              for (var d = 1; d <= 5; d++) ..._hourly(d, 17, 21, 50),
+              ..._hourly(6, 9, 17),
+              ..._hourly(7, 9, 17),
+            ]),
+        _pitch(2, 'DCC Astro', 'Alfie Byrne Rd', surface: 'astro', hours: [
+          {'weekday': 6, 'opens': '09:00', 'closes': '11:00'},
+          {'weekday': 6, 'opens': '13:00', 'closes': '14:20'},
+          {'weekday': 6, 'opens': '14:20', 'closes': '15:40'},
+        ]),
+        _pitch(3, 'Pitch 19', "St Anne's", hours: [
+          {'weekday': 6, 'opens': '10:00', 'closes': '11:00'},
+          {'weekday': 6, 'opens': '12:00', 'closes': '13:30'},
+          {'weekday': 6, 'opens': '14:15', 'closes': '15:15'},
+        ]),
+        _pitch(4, 'Pitch 21', "St Anne's", hours: [
+          {'weekday': 6, 'opens': '10:00', 'closes': '11:00'},
+          {'weekday': 6, 'opens': '11:00', 'closes': '12:15'},
+          {'weekday': 6, 'opens': '12:15', 'closes': '13:30'},
+          {'weekday': 6, 'opens': '14:45', 'closes': '16:15'},
+        ]),
+        _pitch(5, 'Pitch 23', "St Anne's", split: 2, hours: [
+          {'weekday': 6, 'opens': '08:00', 'closes': '10:00'},
+          {'weekday': 6, 'opens': '11:00', 'closes': '12:00'},
+          {'weekday': 6, 'opens': '12:30', 'closes': '14:00'},
+          {'weekday': 6, 'opens': '17:00', 'closes': '18:00'},
+        ]),
+        _pitch(6, 'Pitch 30', "St Anne's", hours: [
+          {'weekday': 6, 'opens': '09:30', 'closes': '11:00'},
+        ]),
+        _pitch(7, 'Pitch 34', "St Anne's", lights: true, hours: [
+          {'weekday': 6, 'opens': '09:00', 'closes': '10:45'},
+          {'weekday': 6, 'opens': '11:30', 'closes': '13:45'},
+          {'weekday': 6, 'opens': '14:30', 'closes': '16:45'},
+        ]),
+      ],
+      'closures': [
+        {
+          'closure_id': 1,
+          'pitch_id': 6,
+          'starts_on': '2026-11-21',
+          'ends_on': '2026-11-22',
+          'reason': 'Waterlogged'
+        }
+      ],
+      'bookings': [
+        _b(1, 1, '09:00', '10:00', '', group: 1),
+        _b(2, 1, '10:00', '11:00', '', group: 1),
+        _b(3, 1, '11:00', '12:00', '', group: 2),
+        _b(4, 1, '14:00', '15:00', '', group: 3),
+        _b(5, 2, '09:00', '11:00', 'U12 B v St Sylvesters', kind: 'match'),
+        _b(6, 2, '13:00', '14:20', 'U9/10 Boys'),
+        _b(7, 3, '12:00', '13:30', '', group: 5, female: true),
+        _b(8, 4, '11:00', '12:15', '',
+            group: 4, kind: 'match', code: 'Hurling'),
+        _b(9, 5, '12:30', '14:00', 'U12 Girls v Naomh Barróg',
+            kind: 'match', female: true),
+        _b(10, 5, '17:00', '18:00', '', group: 6, part: 3),
+        _b(11, 5, '17:00', '18:00', '', group: 7, part: 3, code: 'Hurling'),
+        _b(12, 7, '09:00', '10:45', '', group: 1),
+      ],
+      'booking_groups': {},
+      'events': [
+        {
+          'event_id': 50,
+          'team_id': 8,
+          'team_name': 'Clontarf Boys 2012',
+          'title': 'Match',
+          'opposition': 'Raheny',
+          'home_away': 'Home',
+          'location': 'TBC',
+          'type': 'Match',
+          'code': 'Football',
+          'starts_at': '2026-11-21T14:00:00',
+        },
+        {
+          'event_id': 51,
+          'team_id': 9,
+          'team_name': 'Clontarf Girls 2015',
+          'title': 'Training',
+          'location': 'P34',
+          'type': 'Training',
+          'code': 'Football',
+          'female': true,
+          'starts_at': '2026-11-21T14:30:00',
+          'matched_pitch_id': 7,
+        },
+      ],
+      'fixtures': [
+        {
+          'game_id': 86376,
+          'code': 'Camogie',
+          'age': 'U21',
+          'comp': 'U21 Division 2 Championship',
+          'home': 'Clontarf',
+          'away': 'Fingallians',
+          'venue': 'Clontarf',
+          'starts_at': '2026-11-22T10:30:00',
+        }
+      ],
+      'teams': [
+        {'team_id': 8, 'team_name': 'Clontarf Boys 2012'},
+        {'team_id': 9, 'team_name': 'Clontarf Girls 2015', 'female': true},
+      ],
+      'groups': [
+        {
+          'group_id': 1,
+          'name': 'Nursery',
+          'code': 'Football',
+          'sessions': 0,
+          'booked': 3
+        },
+        {
+          'group_id': 2,
+          'name': 'U8 Boys',
+          'code': 'Football',
+          'sessions': 2,
+          'booked': 2
+        },
+        {
+          'group_id': 3,
+          'name': 'U13 Boys',
+          'code': 'Football',
+          'team_id': 7,
+          'team_name': 'Clontarf Boys 2013',
+          'sessions': 2,
+          'booked': 2
+        },
+        {
+          'group_id': 4,
+          'name': 'U12 Boys',
+          'code': 'Hurling',
+          'sessions': 2,
+          'booked': 2
+        },
+        {
+          'group_id': 5,
+          'name': 'Minor Girls',
+          'code': 'Ladies Football',
+          'sessions': 2,
+          'booked': 1
+        },
+        {
+          'group_id': 6,
+          'name': 'U10 Girls',
+          'code': 'Ladies Football',
+          'sessions': 2,
+          'booked': 2
+        },
+        {
+          'group_id': 7,
+          'name': 'U10 Hurling',
+          'code': 'Hurling',
+          'sessions': 2,
+          'booked': 2
+        },
+        {
+          'group_id': 8,
+          'name': 'U14 Boys',
+          'code': 'Football',
+          'team_id': 8,
+          'team_name': 'Clontarf Boys 2012',
+          'sessions': 2,
+          'booked': 1
+        },
+        {
+          'group_id': 9,
+          'name': 'All Stars',
+          'code': 'Other',
+          'sessions': 1,
+          'booked': 0
+        },
+      ],
+      'week': {'published_at': '2026-11-20T18:05:00Z', 'changed': true},
+    };
+
+Map<String, dynamic> boardWithGroups() {
+  final b = sampleBoard();
+  b['booking_groups'] = {
+    for (final x in b['bookings'] as List)
+      if ((x as Map)['group_id'] != null) '${x['booking_id']}': x['group_id']
+  };
+  return b;
+}
+
+class FakePitchApi extends PitchApi {
+  FakePitchApi({this.officer = true});
+  final bool officer;
+  final saved = <Map<String, dynamic>>[];
+
+  static const clontarf = PitchClub(
+      clubId: 1,
+      name: 'Clontarf GAA',
+      primary: '#e61e28',
+      secondary: '#ffffff',
+      third: '#0357a3');
+
+  @override
+  Future<List<PitchClub>> clubs() async => officer ? [clontarf] : [];
+  @override
+  Future<List<PitchClub>> memberClubs() async => [clontarf];
+  @override
+  Future<int> rollWeek(int clubId, DateTime monday) async => 0;
+  @override
+  Future<PitchBoard> board(int clubId, DateTime from, DateTime to) async =>
+      PitchBoard.fromJson(boardWithGroups());
+  @override
+  Future<void> saveBooking(int clubId, Map<String, dynamic> booking) async =>
+      saved.add(booking);
+  @override
+  Future<Map> publishedWeek(int clubId, DateTime monday) async {
+    final b = boardWithGroups();
+    final names = {
+      for (final g in b['groups'] as List) (g as Map)['group_id']: g['name']
+    };
+    return {
+      'published_at': '2026-11-20T18:05:00Z',
+      'pitches': b['pitches'],
+      'closures': b['closures'],
+      'bookings': [
+        for (final x in b['bookings'] as List)
+          {
+            ...(x as Map),
+            'name': names[x['group_id']] ??
+                (x['title'] == '' ? 'Training' : x['title']),
+          }
+      ],
+    };
+  }
+}
+
+Future<void> _loadFonts() async {
+  final dir = Platform.environment['SHOT_FONTS'];
+  if (dir == null) return;
+  for (final f in Directory(dir).listSync().whereType<File>()) {
+    if (!f.path.endsWith('.ttf') && !f.path.endsWith('.otf')) continue;
+    final name = f.uri.pathSegments.last.split('.').first;
+    final family = name == 'MaterialIcons-Regular' ? 'MaterialIcons' : name;
+    final loader = FontLoader(family)
+      ..addFont(Future.value(ByteData.view(f.readAsBytesSync().buffer)));
+    await loader.load();
+  }
+}
+
+Future<void> _pump(WidgetTester t, Size size, FakePitchApi api) async {
+  t.view.physicalSize = size * 2;
+  t.view.devicePixelRatio = 2;
+  addTearDown(t.view.reset);
+  await t.pumpWidget(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(),
+      home: RepaintBoundary(
+          child: V3PitchesPage(clubId: 1, api: api, today: _today))));
+  await t.pumpAndSettle();
+}
+
+Future<void> _shot(WidgetTester t, String name) async {
+  final dir = Platform.environment['SHOTS'];
+  if (dir == null) return;
+  await t.runAsync(() async {
+    final ro = t.firstRenderObject<RenderRepaintBoundary>(
+        find.byType(RepaintBoundary).first);
+    final img = await ro.toImage(pixelRatio: 2);
+    final png = await img.toByteData(format: ImageByteFormat.png);
+    File('$dir/$name.png').writeAsBytesSync(png!.buffer.asUint8List());
+  });
+}
+
+void main() {
+  setUpAll(() async {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    await _loadFonts();
+  });
+
+  group('rules', () {
+    test('age-group names from birth-year teams', () {
+      expect(
+          groupName('Clontarf Boys 2012',
+              season: 2026, clubName: 'Clontarf GAA'),
+          'U14 Boys');
+      expect(groupName('Clontarf Senior Footballers', clubName: 'Clontarf GAA'),
+          'Senior Footballers');
+      expect(ageOf('U21'), 21);
+      expect(ageOf('Minor'), 18);
+    });
+
+    test('club accent: a clear club colour that reads on the dark page', () {
+      expect(pickAccent(['#e61e28', '#ffffff']), const Color(0xFFE61E28));
+      // Navy is too dark, so Ardcairn gets its orange.
+      expect(pickAccent(['#1e3f94', '#f04e23']), const Color(0xFFF04E23));
+      expect(pickAccent(['#6e1a2a', '#e8b230']), const Color(0xFFE8B230));
+      // Nothing usable: CoachSmart green.
+      expect(pickAccent(['#ffffff', '#000000']), const Color(0xFF87C232));
+    });
+
+    test('clashes need the same part of a pitch at the same time', () {
+      final b = PitchBoard.fromJson(boardWithGroups());
+      final c = b.clashesOn(_today);
+      expect(c.length, 1);
+      expect({c.first.$1.bookingId, c.first.$2.bookingId}, {10, 11});
+      // Left half and right half do not clash.
+      final l = Booking(
+          bookingId: 1,
+          start: _today,
+          end: _today.add(const Duration(hours: 1)),
+          part: PitchPart.left);
+      final r = Booking(
+          bookingId: 2,
+          start: _today,
+          end: _today.add(const Duration(hours: 1)),
+          part: PitchPart.right);
+      expect(l.overlaps(r), isFalse);
+    });
+
+    test('free places use the slots the club holds and skip closed pitches',
+        () {
+      final b = PitchBoard.fromJson(boardWithGroups());
+      final at = DateTime(2026, 11, 21, 12, 0);
+      final opts = b.optionsFor(at, 60);
+      final names = opts.map((o) => o.pitch.name).toList();
+      expect(names, contains('Clubhouse Astro'));
+      expect(names, isNot(contains('Pitch 30'))); // closed
+      // Minor Girls has Pitch 19 at 12:00, so only its later slot is offered.
+      final p19 = opts.firstWhere((o) => o.pitch.name == 'Pitch 19');
+      expect(p19.exact, isFalse);
+      expect(timeOf(p19.start), '14:15');
+      final astro = opts.firstWhere((o) => o.pitch.name == 'Clubhouse Astro');
+      expect(astro.exact, isTrue);
+      expect(timeOf(astro.start), '12:00');
+    });
+
+    test('slot lookup', () {
+      final p = PitchBoard.fromJson(sampleBoard()).pitches.first;
+      expect(p.slotAt(1, 17 * 60 + 55)?.label, '17:50–18:40');
+      expect(p.slotAt(1, 16 * 60), isNull);
+    });
+
+    test('inbox: unplaced events and fixtures, not matched ones', () {
+      final b = PitchBoard.fromJson(boardWithGroups());
+      final items = b.inbox(clubName: 'Clontarf GAA', season: 2026);
+      expect(items.map((i) => i.title),
+          ['U14 Boys v Raheny', 'U21 Camogie v Fingallians']);
+    });
+  });
+
+  testWidgets('laptop: day board with inbox, groups, clash and closed pitch',
+      (t) async {
+    final api = FakePitchApi();
+    await _pump(t, const Size(1440, 900), api);
+    expect(find.text('Saturday 21 November'), findsOneWidget);
+    expect(find.text('Clubhouse Astro'), findsWidgets);
+    expect(find.text('U14 Boys v Raheny'), findsOneWidget);
+    expect(find.text('Closed'), findsOneWidget);
+    expect(find.text('Publish changes'), findsOneWidget);
+    expect(find.textContaining('1 clash'), findsOneWidget);
+    await _shot(t, 'pp-board');
+
+    await t.tap(find.text('U14 Boys v Raheny'));
+    await t.pumpAndSettle();
+    expect(find.text('Free pitches'), findsOneWidget);
+    await _shot(t, 'pp-place');
+  });
+
+  testWidgets('phone: day by pitch', (t) async {
+    await _pump(t, const Size(390, 1400), FakePitchApi());
+    expect(find.textContaining('need a pitch'), findsOneWidget);
+    expect(find.textContaining('1 clash'), findsOneWidget);
+    await _shot(t, 'pp-phone');
+  });
+
+  testWidgets('member: published week, read-only', (t) async {
+    await _pump(t, const Size(390, 1100), FakePitchApi(officer: false));
+    expect(find.textContaining('Published'), findsOneWidget);
+    expect(find.text('Close a pitch'), findsNothing);
+    await _shot(t, 'pp-member');
+  });
+}

@@ -362,6 +362,12 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               ),
             ),
             FFRoute(
+              name: V3PitchesPage.routeName,
+              path: V3PitchesPage.routePath,
+              builder: (context, params) => V3PitchesPage(
+                  clubId: params.getParam('club', ParamType.int)), // v3
+            ),
+            FFRoute(
               name: AnalyticsWidget.routeName,
               path: AnalyticsWidget.routePath,
               builder: (context, params) => const V3AnalyticsPage(), // v3

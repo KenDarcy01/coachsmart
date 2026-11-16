@@ -25,6 +25,7 @@ import '../messages/v3_message_widgets.dart';
 import '../messages/v3_messages_models.dart';
 import '../messages/v3_messages_page.dart';
 import '/v3/tracking/v3_track.dart';
+import '../pitches/v3_pitch_api.dart';
 
 class V3HomePage extends StatefulWidget {
   const V3HomePage({super.key});
@@ -49,6 +50,10 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
   // Important pop-ups and the news bar (Ken, 2026-11-14).
   static const _messagesApi = MessagesApi();
   MyMessages _msgs = const MyMessages();
+
+  /// Club the user can open the pitch planner (officer) or published
+  /// pitch plan (member) for; null hides the menu item.
+  int? _pitchClub;
   bool _popupOpen = false;
 
   @override
@@ -59,6 +64,20 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       if (mounted) setState(() => _now = DateTime.now());
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _firstLoad());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPitchAccess());
+  }
+
+  Future<void> _loadPitchAccess() async {
+    try {
+      const api = PitchApi();
+      var clubs = await api.clubs();
+      if (clubs.isEmpty) clubs = await api.memberClubs();
+      if (mounted && clubs.isNotEmpty) {
+        setState(() => _pitchClub = clubs.first.clubId);
+      }
+    } catch (_) {
+      // No pitch planner for this user.
+    }
   }
 
   @override
@@ -804,6 +823,13 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
                       settings: const RouteSettings(name: 'V3AnalyticsPage'),
                       builder: (_) => const V3AnalyticsPage()),
                 ),
+              ),
+            if (_pitchClub != null)
+              item(
+                Icons.grid_view,
+                'Pitches',
+                () => context.pushNamed(V3PitchesPage.routeName,
+                    queryParameters: {'club': '$_pitchClub'}),
               ),
             if (_msgs.isSuperUser)
               item(
