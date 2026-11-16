@@ -24,6 +24,19 @@ class PitchController extends ChangeNotifier {
   /// Shown once after the week was filled from the week before.
   String? rolledNote;
 
+  /// League fixture changes this officer has not looked at yet.
+  int unreadChanges = 0;
+
+  Future<void> loadChanges() async {
+    try {
+      final r = await api.fixtureChanges(club.clubId);
+      unreadChanges = int.tryParse('${r['unread']}') ?? 0;
+      notifyListeners();
+    } catch (_) {
+      // Not set up yet for this club: no badge.
+    }
+  }
+
   DateTime get monday => mondayOf(day);
   DateTime get today => _today;
   int get season => day.year;
@@ -49,6 +62,7 @@ class PitchController extends ChangeNotifier {
       }
       final b = await api.board(club.clubId, m, m.add(const Duration(days: 6)));
       board = b;
+      if (_loadedMonday == null) loadChanges();
       _loadedMonday = m;
       error = null;
     } catch (e) {

@@ -193,6 +193,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
                 club: club,
                 officer: _officer,
                 tab: _tab,
+                changes: _c?.unreadChanges ?? 0,
                 clubs: _officerClubs,
                 onTab: (t) => setState(() => _tab = t),
                 onClub: (c) => setState(() {
@@ -414,10 +415,12 @@ class _Side extends StatelessWidget {
       required this.tab,
       required this.clubs,
       required this.onTab,
-      required this.onClub});
+      required this.onClub,
+      this.changes = 0});
   final PitchClub club;
   final bool officer;
   final PitchTab tab;
+  final int changes;
   final List<PitchClub> clubs;
   final ValueChanged<PitchTab> onTab;
   final ValueChanged<PitchClub> onClub;
@@ -425,7 +428,7 @@ class _Side extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = club.accent;
-    Widget nav(PitchTab t, IconData icon, String label) {
+    Widget nav(PitchTab t, IconData icon, String label, {int badge = 0}) {
       final on = tab == t;
       return Padding(
         padding: const EdgeInsets.only(bottom: 4),
@@ -448,6 +451,16 @@ class _Side extends StatelessWidget {
                           weight: on ? FontWeight.w600 : FontWeight.w400,
                           color: on ? accent : PT.text)),
                 ),
+                if (badge > 0)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: PT.red, borderRadius: BorderRadius.circular(10)),
+                    child: Text('$badge',
+                        style: PT.inter(12,
+                            weight: FontWeight.w700, color: Colors.white)),
+                  ),
               ]),
             ),
           ),
@@ -494,7 +507,8 @@ class _Side extends StatelessWidget {
         const SizedBox(height: 16),
         if (officer) ...[
           nav(PitchTab.board, Icons.view_week_outlined, 'Day board'),
-          nav(PitchTab.fixtures, Icons.sports_outlined, 'Fixtures'),
+          nav(PitchTab.fixtures, Icons.sports_outlined, 'Fixtures',
+              badge: changes),
           nav(PitchTab.groups, Icons.groups_outlined, 'Groups'),
           nav(PitchTab.setup, Icons.tune, 'Pitches and venues'),
           nav(PitchTab.published, Icons.visibility_outlined, 'Members\' view'),

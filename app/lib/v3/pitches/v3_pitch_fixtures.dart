@@ -37,6 +37,38 @@ class FixtureBooking {
   bool get offsite => status == 'offsite';
 }
 
+/// A change seen in the league feed (moved, venue, referee, status, new,
+/// removed).
+class FixtureChange {
+  FixtureChange.fromJson(Map j)
+      : kind = '${j['kind'] ?? ''}',
+        title = '${j['title'] ?? ''}',
+        detail = '${j['detail'] ?? ''}',
+        unread = j['unread'] == true,
+        at = DateTime.tryParse('${j['created_at']}')?.toLocal();
+  final String kind, title, detail;
+  final bool unread;
+  final DateTime? at;
+
+  String get label => switch (kind) {
+        'moved' => 'Time changed',
+        'venue' => 'Venue changed',
+        'referee' => 'Referee named',
+        'status' => 'Status changed',
+        'new' => 'New fixture',
+        'removed' => 'No longer listed',
+        _ => 'Changed',
+      };
+}
+
+String _ago(DateTime? t) {
+  if (t == null) return '';
+  final d = DateTime.now().difference(t);
+  if (d.inMinutes < 60) return '${d.inMinutes.clamp(1, 59)} min ago';
+  if (d.inHours < 24) return '${d.inHours} h ago';
+  return '${d.inDays} day${d.inDays == 1 ? '' : 's'} ago';
+}
+
 class OfficialFixture {
   OfficialFixture.fromJson(Map j)
       : gameId = int.tryParse('${j['game_id']}') ?? 0,
@@ -55,9 +87,15 @@ class OfficialFixture {
         eventId = j['event'] is Map
             ? int.tryParse('${j['event']['event_id']}')
             : null,
+        changes = [
+          if (j['changes'] is List)
+            for (final x in (j['changes'] as List).whereType<Map>())
+              FixtureChange.fromJson(x)
+        ],
         booking = j['booking'] is Map
             ? FixtureBooking.fromJson(j['booking'] as Map)
             : null;
+  final List<FixtureChange> changes;
   final int gameId;
   final String code, age, comp, home, away, venue, referee, status, note;
   final bool isHome;
@@ -100,6 +138,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
   DateTime? _loadedFor;
   List<OfficialFixture>? _official;
   List<UnofficialMatch>? _unofficial;
+  List<FixtureChange> _changes = const [];
   String? _error;
 
   @override
@@ -107,6 +146,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     super.initState();
     c.addListener(_maybeLoad);
     _maybeLoad();
+    _loadChanges();
   }
 
   @override
@@ -145,6 +185,27 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
       });
     } catch (e) {
       if (mounted) setState(() => _error = pitchErrorText(e));
+    }
+  }
+
+  // The club's recent league changes; opening the tab marks them seen.
+  Future<void> _loadChanges() async {
+    try {
+      final r = await c.api.fixtureChanges(c.club.clubId);
+      final cutoff = DateTime.now().subtract(const Duration(days: 14));
+      final list = [
+        if (r['alerts'] is List)
+          for (final x in (r['alerts'] as List).whereType<Map>())
+            FixtureChange.fromJson(x)
+      ].where((x) => x.at == null || x.at!.isAfter(cutoff)).toList();
+      if (!mounted) return;
+      setState(() => _changes = list);
+      if (list.any((x) => x.unread)) {
+        await c.api.fixtureChangesSeen(c.club.clubId);
+        await c.loadChanges();
+      }
+    } catch (_) {
+      // Change tracking not set up for this club yet.
     }
   }
 
@@ -255,6 +316,11 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               padding: EdgeInsets.all(30),
               child: Center(child: CircularProgressIndicator(color: PT.muted)))
         else ...[
+          if (_changes.isNotEmpty) ...[
+            head('Changes from the league', 'Last 14 days, newest first',
+                _changes.length),
+            _changesPanel(),
+          ],
           head('Official fixtures', 'From the league fixture list', off.length),
           if (off.isEmpty)
             Text('No league fixtures this week.',
@@ -270,6 +336,45 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
         ],
       ]);
     });
+  }
+
+  Widget _changesPanel() {
+    final shown = _changes.take(8).toList();
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+          color: PT.card,
+          border: Border.all(color: PT.line),
+          borderRadius: BorderRadius.circular(12)),
+      child: Column(children: [
+        for (final (i, x) in shown.indexed) ...[
+          if (i > 0) const Divider(height: 1, thickness: 1, color: PT.line),
+          Container(
+            color: x.unread ? PT.redTint : null,
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 1, right: 10),
+                child: PitchTag(x.label, colour: PT.redText),
+              ),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(x.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: PT.inter(14, weight: FontWeight.w600)),
+                      Text(x.detail, style: PT.inter(12.5, color: PT.muted)),
+                    ]),
+              ),
+              const SizedBox(width: 10),
+              Text(_ago(x.at), style: PT.inter(12, color: PT.muted)),
+            ]),
+          ),
+        ],
+      ]),
+    );
   }
 
   /// The pitch chip: the slot given to the match, or Unassigned. Tapping
@@ -441,6 +546,12 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
         if (f.note.isNotEmpty) f.note,
       ],
       tags: [
+        if (f.changes.isNotEmpty)
+          Tooltip(
+            message: f.changes.map((x) => x.detail).join('\n'),
+            child: PitchTag('⚠ ${f.changes.first.label}',
+                colour: PT.redText, bg: PT.redTint),
+          ),
         if (f.isHome) PitchTag('Home', colour: c.club.accent),
         if (off) PitchTag(f.status, colour: PT.redText),
         PitchTag(

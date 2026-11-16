@@ -292,6 +292,25 @@ class FakePitchApi extends PitchApi {
   @override
   Future<void> saveBooking(int clubId, Map<String, dynamic> booking) async =>
       saved.add(booking);
+  bool changesSeen = false;
+  @override
+  Future<Map> fixtureChanges(int clubId) async => {
+        'unread': changesSeen ? 0 : 1,
+        'alerts': [
+          {
+            'kind': 'moved',
+            'title': 'U16 Football: Naomh Barrog v Clontarf',
+            'detail': 'Moved from Sat 21 Nov 13:00 to Sat 21 Nov 14:30',
+            'unread': !changesSeen,
+            'created_at': DateTime.now()
+                .subtract(const Duration(hours: 2))
+                .toUtc()
+                .toIso8601String(),
+          }
+        ],
+      };
+  @override
+  Future<void> fixtureChangesSeen(int clubId) async => changesSeen = true;
   @override
   Future<Map> fixturesWeek(int clubId, DateTime monday) async => {
         'official': [
@@ -327,6 +346,12 @@ class FakePitchApi extends PitchApi {
             'referee': 'D Harrington',
             'status': 'fixture',
             'note': 'Final .. ET if req.',
+            'changes': [
+              {
+                'kind': 'moved',
+                'detail': 'Moved from Sat 21 Nov 13:00 to Sat 21 Nov 14:30'
+              }
+            ],
             'starts_at': '2026-11-21T14:30:00',
           },
           {
@@ -615,6 +640,9 @@ void main() {
     expect(find.text('Pitch 34 · 20:00'), findsOneWidget);
     expect(find.text('Unassigned'), findsOneWidget);
     expect(find.text("U8 Girls v St Vincent's"), findsOneWidget);
+    // League changes: listed at the top and flagged on the fixture.
+    expect(find.text('CHANGES FROM THE LEAGUE'), findsOneWidget);
+    expect(find.text('⚠ Time changed'), findsOneWidget);
     await _shot(t, 'pp-fixtures');
     // The Unassigned chip opens the place sheet.
     await t.tap(find.text('Unassigned'));

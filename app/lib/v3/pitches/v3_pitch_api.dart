@@ -97,6 +97,15 @@ class PitchApi {
     return r is Map ? r : const {};
   }
 
+  /// Changes seen in the league fixtures (newest first) and the unread count.
+  Future<Map> fixtureChanges(int clubId) async {
+    final r = await _rpc('pitch_alerts_get', {'p_club': clubId});
+    return r is Map ? r : const {};
+  }
+
+  Future<void> fixtureChangesSeen(int clubId) =>
+      _rpc('pitch_alerts_seen', {'p_club': clubId});
+
   Future<Map> publishedWeek(int clubId, DateTime monday) async {
     final r = await _rpc(
         'pitch_published_week', {'p_club': clubId, 'p_monday': _d(monday)});
