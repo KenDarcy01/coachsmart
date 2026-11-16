@@ -89,6 +89,18 @@ a{color:inherit;text-decoration:none}
 .wbar i{display:block;height:100%}
 .form{display:flex;gap:4px}
 .form i{width:18px;height:18px;border-radius:50%;font-style:normal;font-size:10.5px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center}
+.hc{display:flex;align-items:center;gap:10px;border-radius:12px;padding:8px 11px;background:var(--card2)}
+.hc .hn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex:none}
+.hc.g .hn{background:var(--good)}.hc.a .hn{background:var(--warn)}.hc.r .hn{background:var(--bad)}
+.hc.g{background:#2f9e4412}.hc.a{background:#e08a0014}.hc.r{background:#d9363e12}
+.hc .hl b{display:block;font-size:13.5px}.hc .hl span{color:var(--muted);font-size:12.5px}
+.hbig{display:grid;grid-template-columns:270px 1fr;gap:18px;align-items:start}
+.hparts{display:flex;flex-direction:column;gap:9px}
+.hp{display:grid;grid-template-columns:140px 1fr 48px;gap:4px 10px;align-items:center;font-size:13.5px}
+.hp b{text-align:right;font-variant-numeric:tabular-nums}
+.hp .hb{height:8px;border-radius:4px;background:#eceef2;overflow:hidden}.hp .hb i{display:block;height:100%}
+.hp .nt{grid-column:1/-1;color:var(--muted);font-size:12px;margin-top:-3px}
+@media(max-width:700px){.hbig{grid-template-columns:1fr}.hp{grid-template-columns:110px 1fr 44px}}
 .dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
 .gc{cursor:pointer;display:flex;flex-direction:column;gap:12px}
 .gc:hover{box-shadow:0 4px 18px #0000001a}
@@ -321,6 +333,8 @@ function gameBucket(g) {
 }
 function build(D, year) {
   const games = D.games.map(g => ({ d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], b: gameBucket(g) })).filter(g => g.b);
+  // The RPC returns the current season too (for the health check); show only the picked period.
+  const [pf, pt] = range(), inP = g => g.d >= pf && g.d < pt, hy = new Date(new Date().getFullYear(), 0, 1);
   const byBucket = {}; games.forEach(g => (byBucket[g.b.key] = byBucket[g.b.key] || []).push(g));
   const rows = [], claimed = new Set();
   for (const t of D.teams) {
@@ -330,21 +344,95 @@ function build(D, year) {
     let gs;
     if (meta.bucket === 'adult') { gs = games.filter(g => g.b.key.startsWith('adult-') && meta.codes.includes(g.code)); meta.codes.forEach(c => claimed.add('adult-' + c)); }
     else { gs = (byBucket[meta.bucket] || []).filter(g => meta.codes.includes(g.code)); claimed.add(meta.bucket); }
-    rows.push({ key: 't' + t.team_id, team: t, name: cleanName(t.team_name, D.club.club_name), age: meta.age, ageLabel: meta.age == null || meta.age > 18 ? 'Adult' : meta.age >= 17 ? 'Minor' : 'U' + meta.age, group: meta.group, codes: meta.codes, games: gs, onCS: true, events });
+    rows.push({ key: 't' + t.team_id, team: t, name: cleanName(t.team_name, D.club.club_name), age: meta.age, ageLabel: meta.age == null || meta.age > 18 ? 'Adult' : meta.age >= 17 ? 'Minor' : 'U' + meta.age, group: meta.group, codes: meta.codes, games: gs.filter(inP), hgames: gs.filter(g => g.d >= hy), onCS: true, events });
   }
   // Sides with league games but no CoachSmart team: results only.
   for (const [key, gs] of Object.entries(byBucket)) {
-    if (claimed.has(key)) continue;
+    if (claimed.has(key) || !gs.some(inP)) continue;
     const b = gs[0].b;
     let name, ageLabel, group;
     if (key.startsWith('adult-')) { name = 'Adult ' + CN[b.code].toLowerCase(); ageLabel = 'Adult'; group = 'adult'; }
     else if (key.endsWith('minor')) { name = (b.female ? 'Minor girls' : 'Minor boys'); ageLabel = 'Minor'; group = 'adult'; }
     else { name = (b.female ? 'Girls ' : 'Boys ') + (year - b.age); ageLabel = 'U' + b.age; group = groupOfAge(b.age); }
-    rows.push({ key: 'g' + key, team: null, name, age: b.age, ageLabel, group, codes: [...new Set(gs.map(g => g.code))].sort((x, y) => 'FBHULGCA'.indexOf(x) - 'FBHULGCA'.indexOf(y)), games: gs, onCS: false });
+    rows.push({ key: 'g' + key, team: null, name, age: b.age, ageLabel, group, codes: [...new Set(gs.filter(inP).map(g => g.code))].sort((x, y) => 'FBHULGCA'.indexOf(x) - 'FBHULGCA'.indexOf(y)), games: gs.filter(inP), hgames: gs.filter(g => g.d >= hy), onCS: false });
   }
   const order = r => [r.age ?? 98, r.age === 99 ? 'FBHULGCA'.indexOf(r.codes[0]) : 0, r.onCS ? 0 : 1, /girl/i.test(r.name) ? 1 : 0];
   rows.sort((a, b) => { const x = order(a), y = order(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i]; return a.name.localeCompare(b.name); });
-  return { rows, games, year };
+  rows.forEach(r => r.health = health(r));
+  return { rows, games: games.filter(inP), year };
+}
+// ── Health check (Ken, 2026-11-16) ────────────────────────────────
+// Out of 100, always for the current season so far: attendance 40, results 40,
+// engagement 20. Missing parts are left out and the rest scaled up (results-only
+// sides score on results; U8-U11 have no results part).
+const lin = (x, lo, hi, pts) => Math.max(0, Math.min(pts, (x - lo) / (hi - lo) * pts));
+const clamp1 = x => Math.max(-1, Math.min(1, x));
+function gpts(g) { const d = divOf(g.comp), r = g.up > g.tp ? 1 : g.up < g.tp ? 0 : .5; return Math.max(0, Math.min(1.2, r + (d ? Math.max(-.15, Math.min(.15, .05 * (3 - d))) : 0))); }
+function health(r) {
+  if (period === 'last') return null;
+  const parts = [], trend = [], H6 = Date.now() - 42 * 864e5, t = r.team, h = t && t.h;
+  if (h && h[2] >= 4 && t.players >= 5) {
+    const sp = h[0] / h[1];
+    parts.push({ k: 'Turnout', got: lin(sp, .3, .75, 20), max: 20, note: `${Math.round(sp * 100)}% of players invited said yes this season` });
+    const py = h[0] - h[3], pi = h[1] - h[4], pn = h[2] - h[5];
+    if (h[5] >= 2 && pn >= 4 && pi) {
+      const d = (h[3] / h[4] - py / pi) * 100;
+      parts.push({ k: 'Attendance trend', got: lin(d, -10, 10, 20), max: 20, note: `last 6 weeks ${Math.round(h[3] / h[4] * 100)}% v ${Math.round(py / pi * 100)}% before` });
+      trend.push(clamp1(d / 8));
+    } else parts.push({ k: 'Attendance trend', got: 10, max: 20, note: h[5] < 2 ? 'too few sessions in the last 6 weeks to tell' : 'too new to tell' });
+    if (h[4]) parts.push({ k: 'Replies', got: lin(h[6] / h[4], .4, .9, 10), max: 10, note: `${Math.round(h[6] / h[4] * 100)}% of invites answered in the last 6 weeks` });
+    else parts.push({ k: 'Replies', got: 5, max: 10, note: 'no invites in the last 6 weeks' });
+    const miss = t.not_attended.length / t.players;
+    parts.push({ k: 'Players missing', got: 10 * (1 - Math.min(1, miss / .4)), max: 10, note: `${t.not_attended.length} of ${t.players} players not at anything in 4 weeks` });
+  }
+  const sc = (r.hgames || []).filter(g => g.up != null && g.tp != null).sort((a, b) => b.d - a.d);
+  if ((r.age == null || r.age >= 12) && sc.length >= 3) {
+    const rate = sc.reduce((a, g) => a + gpts(g), 0) / sc.length, w = wdl(sc);
+    parts.push({ k: 'Wins (by division)', got: Math.min(20, rate * 20), max: 20, note: `${w.w}-${w.d}-${w.l} this season, wins in higher divisions count more` });
+    const m = sc.reduce((a, g) => a + g.up - g.tp, 0) / sc.length;
+    parts.push({ k: 'Score difference', got: lin(m, -8, 8, 10), max: 10, note: `${m >= 0 ? '+' : ''}${m.toFixed(1)} points a game on average` });
+    let rec = sc.filter(g => g.d >= H6), old = sc.filter(g => g.d < H6);
+    if (rec.length < 2 || old.length < 3) { rec = sc.slice(0, 5); old = sc.slice(5); }
+    if (old.length >= 3) {
+      const rr = rec.reduce((a, g) => a + gpts(g), 0) / rec.length, orr = old.reduce((a, g) => a + gpts(g), 0) / old.length, d = rr - orr;
+      parts.push({ k: 'Recent form', got: lin(d, -.5, .5, 10), max: 10, note: `last ${rec.length} game${rec.length > 1 ? 's' : ''} ${Math.round(rr * 100)}% v ${Math.round(orr * 100)}% before` });
+      trend.push(clamp1(d / .3));
+    } else parts.push({ k: 'Recent form', got: 5, max: 10, note: 'not enough games to compare' });
+    // Regraded: best league division in autumn v spring, per code.
+    let reg = 0; const notes = [];
+    for (const c of CODES) {
+      const best = f => { const ds = sc.filter(g => g.code === c && compKind(g.comp) === 'League' && f(g)).map(g => divOf(g.comp)).filter(d => d != null); return ds.length ? Math.min(...ds) : null; };
+      const sp = best(g => g.d.getMonth() < 6), au = best(g => g.d.getMonth() >= 6);
+      if (sp != null && au != null && sp !== au) { reg += au < sp ? 3 : -3; notes.push(`${CN[c]} ${au < sp ? 'up' : 'down'} to Div ${au}`); }
+    }
+    if (reg) { reg = Math.max(-3, Math.min(3, reg)); parts.push({ k: 'Regraded', got: reg, max: 0, note: notes.join(', ') }); trend.push(reg > 0 ? .5 : -.5); }
+  }
+  const max = parts.reduce((a, p) => a + p.max, 0);
+  if (max < 40) return null;
+  const got = parts.reduce((a, p) => a + p.got, 0), score = Math.max(0, Math.min(100, Math.round(got / max * 100)));
+  const tr = trend.length ? trend.reduce((a, x) => a + x, 0) / trend.length : 0;
+  return { score, band: score >= 65 ? 'g' : score >= 45 ? 'a' : 'r', trend: !trend.length ? 0 : tr >= .3 ? 1 : tr <= -.3 ? -1 : 0, hasTrend: trend.length > 0, parts };
+}
+const BAND = { g: 'Healthy', a: 'Keep an eye', r: 'Needs help' };
+const ARROW = { 1: ['↑', 'improving'], 0: ['→', 'steady'], '-1': ['↓', 'sliding'] };
+function hBadge(hh) {
+  if (!hh) return '';
+  const a = ARROW[hh.trend];
+  return `<div class="hc ${hh.band}"><span class="hn">${hh.score}</span><span class="hl"><b>Health check · ${BAND[hh.band]}</b><span>${hh.hasTrend ? a[0] + ' ' + a[1] : 'season so far'}</span></span></div>`;
+}
+function hAvg(rows) {
+  const hs = rows.map(r => r.health).filter(Boolean); if (!hs.length) return null;
+  const score = Math.round(hs.reduce((a, x) => a + x.score, 0) / hs.length);
+  return { score, band: score >= 65 ? 'g' : score >= 45 ? 'a' : 'r', red: hs.filter(x => x.band === 'r').length, down: hs.filter(x => x.trend < 0).length, up: hs.filter(x => x.trend > 0).length, n: hs.length };
+}
+function hGroupBadge(rows) {
+  const x = hAvg(rows); if (!x) return '';
+  const bits = []; if (x.red) bits.push(x.red + ' need' + (x.red > 1 ? '' : 's') + ' help'); if (x.down) bits.push(x.down + ' sliding'); if (x.up) bits.push(x.up + ' improving');
+  return `<div class="hc ${x.band}"><span class="hn">${x.score}</span><span class="hl"><b>Health check · ${BAND[x.band]}</b><span>${bits.join(' · ') || 'average of ' + x.n + ' teams'}</span></span></div>`;
+}
+function hCard(hh) {
+  if (!hh) return '';
+  return `<div class="card" style="margin-top:14px"><h3>Health check<small>season so far · all codes · out of 100</small></h3><div class="hbig">${hBadge(hh)}<div class="hparts">${hh.parts.map(p => `<div class="hp"><span class="k">${p.k}</span>${p.max ? `<span class="hb"><i style="width:${p.got / p.max * 100}%;background:${COL[p.got / p.max >= .65 ? 'g' : p.got / p.max >= .45 ? 'a' : 'r']}"></i></span><b>${Math.round(p.got)}/${p.max}</b>` : `<span class="hb"></span><b class="${p.got > 0 ? 'g' : 'r'}">${p.got > 0 ? '+' : ''}${p.got}</b>`}<span class="nt">${esc(p.note)}</span></div>`).join('')}</div></div></div>`;
 }
 const pc = (y, n) => n ? Math.round(100 * y / n) : null;
 const cls = p => p == null ? 'm' : p >= 55 ? 'g' : p >= 45 ? 'a' : 'r';
@@ -453,6 +541,7 @@ function teamCard(r, g, code) {
   const codes = code ? [code] : r.codes, gs = code ? r.games.filter(x => x.code === code) : r.games;
   const age = r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? r.ageLabel : r.ageLabel;
   return `<a class="card tc ${r.onCS ? '' : 'off'}" href="${href({ g, c: code, t: r.key })}"><div class="top"><div class="nm">${esc(r.name)}${sub(r)}</div><span class="age">${age}</span></div>
+   ${hBadge(r.health)}
    ${t && (tp != null || mp != null) ? `<div class="duo">${miniAtt(avg(t.trn_yes, t.trn_events), tp, 'training')}${miniAtt(avg(t.m_yes, t.m_events), mp, 'matches')}</div>
    <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted);font-size:12px">Trend</span>${spark(t, 220, 30)}</div>` : ''}
    ${codes.map(c => codeLine(c, gs)).join('') || '<div class="empty">No league games</div>'}
@@ -502,6 +591,8 @@ function shell(sel, body) {
 // ── Views ─────────────────────────────────────────────────────────
 function needsLook(rows) {
   const cs = rows.filter(r => r.onCS), notes = [];
+  const hl = rows.filter(r => r.health && (r.health.band === 'r' || r.health.trend < 0)).sort((a, b) => a.health.score - b.health.score);
+  if (hl.length) notes.push('Health check: ' + listText(hl.map(r => `${r.name} ${r.health.score}${r.health.trend < 0 ? ' ↓' : ''}`)));
   const idle = cs.filter(r => !r.events || r.team.players < 5).map(r => r.name);
   if (idle.length) notes.push(listText(idle) + (idle.length > 1 ? ' are' : ' is') + ' not using CoachSmart');
   cs.filter(r => r.team.trn_events >= 8).forEach(r => { const p = pc(r.team.trn_yes, r.team.trn_inv); if (p < 40) notes.push(`${r.name} training: ${fmtAvg(avg(r.team.trn_yes, r.team.trn_events))} of ${r.team.players} players on average (${p}%)`); });
@@ -518,6 +609,7 @@ function kpiRow(rows, games) {
 function groupCard(g) {
   const rs = model.rows.filter(r => r.group === g), a = agg(rs), gs = uniqGames(rs);
   return `<a class="card gc" href="${href({ g })}"><div class="hd"><b>${GNAME[g]}</b><span>${GDESC[g]}</span><span style="margin-left:auto">${rs.length} teams ›</span></div>
+   ${hGroupBadge(rs)}
    <div class="duo">${miniAtt(a.avgT, a.trn, 'training')}${miniAtt(a.avgM, a.mt, 'matches')}</div>
    ${CODES.map(c => codeLine(c, gs)).join('')}</a>`;
 }
@@ -531,10 +623,11 @@ function clubView(sel) {
   }
   return h + legend();
 }
-function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span></div>`; }
+function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span><span><b>Health check</b> (out of 100, season so far): attendance 40 (turnout and the last 6 weeks v before), results 40 (wins weighted by division, score difference, recent form, regrading), engagement 20 (replies, players missing). 65+ healthy, 45–64 keep an eye, under 45 needs help. Arrow: improving, steady or sliding.</span></div>`; }
 function codeCard(g, c, rs) {
   const gs = uniqGames(rs, c), x = wdl(gs), n = x.w + x.d + x.l;
   return `<a class="card gc" href="${href({ g, c })}"><div class="hd"><span class="dot" style="background:var(--${c});width:12px;height:12px"></span><b>${CN[c]}</b><span style="margin-left:auto">${rs.length} teams ›</span></div>
+   ${hGroupBadge(rs)}
    <div style="display:flex;align-items:center;gap:14px">${ring(n ? Math.round(x.w / n * 100) : null, 64, true)}<div><div style="font-size:20px;font-weight:700"><span class="g">${x.w}</span> · <span class="m">${x.d}</span> · <span class="r">${x.l}</span></div><div class="s" style="color:var(--muted);font-size:12.5px">${n ? 'won · drawn · lost' : x.n + ' games, no scores kept'}</div></div></div>
    ${form(gs)}</a>`;
 }
@@ -571,6 +664,7 @@ function teamView(sel) {
   const codes = (c ? [c] : r.codes).map((q, i) => i ? CN[q].toLowerCase() : CN[q]).join(' and ');
   let h = `<div class="crumbs"><a href="#">Whole club</a> › <a href="${href({ g: r.group })}">${GNAME[r.group]}</a> ›${c ? ` <a href="${href({ g: r.group, c })}">${CN[c]}</a> ›` : ''}</div>
    <div class="ttl">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''}</div><div class="ttl-sub">${[codes, t ? t.players + ' players' : 'Not on CoachSmart', sides.length ? sides.length + ' side' + (sides.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · ')}${c && r.codes.length > 1 ? ` · <a style="color:var(--club);font-weight:700" href="${href({ g: r.group, t: r.key })}">show all codes</a>` : ''}</div>`;
+  h += hCard(r.health);
   if (t) {
     const tp = pc(t.trn_yes, t.trn_inv), mp = pc(t.m_yes, t.m_inv), rr = pc(t.replied, t.trn_inv + t.m_inv);
     h += `<div class="kpis">${attKpi('Training attendance', avg(t.trn_yes, t.trn_events), tp, t.trn_events, 'session')}${attKpi('Match attendance', avg(t.m_yes, t.m_events), mp, t.m_events, 'match')}<div class="card kpi">${ring(rr, 58)}<div><div class="l">Squad size</div><div class="v">${t.players}</div><div class="s">players${rr != null ? ` · ${rr}% reply` : ''}</div></div></div>${wdlKpi(res)}${kpi('Scored live', t.keeper, 'matches with score keeper')}</div>`;
