@@ -259,6 +259,8 @@ class PitchBlock {
       _s(j['reason']).isEmpty ? 'Not available' : _s(j['reason']));
   final PitchSlot slot;
   final String reason;
+
+  Map<String, dynamic> toJson() => {...slot.toJson(), 'reason': reason};
 }
 
 class PitchSlot {

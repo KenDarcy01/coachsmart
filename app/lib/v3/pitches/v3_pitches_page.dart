@@ -10,6 +10,7 @@ import '../v3_crest_image.dart';
 import 'v3_pitch_theme.dart';
 import '/v3/tracking/v3_track.dart';
 import 'v3_pitch_api.dart';
+import 'v3_pitch_availability.dart';
 import 'v3_pitch_board.dart';
 import 'v3_pitch_controller.dart';
 import 'v3_pitch_mobile.dart';
@@ -20,7 +21,7 @@ import 'v3_pitch_fixtures.dart';
 import 'v3_pitch_sheets.dart';
 
 // Fixtures first: the planner opens on it (Ken, 2026-11-16).
-enum PitchTab { fixtures, board, groups, setup, published }
+enum PitchTab { fixtures, board, availability, groups, setup, published }
 
 /// The planner is a light page so the club's colours and crest sit on
 /// white (Ken, 2026-11-16); the rest of v3 stays dark.
@@ -261,6 +262,10 @@ class _V3PitchesPageState extends State<_PitchesBody> {
                       icon: Icon(Icons.view_week_outlined, color: PT.muted),
                       label: 'Day'),
                   NavigationDestination(
+                      icon:
+                          Icon(Icons.event_available_outlined, color: PT.muted),
+                      label: 'Slots'),
+                  NavigationDestination(
                       icon: Icon(Icons.groups_outlined, color: PT.muted),
                       label: 'Groups'),
                   NavigationDestination(
@@ -295,6 +300,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
     final body = switch (_tab) {
       PitchTab.board => wide ? PitchDayBoard(c: c) : PitchPhoneDay(c: c),
       PitchTab.fixtures => PitchFixturesView(c: c),
+      PitchTab.availability => PitchAvailabilityView(c: c),
       PitchTab.groups => PitchGroupsView(c: c),
       PitchTab.setup => PitchSetupView(c: c),
       PitchTab.published => const SizedBox.shrink(),
@@ -333,6 +339,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
             switch (_tab) {
               PitchTab.groups => 'Groups',
               PitchTab.fixtures => 'Fixtures',
+              PitchTab.availability => 'Availability',
               _ => 'Pitches and venues'
             },
             style: PT.tight(26)),
@@ -510,6 +517,8 @@ class _Side extends StatelessWidget {
           nav(PitchTab.fixtures, Icons.sports_outlined, 'Fixtures',
               badge: changes),
           nav(PitchTab.board, Icons.view_week_outlined, 'Day board'),
+          nav(PitchTab.availability, Icons.event_available_outlined,
+              'Availability'),
           nav(PitchTab.groups, Icons.groups_outlined, 'Groups'),
           nav(PitchTab.setup, Icons.tune, 'Pitches and venues'),
           nav(PitchTab.published, Icons.visibility_outlined, 'Members\' view'),

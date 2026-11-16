@@ -320,6 +320,23 @@ class FakePitchApi extends PitchApi {
   @override
   Future<void> saveBooking(int clubId, Map<String, dynamic> booking) async =>
       saved.add(booking);
+  final savedPitches = <Map<String, dynamic>>[];
+  final savedBlocks = <int, List<PitchBlock>>{};
+  @override
+  Future<PitchSetup> setup(int clubId) async => PitchSetup.fromJson({
+        'venues': [
+          {'venue_id': 1, 'name': 'All', 'pitches': sampleBoard()['pitches']}
+        ]
+      });
+  @override
+  Future<List<(int, PitchBlock)>> blocks(int clubId) async =>
+      PitchBoard.fromJson(boardWithGroups()).blocks;
+  @override
+  Future<void> savePitch(int clubId, Map<String, dynamic> pitch) async =>
+      savedPitches.add(pitch);
+  @override
+  Future<void> saveBlocks(int clubId, int pitchId, List<PitchBlock> b) async =>
+      savedBlocks[pitchId] = b;
   bool changesSeen = false;
   @override
   Future<Map> fixtureChanges(int clubId) async => {
@@ -661,6 +678,42 @@ void main() {
     await t.tap(find.text('Mon 16'));
     await t.pumpAndSettle();
     expect(find.text('Monday 16 November'), findsOneWidget);
+  });
+
+  testWidgets('laptop: availability, add a not-available time', (t) async {
+    final api = FakePitchApi();
+    await _pump(t, const Size(1440, 900), api);
+    await t.tap(find.text('Availability').first);
+    await t.pumpAndSettle();
+    expect(find.text('Astros'), findsOneWidget);
+    await t.tap(find.text('DCC Astro').first);
+    await t.pumpAndSettle();
+    expect(find.text('11:00–13:00 · No slot'), findsOneWidget);
+    expect(find.text('09:00–11:00'), findsOneWidget);
+    await _shot(t, 'pp-availability');
+    // Monday: not available 08:00-22:00.
+    await t.tap(find.byTooltip('Add a time').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Not available').last);
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextField, 'From'), '08:00');
+    await t.enterText(find.widgetWithText(TextField, 'To'), '22:00');
+    await t.enterText(find.widgetWithText(TextField, 'Why'), 'No slot');
+    await t.tap(find.text('Save'));
+    await t.pumpAndSettle();
+    final saved = api.savedBlocks[2]!;
+    expect(saved.length, 3);
+    expect(saved.last.slot.weekday, 1);
+    expect(saved.last.reason, 'No slot');
+    expect(api.savedPitches, isEmpty);
+  });
+
+  testWidgets('phone: availability', (t) async {
+    await _pump(t, const Size(390, 844), FakePitchApi());
+    await t.tap(find.text('Slots'));
+    await t.pumpAndSettle();
+    expect(find.text('Clubhouse Astro'), findsWidgets);
+    await _shot(t, 'pp-availability-phone');
   });
 
   testWidgets('laptop: tapping a group shows its sessions', (t) async {

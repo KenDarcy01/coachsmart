@@ -36,6 +36,20 @@ class PitchApi {
         {...(r is Map ? r : const {}), if (blocks is List) 'blocks': blocks});
   }
 
+  /// (pitch id, block): every "not available" time at the club.
+  Future<List<(int, PitchBlock)>> blocks(int clubId) async {
+    final r = await _rpc('pitch_blocks_get', {'p_club': clubId});
+    return PitchBoard.fromJson({'blocks': r is List ? r : const []}).blocks;
+  }
+
+  /// Replaces every "not available" time of one pitch.
+  Future<void> saveBlocks(int clubId, int pitchId, List<PitchBlock> blocks) =>
+      _rpc('pitch_blocks_save', {
+        'p_club': clubId,
+        'p_pitch': pitchId,
+        'p_blocks': [for (final b in blocks) b.toJson()]
+      });
+
   /// Copies last week's training into the week starting [monday] (once).
   Future<int> rollWeek(int clubId, DateTime monday) async {
     final r = await _rpc(
