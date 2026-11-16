@@ -601,14 +601,24 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                   color: PT.slot,
                   border: Border.all(color: PT.slotLine),
                   borderRadius: BorderRadius.circular(6)),
-              alignment: Alignment.topRight,
-              padding: const EdgeInsets.fromLTRB(0, 3, 6, 0),
+              alignment: Alignment.topLeft,
+              padding: const EdgeInsets.fromLTRB(6, 3, 6, 0),
+              // The slot's own times (Clubhouse slots run 50 minutes, not on
+              // the hour), and Free when nothing is in it.
               child: (s.closes - s.opens) * _pxPerMin > 22 &&
                       p.slots.isNotEmpty &&
                       !booked.any((b) =>
                           minutesOf(b.start) < s.closes &&
                           minutesOf(b.end) > s.opens)
-                  ? Text('Free', style: PT.inter(10.5, color: PT.faint))
+                  ? Row(children: [
+                      Expanded(
+                        child: Text(s.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: PT.inter(10.5, color: PT.muted)),
+                      ),
+                      Text('Free', style: PT.inter(10.5, color: PT.faint)),
+                    ])
                   : null,
             ),
           ),
@@ -675,7 +685,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         child: _blockText(
             c.titleOf(b),
             [
-              timeOf(b.start),
+              '${timeOf(b.start)}–${timeOf(b.end)}',
               if (b.kind == 'match') 'Match',
               if (p.split > 1 && b.part != PitchPart.full)
                 PitchPart.label(b.part, p.split),
