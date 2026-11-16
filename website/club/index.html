@@ -11,99 +11,128 @@
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
 @font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
-:root{--club:#87c232;--band:#87c232;--bg:#14181b;--card:#1e222b;--card2:#262b36;--text:#f1f4f8;--muted:#a9adb4;--line:#2e333e;
---good:#87c232;--warn:#f5a524;--bad:#ff6b6b;--FB:#87c232;--HU:#4da3ff;--LG:#ff7eb6;--CA:#b67cff}
+:root{--club:#1e3f94;--band:#1e3f94;--onband:#fff;--tint:#1e3f9414;--bg:#f3f4f7;--card:#fff;--card2:#f6f7f9;--text:#1a1d23;--muted:#667080;--line:#e6e8ec;
+--good:#2f9e44;--warn:#e08a00;--bad:#d9363e;--FB:#3f9a1f;--HU:#1f74d6;--LG:#e0468a;--CA:#8b4fd6}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg)}
 body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
-.hdr{background:linear-gradient(180deg,color-mix(in srgb,var(--band) 70%,#000) 0%,var(--bg) 100%);padding:28px 40px 22px}
-.hrow{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.crest{width:72px;height:72px;object-fit:contain;flex:none}
-.hrow h1{font-size:34px;font-weight:700;letter-spacing:-.3px;line-height:1.1}
-.hrow .sub{color:#e6e8ec;font-size:16px;margin-top:4px;opacity:.85}
-.pw{margin-left:auto;text-align:right}
-.chips{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-.chip{padding:9px 15px;border-radius:999px;background:#ffffff14;font-size:14px;font-weight:500;border:0;cursor:pointer;white-space:nowrap}
-.chip:hover{background:#ffffff22}
-.chip.on{background:var(--club);color:var(--onclub,#fff)}
-.by{font-size:12px;color:#c9ccd2;margin-top:10px;opacity:.7;display:flex;gap:14px;justify-content:flex-end;align-items:center}
-.by button{background:none;border:0;color:#e6e8ec;cursor:pointer;font-size:12.5px;text-decoration:underline;opacity:.9}
-.back{color:#e6e8ec;font-size:15px;margin-bottom:14px;opacity:.85;cursor:pointer;display:inline-block}
-.wrap{padding:0 40px 48px;max-width:1500px}
-.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:6px}
-.kpis.k5{grid-template-columns:repeat(5,1fr)}
-.kpi{background:var(--card);border-radius:16px;padding:16px 18px}
+/* top band */
+.band{background:var(--band);color:var(--onband);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:4;box-shadow:0 2px 10px #0002}
+.band .crest{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:50%;padding:4px;flex:none}
+.band h1{font-size:23px;font-weight:700;line-height:1.1}
+.band .sub{font-size:13.5px;opacity:.85;margin-top:2px}
+.band .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
+.chip.on{background:var(--onband);color:var(--band)}
+.links{display:flex;gap:14px;font-size:12.5px;align-items:center}
+.links button{background:none;border:0;cursor:pointer;color:var(--onband);text-decoration:underline;opacity:.9;font-size:12.5px}
+.links span{opacity:.75}
+.menu-btn{display:none}
+/* layout */
+.layout{display:grid;grid-template-columns:290px 1fr;min-height:calc(100vh - 80px)}
+.side{background:var(--card);border-right:1px solid var(--line);padding:16px 12px 40px;position:sticky;top:80px;height:calc(100vh - 80px);overflow:auto}
+.nav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:14.5px;color:#2b2f36;line-height:1.25}
+.nav:hover{background:var(--card2)}
+.nav.on{background:var(--tint);color:var(--club);font-weight:700}
+.nav .cnt{margin-left:auto;color:var(--muted);font-size:12.5px;font-weight:500}
+.nav.club{font-weight:700;font-size:15.5px;margin-bottom:6px}
+.nav.grp{font-weight:700;font-size:15px;margin-top:10px}
+.nav.grp small{color:var(--muted);font-weight:500;font-size:12px}
+.nav.code{padding-left:22px;font-weight:600}
+.nav.team{padding-left:40px;font-size:14px}
+.nav.team.off{color:#8a919c}
+.nav .dot{width:9px;height:9px}
+.caret{width:14px;color:var(--muted);font-size:11px;flex:none;text-align:center}
+.main{padding:22px 28px 60px;min-width:0;max-width:1400px}
+.crumbs{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.crumbs a{color:var(--club);font-weight:600;cursor:pointer}
+.ttl{font-size:28px;font-weight:700;letter-spacing:-.3px}
+.ttl-sub{color:var(--muted);margin-top:3px;font-size:14.5px}
+.card{background:var(--card);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px #0000000d,0 2px 10px #0000000a;border:1px solid #eceef2}
+.card h3{font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h3 small{margin-left:auto;color:var(--muted);font-weight:500;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:18px}
+.kpis.k6{grid-template-columns:repeat(3,1fr)}
+.kpi{display:flex;align-items:center;gap:14px}
 .kpi .l{color:var(--muted);font-size:13px}
-.kpi .v{font-size:32px;font-weight:700;margin-top:4px;letter-spacing:-.5px}
-.kpi .s{color:var(--muted);font-size:13px;margin-top:2px}
-.wdl{font-size:26px!important}.wdl b{color:var(--good)}.wdl i{font-style:normal;color:var(--muted)}.wdl u{text-decoration:none;color:var(--bad)}
-.att{margin-top:16px;background:#2b2414;border:1px solid #4a3a14;border-radius:14px;padding:13px 18px;color:#ffd38a;font-size:14.5px;display:flex;gap:10px 22px;flex-wrap:wrap}
-.att b{color:#fff}
-.grp{margin-top:26px}
-.gh{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
-.gh h2{font-size:22px;font-weight:700}
-.gh span{color:var(--muted);font-size:14px}
-.gh .gs{margin-left:auto;color:#d9dce1;font-size:14px}
-.tbl{background:var(--card);border-radius:16px;overflow:hidden}
-.tr{display:grid;grid-template-columns:210px 70px 100px 100px 150px 1fr 22px;align-items:center;padding:13px 20px;border-top:1px solid var(--line);gap:12px;cursor:pointer}
-.tr:hover{background:#232833}
-.tr:first-child{border-top:0}
-.th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.6px;padding:11px 20px;background:#1a1e26;cursor:default}
-.th:hover{background:#1a1e26}
-.tn{font-weight:600;font-size:16px}.tn small{display:block;color:var(--muted);font-weight:400;font-size:12.5px;margin-top:2px}
-.ag{color:#d9dce1}
-.pct{font-weight:700;font-size:17px}
-.g{color:var(--good)}.a{color:var(--warn)}.r{color:var(--bad)}.m{color:#7a7f89;font-weight:500}
-.res{display:flex;gap:8px;flex-wrap:wrap}
-.rc{display:flex;align-items:center;gap:7px;background:var(--card2);padding:6px 11px;border-radius:9px;font-size:14px;white-space:nowrap}
-.dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
-.rc .n{color:var(--muted)}
-.flag{color:var(--warn)!important;font-weight:500!important}
-.dim .tn{color:#c8cbd1}
-.chev{color:#6d727c;font-size:22px}
-.legend{display:flex;gap:16px;color:var(--muted);font-size:13px;margin-top:22px;flex-wrap:wrap}
-.legend span{display:flex;align-items:center;gap:6px}
-.two{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin-top:18px}
-.card{background:var(--card);border-radius:16px;padding:18px 20px}
-.card h3{font-size:17px;margin-bottom:12px}
-.bars{display:flex;align-items:flex-end;gap:10px;height:190px;padding-top:10px}
-.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%;min-width:0}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.5px;line-height:1.15}
+.kpi .s{color:var(--muted);font-size:12.5px}
+.ring{flex:none}
+.g{color:var(--good)}.a{color:var(--warn)}.r{color:var(--bad)}.m{color:#9aa1ab}
+.att{margin-top:16px;background:#fff7e6;border:1px solid #f4dca6;border-radius:14px;padding:12px 16px;color:#7a4b00;font-size:14px;display:flex;gap:8px 20px;flex-wrap:wrap}
+.att b{color:#4a2e00}
+.sec{display:flex;align-items:baseline;gap:10px;margin:26px 0 12px}
+.sec h2{font-size:19px}
+.sec span{color:var(--muted);font-size:13.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.grid.big{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+.tc{cursor:pointer;transition:transform .12s,box-shadow .12s;display:flex;flex-direction:column;gap:10px}
+.tc:hover{transform:translateY(-2px);box-shadow:0 4px 18px #0000001a}
+.tc .top{display:flex;align-items:flex-start;gap:10px}
+.tc .nm{font-weight:700;font-size:16.5px}
+.tc .nm small{display:block;color:var(--muted);font-weight:500;font-size:12.5px;margin-top:2px}
+.tc .age{margin-left:auto;background:var(--tint);color:var(--club);font-weight:700;font-size:12.5px;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.tc.off{background:#fbfbfc}
+.flag{color:var(--warn)!important;font-weight:600!important}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{background:var(--card2);border-radius:11px;padding:9px 11px;display:flex;align-items:center;gap:10px}
+.mini b{font-size:19px;display:block;line-height:1.1}
+.mini span{color:var(--muted);font-size:12px}
+.codeline{display:flex;align-items:center;gap:8px;font-size:13.5px}
+.codeline .cn{width:118px;display:flex;align-items:center;gap:7px;color:#2b2f36;flex:none}
+.codeline .rec{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:64px;text-align:right}
+.codeline .nos{margin-left:auto;color:var(--muted)}
+.wbar{flex:1;height:9px;border-radius:5px;overflow:hidden;display:flex;background:#eceef2;min-width:40px}
+.wbar i{display:block;height:100%}
+.form{display:flex;gap:4px}
+.form i{width:18px;height:18px;border-radius:50%;font-style:normal;font-size:10.5px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.gc{cursor:pointer;display:flex;flex-direction:column;gap:12px}
+.gc:hover{box-shadow:0 4px 18px #0000001a}
+.gc .hd{display:flex;align-items:center;gap:10px}
+.gc .hd b{font-size:19px}.gc .hd span{color:var(--muted);font-size:13px}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:14px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:180px;padding-top:8px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;justify-content:flex-end;height:100%;min-width:0}
 .bar .b{width:100%;border-radius:6px 6px 2px 2px;background:var(--club)}
-.bar .t{font-size:12.5px;color:var(--muted)}
-.bar .p{font-size:12.5px;font-weight:600}
-.side{border-top:1px solid var(--line);padding:11px 0;display:grid;grid-template-columns:200px 1fr;gap:10px;align-items:start}
-.side:first-of-type{border-top:0}
-.sn{font-weight:600;display:flex;gap:8px;align-items:center}
-.sn small{color:var(--muted);font-weight:400}
+.bar .t{font-size:12px;color:var(--muted)}
+.bar .p{font-size:12px;font-weight:700}
+.side-row{border-top:1px solid var(--line);padding:11px 0;display:grid;grid-template-columns:190px 1fr;gap:10px;align-items:start}
+.side-row:first-of-type{border-top:0}
+.sn{font-weight:700;display:flex;gap:8px;align-items:center}
+.sn small{color:var(--muted);font-weight:500}
 .comps{display:flex;flex-direction:column;gap:5px;font-size:14px}
-.comps div{display:flex;justify-content:space-between;gap:10px;color:#d9dce1}
+.comps div{display:flex;justify-content:space-between;gap:10px}
 .comps b{font-variant-numeric:tabular-nums;white-space:nowrap}
-.gm{display:grid;grid-template-columns:62px 12px 1fr 110px 90px;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0;font-size:14px}
+.gm{display:grid;grid-template-columns:56px 12px 1fr 104px 84px;gap:10px;align-items:center;border-top:1px solid var(--line);padding:9px 0;font-size:14px}
 .gm:first-of-type{border-top:0}
-.gm .d{color:var(--muted)}.gm .c{color:var(--muted);font-size:13px}
+.gm .d{color:var(--muted)}.gm .c{color:var(--muted);font-size:12.5px}
 .gm .s{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-.check{display:flex;gap:14px}
+.gm .mg{color:var(--muted);font-size:12.5px;text-align:right}
+.check{display:flex;gap:12px}
 .check>div{flex:1;background:var(--card2);border-radius:12px;padding:12px 14px}
 .check b{font-size:26px;display:block}
 .check span{color:var(--muted);font-size:13px}
-.names{margin-top:10px;font-size:14px;color:#d9dce1;line-height:1.6}
+.names{margin-top:10px;font-size:14px;line-height:1.6}
+.more{background:none;border:0;color:var(--club);cursor:pointer;font-size:14px;margin-top:8px;font-weight:700}
 .empty{color:var(--muted);font-size:14px;padding:6px 0}
-.more{background:none;border:0;color:var(--club);cursor:pointer;font-size:14px;margin-top:8px;font-weight:600}
+.legend{display:flex;gap:16px;color:var(--muted);font-size:12.5px;margin-top:22px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px}
 .state{padding:80px 40px;text-align:center;color:var(--muted);font-size:16px}
-/* login */
-.login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:var(--bg);z-index:5}
+.spark{display:block}
+/* login + sheet */
+.login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:var(--bg);z-index:9}
 .login.on{display:flex}
-.lbox{background:var(--card);border-radius:18px;padding:28px;width:100%;max-width:380px}
+.lbox{background:var(--card);border-radius:18px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px #0001}
 .lbox h2{font-size:22px;margin-bottom:6px}.lbox p{color:var(--muted);font-size:14px;margin-bottom:18px}
-.lbox input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:16px}
-.btn{background:var(--club);color:var(--onclub,#fff);border:0;border-radius:10px;padding:12px 16px;font-weight:600;cursor:pointer;width:100%}
-.btn.ghost{background:var(--card2);color:var(--text)}
+.lbox input{width:100%;background:#fff;border:1px solid #d6d9df;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:16px}
+.btn{background:var(--club);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;width:100%}
 .link{background:none;border:0;color:var(--muted);cursor:pointer;margin-top:12px;font-size:14px}
 .msg{font-size:14px;color:var(--bad);min-height:20px;margin-top:6px}.msg.ok{color:var(--good)}
-/* sheet */
-.sheet{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:6;padding:16px}
+.sheet{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:8;padding:16px}
 .sheet.on{display:flex}
 .sbox{background:var(--card);border-radius:18px;padding:22px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
 .sbox h2{font-size:20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
@@ -112,41 +141,31 @@ a{color:inherit;text-decoration:none}
 .orow small{color:var(--muted);display:block}
 .orow button{background:var(--card2);border:0;border-radius:8px;padding:7px 11px;cursor:pointer;font-size:13px}
 .oadd{display:grid;grid-template-columns:1fr 130px;gap:8px;margin-top:14px}
-.oadd input{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.oadd input{border:1px solid #d6d9df;border-radius:10px;padding:10px 12px}
 .oadd .btn{grid-column:1/-1}
 .picker{display:grid;gap:10px;max-width:520px;margin:40px auto;padding:0 16px}
-.pick{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;font-size:17px;font-weight:600}
+.pick{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;font-size:17px;font-weight:700;box-shadow:0 1px 6px #0001}
 .pick img{width:44px;height:44px;object-fit:contain}
-.spark{display:block}
-@media (max-width:1100px){
- .kpis{grid-template-columns:repeat(3,1fr)}.kpis.k5{grid-template-columns:repeat(3,1fr)}
- .two{grid-template-columns:1fr}
-}
-@media (max-width:760px){
- .hdr{padding:22px 16px 16px}.wrap{padding:0 14px 36px}
- .crest{width:52px;height:52px}.hrow h1{font-size:25px}.hrow .sub{font-size:14px}
- .pw{margin-left:0;text-align:left;width:100%}.chips{justify-content:flex-start}.chip{font-size:13px;padding:8px 12px}
- .by{justify-content:flex-start}
- .kpis,.kpis.k5{grid-template-columns:1fr 1fr;gap:10px}.kpi .v{font-size:26px}
- .gh h2{font-size:19px}
- .tbl{background:none}
- .tr.th{display:none}
- .tr{display:block;background:var(--card);border-radius:14px;padding:13px 15px;margin-bottom:9px;border:0}
- .tr .top{display:flex;align-items:center;gap:10px}
- .tr .top .tn{flex:1}
- .tr .ag,.tr .cpct{display:none}
- .tr .nums{display:flex!important;gap:16px;margin:9px 0;font-size:13px;color:var(--muted)}
- .tr .nums b{font-size:16px;margin-right:3px}
- .side{grid-template-columns:1fr}
- .gm{grid-template-columns:52px 10px 1fr 80px}.gm .mg{display:none}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+@media (max-width:900px){
+ .band{padding:12px 14px;flex-wrap:wrap;position:static}
+ .band .crest{width:44px;height:44px}.band h1{font-size:20px}
+ .band .right{margin-left:0;align-items:flex-start;width:100%}
+ .menu-btn{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer;width:100%;margin-bottom:14px}
+ .menu-btn span{margin-left:auto;color:var(--muted)}
+ .layout{display:block}
+ .side{display:none;position:static;height:auto;border:1px solid var(--line);border-radius:14px;margin:0 0 14px;padding:10px}
+ .side.open{display:block}
+ .main{padding:14px 14px 40px}
+ .ttl{font-size:23px}
+ .kpis,.kpis.k6{grid-template-columns:1fr 1fr;gap:10px}
+ .kpi{flex-direction:column;align-items:flex-start;gap:6px}.kpi .v{font-size:24px}
+ .grid,.grid.big{grid-template-columns:1fr}
+ .side-row{grid-template-columns:1fr}
+ .gm{grid-template-columns:50px 10px 1fr 82px}.gm .mg{display:none}
  .check{flex-direction:column}
- .bars{gap:5px}.bar .p{font-size:11px}
+ .bars{gap:4px}.bar .p{font-size:10.5px}
 }
-.tr .nums{display:none}
-.ph-age{display:none}
-@media (max-width:760px){.ph-age{display:inline}}
-.tr .top{display:contents}
-@media (max-width:760px){.tr .top{display:flex}}
 </style>
 </head>
 <body>
@@ -191,12 +210,14 @@ function lum(hex) {
   return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
 }
 function brand(c) {
-  const p = c.primary_colour, s = c.secondary_colour, ok = h => { const l = lum(h); return l != null && l > .06 && l < .8; };
-  const accent = ok(p) ? p : ok(s) ? s : '#87c232';
-  const band = lum(p) != null && lum(p) < .8 ? p : (lum(s) != null && lum(s) < .8 ? s : accent);
+  const p = c.primary_colour, s = c.secondary_colour;
+  const okText = h => { const l = lum(h); return l != null && l < .45; };
+  const accent = okText(p) ? p : okText(s) ? s : '#1a1d23';
+  const band = lum(p) != null && lum(p) < .85 ? p : (lum(s) != null && lum(s) < .85 ? s : accent);
   const r = document.documentElement.style;
   r.setProperty('--club', accent); r.setProperty('--band', band);
-  r.setProperty('--onclub', lum(accent) > .45 ? '#14181b' : '#fff');
+  r.setProperty('--onband', lum(band) > .5 ? '#14181b' : '#fff');
+  r.setProperty('--tint', accent + '17');
 }
 
 // ── Sign in ───────────────────────────────────────────────────────
@@ -237,7 +258,7 @@ function state(msg, withOut) {
   $('app').innerHTML = `<div class="state">${esc(msg)}${withOut ? '<br><br><button class="link" onclick="signOut()">Sign out</button>' : ''}</div>`;
 }
 function clubPicker() {
-  $('app').innerHTML = `<div class="hdr"><div class="hrow"><div><h1>Club dashboard</h1><div class="sub">Pick a club</div></div></div></div>
+  $('app').innerHTML = `<div class="band"><div><h1>Club dashboard</h1><div class="sub">Pick a club</div></div></div>
    <div class="picker">${myClubs.map(c => `<a class="pick" href="?club=${c.club_id}">${c.crest ? `<img src="${esc(c.crest)}" alt="">` : ''}${esc(c.club_name)}</a>`).join('')}</div>`;
 }
 
@@ -348,114 +369,12 @@ function spark(team, w = 140, h = 34) {
   const mid = h - 4 - .5 * (h - 8);
   return `<svg class="spark" width="${w}" height="${h}"><line x1="0" x2="${w}" y1="${mid}" y2="${mid}" stroke="#3a404c" stroke-dasharray="3 3"/><path d="${p}" fill="none" stroke="var(--club)" stroke-width="2.2" stroke-linejoin="round"/>${last ? `<circle cx="${last[0]}" cy="${last[1]}" r="3.2" fill="var(--club)"/>` : ''}</svg>`;
 }
-function pct(p) { return p == null ? '<span class="pct m">–</span>' : `<span class="pct ${cls(p)}">${p}%</span>`; }
-function sub(r) {
-  if (!r.onCS) return '<small class="flag">Not on CoachSmart</small>';
-  const t = r.team, bits = [t.players + ' player' + (t.players === 1 ? '' : 's')];
-  if (t.players < 5 || !r.events) return `<small class="flag">${!r.events ? 'Not using CoachSmart yet' : 'Only ' + bits[0] + ' on CoachSmart'}</small>`;
-  if (!t.trn_events && t.m_events) bits.push('Matches only');
-  if (t.keeper) bits.push(t.keeper + ' scored live');
-  return `<small>${bits.join(' · ')}</small>`;
-}
 function periodLabel() { return { season: seasonYear + ' season', '3m': 'last 3 months', '4w': 'last 4 weeks', last: (seasonYear - 1) + ' season' }[period]; }
-
-// ── Header ────────────────────────────────────────────────────────
-function header(title, subLine, back) {
-  const c = D.club;
-  return `<div class="hdr">${back ? `<a class="back" href="#">‹ ${esc(back)}</a>` : ''}<div class="hrow">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(title)}</h1><div class="sub">${esc(subLine)}</div></div>
-   <div class="pw">${chips()}<div class="by">${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}${myClubs.length > 1 ? '<button onclick="location.href=\'?\'">Change club</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div></div>`;
-}
-
-// ── Club view ─────────────────────────────────────────────────────
-function clubView() {
-  const rows = model.rows, cs = rows.filter(r => r.onCS);
-  const sum = k => cs.reduce((a, r) => a + r.team[k], 0);
-  const trn = pc(sum('trn_yes'), sum('trn_inv')), mt = pc(sum('m_yes'), sum('m_inv'));
-  const all = wdl(model.games), active = cs.filter(r => r.events && r.team.players >= 5);
-  let h = header(D.club.club_name, 'Club dashboard · ' + periodLabel()) + `<div class="wrap"><div class="kpis">
-   <div class="kpi"><div class="l">Teams on CoachSmart</div><div class="v">${active.length}</div><div class="s">of ${rows.length} age groups and sides</div></div>
-   <div class="kpi"><div class="l">Players</div><div class="v">${sum('players').toLocaleString('en-IE')}</div><div class="s">on team rosters</div></div>
-   <div class="kpi"><div class="l">Sessions held</div><div class="v">${(sum('trn_events') + sum('m_events')).toLocaleString('en-IE')}</div><div class="s">${sum('trn_events')} training · ${sum('m_events')} matches</div></div>
-   <div class="kpi"><div class="l">Training attendance</div><div class="v ${cls(trn)}">${trn ?? '–'}${trn != null ? '%' : ''}</div><div class="s">players who said yes</div></div>
-   <div class="kpi"><div class="l">Match attendance</div><div class="v ${cls(mt)}">${mt ?? '–'}${mt != null ? '%' : ''}</div><div class="s">players who said yes</div></div>
-   <div class="kpi"><div class="l">Results (scored games)</div><div class="v wdl"><b>${all.w}</b> <i>${all.d}</i> <u>${all.l}</u></div><div class="s">won · drawn · lost</div></div></div>`;
-  const notes = [];
-  const idle = cs.filter(r => !r.events || r.team.players < 5).map(r => r.name);
-  if (idle.length) notes.push(listText(idle) + (idle.length > 1 ? ' are' : ' is') + ' not using CoachSmart');
-  cs.filter(r => r.team.trn_events >= 8).forEach(r => { const p = pc(r.team.trn_yes, r.team.trn_inv); if (p < 40) notes.push(`${r.name} training at ${p}%`); });
-  const off = rows.filter(r => !r.onCS).length;
-  if (off) notes.push(`${off} age group${off > 1 ? 's and sides are' : ' or side is'} not on CoachSmart`);
-  if (notes.length) h += `<div class="att"><span><b>Needs a look:</b></span>${notes.map(n => `<span>${esc(n)}</span>`).join('')}</div>`;
-  for (const [g, title, desc] of GROUPS) {
-    const rs = rows.filter(r => r.group === g); if (!rs.length) continue;
-    const s = wdl(rs.flatMap(r => r.games));
-    h += `<div class="grp"><div class="gh"><h2>${title}</h2><span>${desc}</span><span class="gs">${s.w + s.d + s.l ? `Results <b class="g">${s.w}</b>-${s.d}-<b class="r">${s.l}</b>` : ''}</span></div><div class="tbl">
-     <div class="tr th"><span>Team</span><span>Age</span><span>Training</span><span>Matches</span><span>Trend</span><span>Results</span><span></span></div>`;
-    for (const r of rs) {
-      const t = r.team, tp = t ? pc(t.trn_yes, t.trn_inv) : null, mp = t ? pc(t.m_yes, t.m_inv) : null;
-      h += `<a class="tr ${r.onCS ? '' : 'dim'}" href="#${r.key}"><div class="top"><div class="tn">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ` <span class="ph-age">· ${r.ageLabel}</span>` : ''}${sub(r)}</div><div class="ag">${r.ageLabel}</div><div class="cpct">${pct(tp)}</div><div class="cpct">${pct(mp)}</div><div>${t ? spark(t) : ''}</div></div>
-        ${t && (tp != null || mp != null) ? `<div class="nums"><span><b class="${cls(tp)}">${tp ?? '–'}${tp != null ? '%' : ''}</b> training</span><span><b class="${cls(mp)}">${mp ?? '–'}${mp != null ? '%' : ''}</b> matches</span></div>` : ''}
-        <div class="res">${r.codes.map(c => rc(c, r.games)).join('') || '<span class="m" style="font-size:13px">No league games</span>'}</div><div class="chev">›</div></a>`;
-    }
-    h += '</div></div>';
-  }
-  h += `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance = players who said yes ÷ players invited. Results from the league fixtures.</span></div></div>`;
-  return h;
-}
+function pct(p) { return p == null ? '<span class="pct m">–</span>' : `<span class="pct ${cls(p)}">${p}%</span>`; }
 function listText(a) { return a.length <= 2 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
-
-// ── Team view ─────────────────────────────────────────────────────
 function divOf(comp) { const m = /\b(?:div(?:ision)?\.?|afl|ahl)\s*(\d+)/i.exec(comp); return m ? Number(m[1]) : null; }
 function compKind(comp) { return /shield/i.test(comp) ? 'Shield' : /champ/i.test(comp) ? 'Championship' : /league|afl|ahl/i.test(comp) ? 'League' : /cup/i.test(comp) ? 'Cup' : /féile|feile/i.test(comp) ? 'Féile' : 'Other'; }
 function shortComp(comp) { const k = compKind(comp), d = divOf(comp); return k === 'Other' || k === 'Cup' || k === 'Féile' ? comp.replace(/^(LGFA|Camogie)\s+/i, '') : k + (d ? ' Div ' + d : ''); }
-function teamView(r) {
-  const t = r.team, gs = r.games, res = wdl(gs);
-  const codes = r.codes.map((c, i) => i ? CN[c].toLowerCase() : CN[c]).join(' and ');
-  const sidesBy = {};
-  gs.forEach(g => { const d = divOf(g.comp), k = g.code + '|' + (d ?? 'x'); (sidesBy[k] = sidesBy[k] || { code: g.code, div: d, comps: {} }); (sidesBy[k].comps[g.comp] = sidesBy[k].comps[g.comp] || []).push(g); });
-  // A team's championship/shield can name a different division from its league: fold such groups into the nearest league division of that code.
-  const grp = Object.values(sidesBy), hasLeague = s => Object.keys(s.comps).some(c => compKind(c) === 'League');
-  for (const s of grp.filter(s => s.div != null && !hasLeague(s))) {
-    const L = grp.filter(x => x !== s && x.code === s.code && x.div != null && hasLeague(x)).sort((a, b) => Math.abs(a.div - s.div) - Math.abs(b.div - s.div) || a.div - b.div)[0];
-    if (L) { Object.entries(s.comps).forEach(([c, g]) => L.comps[c] = (L.comps[c] || []).concat(g)); delete sidesBy[s.code + '|' + s.div]; }
-  }
-  Object.values(sidesBy).forEach(s => { const o = {}; Object.keys(s.comps).sort((a, b) => ['League', 'Championship', 'Shield', 'Cup'].indexOf(compKind(a)) - ['League', 'Championship', 'Shield', 'Cup'].indexOf(compKind(b))).forEach(k => o[k] = s.comps[k]); s.comps = o; });
-  const sides = Object.values(sidesBy).sort((a, b) => 'FBHULGCA'.indexOf(a.code) - 'FBHULGCA'.indexOf(b.code) || (a.div ?? 99) - (b.div ?? 99));
-  const letters = {}; sides.forEach(s => { if (s.div == null) return; letters[s.code] = (letters[s.code] || 0) + 1; s.letter = String.fromCharCode(64 + letters[s.code]); });
-  const multi = c => sides.filter(s => s.code === c && s.div != null).length > 1;
-  let h = header(r.name + (r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''), [codes, t ? t.players + ' players' : 'Not on CoachSmart', sides.length ? sides.length + ' side' + (sides.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · '), D.club.club_name);
-  h += '<div class="wrap">';
-  if (t) {
-    const tp = pc(t.trn_yes, t.trn_inv), mp = pc(t.m_yes, t.m_inv), rr = pc(t.replied, t.trn_inv + t.m_inv);
-    h += `<div class="kpis k5">
-     <div class="kpi"><div class="l">Training attendance</div><div class="v ${cls(tp)}">${tp ?? '–'}${tp != null ? '%' : ''}</div><div class="s">${t.trn_events} sessions</div></div>
-     <div class="kpi"><div class="l">Match attendance</div><div class="v ${cls(mp)}">${mp ?? '–'}${mp != null ? '%' : ''}</div><div class="s">${t.m_events} matches</div></div>
-     <div class="kpi"><div class="l">Reply rate</div><div class="v">${rr ?? '–'}${rr != null ? '%' : ''}</div><div class="s">answered yes or no</div></div>
-     <div class="kpi"><div class="l">Results</div><div class="v wdl"><b>${res.w}</b> <i>${res.d}</i> <u>${res.l}</u></div><div class="s">won · drawn · lost</div></div>
-     <div class="kpi"><div class="l">Scored live in CoachSmart</div><div class="v">${t.keeper}</div><div class="s">matches with score keeper</div></div></div>`;
-    const ms = months().slice(-12);
-    const bars = ms.map(k => { const v = t.months[k]; const p = v && v[1] ? Math.round(v[0] / v[1] * 100) : null; const mi = Number(k.slice(5)) - 1; return `<div class="bar">${p != null ? `<span class="p ${cls(p)}">${p}%</span><div class="b" style="height:${Math.max(3, p * 1.4)}px;opacity:${.55 + p / 200}"></div>` : '<span class="p m">–</span>'}<span class="t">${ms.length > 6 ? MON[mi][0] : MON[mi]}</span></div>`; }).join('');
-    h += `<div class="two"><div class="card"><h3>Attendance by month</h3>${t.trn_inv + t.m_inv ? `<div class="bars">${bars}</div>` : '<div class="empty">No sessions in this period.</div>'}</div>
-     <div class="card"><h3>Players to check in with</h3><div class="check"><div><b>${t.not_attended.length}</b><span>players not at anything in the last 4 weeks</span></div><div><b>${t.not_replied.length}</b><span>players who haven’t replied in 4 weeks</span></div></div>
-      ${t.not_attended.length || t.not_replied.length ? `<button class="more" id="showNames" onclick="this.style.display='none';$('names').style.display='block'">Show names</button><div class="names" id="names" style="display:none">${t.not_attended.length ? `<b>Not at anything:</b> ${t.not_attended.map(esc).join(', ')}<br>` : ''}${t.not_replied.length ? `<b>No replies:</b> ${t.not_replied.map(esc).join(', ')}` : ''}</div>` : ''}</div></div>`;
-  } else {
-    h += `<div class="kpis k5"><div class="kpi"><div class="l">Results</div><div class="v wdl"><b>${res.w}</b> <i>${res.d}</i> <u>${res.l}</u></div><div class="s">won · drawn · lost</div></div>
-      <div class="kpi"><div class="l">Games played</div><div class="v">${res.n}</div><div class="s">${res.u ? res.u + ' with no score' : 'all scored'}</div></div></div>
-      <div class="att" style="margin-top:16px"><span>This side isn’t on CoachSmart, so there’s no attendance. Results come from the league fixtures.</span></div>`;
-  }
-  h += `<div class="two"><div class="card"><h3>Sides and competitions</h3>${sides.length ? sides.map(s => `<div class="side"><div class="sn"><span class="dot" style="background:var(--${s.code})"></span>${CN[s.code]}${s.div != null && multi(s.code) ? ' ' + s.letter : ''} <small>${s.div != null ? 'Div ' + s.div : 'Other'}</small></div><div class="comps">${Object.entries(s.comps).map(([c, g]) => { const x = wdl(g); return `<div><span>${esc(shortComp(c))}</span><b>${x.w + x.d + x.l ? x.w + '-' + x.d + '-' + x.l : x.n + ' played'}</b></div>`; }).join('')}</div></div>`).join('') : '<div class="empty">No league games in this period.</div>'}</div>
-   <div class="card"><h3>Recent results</h3>${recent(gs)}</div></div></div>`;
-  return h;
-}
-function recent(gs) {
-  const scored = gs.filter(g => g.up != null && g.tp != null);
-  const list = (scored.length ? scored : gs).slice(0, 12);
-  if (!list.length) return '<div class="empty">No games in this period.</div>';
-  return list.map(g => {
-    const has = g.up != null && g.tp != null, diff = has ? g.up - g.tp : 0;
-    return `<div class="gm"><span class="d">${g.d.getDate()} ${MON[g.d.getMonth()]}</span><span class="dot" style="background:var(--${g.code})"></span><span>v ${esc(g.opp)}<br><span class="c">${esc(shortComp(g.comp))}</span></span><span class="s ${has ? diff > 0 ? 'g' : diff < 0 ? 'r' : '' : 'm'}">${has ? esc(g.us) + ' : ' + esc(g.them) : 'No score'}</span><span class="c mg" style="text-align:right">${has ? diff > 0 ? 'Won by ' + diff : diff < 0 ? 'Lost by ' + -diff : 'Draw' : ''}</span></div>`;
-  }).join('');
-}
 
 // ── Officers (SuperUser only) ─────────────────────────────────────
 async function officers() {
@@ -477,13 +396,211 @@ async function addOfficer() {
 }
 async function removeOfficer(uid) { await sb.rpc('club_officer_remove', { p_club_id: clubId, p_user_id: uid }); officers(); }
 
-// ── Routing ───────────────────────────────────────────────────────
-function route() {
-  if (!model) return;
-  const k = location.hash.slice(1), r = k && model.rows.find(x => x.key === k);
-  $('app').innerHTML = r ? teamView(r) : clubView();
-  window.scrollTo(0, 0);
+// ── Pieces ────────────────────────────────────────────────────────
+const CODES = ['FB', 'HU', 'LG', 'CA'];
+const GNAME = { ccc1: 'CCC1', ccc2: 'CCC2', adult: 'Adult & Minor' };
+const GDESC = { ccc1: 'Under 8 to Under 12', ccc2: 'Under 13 to Under 16', adult: 'Minor and adult teams' };
+const COL = { g: 'var(--good)', a: 'var(--warn)', r: 'var(--bad)', m: '#c3c8d0' };
+function ring(p, size = 56, label) {
+  const r = size / 2 - 5, c = 2 * Math.PI * r, v = p == null ? 0 : Math.max(0, Math.min(100, p));
+  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#eceef2" stroke-width="7"/>${p != null ? `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${COL[cls(p)]}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(v / 100 * c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>` : ''}${label ? `<text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-size="${size / 4.2}" font-weight="700" fill="#1a1d23">${p == null ? '–' : p + '%'}</text>` : ''}</svg>`;
 }
+function wbar(x) {
+  const n = x.w + x.d + x.l; if (!n) return '<span class="wbar"></span>';
+  return `<span class="wbar"><i style="width:${x.w / n * 100}%;background:var(--good)"></i><i style="width:${x.d / n * 100}%;background:#b9bec7"></i><i style="width:${x.l / n * 100}%;background:var(--bad)"></i></span>`;
+}
+function codeLine(code, gs) {
+  const x = wdl(gs.filter(g => g.code === code)); if (!x.n) return '';
+  const s = x.w + x.d + x.l;
+  return `<div class="codeline"><span class="cn"><span class="dot" style="background:var(--${code})"></span>${CN[code]}</span>${s ? `${wbar(x)}<span class="rec">${x.w}-${x.d}-${x.l}</span>` : `<span class="nos">${x.n} game${x.n > 1 ? 's' : ''} · no scores</span>`}</div>`;
+}
+function form(gs) {
+  const sc = gs.filter(g => g.up != null && g.tp != null).slice(0, 5).reverse();
+  if (!sc.length) return '';
+  return `<div class="form" title="Last ${sc.length} results">${sc.map(g => { const d = g.up - g.tp; return `<i style="background:${d > 0 ? 'var(--good)' : d < 0 ? 'var(--bad)' : '#9aa1ab'}">${d > 0 ? 'W' : d < 0 ? 'L' : 'D'}</i>`; }).join('')}</div>`;
+}
+function agg(rows) {
+  const cs = rows.filter(r => r.onCS), s = k => cs.reduce((a, r) => a + r.team[k], 0);
+  return { cs, players: s('players'), trn: pc(s('trn_yes'), s('trn_inv')), mt: pc(s('m_yes'), s('m_inv')), trnN: s('trn_events'), mN: s('m_events'), active: cs.filter(r => r.events && r.team.players >= 5).length };
+}
+function uniqGames(rows, code) {
+  const seen = new Set(), out = [];
+  rows.forEach(r => r.games.forEach(g => { if (code && g.code !== code) return; if (!seen.has(g)) { seen.add(g); out.push(g); } }));
+  return out.sort((a, b) => b.d - a.d);
+}
+function kpi(label, value, sub, p) {
+  return `<div class="card kpi">${p !== undefined ? ring(p, 58, true) : ''}<div><div class="l">${label}</div>${p !== undefined ? '' : `<div class="v">${value}</div>`}<div class="s">${sub}</div></div></div>`;
+}
+function wdlKpi(x, label = 'Results') {
+  const n = x.w + x.d + x.l;
+  return `<div class="card kpi">${ring(n ? Math.round(x.w / n * 100) : null, 58, true)}<div><div class="l">${label}</div><div class="v" style="font-size:22px"><span class="g">${x.w}</span> · <span class="m">${x.d}</span> · <span class="r">${x.l}</span></div><div class="s">won · drawn · lost</div></div></div>`;
+}
+function href(o) { const p = new URLSearchParams(); Object.entries(o).forEach(([k, v]) => v && p.set(k, v)); return '#' + p.toString(); }
+
+// ── Team card ─────────────────────────────────────────────────────
+function teamCard(r, g, code) {
+  const t = r.team, tp = t ? pc(t.trn_yes, t.trn_inv) : null, mp = t ? pc(t.m_yes, t.m_inv) : null;
+  const codes = code ? [code] : r.codes, gs = code ? r.games.filter(x => x.code === code) : r.games;
+  const age = r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? r.ageLabel : r.ageLabel;
+  return `<a class="card tc ${r.onCS ? '' : 'off'}" href="${href({ g, c: code, t: r.key })}"><div class="top"><div class="nm">${esc(r.name)}${sub(r)}</div><span class="age">${age}</span></div>
+   ${t && (tp != null || mp != null) ? `<div class="duo"><div class="mini">${ring(tp, 38)}<div><b class="${cls(tp)}">${tp ?? '–'}${tp != null ? '%' : ''}</b><span>training</span></div></div><div class="mini">${ring(mp, 38)}<div><b class="${cls(mp)}">${mp ?? '–'}${mp != null ? '%' : ''}</b><span>matches</span></div></div></div>
+   <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted);font-size:12px">Trend</span>${spark(t, 220, 30)}</div>` : ''}
+   ${codes.map(c => codeLine(c, gs)).join('') || '<div class="empty">No league games</div>'}
+   ${form(gs)}</a>`;
+}
+function sub(r) {
+  if (!r.onCS) return '<small class="flag">Not on CoachSmart · results only</small>';
+  const t = r.team, n = t.players + ' player' + (t.players === 1 ? '' : 's');
+  if (!r.events) return '<small class="flag">Not using CoachSmart yet</small>';
+  if (t.players < 5) return `<small class="flag">Only ${n} on CoachSmart</small>`;
+  const bits = [n]; if (!t.trn_events && t.m_events) bits.push('matches only'); if (t.keeper) bits.push(t.keeper + ' scored live');
+  return `<small>${bits.join(' · ')}</small>`;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────
+const forced = new Map();
+let openDefaults = {};
+function isOpen(k) { return forced.has(k) ? forced.get(k) : !!openDefaults[k]; }
+function toggle(k, ev) { ev.preventDefault(); ev.stopPropagation(); forced.set(k, !isOpen(k)); render(); }
+function sidebar(sel) {
+  openDefaults = {};
+  ['ccc1', 'ccc2', 'adult'].forEach(g => { openDefaults['G' + g] = !sel.g || sel.g === g; CODES.forEach(c => openDefaults['C' + g + c] = sel.g === g && (!sel.c || sel.c === c)); });
+  let h = `<a class="nav club ${!sel.g && !sel.t ? 'on' : ''}" href="#">${D.club.crest ? `<img src="${esc(D.club.crest)}" style="width:22px;height:22px;object-fit:contain" alt="">` : ''}Whole club</a>`;
+  for (const g of ['ccc1', 'ccc2', 'adult']) {
+    const rs = model.rows.filter(r => r.group === g); if (!rs.length) continue;
+    const gk = 'G' + g, gOpen = isOpen(gk);
+    h += `<a class="nav grp ${sel.g === g && !sel.c && !sel.t ? 'on' : ''}" href="${href({ g })}"><span class="caret" onclick="toggle('${gk}',event)">${gOpen ? '▾' : '▸'}</span>${GNAME[g]} <small>${GDESC[g].replace('Under ', 'U').replace('to Under ', 'to U')}</small></a>`;
+    if (!gOpen) continue;
+    for (const c of CODES) {
+      const ts = rs.filter(r => r.codes.includes(c)); if (!ts.length) continue;
+      const ck = 'C' + g + c, cOpen = isOpen(ck);
+      h += `<a class="nav code ${sel.g === g && sel.c === c && !sel.t ? 'on' : ''}" href="${href({ g, c })}"><span class="caret" onclick="toggle('${ck}',event)">${cOpen ? '▾' : '▸'}</span><span class="dot" style="background:var(--${c})"></span>${CN[c]}<span class="cnt">${ts.length}</span></a>`;
+      if (cOpen) ts.forEach(r => h += `<a class="nav team ${r.onCS ? '' : 'off'} ${sel.t === r.key && sel.c === c ? 'on' : ''}" href="${href({ g, c, t: r.key })}">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''}</a>`);
+    }
+  }
+  return h;
+}
+
+// ── Shell ─────────────────────────────────────────────────────────
+function shell(sel, body) {
+  const c = D.club;
+  return `<div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club dashboard · ${periodLabel()}</div></div>
+   <div class="right">${chips()}<div class="links">${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}${myClubs.length > 1 ? '<button onclick="location.href=\'?\'">Change club</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+   <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
+}
+
+// ── Views ─────────────────────────────────────────────────────────
+function needsLook(rows) {
+  const cs = rows.filter(r => r.onCS), notes = [];
+  const idle = cs.filter(r => !r.events || r.team.players < 5).map(r => r.name);
+  if (idle.length) notes.push(listText(idle) + (idle.length > 1 ? ' are' : ' is') + ' not using CoachSmart');
+  cs.filter(r => r.team.trn_events >= 8).forEach(r => { const p = pc(r.team.trn_yes, r.team.trn_inv); if (p < 40) notes.push(`${r.name} training at ${p}%`); });
+  const off = rows.filter(r => !r.onCS).length;
+  if (off) notes.push(`${off} age group${off > 1 ? 's and sides are' : ' or side is'} not on CoachSmart`);
+  return notes.length ? `<div class="att"><b>Needs a look:</b>${notes.map(n => `<span>${esc(n)}</span>`).join('')}</div>` : '';
+}
+function kpiRow(rows, games) {
+  const a = agg(rows);
+  return `<div class="kpis k6">${kpi('Teams on CoachSmart', a.active, `of ${rows.length} age groups and sides`)}${kpi('Players', a.players.toLocaleString('en-IE'), 'on team rosters')}
+   ${kpi('Sessions held', (a.trnN + a.mN).toLocaleString('en-IE'), `${a.trnN} training · ${a.mN} matches`)}${kpi('Training attendance', '', 'players who said yes', a.trn)}
+   ${kpi('Match attendance', '', 'players who said yes', a.mt)}${wdlKpi(wdl(games))}</div>`;
+}
+function groupCard(g) {
+  const rs = model.rows.filter(r => r.group === g), a = agg(rs), gs = uniqGames(rs);
+  return `<a class="card gc" href="${href({ g })}"><div class="hd"><b>${GNAME[g]}</b><span>${GDESC[g]}</span><span style="margin-left:auto">${rs.length} teams ›</span></div>
+   <div class="duo"><div class="mini">${ring(a.trn, 40)}<div><b class="${cls(a.trn)}">${a.trn ?? '–'}${a.trn != null ? '%' : ''}</b><span>training</span></div></div><div class="mini">${ring(a.mt, 40)}<div><b class="${cls(a.mt)}">${a.mt ?? '–'}${a.mt != null ? '%' : ''}</b><span>matches</span></div></div></div>
+   ${CODES.map(c => codeLine(c, gs)).join('')}</a>`;
+}
+function clubView(sel) {
+  const rows = model.rows;
+  let h = `<div class="ttl">Whole club</div><div class="ttl-sub">${rows.length} age groups and sides · ${periodLabel()}</div>${kpiRow(rows, model.games)}${needsLook(rows)}
+   <div class="sec"><h2>Groups</h2><span>Tap a group to see its codes and teams</span></div><div class="grid big">${['ccc1', 'ccc2', 'adult'].filter(g => rows.some(r => r.group === g)).map(groupCard).join('')}</div>`;
+  for (const g of ['ccc1', 'ccc2', 'adult']) {
+    const rs = rows.filter(r => r.group === g); if (!rs.length) continue;
+    h += `<div class="sec"><h2>${GNAME[g]}</h2><span>${GDESC[g]}</span></div><div class="grid">${rs.map(r => teamCard(r, g)).join('')}</div>`;
+  }
+  return h + legend();
+}
+function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance = players who said yes ÷ players invited. Results from the league fixtures.</span></div>`; }
+function codeCard(g, c, rs) {
+  const gs = uniqGames(rs, c), x = wdl(gs), n = x.w + x.d + x.l;
+  return `<a class="card gc" href="${href({ g, c })}"><div class="hd"><span class="dot" style="background:var(--${c});width:12px;height:12px"></span><b>${CN[c]}</b><span style="margin-left:auto">${rs.length} teams ›</span></div>
+   <div style="display:flex;align-items:center;gap:14px">${ring(n ? Math.round(x.w / n * 100) : null, 64, true)}<div><div style="font-size:20px;font-weight:700"><span class="g">${x.w}</span> · <span class="m">${x.d}</span> · <span class="r">${x.l}</span></div><div class="s" style="color:var(--muted);font-size:12.5px">${n ? 'won · drawn · lost' : x.n + ' games, no scores kept'}</div></div></div>
+   ${form(gs)}</a>`;
+}
+function groupView(sel) {
+  const g = sel.g, rs = model.rows.filter(r => r.group === g), gs = uniqGames(rs);
+  return `<div class="crumbs"><a href="#">Whole club</a> ›</div><div class="ttl">${GNAME[g]}</div><div class="ttl-sub">${GDESC[g]} · ${periodLabel()}</div>${kpiRow(rs, gs)}${needsLook(rs)}
+   <div class="sec"><h2>Codes</h2></div><div class="grid">${CODES.filter(c => rs.some(r => r.codes.includes(c))).map(c => codeCard(g, c, rs.filter(r => r.codes.includes(c)))).join('')}</div>
+   <div class="sec"><h2>Teams</h2><span>${rs.length}</span></div><div class="grid">${rs.map(r => teamCard(r, g)).join('')}</div>` + legend();
+}
+function codeView(sel) {
+  const { g, c } = sel, rs = model.rows.filter(r => r.group === g && r.codes.includes(c)), gs = uniqGames(rs, c), x = wdl(gs);
+  const sc = gs.filter(q => q.up != null && q.tp != null), f = sc.reduce((a, q) => a + q.up, 0), ag = sc.reduce((a, q) => a + q.tp, 0);
+  const a = agg(rs);
+  return `<div class="crumbs"><a href="#">Whole club</a> › <a href="${href({ g })}">${GNAME[g]}</a> ›</div><div class="ttl"><span class="dot" style="background:var(--${c});width:14px;height:14px;margin-right:8px"></span>${CN[c]} · ${GNAME[g]}</div><div class="ttl-sub">${rs.length} teams · ${periodLabel()}</div>
+   <div class="kpis">${wdlKpi(x)}${kpi('Games played', x.n, x.u ? x.u + ' with no score kept' : 'all scored')}${kpi('Average score', sc.length ? (f / sc.length).toFixed(1) + ' – ' + (ag / sc.length).toFixed(1) : '–', 'points for – against')}${kpi('Training attendance', '', 'these teams', a.trn)}${kpi('Match attendance', '', 'these teams', a.mt)}</div>
+   <div class="sec"><h2>Teams</h2></div><div class="grid">${rs.map(r => teamCard(r, g, c)).join('')}</div>
+   <div class="card" style="margin-top:14px"><h3>Recent results<small>${CN[c]}</small></h3>${recent(gs, true)}</div>` + legend();
+}
+function teamView(sel) {
+  const r = model.rows.find(x => x.key === sel.t), c = sel.c && r.codes.includes(sel.c) ? sel.c : null;
+  const t = r.team, gs = c ? r.games.filter(x => x.code === c) : r.games, res = wdl(gs);
+  const sidesBy = {};
+  gs.forEach(g => { const d = divOf(g.comp), k = g.code + '|' + (d ?? 'x'); (sidesBy[k] = sidesBy[k] || { code: g.code, div: d, comps: {} }); (sidesBy[k].comps[g.comp] = sidesBy[k].comps[g.comp] || []).push(g); });
+  const grp = Object.values(sidesBy), hasLeague = s => Object.keys(s.comps).some(q => compKind(q) === 'League');
+  for (const s of grp.filter(s => s.div != null && !hasLeague(s))) {
+    const L = grp.filter(x => x !== s && x.code === s.code && x.div != null && hasLeague(x)).sort((a, b) => Math.abs(a.div - s.div) - Math.abs(b.div - s.div) || a.div - b.div)[0];
+    if (L) { Object.entries(s.comps).forEach(([q, g]) => L.comps[q] = (L.comps[q] || []).concat(g)); delete sidesBy[s.code + '|' + s.div]; }
+  }
+  const ORD = ['League', 'Championship', 'Shield', 'Cup'];
+  Object.values(sidesBy).forEach(s => { const o = {}; Object.keys(s.comps).sort((a, b) => ORD.indexOf(compKind(a)) - ORD.indexOf(compKind(b))).forEach(k => o[k] = s.comps[k]); s.comps = o; });
+  const sides = Object.values(sidesBy).sort((a, b) => CODES.indexOf(a.code) - CODES.indexOf(b.code) || (a.div ?? 99) - (b.div ?? 99));
+  const letters = {}; sides.forEach(s => { if (s.div == null) return; letters[s.code] = (letters[s.code] || 0) + 1; s.letter = String.fromCharCode(64 + letters[s.code]); });
+  const multi = q => sides.filter(s => s.code === q && s.div != null).length > 1;
+  const codes = (c ? [c] : r.codes).map((q, i) => i ? CN[q].toLowerCase() : CN[q]).join(' and ');
+  let h = `<div class="crumbs"><a href="#">Whole club</a> › <a href="${href({ g: r.group })}">${GNAME[r.group]}</a> ›${c ? ` <a href="${href({ g: r.group, c })}">${CN[c]}</a> ›` : ''}</div>
+   <div class="ttl">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''}</div><div class="ttl-sub">${[codes, t ? t.players + ' players' : 'Not on CoachSmart', sides.length ? sides.length + ' side' + (sides.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · ')}${c && r.codes.length > 1 ? ` · <a style="color:var(--club);font-weight:700" href="${href({ g: r.group, t: r.key })}">show all codes</a>` : ''}</div>`;
+  if (t) {
+    const tp = pc(t.trn_yes, t.trn_inv), mp = pc(t.m_yes, t.m_inv), rr = pc(t.replied, t.trn_inv + t.m_inv);
+    h += `<div class="kpis">${kpi('Training attendance', '', t.trn_events + ' sessions', tp)}${kpi('Match attendance', '', t.m_events + ' matches', mp)}${kpi('Reply rate', '', 'answered yes or no', rr)}${wdlKpi(res)}${kpi('Scored live', t.keeper, 'matches with score keeper')}</div>`;
+    const ms = months().slice(-12);
+    const bars = ms.map(k => { const v = t.months[k]; const p = v && v[1] ? Math.round(v[0] / v[1] * 100) : null; const mi = Number(k.slice(5)) - 1; return `<div class="bar">${p != null ? `<span class="p ${cls(p)}">${p}%</span><div class="b" style="height:${Math.max(3, p * 1.35)}px;opacity:${.5 + p / 200}"></div>` : '<span class="p m">–</span>'}<span class="t">${ms.length > 6 ? MON[mi][0] : MON[mi]}</span></div>`; }).join('');
+    h += `<div class="two"><div class="card"><h3>Attendance by month</h3>${t.trn_inv + t.m_inv ? `<div class="bars">${bars}</div>` : '<div class="empty">No sessions in this period.</div>'}</div>
+     <div class="card"><h3>Players to check in with<small>last 4 weeks</small></h3><div class="check"><div><b>${t.not_attended.length}</b><span>players not at anything</span></div><div><b>${t.not_replied.length}</b><span>players who haven’t replied</span></div></div>
+      ${t.not_attended.length || t.not_replied.length ? `<button class="more" onclick="this.style.display='none';$('names').style.display='block'">Show names</button><div class="names" id="names" style="display:none">${t.not_attended.length ? `<b>Not at anything:</b> ${t.not_attended.map(esc).join(', ')}<br>` : ''}${t.not_replied.length ? `<b>No replies:</b> ${t.not_replied.map(esc).join(', ')}` : ''}</div>` : ''}</div></div>`;
+  } else {
+    h += `<div class="kpis">${wdlKpi(res)}${kpi('Games played', res.n, res.u ? res.u + ' with no score kept' : 'all scored')}</div>
+      <div class="att"><span>This side isn’t on CoachSmart, so there’s no attendance. Results come from the league fixtures.</span></div>`;
+  }
+  h += `<div class="two"><div class="card"><h3>Sides and competitions</h3>${sides.length ? sides.map(s => { const x = wdl(Object.values(s.comps).flat()); return `<div class="side-row"><div><div class="sn"><span class="dot" style="background:var(--${s.code})"></span>${CN[s.code]}${s.div != null && multi(s.code) ? ' ' + s.letter : ''} <small>${s.div != null ? 'Div ' + s.div : 'Other'}</small></div><div style="margin-top:8px;display:flex">${wbar(x)}</div></div><div class="comps">${Object.entries(s.comps).map(([q, g]) => { const y = wdl(g); return `<div><span>${esc(shortComp(q))}</span><b>${y.w + y.d + y.l ? y.w + '-' + y.d + '-' + y.l : y.n + ' played'}</b></div>`; }).join('')}</div></div>`; }).join('') : '<div class="empty">No league games in this period.</div>'}</div>
+   <div class="card"><h3>Recent results</h3>${recent(gs)}</div></div>`;
+  return h;
+}
+function recent(gs, withTeam) {
+  const scored = gs.filter(g => g.up != null && g.tp != null);
+  const list = (scored.length ? scored : gs).slice(0, 12);
+  if (!list.length) return '<div class="empty">No games in this period.</div>';
+  return list.map(g => {
+    const has = g.up != null && g.tp != null, diff = has ? g.up - g.tp : 0;
+    return `<div class="gm"><span class="d">${g.d.getDate()} ${MON[g.d.getMonth()]}</span><span class="dot" style="background:var(--${g.code})"></span><span>v ${esc(g.opp)}<br><span class="c">${withTeam ? esc(g.age) + ' · ' : ''}${esc(shortComp(g.comp))}</span></span><span class="s ${has ? diff > 0 ? 'g' : diff < 0 ? 'r' : '' : 'm'}">${has ? esc(g.us) + ' : ' + esc(g.them) : 'No score'}</span><span class="mg">${has ? diff > 0 ? 'Won by ' + diff : diff < 0 ? 'Lost by ' + -diff : 'Draw' : ''}</span></div>`;
+  }).join('');
+}
+
+// ── Routing ───────────────────────────────────────────────────────
+function selection() { const p = new URLSearchParams(location.hash.slice(1)); return { g: p.get('g'), c: p.get('c'), t: p.get('t') }; }
+function render() {
+  if (!model) return;
+  const sel = selection();
+  if (sel.t && !model.rows.some(r => r.key === sel.t)) sel.t = null;
+  if (sel.g && !GNAME[sel.g]) sel.g = null;
+  const body = sel.t ? teamView(sel) : sel.g && sel.c ? codeView(sel) : sel.g ? groupView(sel) : clubView(sel);
+  const y = document.querySelector('.side')?.scrollTop || 0;
+  $('app').innerHTML = shell(sel, body);
+  const s = document.querySelector('.side'); if (s) s.scrollTop = y;
+  const on = document.querySelector('.side .nav.on'); if (on && !y && on.offsetTop > s.clientHeight - 60) s.scrollTop = on.offsetTop - 120;
+}
+function route() { render(); window.scrollTo(0, 0); }
 window.addEventListener('hashchange', route);
 
 boot();
