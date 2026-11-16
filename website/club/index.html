@@ -340,6 +340,10 @@ function build(D, year) {
   for (const t of D.teams) {
     const events = t.trn_events + t.m_events;
     if (/test/i.test(t.team_name) || (t.players === 0 && events === 0)) continue;
+    // Ken 2026-11-16: leave out teams with only a handful of players, or no event in 3 months
+    // (their league results, if any, show as a results-only side instead).
+    if (t.players < 10) continue;
+    if (period !== 'last' && 'last_event' in t && (!t.last_event || new Date(t.last_event) < Date.now() - 91 * 864e5)) continue;
     const meta = teamMeta(t, year);
     let gs;
     if (meta.bucket === 'adult') { gs = games.filter(g => g.b.key.startsWith('adult-') && meta.codes.includes(g.code)); meta.codes.forEach(c => claimed.add('adult-' + c)); }
