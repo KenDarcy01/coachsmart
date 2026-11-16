@@ -421,12 +421,22 @@ function form(gs) {
 }
 function agg(rows) {
   const cs = rows.filter(r => r.onCS), s = k => cs.reduce((a, r) => a + r.team[k], 0);
-  return { cs, players: s('players'), trn: pc(s('trn_yes'), s('trn_inv')), mt: pc(s('m_yes'), s('m_inv')), trnN: s('trn_events'), mN: s('m_events'), active: cs.filter(r => r.events && r.team.players >= 5).length };
+  return { cs, players: s('players'), trn: pc(s('trn_yes'), s('trn_inv')), mt: pc(s('m_yes'), s('m_inv')), avgT: avg(s('trn_yes'), s('trn_events')), avgM: avg(s('m_yes'), s('m_events')), trnN: s('trn_events'), mN: s('m_events'), active: cs.filter(r => r.events && r.team.players >= 5).length };
 }
 function uniqGames(rows, code) {
   const seen = new Set(), out = [];
   rows.forEach(r => r.games.forEach(g => { if (code && g.code !== code) return; if (!seen.has(g)) { seen.add(g); out.push(g); } }));
   return out.sort((a, b) => b.d - a.d);
+}
+function avg(yes, n) { return n ? yes / n : null; }
+function fmtAvg(x) { return x == null ? '–' : x >= 10 ? String(Math.round(x)) : x.toFixed(1); }
+// Primary number: average players per session; the percentage is secondary.
+function attKpi(label, a, p, n, unit) {
+  const pl = unit === 'match' ? 'matches' : unit + 's';
+  return `<div class="card kpi">${ring(p, 58)}<div><div class="l">${label}${n != null ? ` · ${n} ${n === 1 ? unit : pl}` : ''}</div><div class="v">${fmtAvg(a)}</div><div class="s">avg players per ${unit}${p != null ? ` · ${p}%` : ''}</div></div></div>`;
+}
+function miniAtt(a, p, what) {
+  return `<div class="mini">${ring(p, 38)}<div><b>${fmtAvg(a)}</b><span>${what} avg${p != null ? ' · ' + p + '%' : ''}</span></div></div>`;
 }
 function kpi(label, value, sub, p) {
   return `<div class="card kpi">${p !== undefined ? ring(p, 58, true) : ''}<div><div class="l">${label}</div>${p !== undefined ? '' : `<div class="v">${value}</div>`}<div class="s">${sub}</div></div></div>`;
@@ -443,7 +453,7 @@ function teamCard(r, g, code) {
   const codes = code ? [code] : r.codes, gs = code ? r.games.filter(x => x.code === code) : r.games;
   const age = r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? r.ageLabel : r.ageLabel;
   return `<a class="card tc ${r.onCS ? '' : 'off'}" href="${href({ g, c: code, t: r.key })}"><div class="top"><div class="nm">${esc(r.name)}${sub(r)}</div><span class="age">${age}</span></div>
-   ${t && (tp != null || mp != null) ? `<div class="duo"><div class="mini">${ring(tp, 38)}<div><b class="${cls(tp)}">${tp ?? '–'}${tp != null ? '%' : ''}</b><span>training</span></div></div><div class="mini">${ring(mp, 38)}<div><b class="${cls(mp)}">${mp ?? '–'}${mp != null ? '%' : ''}</b><span>matches</span></div></div></div>
+   ${t && (tp != null || mp != null) ? `<div class="duo">${miniAtt(avg(t.trn_yes, t.trn_events), tp, 'training')}${miniAtt(avg(t.m_yes, t.m_events), mp, 'matches')}</div>
    <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted);font-size:12px">Trend</span>${spark(t, 220, 30)}</div>` : ''}
    ${codes.map(c => codeLine(c, gs)).join('') || '<div class="empty">No league games</div>'}
    ${form(gs)}</a>`;
@@ -494,7 +504,7 @@ function needsLook(rows) {
   const cs = rows.filter(r => r.onCS), notes = [];
   const idle = cs.filter(r => !r.events || r.team.players < 5).map(r => r.name);
   if (idle.length) notes.push(listText(idle) + (idle.length > 1 ? ' are' : ' is') + ' not using CoachSmart');
-  cs.filter(r => r.team.trn_events >= 8).forEach(r => { const p = pc(r.team.trn_yes, r.team.trn_inv); if (p < 40) notes.push(`${r.name} training at ${p}%`); });
+  cs.filter(r => r.team.trn_events >= 8).forEach(r => { const p = pc(r.team.trn_yes, r.team.trn_inv); if (p < 40) notes.push(`${r.name} training: ${fmtAvg(avg(r.team.trn_yes, r.team.trn_events))} of ${r.team.players} players on average (${p}%)`); });
   const off = rows.filter(r => !r.onCS).length;
   if (off) notes.push(`${off} age group${off > 1 ? 's and sides are' : ' or side is'} not on CoachSmart`);
   return notes.length ? `<div class="att"><b>Needs a look:</b>${notes.map(n => `<span>${esc(n)}</span>`).join('')}</div>` : '';
@@ -502,13 +512,13 @@ function needsLook(rows) {
 function kpiRow(rows, games) {
   const a = agg(rows);
   return `<div class="kpis k6">${kpi('Teams on CoachSmart', a.active, `of ${rows.length} age groups and sides`)}${kpi('Players', a.players.toLocaleString('en-IE'), 'on team rosters')}
-   ${kpi('Sessions held', (a.trnN + a.mN).toLocaleString('en-IE'), `${a.trnN} training · ${a.mN} matches`)}${kpi('Training attendance', '', 'players who said yes', a.trn)}
-   ${kpi('Match attendance', '', 'players who said yes', a.mt)}${wdlKpi(wdl(games))}</div>`;
+   ${kpi('Sessions held', (a.trnN + a.mN).toLocaleString('en-IE'), `${a.trnN} training · ${a.mN} matches`)}${attKpi('Training attendance', a.avgT, a.trn, null, 'session')}
+   ${attKpi('Match attendance', a.avgM, a.mt, null, 'match')}${wdlKpi(wdl(games))}</div>`;
 }
 function groupCard(g) {
   const rs = model.rows.filter(r => r.group === g), a = agg(rs), gs = uniqGames(rs);
   return `<a class="card gc" href="${href({ g })}"><div class="hd"><b>${GNAME[g]}</b><span>${GDESC[g]}</span><span style="margin-left:auto">${rs.length} teams ›</span></div>
-   <div class="duo"><div class="mini">${ring(a.trn, 40)}<div><b class="${cls(a.trn)}">${a.trn ?? '–'}${a.trn != null ? '%' : ''}</b><span>training</span></div></div><div class="mini">${ring(a.mt, 40)}<div><b class="${cls(a.mt)}">${a.mt ?? '–'}${a.mt != null ? '%' : ''}</b><span>matches</span></div></div></div>
+   <div class="duo">${miniAtt(a.avgT, a.trn, 'training')}${miniAtt(a.avgM, a.mt, 'matches')}</div>
    ${CODES.map(c => codeLine(c, gs)).join('')}</a>`;
 }
 function clubView(sel) {
@@ -521,7 +531,7 @@ function clubView(sel) {
   }
   return h + legend();
 }
-function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance = players who said yes ÷ players invited. Results from the league fixtures.</span></div>`; }
+function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span></div>`; }
 function codeCard(g, c, rs) {
   const gs = uniqGames(rs, c), x = wdl(gs), n = x.w + x.d + x.l;
   return `<a class="card gc" href="${href({ g, c })}"><div class="hd"><span class="dot" style="background:var(--${c});width:12px;height:12px"></span><b>${CN[c]}</b><span style="margin-left:auto">${rs.length} teams ›</span></div>
@@ -539,7 +549,7 @@ function codeView(sel) {
   const sc = gs.filter(q => q.up != null && q.tp != null), f = sc.reduce((a, q) => a + q.up, 0), ag = sc.reduce((a, q) => a + q.tp, 0);
   const a = agg(rs);
   return `<div class="crumbs"><a href="#">Whole club</a> › <a href="${href({ g })}">${GNAME[g]}</a> ›</div><div class="ttl"><span class="dot" style="background:var(--${c});width:14px;height:14px;margin-right:8px"></span>${CN[c]} · ${GNAME[g]}</div><div class="ttl-sub">${rs.length} teams · ${periodLabel()}</div>
-   <div class="kpis">${wdlKpi(x)}${kpi('Games played', x.n, x.u ? x.u + ' with no score kept' : 'all scored')}${kpi('Average score', sc.length ? (f / sc.length).toFixed(1) + ' – ' + (ag / sc.length).toFixed(1) : '–', 'points for – against')}${kpi('Training attendance', '', 'these teams', a.trn)}${kpi('Match attendance', '', 'these teams', a.mt)}</div>
+   <div class="kpis">${wdlKpi(x)}${kpi('Games played', x.n, x.u ? x.u + ' with no score kept' : 'all scored')}${kpi('Average score', sc.length ? (f / sc.length).toFixed(1) + ' – ' + (ag / sc.length).toFixed(1) : '–', 'points for – against')}${attKpi('Training attendance', a.avgT, a.trn, null, 'session')}${attKpi('Match attendance', a.avgM, a.mt, null, 'match')}</div>
    <div class="sec"><h2>Teams</h2></div><div class="grid">${rs.map(r => teamCard(r, g, c)).join('')}</div>
    <div class="card" style="margin-top:14px"><h3>Recent results<small>${CN[c]}</small></h3>${recent(gs, true)}</div>` + legend();
 }
@@ -563,10 +573,11 @@ function teamView(sel) {
    <div class="ttl">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''}</div><div class="ttl-sub">${[codes, t ? t.players + ' players' : 'Not on CoachSmart', sides.length ? sides.length + ' side' + (sides.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · ')}${c && r.codes.length > 1 ? ` · <a style="color:var(--club);font-weight:700" href="${href({ g: r.group, t: r.key })}">show all codes</a>` : ''}</div>`;
   if (t) {
     const tp = pc(t.trn_yes, t.trn_inv), mp = pc(t.m_yes, t.m_inv), rr = pc(t.replied, t.trn_inv + t.m_inv);
-    h += `<div class="kpis">${kpi('Training attendance', '', t.trn_events + ' sessions', tp)}${kpi('Match attendance', '', t.m_events + ' matches', mp)}${kpi('Reply rate', '', 'answered yes or no', rr)}${wdlKpi(res)}${kpi('Scored live', t.keeper, 'matches with score keeper')}</div>`;
+    h += `<div class="kpis">${attKpi('Training attendance', avg(t.trn_yes, t.trn_events), tp, t.trn_events, 'session')}${attKpi('Match attendance', avg(t.m_yes, t.m_events), mp, t.m_events, 'match')}<div class="card kpi">${ring(rr, 58)}<div><div class="l">Squad size</div><div class="v">${t.players}</div><div class="s">players${rr != null ? ` · ${rr}% reply` : ''}</div></div></div>${wdlKpi(res)}${kpi('Scored live', t.keeper, 'matches with score keeper')}</div>`;
     const ms = months().slice(-12);
-    const bars = ms.map(k => { const v = t.months[k]; const p = v && v[1] ? Math.round(v[0] / v[1] * 100) : null; const mi = Number(k.slice(5)) - 1; return `<div class="bar">${p != null ? `<span class="p ${cls(p)}">${p}%</span><div class="b" style="height:${Math.max(3, p * 1.35)}px;opacity:${.5 + p / 200}"></div>` : '<span class="p m">–</span>'}<span class="t">${ms.length > 6 ? MON[mi][0] : MON[mi]}</span></div>`; }).join('');
-    h += `<div class="two"><div class="card"><h3>Attendance by month</h3>${t.trn_inv + t.m_inv ? `<div class="bars">${bars}</div>` : '<div class="empty">No sessions in this period.</div>'}</div>
+    const mv = ms.map(k => { const v = t.months[k]; return v && v[2] ? { a: v[0] / v[2], p: v[1] ? Math.round(v[0] / v[1] * 100) : null } : null; }), top = Math.max(1, ...mv.filter(Boolean).map(x => x.a));
+    const bars = ms.map((k, i) => { const v = mv[i], mi = Number(k.slice(5)) - 1; return `<div class="bar" title="${v ? fmtAvg(v.a) + ' players on average' + (v.p != null ? ', ' + v.p + '%' : '') : ''}">${v ? `<span class="p">${fmtAvg(v.a)}</span><div class="b" style="height:${Math.max(3, v.a / top * 135)}px;opacity:${.55 + (v.p || 0) / 220}"></div><span class="t ${cls(v.p)}" style="font-size:11px">${v.p != null ? v.p + '%' : ''}</span>` : '<span class="p m">–</span>'}<span class="t">${ms.length > 6 ? MON[mi][0] : MON[mi]}</span></div>`; }).join('');
+    h += `<div class="two"><div class="card"><h3>Average players per session, by month<small>% of players invited below</small></h3>${t.trn_inv + t.m_inv ? `<div class="bars">${bars}</div>` : '<div class="empty">No sessions in this period.</div>'}</div>
      <div class="card"><h3>Players to check in with<small>last 4 weeks</small></h3><div class="check"><div><b>${t.not_attended.length}</b><span>players not at anything</span></div><div><b>${t.not_replied.length}</b><span>players who haven’t replied</span></div></div>
       ${t.not_attended.length || t.not_replied.length ? `<button class="more" onclick="this.style.display='none';$('names').style.display='block'">Show names</button><div class="names" id="names" style="display:none">${t.not_attended.length ? `<b>Not at anything:</b> ${t.not_attended.map(esc).join(', ')}<br>` : ''}${t.not_replied.length ? `<b>No replies:</b> ${t.not_replied.map(esc).join(', ')}` : ''}</div>` : ''}</div></div>`;
   } else {
