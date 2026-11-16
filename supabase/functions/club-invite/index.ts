@@ -93,7 +93,7 @@ serve(async (req) => {
       if (!/^[0-9a-f]{48}$/.test(t)) return json({ error: "This invite link isn't valid." }, 400);
       const { data: inv } = await admin.from("club_officer_invites").select("*").eq("token", t).maybeSingle();
       if (!inv || inv.accepted_at) {
-        return json({ error: "This invite has already been used. Sign in with your email and password.", used: true }, 400);
+        return json({ error: "This invite link has already been used or was replaced by a newer one. Sign in with your email and password, or ask for a new invite.", used: true }, 400);
       }
       if (inv.expires_at && new Date(inv.expires_at) < new Date()) {
         return json({ error: "This invite has expired. Ask whoever invited you to send it again." }, 400);
