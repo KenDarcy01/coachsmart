@@ -3,6 +3,8 @@
 // right. Drag a card or a group onto a pitch, drag a booking to move it,
 // tap anything to edit. Slots the club holds are drawn lighter; the rest of
 // the day is shaded ("No slot").
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'v3_pitch_theme.dart';
@@ -518,6 +520,29 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             left: 0,
             right: 0,
             child: Container(height: 1, color: PT.line.withValues(alpha: 0.6))),
+      // Times the club holds no slot: hatched, so it is clear the pitch is
+      // not ours then (a booking can still be made there by hand).
+      if (p.slots.isNotEmpty)
+        for (final g in _gaps(slots, lo, hi))
+          Positioned(
+            top: y(g.$1),
+            height: (g.$2 - g.$1) * _pxPerMin,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: const _Hatch(),
+                child: Container(
+                  alignment: Alignment.topLeft,
+                  padding: const EdgeInsets.fromLTRB(6, 3, 0, 0),
+                  child: (g.$2 - g.$1) * _pxPerMin > 22
+                      ? Text('Not available',
+                          style: PT.inter(10.5, color: PT.faint))
+                      : null,
+                ),
+              ),
+            ),
+          ),
       // Held slots.
       for (final s in slots)
         Positioned(
@@ -1088,4 +1113,43 @@ class _GroupCard extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// The stretches of [lo, hi) (minutes) that no slot covers.
+List<(int, int)> _gaps(List<PitchSlot> slots, int lo, int hi) {
+  final sorted = [...slots]..sort((a, b) => a.opens.compareTo(b.opens));
+  final out = <(int, int)>[];
+  var at = lo;
+  for (final s in sorted) {
+    if (s.opens > at) out.add((at, math.min(s.opens, hi)));
+    at = math.max(at, s.closes);
+    if (at >= hi) break;
+  }
+  if (at < hi) out.add((at, hi));
+  return [
+    for (final g in out)
+      if (g.$2 - g.$1 >= 5) g
+  ];
+}
+
+/// Light grey diagonal stripes for time the club does not hold.
+class _Hatch extends CustomPainter {
+  const _Hatch();
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = const Color(0xFFF1F2F4));
+    final line = Paint()
+      ..color = const Color(0xFFE2E4E8)
+      ..strokeWidth = 1;
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    for (var x = -size.height; x < size.width; x += 9) {
+      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), line);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _Hatch oldDelegate) => false;
 }
