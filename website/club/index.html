@@ -27,6 +27,7 @@ a{color:inherit;text-decoration:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
+.rnd{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f4;color:#3b4250;margin-left:6px;vertical-align:2px;white-space:nowrap}.rnd.f{background:#fdf1cf;color:#8a5a00}.rt .rnd{margin-left:0}
 /* loading (Ken 2026-11-16): bar at the top, page dimmed, label pill */
 .ldbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:20;overflow:hidden;display:none}
 .ldbar::before{content:'';position:absolute;top:0;bottom:0;width:40%;background:var(--club);animation:ld 1.1s ease-in-out infinite}
@@ -434,7 +435,7 @@ function gameBucket(g) {
   return { key: 'adult-' + code, code, age: 99, female };
 }
 function build(D, year) {
-  const games = D.games.map(g => ({ d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], b: gameBucket(g) })).filter(g => g.b);
+  const games = D.games.map(g => ({ d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], note: g[11], b: gameBucket(g) })).filter(g => g.b);
   // The RPC returns the current season too (for the health check); show only the picked period.
   const [pf, pt] = range(), inP = g => g.d >= pf && g.d < pt, hy = new Date(new Date().getFullYear(), 0, 1);
   const byBucket = {}; games.forEach(g => (byBucket[g.b.key] = byBucket[g.b.key] || []).push(g));
@@ -521,12 +522,21 @@ async function loadWeek() {
   W = data; route();
 }
 function evCode(e) { const cs = e.row.codes; return e.code === 2 ? cs[0] : e.code === 3 ? cs[cs.length - 1] : null; }
-function weekGame(g) { return { d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], venue: g[11], b: gameBucket(g) }; }
+function weekGame(g) { return { d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], venue: g[11], note: g[12], b: gameBucket(g) }; }
 function weekRow(g) {
   const rs = model.rows, same = x => +x.d === +g.d && x.opp === g.opp && x.comp === g.comp;
   return rs.find(r => (r.hgames || []).some(same)) || rs.find(r => (r.hgames || []).some(x => x.comp === g.comp && x.code === g.code))
     || rs.find(r => g.b && (r.bucket === g.b.key || r.bucket === 'adult' && g.b.key === 'adult-' + g.code) && r.codes.includes(g.code)) || null;
 }
+// Finals and semi-finals get a chip (Ken 2026-11-16). The round is in the game note
+// ("Final - Result on Day", "S/F Extratime", "Champ S/Final") or the competition name.
+function roundOf(g) {
+  const t = (g.note || '') + ' | ' + (g.comp || '');
+  if (/semi|s\/\s?f(inal)?\b|\bsf\b/i.test(t)) return 'Semi-final';
+  if (/\bfinal\b/i.test(t) && !/quarter|q\/f|\bqf\b/i.test(t.replace(/semi[\s-]?finals?/ig, ''))) return 'Final';
+  return null;
+}
+function rChip(g) { const r = roundOf(g); return r ? `<span class="rnd${r === 'Final' ? ' f' : ''}">${r === 'Final' ? '🏆 ' : ''}${r}</span>` : ''; }
 function gName(g) { return g.row ? g.row.name : (g.age || '') + ' ' + (CN[g.code] || '').toLowerCase(); }
 function gAge(g) { return g.row ? g.row.ageLabel : g.age; }
 function selRows(sel) {
@@ -549,7 +559,7 @@ const scoredG = g => g.up != null && g.tp != null;
 const goG = g => !scoredG(g) && g.b && g.b.age <= 12;
 function resultCard(g) {
   const d = g.up - g.tp, w = d > 0 ? 'W' : d < 0 ? 'L' : 'D', col = d > 0 ? 'var(--good)' : d < 0 ? 'var(--bad)' : '#9aa1ab', cs = g.cs;
-  return `<a class="card rr" ${g.row ? `href="${href({ g: g.row.group, c: g.code, t: g.row.key })}"` : ''}><div class="rb" style="background:${col}">${w}</div><div class="ri"><div class="rt"><b>${esc(gName(g))}</b><span class="age">${esc(gAge(g) || '')}</span></div><div class="rc"><span class="dot" style="background:var(--${g.code})"></span>${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}</div>${cs ? `<div class="rcs">${cs.yes} players${cs.live ? ' · scored live' : ''}</div>` : ''}</div><div class="rs"><div class="sc"><b>${esc(g.us)}</b><span>${esc(g.them)}</span></div><div class="op">v ${esc(g.opp)}</div><div class="mg ${d > 0 ? 'g' : d < 0 ? 'r' : 'm'}">${d > 0 ? 'Won by ' + d : d < 0 ? 'Lost by ' + -d : 'Draw'}</div></div></a>`;
+  return `<a class="card rr" ${g.row ? `href="${href({ g: g.row.group, c: g.code, t: g.row.key })}"` : ''}><div class="rb" style="background:${col}">${w}</div><div class="ri"><div class="rt"><b>${esc(gName(g))}</b><span class="age">${esc(gAge(g) || '')}</span>${rChip(g)}</div><div class="rc"><span class="dot" style="background:var(--${g.code})"></span>${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}</div>${cs ? `<div class="rcs">${cs.yes} players${cs.live ? ' · scored live' : ''}</div>` : ''}</div><div class="rs"><div class="sc"><b>${esc(g.us)}</b><span>${esc(g.them)}</span></div><div class="op">v ${esc(g.opp)}</div><div class="mg ${d > 0 ? 'g' : d < 0 ? 'r' : 'm'}">${d > 0 ? 'Won by ' + d : d < 0 ? 'Lost by ' + -d : 'Draw'}</div></div></a>`;
 }
 function weekTabs() { return `<div class="tabs"><button class="${tab === 'results' ? 'on' : ''}" onclick="setTab('results')">Results</button><button class="${tab === 'fixtures' ? 'on' : ''}" onclick="setTab('fixtures')">Fixtures</button></div>`; }
 function weekCrumb(sel) {
@@ -576,7 +586,7 @@ function resultsWeekView(sel) {
   // Left: results + go games. Right: highlights, CoachSmart matches, coming up.
   const days = {}; sc.concat(noScore).sort((a, b) => b.d - a.d).forEach(g => { const k = ymd(g.d); (days[k] = days[k] || []).push(g); });
   let left = `<div class="sec"><h2>Results</h2><span>Latest first</span></div>`;
-  left += Object.keys(days).length ? Object.entries(days).map(([k, gs]) => `<div class="day">${DAY[gs[0].d.getDay()]} ${gs[0].d.getDate()} ${MONL[gs[0].d.getMonth()]}</div><div class="rgrid">${gs.map(g => scoredG(g) ? resultCard(g) : `<div class="card rr"><div class="rb" style="background:#c3c8d0">–</div><div class="ri"><div class="rt"><b>${esc(gName(g))}</b><span class="age">${esc(gAge(g) || '')}</span></div><div class="rc"><span class="dot" style="background:var(--${g.code})"></span>${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}</div></div><div class="rs"><div class="op">v ${esc(g.opp)}</div><div class="mg m">No score yet</div></div></div>`).join('')}</div>`).join('') : '<div class="card"><div class="empty">No league or championship results this week.</div></div>';
+  left += Object.keys(days).length ? Object.entries(days).map(([k, gs]) => `<div class="day">${DAY[gs[0].d.getDay()]} ${gs[0].d.getDate()} ${MONL[gs[0].d.getMonth()]}</div><div class="rgrid">${gs.map(g => scoredG(g) ? resultCard(g) : `<div class="card rr"><div class="rb" style="background:#c3c8d0">–</div><div class="ri"><div class="rt"><b>${esc(gName(g))}</b><span class="age">${esc(gAge(g) || '')}</span>${rChip(g)}</div><div class="rc"><span class="dot" style="background:var(--${g.code})"></span>${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}</div></div><div class="rs"><div class="op">v ${esc(g.opp)}</div><div class="mg m">No score yet</div></div></div>`).join('')}</div>`).join('') : '<div class="card"><div class="empty">No league or championship results this week.</div></div>';
   if (go.length) left += `<div class="sec"><h2>Go games</h2><span>No scores kept (U8 to U12)</span></div><div class="card">${go.sort((a, b) => a.d - b.d).map(g => `<div class="gg"><span class="dot" style="background:var(--${g.code})"></span><b>${esc(gName(g))}</b> <span class="m">${esc(gAge(g) || '')}</span> v ${esc(g.opp)}<span class="gd">${DAY[g.d.getDay()].slice(0, 3)}</span></div>`).join('')}</div>`;
   const hl = [];
   const bw = sc.filter(g => g.up > g.tp).sort((a, b) => (b.up - b.tp) - (a.up - a.tp))[0];
@@ -593,7 +603,7 @@ function resultsWeekView(sel) {
   if (hl.length) right += `<div class="card"><h3>Highlights</h3><div class="hl">${hl.map(([k, b, s]) => `<div class="hli"><div class="k">${k}</div><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join('')}</div></div>`;
   if (mt.length) right += `<div class="card"><h3>Matches on CoachSmart<small>players who said yes</small></h3>${[...mt].sort((a, b) => b.yes - a.yes).map(e => `<a class="cm" href="${href({ g: e.row.group, t: e.row.key })}"><b>${esc(e.row.name)}</b><span class="m">${esc(e.row.ageLabel)} · ${DAY[e.d.getDay()].slice(0, 3)}</span><span class="cmv">${e.yes} player${e.yes === 1 ? '' : 's'}</span>${e.live ? '<span class="live">scored live</span>' : ''}</a>`).join('')}</div>`;
   const from = now, up = games.filter(g => g.d >= from && g.d < addDays(from, 7) && !goG(g)).sort((a, b) => a.d - b.d);
-  if (up.length) right += `<div class="card"><h3>Coming up<small>next 7 days</small></h3>${up.slice(0, 8).map(g => `<div class="fx"><span class="d">${DAY[g.d.getDay()].slice(0, 3)} ${g.d.getDate()} · ${tm(g.d)}</span><span class="dot" style="background:var(--${g.code})"></span><span>${esc(gName(g))} v ${esc(g.opp)} <span class="m">· ${g.home ? 'home' : 'away'}</span></span></div>`).join('')}${`<button class="more" onclick="setTab('fixtures')">See all fixtures ›</button>`}</div>`;
+  if (up.length) right += `<div class="card"><h3>Coming up<small>next 7 days</small></h3>${up.slice(0, 8).map(g => `<div class="fx"><span class="d">${DAY[g.d.getDay()].slice(0, 3)} ${g.d.getDate()} · ${tm(g.d)}</span><span class="dot" style="background:var(--${g.code})"></span><span>${esc(gName(g))} v ${esc(g.opp)} <span class="m">· ${g.home ? 'home' : 'away'}</span>${rChip(g)}</span></div>`).join('')}${`<button class="more" onclick="setTab('fixtures')">See all fixtures ›</button>`}</div>`;
   h += `<div class="side2"><div>${left}</div><div class="rcol">${right}</div></div>`;
   // Training this week v the team's season average.
   const tr = {}; trn.forEach(e => (tr[e.row.key] = tr[e.row.key] || []).push(e));
@@ -614,7 +624,7 @@ function fixturesView(sel) {
   h += Object.values(days).map(list => { const d0 = list[0].d; return `<div class="day">${DAY[d0.getDay()]} ${d0.getDate()} ${MONL[d0.getMonth()]}</div><div class="card fxl">${list.map(it => {
     if (it.e) { const e = it.e; return `<a class="fxr" href="${href({ g: e.row.group, t: e.row.key })}"><span class="t">${tm(e.d)}</span><span class="dot" style="background:${evCode(e) ? 'var(--' + evCode(e) + ')' : '#c3c8d0'}"></span><span class="w"><b>${esc(e.row.name)}</b> <span class="age">${esc(e.row.ageLabel)}</span><br><span class="c">CoachSmart match${evCode(e) ? ' · ' + CN[evCode(e)].toLowerCase() : ''}</span></span><span class="r">${e.yes} player${e.yes === 1 ? '' : 's'}${e.live ? ' · <span class="live">scored live</span>' : ''}</span></a>`; }
     const g = it.g, done = scoredG(g), dd = done ? g.up - g.tp : 0;
-    return `<a class="fxr" ${g.row ? `href="${href({ g: g.row.group, c: g.code, t: g.row.key })}"` : ''}><span class="t">${tm(g.d)}</span><span class="dot" style="background:var(--${g.code})"></span><span class="w"><b>${esc(gName(g))}</b> <span class="age">${esc(gAge(g) || '')}</span> v ${esc(g.opp)}<br><span class="c">${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}${g.venue ? ' · ' + esc(g.venue) : ''}${goG(g) ? ' · go game' : ''}</span></span><span class="r">${done ? `<b class="${dd > 0 ? 'g' : dd < 0 ? 'r' : ''}">${esc(g.us)} : ${esc(g.them)}</b>` : g.cs ? `${g.cs.yes} player${g.cs.yes === 1 ? '' : 's'} said yes` : g.d < now ? '<span class="m">No score</span>' : ''}</span></a>`;
+    return `<a class="fxr" ${g.row ? `href="${href({ g: g.row.group, c: g.code, t: g.row.key })}"` : ''}><span class="t">${tm(g.d)}</span><span class="dot" style="background:var(--${g.code})"></span><span class="w"><b>${esc(gName(g))}</b> <span class="age">${esc(gAge(g) || '')}</span> v ${esc(g.opp)}${rChip(g)}<br><span class="c">${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}${g.venue ? ' · ' + esc(g.venue) : ''}${goG(g) ? ' · go game' : ''}</span></span><span class="r">${done ? `<b class="${dd > 0 ? 'g' : dd < 0 ? 'r' : ''}">${esc(g.us)} : ${esc(g.them)}</b>` : g.cs ? `${g.cs.yes} player${g.cs.yes === 1 ? '' : 's'} said yes` : g.d < now ? '<span class="m">No score</span>' : ''}</span></a>`;
   }).join('')}</div>`; }).join('');
   return h;
 }
@@ -1039,7 +1049,7 @@ function recent(gs, withTeam) {
   if (!list.length) return '<div class="empty">No games in this period.</div>';
   return list.map(g => {
     const has = g.up != null && g.tp != null, diff = has ? g.up - g.tp : 0;
-    return `<div class="gm"><span class="d">${g.d.getDate()} ${MON[g.d.getMonth()]}</span><span class="dot" style="background:var(--${g.code})"></span><span>v ${esc(g.opp)}<br><span class="c">${withTeam ? esc(g.age) + ' · ' : ''}${esc(shortComp(g.comp))}</span></span><span class="s ${has ? diff > 0 ? 'g' : diff < 0 ? 'r' : '' : 'm'}">${has ? esc(g.us) + ' : ' + esc(g.them) : 'No score'}</span><span class="mg">${has ? diff > 0 ? 'Won by ' + diff : diff < 0 ? 'Lost by ' + -diff : 'Draw' : ''}</span></div>`;
+    return `<div class="gm"><span class="d">${g.d.getDate()} ${MON[g.d.getMonth()]}</span><span class="dot" style="background:var(--${g.code})"></span><span>v ${esc(g.opp)}${rChip(g)}<br><span class="c">${withTeam ? esc(g.age) + ' · ' : ''}${esc(shortComp(g.comp))}</span></span><span class="s ${has ? diff > 0 ? 'g' : diff < 0 ? 'r' : '' : 'm'}">${has ? esc(g.us) + ' : ' + esc(g.them) : 'No score'}</span><span class="mg">${has ? diff > 0 ? 'Won by ' + diff : diff < 0 ? 'Lost by ' + -diff : 'Draw' : ''}</span></div>`;
   }).join('');
 }
 
