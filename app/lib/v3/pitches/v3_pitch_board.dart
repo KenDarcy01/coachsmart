@@ -52,6 +52,9 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
 
   /// Week view: one pitch, Monday to Sunday (Ken, 2026-11-16).
   bool _week = false;
+
+  /// Group picked in the list: its sessions stand out, the rest fade.
+  int? _focus;
   int? _weekPitch;
   final _hScroll = ScrollController();
   final _vScroll = ScrollController();
@@ -147,7 +150,14 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         if (_venue.isEmpty || p.venue == _venue) p
     ];
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SizedBox(width: 290, child: _Inbox(c: c, open: _open)),
+      SizedBox(
+          width: 290,
+          child: _Inbox(
+              c: c,
+              open: _open,
+              focus: _focus,
+              onFocus: (id) => setState(() => _focus = id),
+              onDay: (d) => c.pickDay(d))),
       const SizedBox(width: 16),
       Expanded(
         child: Container(
@@ -202,6 +212,12 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                     ]),
                   ),
                 ),
+                if (_focus != null && board.group(_focus) != null)
+                  _Chip(
+                      label: '${board.group(_focus)!.name}  ×',
+                      on: true,
+                      accent: c.club.accent,
+                      onTap: () => setState(() => _focus = null)),
               ]),
             ),
             Expanded(
@@ -582,7 +598,11 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             ? BoxDecoration(
                 border: Border.all(color: PT.red, width: 2),
                 borderRadius: BorderRadius.circular(8))
-            : null,
+            : _focus != null && b.groupId == _focus
+                ? BoxDecoration(
+                    border: Border.all(color: c.club.accent, width: 2.5),
+                    borderRadius: BorderRadius.circular(8))
+                : null,
         child: _blockText(
             c.titleOf(b),
             [
@@ -593,17 +613,22 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
               if (b.eventId != null) '✓ event',
             ].join(' · ')),
       );
+      final faded = _focus != null && b.groupId != _focus;
       children.add(Positioned(
         top: top,
         left: 4 + inner * a + laneW * li,
-        child: Draggable<PitchDrag>(
-          data: DragBooking(b),
-          feedback: Material(
-              color: Colors.transparent,
-              child: Opacity(opacity: 0.85, child: block)),
-          childWhenDragging: Opacity(opacity: 0.3, child: block),
-          child: GestureDetector(
-              onTap: () => _open(BookingSheet(c: c, booking: b)), child: block),
+        child: Opacity(
+          opacity: faded ? 0.22 : 1,
+          child: Draggable<PitchDrag>(
+            data: DragBooking(b),
+            feedback: Material(
+                color: Colors.transparent,
+                child: Opacity(opacity: 0.85, child: block)),
+            childWhenDragging: Opacity(opacity: 0.3, child: block),
+            child: GestureDetector(
+                onTap: () => _open(BookingSheet(c: c, booking: b)),
+                child: block),
+          ),
         ),
       ));
     }
@@ -782,9 +807,17 @@ class _Chip extends StatelessWidget {
 // ------------------------------------------------------------------ inbox
 
 class _Inbox extends StatelessWidget {
-  const _Inbox({required this.c, required this.open});
+  const _Inbox(
+      {required this.c,
+      required this.open,
+      this.focus,
+      required this.onFocus,
+      required this.onDay});
   final PitchController c;
   final Future<void> Function(Widget) open;
+  final int? focus;
+  final ValueChanged<int?> onFocus;
+  final ValueChanged<DateTime> onDay;
 
   @override
   Widget build(BuildContext context) {
@@ -828,20 +861,80 @@ class _Inbox extends StatelessWidget {
       if (groups.isEmpty)
         Text('No groups yet. Add them in Groups.',
             style: PT.inter(13.5, color: PT.muted)),
-      for (final g in groups)
+      for (final g in groups) ...[
         _drag(
             DragGroup(g),
-            _GroupCard(g: g),
-            () => open(BookingSheet(
-                c: c,
-                group: g,
-                pitch: board.pitches.isEmpty ? null : board.pitches.first,
-                at: atMinutes(c.day, 18 * 60)))),
+            _GroupCard(g: g, on: focus == g.groupId, accent: accent),
+            () => onFocus(focus == g.groupId ? null : g.groupId)),
+        if (focus == g.groupId) _sessions(board, g),
+      ],
       const SizedBox(height: 8),
-      Text('Drag a card or a group onto a pitch, or tap it.',
+      Text(
+          'Tap a group to show its sessions. Drag a card or a group onto a pitch.',
           style: PT.inter(12.5, color: PT.muted)),
       const SizedBox(height: 16),
     ]);
+  }
+
+  /// The focused group's sessions this week; tap one to open its day.
+  Widget _sessions(PitchBoard board, PitchGroup g) {
+    final list = [
+      for (final b in board.bookings)
+        if (b.groupId == g.groupId && b.confirmed) b
+    ]..sort((a, b) => a.start.compareTo(b.start));
+    final accent = c.club.accent;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(8, 0, 0, 10),
+      padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+      decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: accent, width: 2))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (list.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text('No sessions booked this week.',
+                style: PT.inter(12.5, color: PT.muted)),
+          ),
+        for (final b in list)
+          InkWell(
+            onTap: () => onDay(dayOf(b.start)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(children: [
+                SizedBox(
+                  width: 58,
+                  child: Text(
+                      '${kWeekdays[b.start.weekday - 1]} ${b.start.day}',
+                      style: PT.inter(12.5,
+                          weight: FontWeight.w600,
+                          color: board.sameDay(b.start, c.day)
+                              ? accent
+                              : PT.text)),
+                ),
+                Expanded(
+                  child: Text(
+                      '${timeOf(b.start)} · ${board.pitch(b.pitchId)?.name ?? ''}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: PT.inter(12.5, color: PT.muted)),
+                ),
+              ]),
+            ),
+          ),
+        InkWell(
+          onTap: () => open(BookingSheet(
+              c: c,
+              group: g,
+              pitch: board.pitches.isEmpty ? null : board.pitches.first,
+              at: atMinutes(c.day, 18 * 60))),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Text('+ Add a session',
+                style: PT.inter(12.5, weight: FontWeight.w600, color: accent)),
+          ),
+        ),
+      ]),
+    );
   }
 
   Widget _drag(PitchDrag data, Widget card, VoidCallback onTap) => Padding(
@@ -907,17 +1000,24 @@ class _ItemCard extends StatelessWidget {
 }
 
 class _GroupCard extends StatelessWidget {
-  const _GroupCard({required this.g});
+  const _GroupCard({required this.g, this.on = false, this.accent});
   final PitchGroup g;
+  final bool on;
+  final Color? accent;
   @override
   Widget build(BuildContext context) {
     final col = codeColour(g.codeKey);
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 8, 10, 8),
       decoration: BoxDecoration(
-          color: PT.card,
+          color: on ? (accent ?? col).withValues(alpha: 0.08) : PT.card,
           border: Border(left: BorderSide(color: col, width: 4)),
           borderRadius: BorderRadius.circular(12)),
+      foregroundDecoration: on
+          ? BoxDecoration(
+              border: Border.all(color: accent ?? col, width: 1.5),
+              borderRadius: BorderRadius.circular(12))
+          : null,
       child: Row(children: [
         Expanded(
           child:

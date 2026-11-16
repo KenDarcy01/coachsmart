@@ -451,6 +451,18 @@ void main() {
     expect(find.text('Monday 16 November'), findsOneWidget);
   });
 
+  testWidgets('laptop: tapping a group shows its sessions', (t) async {
+    await _pump(t, const Size(1440, 900), FakePitchApi());
+    await t.tap(find.text('Nursery').first);
+    await t.pumpAndSettle();
+    expect(find.text('+ Add a session'), findsOneWidget);
+    expect(find.text('Nursery  ×'), findsOneWidget);
+    await _shot(t, 'pp-focus');
+    await t.tap(find.text('Nursery  ×'));
+    await t.pumpAndSettle();
+    expect(find.text('+ Add a session'), findsNothing);
+  });
+
   testWidgets('laptop: tap an empty part of a pitch to add a booking',
       (t) async {
     await _pump(t, const Size(1440, 900), FakePitchApi());
