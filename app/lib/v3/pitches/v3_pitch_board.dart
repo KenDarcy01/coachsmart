@@ -374,7 +374,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         if (b.confirmed) b
     ].length;
     final held = p.slots.isEmpty ? 0 : p.slotsOn(d.weekday).length;
-    if (n == 0 && held == 0 && p.slots.isNotEmpty) return 'No slots';
+    if (n == 0 && held == 0 && p.slots.isNotEmpty) return 'Unavailable';
     return '$n booked${held > 0 ? ' · $held slots' : ''}';
   }
 
@@ -550,8 +550,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             left: 0,
             right: 0,
             child: Container(height: 1, color: PT.line.withValues(alpha: 0.6))),
-      // Not available: the sheet's marks, plus any time outside the slots
-      // on an astro (grass gaps stay plain).
+      // Unavailable: set by the admin, plus any time outside the slots.
       for (final bl in board.blocksOn(p.pitchId, day.weekday))
         if (bl.slot.closes > lo && bl.slot.opens < hi)
           Positioned(

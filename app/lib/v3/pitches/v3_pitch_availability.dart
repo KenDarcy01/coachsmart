@@ -1,7 +1,7 @@
 // v3 Pitch planner, Availability (Ken, 2026-11-16): each pitch's week as
 // the club holds it. "Free" times are the slots the club holds (the sheet's
-// Free cells); "Not available" times are shaded on the board (No slot,
-// no floodlights, weekdays on grass). The admin changes them here, e.g.
+// Free cells); any other time is "Unavailable", shaded the same on every
+// pitch. The admin changes them here, e.g.
 // when the clocks change, instead of in the club's sheet.
 import 'dart:math' as math;
 
@@ -185,9 +185,8 @@ class _PitchAvailabilityViewState extends State<PitchAvailabilityView> {
             phone ? 14 : 0, phone ? 12 : 0, phone ? 14 : 0, 24),
         children: [
           Text(
-              'Free times are the slots the club holds. Not available times are '
-              'shaded on the day board. On an astro, any time outside its '
-              'slots is shaded too. Tap a time to change it, or + to add one. '
+              'Free times are the slots the club holds. Any other time is '
+              'unavailable, shaded the same on every pitch. Tap a time to change it, or + to add one. '
               'Update them here when the clocks change.',
               style: PT.inter(14, color: PT.muted)),
           const SizedBox(height: 12),
@@ -217,14 +216,14 @@ class _PitchAvailabilityViewState extends State<PitchAvailabilityView> {
                     const _Key(free: true),
                     Text(' Free   ', style: PT.inter(12.5, color: PT.muted)),
                     const _Key(free: false),
-                    Text(' Not available',
+                    Text(' Unavailable',
                         style: PT.inter(12.5, color: PT.muted)),
                   ]),
                   const SizedBox(height: 6),
                   for (var d = 1; d <= 7; d++)
                     _DayRow(
                       weekday: d,
-                      astro: p.surface == 'astro',
+                      astro: true,
                       slots: [
                         for (final s in p.slots)
                           if (s.weekday == d) s
@@ -299,7 +298,7 @@ class _DayRow extends StatelessWidget {
       required this.onBlock});
   final int weekday;
 
-  /// On an astro, time outside the held slots is shaded as "No slot".
+  /// Shade time outside the held slots as unavailable.
   final bool astro;
   final List<PitchSlot> slots;
   final List<PitchBlock> blocks;
@@ -408,7 +407,7 @@ class _DayRow extends StatelessWidget {
               for (final s in slots)
                 chip(s.label, true, onSlot == null ? null : () => onSlot!(s)),
               for (final b in blocks)
-                chip('${b.slot.label} · ${b.reason}', false,
+                chip('${b.slot.label} · Unavailable', false,
                     onBlock == null ? null : () => onBlock!(b)),
             ]),
           ),
@@ -424,7 +423,7 @@ class _Change {
       required this.to,
       required this.days,
       this.each = 0,
-      this.reason = 'Not available',
+      this.reason = 'Unavailable',
       this.delete = false});
   final bool free;
   final int from;
@@ -459,8 +458,6 @@ class _TimeSheetState extends State<_TimeSheet> {
   late final _to = TextEditingController(
       text: hhmm(widget.slot?.closes ?? widget.block?.slot.closes ?? 19 * 60));
   final _each = TextEditingController();
-  late final _reason =
-      TextEditingController(text: widget.block?.reason ?? 'Not available');
   late final Set<int> _days = {widget.weekday};
   String? _problem;
 
@@ -482,9 +479,7 @@ class _TimeSheetState extends State<_TimeSheet> {
             to: b,
             days: _days,
             each: _free ? each : 0,
-            reason: _reason.text.trim().isEmpty
-                ? 'Not available'
-                : _reason.text.trim()));
+            reason: 'Unavailable'));
   }
 
   @override
@@ -505,7 +500,7 @@ class _TimeSheetState extends State<_TimeSheet> {
               const SizedBox(height: 12),
               Wrap(spacing: 6, children: [
                 pill('Free', _free, () => _free = true),
-                pill('Not available', !_free, () => _free = false),
+                pill('Unavailable', !_free, () => _free = false),
               ]),
               const SizedBox(height: 12),
               Row(children: [
@@ -522,19 +517,18 @@ class _TimeSheetState extends State<_TimeSheet> {
                         decoration: pitchInput('To', hint: '19:00'))),
               ]),
               const SizedBox(height: 8),
-              if (_free)
+              if (_free) ...[
                 TextField(
                     controller: _each,
                     keyboardType: TextInputType.number,
                     style: PT.inter(15),
                     decoration: pitchInput('Split into slots of (minutes)',
-                        hint: 'Leave empty for one slot, e.g. 50 or 60'))
-              else
-                TextField(
-                    controller: _reason,
-                    style: PT.inter(15),
-                    decoration: pitchInput('Why',
-                        hint: 'No slot, no floodlights, weekdays')),
+                        hint: 'Leave empty for one slot, e.g. 50 or 60')),
+              ] else
+                Text(
+                    'Use this to block time inside a slot or to mark a whole '
+                    'day, e.g. weekdays on grass.',
+                    style: PT.inter(13, color: PT.faint)),
               const SizedBox(height: 12),
               Text(_editing ? 'Also set it on' : 'Days',
                   style: PT.inter(14, color: PT.muted)),

@@ -252,11 +252,12 @@ class PitchDurations {
 
 // ------------------------------------------------------------------ setup
 
-/// A time the club's sheet marks a pitch as not available.
+/// A time a pitch is unavailable. Every such time reads "Unavailable"
+/// and looks the same, whatever the sheet called it (Ken, 2026-11-16).
 class PitchBlock {
   const PitchBlock(this.slot, this.reason);
-  factory PitchBlock.fromJson(Map j) => PitchBlock(PitchSlot.fromJson(j),
-      _s(j['reason']).isEmpty ? 'Not available' : _s(j['reason']));
+  factory PitchBlock.fromJson(Map j) =>
+      PitchBlock(PitchSlot.fromJson(j), 'Unavailable');
   final PitchSlot slot;
   final String reason;
 
@@ -264,7 +265,7 @@ class PitchBlock {
 }
 
 /// Times between 08:00 and 22:00 that are neither held [slots] nor
-/// already in [blocks], as "No slot" blocks.
+/// already in [blocks], as "Unavailable" blocks.
 List<PitchBlock> noSlotGaps(
     List<PitchSlot> slots, List<PitchBlock> blocks, int weekday) {
   final taken = [
@@ -274,11 +275,12 @@ List<PitchBlock> noSlotGaps(
   final out = <PitchBlock>[];
   var at = 8 * 60;
   for (final (o, c) in taken) {
-    if (o - at >= 5) out.add(PitchBlock(PitchSlot(weekday, at, o), 'No slot'));
+    if (o - at >= 5)
+      out.add(PitchBlock(PitchSlot(weekday, at, o), 'Unavailable'));
     if (c > at) at = c;
   }
   if (22 * 60 - at >= 5) {
-    out.add(PitchBlock(PitchSlot(weekday, at, 22 * 60), 'No slot'));
+    out.add(PitchBlock(PitchSlot(weekday, at, 22 * 60), 'Unavailable'));
   }
   return out;
 }
@@ -878,9 +880,8 @@ class PitchBoard {
   /// (pitch id, block): times marked not available.
   final List<(int, PitchBlock)> blocks;
 
-  /// Not-available times on a day. On an astro, every time outside the
-  /// slots the club holds is "No slot" too (Ken, 2026-11-16); on grass a
-  /// gap between slots is left plain.
+  /// Unavailable times on a day: those set by the admin plus any time
+  /// outside the slots the club holds, on every pitch (Ken, 2026-11-16).
   List<PitchBlock> blocksOn(int pitchId, int weekday) {
     final own = [
       for (final (id, b) in blocks)
@@ -890,7 +891,7 @@ class PitchBoard {
     for (final x in pitches) {
       if (x.pitchId == pitchId) p = x;
     }
-    if (p == null || p.surface != 'astro' || p.slots.isEmpty) return own;
+    if (p == null || p.slots.isEmpty) return own;
     return [
       ...own,
       ...noSlotGaps([

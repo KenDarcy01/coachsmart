@@ -218,7 +218,7 @@ class _PitchCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                   slots.isEmpty && pitch.slots.isNotEmpty
-                      ? 'No slot today'
+                      ? 'Unavailable today'
                       : 'Nothing booked',
                   style: PT.inter(13.5, color: PT.muted)),
             ),

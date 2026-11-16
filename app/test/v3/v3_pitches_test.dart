@@ -636,8 +636,7 @@ void main() {
     expect(find.text('U14 Boys v Raheny'), findsOneWidget);
     expect(find.text('Closed'), findsOneWidget);
     // Only times marked unavailable are shaded, not every gap.
-    expect(find.text('No slot'), findsWidgets);
-    expect(find.text('Not available'), findsNothing);
+    expect(find.text('Unavailable'), findsWidgets);
     expect(find.text('Publish changes'), findsOneWidget);
     expect(find.textContaining('1 clash'), findsOneWidget);
     await _shot(t, 'pp-board');
@@ -680,14 +679,14 @@ void main() {
     expect(find.text('Monday 16 November'), findsOneWidget);
   });
 
-  test('astro: time outside its slots is No slot; grass gaps stay plain', () {
+  test('time outside the slots is Unavailable on every pitch', () {
     final b = PitchBoard.fromJson(boardWithGroups());
     final dcc = b.blocksOn(2, 6);
     String l(PitchBlock x) => '${x.slot.label} ${x.reason}';
     expect(dcc.map(l),
-        containsAll(['15:40–17:00 No slot', '08:00–09:00 No slot']));
+        containsAll(['15:40–17:00 Unavailable', '08:00–09:00 Unavailable']));
     expect(dcc.any((x) => x.slot.opens == 9 * 60), isFalse);
-    expect(b.blocksOn(3, 6), isEmpty);
+    expect(b.blocksOn(3, 6).map(l), contains('11:00–12:00 Unavailable'));
   });
 
   testWidgets('laptop: availability, add a not-available time', (t) async {
@@ -698,23 +697,22 @@ void main() {
     expect(find.text('Astros'), findsOneWidget);
     await t.tap(find.text('DCC Astro').first);
     await t.pumpAndSettle();
-    expect(find.text('11:00–13:00 · No slot'), findsOneWidget);
+    expect(find.text('11:00–13:00 · Unavailable'), findsOneWidget);
     expect(find.text('09:00–11:00'), findsOneWidget);
     await _shot(t, 'pp-availability');
     // Monday: not available 08:00-22:00.
     await t.tap(find.byTooltip('Add a time').first);
     await t.pumpAndSettle();
-    await t.tap(find.text('Not available').last);
+    await t.tap(find.text('Unavailable').last);
     await t.pumpAndSettle();
     await t.enterText(find.widgetWithText(TextField, 'From'), '08:00');
     await t.enterText(find.widgetWithText(TextField, 'To'), '22:00');
-    await t.enterText(find.widgetWithText(TextField, 'Why'), 'No slot');
     await t.tap(find.text('Save'));
     await t.pumpAndSettle();
     final saved = api.savedBlocks[2]!;
     expect(saved.length, 3);
     expect(saved.last.slot.weekday, 1);
-    expect(saved.last.reason, 'No slot');
+    expect(saved.last.reason, 'Unavailable');
     expect(api.savedPitches, isEmpty);
   });
 
