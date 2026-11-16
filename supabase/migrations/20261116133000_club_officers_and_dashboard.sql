@@ -1,0 +1,299 @@
+-- Club officers + club chairperson dashboard (Ken, 2026-11-16).
+--
+-- 1. club_officers: a club-level, SuperUser-type role. An officer (e.g. the
+--    chairperson) can open club-wide pages for their club: the club dashboard
+--    (coachsmart.app/club/?club=<id>) and, later, the pitch planner.
+--    SuperUsers count as officers of every club. Officers are added and
+--    removed by SuperUsers only.
+-- 2. get_club_dashboard(club, from, to): one call returns the club's teams with
+--    attendance (same counting rule as get_club_analytics_v3), monthly
+--    attendance, live-scored match counts, players to check in with (last 4
+--    weeks), and the club's league games from gaa_games.
+-- Additive only; v2 untouched.
+
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.club_officers (
+    club_officer_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    club_id         bigint NOT NULL REFERENCES public.clubs(club_id),
+    user_id         uuid   NOT NULL REFERENCES public.users(user_id),
+    title           text   NOT NULL DEFAULT 'Officer',
+    is_active       boolean NOT NULL DEFAULT true,
+    created_by      uuid,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (club_id, user_id)
+);
+ALTER TABLE public.club_officers ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.club_officers FROM anon, authenticated;
+
+-- True for an active officer of the club, or any SuperUser.
+CREATE OR REPLACE FUNCTION public.is_club_officer(p_club_id bigint)
+ RETURNS boolean
+ LANGUAGE sql STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $$
+  SELECT auth.uid() IS NOT NULL AND (
+         public.is_app_super_user()
+      OR EXISTS (SELECT 1 FROM club_officers co
+                  WHERE co.club_id = p_club_id
+                    AND co.user_id = auth.uid()
+                    AND co.is_active));
+$$;
+
+-- Clubs the caller can open (all clubs for a SuperUser).
+CREATE OR REPLACE FUNCTION public.get_my_officer_clubs()
+ RETURNS jsonb
+ LANGUAGE sql STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $$
+  SELECT jsonb_build_object(
+    'is_super_user', public.is_app_super_user(),
+    'clubs', COALESCE(jsonb_agg(jsonb_build_object(
+        'club_id', c.club_id, 'club_name', c.club_name, 'crest', c.crest,
+        'primary_colour', c.primary_colour, 'secondary_colour', c.secondary_colour,
+        'title', co.title) ORDER BY c.club_name), '[]'::jsonb))
+    FROM clubs c
+    LEFT JOIN club_officers co ON co.club_id = c.club_id AND co.user_id = auth.uid() AND co.is_active
+   WHERE auth.uid() IS NOT NULL
+     AND (co.club_officer_id IS NOT NULL OR public.is_app_super_user());
+$$;
+
+CREATE OR REPLACE FUNCTION public.club_officer_list(p_club_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $$
+BEGIN
+  IF NOT public.is_app_super_user() THEN
+    RETURN jsonb_build_object('error', 'Only a SuperUser can manage club officers');
+  END IF;
+  RETURN jsonb_build_object('officers', COALESCE((
+    SELECT jsonb_agg(jsonb_build_object(
+             'user_id', u.user_id,
+             'name', trim(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')),
+             'email', u.email_address, 'title', co.title, 'created_at', co.created_at)
+           ORDER BY co.created_at)
+      FROM club_officers co JOIN users u ON u.user_id = co.user_id
+     WHERE co.club_id = p_club_id AND co.is_active), '[]'::jsonb));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.club_officer_add(p_club_id bigint, p_email text, p_title text DEFAULT 'Officer')
+ RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER
+ SET search_path TO 'public'
+AS $$
+DECLARE v_user uuid;
+BEGIN
+  IF NOT public.is_app_super_user() THEN
+    RETURN jsonb_build_object('error', 'Only a SuperUser can manage club officers');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM clubs WHERE club_id = p_club_id) THEN
+    RETURN jsonb_build_object('error', 'Club not found');
+  END IF;
+  SELECT user_id INTO v_user FROM users
+   WHERE lower(email_address) = lower(trim(p_email)) AND deleted_at IS NULL
+   ORDER BY created_at DESC LIMIT 1;
+  IF v_user IS NULL THEN
+    RETURN jsonb_build_object('error', 'No CoachSmart account with that email');
+  END IF;
+  INSERT INTO club_officers (club_id, user_id, title, created_by)
+  VALUES (p_club_id, v_user, COALESCE(NULLIF(trim(p_title), ''), 'Officer'), auth.uid())
+  ON CONFLICT (club_id, user_id) DO UPDATE
+     SET is_active = true, title = EXCLUDED.title;
+  RETURN jsonb_build_object('ok', true);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.club_officer_remove(p_club_id bigint, p_user_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER
+ SET search_path TO 'public'
+AS $$
+BEGIN
+  IF NOT public.is_app_super_user() THEN
+    RETURN jsonb_build_object('error', 'Only a SuperUser can manage club officers');
+  END IF;
+  UPDATE club_officers SET is_active = false
+   WHERE club_id = p_club_id AND user_id = p_user_id;
+  RETURN jsonb_build_object('ok', true);
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_club_dashboard(
+    p_club_id bigint,
+    p_from    timestamptz DEFAULT date_trunc('year', now()),
+    p_to      timestamptz DEFAULT now()
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = 'public'
+AS $$
+DECLARE
+    v_club   record;
+    v_to     timestamptz := LEAST(p_to, now());
+    v_result jsonb;
+BEGIN
+    IF NOT public.is_club_officer(p_club_id) THEN
+        RETURN jsonb_build_object('error', 'not_allowed');
+    END IF;
+
+    SELECT c.club_id, c.club_name, c.crest, c.primary_colour, c.secondary_colour, c.gaa_club_id
+      INTO v_club FROM clubs c WHERE c.club_id = p_club_id;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('error', 'not_found');
+    END IF;
+
+    WITH club_teams AS (
+        SELECT t.team_id, t.team_name, t.team_female
+        FROM teams t WHERE t.club_id = p_club_id
+    ),
+    ev AS MATERIALIZED (
+        SELECT e.event_id, e.team_id, e.event_date_time, e.squad_id,
+               (e.event_type_id = 2) AS is_match,
+               COALESCE(ar.role_level, 10) AS aud
+        FROM events e
+        JOIN club_teams ct ON ct.team_id = e.team_id
+        LEFT JOIN roles ar ON ar.role_id = e.audience_id
+        WHERE e.status = 'active'
+          AND e.event_date_time >= LEAST(p_from, now() - interval '28 days')
+          AND e.event_date_time <  v_to
+    ),
+    roster AS MATERIALIZED (
+        SELECT mtl.team_id, mtl.member_id,
+               min(mtl.created_at) AS joined,
+               max(r.role_level)   AS lvl,
+               min(r.role_level)   AS min_lvl,
+               min(trim(m.first_name || ' ' || COALESCE(m.last_name, ''))) AS full_name
+        FROM member_team_link mtl
+        JOIN club_teams ct              ON ct.team_id = mtl.team_id
+        JOIN members m                  ON m.member_id = mtl.member_id
+        JOIN member_team_role_link mtrl ON mtrl.member_team_id = mtl.member_team_id
+        JOIN roles r                    ON r.role_id = mtrl.role_id AND r.role_grade = 10
+        WHERE COALESCE(mtl.status, 'active') = 'active'
+          AND COALESCE(m.status, '') <> 'deleted'
+        GROUP BY mtl.team_id, mtl.member_id
+    ),
+    replies AS (
+        SELECT DISTINCT ON (ea.event_id, ea.member_id)
+               ea.event_id, ea.member_id, ea.response_id
+        FROM event_attendance ea
+        JOIN ev ON ev.event_id = ea.event_id
+        ORDER BY ea.event_id, ea.member_id, ea.attendance_id DESC
+    ),
+    invited AS MATERIALIZED (
+        SELECT ev.event_id, ev.team_id, ev.event_date_time, ev.is_match,
+               ro.member_id, ro.min_lvl, rp.response_id
+        FROM ev
+        JOIN roster ro       ON ro.team_id = ev.team_id
+        LEFT JOIN replies rp ON rp.event_id = ev.event_id AND rp.member_id = ro.member_id
+        WHERE rp.member_id IS NOT NULL
+           OR (ro.joined <= ev.event_date_time
+               AND ro.lvl >= ev.aud
+               AND (ev.squad_id IS NULL OR EXISTS (
+                       SELECT 1 FROM member_squad_link sm
+                       WHERE sm.team_id = ev.team_id AND sm.squad_id = ev.squad_id
+                         AND sm.member_id = ro.member_id)))
+    ),
+    per_team AS (
+        SELECT i.team_id,
+               count(DISTINCT i.event_id) FILTER (WHERE NOT i.is_match) AS trn_events,
+               count(*) FILTER (WHERE NOT i.is_match)                    AS trn_inv,
+               count(*) FILTER (WHERE NOT i.is_match AND i.response_id = 3) AS trn_yes,
+               count(DISTINCT i.event_id) FILTER (WHERE i.is_match)      AS m_events,
+               count(*) FILTER (WHERE i.is_match)                        AS m_inv,
+               count(*) FILTER (WHERE i.is_match AND i.response_id = 3)  AS m_yes,
+               count(*) FILTER (WHERE i.response_id IN (3, 4))           AS replied
+        FROM invited i
+        WHERE i.event_date_time >= p_from
+        GROUP BY i.team_id
+    ),
+    per_month AS (
+        SELECT i.team_id, to_char(i.event_date_time, 'YYYY-MM') AS ym,
+               count(*) AS inv, count(*) FILTER (WHERE i.response_id = 3) AS yes
+        FROM invited i
+        WHERE i.event_date_time >= p_from
+        GROUP BY 1, 2
+    ),
+    recent AS (
+        -- Players (role level 10) invited in the last 4 weeks.
+        SELECT i.team_id, i.member_id,
+               bool_or(i.response_id = 3)        AS went,
+               bool_or(i.response_id IN (3, 4))  AS answered
+        FROM invited i
+        WHERE i.event_date_time >= now() - interval '28 days'
+          AND i.min_lvl = 10
+        GROUP BY 1, 2
+    ),
+    keeper AS (
+        SELECT e.team_id, count(DISTINCT ms.event_id) AS n
+        FROM match_stats ms
+        JOIN events e      ON e.event_id = ms.event_id
+        JOIN club_teams ct ON ct.team_id = e.team_id
+        WHERE e.event_date_time >= p_from AND e.event_date_time < v_to
+        GROUP BY 1
+    )
+    SELECT jsonb_build_object(
+        'club', jsonb_build_object(
+            'club_id', v_club.club_id, 'club_name', v_club.club_name, 'crest', v_club.crest,
+            'primary_colour', v_club.primary_colour, 'secondary_colour', v_club.secondary_colour,
+            'gaa_club_id', v_club.gaa_club_id),
+        'from', p_from, 'to', v_to,
+        'teams', COALESCE((
+            SELECT jsonb_agg(jsonb_build_object(
+                'team_id', ct.team_id, 'team_name', ct.team_name, 'female', ct.team_female,
+                'players', (SELECT count(*) FROM roster ro WHERE ro.team_id = ct.team_id AND ro.min_lvl = 10),
+                'trn_events', COALESCE(pt.trn_events, 0), 'trn_inv', COALESCE(pt.trn_inv, 0), 'trn_yes', COALESCE(pt.trn_yes, 0),
+                'm_events', COALESCE(pt.m_events, 0), 'm_inv', COALESCE(pt.m_inv, 0), 'm_yes', COALESCE(pt.m_yes, 0),
+                'replied', COALESCE(pt.replied, 0),
+                'keeper', COALESCE(k.n, 0),
+                'months', COALESCE((SELECT jsonb_object_agg(pm.ym, jsonb_build_array(pm.yes, pm.inv))
+                                    FROM per_month pm WHERE pm.team_id = ct.team_id), '{}'::jsonb),
+                'not_attended', COALESCE((SELECT jsonb_agg(ro.full_name ORDER BY ro.full_name)
+                                    FROM recent rc JOIN roster ro ON ro.team_id = rc.team_id AND ro.member_id = rc.member_id
+                                    WHERE rc.team_id = ct.team_id AND NOT COALESCE(rc.went, false)), '[]'::jsonb),
+                'not_replied', COALESCE((SELECT jsonb_agg(ro.full_name ORDER BY ro.full_name)
+                                    FROM recent rc JOIN roster ro ON ro.team_id = rc.team_id AND ro.member_id = rc.member_id
+                                    WHERE rc.team_id = ct.team_id AND NOT COALESCE(rc.answered, false)), '[]'::jsonb)
+            ) ORDER BY ct.team_name)
+            FROM club_teams ct
+            LEFT JOIN per_team pt ON pt.team_id = ct.team_id
+            LEFT JOIN keeper k    ON k.team_id = ct.team_id
+        ), '[]'::jsonb),
+        -- [start_at, code, level, age, comp name, opposition, us score, them score, us pts, them pts, home]
+        'games', CASE WHEN v_club.gaa_club_id IS NULL THEN '[]'::jsonb ELSE COALESCE((
+            SELECT jsonb_agg(jsonb_build_array(
+                g.start_at, g.code, gc.level, gc.age, gc.name,
+                CASE WHEN g.home_club_id = v_club.gaa_club_id THEN g.away_team ELSE g.home_team END,
+                CASE WHEN g.home_club_id = v_club.gaa_club_id THEN g.home_score ELSE g.away_score END,
+                CASE WHEN g.home_club_id = v_club.gaa_club_id THEN g.away_score ELSE g.home_score END,
+                CASE WHEN g.home_club_id = v_club.gaa_club_id THEN g.home_pts ELSE g.away_pts END,
+                CASE WHEN g.home_club_id = v_club.gaa_club_id THEN g.away_pts ELSE g.home_pts END,
+                g.home_club_id = v_club.gaa_club_id) ORDER BY g.start_at DESC)
+            FROM gaa_games g
+            JOIN gaa_competitions gc ON gc.comp_id = g.comp_id
+            WHERE (g.home_club_id = v_club.gaa_club_id OR g.away_club_id = v_club.gaa_club_id)
+              AND g.home_club_id IS DISTINCT FROM g.away_club_id
+              AND g.start_at >= p_from AND g.start_at < v_to
+        ), '[]'::jsonb) END
+    ) INTO v_result;
+
+    RETURN v_result;
+END;
+$$;
+
+-- Grants: signed-in users only; every function checks the caller itself.
+REVOKE ALL ON FUNCTION public.is_club_officer(bigint)                     FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.get_my_officer_clubs()                      FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.club_officer_list(bigint)                   FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.club_officer_add(bigint, text, text)        FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.club_officer_remove(bigint, uuid)           FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.get_club_dashboard(bigint, timestamptz, timestamptz) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_club_officer(bigint)                  TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_my_officer_clubs()                   TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.club_officer_list(bigint)                TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.club_officer_add(bigint, text, text)     TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.club_officer_remove(bigint, uuid)        TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_club_dashboard(bigint, timestamptz, timestamptz) TO authenticated, service_role;

@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Club dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
+:root{--club:#87c232;--band:#87c232;--bg:#14181b;--card:#1e222b;--card2:#262b36;--text:#f1f4f8;--muted:#a9adb4;--line:#2e333e;
+--good:#87c232;--warn:#f5a524;--bad:#ff6b6b;--FB:#87c232;--HU:#4da3ff;--LG:#ff7eb6;--CA:#b67cff}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+.hdr{background:linear-gradient(180deg,color-mix(in srgb,var(--band) 70%,#000) 0%,var(--bg) 100%);padding:28px 40px 22px}
+.hrow{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.crest{width:72px;height:72px;object-fit:contain;flex:none}
+.hrow h1{font-size:34px;font-weight:700;letter-spacing:-.3px;line-height:1.1}
+.hrow .sub{color:#e6e8ec;font-size:16px;margin-top:4px;opacity:.85}
+.pw{margin-left:auto;text-align:right}
+.chips{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.chip{padding:9px 15px;border-radius:999px;background:#ffffff14;font-size:14px;font-weight:500;border:0;cursor:pointer;white-space:nowrap}
+.chip:hover{background:#ffffff22}
+.chip.on{background:var(--club);color:var(--onclub,#fff)}
+.by{font-size:12px;color:#c9ccd2;margin-top:10px;opacity:.7;display:flex;gap:14px;justify-content:flex-end;align-items:center}
+.by button{background:none;border:0;color:#e6e8ec;cursor:pointer;font-size:12.5px;text-decoration:underline;opacity:.9}
+.back{color:#e6e8ec;font-size:15px;margin-bottom:14px;opacity:.85;cursor:pointer;display:inline-block}
+.wrap{padding:0 40px 48px;max-width:1500px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:6px}
+.kpis.k5{grid-template-columns:repeat(5,1fr)}
+.kpi{background:var(--card);border-radius:16px;padding:16px 18px}
+.kpi .l{color:var(--muted);font-size:13px}
+.kpi .v{font-size:32px;font-weight:700;margin-top:4px;letter-spacing:-.5px}
+.kpi .s{color:var(--muted);font-size:13px;margin-top:2px}
+.wdl{font-size:26px!important}.wdl b{color:var(--good)}.wdl i{font-style:normal;color:var(--muted)}.wdl u{text-decoration:none;color:var(--bad)}
+.att{margin-top:16px;background:#2b2414;border:1px solid #4a3a14;border-radius:14px;padding:13px 18px;color:#ffd38a;font-size:14.5px;display:flex;gap:10px 22px;flex-wrap:wrap}
+.att b{color:#fff}
+.grp{margin-top:26px}
+.gh{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.gh h2{font-size:22px;font-weight:700}
+.gh span{color:var(--muted);font-size:14px}
+.gh .gs{margin-left:auto;color:#d9dce1;font-size:14px}
+.tbl{background:var(--card);border-radius:16px;overflow:hidden}
+.tr{display:grid;grid-template-columns:210px 70px 100px 100px 150px 1fr 22px;align-items:center;padding:13px 20px;border-top:1px solid var(--line);gap:12px;cursor:pointer}
+.tr:hover{background:#232833}
+.tr:first-child{border-top:0}
+.th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.6px;padding:11px 20px;background:#1a1e26;cursor:default}
+.th:hover{background:#1a1e26}
+.tn{font-weight:600;font-size:16px}.tn small{display:block;color:var(--muted);font-weight:400;font-size:12.5px;margin-top:2px}
+.ag{color:#d9dce1}
+.pct{font-weight:700;font-size:17px}
+.g{color:var(--good)}.a{color:var(--warn)}.r{color:var(--bad)}.m{color:#7a7f89;font-weight:500}
+.res{display:flex;gap:8px;flex-wrap:wrap}
+.rc{display:flex;align-items:center;gap:7px;background:var(--card2);padding:6px 11px;border-radius:9px;font-size:14px;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.rc .n{color:var(--muted)}
+.flag{color:var(--warn)!important;font-weight:500!important}
+.dim .tn{color:#c8cbd1}
+.chev{color:#6d727c;font-size:22px}
+.legend{display:flex;gap:16px;color:var(--muted);font-size:13px;margin-top:22px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px}
+.two{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin-top:18px}
+.card{background:var(--card);border-radius:16px;padding:18px 20px}
+.card h3{font-size:17px;margin-bottom:12px}
+.bars{display:flex;align-items:flex-end;gap:10px;height:190px;padding-top:10px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%;min-width:0}
+.bar .b{width:100%;border-radius:6px 6px 2px 2px;background:var(--club)}
+.bar .t{font-size:12.5px;color:var(--muted)}
+.bar .p{font-size:12.5px;font-weight:600}
+.side{border-top:1px solid var(--line);padding:11px 0;display:grid;grid-template-columns:200px 1fr;gap:10px;align-items:start}
+.side:first-of-type{border-top:0}
+.sn{font-weight:600;display:flex;gap:8px;align-items:center}
+.sn small{color:var(--muted);font-weight:400}
+.comps{display:flex;flex-direction:column;gap:5px;font-size:14px}
+.comps div{display:flex;justify-content:space-between;gap:10px;color:#d9dce1}
+.comps b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.gm{display:grid;grid-template-columns:62px 12px 1fr 110px 90px;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0;font-size:14px}
+.gm:first-of-type{border-top:0}
+.gm .d{color:var(--muted)}.gm .c{color:var(--muted);font-size:13px}
+.gm .s{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.check{display:flex;gap:14px}
+.check>div{flex:1;background:var(--card2);border-radius:12px;padding:12px 14px}
+.check b{font-size:26px;display:block}
+.check span{color:var(--muted);font-size:13px}
+.names{margin-top:10px;font-size:14px;color:#d9dce1;line-height:1.6}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+.more{background:none;border:0;color:var(--club);cursor:pointer;font-size:14px;margin-top:8px;font-weight:600}
+.state{padding:80px 40px;text-align:center;color:var(--muted);font-size:16px}
+/* login */
+.login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:var(--bg);z-index:5}
+.login.on{display:flex}
+.lbox{background:var(--card);border-radius:18px;padding:28px;width:100%;max-width:380px}
+.lbox h2{font-size:22px;margin-bottom:6px}.lbox p{color:var(--muted);font-size:14px;margin-bottom:18px}
+.lbox input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:16px}
+.btn{background:var(--club);color:var(--onclub,#fff);border:0;border-radius:10px;padding:12px 16px;font-weight:600;cursor:pointer;width:100%}
+.btn.ghost{background:var(--card2);color:var(--text)}
+.link{background:none;border:0;color:var(--muted);cursor:pointer;margin-top:12px;font-size:14px}
+.msg{font-size:14px;color:var(--bad);min-height:20px;margin-top:6px}.msg.ok{color:var(--good)}
+/* sheet */
+.sheet{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:6;padding:16px}
+.sheet.on{display:flex}
+.sbox{background:var(--card);border-radius:18px;padding:22px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
+.sbox h2{font-size:20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.sbox h2 button{background:none;border:0;font-size:24px;color:var(--muted);cursor:pointer}
+.orow{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:10px 0;gap:10px}
+.orow small{color:var(--muted);display:block}
+.orow button{background:var(--card2);border:0;border-radius:8px;padding:7px 11px;cursor:pointer;font-size:13px}
+.oadd{display:grid;grid-template-columns:1fr 130px;gap:8px;margin-top:14px}
+.oadd input{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.oadd .btn{grid-column:1/-1}
+.picker{display:grid;gap:10px;max-width:520px;margin:40px auto;padding:0 16px}
+.pick{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;font-size:17px;font-weight:600}
+.pick img{width:44px;height:44px;object-fit:contain}
+.spark{display:block}
+@media (max-width:1100px){
+ .kpis{grid-template-columns:repeat(3,1fr)}.kpis.k5{grid-template-columns:repeat(3,1fr)}
+ .two{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+ .hdr{padding:22px 16px 16px}.wrap{padding:0 14px 36px}
+ .crest{width:52px;height:52px}.hrow h1{font-size:25px}.hrow .sub{font-size:14px}
+ .pw{margin-left:0;text-align:left;width:100%}.chips{justify-content:flex-start}.chip{font-size:13px;padding:8px 12px}
+ .by{justify-content:flex-start}
+ .kpis,.kpis.k5{grid-template-columns:1fr 1fr;gap:10px}.kpi .v{font-size:26px}
+ .gh h2{font-size:19px}
+ .tbl{background:none}
+ .tr.th{display:none}
+ .tr{display:block;background:var(--card);border-radius:14px;padding:13px 15px;margin-bottom:9px;border:0}
+ .tr .top{display:flex;align-items:center;gap:10px}
+ .tr .top .tn{flex:1}
+ .tr .ag,.tr .cpct{display:none}
+ .tr .nums{display:flex!important;gap:16px;margin:9px 0;font-size:13px;color:var(--muted)}
+ .tr .nums b{font-size:16px;margin-right:3px}
+ .side{grid-template-columns:1fr}
+ .gm{grid-template-columns:52px 10px 1fr 80px}.gm .mg{display:none}
+ .check{flex-direction:column}
+ .bars{gap:5px}.bar .p{font-size:11px}
+}
+.tr .nums{display:none}
+.ph-age{display:none}
+@media (max-width:760px){.ph-age{display:inline}}
+.tr .top{display:contents}
+@media (max-width:760px){.tr .top{display:flex}}
+</style>
+</head>
+<body>
+<div id="app"><div class="state">Loading…</div></div>
+
+<div class="login" id="login">
+  <form class="lbox" id="loginForm">
+    <h2>Club dashboard</h2>
+    <p>Sign in with your CoachSmart email and password.</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn" id="goBtn" type="submit">Sign in</button>
+    <div class="msg" id="loginMsg"></div>
+    <button class="link" id="forgot" type="button">Forgot password?</button>
+  </form>
+</div>
+
+<div class="sheet" id="sheet"><div class="sbox" id="sbox"></div></div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CN = {FB:'Football',HU:'Hurling',LG:'Ladies football',CA:'Camogie'};
+const CODE = {'Football':'FB','Hurling':'HU','Ladies Football':'LG','Camogie':'CA'};
+const FEMALE = {LG:true,CA:true,FB:false,HU:false};
+const GROUPS = [['ccc1','CCC1','Under 8 to Under 12'],['ccc2','CCC2','Under 13 to Under 16'],['adult','Adult & Minor','Minor and adult teams']];
+
+const P = new URLSearchParams(location.search);
+let clubId = Number(P.get('club')) || null;
+let period = P.get('period') || 'season';
+let seasonYear = new Date().getFullYear();
+let myClubs = null, isSuper = false, D = null, model = null;
+
+// ── Colours ───────────────────────────────────────────────────────
+function lum(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+  const n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+}
+function brand(c) {
+  const p = c.primary_colour, s = c.secondary_colour, ok = h => { const l = lum(h); return l != null && l > .06 && l < .8; };
+  const accent = ok(p) ? p : ok(s) ? s : '#87c232';
+  const band = lum(p) != null && lum(p) < .8 ? p : (lum(s) != null && lum(s) < .8 ? s : accent);
+  const r = document.documentElement.style;
+  r.setProperty('--club', accent); r.setProperty('--band', band);
+  r.setProperty('--onclub', lum(accent) > .45 ? '#14181b' : '#fff');
+}
+
+// ── Sign in ───────────────────────────────────────────────────────
+function showLogin(msg, ok) {
+  $('login').classList.add('on');
+  $('loginMsg').textContent = msg || ''; $('loginMsg').classList.toggle('ok', !!ok);
+  $('goBtn').disabled = false; $('goBtn').textContent = 'Sign in';
+}
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('goBtn').disabled = true; $('goBtn').textContent = 'Signing in…'; $('loginMsg').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) return showLogin(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : error.message);
+  $('password').value = ''; $('login').classList.remove('on'); boot();
+});
+$('forgot').addEventListener('click', async () => {
+  const email = $('email').value.trim();
+  if (!email) return showLogin('Type your email first, then tap Forgot password.');
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  showLogin(error ? error.message : 'Check your email for a link to reset your password.', !error);
+});
+async function signOut() { await sb.auth.signOut(); location.reload(); }
+
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  const { data, error } = await sb.rpc('get_my_officer_clubs');
+  if (error) return state('Something went wrong loading your clubs. Please try again.');
+  myClubs = data.clubs || []; isSuper = !!data.is_super_user;
+  if (!myClubs.length) return state('This dashboard is for club officers. Ask CoachSmart to add you as an officer of your club.', true);
+  if (!clubId) {
+    if (myClubs.length === 1) clubId = myClubs[0].club_id;
+    else return clubPicker();
+  }
+  load();
+}
+function state(msg, withOut) {
+  $('app').innerHTML = `<div class="state">${esc(msg)}${withOut ? '<br><br><button class="link" onclick="signOut()">Sign out</button>' : ''}</div>`;
+}
+function clubPicker() {
+  $('app').innerHTML = `<div class="hdr"><div class="hrow"><div><h1>Club dashboard</h1><div class="sub">Pick a club</div></div></div></div>
+   <div class="picker">${myClubs.map(c => `<a class="pick" href="?club=${c.club_id}">${c.crest ? `<img src="${esc(c.crest)}" alt="">` : ''}${esc(c.club_name)}</a>`).join('')}</div>`;
+}
+
+// ── Period ────────────────────────────────────────────────────────
+function range() {
+  const now = new Date();
+  if (period === 'last') return [new Date(seasonYear - 1, 0, 1), new Date(seasonYear, 0, 1)];
+  if (period === '3m') { const f = new Date(now); f.setMonth(f.getMonth() - 3); return [f, now]; }
+  if (period === '4w') return [new Date(now - 28 * 864e5), now];
+  return [new Date(seasonYear, 0, 1), now];
+}
+function setPeriod(p) {
+  period = p; const u = new URL(location); u.searchParams.set('period', p); history.replaceState(null, '', u); load();
+}
+function chips() {
+  const o = [['season', seasonYear + ' season'], ['3m', 'Last 3 months'], ['4w', 'Last 4 weeks'], ['last', (seasonYear - 1) + ' season']];
+  return `<div class="chips">${o.map(([k, l]) => `<button class="chip ${period === k ? 'on' : ''}" onclick="setPeriod('${k}')">${l}</button>`).join('')}</div>`;
+}
+
+async function load() {
+  const [from, to] = range();
+  if (!D) state('Loading…');
+  const { data, error } = await sb.rpc('get_club_dashboard', { p_club_id: clubId, p_from: from.toISOString(), p_to: to.toISOString() });
+  if (error) return state('Something went wrong loading the dashboard. Please try again.');
+  if (data.error === 'not_allowed') return state('You’re not an officer of this club.', true);
+  if (data.error) return state('Club not found.');
+  D = data; brand(D.club); document.title = D.club.club_name + ' · Club dashboard';
+  model = build(D, period === 'last' ? seasonYear - 1 : seasonYear);
+  route();
+}
+
+// ── Model ─────────────────────────────────────────────────────────
+function cleanName(n, club) {
+  const w = (club || '').split(/\s+/)[0];
+  let x = n.replace(/^.*?\b(Boys|Girls)\b/i, '$1');
+  if (w) x = x.replace(new RegExp('^' + w.replace(/[^\w]/g, '') + '\\s+', 'i'), '');
+  return x.trim() || n;
+}
+function groupOfAge(a) { return a <= 12 ? 'ccc1' : a <= 16 ? 'ccc2' : 'adult'; }
+function teamMeta(t, year) {
+  const n = t.team_name || '';
+  let age = null; const y = /(20\d\d)/.exec(n), u = /\bU-?\s?(\d{1,2})\b/i.exec(n);
+  if (y) age = year - Number(y[1]); else if (u) age = Number(u[1]);
+  if (/minor/i.test(n)) age = 17;
+  const female = !!t.female || /girl|ladies|camog|lgfa/i.test(n);
+  let codes = female ? ['LG', 'CA'] : ['FB', 'HU'];
+  if (age == null || age > 16) {
+    if (/hurl/i.test(n)) codes = ['HU']; else if (/camog/i.test(n)) codes = ['CA'];
+    else if (/ladies|lgfa/i.test(n)) codes = ['LG']; else if (age == null) codes = [female ? 'LG' : 'FB'];
+  }
+  const bucket = age == null ? 'adult' : age <= 16 ? (female ? 'G' : 'B') + age : age <= 18 ? (female ? 'G' : 'B') + 'minor' : 'adult';
+  return { age, female, codes, bucket, group: age == null ? 'adult' : groupOfAge(age) };
+}
+function gameBucket(g) {
+  const code = CODE[g[1]]; if (!code) return null;
+  const female = FEMALE[code], ag = String(g[3] || ''), m = /^U(\d{1,2})$/i.exec(ag);
+  if (m && Number(m[1]) <= 16) return { key: (female ? 'G' : 'B') + Number(m[1]), code, age: Number(m[1]), female };
+  if (/minor|^u1[78]$/i.test(ag)) return { key: (female ? 'G' : 'B') + 'minor', code, age: 17, female };
+  return { key: 'adult-' + code, code, age: 99, female };
+}
+function build(D, year) {
+  const games = D.games.map(g => ({ d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], b: gameBucket(g) })).filter(g => g.b);
+  const byBucket = {}; games.forEach(g => (byBucket[g.b.key] = byBucket[g.b.key] || []).push(g));
+  const rows = [], claimed = new Set();
+  for (const t of D.teams) {
+    const events = t.trn_events + t.m_events;
+    if (/test/i.test(t.team_name) || (t.players === 0 && events === 0)) continue;
+    const meta = teamMeta(t, year);
+    let gs;
+    if (meta.bucket === 'adult') { gs = games.filter(g => g.b.key.startsWith('adult-') && meta.codes.includes(g.code)); meta.codes.forEach(c => claimed.add('adult-' + c)); }
+    else { gs = (byBucket[meta.bucket] || []).filter(g => meta.codes.includes(g.code)); claimed.add(meta.bucket); }
+    rows.push({ key: 't' + t.team_id, team: t, name: cleanName(t.team_name, D.club.club_name), age: meta.age, ageLabel: meta.age == null || meta.age > 18 ? 'Adult' : meta.age >= 17 ? 'Minor' : 'U' + meta.age, group: meta.group, codes: meta.codes, games: gs, onCS: true, events });
+  }
+  // Sides with league games but no CoachSmart team: results only.
+  for (const [key, gs] of Object.entries(byBucket)) {
+    if (claimed.has(key)) continue;
+    const b = gs[0].b;
+    let name, ageLabel, group;
+    if (key.startsWith('adult-')) { name = 'Adult ' + CN[b.code].toLowerCase(); ageLabel = 'Adult'; group = 'adult'; }
+    else if (key.endsWith('minor')) { name = (b.female ? 'Minor girls' : 'Minor boys'); ageLabel = 'Minor'; group = 'adult'; }
+    else { name = (b.female ? 'Girls ' : 'Boys ') + (year - b.age); ageLabel = 'U' + b.age; group = groupOfAge(b.age); }
+    rows.push({ key: 'g' + key, team: null, name, age: b.age, ageLabel, group, codes: [...new Set(gs.map(g => g.code))].sort((x, y) => 'FBHULGCA'.indexOf(x) - 'FBHULGCA'.indexOf(y)), games: gs, onCS: false });
+  }
+  const order = r => [r.age ?? 98, r.age === 99 ? 'FBHULGCA'.indexOf(r.codes[0]) : 0, r.onCS ? 0 : 1, /girl/i.test(r.name) ? 1 : 0];
+  rows.sort((a, b) => { const x = order(a), y = order(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i]; return a.name.localeCompare(b.name); });
+  return { rows, games, year };
+}
+const pc = (y, n) => n ? Math.round(100 * y / n) : null;
+const cls = p => p == null ? 'm' : p >= 55 ? 'g' : p >= 45 ? 'a' : 'r';
+function wdl(gs) { let w = 0, d = 0, l = 0, u = 0; gs.forEach(g => { if (g.up == null || g.tp == null) u++; else if (g.up > g.tp) w++; else if (g.up < g.tp) l++; else d++; }); return { w, d, l, u, n: gs.length }; }
+function rc(code, gs) {
+  const r = wdl(gs.filter(g => g.code === code)); if (!r.n) return '';
+  const scored = r.w + r.d + r.l;
+  return `<span class="rc"><span class="dot" style="background:var(--${code})"></span>${CN[code]} ${scored ? `<b>${r.w}-${r.d}-${r.l}</b>` : `<span class="n">${r.n} game${r.n > 1 ? 's' : ''}, no scores</span>`}</span>`;
+}
+function months() {
+  const [f, t] = range(), out = [];
+  const d = new Date(f.getFullYear(), f.getMonth(), 1);
+  while (d < t) { out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); d.setMonth(d.getMonth() + 1); }
+  return out;
+}
+function spark(team, w = 140, h = 34) {
+  if (!team || !(team.trn_inv + team.m_inv)) return '<span class="m" style="font-size:13px">No sessions</span>';
+  const ms = months(); if (ms.length < 2) return '';
+  const vals = ms.map(k => { const v = team.months[k]; return v && v[1] ? v[0] / v[1] * 100 : null; });
+  const step = w / (ms.length - 1); let p = '', on = false, last = null;
+  vals.forEach((v, i) => { if (v == null) { on = false; return; } const x = i * step, y = h - 4 - v / 100 * (h - 8); p += (on ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); on = true; last = [x, y]; });
+  const mid = h - 4 - .5 * (h - 8);
+  return `<svg class="spark" width="${w}" height="${h}"><line x1="0" x2="${w}" y1="${mid}" y2="${mid}" stroke="#3a404c" stroke-dasharray="3 3"/><path d="${p}" fill="none" stroke="var(--club)" stroke-width="2.2" stroke-linejoin="round"/>${last ? `<circle cx="${last[0]}" cy="${last[1]}" r="3.2" fill="var(--club)"/>` : ''}</svg>`;
+}
+function pct(p) { return p == null ? '<span class="pct m">–</span>' : `<span class="pct ${cls(p)}">${p}%</span>`; }
+function sub(r) {
+  if (!r.onCS) return '<small class="flag">Not on CoachSmart</small>';
+  const t = r.team, bits = [t.players + ' player' + (t.players === 1 ? '' : 's')];
+  if (t.players < 5 || !r.events) return `<small class="flag">${!r.events ? 'Not using CoachSmart yet' : 'Only ' + bits[0] + ' on CoachSmart'}</small>`;
+  if (!t.trn_events && t.m_events) bits.push('Matches only');
+  if (t.keeper) bits.push(t.keeper + ' scored live');
+  return `<small>${bits.join(' · ')}</small>`;
+}
+function periodLabel() { return { season: seasonYear + ' season', '3m': 'last 3 months', '4w': 'last 4 weeks', last: (seasonYear - 1) + ' season' }[period]; }
+
+// ── Header ────────────────────────────────────────────────────────
+function header(title, subLine, back) {
+  const c = D.club;
+  return `<div class="hdr">${back ? `<a class="back" href="#">‹ ${esc(back)}</a>` : ''}<div class="hrow">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(title)}</h1><div class="sub">${esc(subLine)}</div></div>
+   <div class="pw">${chips()}<div class="by">${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}${myClubs.length > 1 ? '<button onclick="location.href=\'?\'">Change club</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div></div>`;
+}
+
+// ── Club view ─────────────────────────────────────────────────────
+function clubView() {
+  const rows = model.rows, cs = rows.filter(r => r.onCS);
+  const sum = k => cs.reduce((a, r) => a + r.team[k], 0);
+  const trn = pc(sum('trn_yes'), sum('trn_inv')), mt = pc(sum('m_yes'), sum('m_inv'));
+  const all = wdl(model.games), active = cs.filter(r => r.events && r.team.players >= 5);
+  let h = header(D.club.club_name, 'Club dashboard · ' + periodLabel()) + `<div class="wrap"><div class="kpis">
+   <div class="kpi"><div class="l">Teams on CoachSmart</div><div class="v">${active.length}</div><div class="s">of ${rows.length} age groups and sides</div></div>
+   <div class="kpi"><div class="l">Players</div><div class="v">${sum('players').toLocaleString('en-IE')}</div><div class="s">on team rosters</div></div>
+   <div class="kpi"><div class="l">Sessions held</div><div class="v">${(sum('trn_events') + sum('m_events')).toLocaleString('en-IE')}</div><div class="s">${sum('trn_events')} training · ${sum('m_events')} matches</div></div>
+   <div class="kpi"><div class="l">Training attendance</div><div class="v ${cls(trn)}">${trn ?? '–'}${trn != null ? '%' : ''}</div><div class="s">players who said yes</div></div>
+   <div class="kpi"><div class="l">Match attendance</div><div class="v ${cls(mt)}">${mt ?? '–'}${mt != null ? '%' : ''}</div><div class="s">players who said yes</div></div>
+   <div class="kpi"><div class="l">Results (scored games)</div><div class="v wdl"><b>${all.w}</b> <i>${all.d}</i> <u>${all.l}</u></div><div class="s">won · drawn · lost</div></div></div>`;
+  const notes = [];
+  const idle = cs.filter(r => !r.events || r.team.players < 5).map(r => r.name);
+  if (idle.length) notes.push(listText(idle) + (idle.length > 1 ? ' are' : ' is') + ' not using CoachSmart');
+  cs.filter(r => r.team.trn_events >= 8).forEach(r => { const p = pc(r.team.trn_yes, r.team.trn_inv); if (p < 40) notes.push(`${r.name} training at ${p}%`); });
+  const off = rows.filter(r => !r.onCS).length;
+  if (off) notes.push(`${off} age group${off > 1 ? 's and sides are' : ' or side is'} not on CoachSmart`);
+  if (notes.length) h += `<div class="att"><span><b>Needs a look:</b></span>${notes.map(n => `<span>${esc(n)}</span>`).join('')}</div>`;
+  for (const [g, title, desc] of GROUPS) {
+    const rs = rows.filter(r => r.group === g); if (!rs.length) continue;
+    const s = wdl(rs.flatMap(r => r.games));
+    h += `<div class="grp"><div class="gh"><h2>${title}</h2><span>${desc}</span><span class="gs">${s.w + s.d + s.l ? `Results <b class="g">${s.w}</b>-${s.d}-<b class="r">${s.l}</b>` : ''}</span></div><div class="tbl">
+     <div class="tr th"><span>Team</span><span>Age</span><span>Training</span><span>Matches</span><span>Trend</span><span>Results</span><span></span></div>`;
+    for (const r of rs) {
+      const t = r.team, tp = t ? pc(t.trn_yes, t.trn_inv) : null, mp = t ? pc(t.m_yes, t.m_inv) : null;
+      h += `<a class="tr ${r.onCS ? '' : 'dim'}" href="#${r.key}"><div class="top"><div class="tn">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ` <span class="ph-age">· ${r.ageLabel}</span>` : ''}${sub(r)}</div><div class="ag">${r.ageLabel}</div><div class="cpct">${pct(tp)}</div><div class="cpct">${pct(mp)}</div><div>${t ? spark(t) : ''}</div></div>
+        ${t && (tp != null || mp != null) ? `<div class="nums"><span><b class="${cls(tp)}">${tp ?? '–'}${tp != null ? '%' : ''}</b> training</span><span><b class="${cls(mp)}">${mp ?? '–'}${mp != null ? '%' : ''}</b> matches</span></div>` : ''}
+        <div class="res">${r.codes.map(c => rc(c, r.games)).join('') || '<span class="m" style="font-size:13px">No league games</span>'}</div><div class="chev">›</div></a>`;
+    }
+    h += '</div></div>';
+  }
+  h += `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance = players who said yes ÷ players invited. Results from the league fixtures.</span></div></div>`;
+  return h;
+}
+function listText(a) { return a.length <= 2 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+
+// ── Team view ─────────────────────────────────────────────────────
+function divOf(comp) { const m = /\b(?:div(?:ision)?\.?|afl|ahl)\s*(\d+)/i.exec(comp); return m ? Number(m[1]) : null; }
+function compKind(comp) { return /shield/i.test(comp) ? 'Shield' : /champ/i.test(comp) ? 'Championship' : /league|afl|ahl/i.test(comp) ? 'League' : /cup/i.test(comp) ? 'Cup' : /féile|feile/i.test(comp) ? 'Féile' : 'Other'; }
+function shortComp(comp) { const k = compKind(comp), d = divOf(comp); return k === 'Other' || k === 'Cup' || k === 'Féile' ? comp.replace(/^(LGFA|Camogie)\s+/i, '') : k + (d ? ' Div ' + d : ''); }
+function teamView(r) {
+  const t = r.team, gs = r.games, res = wdl(gs);
+  const codes = r.codes.map((c, i) => i ? CN[c].toLowerCase() : CN[c]).join(' and ');
+  const sidesBy = {};
+  gs.forEach(g => { const d = divOf(g.comp), k = g.code + '|' + (d ?? 'x'); (sidesBy[k] = sidesBy[k] || { code: g.code, div: d, comps: {} }); (sidesBy[k].comps[g.comp] = sidesBy[k].comps[g.comp] || []).push(g); });
+  // A team's championship/shield can name a different division from its league: fold such groups into the nearest league division of that code.
+  const grp = Object.values(sidesBy), hasLeague = s => Object.keys(s.comps).some(c => compKind(c) === 'League');
+  for (const s of grp.filter(s => s.div != null && !hasLeague(s))) {
+    const L = grp.filter(x => x !== s && x.code === s.code && x.div != null && hasLeague(x)).sort((a, b) => Math.abs(a.div - s.div) - Math.abs(b.div - s.div) || a.div - b.div)[0];
+    if (L) { Object.entries(s.comps).forEach(([c, g]) => L.comps[c] = (L.comps[c] || []).concat(g)); delete sidesBy[s.code + '|' + s.div]; }
+  }
+  Object.values(sidesBy).forEach(s => { const o = {}; Object.keys(s.comps).sort((a, b) => ['League', 'Championship', 'Shield', 'Cup'].indexOf(compKind(a)) - ['League', 'Championship', 'Shield', 'Cup'].indexOf(compKind(b))).forEach(k => o[k] = s.comps[k]); s.comps = o; });
+  const sides = Object.values(sidesBy).sort((a, b) => 'FBHULGCA'.indexOf(a.code) - 'FBHULGCA'.indexOf(b.code) || (a.div ?? 99) - (b.div ?? 99));
+  const letters = {}; sides.forEach(s => { if (s.div == null) return; letters[s.code] = (letters[s.code] || 0) + 1; s.letter = String.fromCharCode(64 + letters[s.code]); });
+  const multi = c => sides.filter(s => s.code === c && s.div != null).length > 1;
+  let h = header(r.name + (r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''), [codes, t ? t.players + ' players' : 'Not on CoachSmart', sides.length ? sides.length + ' side' + (sides.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · '), D.club.club_name);
+  h += '<div class="wrap">';
+  if (t) {
+    const tp = pc(t.trn_yes, t.trn_inv), mp = pc(t.m_yes, t.m_inv), rr = pc(t.replied, t.trn_inv + t.m_inv);
+    h += `<div class="kpis k5">
+     <div class="kpi"><div class="l">Training attendance</div><div class="v ${cls(tp)}">${tp ?? '–'}${tp != null ? '%' : ''}</div><div class="s">${t.trn_events} sessions</div></div>
+     <div class="kpi"><div class="l">Match attendance</div><div class="v ${cls(mp)}">${mp ?? '–'}${mp != null ? '%' : ''}</div><div class="s">${t.m_events} matches</div></div>
+     <div class="kpi"><div class="l">Reply rate</div><div class="v">${rr ?? '–'}${rr != null ? '%' : ''}</div><div class="s">answered yes or no</div></div>
+     <div class="kpi"><div class="l">Results</div><div class="v wdl"><b>${res.w}</b> <i>${res.d}</i> <u>${res.l}</u></div><div class="s">won · drawn · lost</div></div>
+     <div class="kpi"><div class="l">Scored live in CoachSmart</div><div class="v">${t.keeper}</div><div class="s">matches with score keeper</div></div></div>`;
+    const ms = months().slice(-12);
+    const bars = ms.map(k => { const v = t.months[k]; const p = v && v[1] ? Math.round(v[0] / v[1] * 100) : null; const mi = Number(k.slice(5)) - 1; return `<div class="bar">${p != null ? `<span class="p ${cls(p)}">${p}%</span><div class="b" style="height:${Math.max(3, p * 1.4)}px;opacity:${.55 + p / 200}"></div>` : '<span class="p m">–</span>'}<span class="t">${ms.length > 6 ? MON[mi][0] : MON[mi]}</span></div>`; }).join('');
+    h += `<div class="two"><div class="card"><h3>Attendance by month</h3>${t.trn_inv + t.m_inv ? `<div class="bars">${bars}</div>` : '<div class="empty">No sessions in this period.</div>'}</div>
+     <div class="card"><h3>Players to check in with</h3><div class="check"><div><b>${t.not_attended.length}</b><span>players not at anything in the last 4 weeks</span></div><div><b>${t.not_replied.length}</b><span>players who haven’t replied in 4 weeks</span></div></div>
+      ${t.not_attended.length || t.not_replied.length ? `<button class="more" id="showNames" onclick="this.style.display='none';$('names').style.display='block'">Show names</button><div class="names" id="names" style="display:none">${t.not_attended.length ? `<b>Not at anything:</b> ${t.not_attended.map(esc).join(', ')}<br>` : ''}${t.not_replied.length ? `<b>No replies:</b> ${t.not_replied.map(esc).join(', ')}` : ''}</div>` : ''}</div></div>`;
+  } else {
+    h += `<div class="kpis k5"><div class="kpi"><div class="l">Results</div><div class="v wdl"><b>${res.w}</b> <i>${res.d}</i> <u>${res.l}</u></div><div class="s">won · drawn · lost</div></div>
+      <div class="kpi"><div class="l">Games played</div><div class="v">${res.n}</div><div class="s">${res.u ? res.u + ' with no score' : 'all scored'}</div></div></div>
+      <div class="att" style="margin-top:16px"><span>This side isn’t on CoachSmart, so there’s no attendance. Results come from the league fixtures.</span></div>`;
+  }
+  h += `<div class="two"><div class="card"><h3>Sides and competitions</h3>${sides.length ? sides.map(s => `<div class="side"><div class="sn"><span class="dot" style="background:var(--${s.code})"></span>${CN[s.code]}${s.div != null && multi(s.code) ? ' ' + s.letter : ''} <small>${s.div != null ? 'Div ' + s.div : 'Other'}</small></div><div class="comps">${Object.entries(s.comps).map(([c, g]) => { const x = wdl(g); return `<div><span>${esc(shortComp(c))}</span><b>${x.w + x.d + x.l ? x.w + '-' + x.d + '-' + x.l : x.n + ' played'}</b></div>`; }).join('')}</div></div>`).join('') : '<div class="empty">No league games in this period.</div>'}</div>
+   <div class="card"><h3>Recent results</h3>${recent(gs)}</div></div></div>`;
+  return h;
+}
+function recent(gs) {
+  const scored = gs.filter(g => g.up != null && g.tp != null);
+  const list = (scored.length ? scored : gs).slice(0, 12);
+  if (!list.length) return '<div class="empty">No games in this period.</div>';
+  return list.map(g => {
+    const has = g.up != null && g.tp != null, diff = has ? g.up - g.tp : 0;
+    return `<div class="gm"><span class="d">${g.d.getDate()} ${MON[g.d.getMonth()]}</span><span class="dot" style="background:var(--${g.code})"></span><span>v ${esc(g.opp)}<br><span class="c">${esc(shortComp(g.comp))}</span></span><span class="s ${has ? diff > 0 ? 'g' : diff < 0 ? 'r' : '' : 'm'}">${has ? esc(g.us) + ' : ' + esc(g.them) : 'No score'}</span><span class="c mg" style="text-align:right">${has ? diff > 0 ? 'Won by ' + diff : diff < 0 ? 'Lost by ' + -diff : 'Draw' : ''}</span></div>`;
+  }).join('');
+}
+
+// ── Officers (SuperUser only) ─────────────────────────────────────
+async function officers() {
+  $('sheet').classList.add('on');
+  $('sbox').innerHTML = '<h2>Club officers <button onclick="closeSheet()">×</button></h2><div class="empty">Loading…</div>';
+  const { data, error } = await sb.rpc('club_officer_list', { p_club_id: clubId });
+  const list = error || data.error ? null : data.officers;
+  $('sbox').innerHTML = `<h2>${esc(D.club.club_name)} officers <button onclick="closeSheet()">×</button></h2>
+   <p style="color:var(--muted);font-size:14px;margin-bottom:8px">Officers can open this dashboard for the club. SuperUsers can open every club.</p>
+   ${list ? (list.length ? list.map(o => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)}<small>${esc(o.email)}</small></div><button onclick="removeOfficer('${o.user_id}')">Remove</button></div>`).join('') : '<div class="empty">No officers yet.</div>') : '<div class="empty">Couldn’t load the list.</div>'}
+   <div class="oadd"><input id="oEmail" type="email" placeholder="Their CoachSmart email"><input id="oTitle" placeholder="Title" value="Chairperson"><button class="btn" onclick="addOfficer()">Add officer</button><div class="msg" id="oMsg"></div></div>`;
+}
+function closeSheet() { $('sheet').classList.remove('on'); }
+$('sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+async function addOfficer() {
+  const { data, error } = await sb.rpc('club_officer_add', { p_club_id: clubId, p_email: $('oEmail').value, p_title: $('oTitle').value });
+  if (error || data.error) { $('oMsg').textContent = error ? 'Something went wrong.' : data.error; return; }
+  officers();
+}
+async function removeOfficer(uid) { await sb.rpc('club_officer_remove', { p_club_id: clubId, p_user_id: uid }); officers(); }
+
+// ── Routing ───────────────────────────────────────────────────────
+function route() {
+  if (!model) return;
+  const k = location.hash.slice(1), r = k && model.rows.find(x => x.key === k);
+  $('app').innerHTML = r ? teamView(r) : clubView();
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+
+boot();
+</script>
+</body>
+</html>
