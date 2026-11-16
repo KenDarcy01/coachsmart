@@ -838,14 +838,23 @@ class PitchBoard {
       ]..sort((a, b) => a.start.compareTo(b.start));
 
   /// Events whose own location already names one of our pitches; shown on
-  /// the board in a lighter style until an officer confirms them.
-  List<BoardEvent> matchedOn(DateTime day, {int? pitchId}) => [
-        for (final e in events)
-          if (e.matchedPitchId != null &&
-              sameDay(e.start, day) &&
-              (pitchId == null || e.matchedPitchId == pitchId))
-            e
-      ]..sort((a, b) => a.start.compareTo(b.start));
+  /// the board in a lighter style until an officer confirms them. An event
+  /// is left out when its team already has a booking that day, since that
+  /// booking is its session (else the two sit side by side as a clash).
+  List<BoardEvent> matchedOn(DateTime day, {int? pitchId}) {
+    final booked = {
+      for (final b in bookingsOn(day))
+        if (b.teamId != null) b.teamId!,
+    };
+    return [
+      for (final e in events)
+        if (e.matchedPitchId != null &&
+            sameDay(e.start, day) &&
+            (pitchId == null || e.matchedPitchId == pitchId) &&
+            !booked.contains(e.teamId))
+          e
+    ]..sort((a, b) => a.start.compareTo(b.start));
+  }
 
   /// Pairs of confirmed bookings sharing a part of a pitch at the same time.
   List<(Booking, Booking)> clashesOn(DateTime day) {

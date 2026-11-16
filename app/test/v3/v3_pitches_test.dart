@@ -482,6 +482,26 @@ void main() {
       expect(timeOf(astro.start), '12:00');
     });
 
+    test('an event is not shown again when its team has a booking that day',
+        () {
+      final j = boardWithGroups();
+      final day = DateTime(2026, 11, 21);
+      expect(PitchBoard.fromJson(j).matchedOn(day).map((e) => e.eventId),
+          contains(51));
+      (j['bookings'] as List).add({
+        'booking_id': 99,
+        'pitch_id': 7,
+        'part': 15,
+        'starts_at': '2026-11-21T15:00:00',
+        'ends_at': '2026-11-21T16:00:00',
+        'kind': 'training',
+        'status': 'confirmed',
+        'team_id': 9,
+      });
+      expect(PitchBoard.fromJson(j).matchedOn(day).map((e) => e.eventId),
+          isNot(contains(51)));
+    });
+
     test('slot lookup', () {
       final p = PitchBoard.fromJson(sampleBoard()).pitches.first;
       expect(p.slotAt(1, 17 * 60 + 55)?.label, '17:50–18:40');
