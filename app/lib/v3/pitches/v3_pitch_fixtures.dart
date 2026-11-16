@@ -12,6 +12,16 @@ import 'v3_pitch_models.dart';
 import 'v3_pitch_sheets.dart';
 import 'v3_pitch_theme.dart';
 
+const _dayNames = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday'
+];
+
 class FixtureBooking {
   const FixtureBooking(
       {required this.bookingId, this.pitch = '', this.status = '', this.start});
@@ -188,17 +198,40 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
         );
 
     return LayoutBuilder(builder: (context, box) {
-      final cols = box.maxWidth >= 1100
-          ? 3
-          : box.maxWidth >= 700
-              ? 2
-              : 1;
-      final cardW =
-          (box.maxWidth - 12 * (cols - 1) - (cols == 1 ? 0 : 4)) / cols;
-      Widget grid(List<Widget> cards) => Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [for (final w in cards) SizedBox(width: cardW, child: w)]);
+      _wide = box.maxWidth >= 760;
+      // One white panel per section: a day heading, then a row per match.
+      Widget list(List<(DateTime, Widget)> rows) {
+        rows = [...rows]..sort((a, b) => a.$1.compareTo(b.$1));
+        final kids = <Widget>[];
+        DateTime? last;
+        for (final (start, row) in rows) {
+          final d = dayOf(start);
+          if (last == null || d != last) {
+            kids.add(Container(
+              width: double.infinity,
+              color: PT.card2,
+              padding: const EdgeInsets.fromLTRB(14, 7, 14, 7),
+              child: Text(
+                  '${_dayNames[d.weekday - 1]} ${d.day} '
+                  '${kMonths[d.month - 1]}',
+                  style:
+                      PT.inter(12.5, weight: FontWeight.w700, color: PT.muted)),
+            ));
+          } else {
+            kids.add(const Divider(height: 1, thickness: 1, color: PT.line));
+          }
+          kids.add(row);
+          last = d;
+        }
+        return Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+              color: PT.card,
+              border: Border.all(color: PT.line),
+              borderRadius: BorderRadius.circular(12)),
+          child: Column(children: kids),
+        );
+      }
 
       return ListView(padding: const EdgeInsets.only(bottom: 24), children: [
         Row(children: [
@@ -227,91 +260,155 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             Text('No league fixtures this week.',
                 style: PT.inter(14, color: PT.muted))
           else
-            grid([for (final f in off) _officialCard(f)]),
+            list([for (final f in off) (f.start, _officialCard(f))]),
           head('Unofficial matches', 'On CoachSmart but not on the league list',
               un.length),
           if (un.isEmpty)
             Text('None this week.', style: PT.inter(14, color: PT.muted))
           else
-            grid([for (final u in un) _unofficialCard(u)]),
+            list([for (final u in un) (u.start, _unofficialCard(u))]),
         ],
       ]);
     });
   }
 
-  Widget _status(FixtureBooking? b, {required bool home, String venue = ''}) {
+  /// The pitch chip: the slot given to the match, or Unassigned. Tapping
+  /// it opens the booking (to change it) or the place sheet.
+  Widget _slot(FixtureBooking? b,
+      {required bool home, String venue = '', VoidCallback? onTap}) {
+    final String text;
+    final IconData icon;
+    final Color fg;
+    final Color bg;
+    var border = Colors.transparent;
     if (b != null && !b.offsite) {
-      return PitchTag(
-          'Booked · ${b.pitch}${b.start == null ? '' : ' ${timeOf(b.start!)}'}',
-          colour: PT.green);
+      text =
+          '${b.pitch.isEmpty ? 'Pitch' : b.pitch}${b.start == null ? '' : ' · ${timeOf(b.start!)}'}';
+      icon = Icons.place;
+      fg = PT.green;
+      bg = PT.greenTint;
+    } else if (b != null && b.offsite) {
+      text = 'Not on our pitches';
+      icon = Icons.block;
+      fg = PT.muted;
+      bg = PT.card2;
+    } else if (!home) {
+      text = venue.isEmpty ? 'Away' : 'Away · $venue';
+      icon = Icons.directions_bus_outlined;
+      fg = PT.muted;
+      bg = PT.card2;
+    } else {
+      text = 'Unassigned';
+      icon = Icons.add_circle_outline;
+      fg = PT.amberText;
+      bg = PT.amberTint;
+      border = PT.amber;
     }
-    if (b != null && b.offsite) {
-      return const PitchTag('Not on our pitches', colour: PT.muted);
-    }
-    if (!home) {
-      return PitchTag(venue.isEmpty ? 'Away' : 'Away · $venue',
-          colour: PT.muted);
-    }
-    return const PitchTag('Needs a pitch');
+    final chip = Container(
+      padding: const EdgeInsets.fromLTRB(9, 5, 9, 5),
+      decoration: BoxDecoration(
+          color: bg,
+          border: Border.all(color: border),
+          borderRadius: BorderRadius.circular(8)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 15, color: fg),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text(text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: PT.inter(13, weight: FontWeight.w700, color: fg)),
+        ),
+        if (onTap != null) ...[
+          const SizedBox(width: 6),
+          Icon(Icons.edit_outlined, size: 14, color: fg),
+        ],
+      ]),
+    );
+    if (onTap == null) return chip;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(onTap: onTap, child: chip),
+    );
   }
 
+  bool _wide = true;
+
+  /// One match as a list row: time, colour bar, what and where, then tags.
   Widget _card(
       {required Color bar,
       required DateTime start,
       required String title,
       required List<String> lines,
       required List<Widget> tags,
+      required Widget slot,
       VoidCallback? onTap}) {
-    return Material(
-      color: PT.card,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-          decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: bar, width: 5)),
-              borderRadius: BorderRadius.circular(14)),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              width: 50,
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              decoration: BoxDecoration(
-                  color: PT.card2, borderRadius: BorderRadius.circular(10)),
-              child: Column(children: [
-                Text(kWeekdays[start.weekday - 1].toUpperCase(),
-                    style: PT.inter(10.5,
-                        weight: FontWeight.w700, color: PT.muted)),
-                Text('${start.day}',
-                    style: PT.inter(18, weight: FontWeight.w700)),
-                Text(timeOf(start), style: PT.inter(11, color: PT.muted)),
-              ]),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: PT.inter(15, weight: FontWeight.w600)),
-                    for (final l in lines)
-                      if (l.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(l,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: PT.inter(12.5, color: PT.muted)),
-                        ),
-                    const SizedBox(height: 8),
-                    Wrap(spacing: 6, runSpacing: 6, children: tags),
-                  ]),
-            ),
-          ]),
+    final text =
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PT.inter(14.5, weight: FontWeight.w600)),
+      if (lines.any((l) => l.isNotEmpty))
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(lines.where((l) => l.isNotEmpty).join(' · '),
+              maxLines: _wide ? 1 : 2,
+              overflow: TextOverflow.ellipsis,
+              style: PT.inter(12.5, color: PT.muted)),
         ),
+    ]);
+    final tagWrap = Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        alignment: _wide ? WrapAlignment.end : WrapAlignment.start,
+        children: tags);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(
+              width: 54,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Text(timeOf(start),
+                    style: PT.inter(14, weight: FontWeight.w700)),
+              )),
+          Container(
+              width: 4,
+              height: 36,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                  color: bar, borderRadius: BorderRadius.circular(2))),
+          Expanded(
+            child: _wide
+                ? Row(children: [
+                    Expanded(flex: 5, child: text),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                        width: 220,
+                        child: Align(
+                            alignment: Alignment.centerLeft, child: slot)),
+                    const SizedBox(width: 12),
+                    Expanded(flex: 3, child: tagWrap),
+                  ])
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        text,
+                        const SizedBox(height: 6),
+                        slot,
+                        const SizedBox(height: 6),
+                        tagWrap
+                      ]),
+          ),
+          if (onTap != null)
+            const Padding(
+              padding: EdgeInsets.only(left: 6, top: 8),
+              child: Icon(Icons.chevron_right, size: 18, color: PT.faint),
+            ),
+        ]),
       ),
     );
   }
@@ -325,6 +422,11 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     ].where((s) => s.isNotEmpty).join(' ')}: ${f.home} v ${f.away}';
     final status = f.status.toLowerCase();
     final off = status.contains('postpon') || status.contains('cancel');
+    final VoidCallback? tapF = f.booking != null
+        ? () => _openBooking(f.booking!.bookingId)
+        : f.isHome
+            ? () => _place(gameId: f.gameId, eventId: f.eventId)
+            : null;
     return _card(
       bar: codeColour(codeOf(f.code, female: female)),
       start: f.start,
@@ -340,24 +442,25 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
       tags: [
         if (f.isHome) PitchTag('Home', colour: c.club.accent),
         if (off) PitchTag(f.status, colour: PT.redText),
-        _status(f.booking, home: f.isHome),
         PitchTag(
             f.eventId != null
                 ? 'On CoachSmart · ${groupName(f.eventTeam, season: c.season, clubName: c.club.name)}'
                 : 'Not on CoachSmart',
             colour: f.eventId != null ? PT.green : PT.muted),
       ],
-      onTap: f.booking != null
-          ? () => _openBooking(f.booking!.bookingId)
-          : f.isHome
-              ? () => _place(gameId: f.gameId, eventId: f.eventId)
-              : null,
+      slot: _slot(f.booking, home: f.isHome, onTap: tapF),
+      onTap: tapF,
     );
   }
 
   Widget _unofficialCard(UnofficialMatch u) {
     final name = groupName(u.teamName, season: c.season, clubName: c.club.name);
     final home = !u.away;
+    final VoidCallback? tapU = u.booking != null
+        ? () => _openBooking(u.booking!.bookingId)
+        : home
+            ? () => _place(eventId: u.eventId)
+            : null;
     return _card(
       bar: codeColour(codeOf(u.code, female: u.female)),
       start: u.start,
@@ -370,13 +473,9 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
         if (!u.away)
           PitchTag(u.homeAway.isEmpty ? 'Home?' : 'Home',
               colour: c.club.accent),
-        _status(u.booking, home: home, venue: u.location),
       ],
-      onTap: u.booking != null
-          ? () => _openBooking(u.booking!.bookingId)
-          : home
-              ? () => _place(eventId: u.eventId)
-              : null,
+      slot: _slot(u.booking, home: home, venue: u.location, onTap: tapU),
+      onTap: tapU,
     );
   }
 }

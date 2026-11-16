@@ -340,7 +340,7 @@ class FakePitchApi extends PitchApi {
             'venue': 'TBC',
             'status': 'fixture',
             'starts_at': '2026-11-21T14:00:00',
-            'event': {'event_id': 501, 'team_name': 'Clontarf Boys 2012'},
+            'event': {'event_id': 50, 'team_name': 'Clontarf Boys 2012'},
           },
         ],
         'unofficial': [
@@ -612,10 +612,14 @@ void main() {
     expect(find.text('OFFICIAL FIXTURES'), findsOneWidget);
     expect(find.text('UNOFFICIAL MATCHES'), findsOneWidget);
     expect(find.text('U21 Camogie: Clontarf v Fingallians'), findsOneWidget);
-    expect(find.textContaining('Booked · Pitch 34'), findsOneWidget);
-    expect(find.text('Needs a pitch'), findsOneWidget);
+    expect(find.text('Pitch 34 · 20:00'), findsOneWidget);
+    expect(find.text('Unassigned'), findsOneWidget);
     expect(find.text("U8 Girls v St Vincent's"), findsOneWidget);
     await _shot(t, 'pp-fixtures');
+    // The Unassigned chip opens the place sheet.
+    await t.tap(find.text('Unassigned'));
+    await t.pumpAndSettle();
+    expect(find.text('Free pitches'), findsOneWidget);
   });
 
   testWidgets('laptop: tap an empty part of a pitch to add a booking',
