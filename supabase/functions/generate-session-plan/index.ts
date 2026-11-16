@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+import { sportId, sportPrompt, type SportId } from "../_shared/sport.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -424,6 +425,8 @@ serve(async (req) => {
     let eventTypeStr: string | null = null;
     let eventCodeStr: string | null = null;
     let eventTitle: string | null = null;
+    // Soccer/rugby teams get prompts in their own sport (GAA unchanged).
+    let sport: SportId = 1;
 
     if (event_id) {
       const { data: event, error: eventErr } = await sb
@@ -435,7 +438,7 @@ serve(async (req) => {
             team_id, team_name, team_female,
             clubs!teams_club_id_fkey(
               club_id, club_name, crest, county,
-              primary_colour, secondary_colour, third_colour
+              primary_colour, secondary_colour, third_colour, sport_id
             )
           ),
           squads!events_squad_id_fkey(squad_name, grade),
@@ -450,6 +453,7 @@ serve(async (req) => {
       });
 
       clubData          = (event.teams as any)?.clubs || {};
+      sport             = sportId((clubData as any)?.sport_id);
       squad             = (event.squads as any) || null;
       teamId            = (event.teams as any)?.team_id ?? event.team_id;
       teamName          = (event.teams as any)?.team_name ?? null;
@@ -913,7 +917,7 @@ serve(async (req) => {
 
       let planJson: any;
       try {
-        const raw = await callGemini(apiKey, REVISE_PLAN_PROMPT, [{ text: inputText }]);
+        const raw = await callGemini(apiKey, sportPrompt(REVISE_PLAN_PROMPT, sport), [{ text: inputText }]);
         planJson = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim());
       } catch (err) {
         console.error("revise_plan Gemini failed:", err);
@@ -1018,7 +1022,7 @@ serve(async (req) => {
         ? `You are a GAA coaching assistant. A coach has spoken session notes via voice. Preserve EVERY specific instruction they mentioned — do not summarise, merge, or omit any requirement. Remove only filler words and speech artefacts. Do not add any information the coach did not say. Return ONLY valid JSON: {"interpreted": "<full clear paraphrase with all instructions intact>"}`
         : `You are a GAA coaching assistant. A coach has spoken instructions to revise ${target}. Preserve EVERY change they asked for — do not summarise, merge, or drop any request, number, name or detail. Remove only filler words and speech artefacts, and fix obvious mis-hearings of GAA terms. If there is one change, write it as one clear sentence; if there are several, write each on its own line starting with "- ". Do not add any information the coach did not say. Return ONLY valid JSON: {"interpreted": "<the coach's requested changes, all intact>"}`;
       try {
-        const raw = await callGemini(apiKey, sysPrompt, [{ text: `Coach said: "${transcript.trim()}"` }]);
+        const raw = await callGemini(apiKey, sportPrompt(sysPrompt, sport), [{ text: `Coach said: "${transcript.trim()}"` }]);
         let interpreted: string;
         try {
           const parsed = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim());
@@ -1229,6 +1233,8 @@ serve(async (req) => {
         : `Drill mode: SEQUENTIAL — all players perform each drill together before moving to the next`,
       squad?.squad_name ? `Squad: ${squad.squad_name}${(squad as any).grade ? ` (${(squad as any).grade})` : ""}` : null,
       (() => {
+        if (sport === 2) return `Sport: Soccer — use soccer terminology only`;
+        if (sport === 3) return `Sport: Rugby union — use rugby terminology only`;
         const code = (eventCodeStr || "").toLowerCase();
         // Female + hurling = camogie; female + football = ladies football (still football)
         if (code.includes("camogie") || (teamFemale && code.includes("hurling")))
@@ -1255,7 +1261,7 @@ serve(async (req) => {
 
     let planJson: any;
     try {
-      const raw = await callGemini(apiKey, SESSION_PLAN_PROMPT, [{ text: context }]);
+      const raw = await callGemini(apiKey, sportPrompt(SESSION_PLAN_PROMPT, sport), [{ text: context }]);
       planJson = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim());
     } catch (err) {
       console.error("Gemini failed:", err);

@@ -12,6 +12,7 @@
 // Requires GEMINI_API_KEY; GEMINI_MODEL is optional (same secrets as ai-process-game).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+import { sportPrompt, teamSport } from "../_shared/sport.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -201,14 +202,14 @@ serve(async (req) => {
       if (action === "draft") {
         const transcript = String(body.transcript || "").trim();
         if (!transcript) return json({ error: "Nothing was recorded" }, 400);
-        const report = await callGemini(apiKey, DRAFT_PROMPT, `${context}\n\nWhat the coach said:\n"""${transcript}"""`);
+        const report = await callGemini(apiKey, sportPrompt(DRAFT_PROMPT, await teamSport(sb, ev.team_id)), `${context}\n\nWhat the coach said:\n"""${transcript}"""`);
         return json({ success: true, data: { report } });
       }
 
       const current = String(body.report || "").trim();
       const changes = String(body.changes || "").trim();
       if (!changes) return json({ error: "Nothing was recorded" }, 400);
-      const report = await callGemini(apiKey, REVISE_PROMPT,
+      const report = await callGemini(apiKey, sportPrompt(REVISE_PROMPT, await teamSport(sb, ev.team_id)),
         `${context}\n\nCurrent report:\n"""${current}"""\n\nCoach's additions or corrections:\n"""${changes}"""`);
       return json({ success: true, data: { report } });
     }
