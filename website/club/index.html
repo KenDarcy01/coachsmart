@@ -592,8 +592,16 @@ function wdlKpi(x, label = 'Results') {
 function href(o) { const p = new URLSearchParams(); Object.entries(o).forEach(([k, v]) => v && p.set(k, v)); return '#' + p.toString(); }
 
 // ── Team card ─────────────────────────────────────────────────────
+// Attendance for one code (Ken 2026-11-16): events carry a code (2 Football /
+// Ladies football, 3 Hurling / Camogie); "-" and S&C events count only in the
+// all-codes view. Teams that never tag a code keep their all-codes figures.
+function codeTeam(t, code) {
+  if (!t || !code || !t.codes || !(t.codes['2'] || t.codes['3'])) return t;
+  const v = t.codes[code === 'HU' || code === 'CA' ? '3' : '2'] || [0, 0, 0, 0, 0, 0, 0, {}];
+  return { ...t, trn_events: v[0], trn_yes: v[1], trn_inv: v[2], m_events: v[3], m_yes: v[4], m_inv: v[5], replied: v[6], months: v[7] || {}, byCode: CN[code] };
+}
 function teamCard(r, g, code) {
-  const t = r.team, tp = t ? pc(t.trn_yes, t.trn_inv) : null, mp = t ? pc(t.m_yes, t.m_inv) : null;
+  const t = codeTeam(r.team, code), tp = t ? pc(t.trn_yes, t.trn_inv) : null, mp = t ? pc(t.m_yes, t.m_inv) : null;
   const codes = code ? [code] : r.codes, gs = code ? r.games.filter(x => x.code === code) : r.games;
   const age = r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? r.ageLabel : r.ageLabel;
   return `<a class="card tc ${r.onCS ? '' : 'off'}" href="${href({ g, c: code, t: r.key })}"><div class="top"><div class="nm">${esc(r.name)}${sub(r)}</div><span class="age">${age}</span></div>
@@ -696,7 +704,7 @@ function groupView(sel) {
 function codeView(sel) {
   const { g, c } = sel, rs = model.rows.filter(r => r.group === g && r.codes.includes(c)), gs = uniqGames(rs, c), x = wdl(gs);
   const sc = gs.filter(q => q.up != null && q.tp != null), f = sc.reduce((a, q) => a + q.up, 0), ag = sc.reduce((a, q) => a + q.tp, 0);
-  const a = agg(rs);
+  const a = agg(rs.map(r => ({ ...r, team: codeTeam(r.team, c) })));
   return `<div class="crumbs"><a href="#">Whole club</a> › <a href="${href({ g })}">${GNAME[g]}</a> ›</div><div class="ttl"><span class="dot" style="background:var(--${c});width:14px;height:14px;margin-right:8px"></span>${CN[c]} · ${GNAME[g]}</div><div class="ttl-sub">${rs.length} teams · ${periodLabel()}</div>
    <div class="kpis">${wdlKpi(x)}${kpi('Games played', x.n, x.u ? x.u + ' with no score kept' : 'all scored')}${kpi('Average score', sc.length ? (f / sc.length).toFixed(1) + ' – ' + (ag / sc.length).toFixed(1) : '–', 'points for – against')}${attKpi('Training attendance', a.avgT, a.trn, null, 'session')}${attKpi('Match attendance', a.avgM, a.mt, null, 'match')}</div>
    <div class="sec"><h2>Teams</h2></div><div class="grid">${rs.map(r => teamCard(r, g, c)).join('')}</div>
@@ -704,7 +712,7 @@ function codeView(sel) {
 }
 function teamView(sel) {
   const r = model.rows.find(x => x.key === sel.t), c = sel.c && r.codes.includes(sel.c) ? sel.c : null;
-  const t = r.team, gs = c ? r.games.filter(x => x.code === c) : r.games, res = wdl(gs);
+  const t = codeTeam(r.team, c), gs = c ? r.games.filter(x => x.code === c) : r.games, res = wdl(gs);
   const sides = buildSides(gs);
   const letters = {}; sides.forEach(s => { if (s.div == null) return; letters[s.code] = (letters[s.code] || 0) + 1; s.letter = String.fromCharCode(64 + letters[s.code]); });
   const multi = q => sides.filter(s => s.code === q && s.div != null).length > 1;
@@ -718,7 +726,7 @@ function teamView(sel) {
     const ms = months().slice(-12);
     const mv = ms.map(k => { const v = t.months[k]; return v && v[2] ? { a: v[0] / v[2], p: v[1] ? Math.round(v[0] / v[1] * 100) : null } : null; }), top = Math.max(1, ...mv.filter(Boolean).map(x => x.a));
     const bars = ms.map((k, i) => { const v = mv[i], mi = Number(k.slice(5)) - 1; return `<div class="bar" title="${v ? fmtAvg(v.a) + ' players on average' + (v.p != null ? ', ' + v.p + '%' : '') : ''}">${v ? `<span class="p">${fmtAvg(v.a)}</span><div class="b" style="height:${Math.max(3, v.a / top * 135)}px;opacity:${.55 + (v.p || 0) / 220}"></div><span class="t ${cls(v.p)}" style="font-size:11px">${v.p != null ? v.p + '%' : ''}</span>` : '<span class="p m">–</span>'}<span class="t">${ms.length > 6 ? MON[mi][0] : MON[mi]}</span></div>`; }).join('');
-    h += `<div class="two"><div class="card"><h3>Average players per session, by month<small>% of players invited below</small></h3>${t.trn_inv + t.m_inv ? `<div class="bars">${bars}</div>` : '<div class="empty">No sessions in this period.</div>'}</div>
+    h += `<div class="two"><div class="card"><h3>Average players per session, by month<small>${t.byCode ? t.byCode + ' sessions only · ' : ''}% of players invited below</small></h3>${t.trn_inv + t.m_inv ? `<div class="bars">${bars}</div>` : '<div class="empty">No sessions in this period.</div>'}</div>
      <div class="card"><h3>Players to check in with<small>last 4 weeks</small></h3><div class="check"><div><b>${t.not_attended.length}</b><span>players not at anything</span></div><div><b>${t.not_replied.length}</b><span>players who haven’t replied</span></div></div>
       ${t.not_attended.length || t.not_replied.length ? `<button class="more" onclick="this.style.display='none';$('names').style.display='block'">Show names</button><div class="names" id="names" style="display:none">${t.not_attended.length ? `<b>Not at anything:</b> ${t.not_attended.map(esc).join(', ')}<br>` : ''}${t.not_replied.length ? `<b>No replies:</b> ${t.not_replied.map(esc).join(', ')}` : ''}</div>` : ''}</div></div>`;
   } else {
