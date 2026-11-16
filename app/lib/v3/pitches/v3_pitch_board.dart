@@ -54,7 +54,9 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
   String _venue = '';
 
   /// Week view: one pitch, Monday to Sunday (Ken, 2026-11-16).
-  bool _week = false;
+  // Opens on the week of one pitch, the first (Clubhouse Astro at
+  // Clontarf) (Ken, 2026-11-16).
+  bool _week = true;
 
   /// Group picked in the list: its sessions stand out, the rest fade.
   int? _focus;
@@ -180,16 +182,16 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
               child: Row(children: [
                 _Chip(
-                    label: 'Day',
-                    on: !_week,
-                    accent: c.club.accent,
-                    onTap: () => setState(() => _week = false)),
-                const SizedBox(width: 4),
-                _Chip(
                     label: 'Week',
                     on: _week,
                     accent: c.club.accent,
                     onTap: () => setState(() => _week = true)),
+                const SizedBox(width: 4),
+                _Chip(
+                    label: 'Day',
+                    on: !_week,
+                    accent: c.club.accent,
+                    onTap: () => setState(() => _week = false)),
                 Container(
                     width: 1,
                     height: 22,

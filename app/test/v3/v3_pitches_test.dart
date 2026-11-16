@@ -499,11 +499,17 @@ Future<void> _pump(WidgetTester t, Size size, FakePitchApi api) async {
 }
 
 /// The planner opens on Fixtures; most tests start from the day board.
-Future<void> _pumpBoard(WidgetTester t, Size size, FakePitchApi api) async {
+Future<void> _pumpBoard(WidgetTester t, Size size, FakePitchApi api,
+    {bool week = false}) async {
   await _pump(t, size, api);
   final day = find.text(size.width >= 1000 ? 'Day board' : 'Day');
   if (day.evaluate().isNotEmpty) {
     await t.tap(day.first);
+    await t.pumpAndSettle();
+  }
+  // The laptop board opens on Week; most tests want the day.
+  if (size.width >= 1000 && !week) {
+    await t.tap(find.text('Day').first);
     await t.pumpAndSettle();
   }
 }
@@ -672,11 +678,8 @@ void main() {
   });
 
   testWidgets('laptop: week view shows one pitch over seven days', (t) async {
-    await _pumpBoard(t, const Size(1440, 900), FakePitchApi());
-    await t.tap(find.text('Week'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Clubhouse Astro').first);
-    await t.pumpAndSettle();
+    // The board opens on Week, on the first pitch (Clubhouse Astro).
+    await _pumpBoard(t, const Size(1440, 900), FakePitchApi(), week: true);
     for (final d in ['Mon 16', 'Tue 17', 'Sat 21', 'Sun 22']) {
       expect(find.text(d), findsOneWidget);
     }
