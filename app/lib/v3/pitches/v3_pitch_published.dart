@@ -246,7 +246,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
 
   Widget _row(PublishedWeek w, PublishedBooking b, bool line) {
     final p = w.pitches[b.pitchId];
-    final col = codeColour(codeOf(b.code));
+    final col = codeColour(codeOf(b.code, name: b.name));
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(

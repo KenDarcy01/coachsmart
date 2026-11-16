@@ -241,7 +241,7 @@ class _PitchCard extends StatelessWidget {
                 timeOf(e.start),
                 c.titleOfEvent(e),
                 'From the event · tap to confirm',
-                codeColour(codeOf(e.code, female: e.female)),
+                codeColour(codeOf(e.code, female: e.female, name: e.teamName)),
                 faint: true,
                 onTap: () => open(PlaceSheet(
                     c: c, item: c.itemOfEvent(e), pitch: pitch, at: e.start))),

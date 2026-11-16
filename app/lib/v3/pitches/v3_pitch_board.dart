@@ -20,8 +20,9 @@ Color codeColour(PitchCode c) => kCodeColours[c]!;
 
 PitchCode bookingCode(PitchController c, Booking b) {
   final g = c.board?.group(b.groupId);
-  if (g != null && g.code != 'Other') return g.codeKey;
-  return codeOf(b.code, female: b.female);
+  if (g != null && g.codeKey != PitchCode.other) return g.codeKey;
+  return codeOf(b.code,
+      female: b.female, name: '${b.teamName} ${b.title} ${g?.name ?? ''}');
 }
 
 /// What can be dragged onto a pitch.
@@ -825,15 +826,18 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
       decoration:
           const BoxDecoration(border: Border(top: BorderSide(color: PT.line))),
       child: Row(children: [
-        for (final code
-            in PitchCode.values.where((x) => x != PitchCode.other)) ...[
+        for (final (label, code) in const [
+          ('Boys', PitchCode.football),
+          ('Girls', PitchCode.ladies),
+          ('Other', PitchCode.other),
+        ]) ...[
           Container(
               width: 8,
               height: 8,
               decoration: BoxDecoration(
                   color: codeColour(code), shape: BoxShape.circle)),
           const SizedBox(width: 5),
-          Text(kCodeNames[code]!, style: PT.inter(12, color: PT.muted)),
+          Text(label, style: PT.inter(12, color: PT.muted)),
           const SizedBox(width: 14),
         ],
         Expanded(

@@ -442,8 +442,23 @@ class PitchSetup {
 /// What a booking or inbox item is for, to pick its colour.
 enum PitchCode { football, hurling, camogie, ladies, other }
 
-PitchCode codeOf(String code, {bool female = false}) {
+PitchCode codeOf(String code, {bool female = false, String name = ''}) {
   final c = code.toLowerCase();
+  // The name says more than the code, which is often wrong: "U14 Girls",
+  // "Clontarf Girls 2012", "Adult Camogie", "U13 Boys", "Senior Hurlers".
+  final n = name.toLowerCase();
+  final girls = RegExp(r'girl|ladies|women|camog|lgfa').hasMatch(n);
+  final boys = !girls &&
+      RegExp(r'\bboys?\b|\bmen\b|\bmens\b|hurlers|footballers').hasMatch(n);
+  final hurl = c.contains('hurl') || c.contains('camog') || n.contains('hurl');
+  if (girls) return hurl ? PitchCode.camogie : PitchCode.ladies;
+  // Mixed groups: not boys or girls.
+  if (!boys &&
+      RegExp(r'nursery|all ?stars|social|mixed|academy|belgrove|school')
+          .hasMatch(n)) {
+    return PitchCode.other;
+  }
+  if (boys) return hurl ? PitchCode.hurling : PitchCode.football;
   if (c.contains('camogie')) return PitchCode.camogie;
   if (c.contains('ladies') || c.contains('lgfa')) return PitchCode.ladies;
   if (c.contains('hurling')) {
@@ -455,11 +470,16 @@ PitchCode codeOf(String code, {bool female = false}) {
   return PitchCode.other;
 }
 
+const _boys = Color(0xFF4D8EF0);
+const _girls = Color(0xFFF06AA8);
+
+/// Colour by who plays (Ken 2026-11-16): blue for boys and men, pink for
+/// girls and women, grey when it is not known. Not by code.
 const kCodeColours = {
-  PitchCode.football: Color(0xFF87C232),
-  PitchCode.hurling: Color(0xFF4DA3FF),
-  PitchCode.camogie: Color(0xFFB67CFF),
-  PitchCode.ladies: Color(0xFFFF7EB6),
+  PitchCode.football: _boys,
+  PitchCode.hurling: _boys,
+  PitchCode.camogie: _girls,
+  PitchCode.ladies: _girls,
   PitchCode.other: Color(0xFFB5B8BE),
 };
 
@@ -512,7 +532,7 @@ class PitchGroup {
   final int booked;
 
   bool get short => sessions > 0 && booked < sessions;
-  PitchCode get codeKey => codeOf(code);
+  PitchCode get codeKey => codeOf(code, name: name);
 }
 
 const kGroupCodes = [
@@ -917,7 +937,7 @@ class PitchBoard {
               e.location.isEmpty ? 'No location' : 'Location: ${e.location}',
           start: e.start,
           kind: e.kind,
-          codeKey: codeOf(e.code, female: e.female),
+          codeKey: codeOf(e.code, female: e.female, name: e.teamName),
           event: e,
           age: ageOf(e.teamName, season: season),
           teamId: e.teamId));
@@ -935,7 +955,8 @@ class PitchBoard {
           subtitle: 'Request',
           start: b.start,
           kind: b.kind,
-          codeKey: codeOf(b.code, female: b.female),
+          codeKey: codeOf(b.code,
+              female: b.female, name: '${b.teamName} ${b.title}'),
           request: b,
           teamId: b.teamId));
     }
@@ -951,7 +972,7 @@ class PitchBoard {
       ].join(' · '),
       start: f.start,
       kind: 'match',
-      codeKey: codeOf(f.code),
+      codeKey: codeOf(f.code, name: f.comp),
       fixture: f,
       age: ageOf(f.age),
       matchedPitchId: f.matchedPitchId);

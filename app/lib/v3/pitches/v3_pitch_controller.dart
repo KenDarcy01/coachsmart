@@ -225,7 +225,7 @@ class PitchController extends ChangeNotifier {
       subtitle: e.location.isEmpty ? '' : 'Location: ${e.location}',
       start: e.start,
       kind: e.kind,
-      codeKey: codeOf(e.code, female: e.female),
+      codeKey: codeOf(e.code, female: e.female, name: e.teamName),
       event: e,
       age: ageOf(e.teamName, season: season),
       teamId: e.teamId,

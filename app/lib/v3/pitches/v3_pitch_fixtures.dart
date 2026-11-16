@@ -428,7 +428,8 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             ? () => _place(gameId: f.gameId, eventId: f.eventId)
             : null;
     return _card(
-      bar: codeColour(codeOf(f.code, female: female)),
+      bar: codeColour(
+          codeOf(f.code, female: female, name: '${f.comp} ${f.eventTeam}')),
       start: f.start,
       title: title,
       lines: [
@@ -462,7 +463,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             ? () => _place(eventId: u.eventId)
             : null;
     return _card(
-      bar: codeColour(codeOf(u.code, female: u.female)),
+      bar: codeColour(codeOf(u.code, female: u.female, name: u.teamName)),
       start: u.start,
       title: u.opposition.isEmpty ? name : '$name v ${u.opposition}',
       lines: [
