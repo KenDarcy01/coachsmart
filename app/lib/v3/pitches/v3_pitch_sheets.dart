@@ -252,12 +252,17 @@ class PlaceSheet extends StatefulWidget {
 class _PlaceSheetState extends State<PlaceSheet> {
   late int _minutes = widget.c.minutesFor(widget.item);
   PlaceOption? _picked;
+
+  /// When to look for a pitch: the match time unless moved to suit what is
+  /// free (any day of the loaded week).
+  late DateTime _start = widget.at ?? widget.item.start;
+  late final _time = TextEditingController(text: timeOf(_start));
   final _ref = TextEditingController();
   final _rooms = TextEditingController();
 
   List<PlaceOption> get _options {
     final b = widget.c.board!;
-    final start = widget.at ?? widget.item.start;
+    final start = _start;
     final all =
         b.optionsFor(start, _minutes, except: widget.item.request?.bookingId);
     if (widget.pitch != null) {
@@ -265,7 +270,7 @@ class _PlaceSheetState extends State<PlaceSheet> {
       final p = widget.pitch!;
       final mine = all.where((o) => o.pitch.pitchId == p.pitchId).toList();
       final rest = all.where((o) => o.pitch.pitchId != p.pitchId);
-      final s = widget.at ?? widget.item.start;
+      final s = _start;
       return [
         if (mine.isEmpty)
           PlaceOption(p, s, s.add(Duration(minutes: _minutes)), PitchPart.full)
@@ -337,6 +342,41 @@ class _PlaceSheetState extends State<PlaceSheet> {
       ],
       children: [
         _Kv('When', _when(item.start)),
+        // Move it to another day or time of this week to find a pitch.
+        _Chips<DateTime>(
+            values: [
+              for (var i = 0; i < 7; i++) c.monday.add(Duration(days: i))
+            ],
+            label: (d) => '${kWeekdays[d.weekday - 1]} ${d.day}',
+            selected: dayOf(_start),
+            accent: accent,
+            onPick: (d) => setState(() {
+                  _start = atMinutes(d, minutesOf(_start));
+                  _picked = null;
+                })),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _time,
+          style: PT.inter(15),
+          decoration: pitchInput('Start time', hint: '18:40'),
+          onChanged: (v) {
+            final m = parseHhmm(v);
+            if (m != null) {
+              setState(() {
+                _start = atMinutes(_start, m);
+                _picked = null;
+              });
+            }
+          },
+        ),
+        if (_start != item.start)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+                'Booking it for ${_when(_start)}. '
+                '${item.fixture != null ? 'Change the fixture with the league too.' : 'The event time is not changed.'}',
+                style: PT.inter(13, color: PT.amberText)),
+          ),
         Row(children: [
           Expanded(child: Text('Needs', style: PT.inter(15, color: PT.muted))),
           IconButton(
@@ -356,7 +396,10 @@ class _PlaceSheetState extends State<PlaceSheet> {
               icon: const Icon(Icons.add, color: PT.muted, size: 18)),
         ]),
         const SizedBox(height: 6),
-        Text(opts.isEmpty ? 'Nothing free that day' : 'Free pitches',
+        Text(
+            opts.isEmpty
+                ? 'Nothing free then. Try another day or time.'
+                : 'Free pitches',
             style: PT.inter(15, weight: FontWeight.w600)),
         const SizedBox(height: 4),
         for (final o in opts.take(8))

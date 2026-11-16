@@ -628,6 +628,10 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Place on $second'), findsOneWidget);
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    // It can be moved to another day or time to find a free pitch.
+    await t.tap(find.text('Sun 22'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Booking it for Sun'), findsOneWidget);
     await _shot(t, 'pp-place');
   });
 
