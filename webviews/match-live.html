@@ -208,6 +208,12 @@ function model() {
   };
 }
 
+// Soccer and rugby say kick-off (from the code, else the live score)
+function kickWord() {
+  const c = String((D && D.event && D.event.event_code) || '').toLowerCase();
+  return c === 'soccer' || c === 'rugby' || (D && D.score && D.score.sport > 1) ? 'kick-off' : 'throw-in';
+}
+
 // ── Drawing ────────────────────────────────────────────────────────────────
 function render() {
   if (!D) return;
@@ -277,7 +283,7 @@ function followCard() {
   const f = D.follow || { level: 'off' };
   const on = f.level !== 'off';
   return `<div class="card"><button class="follow" data-act="alerts"><div class="bell ${on ? 'on' : ''}">${BELL}</div>
-    <div style="flex:1"><div class="h">${on ? "You're following this match" : 'Follow this match'}</div><div class="sub" style="margin:2px 0 0">${on ? L.levelLabel(f.level) + (f.kickoff ? ' and throw-in' : '') : 'Get an alert for every score'}</div></div>
+    <div style="flex:1"><div class="h">${on ? "You're following this match" : 'Follow this match'}</div><div class="sub" style="margin:2px 0 0">${on ? L.levelLabel(f.level) + (f.kickoff ? ' and ' + kickWord() : '') : 'Get an alert for every score'}</div></div>
     <span class="chg">${on ? 'Change' : 'Follow'}</span></button></div>`;
 }
 
@@ -286,7 +292,7 @@ function renderPre() {
   const left = at ? at - (Date.now() - skew) : null;
   const when = at ? new Date(at).toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
   const cd = left == null ? '' : left > 0
-    ? `<div class="small" style="letter-spacing:2px;text-transform:uppercase;font-weight:600">Throw-in in</div><div class="count" id="countdown">${countdown(left)}</div><div class="small">${esc(when)}</div>`
+    ? `<div class="small" style="letter-spacing:2px;text-transform:uppercase;font-weight:600">${kickWord()} in</div><div class="count" id="countdown">${countdown(left)}</div><div class="small">${esc(when)}</div>`
     : `<div class="h">Due to start</div><div class="sub">${esc(when)}. It goes live here when the coach starts the clock.</div>`;
   $('main').innerHTML = `${meta()}${board(null)}
     <div class="card" style="text-align:center">${cd}</div>
@@ -445,7 +451,7 @@ function squadCard(x) {
   if (!started) {
     const left = Date.parse(x.throw_in_at) - (Date.now() - skew);
     body = left > 60000
-      ? `<div class="cd" data-cd="${esc(x.throw_in_at)}">${untilText(left)}</div><div class="sub" style="text-align:center">until throw-in</div>`
+      ? `<div class="cd" data-cd="${esc(x.throw_in_at)}">${untilText(left)}</div><div class="sub" style="text-align:center">until ${kickWord()}</div>`
       : `<div class="sub" style="text-align:center;margin-top:10px">Due to start. It goes live when the coach starts the clock.</div>`;
   } else {
     const d = s.us.t - s.opp.t;
