@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 
 import '../v3_theme.dart';
 import 'v3_lineup_models.dart';
+import '/v3/sport/v3_sport.dart';
 
 const _pitchDark = Color(0xFF2D6A2D);
 const _pitchStripe = Color(0xFF3A9A3A);
@@ -141,8 +142,102 @@ class JerseyPainter extends CustomPainter {
       o.kit != kit;
 }
 
-/// The pitch, drawn into [r].
-void paintPitch(Canvas c, Rect r) {
+/// Soccer markings in [p] (our goal at the bottom): halfway line, centre
+/// circle, penalty and six-yard boxes, spots, arcs and goals. Sizes are a
+/// 68 x 105 m pitch's.
+void paintSoccerLines(Canvas c, Rect p, Paint strong, Paint soft,
+    {Paint? goalFill}) {
+  final w = p.width, h = p.height;
+  c.drawLine(Offset(p.left, p.center.dy), Offset(p.right, p.center.dy), soft);
+  c.drawCircle(p.center, w * .135, soft);
+  c.drawCircle(p.center, 2.2, Paint()..color = soft.color);
+  for (final top in [true, false]) {
+    double y(double f) => top ? p.top + f * h : p.bottom - f * h;
+    final bw = w * .593, sw = w * .269;
+    final big = Rect.fromLTRB(p.center.dx - bw / 2, top ? p.top : y(.157),
+        p.center.dx + bw / 2, top ? y(.157) : p.bottom);
+    final six = Rect.fromLTRB(p.center.dx - sw / 2, top ? p.top : y(.052),
+        p.center.dx + sw / 2, top ? y(.052) : p.bottom);
+    c.drawRect(big, soft);
+    c.drawRect(six, soft);
+    final spot = Offset(p.center.dx, y(.105));
+    c.drawCircle(spot, 2, Paint()..color = soft.color);
+    // The arc: the part of the 9.15 m circle outside the box.
+    c.save();
+    c.clipRect(top
+        ? Rect.fromLTRB(p.left, big.bottom, p.right, p.bottom)
+        : Rect.fromLTRB(p.left, p.top, p.right, big.top));
+    c.drawCircle(spot, w * .135, soft);
+    c.restore();
+    final gw = w * .108, gh = h * .018;
+    final goal = Rect.fromLTRB(
+        p.center.dx - gw / 2,
+        top ? p.top - 1 : p.bottom - gh,
+        p.center.dx + gw / 2,
+        top ? p.top + gh : p.bottom + 1);
+    if (goalFill != null) c.drawRect(goal, goalFill);
+    c.drawRect(goal, strong);
+  }
+  c.drawRect(p, strong);
+}
+
+/// Rugby markings in [p] (our try line at the bottom): in-goal areas, try
+/// lines with H posts, 22s, halfway, dashed 10 m, 5 m and 15 m lines. Sizes
+/// are a 70 x 100 m field with 10 m in-goals.
+void paintRugbyLines(Canvas c, Rect p, Paint strong, Paint soft,
+    {Paint? inGoal}) {
+  final w = p.width, h = p.height;
+  double y(double f) => p.top + f * h;
+  void hline(double f, Paint pt) =>
+      c.drawLine(Offset(p.left, y(f)), Offset(p.right, y(f)), pt);
+  void dash(Offset a, Offset b) => c.drawPath(
+      _dashed(
+          Path()
+            ..moveTo(a.dx, a.dy)
+            ..lineTo(b.dx, b.dy),
+          6,
+          5),
+      soft);
+  if (inGoal != null) {
+    c.drawRect(Rect.fromLTRB(p.left, p.top, p.right, y(.083)), inGoal);
+    c.drawRect(Rect.fromLTRB(p.left, y(.917), p.right, p.bottom), inGoal);
+  }
+  hline(.083, strong); // try lines
+  hline(.917, strong);
+  hline(.267, soft); // 22s
+  hline(.733, soft);
+  hline(.5, strong); // halfway
+  for (final f in [.417, .583]) {
+    dash(Offset(p.left, y(f)), Offset(p.right, y(f)));
+  }
+  for (final f in [.125, .875]) {
+    dash(Offset(p.left + w * .07, y(f)), Offset(p.right - w * .07, y(f)));
+  }
+  for (final fx in [.071, .214, .786, .929]) {
+    final x = p.left + fx * w;
+    dash(Offset(x, y(.083)), Offset(x, y(.917)));
+  }
+  // H posts on each try line, seen from above: two uprights and the bar.
+  for (final f in [.083, .917]) {
+    final cy = y(f), pw = w * .08, up = h * .03;
+    final post = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strong.strokeWidth + .8
+      ..color = const Color(0xFFFFFFFF);
+    final sign = f < .5 ? 1 : -1;
+    for (final dx in [-pw / 2, pw / 2]) {
+      c.drawLine(Offset(p.center.dx + dx, cy - sign * up * .3),
+          Offset(p.center.dx + dx, cy + sign * up), post);
+    }
+    c.drawLine(Offset(p.center.dx - pw / 2, cy + sign * up * .35),
+        Offset(p.center.dx + pw / 2, cy + sign * up * .35), post);
+  }
+  c.drawRect(p, strong);
+}
+
+/// The pitch, drawn into [r]: the GAA pitch, or soccer / rugby markings
+/// on the same grass.
+void paintPitch(Canvas c, Rect r, [V3Sport sport = V3Sport.gaa]) {
   c.save();
   c.clipRRect(RRect.fromRectAndRadius(r, const Radius.circular(10)));
   c.translate(r.left, r.top);
@@ -155,6 +250,18 @@ void paintPitch(Canvas c, Rect r) {
     ..style = PaintingStyle.stroke
     ..strokeWidth = w
     ..color = col;
+  if (!sport.isGaa) {
+    const field = Rect.fromLTWH(4, 4, 292, 476);
+    if (sport.kind == V3SportKind.soccer) {
+      paintSoccerLines(c, field, ln(1.8), ln(1.4),
+          goalFill: Paint()..color = const Color(0x38FFFFFF));
+    } else {
+      paintRugbyLines(c, field, ln(1.8), ln(1.3),
+          inGoal: Paint()..color = const Color(0x14FFFFFF));
+    }
+    c.restore();
+    return;
+  }
   void line(double y, double w) =>
       c.drawLine(Offset(4, y), Offset(296, y), ln(w));
   c.drawRect(const Rect.fromLTWH(4, 4, 292, 476), ln(1.8));
@@ -221,11 +328,13 @@ void paintPitch(Canvas c, Rect r) {
 }
 
 class PitchPainter extends CustomPainter {
+  PitchPainter([this.sport = V3Sport.gaa]);
+  final V3Sport sport;
   @override
   void paint(Canvas canvas, Size size) =>
-      paintPitch(canvas, Offset.zero & size);
+      paintPitch(canvas, Offset.zero & size, sport);
   @override
-  bool shouldRepaint(PitchPainter oldDelegate) => false;
+  bool shouldRepaint(PitchPainter oldDelegate) => oldDelegate.sport != sport;
 }
 
 // ------------------------------------------------------------ share image
@@ -319,47 +428,59 @@ Future<Uint8List> renderLineupPng(LineupData d, LineupBoard b,
     ..strokeWidth = w
     ..color = col;
   final white70 = ln(const Color(0xB3FFFFFF));
-  final sqw = pw * 0.149, sqh = ph * 0.033, sqx = pad + (pw - sqw) / 2;
-  c.drawRect(Rect.fromLTWH(sqx, py, sqw, sqh), white70);
-  c.drawRect(Rect.fromLTWH(sqx, py + ph - sqh, sqw, sqh), white70);
-  final lrw = pw * 0.217, lrh = ph * 0.095, lrx = pad + (pw - lrw) / 2;
-  c.drawRect(Rect.fromLTWH(lrx, py, lrw, lrh), white70);
-  c.drawRect(Rect.fromLTWH(lrx, py + ph - lrh, lrw, lrh), white70);
-  final white45 = ln(const Color(0x73FFFFFF));
-  for (final yp in const [0.146, 0.328, 0.474, 0.526, 0.672, 0.854]) {
-    c.drawLine(
-        Offset(pad, py + yp * ph), Offset(pad + pw, py + yp * ph), white45);
+  if (!b.sport.isGaa) {
+    final white45s = ln(const Color(0x73FFFFFF));
+    if (b.sport.kind == V3SportKind.soccer) {
+      paintSoccerLines(c, pitch, white70, white45s);
+    } else {
+      paintRugbyLines(c, pitch, white70, white45s);
+    }
+  } else {
+    final sqw = pw * 0.149, sqh = ph * 0.033, sqx = pad + (pw - sqw) / 2;
+    c.drawRect(Rect.fromLTWH(sqx, py, sqw, sqh), white70);
+    c.drawRect(Rect.fromLTWH(sqx, py + ph - sqh, sqw, sqh), white70);
+    final lrw = pw * 0.217, lrh = ph * 0.095, lrx = pad + (pw - lrw) / 2;
+    c.drawRect(Rect.fromLTWH(lrx, py, lrw, lrh), white70);
+    c.drawRect(Rect.fromLTWH(lrx, py + ph - lrh, lrw, lrh), white70);
+    final white45 = ln(const Color(0x73FFFFFF));
+    for (final yp in const [0.146, 0.328, 0.474, 0.526, 0.672, 0.854]) {
+      c.drawLine(
+          Offset(pad, py + yp * ph), Offset(pad + pw, py + yp * ph), white45);
+    }
+    final r = pw * 0.149;
+    c.drawArc(
+        Rect.fromCircle(
+            center: Offset(pad + pw / 2, py + ph * .146), radius: r),
+        0,
+        3.14159265,
+        false,
+        white45);
+    c.drawArc(
+        Rect.fromCircle(
+            center: Offset(pad + pw / 2, py + ph * .854), radius: r),
+        3.14159265,
+        3.14159265,
+        false,
+        white45);
+    c.drawPath(
+        _dashed(
+            Path()
+              ..moveTo(pad, py + ph / 2)
+              ..lineTo(pad + pw, py + ph / 2),
+            6,
+            4),
+        ln(const Color(0x99FFFFFF)));
   }
-  final r = pw * 0.149;
-  c.drawArc(
-      Rect.fromCircle(center: Offset(pad + pw / 2, py + ph * .146), radius: r),
-      0,
-      3.14159265,
-      false,
-      white45);
-  c.drawArc(
-      Rect.fromCircle(center: Offset(pad + pw / 2, py + ph * .854), radius: r),
-      3.14159265,
-      3.14159265,
-      false,
-      white45);
-  c.drawPath(
-      _dashed(
-          Path()
-            ..moveTo(pad, py + ph / 2)
-            ..lineTo(pad + pw, py + ph / 2),
-          6,
-          4),
-      ln(const Color(0x99FFFFFF)));
   c.restore();
   c.drawRRect(pitchR, ln(const Color(0xD9FFFFFF), 2));
 
   // Players: jersey on the spot, first name / surname under it.
-  for (final pos in positionsFor(b.format)) {
+  for (final pos in b.positions) {
     final id = b.assign[pos.n];
     final pl = id == null ? null : d.player(id);
     final cx = pad + pos.x / 100 * pw, cy = py + dispY(pos.y) / 100 * ph;
-    _v2Jersey(c, cx, cy, pos.n, pos.n == 1, pl != null, d.kit);
+    _v2Jersey(c, cx, cy, pos.n, pos.l == 'GK' || (b.sport.isGaa && pos.n == 1),
+        pl != null, d.kit);
     if (pl == null) continue;
     final parts = pl.name.trim().split(RegExp(r'\s+'));
     final lines =

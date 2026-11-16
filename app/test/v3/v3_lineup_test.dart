@@ -5,6 +5,7 @@ import 'package:coach_smart_v2/v3/lineup/v3_lineup_models.dart';
 import 'package:coach_smart_v2/v3/lineup/v3_lineup_page.dart';
 import 'package:coach_smart_v2/v3/lineup/v3_lineup_paint.dart';
 import 'package:coach_smart_v2/v3/lineup/v3_teamsheet.dart';
+import 'package:coach_smart_v2/v3/sport/v3_sport.dart';
 
 Map<String, dynamic> sample({bool saved = true}) => {
       'team_name': 'U14 Girls',
@@ -35,6 +36,67 @@ Map<String, dynamic> sample({bool saved = true}) => {
 
 void main() {
   widgetTests();
+
+  test('soccer: sizes, formations, spots and saved shape', () {
+    expect(lineupSizes(V3Sport.soccer), [5, 7, 9, 11]);
+    final f433 = soccerPositions('4-3-3');
+    expect(f433.length, 11);
+    expect(f433.map((p) => p.n).toSet().length, 11);
+    expect(f433.first.l, 'GK');
+    expect(f433.where((p) => p.l == 'ST').length, 1);
+    for (final e in kSoccerFormations.entries) {
+      for (final f in e.value) {
+        expect(soccerPositions(f).length, e.key, reason: f);
+      }
+    }
+    final d = LineupData.fromJson({
+      'club': {'sport_id': 2},
+      'players': [
+        {'member_id': 1, 'name': 'A B'},
+        {'member_id': 2, 'name': 'C D'}
+      ],
+      'lineup': {
+        'format': 9,
+        'formation': '2-4-2',
+        'details': [
+          {'member_id': 1, 'position_num': 1, 'is_sub': false},
+          {'member_id': 2, 'position_num': 9, 'is_sub': false},
+        ],
+      },
+    });
+    final b = d.initialBoard();
+    expect((b.format, b.formation), (9, '2-4-2'));
+    expect(b.labelOf(9), 'ST');
+    b.setFormat(11);
+    expect(b.formation, '4-3-3');
+    b.setFormation('4-4-2');
+    expect(b.assign, {1: 1, 9: 2}); // same numbers, new spots
+    expect(
+        b.details(5).firstWhere((r) => r['member_id'] == 1)['position_label'],
+        'GK');
+    // No saved lineup: soccer starts on 11.
+    expect(
+        LineupData.fromJson({
+          'club': {'sport_id': 2}
+        }).initialBoard().format,
+        11);
+  });
+
+  test('rugby: real 15, minis, eight replacements, no keeper', () {
+    final b = LineupBoard(sport: V3Sport.rugby);
+    expect(b.positions.map((p) => p.l).take(3), ['LH', 'HK', 'TH']);
+    expect(b.labelOf(15), 'FB');
+    expect(b.subSlots, 8);
+    expect(subShirt(15, 8), 23);
+    expect(b.formation, '');
+    for (final n in [7, 10, 12, 15]) {
+      expect(layoutFor(V3Sport.rugby, n).length, n);
+    }
+    // GAA is unchanged.
+    expect(LineupBoard().positions, positionsFor(15));
+    expect(LineupBoard().subSlots, 5);
+    expect(lineupSizes(V3Sport.gaa), kFormats);
+  });
 
   test('data: players sorted, club colours, saved lineup restored', () {
     final d = LineupData.fromJson(sample());

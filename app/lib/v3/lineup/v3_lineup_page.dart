@@ -229,7 +229,7 @@ class _V3LineupPageState extends State<V3LineupPage>
       return;
     }
     final title = pos != null
-        ? 'Position $pos · ${positionLabel(_board.format, pos)}'
+        ? 'Position $pos · ${_board.labelOf(pos)}'
         : 'Sub $sub · No. ${subShirt(_board.format, sub!)}';
     final picked = await showModalBottomSheet<int>(
       context: context,
@@ -315,7 +315,8 @@ class _V3LineupPageState extends State<V3LineupPage>
               onPressed: () => Navigator.of(context).maybePop()),
           title: Text('Lineup', style: V3.tight(17)),
           actions: [
-            if (ready && d.teamsheet)
+            // The Irish teamsheet is a GAA form.
+            if (ready && d.teamsheet && d.sport.isGaa)
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: TextButton.icon(
@@ -361,7 +362,49 @@ class _V3LineupPageState extends State<V3LineupPage>
               ]);
   }
 
-  Widget _formats() => Padding(
+  Widget _formats() {
+    final shapes = formationsFor(_board.sport, _board.format);
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      _sizes(),
+      // Soccer: the formation pick list (Ken, 2026-11-16).
+      if (shapes.isNotEmpty)
+        SizedBox(
+          height: 52,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            children: [
+              Center(
+                child: Text('SHAPE',
+                    style: V3.inter(13,
+                        weight: FontWeight.w700,
+                        color: V3.muted,
+                        letterSpacing: 1.2)),
+              ),
+              const SizedBox(width: 12),
+              for (final f in shapes)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: SizedBox(
+                    width: 72,
+                    child: _Pill(
+                      label: f,
+                      on: _board.formation == f,
+                      onTap: () {
+                        if (_board.formation != f) {
+                          _change(() => _board.setFormation(f));
+                        }
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+    ]);
+  }
+
+  Widget _sizes() => Padding(
         padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
         child: Row(children: [
           Text('FORMAT',
@@ -370,7 +413,7 @@ class _V3LineupPageState extends State<V3LineupPage>
                   color: V3.muted,
                   letterSpacing: 1.2)),
           const SizedBox(width: 12),
-          for (final f in kFormats)
+          for (final f in lineupSizes(_board.sport))
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -523,7 +566,7 @@ class _V3LineupPageState extends State<V3LineupPage>
   }
 
   Widget _pitch(LineupData d, double w, double h) {
-    final gap = rowGap(_board.format, h);
+    final gap = rowGap(_board.positions, h);
     final jh = (gap * .56).clamp(26.0, 44.0);
     final jw = jh * .9;
     final room = gap - jh - 4;
@@ -535,7 +578,7 @@ class _V3LineupPageState extends State<V3LineupPage>
       final p = box.globalToLocal(global);
       int? best;
       var bestD = kDropRadius;
-      for (final pos in positionsFor(_board.format)) {
+      for (final pos in _board.positions) {
         final d =
             (p - Offset(pos.x / 100 * w, dispY(pos.y) / 100 * h)).distance;
         if (d < bestD) {
@@ -576,10 +619,10 @@ class _V3LineupPageState extends State<V3LineupPage>
                     blurRadius: 32,
                     offset: Offset(0, 8))
               ]),
-          child: CustomPaint(painter: PitchPainter()),
+          child: CustomPaint(painter: PitchPainter(_board.sport)),
         ),
       ),
-      for (final pos in positionsFor(_board.format))
+      for (final pos in _board.positions)
         Positioned(
           left: pos.x / 100 * w - (nameW + 10) / 2,
           top: dispY(pos.y) / 100 * h - hit / 2,
@@ -612,7 +655,7 @@ class _V3LineupPageState extends State<V3LineupPage>
       double room) {
     final id = _board.assign[pos.n];
     final pl = id == null ? null : d.player(id);
-    final keeper = pos.n == 1;
+    final keeper = pos.l == 'GK' || (_board.sport.isGaa && pos.n == 1);
     Widget jersey(bool filled, bool over) => SizedBox(
         width: jw,
         height: jh,
@@ -705,7 +748,23 @@ class _V3LineupPageState extends State<V3LineupPage>
                   color: V3.muted,
                   letterSpacing: 1.2)),
         ),
-        for (var n = 1; n <= kSubSlots; n++) Expanded(child: _subSlot(d, n)),
+        Expanded(
+          child: _board.subSlots <= kSubSlots
+              ? Row(children: [
+                  for (var n = 1; n <= _board.subSlots; n++)
+                    Expanded(child: _subSlot(d, n)),
+                ])
+              // Rugby's eight replacements: two rows of four.
+              : Column(mainAxisSize: MainAxisSize.min, children: [
+                  for (var r = 0; r < (_board.subSlots / 4).ceil(); r++)
+                    Row(children: [
+                      for (var n = r * 4 + 1;
+                          n <= r * 4 + 4 && n <= _board.subSlots;
+                          n++)
+                        Expanded(child: _subSlot(d, n)),
+                    ]),
+                ]),
+        ),
       ]),
     );
   }
