@@ -27,6 +27,15 @@ a{color:inherit;text-decoration:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
+/* loading (Ken 2026-11-16): bar at the top, page dimmed, label pill */
+.ldbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:20;overflow:hidden;display:none}
+.ldbar::before{content:'';position:absolute;top:0;bottom:0;width:40%;background:var(--club);animation:ld 1.1s ease-in-out infinite}
+@keyframes ld{0%{left:-40%}100%{left:100%}}
+.ldpill{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:20;background:#1a1d23;color:#fff;font-size:14px;font-weight:600;padding:9px 16px 9px 14px;border-radius:999px;display:none;align-items:center;gap:9px;box-shadow:0 4px 18px #0003}
+.ldpill i{width:14px;height:14px;border:2px solid #fff5;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+body.busy .ldbar{display:block}body.busy .ldpill{display:flex}
+body.busy #app .layout{opacity:.45;pointer-events:none;transition:opacity .15s}body.busy #app .band{pointer-events:none}
 .links{display:flex;gap:14px;font-size:12.5px;align-items:center}
 .links button{background:none;border:0;cursor:pointer;color:var(--onband);text-decoration:underline;opacity:.9;font-size:12.5px}
 .links span{opacity:.75}
@@ -207,6 +216,7 @@ a{color:inherit;text-decoration:none}
 </style>
 </head>
 <body>
+<div class="ldbar"></div><div class="ldpill"><i></i><span id="ldText">Loading…</span></div>
 <div id="app"><div class="state">Loading…</div></div>
 
 <div class="login" id="login">
@@ -261,6 +271,12 @@ function brand(c) {
   r.setProperty('--club', accent); r.setProperty('--band', band);
   r.setProperty('--onband', lum(band) > .5 ? '#14181b' : '#fff');
   r.setProperty('--tint', accent + '17');
+  // Favicon and home-screen icon: the club's crest (Ken 2026-11-16).
+  if (c.crest) ['icon', 'apple-touch-icon'].forEach(rel => {
+    let l = document.querySelector(`link[rel="${rel}"]`);
+    if (!l) { l = document.createElement('link'); l.rel = rel; document.head.appendChild(l); }
+    l.href = c.crest;
+  });
 }
 
 // ── Sign in ───────────────────────────────────────────────────────
@@ -355,7 +371,14 @@ function range() {
   // The week view sits on top of the season model (team names, sides, season averages).
   return [new Date(seasonYear, 0, 1), now];
 }
+// Loading indicator while data loads after a tap (only once the page has content).
+let busyN = 0;
+function busy(label) { if (!D && !Dseason) return false; busyN++; $('ldText').textContent = label || 'Loading…'; document.body.classList.add('busy'); return true; }
+function unbusy() { busyN = Math.max(0, busyN - 1); if (!busyN) document.body.classList.remove('busy'); }
+const PLABEL = { week: 'this week', season: () => seasonYear + ' season', '3m': 'the last 3 months', '4w': 'the last 4 weeks', last: () => (seasonYear - 1) + ' season' };
 function setPeriod(p) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.getAttribute('onclick') === `setPeriod('${p}')`));
+  const l = PLABEL[p]; busy('Loading ' + (typeof l === 'function' ? l() : l) + '…');
   period = p; const u = new URL(location); u.searchParams.set('period', p); history.replaceState(null, '', u); load();
 }
 function chips() {
@@ -364,6 +387,9 @@ function chips() {
 }
 
 async function load() {
+  try { return await load0(); } finally { unbusy(); }
+}
+async function load0() {
   if (period === 'week') return loadWeek();
   const [from, to] = range();
   if (!D) state('Loading…');
@@ -476,8 +502,8 @@ function weekLabel(m) { const e = addDays(m, 6); return `Mon ${m.getDate()}${m.g
 const MONL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 function weekStepper() { return `<div class="wk"><button onclick="stepWeek(-1)" aria-label="Previous week">‹</button><span>${weekLabel(weekStart)}</span><button onclick="stepWeek(1)" aria-label="Next week">›</button></div>`; }
 function setUrl() { const u = new URL(location); u.searchParams.set('period', period); u.searchParams.set('week', ymd(weekStart)); u.searchParams.set('tab', tab); history.replaceState(null, '', u); }
-function stepWeek(n) { weekStart = addDays(weekStart, 7 * n); setUrl(); loadWeek(); }
-function setTab(t) { tab = t; weekStart = defaultWeek(); setUrl(); loadWeek(); }
+function stepWeek(n) { weekStart = addDays(weekStart, 7 * n); setUrl(); busy('Loading ' + weekLabel(weekStart) + '…'); loadWeek().finally(unbusy); }
+function setTab(t) { tab = t; weekStart = defaultWeek(); setUrl(); busy(t === 'fixtures' ? 'Loading fixtures…' : 'Loading results…'); loadWeek().finally(unbusy); }
 async function loadWeek() {
   if (!weekStart) { const w = P.get('week'); weekStart = w && /^\d{4}-\d\d-\d\d$/.test(w) ? mondayOf(new Date(w + 'T12:00:00')) : defaultWeek(); }
   if (!Dseason) {
