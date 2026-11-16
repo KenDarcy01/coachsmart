@@ -371,19 +371,20 @@ function gpts(g) { const d = divOf(g.comp), r = g.up > g.tp ? 1 : g.up < g.tp ? 
 function health(r) {
   if (period === 'last') return null;
   const parts = [], trend = [], H6 = Date.now() - 42 * 864e5, t = r.team, h = t && t.h;
-  if (h && h[2] >= 4 && t.players >= 5) {
+  // Teams on CoachSmart with only a handful of players, or no event in 3 months, aren't scored.
+  if (t && (t.players < 10 || !t.last_event || new Date(t.last_event) < Date.now() - 91 * 864e5)) return null;
+  // Match attendance only (Ken: training replies aren't reliable, many parents don't press the button).
+  if (h && h[2] >= 3) {
     const sp = h[0] / h[1];
-    parts.push({ k: 'Turnout', got: lin(sp, .3, .75, 20), max: 20, note: `${Math.round(sp * 100)}% of players invited said yes this season` });
+    parts.push({ k: 'Match turnout', got: lin(sp, .35, .8, 20), max: 20, note: `${Math.round(sp * 100)}% of players invited to matches said yes this season` });
     const py = h[0] - h[3], pi = h[1] - h[4], pn = h[2] - h[5];
-    if (h[5] >= 2 && pn >= 4 && pi) {
+    if (h[5] >= 2 && pn >= 3 && pi) {
       const d = (h[3] / h[4] - py / pi) * 100;
-      parts.push({ k: 'Attendance trend', got: lin(d, -10, 10, 20), max: 20, note: `last 6 weeks ${Math.round(h[3] / h[4] * 100)}% v ${Math.round(py / pi * 100)}% before` });
+      parts.push({ k: 'Match turnout trend', got: lin(d, -10, 10, 20), max: 20, note: `last 6 weeks ${Math.round(h[3] / h[4] * 100)}% v ${Math.round(py / pi * 100)}% before` });
       trend.push(clamp1(d / 8));
-    } else parts.push({ k: 'Attendance trend', got: 10, max: 20, note: h[5] < 2 ? 'too few sessions in the last 6 weeks to tell' : 'too new to tell' });
-    if (h[4]) parts.push({ k: 'Replies', got: lin(h[6] / h[4], .4, .9, 10), max: 10, note: `${Math.round(h[6] / h[4] * 100)}% of invites answered in the last 6 weeks` });
-    else parts.push({ k: 'Replies', got: 5, max: 10, note: 'no invites in the last 6 weeks' });
-    const miss = t.not_attended.length / t.players;
-    parts.push({ k: 'Players missing', got: 10 * (1 - Math.min(1, miss / .4)), max: 10, note: `${t.not_attended.length} of ${t.players} players not at anything in 4 weeks` });
+    } else parts.push({ k: 'Match turnout trend', got: 10, max: 20, note: h[5] < 2 ? 'too few matches in the last 6 weeks to tell' : 'too new to tell' });
+    if (h[4]) parts.push({ k: 'Match replies', got: lin(h[6] / h[4], .4, .9, 20), max: 20, note: `${Math.round(h[6] / h[4] * 100)}% of match invites answered in the last 6 weeks` });
+    else parts.push({ k: 'Match replies', got: 10, max: 20, note: 'no matches in the last 6 weeks' });
   }
   const sc = (r.hgames || []).filter(g => g.up != null && g.tp != null).sort((a, b) => b.d - a.d);
   if ((r.age == null || r.age >= 12) && sc.length >= 3) {
@@ -623,7 +624,7 @@ function clubView(sel) {
   }
   return h + legend();
 }
-function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span><span><b>Health check</b> (out of 100, season so far): attendance 40 (turnout and the last 6 weeks v before), results 40 (wins weighted by division, score difference, recent form, regrading), engagement 20 (replies, players missing). 65+ healthy, 45–64 keep an eye, under 45 needs help. Arrow: improving, steady or sliding.</span></div>`; }
+function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span><span><b>Health check</b> (out of 100, season so far): match attendance 40 (turnout and the last 6 weeks v before), results 40 (wins weighted by division, score difference, recent form, regrading), match replies 20. Training isn’t counted, and teams with under 10 players or no event in 3 months aren’t scored. 65+ healthy, 45–64 keep an eye, under 45 needs help. Arrow: improving, steady or sliding.</span></div>`; }
 function codeCard(g, c, rs) {
   const gs = uniqGames(rs, c), x = wdl(gs), n = x.w + x.d + x.l;
   return `<a class="card gc" href="${href({ g, c })}"><div class="hd"><span class="dot" style="background:var(--${c});width:12px;height:12px"></span><b>${CN[c]}</b><span style="margin-left:auto">${rs.length} teams ›</span></div>
