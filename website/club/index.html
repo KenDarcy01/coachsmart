@@ -412,11 +412,10 @@ function build(D, year) {
 }
 // ── This week (Ken, 2026-11-16) ───────────────────────────────────
 // Default view. Results tab: the week's results, go games, CoachSmart matches
-// and training; Fixtures tab: every game that week. Mon-Sun; on a Monday or
-// Tuesday the results tab opens on last week, since the new week is empty.
+// and training; Fixtures tab: every game that week. Mon-Sun, opens on the current week.
 const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 function mondayOf(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }
-function defaultWeek() { const now = new Date(), m = mondayOf(now); if (tab === 'results' && (now.getDay() === 1 || now.getDay() === 2)) m.setDate(m.getDate() - 7); return m; }
+function defaultWeek() { return mondayOf(new Date()); } // Ken 2026-11-16: always open on the current week
 function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function weekLabel(m) { const e = addDays(m, 6); return `Mon ${m.getDate()}${m.getMonth() !== e.getMonth() ? ' ' + MONL[m.getMonth()] : ''} – Sun ${e.getDate()} ${MONL[e.getMonth()]}`; }
