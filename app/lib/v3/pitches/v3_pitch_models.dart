@@ -697,6 +697,12 @@ class BoardEvent {
   bool get isMatch => type == 'Match';
   String get kind =>
       isMatch ? 'match' : (type == 'Other' ? 'other' : 'training');
+
+  /// Only training and matches need a pitch (Ken, 2026-11-16): not "Other"
+  /// events and never S&C.
+  bool get needsPitch =>
+      kind != 'other' &&
+      !code.toLowerCase().replaceAll(' ', '').contains('s&c');
 }
 
 class BoardFixture {
@@ -914,7 +920,8 @@ class PitchBoard {
     };
     return [
       for (final e in events)
-        if (e.matchedPitchId != null &&
+        if (e.needsPitch &&
+            e.matchedPitchId != null &&
             sameDay(e.start, day) &&
             (pitchId == null || e.matchedPitchId == pitchId) &&
             !booked.contains(e.teamId))
@@ -948,7 +955,7 @@ class PitchBoard {
   List<PlaceItem> inbox({String clubName = '', int? season}) {
     final out = <PlaceItem>[];
     for (final e in events) {
-      if (e.matchedPitchId != null) continue;
+      if (e.matchedPitchId != null || !e.needsPitch) continue;
       final group = groupName(e.teamName, season: season, clubName: clubName);
       final title = e.isMatch && e.opposition.isNotEmpty
           ? '$group v ${e.opposition}'

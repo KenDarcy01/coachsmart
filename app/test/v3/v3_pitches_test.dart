@@ -159,6 +159,17 @@ Map<String, dynamic> sampleBoard() => {
           'starts_at': '2026-11-21T14:30:00',
           'matched_pitch_id': 7,
         },
+        {
+          // S&C in the gym: never needs a pitch.
+          'event_id': 52,
+          'team_id': 8,
+          'team_name': 'Clontarf Boys 2012',
+          'title': 'S&C',
+          'location': 'Clubhouse',
+          'type': 'Other',
+          'code': 'S&C',
+          'starts_at': '2026-11-21T10:00:00',
+        },
       ],
       'fixtures': [
         {
