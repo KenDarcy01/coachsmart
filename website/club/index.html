@@ -598,22 +598,22 @@ function href(o) { const p = new URLSearchParams(); Object.entries(o).forEach(([
 function codeTeam(t, code) {
   if (!t || !code || !t.codes || !(t.codes['2'] || t.codes['3'])) return t;
   const v = t.codes[code === 'HU' || code === 'CA' ? '3' : '2'] || [0, 0, 0, 0, 0, 0, 0, {}];
-  return { ...t, trn_events: v[0], trn_yes: v[1], trn_inv: v[2], m_events: v[3], m_yes: v[4], m_inv: v[5], replied: v[6], months: v[7] || {}, byCode: CN[code] };
+  return { ...t, trn_events: v[0], trn_yes: v[1], trn_inv: v[2], m_events: v[3], m_yes: v[4], m_inv: v[5], replied: v[6], months: v[7] || {}, codePlayers: v[8], byCode: CN[code] };
 }
 function teamCard(r, g, code) {
   const t = codeTeam(r.team, code), tp = t ? pc(t.trn_yes, t.trn_inv) : null, mp = t ? pc(t.m_yes, t.m_inv) : null;
   const codes = code ? [code] : r.codes, gs = code ? r.games.filter(x => x.code === code) : r.games;
   const age = r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? r.ageLabel : r.ageLabel;
-  return `<a class="card tc ${r.onCS ? '' : 'off'}" href="${href({ g, c: code, t: r.key })}"><div class="top"><div class="nm">${esc(r.name)}${sub(r)}</div><span class="age">${age}</span></div>
+  return `<a class="card tc ${r.onCS ? '' : 'off'}" href="${href({ g, c: code, t: r.key })}"><div class="top"><div class="nm">${esc(r.name)}${sub(r, t)}</div><span class="age">${age}</span></div>
    ${hBadge(r.health)}
    ${t && (tp != null || mp != null) ? `<div class="duo">${miniAtt(avg(t.trn_yes, t.trn_events), tp, 'training')}${miniAtt(avg(t.m_yes, t.m_events), mp, 'matches')}</div>
    <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted);font-size:12px">Trend</span>${spark(t, 220, 30)}</div>` : ''}
    ${codes.map(c => codeLine(c, gs)).join('') || '<div class="empty">No league games</div>'}
    ${form(gs)}</a>`;
 }
-function sub(r) {
+function sub(r, ct) {
   if (!r.onCS) return '<small class="flag">Not on CoachSmart · results only</small>';
-  const t = r.team, n = t.players + ' player' + (t.players === 1 ? '' : 's');
+  const t = r.team, n = ct && ct.byCode && ct.codePlayers != null ? `${ct.codePlayers} of ${t.players} players play ${ct.byCode.toLowerCase()}` : t.players + ' player' + (t.players === 1 ? '' : 's');
   if (!r.events) return '<small class="flag">Not using CoachSmart yet</small>';
   if (t.players < 5) return `<small class="flag">Only ${n} on CoachSmart</small>`;
   const bits = [n]; if (!t.trn_events && t.m_events) bits.push('matches only'); if (t.keeper) bits.push(t.keeper + ' scored live');
@@ -722,7 +722,7 @@ function teamView(sel) {
   h += hCard(r.health);
   if (t) {
     const tp = pc(t.trn_yes, t.trn_inv), mp = pc(t.m_yes, t.m_inv), rr = pc(t.replied, t.trn_inv + t.m_inv);
-    h += `<div class="kpis">${attKpi('Training attendance', avg(t.trn_yes, t.trn_events), tp, t.trn_events, 'session')}${attKpi('Match attendance', avg(t.m_yes, t.m_events), mp, t.m_events, 'match')}<div class="card kpi">${ring(rr, 58)}<div><div class="l">Squad size</div><div class="v">${t.players}</div><div class="s">players${rr != null ? ` · ${rr}% reply` : ''}</div></div></div>${wdlKpi(res)}${kpi('Scored live', t.keeper, 'matches with score keeper')}</div>`;
+    h += `<div class="kpis">${attKpi('Training attendance', avg(t.trn_yes, t.trn_events), tp, t.trn_events, 'session')}${attKpi('Match attendance', avg(t.m_yes, t.m_events), mp, t.m_events, 'match')}<div class="card kpi">${ring(t.byCode && t.codePlayers != null ? pc(t.codePlayers, t.players) : rr, 58)}<div><div class="l">${t.byCode && t.codePlayers != null ? `Play ${esc(t.byCode.toLowerCase())}</div><div class="v">${t.codePlayers}</div><div class="s">of ${t.players} · at 1 in 5+ sessions</div>` : `Squad size</div><div class="v">${t.players}</div><div class="s">players${rr != null ? ` · ${rr}% reply` : ''}</div>`}</div></div>${wdlKpi(res)}${kpi('Scored live', t.keeper, 'matches with score keeper')}</div>`;
     const ms = months().slice(-12);
     const mv = ms.map(k => { const v = t.months[k]; return v && v[2] ? { a: v[0] / v[2], p: v[1] ? Math.round(v[0] / v[1] * 100) : null } : null; }), top = Math.max(1, ...mv.filter(Boolean).map(x => x.a));
     const bars = ms.map((k, i) => { const v = mv[i], mi = Number(k.slice(5)) - 1; return `<div class="bar" title="${v ? fmtAvg(v.a) + ' players on average' + (v.p != null ? ', ' + v.p + '%' : '') : ''}">${v ? `<span class="p">${fmtAvg(v.a)}</span><div class="b" style="height:${Math.max(3, v.a / top * 135)}px;opacity:${.55 + (v.p || 0) / 220}"></div><span class="t ${cls(v.p)}" style="font-size:11px">${v.p != null ? v.p + '%' : ''}</span>` : '<span class="p m">–</span>'}<span class="t">${ms.length > 6 ? MON[mi][0] : MON[mi]}</span></div>`; }).join('');
