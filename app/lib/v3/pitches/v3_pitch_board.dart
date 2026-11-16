@@ -143,7 +143,20 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
     }
     final pitches = [
       for (final p in board.pitches)
-        if (_venue.isEmpty || p.venue == _venue) p
+        if (_venue.isEmpty ||
+            p.venue == _venue ||
+            (_venue == '@astro' && p.surface != 'grass') ||
+            (_venue == '@grass' && p.surface == 'grass'))
+          p
+    ];
+    // Groups first (all, astros, grass), then each venue.
+    final filters = <(String, String)>[
+      ('', 'All locations'),
+      if (board.pitches.any((p) => p.surface != 'grass')) ('@astro', 'Astros'),
+      if (board.pitches.any((p) => p.surface == 'grass'))
+        ('@grass', 'Grass pitches'),
+      if (venues.length > 1)
+        for (final v in venues) (v, v),
     ];
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SizedBox(
@@ -195,16 +208,27 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                                 onTap: () =>
                                     setState(() => _weekPitch = p.pitchId)),
                           )
-                      else if (venues.length > 1)
-                        for (final v in ['', ...venues])
+                      else
+                        for (final (i, (v, label)) in filters.indexed) ...[
+                          if (i > 0 &&
+                              !v.startsWith('@') &&
+                              (filters[i - 1].$1.startsWith('@') ||
+                                  filters[i - 1].$1.isEmpty))
+                            Container(
+                                width: 1,
+                                height: 22,
+                                margin:
+                                    const EdgeInsets.only(right: 8, left: 2),
+                                color: PT.line),
                           Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: _Chip(
-                                label: v.isEmpty ? 'All venues' : v,
+                                label: label,
                                 on: _venue == v,
                                 accent: c.club.accent,
                                 onTap: () => setState(() => _venue = v)),
-                          )
+                          ),
+                        ]
                     ]),
                   ),
                 ),
