@@ -27,7 +27,8 @@ a{color:inherit;text-decoration:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
-.posl{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:6px}.posl b{font-size:14px}.posl span:last-child{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.posb{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
+.posl{display:grid;grid-template-columns:10px minmax(70px,auto) auto auto 1fr;align-items:center;gap:6px;font-size:13px;margin-top:5px}.posl b{font-size:14px}.posl .of{color:var(--muted)}.posl .cp{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 .ltr{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:11px 0;font:inherit;font-size:14px;cursor:pointer;text-align:left;color:inherit}
 .ltr .chev,.comps .clk span::after{color:var(--muted)}.ltr .chev{margin-left:4px}
 .comps .clk{cursor:pointer;border-radius:6px}.comps .clk:hover{background:var(--tint)}.comps .clk span{text-decoration:underline;text-decoration-color:#0002;text-underline-offset:3px}
@@ -820,7 +821,8 @@ function compKind(comp) { return /shield/i.test(comp) ? 'Shield' : /champ/i.test
 function shortComp(comp) {
   if (/grading/i.test(comp)) { const t = tierOf(comp); return 'Grading league' + (t ? ' ' + t.label.replace('Grading group', 'group') : ''); }
   const ph = /phase\s+(one|two|three|1|2|3)\b.*?(g(?:roup|p)\.?\s*\w+)?$/i.exec(comp);
-  if (ph) return 'Phase ' + ph[1].toLowerCase() + (ph[2] ? ' · ' + ph[2].replace(/^gp\.?\s*/i, 'Group ') : '');
+  const gl = /\b(?:football|hurling)\s+([A-H])\s+phase/i.exec(comp);
+  if (ph) return (gl ? 'Grade ' + gl[1].toUpperCase() + ' · ' : '') + 'Phase ' + ph[1].toLowerCase() + (ph[2] ? ' · ' + ph[2].replace(/^gp\.?\s*/i, 'Group ') : '');
   if (/knock/i.test(comp)) return shortComp(comp.replace(/knock.*$/i, '')) + ' knockout';
   const k = compKind(comp), d = divOf(comp);
   if ((k === 'Championship' || k === 'Shield') && !d) { const t = tierOf(comp); if (t) return k + ' · ' + t.label; }
@@ -890,9 +892,24 @@ function positions(r, code) {
     return { comp, code: gs[0].code, pos: o.i + 1, n: rows.length, rows, me: o.i, last: Math.max(...gs.map(g => +g.d)) };
   }).filter(Boolean).sort((a, b) => b.last - a.last);
 }
-function posLine(r, code) {
-  const p = positions(r, code)[0]; if (!p) return '';
-  return `<div class="posl"><span class="dot" style="background:var(--${p.code})"></span><b>${ordinal(p.pos)}</b> of ${p.n}<span>· ${esc(shortComp(p.comp))}</span></div>`;
+// Card lines (Ken 2026-11-16): one per side (Football A/B/C, Hurling A/B...), with the
+// side's current or latest competition that has a table and where it played 3+ games.
+// Earlier competitions are on the team page.
+function sidePositions(r, code) {
+  const ps = positions(r, code); if (!ps.length) return [];
+  const sides = buildSides((r.hgames || []).filter(g => !code || g.code === code)).filter(s => s.div != null), n = {}, out = [];
+  sides.forEach(s => { n[s.code] = (n[s.code] || 0) + 1; });
+  const seen = {};
+  sides.forEach(s => {
+    seen[s.code] = (seen[s.code] || 0) + 1;
+    const p = ps.filter(p => s.comps[p.comp] && p.rows[p.me][2] >= 3)[0];
+    if (p) out.push({ ...p, side: CN[s.code] + (n[s.code] > 1 ? ' ' + String.fromCharCode(64 + seen[s.code]) : '') });
+  });
+  return out;
+}
+function posLines(r, code) {
+  const ps = sidePositions(r, code); if (!ps.length) return '';
+  return `<div class="posb">${ps.map(p => `<div class="posl"><span class="dot" style="background:var(--${p.code})"></span><span class="sd">${esc(p.side)}</span><b>${ordinal(p.pos)}</b><span class="of">of ${p.n}</span><span class="cp">${esc(shortComp(p.comp).replace(/^(Grade \w) · Phase.*$/, '$1'))}</span></div>`).join('')}</div>`;
 }
 function tablesCard(r, code) {
   const ps = positions(r, code); if (!ps.length) return '';
@@ -973,7 +990,7 @@ function teamCard(r, g, code) {
    ${t && (tp != null || mp != null) ? `<div class="duo">${miniAtt(avg(t.trn_yes, t.trn_events), tp, 'training')}${miniAtt(avg(t.m_yes, t.m_events), mp, 'matches')}</div>
    <div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted);font-size:12px">Trend</span>${spark(t, 220, 30)}</div>` : ''}
    ${codes.map(c => codeLine(c, gs)).join('') || '<div class="empty">No league games</div>'}
-   ${codes.map(c => posLine(r, c)).join('')}
+   ${posLines(r, code)}
    ${form(gs)}</a>`;
 }
 function sub(r, ct) {
