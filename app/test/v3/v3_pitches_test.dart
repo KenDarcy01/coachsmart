@@ -434,6 +434,23 @@ void main() {
     await _shot(t, 'pp-place');
   });
 
+  testWidgets('laptop: week view shows one pitch over seven days', (t) async {
+    await _pump(t, const Size(1440, 900), FakePitchApi());
+    await t.tap(find.text('Week'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Clubhouse Astro').first);
+    await t.pumpAndSettle();
+    for (final d in ['Mon 16', 'Tue 17', 'Sat 21', 'Sun 22']) {
+      expect(find.text(d), findsOneWidget);
+    }
+    expect(find.text('Nursery'), findsWidgets);
+    await _shot(t, 'pp-week');
+    // A day heading opens that day on the day board.
+    await t.tap(find.text('Mon 16'));
+    await t.pumpAndSettle();
+    expect(find.text('Monday 16 November'), findsOneWidget);
+  });
+
   testWidgets('laptop: tap an empty part of a pitch to add a booking',
       (t) async {
     await _pump(t, const Size(1440, 900), FakePitchApi());

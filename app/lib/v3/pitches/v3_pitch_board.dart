@@ -49,6 +49,10 @@ class PitchDayBoard extends StatefulWidget {
 
 class _PitchDayBoardState extends State<PitchDayBoard> {
   String _venue = '';
+
+  /// Week view: one pitch, Monday to Sunday (Ken, 2026-11-16).
+  bool _week = false;
+  int? _weekPitch;
   final _hScroll = ScrollController();
   final _vScroll = ScrollController();
 
@@ -72,9 +76,10 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
   }
 
   /// Something dropped on [pitch] at [minute].
-  Future<void> _drop(PitchDrag d, Pitch pitch, int minute) async {
+  Future<void> _drop(PitchDrag d, Pitch pitch, int minute,
+      {DateTime? onDay}) async {
     final board = c.board!;
-    final day = c.day;
+    final day = onDay ?? c.day;
     final slot = pitch.slotAt(day.weekday, minute);
     final startMin = slot?.opens ?? (minute ~/ 15) * 15;
     final start = atMinutes(day, startMin);
@@ -150,35 +155,190 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
               color: PT.card, borderRadius: BorderRadius.circular(14)),
           clipBehavior: Clip.antiAlias,
           child: Column(children: [
-            if (venues.length > 1)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    for (final v in ['', ...venues])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: _Chip(
-                            label: v.isEmpty ? 'All venues' : v,
-                            on: _venue == v,
-                            accent: c.club.accent,
-                            onTap: () => setState(() => _venue = v)),
-                      )
-                  ]),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+              child: Row(children: [
+                _Chip(
+                    label: 'Day',
+                    on: !_week,
+                    accent: c.club.accent,
+                    onTap: () => setState(() => _week = false)),
+                const SizedBox(width: 4),
+                _Chip(
+                    label: 'Week',
+                    on: _week,
+                    accent: c.club.accent,
+                    onTap: () => setState(() => _week = true)),
+                Container(
+                    width: 1,
+                    height: 22,
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    color: PT.line),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: [
+                      if (_week)
+                        for (final p in board.pitches)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: _Chip(
+                                label: p.name,
+                                on: _weekPitchOf(board)?.pitchId == p.pitchId,
+                                accent: c.club.accent,
+                                onTap: () =>
+                                    setState(() => _weekPitch = p.pitchId)),
+                          )
+                      else if (venues.length > 1)
+                        for (final v in ['', ...venues])
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: _Chip(
+                                label: v.isEmpty ? 'All venues' : v,
+                                on: _venue == v,
+                                accent: c.club.accent,
+                                onTap: () => setState(() => _venue = v)),
+                          )
+                    ]),
+                  ),
                 ),
-              ),
+              ]),
+            ),
             Expanded(
                 child: pitches.isEmpty
                     ? Center(
                         child: Text('Add your pitches in Setup to start.',
                             style: PT.inter(15, color: PT.muted)))
-                    : _grid(board, pitches)),
+                    : _week
+                        ? _weekGrid(board, _weekPitchOf(board)!)
+                        : _grid(board, pitches)),
             _legend(board),
           ]),
         ),
       ),
     ]);
+  }
+
+  Pitch? _weekPitchOf(PitchBoard board) {
+    if (board.pitches.isEmpty) return null;
+    return board.pitch(_weekPitch) ?? board.pitches.first;
+  }
+
+  /// One pitch across the week: a column per day.
+  Widget _weekGrid(PitchBoard board, Pitch p) {
+    final days = [for (var i = 0; i < 7; i++) c.monday.add(Duration(days: i))];
+    var lo = 24 * 60, hi = 0;
+    for (final d in days) {
+      for (final s in p.slotsOn(d.weekday)) {
+        if (s.opens < lo) lo = s.opens;
+        if (s.closes > hi) hi = s.closes;
+      }
+      for (final b in board.bookingsOn(d, pitchId: p.pitchId)) {
+        lo = minutesOf(b.start) < lo ? minutesOf(b.start) : lo;
+        hi = minutesOf(b.end) > hi ? minutesOf(b.end) : hi;
+      }
+    }
+    if (hi <= lo) {
+      lo = 8 * 60;
+      hi = 22 * 60;
+    }
+    lo = (lo ~/ 60) * 60;
+    hi = ((hi + 59) ~/ 60) * 60;
+    final height = (hi - lo) * _pxPerMin;
+    final today = dayOf(DateTime.now());
+
+    return LayoutBuilder(builder: (context, box) {
+      final colW = ((box.maxWidth - _timeCol) / 7).clamp(120.0, 320.0);
+      final width = _timeCol + colW * 7;
+      return Scrollbar(
+        controller: _hScroll,
+        child: SingleChildScrollView(
+          controller: _hScroll,
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: width,
+            child: Column(children: [
+              Container(
+                decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: PT.line))),
+                child: Row(children: [
+                  const SizedBox(width: _timeCol),
+                  for (final d in days)
+                    SizedBox(
+                      width: colW,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() => _week = false);
+                          c.pickDay(d);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 10, 6, 9),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${kWeekdays[d.weekday - 1]} ${d.day}',
+                                    style: PT.inter(14,
+                                        weight: FontWeight.w600,
+                                        color: d == today
+                                            ? c.club.accent
+                                            : PT.text)),
+                                Text(_dayCount(board, p, d),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: PT.inter(11.5, color: PT.muted)),
+                              ]),
+                        ),
+                      ),
+                    ),
+                ]),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _vScroll,
+                  child: SizedBox(
+                    height: height + 12,
+                    child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: _timeCol,
+                            child: Stack(children: [
+                              for (var m = lo; m < hi; m += 60)
+                                Positioned(
+                                  top: (m - lo) * _pxPerMin + 2,
+                                  left: 10,
+                                  child: Text(hhmm(m),
+                                      style: PT.inter(11, color: PT.muted)),
+                                )
+                            ]),
+                          ),
+                          for (final d in days)
+                            SizedBox(
+                                width: colW,
+                                height: height + 12,
+                                child: _column(
+                                    board, p, lo, hi, colW, board.clashIds(d),
+                                    onDay: d)),
+                        ]),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      );
+    });
+  }
+
+  String _dayCount(PitchBoard board, Pitch p, DateTime d) {
+    if (board.closureOn(p.pitchId, d) != null) return 'Closed';
+    final n = [
+      for (final b in board.bookingsOn(d, pitchId: p.pitchId))
+        if (b.confirmed) b
+    ].length;
+    final held = p.slots.isEmpty ? 0 : p.slotsOn(d.weekday).length;
+    if (n == 0 && held == 0 && p.slots.isNotEmpty) return 'No slots';
+    return '$n booked${held > 0 ? ' · $held slots' : ''}';
   }
 
   Widget _grid(PitchBoard board, List<Pitch> pitches) {
@@ -283,8 +443,10 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
   }
 
   Widget _column(
-      PitchBoard board, Pitch p, int lo, int hi, double w, Set<int> clashes) {
-    final day = c.day;
+      PitchBoard board, Pitch p, int lo, int hi, double w, Set<int> clashes,
+      {DateTime? onDay}) {
+    final day = onDay ?? c.day;
+    final colKey = '${p.pitchId}-${day.toIso8601String()}';
     final closure = board.closureOn(p.pitchId, day);
     final slots = p.slotsOn(day.weekday);
     double y(int m) => (m - lo) * _pxPerMin;
@@ -475,12 +637,12 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         final box = context.findRenderObject();
         if (box is! RenderBox) return;
         // Find this column's box from the drop position.
-        final local = _columnLocal(d.offset, p);
+        final local = _columnLocal(d.offset, colKey);
         final m = lo + (local / _pxPerMin).round();
-        _drop(d.data, p, m.clamp(lo, hi - 15));
+        _drop(d.data, p, m.clamp(lo, hi - 15), onDay: day);
       },
       builder: (ctx, cand, rej) => Container(
-        key: _keys.putIfAbsent(p.pitchId, () => GlobalKey()),
+        key: _keys.putIfAbsent(colKey, () => GlobalKey()),
         decoration: BoxDecoration(
             color:
                 cand.isNotEmpty ? c.club.accent.withValues(alpha: 0.06) : null,
@@ -490,10 +652,10 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
     );
   }
 
-  final Map<int, GlobalKey> _keys = {};
+  final Map<String, GlobalKey> _keys = {};
 
-  double _columnLocal(Offset global, Pitch p) {
-    final box = _keys[p.pitchId]?.currentContext?.findRenderObject();
+  double _columnLocal(Offset global, String key) {
+    final box = _keys[key]?.currentContext?.findRenderObject();
     if (box is! RenderBox) return 0;
     // The drag feedback's top-left is the drop point; aim a little lower.
     return box.globalToLocal(global).dy + 8;
