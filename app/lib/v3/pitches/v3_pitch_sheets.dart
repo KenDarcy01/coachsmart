@@ -130,7 +130,11 @@ class PitchButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final fill = accent;
     return Material(
-      color: fill ?? PT.card2,
+      color: fill == null
+          ? PT.card2
+          : onTap == null
+              ? fill.withValues(alpha: 0.45)
+              : fill,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -143,10 +147,10 @@ class PitchButton extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: PT.inter(compact ? 14 : 15,
                     weight: FontWeight.w600,
-                    color: onTap == null
-                        ? PT.muted
-                        : fill != null
-                            ? onAccent(fill)
+                    color: fill != null
+                        ? onAccent(fill)
+                        : onTap == null
+                            ? PT.muted
                             : danger
                                 ? PT.redText
                                 : PT.text)),
@@ -587,7 +591,8 @@ class _BookingSheetState extends State<BookingSheet> {
                     }),
         PitchButton(isNew ? 'Add booking' : 'Save',
             accent: accent,
-            onTap: c.busy || _pitch == null
+            // An away match has no pitch; it still saves (Ken, 2026-11-16).
+            onTap: c.busy || (_pitch == null && b?.offsite != true)
                 ? null
                 : () async {
                     if (isNew &&
@@ -598,12 +603,12 @@ class _BookingSheetState extends State<BookingSheet> {
                     }
                     final p = <String, dynamic>{
                       if (!isNew) 'booking_id': b!.bookingId,
-                      'pitch_id': _pitch!.pitchId,
+                      'pitch_id': _pitch?.pitchId,
                       'part': _part,
                       'starts_at': isoLocal(_start),
                       'ends_at': isoLocal(end),
                       'kind': _kind,
-                      'status': 'confirmed',
+                      'status': _pitch == null ? 'offsite' : 'confirmed',
                       if (!linked) 'title': _title.text.trim(),
                       if (!linked) 'group_id': _groupId,
                       'note': _note.text.trim(),
@@ -671,7 +676,9 @@ class _BookingSheetState extends State<BookingSheet> {
           isExpanded: true,
           dropdownColor: PT.card2,
           style: PT.inter(15),
-          decoration: pitchInput('Pitch'),
+          decoration: pitchInput(
+              b?.offsite == true && _pitch == null ? 'Away, no pitch' : 'Pitch',
+              hint: 'Pick one to play it here'),
           items: [
             for (final p in board.pitches)
               DropdownMenuItem(

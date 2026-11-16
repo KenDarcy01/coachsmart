@@ -430,6 +430,15 @@ class FakePitchApi extends PitchApi {
             },
           },
           {
+            'event_id': 9001,
+            'team_name': 'Clontarf Girls 2013',
+            'female': true,
+            'code': 'Football',
+            'opposition': 'T1 / T3 Vincents Away. T2 TBC',
+            'location': "Vincent's",
+            'starts_at': '2026-11-21T13:45:00',
+          },
+          {
             'event_id': 1777,
             'team_name': 'Clontarf Girls 2012',
             'female': true,
@@ -744,14 +753,20 @@ void main() {
     expect(find.text('UNOFFICIAL MATCHES'), findsOneWidget);
     expect(find.text('U21 Camogie: Clontarf v Fingallians'), findsOneWidget);
     expect(find.text('Pitch 34 · 20:00'), findsOneWidget);
-    expect(find.text('Unassigned'), findsOneWidget);
+    expect(find.text('Unassigned'), findsNWidgets(2));
     expect(find.text("U8 Girls v St Vincent's"), findsOneWidget);
     // League changes: listed at the top and flagged on the fixture.
     expect(find.text('CHANGES FROM THE LEAGUE'), findsOneWidget);
     expect(find.text('⚠ Time changed'), findsOneWidget);
     await _shot(t, 'pp-fixtures');
     // The Unassigned chip opens the place sheet.
-    await t.tap(find.text('Unassigned'));
+    await t.tap(find.text('Unassigned').first);
+    await t.pumpAndSettle();
+    expect(find.text('Free pitches'), findsOneWidget);
+    Navigator.of(t.element(find.text('Free pitches'))).pop();
+    await t.pumpAndSettle();
+    // So does an unofficial match the board's list doesn't have.
+    await t.tap(find.text('Unassigned').last);
     await t.pumpAndSettle();
     expect(find.text('Free pitches'), findsOneWidget);
   });

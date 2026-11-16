@@ -216,17 +216,39 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     _load(c.monday);
   }
 
-  Future<void> _place({int? gameId, int? eventId}) async {
+  Future<void> _place({int? gameId, int? eventId, UnofficialMatch? u}) async {
     final board = c.board;
     if (board == null) return;
+    // Straight from the list, whether or not the board's "Needs a pitch"
+    // has it (Ken, 2026-11-16: "why can't I just add?").
     final item = board
-        .inbox(clubName: c.club.name, season: c.season)
-        .where((i) =>
-            (gameId != null && i.fixture?.gameId == gameId) ||
-            (eventId != null && i.event?.eventId == eventId))
-        .firstOrNull;
+            .inbox(clubName: c.club.name, season: c.season)
+            .where((i) =>
+                (gameId != null && i.fixture?.gameId == gameId) ||
+                (eventId != null && i.event?.eventId == eventId))
+            .firstOrNull ??
+        [
+          for (final f in board.fixtures)
+            if (gameId != null && f.gameId == gameId) PitchBoard.fixtureItem(f)
+        ].firstOrNull ??
+        [
+          for (final e in board.events)
+            if (eventId != null && e.eventId == eventId) c.itemOfEvent(e)
+        ].firstOrNull ??
+        (u == null
+            ? null
+            : c.itemOfEvent(BoardEvent(
+                eventId: u.eventId,
+                start: u.start,
+                teamName: u.teamName,
+                female: u.female,
+                code: u.code,
+                opposition: u.opposition,
+                homeAway: u.homeAway,
+                location: u.location,
+                type: 'Match')));
     if (item == null) {
-      pitchSnack(context, 'Open its day on the board to place it.');
+      pitchSnack(context, "Couldn't find this match. Pull down to refresh.");
       return;
     }
     await showPitchSheet(context, PlaceSheet(c: c, item: item));
@@ -575,7 +597,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     final VoidCallback? tapU = u.booking != null
         ? () => _openBooking(u.booking!.bookingId)
         : home
-            ? () => _place(eventId: u.eventId)
+            ? () => _place(eventId: u.eventId, u: u)
             : null;
     return _card(
       bar: codeColour(codeOf(u.code, female: u.female, name: u.teamName)),
