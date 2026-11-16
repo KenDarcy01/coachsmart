@@ -280,6 +280,86 @@ class FakePitchApi extends PitchApi {
   Future<void> saveBooking(int clubId, Map<String, dynamic> booking) async =>
       saved.add(booking);
   @override
+  Future<Map> fixturesWeek(int clubId, DateTime monday) async => {
+        'official': [
+          {
+            'game_id': 86467,
+            'code': 'Camogie',
+            'age': 'U21',
+            'comp': 'Camogie U21 Division 2 Championship',
+            'home': 'Clontarf',
+            'away': 'Fingallians',
+            'is_home': true,
+            'venue': 'Clontarf',
+            'referee': 'R Somerfield',
+            'status': 'fixture',
+            'note': '',
+            'starts_at': '2026-11-17T20:00:00',
+            'booking': {
+              'booking_id': 9,
+              'pitch': 'Pitch 34',
+              'status': 'confirmed',
+              'starts_at': '2026-11-17T20:00:00'
+            },
+          },
+          {
+            'game_id': 86447,
+            'code': 'Football',
+            'age': 'U16',
+            'comp': 'U16 Football B Shield',
+            'home': 'Naomh Barrog',
+            'away': 'Clontarf',
+            'is_home': false,
+            'venue': 'St Annes 14',
+            'referee': 'D Harrington',
+            'status': 'fixture',
+            'note': 'Final .. ET if req.',
+            'starts_at': '2026-11-21T14:30:00',
+          },
+          {
+            'game_id': 86500,
+            'code': 'Football',
+            'age': 'U14',
+            'comp': 'U14 Football Division 3',
+            'home': 'Clontarf',
+            'away': 'Raheny',
+            'is_home': true,
+            'venue': 'TBC',
+            'status': 'fixture',
+            'starts_at': '2026-11-21T14:00:00',
+            'event': {'event_id': 501, 'team_name': 'Clontarf Boys 2012'},
+          },
+        ],
+        'unofficial': [
+          {
+            'event_id': 1779,
+            'team_name': 'Clontarf Girls 2018',
+            'female': true,
+            'code': 'Football',
+            'opposition': "St Vincent's",
+            'location': "Pitch 30, St Anne's Park",
+            'starts_at': '2026-11-22T09:30:00',
+            'booking': {
+              'booking_id': 3,
+              'pitch': 'Pitch 30',
+              'status': 'confirmed',
+              'starts_at': '2026-11-22T09:30:00'
+            },
+          },
+          {
+            'event_id': 1777,
+            'team_name': 'Clontarf Girls 2012',
+            'female': true,
+            'code': 'Football',
+            'opposition': 'Sylvesters',
+            'home_away': 'Away',
+            'location': 'Broomfield',
+            'starts_at': '2026-11-20T19:30:00',
+          },
+        ],
+      };
+
+  @override
   Future<Map> publishedWeek(int clubId, DateTime monday) async {
     final b = boardWithGroups();
     final names = {
@@ -461,6 +541,19 @@ void main() {
     await t.tap(find.text('Nursery  ×'));
     await t.pumpAndSettle();
     expect(find.text('+ Add a session'), findsNothing);
+  });
+
+  testWidgets('laptop: fixtures tab, official and unofficial', (t) async {
+    await _pump(t, const Size(1440, 900), FakePitchApi());
+    await t.tap(find.text('Fixtures').first);
+    await t.pumpAndSettle();
+    expect(find.text('OFFICIAL FIXTURES'), findsOneWidget);
+    expect(find.text('UNOFFICIAL MATCHES'), findsOneWidget);
+    expect(find.text('U21 Camogie: Clontarf v Fingallians'), findsOneWidget);
+    expect(find.textContaining('Booked · Pitch 34'), findsOneWidget);
+    expect(find.text('Needs a pitch'), findsOneWidget);
+    expect(find.text("U8 Girls v St Vincent's"), findsOneWidget);
+    await _shot(t, 'pp-fixtures');
   });
 
   testWidgets('laptop: tap an empty part of a pitch to add a booking',

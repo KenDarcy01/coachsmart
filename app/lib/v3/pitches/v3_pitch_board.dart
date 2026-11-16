@@ -638,9 +638,17 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                 color: Colors.transparent,
                 child: Opacity(opacity: 0.85, child: block)),
             childWhenDragging: Opacity(opacity: 0.3, child: block),
-            child: GestureDetector(
-                onTap: () => _open(BookingSheet(c: c, booking: b)),
-                child: block),
+            child: Tooltip(
+              richMessage: _bookingTip(b, p),
+              waitDuration: const Duration(milliseconds: 250),
+              preferBelow: false,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              decoration: BoxDecoration(
+                  color: PT.text, borderRadius: BorderRadius.circular(10)),
+              child: GestureDetector(
+                  onTap: () => _open(BookingSheet(c: c, booking: b)),
+                  child: block),
+            ),
           ),
         ),
       ));
@@ -688,6 +696,43 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         child: Stack(clipBehavior: Clip.none, children: children),
       ),
     );
+  }
+
+  /// Hover card: everything about a booking, Outlook style.
+  TextSpan _bookingTip(Booking b, Pitch p) {
+    final board = c.board!;
+    final grp = board.group(b.groupId);
+    final clash = board.clashIds(dayOf(b.start)).contains(b.bookingId);
+    final lines = <String>[
+      '${timeOf(b.start)}–${timeOf(b.end)} · ${p.name}'
+          '${p.split > 1 && b.part != PitchPart.full ? ' · ${PitchPart.label(b.part, p.split)}' : ''}',
+      [
+        b.kind == 'match'
+            ? 'Match'
+            : b.kind == 'other'
+                ? 'Other'
+                : 'Training',
+        if (grp != null && grp.teamId != null) grp.teamName,
+        if (grp != null && grp.teamId == null) 'Not on CoachSmart',
+      ].join(' · '),
+      if (b.eventId != null) 'Linked to the CoachSmart event',
+      if (b.referee.isNotEmpty) 'Referee: ${b.referee}',
+      if (b.dressingRooms.isNotEmpty) 'Dressing rooms: ${b.dressingRooms}',
+      if (b.note.isNotEmpty) 'Note: ${b.note}',
+      if (clash) 'Clashes with another booking',
+    ];
+    return TextSpan(children: [
+      TextSpan(
+          text: c.titleOf(b),
+          style: PT.inter(13.5, weight: FontWeight.w700, color: Colors.white)),
+      for (final l in lines)
+        TextSpan(
+            text: '\n$l',
+            style: PT.inter(12.5,
+                color: l.startsWith('Clashes')
+                    ? const Color(0xFFFF9A9E)
+                    : const Color(0xFFE3E6EB))),
+    ]);
   }
 
   final Map<String, GlobalKey> _keys = {};

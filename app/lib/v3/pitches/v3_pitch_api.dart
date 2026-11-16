@@ -90,6 +90,13 @@ class PitchApi {
     ];
   }
 
+  /// The week's matches: official (league feed) and CoachSmart-only.
+  Future<Map> fixturesWeek(int clubId, DateTime monday) async {
+    final r = await _rpc(
+        'pitch_fixtures_week', {'p_club': clubId, 'p_monday': _d(monday)});
+    return r is Map ? r : const {};
+  }
+
   Future<Map> publishedWeek(int clubId, DateTime monday) async {
     final r = await _rpc(
         'pitch_published_week', {'p_club': clubId, 'p_monday': _d(monday)});
