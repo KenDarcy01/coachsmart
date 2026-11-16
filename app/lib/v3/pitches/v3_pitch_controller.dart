@@ -161,8 +161,12 @@ class PitchController extends ChangeNotifier {
   String titleOf(Booking b) {
     final grp = board?.group(b.groupId);
     if (b.eventId == null) {
-      if (grp != null)
-        return b.title.isNotEmpty ? '${grp.name} · ${b.title}' : grp.name;
+      if (grp != null) {
+        final t = b.title.trim();
+        return t.isEmpty || t.toLowerCase() == grp.name.toLowerCase()
+            ? grp.name
+            : '${grp.name} · $t';
+      }
       if (b.title.isNotEmpty) return b.title;
     }
     final g = grp?.name ?? (b.teamName.isEmpty ? b.title : group(b.teamName));

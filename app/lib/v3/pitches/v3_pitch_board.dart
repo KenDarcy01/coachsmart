@@ -471,17 +471,28 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
       for (final b in board.bookingsOn(day, pitchId: p.pitchId))
         if (b.confirmed) b
     ];
-    // Overlapping bookings on the same part sit side by side in lanes.
-    final lane = <int, (int, int)>{};
-    for (final b in booked) {
+    // Overlapping blocks on the same part (bookings, and events still to
+    // confirm) sit side by side in lanes instead of on top of each other.
+    final matched = board.matchedOn(day, pitchId: p.pitchId);
+    final spans = <(String, DateTime, DateTime, int)>[
+      for (final b in booked)
+        ('b${b.bookingId}', b.start, b.end, p.split == 1 ? 15 : b.part),
+      for (final e in matched)
+        (
+          'e${e.eventId}',
+          e.start,
+          e.start.add(Duration(minutes: c.minutesFor(c.itemOfEvent(e)))),
+          15
+        ),
+    ];
+    final lane = <String, (int, int)>{};
+    for (final x in spans) {
       final peers = [
-        for (final o in booked)
-          if (o.start.isBefore(b.end) &&
-              o.end.isAfter(b.start) &&
-              (p.split == 1 || (o.part & b.part) != 0))
-            o
-      ]..sort((x, y) => x.bookingId.compareTo(y.bookingId));
-      lane[b.bookingId] = (peers.indexOf(b), peers.length);
+        for (final o in spans)
+          if (o.$2.isBefore(x.$3) && o.$3.isAfter(x.$2) && (o.$4 & x.$4) != 0)
+            o.$1
+      ]..sort();
+      lane[x.$1] = (peers.indexOf(x.$1), peers.length);
     }
 
     final children = <Widget>[
@@ -549,16 +560,18 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
     ];
 
     // Events whose own location names this pitch, not yet confirmed.
-    for (final e in board.matchedOn(day, pitchId: p.pitchId)) {
+    for (final e in matched) {
       final item = c.itemOfEvent(e);
       final m = minutesOf(e.start);
       final len = c.minutesFor(item);
       final col = codeColour(item.codeKey);
+      final (li, ln) = lane['e${e.eventId}'] ?? (0, 1);
+      final laneW = (w - 8) / ln;
       children.add(Positioned(
         top: y(m) + 2,
         height: (len * _pxPerMin - 4).clamp(18, 9999).toDouble(),
-        left: 4,
-        right: 4,
+        left: 4 + laneW * li,
+        width: laneW - 3,
         child: GestureDetector(
           onTap: () =>
               _open(PlaceSheet(c: c, item: item, pitch: p, at: e.start)),
@@ -577,7 +590,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
     }
 
     for (final b in booked) {
-      final (li, ln) = lane[b.bookingId] ?? (0, 1);
+      final (li, ln) = lane['b${b.bookingId}'] ?? (0, 1);
       final (a, z) = PitchPart.span(p.split == 1 ? PitchPart.full : b.part);
       final col = codeColour(bookingCode(c, b));
       final top = y(minutesOf(b.start)) + 2;
