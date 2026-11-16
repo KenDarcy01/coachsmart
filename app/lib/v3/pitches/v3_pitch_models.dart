@@ -252,6 +252,15 @@ class PitchDurations {
 
 // ------------------------------------------------------------------ setup
 
+/// A time the club's sheet marks a pitch as not available.
+class PitchBlock {
+  const PitchBlock(this.slot, this.reason);
+  factory PitchBlock.fromJson(Map j) => PitchBlock(PitchSlot.fromJson(j),
+      _s(j['reason']).isEmpty ? 'Not available' : _s(j['reason']));
+  final PitchSlot slot;
+  final String reason;
+}
+
 class PitchSlot {
   const PitchSlot(this.weekday, this.opens, this.closes);
   factory PitchSlot.fromJson(Map j) => PitchSlot(_int(j['weekday']),
@@ -799,6 +808,7 @@ class PitchBoard {
       this.groups = const [],
       this.publishedAt,
       this.changedSincePublish = true,
+      this.blocks = const [],
       this.durations = const PitchDurations()});
 
   factory PitchBoard.fromJson(Map j) {
@@ -813,6 +823,10 @@ class PitchBoard {
             Booking.fromJson(b, groupId: _intOrNull(bg['${b['booking_id']}']))
         ],
         groups: [for (final g in _list(j['groups'])) PitchGroup.fromJson(g)],
+        blocks: [
+          for (final b in _list(j['blocks']))
+            (_int(b['pitch_id']), PitchBlock.fromJson(b))
+        ],
         publishedAt: week['published_at'] == null
             ? null
             : DateTime.tryParse(_s(week['published_at']))?.toLocal(),
@@ -832,6 +846,14 @@ class PitchBoard {
   final List<Pitch> pitches;
   final List<Closure> closures;
   final List<Booking> bookings;
+
+  /// (pitch id, block): times marked not available.
+  final List<(int, PitchBlock)> blocks;
+
+  List<PitchBlock> blocksOn(int pitchId, int weekday) => [
+        for (final (id, b) in blocks)
+          if (id == pitchId && b.slot.weekday == weekday) b
+      ];
   final List<BoardEvent> events;
   final List<BoardFixture> fixtures;
   final List<PitchTeam> teams;

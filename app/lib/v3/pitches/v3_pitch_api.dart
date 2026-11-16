@@ -27,7 +27,13 @@ class PitchApi {
   Future<PitchBoard> board(int clubId, DateTime from, DateTime to) async {
     final r = await _rpc('pitch_board_v2',
         {'p_club': clubId, 'p_from': _d(from), 'p_to': _d(to)});
-    return PitchBoard.fromJson(r is Map ? r : const {});
+    // Times marked not available (shaded on the board); none if not set up.
+    dynamic blocks;
+    try {
+      blocks = await _rpc('pitch_blocks_get', {'p_club': clubId});
+    } catch (_) {}
+    return PitchBoard.fromJson(
+        {...(r is Map ? r : const {}), if (blocks is List) 'blocks': blocks});
   }
 
   /// Copies last week's training into the week starting [monday] (once).

@@ -254,6 +254,23 @@ Map<String, dynamic> boardWithGroups() {
     for (final x in b['bookings'] as List)
       if ((x as Map)['group_id'] != null) '${x['booking_id']}': x['group_id']
   };
+  // DCC has no slot on Saturday lunchtime or evening.
+  b['blocks'] = [
+    {
+      'pitch_id': 2,
+      'weekday': 6,
+      'opens': '11:00',
+      'closes': '13:00',
+      'reason': 'No slot'
+    },
+    {
+      'pitch_id': 2,
+      'weekday': 6,
+      'opens': '17:00',
+      'closes': '22:00',
+      'reason': 'No slot'
+    },
+  ];
   return b;
 }
 
@@ -590,6 +607,9 @@ void main() {
     expect(find.text('Clubhouse Astro'), findsWidgets);
     expect(find.text('U14 Boys v Raheny'), findsOneWidget);
     expect(find.text('Closed'), findsOneWidget);
+    // Only times marked unavailable are shaded, not every gap.
+    expect(find.text('No slot'), findsWidgets);
+    expect(find.text('Not available'), findsNothing);
     expect(find.text('Publish changes'), findsOneWidget);
     expect(find.textContaining('1 clash'), findsOneWidget);
     await _shot(t, 'pp-board');

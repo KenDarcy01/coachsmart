@@ -274,10 +274,9 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         hi = minutesOf(b.end) > hi ? minutesOf(b.end) : hi;
       }
     }
-    if (hi <= lo) {
-      lo = 8 * 60;
-      hi = 22 * 60;
-    }
+    // Always the whole day (08:00-22:00), more if something runs outside it.
+    lo = math.min(lo, 8 * 60);
+    hi = math.max(hi, 22 * 60);
     lo = (lo ~/ 60) * 60;
     hi = ((hi + 59) ~/ 60) * 60;
     final height = (hi - lo) * _pxPerMin;
@@ -390,10 +389,9 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
       lo = minutesOf(b.start) < lo ? minutesOf(b.start) : lo;
       hi = minutesOf(b.end) > hi ? minutesOf(b.end) : hi;
     }
-    if (hi <= lo) {
-      lo = 8 * 60;
-      hi = 22 * 60;
-    }
+    // Always the whole day (08:00-22:00), more if something runs outside it.
+    lo = math.min(lo, 8 * 60);
+    hi = math.max(hi, 22 * 60);
     lo = (lo ~/ 60) * 60;
     hi = ((hi + 59) ~/ 60) * 60;
     final height = (hi - lo) * _pxPerMin;
@@ -545,13 +543,15 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             left: 0,
             right: 0,
             child: Container(height: 1, color: PT.line.withValues(alpha: 0.6))),
-      // Times the club holds no slot: hatched, so it is clear the pitch is
-      // not ours then (a booking can still be made there by hand).
-      if (p.slots.isNotEmpty)
-        for (final g in _gaps(slots, lo, hi))
+      // Times the club's sheet marks not available: hatched. A gap between
+      // held slots is left plain.
+      for (final bl in board.blocksOn(p.pitchId, day.weekday))
+        if (bl.slot.closes > lo && bl.slot.opens < hi)
           Positioned(
-            top: y(g.$1),
-            height: (g.$2 - g.$1) * _pxPerMin,
+            top: y(math.max(bl.slot.opens, lo)),
+            height:
+                (math.min(bl.slot.closes, hi) - math.max(bl.slot.opens, lo)) *
+                    _pxPerMin,
             left: 0,
             right: 0,
             child: IgnorePointer(
@@ -560,8 +560,13 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                 child: Container(
                   alignment: Alignment.topLeft,
                   padding: const EdgeInsets.fromLTRB(6, 3, 0, 0),
-                  child: (g.$2 - g.$1) * _pxPerMin > 22
-                      ? Text('Not available',
+                  child: (math.min(bl.slot.closes, hi) -
+                                  math.max(bl.slot.opens, lo)) *
+                              _pxPerMin >
+                          22
+                      ? Text(bl.reason,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: PT.inter(10.5, color: PT.faint))
                       : null,
                 ),
@@ -1141,23 +1146,6 @@ class _GroupCard extends StatelessWidget {
       ]),
     );
   }
-}
-
-/// The stretches of [lo, hi) (minutes) that no slot covers.
-List<(int, int)> _gaps(List<PitchSlot> slots, int lo, int hi) {
-  final sorted = [...slots]..sort((a, b) => a.opens.compareTo(b.opens));
-  final out = <(int, int)>[];
-  var at = lo;
-  for (final s in sorted) {
-    if (s.opens > at) out.add((at, math.min(s.opens, hi)));
-    at = math.max(at, s.closes);
-    if (at >= hi) break;
-  }
-  if (at < hi) out.add((at, hi));
-  return [
-    for (final g in out)
-      if (g.$2 - g.$1 >= 5) g
-  ];
 }
 
 /// Light grey diagonal stripes for time the club does not hold.
