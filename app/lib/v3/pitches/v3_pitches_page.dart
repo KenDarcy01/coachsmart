@@ -19,7 +19,8 @@ import 'v3_pitch_setup.dart';
 import 'v3_pitch_fixtures.dart';
 import 'v3_pitch_sheets.dart';
 
-enum PitchTab { board, fixtures, groups, setup, published }
+// Fixtures first: the planner opens on it (Ken, 2026-11-16).
+enum PitchTab { fixtures, board, groups, setup, published }
 
 /// The planner is a light page so the club's colours and crest sit on
 /// white (Ken, 2026-11-16); the rest of v3 stays dark.
@@ -58,7 +59,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
   PitchClub? _club;
   bool _officer = false;
   PitchController? _c;
-  PitchTab _tab = PitchTab.board;
+  PitchTab _tab = PitchTab.fixtures;
   String? _error;
   bool _loaded = false;
 
@@ -198,7 +199,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
                 onTab: (t) => setState(() => _tab = t),
                 onClub: (c) => setState(() {
                       _useClub(c, officer: true);
-                      _tab = PitchTab.board;
+                      _tab = PitchTab.fixtures;
                     })),
             Expanded(child: content),
           ]),
@@ -254,11 +255,11 @@ class _V3PitchesPageState extends State<_PitchesBody> {
               labelTextStyle: WidgetStatePropertyAll(PT.inter(12)),
               destinations: const [
                   NavigationDestination(
-                      icon: Icon(Icons.view_week_outlined, color: PT.muted),
-                      label: 'Day'),
-                  NavigationDestination(
                       icon: Icon(Icons.sports_outlined, color: PT.muted),
                       label: 'Fixtures'),
+                  NavigationDestination(
+                      icon: Icon(Icons.view_week_outlined, color: PT.muted),
+                      label: 'Day'),
                   NavigationDestination(
                       icon: Icon(Icons.groups_outlined, color: PT.muted),
                       label: 'Groups'),
@@ -506,9 +507,9 @@ class _Side extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         if (officer) ...[
-          nav(PitchTab.board, Icons.view_week_outlined, 'Day board'),
           nav(PitchTab.fixtures, Icons.sports_outlined, 'Fixtures',
               badge: changes),
+          nav(PitchTab.board, Icons.view_week_outlined, 'Day board'),
           nav(PitchTab.groups, Icons.groups_outlined, 'Groups'),
           nav(PitchTab.setup, Icons.tune, 'Pitches and venues'),
           nav(PitchTab.published, Icons.visibility_outlined, 'Members\' view'),

@@ -444,6 +444,16 @@ Future<void> _pump(WidgetTester t, Size size, FakePitchApi api) async {
   await t.pumpAndSettle();
 }
 
+/// The planner opens on Fixtures; most tests start from the day board.
+Future<void> _pumpBoard(WidgetTester t, Size size, FakePitchApi api) async {
+  await _pump(t, size, api);
+  final day = find.text(size.width >= 1000 ? 'Day board' : 'Day');
+  if (day.evaluate().isNotEmpty) {
+    await t.tap(day.first);
+    await t.pumpAndSettle();
+  }
+}
+
 Future<void> _shot(WidgetTester t, String name) async {
   final dir = Platform.environment['SHOTS'];
   if (dir == null) return;
@@ -575,7 +585,7 @@ void main() {
   testWidgets('laptop: day board with inbox, groups, clash and closed pitch',
       (t) async {
     final api = FakePitchApi();
-    await _pump(t, const Size(1440, 900), api);
+    await _pumpBoard(t, const Size(1440, 900), api);
     expect(find.text('Saturday 21 November'), findsOneWidget);
     expect(find.text('Clubhouse Astro'), findsWidgets);
     expect(find.text('U14 Boys v Raheny'), findsOneWidget);
@@ -602,7 +612,7 @@ void main() {
   });
 
   testWidgets('laptop: week view shows one pitch over seven days', (t) async {
-    await _pump(t, const Size(1440, 900), FakePitchApi());
+    await _pumpBoard(t, const Size(1440, 900), FakePitchApi());
     await t.tap(find.text('Week'));
     await t.pumpAndSettle();
     await t.tap(find.text('Clubhouse Astro').first);
@@ -619,7 +629,7 @@ void main() {
   });
 
   testWidgets('laptop: tapping a group shows its sessions', (t) async {
-    await _pump(t, const Size(1440, 900), FakePitchApi());
+    await _pumpBoard(t, const Size(1440, 900), FakePitchApi());
     await t.tap(find.text('Nursery').first);
     await t.pumpAndSettle();
     expect(find.text('+ Add a session'), findsOneWidget);
@@ -652,7 +662,7 @@ void main() {
 
   testWidgets('laptop: tap an empty part of a pitch to add a booking',
       (t) async {
-    await _pump(t, const Size(1440, 900), FakePitchApi());
+    await _pumpBoard(t, const Size(1440, 900), FakePitchApi());
     await t.tap(find.text('+ New booking'));
     await t.pumpAndSettle();
     expect(find.text('New booking'), findsOneWidget);
@@ -667,7 +677,7 @@ void main() {
   });
 
   testWidgets('phone: day by pitch', (t) async {
-    await _pump(t, const Size(390, 1400), FakePitchApi());
+    await _pumpBoard(t, const Size(390, 1400), FakePitchApi());
     expect(find.textContaining('need a pitch'), findsOneWidget);
     expect(find.textContaining('1 clash'), findsOneWidget);
     await _shot(t, 'pp-phone');

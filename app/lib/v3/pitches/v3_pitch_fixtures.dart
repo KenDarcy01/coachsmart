@@ -299,10 +299,14 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
           IconButton(
               onPressed: () => c.shiftDays(-7),
               icon: const Icon(Icons.chevron_left, color: PT.muted)),
-          Text(
-              'Week of ${m.day} ${kMonths[m.month - 1].substring(0, 3)} – '
-              '${sun.day} ${kMonths[sun.month - 1].substring(0, 3)}',
-              style: PT.tight(18)),
+          Flexible(
+            child: Text(
+                'Week of ${m.day} ${kMonths[m.month - 1].substring(0, 3)} – '
+                '${sun.day} ${kMonths[sun.month - 1].substring(0, 3)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PT.tight(18)),
+          ),
           IconButton(
               onPressed: () => c.shiftDays(7),
               icon: const Icon(Icons.chevron_right, color: PT.muted)),
