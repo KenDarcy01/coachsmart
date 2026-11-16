@@ -226,7 +226,7 @@ async function boot() {
   const { data, error } = await sb.rpc('get_my_officer_clubs');
   if (error) return state('Something went wrong loading your clubs. Please try again.');
   myClubs = data.clubs || []; isSuper = !!data.is_super_user;
-  if (!myClubs.length) return state('This dashboard is for club officers. Ask CoachSmart to add you as an officer of your club.', true);
+  if (!myClubs.length) return state('This dashboard is for club officers, and ' + (session.user.email || 'this account') + ' isn’t one yet. Sign in with a SuperUser account, or ask CoachSmart to add you as an officer of your club.', true);
   if (!clubId) {
     if (myClubs.length === 1) clubId = myClubs[0].club_id;
     else return clubPicker();
