@@ -164,6 +164,11 @@ a{color:inherit;text-decoration:none}
 .btn{background:var(--club);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;width:100%}
 .link{background:none;border:0;color:var(--muted);cursor:pointer;margin-top:12px;font-size:14px}
 .msg{font-size:14px;color:var(--bad);min-height:20px;margin-top:6px}.msg.ok{color:var(--good)}
+.lbox .icrest{display:block;width:64px;height:64px;object-fit:contain;margin:0 auto 12px}
+.lbox .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lbox input[readonly]{background:var(--card2);color:var(--muted)}
+.orow .pend{color:var(--muted);font-size:12px;font-weight:600}
+.orow .acts{display:flex;gap:6px}
 .sheet{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:8;padding:16px}
 .sheet.on{display:flex}
 .sbox{background:var(--card);border-radius:18px;padding:22px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
@@ -172,7 +177,8 @@ a{color:inherit;text-decoration:none}
 .orow{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:10px 0;gap:10px}
 .orow small{color:var(--muted);display:block}
 .orow button{background:var(--card2);border:0;border-radius:8px;padding:7px 11px;cursor:pointer;font-size:13px}
-.oadd{display:grid;grid-template-columns:1fr 130px;gap:8px;margin-top:14px}
+.oadd{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.oadd .msg{grid-column:1/-1}
 .oadd input{border:1px solid #d6d9df;border-radius:10px;padding:10px 12px}
 .oadd .btn{grid-column:1/-1}
 .picker{display:grid;gap:10px;max-width:520px;margin:40px auto;padding:0 16px}
@@ -213,6 +219,10 @@ a{color:inherit;text-decoration:none}
     <div class="msg" id="loginMsg"></div>
     <button class="link" id="forgot" type="button">Forgot password?</button>
   </form>
+</div>
+
+<div class="login" id="invite">
+  <form class="lbox" id="inviteForm"></form>
 </div>
 
 <div class="sheet" id="sheet"><div class="sbox" id="sbox"></div></div>
@@ -272,11 +282,52 @@ $('forgot').addEventListener('click', async () => {
   const { error } = await sb.auth.resetPasswordForEmail(email);
   showLogin(error ? error.message : 'Check your email for a link to reset your password.', !error);
 });
+// ── Invite link: set up an account (Ken, 2026-11-16) ─────────────
+// coachsmart.app/club/?club=ID&invite=TOKEN, emailed by the club-invite function.
+async function fn(body) {
+  const { data, error } = await sb.functions.invoke('club-invite', { body });
+  if (!error) return data || {};
+  try { return await error.context.json(); } catch (_) { return { error: 'Something went wrong. Please try again.' }; }
+}
+function dropInvite() { const u = new URL(location); u.searchParams.delete('invite'); history.replaceState(null, '', u); P.delete('invite'); }
+async function inviteSetup(tok) {
+  state('Loading…');
+  const r = await fn({ action: 'lookup', token: tok });
+  if (r.error) { dropInvite(); return showLogin(r.error); }
+  brand(r.club); document.title = r.club.club_name + ' · Club dashboard';
+  $('inviteForm').innerHTML = `${r.club.crest ? `<img class="icrest" src="${esc(r.club.crest)}" alt="">` : ''}
+    <h2>${esc(r.club.club_name)} club dashboard</h2>
+    <p>You’ve been added as ${esc(r.title)}. Choose a password to set up your CoachSmart account. You don’t need the app.</p>
+    <div class="two"><input id="iFirst" placeholder="First name" autocomplete="given-name" value="${esc(r.first_name || '')}"><input id="iLast" placeholder="Last name" autocomplete="family-name" value="${esc(r.last_name || '')}"></div>
+    <input id="iEmail" type="email" autocomplete="username" readonly value="${esc(r.email)}">
+    <input id="iPw" type="password" placeholder="Choose a password (8 or more characters)" autocomplete="new-password" minlength="8" required>
+    <input id="iPw2" type="password" placeholder="Type it again" autocomplete="new-password" required>
+    <button class="btn" id="iGo" type="submit">Open the dashboard</button>
+    <div class="msg" id="iMsg"></div>`;
+  $('app').innerHTML = ''; $('invite').classList.add('on');
+  $('inviteForm').onsubmit = async e => {
+    e.preventDefault();
+    const pw = $('iPw').value, msg = t => { $('iMsg').textContent = t; $('iGo').disabled = false; $('iGo').textContent = 'Open the dashboard'; };
+    if (pw.length < 8) return msg('Use at least 8 characters.');
+    if (pw !== $('iPw2').value) return msg('The two passwords don’t match.');
+    $('iGo').disabled = true; $('iGo').textContent = 'Setting up…'; $('iMsg').textContent = '';
+    const a = await fn({ action: 'accept', token: tok, password: pw, first_name: $('iFirst').value, last_name: $('iLast').value });
+    if (a.error) return msg(a.error);
+    dropInvite(); $('invite').classList.remove('on');
+    if (a.existing) { $('email').value = a.email; return showLogin('You already have a CoachSmart account, so sign in with your usual password. Your club dashboard is ready.', true); }
+    await sb.auth.signOut().catch(() => {});
+    const { error } = await sb.auth.signInWithPassword({ email: a.email, password: pw });
+    if (error) { $('email').value = a.email; return showLogin('Your account is ready. Please sign in.', true); }
+    boot();
+  };
+}
 async function signOut() { await sb.auth.signOut(); location.reload(); }
 
 async function boot() {
+  if (P.get('invite')) return inviteSetup(P.get('invite'));
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return showLogin();
+  await sb.rpc('club_officer_claim_invites').then(() => {}, () => {}); // pending invites for this email
   const { data, error } = await sb.rpc('get_my_officer_clubs');
   if (error) return state('Something went wrong loading your clubs. Please try again.');
   myClubs = data.clubs || []; isSuper = !!data.is_super_user;
@@ -506,7 +557,7 @@ function resultsWeekView(sel) {
   if (bw) hl.push(['Biggest win', `${gName(bw)} · won by ${bw.up - bw.tp}`, `${bw.us} to ${bw.them} ${bw.home ? 'at home to' : 'away to'} ${bw.opp}`]);
   const losses = {}; sc.filter(g => g.up < g.tp).forEach(g => { const k = gName(g) + '|' + g.code; (losses[k] = losses[k] || []).push(g); });
   const lw = Object.values(losses).sort((a, b) => b.length - a.length || a.reduce((s, g) => s + g.up - g.tp, 0) - b.reduce((s, g) => s + g.up - g.tp, 0))[0];
-  if (lw) hl.push(['Needs a word', `${gName(lw[0])} ${CN[lw[0].code].toLowerCase()} · ${lw.length > 1 ? 'lost ' + (lw.length === 2 ? 'twice' : lw.length + ' times') : 'lost by ' + (lw[0].tp - lw[0].up)}`, lw.map(g => `${g.us} v ${g.opp}`).join(' and ')]);
+  if (lw) hl.push(['Needs a word', `${gName(lw[0])}${lw[0].row ? ' ' + CN[lw[0].code].toLowerCase() : ''} · ${lw.length > 1 ? 'lost ' + (lw.length === 2 ? 'twice' : lw.length + ' times') : 'lost by ' + (lw[0].tp - lw[0].up)}`, lw.map(g => `${g.us} v ${g.opp}`).join(' and ')]);
   const bt = [...mt].sort((a, b) => b.yes - a.yes)[0];
   if (bt && bt.yes) hl.push(['Best turnout', `${bt.row.name} · ${bt.yes} players`, `${DAY[bt.d.getDay()]}’s match`]);
   const per = {}; we.forEach(e => (per[e.row.key] = per[e.row.key] || []).push(e));
@@ -729,19 +780,34 @@ async function officers() {
   $('sheet').classList.add('on');
   $('sbox').innerHTML = '<h2>Club officers <button onclick="closeSheet()">×</button></h2><div class="empty">Loading…</div>';
   const { data, error } = await sb.rpc('club_officer_list', { p_club_id: clubId });
-  const list = error || data.error ? null : data.officers;
+  const list = error || data.error ? null : data.officers, inv = (!error && data.invites) || [];
+  window._inv = inv;
   $('sbox').innerHTML = `<h2>${esc(D.club.club_name)} officers <button onclick="closeSheet()">×</button></h2>
    <p style="color:var(--muted);font-size:14px;margin-bottom:8px">Officers can open this dashboard for the club. SuperUsers can open every club.</p>
-   ${list ? (list.length ? list.map(o => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)}<small>${esc(o.email)}</small></div><button onclick="removeOfficer('${o.user_id}')">Remove</button></div>`).join('') : '<div class="empty">No officers yet.</div>') : '<div class="empty">Couldn’t load the list.</div>'}
-   <div class="oadd"><input id="oEmail" type="email" placeholder="Their CoachSmart email"><input id="oTitle" placeholder="Title" value="Chairperson"><button class="btn" onclick="addOfficer()">Add officer</button><div class="msg" id="oMsg"></div></div>`;
+   ${list ? (list.length || inv.length ? list.map(o => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)}<small>${esc(o.email)}</small></div><button onclick="removeOfficer('${o.user_id}')">Remove</button></div>`).join('')
+     + inv.map((o, i) => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)} <span class="pend">Invite sent${o.sent_at ? ' ' + new Date(o.sent_at).getDate() + ' ' + MON[new Date(o.sent_at).getMonth()] : ''}</span><small>${esc(o.email)}</small></div><div class="acts"><button onclick="resendInvite(${i})">Resend</button><button onclick="cancelInvite(${i})">Cancel</button></div></div>`).join('') : '<div class="empty">No officers yet.</div>') : '<div class="empty">Couldn’t load the list.</div>'}
+   <h3 style="margin-top:18px;font-size:16px">Invite someone</h3>
+   <p style="color:var(--muted);font-size:13px;margin:4px 0 0">They get an email from the club with a link to set up their account and open this dashboard. They don’t need the app. If they already use CoachSmart they get access straight away.</p>
+   <div class="oadd"><input id="oFirst" placeholder="First name"><input id="oLast" placeholder="Last name"><input id="oEmail" type="email" placeholder="Email"><input id="oTitle" placeholder="Title" value="Chairperson"><button class="btn" id="oGo" onclick="addOfficer()">Send invite</button><div class="msg" id="oMsg"></div></div>`;
 }
 function closeSheet() { $('sheet').classList.remove('on'); }
 $('sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
-async function addOfficer() {
-  const { data, error } = await sb.rpc('club_officer_add', { p_club_id: clubId, p_email: $('oEmail').value, p_title: $('oTitle').value });
-  if (error || data.error) { $('oMsg').textContent = error ? 'Something went wrong.' : data.error; return; }
-  officers();
+async function sendInvite(b) {
+  $('oGo').disabled = true; $('oMsg').classList.remove('ok'); $('oMsg').textContent = 'Sending…';
+  const r = await fn({ action: 'invite', club_id: clubId, ...b });
+  $('oGo').disabled = false;
+  if (r.error) { $('oMsg').textContent = r.error; return; }
+  await officers();
+  $('oMsg').classList.add('ok');
+  $('oMsg').textContent = r.new_account ? `Invite sent to ${b.email}.` : `${b.email} already uses CoachSmart, so they can open the dashboard now. We’ve emailed them a link.`;
 }
+function addOfficer() {
+  const email = $('oEmail').value.trim();
+  if (!email) { $('oMsg').textContent = 'Add their email.'; return; }
+  sendInvite({ email, title: $('oTitle').value, first_name: $('oFirst').value, last_name: $('oLast').value });
+}
+function resendInvite(i) { const o = window._inv[i], n = (o.name || '').split(' '); sendInvite({ email: o.email, title: o.title, first_name: n[0] || '', last_name: n.slice(1).join(' ') }); }
+async function cancelInvite(i) { await sb.rpc('club_officer_invite_cancel', { p_club_id: clubId, p_email: window._inv[i].email }); officers(); }
 async function removeOfficer(uid) { await sb.rpc('club_officer_remove', { p_club_id: clubId, p_user_id: uid }); officers(); }
 
 // ── Pieces ────────────────────────────────────────────────────────
