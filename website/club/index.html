@@ -130,6 +130,7 @@ body.busy #app .layout{opacity:.45;pointer-events:none;transition:opacity .15s}b
 @media(max-width:700px){.hbig{grid-template-columns:1fr}.hp{grid-template-columns:110px 1fr 44px}}
 .wk{display:flex;align-items:center;gap:10px;margin-top:6px}.wk button{background:#ffffff2e;color:var(--onband);border:0;border-radius:8px;width:30px;height:30px;font-size:17px;cursor:pointer}.wk span{color:var(--onband);font-weight:700;font-size:14px}
 .tabs{display:inline-flex;background:#e9ebef;border-radius:12px;padding:4px;margin-top:14px;gap:4px}.tabs button{border:0;background:none;padding:8px 18px;border-radius:9px;font-weight:700;font-size:14px;cursor:pointer;color:#4a505b}.tabs button.on{background:#fff;color:var(--club);box-shadow:0 1px 3px #0002}
+.tabs a{padding:8px 16px;border-radius:9px;font-weight:700;font-size:14px;color:#4a505b;text-decoration:none;display:flex;align-items:center;gap:6px}.tabs a.on{background:#fff;color:var(--club);box-shadow:0 1px 3px #0002}
 .hero{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:14px;margin-top:16px}
 .rec{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}.rec i{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-weight:800;font-size:11.5px}
 .day{font-weight:800;font-size:15px;margin:22px 0 10px;color:#2b2f36}
@@ -1140,7 +1141,7 @@ function teamView(sel) {
   const multi = q => sides.filter(s => s.code === q && s.div != null).length > 1;
   const codes = (c ? [c] : r.codes).map((q, i) => i ? CN[q].toLowerCase() : CN[q]).join(' and ');
   let h = `<div class="crumbs"><a href="#">Whole club</a> › <a href="${href({ g: r.group })}">${GNAME[r.group]}</a> ›${c ? ` <a href="${href({ g: r.group, c })}">${CN[c]}</a> ›` : ''}</div>
-   <div class="ttl">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''}</div><div class="ttl-sub">${[codes, t ? t.players + ' players' : 'Not on CoachSmart', sides.length ? sides.length + ' side' + (sides.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · ')}${c && r.codes.length > 1 ? ` · <a style="color:var(--club);font-weight:700" href="${href({ g: r.group, t: r.key })}">show all codes</a>` : ''}</div>`;
+   <div class="ttl">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''}</div><div class="ttl-sub">${[codes, t ? t.players + ' players' : 'Not on CoachSmart', sides.length ? sides.length + ' side' + (sides.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · ')}</div>${r.codes.length > 1 ? `<div class="tabs">${[null, ...r.codes].map(q => `<a class="${(c || null) === q ? 'on' : ''}" href="${href({ g: r.group, c: q || undefined, t: r.key })}">${q ? `<span class="dot" style="background:var(--${q})"></span>${CN[q]}` : 'All codes'}</a>`).join('')}</div>` : ''}`;
   h += hCard(r.health);
   if (t) {
     const tp = pc(t.trn_yes, t.trn_inv), mp = pc(t.m_yes, t.m_inv), rr = pc(t.replied, t.trn_inv + t.m_inv);
