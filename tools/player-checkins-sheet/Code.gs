@@ -13,7 +13,8 @@
  *    Name/Email always apply. Card text and check-in cells only apply while the
  *    card is still with its coach; once it's with the reviewer or approved, the
  *    app's version wins and the sheet is told which rows were skipped.
- *  - Turn on automatic sync: runs Sync every hour (no pop-ups).
+ *  - Turn on automatic sync: runs Sync every 5 minutes (no pop-ups), so changes made
+ *    on the website show in the sheet within about 5 minutes.
  *  - Player status (Active / Inactive, a dropdown next to Role) always applies.
  *    Only Active girls show on the website and get a family card.
  *  - Help Video (link): put several links in the cell, one per line, for several videos.
@@ -40,7 +41,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('Check-ins')
     .addItem('Sync now', 'syncNow')
     .addSeparator()
-    .addItem('Turn on automatic sync (hourly)', 'autoOn')
+    .addItem('Turn on automatic sync (every 5 minutes)', 'autoOn')
     .addItem('Turn off automatic sync', 'autoOff')
     .addToUi();
 }
@@ -50,8 +51,8 @@ function syncHourly() { sync_(); }
 
 function autoOn() {
   autoOff();
-  ScriptApp.newTrigger('syncHourly').timeBased().everyHours(1).create();
-  SpreadsheetApp.getUi().alert('Automatic sync is on. The sheet updates from the app every hour.');
+  ScriptApp.newTrigger('syncHourly').timeBased().everyMinutes(5).create();
+  SpreadsheetApp.getUi().alert('Automatic sync is on. The sheet and the website now update each other every 5 minutes.');
 }
 function autoOff() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'syncHourly') ScriptApp.deleteTrigger(t); });
