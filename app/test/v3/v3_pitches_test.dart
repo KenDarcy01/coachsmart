@@ -471,14 +471,25 @@ class FakePitchApi extends PitchApi {
     final names = {
       for (final g in b['groups'] as List) (g as Map)['group_id']: g['name']
     };
+    final teams = {
+      for (final g in b['groups'] as List) (g as Map)['group_id']: g['team_id']
+    };
     return {
       'published_at': '2026-11-20T18:05:00Z',
       'pitches': b['pitches'],
       'closures': b['closures'],
+      'my_teams': [7],
+      'hours': [
+        for (final p in b['pitches'] as List)
+          for (final h in ((p as Map)['hours'] as List? ?? const []))
+            {...(h as Map), 'pitch_id': p['pitch_id']}
+      ],
+      'blocks': b['blocks'],
       'bookings': [
         for (final x in b['bookings'] as List)
           {
             ...(x as Map),
+            'team_id': teams[x['group_id']],
             'name': names[x['group_id']] ??
                 (x['title'] == '' ? 'Training' : x['title']),
           }
@@ -834,6 +845,16 @@ void main() {
     await _pump(t, const Size(390, 1100), FakePitchApi(officer: false));
     expect(find.textContaining('Published'), findsOneWidget);
     expect(find.text('Close a pitch'), findsNothing);
+    expect(find.text('YOUR TEAMS THIS WEEK'), findsOneWidget);
     await _shot(t, 'pp-member');
+  });
+
+  testWidgets('member on a laptop: week grid per pitch', (t) async {
+    await _pump(t, const Size(1440, 1000), FakePitchApi(officer: false));
+    expect(find.text('YOUR TEAMS THIS WEEK'), findsOneWidget);
+    expect(find.text('Sat 21'), findsWidgets);
+    await t.tap(find.text('Pitch 21').last);
+    await t.pumpAndSettle();
+    await _shot(t, 'pp-member-wide');
   });
 }
