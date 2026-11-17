@@ -389,13 +389,38 @@ class _V3PitchesPageState extends State<_PitchesBody> {
       _hBtn('Close a pitch',
           () => showPitchSheet(context, ClosePitchSheet(c: c))),
       const SizedBox(width: 8),
-      SizedBox(
-        width: 190,
-        child: PitchButton(pubLabel,
-            compact: true,
-            accent: pub == null || board.changedSincePublish ? accent : null,
-            onTap: c.busy ? null : _publish),
-      ),
+      if (pub == null || board.changedSincePublish)
+        SizedBox(
+          width: 190,
+          child: PitchButton(pubLabel,
+              compact: true, accent: accent, onTap: c.busy ? null : _publish),
+        )
+      else
+        // Published and unchanged: say when, and keep a clear button to
+        // send it again (Ken, 2026-11-17).
+        Tooltip(
+          message: pubLabel,
+          child: OutlinedButton.icon(
+            onPressed: c.busy ? null : _publish,
+            style: OutlinedButton.styleFrom(
+                foregroundColor: accent,
+                side: BorderSide(color: accent, width: 1.5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12))),
+            icon: const Icon(Icons.campaign_outlined, size: 18),
+            label: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Republish',
+                      style:
+                          PT.inter(14, weight: FontWeight.w700, color: accent)),
+                  Text('✓ $pubLabel', style: PT.inter(11.5, color: PT.muted)),
+                ]),
+          ),
+        ),
     ]);
   }
 

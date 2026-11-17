@@ -659,6 +659,11 @@ class PitchGroupsView extends StatelessWidget {
     var code = g?.code ?? 'Football';
     int? team = g?.teamId;
     var sessions = g?.sessions ?? 2;
+    final home0 = g == null ? null : c.homes[g.groupId];
+    int? homePitch = home0?.pitchId;
+    int? homeDay = home0?.day;
+    final homeTime = TextEditingController(
+        text: home0?.time == null ? '' : hhmm(home0!.time!));
     final taken = {
       for (final x in board.groups)
         if (x.teamId != null && x.groupId != g?.groupId) x.teamId
@@ -725,9 +730,66 @@ class PitchGroupsView extends StatelessWidget {
                               sessions < 7 ? () => set(() => sessions++) : null,
                           icon: const Icon(Icons.add, color: PT.muted)),
                     ]),
+                    if (g != null) ...[
+                      const SizedBox(height: 8),
+                      Text('Home matches',
+                          style: PT.inter(15, weight: FontWeight.w600)),
+                      Text(
+                          'Fill from defaults puts home matches here. League '
+                          'fixtures keep their throw-in time.',
+                          style: PT.inter(13, color: PT.muted)),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<int?>(
+                        initialValue: homePitch,
+                        isExpanded: true,
+                        dropdownColor: PT.card2,
+                        style: PT.inter(15),
+                        decoration: pitchInput('Home pitch'),
+                        items: [
+                          DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text('No default',
+                                  style: PT.inter(15, color: PT.muted))),
+                          for (final p in board.pitches)
+                            DropdownMenuItem<int?>(
+                                value: p.pitchId,
+                                child: Text(p.name,
+                                    overflow: TextOverflow.ellipsis)),
+                        ],
+                        onChanged: (v) => set(() => homePitch = v),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(spacing: 6, runSpacing: 6, children: [
+                        for (var d = 1; d <= 7; d++)
+                          ChoiceChip(
+                            label: Text(kWeekdays[d - 1]),
+                            selected: homeDay == d,
+                            onSelected: (on) =>
+                                set(() => homeDay = on ? d : null),
+                          ),
+                      ]),
+                      const SizedBox(height: 8),
+                      TextField(
+                          controller: homeTime,
+                          style: PT.inter(15),
+                          decoration: pitchInput('Usual time',
+                              hint: '11:00, for CoachSmart-only matches')),
+                    ],
                   ],
                 )));
     if (ok != true || name.text.trim().isEmpty) return;
+    if (g != null) {
+      final h = homePitch == null
+          ? null
+          : GroupHome(homePitch!, day: homeDay, time: parseHhmm(homeTime.text));
+      final was = c.homes[g.groupId];
+      if (h?.pitchId != was?.pitchId ||
+          h?.day != was?.day ||
+          h?.time != was?.time) {
+        final err = await c.saveGroupHome(g.groupId, h);
+        if (err != null && context.mounted) return pitchSnack(context, err);
+      }
+    }
     final err = await c.saveGroup({
       if (g != null) 'group_id': g.groupId,
       'name': name.text.trim(),
@@ -799,6 +861,10 @@ class PitchGroupsView extends StatelessWidget {
                           Text(
                               '${g.code} · ${g.teamId == null ? 'not on CoachSmart' : g.teamName}',
                               style: PT.inter(12.5, color: PT.muted)),
+                          if (c.homes[g.groupId] case final h?)
+                            Text('Home: ${homeLabel(board, h)}',
+                                style: PT.inter(12.5,
+                                    weight: FontWeight.w600, color: PT.green)),
                         ]),
                   ),
                   PitchTag(
@@ -812,3 +878,12 @@ class PitchGroupsView extends StatelessWidget {
         ]);
   }
 }
+
+/// "Pitch 21 · Sat 12:00".
+String homeLabel(PitchBoard board, GroupHome h) => [
+      board.pitch(h.pitchId)?.name ?? 'Pitch',
+      [
+        if (h.day != null) kWeekdays[h.day! - 1],
+        if (h.time != null) hhmm(h.time!)
+      ].join(' '),
+    ].where((x) => x.isNotEmpty).join(' · ');

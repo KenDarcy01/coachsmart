@@ -24,6 +24,12 @@ class PitchController extends ChangeNotifier {
   /// Shown once after the week was filled from the week before.
   String? rolledNote;
 
+  /// group id -> default home pitch and time.
+  Map<int, GroupHome> homes = const {};
+
+  /// The loaded week's auto-filled bookings (not yet changed or kept).
+  Set<int> autoIds = const {};
+
   /// League fixture changes this officer has not looked at yet.
   int unreadChanges = 0;
 
@@ -62,6 +68,12 @@ class PitchController extends ChangeNotifier {
       }
       final b = await api.board(club.clubId, m, m.add(const Duration(days: 6)));
       board = b;
+      try {
+        homes = await api.groupHomes(club.clubId);
+        autoIds = await api.autoIds(club.clubId, m);
+      } catch (_) {
+        // Defaults not set up yet: nothing to fill.
+      }
       if (_loadedMonday == null) loadChanges();
       _loadedMonday = m;
       error = null;
@@ -206,6 +218,24 @@ class PitchController extends ChangeNotifier {
   Future<String?> publish() => run(() => api.publishWeek(club.clubId, monday));
 
   Future<String?> syncGroups() => run(() => api.syncGroups(club.clubId));
+
+  Future<String?> saveGroupHome(int groupId, GroupHome? h) =>
+      run(() => api.saveGroupHome(club.clubId, groupId, h));
+
+  /// Books [items] (from the defaults) and returns how many were added.
+  Future<(int, String?)> autofill(List<Map<String, dynamic>> items) async {
+    var added = 0;
+    final err = await run(() async {
+      final r = await api.autofill(club.clubId, items);
+      added = int.tryParse('${r['added']}') ?? 0;
+    });
+    return (added, err);
+  }
+
+  Future<String?> autofillAccept() =>
+      run(() => api.autofillAccept(club.clubId, monday));
+  Future<String?> autofillUndo() =>
+      run(() => api.autofillUndo(club.clubId, monday));
 
   Future<String?> saveGroup(Map<String, dynamic> g) =>
       run(() => api.saveGroup(club.clubId, g));

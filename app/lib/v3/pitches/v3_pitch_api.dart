@@ -50,6 +50,48 @@ class PitchApi {
         'p_blocks': [for (final b in blocks) b.toJson()]
       });
 
+  /// group id -> its default for home matches.
+  Future<Map<int, GroupHome>> groupHomes(int clubId) async {
+    final r = await _rpc('pitch_group_homes_get', {'p_club': clubId});
+    return {
+      if (r is List)
+        for (final x in r.whereType<Map>())
+          int.tryParse('${x['group_id']}') ?? 0: GroupHome.fromJson(x)
+    };
+  }
+
+  Future<void> saveGroupHome(int clubId, int groupId, GroupHome? h) =>
+      _rpc('pitch_group_home_save', {
+        'p_club': clubId,
+        'p_group': groupId,
+        'p_pitch': h?.pitchId,
+        'p_day': h?.day,
+        'p_time': h?.time == null ? '' : hhmm(h!.time!),
+      });
+
+  /// Saves bookings worked out from the defaults, flagged auto.
+  Future<Map> autofill(int clubId, List<Map<String, dynamic>> items) async {
+    final r =
+        await _rpc('pitch_autofill_save', {'p_club': clubId, 'p_items': items});
+    return r is Map ? r : const {};
+  }
+
+  /// Ids of the week's auto-filled bookings not yet changed or kept.
+  Future<Set<int>> autoIds(int clubId, DateTime monday) async {
+    final r = await _rpc(
+        'pitch_auto_ids', {'p_club': clubId, 'p_monday': _d(monday)});
+    return {
+      if (r is List)
+        for (final x in r) int.tryParse('$x') ?? 0
+    };
+  }
+
+  Future<void> autofillAccept(int clubId, DateTime monday) =>
+      _rpc('pitch_autofill_accept', {'p_club': clubId, 'p_monday': _d(monday)});
+
+  Future<void> autofillUndo(int clubId, DateTime monday) =>
+      _rpc('pitch_autofill_undo', {'p_club': clubId, 'p_monday': _d(monday)});
+
   /// Copies last week's training into the week starting [monday] (once).
   Future<int> rollWeek(int clubId, DateTime monday) async {
     final r = await _rpc(

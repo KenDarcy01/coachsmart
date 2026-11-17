@@ -320,6 +320,20 @@ class FakePitchApi extends PitchApi {
   @override
   Future<void> saveBooking(int clubId, Map<String, dynamic> booking) async =>
       saved.add(booking);
+  final filled = <Map<String, dynamic>>[];
+  Set<int> autos = {};
+  @override
+  Future<Map<int, GroupHome>> groupHomes(int clubId) async =>
+      {8: const GroupHome(3, day: 6, time: 11 * 60)};
+  @override
+  Future<Set<int>> autoIds(int clubId, DateTime monday) async => autos;
+  @override
+  Future<Map> autofill(int clubId, List<Map<String, dynamic>> items) async {
+    filled.addAll(items);
+    autos = {9};
+    return {'added': items.length, 'skipped': 0};
+  }
+
   final savedPitches = <Map<String, dynamic>>[];
   final savedBlocks = <int, List<PitchBlock>>{};
   @override
@@ -699,6 +713,22 @@ void main() {
         containsAll(['15:40–17:00 Unavailable', '08:00–09:00 Unavailable']));
     expect(dcc.any((x) => x.slot.opens == 9 * 60), isFalse);
     expect(b.blocksOn(3, 6).map(l), contains('11:00–12:00 Unavailable'));
+  });
+
+  testWidgets('laptop: fill fixtures from the home defaults', (t) async {
+    final api = FakePitchApi();
+    await _pump(t, const Size(1440, 900), api);
+    await t.tap(find.text('Fill from defaults'));
+    await t.pumpAndSettle();
+    // U14 Boys v Raheny goes on its group's pitch at the league time.
+    expect(api.filled.length, 1);
+    expect(api.filled.first['gaa_game_id'], 86500);
+    expect(api.filled.first['event_id'], 50);
+    expect(api.filled.first['pitch_id'], 3);
+    expect(api.filled.first['starts_at'], startsWith('2026-11-21T14:00'));
+    expect(find.text('Auto'), findsOneWidget);
+    expect(find.text('Undo fill'), findsOneWidget);
+    await _shot(t, 'pp-fill');
   });
 
   testWidgets('laptop: availability, add a not-available time', (t) async {

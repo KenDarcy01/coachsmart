@@ -216,7 +216,11 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     _load(c.monday);
   }
 
-  Future<void> _place({int? gameId, int? eventId, UnofficialMatch? u}) async {
+  Future<void> _place(
+      {int? gameId,
+      int? eventId,
+      UnofficialMatch? u,
+      OfficialFixture? f}) async {
     final board = c.board;
     if (board == null) return;
     // Straight from the list, whether or not the board's "Needs a pitch"
@@ -235,6 +239,17 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
           for (final e in board.events)
             if (eventId != null && e.eventId == eventId) c.itemOfEvent(e)
         ].firstOrNull ??
+        (f == null
+            ? null
+            : PitchBoard.fixtureItem(BoardFixture(
+                gameId: f.gameId,
+                start: f.start,
+                code: f.code,
+                age: f.age,
+                comp: f.comp,
+                home: f.home,
+                away: f.away,
+                venue: f.venue))) ??
         (u == null
             ? null
             : c.itemOfEvent(BoardEvent(
@@ -253,6 +268,169 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     }
     await showPitchSheet(context, PlaceSheet(c: c, item: item));
     _load(c.monday);
+  }
+
+  /// The group a league fixture is for: the linked event's team, else
+  /// by name ("U13 Girls", "U21 Camogie", "U21 Ladies Football").
+  PitchGroup? _groupOfFixture(OfficialFixture f, PitchBoard board) {
+    if (f.eventId != null) {
+      final team = board.events
+          .where((e) => e.eventId == f.eventId)
+          .map((e) => e.teamId)
+          .firstOrNull;
+      final g = board.groups.where((g) => g.teamId == team).firstOrNull;
+      if (team != null && g != null) return g;
+    }
+    final code = f.code.toLowerCase();
+    final age = f.age.toLowerCase().trim();
+    final ladies = code.contains('lgfa') || code.contains('ladies');
+    final female = ladies || code.contains('camogie');
+    final names = [
+      if (ladies) '$age ladies football' else '$age $code',
+      '$age ${female ? 'girls' : 'boys'}',
+    ];
+    for (final n in names) {
+      final g = board.groups
+          .where((g) => g.name.toLowerCase().trim() == n)
+          .firstOrNull;
+      if (g != null) return g;
+    }
+    return null;
+  }
+
+  /// Books every unassigned home match of the week onto its group's home
+  /// pitch (Ken, 2026-11-17). League fixtures keep the league time; a
+  /// CoachSmart match keeps its event time (moving it would unlink the
+  /// coach's event). The default time is used when a fixture has none.
+  Future<void> _fill() async {
+    final board = c.board;
+    if (board == null) return;
+    if (c.homes.isEmpty) {
+      return pitchSnack(context, 'Set home pitches on the Groups tab first.');
+    }
+    final items = <Map<String, dynamic>>[];
+    final missing = <String>{};
+    Map<String, dynamic> item(
+        PitchGroup g, GroupHome h, DateTime start, String title, int? age,
+        {int? gameId, int? eventId}) {
+      if (start.hour == 0 && start.minute == 0 && h.time != null) {
+        start = atMinutes(start, h.time!);
+      }
+      final mins = board.durations.minutesFor('match', age);
+      return {
+        'pitch_id': h.pitchId,
+        'part': PitchPart.full,
+        'starts_at': isoLocal(start),
+        'ends_at': isoLocal(start.add(Duration(minutes: mins))),
+        'kind': 'match',
+        'status': 'confirmed',
+        'title': title,
+        'group_id': g.groupId,
+        if (gameId != null) 'gaa_game_id': gameId,
+        if (eventId != null) 'event_id': eventId,
+        'following': false,
+      };
+    }
+
+    for (final f in _official ?? const <OfficialFixture>[]) {
+      final status = f.status.toLowerCase();
+      if (!f.isHome || f.booking != null) continue;
+      if (status.contains('postpon') || status.contains('cancel')) continue;
+      final g = _groupOfFixture(f, board);
+      final h = g == null ? null : c.homes[g.groupId];
+      if (g == null || h == null) {
+        missing.add(g?.name ?? '${f.age} ${f.code}'.trim());
+        continue;
+      }
+      items.add(item(g, h, f.start, '${g.name} v ${f.away}', ageOf(f.age),
+          gameId: f.gameId, eventId: f.eventId));
+    }
+    for (final u in _unofficial ?? const <UnofficialMatch>[]) {
+      if (u.away || u.booking != null) continue;
+      final team = board.events
+          .where((e) => e.eventId == u.eventId)
+          .map((e) => e.teamId)
+          .firstOrNull;
+      final g = board.groups
+          .where((g) => team != null && g.teamId == team)
+          .firstOrNull;
+      final h = g == null ? null : c.homes[g.groupId];
+      final name =
+          groupName(u.teamName, season: c.season, clubName: c.club.name);
+      if (g == null || h == null) {
+        missing.add(g?.name ?? name);
+        continue;
+      }
+      items.add(item(
+          g,
+          h,
+          u.start,
+          u.opposition.isEmpty
+              ? '${g.name} match'
+              : '${g.name} v ${u.opposition}',
+          ageOf(u.teamName, season: c.season),
+          eventId: u.eventId));
+    }
+    if (items.isEmpty) {
+      return pitchSnack(
+          context,
+          missing.isEmpty
+              ? 'Every home match this week already has a pitch.'
+              : 'No home pitch set for ${missing.join(', ')}. '
+                  'Set it on the Groups tab.');
+    }
+    final (added, err) = await c.autofill(items);
+    if (!mounted) return;
+    pitchSnack(
+        context,
+        err ??
+            '$added match${added == 1 ? '' : 'es'} filled.'
+                '${missing.isEmpty ? '' : ' No home pitch for ${missing.join(', ')}.'}');
+  }
+
+  Widget _fillBar() {
+    final accent = c.club.accent;
+    final n = c.autoIds.length;
+    final board = c.board;
+    final clashes = board == null
+        ? 0
+        : [
+            for (var i = 0; i < 7; i++)
+              ...board.clashesOn(c.monday.add(Duration(days: i)))
+          ].length;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SizedBox(
+              width: 200,
+              child: PitchButton('Fill from defaults',
+                  compact: true, accent: accent, onTap: c.busy ? null : _fill),
+            ),
+            if (n > 0) ...[
+              PitchTag(
+                  '$n auto-filled'
+                  '${clashes > 0 ? ' · $clashes clash${clashes == 1 ? '' : 'es'}' : ''}',
+                  colour: clashes > 0 ? PT.redText : PT.amberText),
+              SizedBox(
+                width: 130,
+                child: PitchButton('Keep them',
+                    compact: true,
+                    onTap: c.busy ? null : () => c.autofillAccept()),
+              ),
+              SizedBox(
+                width: 130,
+                child: PitchButton('Undo fill',
+                    compact: true,
+                    danger: true,
+                    onTap: c.busy ? null : () => c.autofillUndo()),
+              ),
+            ],
+          ]),
+    );
   }
 
   @override
@@ -333,6 +511,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               onPressed: () => c.shiftDays(7),
               icon: const Icon(Icons.chevron_right, color: PT.muted)),
         ]),
+        _fillBar(),
         if (_error != null)
           Padding(
               padding: const EdgeInsets.all(16),
@@ -435,6 +614,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
       bg = PT.amberTint;
       border = PT.amber;
     }
+    final auto = b != null && c.autoIds.contains(b.bookingId);
     final chip = Container(
       padding: const EdgeInsets.fromLTRB(9, 5, 9, 5),
       decoration: BoxDecoration(
@@ -450,6 +630,17 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               overflow: TextOverflow.ellipsis,
               style: PT.inter(13, weight: FontWeight.w700, color: fg)),
         ),
+        if (auto) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+                color: PT.amberTint, borderRadius: BorderRadius.circular(4)),
+            child: Text('Auto',
+                style:
+                    PT.inter(11, weight: FontWeight.w700, color: PT.amberText)),
+          ),
+        ],
         if (onTap != null) ...[
           const SizedBox(width: 6),
           Icon(Icons.edit_outlined, size: 14, color: fg),
@@ -556,7 +747,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     final VoidCallback? tapF = f.booking != null
         ? () => _openBooking(f.booking!.bookingId)
         : f.isHome
-            ? () => _place(gameId: f.gameId, eventId: f.eventId)
+            ? () => _place(gameId: f.gameId, eventId: f.eventId, f: f)
             : null;
     return _card(
       bar: codeColour(

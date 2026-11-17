@@ -568,6 +568,22 @@ class PitchGroup {
   PitchCode get codeKey => codeOf(code, name: name);
 }
 
+/// A group's default for home matches (Ken, 2026-11-17): pitch, and the
+/// day and time a CoachSmart-only match goes on. League fixtures keep the
+/// league's throw-in time.
+class GroupHome {
+  const GroupHome(this.pitchId, {this.day, this.time});
+  factory GroupHome.fromJson(Map j) => GroupHome(_int(j['pitch_id']),
+      day: _intOrNull(j['day']), time: parseHhmm(_s(j['time'])));
+  final int pitchId;
+
+  /// 1 = Monday ... 7 = Sunday.
+  final int? day;
+
+  /// Minutes after midnight.
+  final int? time;
+}
+
 const kGroupCodes = [
   'Football',
   'Hurling',
