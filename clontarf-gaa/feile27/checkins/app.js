@@ -51,8 +51,11 @@
   const pill = a => { const s = statusOf(a); return `<span class="pill st-${s}">${STATUS[s]}</span>`; };
   const when = iso => iso ? new Date(iso).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' }) : '';
   const codeName = c => c === 'camogie' ? 'Camogie' : 'Football';
-  const picker = (id, groups) => `<div class="picker" id="${id}">${Object.entries(groups).filter(([, l]) => l && l.length).map(([g, l]) =>
-    `<div><div class="g">${esc(g)}</div><div class="chips">${l.map(p => `<button type="button" class="chip pick" data-p="${esc(p)}" aria-pressed="false"><span class="tk"></span>${esc(p)}</button>`).join('')}</div></div>`).join('')}</div>`;
+  // A dropdown with tick boxes: pick as many phrases as fit her.
+  const picker = (id, groups, label) => `<details class="dd" id="${id}"><summary><span class="dd-t" data-label="${esc(label)}">${esc(label)}</span><span class="dd-n" hidden></span></summary>
+    <div class="dd-menu" role="group" aria-label="${esc(label)}">${Object.entries(groups).filter(([, l]) => l && l.length).map(([g, l]) =>
+      `<div class="g">${esc(g)}</div>${l.map(p => `<label class="dd-i"><input type="checkbox" value="${esc(p)}"><span>${esc(p)}</span></label>`).join('')}`).join('')}
+      <div class="dd-foot"><button type="button" class="btn small red dd-done">Done</button></div></div></details>`;
   const options = (groups, label) => `<option value="">${label}</option>` + Object.entries(groups)
     .map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(p => `<option>${esc(p)}</option>`).join('')}</optgroup>`).join('');
 
@@ -170,14 +173,14 @@
         <div class="main">
           <section class="box stack">
             <label class="field-title" for="f-super"><span style="color:var(--red)">${ICON.bolt}</span>Superpower</label>
-            <p class="hint" style="margin:0">What she brings to the team. Tap as many as fit her, or write your own (one per line).</p>
-            ${editable ? picker('p-super', superGroups) : ''}
+            <p class="hint" style="margin:0">What she brings to the team. Tick as many as fit her in the list, or write your own (one per line).</p>
+            ${editable ? picker('p-super', superGroups, 'Choose superpowers') : ''}
             <textarea id="f-super" rows="3" ${ro}>${esc(a.superpower)}</textarea>
           </section>
           <section class="box stack">
             <label class="field-title" for="f-dev"><span style="color:var(--red)">${ICON.target}</span>Development: what she's working on next</label>
-            <p class="hint" style="margin:0">Tap one or more, said as things she'll be able to do. Or write your own (one per line).</p>
-            ${editable ? picker('p-dev', devGroups) : ''}
+            <p class="hint" style="margin:0">Tick one or more, said as things she'll be able to do. Or write your own (one per line).</p>
+            ${editable ? picker('p-dev', devGroups, 'Choose what she is working on') : ''}
             <textarea id="f-dev" rows="3" ${ro}>${esc(a.development)}</textarea>
             <div class="helper"><span style="color:var(--navy)">${ICON.bulb}</span><div><b>Wording.</b> These are u15 girls: keep it positive and about what she can do. Words like “weak”, “poor” or anything about body or weight can't be sent.</div></div>
           </section>
@@ -231,17 +234,23 @@
     draw();
     if (!editable) return;
     $('#addVid').onclick = () => { addVid().querySelector('input').focus(); };
-    // Multi-select chips: each tap adds or removes that phrase as its own line.
+    // Tick-box dropdowns: each tick adds or removes that phrase as its own line.
     const lines = field => field.value.split('\n').map(x => x.trim()).filter(Boolean);
     const multi = (box, field) => {
-      const sync = () => { const have = new Set(lines(field).map(x => x.toLowerCase()));
-        box.querySelectorAll('.pick').forEach(b => { const on = have.has(b.dataset.p.toLowerCase()); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); };
-      box.querySelectorAll('.pick').forEach(b => b.onclick = () => {
-        const p = b.dataset.p, cur = lines(field);
-        const i = cur.findIndex(x => x.toLowerCase() === p.toLowerCase());
-        if (i >= 0) cur.splice(i, 1); else cur.push(p);
+      const boxes = [...box.querySelectorAll('input[type=checkbox]')];
+      const sync = () => {
+        const have = new Set(lines(field).map(x => x.toLowerCase()));
+        boxes.forEach(c => { c.checked = have.has(c.value.toLowerCase()); });
+        const n = boxes.filter(c => c.checked).length, badge = box.querySelector('.dd-n');
+        badge.hidden = !n; badge.textContent = `${n} ticked`;
+      };
+      boxes.forEach(c => c.onchange = () => {
+        const cur = lines(field), i = cur.findIndex(x => x.toLowerCase() === c.value.toLowerCase());
+        if (c.checked && i < 0) cur.push(c.value); else if (!c.checked && i >= 0) cur.splice(i, 1);
         field.value = cur.join('\n'); sync(); draw();
       });
+      box.querySelector('.dd-done').onclick = () => { box.open = false; };
+      document.addEventListener('click', e => { if (box.open && !box.contains(e.target)) box.open = false; });
       field.addEventListener('input', sync); sync();
     };
     multi($('#p-super'), f.super); multi($('#p-dev'), f.dev);
