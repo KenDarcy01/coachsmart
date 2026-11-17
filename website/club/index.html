@@ -504,16 +504,13 @@ function build(D, year) {
   const order = r => [r.age ?? 98, r.age == null || r.age > 16 ? 'FBHULGCA'.indexOf(r.codes[0]) : 0, r.onCS ? 0 : 1, r.sideIdx ?? 0, /girl/i.test(r.name) ? 1 : 0];
   rows.sort((a, b) => { const x = order(a), y = order(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i]; return a.name.localeCompare(b.name); });
   // Biggest average match turnout in each group, for the Numbers part of the health check.
-  // Ken 2026-11-17: overall numbers (regular match players, h[7]) for CCC1 and CCC2, judged
-  // against what's normal for the age, since fewer kids play as they get older. "Normal" is a
-  // straight line fitted through this club's own teams (numbers v age), never rising with age.
-  const pts = rows.filter(r => { const h = r.team && r.team.h; return h && h[2] >= 3 && h[7] && r.age != null && r.age <= 16; }).map(r => [r.age, r.team.h[7]]);
-  GLINE = null;
-  if (pts.length >= 4) {
-    const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length, my = pts.reduce((a, p) => a + p[1], 0) / pts.length;
-    const vx = pts.reduce((a, p) => a + (p[0] - mx) ** 2, 0), b = vx ? Math.min(0, pts.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0) / vx) : 0;
-    GLINE = age => Math.max(5, my + b * (age - mx));
-  }
+  // Ken 2026-11-17: overall numbers (regular match players, h[7]) judged against the average
+  // of the same group: CCC1 (U8-U12) and CCC2 (U13-U16) apart, as numbers drop at secondary school.
+  GAVG = {};
+  ['ccc1', 'ccc2'].forEach(gk => {
+    const v = rows.filter(r => { const h = r.team && r.team.h; return r.group === gk && h && h[2] >= 3 && h[7]; }).map(r => r.team.h[7]);
+    if (v.length >= 2) GAVG[gk] = { a: v.reduce((a, x) => a + x, 0) / v.length, n: v.length };
+  });
   rows.forEach(r => r.health = health(r));
   return { rows, games: games.filter(inP), year };
 }
@@ -678,8 +675,8 @@ function health(r) {
     const sp = h[0] / h[1];
     parts.push({ k: 'Match turnout', got: lin(sp, .3, .7, 20), max: 20, note: `${Math.round(sp * 100)}% of players invited to matches said yes this season` });
     // Numbers (Ken 2026-11-17): how many players turn up, against the group's best.
-    const av = h[7], ex = GLINE && r.age != null && r.age <= 16 ? Math.round(GLINE(r.age)) : null;
-    if (ex && av) parts.push({ k: 'Numbers playing', got: lin(av / ex, .6, 1.1, 20), max: 20, note: `${av} players at half or more of their matches; about ${ex} is normal at ${r.ageLabel} in this club` });
+    const ga = GAVG[r.group], av = h[7];
+    if (ga && av) parts.push({ k: 'Numbers playing', got: lin(av / ga.a, .6, 1.1, 20), max: 20, note: `${av} players at half or more of their matches; the ${GNAME[r.group]} average is ${Math.round(ga.a)}` });
     const py = h[0] - h[3], pi = h[1] - h[4], pn = h[2] - h[5];
     if (h[5] >= 2 && pn >= 3 && pi) {
       const d = (h[3] / h[4] - py / pi) * 100, adj = Math.abs(d) <= 3 ? 0 : Math.round(Math.max(-5, Math.min(5, d / 2)));
@@ -718,7 +715,7 @@ function health(r) {
   const tr = trend.length ? trend.reduce((a, x) => a + x, 0) / trend.length : 0;
   return { score, band: score >= 65 ? 'g' : score >= 45 ? 'a' : 'r', trend: !trend.length ? 0 : tr >= .3 ? 1 : tr <= -.3 ? -1 : 0, hasTrend: trend.length > 0, parts };
 }
-let GLINE = null;
+let GAVG = {};
 const BAND = { g: 'Healthy', a: 'Keep an eye', r: 'Needs help' };
 // Ken 2026-11-17: say what the arrow means (last 6 weeks v earlier, turnout and results).
 const ARROW = { 1: ['↑', 'better in the last 6 weeks'], 0: ['→', 'same as earlier in the season'], '-1': ['↓', 'worse in the last 6 weeks'] };
@@ -1110,7 +1107,7 @@ function clubView(sel) {
   }
   return h + legend();
 }
-function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span><span><b>Health check</b> (out of 100, season so far): match turnout 25 (70%+ of invited players saying yes is full marks; the last 6 weeks v before adds or takes up to 5), numbers playing 25 in CCC1 and CCC2 (players at half or more of their matches, against what’s normal for that age in the club, as numbers fall off with age), results 50 (wins weighted by division, score difference, recent form, regrading). Replies on CoachSmart aren’t scored. Training isn’t counted, and teams with under 10 players or no event in 3 months aren’t scored. 65+ healthy, 45–64 keep an eye, under 45 needs help. U8 to U12 (CCC1) are scored on match turnout only, as most of their games have no score kept. The arrow compares the last 6 weeks with earlier in the season.</span></div>`; }
+function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span><span><b>Health check</b> (out of 100, season so far): match turnout 25 (70%+ of invited players saying yes is full marks; the last 6 weeks v before adds or takes up to 5), numbers playing 25 in CCC1 and CCC2 (players at half or more of their matches, against the average for CCC1 or CCC2, as numbers drop at secondary school), results 50 (wins weighted by division, score difference, recent form, regrading). Replies on CoachSmart aren’t scored. Training isn’t counted, and teams with under 10 players or no event in 3 months aren’t scored. 65+ healthy, 45–64 keep an eye, under 45 needs help. U8 to U12 (CCC1) are scored on match turnout only, as most of their games have no score kept. The arrow compares the last 6 weeks with earlier in the season.</span></div>`; }
 function codeCard(g, c, rs) {
   const gs = uniqGames(rs, c), x = wdl(gs), n = x.w + x.d + x.l;
   return `<a class="card gc" href="${href({ g, c })}"><div class="hd"><span class="dot" style="background:var(--${c});width:12px;height:12px"></span><b>${CN[c]}</b><span style="margin-left:auto">${rs.length} teams ›</span></div>
