@@ -646,8 +646,8 @@ function fixturesView(sel) {
   return h;
 }
 // ── Health check (Ken, 2026-11-16) ────────────────────────────────
-// Out of 100, always for the current season so far: attendance 40, results 40,
-// engagement 20. Missing parts are left out and the rest scaled up (results-only
+// Out of 100, always for the current season so far: match attendance 40 and results 40,
+// scaled to 100 (match replies dropped 2026-11-17). Missing parts are left out and the rest scaled up (results-only
 // sides score on results; U8-U11 have no results part).
 const lin = (x, lo, hi, pts) => Math.max(0, Math.min(pts, (x - lo) / (hi - lo) * pts));
 const clamp1 = x => Math.max(-1, Math.min(1, x));
@@ -667,8 +667,7 @@ function health(r) {
       parts.push({ k: 'Match turnout trend', got: lin(d, -10, 10, 20), max: 20, note: `last 6 weeks ${Math.round(h[3] / h[4] * 100)}% v ${Math.round(py / pi * 100)}% before` });
       trend.push(clamp1(d / 8));
     } else parts.push({ k: 'Match turnout trend', got: 10, max: 20, note: h[5] < 2 ? 'too few matches in the last 6 weeks to tell' : 'too new to tell' });
-    if (h[4]) parts.push({ k: 'Match replies', got: lin(h[6] / h[4], .4, .9, 20), max: 20, note: `${Math.round(h[6] / h[4] * 100)}% of match invites answered in the last 6 weeks` });
-    else parts.push({ k: 'Match replies', got: 10, max: 20, note: 'no matches in the last 6 weeks' });
+    // Match replies dropped (Ken 2026-11-17): a reply that's mostly 'no' isn't a good sign.
   }
   const sc = (r.hgames || []).filter(g => g.up != null && g.tp != null).sort((a, b) => b.d - a.d);
   if ((r.age == null || r.age >= 12) && sc.length >= 3) {
@@ -717,7 +716,7 @@ function hGroupBadge(rows) {
 }
 function hCard(hh) {
   if (!hh) return '';
-  return `<div class="card" style="margin-top:14px"><h3>Health check<small>season so far · all codes · out of 100</small></h3><div class="hbig">${hBadge(hh)}<div class="hparts">${hh.parts.map(p => `<div class="hp"><span class="k">${p.k}</span>${p.max ? `<span class="hb"><i style="width:${p.got / p.max * 100}%;background:${COL[p.got / p.max >= .65 ? 'g' : p.got / p.max >= .45 ? 'a' : 'r']}"></i></span><b>${Math.round(p.got)}/${p.max}</b>` : `<span class="hb"></span><b class="${p.got > 0 ? 'g' : 'r'}">${p.got > 0 ? '+' : ''}${p.got}</b>`}<span class="nt">${esc(p.note)}</span></div>`).join('')}</div></div></div>`;
+  return `<div class="card" style="margin-top:14px"><h3>Health check<small>season so far · all codes · out of 100</small></h3><div class="hbig">${hBadge(hh)}<div class="hparts">${hh.parts.map(p => `<div class="hp"><span class="k">${p.k}</span>${p.max ? `<span class="hb"><i style="width:${p.got / p.max * 100}%;background:${COL[p.got / p.max >= .65 ? 'g' : p.got / p.max >= .45 ? 'a' : 'r']}"></i></span><b>${Math.round(p.got)}/${p.max}</b>` : `<span class="hb"></span><b class="${p.got > 0 ? 'g' : 'r'}">${p.got > 0 ? '+' : ''}${p.got}</b>`}<span class="nt">${esc(p.note)}</span></div>`).join('')}<div style="margin-top:6px;color:var(--muted);font-size:12px">Points are scaled to make the total out of 100.</div></div></div></div>`;
 }
 const pc = (y, n) => n ? Math.round(100 * y / n) : null;
 const cls = p => p == null ? 'm' : p >= 55 ? 'g' : p >= 45 ? 'a' : 'r';
@@ -1069,7 +1068,7 @@ function clubView(sel) {
   }
   return h + legend();
 }
-function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span><span><b>Health check</b> (out of 100, season so far): match attendance 40 (turnout and the last 6 weeks v before), results 40 (wins weighted by division, score difference, recent form, regrading), match replies 20. Training isn’t counted, and teams with under 10 players or no event in 3 months aren’t scored. 65+ healthy, 45–64 keep an eye, under 45 needs help. Arrow: improving, steady or sliding.</span></div>`; }
+function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span><span><b>Health check</b> (out of 100, season so far): match attendance 50 (turnout and the last 6 weeks v before), results 50 (wins weighted by division, score difference, recent form, regrading). Replies on CoachSmart aren’t scored. Training isn’t counted, and teams with under 10 players or no event in 3 months aren’t scored. 65+ healthy, 45–64 keep an eye, under 45 needs help. Arrow: improving, steady or sliding.</span></div>`; }
 function codeCard(g, c, rs) {
   const gs = uniqGames(rs, c), x = wdl(gs), n = x.w + x.d + x.l;
   return `<a class="card gc" href="${href({ g, c })}"><div class="hd"><span class="dot" style="background:var(--${c});width:12px;height:12px"></span><b>${CN[c]}</b><span style="margin-left:auto">${rs.length} teams ›</span></div>
