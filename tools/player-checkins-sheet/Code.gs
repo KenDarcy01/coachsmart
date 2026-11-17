@@ -14,8 +14,11 @@
  *    card is still with its coach; once it's with the reviewer or approved, the
  *    app's version wins and the sheet is told which rows were skipped.
  *  - Turn on automatic sync: runs Sync every hour (no pop-ups).
+ *  - Player status (Active / Inactive, a dropdown next to Role) always applies.
+ *    Only Active girls show on the website and get a family card.
+ *  - Help Video (link): put several links in the cell, one per line, for several videos.
  * Tabs: "Team List - Football" and "Team List - Camogie". Headings in row 1,
- * matched by name, so columns can move. Status and Last updated are added if missing.
+ * matched by name, so columns can move. Player status, Status and Last updated are added if missing.
  */
 var URL_ = 'https://gyfporsbdftvtakdvukt.supabase.co/functions/v1/player-checkins';
 // The public anon key (the same one the website uses). The secret is what lets the sheet in.
@@ -27,9 +30,11 @@ var MONTHS_ = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05' };
 var FIELDS_ = {
   'member name': 'player_name', 'role': 'role', 'assessor name': 'assessor_name', 'assessor email': 'assessor_email',
   'superpower': 'superpower', 'development': 'development', 'how': 'how', 'help video (link)': 'video_url', 'help video': 'video_url',
+  'help videos': 'video_url', 'help videos (links)': 'video_url', 'player status': 'player_status',
   'status': 'status', 'last updated': 'updated_at'
 };
-var SENT_ = ['assessor_name', 'assessor_email', 'superpower', 'development', 'how', 'video_url'];
+var SENT_ = ['player_status', 'assessor_name', 'assessor_email', 'superpower', 'development', 'how', 'video_url'];
+var PLAYER_STATUS_ = 'Player status';
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Check-ins')
@@ -118,6 +123,7 @@ function call_(body) {
 
 // ---- reading and writing a team tab ----
 function headMap_(sh) {
+  addPlayerStatus_(sh);
   var lastCol = sh.getLastColumn();
   var heads = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h || '').trim(); });
   ['Status', 'Last updated'].forEach(function (h) {
@@ -136,6 +142,31 @@ function headMap_(sh) {
   });
   map.width = heads.length;
   return map;
+}
+
+// Adds the "Player status" column (Active / Inactive dropdown) just after Role, once.
+// The first sync then fills it from the app.
+function addPlayerStatus_(sh) {
+  var lastCol = sh.getLastColumn();
+  var heads = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  var at = heads.indexOf(PLAYER_STATUS_.toLowerCase());
+  if (at < 0) {
+    var role = heads.indexOf('role');
+    var after = role >= 0 ? role + 1 : 1;
+    sh.insertColumnAfter(after);
+    at = after;
+    sh.getRange(1, at + 1).setValue(PLAYER_STATUS_).setFontWeight('bold');
+  }
+  var n = sh.getLastRow() - 1;
+  if (n < 1) return;
+  heads = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  var roleCol = heads.indexOf('role');
+  var rule = SpreadsheetApp.newDataValidation().requireValueInList(['Active', 'Inactive'], true).setAllowInvalid(false).build();
+  // Only the player rows get the dropdown; coaches and FLOs below are left alone.
+  var roles = roleCol >= 0 ? sh.getRange(2, roleCol + 1, n, 1).getValues() : null;
+  sh.getRange(2, at + 1, n, 1).setDataValidations(roles
+    ? roles.map(function (r) { return [String(r[0]).trim().toLowerCase() === 'player' ? rule : null]; })
+    : Array.apply(null, Array(n)).map(function () { return [rule]; }));
 }
 
 function readTab_(sh, code) {
@@ -160,7 +191,7 @@ function writeTab_(sh, t, byKey) {
   if (n < 1) return;
   // One column at a time, in one read and one write each, touching only the columns the app owns.
   var cols = {};
-  ['superpower', 'development', 'how', 'video_url', 'status', 'updated_at', 'assessor_name', 'assessor_email'].forEach(function (f) {
+  ['player_status', 'superpower', 'development', 'how', 'video_url', 'status', 'updated_at', 'assessor_name', 'assessor_email'].forEach(function (f) {
     if (t.map.fields[f] != null) cols[t.map.fields[f]] = function (a) { return f === 'updated_at' ? (a.updated_at ? new Date(a.updated_at) : '') : (a[f] || ''); };
   });
   Object.keys(t.map.checks).forEach(function (d) { cols[t.map.checks[d]] = function (a) { return (a.checks || {})[d] || ''; }; });

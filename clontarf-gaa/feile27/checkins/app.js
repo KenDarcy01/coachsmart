@@ -51,6 +51,8 @@
   const pill = a => { const s = statusOf(a); return `<span class="pill st-${s}">${STATUS[s]}</span>`; };
   const when = iso => iso ? new Date(iso).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' }) : '';
   const codeName = c => c === 'camogie' ? 'Camogie' : 'Football';
+  const picker = (id, groups) => `<div class="picker" id="${id}">${Object.entries(groups).filter(([, l]) => l && l.length).map(([g, l]) =>
+    `<div><div class="g">${esc(g)}</div><div class="chips">${l.map(p => `<button type="button" class="chip pick" data-p="${esc(p)}" aria-pressed="false"><span class="tk"></span>${esc(p)}</button>`).join('')}</div></div>`).join('')}</div>`;
   const options = (groups, label) => `<option value="">${label}</option>` + Object.entries(groups)
     .map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(p => `<option>${esc(p)}</option>`).join('')}</optgroup>`).join('');
 
@@ -113,7 +115,7 @@
     main.innerHTML = `${steps(0)}
       <section class="toolbar">
         <div><h1 class="display" style="font-size:38px">${who}</h1>
-          <p class="muted" style="margin:4px 0 0">${all.length} ${all.length === 1 ? 'girl' : 'girls'} in ${codeName(view.code).toLowerCase()}${D.lastRelease ? ` · cards last shared ${when(D.lastRelease.published_at)}` : ''}</p></div>
+          <p class="muted" style="margin:4px 0 0">${all.length} ${all.length === 1 ? 'girl' : 'girls'} in ${codeName(view.code).toLowerCase()}${D.lastRelease ? ` · cards last shared ${when(D.lastRelease.published_at)}` : ''}${D.inactive ? ` · ${D.inactive} inactive hidden (Player status in the team sheet)` : ''}</p></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">${scopeSeg()}${codeSeg()}</div>
       </section>
       <section class="stats">
@@ -168,24 +170,25 @@
         <div class="main">
           <section class="box stack">
             <label class="field-title" for="f-super"><span style="color:var(--red)">${ICON.bolt}</span>Superpower</label>
-            <p class="hint" style="margin:0">What she brings to the team. Pick a phrase or write your own.</p>
-            ${editable ? `<select id="s-super" aria-label="Suggested superpowers">${options(superGroups, 'Add a suggested phrase…')}</select>` : ''}
-            <textarea id="f-super" rows="2" ${ro}>${esc(a.superpower)}</textarea>
+            <p class="hint" style="margin:0">What she brings to the team. Tap as many as fit her, or write your own (one per line).</p>
+            ${editable ? picker('p-super', superGroups) : ''}
+            <textarea id="f-super" rows="3" ${ro}>${esc(a.superpower)}</textarea>
           </section>
           <section class="box stack">
             <label class="field-title" for="f-dev"><span style="color:var(--red)">${ICON.target}</span>Development: what she's working on next</label>
-            <p class="hint" style="margin:0">One thing, said as something she'll be able to do.</p>
-            ${editable ? `<select id="s-dev" aria-label="Suggested development phrases">${options(devGroups, 'Pick a suggested phrase…')}</select>` : ''}
-            <textarea id="f-dev" rows="2" ${ro}>${esc(a.development)}</textarea>
+            <p class="hint" style="margin:0">Tap one or more, said as things she'll be able to do. Or write your own (one per line).</p>
+            ${editable ? picker('p-dev', devGroups) : ''}
+            <textarea id="f-dev" rows="3" ${ro}>${esc(a.development)}</textarea>
             <div class="helper"><span style="color:var(--navy)">${ICON.bulb}</span><div><b>Wording.</b> These are u15 girls: keep it positive and about what she can do. Words like “weak”, “poor” or anything about body or weight can't be sent.</div></div>
           </section>
           <section class="box stack">
             <label class="field-title" for="f-how"><span style="color:var(--red)">${ICON.check}</span>How: what she'll do</label>
             ${editable ? `<select id="s-how" aria-label="Suggested ways">${options({ 'Féile plan and training': HOW }, 'Add a suggestion…')}</select>` : ''}
             <textarea id="f-how" rows="3" ${ro}>${esc(a.how)}</textarea>
-            <label class="field-title" for="f-video" style="font-size:16px;margin-top:6px"><span style="color:var(--red)">${ICON.video}</span>Help video <span class="muted small" style="font-family:Inter">(optional)</span></label>
-            <input id="f-video" type="url" placeholder="https://youtu.be/…" value="${esc(a.video_url)}" ${ro}>
-            <p class="hint" style="margin:0">A YouTube, Vimeo or club clip. It shows on her card as a Watch button.</p>
+            <div class="field-title" style="font-size:16px;margin-top:6px"><span style="color:var(--red)">${ICON.video}</span>Help videos <span class="muted small" style="font-family:Inter">(optional)</span></div>
+            <div class="stack" id="vids" style="gap:8px"></div>
+            ${editable ? `<button type="button" class="btn small" id="addVid" style="align-self:flex-start">+ Add another video</button>` : ''}
+            <p class="hint" style="margin:0">YouTube, Vimeo, Google Drive or club clips. Each one shows on her card as a Watch button.</p>
           </section>
           <section class="box stack">
             <label class="field-title" for="f-note" style="font-size:16px"><span class="muted">${ICON.lock}</span>Coach-only note</label>
@@ -203,24 +206,52 @@
         </aside>
       </div>`;
 
-    const f = { super: $('#f-super'), dev: $('#f-dev'), how: $('#f-how'), video: $('#f-video'), note: $('#f-note') };
-    const values = () => ({ superpower: f.super.value, development: f.dev.value, how: f.how.value, video_url: f.video.value.trim(), coach_note: f.note.value });
+    const f = { super: $('#f-super'), dev: $('#f-dev'), how: $('#f-how'), note: $('#f-note') };
+    const vidBox = $('#vids');
+    const addVid = (u = '') => {
+      const row = document.createElement('div'); row.className = 'vrow';
+      row.innerHTML = `<input type="url" placeholder="https://youtu.be/…" aria-label="Help video link" value="${esc(u)}" ${ro}>${editable ? '<button type="button" class="btn small" aria-label="Remove this video">✕</button>' : ''}`;
+      row.querySelector('input').addEventListener('input', draw);
+      const x = row.querySelector('button');
+      if (x) x.onclick = () => { row.remove(); if (!vidBox.children.length) addVid(); draw(); };
+      vidBox.appendChild(row);
+      return row;
+    };
+    const vidLinks = () => [...vidBox.querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
+    const values = () => ({ superpower: f.super.value, development: f.dev.value, how: f.how.value, video_url: vidLinks().join('\n'), coach_note: f.note.value });
     const draw = () => {
       const v = values();
       $('#preview').innerHTML = CardView.render({ first_name: a.player_name.split(' ')[0], code: a.code, ...v, checkins: [] }, []);
       const bad = flagged(v.superpower, v.development, v.how);
       $('#warn').innerHTML = bad.length ? `<div class="warn"><b>Please reword:</b> ${bad.map(w => `“${esc(w)}”`).join(', ')}. Try saying what she'll be able to do, for example “Using the left foot with confidence”.</div>` : '';
     };
+    const links = String(a.video_url || '').split(/[\s,]+/).filter(Boolean);
+    (links.length ? links : ['']).forEach(u => addVid(u));
     Object.values(f).forEach(el => el.addEventListener('input', draw));
     draw();
     if (!editable) return;
-    const pick = (sel, field, mode) => { const s = $(sel); s.onchange = () => {
+    $('#addVid').onclick = () => { addVid().querySelector('input').focus(); };
+    // Multi-select chips: each tap adds or removes that phrase as its own line.
+    const lines = field => field.value.split('\n').map(x => x.trim()).filter(Boolean);
+    const multi = (box, field) => {
+      const sync = () => { const have = new Set(lines(field).map(x => x.toLowerCase()));
+        box.querySelectorAll('.pick').forEach(b => { const on = have.has(b.dataset.p.toLowerCase()); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); };
+      box.querySelectorAll('.pick').forEach(b => b.onclick = () => {
+        const p = b.dataset.p, cur = lines(field);
+        const i = cur.findIndex(x => x.toLowerCase() === p.toLowerCase());
+        if (i >= 0) cur.splice(i, 1); else cur.push(p);
+        field.value = cur.join('\n'); sync(); draw();
+      });
+      field.addEventListener('input', sync); sync();
+    };
+    multi($('#p-super'), f.super); multi($('#p-dev'), f.dev);
+    const pick = (sel, field) => { const s = $(sel); s.onchange = () => {
       const p = s.value; if (!p) return;
       const cur = field.value.trim();
-      field.value = mode === 'replace' || !cur ? p : (mode === 'line' ? cur + '\n' + p : cur.replace(/[.\s]*$/, '') + '. ' + p);
+      field.value = cur ? cur + '\n' + p : p;
       s.value = ''; draw(); field.focus();
     }; };
-    pick('#s-super', f.super, 'and'); pick('#s-dev', f.dev, 'replace'); pick('#s-how', f.how, 'line');
+    pick('#s-how', f.how);
     const save = async (action) => {
       const btns = main.querySelectorAll('.actions button'); btns.forEach(b => b.disabled = true);
       try {
@@ -254,7 +285,7 @@
               <div><div class="k red">Superpower</div><div>${esc(a.superpower).replace(/\n/g, '<br>')}</div></div>
               <div><div class="k">Development</div><div>${esc(a.development).replace(/\n/g, '<br>')}</div></div>
               <div><div class="k">How</div><div>${esc(a.how).replace(/\n/g, '<br>')}</div></div>
-              ${a.video_url ? `<div><div class="k">Help video</div><a href="${esc(a.video_url)}" target="_blank" rel="noopener">${esc(a.video_url)}</a></div>` : ''}
+              ${a.video_url ? `<div><div class="k">Help video${a.video_url.trim().includes('\n') ? 's' : ''}</div>${a.video_url.split(/\s+/).filter(Boolean).map(u => `<div><a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a></div>`).join('')}</div>` : ''}
               ${a.coach_note ? `<div><div class="k" style="color:var(--muted)">Coach-only note</div><div class="muted">${esc(a.coach_note)}</div></div>` : ''}
               ${flagged(a.superpower, a.development, a.how).length ? `<div class="warn">Wording check: please ask for a change.</div>` : `<div class="banner green" style="padding:10px 14px">${ICON.tick}<span>Wording check passed</span></div>`}
               <label class="stack" style="gap:6px"><b>Comment for ${esc((a.assessor_name || 'the coach').split(' ')[0])}</b><textarea rows="2" data-c="${a.id}" placeholder="Only needed if you're asking for a change"></textarea></label>

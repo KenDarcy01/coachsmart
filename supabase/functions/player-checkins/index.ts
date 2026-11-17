@@ -61,6 +61,18 @@ function okVideo(u: string) {
   if (!u) return true;
   try { return new URL(u).protocol === "https:"; } catch { return false; }
 }
+// Help videos: one or more links, kept one per line.
+const videoList = (s: unknown) => String(s ?? "").split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
+const videos = (s: unknown) => videoList(s).join("\n");
+const badVideos = (s: unknown) => videoList(s).filter((u) => !okVideo(u));
+const goodVideos = (s: unknown) => videoList(s).filter(okVideo).join("\n");
+// Sheet "Player status": Active / Inactive. Anything else is ignored.
+const activeFrom = (s: unknown): boolean | null => {
+  const v = lc(s);
+  if (v.startsWith("inactive") || v === "no" || v === "n") return false;
+  if (v.startsWith("active") || v === "yes" || v === "y") return true;
+  return null;
+};
 
 type Who = {
   userId: string; emails: string[]; name: string;
@@ -133,7 +145,8 @@ function card(a: any, checks: any[]) {
     superpower: a.superpower || "",
     development: a.development || "",
     how: a.how || "",
-    video_url: a.video_url || "",
+    video_url: videoList(a.video_url)[0] || "",
+    videos: videoList(a.video_url),
     checkins: checks
       .filter((c) => c.note || c.progress)
       .sort((x, y) => x.check_date.localeCompare(y.check_date))
@@ -179,7 +192,7 @@ serve(async (req) => {
         return json({ error: "This card can only be opened by the girl's parents and the team's admins." }, 403);
       }
       const { data } = await sb.from("pc_assessments").select("code, player_name, published_card, published_at")
-        .eq("team_id", t.team_id).eq("member_id", memberId).not("published_card", "is", null);
+        .eq("team_id", t.team_id).eq("member_id", memberId).eq("active", true).not("published_card", "is", null);
       const rows = (data || []).sort((a: any, b: any) => CODES.indexOf(a.code) - CODES.indexOf(b.code));
       return json({
         children: w.children,
@@ -194,7 +207,9 @@ serve(async (req) => {
     if (action === "list") {
       const { data, error } = await sb.from("pc_assessments").select("*").eq("team_id", t.team_id).order("player_name");
       if (error) throw error;
-      const rows = (data || []).filter((a: any) => w.isAdmin || isAssessor(w, a));
+      // Inactive players (Player status in the team sheet) stay off the website.
+      const mineOrAll = (data || []).filter((a: any) => w.isAdmin || isAssessor(w, a));
+      const rows = mineOrAll.filter((a: any) => a.active !== false);
       const { data: checks } = await sb.from("pc_checkins").select("*").in("assessment_id", rows.map((a: any) => a.id));
       const byA = new Map<number, any[]>();
       (checks || []).forEach((c: any) => { const l = byA.get(c.assessment_id) || []; l.push(c); byA.set(c.assessment_id, l); });
@@ -203,6 +218,7 @@ serve(async (req) => {
       return json({
         me: { name: w.name, emails: w.emails, isAdmin: w.isAdmin },
         lastRelease: rel || null,
+        inactive: mineOrAll.length - rows.length,
         assessments: rows.map((a: any) => ({
           ...a,
           mine: isAssessor(w, a),
@@ -223,9 +239,9 @@ serve(async (req) => {
       if (action === "submit" && a.status === "review") return json({ error: "This is already with the reviewer." }, 409);
       const patch: any = {};
       for (const k of ["superpower", "development", "how", "video_url", "coach_note"]) {
-        if (k in body) patch[k] = k === "video_url" ? tidy(body[k]) : text(body[k]);
+        if (k in body) patch[k] = k === "video_url" ? videos(body[k]) : text(body[k]);
       }
-      if ("video_url" in patch && !okVideo(patch.video_url)) return json({ error: "The video link must start with https://" }, 400);
+      if ("video_url" in patch && badVideos(patch.video_url).length) return json({ error: "Each video link must start with https://" }, 400);
       const next = { ...a, ...patch };
       const contentChanged = ["superpower", "development", "how", "video_url"].some((k) => k in patch && (patch[k] || "") !== (a[k] || ""));
       if (action === "submit") {
@@ -282,7 +298,8 @@ serve(async (req) => {
       if (!w.isAdmin) return json({ error: "Only admins can publish." }, 403);
       const { data: all, error } = await sb.from("pc_assessments").select("*").eq("team_id", t.team_id);
       if (error) throw error;
-      const ready = (all || []).filter((x: any) => x.status === "approved" && x.member_id);
+      const live = (all || []).filter((x: any) => x.active !== false);
+      const ready = live.filter((x: any) => x.status === "approved" && x.member_id);
       const { data: checks } = await sb.from("pc_checkins").select("*").in("assessment_id", ready.map((x: any) => x.id));
       const now = new Date().toISOString();
       for (const x of ready) {
@@ -292,10 +309,10 @@ serve(async (req) => {
         if (e) throw e;
       }
       await sb.from("pc_releases").insert({ team_id: t.team_id, published_by: w.name, cards: ready.length });
-      const noLogin = (all || []).filter((x: any) => x.status === "approved" && !x.member_id).map((x: any) => x.player_name);
+      const noLogin = live.filter((x: any) => x.status === "approved" && !x.member_id).map((x: any) => x.player_name);
       return json({
         ok: true, published: ready.length,
-        notReady: (all || []).filter((x: any) => x.status !== "approved").length,
+        notReady: live.filter((x: any) => x.status !== "approved").length,
         noMatch: [...new Set(noLogin)],
       });
     }
@@ -323,13 +340,14 @@ async function sheetPull(sb: SupabaseClient, teamId: number) {
       return {
         code: a.code, player_name: a.player_name, assessor_name: a.assessor_name || "", assessor_email: a.assessor_email || "",
         superpower: a.superpower || "", development: a.development || "", how: a.how || "", video_url: a.video_url || "",
+        player_status: a.active === false ? "Inactive" : "Active",
         status: st, updated_at: a.updated_at, checks: c,
       };
     }),
   });
 }
 
-// Rows typed into the sheet. Assignments (assessor) always apply. Card text and
+// Rows typed into the sheet. Assignments (assessor) and Player status always apply. Card text and
 // check-ins only apply while the card is still with its coach (to do, draft or
 // change asked), so nothing changes behind a reviewer's back. Anything skipped
 // is reported back to the sheet.
@@ -356,16 +374,16 @@ async function sheetPush(sb: SupabaseClient, teamId: number, body: any) {
     // The sheet sends only the cells changed there since its last sync (all of them on the first sync).
     const fields: Record<string, string> = {};
     for (const k of ["superpower", "development", "how", "video_url"]) {
-      if (k in r) fields[k] = k === "video_url" ? tidy(r[k]) : text(r[k]);
+      if (k in r) fields[k] = k === "video_url" ? goodVideos(r[k]) : text(r[k]);
     }
-    if ("video_url" in fields && !okVideo(fields.video_url)) delete fields.video_url;
+    const active = "player_status" in r ? activeFrom(r.player_status) : null;
     let a: any = have.get(`${code}|${nameKey(name)}`);
     if (!a) {
       const hasText = fields.superpower || fields.development || fields.how;
       const { data, error } = await sb.from("pc_assessments").insert({
         team_id: teamId, member_id: memberId, player_name: name, code,
         assessor_name: tidy(r.assessor_name) || null, assessor_email: lc(r.assessor_email) || null,
-        ...fields, status: hasText ? "draft" : "todo", updated_by: by, updated_at: now,
+        ...fields, ...(active === null ? {} : { active }), status: hasText ? "draft" : "todo", updated_by: by, updated_at: now,
       }).select("*").single();
       if (error) throw error;
       a = data; out.created++;
@@ -374,6 +392,7 @@ async function sheetPush(sb: SupabaseClient, teamId: number, body: any) {
       if ("assessor_name" in r && tidy(r.assessor_name) !== (a.assessor_name || "")) patch.assessor_name = tidy(r.assessor_name) || null;
       if ("assessor_email" in r && lc(r.assessor_email) !== lc(a.assessor_email)) patch.assessor_email = lc(r.assessor_email) || null;
       if (memberId && memberId !== a.member_id) patch.member_id = memberId;
+      if (active !== null && active !== (a.active !== false)) patch.active = active;
       const textChanged = Object.keys(fields).filter((k) => fields[k] !== (a[k] || ""));
       if (textChanged.length) {
         if (["todo", "draft", "changes"].includes(a.status)) {
