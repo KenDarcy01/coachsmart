@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Key Dates · Road to Féile 2027 · Clontarf Girls 2012</title>
+<meta name="description" content="Every key date on the road to Féile 2027 for the Clontarf 2012 girls: fundraising, training, gear and the big weekend.">
+<meta property="og:title" content="Road to Féile 2027 · Key Dates">
+<meta property="og:description" content="Countdowns, timeline and fundraising progress for the Clontarf Girls 2012.">
+<meta property="og:image" content="https://coachsmart.app/clontarf-gaa/images/girls2012-camogie-huddle.jpg">
+<meta property="og:type" content="website">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ED1B2E">
+<link rel="icon" href="../../images/clontarf-crest.png">
+<link rel="apple-touch-icon" href="../../images/clontarf-crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#ED1B2E;--red-dark:#C6101F;--red-tint:#FDECEE;
+  --navy:#1B3A6B;--navy-dark:#142c52;
+  --ink:#1B2333;--muted:#5B6478;--faint:#8A93A6;--line:#E3E7F0;--paper:#F5F6FB;--white:#fff;
+  --c-feile:#ED1B2E;--c-fund:#D99A00;--c-train:#2C5AA0;--c-match:#0E9384;--c-gear:#8E5BD0;--c-xmas:#5B7A29;--c-meet:#C2417E;
+  --display:'Anton','Oswald',Impact,sans-serif;--head:'Oswald',-apple-system,"Segoe UI",Roboto,sans-serif;
+  --body:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--body);color:var(--ink);background:var(--white);line-height:1.45;-webkit-text-size-adjust:100%}
+a{color:var(--red-dark)}
+.in{max-width:1120px;margin:0 auto;padding:0 20px}
+svg.i{width:1em;height:1em;fill:currentColor;vertical-align:-.125em}
+
+/* Top bar */
+.top{border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:20}
+.top .in{display:flex;align-items:center;gap:12px;height:58px}
+.top img{width:38px;height:38px}
+.top .club{font-family:var(--head);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:13px;color:var(--navy);line-height:1.15}
+.top .club small{display:block;color:var(--red);font-weight:500;letter-spacing:.14em;font-size:11px}
+.top nav{margin-left:auto;display:flex;gap:4px}
+.top nav a{font-family:var(--head);text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:999px}
+.top nav a:hover{color:var(--red-dark);background:var(--red-tint)}
+@media (max-width:760px){.top nav{display:none}}
+
+/* Hero */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.hero .in{display:grid;grid-template-columns:1.15fr .85fr;gap:36px;align-items:center;padding-top:40px;padding-bottom:44px}
+.kicker{font-family:var(--head);color:var(--red);text-transform:uppercase;letter-spacing:.18em;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px}
+.kicker::before{content:"";width:28px;height:3px;background:var(--red);border-radius:2px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(46px,8vw,92px);line-height:.92;margin:10px 0 12px;color:var(--navy);text-transform:uppercase;letter-spacing:.005em}
+h1 em{font-style:normal;color:var(--red)}
+.lede{font-size:17px;color:var(--muted);max-width:30em;margin:0 0 24px}
+.cd{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.cd .u{min-width:92px;text-align:center;padding:12px 10px 10px;border:2px solid var(--line);border-radius:14px;background:#fff}
+.cd .u:first-child{border-color:var(--red)}
+.cd b{display:block;font-family:var(--display);font-weight:400;font-size:46px;line-height:1;color:var(--red)}
+.cd .u:not(:first-child) b{color:var(--navy)}
+.cd span{display:block;font-family:var(--head);text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--muted);margin-top:4px}
+.when{margin-top:14px;font-family:var(--head);font-size:15px;color:var(--navy);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:4px;font-family:var(--head);text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:#FFF4D6;color:#7A5300;border:1px solid #F2D58A;white-space:nowrap}
+.tag.done{background:#E8F5EC;color:#22663A;border-color:#B9DEC5}
+.tag.live{background:#E8F5EC;color:#22663A;border-color:#B9DEC5}
+.tag.saved{background:var(--paper);color:var(--muted);border-color:var(--line)}
+.photo{position:relative;aspect-ratio:4/5;max-height:470px;justify-self:end;width:100%}
+.photo img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;box-shadow:0 18px 40px rgba(27,35,51,.18)}
+.photo::before{content:"";position:absolute;inset:auto auto -14px -14px;width:46%;height:40%;border-radius:22px;background:var(--red);z-index:-1}
+.photo::after{content:"";position:absolute;top:-14px;right:-14px;width:30%;height:28%;border-radius:22px;border:3px solid var(--navy);z-index:-1}
+.photo .cap{position:absolute;left:14px;bottom:14px;background:#fff;border-radius:999px;padding:6px 12px;font-family:var(--head);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);display:flex;gap:6px;align-items:center}
+.photo .cap svg{color:var(--red)}
+@media (max-width:860px){.photo::after{display:none}.hero .in{grid-template-columns:1fr;padding-top:24px}.photo{max-height:300px;aspect-ratio:16/10;justify-self:stretch}.cd .u{min-width:0;flex:1}.cd b{font-size:38px}}
+
+/* Sections */
+section.band{padding:48px 0;border-bottom:1px solid var(--line)}
+section.band.alt{background:var(--paper)}
+.sh{display:flex;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.sh .ic{width:44px;height:44px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:19px;flex:none}
+.sh h2{font-family:var(--display);font-weight:400;font-size:34px;line-height:1;margin:0;color:var(--navy);text-transform:uppercase}
+.sh p{margin:4px 0 0;color:var(--muted);font-size:14.5px}
+.sh .grow{flex:1;min-width:200px}
+
+/* Coming up */
+.next{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.nx{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;position:relative;border-top:4px solid var(--c,var(--red))}
+.nx .row{display:flex;align-items:center;gap:10px}
+.nx .ci{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c);font-size:15px;flex:none}
+.nx .cat{font-family:var(--head);text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:var(--muted)}
+.nx .days{margin-left:auto;text-align:right}
+.nx .days b{font-family:var(--display);font-weight:400;font-size:36px;line-height:1;color:var(--ink)}
+.nx .days span{display:block;font-family:var(--head);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.nx h3{font-family:var(--head);font-weight:600;font-size:18px;margin:12px 0 2px;line-height:1.2}
+.nx .d{font-size:13.5px;color:var(--muted)}
+@media (max-width:600px){.next{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -20px;padding:0 20px 8px;gap:12px}.nx{flex:0 0 74%;scroll-snap-align:start}.sh h2{font-size:28px}}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:12px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c);border-radius:3px}
+
+/* Timeline */
+.tlwrap{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 10px 8px;overflow-x:auto}
+#tl{min-width:860px;display:block}
+#tl text{font-family:var(--head)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:14px 4px 0;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:50%;background:var(--c);display:inline-block}
+
+/* Money */
+.money{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px}
+.panel h3{font-family:var(--head);font-weight:600;font-size:15px;text-transform:uppercase;letter-spacing:.1em;color:var(--navy);margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.panel h3 svg{color:var(--red)}
+.panel .sub{font-size:13px;color:var(--muted);margin:0 0 14px}
+.panel.wide{grid-column:1/-1}
+@media (max-width:860px){.money{grid-template-columns:1fr}}
+.thermo .big{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.thermo .big b{font-family:var(--display);font-weight:400;font-size:62px;line-height:1;color:var(--red)}
+.thermo .big span{font-family:var(--head);color:var(--muted);font-size:16px}
+.track{position:relative;height:26px;border-radius:13px;background:var(--paper);border:1px solid var(--line);margin:30px 0 30px}
+.track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:13px;background:linear-gradient(90deg,var(--red-dark),var(--red));min-width:26px;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.track .mk{position:absolute;top:-7px;bottom:-7px;width:0;border-left:2px dashed var(--navy)}
+.track .mk span{position:absolute;white-space:nowrap;font-family:var(--head);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);transform:translateX(-50%)}
+.track .mk .t{top:-18px}.track .mk .b{bottom:-18px;color:var(--muted)}
+.track .mk.end span{transform:translateX(-100%)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:1px solid var(--line);padding-top:14px}
+.stats div{font-size:12.5px;color:var(--muted)}
+.stats b{display:block;font-family:var(--head);font-size:22px;color:var(--ink);font-weight:600}
+.streams{display:grid;gap:12px}
+.st .lbl{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin-bottom:5px}
+.st .lbl b{font-weight:600}
+.st .lbl span{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.st .tr{position:relative;height:12px;background:var(--paper);border-radius:6px}
+.st .tg{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:#D5DCEB}
+.st .rs{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--red)}
+.st .when{margin:3px 0 0;font-family:var(--body);font-size:12px;color:var(--faint)}
+.donut{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.donut svg{width:190px;height:190px;flex:none}
+.donut ul{list-style:none;margin:0;padding:0;flex:1;min-width:200px;display:grid;gap:8px}
+.donut li{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:baseline;font-size:14px}
+.donut li i{width:12px;height:12px;border-radius:3px;background:var(--c);align-self:center}
+.donut li small{display:block;color:var(--muted);font-size:12px}
+.donut li b{font-family:var(--head);font-weight:600}
+
+/* Agenda */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px 6px 8px;font-family:var(--head);font-size:13px;letter-spacing:.04em;color:var(--ink);display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.chip .ci{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c);font-size:11px}
+.chip[aria-pressed=false]{opacity:.45}
+.chip.past{margin-left:auto;padding-left:12px}
+.chip.past[aria-pressed=true]{background:var(--navy);color:#fff;border-color:var(--navy);opacity:1}
+.month{margin-bottom:26px}
+.month h3{font-family:var(--display);font-weight:400;font-size:24px;color:var(--red);text-transform:uppercase;margin:0 0 10px;display:flex;align-items:center;gap:12px}
+.month h3::after{content:"";flex:1;height:1px;background:var(--line)}
+.ev{display:grid;grid-template-columns:62px 40px 1fr auto;gap:14px;align-items:start;padding:12px 6px;border-bottom:1px solid var(--line)}
+.ev:last-child{border-bottom:0}
+.ev .dt{text-align:center;border-radius:12px;background:var(--paper);padding:6px 0 5px}
+.ev .dt b{display:block;font-family:var(--display);font-weight:400;font-size:26px;line-height:1;color:var(--navy)}
+.ev .dt span{font-family:var(--head);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ev .ci{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c);font-size:16px}
+.ev h4{margin:1px 0 2px;font-family:var(--head);font-weight:600;font-size:17px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ev p{margin:0;color:var(--muted);font-size:14px}
+.ev .rng{font-size:12.5px;color:var(--faint);margin-top:2px}
+.ev .away{font-family:var(--head);font-size:13px;color:var(--muted);text-align:right;white-space:nowrap;padding-top:4px}
+.ev .away b{display:block;font-size:20px;color:var(--ink);font-weight:600}
+.ev.isPast{opacity:.5}
+.ev.isToday .dt{background:var(--red)}.ev.isToday .dt b,.ev.isToday .dt span{color:#fff}
+.ev.cancel h4{text-decoration:line-through}
+@media (max-width:600px){.ev{grid-template-columns:52px 1fr auto;gap:10px}.ev .ci{display:none}}
+.empty{color:var(--muted);font-style:italic}
+
+/* Footer */
+footer{padding:30px 0 50px;color:var(--muted);font-size:12.5px}
+footer .in{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+footer img{width:30px;height:30px}
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:#fff;border-radius:10px;padding:8px 11px;font-size:13px;max-width:260px;opacity:0;transition:opacity .12s;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+#tip b{font-family:var(--head);font-weight:600;display:block;font-size:14px}
+#tip span{color:#C9D0DE}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="in">
+    <img src="../../images/clontarf-crest.png" alt="Clontarf GAA crest">
+    <div class="club">Clontarf GAA<small>Girls 2012 · Football &amp; Camogie</small></div>
+    <nav aria-label="Sections">
+      <a href="#coming">Coming up</a><a href="#season">Season</a><a href="#money">Fundraising</a><a href="#dates">All dates</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="in">
+    <div>
+      <div class="kicker">Road to Féile 2027</div>
+      <h1>Key <em>dates</em></h1>
+      <p class="lede">Every date that matters between now and the big weekend: fundraising, training blocks, the Christmas break, gear and Féile itself.</p>
+      <div class="cd" aria-live="polite">
+        <div class="u"><b id="cd-d">–</b><span>Days</span></div>
+        <div class="u"><b id="cd-w">–</b><span>Weeks</span></div>
+        <div class="u"><b id="cd-h">–</b><span>Hours</span></div>
+        <div class="u"><b id="cd-m">–</b><span>Mins</span></div>
+      </div>
+      <div class="when" id="feile-when"></div>
+    </div>
+    <div class="photo">
+      <img src="../../images/girls2012-celebration.jpg" alt="The Clontarf 2012 girls celebrating together after a match">
+      <div class="cap"><svg class="i" viewBox="0 0 576 512" aria-hidden="true"><path d="M400 0H176c-26.5 0-48.1 21.8-47.1 48.2c.2 5.3 .4 10.6 .7 15.8H24C10.7 64 0 74.7 0 88c0 92.6 33.5 157 78.5 200.7c44.3 43.1 98.3 64.8 138.1 75.8c23.4 6.5 39.4 26 39.4 45.6c0 20.9-17 37.9-37.9 37.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32H384c17.7 0 32-14.3 32-32s-14.3-32-32-32H357.9C337 448 320 431 320 410.1c0-19.6 15.9-39.2 39.4-45.6c39.9-11 93.9-32.7 138.2-75.8C542.5 245 576 180.6 576 88c0-13.3-10.7-24-24-24H446.4c.3-5.2 .5-10.4 .7-15.8C448.1 21.8 426.5 0 400 0zM48.9 112h84.4c9.1 90.1 29.2 150.3 51.9 190.6c-24.9-11-50.8-26.5-73.2-48.3c-32-31.1-58-76-63-142.3zM464.1 254.3c-22.4 21.8-48.3 37.3-73.2 48.3c22.7-40.3 42.8-100.5 51.9-190.6h84.4c-5.1 66.3-31.1 111.2-63 142.3z"/></svg> Clontarf Girls 2012</div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt" id="coming">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" viewBox="0 0 384 512" aria-hidden="true"><path d="M32 0C14.3 0 0 14.3 0 32S14.3 64 32 64V75c0 42.4 16.9 83.1 46.9 113.1L146.7 256 78.9 323.9C48.9 353.9 32 394.6 32 437v11c-17.7 0-32 14.3-32 32s14.3 32 32 32H64 320h32c17.7 0 32-14.3 32-32s-14.3-32-32-32V437c0-42.4-16.9-83.1-46.9-113.1L237.3 256l67.9-67.9c30-30 46.9-70.7 46.9-113.1V64c17.7 0 32-14.3 32-32s-14.3-32-32-32H320 64 32zM96 75V64H288V75c0 19-5.6 37.4-16 53H112c-10.3-15.6-16-34-16-53zm16 309c3.5-5.3 7.6-10.3 12.1-14.9L192 301.3l67.9 67.9c4.6 4.6 8.6 9.6 12.1 14.9H112z"/></svg></div><div class="grow"><h2>Coming up</h2><p>The big dates, counting down.</p></div></div>
+    <div class="next" id="next"></div>
+  </div>
+</section>
+
+<section class="band" id="season">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" viewBox="0 0 640 512" aria-hidden="true"><path d="M128 72a24 24 0 1 1 0 48 24 24 0 1 1 0-48zm32 97.3c28.3-12.3 48-40.5 48-73.3c0-44.2-35.8-80-80-80S48 51.8 48 96c0 32.8 19.7 61 48 73.3V224H32c-17.7 0-32 14.3-32 32s14.3 32 32 32H288v54.7c-28.3 12.3-48 40.5-48 73.3c0 44.2 35.8 80 80 80s80-35.8 80-80c0-32.8-19.7-61-48-73.3V288H608c17.7 0 32-14.3 32-32s-14.3-32-32-32H544V169.3c28.3-12.3 48-40.5 48-73.3c0-44.2-35.8-80-80-80s-80 35.8-80 80c0 32.8 19.7 61 48 73.3V224H160V169.3zM488 96a24 24 0 1 1 48 0 24 24 0 1 1 -48 0zM320 392a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"/></svg></div><div class="grow"><h2>The season at a glance</h2><p>Training and fundraising phases, with every key date. The red line is today.</p></div></div>
+    <div class="tlwrap"><svg id="tl" role="img" aria-label="Season timeline"></svg></div>
+    <div class="legend" id="tl-legend"></div>
+  </div>
+</section>
+
+<section class="band alt" id="money">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" viewBox="0 0 320 512" aria-hidden="true"><path d="M48.1 240c-.1 2.7-.1 5.3-.1 8v16c0 2.7 0 5.3 .1 8H32c-17.7 0-32 14.3-32 32s14.3 32 32 32H60.3C89.9 419.9 170 480 264 480h24c17.7 0 32-14.3 32-32s-14.3-32-32-32H264c-57.9 0-108.2-32.4-133.9-80H256c17.7 0 32-14.3 32-32s-14.3-32-32-32H112.2c-.1-2.6-.2-5.3-.2-8V248c0-2.7 .1-5.4 .2-8H256c17.7 0 32-14.3 32-32s-14.3-32-32-32H130.1c25.7-47.6 76-80 133.9-80h24c17.7 0 32-14.3 32-32s-14.3-32-32-32H264C170 32 89.9 92.1 60.3 176H32c-17.7 0-32 14.3-32 32s14.3 32 32 32H48.1z"/></svg></div><div class="grow"><h2>Fundraising</h2><p>Where we are against the target, and what it pays for.</p></div></div>
+    <div class="money">
+      <div class="panel thermo">
+        <h3><svg class="i" viewBox="0 0 512 512" aria-hidden="true"><path d="M448 256A192 192 0 1 0 64 256a192 192 0 1 0 384 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm256 80a80 80 0 1 0 0-160 80 80 0 1 0 0 160zm0-224a144 144 0 1 1 0 288 144 144 0 1 1 0-288zM224 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"/></svg> Raised so far</h3>
+        <div class="big"><b id="raised">€0</b><span id="raised-of"></span></div>
+        <div class="track" id="track"><div class="fill" id="fill" style="width:0"></div></div>
+        <div class="stats" id="mstats"></div>
+      </div>
+      <div class="panel">
+        <h3><svg class="i" viewBox="0 0 512 512" aria-hidden="true"><path d="M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z"/></svg> Running total</h3>
+        <p class="sub">Target checkpoints and what's actually in.</p>
+        <svg id="cp" viewBox="0 0 520 250" role="img" aria-label="Fundraising running total against checkpoints"></svg>
+        <div class="legend" id="cp-legend"></div>
+      </div>
+      <div class="panel">
+        <h3><svg class="i" viewBox="0 0 512 512" aria-hidden="true"><path d="M40 48C26.7 48 16 58.7 16 72v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V72c0-13.3-10.7-24-24-24H40zM192 64c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zM16 232v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V232c0-13.3-10.7-24-24-24H40c-13.3 0-24 10.7-24 24zM40 368c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V392c0-13.3-10.7-24-24-24H40z"/></svg> The streams</h3>
+        <p class="sub">Target for each, with raised money in red.</p>
+        <div class="streams" id="streams"></div>
+      </div>
+      <div class="panel">
+        <h3><svg class="i" viewBox="0 0 576 512" aria-hidden="true"><path d="M304 240V16.6c0-9 7-16.6 16-16.6C443.7 0 544 100.3 544 224c0 9-7.6 16-16.6 16H304zM32 272C32 150.7 122.1 50.3 239 34.3c9.2-1.3 17 6.1 17 15.4V288L412.5 444.5c6.7 6.7 6.2 17.7-1.5 23.1C371.8 495.6 323.8 512 272 512C139.5 512 32 404.6 32 272zm526.4 16c9.3 0 16.6 7.8 15.4 17c-7.7 55.9-34.6 105.6-73.9 142.3c-6 5.6-15.4 5.2-21.2-.7L320 288H558.4z"/></svg> What it pays for</h3>
+        <p class="sub" id="cost-sub"></p>
+        <div class="donut"><svg id="donut" viewBox="0 0 200 200" role="img" aria-label="Season costs"></svg><ul id="costs"></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="dates">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" viewBox="0 0 448 512" aria-hidden="true"><path d="M128 0c17.7 0 32 14.3 32 32V64H288V32c0-17.7 14.3-32 32-32s32 14.3 32 32V64h48c26.5 0 48 21.5 48 48v48H0V112C0 85.5 21.5 64 48 64H96V32c0-17.7 14.3-32 32-32zM0 192H448V464c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V192zm64 80v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V272c0-8.8-7.2-16-16-16H80c-8.8 0-16 7.2-16 16zm128 0v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V272c0-8.8-7.2-16-16-16H208c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V272c0-8.8-7.2-16-16-16H336zM64 400v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400c0-8.8-7.2-16-16-16H80c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400c0-8.8-7.2-16-16-16H208zm112 16v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400c0-8.8-7.2-16-16-16H336c-8.8 0-16 7.2-16 16z"/></svg></div><div class="grow"><h2>All dates</h2><p>Month by month. Tap a category to hide it.</p></div></div>
+    <div class="chips" id="chips"></div>
+    <div id="agenda"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="in">
+    <img src="../../images/clontarf-crest.png" alt="">
+    <div><span id="src"></span><br>Icons: <a href="https://fontawesome.com" rel="noopener">Font Awesome Free</a> (CC BY 4.0).</div>
+  </div>
+</footer>
+<div id="tip" role="tooltip"></div>
+
+<script>
+// ---- Where the data lives -------------------------------------------------
+// The coaches' Google Sheet. It must be shared "Anyone with the link: Viewer".
+const SHEET_ID = '1LRQf0aKsgOxEe9Vw0KbptAtGHj75xHIxlLMXYuDji10';
+const TABS = ['Key dates', 'Phases', 'Fundraising', 'Checkpoints', 'Costs', 'Settings'];
+// Copy of the sheet when this page was built: used if the sheet can't be reached.
+const SNAPSHOT = {"Key dates": [{"Date": "2027-04-24", "End date": "2027-04-25", "Category": "Féile", "Title": "Féile 2027 finals weekend", "Details": "Football and camogie. Date not confirmed yet: change it here when the county board publishes it.", "Status": "TBC", "Countdown": "Yes"}, {"Date": "2026-11-06", "End date": "", "Category": "Meeting", "Title": "Parents' meeting", "Details": "Name the fundraising committee and agree what each family commits to.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-11-13", "End date": "", "Category": "Meeting", "Title": "Club sign-off and permits", "Details": "Club executive signs off the plan; raffle and collection permits confirmed.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-11-13", "End date": "", "Category": "Fundraising", "Title": "Bag-pack dates booked", "Details": "December slots booked with two supermarkets.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-11-15", "End date": "", "Category": "Fundraising", "Title": "Sales launch", "Details": "150 Club entries, hamper raffle tickets and sponsor pack go out.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-12-05", "End date": "", "Category": "Fundraising", "Title": "Bag pack 1", "Details": "Two stores at once. 2-hour shifts of 6 girls and 2 adults.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-12-12", "End date": "", "Category": "Fundraising", "Title": "Bag pack 2", "Details": "Two stores at once.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-12-14", "End date": "", "Category": "Training", "Title": "Christmas block starts", "Details": "Less pitch time: home sessions carry the load.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-12-18", "End date": "2026-12-23", "Category": "Fundraising", "Title": "Gift-wrapping stand", "Details": "Girls wrap shoppers' presents for a donation.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-12-18", "End date": "", "Category": "Fundraising", "Title": "150 Club draw 1", "Details": "First monthly draw.", "Status": "TBC", "Countdown": "No"}, {"Date": "2026-12-19", "End date": "", "Category": "Fundraising", "Title": "Bag pack 3", "Details": "Last Christmas bag pack.", "Status": "Planned", "Countdown": "No"}, {"Date": "2026-12-21", "End date": "", "Category": "Fundraising", "Title": "Hamper raffle draw", "Details": "Drawn live on the club's socials so winners collect before Christmas.", "Status": "Planned", "Countdown": "Yes"}, {"Date": "2026-12-21", "End date": "2027-01-03", "Category": "Christmas", "Title": "Team Christmas break", "Details": "No team sessions. Light home work and the 12 Days of Touches.", "Status": "Planned", "Countdown": "Yes"}, {"Date": "2026-12-24", "End date": "2026-12-27", "Category": "Christmas", "Title": "Full rest days", "Details": "Nothing planned. Enjoy Christmas.", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-01-02", "End date": "", "Category": "Training", "Title": "Fitness check 2", "Details": "Home benchmark after Christmas.", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-01-04", "End date": "", "Category": "Training", "Title": "Team training restarts", "Details": "Back to Mon and Wed training, Tue S&C.", "Status": "Planned", "Countdown": "Yes"}, {"Date": "2027-01-10", "End date": "", "Category": "Fundraising", "Title": "Sponsored New Year walk", "Details": "Bull Island and the Prom. About €65 a girl on sponsorship cards.", "Status": "Planned", "Countdown": "Yes"}, {"Date": "2027-01-11", "End date": "", "Category": "Training", "Title": "Build phase starts", "Details": "", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-01-24", "End date": "", "Category": "Fundraising", "Title": "Walk sponsorship cards in", "Details": "", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-01-29", "End date": "", "Category": "Fundraising", "Title": "150 Club draw 2", "Details": "", "Status": "TBC", "Countdown": "No"}, {"Date": "2027-02-07", "End date": "", "Category": "Match", "Title": "Sunday challenge games begin", "Details": "Challenge games most Sundays from here to 11 Apr.", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-02-13", "End date": "", "Category": "Gear", "Title": "Gear order deadline", "Details": "Full Féile pack order goes in for mid-March delivery. Sizes and initials needed before this.", "Status": "Planned", "Countdown": "Yes"}, {"Date": "2027-02-26", "End date": "", "Category": "Fundraising", "Title": "Variety night", "Details": "Clontarf Féile Live: 350 tickets at €15, raffle and 150 Club draw 3 on the night.", "Status": "Planned", "Countdown": "Yes"}, {"Date": "2027-02-27", "End date": "", "Category": "Training", "Title": "Fitness check 3", "Details": "", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-03-01", "End date": "", "Category": "Training", "Title": "Competition prep starts", "Details": "", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-03-13", "End date": "", "Category": "Fundraising", "Title": "Spring bag pack", "Details": "Final bag pack.", "Status": "TBC", "Countdown": "No"}, {"Date": "2027-03-14", "End date": "", "Category": "Match", "Title": "Féile-style home blitz", "Details": "A full Féile-format day at home.", "Status": "Planned", "Countdown": "Yes"}, {"Date": "2027-03-15", "End date": "", "Category": "Gear", "Title": "Gear arrives", "Details": "Expected delivery of the Féile packs.", "Status": "TBC", "Countdown": "No"}, {"Date": "2027-03-26", "End date": "", "Category": "Fundraising", "Title": "150 Club final draw", "Details": "", "Status": "TBC", "Countdown": "No"}, {"Date": "2027-03-30", "End date": "2027-04-01", "Category": "Training", "Title": "Easter camp", "Details": "Three mornings, 10:00 to 13:00.", "Status": "Planned", "Countdown": "Yes"}, {"Date": "2027-03-31", "End date": "", "Category": "Fundraising", "Title": "Fundraising closes", "Details": "Donations page closes. Shortfall plan if under target.", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-04-03", "End date": "", "Category": "Training", "Title": "Fitness check 4", "Details": "", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-04-05", "End date": "", "Category": "Training", "Title": "Peak and taper starts", "Details": "", "Status": "Planned", "Countdown": "No"}, {"Date": "2027-04-11", "End date": "", "Category": "Match", "Title": "Last challenge game", "Details": "", "Status": "Planned", "Countdown": "No"}], "Phases": [{"Lane": "Training", "Phase": "Foundation", "Start": "2026-11-02", "End": "2026-12-13", "Focus": "Aerobic base, strength habits, skills"}, {"Lane": "Training", "Phase": "Christmas block", "Start": "2026-12-14", "End": "2027-01-10", "Focus": "Home sessions, rest 24 to 27 Dec"}, {"Lane": "Training", "Phase": "Build", "Start": "2027-01-11", "End": "2027-02-28", "Focus": "More intensity, challenge games"}, {"Lane": "Training", "Phase": "Competition prep", "Start": "2027-03-01", "End": "2027-04-04", "Focus": "Match sharpness, blitz, Easter camp"}, {"Lane": "Training", "Phase": "Peak and taper", "Start": "2027-04-05", "End": "2027-04-25", "Focus": "Fresh legs for Féile"}, {"Lane": "Fundraising", "Phase": "Setup and selling", "Start": "2026-11-01", "End": "2026-11-30", "Focus": "Committee, permits, sales launch"}, {"Lane": "Fundraising", "Phase": "Christmas push", "Start": "2026-12-01", "End": "2026-12-31", "Focus": "Bag packs, gift wrapping, hamper raffle"}, {"Lane": "Fundraising", "Phase": "Finish the job", "Start": "2027-01-01", "End": "2027-03-31", "Focus": "Walk, variety night, sponsors"}, {"Lane": "Fundraising", "Phase": "Football only", "Start": "2027-04-01", "End": "2027-04-30", "Focus": "No fundraising in April"}], "Fundraising": [{"Stream": "Féile 150 Club", "When": "Sell Nov, draws Dec to Mar", "Target €": 5500, "Raised €": ""}, {"Stream": "Business sponsorship", "When": "Nov to Feb", "Target €": 5500, "Raised €": ""}, {"Stream": "Variety night", "When": "Fri 26 Feb", "Target €": 5000, "Raised €": ""}, {"Stream": "Christmas hamper raffle", "When": "Draw Mon 21 Dec", "Target €": 4500, "Raised €": ""}, {"Stream": "Sponsored New Year walk", "When": "Sun 10 Jan", "Target €": 3500, "Raised €": ""}, {"Stream": "Supermarket bag packs", "When": "Sats in Dec + March", "Target €": 3500, "Raised €": ""}, {"Stream": "Bake sales and online", "When": "All season", "Target €": 1500, "Raised €": ""}, {"Stream": "Gift-wrapping stand", "When": "18 to 23 Dec", "Target €": 1000, "Raised €": ""}], "Checkpoints": [{"Date": "2026-11-30", "Target €": 6000, "Raised €": ""}, {"Date": "2026-12-31", "Target €": 16500, "Raised €": ""}, {"Date": "2027-01-31", "Target €": 20000, "Raised €": ""}, {"Date": "2027-02-28", "Target €": 27500, "Raised €": ""}, {"Date": "2027-03-31", "Target €": 30000, "Raised €": ""}], "Costs": [{"Item": "Kit", "Detail": "Féile gear pack, about €160 a girl", "€": 8800}, {"Item": "Team expenses pot", "Detail": "Coach travel, pitch or hall hire, camps, ad hoc", "€": 6000}, {"Item": "Féile weekend", "Detail": "Food, parade items, host family gifts, first aid", "€": 3000}, {"Item": "S&C and physio", "Detail": "Specialist sessions and screening", "€": 2500}, {"Item": "Camogie equipment", "Detail": "Helmets, hurls and sliotars top-up", "€": 1500}], "Settings": [{"Setting": "Target €", "Value": 20000, "Notes": "Minimum to raise"}, {"Setting": "Stretch €", "Value": 30000, "Notes": "Stretch target"}, {"Setting": "Squad size", "Value": 55, "Notes": "Girls in the squad"}, {"Setting": "Raised so far €", "Value": "", "Notes": "Leave blank to add up the Raised column on the Fundraising tab, or type a total to override it"}]};
+const ICONS = {"trophy": ["0 0 576 512", "M400 0H176c-26.5 0-48.1 21.8-47.1 48.2c.2 5.3 .4 10.6 .7 15.8H24C10.7 64 0 74.7 0 88c0 92.6 33.5 157 78.5 200.7c44.3 43.1 98.3 64.8 138.1 75.8c23.4 6.5 39.4 26 39.4 45.6c0 20.9-17 37.9-37.9 37.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32H384c17.7 0 32-14.3 32-32s-14.3-32-32-32H357.9C337 448 320 431 320 410.1c0-19.6 15.9-39.2 39.4-45.6c39.9-11 93.9-32.7 138.2-75.8C542.5 245 576 180.6 576 88c0-13.3-10.7-24-24-24H446.4c.3-5.2 .5-10.4 .7-15.8C448.1 21.8 426.5 0 400 0zM48.9 112h84.4c9.1 90.1 29.2 150.3 51.9 190.6c-24.9-11-50.8-26.5-73.2-48.3c-32-31.1-58-76-63-142.3zM464.1 254.3c-22.4 21.8-48.3 37.3-73.2 48.3c22.7-40.3 42.8-100.5 51.9-190.6h84.4c-5.1 66.3-31.1 111.2-63 142.3z"], "euro-sign": ["0 0 320 512", "M48.1 240c-.1 2.7-.1 5.3-.1 8v16c0 2.7 0 5.3 .1 8H32c-17.7 0-32 14.3-32 32s14.3 32 32 32H60.3C89.9 419.9 170 480 264 480h24c17.7 0 32-14.3 32-32s-14.3-32-32-32H264c-57.9 0-108.2-32.4-133.9-80H256c17.7 0 32-14.3 32-32s-14.3-32-32-32H112.2c-.1-2.6-.2-5.3-.2-8V248c0-2.7 .1-5.4 .2-8H256c17.7 0 32-14.3 32-32s-14.3-32-32-32H130.1c25.7-47.6 76-80 133.9-80h24c17.7 0 32-14.3 32-32s-14.3-32-32-32H264C170 32 89.9 92.1 60.3 176H32c-17.7 0-32 14.3-32 32s14.3 32 32 32H48.1z"], "person-running": ["0 0 448 512", "M320 48a48 48 0 1 0 -96 0 48 48 0 1 0 96 0zM125.7 175.5c9.9-9.9 23.4-15.5 37.5-15.5c1.9 0 3.8 .1 5.6 .3L137.6 254c-9.3 28 1.7 58.8 26.8 74.5l86.2 53.9-25.4 88.8c-4.9 17 5 34.7 22 39.6s34.7-5 39.6-22l28.7-100.4c5.9-20.6-2.6-42.6-20.7-53.9L238 299l30.9-82.4 5.1 12.3C289 264.7 323.9 288 362.7 288H384c17.7 0 32-14.3 32-32s-14.3-32-32-32H362.7c-12.9 0-24.6-7.8-29.5-19.7l-6.3-15c-14.6-35.1-44.1-61.9-80.5-73.1l-48.7-15c-11.1-3.4-22.7-5.2-34.4-5.2c-31 0-60.8 12.3-82.7 34.3L57.4 153.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l23.1-23.1zM91.2 352H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h69.6c19 0 36.2-11.2 43.9-28.5L157 361.6l-9.5-6c-17.5-10.9-30.5-26.8-37.9-44.9L91.2 352z"], "futbol": ["0 0 512 512", "M417.3 360.1l-71.6-4.8c-5.2-.3-10.3 1.1-14.5 4.2s-7.2 7.4-8.4 12.5l-17.6 69.6C289.5 445.8 273 448 256 448s-33.5-2.2-49.2-6.4L189.2 372c-1.3-5-4.3-9.4-8.4-12.5s-9.3-4.5-14.5-4.2l-71.6 4.8c-17.6-27.2-28.5-59.2-30.4-93.6L125 228.3c4.4-2.8 7.6-7 9.2-11.9s1.4-10.2-.5-15l-26.7-66.6C128 109.2 155.3 89 186.7 76.9l55.2 46c4 3.3 9 5.1 14.1 5.1s10.2-1.8 14.1-5.1l55.2-46c31.3 12.1 58.7 32.3 79.6 57.9l-26.7 66.6c-1.9 4.8-2.1 10.1-.5 15s4.9 9.1 9.2 11.9l60.7 38.2c-1.9 34.4-12.8 66.4-30.4 93.6zM256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zm14.1-325.7c-8.4-6.1-19.8-6.1-28.2 0L194 221c-8.4 6.1-11.9 16.9-8.7 26.8l18.3 56.3c3.2 9.9 12.4 16.6 22.8 16.6h59.2c10.4 0 19.6-6.7 22.8-16.6l18.3-56.3c3.2-9.9-.3-20.7-8.7-26.8l-47.9-34.8z"], "shirt": ["0 0 640 512", "M211.8 0c7.8 0 14.3 5.7 16.7 13.2C240.8 51.9 277.1 80 320 80s79.2-28.1 91.5-66.8C413.9 5.7 420.4 0 428.2 0h12.6c22.5 0 44.2 7.9 61.5 22.3L628.5 127.4c6.6 5.5 10.7 13.5 11.4 22.1s-2.1 17.1-7.8 23.6l-56 64c-11.4 13.1-31.2 14.6-44.6 3.5L480 197.7V448c0 35.3-28.7 64-64 64H224c-35.3 0-64-28.7-64-64V197.7l-51.5 42.9c-13.3 11.1-33.1 9.6-44.6-3.5l-56-64c-5.7-6.5-8.5-15-7.8-23.6s4.8-16.6 11.4-22.1L137.7 22.3C155 7.9 176.7 0 199.2 0h12.6z"], "gift": ["0 0 512 512", "M190.5 68.8L225.3 128H224 152c-22.1 0-40-17.9-40-40s17.9-40 40-40h2.2c14.9 0 28.8 7.9 36.3 20.8zM64 88c0 14.4 3.5 28 9.6 40H32c-17.7 0-32 14.3-32 32v64c0 17.7 14.3 32 32 32H480c17.7 0 32-14.3 32-32V160c0-17.7-14.3-32-32-32H438.4c6.1-12 9.6-25.6 9.6-40c0-48.6-39.4-88-88-88h-2.2c-31.9 0-61.5 16.9-77.7 44.4L256 85.5l-24.1-41C215.7 16.9 186.1 0 154.2 0H152C103.4 0 64 39.4 64 88zm336 0c0 22.1-17.9 40-40 40H288h-1.3l34.8-59.2C329.1 55.9 342.9 48 357.8 48H360c22.1 0 40 17.9 40 40zM32 288V464c0 26.5 21.5 48 48 48H224V288H32zM288 512H432c26.5 0 48-21.5 48-48V288H288V512z"], "users": ["0 0 640 512", "M144 0a80 80 0 1 1 0 160A80 80 0 1 1 144 0zM512 0a80 80 0 1 1 0 160A80 80 0 1 1 512 0zM0 298.7C0 239.8 47.8 192 106.7 192h42.7c15.9 0 31 3.5 44.6 9.7c-1.3 7.2-1.9 14.7-1.9 22.3c0 38.2 16.8 72.5 43.3 96c-.2 0-.4 0-.7 0H21.3C9.6 320 0 310.4 0 298.7zM405.3 320c-.2 0-.4 0-.7 0c26.6-23.5 43.3-57.8 43.3-96c0-7.6-.7-15-1.9-22.3c13.6-6.3 28.7-9.7 44.6-9.7h42.7C592.2 192 640 239.8 640 298.7c0 11.8-9.6 21.3-21.3 21.3H405.3zM224 224a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zM128 485.3C128 411.7 187.7 352 261.3 352H378.7C452.3 352 512 411.7 512 485.3c0 14.7-11.9 26.7-26.7 26.7H154.7c-14.7 0-26.7-11.9-26.7-26.7z"], "calendar-days": ["0 0 448 512", "M128 0c17.7 0 32 14.3 32 32V64H288V32c0-17.7 14.3-32 32-32s32 14.3 32 32V64h48c26.5 0 48 21.5 48 48v48H0V112C0 85.5 21.5 64 48 64H96V32c0-17.7 14.3-32 32-32zM0 192H448V464c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V192zm64 80v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V272c0-8.8-7.2-16-16-16H80c-8.8 0-16 7.2-16 16zm128 0v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V272c0-8.8-7.2-16-16-16H208c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V272c0-8.8-7.2-16-16-16H336zM64 400v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400c0-8.8-7.2-16-16-16H80c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400c0-8.8-7.2-16-16-16H208zm112 16v32c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400c0-8.8-7.2-16-16-16H336c-8.8 0-16 7.2-16 16z"], "hourglass-half": ["0 0 384 512", "M32 0C14.3 0 0 14.3 0 32S14.3 64 32 64V75c0 42.4 16.9 83.1 46.9 113.1L146.7 256 78.9 323.9C48.9 353.9 32 394.6 32 437v11c-17.7 0-32 14.3-32 32s14.3 32 32 32H64 320h32c17.7 0 32-14.3 32-32s-14.3-32-32-32V437c0-42.4-16.9-83.1-46.9-113.1L237.3 256l67.9-67.9c30-30 46.9-70.7 46.9-113.1V64c17.7 0 32-14.3 32-32s-14.3-32-32-32H320 64 32zM96 75V64H288V75c0 19-5.6 37.4-16 53H112c-10.3-15.6-16-34-16-53zm16 309c3.5-5.3 7.6-10.3 12.1-14.9L192 301.3l67.9 67.9c4.6 4.6 8.6 9.6 12.1 14.9H112z"], "flag-checkered": ["0 0 448 512", "M32 0C49.7 0 64 14.3 64 32V48l69-17.2c38.1-9.5 78.3-5.1 113.5 12.5c46.3 23.2 100.8 23.2 147.1 0l9.6-4.8C423.8 28.1 448 43.1 448 66.1V345.8c0 13.3-8.3 25.3-20.8 30l-34.7 13c-46.2 17.3-97.6 14.6-141.7-7.4c-37.9-19-81.3-23.7-122.5-13.4L64 384v96c0 17.7-14.3 32-32 32s-32-14.3-32-32V400 334 64 32C0 14.3 14.3 0 32 0zM64 187.1l64-13.9v65.5L64 252.6V318l48.8-12.2c5.1-1.3 10.1-2.4 15.2-3.3V238.7l38.9-8.4c8.3-1.8 16.7-2.5 25.1-2.1l0-64c13.6 .4 27.2 2.6 40.4 6.4l23.6 6.9v66.7l-41.7-12.3c-7.3-2.1-14.8-3.4-22.3-3.8v71.4c21.8 1.9 43.3 6.7 64 14.4V244.2l22.7 6.7c13.5 4 27.3 6.4 41.3 7.4V194c-7.8-.8-15.6-2.3-23.2-4.5l-40.8-12v-62c-13-3.8-25.8-8.8-38.2-15c-8.2-4.1-16.9-7-25.8-8.8v72.4c-13-.4-26 .8-38.7 3.6L128 173.2V98L64 114v73.1zM320 335.7c16.8 1.5 33.9-.7 50-6.8l14-5.2V251.9l-7.9 1.8c-18.4 4.3-37.3 5.7-56.1 4.5v77.4zm64-149.4V115.4c-20.9 6.1-42.4 9.1-64 9.1V194c13.9 1.4 28 .5 41.7-2.6l22.3-5.2z"], "bullseye": ["0 0 512 512", "M448 256A192 192 0 1 0 64 256a192 192 0 1 0 384 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm256 80a80 80 0 1 0 0-160 80 80 0 1 0 0 160zm0-224a144 144 0 1 1 0 288 144 144 0 1 1 0-288zM224 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z"], "chart-line": ["0 0 512 512", "M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z"], "circle-check": ["0 0 512 512", "M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"], "clock": ["0 0 512 512", "M256 0a256 256 0 1 1 0 512A256 256 0 1 1 256 0zM232 120V256c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2V120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"], "list": ["0 0 512 512", "M40 48C26.7 48 16 58.7 16 72v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V72c0-13.3-10.7-24-24-24H40zM192 64c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zm0 160c-17.7 0-32 14.3-32 32s14.3 32 32 32H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H192zM16 232v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V232c0-13.3-10.7-24-24-24H40c-13.3 0-24 10.7-24 24zM40 368c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24H88c13.3 0 24-10.7 24-24V392c0-13.3-10.7-24-24-24H40z"], "snowflake": ["0 0 448 512", "M224 0c17.7 0 32 14.3 32 32V62.1l15-15c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-49 49v70.3l61.4-35.8 17.7-66.1c3.4-12.8 16.6-20.4 29.4-17s20.4 16.6 17 29.4l-5.2 19.3 23.6-13.8c15.3-8.9 34.9-3.7 43.8 11.5s3.8 34.9-11.5 43.8l-25.3 14.8 21.7 5.8c12.8 3.4 20.4 16.6 17 29.4s-16.6 20.4-29.4 17l-67.7-18.1L287.5 256l60.9 35.5 67.7-18.1c12.8-3.4 26 4.2 29.4 17s-4.2 26-17 29.4l-21.7 5.8 25.3 14.8c15.3 8.9 20.4 28.5 11.5 43.8s-28.5 20.4-43.8 11.5l-23.6-13.8 5.2 19.3c3.4 12.8-4.2 26-17 29.4s-26-4.2-29.4-17l-17.7-66.1L256 311.7v70.3l49 49c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-15-15V480c0 17.7-14.3 32-32 32s-32-14.3-32-32V449.9l-15 15c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l49-49V311.7l-61.4 35.8-17.7 66.1c-3.4 12.8-16.6 20.4-29.4 17s-20.4-16.6-17-29.4l5.2-19.3L48.1 395.6c-15.3 8.9-34.9 3.7-43.8-11.5s-3.7-34.9 11.5-43.8l25.3-14.8-21.7-5.8c-12.8-3.4-20.4-16.6-17-29.4s16.6-20.4 29.4-17l67.7 18.1L160.5 256 99.6 220.5 31.9 238.6c-12.8 3.4-26-4.2-29.4-17s4.2-26 17-29.4l21.7-5.8L15.9 171.6C.6 162.7-4.5 143.1 4.4 127.9s28.5-20.4 43.8-11.5l23.6 13.8-5.2-19.3c-3.4-12.8 4.2-26 17-29.4s26 4.2 29.4 17l17.7 66.1L192 200.3V129.9L143 81c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l15 15V32c0-17.7 14.3-32 32-32z"], "timeline": ["0 0 640 512", "M128 72a24 24 0 1 1 0 48 24 24 0 1 1 0-48zm32 97.3c28.3-12.3 48-40.5 48-73.3c0-44.2-35.8-80-80-80S48 51.8 48 96c0 32.8 19.7 61 48 73.3V224H32c-17.7 0-32 14.3-32 32s14.3 32 32 32H288v54.7c-28.3 12.3-48 40.5-48 73.3c0 44.2 35.8 80 80 80s80-35.8 80-80c0-32.8-19.7-61-48-73.3V288H608c17.7 0 32-14.3 32-32s-14.3-32-32-32H544V169.3c28.3-12.3 48-40.5 48-73.3c0-44.2-35.8-80-80-80s-80 35.8-80 80c0 32.8 19.7 61 48 73.3V224H160V169.3zM488 96a24 24 0 1 1 48 0 24 24 0 1 1 -48 0zM320 392a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"], "chart-pie": ["0 0 576 512", "M304 240V16.6c0-9 7-16.6 16-16.6C443.7 0 544 100.3 544 224c0 9-7.6 16-16.6 16H304zM32 272C32 150.7 122.1 50.3 239 34.3c9.2-1.3 17 6.1 17 15.4V288L412.5 444.5c6.7 6.7 6.2 17.7-1.5 23.1C371.8 495.6 323.8 512 272 512C139.5 512 32 404.6 32 272zm526.4 16c9.3 0 16.6 7.8 15.4 17c-7.7 55.9-34.6 105.6-73.9 142.3c-6 5.6-15.4 5.2-21.2-.7L320 288H558.4z"], "arrows-rotate": ["0 0 512 512", "M105.1 202.6c7.7-21.8 20.2-42.3 37.8-59.8c62.5-62.5 163.8-62.5 226.3 0L386.3 160H352c-17.7 0-32 14.3-32 32s14.3 32 32 32H463.5c0 0 0 0 0 0h.4c17.7 0 32-14.3 32-32V80c0-17.7-14.3-32-32-32s-32 14.3-32 32v35.2L414.4 97.6c-87.5-87.5-229.3-87.5-316.8 0C73.2 122 55.6 150.7 44.8 181.4c-5.9 16.7 2.9 34.9 19.5 40.8s34.9-2.9 40.8-19.5zM39 289.3c-5 1.5-9.8 4.2-13.7 8.2c-4 4-6.7 8.8-8.1 14c-.3 1.2-.6 2.5-.8 3.8c-.3 1.7-.4 3.4-.4 5.1V432c0 17.7 14.3 32 32 32s32-14.3 32-32V396.9l17.6 17.5 0 0c87.5 87.4 229.3 87.4 316.7 0c24.4-24.4 42.1-53.1 52.9-83.7c5.9-16.7-2.9-34.9-19.5-40.8s-34.9 2.9-40.8 19.5c-7.7 21.8-20.2 42.3-37.8 59.8c-62.5 62.5-163.8 62.5-226.3 0l-.1-.1L125.6 352H160c17.7 0 32-14.3 32-32s-14.3-32-32-32H48.4c-1.6 0-3.2 .1-4.8 .3s-3.1 .5-4.6 1z"]};
+
+const CATS = {
+  'Féile':       { c: 'var(--c-feile)', hex: '#ED1B2E', i: 'trophy' },
+  'Fundraising': { c: 'var(--c-fund)',  hex: '#D99A00', i: 'euro-sign' },
+  'Training':    { c: 'var(--c-train)', hex: '#2C5AA0', i: 'person-running' },
+  'Match':       { c: 'var(--c-match)', hex: '#0E9384', i: 'futbol' },
+  'Gear':        { c: 'var(--c-gear)',  hex: '#8E5BD0', i: 'shirt' },
+  'Christmas':   { c: 'var(--c-xmas)',  hex: '#5B7A29', i: 'gift' },
+  'Meeting':     { c: 'var(--c-meet)',  hex: '#C2417E', i: 'users' },
+};
+const OTHER = { c: '#6B7280', hex: '#6B7280', i: 'calendar-days' };
+const cat = (n) => CATS[n] || OTHER;
+const icon = (n) => { const [vb, d] = ICONS[n] || ICONS['calendar-days']; return `<svg class="i" viewBox="${vb}" aria-hidden="true"><path d="${d}"/></svg>`; };
+
+// ---- Helpers ----------------------------------------------------------------
+const MON = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAY = 864e5;
+function parseDate(v) {
+  if (v == null) return null;
+  const s = String(v).trim(); if (!s) return null;
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], m[2] - 1, +m[3]);
+  m = s.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?,?\s+(\d{4})/);
+  if (m && MON.indexOf(m[2].toLowerCase()) >= 0) return new Date(+m[3], MON.indexOf(m[2].toLowerCase()), +m[1]);
+  m = s.match(/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})/);
+  if (m && MON.indexOf(m[1].toLowerCase()) >= 0) return new Date(+m[3], MON.indexOf(m[1].toLowerCase()), +m[2]);
+  m = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/); // Irish order: day/month/year
+  if (m) return new Date(m[3].length === 2 ? 2000 + +m[3] : +m[3], m[2] - 1, +m[1]);
+  return null;
+}
+const num = (v) => { const n = parseFloat(String(v ?? '').replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : null; };
+const eur = (n) => '€' + Math.round(n).toLocaleString('en-IE');
+const eurK = (n) => n >= 1000 ? '€' + (n / 1000).toFixed(n % 1000 ? 1 : 0) + 'k' : eur(n);
+const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const daysTo = (d) => Math.round((d - today()) / DAY);
+const fmt = (d, o = {}) => d ? d.toLocaleDateString('en-IE', { weekday: o.wd === false ? undefined : 'short', day: 'numeric', month: 'short', year: o.y ? 'numeric' : undefined }).replace(',', '') : '';
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const yes = (v) => /^(y|yes|true|1)$/i.test(String(v ?? '').trim());
+
+function parseCSV(text) {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += c;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  const head = (rows.shift() || []).map((h) => h.trim());
+  return rows.filter((r) => r.some((x) => x.trim() !== '')).map((r) => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? '').trim()])));
+}
+
+async function loadTab(name) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(name)}&t=${Date.now()}`;
+  const r = await fetch(url, { cache: 'no-store' });
+  if (!r.ok) throw new Error(r.status);
+  const t = await r.text();
+  if (/^\s*</.test(t)) throw new Error('not shared');
+  return parseCSV(t);
+}
+
+async function load() {
+  try {
+    const parts = await Promise.all(TABS.map(loadTab));
+    const data = Object.fromEntries(TABS.map((t, i) => [t, parts[i]]));
+    if (!data['Key dates'].length || !('Date' in data['Key dates'][0])) throw new Error('unexpected layout');
+    try { localStorage.setItem('feile27-dates', JSON.stringify({ at: Date.now(), data })); } catch (e) {}
+    return { data, src: 'live', at: new Date() };
+  } catch (e) {
+    console.warn('Sheet not reachable, using saved copy:', e);
+    try {
+      const c = JSON.parse(localStorage.getItem('feile27-dates'));
+      if (c && c.data) return { data: c.data, src: 'cache', at: new Date(c.at) };
+    } catch (e2) {}
+    return { data: SNAPSHOT, src: 'snapshot', at: null };
+  }
+}
+
+// ---- Model -----------------------------------------------------------------
+function model(data) {
+  const events = (data['Key dates'] || []).map((r, i) => {
+    const d = parseDate(r['Date']); if (!d) return null;
+    let e = parseDate(r['End date']); if (e && e < d) e = null;
+    const status = (r['Status'] || 'Planned').trim();
+    return { id: i, d, e, cat: (r['Category'] || '').trim(), title: r['Title'] || '(untitled)', details: r['Details'] || '',
+      status, tbc: /tbc/i.test(status), done: /done/i.test(status), cancel: /cancel/i.test(status), countdown: yes(r['Countdown']) };
+  }).filter(Boolean).filter((e) => !e.cancel).sort((a, b) => a.d - b.d || a.title.localeCompare(b.title));
+  const phases = (data['Phases'] || []).map((r) => ({ lane: r['Lane'] || 'Training', name: r['Phase'] || '', s: parseDate(r['Start']), e: parseDate(r['End']), focus: r['Focus'] || '' }))
+    .filter((p) => p.s && p.e && p.e >= p.s);
+  const streams = (data['Fundraising'] || []).map((r) => ({ name: r['Stream'], when: r['When'] || '', target: num(r['Target €']) || 0, raised: num(r['Raised €']) || 0 })).filter((s) => s.name);
+  const checks = (data['Checkpoints'] || []).map((r) => ({ d: parseDate(r['Date']), target: num(r['Target €']), raised: num(r['Raised €']) })).filter((c) => c.d && c.target != null).sort((a, b) => a.d - b.d);
+  const costs = (data['Costs'] || []).map((r) => ({ name: r['Item'], detail: r['Detail'] || '', v: num(r['€']) || 0 })).filter((c) => c.name && c.v > 0);
+  const set = {}; (data['Settings'] || []).forEach((r) => { if (r['Setting']) set[r['Setting'].trim()] = num(r['Value']); });
+  const target = set['Target €'] || 20000, stretch = set['Stretch €'] || 30000, squad = set['Squad size'] || 55;
+  const sumStreams = streams.reduce((a, s) => a + s.raised, 0);
+  const raised = set['Raised so far €'] != null ? set['Raised so far €'] : sumStreams;
+  const feile = events.find((e) => e.cat === 'Féile' && (e.e || e.d) >= today()) || events.filter((e) => e.cat === 'Féile').pop();
+  return { events, phases, streams, checks, costs, target, stretch, squad, raised, feile };
+}
+
+// ---- Tooltip ---------------------------------------------------------------
+const tip = document.getElementById('tip');
+document.addEventListener('pointermove', (ev) => {
+  const t = ev.target.closest && ev.target.closest('[data-tip]');
+  if (!t) { tip.style.opacity = 0; return; }
+  tip.innerHTML = t.getAttribute('data-tip');
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px'; tip.style.opacity = 1;
+});
+
+// ---- Render: hero countdown ------------------------------------------------
+function renderCountdown(M) {
+  const f = M.feile;
+  const tick = () => {
+    if (!f) return;
+    const ms = Math.max(0, f.d - new Date());
+    const set = (id, v) => document.getElementById(id).textContent = v;
+    set('cd-d', Math.floor(ms / DAY)); set('cd-w', Math.floor(ms / DAY / 7));
+    set('cd-h', Math.floor(ms / 36e5) % 24); set('cd-m', Math.floor(ms / 6e4) % 60);
+  };
+  tick(); setInterval(tick, 20000);
+  document.getElementById('feile-when').innerHTML = f
+    ? `${icon('flag-checkered')} ${esc(f.title)}: ${fmt(f.d, { y: !f.e })}${f.e ? ' to ' + fmt(f.e, { y: true }) : ''} ${f.tbc ? '<span class="tag">Date to be confirmed</span>' : ''}`
+    : 'Add a row with Category "Féile" to the sheet to start the countdown.';
+}
+
+// ---- Render: coming up -----------------------------------------------------
+function renderNext(M) {
+  const t = today();
+  let list = M.events.filter((e) => e.countdown && (e.e || e.d) >= t && !e.done);
+  if (list.length < 4) list = list.concat(M.events.filter((e) => !e.countdown && e.d >= t && !e.done).slice(0, 4 - list.length)).sort((a, b) => a.d - b.d);
+  list = list.slice(0, 8);
+  const horizon = 120;
+  document.getElementById('next').innerHTML = list.length ? list.map((e) => {
+    const k = cat(e.cat), n = daysTo(e.d), on = n <= 0;
+    const pct = on ? 100 : Math.max(4, 100 - (n / horizon) * 100);
+    return `<article class="nx" style="--c:${k.c}">
+      <div class="row"><div class="ci">${icon(k.i)}</div><div class="cat">${esc(e.cat || 'Date')}</div>
+        <div class="days"><b>${on ? 'Now' : n}</b><span>${on ? 'on' : n === 1 ? 'day to go' : 'days to go'}</span></div></div>
+      <h3>${esc(e.title)}</h3>
+      <div class="d">${fmt(e.d)}${e.e ? ' to ' + fmt(e.e) : ''} ${e.tbc ? '<span class="tag">TBC</span>' : ''}</div>
+      <div class="bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
+    </article>`;
+  }).join('') : '<p class="empty">Nothing coming up. Add dates in the sheet.</p>';
+}
+
+// ---- Render: season timeline (SVG) ----------------------------------------
+function renderTimeline(M) {
+  const svg = document.getElementById('tl');
+  const all = M.events.flatMap((e) => [e.d, e.e || e.d]).concat(M.phases.flatMap((p) => [p.s, p.e]));
+  if (!all.length) { svg.innerHTML = ''; return; }
+  const min = new Date(Math.min(...all)), max = new Date(Math.max(...all));
+  const start = new Date(min.getFullYear(), min.getMonth(), 1), end = new Date(max.getFullYear(), max.getMonth() + 1, 1);
+  const W = 1080, L = 130, R = 16, top = 38;
+  const x = (d) => L + ((d - start) / (end - start)) * (W - L - R);
+  const lanes = [...new Set(M.phases.map((p) => p.lane))];
+  const cats = Object.keys(CATS).filter((c) => M.events.some((e) => e.cat === c));
+  M.events.forEach((e) => { if (!CATS[e.cat] && !cats.includes(e.cat || 'Other')) cats.push(e.cat || 'Other'); });
+  const laneH = 40, catH = 30, gap = 14;
+  const H = top + lanes.length * laneH + gap + cats.length * catH + 10;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  let s = '';
+  // month grid
+  for (let m = new Date(start); m < end; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+    const nx = new Date(m.getFullYear(), m.getMonth() + 1, 1);
+    s += `<line x1="${x(m)}" x2="${x(m)}" y1="22" y2="${H - 4}" stroke="#E3E7F0"/>`;
+    s += `<text x="${(x(m) + x(nx)) / 2}" y="18" text-anchor="middle" font-size="13" fill="#5B6478" letter-spacing="1.5">${MONTHS[m.getMonth()].slice(0, 3).toUpperCase()} ${String(m.getFullYear()).slice(2)}</text>`;
+  }
+  // phase lanes
+  const laneCol = { Training: ['#2C5AA0', '#DCE6F5'], Fundraising: ['#D99A00', '#FBF0D2'] };
+  lanes.forEach((ln, li) => {
+    const y = top + li * laneH;
+    s += `<text x="8" y="${y + 21}" font-size="13" font-weight="600" fill="#1B3A6B">${esc(ln.toUpperCase())}</text>`;
+    M.phases.filter((p) => p.lane === ln).forEach((p, pi) => {
+      const [c, tint] = laneCol[ln] || ['#5B6478', '#ECEEF3'];
+      const x1 = x(p.s), x2 = x(new Date(+p.e + DAY)) - 2, w = Math.max(4, x2 - x1);
+      const isNow = today() >= p.s && today() <= p.e;
+      s += `<g data-tip="<b>${esc(p.name)}</b>${fmt(p.s, { wd: false })} to ${fmt(p.e, { wd: false })}<br><span>${esc(p.focus)}</span>">
+        <rect x="${x1}" y="${y + 4}" width="${w}" height="28" rx="6" fill="${pi % 2 ? tint : c}" ${isNow ? 'stroke="#1B2333" stroke-width="2"' : ''}/>
+        ${w > 60 ? `<text x="${x1 + 8}" y="${y + 23}" font-size="12.5" fill="${pi % 2 ? c : '#fff'}" font-weight="500">${esc(p.name.length * 7 > w - 12 ? p.name.slice(0, Math.max(3, Math.floor((w - 20) / 7))) + '…' : p.name)}</text>` : ''}
+      </g>`;
+    });
+  });
+  // category rows
+  const cy0 = top + lanes.length * laneH + gap;
+  cats.forEach((cn, ci) => {
+    const y = cy0 + ci * catH + catH / 2, k = cat(cn);
+    s += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#F0F2F7"/>`;
+    s += `<circle cx="14" cy="${y}" r="5" fill="${k.hex}"/><text x="26" y="${y + 4.5}" font-size="12.5" fill="#1B2333">${esc(cn)}</text>`;
+    M.events.filter((e) => (e.cat || 'Other') === cn).forEach((e) => {
+      const tipTxt = `<b>${esc(e.title)}</b>${fmt(e.d)}${e.e ? ' to ' + fmt(e.e) : ''}${e.tbc ? ' (TBC)' : ''}${e.details ? '<br><span>' + esc(e.details) + '</span>' : ''}`;
+      if (e.e) {
+        const x1 = x(e.d), x2 = x(new Date(+e.e + DAY));
+        s += `<g data-tip="${esc(tipTxt)}"><rect x="${x1}" y="${y - 6}" width="${Math.max(10, x2 - x1)}" height="12" rx="6" fill="${k.hex}" ${e.tbc ? 'fill-opacity=".45" stroke="' + k.hex + '" stroke-dasharray="3 2"' : ''}/><rect x="${x1 - 4}" y="${y - 12}" width="${Math.max(18, x2 - x1 + 8)}" height="24" fill="transparent"/></g>`;
+      } else {
+        s += `<g data-tip="${esc(tipTxt)}"><circle cx="${x(e.d) + 2}" cy="${y}" r="${e.countdown ? 7 : 5.5}" fill="${e.tbc ? '#fff' : k.hex}" stroke="${e.tbc ? k.hex : '#fff'}" stroke-width="2"/><circle cx="${x(e.d) + 2}" cy="${y}" r="12" fill="transparent"/></g>`;
+      }
+    });
+  });
+  // Féile flag + today line
+  if (M.feile) { const fx = x(M.feile.d); s += `<g transform="translate(${fx},${top - 4})" data-tip="<b>${esc(M.feile.title)}</b>${fmt(M.feile.d)}${M.feile.tbc ? ' (TBC)' : ''}"><path d="M0 0v${H - top}" stroke="#ED1B2E" stroke-width="1.5" stroke-dasharray="4 3"/></g>`; }
+  const t = today();
+  if (t >= start && t <= end) {
+    const tx = x(t);
+    s += `<line x1="${tx}" x2="${tx}" y1="24" y2="${H - 2}" stroke="#ED1B2E" stroke-width="2.5"/><rect x="${tx - 24}" y="${H - 20}" width="48" height="18" rx="9" fill="#ED1B2E"/><text x="${tx}" y="${H - 7}" text-anchor="middle" font-size="11" fill="#fff" letter-spacing="1">TODAY</text>`;
+  }
+  svg.innerHTML = s;
+  svg.style.minWidth = '860px';
+  document.getElementById('tl-legend').innerHTML = cats.map((c) => `<span style="--c:${cat(c).hex}"><i></i>${esc(c)}</span>`).join('') +
+    '<span><i style="background:#fff;border:2px solid #8A93A6;width:12px;height:12px"></i>Hollow = to be confirmed</span>';
+}
+
+// ---- Render: fundraising ---------------------------------------------------
+function renderMoney(M) {
+  const { raised, target, stretch, squad } = M;
+  const top = Math.max(stretch, raised) * 1.02;
+  document.getElementById('raised').textContent = eur(raised);
+  document.getElementById('raised-of').textContent = `of ${eur(target)} target · ${eur(stretch)} stretch`;
+  const tr = document.getElementById('track');
+  tr.querySelectorAll('.mk').forEach((m) => m.remove());
+  [[target, 'Target', eurK(target)], [stretch, 'Stretch', eurK(stretch)]].forEach(([v, a, b]) => {
+    tr.insertAdjacentHTML('beforeend', `<div class="mk${v / top > .9 ? ' end' : ''}" style="left:${(v / top) * 100}%"><span class="t">${a}</span><span class="b">${b}</span></div>`);
+  });
+  requestAnimationFrame(() => document.getElementById('fill').style.width = Math.min(100, (raised / top) * 100) + '%');
+  const next = M.checks.find((c) => c.d >= today());
+  const toGo = Math.max(0, target - raised);
+  document.getElementById('mstats').innerHTML = `
+    <div><b>${Math.round((raised / target) * 100)}%</b>of the target</div>
+    <div><b>${toGo ? eur(toGo) : 'Hit!'}</b>${toGo ? 'still to raise' : 'target reached'}</div>
+    <div><b>${next ? eurK(next.target) : '–'}</b>${next ? 'aim by ' + fmt(next.d, { wd: false }) : 'no checkpoints left'}</div>`;
+
+  // checkpoint line chart
+  const svg = document.getElementById('cp');
+  const W = 520, H = 250, l = 46, r = 14, t = 14, b = 30;
+  const pts = M.checks; if (!pts.length) { svg.innerHTML = ''; return; }
+  const s0 = M.phases.filter((p) => p.lane === 'Fundraising').map((p) => p.s).sort((a, b) => a - b)[0] || new Date(+pts[0].d - 30 * DAY);
+  const e0 = pts[pts.length - 1].d;
+  const ymax = Math.ceil(Math.max(stretch, raised, ...pts.map((p) => Math.max(p.target, p.raised || 0))) / 5000) * 5000;
+  const X = (d) => l + ((d - s0) / (e0 - s0)) * (W - l - r), Y = (v) => H - b - (v / ymax) * (H - t - b);
+  let g = '';
+  for (let v = 0; v <= ymax; v += 5000) g += `<line x1="${l}" x2="${W - r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#EEF0F5"/><text x="${l - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="10.5" fill="#8A93A6">${eurK(v)}</text>`;
+  g += `<line x1="${l}" x2="${W - r}" y1="${Y(target)}" y2="${Y(target)}" stroke="#1B3A6B" stroke-dasharray="4 4" stroke-width="1.2"/><text x="${W - r}" y="${Y(target) - 5}" text-anchor="end" font-size="10.5" fill="#1B3A6B">TARGET ${eurK(target)}</text>`;
+  pts.forEach((p) => g += `<text x="${X(p.d)}" y="${H - 10}" text-anchor="middle" font-size="10.5" fill="#8A93A6">${p.d.getDate()} ${MONTHS[p.d.getMonth()].slice(0, 3)}</text>`);
+  const tline = [[s0, 0], ...pts.map((p) => [p.d, p.target])];
+  g += `<polyline points="${tline.map(([d, v]) => X(d) + ',' + Y(v)).join(' ')}" fill="none" stroke="#8A93A6" stroke-width="2"/>`;
+  tline.slice(1).forEach(([d, v]) => g += `<circle cx="${X(d)}" cy="${Y(v)}" r="4.5" fill="#fff" stroke="#8A93A6" stroke-width="2" data-tip="<b>Aim: ${eur(v)}</b>by ${fmt(d)}"/>`);
+  const act = [[s0, 0], ...pts.filter((p) => p.raised != null && p.d <= today()).map((p) => [p.d, p.raised])];
+  const td = today();
+  if (raised > 0 && td > s0 && td < e0 && (!act.length || act[act.length - 1][0] < td)) act.push([td, raised]);
+  if (act.length > 1) {
+    g += `<path d="M${act.map(([d, v]) => X(d) + ',' + Y(v)).join('L')}L${X(act[act.length - 1][0])},${Y(0)}L${X(s0)},${Y(0)}Z" fill="#ED1B2E" fill-opacity=".08"/>`;
+    g += `<polyline points="${act.map(([d, v]) => X(d) + ',' + Y(v)).join(' ')}" fill="none" stroke="#ED1B2E" stroke-width="2.5" stroke-linejoin="round"/>`;
+    act.slice(1).forEach(([d, v]) => g += `<circle cx="${X(d)}" cy="${Y(v)}" r="5" fill="#ED1B2E" stroke="#fff" stroke-width="2" data-tip="<b>Raised: ${eur(v)}</b>${fmt(d)}"/>`);
+  }
+  if (td > s0 && td < e0) g += `<line x1="${X(td)}" x2="${X(td)}" y1="${t}" y2="${H - b}" stroke="#ED1B2E" stroke-opacity=".35" stroke-dasharray="2 3"/>`;
+  svg.innerHTML = `<g font-family="Oswald, sans-serif">${g}</g>`;
+  document.getElementById('cp-legend').innerHTML = `<span style="--c:#8A93A6"><i></i>Checkpoint aim</span><span style="--c:#ED1B2E"><i></i>Raised</span>`;
+
+  // streams
+  const tmax = Math.max(...M.streams.map((s) => Math.max(s.target, s.raised)), 1);
+  document.getElementById('streams').innerHTML = M.streams.slice().sort((a, b) => b.target - a.target).map((s) => `
+    <div class="st" data-tip="<b>${esc(s.name)}</b>${eur(s.raised)} raised of ${eur(s.target)}<br><span>${esc(s.when)}</span>">
+      <div class="lbl"><b>${esc(s.name)}</b><span>${s.raised ? eur(s.raised) + ' of ' : ''}${eur(s.target)}</span></div>
+      <div class="tr"><div class="tg" style="width:${(s.target / tmax) * 100}%"></div><div class="rs" style="width:${(Math.min(s.raised, tmax) / tmax) * 100}%"></div></div>
+      <div class="when">${esc(s.when)}</div>
+    </div>`).join('');
+
+  // costs donut
+  const total = M.costs.reduce((a, c) => a + c.v, 0);
+  const pal = ['#2C5AA0', '#ED1B2E', '#D99A00', '#0E9384', '#8E5BD0', '#C2417E', '#5B7A29'];
+  let a0 = -Math.PI / 2, d = '';
+  const R = 88, r0 = 58, cx = 100, cy = 100;
+  M.costs.forEach((c, i) => {
+    const a1 = a0 + (c.v / total) * Math.PI * 2, big = a1 - a0 > Math.PI ? 1 : 0;
+    const p = (a, rr) => [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
+    const [x1, y1] = p(a0, R), [x2, y2] = p(a1, R), [x3, y3] = p(a1, r0), [x4, y4] = p(a0, r0);
+    d += `<path d="M${x1},${y1}A${R},${R} 0 ${big} 1 ${x2},${y2}L${x3},${y3}A${r0},${r0} 0 ${big} 0 ${x4},${y4}Z" fill="${pal[i % pal.length]}" stroke="#fff" stroke-width="2" data-tip="<b>${esc(c.name)}: ${eur(c.v)}</b>${Math.round((c.v / total) * 100)}% · ${esc(c.detail)}"/>`;
+    a0 = a1;
+  });
+  d += `<text x="100" y="96" text-anchor="middle" font-family="Anton, sans-serif" font-size="26" fill="#1B2333">${eurK(total)}</text><text x="100" y="116" text-anchor="middle" font-family="Oswald, sans-serif" font-size="10.5" letter-spacing="1.5" fill="#5B6478">SEASON COSTS</text>`;
+  document.getElementById('donut').innerHTML = d;
+  document.getElementById('costs').innerHTML = M.costs.map((c, i) => `<li style="--c:${pal[i % pal.length]}"><i></i><div>${esc(c.name)}<small>${esc(c.detail)}</small></div><b>${eur(c.v)}</b></li>`).join('');
+  document.getElementById('cost-sub').textContent = total ? `About ${eur(total / squad)} a girl across ${squad} girls. The ${eurK(target)} target covers ${Math.min(100, Math.round((target / total) * 100))}% of it.` : '';
+}
+
+// ---- Render: agenda --------------------------------------------------------
+const hidden = new Set(); let showPast = false;
+function renderAgenda(M) {
+  const cats = Object.keys(CATS).filter((c) => M.events.some((e) => e.cat === c));
+  const chips = document.getElementById('chips');
+  chips.innerHTML = cats.map((c) => `<button class="chip" data-c="${esc(c)}" aria-pressed="${!hidden.has(c)}" style="--c:${cat(c).hex}"><span class="ci">${icon(cat(c).i)}</span>${esc(c)}</button>`).join('') +
+    `<button class="chip past" aria-pressed="${showPast}">${showPast ? 'Hide' : 'Show'} past dates</button>`;
+  chips.onclick = (ev) => {
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.classList.contains('past')) showPast = !showPast;
+    else { const c = b.dataset.c; hidden.has(c) ? hidden.delete(c) : hidden.add(c); }
+    renderAgenda(M);
+  };
+  const t = today();
+  const list = M.events.filter((e) => !hidden.has(e.cat) && (showPast || (e.e || e.d) >= t));
+  const groups = new Map();
+  list.forEach((e) => { const k = e.d.getFullYear() * 12 + e.d.getMonth(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
+  document.getElementById('agenda').innerHTML = list.length ? [...groups.entries()].map(([k, evs]) => `
+    <div class="month"><h3>${MONTHS[k % 12]} ${Math.floor(k / 12)}</h3>
+    ${evs.map((e) => {
+      const kk = cat(e.cat), n = daysTo(e.d), past = (e.e || e.d) < t, now = e.d <= t && (e.e || e.d) >= t;
+      const away = now ? '<b>Now</b>on' : past ? '<b>✓</b>done' : n === 1 ? '<b>1</b>day' : `<b>${n}</b>days`;
+      return `<div class="ev ${past ? 'isPast' : ''} ${now ? 'isToday' : ''}" style="--c:${kk.hex}">
+        <div class="dt"><b>${e.d.getDate()}</b><span>${DOW[e.d.getDay()]}</span></div>
+        <div class="ci" title="${esc(e.cat)}">${icon(kk.i)}</div>
+        <div><h4>${esc(e.title)} ${e.tbc ? '<span class="tag">TBC</span>' : ''}${e.done ? '<span class="tag done">Done</span>' : ''}</h4>
+          ${e.details ? `<p>${esc(e.details)}</p>` : ''}
+          ${e.e ? `<div class="rng">${fmt(e.d)} to ${fmt(e.e)} · ${Math.round((e.e - e.d) / DAY) + 1} days</div>` : ''}</div>
+        <div class="away">${away}</div></div>`;
+    }).join('')}</div>`).join('') : '<p class="empty">No dates to show. Try turning a category back on.</p>';
+}
+
+// ---- Go --------------------------------------------------------------------
+function renderAll(res) {
+  const M = model(res.data);
+  renderCountdown(M); renderNext(M); renderTimeline(M); renderMoney(M); renderAgenda(M);
+  const at = res.at ? res.at.toLocaleString('en-IE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  document.getElementById('src').innerHTML = res.src === 'live'
+    ? `<span class="tag live">Live</span> Read from the coaches' sheet at ${at}.`
+    : res.src === 'cache' ? `<span class="tag saved">Saved copy</span> Couldn't reach the coaches' sheet, showing what was loaded on ${at}.`
+    : `<span class="tag saved">Saved copy</span> Couldn't reach the coaches' sheet, showing the dates as first published.`;
+}
+load().then(renderAll);
+</script>
+</body>
+</html>
