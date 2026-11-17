@@ -28,7 +28,7 @@ a{color:inherit;text-decoration:none}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
 .posb{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
-.posl{display:grid;grid-template-columns:10px minmax(70px,auto) auto auto 1fr;align-items:center;gap:6px;font-size:13px;margin-top:5px}.posl b{font-size:14px}.posl .of{color:var(--muted)}.posl .cp{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.posl{display:grid;grid-template-columns:10px minmax(70px,auto) auto auto 1fr;align-items:center;gap:6px;font-size:13px;margin-top:5px}.posl b{font-size:14px}.posl .of{color:var(--muted)}.posl b.win{color:#8a5a00}.posl .cp{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 .ltr{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:11px 0;font:inherit;font-size:14px;cursor:pointer;text-align:left;color:inherit}
 .ltr .chev,.comps .clk span::after{color:var(--muted)}.ltr .chev{margin-left:4px}
 .comps .clk{cursor:pointer;border-radius:6px}.comps .clk:hover{background:var(--tint)}.comps .clk span{text-decoration:underline;text-decoration-color:#0002;text-underline-offset:3px}
@@ -916,20 +916,39 @@ function positions(r, code) {
 // side's current or latest competition that has a table and where it played 3+ games.
 // Earlier competitions are on the team page.
 function sidePositions(r, code) {
-  const ps = positions(r, code); if (!ps.length) return [];
+  const ps = positions(r, code);
   const sides = buildSides((r.hgames || []).filter(g => !code || g.code === code)).filter(s => s.div != null), n = {}, out = [];
   sides.forEach(s => { n[s.code] = (n[s.code] || 0) + 1; });
   const seen = {};
   sides.forEach(s => {
     seen[s.code] = (seen[s.code] || 0) + 1;
-    const p = ps.filter(p => s.comps[p.comp] && p.rows[p.me][2] >= 3)[0];
-    if (p) out.push({ ...p, side: CN[s.code] + (n[s.code] > 1 ? ' ' + String.fromCharCode(64 + seen[s.code]) : '') });
+    const side = CN[s.code] + (n[s.code] > 1 ? ' ' + String.fromCharCode(64 + seen[s.code]) : '');
+    // Ken 2026-11-17: the side's most recent competition, league table or knockout.
+    const cands = [];
+    ps.filter(p => s.comps[p.comp] && p.rows[p.me][2] >= 3).forEach(p => {
+      // A group that ended in a final or semi-final (e.g. "Shield Final" inside a championship) shows how that went.
+      const gs = s.comps[p.comp], k = koStatus(gs), lastG = [...gs].sort((a, b) => b.d - a.d)[0];
+      cands.push(k && roundOf(lastG) ? { ...p, ...k, side, kind: 'ko' } : { ...p, side, kind: 'table' });
+    });
+    Object.entries(s.comps).forEach(([comp, gs]) => { if (!STD || !STD[comp]) { const k = koStatus(gs); if (k) cands.push({ ...k, comp, code: s.code, side, kind: 'ko', last: Math.max(...gs.map(g => +g.d)) }); } });
+    cands.sort((a, b) => b.last - a.last);
+    if (cands[0]) out.push(cands[0]);
   });
   return out;
 }
+// Knockout outcome from the side's games in a cup, shield or championship with no table.
+function koStatus(gs) {
+  const g = [...gs].filter(x => !/^bye$/i.test(x.opp)).sort((a, b) => b.d - a.d)[0]; if (!g) return null;
+  const rd = roundOf(g), sc = g.up != null && g.tp != null, won = sc && g.up > g.tp, lost = sc && g.up < g.tp;
+  if (!rd && !/shield|cup|champ|knock|ko\b|plate|trophy/i.test(g.comp)) return null;
+  const t = `${g.note || ''} ${g.comp}`, kind = /shield/i.test(t) ? 'Shield' : /plate/i.test(t) ? 'Plate' : /cup/i.test(t) ? 'Cup' : /champ/i.test(t) ? 'Championship' : '';
+  if (rd === 'Final') return won ? { label: (kind ? kind + ' winners' : 'Winners'), trophy: true } : lost ? { label: (kind ? kind + ' runners-up' : 'Runners-up') } : { label: 'Final played' };
+  if (rd === 'Semi-final') return won ? { label: 'In the final' } : lost ? { label: (kind ? kind + ' semi-finalists' : 'Semi-finalists') } : { label: 'Semi-final' };
+  return won ? { label: 'Still in' } : lost ? { label: 'Knocked out' } : null;
+}
 function posLines(r, code) {
   const ps = sidePositions(r, code); if (!ps.length) return '';
-  return `<div class="posb">${ps.map(p => `<div class="posl"><span class="dot" style="background:var(--${p.code})"></span><span class="sd">${esc(p.side)}</span><b>${ordinal(p.pos)}</b><span class="of">of ${p.n}</span><span class="cp">${esc(shortComp(p.comp).replace(/^(Grade \w) · Phase.*$/, '$1'))}</span></div>`).join('')}</div>`;
+  return `<div class="posb">${ps.map(p => `<div class="posl"><span class="dot" style="background:var(--${p.code})"></span><span class="sd">${esc(p.side)}</span>${p.kind === 'ko' ? `<b class="${p.trophy ? 'win' : ''}" style="grid-column:span 2">${p.trophy ? '🏆 ' : ''}${esc(p.label)}</b>` : `<b>${ordinal(p.pos)}</b><span class="of">of ${p.n}</span>`}<span class="cp">${esc(p.kind === 'ko' && divOf(p.comp) ? 'Div ' + divOf(p.comp) : shortComp(p.comp).replace(/^(Grade \w) · Phase.*$/, '$1'))}</span></div>`).join('')}</div>`;
 }
 function tablesCard(r, code) {
   const ps = positions(r, code); if (!ps.length) return '';
