@@ -548,17 +548,8 @@ class _Side extends StatelessWidget {
           nav(PitchTab.setup, Icons.tune, 'Pitches and venues'),
           nav(PitchTab.published, Icons.visibility_outlined, 'Members\' view'),
         ],
-        if (clubs.length > 1) ...[
-          const SizedBox(height: 14),
-          Text('Club', style: PT.inter(12, color: PT.muted)),
-          for (final c in clubs)
-            if (c.clubId != club.clubId)
-              TextButton(
-                  onPressed: () => onClub(c),
-                  child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(c.name, style: PT.inter(14)))),
-        ],
+        // No club picker: the ?club= link decides the club and its
+        // branding (Ken, 2026-11-17).
         const Spacer(),
         Padding(
           padding: const EdgeInsets.only(left: 6),
