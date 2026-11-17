@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Road to Féile · Player card</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ED1B2E">
+<meta property="og:title" content="Road to Féile · Player card">
+<meta property="og:description" content="Your plan from the Clontarf Girls 2012 coaches. Sign in with CoachSmart.">
+<meta property="og:image" content="https://coachsmart.app/clontarf-gaa/images/clontarf-crest.png">
+<link rel="icon" href="../../images/clontarf-crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../checkins/pc.css?v=20261117a">
+<style>main { max-width: 560px; }</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <img src="../../images/clontarf-crest.png" alt="Clontarf GAA crest">
+    <div class="brand"><span class="eyebrow">Clontarf Girls 2012</span><b>Road to Féile</b></div>
+    <button class="btn small" id="so" hidden>Sign out</button>
+  </div>
+</header>
+<main id="main"><p class="muted">Loading…</p></main>
+<script src="../checkins/card-view.js?v=20261117a"></script>
+<script src="../checkins/pc-auth.js?v=20261117a"></script>
+<script>
+// A girl's card for her family. Only her parents (CoachSmart logins linked to her)
+// and the team's admins can open it; the check happens in the player-checkins function.
+// ?m=<member_id> picks a girl (needed for admins, and parents of more than one girl).
+(function () {
+  const { call, esc } = PC;
+  const main = document.getElementById('main');
+  const params = new URLSearchParams(location.search);
+  let code = 'football', R = null, ME = null;
+
+  function draw() {
+    if (!R.cards.length) {
+      main.innerHTML = `<section class="box stack"><b>Nothing to show yet.</b><div class="muted">The coaches will share ${esc((R.name || 'her').split(' ')[0])}'s plan soon. You'll find it here.</div></section>`;
+      return;
+    }
+    const codes = R.cards.map(c => c.code);
+    if (!codes.includes(code)) code = codes[0];
+    const c = R.cards.find(x => x.code === code);
+    main.innerHTML = `
+      <div><span class="eyebrow">From your coaches · ${new Date(c.published_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'long' })}</span>
+        <h1 class="display" style="font-size:40px;line-height:1.05">${esc(c.first_name)}'s plan</h1></div>
+      ${codes.length > 1 ? `<div class="seg" role="group" aria-label="Code" style="align-self:flex-start">${codes.map(k => `<button data-code="${k}" class="${k === code ? 'on' : ''}">${k === 'camogie' ? 'Camogie' : 'Football'}</button>`).join('')}</div>` : ''}
+      ${CardView.render(c, ME.checkDates)}
+      ${R.children.length > 1 ? `<div class="chips">${R.children.map(ch => `<a class="chip ${ch.member_id === R.member_id ? 'on' : ''}" href="?m=${ch.member_id}${params.get('token') ? '&token=' + encodeURIComponent(params.get('token')) : ''}" style="text-decoration:none">${esc(ch.name.split(' ')[0])}</a>`).join('')}</div>` : ''}
+      <p class="muted small">Only ${esc(c.first_name)}'s parents and the team's admins can see this.</p>`;
+    main.querySelectorAll('[data-code]').forEach(b => b.onclick = () => { code = b.dataset.code; draw(); });
+  }
+
+  PC.ready.then(async () => {
+    if (!PC.inApp) { const so = document.getElementById('so'); so.hidden = false; so.onclick = PC.signOut; }
+    try {
+      ME = await call('me');
+      R = await call('card', { member_id: Number(params.get('m')) || undefined });
+    } catch (e) {
+      main.innerHTML = `<section class="box stack"><b>Sorry, you can't open this card.</b><div class="muted">${esc(e.message)}</div></section>`;
+      return;
+    }
+    if (!R.member_id) {
+      main.innerHTML = R.children.length
+        ? `<section class="box stack"><b>Whose plan?</b><div class="chips">${R.children.map(ch => `<a class="chip" style="text-decoration:none" href="?m=${ch.member_id}">${esc(ch.name)}</a>`).join('')}</div></section>`
+        : `<section class="box stack"><b>Sorry, there's no card for this login.</b><div class="muted">Cards can only be opened by a girl's parents and the team's admins, using the CoachSmart login linked to her.${ME.isAdmin ? ' As an admin, open a girl from the coaches\' page.' : ''}</div></section>`;
+      return;
+    }
+    draw();
+  });
+})();
+</script>
+</body>
+</html>
