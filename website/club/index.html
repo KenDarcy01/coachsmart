@@ -28,8 +28,8 @@ a{color:inherit;text-decoration:none}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
 .posb{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
-.posl{display:grid;grid-template-columns:10px minmax(70px,auto) auto auto 1fr;align-items:center;gap:6px;font-size:13px;margin-top:5px}.posl b{font-size:14px}.posl .of{color:var(--muted)}
-.harr{font-weight:700;font-size:14px}.harr.g,.hp b.g{color:var(--good)}.harr.r,.hp b.r{color:var(--bad)}.harr.m,.hp b.m{color:var(--muted)}.posl b.win{color:#8a5a00}.posl .cp{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.posl{display:grid;grid-template-columns:10px 1fr auto;align-items:start;gap:8px;font-size:13px;margin-top:8px}.posl .dot{margin-top:5px}.posl .res{text-align:right}.posl .res small{display:block;color:var(--muted);font-size:12px;margin-top:1px}.posl b{font-size:14px}.posl .of{color:var(--muted)}
+.harr{font-weight:700;font-size:14px}.harr.g,.hp b.g{color:var(--good)}.harr.r,.hp b.r{color:var(--bad)}.harr.m,.hp b.m{color:var(--muted)}.posl b.win{color:#8a5a00}
 .ltr{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:11px 0;font:inherit;font-size:14px;cursor:pointer;text-align:left;color:inherit}
 .ltr .chev,.comps .clk span::after{color:var(--muted)}.ltr .chev{margin-left:4px}
 .comps .clk{cursor:pointer;border-radius:6px}.comps .clk:hover{background:var(--tint)}.comps .clk span{text-decoration:underline;text-decoration-color:#0002;text-underline-offset:3px}
@@ -949,7 +949,7 @@ function koStatus(gs) {
 }
 function posLines(r, code) {
   const ps = sidePositions(r, code); if (!ps.length) return '';
-  return `<div class="posb">${ps.map(p => `<div class="posl"><span class="dot" style="background:var(--${p.code})"></span><span class="sd">${esc(p.side)}</span>${p.kind === 'ko' ? `<b class="${p.trophy ? 'win' : ''}" style="grid-column:span 2">${p.trophy ? '🏆 ' : ''}${esc(p.label)}</b>` : `<b>${ordinal(p.pos)}</b><span class="of">of ${p.n}</span>`}<span class="cp">${esc(p.kind === 'ko' && divOf(p.comp) ? 'Div ' + divOf(p.comp) : shortComp(p.comp).replace(/^(Grade \w) · Phase.*$/, '$1'))}</span></div>`).join('')}</div>`;
+  return `<div class="posb">${ps.map(p => `<div class="posl"><span class="dot" style="background:var(--${p.code})"></span><span class="sd">${esc(p.side)}</span><span class="res">${p.kind === 'ko' ? `<b class="${p.trophy ? 'win' : ''}">${p.trophy ? '🏆 ' : ''}${esc(p.label)}</b>` : `<b>${ordinal(p.pos)}</b> <span class="of">of ${p.n}</span>`}<small>${esc(p.kind === 'ko' && divOf(p.comp) ? compKind(p.comp) === 'Other' ? 'Div ' + divOf(p.comp) : compKind(p.comp) + ' Div ' + divOf(p.comp) : shortComp(p.comp).replace(/^(Grade \w) · Phase.*$/, '$1'))}</small></span></div>`).join('')}</div>`;
 }
 function tablesCard(r, code) {
   const ps = positions(r, code); if (!ps.length) return '';
