@@ -26,7 +26,7 @@ window.CardView = (function () {
       <div class="display" style="font-size:28px;line-height:1">${esc(c.first_name || '')}</div>
       <div class="card-row"><div class="ic red">${ICON.bolt}</div><div><div class="k red">Superpower</div><div class="big">${items(c.superpower) || '<span class="muted">Not filled in yet</span>'}</div></div></div>
       <div class="card-row"><div class="ic">${ICON.target}</div><div><div class="k">Working on next</div><div class="big">${items(c.development) || '<span class="muted">Not filled in yet</span>'}</div></div></div>
-      <div class="card-row"><div class="ic">${ICON.check}</div><div><div class="k">How</div><div style="color:var(--ink-2)">${para(c.how) || '<span class="muted">Not filled in yet</span>'}</div></div></div>
+      <div class="card-row"><div class="ic">${ICON.check}</div><div><div class="k">How</div><div style="color:var(--ink-2)">${items(c.how) || '<span class="muted">Not filled in yet</span>'}</div></div></div>
       ${vids(c).map((u, i, all) => `<a class="vid" href="${esc(u)}" target="_blank" rel="noopener"><span class="th">${ICON.play}</span><span><b>Watch the help video${all.length > 1 ? ' ' + (i + 1) : ''}</b><br><span class="muted small">Opens in a new tab</span></span></a>`).join('')}
       ${(checkDates || []).length ? `<div style="border-top:1px solid #ECEEF4;padding-top:12px">
         <div class="k" style="color:var(--muted);margin-bottom:10px">Check-ins with your coach</div>
