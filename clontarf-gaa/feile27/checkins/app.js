@@ -186,7 +186,8 @@
           </section>
           <section class="box stack">
             <label class="field-title" for="f-how"><span style="color:var(--red)">${ICON.check}</span>How: what she'll do</label>
-            ${editable ? `<select id="s-how" aria-label="Suggested ways">${options({ 'Féile plan and training': HOW }, 'Add a suggestion…')}</select>` : ''}
+            <p class="hint" style="margin:0">Tick one or more, or write your own (one per line).</p>
+            ${editable ? picker('p-how', { 'Féile plan and training': HOW }, 'Choose what she will do') : ''}
             <textarea id="f-how" rows="3" ${ro}>${esc(a.how)}</textarea>
             <div class="field-title" style="font-size:16px;margin-top:6px"><span style="color:var(--red)">${ICON.video}</span>Help videos <span class="muted small" style="font-family:Inter">(optional)</span></div>
             <div class="stack" id="vids" style="gap:8px"></div>
@@ -253,14 +254,7 @@
       document.addEventListener('click', e => { if (box.open && !box.contains(e.target)) box.open = false; });
       field.addEventListener('input', sync); sync();
     };
-    multi($('#p-super'), f.super); multi($('#p-dev'), f.dev);
-    const pick = (sel, field) => { const s = $(sel); s.onchange = () => {
-      const p = s.value; if (!p) return;
-      const cur = field.value.trim();
-      field.value = cur ? cur + '\n' + p : p;
-      s.value = ''; draw(); field.focus();
-    }; };
-    pick('#s-how', f.how);
+    multi($('#p-super'), f.super); multi($('#p-dev'), f.dev); multi($('#p-how'), f.how);
     const save = async (action) => {
       const btns = main.querySelectorAll('.actions button'); btns.forEach(b => b.disabled = true);
       try {
