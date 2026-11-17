@@ -725,20 +725,32 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
       children.add(Positioned.fill(
         child: GestureDetector(
           onTap: () => _reopen(closure, p),
+          // See-through, so the bookings that need moving stay readable.
           child: Container(
-            color: const Color(0xE6FBEFEF),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.all(8),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('Closed',
-                  style:
-                      PT.inter(14, weight: FontWeight.w600, color: PT.redText)),
-              if (closure.reason.isNotEmpty)
-                Text(closure.reason,
-                    textAlign: TextAlign.center,
-                    style: PT.inter(12, color: PT.muted)),
-              Text('tap to reopen', style: PT.inter(11, color: PT.muted)),
-            ]),
+            decoration: BoxDecoration(
+              color: const Color(0x1AE61E28),
+              border: Border.all(
+                  color: PT.redText.withValues(alpha: 0.6), width: 1.5),
+            ),
+            alignment: Alignment.topCenter,
+            padding: const EdgeInsets.all(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                  color: const Color(0xF2FBEFEF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: PT.redText.withValues(alpha: 0.4))),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('Closed',
+                    style: PT.inter(14,
+                        weight: FontWeight.w600, color: PT.redText)),
+                if (closure.reason.isNotEmpty)
+                  Text(closure.reason,
+                      textAlign: TextAlign.center,
+                      style: PT.inter(12, color: PT.muted)),
+                Text('tap to reopen', style: PT.inter(11, color: PT.muted)),
+              ]),
+            ),
           ),
         ),
       ));

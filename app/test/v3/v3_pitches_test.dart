@@ -111,7 +111,7 @@ Map<String, dynamic> sampleBoard() => {
       'closures': [
         {
           'closure_id': 1,
-          'pitch_id': 6,
+          'pitch_id': 4,
           'starts_on': '2026-11-21',
           'ends_on': '2026-11-22',
           'reason': 'Waterlogged'
