@@ -28,7 +28,8 @@ a{color:inherit;text-decoration:none}
 .chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
 .chip.on{background:var(--onband);color:var(--band)}
 .posb{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
-.posl{display:grid;grid-template-columns:10px minmax(70px,auto) auto auto 1fr;align-items:center;gap:6px;font-size:13px;margin-top:5px}.posl b{font-size:14px}.posl .of{color:var(--muted)}.posl b.win{color:#8a5a00}.posl .cp{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.posl{display:grid;grid-template-columns:10px minmax(70px,auto) auto auto 1fr;align-items:center;gap:6px;font-size:13px;margin-top:5px}.posl b{font-size:14px}.posl .of{color:var(--muted)}
+.harr{font-weight:700;font-size:14px}.harr.g,.hp b.g{color:var(--good)}.harr.r,.hp b.r{color:var(--bad)}.harr.m,.hp b.m{color:var(--muted)}.posl b.win{color:#8a5a00}.posl .cp{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 .ltr{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:11px 0;font:inherit;font-size:14px;cursor:pointer;text-align:left;color:inherit}
 .ltr .chev,.comps .clk span::after{color:var(--muted)}.ltr .chev{margin-left:4px}
 .comps .clk{cursor:pointer;border-radius:6px}.comps .clk:hover{background:var(--tint)}.comps .clk span{text-decoration:underline;text-decoration-color:#0002;text-underline-offset:3px}
@@ -737,7 +738,7 @@ function hGroupBadge(rows) {
 }
 function hCard(hh) {
   if (!hh) return '';
-  return `<div class="card" style="margin-top:14px"><h3>Health check<small>season so far · all codes · out of 100</small></h3><div class="hbig">${hBadge(hh)}<div class="hparts">${hh.parts.map(p => `<div class="hp"><span class="k">${p.k}</span>${p.max ? `<span class="hb"><i style="width:${p.got / p.max * 100}%;background:${COL[p.got / p.max >= .65 ? 'g' : p.got / p.max >= .45 ? 'a' : 'r']}"></i></span><b>${Math.round(p.got)}/${p.max}</b>` : `<span class="hb"></span><b class="${p.got > 0 ? 'g' : p.got < 0 ? 'r' : ''}">${p.got > 0 ? '+' : p.got < 0 ? '' : '±'}${p.got}</b>`}<span class="nt">${esc(p.note)}</span></div>`).join('')}<div style="margin-top:6px;color:var(--muted);font-size:12px">Points are scaled to make the total out of 100; ± items are added after.</div></div></div></div>`;
+  return `<div class="card" style="margin-top:14px"><h3>Health check<small>season so far · all codes · out of 100</small></h3><div class="hbig">${hBadge(hh)}<div class="hparts">${hh.parts.map(p => `<div class="hp"><span class="k">${p.k}</span>${p.max ? `<span class="hb"><i style="width:${p.got / p.max * 100}%;background:${COL[p.got / p.max >= .65 ? 'g' : p.got / p.max >= .45 ? 'a' : 'r']}"></i></span><b>${Math.round(p.got)}/${p.max}</b>` : `<span class="harr ${p.got > 0 ? 'g' : p.got < 0 ? 'r' : 'm'}">${p.got > 0 ? '↑ up' : p.got < 0 ? '↓ down' : '→ steady'}</span><b class="${p.got > 0 ? 'g' : p.got < 0 ? 'r' : 'm'}">${p.got > 0 ? '+' + p.got : p.got < 0 ? p.got : '±0'}</b>`}<span class="nt">${esc(p.note)}</span></div>`).join('')}<div style="margin-top:6px;color:var(--muted);font-size:12px">Points are scaled to make the total out of 100; ± items are added after.</div></div></div></div>`;
 }
 const pc = (y, n) => n ? Math.round(100 * y / n) : null;
 const cls = p => p == null ? 'm' : p >= 55 ? 'g' : p >= 45 ? 'a' : 'r';
