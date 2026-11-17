@@ -144,6 +144,9 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
   String? _error;
   int? _pitchId;
 
+  /// A team picked in the pill row (by group name), or null for all.
+  String? _team;
+
   @override
   void initState() {
     super.initState();
@@ -216,7 +219,26 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
           for (final b in w.bookings)
             if (w.mine(b)) b
         ]..sort((a, b) => a.start.compareTo(b.start));
-        if (mine.isNotEmpty) children.add(_mineCard(w, mine));
+        final names = {for (final b in w.bookings) b.name}.toList()
+          ..sort((a, b) {
+            final x = ageOf(a) ?? 99, y = ageOf(b) ?? 99;
+            return x != y ? x.compareTo(y) : a.compareTo(b);
+          });
+        if (names.isNotEmpty) {
+          children.add(_teamPills(names));
+          children.add(const SizedBox(height: 10));
+        }
+        if (_team != null) {
+          children.add(_mineCard(
+              w,
+              [
+                for (final b in w.bookings)
+                  if (b.name == _team) b
+              ]..sort((a, b) => a.start.compareTo(b.start)),
+              heading: '${_team!} this week'));
+        } else if (mine.isNotEmpty) {
+          children.add(_mineCard(w, mine));
+        }
         final ids = w.pitches.keys.toList();
         if (ids.isNotEmpty) {
           final pid = ids.contains(_pitchId) ? _pitchId! : ids.first;
@@ -260,16 +282,54 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
   }
 
   /// The member's own sessions and matches, one row each.
-  Widget _mineCard(PublishedWeek w, List<PublishedBooking> mine) {
+  /// One scrolling row: All teams, then every team on the week's plan
+  /// (Ken, 2026-11-17), signed in or not.
+  Widget _teamPills(List<String> names) {
+    final accent = widget.club.accent;
+    Widget pill(String label, bool on, VoidCallback tap) => Padding(
+          padding: const EdgeInsets.only(right: 6),
+          child: GestureDetector(
+            onTap: tap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                  color: on ? accent : PT.card,
+                  border: Border.all(color: on ? accent : PT.line),
+                  borderRadius: BorderRadius.circular(18)),
+              child: Text(label,
+                  style: PT.inter(13.5,
+                      weight: FontWeight.w600,
+                      color: on ? onAccent(accent) : PT.text)),
+            ),
+          ),
+        );
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: [
+        pill('All teams', _team == null, () => setState(() => _team = null)),
+        for (final n in names)
+          pill(n, _team == n, () => setState(() => _team = n)),
+      ]),
+    );
+  }
+
+  Widget _mineCard(PublishedWeek w, List<PublishedBooking> mine,
+      {String heading = 'Your teams this week'}) {
     final accent = widget.club.accent;
     return _panel(
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-          child: Text('YOUR TEAMS THIS WEEK',
+          child: Text(heading.toUpperCase(),
               style: PT.inter(12.5,
                   weight: FontWeight.w700, color: accent, letterSpacing: 0.6)),
         ),
+        if (mine.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+            child: Text('No pitch slots this week.',
+                style: PT.inter(14, color: PT.muted)),
+          ),
         for (final (i, b) in mine.indexed) ...[
           if (i > 0) const Divider(height: 1, thickness: 1, color: PT.line),
           Padding(
@@ -374,7 +434,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
   Widget _block(PublishedWeek w, PublishedBooking b,
       {bool compact = false, String extra = ''}) {
     final col = codeColour(codeOf(b.code, name: b.name));
-    final mine = w.mine(b);
+    final mine = _team != null ? b.name == _team : w.mine(b);
     return Container(
       padding: EdgeInsets.fromLTRB(8, compact ? 3 : 6, 6, compact ? 3 : 6),
       decoration: BoxDecoration(
@@ -386,7 +446,8 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
               border: Border.all(color: PT.text, width: 2),
               borderRadius: BorderRadius.circular(6))
           : null,
-      child: Text('${b.title}$extra${mine ? ' · your team' : ''}',
+      child: Text(
+          '${b.title}$extra${mine && _team == null ? ' · your team' : ''}',
           maxLines: compact ? 2 : 1,
           overflow: TextOverflow.ellipsis,
           style: PT.inter(compact ? 12 : 14, weight: FontWeight.w600)),

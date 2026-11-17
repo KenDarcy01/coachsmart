@@ -856,5 +856,11 @@ void main() {
     await t.tap(find.text('Pitch 21').last);
     await t.pumpAndSettle();
     await _shot(t, 'pp-member-wide');
+    // Team pills filter to one team.
+    expect(find.text('All teams'), findsOneWidget);
+    await t.tap(find.text('U8 Boys').first);
+    await t.pumpAndSettle();
+    expect(find.text('U8 BOYS THIS WEEK'), findsOneWidget);
+    await _shot(t, 'pp-member-team');
   });
 }
