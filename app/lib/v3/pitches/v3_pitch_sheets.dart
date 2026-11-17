@@ -805,50 +805,87 @@ class _ClosePitchSheetState extends State<ClosePitchSheet> {
   String _d(DateTime d) =>
       '${kWeekdays[d.weekday - 1]} ${d.day} ${kMonths[d.month - 1].substring(0, 3)}';
 
+  /// Set when a closure group is picked instead of one pitch.
+  ClosureGroup? _group;
+
   @override
   Widget build(BuildContext context) {
     final c = widget.c;
     final board = c.board!;
-    final affected = _pitch == null
-        ? 0
-        : board.bookings
-            .where((b) =>
-                b.pitchId == _pitch!.pitchId &&
-                b.confirmed &&
-                !dayOf(b.start).isBefore(_from) &&
-                !dayOf(b.start).isAfter(_to))
-            .length;
+    final ids = _group?.pitchIds ?? [if (_pitch != null) _pitch!.pitchId];
+    final affected = board.bookings
+        .where((b) =>
+            ids.contains(b.pitchId) &&
+            b.confirmed &&
+            !dayOf(b.start).isBefore(_from) &&
+            !dayOf(b.start).isAfter(_to))
+        .length;
+    final groups = [
+      for (final g in c.closureGroups)
+        if (g.pitchIds.isNotEmpty) g
+    ];
+    final what = _group?.name ?? _pitch?.name ?? '';
     return _Frame(
       title: 'Close a pitch',
       subtitle:
           'Bookings stay put so you can move them; the board shows the pitch shaded.',
       actions: [
         PitchButton('Cancel', onTap: () => Navigator.pop(context)),
-        PitchButton('Close ${_pitch?.name ?? ''}',
+        PitchButton('Close $what',
             accent: c.club.accent,
-            onTap: _pitch == null || c.busy
+            onTap: ids.isEmpty || c.busy
                 ? null
                 : () async {
-                    final err = await c.closePitch(
-                        _pitch!.pitchId, _from, _to, _reason.text.trim());
+                    final err = _group != null
+                        ? await c.closeGroup(
+                            _group!, _from, _to, _reason.text.trim())
+                        : await c.closePitch(
+                            _pitch!.pitchId, _from, _to, _reason.text.trim());
                     if (!context.mounted) return;
                     if (err != null) return pitchSnack(context, err);
                     Navigator.pop(context, true);
                   }),
       ],
       children: [
-        DropdownButtonFormField<int>(
-          initialValue: _pitch?.pitchId,
+        DropdownButtonFormField<String>(
+          initialValue: _group != null
+              ? 'g${_group!.groupId}'
+              : _pitch == null
+                  ? null
+                  : 'p${_pitch!.pitchId}',
           isExpanded: true,
           dropdownColor: PT.card2,
           style: PT.inter(15),
-          decoration: pitchInput('Pitch'),
+          decoration: pitchInput(groups.isEmpty ? 'Pitch' : 'Pitch or group'),
           items: [
+            for (final g in groups)
+              DropdownMenuItem(
+                  value: 'g${g.groupId}',
+                  child: Text('${g.name} (all ${g.pitchIds.length} pitches)',
+                      overflow: TextOverflow.ellipsis)),
             for (final p in board.pitches)
-              DropdownMenuItem(value: p.pitchId, child: Text(p.name)),
+              DropdownMenuItem(value: 'p${p.pitchId}', child: Text(p.name)),
           ],
-          onChanged: (v) => setState(() => _pitch = board.pitch(v)),
+          onChanged: (v) => setState(() {
+            if (v == null) return;
+            final id = int.parse(v.substring(1));
+            if (v.startsWith('g')) {
+              _group = groups.firstWhere((g) => g.groupId == id);
+            } else {
+              _group = null;
+              _pitch = board.pitch(id);
+            }
+          }),
         ),
+        if (_group != null) ...[
+          const SizedBox(height: 6),
+          Text(
+              [
+                for (final id in _group!.pitchIds)
+                  if (board.pitch(id) != null) board.pitch(id)!.name
+              ].join(', '),
+              style: PT.inter(13, color: PT.muted)),
+        ],
         const SizedBox(height: 10),
         Row(children: [
           Expanded(
@@ -880,7 +917,7 @@ class _ClosePitchSheetState extends State<ClosePitchSheet> {
         const SizedBox(height: 10),
         Text(
             affected == 0
-                ? 'Nothing booked on it this week.'
+                ? 'Nothing booked on ${_group == null ? 'it' : 'them'} this week.'
                 : '$affected booking${affected == 1 ? '' : 's'} this week will need a new pitch.',
             style:
                 PT.inter(14, color: affected == 0 ? PT.muted : PT.amberText)),

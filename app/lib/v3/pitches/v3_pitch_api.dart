@@ -125,6 +125,36 @@ class PitchApi {
         }
       });
 
+  Future<List<ClosureGroup>> closureGroups(int clubId) async {
+    final r = await _rpc('pitch_closure_groups_get', {'p_club': clubId});
+    return [
+      if (r is List)
+        for (final x in r.whereType<Map>()) ClosureGroup.fromJson(x)
+    ];
+  }
+
+  Future<void> saveClosureGroup(
+          int clubId, int? groupId, String name, List<int> pitchIds) =>
+      _rpc('pitch_closure_group_save', {
+        'p_club': clubId,
+        'p_group': groupId,
+        'p_name': name,
+        'p_pitches': pitchIds
+      });
+
+  Future<void> deleteClosureGroup(int clubId, int groupId) => _rpc(
+      'pitch_closure_group_delete', {'p_club': clubId, 'p_group': groupId});
+
+  Future<void> closeGroup(
+          int clubId, int groupId, DateTime from, DateTime to, String reason) =>
+      _rpc('pitch_closure_group_close', {
+        'p_club': clubId,
+        'p_group': groupId,
+        'p_from': _d(from),
+        'p_to': _d(to),
+        'p_reason': reason
+      });
+
   Future<void> deleteClosure(int clubId, int closureId) =>
       _rpc('pitch_closure_delete', {'p_club': clubId, 'p_closure': closureId});
 

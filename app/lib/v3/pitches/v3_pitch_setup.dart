@@ -261,6 +261,38 @@ class _PitchSetupViewState extends State<PitchSetupView> {
       ),
       const SizedBox(height: 12),
       _card(
+        title: 'Close together',
+        action: TextButton(
+            onPressed: _busy ? null : () => _editClosureGroup(null),
+            child: Text('Add', style: PT.inter(14, color: accent))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+              'Pitches that usually close at the same time, so one closure covers them all.',
+              style: PT.inter(13.5, color: PT.muted)),
+          for (final g in c.closureGroups)
+            InkWell(
+              onTap: _busy ? null : () => _editClosureGroup(g),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(children: [
+                  Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(g.name,
+                              style: PT.inter(15, weight: FontWeight.w600)),
+                          Text(_pitchNames(g.pitchIds),
+                              style: PT.inter(13, color: PT.muted)),
+                        ]),
+                  ),
+                  const Icon(Icons.chevron_right, color: PT.muted, size: 20),
+                ]),
+              ),
+            ),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      _card(
         title: 'Default lengths',
         action: TextButton(
             onPressed: _busy ? null : _editDurations,
@@ -283,6 +315,72 @@ class _PitchSetupViewState extends State<PitchSetupView> {
             ])
           : Column(children: [venues, const SizedBox(height: 16), side]),
     );
+  }
+
+  String _pitchNames(List<int> ids) {
+    final names = [
+      for (final id in ids)
+        if (c.board?.pitch(id) != null) c.board!.pitch(id)!.name
+    ];
+    return names.isEmpty ? 'No pitches' : names.join(', ');
+  }
+
+  Future<void> _editClosureGroup(ClosureGroup? g) async {
+    final name = TextEditingController(text: g?.name ?? '');
+    final picked = {...?g?.pitchIds};
+    final pitches = c.board?.pitches ?? const <Pitch>[];
+    final accent = c.club.accent;
+    final res = await showPitchSheet<String>(
+        context,
+        StatefulBuilder(
+            builder: (ctx, set) => _SimpleSheet(
+                    title: g == null ? 'Close together' : g.name,
+                    accent: accent,
+                    onSave: () => Navigator.pop(ctx, 'save'),
+                    children: [
+                      TextField(
+                          controller: name,
+                          style: PT.inter(15),
+                          decoration:
+                              pitchInput('Name, e.g. St Anne\'s (DCC)')),
+                      const SizedBox(height: 12),
+                      Text('Pitches', style: PT.inter(14, color: PT.muted)),
+                      const SizedBox(height: 6),
+                      Wrap(spacing: 6, runSpacing: 6, children: [
+                        for (final p in pitches)
+                          FilterChip(
+                            label: Text(p.name,
+                                style: PT.inter(13.5,
+                                    color: picked.contains(p.pitchId)
+                                        ? onAccent(accent)
+                                        : PT.text)),
+                            selected: picked.contains(p.pitchId),
+                            selectedColor: accent,
+                            checkmarkColor: onAccent(accent),
+                            backgroundColor: PT.bg,
+                            side: const BorderSide(color: PT.line),
+                            onSelected: (on) => set(() => on
+                                ? picked.add(p.pitchId)
+                                : picked.remove(p.pitchId)),
+                          ),
+                      ]),
+                      if (g != null) ...[
+                        const SizedBox(height: 14),
+                        PitchButton('Delete this group',
+                            danger: true,
+                            compact: true,
+                            onTap: () => Navigator.pop(ctx, 'delete')),
+                      ],
+                    ])));
+    if (res == 'delete' && g != null) {
+      await _run(
+          () => api.deleteClosureGroup(club, g.groupId), 'Group deleted.');
+    } else if (res == 'save') {
+      await _run(
+          () => api.saveClosureGroup(
+              club, g?.groupId, name.text.trim(), picked.toList()..sort()),
+          'Group saved.');
+    }
   }
 
   Widget _kv(String k, String v) => Padding(

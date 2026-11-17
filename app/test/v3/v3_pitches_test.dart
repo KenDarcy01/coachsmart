@@ -334,6 +334,17 @@ class FakePitchApi extends PitchApi {
     return {'added': items.length, 'skipped': 0};
   }
 
+  final closedGroups = <int>[];
+  @override
+  Future<List<ClosureGroup>> closureGroups(int clubId) async => const [
+        ClosureGroup(
+            groupId: 1, name: "St Anne's (DCC)", pitchIds: [3, 4, 5, 6])
+      ];
+  @override
+  Future<void> closeGroup(int clubId, int groupId, DateTime from, DateTime to,
+          String reason) async =>
+      closedGroups.add(groupId);
+
   final savedPitches = <Map<String, dynamic>>[];
   final savedBlocks = <int, List<PitchBlock>>{};
   @override
@@ -539,10 +550,19 @@ Future<void> _pumpBoard(WidgetTester t, Size size, FakePitchApi api,
   }
 }
 
-Future<void> _shot(WidgetTester t, String name) async {
+Future<void> _shot(WidgetTester t, String name, {bool whole = false}) async {
   final dir = Platform.environment['SHOTS'];
   if (dir == null) return;
   await t.runAsync(() async {
+    if (whole) {
+      // The whole screen, so an open dialog is in the picture too.
+      final view = t.binding.renderViews.first;
+      final layer = view.debugLayer! as OffsetLayer;
+      final img = await layer.toImage(Offset.zero & t.view.physicalSize);
+      final png = await img.toByteData(format: ImageByteFormat.png);
+      File('$dir/$name.png').writeAsBytesSync(png!.buffer.asUint8List());
+      return;
+    }
     final ro = t.firstRenderObject<RenderRepaintBoundary>(
         find.byType(RepaintBoundary).first);
     final img = await ro.toImage(pixelRatio: 2);
@@ -740,6 +760,22 @@ void main() {
     expect(find.text('Auto'), findsOneWidget);
     expect(find.text('Undo fill'), findsOneWidget);
     await _shot(t, 'pp-fill');
+  });
+
+  testWidgets('laptop: close a group of pitches at once', (t) async {
+    final api = FakePitchApi();
+    await _pumpBoard(t, const Size(1440, 900), api);
+    await t.tap(find.text('Close a pitch').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Clubhouse Astro').last);
+    await t.pumpAndSettle();
+    await t.tap(find.text("St Anne's (DCC) (all 4 pitches)").last);
+    await t.pumpAndSettle();
+    expect(find.text('Pitch 19, Pitch 21, Pitch 23, Pitch 30'), findsOneWidget);
+    await _shot(t, 'pp-close-group', whole: true);
+    await t.tap(find.text("Close St Anne's (DCC)"));
+    await t.pumpAndSettle();
+    expect(api.closedGroups, [1]);
   });
 
   testWidgets('laptop: availability, add a not-available time', (t) async {

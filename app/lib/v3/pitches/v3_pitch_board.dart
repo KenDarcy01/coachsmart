@@ -812,7 +812,10 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
   }
 
   Future<void> _reopen(Closure cl, Pitch p) async {
-    final yes = await showPitchSheet<bool>(
+    final g = c.closureGroupOf(p.pitchId);
+    final same = g == null ? const <Closure>[] : c.groupClosuresLike(cl, g);
+    // 0 keep, 1 this pitch, 2 the whole group.
+    final pick = await showPitchSheet<int>(
         context,
         Padding(
           padding: const EdgeInsets.all(20),
@@ -831,16 +834,30 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                 Row(children: [
                   Expanded(
                       child: PitchButton('Keep closed',
-                          onTap: () => Navigator.pop(context, false))),
+                          onTap: () => Navigator.pop(context, 0))),
                   const SizedBox(width: 8),
                   Expanded(
-                      child: PitchButton('Reopen',
-                          accent: c.club.accent,
-                          onTap: () => Navigator.pop(context, true))),
+                      child: PitchButton(
+                          same.length > 1 ? 'Just ${p.name}' : 'Reopen',
+                          accent: same.length > 1 ? null : c.club.accent,
+                          onTap: () => Navigator.pop(context, 1))),
                 ]),
+                if (same.length > 1) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: PitchButton(
+                        'Reopen all of ${g!.name} (${same.length})',
+                        accent: c.club.accent,
+                        onTap: () => Navigator.pop(context, 2)),
+                  ),
+                ],
               ]),
         ));
-    if (yes == true) await _quick(c.reopen(cl), '${p.name} is open again.');
+    if (pick == 1) await _quick(c.reopen(cl), '${p.name} is open again.');
+    if (pick == 2) {
+      await _quick(c.reopenAll(same), '${g!.name} is open again.');
+    }
   }
 
   Widget _blockText(String title, String sub, {bool faint = false}) =>

@@ -779,6 +779,23 @@ class BoardFixture {
   final int? matchedPitchId;
 }
 
+/// A named set of pitches that usually close together (e.g. the
+/// council-run pitches of a park when they are unplayable).
+class ClosureGroup {
+  const ClosureGroup(
+      {required this.groupId, required this.name, this.pitchIds = const []});
+  factory ClosureGroup.fromJson(Map j) => ClosureGroup(
+          groupId: _int(j['group_id']),
+          name: _s(j['name']),
+          pitchIds: [
+            if (j['pitch_ids'] is List)
+              for (final x in j['pitch_ids'] as List) _int(x)
+          ]);
+  final int groupId;
+  final String name;
+  final List<int> pitchIds;
+}
+
 class Closure {
   const Closure(
       {required this.closureId,

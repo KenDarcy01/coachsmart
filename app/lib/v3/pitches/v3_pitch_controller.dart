@@ -27,6 +27,9 @@ class PitchController extends ChangeNotifier {
   /// group id -> default home pitch and time.
   Map<int, GroupHome> homes = const {};
 
+  /// Sets of pitches that close together.
+  List<ClosureGroup> closureGroups = const [];
+
   /// The loaded week's auto-filled bookings (not yet changed or kept).
   Set<int> autoIds = const {};
 
@@ -73,6 +76,11 @@ class PitchController extends ChangeNotifier {
         autoIds = await api.autoIds(club.clubId, m);
       } catch (_) {
         // Defaults not set up yet: nothing to fill.
+      }
+      try {
+        closureGroups = await api.closureGroups(club.clubId);
+      } catch (_) {
+        // Not set up yet: single pitches only.
       }
       if (_loadedMonday == null) loadChanges();
       _loadedMonday = m;
@@ -183,6 +191,33 @@ class PitchController extends ChangeNotifier {
 
   Future<String?> reopen(Closure c) =>
       run(() => api.deleteClosure(club.clubId, c.closureId));
+
+  Future<String?> closeGroup(
+          ClosureGroup g, DateTime from, DateTime to, String reason) =>
+      run(() => api.closeGroup(club.clubId, g.groupId, from, to, reason));
+
+  /// The group a pitch belongs to, if any.
+  ClosureGroup? closureGroupOf(int pitchId) {
+    for (final g in closureGroups) {
+      if (g.pitchIds.contains(pitchId)) return g;
+    }
+    return null;
+  }
+
+  /// Closures of the group's other pitches with the same dates as [c].
+  List<Closure> groupClosuresLike(Closure c, ClosureGroup g) => [
+        for (final x in board?.closures ?? const <Closure>[])
+          if (g.pitchIds.contains(x.pitchId) &&
+              x.from == c.from &&
+              x.to == c.to)
+            x
+      ];
+
+  Future<String?> reopenAll(List<Closure> list) => run(() async {
+        for (final x in list) {
+          await api.deleteClosure(club.clubId, x.closureId);
+        }
+      });
 
   /// Puts a group (a team placeholder) on a pitch for training.
   Future<String?> placeGroup(
