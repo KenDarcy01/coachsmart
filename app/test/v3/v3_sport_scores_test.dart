@@ -175,6 +175,8 @@ void main() {
     expect(V3Sport.fromCode('Hurling'), V3Sport.gaa);
     expect(V3Sport.fromCode('-'), isNull);
     expect(V3Sport.rugby.matchStartLower, 'kick-off');
+    expect(V3Sport.soccer.raceSubtitle, 'Goals for each team');
+    expect(V3Sport.gaa.raceSubtitle, 'Total points for each team');
     expect(V3Sport.gaa.alertLevels.map((a) => a.$2),
         ['Every score', 'Goals only', 'Half time and full time only', 'Stop following']);
     expect(V3Sport.soccer.alertLevels.map((a) => a.$1),

@@ -166,7 +166,7 @@ List<Widget> skChartSection(MatchModel full) {
       Text('Scores over the match',
           style: V3.tight(18, weight: FontWeight.w700)),
       const SizedBox(height: 2),
-      Text('Total points for each team', style: V3.inter(14, color: V3.muted)),
+      Text(m.sport.raceSubtitle, style: V3.inter(14, color: V3.muted)),
       const SizedBox(height: 8),
       V3MatchChart.race(m),
     ]),

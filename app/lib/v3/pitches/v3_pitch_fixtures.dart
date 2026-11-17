@@ -4,6 +4,7 @@
 // games, friendlies, blitzes). Each card says where the pitch stands: booked,
 // needs a pitch, or away.
 import 'package:flutter/material.dart';
+import '/v3/sport/v3_sport.dart';
 
 import 'v3_pitch_api.dart';
 import 'v3_pitch_board.dart' show codeColour;
@@ -141,9 +142,16 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
   List<FixtureChange> _changes = const [];
   String? _error;
 
+  /// Official league fixtures come from the GAA fixture list, so soccer
+  /// and rugby clubs see only their own matches (multi-sport).
+  bool _league = true;
+
   @override
   void initState() {
     super.initState();
+    V3Sport.forClub(c.club.clubId).then((s) {
+      if (mounted && !s.isGaa) setState(() => _league = false);
+    });
     c.addListener(_maybeLoad);
     _maybeLoad();
     _loadChanges();
@@ -342,19 +350,24 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               padding: EdgeInsets.all(30),
               child: Center(child: CircularProgressIndicator(color: PT.muted)))
         else ...[
-          if (_changes.isNotEmpty) ...[
+          if (_league && _changes.isNotEmpty) ...[
             head('Changes from the league', 'Last 14 days, newest first',
                 _changes.length),
             _changesPanel(),
           ],
-          head('Official fixtures', 'From the league fixture list', off.length),
-          if (off.isEmpty)
-            Text('No league fixtures this week.',
-                style: PT.inter(14, color: PT.muted))
-          else
-            list([for (final f in off) (f.start, _officialCard(f))]),
-          head('Unofficial matches', 'On CoachSmart but not on the league list',
-              un.length),
+          if (_league) ...[
+            head('Official fixtures', 'From the league fixture list',
+                off.length),
+            if (off.isEmpty)
+              Text('No league fixtures this week.',
+                  style: PT.inter(14, color: PT.muted))
+            else
+              list([for (final f in off) (f.start, _officialCard(f))]),
+          ],
+          _league
+              ? head('Unofficial matches',
+                  'On CoachSmart but not on the league list', un.length)
+              : head('Matches', 'On CoachSmart this week', un.length),
           if (un.isEmpty)
             Text('None this week.', style: PT.inter(14, color: PT.muted))
           else

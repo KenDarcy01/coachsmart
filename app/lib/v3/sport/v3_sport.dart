@@ -112,6 +112,11 @@ class V3Sport {
     return l.isEmpty ? '•' : l;
   }
 
+  /// Under the "Scores over the match" chart.
+  String get raceSubtitle => kind == V3SportKind.soccer
+      ? 'Goals for each team'
+      : 'Total points for each team';
+
   /// "throw-in" / "kick-off", for the middle of a sentence.
   String get matchStartLower => matchStart.toLowerCase();
 
