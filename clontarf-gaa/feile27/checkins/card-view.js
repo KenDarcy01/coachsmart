@@ -16,7 +16,7 @@ window.CardView = (function () {
     const done = new Map((c.checkins || []).map(k => [k.date, k]));
     const code = c.code === 'camogie' ? 'Camogie' : 'Football';
     return `<div class="card"><div class="card-in">
-      <div style="display:flex;align-items:center;gap:10px"><img src="/clontarf-gaa/images/clontarf-crest.png" alt="" style="width:30px;height:30px;object-fit:contain"><span class="eyebrow">Road to Féile · ${code}</span></div>
+      <div style="display:flex;align-items:center;gap:10px"><img src="/clontarf-gaa/images/clontarf-crest.png" alt="" style="width:44px;height:44px;object-fit:contain"><span class="eyebrow">Road to Féile · ${code}</span></div>
       <div class="display" style="font-size:28px;line-height:1">${esc(c.first_name || '')}</div>
       <div class="card-row"><div class="ic red">${ICON.bolt}</div><div><div class="k red">Superpower</div><div class="big">${para(c.superpower) || '<span class="muted">Not filled in yet</span>'}</div></div></div>
       <div class="card-row"><div class="ic">${ICON.target}</div><div><div class="k">Working on next</div><div class="big">${para(c.development) || '<span class="muted">Not filled in yet</span>'}</div></div></div>
