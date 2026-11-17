@@ -1058,9 +1058,7 @@ class _Clock extends StatelessWidget {
               TextSpan(style: skCaps(), children: [
                 TextSpan(text: '${hn.toUpperCase()} · '),
                 if (inj)
-                  TextSpan(
-                      text: 'INJURY TIME',
-                      style: skCaps(color: V3.amber))
+                  TextSpan(text: 'INJURY TIME', style: skCaps(color: V3.amber))
                 else
                   TextSpan(
                       text:

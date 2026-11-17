@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '/backend/supabase/supabase.dart';
 import '../v3_theme.dart';
 import 'v3_matches_models.dart';
+import '/v3/sport/v3_sport.dart';
 import '/v3/tracking/v3_track.dart';
 
 // ───────────────────────────────────────────────────────────── live updates
@@ -147,18 +148,20 @@ Future<void> liveBell(BuildContext context,
     {required int eventId,
     required String sub,
     required LiveFollow follow,
+    V3Sport sport = V3Sport.gaa,
     required void Function(LiveFollow f, String message) onChange,
     required VoidCallback onError}) async {
   if (!follow.on) {
     try {
       onChange(await _setFollow(eventId, 'all'),
-          "Following: you'll get every score. Tap the bell to change.");
+          "Following: you'll get ${sport.levelLabel('all').toLowerCase()}. Tap the bell to change.");
     } catch (_) {
       onError();
     }
     return;
   }
-  final ch = await showAlertSheet(context, sub: sub, follow: follow);
+  final ch =
+      await showAlertSheet(context, sub: sub, follow: follow, sport: sport);
   if (ch == null) return;
   try {
     final nf = ch.level == 'off'
@@ -169,7 +172,7 @@ Future<void> liveBell(BuildContext context,
         nf,
         ch.level == 'off'
             ? 'Stopped following this match'
-            : "Saved. You'll get ${levelLabel(ch.level).toLowerCase()}.");
+            : "Saved. You'll get ${sport.levelLabel(ch.level).toLowerCase()}.");
   } catch (_) {
     onError();
   }
@@ -177,7 +180,9 @@ Future<void> liveBell(BuildContext context,
 
 /// The alert choices sheet. Returns the choice, or null when dismissed.
 Future<LiveFollow?> showAlertSheet(BuildContext context,
-    {required String sub, required LiveFollow follow}) {
+    {required String sub,
+    required LiveFollow follow,
+    V3Sport sport = V3Sport.gaa}) {
   var level = follow.level;
   var kickoff = follow.kickoff;
   var names = follow.names;
@@ -247,7 +252,7 @@ Future<LiveFollow?> showAlertSheet(BuildContext context,
               Text(sub.isEmpty ? 'Sent to your phone as they happen' : sub,
                   style: V3.inter(14, color: V3.muted)),
               const SizedBox(height: 4),
-              for (final (k, t, s) in alertLevels)
+              for (final (k, t, s) in sport.alertLevels)
                 row(t, s, radio(level == k), () => level = k, last: k == 'off'),
               const SizedBox(height: 14),
               Text('ALSO',
@@ -256,7 +261,7 @@ Future<LiveFollow?> showAlertSheet(BuildContext context,
                       color: V3.green,
                       letterSpacing: 1.5)),
               row(
-                  'Throw-in alerts',
+                  '${sport.matchStart} alerts',
                   'Start of each half',
                   toggle(kickoff, (v) => kickoff = v),
                   () => kickoff = !kickoff),

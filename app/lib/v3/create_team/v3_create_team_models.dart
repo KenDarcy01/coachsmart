@@ -82,15 +82,17 @@ String codeSub(String name, bool female) {
 
 /// The codes ticked when the codes step opens. Picks still valid for the
 /// club are kept; if none are left, a single-code club gets its one code,
-/// otherwise Football and Hurling are ticked (not extras like S&C).
+/// otherwise the club's sport codes are ticked: Football and Hurling, or
+/// Soccer, or Rugby (not extras like S&C).
 List<int> defaultCodeIds(List<CtCode> codes, List<int>? current) {
   final valid = codes.map((c) => c.codeId).toSet();
   final kept = (current ?? const <int>[]).where(valid.contains).toList();
   if (kept.isNotEmpty) return kept;
   if (codes.length == 1) return [codes.first.codeId];
+  const sportCodes = {'Football', 'Hurling', 'Soccer', 'Rugby'};
   return [
     for (final c in codes)
-      if (c.name == 'Football' || c.name == 'Hurling') c.codeId
+      if (sportCodes.contains(c.name)) c.codeId
   ];
 }
 

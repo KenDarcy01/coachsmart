@@ -21,7 +21,7 @@ Future<Map<String, dynamic>> fetchLineupJson(
     team = await _sb
         .from('teams')
         .select(
-            'team_name,teamsheet,clubs(primary_colour,secondary_colour,third_colour,crest)')
+            'team_name,teamsheet,clubs(primary_colour,secondary_colour,third_colour,crest,sport_id)')
         .eq('team_id', teamId);
   } catch (_) {
     team = await _sb
@@ -115,7 +115,11 @@ Future<Map<String, dynamic>> fetchLineupJson(
           .from('lineup_details')
           .select()
           .eq('lineup_id', rows.first['lineup_id']);
-      out['lineup'] = {'format': rows.first['format'], 'details': details};
+      out['lineup'] = {
+        'format': rows.first['format'],
+        'formation': rows.first['formation'],
+        'details': details
+      };
       // member_team_link is RLS-limited, so saved players may be missing
       // from the list: add those still in this squad (as the web page does).
       final known = players.map((p) => p['member_id']).toSet();
@@ -152,6 +156,8 @@ Future<void> saveLineup(LineupBoard b,
         'team_id': teamId,
         'squad_id': (squadId ?? 0) > 0 ? squadId : null,
         'format': b.format,
+        // Soccer only (lineup.formation); GAA and rugby leave it out.
+        if (b.formation.isNotEmpty) 'formation': b.formation,
         'created_by': currentUserUid.isEmpty ? null : currentUserUid,
       })
       .select()

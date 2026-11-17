@@ -130,6 +130,13 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
       }
       if (seq != _loadSeq || !mounted) return; // the squad changed meanwhile
       final d = LiveMatchData.fromJson(r);
+      final tid = d.event.teamId;
+      if (!_test && tid != null && V3Sport.cachedTeam(tid) == null) {
+        // The club's sport, for the words before kick-off ("-" code)
+        V3Sport.forTeam(tid).then((_) {
+          if (mounted) setState(() {});
+        });
+      }
       final first = _data == null;
       final wasDone = _data?.done ?? false;
       setState(() {
@@ -209,7 +216,8 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
     await liveBell(context,
         eventId: d.event.eventId,
         sub: '${d.event.teamName} v ${d.oppName}',
-        follow: d.follow, onChange: (f, msg) {
+        follow: d.follow,
+        sport: d.sport, onChange: (f, msg) {
       if (!mounted) return;
       setState(() => d.follow = f);
       liveSnack(context, msg);
@@ -503,7 +511,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
   Widget _squadCard(LiveMatchData d, LiveSquad x) {
     final now = _now;
     final us = d.usName, opp = x.opp;
-    final s = x.score ?? LiveScore.zero;
+    final s = x.score ?? LiveScore.zeroFor(d.sport);
     final started = x.phase != 'pre';
     final done = isDonePhase(x.phase);
     final when = started
@@ -529,7 +537,8 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
           ? Column(children: [
               const SizedBox(height: 8),
               Text(untilCaps(left), style: scoreStyle(40)),
-              Text('until throw-in', style: V3.inter(14, color: V3.muted)),
+              Text('until ${d.sport.matchStartLower}',
+                  style: V3.inter(14, color: V3.muted)),
             ])
           : Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -753,7 +762,10 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
                               : 'Follow this match',
                           style: V3.inter(17, weight: FontWeight.w700)),
                       const SizedBox(height: 2),
-                      Text(on ? d.follow.label : 'Get an alert for every score',
+                      Text(
+                          on
+                              ? d.follow.labelFor(d.sport)
+                              : 'Get an alert for ${d.sport.levelLabel('all').toLowerCase()}',
                           style: V3.inter(14, color: V3.muted)),
                     ]),
               ),
@@ -782,7 +794,7 @@ class _V3MatchLivePageState extends State<V3MatchLivePage> {
     if (left != null) {
       cd = left > Duration.zero
           ? Column(children: [
-              Text('THROW-IN IN',
+              Text('${d.sport.matchStart.toUpperCase()} IN',
                   style: V3.inter(13,
                       weight: FontWeight.w600,
                       color: V3.muted,

@@ -97,7 +97,8 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
     await liveBell(context,
         eventId: m.eventId,
         sub: '${m.teamName} v ${m.opp}',
-        follow: m.follow, onChange: (f, msg) {
+        follow: m.follow,
+        sport: m.sport, onChange: (f, msg) {
       if (!mounted) return;
       setState(() => _data?.setFollow(m.eventId, f));
       liveSnack(context, msg);
@@ -279,7 +280,7 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
                   Text(place, style: V3.inter(14, color: V3.muted)),
               ])
         : Text(
-            'Throw-in ${clockTime(m.eventDateTime)}${place.isNotEmpty ? ' · $place' : ''}',
+            '${m.sport.matchStart} ${clockTime(m.eventDateTime)}${place.isNotEmpty ? ' · $place' : ''}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: V3.inter(14, color: V3.muted));

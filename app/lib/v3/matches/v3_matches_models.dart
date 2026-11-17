@@ -107,25 +107,11 @@ Color squadColour(String name, String colour, int index) {
   return Color(_spare[index % _spare.length]);
 }
 
-const alertLevels = [
-  (
-    'all',
-    'Every score',
-    'Goals, points and 2 pointers, both teams, plus half time and full time'
-  ),
-  ('goals', 'Goals only', 'Plus half time and full time'),
-  ('result', 'Half time and full time only', 'No alerts for scores'),
-  ('off', 'Stop following', 'No alerts for this match'),
-];
+/// GAA's alert choices; each sport's are [V3Sport.alertLevels].
+final alertLevels = V3Sport.gaa.alertLevels;
 
-String levelLabel(String l) =>
-    const {
-      'all': 'Every score',
-      'goals': 'Goals, half time and full time',
-      'result': 'Half time and full time',
-      'off': 'No alerts',
-    }[l] ??
-    '';
+String levelLabel(String l, [V3Sport sport = V3Sport.gaa]) =>
+    sport.levelLabel(l);
 
 // ───────────────────────────────────────────────────────────── Irish time
 
@@ -286,7 +272,12 @@ class LiveFollow {
   bool get on => level.isNotEmpty && level != 'off';
 
   /// "Every score and throw-in"
-  String get label => levelLabel(level) + (kickoff ? ' and throw-in' : '');
+  String get label => labelFor(V3Sport.gaa);
+
+  /// "Every goal and kick-off"
+  String labelFor(V3Sport sport) =>
+      sport.levelLabel(level) +
+      (kickoff ? ' and ${sport.matchStartLower}' : '');
 }
 
 bool isLivePhase(String p) => p == 'play' || p == 'ht';
@@ -310,6 +301,7 @@ class LiveMatchRow {
         phase = _s(j['phase']).isEmpty ? 'pre' : _s(j['phase']),
         timer = j['timer'] is Map ? LiveTimer.fromJson(j['timer']) : null,
         score = j['score'] is Map ? LiveScore.fromJson(j['score']) : null,
+        sportId = _iN(j['sport']),
         follow = LiveFollow.fromJson(_m(j['follow']));
 
   final int eventId, squadsInEvent;
@@ -319,7 +311,14 @@ class LiveMatchRow {
   final DateTime? eventDateTime;
   final LiveTimer? timer;
   final LiveScore? score;
+
+  /// The club's sport (get_live_matches "sport"); before that was sent,
+  /// the score's, else GAA.
+  final int? sportId;
   LiveFollow follow;
+
+  V3Sport get sport =>
+      sportId != null ? V3Sport.fromId(sportId) : (score?.sport ?? V3Sport.gaa);
 
   bool get live => isLivePhase(phase);
   bool get done => isDonePhase(phase);
@@ -394,6 +393,7 @@ class LiveMatchesData {
 class LiveEvent {
   LiveEvent.fromJson(Map j)
       : eventId = _i(j['event_id']),
+        teamId = _iN(j['team_id']),
         eventDateTime = _t(j['event_date_time']),
         eventStart = _t(j['event_start']),
         eventTitle = _s(j['event_title']),
@@ -404,6 +404,7 @@ class LiveEvent {
         clubName = _s(j['club_name']),
         eventCode = _s(j['event_code']);
   final int eventId;
+  final int? teamId;
   final DateTime? eventDateTime, eventStart;
   final String eventTitle, opposition, homeAway, locationName, teamName;
   final String clubName, eventCode;
@@ -534,8 +535,14 @@ class LiveMatchData {
     return null;
   }
 
-  /// The sport, from the live score (GAA when it doesn't say).
-  V3Sport get sport => score?.sport ?? (squad?.score?.sport ?? V3Sport.gaa);
+  /// The sport: from the match's code (Soccer, Rugby), else the team's
+  /// club once [V3Sport.forTeam] has read it, else the live score's, else
+  /// GAA.
+  V3Sport get sport =>
+      V3Sport.fromCode(event.eventCode) ??
+      V3Sport.cachedTeam(event.teamId) ??
+      score?.sport ??
+      (squad?.score?.sport ?? V3Sport.gaa);
 
   String get usName {
     final c = cleanClub(event.clubName, sport: sport);

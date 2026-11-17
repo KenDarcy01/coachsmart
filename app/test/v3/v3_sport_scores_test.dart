@@ -3,6 +3,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:coach_smart_v2/v3/match_stats/v3_match_stats_models.dart' as ms;
+import 'package:coach_smart_v2/v3/create_team/v3_create_team_models.dart';
 import 'package:coach_smart_v2/v3/matches/v3_matches_models.dart';
 import 'package:coach_smart_v2/v3/score_keeper/sk_models.dart';
 import 'package:coach_smart_v2/v3/score_keeper/sk_voice_parser.dart';
@@ -167,5 +168,37 @@ void main() {
     expect(parseVoice('goal Ciarán', soccer).items.single.typeId, 11);
     expect(parseVoice('corner for them', soccer).items.single.side, 'opp');
     expect(parseVoice('yellow card', soccer).items.single.typeId, 13);
+  });
+
+  test('wording: kick-off and alert choices by sport', () {
+    expect(V3Sport.fromCode('Soccer'), V3Sport.soccer);
+    expect(V3Sport.fromCode('Hurling'), V3Sport.gaa);
+    expect(V3Sport.fromCode('-'), isNull);
+    expect(V3Sport.rugby.matchStartLower, 'kick-off');
+    expect(V3Sport.soccer.raceSubtitle, 'Goals for each team');
+    expect(V3Sport.gaa.raceSubtitle, 'Total points for each team');
+    expect(V3Sport.gaa.alertLevels.map((a) => a.$2),
+        ['Every score', 'Goals only', 'Half time and full time only', 'Stop following']);
+    expect(V3Sport.soccer.alertLevels.map((a) => a.$1),
+        ['all', 'result', 'off']);
+    expect(V3Sport.rugby.alertLevels[1].$2, 'Tries only');
+    const f = LiveFollow(level: 'goals', kickoff: true);
+    expect(f.label, 'Goals, half time and full time and throw-in');
+    expect(f.labelFor(V3Sport.rugby),
+        'Tries, half time and full time and kick-off');
+    expect(levelLabel('all'), 'Every score');
+
+    final row = LiveMatchRow.fromJson({'event_id': 1, 'sport': 2});
+    expect(row.sport, V3Sport.soccer);
+    expect(LiveMatchRow.fromJson({'event_id': 1}).sport, V3Sport.gaa);
+    final live = LiveMatchData.fromJson({
+      'event': {'event_id': 1, 'event_code': 'Rugby', 'team_id': 5}
+    });
+    expect(live.sport, V3Sport.rugby);
+  });
+
+  test('create team ticks the club sport codes', () {
+    expect(defaultCodeIds(const [CtCode(5, 'Soccer'), CtCode(6, 'S&C')], null),
+        [5]);
   });
 }
