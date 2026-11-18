@@ -27,6 +27,10 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 const SITE = "https://coachsmart.app/club/";
+// The pitch planner (new app; preview address until the January switch).
+// Opened straight from this link it uses the club's own look and can be
+// added to the home screen as "<Club> Pitches" (Ken, 2026-11-18).
+const PLANNER = (clubId: number) => `https://coachsmart-v3.web.app/pitches?club=${clubId}&look=club`;
 const DAYS = 30;
 const esc = (s: unknown) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -54,7 +58,9 @@ function buttonColour(...hexes: (string | null | undefined)[]) {
 
 function emailHtml(o: {
   club: any; first: string; inviter: string; title: string; link: string; isNew: boolean;
+  pitchesOnly?: boolean;
 }) {
+  if (o.pitchesOnly) return pitchEmailHtml(o);
   const btn = buttonColour(o.club.primary_colour, o.club.secondary_colour);
   const crest = o.club.crest
     ? `<img src="${esc(o.club.crest)}" alt="" width="64" height="64" style="display:block;margin:0 auto 12px;width:64px;height:64px;object-fit:contain">`
@@ -75,6 +81,36 @@ function emailHtml(o: {
 <p style="margin:0 0 12px">${what}</p>
 <p style="margin:0 0 22px">${next}</p>
 <p style="margin:0 0 22px;text-align:center"><a href="${esc(o.link)}" style="display:inline-block;background:${btn};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${o.isNew ? "Set up your account" : "Open the dashboard"}</a></p>
+<p style="margin:0;color:#6b7280;font-size:13px">If the button doesn't work, copy this link into your browser:<br><a href="${esc(o.link)}" style="color:#6b7280;word-break:break-all">${esc(o.link)}</a></p>
+</td></tr></table>
+<div style="color:#9ca3af;font-size:12px;margin-top:14px">Powered by CoachSmart</div>
+</td></tr></table></body></html>`;
+}
+
+// Invite for a planner-only officer (e.g. the club's pitch admin).
+function pitchEmailHtml(o: { club: any; first: string; inviter: string; title: string; link: string; isNew: boolean }) {
+  const btn = buttonColour(o.club.primary_colour, o.club.secondary_colour);
+  const crest = o.club.crest
+    ? `<img src="${esc(o.club.crest)}" alt="" width="64" height="64" style="display:block;margin:0 auto 12px;width:64px;height:64px;object-fit:contain">`
+    : "";
+  const intro = `${o.inviter ? esc(o.inviter) + " has added you" : "You have been added"} as ${esc(o.title)} on the ${esc(o.club.club_name)} pitch planner.`;
+  const what = "You can book matches and training onto the club's pitches, sort clashes and publish the week so every team can see where they're playing.";
+  const next = o.isNew
+    ? `Tap the button to choose a password. You don't need to download anything. The link works for ${DAYS} days.`
+    : "Sign in with your CoachSmart email and password.";
+  const tip = "On your phone, open it in Safari or Chrome and choose \"Add to Home Screen\" to keep it like an app.";
+  return `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1d23">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:28px 12px"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;padding:28px">
+<tr><td style="text-align:center">${crest}<div style="font-size:20px;font-weight:700;margin-bottom:4px">${esc(o.club.club_name)}</div>
+<div style="color:#6b7280;font-size:14px;margin-bottom:22px">Pitch planner</div></td></tr>
+<tr><td style="font-size:16px;line-height:1.5">
+<p style="margin:0 0 12px">Hi${o.first ? " " + esc(o.first) : ""},</p>
+<p style="margin:0 0 12px">${intro}</p>
+<p style="margin:0 0 12px">${what}</p>
+<p style="margin:0 0 22px">${next}</p>
+<p style="margin:0 0 22px;text-align:center"><a href="${esc(o.link)}" style="display:inline-block;background:${btn};color:#fff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:10px">${o.isNew ? "Set up your account" : "Open the pitch planner"}</a></p>
+<p style="margin:0 0 12px;color:#6b7280;font-size:14px">${tip}</p>
 <p style="margin:0;color:#6b7280;font-size:13px">If the button doesn't work, copy this link into your browser:<br><a href="${esc(o.link)}" style="color:#6b7280;word-break:break-all">${esc(o.link)}</a></p>
 </td></tr></table>
 <div style="color:#9ca3af;font-size:12px;margin-top:14px">Powered by CoachSmart</div>
@@ -102,7 +138,9 @@ serve(async (req) => {
         .select("club_id, club_name, crest, primary_colour, secondary_colour").eq("club_id", inv.club_id).single();
 
       if (body.action === "lookup") {
-        return json({ club, email: inv.email, first_name: inv.first_name, last_name: inv.last_name, title: inv.title });
+        return json({ club, email: inv.email, first_name: inv.first_name, last_name: inv.last_name, title: inv.title,
+          can_pitches: inv.can_pitches !== false, can_dashboard: inv.can_dashboard !== false,
+          planner: PLANNER(inv.club_id) });
       }
 
       const password = String(body.password || "");
@@ -145,14 +183,16 @@ serve(async (req) => {
       if (Object.keys(names).length) await admin.from("users").update(names).eq("user_id", uid);
 
       const { error: oe } = await admin.from("club_officers").upsert(
-        { club_id: inv.club_id, user_id: uid, title: inv.title, created_by: inv.created_by, is_active: true },
+        { club_id: inv.club_id, user_id: uid, title: inv.title, created_by: inv.created_by, is_active: true,
+          can_pitches: inv.can_pitches !== false, can_dashboard: inv.can_dashboard !== false },
         { onConflict: "club_id,user_id" },
       );
       if (oe) throw oe;
       await admin.from("club_officer_invites").update({ accepted_at: new Date().toISOString(), token: null })
         .eq("invite_id", inv.invite_id);
 
-      return json({ ok: true, email: inv.email, club_id: inv.club_id, existing: !!existing?.confirmed });
+      return json({ ok: true, email: inv.email, club_id: inv.club_id, existing: !!existing?.confirmed,
+        can_dashboard: inv.can_dashboard !== false, planner: PLANNER(inv.club_id) });
     }
 
     // ── SuperUser: invite ───────────────────────────────────────────────
@@ -170,6 +210,9 @@ serve(async (req) => {
     const title = String(body.title || "").trim().slice(0, 60) || "Officer";
     const first = String(body.first_name || "").trim().slice(0, 60);
     const last = String(body.last_name || "").trim().slice(0, 60);
+    const canPitches = body.can_pitches !== false;
+    const canDashboard = body.can_dashboard !== false;
+    if (!canPitches && !canDashboard) return json({ error: "Tick the pitch planner, the dashboard or both." }, 400);
     if (!clubId) return json({ error: "No club." }, 400);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "That email doesn't look right." }, 400);
 
@@ -186,14 +229,15 @@ serve(async (req) => {
     if (existing?.confirmed && existing.has_profile) {
       // Already on CoachSmart: make them an officer now.
       const { error } = await admin.from("club_officers").upsert(
-        { club_id: clubId, user_id: existing.user_id, title, created_by: me.user.id, is_active: true },
+        { club_id: clubId, user_id: existing.user_id, title, created_by: me.user.id, is_active: true,
+          can_pitches: canPitches, can_dashboard: canDashboard },
         { onConflict: "club_id,user_id" },
       );
       if (error) throw error;
       await admin.from("club_officer_invites").delete().eq("club_id", clubId).ilike("email", email.replace(/[\\%_]/g, "\\$&"));
       const { data: u } = await admin.from("users").select("first_name").eq("user_id", existing.user_id).maybeSingle();
       firstName = u?.first_name || first;
-      link = `${SITE}?club=${clubId}`;
+      link = canDashboard ? `${SITE}?club=${clubId}` : PLANNER(clubId);
       isNew = false;
     } else {
       const tok = token();
@@ -201,6 +245,7 @@ serve(async (req) => {
         club_id: clubId, email, title, first_name: first || null, last_name: last || null,
         created_by: me.user.id, sent_at: new Date().toISOString(), token: tok,
         expires_at: new Date(Date.now() + DAYS * 864e5).toISOString(), accepted_at: null,
+        can_pitches: canPitches, can_dashboard: canDashboard,
       };
       await admin.from("club_officer_invites").delete().eq("club_id", clubId).ilike("email", email.replace(/[\\%_]/g, "\\$&"));
       const { error } = await admin.from("club_officer_invites").insert(row);
@@ -213,8 +258,8 @@ serve(async (req) => {
     const { error: me2 } = await resend.emails.send({
       from: "CoachSmart <no-reply@coachsmart.app>",
       to: email,
-      subject: `${club.club_name} club dashboard`,
-      html: emailHtml({ club, first: firstName, inviter, title, link, isNew }),
+      subject: canDashboard ? `${club.club_name} club dashboard` : `${club.club_name} pitch planner`,
+      html: emailHtml({ club, first: firstName, inviter, title, link, isNew, pitchesOnly: !canDashboard }),
     });
     if (me2) {
       console.error("Resend failed:", me2);

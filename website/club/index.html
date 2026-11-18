@@ -197,6 +197,10 @@ body.busy #app .layout{opacity:.45;pointer-events:none;transition:opacity .15s}b
 .lbox input[readonly]{background:var(--card2);color:var(--muted)}
 .orow .pend{color:var(--muted);font-size:12px;font-weight:600}
 .orow .acts{display:flex;gap:6px}
+.orow .ticks{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.orow .tick{background:var(--card2);color:var(--muted);font-size:12.5px;padding:5px 9px}
+.orow .tick.on{color:var(--text,inherit);font-weight:600}
+.ochk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
 .sheet{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:8;padding:16px}
 .sheet.on{display:flex}
 .sbox{background:var(--card);border-radius:18px;padding:22px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
@@ -329,25 +333,39 @@ async function inviteSetup(tok) {
   state('Loading…');
   const r = await fn({ action: 'lookup', token: tok });
   if (r.error) { dropInvite(); return showLogin(r.error); }
-  brand(r.club); document.title = r.club.club_name + ' · Club dashboard';
+  // A planner-only invite (Ken 2026-11-18) sets up the account here, then
+  // sends them to the club's pitch planner instead of this dashboard.
+  const pitchesOnly = r.can_dashboard === false;
+  const what = pitchesOnly ? 'pitch planner' : 'club dashboard';
+  const go = pitchesOnly ? 'Set up and open the pitch planner' : 'Open the dashboard';
+  brand(r.club); document.title = r.club.club_name + (pitchesOnly ? ' · Pitch planner' : ' · Club dashboard');
   $('inviteForm').innerHTML = `${r.club.crest ? `<img class="icrest" src="${esc(r.club.crest)}" alt="">` : ''}
-    <h2>${esc(r.club.club_name)} club dashboard</h2>
-    <p>You’ve been added as ${esc(r.title)}. Choose a password to set up your CoachSmart account. You don’t need the app.</p>
+    <h2>${esc(r.club.club_name)} ${what}</h2>
+    <p>You’ve been added as ${esc(r.title)}. Choose a password to set up your account. You don’t need the app.</p>
     <div class="two"><input id="iFirst" placeholder="First name" autocomplete="given-name" value="${esc(r.first_name || '')}"><input id="iLast" placeholder="Last name" autocomplete="family-name" value="${esc(r.last_name || '')}"></div>
     <input id="iEmail" type="email" autocomplete="username" readonly value="${esc(r.email)}">
     <input id="iPw" type="password" placeholder="Choose a password (8 or more characters)" autocomplete="new-password" minlength="8" required>
     <input id="iPw2" type="password" placeholder="Type it again" autocomplete="new-password" required>
-    <button class="btn" id="iGo" type="submit">Open the dashboard</button>
+    <button class="btn" id="iGo" type="submit">${go}</button>
     <div class="msg" id="iMsg"></div>`;
   $('app').innerHTML = ''; $('invite').classList.add('on');
   $('inviteForm').onsubmit = async e => {
     e.preventDefault();
-    const pw = $('iPw').value, msg = t => { $('iMsg').textContent = t; $('iGo').disabled = false; $('iGo').textContent = 'Open the dashboard'; };
+    const pw = $('iPw').value, msg = t => { $('iMsg').textContent = t; $('iGo').disabled = false; $('iGo').textContent = go; };
     if (pw.length < 8) return msg('Use at least 8 characters.');
     if (pw !== $('iPw2').value) return msg('The two passwords don’t match.');
     $('iGo').disabled = true; $('iGo').textContent = 'Setting up…'; $('iMsg').textContent = '';
     const a = await fn({ action: 'accept', token: tok, password: pw, first_name: $('iFirst').value, last_name: $('iLast').value });
     if (a.error) return msg(a.error);
+    if (a.can_dashboard === false) {
+      $('inviteForm').innerHTML = `${r.club.crest ? `<img class="icrest" src="${esc(r.club.crest)}" alt="">` : ''}
+        <h2>You’re all set</h2>
+        <p>${a.existing ? 'Sign in with your usual CoachSmart password.' : 'Sign in with ' + esc(a.email) + ' and the password you just chose.'}
+        On your phone, choose “Add to Home Screen” on the next page to keep the planner like an app.</p>
+        <a class="btn" style="display:block;text-align:center;text-decoration:none" href="${esc(a.planner)}">Open the pitch planner</a>`;
+      $('inviteForm').onsubmit = e => e.preventDefault();
+      return;
+    }
     dropInvite(); $('invite').classList.remove('on');
     if (a.existing) { $('email').value = a.email; return showLogin('You already have a CoachSmart account, so sign in with your usual password. Your club dashboard is ready.', true); }
     await sb.auth.signOut().catch(() => {});
@@ -366,6 +384,11 @@ async function boot() {
   const { data, error } = await sb.rpc('get_my_officer_clubs');
   if (error) return state('Something went wrong loading your clubs. Please try again.');
   myClubs = data.clubs || []; isSuper = !!data.is_super_user;
+  if (!myClubs.length && (data.pitch_clubs || []).length) {
+    const pc = data.pitch_clubs[0];
+    $('app').innerHTML = `<div class="state">Your account is for the club’s pitch planner, not this dashboard.<br><br><a class="btn" style="display:inline-block;text-decoration:none" href="https://coachsmart-v3.web.app/pitches?club=${pc}&look=club">Open the pitch planner</a><br><br><button class="link" onclick="signOut()">Sign out</button></div>`;
+    return;
+  }
   if (!myClubs.length) return state('This dashboard is for club officers, and ' + (session.user.email || 'this account') + ' isn’t one yet. Sign in with a SuperUser account, or ask CoachSmart to add you as an officer of your club.', true);
   // The link decides the club (Ken 2026-11-16): no club picker, no Change club.
   if (!clubId) return state('Open the dashboard from your club’s link, for example coachsmart.app/club/?club=1.', true);
@@ -854,14 +877,16 @@ async function officers() {
   $('sbox').innerHTML = '<h2>Club officers <button onclick="closeSheet()">×</button></h2><div class="empty">Loading…</div>';
   const { data, error } = await sb.rpc('club_officer_list', { p_club_id: clubId });
   const list = error || data.error ? null : data.officers, inv = (!error && data.invites) || [];
-  window._inv = inv;
+  window._inv = inv; window._off = list || [];
   $('sbox').innerHTML = `<h2>${esc(D.club.club_name)} officers <button onclick="closeSheet()">×</button></h2>
-   <p style="color:var(--muted);font-size:14px;margin-bottom:8px">Officers can open this dashboard for the club. SuperUsers can open every club.</p>
-   ${list ? (list.length || inv.length ? list.map(o => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)}<small>${esc(o.email)}</small></div><button onclick="removeOfficer('${o.user_id}')">Remove</button></div>`).join('')
-     + inv.map((o, i) => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)} <span class="pend">Invite sent${o.sent_at ? ' ' + new Date(o.sent_at).getDate() + ' ' + MON[new Date(o.sent_at).getMonth()] : ''}</span><small>${esc(o.email)}</small></div><div class="acts"><button onclick="resendInvite(${i})">Resend</button><button onclick="cancelInvite(${i})">Cancel</button></div></div>`).join('') : '<div class="empty">No officers yet.</div>') : '<div class="empty">Couldn’t load the list.</div>'}
+   <p style="color:var(--muted);font-size:14px;margin-bottom:8px">Each officer can have the pitch planner, this dashboard, or both. Tap a tick to change it. SuperUsers can open everything for every club.</p>
+   ${list ? (list.length || inv.length ? list.map((o, i) => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)}<small>${esc(o.email)}</small><div class="ticks"><button class="tick ${o.can_pitches !== false ? 'on' : ''}" onclick="setAccess(${i}, 'p')">${o.can_pitches !== false ? '✓' : '○'} Pitch planner</button><button class="tick ${o.can_dashboard !== false ? 'on' : ''}" onclick="setAccess(${i}, 'd')">${o.can_dashboard !== false ? '✓' : '○'} Club dashboard</button></div></div><button onclick="removeOfficer('${o.user_id}')">Remove</button></div>`).join('')
+     + inv.map((o, i) => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)} <span class="pend">Invite sent${o.sent_at ? ' ' + new Date(o.sent_at).getDate() + ' ' + MON[new Date(o.sent_at).getMonth()] : ''}</span><small>${esc(o.email)} · ${[o.can_pitches !== false ? 'Pitch planner' : '', o.can_dashboard !== false ? 'Club dashboard' : ''].filter(Boolean).join(' + ')}</small></div><div class="acts"><button onclick="resendInvite(${i})">Resend</button><button onclick="cancelInvite(${i})">Cancel</button></div></div>`).join('') : '<div class="empty">No officers yet.</div>') : '<div class="empty">Couldn’t load the list.</div>'}
    <h3 style="margin-top:18px;font-size:16px">Invite someone</h3>
-   <p style="color:var(--muted);font-size:13px;margin:4px 0 0">They get an email from the club with a link to set up their account and open this dashboard. They don’t need the app. If they already use CoachSmart they get access straight away.</p>
-   <div class="oadd"><input id="oFirst" placeholder="First name"><input id="oLast" placeholder="Last name"><input id="oEmail" type="email" placeholder="Email"><input id="oTitle" placeholder="Title" value="Chairperson"><button class="btn" id="oGo" onclick="addOfficer()">Send invite</button><div class="msg" id="oMsg"></div></div>`;
+   <p style="color:var(--muted);font-size:13px;margin:4px 0 0">They get an email from the club with a link to set up their account. They don’t need the app. If they already use CoachSmart they get access straight away.</p>
+   <div class="oadd"><input id="oFirst" placeholder="First name"><input id="oLast" placeholder="Last name"><input id="oEmail" type="email" placeholder="Email"><input id="oTitle" placeholder="Title" value="Chairperson">
+   <label class="ochk"><input type="checkbox" id="oPitches" checked> Pitch planner</label><label class="ochk"><input type="checkbox" id="oDash" checked> Club dashboard</label>
+   <button class="btn" id="oGo" onclick="addOfficer()">Send invite</button><div class="msg" id="oMsg"></div></div>`;
 }
 function closeSheet() { $('sheet').classList.remove('on'); }
 $('sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
@@ -872,14 +897,24 @@ async function sendInvite(b) {
   if (r.error) { $('oMsg').textContent = r.error; return; }
   await officers();
   $('oMsg').classList.add('ok');
-  $('oMsg').textContent = r.new_account ? `Invite sent to ${b.email}.` : `${b.email} already uses CoachSmart, so they can open the dashboard now. We’ve emailed them a link.`;
+  $('oMsg').textContent = r.new_account ? `Invite sent to ${b.email}.` : `${b.email} already uses CoachSmart, so they have access now. We’ve emailed them a link.`;
 }
 function addOfficer() {
   const email = $('oEmail').value.trim();
   if (!email) { $('oMsg').textContent = 'Add their email.'; return; }
-  sendInvite({ email, title: $('oTitle').value, first_name: $('oFirst').value, last_name: $('oLast').value });
+  const can_pitches = $('oPitches').checked, can_dashboard = $('oDash').checked;
+  if (!can_pitches && !can_dashboard) { $('oMsg').textContent = 'Tick the pitch planner, the dashboard or both.'; return; }
+  sendInvite({ email, title: $('oTitle').value, first_name: $('oFirst').value, last_name: $('oLast').value, can_pitches, can_dashboard });
 }
-function resendInvite(i) { const o = window._inv[i], n = (o.name || '').split(' '); sendInvite({ email: o.email, title: o.title, first_name: n[0] || '', last_name: n.slice(1).join(' ') }); }
+async function setAccess(i, which) {
+  const o = window._off[i];
+  let p = o.can_pitches !== false, d = o.can_dashboard !== false;
+  if (which === 'p') p = !p; else d = !d;
+  const { data } = await sb.rpc('club_officer_set_access', { p_club_id: clubId, p_user_id: o.user_id, p_pitches: p, p_dashboard: d });
+  await officers();
+  if (data && data.error) $('oMsg').textContent = data.error;
+}
+function resendInvite(i) { const o = window._inv[i], n = (o.name || '').split(' '); sendInvite({ email: o.email, title: o.title, first_name: n[0] || '', last_name: n.slice(1).join(' '), can_pitches: o.can_pitches !== false, can_dashboard: o.can_dashboard !== false }); }
 async function cancelInvite(i) { await sb.rpc('club_officer_invite_cancel', { p_club_id: clubId, p_email: window._inv[i].email }); officers(); }
 async function removeOfficer(uid) { await sb.rpc('club_officer_remove', { p_club_id: clubId, p_user_id: uid }); officers(); }
 
