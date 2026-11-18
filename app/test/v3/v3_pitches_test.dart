@@ -533,8 +533,8 @@ Future<void> _pump(WidgetTester t, Size size, FakePitchApi api,
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
       home: RepaintBoundary(
-          child:
-              V3PitchesPage(clubId: 1, api: api, today: _today, look: look ?? 'club'))));
+          child: V3PitchesPage(
+              clubId: 1, api: api, today: _today, look: look ?? 'club'))));
   await t.pumpAndSettle();
 }
 
@@ -835,6 +835,16 @@ void main() {
     await t.tap(find.text('Day'));
     await t.pumpAndSettle();
     await _shot(t, 'pp-day-app');
+    // A pitch pill shows just that pitch.
+    final row = find.byWidgetPredicate(
+        (w) => w is Scrollable && w.axisDirection == AxisDirection.right);
+    await t.scrollUntilVisible(
+        find.descendant(of: row, matching: find.text('Pitch 34')), 200,
+        scrollable: row.first);
+    await t.tap(find.descendant(of: row, matching: find.text('Pitch 34')));
+    await t.pumpAndSettle();
+    expect(find.text('Clubhouse Astro'), findsNothing);
+    await _shot(t, 'pp-day-pitch-app');
     PT.dark = false;
   });
 

@@ -9,9 +9,55 @@ import 'v3_pitch_controller.dart';
 import 'v3_pitch_models.dart';
 import 'v3_pitch_sheets.dart';
 
-class PitchPhoneDay extends StatelessWidget {
+class PitchPhoneDay extends StatefulWidget {
   const PitchPhoneDay({super.key, required this.c});
   final PitchController c;
+  @override
+  State<PitchPhoneDay> createState() => _PitchPhoneDayState();
+}
+
+class _PitchPhoneDayState extends State<PitchPhoneDay> {
+  PitchController get c => widget.c;
+
+  /// One pitch picked in the pill row (Ken, 2026-11-18); null = all.
+  int? _pitchId;
+
+  /// One scrolling row of pitch pills: All pitches, then each pitch.
+  Widget _pitchPills(List<Pitch> pitches) {
+    final accent = c.club.accent;
+    Widget pill(String label, bool on, VoidCallback onTap) => Padding(
+          padding: const EdgeInsets.only(right: 6),
+          child: Material(
+            color: on ? accent : PT.card,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onTap,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: on ? accent : PT.line)),
+                child: Text(label,
+                    style: PT.inter(13.5,
+                        weight: FontWeight.w600,
+                        color: on ? onAccent(accent) : PT.text)),
+              ),
+            ),
+          ),
+        );
+    return SizedBox(
+      height: 40,
+      child: ListView(scrollDirection: Axis.horizontal, children: [
+        pill('All pitches', _pitchId == null,
+            () => setState(() => _pitchId = null)),
+        for (final p in pitches)
+          pill(p.name, _pitchId == p.pitchId,
+              () => setState(() => _pitchId = p.pitchId)),
+      ]),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +79,10 @@ class PitchPhoneDay extends StatelessWidget {
         children: [
           _DayStrip(c: c),
           const SizedBox(height: 10),
+          if (board.pitches.length > 1) ...[
+            _pitchPills(board.pitches),
+            const SizedBox(height: 10),
+          ],
           if (clashes.isNotEmpty)
             _Banner(
                 colour: PT.redTint,
@@ -69,7 +119,8 @@ class PitchPhoneDay extends StatelessWidget {
                       style: PT.inter(15, color: PT.muted))),
             ),
           for (final p in board.pitches)
-            _PitchCard(c: c, pitch: p, clashIds: clashIds, open: open),
+            if (_pitchId == null || p.pitchId == _pitchId)
+              _PitchCard(c: c, pitch: p, clashIds: clashIds, open: open),
         ]);
   }
 }
