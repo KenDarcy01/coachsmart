@@ -358,6 +358,8 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: V3.bg,
+        // The floating menu pill sits over the events (2026-11-18).
+        extendBody: true,
         drawer: _drawer(role),
         appBar: AppBar(
           backgroundColor: V3.bg,
@@ -620,7 +622,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
         ),
       );
     }
-    children.add(const SizedBox(height: 24));
+    // Room for the floating menu pill: extendBody passes its height on as
+    // bottom padding.
+    children.add(SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom));
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -704,6 +708,11 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 
   // ---- bottom tabs ---------------------------------------------------------
 
+  // Floating pill menu in the Strava style (Ken picked mock B, 2026-11-18,
+  // app-v3/home-menu-pill/): Home and Coaching sit in a rounded, slightly
+  // see-through pill, the open tab in its own darker pill; Add event is a
+  // round green + beside it, since it is an action rather than a page.
+  // The Scaffold uses extendBody so the events scroll behind the pill.
   Widget _tabs(int role) {
     final items = <_Tab>[
       _Tab('Home', Icons.home_rounded, null, active: true),
@@ -711,48 +720,107 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       // (Ken, 2026-11-09).
       if (_home.isGaaMember && role >= 30)
         _Tab('Coaching', Icons.menu_book_rounded, _openCoaching),
-      if (role >= 100)
-        _Tab('Add event', Icons.add_circle, () async {
-          await context.pushNamed(V3EventFormPage.createRouteName);
-          if (mounted) _load();
-        }),
     ];
-    return Container(
+    final canAdd = role >= 100;
+    const shadow = [
+      BoxShadow(color: Color(0x8C000000), blurRadius: 28, offset: Offset(0, 8)),
+    ];
+    return DecoratedBox(
+      // Fades the events out under the pill so it never sits on a hard edge.
       decoration: const BoxDecoration(
-        color: V3.tabBar,
-        border: Border(top: BorderSide(color: V3.line)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x0014181B), Color(0xD914181B)],
+          stops: [0, 0.55],
+        ),
       ),
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          height: 64,
+        minimum: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           child: Row(
             children: [
-              for (final t in items)
-                Expanded(
-                  child: InkWell(
-                    onTap: t.onTap,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          t.icon,
-                          size: 26,
-                          color: t.active ? V3.green : V3.muted,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          t.label,
-                          style: V3.inter(
-                            12,
-                            weight: FontWeight.w500,
-                            color: t.active ? V3.green : V3.muted,
+              Expanded(
+                child: Container(
+                  height: 64,
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xE61E222B),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(color: const Color(0x12FFFFFF)),
+                    boxShadow: shadow,
+                  ),
+                  child: Row(
+                    children: [
+                      for (final t in items)
+                        Expanded(
+                          child: Material(
+                            color: t.active ? V3.tabBar : Colors.transparent,
+                            shape: StadiumBorder(
+                              side: t.active
+                                  ? const BorderSide(color: Color(0x2E87C232))
+                                  : BorderSide.none,
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: t.onTap,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    t.icon,
+                                    size: 24,
+                                    color: t.active ? V3.green : V3.text,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    t.label,
+                                    style: V3.inter(
+                                      12,
+                                      weight: FontWeight.w600,
+                                      color: t.active ? V3.green : V3.text,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ],
+                    ],
+                  ),
+                ),
+              ),
+              if (canAdd) ...[
+                const SizedBox(width: 10),
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: shadow,
+                  ),
+                  child: Material(
+                    color: V3.green,
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () async {
+                        await context
+                            .pushNamed(V3EventFormPage.createRouteName);
+                        if (mounted) _load();
+                      },
+                      child: Semantics(
+                        button: true,
+                        label: 'Add event',
+                        child: const Icon(Icons.add_rounded,
+                            size: 34, color: V3.bg),
+                      ),
                     ),
                   ),
                 ),
+              ],
             ],
           ),
         ),
