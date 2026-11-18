@@ -222,29 +222,56 @@ class _PitchCard extends StatelessWidget {
                       : 'Nothing booked',
                   style: PT.inter(13.5, color: PT.muted)),
             ),
-          for (final b in bookings)
-            _row(
-                context,
-                '${timeOf(b.start)}–${timeOf(b.end)}',
-                c.titleOf(b),
-                [
-                  if (b.kind == 'match') 'Match',
-                  if (pitch.split > 1) PitchPart.label(b.part, pitch.split),
-                  if (clashIds.contains(b.bookingId)) 'clash',
-                ].join(' · '),
-                codeColour(bookingCode(c, b)),
-                red: clashIds.contains(b.bookingId),
-                onTap: () => open(BookingSheet(c: c, booking: b))),
-          for (final e in matched)
-            _row(
-                context,
-                timeOf(e.start),
-                c.titleOfEvent(e),
-                'From the event · tap to confirm',
-                codeColour(codeOf(e.code, female: e.female, name: e.teamName)),
-                faint: true,
-                onTap: () => open(PlaceSheet(
-                    c: c, item: c.itemOfEvent(e), pitch: pitch, at: e.start))),
+          // Bookings, events to confirm and free slots in time order, so
+          // the free slots are in the list (Ken, 2026-11-18).
+          for (final (_, w) in [
+            for (final b in bookings)
+              (
+                minutesOf(b.start),
+                _row(
+                    context,
+                    '${timeOf(b.start)}–${timeOf(b.end)}',
+                    c.titleOf(b),
+                    [
+                      if (b.kind == 'match') 'Match',
+                      if (pitch.split > 1) PitchPart.label(b.part, pitch.split),
+                      if (clashIds.contains(b.bookingId)) 'clash',
+                    ].join(' · '),
+                    codeColour(bookingCode(c, b)),
+                    red: clashIds.contains(b.bookingId),
+                    onTap: () => open(BookingSheet(c: c, booking: b)))
+              ),
+            for (final e in matched)
+              (
+                minutesOf(e.start),
+                _row(
+                    context,
+                    timeOf(e.start),
+                    c.titleOfEvent(e),
+                    'From the event · tap to confirm',
+                    codeColour(
+                        codeOf(e.code, female: e.female, name: e.teamName)),
+                    faint: true,
+                    onTap: () => open(PlaceSheet(
+                        c: c,
+                        item: c.itemOfEvent(e),
+                        pitch: pitch,
+                        at: e.start)))
+              ),
+            if (closure == null)
+              for (final f in free)
+                (
+                  f.opens,
+                  _row(context, f.label, 'Free', 'Tap to book', PT.green,
+                      free: true,
+                      onTap: () => open(BookingSheet(
+                          c: c,
+                          pitch: pitch,
+                          at: atMinutes(day, f.opens),
+                          minutes: f.closes - f.opens)))
+                ),
+          ]..sort((x, y) => x.$1.compareTo(y.$1)))
+            w,
           if (closure == null)
             GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -273,7 +300,10 @@ class _PitchCard extends StatelessWidget {
 
   Widget _row(BuildContext context, String when, String what, String? sub,
           Color? bar,
-          {bool red = false, bool faint = false, VoidCallback? onTap}) =>
+          {bool red = false,
+          bool faint = false,
+          bool free = false,
+          VoidCallback? onTap}) =>
       GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -299,16 +329,19 @@ class _PitchCard extends StatelessWidget {
                   children: [
                     Text(what,
                         style: PT.inter(14.5,
-                            weight: FontWeight.w500,
+                            weight: free ? FontWeight.w700 : FontWeight.w500,
                             color: red
                                 ? PT.redText
-                                : faint
-                                    ? PT.muted
-                                    : PT.text)),
+                                : free
+                                    ? PT.green
+                                    : faint
+                                        ? PT.muted
+                                        : PT.text)),
                     if (sub != null && sub.isNotEmpty)
                       Text(sub, style: PT.inter(12, color: PT.muted)),
                   ]),
             ),
+            if (free) Icon(Icons.add_circle_outline, size: 20, color: PT.green),
           ]),
         ),
       );
