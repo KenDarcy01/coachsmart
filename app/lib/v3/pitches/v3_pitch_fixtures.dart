@@ -137,8 +137,14 @@ class UnofficialMatch {
 }
 
 class PitchFixturesView extends StatefulWidget {
-  const PitchFixturesView({super.key, required this.c});
+  const PitchFixturesView(
+      {super.key, required this.c, this.todo = false, this.onPublish});
   final PitchController c;
+
+  /// Phone: the week as a short checklist (Ken, 2026-11-18: "very busy,
+  /// not clear what I need to do next"). The full list is one tap away.
+  final bool todo;
+  final VoidCallback? onPublish;
   @override
   State<PitchFixturesView> createState() => _PitchFixturesViewState();
 }
@@ -450,8 +456,310 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     );
   }
 
+  /// Phone checklist: showing the full fixture list instead.
+  bool _all = false;
+  bool _showChanges = false;
+
+  Widget _weekRow() {
+    final m = c.monday;
+    final sun = m.add(const Duration(days: 6));
+    return Row(children: [
+      IconButton(
+          onPressed: () => c.shiftDays(-7),
+          icon: Icon(Icons.chevron_left, color: PT.muted)),
+      Flexible(
+        child: Text(
+            'Week of ${m.day} ${kMonths[m.month - 1].substring(0, 3)} – '
+            '${sun.day} ${kMonths[sun.month - 1].substring(0, 3)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: PT.tight(18)),
+      ),
+      IconButton(
+          onPressed: () => c.shiftDays(7),
+          icon: Icon(Icons.chevron_right, color: PT.muted)),
+    ]);
+  }
+
+  /// One step of the week's checklist: a number (or a tick when done),
+  /// a title and what to do.
+  Widget _step(int n, String title, String sub,
+      {required bool done, List<Widget> children = const []}) {
+    final accent = c.club.accent;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+          color: PT.card,
+          border:
+              Border.all(color: done ? PT.line : accent.withValues(alpha: 0.6)),
+          borderRadius: BorderRadius.circular(14)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(children: [
+            Container(
+              width: 28,
+              height: 28,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                  color: done ? PT.green : accent, shape: BoxShape.circle),
+              child: done
+                  ? Icon(Icons.check, size: 18, color: onAccent(PT.green))
+                  : n == 0
+                      ? Icon(Icons.bolt, size: 18, color: onAccent(accent))
+                      : Text('$n',
+                          style: PT.inter(14,
+                              weight: FontWeight.w700,
+                              color: onAccent(accent))),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: PT.inter(16,
+                            weight: FontWeight.w700,
+                            color: done ? PT.muted : PT.text)),
+                    if (sub.isNotEmpty)
+                      Text(sub, style: PT.inter(13, color: PT.muted)),
+                  ]),
+            ),
+          ]),
+        ),
+        ...children,
+      ]),
+    );
+  }
+
+  /// A row inside a step: when, what, and a "Do it" arrow.
+  Widget _todoRow(DateTime start, String title, String sub,
+      {VoidCallback? onTap, String action = 'Place'}) {
+    final accent = c.club.accent;
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(top: BorderSide(color: PT.line))),
+        padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+        child: Row(children: [
+          SizedBox(
+            width: 52,
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(kWeekdays[start.weekday - 1],
+                  style: PT.inter(12, color: PT.muted)),
+              Text(timeOf(start), style: PT.inter(14, weight: FontWeight.w700)),
+            ]),
+          ),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PT.inter(14.5, weight: FontWeight.w600)),
+              if (sub.isNotEmpty)
+                Text(sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: PT.inter(12.5, color: PT.muted)),
+            ]),
+          ),
+          if (onTap != null) ...[
+            const SizedBox(width: 8),
+            Text(action,
+                style: PT.inter(13.5, weight: FontWeight.w700, color: accent)),
+            Icon(Icons.chevron_right, size: 18, color: accent),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  Widget _todo() {
+    final board = c.board!;
+    final accent = c.club.accent;
+    final off = _official, un = _unofficial;
+    if (_error != null || off == null || un == null) {
+      return ListView(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+          children: [
+            _weekRow(),
+            Padding(
+              padding: const EdgeInsets.all(30),
+              child: Center(
+                  child: _error != null
+                      ? Text(_error!, style: PT.inter(14, color: PT.muted))
+                      : CircularProgressIndicator(color: PT.muted)),
+            ),
+          ]);
+    }
+
+    // 1. Home matches with no pitch yet.
+    final needs = <(DateTime, Widget)>[];
+    for (final f in off) {
+      final status = f.status.toLowerCase();
+      if (!f.isHome || f.booking != null) continue;
+      if (status.contains('postpon') || status.contains('cancel')) continue;
+      final age = [f.age, f.code].where((s) => s.isNotEmpty).join(' ');
+      needs.add((
+        f.start,
+        _todoRow(f.start, '$age v ${f.away}', f.comp,
+            onTap: () => _place(gameId: f.gameId, eventId: f.eventId, f: f))
+      ));
+    }
+    for (final u in un) {
+      if (u.away || u.booking != null) continue;
+      final name =
+          groupName(u.teamName, season: c.season, clubName: c.club.name);
+      needs.add((
+        u.start,
+        _todoRow(
+            u.start,
+            u.opposition.isEmpty ? name : '$name v ${u.opposition}',
+            'On CoachSmart, not on the league list',
+            onTap: () => _place(eventId: u.eventId, u: u))
+      ));
+    }
+    needs.sort((a, b) => a.$1.compareTo(b.$1));
+
+    // 2. Clashes this week.
+    final clashes = [
+      for (var i = 0; i < 7; i++)
+        ...board.clashesOn(c.monday.add(Duration(days: i)))
+    ];
+
+    // 3. League changes for matches this week.
+    final changes = [
+      for (final x in _changes)
+        if (x.when != null && mondayOf(x.when!) == c.monday) x
+    ];
+
+    final pub = board.publishedAt;
+    final published = pub != null && !board.changedSincePublish;
+    final ready = needs.isEmpty && clashes.isEmpty;
+    final n = c.autoIds.length;
+
+    return ListView(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+        children: [
+          _weekRow(),
+          const SizedBox(height: 4),
+          _step(
+              1,
+              needs.isEmpty
+                  ? 'Every home match has a pitch'
+                  : 'Needs a pitch (${needs.length})',
+              needs.isEmpty ? '' : 'Tap a match to give it a pitch.',
+              done: needs.isEmpty,
+              children: [
+                if (needs.isNotEmpty && c.homes.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    child: PitchButton('Fill them from the usual pitches',
+                        accent: accent,
+                        compact: true,
+                        onTap: c.busy ? null : _fill),
+                  ),
+                for (final (_, w) in needs) w,
+              ]),
+          if (n > 0)
+            _step(0, '$n filled automatically',
+                'Check them on the Day tab, then keep them.',
+                done: false,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    child: Row(children: [
+                      Expanded(
+                        child: PitchButton('Keep them',
+                            compact: true,
+                            accent: accent,
+                            onTap: c.busy ? null : () => c.autofillAccept()),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: PitchButton('Undo fill',
+                            compact: true,
+                            danger: true,
+                            onTap: c.busy ? null : () => c.autofillUndo()),
+                      ),
+                    ]),
+                  ),
+                ]),
+          _step(
+              2,
+              clashes.isEmpty ? 'No clashes' : 'Clashes (${clashes.length})',
+              clashes.isEmpty
+                  ? ''
+                  : 'Two bookings on the same pitch at once. Move one.',
+              done: clashes.isEmpty,
+              children: [
+                for (final (a, b) in clashes)
+                  _todoRow(a.start, '${c.titleOf(a)} and ${c.titleOf(b)}',
+                      board.pitch(a.pitchId)?.name ?? '',
+                      action: 'Sort', onTap: () => _openBooking(b.bookingId)),
+              ]),
+          if (_league)
+            _step(
+                3,
+                changes.isEmpty
+                    ? 'No league changes this week'
+                    : 'League changes (${changes.length})',
+                changes.isEmpty ? '' : 'Times or venues the league changed.',
+                done: changes.isEmpty || _showChanges,
+                children: [
+                  if (changes.isNotEmpty && !_showChanges)
+                    _todoRow(changes.first.when!, changes.first.title,
+                        changes.first.detail,
+                        action: changes.length == 1
+                            ? 'Got it'
+                            : 'See all ${changes.length}',
+                        onTap: () => setState(() => _showChanges = true)),
+                  if (_showChanges)
+                    for (final x in changes)
+                      _todoRow(x.when!, x.title, x.detail),
+                ]),
+          _step(
+              _league ? 4 : 3,
+              published ? 'Published' : 'Publish the week',
+              published
+                  ? 'Members can see it. Publish again after any change.'
+                  : ready
+                      ? 'Members see the pitches once you publish.'
+                      : 'Best done once the steps above are clear.',
+              done: published,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  child: PitchButton(published ? 'Publish again' : 'Publish',
+                      accent: published ? null : accent,
+                      onTap: c.busy ? null : widget.onPublish),
+                ),
+              ]),
+          const SizedBox(height: 6),
+          Center(
+            child: TextButton(
+                onPressed: () => setState(() => _all = true),
+                child: Text('See all fixtures this week',
+                    style:
+                        PT.inter(14, weight: FontWeight.w600, color: accent))),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+                'Slots, groups and pitch set-up are on the laptop version.',
+                textAlign: TextAlign.center,
+                style: PT.inter(12.5, color: PT.faint)),
+          ),
+        ]);
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.todo && !_all && c.board != null) return _todo();
     final m = c.monday;
     final sun = m.add(const Duration(days: 6));
     final accent = c.club.accent;
@@ -496,7 +804,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
                       PT.inter(12.5, weight: FontWeight.w700, color: PT.muted)),
             ));
           } else {
-            kids.add(const Divider(height: 1, thickness: 1, color: PT.line));
+            kids.add(Divider(height: 1, thickness: 1, color: PT.line));
           }
           kids.add(row);
           last = d;
@@ -512,10 +820,20 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
       }
 
       return ListView(padding: const EdgeInsets.only(bottom: 24), children: [
+        if (widget.todo)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+                onPressed: () => setState(() => _all = false),
+                icon: Icon(Icons.arrow_back, size: 18, color: accent),
+                label: Text('Back to the checklist',
+                    style:
+                        PT.inter(14, weight: FontWeight.w600, color: accent))),
+          ),
         Row(children: [
           IconButton(
               onPressed: () => c.shiftDays(-7),
-              icon: const Icon(Icons.chevron_left, color: PT.muted)),
+              icon: Icon(Icons.chevron_left, color: PT.muted)),
           Flexible(
             child: Text(
                 'Week of ${m.day} ${kMonths[m.month - 1].substring(0, 3)} – '
@@ -526,7 +844,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
           ),
           IconButton(
               onPressed: () => c.shiftDays(7),
-              icon: const Icon(Icons.chevron_right, color: PT.muted)),
+              icon: Icon(Icons.chevron_right, color: PT.muted)),
         ]),
         _fillBar(),
         if (_error != null)
@@ -534,7 +852,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               padding: const EdgeInsets.all(16),
               child: Text(_error!, style: PT.inter(14, color: PT.muted)))
         else if (off == null || un == null)
-          const Padding(
+          Padding(
               padding: EdgeInsets.all(30),
               child: Center(child: CircularProgressIndicator(color: PT.muted)))
         else ...[
@@ -575,7 +893,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
           borderRadius: BorderRadius.circular(12)),
       child: Column(children: [
         for (final (i, x) in shown.indexed) ...[
-          if (i > 0) const Divider(height: 1, thickness: 1, color: PT.line),
+          if (i > 0) Divider(height: 1, thickness: 1, color: PT.line),
           InkWell(
             onTap: x.when == null ? null : () => c.pickDay(x.when!),
             child: Container(
@@ -760,7 +1078,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
                       ]),
           ),
           if (onTap != null)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(left: 6, top: 8),
               child: Icon(Icons.chevron_right, size: 18, color: PT.faint),
             ),

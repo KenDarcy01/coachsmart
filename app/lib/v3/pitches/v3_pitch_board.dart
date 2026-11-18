@@ -298,7 +298,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             width: width,
             child: Column(children: [
               Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                     border: Border(bottom: BorderSide(color: PT.line))),
                 child: Row(children: [
                   const SizedBox(width: _timeCol),
@@ -415,7 +415,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             child: Column(children: [
               // Pitch names.
               Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                     border: Border(bottom: BorderSide(color: PT.line))),
                 child: Row(children: [
                   const SizedBox(width: _timeCol),
@@ -737,7 +737,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                  color: const Color(0xF2FBEFEF),
+                  color: PT.redTint.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: PT.redText.withValues(alpha: 0.4))),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -771,7 +771,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
         decoration: BoxDecoration(
             color:
                 cand.isNotEmpty ? c.club.accent.withValues(alpha: 0.06) : null,
-            border: const Border(left: BorderSide(color: PT.line))),
+            border: Border(left: BorderSide(color: PT.line))),
         child: Stack(clipBehavior: Clip.none, children: children),
       ),
     );
@@ -901,7 +901,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       decoration:
-          const BoxDecoration(border: Border(top: BorderSide(color: PT.line))),
+          BoxDecoration(border: Border(top: BorderSide(color: PT.line))),
       child: Row(children: [
         for (final (label, code) in const [
           ('Boys', PitchCode.football),
@@ -1147,7 +1147,7 @@ class _ItemCard extends StatelessWidget {
                         : 'Event'),
             if (item.fixture != null) ...[
               const SizedBox(width: 6),
-              const PitchTag('From league', colour: Color(0xFF1F6FD1)),
+              PitchTag('From league', colour: Color(0xFF1F6FD1)),
             ],
           ]),
         ]),
@@ -1202,9 +1202,12 @@ class _Hatch extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
-        Offset.zero & size, Paint()..color = const Color(0xFFF1F2F4));
+        Offset.zero & size,
+        Paint()
+          ..color =
+              PT.dark ? const Color(0xFF1A1E24) : const Color(0xFFF1F2F4));
     final line = Paint()
-      ..color = const Color(0xFFE2E4E8)
+      ..color = PT.dark ? const Color(0xFF2A2F39) : const Color(0xFFE2E4E8)
       ..strokeWidth = 1;
     canvas.save();
     canvas.clipRect(Offset.zero & size);

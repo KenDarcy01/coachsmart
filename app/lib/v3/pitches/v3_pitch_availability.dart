@@ -135,7 +135,7 @@ class _PitchAvailabilityViewState extends State<PitchAvailabilityView> {
   @override
   Widget build(BuildContext context) {
     if (!_loaded) {
-      return const Center(child: CircularProgressIndicator(color: PT.muted));
+      return Center(child: CircularProgressIndicator(color: PT.muted));
     }
     if (_error != null) {
       return Center(
@@ -206,7 +206,7 @@ class _PitchAvailabilityViewState extends State<PitchAvailabilityView> {
                   Row(children: [
                     Expanded(child: Text(p.name, style: PT.tight(19))),
                     if (_busy)
-                      const SizedBox(
+                      SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
@@ -337,7 +337,7 @@ class _DayRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration:
-          const BoxDecoration(border: Border(top: BorderSide(color: PT.line))),
+          BoxDecoration(border: Border(top: BorderSide(color: PT.line))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           SizedBox(
@@ -591,9 +591,12 @@ class _Hatch extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
-        Offset.zero & size, Paint()..color = const Color(0xFFE9EBEF));
+        Offset.zero & size,
+        Paint()
+          ..color =
+              PT.dark ? const Color(0xFF1A1E24) : const Color(0xFFE9EBEF));
     final line = Paint()
-      ..color = const Color(0xFFCDD1D7)
+      ..color = PT.dark ? const Color(0xFF2E333E) : const Color(0xFFCDD1D7)
       ..strokeWidth = 1;
     canvas.save();
     canvas.clipRect(Offset.zero & size);

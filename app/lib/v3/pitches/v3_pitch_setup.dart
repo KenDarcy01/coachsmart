@@ -212,7 +212,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
       return Center(child: Text(_error!, style: PT.inter(15, color: PT.muted)));
     }
     if (s == null) {
-      return const Center(child: CircularProgressIndicator(color: PT.muted));
+      return Center(child: CircularProgressIndicator(color: PT.muted));
     }
     final wide = MediaQuery.sizeOf(context).width >= kWide;
     final accent = c.club.accent;
@@ -251,7 +251,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                   for (final u in s.unmatched.take(20))
                     ActionChip(
                       backgroundColor: PT.bg,
-                      side: const BorderSide(color: PT.line),
+                      side: BorderSide(color: PT.line),
                       label: Text('${u.location} (${u.events})',
                           style: PT.inter(13)),
                       onPressed: _busy ? null : () => _link(u),
@@ -285,7 +285,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                               style: PT.inter(13, color: PT.muted)),
                         ]),
                   ),
-                  const Icon(Icons.chevron_right, color: PT.muted, size: 20),
+                  Icon(Icons.chevron_right, color: PT.muted, size: 20),
                 ]),
               ),
             ),
@@ -358,7 +358,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                             selectedColor: accent,
                             checkmarkColor: onAccent(accent),
                             backgroundColor: PT.bg,
-                            side: const BorderSide(color: PT.line),
+                            side: BorderSide(color: PT.line),
                             onSelected: (on) => set(() => on
                                 ? picked.add(p.pitchId)
                                 : picked.remove(p.pitchId)),
@@ -439,7 +439,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
             onTap: _busy ? null : () => _editPitch(v, p),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                   border: Border(top: BorderSide(color: PT.line))),
               child:
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -474,7 +474,7 @@ class _PitchSetupViewState extends State<PitchSetupView> {
                 IconButton(
                     tooltip: 'Remove',
                     onPressed: _busy ? null : () => _removePitch(p),
-                    icon: const Icon(Icons.close, size: 18, color: PT.muted)),
+                    icon: Icon(Icons.close, size: 18, color: PT.muted)),
               ]),
             ),
           ),
@@ -648,7 +648,7 @@ class _PitchEditorState extends State<_PitchEditor> {
           for (final a in p.aliases)
             InputChip(
               backgroundColor: PT.bg,
-              side: const BorderSide(color: PT.line),
+              side: BorderSide(color: PT.line),
               label: Text(a, style: PT.inter(13)),
               onDeleted: () => setState(
                   () => p = p.copyWith(aliases: [...p.aliases]..remove(a))),
@@ -691,7 +691,7 @@ class _PitchEditorState extends State<_PitchEditor> {
                       InputChip(
                         visualDensity: VisualDensity.compact,
                         backgroundColor: PT.bg,
-                        side: const BorderSide(color: PT.line),
+                        side: BorderSide(color: PT.line),
                         label: Text(s.label, style: PT.inter(12)),
                         onDeleted: () => setState(() =>
                             p = p.copyWith(slots: [...p.slots]..remove(s))),
@@ -820,13 +820,13 @@ class PitchGroupsView extends StatelessWidget {
                       IconButton(
                           onPressed:
                               sessions > 0 ? () => set(() => sessions--) : null,
-                          icon: const Icon(Icons.remove, color: PT.muted)),
+                          icon: Icon(Icons.remove, color: PT.muted)),
                       Text('$sessions',
                           style: PT.inter(16, weight: FontWeight.w600)),
                       IconButton(
                           onPressed:
                               sessions < 7 ? () => set(() => sessions++) : null,
-                          icon: const Icon(Icons.add, color: PT.muted)),
+                          icon: Icon(Icons.add, color: PT.muted)),
                     ]),
                     if (g != null) ...[
                       const SizedBox(height: 8),

@@ -84,7 +84,7 @@ class _DayStrip extends StatelessWidget {
     return Row(children: [
       IconButton(
           onPressed: () => c.shiftDays(-7),
-          icon: const Icon(Icons.chevron_left, color: PT.muted)),
+          icon: Icon(Icons.chevron_left, color: PT.muted)),
       for (var i = 0; i < 7; i++)
         Expanded(
           child: GestureDetector(
@@ -113,7 +113,7 @@ class _DayStrip extends StatelessWidget {
         ),
       IconButton(
           onPressed: () => c.shiftDays(7),
-          icon: const Icon(Icons.chevron_right, color: PT.muted)),
+          icon: Icon(Icons.chevron_right, color: PT.muted)),
     ]);
   }
 }
@@ -203,9 +203,9 @@ class _PitchCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: PT.inter(12.5, color: PT.muted))),
             if (closure != null)
-              const PitchTag('Closed', colour: PT.redText)
+              PitchTag('Closed', colour: PT.redText)
             else if (hasClash)
-              const PitchTag('Clash', colour: PT.redText)
+              PitchTag('Clash', colour: PT.redText)
             else if (free.isNotEmpty)
               PitchTag('${free.length} free slot${free.length == 1 ? '' : 's'}',
                   colour: PT.green),
@@ -279,8 +279,8 @@ class _PitchCard extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: PT.line))),
+          decoration:
+              BoxDecoration(border: Border(top: BorderSide(color: PT.line))),
           child: Row(children: [
             SizedBox(
                 width: 92,

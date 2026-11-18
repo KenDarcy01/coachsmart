@@ -4,6 +4,7 @@
 // Club officers (and SuperUsers) get the planner: on a laptop the day board
 // with a side menu, on a phone the day by pitch. Other members of the club
 // get the published plan, read-only.
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../v3_crest_image.dart';
@@ -27,7 +28,11 @@ enum PitchTab { fixtures, board, availability, groups, setup, published }
 /// white (Ken, 2026-11-16); the rest of v3 stays dark.
 class V3PitchesPage extends StatelessWidget {
   const V3PitchesPage(
-      {super.key, this.clubId, this.api = const PitchApi(), this.today});
+      {super.key,
+      this.clubId,
+      this.look,
+      this.api = const PitchApi(),
+      this.today});
 
   static String routeName = 'V3Pitches';
   static String routePath = 'pitches';
@@ -35,13 +40,29 @@ class V3PitchesPage extends StatelessWidget {
   final int? clubId;
   final PitchApi api;
 
+  /// 'app' (black CoachSmart look) or 'club' (light, club colours). Left
+  /// out: the app look when opened from inside CoachSmart (there is a page
+  /// to go back to, or it is the installed app), the club look when opened
+  /// straight from a link (Ken, 2026-11-18).
+  final String? look;
+
   /// Tests pin the date.
   final DateTime? today;
 
+  static bool appLook(BuildContext context, String? look) {
+    if (look == 'app') return true;
+    if (look == 'club') return false;
+    if (!kIsWeb) return true;
+    return Navigator.of(context).canPop();
+  }
+
   @override
-  Widget build(BuildContext context) => Theme(
-      data: PT.theme(PT.text),
-      child: _PitchesBody(clubId: clubId, api: api, today: today));
+  Widget build(BuildContext context) {
+    PT.dark = appLook(context, look);
+    return Theme(
+        data: PT.theme(PT.dark ? PT.csGreen : PT.text),
+        child: _PitchesBody(clubId: clubId, api: api, today: today));
+  }
 }
 
 class _PitchesBody extends StatefulWidget {
@@ -138,17 +159,17 @@ class _V3PitchesPageState extends State<_PitchesBody> {
               children: [
                 Text('Publish the week of ${m.day} ${kMonths[m.month - 1]}?',
                     style: PT.tight(20)),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text(
                     'Club members see this week\'s pitches in the app, as it is now. '
                     'Keep moving things after; publish again to update what they see.',
                     style: PT.inter(15, color: PT.muted)),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Row(children: [
                   Expanded(
                       child: PitchButton('Not yet',
                           onTap: () => Navigator.pop(context, false))),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Expanded(
                       child: PitchButton('Publish',
                           accent: c.club.accent,
@@ -167,7 +188,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= kWide;
     if (!_loaded) {
-      return const Scaffold(
+      return Scaffold(
           backgroundColor: PT.bg,
           body: Center(child: CircularProgressIndicator(color: PT.muted)));
     }
@@ -178,7 +199,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
         appBar: AppBar(backgroundColor: PT.bg, foregroundColor: PT.text),
         body: Center(
             child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Text(_error ?? 'Nothing to show.',
               textAlign: TextAlign.center,
               style: PT.inter(16, color: PT.muted)),
@@ -216,7 +237,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
         titleSpacing: 0,
         title: Row(children: [
           V3CrestImage(club.crest, size: 30),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Text(_officer ? 'Pitches' : '${club.name} pitches',
                 overflow: TextOverflow.ellipsis,
@@ -246,37 +267,41 @@ class _V3PitchesPageState extends State<_PitchesBody> {
         ],
       ),
       body: content,
+      // Phone: three tabs only (Ken, 2026-11-18); set-up stays on the
+      // laptop version.
       bottomNavigationBar: _officer
           ? NavigationBar(
               backgroundColor: PT.tabBar,
               indicatorColor: club.accent.withValues(alpha: 0.2),
-              selectedIndex: _tab.index,
+              selectedIndex: _phoneTabs.indexOf(_tab).clamp(0, 2),
               onDestinationSelected: (i) =>
-                  setState(() => _tab = PitchTab.values[i]),
+                  setState(() => _tab = _phoneTabs[i]),
               labelTextStyle: WidgetStatePropertyAll(PT.inter(12)),
-              destinations: const [
+              destinations: [
                   NavigationDestination(
-                      icon: Icon(Icons.sports_outlined, color: PT.muted),
-                      label: 'Fixtures'),
+                      icon: Icon(Icons.checklist, color: PT.muted),
+                      selectedIcon: Icon(Icons.checklist, color: club.accent),
+                      label: 'To do'),
                   NavigationDestination(
                       icon: Icon(Icons.view_week_outlined, color: PT.muted),
+                      selectedIcon:
+                          Icon(Icons.view_week_outlined, color: club.accent),
                       label: 'Day'),
                   NavigationDestination(
-                      icon:
-                          Icon(Icons.event_available_outlined, color: PT.muted),
-                      label: 'Slots'),
-                  NavigationDestination(
-                      icon: Icon(Icons.groups_outlined, color: PT.muted),
-                      label: 'Groups'),
-                  NavigationDestination(
-                      icon: Icon(Icons.tune, color: PT.muted), label: 'Setup'),
-                  NavigationDestination(
                       icon: Icon(Icons.visibility_outlined, color: PT.muted),
+                      selectedIcon:
+                          Icon(Icons.visibility_outlined, color: club.accent),
                       label: 'Published'),
                 ])
           : null,
     );
   }
+
+  static const _phoneTabs = [
+    PitchTab.fixtures,
+    PitchTab.board,
+    PitchTab.published
+  ];
 
   Widget _content(PitchClub club, bool wide) {
     if (!_officer || _tab == PitchTab.published) {
@@ -295,11 +320,13 @@ class _V3PitchesPageState extends State<_PitchesBody> {
                   child: Text(c.error!,
                       textAlign: TextAlign.center,
                       style: PT.inter(15, color: PT.muted)))
-              : const CircularProgressIndicator(color: PT.muted));
+              : CircularProgressIndicator(color: PT.muted));
     }
     final body = switch (_tab) {
       PitchTab.board => wide ? PitchDayBoard(c: c) : PitchPhoneDay(c: c),
-      PitchTab.fixtures => PitchFixturesView(c: c),
+      PitchTab.fixtures => wide
+          ? PitchFixturesView(c: c)
+          : PitchFixturesView(c: c, todo: true, onPublish: _publish),
       PitchTab.availability => PitchAvailabilityView(c: c),
       PitchTab.groups => PitchGroupsView(c: c),
       PitchTab.setup => PitchSetupView(c: c),
@@ -309,7 +336,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
       return Stack(children: [
         Positioned.fill(child: body),
         if (c.busy || c.loading)
-          const Positioned(
+          Positioned(
               top: 0,
               left: 0,
               right: 0,
@@ -321,7 +348,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _header(c),
         if (c.busy || c.loading)
-          const LinearProgressIndicator(minHeight: 2, color: PT.muted)
+          LinearProgressIndicator(minHeight: 2, color: PT.muted)
         else
           const SizedBox(height: 2),
         const SizedBox(height: 12),
@@ -504,14 +531,14 @@ class _Side extends StatelessWidget {
     return Container(
       width: 220,
       padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
           color: PT.card, border: Border(right: BorderSide(color: PT.line))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           IconButton(
               tooltip: 'Back',
               onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back, color: PT.muted, size: 20)),
+              icon: Icon(Icons.arrow_back, color: PT.muted, size: 20)),
         ]),
         Container(
           padding: const EdgeInsets.all(10),

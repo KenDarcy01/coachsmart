@@ -179,7 +179,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
     final head = Row(children: [
       IconButton(
           onPressed: () => _shift(-1),
-          icon: const Icon(Icons.chevron_left, color: PT.muted)),
+          icon: Icon(Icons.chevron_left, color: PT.muted)),
       Expanded(
         child: Column(children: [
           Text(
@@ -194,7 +194,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
       ),
       IconButton(
           onPressed: () => _shift(1),
-          icon: const Icon(Icons.chevron_right, color: PT.muted)),
+          icon: Icon(Icons.chevron_right, color: PT.muted)),
     ]);
 
     return LayoutBuilder(builder: (context, box) {
@@ -203,7 +203,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
       if (_error != null) {
         children.add(Text(_error!, style: PT.inter(15, color: PT.muted)));
       } else if (w == null) {
-        children.add(const Center(
+        children.add(Center(
             child: Padding(
                 padding: EdgeInsets.all(30),
                 child: CircularProgressIndicator(color: PT.muted))));
@@ -331,7 +331,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
                 style: PT.inter(14, color: PT.muted)),
           ),
         for (final (i, b) in mine.indexed) ...[
-          if (i > 0) const Divider(height: 1, thickness: 1, color: PT.line),
+          if (i > 0) Divider(height: 1, thickness: 1, color: PT.line),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -568,7 +568,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
         if (closed != null)
           Positioned.fill(
             child: Container(
-              color: const Color(0xE6FBEFEF),
+              color: PT.redTint.withValues(alpha: 0.9),
               alignment: Alignment.center,
               child: Text(
                   'Closed${closed.reason.isEmpty ? '' : '\n${closed.reason}'}',
@@ -583,8 +583,8 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
     final days = [for (var i = 0; i < 7; i++) _monday.add(Duration(days: i))];
     return _panel(Column(children: [
       Container(
-        decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: PT.line))),
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: PT.line))),
         child: Row(children: [
           const SizedBox(width: 52),
           for (final d in days)
@@ -614,7 +614,7 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
             Expanded(
               child: Container(
                 height: height,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                     border: Border(left: BorderSide(color: PT.line))),
                 child: column(d),
               ),
@@ -630,9 +630,12 @@ class _Hatch extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
-        Offset.zero & size, Paint()..color = const Color(0xFFF1F2F4));
+        Offset.zero & size,
+        Paint()
+          ..color =
+              PT.dark ? const Color(0xFF1A1E24) : const Color(0xFFF1F2F4));
     final line = Paint()
-      ..color = const Color(0xFFE2E4E8)
+      ..color = PT.dark ? const Color(0xFF2A2F39) : const Color(0xFFE2E4E8)
       ..strokeWidth = 1;
     canvas.save();
     canvas.clipRect(Offset.zero & size);

@@ -12,6 +12,7 @@ import 'package:coach_smart_v2/v3/pitches/v3_pitch_api.dart';
 import 'package:coach_smart_v2/v3/pitches/v3_pitch_controller.dart';
 import 'package:coach_smart_v2/v3/pitches/v3_pitch_models.dart';
 import 'package:coach_smart_v2/v3/pitches/v3_pitches_page.dart';
+import 'package:coach_smart_v2/v3/pitches/v3_pitch_theme.dart';
 
 // Saturday 21 November 2026, a week from the club's own sheet.
 final _today = DateTime(2026, 11, 21);
@@ -371,6 +372,7 @@ class FakePitchApi extends PitchApi {
             'kind': 'moved',
             'title': 'U16 Football: Naomh Barrog v Clontarf',
             'detail': 'Moved from Sat 21 Nov 13:00 to Sat 21 Nov 14:30',
+            'new_start': '2026-11-21T14:30:00',
             'unread': !changesSeen,
             'created_at': DateTime.now()
                 .subtract(const Duration(hours: 2))
@@ -522,7 +524,8 @@ Future<void> _loadFonts() async {
   }
 }
 
-Future<void> _pump(WidgetTester t, Size size, FakePitchApi api) async {
+Future<void> _pump(WidgetTester t, Size size, FakePitchApi api,
+    {String? look}) async {
   t.view.physicalSize = size * 2;
   t.view.devicePixelRatio = 2;
   addTearDown(t.view.reset);
@@ -530,7 +533,8 @@ Future<void> _pump(WidgetTester t, Size size, FakePitchApi api) async {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
       home: RepaintBoundary(
-          child: V3PitchesPage(clubId: 1, api: api, today: _today))));
+          child:
+              V3PitchesPage(clubId: 1, api: api, today: _today, look: look ?? 'club'))));
   await t.pumpAndSettle();
 }
 
@@ -805,12 +809,33 @@ void main() {
     expect(api.savedPitches, isEmpty);
   });
 
-  testWidgets('phone: availability', (t) async {
+  testWidgets('phone: three tabs and the week as a checklist', (t) async {
     await _pump(t, const Size(390, 844), FakePitchApi());
-    await t.tap(find.text('Slots'));
+    for (final l in ['To do', 'Day', 'Published']) {
+      expect(find.text(l), findsOneWidget);
+    }
+    expect(find.text('Slots'), findsNothing);
+    expect(find.textContaining('Needs a pitch ('), findsOneWidget);
+    expect(find.text('Fill them from the usual pitches'), findsOneWidget);
+    expect(find.textContaining('League changes (1)'), findsOneWidget);
+    await _shot(t, 'pp-todo-phone');
+    await t.scrollUntilVisible(find.text('See all fixtures this week'), 300);
+    expect(find.text('Publish the week'), findsOneWidget);
+    await _shot(t, 'pp-todo-phone-2');
+    await t.tap(find.text('See all fixtures this week'));
     await t.pumpAndSettle();
-    expect(find.text('Clubhouse Astro'), findsWidgets);
-    await _shot(t, 'pp-availability-phone');
+    expect(find.text('Back to the checklist'), findsOneWidget);
+  });
+
+  testWidgets('phone in the app: black CoachSmart look', (t) async {
+    await _pump(t, const Size(390, 844), FakePitchApi(), look: 'app');
+    expect(PT.dark, isTrue);
+    expect(find.textContaining('Needs a pitch ('), findsOneWidget);
+    await _shot(t, 'pp-todo-app');
+    await t.tap(find.text('Day'));
+    await t.pumpAndSettle();
+    await _shot(t, 'pp-day-app');
+    PT.dark = false;
   });
 
   testWidgets('laptop: tapping a group shows its sessions', (t) async {

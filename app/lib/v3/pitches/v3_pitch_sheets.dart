@@ -17,19 +17,18 @@ Future<T?> showPitchSheet<T>(BuildContext context, Widget child) {
         context: context,
         builder: (_) => Dialog(
             backgroundColor: PT.card,
-            insetPadding: const EdgeInsets.all(24),
+            insetPadding: EdgeInsets.all(24),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(maxWidth: 460, maxHeight: 760),
+                constraints: BoxConstraints(maxWidth: 460, maxHeight: 760),
                 child: child)));
   }
   return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       backgroundColor: PT.card,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
@@ -47,7 +46,7 @@ void pitchSnack(BuildContext context, String text) =>
 // ------------------------------------------------------------------ bits
 
 class _Frame extends StatelessWidget {
-  const _Frame(
+  _Frame(
       {required this.title,
       this.tag,
       this.subtitle = '',
@@ -67,25 +66,25 @@ class _Frame extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Flexible(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+            padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              if (tag != null) ...[tag!, const SizedBox(height: 8)],
+              if (tag != null) ...[tag!, SizedBox(height: 8)],
               Text(title, style: PT.tight(21)),
               if (subtitle.isNotEmpty) ...[
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Text(subtitle, style: PT.inter(14, color: PT.muted)),
               ],
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               ...children,
             ]),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
           child: Row(children: [
             for (var i = 0; i < actions.length; i++) ...[
-              if (i > 0) const SizedBox(width: 8),
+              if (i > 0) SizedBox(width: 8),
               Expanded(child: actions[i]),
             ]
           ]),
@@ -96,7 +95,8 @@ class _Frame extends StatelessWidget {
 }
 
 class PitchTag extends StatelessWidget {
-  const PitchTag(this.text, {super.key, this.colour = PT.amberText, this.bg});
+  PitchTag(this.text, {super.key, Color? colour, this.bg})
+      : colour = colour ?? PT.amberText;
   final String text;
   final Color colour;
   final Color? bg;
@@ -168,8 +168,8 @@ class _Kv extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: PT.line))),
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: PT.line))),
         child: Row(children: [
           Text(k, style: PT.inter(15, color: PT.muted)),
           const SizedBox(width: 12),
@@ -193,10 +193,10 @@ InputDecoration pitchInput(String label, {String? hint}) => InputDecoration(
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: PT.line)),
+          borderSide: BorderSide(color: PT.line)),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: PT.line)),
+          borderSide: BorderSide(color: PT.line)),
     );
 
 class _Chips<T> extends StatelessWidget {
@@ -390,14 +390,14 @@ class _PlaceSheetState extends State<PlaceSheet> {
                         _picked = null;
                       })
                   : null,
-              icon: const Icon(Icons.remove, color: PT.muted, size: 18)),
+              icon: Icon(Icons.remove, color: PT.muted, size: 18)),
           Text('$_minutes min', style: PT.inter(15, weight: FontWeight.w600)),
           IconButton(
               onPressed: () => setState(() {
                     _minutes += 5;
                     _picked = null;
                   }),
-              icon: const Icon(Icons.add, color: PT.muted, size: 18)),
+              icon: Icon(Icons.add, color: PT.muted, size: 18)),
         ]),
         const SizedBox(height: 6),
         Text(
@@ -720,11 +720,11 @@ class _BookingSheetState extends State<BookingSheet> {
           IconButton(
               onPressed:
                   _minutes > 15 ? () => setState(() => _minutes -= 5) : null,
-              icon: const Icon(Icons.remove, color: PT.muted, size: 18)),
+              icon: Icon(Icons.remove, color: PT.muted, size: 18)),
           Text('$_minutes min', style: PT.inter(15, weight: FontWeight.w600)),
           IconButton(
               onPressed: () => setState(() => _minutes += 5),
-              icon: const Icon(Icons.add, color: PT.muted, size: 18)),
+              icon: Icon(Icons.add, color: PT.muted, size: 18)),
         ]),
         if (_pitch != null) ...[
           const SizedBox(height: 6),

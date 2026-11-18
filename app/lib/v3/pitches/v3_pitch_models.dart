@@ -3,6 +3,7 @@
 // behind pitch_board / pitch_setup and the pure rules the board uses
 // (slots, clashes, free places, age-group names, club colours), kept apart
 // from the widgets so tests run without a network.
+import 'v3_pitch_theme.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -126,13 +127,18 @@ class PitchClub {
   final String third;
   final String title;
 
-  Color get band => hexColour(primary) ?? const Color(0xFF2A3D17);
+  /// Header colour: the club's own on a laptop link, the app's black
+  /// inside CoachSmart (Ken, 2026-11-18).
+  Color get band => PT.dark
+      ? const Color(0xFF14181B)
+      : hexColour(primary) ?? const Color(0xFF2A3D17);
 
   /// The club colour used for buttons and highlights on the dark page: the
   /// first club colour that is clearly coloured (not white/grey/black) and
   /// stands out on the background; CoachSmart green if none does
   /// (Clontarf red, Ardcairn orange rather than navy, Kilmacud gold).
-  Color get accent => pickAccent([primary, secondary, third]);
+  Color get accent =>
+      PT.dark ? PT.csGreen : pickAccent([primary, secondary, third]);
 }
 
 Color? hexColour(String hex) {
