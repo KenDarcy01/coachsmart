@@ -298,8 +298,20 @@ class SlowPitchApi extends FakePitchApi {
 }
 
 class FakePitchApi extends PitchApi {
-  FakePitchApi({this.officer = true});
+  FakePitchApi({this.officer = true, this.loggedIn = true});
   final bool officer;
+  bool loggedIn;
+  @override
+  bool get signedIn => loggedIn;
+  @override
+  Future<String?> signIn(String email, String password) async {
+    if (password != 'secret') return 'Incorrect password. Please try again.';
+    loggedIn = true;
+    return null;
+  }
+
+  @override
+  Future<PitchClub?> brand(int clubId) async => clontarf;
   final saved = <Map<String, dynamic>>[];
 
   static const clontarf = PitchClub(
@@ -825,6 +837,24 @@ void main() {
     await t.tap(find.text('See all fixtures this week'));
     await t.pumpAndSettle();
     expect(find.text('Back to the checklist'), findsOneWidget);
+  });
+
+  testWidgets('phone, signed out: the club\'s own sign-in', (t) async {
+    final api = FakePitchApi(loggedIn: false);
+    await _pump(t, const Size(390, 844), api);
+    expect(find.text('Pitch planner'), findsOneWidget);
+    expect(find.text('Clontarf GAA'), findsOneWidget);
+    await _shot(t, 'pp-signin');
+    await t.enterText(find.byType(TextField).at(0), 'admin@club.ie');
+    await t.enterText(find.byType(TextField).at(1), 'wrong');
+    await t.tap(find.text('Sign in'));
+    await t.pumpAndSettle();
+    expect(find.text('Incorrect password. Please try again.'), findsOneWidget);
+    await t.enterText(find.byType(TextField).at(1), 'secret');
+    await t.tap(find.text('Sign in'));
+    await t.pumpAndSettle();
+    expect(find.text('To do'), findsOneWidget);
+    await _shot(t, 'pp-club-phone');
   });
 
   testWidgets('phone in the app: black CoachSmart look', (t) async {

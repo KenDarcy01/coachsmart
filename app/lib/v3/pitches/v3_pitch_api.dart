@@ -2,6 +2,8 @@
 // club officers get through). Tests pass a fake.
 import '/backend/supabase/supabase.dart';
 
+import '/v3/auth/v3_auth_service.dart';
+
 import 'v3_pitch_models.dart';
 
 class PitchApi {
@@ -10,10 +12,35 @@ class PitchApi {
   Future<dynamic> _rpc(String fn, Map<String, dynamic> params) =>
       SupaFlow.client.rpc(fn, params: params);
 
+  /// Signed in to CoachSmart (the club's own sign-in screen shows if not).
+  bool get signedIn => SupaFlow.client.auth.currentUser != null;
+
+  Future<String?> signIn(String email, String password) =>
+      V3AuthService.signIn(email, password);
+
+  Future<String?> sendReset(String email) =>
+      V3AuthService.sendRecoveryCode(email);
+
+  Future<void> signOut() => SupaFlow.client.auth.signOut();
+
+  /// The club's name, crest and colours, for its sign-in screen.
+  Future<PitchClub?> brand(int clubId) async {
+    final r = await _rpc('club_brand', {'p_club': clubId});
+    return r is Map ? PitchClub.fromJson(r) : null;
+  }
+
   String _d(DateTime d) => isoLocal(dayOf(d)).substring(0, 10);
 
   /// Clubs the signed-in user can plan pitches for.
   Future<List<PitchClub>> clubs() async {
+    // Officers with the "Pitch planner" tick (Ken, 2026-11-18); older
+    // database: every officer.
+    try {
+      final r = await _rpc('pitch_officer_clubs', {});
+      if (r is List) {
+        return [for (final c in r.whereType<Map>()) PitchClub.fromJson(c)];
+      }
+    } catch (_) {}
     final r = await _rpc('get_my_officer_clubs', {});
     // The function returns {clubs: [...], is_super_user}; accept a bare
     // list too.

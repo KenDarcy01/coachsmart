@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../v3_crest_image.dart';
+import '/v3/web/v3_club_pwa.dart';
 import 'v3_pitch_theme.dart';
 import '/v3/tracking/v3_track.dart';
 import 'v3_pitch_api.dart';
@@ -85,6 +86,23 @@ class _V3PitchesPageState extends State<_PitchesBody> {
   String? _error;
   bool _loaded = false;
 
+  /// Not signed in: the club's own sign-in screen (Ken, 2026-11-18), so a
+  /// club admin with no team can use the planner as the club's app.
+  bool _needSignIn = false;
+  PitchClub? _brand;
+
+  /// Club look in a browser: the tab, home-screen icon and name are the
+  /// club's ("Clontarf Pitches").
+  void _brandPage(PitchClub club) {
+    if (PT.dark) return;
+    final short = club.name
+        .replaceAll(RegExp(r'\s+(GAA|CLG|GAC|LGFA|Camogie Club)$'), '')
+        .trim();
+    final hex =
+        '#${(club.band.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+    setClubPwa(name: '$short Pitches', icon: club.crest, colour: hex);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -98,6 +116,20 @@ class _V3PitchesPageState extends State<_PitchesBody> {
   }
 
   Future<void> _start() async {
+    if (!widget.api.signedIn) {
+      try {
+        _brand = widget.clubId == null
+            ? null
+            : await widget.api.brand(widget.clubId!);
+      } catch (_) {}
+      if (!mounted) return;
+      if (_brand != null) _brandPage(_brand!);
+      setState(() {
+        _needSignIn = true;
+        _loaded = true;
+      });
+      return;
+    }
     try {
       _officerClubs = await widget.api.clubs();
     } catch (_) {
@@ -131,8 +163,24 @@ class _V3PitchesPageState extends State<_PitchesBody> {
             : 'This pitch plan is only for members of the club.';
       }
     }
+    if (_club != null) _brandPage(_club!);
     setState(() => _loaded = true);
     V3Track.event('pitches_open', {'officer': _officer ? 1 : 0});
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await widget.api.signOut();
+    } catch (_) {}
+    if (!mounted) return;
+    _c?.dispose();
+    setState(() {
+      _c = null;
+      _club = null;
+      _error = null;
+      _loaded = false;
+    });
+    _start();
   }
 
   void _useClub(PitchClub club, {required bool officer}) {
@@ -192,6 +240,18 @@ class _V3PitchesPageState extends State<_PitchesBody> {
           backgroundColor: PT.bg,
           body: Center(child: CircularProgressIndicator(color: PT.muted)));
     }
+    if (_needSignIn) {
+      return PitchSignIn(
+          club: _brand,
+          api: widget.api,
+          onSignedIn: () {
+            setState(() {
+              _needSignIn = false;
+              _loaded = false;
+            });
+            _start();
+          });
+    }
     final club = _club;
     if (club == null) {
       return Scaffold(
@@ -199,10 +259,17 @@ class _V3PitchesPageState extends State<_PitchesBody> {
         appBar: AppBar(backgroundColor: PT.bg, foregroundColor: PT.text),
         body: Center(
             child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(_error ?? 'Nothing to show.',
-              textAlign: TextAlign.center,
-              style: PT.inter(16, color: PT.muted)),
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(_error ?? 'Nothing to show.',
+                textAlign: TextAlign.center,
+                style: PT.inter(16, color: PT.muted)),
+            const SizedBox(height: 16),
+            TextButton(
+                onPressed: _signOut,
+                child: Text('Sign in with another account',
+                    style: PT.inter(15, weight: FontWeight.w600))),
+          ]),
         )),
       );
     }
@@ -263,7 +330,18 @@ class _V3PitchesPageState extends State<_PitchesBody> {
                     color: _c!.board!.changedSincePublish
                         ? PT.amber
                         : onAccent(club.band))),
-          ]
+          ],
+          // The club's own app has no other way out (Ken, 2026-11-18).
+          if (!PT.dark)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: onAccent(club.band)),
+              color: PT.card,
+              onSelected: (_) => _signOut(),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                    value: 'out', child: Text('Sign out', style: PT.inter(15))),
+              ],
+            ),
         ],
       ),
       body: content,
@@ -584,6 +662,132 @@ class _Side extends StatelessWidget {
               style: PT.inter(11.5, color: PT.faint)),
         ),
       ]),
+    );
+  }
+}
+
+/// The club's own sign-in screen for the planner: crest, club colour, email
+/// and password. For club admins who use the planner as the club's app.
+class PitchSignIn extends StatefulWidget {
+  const PitchSignIn(
+      {super.key, this.club, required this.api, required this.onSignedIn});
+  final PitchClub? club;
+  final PitchApi api;
+  final VoidCallback onSignedIn;
+  @override
+  State<PitchSignIn> createState() => _PitchSignInState();
+}
+
+class _PitchSignInState extends State<PitchSignIn> {
+  final _email = TextEditingController();
+  final _pw = TextEditingController();
+  bool _busy = false;
+  String? _msg;
+
+  Future<void> _go() async {
+    if (_email.text.trim().isEmpty || _pw.text.isEmpty) {
+      return setState(() => _msg = 'Enter your email and password.');
+    }
+    setState(() {
+      _busy = true;
+      _msg = null;
+    });
+    final err = await widget.api.signIn(_email.text, _pw.text);
+    if (!mounted) return;
+    if (err != null) {
+      return setState(() {
+        _busy = false;
+        _msg = err;
+      });
+    }
+    widget.onSignedIn();
+  }
+
+  Future<void> _reset() async {
+    if (_email.text.trim().isEmpty) {
+      return setState(
+          () => _msg = 'Enter your email first, then tap Forgot password.');
+    }
+    final err = await widget.api.sendReset(_email.text);
+    if (!mounted) return;
+    setState(() =>
+        _msg = err ?? 'We\'ve emailed you a link to choose a new password.');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final club = widget.club;
+    final band = club?.band ?? PT.text;
+    final accent = club?.accent ?? PT.csGreen;
+    return Scaffold(
+      backgroundColor: PT.bg,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: AutofillGroup(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(16, 22, 16, 18),
+                        decoration: BoxDecoration(
+                            color: band,
+                            borderRadius: BorderRadius.circular(18)),
+                        child: Column(children: [
+                          if (club != null && club.crest.isNotEmpty)
+                            V3CrestImage(club.crest, size: 72),
+                          const SizedBox(height: 10),
+                          Text(club?.name ?? 'CoachSmart',
+                              textAlign: TextAlign.center,
+                              style: PT.tight(22, color: onAccent(band))),
+                          Text('Pitch planner',
+                              style: PT.inter(15,
+                                  color:
+                                      onAccent(band).withValues(alpha: 0.85))),
+                        ]),
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
+                          style: PT.inter(16),
+                          decoration: pitchInput('Email')),
+                      const SizedBox(height: 10),
+                      TextField(
+                          controller: _pw,
+                          obscureText: true,
+                          autofillHints: const [AutofillHints.password],
+                          onSubmitted: (_) => _go(),
+                          style: PT.inter(16),
+                          decoration: pitchInput('Password')),
+                      const SizedBox(height: 14),
+                      PitchButton(_busy ? 'Signing in…' : 'Sign in',
+                          accent: accent, onTap: _busy ? null : _go),
+                      if (_msg != null) ...[
+                        const SizedBox(height: 10),
+                        Text(_msg!,
+                            textAlign: TextAlign.center,
+                            style: PT.inter(14, color: PT.muted)),
+                      ],
+                      const SizedBox(height: 6),
+                      TextButton(
+                          onPressed: _busy ? null : _reset,
+                          child: Text('Forgot password?',
+                              style: PT.inter(14, color: PT.muted))),
+                      const SizedBox(height: 18),
+                      Text('Powered by CoachSmart',
+                          textAlign: TextAlign.center,
+                          style: PT.inter(12, color: PT.faint)),
+                    ]),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
