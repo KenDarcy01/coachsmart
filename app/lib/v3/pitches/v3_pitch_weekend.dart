@@ -1,0 +1,296 @@
+// Weekend grass (Ken's club admin, 2026-11-20): one look at every grass
+// pitch on Saturday and Sunday, like the "Grass Sat-Sun" tab of the club's
+// old sheet. Each held slot shows its team or "Free" (tap to book).
+// Unavailable times and closed days say so; nothing here changes the plan
+// except through the normal booking sheet.
+
+import 'package:flutter/material.dart';
+
+import 'v3_pitch_board.dart';
+import 'v3_pitch_controller.dart';
+import 'v3_pitch_models.dart';
+import 'v3_pitch_sheets.dart';
+import 'v3_pitch_theme.dart';
+
+/// One line in a pitch's day: a booking, an event to confirm, or a free slot.
+class _Line {
+  const _Line(this.at, this.when, this.what,
+      {this.bar, this.free = false, this.faint = false, this.onTap});
+  final int at;
+  final String when, what;
+  final Color? bar;
+  final bool free, faint;
+  final VoidCallback? onTap;
+}
+
+class PitchWeekendView extends StatelessWidget {
+  const PitchWeekendView({super.key, required this.c, this.wide = true});
+  final PitchController c;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    final board = c.board!;
+    final sat = c.monday.add(const Duration(days: 5));
+    final sun = c.monday.add(const Duration(days: 6));
+    final grass = [
+      for (final p in board.pitches)
+        if (p.surface == 'grass') p
+    ];
+    Future<void> open(Widget w) => showPitchSheet(context, w);
+
+    List<_Line> lines(Pitch p, DateTime day) {
+      final bookings = [
+        for (final b in board.bookingsOn(day, pitchId: p.pitchId))
+          if (b.confirmed) b
+      ];
+      final slots = p.slotsOn(day.weekday);
+      final matched = board.matchedOn(day, pitchId: p.pitchId);
+      return [
+        for (final b in bookings)
+          _Line(minutesOf(b.start), '${timeOf(b.start)}–${timeOf(b.end)}',
+              c.titleOf(b),
+              bar: codeColour(bookingCode(c, b)),
+              onTap: () => open(BookingSheet(c: c, booking: b))),
+        for (final e in matched)
+          _Line(minutesOf(e.start), timeOf(e.start), c.titleOfEvent(e),
+              bar: codeColour(
+                  codeOf(e.code, female: e.female, name: e.teamName)),
+              faint: true,
+              onTap: () => open(PlaceSheet(
+                  c: c, item: c.itemOfEvent(e), pitch: p, at: e.start))),
+        for (final s in slots)
+          if (!bookings.any((b) =>
+                  minutesOf(b.start) < s.closes &&
+                  minutesOf(b.end) > s.opens) &&
+              !matched.any((e) =>
+                  minutesOf(e.start) < s.closes &&
+                  minutesOf(e.start) >= s.opens))
+            _Line(s.opens, s.label, 'Free',
+                free: true,
+                onTap: () => open(BookingSheet(
+                    c: c,
+                    pitch: p,
+                    at: atMinutes(day, s.opens),
+                    minutes: s.closes - s.opens))),
+      ]..sort((a, b) => a.at.compareTo(b.at));
+    }
+
+    int freeOn(DateTime day) => grass.fold(
+        0,
+        (n, p) => board.closureOn(p.pitchId, day) != null
+            ? n
+            : n + lines(p, day).where((l) => l.free).length);
+
+    Widget cell(Pitch p, DateTime day) {
+      final closure = board.closureOn(p.pitchId, day);
+      if (closure != null) {
+        return _note(
+            'Closed${closure.reason.isEmpty ? '' : ' · ${closure.reason}'}',
+            PT.redText,
+            PT.redTint);
+      }
+      final ls = lines(p, day);
+      if (ls.isEmpty) return _note('Unavailable', PT.muted, PT.card2);
+      return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [for (final l in ls) _lineRow(l)]);
+    }
+
+    String dm(DateTime d) => '${d.day} ${kMonths[d.month - 1].substring(0, 3)}';
+    final nav = Row(children: [
+      IconButton(
+          tooltip: 'Last weekend',
+          onPressed: () => c.shiftDays(-7),
+          icon: Icon(Icons.chevron_left, color: PT.text)),
+      Flexible(
+        child: Text('Sat ${dm(sat)} – Sun ${dm(sun)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: PT.inter(16, weight: FontWeight.w600)),
+      ),
+      IconButton(
+          tooltip: 'Next weekend',
+          onPressed: () => c.shiftDays(7),
+          icon: Icon(Icons.chevron_right, color: PT.text)),
+    ]);
+    final counts = [
+      _count('Saturday', freeOn(sat)),
+      _count('Sunday', freeOn(sun)),
+    ];
+    final weekBar = wide
+        ? Row(children: [
+            Flexible(child: nav),
+            const SizedBox(width: 8),
+            ...counts.expand((w) => [w, const SizedBox(width: 8)]),
+          ])
+        : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            nav,
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Wrap(spacing: 8, runSpacing: 6, children: counts),
+            ),
+          ]);
+
+    if (grass.isEmpty) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        weekBar,
+        const SizedBox(height: 20),
+        Text('No grass pitches set up yet.',
+            style: PT.inter(14, color: PT.muted)),
+      ]);
+    }
+
+    Widget dayHead(String label) => Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+          child: Text(label,
+              style: PT.inter(13, weight: FontWeight.w700, color: PT.muted)),
+        );
+
+    if (wide) {
+      return ListView(children: [
+        weekBar,
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+              color: PT.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: PT.line)),
+          clipBehavior: Clip.antiAlias,
+          child: Table(
+            columnWidths: const {
+              0: FixedColumnWidth(170),
+              1: FlexColumnWidth(),
+              2: FlexColumnWidth(),
+            },
+            border: TableBorder(
+                horizontalInside: BorderSide(color: PT.line),
+                verticalInside: BorderSide(color: PT.line)),
+            children: [
+              TableRow(decoration: BoxDecoration(color: PT.card2), children: [
+                dayHead('PITCH'),
+                dayHead('SATURDAY ${dm(sat).toUpperCase()}'),
+                dayHead('SUNDAY ${dm(sun).toUpperCase()}'),
+              ]),
+              for (final p in grass)
+                TableRow(children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(p.name,
+                              style: PT.inter(15, weight: FontWeight.w700)),
+                          Text(p.venue, style: PT.inter(12, color: PT.muted)),
+                        ]),
+                  ),
+                  Padding(
+                      padding: const EdgeInsets.all(8), child: cell(p, sat)),
+                  Padding(
+                      padding: const EdgeInsets.all(8), child: cell(p, sun)),
+                ]),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ]);
+    }
+
+    // Phone: a card per pitch, Saturday then Sunday.
+    return ListView(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+        children: [
+          weekBar,
+          const SizedBox(height: 8),
+          for (final p in grass)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
+              decoration: BoxDecoration(
+                  color: PT.card, borderRadius: BorderRadius.circular(14)),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(children: [
+                      Text(p.name,
+                          style: PT.inter(16, weight: FontWeight.w700)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: Text(p.venue,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PT.inter(12.5, color: PT.muted))),
+                    ]),
+                    for (final (label, day) in [
+                      ('Saturday', sat),
+                      ('Sunday', sun)
+                    ]) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10, bottom: 4),
+                        child: Text(label.toUpperCase(),
+                            style: PT.inter(11.5,
+                                weight: FontWeight.w700, color: PT.muted)),
+                      ),
+                      cell(p, day),
+                    ],
+                  ]),
+            ),
+        ]);
+  }
+
+  static Widget _count(String day, int n) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+            color: n > 0 ? PT.greenTint : PT.card2,
+            borderRadius: BorderRadius.circular(20)),
+        child: Text('$day: $n free',
+            style: PT.inter(13,
+                weight: FontWeight.w600, color: n > 0 ? PT.green : PT.muted)),
+      );
+
+  static Widget _note(String text, Color fg, Color bg) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration:
+            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+        child: Text(text,
+            style: PT.inter(13.5, weight: FontWeight.w600, color: fg)),
+      );
+
+  static Widget _lineRow(_Line l) => GestureDetector(
+        onTap: l.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+              color: l.free ? PT.greenTint : null,
+              borderRadius: BorderRadius.circular(8)),
+          child: Row(children: [
+            SizedBox(
+                width: 96,
+                child: Text(l.when, style: PT.inter(13, color: PT.muted))),
+            if (l.bar != null)
+              Container(
+                  width: 4,
+                  height: 18,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                      color: l.faint ? l.bar!.withValues(alpha: 0.4) : l.bar,
+                      borderRadius: BorderRadius.circular(2))),
+            Expanded(
+                child: Text(l.what,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: PT.inter(13.5,
+                        weight: l.free ? FontWeight.w700 : FontWeight.w500,
+                        color: l.free
+                            ? PT.green
+                            : l.faint
+                                ? PT.muted
+                                : PT.text))),
+            if (l.free)
+              Icon(Icons.add_circle_outline, size: 17, color: PT.green),
+          ]),
+        ),
+      );
+}

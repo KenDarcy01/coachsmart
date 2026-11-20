@@ -21,12 +21,14 @@ import 'v3_pitch_published.dart';
 import 'v3_pitch_setup.dart';
 import 'v3_pitch_fixtures.dart';
 import 'v3_pitch_insights.dart';
+import 'v3_pitch_weekend.dart';
 import 'v3_pitch_sheets.dart';
 
 // Fixtures first: the planner opens on it (Ken, 2026-11-16).
 enum PitchTab {
   fixtures,
   board,
+  weekend,
   availability,
   groups,
   insights,
@@ -360,7 +362,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
           ? NavigationBar(
               backgroundColor: PT.tabBar,
               indicatorColor: club.accent.withValues(alpha: 0.2),
-              selectedIndex: _phoneTabs.indexOf(_tab).clamp(0, 2),
+              selectedIndex: _phoneTabs.indexOf(_tab).clamp(0, 3),
               onDestinationSelected: (i) =>
                   setState(() => _tab = _phoneTabs[i]),
               labelTextStyle: WidgetStatePropertyAll(PT.inter(12)),
@@ -375,6 +377,10 @@ class _V3PitchesPageState extends State<_PitchesBody> {
                           Icon(Icons.view_week_outlined, color: club.accent),
                       label: 'Day'),
                   NavigationDestination(
+                      icon: Icon(Icons.grass, color: PT.muted),
+                      selectedIcon: Icon(Icons.grass, color: club.accent),
+                      label: 'Weekend'),
+                  NavigationDestination(
                       icon: Icon(Icons.visibility_outlined, color: PT.muted),
                       selectedIcon:
                           Icon(Icons.visibility_outlined, color: club.accent),
@@ -387,6 +393,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
   static const _phoneTabs = [
     PitchTab.fixtures,
     PitchTab.board,
+    PitchTab.weekend,
     PitchTab.published
   ];
 
@@ -416,6 +423,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
           : PitchFixturesView(c: c, todo: true, onPublish: _publish),
       PitchTab.availability => PitchAvailabilityView(c: c),
       PitchTab.groups => PitchGroupsView(c: c),
+      PitchTab.weekend => PitchWeekendView(c: c, wide: wide),
       PitchTab.insights => PitchInsightsView(c: c),
       PitchTab.setup => PitchSetupView(c: c),
       PitchTab.published => const SizedBox.shrink(),
@@ -456,6 +464,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
               PitchTab.fixtures => 'Fixtures',
               PitchTab.availability => 'Availability',
               PitchTab.insights => 'Insights',
+              PitchTab.weekend => 'Weekend grass',
               _ => 'Pitches and venues'
             },
             style: PT.tight(26)),
@@ -658,6 +667,7 @@ class _Side extends StatelessWidget {
           nav(PitchTab.fixtures, Icons.sports_outlined, 'Fixtures',
               badge: changes),
           nav(PitchTab.board, Icons.view_week_outlined, 'Day board'),
+          nav(PitchTab.weekend, Icons.grass, 'Weekend grass'),
           nav(PitchTab.availability, Icons.event_available_outlined,
               'Availability'),
           nav(PitchTab.groups, Icons.groups_outlined, 'Groups'),

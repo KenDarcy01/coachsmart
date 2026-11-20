@@ -87,6 +87,9 @@ Map<String, dynamic> sampleBoard() => {
           {'weekday': 6, 'opens': '10:00', 'closes': '11:00'},
           {'weekday': 6, 'opens': '12:00', 'closes': '13:30'},
           {'weekday': 6, 'opens': '14:15', 'closes': '15:15'},
+          {'weekday': 7, 'opens': '10:00', 'closes': '11:00'},
+          {'weekday': 7, 'opens': '11:00', 'closes': '12:15'},
+          {'weekday': 7, 'opens': '13:30', 'closes': '15:45'},
         ]),
         _pitch(4, 'Pitch 21', "St Anne's", hours: [
           {'weekday': 6, 'opens': '10:00', 'closes': '11:00'},
@@ -107,6 +110,8 @@ Map<String, dynamic> sampleBoard() => {
           {'weekday': 6, 'opens': '09:00', 'closes': '10:45'},
           {'weekday': 6, 'opens': '11:30', 'closes': '13:45'},
           {'weekday': 6, 'opens': '14:30', 'closes': '16:45'},
+          {'weekday': 7, 'opens': '10:00', 'closes': '12:15'},
+          {'weekday': 7, 'opens': '12:15', 'closes': '14:30'},
         ]),
       ],
       'closures': [
@@ -936,6 +941,29 @@ void main() {
     await _shot(t, 'pp-insights');
   });
 
+  testWidgets('laptop: weekend grass, one look at Saturday and Sunday',
+      (t) async {
+    await _pump(t, const Size(1440, 1100), FakePitchApi());
+    await t.tap(find.text('Weekend grass').first);
+    await t.pumpAndSettle();
+    expect(find.text('Clubhouse Astro'), findsNothing);
+    expect(find.text('Pitch 19'), findsOneWidget);
+    expect(find.text('Closed · Waterlogged'), findsNWidgets(2));
+    expect(find.text('Free'), findsWidgets);
+    await _shot(t, 'pp-weekend-grass');
+    await t.tap(find.text('Free').first);
+    await t.pumpAndSettle();
+    expect(find.text('Add booking'), findsWidgets);
+  });
+
+  testWidgets('phone: weekend grass tab', (t) async {
+    await _pump(t, const Size(390, 844), FakePitchApi());
+    await t.tap(find.text('Weekend'));
+    await t.pumpAndSettle();
+    expect(find.text('Pitch 19'), findsOneWidget);
+    await _shot(t, 'pp-weekend-phone');
+  });
+
   testWidgets('laptop: availability, add a not-available time', (t) async {
     final api = FakePitchApi();
     await _pump(t, const Size(1440, 900), api);
@@ -963,9 +991,9 @@ void main() {
     expect(api.savedPitches, isEmpty);
   });
 
-  testWidgets('phone: three tabs and the week as a checklist', (t) async {
+  testWidgets('phone: four tabs and the week as a checklist', (t) async {
     await _pump(t, const Size(390, 844), FakePitchApi());
-    for (final l in ['To do', 'Day', 'Published']) {
+    for (final l in ['To do', 'Day', 'Weekend', 'Published']) {
       expect(find.text(l), findsOneWidget);
     }
     expect(find.text('Slots'), findsNothing);
