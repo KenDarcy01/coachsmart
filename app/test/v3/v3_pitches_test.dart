@@ -956,6 +956,8 @@ void main() {
     expect(find.text('Sat 21'), findsWidgets);
     await t.tap(find.text('Pitch 21').last);
     await t.pumpAndSettle();
+    await t.tap(find.text('Clubhouse Astro').first);
+    await t.pumpAndSettle();
     await _shot(t, 'pp-member-wide');
     // Team pills filter to one team.
     expect(find.text('All teams'), findsOneWidget);

@@ -431,27 +431,29 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
     return null;
   }
 
+  // The picked team's (or the member's own) slots stand out by fading the
+  // rest (Ken, 2026-11-20: the black outline was too heavy). With no team
+  // picked and none of their own, every slot looks the same.
   Widget _block(PublishedWeek w, PublishedBooking b,
       {bool compact = false, String extra = ''}) {
     final col = codeColour(codeOf(b.code, name: b.name));
+    final focus = _team != null || w.myTeams.isNotEmpty;
     final mine = _team != null ? b.name == _team : w.mine(b);
-    return Container(
+    final box = Container(
       padding: EdgeInsets.fromLTRB(8, compact ? 3 : 6, 6, compact ? 3 : 6),
       decoration: BoxDecoration(
-          color: Color.alphaBlend(col.withValues(alpha: 0.16), PT.card),
+          color: Color.alphaBlend(
+              col.withValues(alpha: focus && mine ? 0.3 : 0.16), PT.card),
           border: Border(left: BorderSide(color: col, width: 4)),
           borderRadius: BorderRadius.circular(6)),
-      foregroundDecoration: mine
-          ? BoxDecoration(
-              border: Border.all(color: PT.text, width: 2),
-              borderRadius: BorderRadius.circular(6))
-          : null,
       child: Text(
           '${b.title}$extra${mine && _team == null ? ' · your team' : ''}',
           maxLines: compact ? 2 : 1,
           overflow: TextOverflow.ellipsis,
-          style: PT.inter(compact ? 12 : 14, weight: FontWeight.w600)),
+          style: PT.inter(compact ? 12 : 14,
+              weight: focus && mine ? FontWeight.w700 : FontWeight.w600)),
     );
+    return focus && !mine ? Opacity(opacity: 0.35, child: box) : box;
   }
 
   /// Phone: the chosen pitch day by day, bookings and free slots in order.
@@ -567,9 +569,12 @@ class _PitchPublishedViewState extends State<PitchPublishedView> {
           ),
         if (closed != null)
           Positioned.fill(
+            // See-through like the planner, so the teams moved off it can
+            // still be read.
             child: Container(
-              color: PT.redTint.withValues(alpha: 0.9),
-              alignment: Alignment.center,
+              color: PT.redTint.withValues(alpha: 0.45),
+              alignment: Alignment.topCenter,
+              padding: const EdgeInsets.only(top: 6),
               child: Text(
                   'Closed${closed.reason.isEmpty ? '' : '\n${closed.reason}'}',
                   textAlign: TextAlign.center,
