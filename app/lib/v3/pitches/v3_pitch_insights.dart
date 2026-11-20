@@ -259,7 +259,7 @@ class _PitchInsightsViewState extends State<PitchInsightsView> {
     final sections = <Widget>[
       _card(
           'Utilisation by week',
-          'Booked ÷ held, closed time left out. Astros and grass.',
+          'Booked share of usable time. Unavailable and closed time don\'t count.',
           _WeekChart(weeks: perWeek)),
       _card(
           'Busiest times',
@@ -269,7 +269,7 @@ class _PitchInsightsViewState extends State<PitchInsightsView> {
           ])),
       _card(
           'Each pitch',
-          'Booked, free and closed hours of the time the club holds.',
+          'Booked, free and closed hours of usable time. Unavailable times are left out.',
           _pitchBars(pitches, perPitch)),
       _card(
           'Rented pitches',
