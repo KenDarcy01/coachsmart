@@ -347,6 +347,138 @@ class FakePitchApi extends PitchApi {
     return {'added': items.length, 'skipped': 0};
   }
 
+  final costs = <int, double?>{};
+  @override
+  Future<Map> insights(int clubId, DateTime from, DateTime to) async {
+    final weeks = <Map>[];
+    for (var w = 0; w < 4; w++) {
+      final wk =
+          DateTime(2026, 11, 2 + w * 7).toIso8601String().substring(0, 10);
+      weeks.addAll([
+        {
+          'week': wk,
+          'pitch_id': 1,
+          'held': 3210,
+          'booked': 1500 + w * 120,
+          'closed': 0
+        },
+        {
+          'week': wk,
+          'pitch_id': 2,
+          'held': 2400,
+          'booked': 900 + w * 60,
+          'closed': w == 2 ? 600 : 0
+        },
+        {
+          'week': wk,
+          'pitch_id': 3,
+          'held': 1800,
+          'booked': 600,
+          'closed': w == 1 ? 1800 : 0
+        },
+        {
+          'week': wk,
+          'pitch_id': 7,
+          'held': 600,
+          'booked': 240 + w * 30,
+          'closed': 0
+        },
+      ]);
+    }
+    return {
+      'pitches': [
+        {
+          'pitch_id': 1,
+          'name': 'Clubhouse Astro',
+          'surface': 'astro',
+          'venue': 'Clubhouse',
+          'rented': false
+        },
+        {
+          'pitch_id': 2,
+          'name': 'Main pitch',
+          'surface': 'grass',
+          'venue': 'Clubhouse',
+          'rented': false
+        },
+        {
+          'pitch_id': 3,
+          'name': 'P19',
+          'surface': 'grass',
+          'venue': "St Anne's",
+          'rented': true,
+          'cost': costs[3] ?? 25
+        },
+        {
+          'pitch_id': 7,
+          'name': 'DCC Astro',
+          'surface': 'astro',
+          'venue': 'DCC',
+          'rented': true,
+          'cost': costs[7]
+        },
+      ],
+      'weeks': weeks,
+      'heat': [
+        for (var d = 1; d <= 7; d++)
+          for (var h = 9; h <= 21; h++)
+            if ((d <= 4 && h >= 18) || (d >= 6 && h <= 13))
+              {'dow': d, 'hour': h, 'mins': 30 + ((d * h) % 4) * 60}
+      ],
+      'closures': [
+        {
+          'pitch_id': 3,
+          'starts_on': '2026-11-09',
+          'ends_on': '2026-11-15',
+          'reason': 'Waterlogged',
+          'days': 7,
+          'still_on': 2
+        },
+        {
+          'pitch_id': 2,
+          'starts_on': '2026-11-21',
+          'ends_on': '2026-11-21',
+          'reason': '',
+          'days': 1,
+          'still_on': 0
+        },
+      ],
+      'kinds': {
+        'matches': 14,
+        'training_min': 5400,
+        'training': 72,
+        'other': 3
+      },
+      'groups': [
+        {
+          'group_id': 1,
+          'name': 'U10 Boys',
+          'target': 2,
+          'sessions': 8,
+          'mins': 480
+        },
+        {
+          'group_id': 2,
+          'name': 'U12 Girls',
+          'target': 2,
+          'sessions': 5,
+          'mins': 300
+        },
+        {
+          'group_id': 3,
+          'name': 'Minor Hurling',
+          'target': 0,
+          'sessions': 6,
+          'mins': 450
+        },
+      ],
+    };
+  }
+
+  @override
+  Future<void> saveCost(int clubId, int pitchId, double? cost) async =>
+      costs[pitchId] = cost;
+
   final closedGroups = <int>[];
   @override
   Future<List<ClosureGroup>> closureGroups(int clubId) async => const [
@@ -792,6 +924,16 @@ void main() {
     await t.tap(find.text("Close St Anne's (DCC)"));
     await t.pumpAndSettle();
     expect(api.closedGroups, [1]);
+  });
+
+  testWidgets('laptop: insights dashboard with rented pitch cost', (t) async {
+    final api = FakePitchApi();
+    await _pump(t, const Size(1440, 1400), api);
+    await t.tap(find.text('Insights').first);
+    await t.pumpAndSettle();
+    expect(find.text('Utilisation'), findsWidgets);
+    expect(find.text('Unused paid slots'), findsOneWidget);
+    await _shot(t, 'pp-insights');
   });
 
   testWidgets('laptop: availability, add a not-available time', (t) async {

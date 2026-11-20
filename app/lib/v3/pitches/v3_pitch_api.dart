@@ -70,6 +70,18 @@ class PitchApi {
   }
 
   /// Replaces every "not available" time of one pitch.
+  /// Insights for a period (Ken, 2026-11-20).
+  Future<Map> insights(int clubId, DateTime from, DateTime to) async {
+    final r = await _rpc('pitch_insights',
+        {'p_club': clubId, 'p_from': _d(from), 'p_to': _d(to)});
+    return r is Map ? r : const {};
+  }
+
+  /// What the club pays per hour for a rented pitch (null clears it).
+  Future<void> saveCost(int clubId, int pitchId, double? cost) => _rpc(
+      'pitch_cost_save',
+      {'p_club': clubId, 'p_pitch': pitchId, 'p_cost': cost});
+
   Future<void> saveBlocks(int clubId, int pitchId, List<PitchBlock> blocks) =>
       _rpc('pitch_blocks_save', {
         'p_club': clubId,

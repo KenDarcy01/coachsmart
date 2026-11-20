@@ -20,10 +20,19 @@ import 'v3_pitch_models.dart';
 import 'v3_pitch_published.dart';
 import 'v3_pitch_setup.dart';
 import 'v3_pitch_fixtures.dart';
+import 'v3_pitch_insights.dart';
 import 'v3_pitch_sheets.dart';
 
 // Fixtures first: the planner opens on it (Ken, 2026-11-16).
-enum PitchTab { fixtures, board, availability, groups, setup, published }
+enum PitchTab {
+  fixtures,
+  board,
+  availability,
+  groups,
+  insights,
+  setup,
+  published
+}
 
 /// The planner is a light page so the club's colours and crest sit on
 /// white (Ken, 2026-11-16); the rest of v3 stays dark.
@@ -407,6 +416,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
           : PitchFixturesView(c: c, todo: true, onPublish: _publish),
       PitchTab.availability => PitchAvailabilityView(c: c),
       PitchTab.groups => PitchGroupsView(c: c),
+      PitchTab.insights => PitchInsightsView(c: c),
       PitchTab.setup => PitchSetupView(c: c),
       PitchTab.published => const SizedBox.shrink(),
     };
@@ -445,6 +455,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
               PitchTab.groups => 'Groups',
               PitchTab.fixtures => 'Fixtures',
               PitchTab.availability => 'Availability',
+              PitchTab.insights => 'Insights',
               _ => 'Pitches and venues'
             },
             style: PT.tight(26)),
@@ -650,6 +661,7 @@ class _Side extends StatelessWidget {
           nav(PitchTab.availability, Icons.event_available_outlined,
               'Availability'),
           nav(PitchTab.groups, Icons.groups_outlined, 'Groups'),
+          nav(PitchTab.insights, Icons.insights_outlined, 'Insights'),
           nav(PitchTab.setup, Icons.tune, 'Pitches and venues'),
           nav(PitchTab.published, Icons.visibility_outlined, 'Members\' view'),
         ],
