@@ -1080,6 +1080,21 @@ void main() {
     expect(find.text('+ Add a session'), findsNothing);
   });
 
+  testWidgets('laptop: fixtures, girls and boys like the club sheet',
+      (t) async {
+    await _pump(t, const Size(1440, 1100), FakePitchApi());
+    await t.tap(find.text('Fixtures').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Girls and boys'));
+    await t.pumpAndSettle();
+    expect(find.text('LADIES / GIRLS'), findsOneWidget);
+    expect(find.text('MEN / BOYS'), findsOneWidget);
+    expect(find.text('Clontarf v Fingallians'), findsWidgets);
+    expect(find.text('OFFICIAL FIXTURES'), findsNothing);
+    await t.scrollUntilVisible(find.text('MEN / BOYS'), 200);
+    await _shot(t, 'pp-fixtures-sheet');
+  });
+
   testWidgets('laptop: fixtures tab, official and unofficial', (t) async {
     await _pump(t, const Size(1440, 900), FakePitchApi());
     await t.tap(find.text('Fixtures').first);

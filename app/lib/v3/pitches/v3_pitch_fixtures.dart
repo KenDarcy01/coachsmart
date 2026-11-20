@@ -458,6 +458,9 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
 
   /// Phone checklist: showing the full fixture list instead.
   bool _all = false;
+
+  /// Girls then boys, one row per match, like the club sheet (Ken, 2026-11-20).
+  bool _sheet = false;
   bool _showChanges = false;
 
   Widget _weekRow() {
@@ -847,6 +850,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               icon: Icon(Icons.chevron_right, color: PT.muted)),
         ]),
         _fillBar(),
+        _viewSwitch(),
         if (_error != null)
           Padding(
               padding: const EdgeInsets.all(16),
@@ -861,26 +865,269 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
                 _changes.length),
             _changesPanel(),
           ],
-          if (_league) ...[
-            head('Official fixtures', 'From the league fixture list',
-                off.length),
-            if (off.isEmpty)
-              Text('No league fixtures this week.',
-                  style: PT.inter(14, color: PT.muted))
+          if (_sheet)
+            ..._sheetView(off, un, head)
+          else ...[
+            if (_league) ...[
+              head('Official fixtures', 'From the league fixture list',
+                  off.length),
+              if (off.isEmpty)
+                Text('No league fixtures this week.',
+                    style: PT.inter(14, color: PT.muted))
+              else
+                list([for (final f in off) (f.start, _officialCard(f))]),
+            ],
+            _league
+                ? head('Unofficial matches',
+                    'On CoachSmart but not on the league list', un.length)
+                : head('Matches', 'On CoachSmart this week', un.length),
+            if (un.isEmpty)
+              Text('None this week.', style: PT.inter(14, color: PT.muted))
             else
-              list([for (final f in off) (f.start, _officialCard(f))]),
+              list([for (final u in un) (u.start, _unofficialCard(u))]),
           ],
-          _league
-              ? head('Unofficial matches',
-                  'On CoachSmart but not on the league list', un.length)
-              : head('Matches', 'On CoachSmart this week', un.length),
-          if (un.isEmpty)
-            Text('None this week.', style: PT.inter(14, color: PT.muted))
-          else
-            list([for (final u in un) (u.start, _unofficialCard(u))]),
         ],
       ]);
     });
+  }
+
+  Widget _viewSwitch() {
+    final accent = c.club.accent;
+    Widget pill(String label, bool on, VoidCallback tap) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: tap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                  color: on ? accent : PT.card,
+                  border: Border.all(color: on ? accent : PT.line),
+                  borderRadius: BorderRadius.circular(20)),
+              child: Text(label,
+                  style: PT.inter(13.5,
+                      weight: FontWeight.w600,
+                      color: on ? Colors.white : PT.text)),
+            ),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(children: [
+        pill('By day', !_sheet, () => setState(() => _sheet = false)),
+        pill('Girls and boys', _sheet, () => setState(() => _sheet = true)),
+      ]),
+    );
+  }
+
+  /// Every match of the week, home and away, as rows like the club sheet:
+  /// Ladies / Girls first, then Men / Boys, then anything mixed.
+  List<Widget> _sheetView(List<OfficialFixture> off, List<UnofficialMatch> un,
+      Widget Function(String, String, int) head) {
+    final board = c.board;
+    Booking? bk(FixtureBooking? f) => f == null || board == null
+        ? null
+        : board.bookings.where((b) => b.bookingId == f.bookingId).firstOrNull;
+    final rows = <_SheetRow>[];
+    for (final f in off) {
+      final female = f.code.toLowerCase().contains('lgfa') ||
+          f.code.toLowerCase().contains('ladies');
+      final b = bk(f.booking);
+      final team = f.eventTeam.isNotEmpty
+          ? groupName(f.eventTeam, season: c.season, clubName: c.club.name)
+          : [f.age, f.code].where((x) => x.isNotEmpty).join(' ');
+      final status = f.status.toLowerCase();
+      rows.add(_SheetRow(
+        code: codeOf(f.code, female: female, name: '${f.comp} ${f.eventTeam}'),
+        start: f.start,
+        team: team,
+        comp: f.comp,
+        fixture: '${f.home} v ${f.away}',
+        venue: f.isHome && f.booking != null && !f.booking!.offsite
+            ? f.booking!.pitch
+            : f.venue,
+        home: f.isHome,
+        referee: f.referee.isNotEmpty ? f.referee : (b?.referee ?? ''),
+        rooms: b?.dressingRooms ?? '',
+        note: status.contains('postpon') || status.contains('cancel')
+            ? f.status
+            : '',
+        onTap: f.booking != null
+            ? () => _openBooking(f.booking!.bookingId)
+            : f.isHome
+                ? () => _place(gameId: f.gameId, eventId: f.eventId, f: f)
+                : null,
+      ));
+    }
+    for (final u in un) {
+      final b = bk(u.booking);
+      final name =
+          groupName(u.teamName, season: c.season, clubName: c.club.name);
+      final ours = c.club.name;
+      rows.add(_SheetRow(
+        code: codeOf(u.code, female: u.female, name: u.teamName),
+        start: u.start,
+        team: name,
+        comp: _league ? 'Not on the league list' : '',
+        fixture: u.opposition.isEmpty
+            ? ''
+            : u.away
+                ? '${u.opposition} v $ours'
+                : '$ours v ${u.opposition}',
+        venue: u.booking != null && !u.booking!.offsite
+            ? u.booking!.pitch
+            : u.location,
+        home: !u.away,
+        referee: b?.referee ?? '',
+        rooms: b?.dressingRooms ?? '',
+        onTap: u.booking != null
+            ? () => _openBooking(u.booking!.bookingId)
+            : !u.away
+                ? () => _place(eventId: u.eventId, u: u)
+                : null,
+      ));
+    }
+    rows.sort((a, b) => a.start.compareTo(b.start));
+    bool girls(_SheetRow r) =>
+        r.code == PitchCode.ladies || r.code == PitchCode.camogie;
+    bool boys(_SheetRow r) =>
+        r.code == PitchCode.football || r.code == PitchCode.hurling;
+    final sections = [
+      ('Ladies / Girls', rows.where(girls).toList()),
+      ('Men / Boys', rows.where(boys).toList()),
+      ('Mixed and other', rows.where((r) => !girls(r) && !boys(r)).toList()),
+    ];
+    return [
+      for (final (title, list) in sections)
+        if (list.isNotEmpty || title != 'Mixed and other') ...[
+          head(title, 'Home and away, all details', list.length),
+          if (list.isEmpty)
+            Text('None this week.', style: PT.inter(14, color: PT.muted))
+          else
+            _sheetTable(list),
+        ],
+    ];
+  }
+
+  Widget _sheetTable(List<_SheetRow> rows) {
+    String dm(DateTime d) =>
+        '${_dayNames[d.weekday - 1].substring(0, 3)} ${d.day} '
+        '${kMonths[d.month - 1].substring(0, 3)}';
+    String time(DateTime d) => d.hour == 0 && d.minute == 0 ? 'TBC' : timeOf(d);
+    Widget t(String s, {bool bold = false, Color? colour}) =>
+        Text(s.isEmpty ? '–' : s,
+            style: PT.inter(13,
+                weight: bold ? FontWeight.w600 : FontWeight.w400,
+                color: s.isEmpty ? PT.faint : (colour ?? PT.text)));
+    final panel = BoxDecoration(
+        color: PT.card,
+        border: Border.all(color: PT.line),
+        borderRadius: BorderRadius.circular(12));
+    if (!_wide) {
+      return Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: panel,
+        child: Column(children: [
+          for (final (i, r) in rows.indexed) ...[
+            if (i > 0) Divider(height: 1, thickness: 1, color: PT.line),
+            InkWell(
+              onTap: r.onTap,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                decoration: BoxDecoration(
+                    border: Border(
+                        left: BorderSide(color: codeColour(r.code), width: 4))),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Expanded(
+                            child: Text(r.team,
+                                style:
+                                    PT.inter(14.5, weight: FontWeight.w700))),
+                        Text('${dm(r.start)} · ${time(r.start)}',
+                            style: PT.inter(12.5, color: PT.muted)),
+                      ]),
+                      if (r.fixture.isNotEmpty)
+                        Text(r.fixture, style: PT.inter(13.5)),
+                      Text(
+                          [
+                            if (r.comp.isNotEmpty) r.comp,
+                            if (r.venue.isNotEmpty) r.venue,
+                            if (r.referee.isNotEmpty) 'Ref ${r.referee}',
+                            if (r.rooms.isNotEmpty) 'Rooms ${r.rooms}',
+                            if (r.note.isNotEmpty) r.note,
+                          ].join(' · '),
+                          style: PT.inter(12.5, color: PT.muted)),
+                    ]),
+              ),
+            ),
+          ],
+        ]),
+      );
+    }
+    Widget hd(String s) => Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          child: Text(s.toUpperCase(),
+              style: PT.inter(11.5, weight: FontWeight.w700, color: PT.muted)),
+        );
+    Widget cell(Widget w, VoidCallback? tap) => InkWell(
+          onTap: tap,
+          child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 9, 10, 9), child: w),
+        );
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: panel,
+      child: Table(
+        columnWidths: const {
+          0: FixedColumnWidth(4),
+          1: FlexColumnWidth(1.3),
+          2: FixedColumnWidth(96),
+          3: FixedColumnWidth(58),
+          4: FlexColumnWidth(1.6),
+          5: FlexColumnWidth(2),
+          6: FlexColumnWidth(1.3),
+          7: FlexColumnWidth(1.1),
+          8: FlexColumnWidth(0.8),
+        },
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        border: TableBorder(horizontalInside: BorderSide(color: PT.line)),
+        children: [
+          TableRow(decoration: BoxDecoration(color: PT.card2), children: [
+            const SizedBox.shrink(),
+            hd('Team'),
+            hd('Date'),
+            hd('Time'),
+            hd('Competition'),
+            hd('Fixture'),
+            hd('Venue'),
+            hd('Referee'),
+            hd('Rooms'),
+          ]),
+          for (final r in rows)
+            TableRow(children: [
+              TableCell(
+                  verticalAlignment: TableCellVerticalAlignment.fill,
+                  child: Container(color: codeColour(r.code))),
+              cell(t(r.team, bold: true), r.onTap),
+              cell(t(dm(r.start)), r.onTap),
+              cell(t(time(r.start)), r.onTap),
+              cell(
+                  t(r.note.isEmpty ? r.comp : '${r.comp} · ${r.note}',
+                      colour: r.note.isEmpty ? null : PT.redText),
+                  r.onTap),
+              cell(t(r.fixture), r.onTap),
+              cell(
+                  t(r.venue,
+                      bold: r.home, colour: r.home ? c.club.accent : null),
+                  r.onTap),
+              cell(t(r.referee), r.onTap),
+              cell(t(r.rooms), r.onTap),
+            ]),
+        ],
+      ),
+    );
   }
 
   Widget _changesPanel() {
@@ -1159,4 +1406,24 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
       onTap: tapU,
     );
   }
+}
+
+class _SheetRow {
+  const _SheetRow(
+      {required this.code,
+      required this.start,
+      required this.team,
+      required this.comp,
+      required this.fixture,
+      required this.venue,
+      required this.home,
+      required this.referee,
+      required this.rooms,
+      this.note = '',
+      this.onTap});
+  final PitchCode code;
+  final DateTime start;
+  final String team, comp, fixture, venue, referee, rooms, note;
+  final bool home;
+  final VoidCallback? onTap;
 }
