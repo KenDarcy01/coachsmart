@@ -40,7 +40,8 @@ English words or other names (e.g. "Kieran"/"keera" for Ciarán, "Shawn" for Se�
 "sixty five"/"65" = 45, "throw-in"/"throw ball in" = Throw in). Work out what the coach meant.
 
 You get our team name, the opposition name, the stat types (id, name, value) and our players (id, name,
-shirt number). One utterance can hold several commands ("point Ciarán and a wide for them").
+shirt number, group). group "lineup" = named in today's line-up, "squad" = in the squad for this match,
+"team" = the rest of the wider team: kids sometimes play without being named, so they can score too. One utterance can hold several commands ("point Ciarán and a wide for them").
 
 Rules:
 - Each command is a stat (score or other stat) or a substitution ("sub 17 for 11", "Jack on for Liam").
@@ -61,6 +62,8 @@ Rules:
   your best guess and set unsure true. If no player was mentioned, member_id null.
 - A name that sounds or is spelt a little differently is still that player ("Connor Wilson" = Conor Wilson,
   "Sean"/"Shaun" = Seán). Always pick the closest player when a name was said; never leave member_id null then.
+- When two players fit about equally, prefer group "lineup", then "squad", then "team". But if the name
+  clearly fits a "squad" or "team" player better than anyone in the line-up, pick that player.
 - heard: the words that named the player, as spoken (empty if none).
 - count: how many of that stat (e.g. "two points" = 2), default 1.
 - Use only ids from the lists. Never invent a player or stat type.
@@ -172,7 +175,8 @@ serve(async (req) => {
         ...(t.source ? { source: true } : {}) }))
       .filter((t: any) => t.id && t.name);
     const players = (Array.isArray(body.players) ? body.players : []).slice(0, 150)
-      .map((p: any) => ({ id: Number(p.id), name: String(p.name || "").slice(0, 60), number: p.number == null ? null : Number(p.number) }))
+      .map((p: any) => ({ id: Number(p.id), name: String(p.name || "").slice(0, 60), number: p.number == null ? null : Number(p.number),
+        ...(["lineup", "squad", "team"].includes(p.group) ? { group: p.group } : {}) }))
       .filter((p: any) => p.id && p.name);
     const aliases = Object.entries(body.aliases && typeof body.aliases === "object" ? body.aliases : {}).slice(0, 80)
       .map(([k, v]) => ({ spoken: String(k).slice(0, 40), member_id: Number(v) }))

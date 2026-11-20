@@ -485,17 +485,22 @@ const oppName = () => (S && S.setup && S.setup.opp) || (C && C.event && C.event.
 const halfLen = () => (S && S.setup && S.setup.dur) || 1800;
 const injLen = () => (S && S.setup && S.setup.inj != null ? S.setup.inj : 300);
 
-// Players: the latest saved line-up (with shirt numbers) plus the rest of the team
+// Players, in search order (Ken, 2026-11-20): the latest saved line-up (with
+// shirt numbers), then the squad picked in setup, then the rest of the team, so
+// a kid who played without being named can still be credited.
+// grp: 'lineup' | 'squad' | 'team' (no squad picked: the whole team is 'squad')
 function roster() {
   const out = new Map();
   ((C && C.lineup && C.lineup.players) || []).forEach(p => out.set(p.member_id, {
-    id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: p.number, inLineup: true, isSub: !!p.is_sub,
+    id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: p.number, inLineup: true, isSub: !!p.is_sub, grp: 'lineup',
   }));
-  // A squad picked in setup narrows the list to that squad (unless nobody is linked to it)
   const sq = S && S.setup && S.setup.squadId;
-  let players = (C && C.players) || [];
-  if (sq) { const inSq = players.filter(p => (p.squads || []).includes(sq)); if (inSq.length) players = inSq; }
-  players.forEach(p => { if (!out.has(p.member_id)) out.set(p.member_id, { id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: null, inLineup: false }); });
+  const players = (C && C.players) || [];
+  const inSq = sq ? players.filter(p => (p.squads || []).includes(sq)) : [];
+  const sqIds = new Set((inSq.length ? inSq : players).map(p => p.member_id));
+  const add = (p, grp) => { if (!out.has(p.member_id)) out.set(p.member_id, { id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: null, inLineup: false, grp }); };
+  players.filter(p => sqIds.has(p.member_id)).forEach(p => add(p, 'squad'));
+  players.filter(p => !sqIds.has(p.member_id)).forEach(p => add(p, 'team'));
   return out;
 }
 const fullName = p => p ? `${p.first} ${p.last}`.trim() : '';
@@ -509,14 +514,22 @@ const shortName = p => {
 };
 function memberName(id) { const p = roster().get(id); return p ? fullName(p) : ''; }
 
-// Who is on the pitch now: line-up starters, then each sub in turn
+// Who is on the pitch now: line-up starters, then each sub in turn. Anyone
+// credited with a stat who wasn't on (a kid not named in the line-up) joins
+// from that moment, so their next score is one tap.
 function onPitch() {
   const r = roster();
   const lineup = (C && C.lineup && C.lineup.players) || [];
   if (!lineup.length) return null;
   const on = new Set(lineup.filter(p => !p.is_sub).map(p => p.member_id));
-  subsSorted().forEach(s => { if (s.off) on.delete(s.off); if (s.on) on.add(s.on); });
-  return Array.from(on).map(id => r.get(id)).filter(Boolean).sort((a, b) => (a.number || 99) - (b.number || 99));
+  const evs = subsSorted().map(s => ({ half: s.half, sec: s.sec, s }))
+    .concat(S.acts.filter(a => a.mem).map(a => ({ half: a.half, sec: a.sec, a })))
+    .sort((x, y) => (x.half - y.half) || (x.sec - y.sec));
+  evs.forEach(e => {
+    if (e.s) { if (e.s.off) on.delete(e.s.off); if (e.s.on) on.add(e.s.on); }
+    else on.add(e.a.mem);
+  });
+  return Array.from(on).map(id => r.get(id)).filter(Boolean).sort((a, b) => (a.number || 99) - (b.number || 99) || fullName(a).localeCompare(fullName(b)));
 }
 const subsSorted = () => S.subs.slice().sort((a, b) => (a.half - b.half) || (a.sec - b.sec));
 
@@ -1591,9 +1604,12 @@ function openEdit(id) {
     const srcs = sourceTypes();
     const r = Array.from(roster().values());
     const op = onPitch();
-    const list = (op && op.length ? op : r.sort((x, y) => fullName(x).localeCompare(fullName(y))));
+    const byName = (x, y) => fullName(x).localeCompare(fullName(y));
+    const list = (op && op.length ? op.slice() : r.filter(p => p.grp !== 'team').sort(byName));
     if (a.mem && !list.some(p => p.id === a.mem) && roster().get(a.mem)) list.unshift(roster().get(a.mem));
-    const rest = r.filter(p => !list.some(q => q.id === p.id)).sort((x, y) => fullName(x).localeCompare(fullName(y)));
+    const rest = r.filter(p => !list.some(q => q.id === p.id));
+    const restNear = rest.filter(p => p.grp !== 'team').sort(byName);   // line-up and setup squad
+    const restTeam = rest.filter(p => p.grp === 'team').sort(byName);   // the wider team
     const shirt = p => `<button class="shirt ${a.mem === p.id ? 'sel' : ''}" data-p="${p.id}"><b>${p.number != null ? p.number : '·'}</b><span>${esc(shortName(p))}</span></button>`;
     openSheet(`<h2>${esc(l.t)} · ${minute(a.half, a.sec)} <button class="x" data-close>×</button></h2>
       <p class="sub">${esc(l.s)}</p>
@@ -1602,14 +1618,16 @@ function openEdit(id) {
       <div class="sec">${a.k === 'score' && !scoring ? 'Whose ball?' : 'Which team?'}</div><div class="typepick" id="eSide"><button data-s="us" class="${a.side === 'us' ? 'on' : ''}">${esc(usName())}</button><button data-s="opp" class="${a.side === 'opp' ? 'onr' : ''}">${esc(oppName())}</button></div>
       ${a.k === 'score' ? `<div class="stp"><div class="l"><b>How many?</b><span>Add another the same, or take one off</span></div>
         <div class="stepper"><button id="eMinus">–</button><b>${1 + extra.length}</b><button id="ePlus">+</button></div></div>` : ''}
-      ${ourScore && r.length ? `<div class="sec">${a.side === 'opp' ? 'Against which of ours?' : 'Who?'}</div><div class="grid5" id="eWho"><button class="shirt ${!a.mem ? 'sel' : ''}" data-p=""><b>–</b><span>No one</span></button>${list.map(shirt).join('')}${showAll ? rest.map(shirt).join('') : ''}</div>
+      ${ourScore && r.length ? `<div class="sec">${a.side === 'opp' ? 'Against which of ours?' : 'Who?'}</div><div class="grid5" id="eWho"><button class="shirt ${!a.mem ? 'sel' : ''}" data-p=""><b>–</b><span>No one</span></button>${list.map(shirt).join('')}</div>
+        ${showAll && restNear.length ? `<div class="sec">Line-up &amp; squad</div><div class="grid5 eWho2">${restNear.map(shirt).join('')}</div>` : ''}
+        ${showAll && restTeam.length ? `<div class="sec">Rest of team</div><div class="grid5 eWho2">${restTeam.map(shirt).join('')}</div>` : ''}
         ${rest.length && !showAll ? `<button class="undo-link" id="eAll">Someone else (${rest.length} more)</button>` : ''}` : ''}
       <div class="sheetbtns"><button class="fb" style="color:var(--red)" id="eDel">Remove</button><button class="fb g" data-close>Done</button></div>`, () => render());
     const body = $('sheetBody');
     body.querySelectorAll('#eType [data-t]').forEach(b => b.onclick = () => { edit({ st: Number(b.dataset.t) }); draw(); });
     body.querySelectorAll('#eSide [data-s]').forEach(b => b.onclick = () => { edit({ side: b.dataset.s }); draw(); });
     body.querySelectorAll('#eFrom [data-f]').forEach(b => b.onclick = () => { edit({ fr: b.dataset.f ? Number(b.dataset.f) : null }); draw(); });
-    body.querySelectorAll('#eWho [data-p]').forEach(b => b.onclick = () => {
+    body.querySelectorAll('#eWho [data-p], .eWho2 [data-p]').forEach(b => b.onclick = () => {
       const mem = b.dataset.p ? Number(b.dataset.p) : null;
       edit({ mem });
       if (a.heard) rememberName(a.heard, mem);   // fix the spoken name for next time
@@ -1686,15 +1704,17 @@ function openSubs(pre) {
   const at = (pre && pre.at) || nowStamp();
   const draw = () => {
     const all = Array.from(r.values()).sort((a, b) => (a.number || 99) - (b.number || 99) || fullName(a).localeCompare(fullName(b)));
-    const offList = op || all;
+    const offList = op || all.filter(p => p.grp !== 'team');
     const opIds = new Set((op || []).map(p => p.id));
-    const bench = op ? all.filter(p => !opIds.has(p.id) && (p.inLineup || others)) : all;
+    // Bench: line-up subs; "Someone else" adds the setup squad and the rest of the team
+    const near = p => op ? p.inLineup : p.grp !== 'team';
+    const bench = all.filter(p => !opIds.has(p.id) && (near(p) || others));
     const shirt = (p, sel, k) => `<button class="shirt ${sel ? 'sel' : ''}" data-${k}="${p.id}"><b>${p.number != null ? p.number : '·'}</b><span>${esc(shortName(p))}</span></button>`;
     openSheet(`<h2>Make a sub · ${minute(at.half, at.sec)} <button class="x" data-close>×</button></h2>
       <p class="sub">Pick who comes off, then who goes on. Or say "Sub 17 for 11" in Voice mode.</p>
       <div class="sec r">Coming off</div><div class="grid5">${offList.map(p => shirt(p, off === p.id, 'off')).join('')}</div>
       <div class="sec">Going on</div><div class="grid5">${bench.map(p => shirt(p, on === p.id, 'on')).join('') || '<span class="hint">No one on the bench</span>'}</div>
-      ${op && !others && all.some(p => !opIds.has(p.id) && !p.inLineup) ? '<button class="undo-link" id="sOthers">Someone not in the line-up</button>' : ''}
+      ${!others && all.some(p => !opIds.has(p.id) && !near(p)) ? `<button class="undo-link" id="sOthers">${op ? 'Someone not in the line-up' : 'Someone else from the team'}</button>` : ''}
       <div class="subline">${on ? `<span class="on">▲ ${esc(shortName(r.get(on)))}</span>` : '<span style="color:var(--muted)">▲ on</span>'} &nbsp;⇄&nbsp; ${off ? `<span class="off">▼ ${esc(shortName(r.get(off)))}</span>` : '<span style="color:var(--muted)">▼ off</span>'}</div>
       <div class="sheetbtns"><button class="fb" data-close>Cancel</button><button class="fb g" id="sGo" ${on && off ? '' : 'style="opacity:.4"'}>Make sub</button></div>`);
     const body = $('sheetBody');
@@ -1723,13 +1743,8 @@ function voiceCtx() {
     types: types().map(t => ({ id: t.id, name: t.score_type, abbr: t.abbreviated_name, value: t.score_value, source: !!t.source })),
     usName: `${usName()} ${(C.event && C.event.club_name) || ''} ${(C.event && C.event.team_name) || ''}`,
     oppName: oppName(),
-    // Line-up and squad first, then the rest of the team, so a name said is always matched
-    players: (() => {
-      const r = roster();
-      const rest = ((C && C.players) || []).filter(p => !r.has(p.member_id))
-        .map(p => ({ id: p.member_id, first: p.first_name || '', last: p.last_name || '', number: null }));
-      return [...r.values(), ...rest].map(p => ({ member_id: p.id, first_name: p.first, last_name: p.last, number: p.number }));
-    })(),
+    // Line-up first, then the squad, then the rest of the team, so a name said is always matched
+    players: Array.from(roster().values()).map(p => ({ member_id: p.id, first_name: p.first, last_name: p.last, number: p.number, group: p.grp })),
     aliases: store.get(ALIAS_KEY()) || {},
   };
 }
@@ -1839,7 +1854,7 @@ async function voiceRequest(extra, signal) {
     body: JSON.stringify(Object.assign({
       event_id: EVENT_ID, us: usName(), opp: oppName(), aliases: ctx.aliases,
       types: types().map(t => ({ id: t.id, name: t.score_type, value: t.score_value, source: !!t.source })),
-      players: ctx.players.map(p => ({ id: p.member_id, name: `${p.first_name} ${p.last_name}`.trim(), number: p.number })),
+      players: ctx.players.map(p => ({ id: p.member_id, name: `${p.first_name} ${p.last_name}`.trim(), number: p.number, group: p.group })),
     }, extra)),
   });
   if (r.status === 403) { aiVoice = false; renderAiTog(); return null; }   // no AI on this account: on-phone only
