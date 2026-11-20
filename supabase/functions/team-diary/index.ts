@@ -7,6 +7,8 @@
 // diary needs: date, time, type, code, title, squad, opposition, meet time and
 // venue. Event details are never returned (they can hold players' names).
 // Times are the event's wall-clock time (events.event_date_time_2).
+// Also returns `sheet`: the coaches' latest published Google Sheet entries
+// (meetups, activities, notes; Live rows only, no coach notes), or null.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 
@@ -45,7 +47,7 @@ serve(async (req) => {
     const { data: team } = await sb.from("teams").select("team_id, team_name").eq("team_unique_code", code).maybeSingle();
     if (!team) return json({ error: "Team not found" }, 404);
 
-    const [{ data: events, error }, { data: squads }, { data: codes }, { data: types }] = await Promise.all([
+    const [{ data: events, error }, { data: squads }, { data: codes }, { data: types }, { data: sheet }] = await Promise.all([
       sb.from("events")
         .select("event_id, event_title, event_date_time_2, meet_time, opposition, location_name, status, event_type_id, event_code_id, squad_id")
         .eq("team_id", team.team_id)
@@ -55,6 +57,7 @@ serve(async (req) => {
       sb.from("squads").select("squad_id, squad_name, squad_colour").eq("team_id", team.team_id),
       sb.from("event_codes").select("code_id, event_code"),
       sb.from("event_types").select("event_type_id, event_type"),
+      sb.from("team_diary_sheet").select("data, published_at").eq("team_code", code).maybeSingle(),
     ]);
     if (error) throw error;
 
@@ -83,7 +86,7 @@ serve(async (req) => {
         };
       });
 
-    return json({ team: team.team_name, from, to, events: out });
+    return json({ team: team.team_name, from, to, events: out, sheet: sheet ? { ...sheet.data, published: sheet.published_at } : null });
   } catch (e) {
     console.error(e);
     return json({ error: (e as Error).message || "Something went wrong" }, 500);
