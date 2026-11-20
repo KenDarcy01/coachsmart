@@ -836,13 +836,20 @@ class SkPlayer {
       required this.last,
       this.number,
       this.inLineup = false,
-      this.isSub = false});
+      this.isSub = false,
+      this.grp = 'squad'});
   final int id;
   final String first;
   final String last;
   final int? number;
   final bool inLineup;
   final bool isSub;
+
+  /// Search order (Ken, 2026-11-20): 'lineup', then 'squad' (the squad picked
+  /// in setup, or the whole team when none is picked), then 'team' (the rest
+  /// of the wider team, for kids who played without being named).
+  final String grp;
+  bool get wider => grp == 'team';
 
   String get full => '$first $last'.trim();
 
@@ -857,9 +864,9 @@ class SkPlayer {
   }
 }
 
-/// The latest saved line-up (with shirt numbers) plus the rest of the team.
-/// A squad picked in setup narrows the rest to that squad (unless nobody is
-/// linked to it).
+/// Players in search order: the latest saved line-up (with shirt numbers),
+/// then the squad picked in setup, then the rest of the team, so a kid who
+/// played without being named can still be credited (Ken, 2026-11-20).
 Map<int, SkPlayer> roster(SkState? s, SkInfo c) {
   final out = <int, SkPlayer>{};
   for (final p in c.lineup) {
@@ -869,17 +876,24 @@ Map<int, SkPlayer> roster(SkState? s, SkInfo c) {
         last: p.last,
         number: p.number,
         inLineup: true,
-        isSub: p.isSub);
+        isSub: p.isSub,
+        grp: 'lineup');
   }
   final sq = s?.setup?.squadId;
-  var players = c.players;
-  if (sq != null) {
-    final inSq = players.where((p) => p.squads.contains(sq)).toList();
-    if (inSq.isNotEmpty) players = inSq;
-  }
-  for (final p in players) {
-    out.putIfAbsent(p.memberId,
-        () => SkPlayer(id: p.memberId, first: p.first, last: p.last));
+  final inSq = sq == null
+      ? const <SkTeamPlayer>[]
+      : c.players.where((p) => p.squads.contains(sq)).toList();
+  final sqIds = {
+    for (final p in (inSq.isNotEmpty ? inSq : c.players)) p.memberId
+  };
+  for (final grp in const ['squad', 'team']) {
+    for (final p in c.players) {
+      if ((grp == 'squad') != sqIds.contains(p.memberId)) continue;
+      out.putIfAbsent(
+          p.memberId,
+          () => SkPlayer(
+              id: p.memberId, first: p.first, last: p.last, grp: grp));
+    }
   }
   return out;
 }
@@ -889,8 +903,10 @@ List<SkSub> subsSorted(SkState s) => [...s.subs]
 
 int _byNumber(SkPlayer a, SkPlayer b) => (a.number ?? 99) - (b.number ?? 99);
 
-/// Who is on the pitch now: line-up starters, then each sub in turn. Null
-/// when there's no line-up.
+/// Who is on the pitch now: line-up starters, then each sub in turn. Anyone
+/// credited with a stat who wasn't on (a kid not named in the line-up) joins
+/// from that moment, so their next score is one tap. Null when there's no
+/// line-up.
 List<SkPlayer>? onPitch(SkState s, SkInfo c) {
   if (c.lineup.isEmpty) return null;
   final r = roster(s, c);
@@ -898,14 +914,27 @@ List<SkPlayer>? onPitch(SkState s, SkInfo c) {
     for (final p in c.lineup)
       if (!p.isSub) p.memberId
   };
-  for (final x in subsSorted(s)) {
-    if (x.off != null) on.remove(x.off);
-    if (x.on != null) on.add(x.on!);
+  final evs = <(int, int, SkSub?, int?)>[
+    for (final x in subsSorted(s)) (x.half, x.sec, x, null),
+    for (final a in s.acts)
+      if (a.mem != null) (a.half, a.sec, null, a.mem),
+  ]..sort((x, y) => x.$1 != y.$1 ? x.$1 - y.$1 : x.$2 - y.$2);
+  for (final e in evs) {
+    final x = e.$3;
+    if (x != null) {
+      if (x.off != null) on.remove(x.off);
+      if (x.on != null) on.add(x.on!);
+    } else {
+      on.add(e.$4!);
+    }
   }
   return [
     for (final id in on)
       if (r[id] != null) r[id]!
-  ]..sort(_byNumber);
+  ]..sort((a, b) {
+      final n = _byNumber(a, b);
+      return n != 0 ? n : a.full.compareTo(b.full);
+    });
 }
 
 String memberName(SkState? s, SkInfo c, int? id) =>

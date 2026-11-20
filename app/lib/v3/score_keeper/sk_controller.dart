@@ -845,23 +845,17 @@ class SkController extends ChangeNotifier {
     store.set(_aliasKey, al);
   }
 
-  List<VoicePlayer> _voicePlayers() {
-    final r = players;
-    // Line-up and squad first, then the rest of the team, so a name said is
-    // always matched
-    return [
-      for (final p in r.values)
-        VoicePlayer(
-            memberId: p.id,
-            firstName: p.first,
-            lastName: p.last,
-            number: p.number),
-      for (final p in c!.players)
-        if (!r.containsKey(p.memberId))
+  List<VoicePlayer> _voicePlayers() => [
+        // Line-up first, then the squad, then the rest of the team, so a name
+        // said is always matched
+        for (final p in players.values)
           VoicePlayer(
-              memberId: p.memberId, firstName: p.first, lastName: p.last),
-    ];
-  }
+              memberId: p.id,
+              firstName: p.first,
+              lastName: p.last,
+              number: p.number,
+              group: p.grp),
+      ];
 
   VoiceCtx voiceCtx() => VoiceCtx(
         types: [
@@ -1026,7 +1020,8 @@ class SkController extends ChangeNotifier {
             {
               'id': p.memberId,
               'name': '${p.firstName} ${p.lastName}'.trim(),
-              'number': p.number
+              'number': p.number,
+              'group': p.group,
             }
         ],
         ...extra,

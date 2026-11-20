@@ -309,7 +309,7 @@ Future<void> showSkEdit(BuildContext context, SkController ctl, String id) {
                 final op = onPitch(s, c);
                 final list = op != null && op.isNotEmpty
                     ? [...op]
-                    : ([...all]..sort(byName));
+                    : (all.where((p) => !p.wider).toList()..sort(byName));
                 if (a.mem != null &&
                     !list.any((p) => p.id == a.mem) &&
                     r[a.mem] != null) {
@@ -319,6 +319,9 @@ Future<void> showSkEdit(BuildContext context, SkController ctl, String id) {
                     .where((p) => !list.any((q) => q.id == p.id))
                     .toList()
                   ..sort(byName);
+                // Line-up and setup squad, then the wider team
+                final restNear = rest.where((p) => !p.wider).toList();
+                final restTeam = rest.where((p) => p.wider).toList();
                 Widget shirt(SkPlayer p) => SkShirt(
                     number: p.number?.toString() ?? '·',
                     name: p.short,
@@ -420,9 +423,19 @@ Future<void> showSkEdit(BuildContext context, SkController ctl, String id) {
                                 }
                               }),
                           for (final p in list) shirt(p),
-                          if (showAll)
-                            for (final p in rest) shirt(p),
                         ]),
+                        if (showAll && restNear.isNotEmpty) ...[
+                          const SkSec('Line-up & squad'),
+                          SkShirtGrid(children: [
+                            for (final p in restNear) shirt(p),
+                          ]),
+                        ],
+                        if (showAll && restTeam.isNotEmpty) ...[
+                          const SkSec('Rest of team'),
+                          SkShirtGrid(children: [
+                            for (final p in restTeam) shirt(p),
+                          ]),
+                        ],
                         if (rest.isNotEmpty && !showAll)
                           _link('Someone else (${rest.length} more)',
                               () => set(() => showAll = true)),
@@ -709,14 +722,14 @@ Future<void> showSkSubs(BuildContext context, SkController ctl,
                 final n = (a.number ?? 99) - (b.number ?? 99);
                 return n != 0 ? n : a.full.compareTo(b.full);
               });
-            final offList = op ?? all;
+            final offList = op ?? all.where((p) => !p.wider).toList();
             final opIds = {for (final p in op ?? <SkPlayer>[]) p.id};
-            final bench = op != null
-                ? all
-                    .where(
-                        (p) => !opIds.contains(p.id) && (p.inLineup || others))
-                    .toList()
-                : all;
+            // Bench: line-up subs; "Someone else" adds the setup squad and
+            // the rest of the team
+            bool near(SkPlayer p) => op != null ? p.inLineup : !p.wider;
+            final bench = all
+                .where((p) => !opIds.contains(p.id) && (near(p) || others))
+                .toList();
             Widget shirt(SkPlayer p, bool sel, VoidCallback f) => SkShirt(
                 number: p.number?.toString() ?? '·',
                 name: p.short,
@@ -741,10 +754,12 @@ Future<void> showSkSubs(BuildContext context, SkController ctl,
                       for (final p in bench)
                         shirt(p, on == p.id, () => set(() => on = p.id)),
                     ]),
-                  if (op != null &&
-                      !others &&
-                      all.any((p) => !opIds.contains(p.id) && !p.inLineup))
-                    _link('Someone not in the line-up',
+                  if (!others &&
+                      all.any((p) => !opIds.contains(p.id) && !near(p)))
+                    _link(
+                        op != null
+                            ? 'Someone not in the line-up'
+                            : 'Someone else from the team',
                         () => set(() => others = true)),
                   Container(
                     margin: const EdgeInsets.only(top: 14),

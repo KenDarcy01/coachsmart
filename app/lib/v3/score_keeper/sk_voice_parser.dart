@@ -37,11 +37,15 @@ class VoicePlayer {
       {required this.memberId,
       required this.firstName,
       required this.lastName,
-      this.number});
+      this.number,
+      this.group});
   final int memberId;
   final String firstName;
   final String lastName;
   final int? number;
+
+  /// 'lineup', 'squad' or 'team' (the wider team)
+  final String? group;
 }
 
 class VoiceCtx {
