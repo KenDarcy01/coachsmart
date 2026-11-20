@@ -199,6 +199,36 @@ InputDecoration pitchInput(String label, {String? hint}) => InputDecoration(
           borderSide: BorderSide(color: PT.line)),
     );
 
+/// "Pitch from" choices for a match: at the throw-in or so many minutes
+/// before it. The booking ends at the same time whatever is picked.
+class _PitchFrom extends StatelessWidget {
+  const _PitchFrom(
+      {required this.throwIn,
+      required this.start,
+      required this.onPick,
+      required this.accent});
+  final DateTime throwIn;
+  final DateTime start;
+  final ValueChanged<int> onPick;
+  final Color accent;
+  @override
+  Widget build(BuildContext context) {
+    final before = throwIn.difference(start).inMinutes;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(
+          'Throw-in ${kWeekdays[throwIn.weekday - 1]} ${timeOf(throwIn)} · pitch from',
+          style: PT.inter(13.5, weight: FontWeight.w600, color: PT.muted)),
+      const SizedBox(height: 6),
+      _Chips<int>(
+          values: const [0, 15, 30, 45, 60],
+          label: (m) => m == 0 ? 'Throw-in' : '$m min before',
+          selected: before,
+          accent: accent,
+          onPick: onPick),
+    ]);
+  }
+}
+
 class _Chips<T> extends StatelessWidget {
   const _Chips(
       {required this.values,
@@ -358,6 +388,21 @@ class _PlaceSheetState extends State<PlaceSheet> {
                   _start = atMinutes(d, minutesOf(_start));
                   _picked = null;
                 })),
+        if (item.kind == 'match' && dayOf(_start) == dayOf(item.start)) ...[
+          const SizedBox(height: 10),
+          _PitchFrom(
+              throwIn: item.start,
+              start: _start,
+              accent: accent,
+              onPick: (m) => setState(() {
+                    final end = item.start
+                        .add(Duration(minutes: widget.c.minutesFor(item)));
+                    _start = item.start.subtract(Duration(minutes: m));
+                    _minutes = end.difference(_start).inMinutes;
+                    _time.text = timeOf(_start);
+                    _picked = null;
+                  })),
+        ],
         const SizedBox(height: 8),
         TextField(
           controller: _time,
@@ -545,7 +590,10 @@ class _BookingSheetState extends State<BookingSheet> {
   late final _time = TextEditingController(text: timeOf(_start));
   bool _following = true;
 
-  bool get _fixedTime => b?.gameId != null;
+  // A fixture's booking can start before the throw-in (Ken, 2026-11-20).
+  bool get _fixedTime => false;
+  late final DateTime? _throwIn =
+      b == null ? null : widget.c.board!.throwIns[b!.bookingId];
 
   @override
   Widget build(BuildContext context) {
@@ -701,6 +749,19 @@ class _BookingSheetState extends State<BookingSheet> {
               selected: _part,
               accent: accent,
               onPick: (p) => setState(() => _part = p)),
+        ],
+        if (_throwIn != null && dayOf(_throwIn) == dayOf(_start)) ...[
+          const SizedBox(height: 10),
+          _PitchFrom(
+              throwIn: _throwIn,
+              start: _start,
+              accent: accent,
+              onPick: (m) => setState(() {
+                    final end = _start.add(Duration(minutes: _minutes));
+                    _start = _throwIn.subtract(Duration(minutes: m));
+                    _minutes = end.difference(_start).inMinutes;
+                    _time.text = timeOf(_start);
+                  })),
         ],
         const SizedBox(height: 10),
         Row(children: [

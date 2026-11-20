@@ -269,6 +269,7 @@ Map<String, dynamic> sampleBoard() => {
 
 Map<String, dynamic> boardWithGroups() {
   final b = sampleBoard();
+  b['throw_ins'] = {'5': '2026-11-21T09:30:00'};
   b['booking_groups'] = {
     for (final x in b['bookings'] as List)
       if ((x as Map)['group_id'] != null) '${x['booking_id']}': x['group_id']
@@ -1114,6 +1115,17 @@ void main() {
         board.isFree(p23a, DateTime(2026, 11, 21, 6), DateTime(2026, 11, 21, 7),
             PitchPart.full),
         isTrue);
+  });
+
+  testWidgets('a match booking can start before the throw-in', (t) async {
+    await _pumpBoard(t, const Size(1440, 1100), FakePitchApi());
+    await t.tap(find.textContaining('St Sylvesters').first);
+    await t.pumpAndSettle();
+    expect(find.text('Throw-in Sat 09:30 · pitch from'), findsOneWidget);
+    await t.tap(find.text('45 min before'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('08:45–'), findsWidgets);
+    await _shot(t, 'pp-throw-in', whole: true);
   });
 
   testWidgets('laptop: fixtures, girls and boys like the club sheet',

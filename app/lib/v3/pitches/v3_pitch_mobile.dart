@@ -286,6 +286,8 @@ class _PitchCard extends StatelessWidget {
                     c.titleOf(b),
                     [
                       if (b.kind == 'match') 'Match',
+                      if (board.earlyThrowIn(b) != null)
+                        'throw-in ${timeOf(board.earlyThrowIn(b)!)}',
                       if (pitch.split > 1) PitchPart.label(b.part, pitch.split),
                       if (clashIds.contains(b.bookingId)) 'clash',
                     ].join(' · '),

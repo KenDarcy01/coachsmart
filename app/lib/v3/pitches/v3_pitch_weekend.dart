@@ -83,8 +83,12 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
       final other = board.sharedBookingsOn(day, p.pitchId);
       return [
         for (final b in bookings)
-          _Line(minutesOf(b.start), '${timeOf(b.start)}–${timeOf(b.end)}',
-              c.titleOf(b),
+          _Line(
+              minutesOf(b.start),
+              '${timeOf(b.start)}–${timeOf(b.end)}',
+              board.earlyThrowIn(b) == null
+                  ? c.titleOf(b)
+                  : '${c.titleOf(b)} · throw-in ${timeOf(board.earlyThrowIn(b)!)}',
               bar: codeColour(bookingCode(c, b)),
               onTap: () => open(BookingSheet(c: c, booking: b))),
         for (final e in matched)

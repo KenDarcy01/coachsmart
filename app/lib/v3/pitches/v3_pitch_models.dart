@@ -879,6 +879,7 @@ class PitchBoard {
       this.changedSincePublish = true,
       this.blocks = const [],
       this.shared = const [],
+      this.throwIns = const {},
       this.durations = const PitchDurations()});
 
   factory PitchBoard.fromJson(Map j) {
@@ -911,6 +912,12 @@ class PitchBoard {
                 female: _b(t['female']))
         ],
         durations: PitchDurations.fromJson(j['durations']),
+        throwIns: {
+          if (j['throw_ins'] is Map)
+            for (final e in (j['throw_ins'] as Map).entries)
+              if (int.tryParse('${e.key}') != null && e.value != null)
+                int.parse('${e.key}'): parseLocal(e.value)
+        },
         shared: [
           if (j['shared'] is List)
             for (final x in j['shared'] as List)
@@ -924,6 +931,17 @@ class PitchBoard {
   /// Pairs of pitches laid out on the same ground (Clontarf's Pitch 23 and
   /// 23A, Ken 2026-11-20): one in use means the other is unavailable then.
   final List<(int, int)> shared;
+
+  /// booking id -> throw-in of a match booking (league or event time). The
+  /// booking may start earlier, e.g. pitch from 10:30 for 11:00 (Ken,
+  /// 2026-11-20).
+  final Map<int, DateTime> throwIns;
+
+  /// The throw-in when it differs from the booking's start, else null.
+  DateTime? earlyThrowIn(Booking b) {
+    final t = throwIns[b.bookingId];
+    return t == null || t == b.start ? null : t;
+  }
 
   /// The other pitches on the same ground as [pitchId].
   List<int> sharesWith(int? pitchId) => [
