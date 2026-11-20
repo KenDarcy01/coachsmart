@@ -165,7 +165,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SizedBox(
           width: 290,
-          child: _Inbox(
+          child: PitchInbox(
               c: c,
               open: _open,
               focus: _focus,
@@ -963,14 +963,19 @@ class _Chip extends StatelessWidget {
 
 // ------------------------------------------------------------------ inbox
 
-class _Inbox extends StatelessWidget {
-  const _Inbox(
-      {required this.c,
+class PitchInbox extends StatelessWidget {
+  const PitchInbox(
+      {super.key,
+      required this.c,
       required this.open,
       this.focus,
       required this.onFocus,
-      required this.onDay});
+      required this.onDay,
+      this.weekend = false});
   final PitchController c;
+
+  /// Weekend grass view: only this week's Saturday and Sunday items.
+  final bool weekend;
   final Future<void> Function(Widget) open;
   final int? focus;
   final ValueChanged<int?> onFocus;
@@ -982,9 +987,12 @@ class _Inbox extends StatelessWidget {
     final items = board
         .inbox(clubName: c.club.name, season: c.season)
         .where((i) => !dayOf(i.start).isBefore(c.today))
+        .where((i) =>
+            !weekend || (i.start.weekday >= 6 && mondayOf(i.start) == c.monday))
         .toList();
-    final today = items.where((i) => board.sameDay(i.start, c.day)).toList();
-    final later = items.where((i) => !board.sameDay(i.start, c.day)).toList();
+    bool now(PlaceItem i) => weekend || board.sameDay(i.start, c.day);
+    final today = items.where(now).toList();
+    final later = items.where((i) => !now(i)).toList();
     final groups = [...board.groups]
       ..sort((a, b) => (a.short ? 0 : 1).compareTo(b.short ? 0 : 1));
     final accent = c.club.accent;
@@ -1005,14 +1013,15 @@ class _Inbox extends StatelessWidget {
         );
 
     return ListView(padding: EdgeInsets.zero, children: [
-      head('Needs a pitch', items.length),
+      head(weekend ? 'Weekend · needs a pitch' : 'Needs a pitch', items.length),
       if (items.isEmpty)
-        Text('Nothing waiting this week.',
+        Text(
+            weekend
+                ? 'Nothing waiting this weekend.'
+                : 'Nothing waiting this week.',
             style: PT.inter(13.5, color: PT.muted)),
       for (final i in [...today, ...later])
-        _drag(
-            DragItem(i),
-            _ItemCard(c: c, item: i, dim: !board.sameDay(i.start, c.day)),
+        _drag(DragItem(i), _ItemCard(c: c, item: i, dim: !now(i)),
             () => open(PlaceSheet(c: c, item: i))),
       head('Groups · training this week', groups.length),
       if (groups.isEmpty)

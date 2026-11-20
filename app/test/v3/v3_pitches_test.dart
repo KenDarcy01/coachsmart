@@ -13,6 +13,8 @@ import 'package:coach_smart_v2/v3/pitches/v3_pitch_controller.dart';
 import 'package:coach_smart_v2/v3/pitches/v3_pitch_models.dart';
 import 'package:coach_smart_v2/v3/pitches/v3_pitches_page.dart';
 import 'package:coach_smart_v2/v3/pitches/v3_pitch_theme.dart';
+import 'package:coach_smart_v2/v3/pitches/v3_pitch_board.dart';
+import 'package:coach_smart_v2/v3/pitches/v3_pitch_sheets.dart';
 
 // Saturday 21 November 2026, a week from the club's own sheet.
 final _today = DateTime(2026, 11, 21);
@@ -950,7 +952,25 @@ void main() {
     expect(find.text('Pitch 19'), findsOneWidget);
     expect(find.text('Closed · Waterlogged'), findsNWidgets(2));
     expect(find.text('Free'), findsWidgets);
+    expect(find.text('Weekend · needs a pitch'.toUpperCase()), findsOneWidget);
+    final cards = find.descendant(
+        of: find.byType(PitchInbox),
+        matching: find.byType(Draggable<PitchDrag>));
+    expect(cards, findsWidgets);
     await _shot(t, 'pp-weekend-grass');
+    // Drag the first weekend fixture onto a free slot: the place sheet opens.
+    final from = t.getCenter(cards.first);
+    final to = t.getCenter(find.text('Free').first);
+    final g = await t.startGesture(from);
+    await t.pump(const Duration(milliseconds: 100));
+    await g.moveTo(to);
+    await t.pump();
+    await g.up();
+    await t.pumpAndSettle();
+    expect(find.byType(PlaceSheet), findsOneWidget);
+    await _shot(t, 'pp-weekend-drop', whole: true);
+    await t.tapAt(const Offset(5, 5));
+    await t.pumpAndSettle();
     await t.tap(find.text('Free').first);
     await t.pumpAndSettle();
     expect(find.text('Add booking'), findsWidgets);
