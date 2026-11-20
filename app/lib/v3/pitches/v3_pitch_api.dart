@@ -59,8 +59,16 @@ class PitchApi {
     try {
       blocks = await _rpc('pitch_blocks_get', {'p_club': clubId});
     } catch (_) {}
-    return PitchBoard.fromJson(
-        {...(r is Map ? r : const {}), if (blocks is List) 'blocks': blocks});
+    // Pitches on the same ground (e.g. 23 and 23A); none if not set up.
+    dynamic shared;
+    try {
+      shared = await _rpc('pitch_shared_ground_get', {'p_club': clubId});
+    } catch (_) {}
+    return PitchBoard.fromJson({
+      ...(r is Map ? r : const {}),
+      if (blocks is List) 'blocks': blocks,
+      if (shared is List) 'shared': shared,
+    });
   }
 
   /// (pitch id, block): every "not available" time at the club.

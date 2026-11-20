@@ -1080,6 +1080,42 @@ void main() {
     expect(find.text('+ Add a session'), findsNothing);
   });
 
+  test('pitches on the same ground block each other (23 and 23A)', () {
+    final j = sampleBoard();
+    final board = PitchBoard.fromJson({
+      ...j,
+      'pitches': [
+        ...(j['pitches'] as List),
+        {
+          'pitch_id': 9,
+          'venue_id': 1,
+          'venue': "St Anne's",
+          'name': 'Pitch 23A',
+          'surface': 'grass',
+          'split': 1,
+          'hours': [
+            {'weekday': 6, 'opens': '17:00', 'closes': '18:00'}
+          ],
+        }
+      ],
+      'shared': [
+        [5, 9]
+      ],
+    });
+    final p23a = board.pitch(9)!;
+    final sat = DateTime(2026, 11, 21);
+    final booked23 =
+        board.bookingsOn(sat, pitchId: 5).where((b) => b.confirmed);
+    expect(booked23, isNotEmpty);
+    final b = booked23.first;
+    expect(board.sharesWith(5), [9]);
+    expect(board.isFree(p23a, b.start, b.end, PitchPart.full), isFalse);
+    expect(
+        board.isFree(p23a, DateTime(2026, 11, 21, 6), DateTime(2026, 11, 21, 7),
+            PitchPart.full),
+        isTrue);
+  });
+
   testWidgets('laptop: fixtures, girls and boys like the club sheet',
       (t) async {
     await _pump(t, const Size(1440, 1100), FakePitchApi());

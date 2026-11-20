@@ -878,6 +878,7 @@ class PitchBoard {
       this.publishedAt,
       this.changedSincePublish = true,
       this.blocks = const [],
+      this.shared = const [],
       this.durations = const PitchDurations()});
 
   factory PitchBoard.fromJson(Map j) {
@@ -909,11 +910,33 @@ class PitchBoard {
             PitchTeam(_int(t['team_id']), _s(t['team_name']),
                 female: _b(t['female']))
         ],
-        durations: PitchDurations.fromJson(j['durations']));
+        durations: PitchDurations.fromJson(j['durations']),
+        shared: [
+          if (j['shared'] is List)
+            for (final x in j['shared'] as List)
+              if (x is List && x.length == 2) (_int(x[0]), _int(x[1]))
+        ]);
   }
 
   final List<Pitch> pitches;
   final List<Closure> closures;
+
+  /// Pairs of pitches laid out on the same ground (Clontarf's Pitch 23 and
+  /// 23A, Ken 2026-11-20): one in use means the other is unavailable then.
+  final List<(int, int)> shared;
+
+  /// The other pitches on the same ground as [pitchId].
+  List<int> sharesWith(int? pitchId) => [
+        for (final (a, b) in shared)
+          if (a == pitchId) b else if (b == pitchId) a
+      ];
+
+  /// Confirmed bookings on the pitches sharing [pitchId]'s ground that day.
+  List<Booking> sharedBookingsOn(DateTime day, int pitchId) => [
+        for (final o in sharesWith(pitchId))
+          for (final b in bookingsOn(day, pitchId: o))
+            if (b.confirmed) b
+      ];
   final List<Booking> bookings;
 
   /// (pitch id, block): times marked not available.
@@ -1023,6 +1046,19 @@ class PitchBoard {
         }
       }
     }
+    // Pitches on the same ground: any overlap in time is a clash.
+    for (final (pa, pb) in shared) {
+      for (final a in bookingsOn(day, pitchId: pa)) {
+        for (final b in bookingsOn(day, pitchId: pb)) {
+          if (a.confirmed &&
+              b.confirmed &&
+              a.start.isBefore(b.end) &&
+              b.start.isBefore(a.end)) {
+            out.add((a, b));
+          }
+        }
+      }
+    }
     return out;
   }
 
@@ -1097,6 +1133,10 @@ class PitchBoard {
           (b.part & part) != 0) {
         return false;
       }
+    }
+    for (final b in sharedBookingsOn(start, pitch.pitchId)) {
+      if (b.bookingId == except) continue;
+      if (b.start.isBefore(end) && start.isBefore(b.end)) return false;
     }
     return true;
   }

@@ -226,9 +226,10 @@ class _PitchCard extends StatelessWidget {
     final matched = board.matchedOn(day, pitchId: pitch.pitchId);
     final slots =
         pitch.slots.isEmpty ? <PitchSlot>[] : pitch.slotsOn(day.weekday);
+    final other = board.sharedBookingsOn(day, pitch.pitchId);
     final free = [
       for (final s in slots)
-        if (!bookings.any(
+        if (![...bookings, ...other].any(
             (b) => minutesOf(b.start) < s.closes && minutesOf(b.end) > s.opens))
           s
     ];
@@ -308,6 +309,17 @@ class _PitchCard extends StatelessWidget {
                         item: c.itemOfEvent(e),
                         pitch: pitch,
                         at: e.start)))
+              ),
+            for (final b in other)
+              (
+                minutesOf(b.start),
+                _row(
+                    context,
+                    '${timeOf(b.start)}–${timeOf(b.end)}',
+                    'In use on ${board.pitch(b.pitchId)?.name ?? ''}',
+                    c.titleOf(b),
+                    null,
+                    faint: true)
               ),
             if (closure == null)
               for (final f in free)

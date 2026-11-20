@@ -80,6 +80,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
       ];
       final slots = p.slotsOn(day.weekday);
       final matched = board.matchedOn(day, pitchId: p.pitchId);
+      final other = board.sharedBookingsOn(day, p.pitchId);
       return [
         for (final b in bookings)
           _Line(minutesOf(b.start), '${timeOf(b.start)}–${timeOf(b.end)}',
@@ -93,8 +94,12 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
               faint: true,
               onTap: () => open(PlaceSheet(
                   c: c, item: c.itemOfEvent(e), pitch: p, at: e.start))),
+        for (final b in other)
+          _Line(minutesOf(b.start), '${timeOf(b.start)}–${timeOf(b.end)}',
+              'In use on ${board.pitch(b.pitchId)?.name ?? ''} · ${c.titleOf(b)}',
+              faint: true),
         for (final s in slots)
-          if (!bookings.any((b) =>
+          if (![...bookings, ...other].any((b) =>
                   minutesOf(b.start) < s.closes &&
                   minutesOf(b.end) > s.opens) &&
               !matched.any((e) =>
