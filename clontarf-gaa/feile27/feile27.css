@@ -197,3 +197,6 @@ button { font: inherit; cursor: pointer; }
 .block li label { flex: 1; min-width: 0; }
 .watch { flex: none; margin-top: 8px; font-family: var(--heading-font); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--red-dark); text-decoration: none; border: 1px solid #F8C6CB; background: #FFF6F7; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
 .watch:active { background: var(--red); color: #fff; }
+.guides { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
+.guides a { font-family: var(--heading-font); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; color: var(--navy); border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; }
+.guides a:first-child { background: var(--red); border-color: var(--red); color: #fff; }
