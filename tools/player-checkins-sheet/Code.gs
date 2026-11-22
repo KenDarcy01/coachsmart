@@ -18,6 +18,9 @@
  *  - Player status (Active / Inactive, a dropdown next to Role) always applies.
  *    Only Active girls show on the website and get a family card.
  *  - Help Video (link): put several links in the cell, one per line, for several videos.
+ *  - Development groups: one or more of Ball skills, Speed & power, Scoring,
+ *    Winning the ball, one per line. Added after How if missing. They print on
+ *    her card; she taps the same groups in the Féile diary herself.
  * Tabs: "Team List - Football" and "Team List - Camogie". Headings in row 1,
  * matched by name, so columns can move. Player status, Status and Last updated are added if missing.
  */
@@ -32,9 +35,10 @@ var FIELDS_ = {
   'member name': 'player_name', 'role': 'role', 'assessor name': 'assessor_name', 'assessor email': 'assessor_email',
   'superpower': 'superpower', 'development': 'development', 'how': 'how', 'help video (link)': 'video_url', 'help video': 'video_url',
   'help videos': 'video_url', 'help videos (links)': 'video_url', 'player status': 'player_status',
-  'status': 'status', 'last updated': 'updated_at'
+  'status': 'status', 'last updated': 'updated_at', 'development groups': 'dev_groups', 'groups': 'dev_groups'
 };
-var SENT_ = ['player_status', 'assessor_name', 'assessor_email', 'superpower', 'development', 'how', 'video_url'];
+var SENT_ = ['player_status', 'assessor_name', 'assessor_email', 'superpower', 'development', 'how', 'video_url', 'dev_groups'];
+var DEV_GROUPS_ = 'Development groups';
 var PLAYER_STATUS_ = 'Player status';
 
 function onOpen() {
@@ -125,6 +129,7 @@ function call_(body) {
 // ---- reading and writing a team tab ----
 function headMap_(sh) {
   addPlayerStatus_(sh);
+  addDevGroups_(sh);
   var lastCol = sh.getLastColumn();
   var heads = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h || '').trim(); });
   ['Status', 'Last updated'].forEach(function (h) {
@@ -170,6 +175,17 @@ function addPlayerStatus_(sh) {
     : Array.apply(null, Array(n)).map(function () { return [rule]; }));
 }
 
+// Adds the "Development groups" column just after How, once. The first sync fills it from the app.
+function addDevGroups_(sh) {
+  var heads = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+  if (heads.indexOf(DEV_GROUPS_.toLowerCase()) >= 0 || heads.indexOf('groups') >= 0) return;
+  var how = heads.indexOf('how');
+  var after = how >= 0 ? how + 1 : sh.getLastColumn();
+  sh.insertColumnAfter(after);
+  sh.getRange(1, after + 1).setValue(DEV_GROUPS_).setFontWeight('bold')
+    .setNote('One per line: Ball skills, Speed & power, Scoring, Winning the ball');
+}
+
 function readTab_(sh, code) {
   var map = headMap_(sh);
   var n = sh.getLastRow() - 1;
@@ -192,7 +208,7 @@ function writeTab_(sh, t, byKey) {
   if (n < 1) return;
   // One column at a time, in one read and one write each, touching only the columns the app owns.
   var cols = {};
-  ['player_status', 'superpower', 'development', 'how', 'video_url', 'status', 'updated_at', 'assessor_name', 'assessor_email'].forEach(function (f) {
+  ['player_status', 'superpower', 'development', 'how', 'video_url', 'dev_groups', 'status', 'updated_at', 'assessor_name', 'assessor_email'].forEach(function (f) {
     if (t.map.fields[f] != null) cols[t.map.fields[f]] = function (a) { return f === 'updated_at' ? (a.updated_at ? new Date(a.updated_at) : '') : (a[f] || ''); };
   });
   Object.keys(t.map.checks).forEach(function (d) { cols[t.map.checks[d]] = function (a) { return (a.checks || {})[d] || ''; }; });
