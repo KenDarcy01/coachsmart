@@ -132,6 +132,33 @@
     return F.run(day, phase.key, week);
   }
 
+  // ---- development groups, picked by the girl and saved on this phone only ----
+  // Stored as 'football:ball', 'camogie:score' ... Nothing about them leaves the phone.
+  const GKEY = 'feile27:groups';
+  let myGroups = (() => { try { return JSON.parse(localStorage.getItem(GKEY)) || []; } catch (e) { return []; } })();
+  const CODES = [{ code: 'football', name: 'Football', days: ['A', 'F'] }, { code: 'camogie', name: 'Camogie', days: ['B', 'C'] }];
+  function toggleGroup(key) {
+    myGroups = myGroups.includes(key) ? myGroups.filter(k => k !== key) : myGroups.concat(key);
+    try { localStorage.setItem(GKEY, JSON.stringify(myGroups)); } catch (e) {}
+  }
+  // One 10-minute drill per picked group of that code, on that code's home nights,
+  // until that code's Féile weekend is over.
+  function groupWork(d, code) {
+    const week = Math.floor((parse(d) - parse(monday(F.PLAN_START))) / DAY / 7);
+    const out = [];
+    CODES.forEach(c => {
+      if (!c.days.includes(code)) return;
+      const wk = F.WEEKENDS.find(w => w.code === c.code);
+      if (wk && d > wk.to) return;
+      F.GROUPS.forEach(g => {
+        if (!myGroups.includes(c.code + ':' + g.id)) return;
+        const b = F.groupDrill(c.code, g.id, week);
+        if (b) out.push({ name: b.title, sub: `${c.name} · ${g.name}`, mins: b.mins, blocks: [b] });
+      });
+    });
+    return out;
+  }
+
   // ---- the day's timeline ----
   function planDay(d) {
     const phase = phaseOf(d), hol = holidayOf(d), team = loadTeamEvents(d);
@@ -152,7 +179,9 @@
       items.push({ t: hhmm(at), end: hhmm(at + run.mins), kind: 'run', title: run.name, detail: run.sub, session: run });
       at += run.mins + 10;
     }
-    if (sess) items.push({ t: hhmm(at), end: hhmm(at + sess.mins), kind: 'home', title: sess.name, detail: sess.sub, session: sess });
+    if (sess) { items.push({ t: hhmm(at), end: hhmm(at + sess.mins), kind: 'home', title: sess.name, detail: sess.sub, session: sess }); at += sess.mins + 5; }
+    const groups = groupWork(d, code);
+    groups.forEach(g => { items.push({ t: hhmm(at), end: hhmm(at + g.mins), kind: 'group', title: g.name, detail: g.sub, session: g }); at += g.mins; });
     if (code === 'rest' || code === 'off') {
       items.push({ t: 'Any time', kind: 'rest', title: code === 'off' ? 'Day off' : 'Rest day', detail: code === 'off' ? 'No training at all. Enjoy Christmas with your family.' : 'Recovery is training too. A walk or a cycle is fine.' });
     }
@@ -164,6 +193,7 @@
     team.forEach(e => tags.push({ k: e.kind, t: e.title }));
     if (run) tags.push({ k: 'run', t: run.name });
     if (sess) tags.push({ k: 'home', t: sess.name });
+    if (groups.length) tags.push({ k: 'group', t: groups.length === 1 ? 'Group work' : `Group work x${groups.length}` });
     if (code === 'rest') tags.push({ k: 'rest', t: 'Rest' });
     if (code === 'off') tags.push({ k: 'rest', t: 'Day off' });
     return { d, phase, hol, team, code, items, tags };
@@ -188,7 +218,7 @@
   // ---- drawing ----
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const ICON = { team: '⚑', snc: '◆', match: '★', run: '➜', home: '⌂', rest: '☾' };
+  const ICON = { team: '⚑', snc: '◆', match: '★', run: '➜', home: '⌂', group: '◎', rest: '☾' };
   let current = clamp(new URLSearchParams(location.search).get('d') || todayIso());
   const openSessions = new Set();
 
@@ -276,12 +306,23 @@
         <ol class="timeline">${rows}</ol>
       </div>
       ${challenge ? `<section class="card ch"><h2>12 Days of Touches · Day ${chIdx + 1}</h2><p>${esc(challenge)}</p><label class="hab"><input type="checkbox" data-tick="ch" ${ticked(d, 'ch') ? 'checked' : ''}><span>Done it</span></label></section>` : ''}
+      ${groupsCard()}
       <section class="card"><h2>Every day</h2>
         ${F.HABITS.map(h => `<label class="hab"><input type="checkbox" data-tick="h:${h.id}" ${ticked(d, 'h:' + h.id) ? 'checked' : ''}><span><b>${esc(h.n)}</b><small>${esc(h.d)}</small></span></label>`).join('')}
       </section>
       <section class="card food"><h2>Eating well</h2><p class="tip">${esc(tip)}</p>
         <p><a href="fuel/">Open the full Fuel for Féile guide ›</a></p><details><summary>What good eating looks like</summary><ul>${F.EATING.map(x => `<li><b>${esc(x.t)}.</b> ${esc(x.d)}</li>`).join('')}</ul></details>
       </section>`;
+  }
+
+  function groupsCard() {
+    const n = myGroups.length;
+    return `<section class="card groups"><h2>My groups</h2>
+      <p class="gn">${n ? 'Your group exercises show on your home nights: football groups with the football sessions, camogie groups with the camogie ones.' : 'Your player card says which development groups you are in. Tap the same ones here and their 10-minute exercises join your plan.'}</p>
+      ${CODES.map(c => `<div class="gc"><b>${c.name}</b><div class="gchips">${F.GROUPS.map(g => { const k = c.code + ':' + g.id, on = myGroups.includes(k);
+        return `<button type="button" class="gchip${on ? ' on' : ''}" data-group="${k}" aria-pressed="${on}" title="${esc(g.about)}">${esc(g.name)}</button>`; }).join('')}</div></div>`).join('')}
+      <p class="gs">Saved on this phone only. Nobody else can see which groups you picked.</p>
+    </section>`;
   }
 
   function weekView() {
@@ -291,7 +332,7 @@
       const d = add(mon, i);
       if (!within(d, F.VIEW_START, F.FEILE_END)) continue;
       const p = planDay(d);
-      const main = p.items.filter(x => ['team', 'snc', 'match', 'run', 'home', 'rest'].includes(x.kind));
+      const main = p.items.filter(x => ['team', 'snc', 'match', 'run', 'home', 'group', 'rest'].includes(x.kind));
       html += `<button class="wk${d === current ? ' on' : ''}" data-d="${d}"><span class="wd">${DOW[i].slice(0, 3)} ${+d.slice(8)}</span><span class="wl">${main.map(x => `<span class="k-${x.kind}">${ICON[x.kind]} ${esc(x.title)}${/^\d/.test(x.t) ? ' · ' + x.t : ''}</span>`).join('') || '<span class="k-rest">Rest</span>'}</span></button>`;
     }
     $('#week').innerHTML = html;
@@ -312,6 +353,8 @@
   document.addEventListener('click', e => {
     const day = e.target.closest('[data-d]');
     if (day && !day.disabled) { current = day.dataset.d; render(); return; }
+    const grp = e.target.closest('[data-group]');
+    if (grp) { toggleGroup(grp.dataset.group); render(); return; }
     const more = e.target.closest('[data-open]');
     if (more) { const k = more.dataset.open; openSessions.has(k) ? openSessions.delete(k) : openSessions.add(k); dayView(); return; }
     if (e.target.closest('#prev')) { current = clamp(add(current, -7)); render(); }
