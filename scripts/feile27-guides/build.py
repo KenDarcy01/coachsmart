@@ -3,7 +3,7 @@
     python3 scripts/feile27-guides/build.py
 
 {{i:name}} becomes an inline Font Awesome Free solid icon (icons.json, CC BY 4.0)
-and {{v}} the cache-busting version. Output: clontarf-gaa/feile27/parents/, girls/ and huddle/.
+and {{v}} the cache-busting version. Output: clontarf-gaa/feile27/parents/, girls/, huddle/ and coaches/.
 """
 import json, os, re, sys
 
@@ -19,7 +19,7 @@ def icon(m):
     box, path = icons[name]
     return f'<svg class="i" viewBox="{box}" aria-hidden="true"><path d="{path}"/></svg>'
 
-for page in ('parents', 'girls', 'huddle'):
+for page in ('parents', 'girls', 'huddle', 'coaches'):
     html = open(os.path.join(HERE, f'{page}.tpl.html'), encoding='utf-8').read()
     html = re.sub(r'\{\{i:([a-z-]+)\}\}', icon, html).replace('{{v}}', VERSION)
     os.makedirs(os.path.join(OUT, page), exist_ok=True)
