@@ -1,4 +1,4 @@
-export 'set_f_c_m_token.dart' show setFCMToken;
+export 'set_f_c_m_token.dart' show setFCMToken, isRealFcmToken;
 export 'firebase_messaging_background_handler.dart'
     show firebaseMessagingBackgroundHandler;
 export 'register_background_message_handler.dart'

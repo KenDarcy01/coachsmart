@@ -132,13 +132,22 @@ class _V3NotificationSettingsPageState
         final t = FFAppState().fcmToken;
         token = t.startsWith('Running on web') ? '' : t;
       }
+      // A status message (e.g. "No APNs token from Apple.") is saved too, so
+      // the reason can be seen from the server; sends treat it as email.
       await UsersTable().update(
         data: {'fcm_token': token},
         matchingRows: (rows) => rows.eq('user_id', currentUserUid),
       );
-      _snack(on
-          ? 'Notifications will come as push'
-          : 'Notifications will come by email');
+      if (on && !actions.isRealFcmToken(token)) {
+        _snack(
+            'Push could not be set up on this phone yet, so messages come by '
+            'email for now. ($token)',
+            warn: true);
+      } else {
+        _snack(on
+            ? 'Notifications will come as push'
+            : 'Notifications will come by email');
+      }
     } catch (_) {
       _snack('Could not change this. Please try again.', warn: true);
     }

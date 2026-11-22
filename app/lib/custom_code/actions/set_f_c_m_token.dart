@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart'
-    show kIsWeb; // Import for platform check
+    show kIsWeb, defaultTargetPlatform, TargetPlatform; // Platform checks
 import '/flutter_flow/flutter_flow_util.dart'; // Required for updateAppState
 
 /// Custom Action: setFCMToken
@@ -59,44 +59,99 @@ Future<void> setFCMToken() async {
     return; // Exit the function for web platform
   }
 
-  // If not web, proceed with FCM setup
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  // If not web, proceed with FCM setup. Never throws: any failure is left as
+  // a status message in fcmToken (saved to users.fcm_token, so it can be seen
+  // from the server; sends treat it as "no push" and fall back to email).
+  try {
+    final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
-  // --- 1. Request Notification Permissions ---
-  FFAppState().update(() {
-    FFAppState().fcmToken = 'Requesting notification permissions...';
-  });
-  NotificationSettings settings = await _firebaseMessaging.requestPermission(
-    alert: true,
-    announcement: false,
-    badge: true,
-    carPlay: false,
-    criticalAlert: false,
-    provisional: false,
-    sound: true,
-  );
+    // --- 1. Request Notification Permissions ---
+    FFAppState().update(() {
+      FFAppState().fcmToken = 'Requesting notification permissions...';
+    });
+    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
 
-  // Proceed only if permissions are granted or provisional
-  if (settings.authorizationStatus == AuthorizationStatus.authorized ||
-      settings.authorizationStatus == AuthorizationStatus.provisional) {
-    // --- 2. Get the FCM Device Token ---
+    // Proceed only if permissions are granted or provisional
+    if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+        settings.authorizationStatus != AuthorizationStatus.provisional) {
+      FFAppState().update(() {
+        FFAppState().fcmToken = 'Notification permissions denied.';
+      });
+      return;
+    }
+
+    // --- 2. iPhone: wait for Apple's push ID (APNs token) ---
+    // getToken() fails with "apns-token-not-set" if it is called before Apple
+    // has handed the app its APNs token, which can take a few seconds after
+    // launch (Ken's phone, 2026-11-22). Wait up to ~15s for it.
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      FFAppState().update(() {
+        FFAppState().fcmToken = 'Waiting for APNs token...';
+      });
+      String? apns;
+      for (var i = 0; i < 15 && apns == null; i++) {
+        try {
+          apns = await _firebaseMessaging.getAPNSToken();
+        } catch (_) {}
+        if (apns == null) await Future.delayed(const Duration(seconds: 1));
+      }
+      if (apns == null) {
+        FFAppState().update(() {
+          FFAppState().fcmToken = 'No APNs token from Apple.';
+        });
+        return;
+      }
+    }
+
+    // --- 3. Get the FCM Device Token (retry a few times) ---
     FFAppState().update(() {
       FFAppState().fcmToken = 'Getting FCM token...';
     });
-    String? token = await _firebaseMessaging.getToken();
+    String? token;
+    Object? lastError;
+    for (var i = 0; i < 3 && token == null; i++) {
+      try {
+        token = await _firebaseMessaging.getToken();
+      } catch (e) {
+        lastError = e;
+      }
+      if (token == null && i < 2) {
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    }
 
-    if (token != null) {
+    if (token != null && token.isNotEmpty) {
+      final t = token;
       FFAppState().update(() {
-        FFAppState().fcmToken = token; // Store the actual token
+        FFAppState().fcmToken = t; // Store the actual token
       });
     } else {
+      final msg = lastError == null
+          ? 'Failed to retrieve FCM token.'
+          : 'FCM error: ${_short(lastError)}';
       FFAppState().update(() {
-        FFAppState().fcmToken = 'Failed to retrieve FCM token.';
+        FFAppState().fcmToken = msg;
       });
     }
-  } else {
+  } catch (e) {
     FFAppState().update(() {
-      FFAppState().fcmToken = 'Notification permissions denied.';
+      FFAppState().fcmToken = 'FCM error: ${_short(e)}';
     });
   }
+}
+
+/// True when fcmToken holds a real device token rather than a status message.
+bool isRealFcmToken(String t) => t.length > 60 && !t.contains(' ');
+
+String _short(Object e) {
+  final s = e.toString();
+  return s.length > 120 ? s.substring(0, 120) : s;
 }
