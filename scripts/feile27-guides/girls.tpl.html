@@ -32,13 +32,16 @@
     <div>
       <div class="kicker">Your plan</div>
       <h1>Road to <em>Féile</em></h1>
-      <div class="count"><b id="days">–</b><span>days to Féile</span></div>
+      <div class="counts">
+        <div class="count"><b id="days-football">–</b><span>days to Féile football</span></div>
+        <div class="count"><b id="days-camogie">–</b><span>days to Féile camogie</span></div>
+      </div>
       <p class="lede">Training, S&amp;C, two easy runs and a bit of wall ball at home. Your diary tells you exactly what to do each day.</p>
       <div class="btns"><a class="btn" href="../">{{i:calendar-days}} Open my diary</a></div>
     </div>
     <figure class="photo" style="margin:0">
       <img src="../../images/girls2012-celebration-white-kit.jpg" alt="The Clontarf 2012 girls celebrating">
-      <figcaption class="cap">{{i:trophy}} Féile · first week of April</figcaption>
+      <figcaption class="cap">{{i:trophy}} Féile · Football 10 Apr · Camogie 8 May</figcaption>
     </figure>
   </div>
 </section>
@@ -97,7 +100,7 @@
 <section class="cta">
   <div class="in">
     <h2>Let's go, Clontarf</h2>
-    <p>Little bits every day add up to a big weekend in April.</p>
+    <p>Little bits every day add up to two big weekends: football in April and camogie in May.</p>
     <a class="btn" href="../">{{i:calendar-days}} Open my diary</a>
   </div>
 </section>
@@ -113,8 +116,11 @@
 <script>
 (function () {
   var n = new Date(), today = Date.UTC(n.getFullYear(), n.getMonth(), n.getDate());
-  var d = Math.round((Date.UTC(2027, 3, 1) - today) / 864e5);
-  document.getElementById('days').textContent = d > 0 ? d : 0;
+  // Two Féile weekends, both just as important: football Sat 10 Apr, camogie Sat 8 May 2027.
+  [['football', Date.UTC(2027, 3, 10)], ['camogie', Date.UTC(2027, 4, 8)]].forEach(function (w) {
+    var d = Math.round((w[1] - today) / 864e5);
+    document.getElementById('days-' + w[0]).textContent = d > 0 ? d : 0;
+  });
 })();
 </script>
 </body>

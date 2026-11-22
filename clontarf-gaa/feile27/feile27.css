@@ -46,8 +46,10 @@ button { font: inherit; cursor: pointer; }
 }
 .codes span:last-child { background: var(--red); }
 .codes span:empty { display: none; }
-.count { flex: none; text-align: center; background: #fff; color: var(--navy); border-radius: 12px; padding: 6px 10px 6px; min-width: 70px; }
-.count b { display: block; font-family: var(--display-font); font-weight: 400; font-size: 32px; line-height: 1; color: var(--red-dark); }
+.counts { flex: none; display: flex; gap: 6px; margin-left: auto; }
+.count { flex: none; text-align: center; background: #fff; color: var(--navy); border-radius: 12px; padding: 5px 8px 6px; min-width: 62px; }
+.count i { display: block; font-style: normal; font-family: var(--heading-font); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--navy); margin-bottom: 2px; }
+.count b { display: block; font-family: var(--display-font); font-weight: 400; font-size: 28px; line-height: 1; color: var(--red-dark); }
 .count span { display: block; font-family: var(--heading-font); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; margin-top: 3px; }
 
 /* Week strip */

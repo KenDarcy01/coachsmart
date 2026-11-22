@@ -76,6 +76,9 @@
 
   const phaseOf = d => F.PHASES.find(p => within(d, p.from, p.to)) || F.PHASES[0];
   const holidayOf = d => F.HOLIDAYS.find(h => within(d, h.from, h.to));
+  // The next Féile weekend still to come on day d (football first, then camogie).
+  const nextWeekend = d => F.WEEKENDS.find(w => d <= w.to) || F.WEEKENDS[F.WEEKENDS.length - 1];
+  const daysTo = (w, d) => Math.round((parse(w.from) - parse(d)) / DAY);
 
   // ---- what to do at home on a day ----
   // Worked out from the team sessions around the day: light the day before a
@@ -83,9 +86,11 @@
   // the weekend, and nothing extra on a day with a team session.
   function homeFor(d, team) {
     const p = phaseOf(d).key;
-    const toFeile = (parse(F.FEILE_START) - parse(d)) / DAY;
+    const toFeile = daysTo(nextWeekend(d), d);
     if (p === 'feile') return 'feile';
     if (toFeile <= 2) return 'rest';
+    // The two days after a Féile weekend are for recovery.
+    if (F.WEEKENDS.some(w => d > w.to && d <= add(w.to, 2))) return 'rest';
     if (F.CHRISTMAS[d] && !team.length) return F.CHRISTMAS[d];
     if (team.length) return null;
     const ev = n => loadTeamEvents(add(d, n));
@@ -135,8 +140,8 @@
     const items = [];
 
     if (code === 'feile') {
-      items.push({ t: '09:30', kind: 'match', title: 'Féile games', detail: 'Warm up with the team. Be proud of all the work you did.' });
-      return { d, phase, hol, team, code, items, tags: [{ k: 'match', t: 'Féile' }] };
+      items.push({ t: '09:30', kind: 'match', title: phase.name + ' games', detail: 'Warm up with the team. Be proud of all the work you did.' });
+      return { d, phase, hol, team, code, items, tags: [{ k: 'match', t: phase.name }] };
     }
 
     team.forEach(e => items.push({ t: e.start, end: e.end, kind: e.kind, title: e.title, detail: e.detail, planned: e.planned }));
@@ -189,10 +194,14 @@
 
   function hero() {
     const today = todayIso();
-    const left = Math.max(0, Math.round((parse(F.FEILE_START) - parse(today)) / DAY));
     const p = phaseOf(clamp(today));
-    $('#count').textContent = left;
-    $('#count-label').textContent = left === 1 ? 'day to Féile' : 'days to Féile';
+    // One countdown per weekend, side by side: both matter just as much.
+    $('#counts').innerHTML = F.WEEKENDS.map(w => {
+      const left = daysTo(w, today);
+      const n = today > w.to ? '✓' : left <= 0 ? 'Now' : left;
+      const label = today > w.to ? 'done' : left <= 0 ? 'Féile' : left === 1 ? 'day to go' : 'days to go';
+      return `<div class="count ${w.code}"><i>${w.code === 'football' ? 'Football' : 'Camogie'}</i><b>${n}</b><span>${label}</span></div>`;
+    }).join('');
     $('#phase').textContent = p.name;
   }
 
@@ -232,7 +241,7 @@
     const plan = planDay(current);
     const d = current;
     const tip = F.FOOD_TIPS[Math.round(parse(d) / DAY) % F.FOOD_TIPS.length];
-    const toFeile = Math.round((parse(F.FEILE_START) - parse(d)) / DAY);
+    const nw = nextWeekend(d), toFeile = daysTo(nw, d);
     const chIdx = Math.round((parse(d) - parse(F.TOUCHES_12.start)) / DAY);
     const challenge = chIdx >= 0 && chIdx < 12 ? F.TOUCHES_12.days[chIdx] : null;
     let tickIdx = 0;
@@ -259,11 +268,11 @@
       <div class="page">
         <div class="ph">
           <div><div class="pd">${esc(longDate(d))}</div>
-          <div class="pm">${esc(plan.phase.name)}${plan.hol ? ' · ' + esc(plan.hol.name) : ''}${toFeile > 0 ? ` · ${toFeile} days to go` : ''}</div></div>
+          <div class="pm">${esc(plan.phase.name)}${plan.hol ? ' · ' + esc(plan.hol.name) : ''}${toFeile > 0 ? ` · ${toFeile} days to ${esc(nw.name)}` : ''}</div></div>
           <div class="score" aria-label="${t.done} of ${t.total} done"><b>${t.done}</b>/${t.total}</div>
         </div>
         <div class="tags">${plan.tags.map(x => `<span class="tag k-${x.k}">${esc(x.t)}</span>`).join('')}</div>
-        ${plan.d === F.FEILE_START || plan.d === F.FEILE_END ? '' : `<p class="aim">${esc(plan.phase.aim)}</p>`}
+        ${plan.phase.key === 'feile' ? '' : `<p class="aim">${esc(plan.phase.aim)}</p>`}
         <ol class="timeline">${rows}</ol>
       </div>
       ${challenge ? `<section class="card ch"><h2>12 Days of Touches · Day ${chIdx + 1}</h2><p>${esc(challenge)}</p><label class="hab"><input type="checkbox" data-tick="ch" ${ticked(d, 'ch') ? 'checked' : ''}><span>Done it</span></label></section>` : ''}

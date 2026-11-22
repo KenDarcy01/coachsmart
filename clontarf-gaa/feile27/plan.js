@@ -26,16 +26,23 @@ window.FEILE = (function () {
       { date: '2027-03-07', start: '11:00', title: 'Match' },
       { date: '2027-03-14', start: '10:00', title: 'Féile-style home blitz', detail: 'Several short games, like Féile day' },
       { date: '2027-03-21', start: '11:00', title: 'Match' },
-      { date: '2027-04-04', start: '11:00', title: 'Match' },
-      { date: '2027-04-11', start: '11:00', title: 'Match' }
+      { date: '2027-04-04', start: '11:00', title: 'Match', detail: 'Last tune-up before Féile football' },
+      { date: '2027-04-25', start: '11:00', title: 'Match' },
+      { date: '2027-05-02', start: '11:00', title: 'Match', detail: 'Last tune-up before Féile camogie' }
     ],
     camps: [
       { from: '2027-03-30', to: '2027-04-01', start: '10:00', end: '13:00', title: 'Easter camp', detail: 'Mornings with the coaches' }
     ]
   };
 
-  const FEILE_START = '2027-04-24';
-  const FEILE_END = '2027-04-25';
+  // Féile is two separate weekends of equal importance, one per code.
+  // Dates from the coaches' key dates sheet (Saturday given; Sunday assumed).
+  const WEEKENDS = [
+    { code: 'football', name: 'Féile football', from: '2027-04-10', to: '2027-04-11' },
+    { code: 'camogie', name: 'Féile camogie', from: '2027-05-08', to: '2027-05-09' }
+  ];
+  const FEILE_START = WEEKENDS[0].from;
+  const FEILE_END = WEEKENDS[WEEKENDS.length - 1].to;
   const PLAN_START = '2026-10-28';
   const VIEW_START = '2026-10-28';
 
@@ -43,9 +50,12 @@ window.FEILE = (function () {
     { key: 'foundation', name: 'Foundation', from: '2026-10-28', to: '2026-12-13', aim: 'Learn every exercise properly and make wall ball a habit.' },
     { key: 'christmas', name: 'Christmas block', from: '2026-12-14', to: '2027-01-10', aim: 'Keep it ticking over: short sessions, family time, 24 to 27 Dec fully off.' },
     { key: 'build', name: 'Build', from: '2027-01-11', to: '2027-02-28', aim: 'More rounds, harder intervals, skills from longer range.' },
-    { key: 'sharp', name: 'Competition prep', from: '2027-03-01', to: '2027-04-04', aim: 'Match-shaped running and skills when tired.' },
-    { key: 'taper', name: 'Peak and taper', from: '2027-04-05', to: '2027-04-23', aim: 'Less work, same speed. Arrive fresh.' },
-    { key: 'feile', name: 'Féile', from: FEILE_START, to: FEILE_END, aim: 'Enjoy it. Everything is done.' }
+    { key: 'sharp', name: 'Competition prep', from: '2027-03-01', to: '2027-03-28', aim: 'Match-shaped running and skills when tired.' },
+    { key: 'taper', name: 'Football peak', from: '2027-03-29', to: '2027-04-09', aim: 'Less work, same speed. Arrive fresh for Féile football.' },
+    { key: 'feile', name: 'Féile football', code: 'football', from: WEEKENDS[0].from, to: WEEKENDS[0].to, aim: 'Enjoy it. Everything is done.' },
+    { key: 'sharp', name: 'Reset for camogie', from: '2027-04-12', to: '2027-04-25', aim: 'Easy days first, then hurley in hand: sharp touches and match-shaped running.' },
+    { key: 'taper', name: 'Camogie peak', from: '2027-04-26', to: '2027-05-07', aim: 'Less work, same speed. Arrive fresh for Féile camogie.' },
+    { key: 'feile', name: 'Féile camogie', code: 'camogie', from: WEEKENDS[1].from, to: WEEKENDS[1].to, aim: 'Enjoy it. Everything is done.' }
   ];
 
   const HOLIDAYS = [
@@ -341,5 +351,5 @@ window.FEILE = (function () {
     'Fruit is the easiest snack there is. Grab one on the way out.'
   ];
 
-  return { TEAM_CODE, TEAM, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run, watch };
+  return { TEAM_CODE, TEAM, WEEKENDS, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run, watch };
 })();
