@@ -327,11 +327,11 @@ window.FEILE = (function () {
     { t: 'Build a mixed plate', d: 'Some carbs for energy, some protein to repair, and plenty of colour from fruit and veg.' },
     { t: 'Drink water', d: 'Through the day, and bring a bottle to every session. Energy drinks are not for under-16s.' },
     { t: 'Iron and calcium', d: 'Girls your age need lots of both: meat, eggs, beans and greens for iron; milk, yogurt and cheese for calcium.' },
-    { t: 'More, not less', d: 'Growing athletes need more food, not less. No diets or cutting out foods. Worried about food or your body? Talk to a parent or coach.' }
+    { t: 'Plenty of fuel', d: 'You play two codes, so you need plenty of fuel every day. Every food has its place. Any questions or worries about food? Talk to a parent or coach.' }
   ];
 
   const FOOD_TIPS = [
-    'Big training week? Your body needs more fuel, so listen to your hunger.',
+    'Big training week? You need more fuel, so listen to your hunger.',
     'Have a water bottle with you all day today.',
     'Try to get a colourful plate at dinner.',
     'A snack after school makes evening training feel easier.',

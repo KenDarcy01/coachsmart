@@ -271,7 +271,7 @@
         ${F.HABITS.map(h => `<label class="hab"><input type="checkbox" data-tick="h:${h.id}" ${ticked(d, 'h:' + h.id) ? 'checked' : ''}><span><b>${esc(h.n)}</b><small>${esc(h.d)}</small></span></label>`).join('')}
       </section>
       <section class="card food"><h2>Eating well</h2><p class="tip">${esc(tip)}</p>
-        <details><summary>What good eating looks like</summary><ul>${F.EATING.map(x => `<li><b>${esc(x.t)}.</b> ${esc(x.d)}</li>`).join('')}</ul></details>
+        <p><a href="fuel/">Open the full Fuel for Féile guide ›</a></p><details><summary>What good eating looks like</summary><ul>${F.EATING.map(x => `<li><b>${esc(x.t)}.</b> ${esc(x.d)}</li>`).join('')}</ul></details>
       </section>`;
   }
 
