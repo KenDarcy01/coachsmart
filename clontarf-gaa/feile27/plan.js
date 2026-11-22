@@ -14,8 +14,8 @@ window.FEILE = (function () {
       { dow: 2, start: '19:00', end: '20:00', kind: 'snc', title: 'Group S&C', detail: 'Strength and conditioning with the group' },
       { dow: 3, start: '20:10', end: '21:10', kind: 'team', title: 'Camogie training', detail: 'Formal training with the coaches' }
     ],
-    // No team sessions on these dates (Christmas break).
-    off: [['2026-12-21', '2027-01-03']],
+    // No team sessions on these dates (Christmas break; training resumes Tue 5 Jan).
+    off: [['2026-12-21', '2027-01-04']],
     // Sunday fixtures (times to confirm) and other one-off team days.
     matches: [
       { date: '2026-11-29', start: '11:00', title: 'Match' },
@@ -43,11 +43,12 @@ window.FEILE = (function () {
   ];
   const FEILE_START = WEEKENDS[0].from;
   const FEILE_END = WEEKENDS[WEEKENDS.length - 1].to;
-  const PLAN_START = '2026-10-28';
-  const VIEW_START = '2026-10-28';
+  // The girls' prep programme begins Wed 25 Nov (key dates sheet).
+  const PLAN_START = '2026-11-25';
+  const VIEW_START = '2026-11-25';
 
   const PHASES = [
-    { key: 'foundation', name: 'Foundation', from: '2026-10-28', to: '2026-12-13', aim: 'Learn every exercise properly and make wall ball a habit.' },
+    { key: 'foundation', name: 'Foundation', from: '2026-11-25', to: '2026-12-13', aim: 'Learn every exercise properly and make wall ball a habit.' },
     { key: 'christmas', name: 'Christmas block', from: '2026-12-14', to: '2027-01-10', aim: 'Keep it ticking over: short sessions, family time, 24 to 27 Dec fully off.' },
     { key: 'build', name: 'Build', from: '2027-01-11', to: '2027-02-28', aim: 'More rounds, harder intervals, skills from longer range.' },
     { key: 'sharp', name: 'Competition prep', from: '2027-03-01', to: '2027-03-28', aim: 'Match-shaped running and skills when tired.' },
@@ -65,7 +66,7 @@ window.FEILE = (function () {
     { from: '2027-03-22', to: '2027-04-02', name: 'Easter holidays' }
   ];
 
-  const BENCHMARKS = ['2026-11-07', '2027-01-02', '2027-02-26', '2027-04-02'];
+  const BENCHMARKS = ['2027-01-02', '2027-02-27', '2027-04-03'];
 
   // While team sessions are off over Christmas, a fixed day-by-day plan
   // replaces the weekly pattern.

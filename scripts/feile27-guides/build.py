@@ -9,7 +9,7 @@ import json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, '..', '..', 'clontarf-gaa', 'feile27')
-VERSION = '20261122f'
+VERSION = '20261122g'
 icons = json.load(open(os.path.join(HERE, 'icons.json')))
 
 def icon(m):
