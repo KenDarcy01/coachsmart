@@ -384,7 +384,8 @@ function model(data) {
   // Féile is two weekends of equal weight: one Féile row per code (the code is in the title).
   // A combined "football and camogie" Féile row is an older placeholder: once both codes
   // have their own row it is left off the page. Other Féile rows (e.g. a launch night) stay.
-  const codeOf = (e) => /camog/i.test(e.title) ? 'camogie' : /football|peil/i.test(e.title) ? 'football' : null;
+  // Only a "... weekend" row is a Féile weekend: other Féile rows (a home blitz, the kick-off night) are ordinary dates.
+  const codeOf = (e) => !/weekend/i.test(e.title) ? null : /camog/i.test(e.title) ? 'camogie' : /football|peil/i.test(e.title) ? 'football' : null;
   const allF = events.filter((e) => e.cat === 'Féile');
   const pick = (c) => { const l = allF.filter((e) => codeOf(e) === c); return l.find((e) => (e.e || e.d) >= today()) || l.pop(); };
   let feiles = ['football', 'camogie'].map((c) => { const e = pick(c); return e && Object.assign(e, { code: c }); }).filter(Boolean);
