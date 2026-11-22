@@ -48,11 +48,11 @@ h1 em{font-style:normal;color:var(--red)}
 .motto em{font-style:normal;color:var(--red)}
 
 .band{padding:30px 0 40px;background:var(--paper)}
-.item{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;display:grid;grid-template-columns:240px 1fr}
+.item{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;display:grid;grid-template-columns:280px 1fr}
 .item+.item{margin-top:18px}
-.item .pic{background:var(--navy-dark);display:block;position:relative}
-.item .pic img{width:100%;height:100%;object-fit:cover;object-position:50% 0;display:block;min-height:260px;position:absolute;inset:0}
-.item .body{padding:22px 24px 22px;border-top:4px solid var(--red)}
+.item .pic{background:var(--paper);display:block;position:relative;align-self:start;margin:20px 0 20px 20px;border-radius:12px;overflow:hidden;border:1px solid var(--line);aspect-ratio:3/4;box-shadow:0 4px 14px rgba(27,35,51,.08)}
+.item .pic img{width:100%;height:100%;object-fit:cover;object-position:50% 0;display:block;position:absolute;inset:0}
+.item .body{padding:22px 24px 22px}
 .item .tagl{font-family:var(--head);text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--red-dark);font-weight:600;display:flex;gap:6px;align-items:center}
 .item h2{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:34px;line-height:1;margin:6px 0 8px;color:var(--navy)}
 .item p.d{margin:0 0 16px;color:var(--muted)}
@@ -75,7 +75,8 @@ h1 em{font-style:normal;color:var(--red)}
 .aud{display:inline-flex;align-items:center;gap:6px;font-family:var(--head);font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;border-radius:999px;padding:3px 10px;margin-bottom:8px;background:var(--red-tint);color:var(--red-dark)}
 .aud.par{background:#E8EEF8;color:var(--navy)}
 .aud.all{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
-.item .pic.photo img{object-position:50% 40%}
+.item .pic.photo{aspect-ratio:4/3}
+.item .pic.photo img{object-position:50% 50%}
 .toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
 .toc a{font-family:var(--head);font-size:14px;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:6px 14px;display:inline-flex;gap:7px;align-items:center;background:#fff}
 .toc a svg{color:var(--red)}
@@ -93,7 +94,7 @@ footer a{color:var(--muted)}
   .hero .in{padding-top:26px;padding-bottom:24px}
   .lede{font-size:16.5px}
   .item{grid-template-columns:1fr}
-  .item .pic{height:262px}.item .pic img{min-height:0}
+  .item .pic{margin:14px 14px 0;aspect-ratio:4/3}.item .pic.photo{aspect-ratio:3/2}.item .pic.kd{aspect-ratio:8/5}
   .item .body{padding:18px 16px 18px}
   .btns .btn{flex:1 1 auto;justify-content:center}
 }
@@ -125,7 +126,7 @@ footer a{color:var(--muted)}
       data-title="Key dates"
       data-url="https://coachsmart.app/clontarf-gaa/feile27/dates/"
       data-text="Key dates on the road to Féile: football on the weekend of Sat 10 April, camogie on the weekend of Sat 8 May 2027." data-image="files/key-dates-phone.jpg">
-      <a class="pic" href="files/key-dates-phone.jpg" target="_blank" rel="noopener"><img src="files/key-dates-thumb.jpg" alt="Key dates phone poster" loading="lazy"></a>
+      <a class="pic kd" href="files/key-dates-phone.jpg" target="_blank" rel="noopener"><img src="files/key-dates-thumb.jpg" alt="Key dates phone poster" loading="lazy"></a>
       <div class="body">
         <div class="aud all"><svg class="i"><use href="#i-people-group"/></svg>For everyone</div>
         <div class="tagl"><svg class="i"><use href="#i-calendar-days"/></svg>Calendar</div>
