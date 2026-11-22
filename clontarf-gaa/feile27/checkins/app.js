@@ -33,6 +33,14 @@
     'unfit', 'useless', 'terrible', 'awful', 'lacks', 'lacking', 'struggles', 'worst', 'body', 'bmi'];
   const BANNED_RE = new RegExp(`\\b(${BANNED.join('|')})\\b`, 'gi');
   const flagged = (...t) => [...new Set(t.join(' ').match(BANNED_RE) || [])].map(w => w.toLowerCase());
+  // Development groups, per code. Mirrors GROUPS in the edge function and the diary's plan.js.
+  const GROUPS = [
+    { n: 'Ball skills', d: 'Clean catching, passing and striking off both sides' },
+    { n: 'Speed & power', d: 'Quick first steps and strong, safe landings' },
+    { n: 'Scoring', d: 'Turning chances into scores' },
+    { n: 'Winning the ball', d: 'Tackling, hooking and blocking to win it back' }
+  ];
+  const groupLines = s => String(s || '').split('\n').map(x => x.trim()).filter(Boolean);
   const PROGRESS = { starting: 'Just getting started', coming: 'Coming on well', nailed: 'Nailed it' };
   const STATUS = { todo: 'To do', draft: 'Draft', review: 'With reviewer', changes: 'Change asked', approved: 'Approved', shared: 'Shared with family' };
 
@@ -185,6 +193,11 @@
             <div class="helper"><span style="color:var(--navy)">${ICON.bulb}</span><div><b>Wording.</b> These are u15 girls: keep it positive and about what she can do. Words like “weak”, “poor” or anything about body or weight can't be sent.</div></div>
           </section>
           <section class="box stack">
+            <div class="field-title"><span style="color:var(--red)">${ICON.target}</span>Development groups: ${codeName(a.code).toLowerCase()}</div>
+            <p class="hint" style="margin:0">Pick one or more. They show on her card, and she taps the same groups in the Féile diary to get their home exercises. No names ever go on the diary.</p>
+            <div class="chips" id="f-groups">${GROUPS.map(g => `<button type="button" class="chip${groupLines(a.dev_groups).includes(g.n) ? ' on' : ''}" aria-pressed="${groupLines(a.dev_groups).includes(g.n)}" data-g="${esc(g.n)}" title="${esc(g.d)}" ${editable ? '' : 'disabled'}>${esc(g.n)}</button>`).join('')}</div>
+          </section>
+          <section class="box stack">
             <label class="field-title" for="f-how"><span style="color:var(--red)">${ICON.check}</span>How: what she'll do</label>
             <p class="hint" style="margin:0">Tick one or more, or write your own (one per line).</p>
             ${editable ? picker('p-how', { 'Féile plan and training': HOW }, 'Choose what she will do') : ''}
@@ -222,7 +235,8 @@
       return row;
     };
     const vidLinks = () => [...vidBox.querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
-    const values = () => ({ superpower: f.super.value, development: f.dev.value, how: f.how.value, video_url: vidLinks().join('\n'), coach_note: f.note.value });
+    const pickedGroups = () => [...main.querySelectorAll('#f-groups .chip.on')].map(b => b.dataset.g).join('\n');
+    const values = () => ({ superpower: f.super.value, development: f.dev.value, how: f.how.value, video_url: vidLinks().join('\n'), dev_groups: pickedGroups(), coach_note: f.note.value });
     const draw = () => {
       const v = values();
       $('#preview').innerHTML = CardView.render({ first_name: a.player_name.split(' ')[0], code: a.code, ...v, checkins: [] }, []);
@@ -235,6 +249,9 @@
     draw();
     if (!editable) return;
     $('#addVid').onclick = () => { addVid().querySelector('input').focus(); };
+    main.querySelectorAll('#f-groups .chip').forEach(b => b.onclick = () => {
+      b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); draw();
+    });
     // Tick-box dropdowns: each tick adds or removes that phrase as its own line.
     const lines = field => field.value.split('\n').map(x => x.trim()).filter(Boolean);
     const multi = (box, field) => {
@@ -288,6 +305,7 @@
               <div><div class="k red">Superpower</div><div>${esc(a.superpower).replace(/\n/g, '<br>')}</div></div>
               <div><div class="k">Development</div><div>${esc(a.development).replace(/\n/g, '<br>')}</div></div>
               <div><div class="k">How</div><div>${esc(a.how).replace(/\n/g, '<br>')}</div></div>
+              ${a.dev_groups ? `<div><div class="k">Development groups</div><div>${groupLines(a.dev_groups).map(esc).join(', ')}</div></div>` : ''}
               ${a.video_url ? `<div><div class="k">Help video${a.video_url.trim().includes('\n') ? 's' : ''}</div>${a.video_url.split(/\s+/).filter(Boolean).map(u => `<div><a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a></div>`).join('')}</div>` : ''}
               ${a.coach_note ? `<div><div class="k" style="color:var(--muted)">Coach-only note</div><div class="muted">${esc(a.coach_note)}</div></div>` : ''}
               ${flagged(a.superpower, a.development, a.how).length ? `<div class="warn">Wording check: please ask for a change.</div>` : `<div class="banner green" style="padding:10px 14px">${ICON.tick}<span>Wording check passed</span></div>`}

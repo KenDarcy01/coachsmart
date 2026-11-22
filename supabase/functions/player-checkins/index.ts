@@ -66,6 +66,14 @@ const videoList = (s: unknown) => String(s ?? "").split(/[\s,]+/).map((x) => x.t
 const videos = (s: unknown) => videoList(s).join("\n");
 const badVideos = (s: unknown) => videoList(s).filter((u) => !okVideo(u));
 const goodVideos = (s: unknown) => videoList(s).filter(okVideo).join("\n");
+// Development groups, one per line. Only these names are kept (any case, "and" for "&").
+const GROUPS = ["Ball skills", "Speed & power", "Scoring", "Winning the ball"];
+const groupKey = (s: string) => s.toLowerCase().replace(/\band\b/g, "&").replace(/[^a-z&]/g, "");
+const groupList = (s: unknown) => {
+  const want = new Set(String(s ?? "").split(/[\n,;]+/).map((x) => groupKey(x)).filter(Boolean));
+  return GROUPS.filter((g) => want.has(groupKey(g)));
+};
+const groups = (s: unknown) => groupList(s).join("\n");
 // Sheet "Player status": Active / Inactive. Anything else is ignored.
 const activeFrom = (s: unknown): boolean | null => {
   const v = lc(s);
@@ -147,6 +155,7 @@ function card(a: any, checks: any[]) {
     how: a.how || "",
     video_url: videoList(a.video_url)[0] || "",
     videos: videoList(a.video_url),
+    dev_groups: groupList(a.dev_groups),
     checkins: checks
       .filter((c) => c.note || c.progress)
       .sort((x, y) => x.check_date.localeCompare(y.check_date))
@@ -238,12 +247,12 @@ serve(async (req) => {
       if (!canEdit(w, a)) return json({ error: "Only her assessor or an admin can change this." }, 403);
       if (action === "submit" && a.status === "review") return json({ error: "This is already with the reviewer." }, 409);
       const patch: any = {};
-      for (const k of ["superpower", "development", "how", "video_url", "coach_note"]) {
-        if (k in body) patch[k] = k === "video_url" ? videos(body[k]) : text(body[k]);
+      for (const k of ["superpower", "development", "how", "video_url", "coach_note", "dev_groups"]) {
+        if (k in body) patch[k] = k === "video_url" ? videos(body[k]) : k === "dev_groups" ? groups(body[k]) : text(body[k]);
       }
       if ("video_url" in patch && badVideos(patch.video_url).length) return json({ error: "Each video link must start with https://" }, 400);
       const next = { ...a, ...patch };
-      const contentChanged = ["superpower", "development", "how", "video_url"].some((k) => k in patch && (patch[k] || "") !== (a[k] || ""));
+      const contentChanged = ["superpower", "development", "how", "video_url", "dev_groups"].some((k) => k in patch && (patch[k] || "") !== (a[k] || ""));
       if (action === "submit") {
         if (!next.superpower || !next.development || !next.how) return json({ error: "Fill in Superpower, Development and How first." }, 400);
         const bad = flagged(next.superpower, next.development, next.how);
@@ -340,6 +349,7 @@ async function sheetPull(sb: SupabaseClient, teamId: number) {
       return {
         code: a.code, player_name: a.player_name, assessor_name: a.assessor_name || "", assessor_email: a.assessor_email || "",
         superpower: a.superpower || "", development: a.development || "", how: a.how || "", video_url: a.video_url || "",
+        dev_groups: a.dev_groups || "",
         player_status: a.active === false ? "Inactive" : "Active",
         status: st, updated_at: a.updated_at, checks: c,
       };
@@ -373,8 +383,8 @@ async function sheetPush(sb: SupabaseClient, teamId: number, body: any) {
     if (!memberId && !out.unmatched.includes(name)) out.unmatched.push(name);
     // The sheet sends only the cells changed there since its last sync (all of them on the first sync).
     const fields: Record<string, string> = {};
-    for (const k of ["superpower", "development", "how", "video_url"]) {
-      if (k in r) fields[k] = k === "video_url" ? goodVideos(r[k]) : text(r[k]);
+    for (const k of ["superpower", "development", "how", "video_url", "dev_groups"]) {
+      if (k in r) fields[k] = k === "video_url" ? goodVideos(r[k]) : k === "dev_groups" ? groups(r[k]) : text(r[k]);
     }
     const active = "player_status" in r ? activeFrom(r.player_status) : null;
     let a: any = have.get(`${code}|${nameKey(name)}`);

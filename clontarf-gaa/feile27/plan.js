@@ -250,6 +250,71 @@ window.FEILE = (function () {
     return s;
   }
 
+  // Development groups. Coaches put each girl in one or more groups per code
+  // (on her card); she taps the same ones under My groups in the diary, saved
+  // on her phone only. The diary never knows who is in which group.
+  // Each group has a few 10-minute drills that take turns week by week.
+  // Football groups show on football home nights (sessions A and F), camogie
+  // groups on camogie home nights (B and C).
+  const GROUPS = [
+    { id: 'ball', name: 'Ball skills', about: 'Clean catching, passing and striking off both sides' },
+    { id: 'speed', name: 'Speed & power', about: 'Quick first steps and strong, safe landings' },
+    { id: 'score', name: 'Scoring', about: 'Turning chances into scores' },
+    { id: 'win', name: 'Winning the ball', about: 'Tackling, hooking and blocking to win it back' }
+  ];
+  const G = (title, note, items) => ({ title, mins: 10, note, items: items.map(([n, d]) => ({ n, d })) });
+  const DRILLS = {
+    football: {
+      ball: [
+        G('Two-touch wall work', 'Other side first, then your favourite side.', [['Hand-pass wall, other fist', '30 in a row'], ['Kick and catch, other foot', '15 from 10 m'], ['Bounce and solo on the spot', '20 touches, swap feet each time'], ['Catch above the head', '10 high balls off the wall, two-foot landing']]),
+        G('Quick hands', 'Fast and clean beats hard and wild.', [['Hand-pass wall from 2 m', '60 s, count clean catches'], ['Ball drop and pick-up', '10 toe pick-ups each foot, walking then jogging'], ['Turn and pass', 'Back to the wall, turn on the call, pass. 10 each way']]),
+        G('Pass on the move', 'Look up before every pass.', [['Kick-pass to a target', '10 each foot, 15 m, on the move'], ['Solo, bounce, hand-pass', '5 runs of 20 m'], ['Catch, turn, kick', '10 off the wall, turning both ways']])
+      ],
+      speed: [
+        G('First three steps', 'Full rest between reps. Quality only.', [['Falling starts', '6 x 10 m, walk back'], ['Side shuffle and go', '4 each way: shuffle 3 m, sprint 10 m'], ['Jump and stick landing', '2 x 5, knees over toes, soft and quiet']]),
+        G('Bounce and react', 'Light and quick feet.', [['Line hops', '3 x 20 s forward-back, then side to side'], ['Reactive sprint with a ball', '5 reps: someone calls a side, pick up and go'], ['Single-leg hop and hold', '5 each leg, hold 2 s']]),
+        G('Change of direction', 'Low hips into the turn, push off hard.', [['5-10-5 shuttle', '4 reps'], ['Zig-zag with a ball in hand', '4 runs through 5 cones'], ['Skips for height', '2 x 20 m']])
+      ],
+      score: [
+        G('Five from five angles', 'Write down your score out of 10.', [['Set up', 'Five markers in a fan, 13 m out'], ['Shoot', 'Two from each marker, one each foot'], ['Score', 'How many of 10? Beat it next week']]),
+        G('Score on the run', 'Pick your spot before you strike.', [['Solo and shoot', '5 runs from 25 m, shoot from 15 m'], ['Point from the hand', '10 each foot from 13 m'], ['Pressure kick', 'One kick to end the session. Make it count']]),
+        G('Free-kick routine', 'Same routine every single time.', [['Routine', 'Steps back, breath, pick a target'], ['Frees', '10 from 13 m, then 5 from 20 m'], ['Score', 'Write down how many went over']])
+      ],
+      win: [
+        G('Shadow tackling', 'Feet first: get side-on before you tackle.', [['Jockey', 'Stay low and side-on, 4 x 15 s'], ['Near-side shoulder', 'Walk-through with a partner, 10 each side'], ['Flick the ball', 'Partner bounces, you flick it away, 10 each hand']]),
+        G('Stay with your player', 'Eyes on the ball, body between her and goal.', [['Mirror drill', 'Partner moves, you mirror, 4 x 20 s'], ['Back-pedal and turn', '4 x 10 m'], ['Block down', 'Partner kicks slowly, hands up to block, 10 reps']]),
+        G('Win it back', 'Go hard for 5 seconds after losing the ball.', [['Recover run', 'Sprint 10 m to get goal-side, 6 reps'], ['Hook the hand-pass', 'Partner hand-passes, you get a hand in, 10 reps'], ['Pick-up under pressure', '10 loose balls, toe pick-up, partner chasing']])
+      ]
+    },
+    camogie: {
+      ball: [
+        G('Two-side wall ball', 'Helmet on. Other grip first.', [['Ground strike to wall', '30 in a row, left grip then right'], ['Pull and catch', '30 in a row'], ['Bounce on the hurl', '60 s on both faces of the bas']]),
+        G('Clean lifts', 'Hands soft, eyes on the sliotar.', [['Jab lift on the move', '10 each side'], ['Roll lift', '10 each side'], ['Lift and strike', '10 to the wall, left then right']]),
+        G('First-time touch', 'Let the hurl do the work.', [['First-time overhead pull', '20 in a row'], ['Ground stroke both sides', '20 each side'], ['Catch above the head', '10 high balls, hand protected']])
+      ],
+      speed: [
+        G('First three steps', 'Full rest between reps. Quality only.', [['Falling starts, hurl in hand', '6 x 10 m, walk back'], ['Side shuffle and go', '4 each way: shuffle 3 m, sprint 10 m'], ['Jump and stick landing', '2 x 5, knees over toes, soft and quiet']]),
+        G('Bounce and react', 'Light and quick feet.', [['Line hops', '3 x 20 s forward-back, then side to side'], ['Reactive sprint to a sliotar', '5 reps: someone calls a side, lift and go'], ['Single-leg hop and hold', '5 each leg, hold 2 s']]),
+        G('Change of direction', 'Low hips into the turn, push off hard.', [['5-10-5 shuttle', '4 reps, hurl in hand'], ['Solo through cones', '4 runs through 5 cones'], ['Skips for height', '2 x 20 m']])
+      ],
+      score: [
+        G('Five from five angles', 'Write down your score out of 10.', [['Set up', 'Five markers in a fan, 15 m out'], ['Strike', 'Two from each marker, both sides'], ['Score', 'How many of 10? Beat it next week']]),
+        G('Score on the run', 'Pick your spot before you strike.', [['Solo and strike', '5 runs from 30 m, strike from 20 m'], ['Point from the hand', '10 each side from 15 m'], ['Pressure point', 'One strike to end the session. Make it count']]),
+        G('Free routine', 'Same routine every single time.', [['Routine', 'Lift, settle, pick a target'], ['Frees', '10 from 15 m, then 5 from 25 m'], ['Score', 'Write down how many went over']])
+      ],
+      win: [
+        G('Hook and block', 'Get your hurl in first, keep it safe.', [['Hook', 'Partner swings slowly, you hook from behind, 10 each side'], ['Block', 'Partner strikes slowly, hurl up to block, 10 each side'], ['Jockey', 'Stay low and side-on, 4 x 15 s']]),
+        G('Stay with your player', 'Eyes on the sliotar, body goal-side.', [['Mirror drill, hurl in hand', '4 x 20 s'], ['Back-pedal and turn', '4 x 10 m'], ['Flick the sliotar off the hurl', 'Partner solos, you flick, 10 reps']]),
+        G('Win it back', 'Go hard for 5 seconds after losing the ball.', [['Recover run', 'Sprint 10 m to get goal-side, 6 reps'], ['Ground ball battle', 'Lift a loose sliotar first, 10 reps with a partner'], ['Shoulder to shoulder', 'Walk-through, fair side-on contact, 10 each side']])
+      ]
+    }
+  };
+  // What a girl does for one of her groups on day d, or null.
+  function groupDrill(code, id, week) {
+    const list = DRILLS[code] && DRILLS[code][id];
+    return list ? list[((week % list.length) + list.length) % list.length] : null;
+  }
+
   const HABITS = [
     { id: 'touch', n: '100 touches', d: 'Sliotar taps, bounces and roll-lifts, both hands' },
     { id: 'water', n: 'Water bottle, 1.5 to 2 L', d: 'Bring it to school and refill' },
@@ -351,5 +416,5 @@ window.FEILE = (function () {
     'Fruit is the easiest snack there is. Grab one on the way out.'
   ];
 
-  return { TEAM_CODE, TEAM, WEEKENDS, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run, watch };
+  return { TEAM_CODE, TEAM, GROUPS, groupDrill, WEEKENDS, FEILE_START, FEILE_END, PLAN_START, VIEW_START, PHASES, HOLIDAYS, BENCHMARKS, CHRISTMAS, TOUCHES_12, HABITS, EATING, FOOD_TIPS, session, run, watch };
 })();
