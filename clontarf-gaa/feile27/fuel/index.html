@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fuel for Féile · Clontarf Girls 2012</title>
+<meta name="description" content="Food, drinks and sleep that give the Clontarf 2012 girls the energy to train, play and enjoy the road to Féile 2027.">
+<meta property="og:title" content="Fuel for Féile · Clontarf Girls 2012">
+<meta property="og:description" content="Energy for training, match days and the big Féile weekend.">
+<meta property="og:image" content="https://coachsmart.app/clontarf-gaa/images/girls2012-celebration.jpg">
+<meta property="og:type" content="website">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ED1B2E">
+<link rel="icon" href="../../images/clontarf-crest.png">
+<link rel="apple-touch-icon" href="../../images/clontarf-crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#ED1B2E;--red-dark:#C6101F;--red-tint:#FDECEE;
+  --navy:#1B3A6B;--navy-dark:#142c52;
+  --ink:#1B2333;--muted:#5B6478;--faint:#8A93A6;--line:#E3E7F0;--paper:#F5F6FB;--white:#fff;
+  --display:'Anton','Oswald',Impact,sans-serif;--head:'Oswald',-apple-system,"Segoe UI",Roboto,sans-serif;
+  --body:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--body);color:var(--ink);background:var(--white);line-height:1.5;-webkit-text-size-adjust:100%}
+a{color:var(--red-dark)}
+.in{max-width:1080px;margin:0 auto;padding:0 20px}
+svg.i{width:1em;height:1em;fill:currentColor;vertical-align:-.125em;flex:none}
+
+/* Top bar */
+.top{border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:20}
+.top .in{display:flex;align-items:center;gap:12px;height:58px}
+.top img{width:38px;height:38px}
+.top .club{font-family:var(--head);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:13px;color:var(--navy);line-height:1.15;text-decoration:none}
+.top .club small{display:block;color:var(--red);font-weight:500;letter-spacing:.14em;font-size:11px}
+.top nav{margin-left:auto;display:flex;gap:2px}
+.top nav a{font-family:var(--head);text-transform:uppercase;letter-spacing:.08em;font-size:12.5px;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:999px}
+.top nav a:hover{color:var(--red-dark);background:var(--red-tint)}
+@media (max-width:860px){.top nav{display:none}}
+
+/* Jump chips on phones */
+.jump{display:none;gap:8px;overflow-x:auto;padding:10px 20px;border-bottom:1px solid var(--line);background:#fff;scrollbar-width:none}
+.jump::-webkit-scrollbar{display:none}
+.jump a{flex:none;font-family:var(--head);font-size:13px;letter-spacing:.04em;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:5px 12px;display:inline-flex;gap:6px;align-items:center}
+.jump a svg{color:var(--red)}
+@media (max-width:860px){.jump{display:flex}}
+
+/* Hero */
+.hero{border-bottom:1px solid var(--line);overflow:hidden}
+.hero .in{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center;padding-top:44px;padding-bottom:48px}
+.kicker{font-family:var(--head);color:var(--red);text-transform:uppercase;letter-spacing:.18em;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px}
+.kicker::before{content:"";width:28px;height:3px;background:var(--red);border-radius:2px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(52px,9vw,104px);line-height:.9;margin:10px 0 14px;color:var(--navy);text-transform:uppercase}
+h1 em{font-style:normal;color:var(--red)}
+.lede{font-size:18px;color:var(--muted);max-width:30em;margin:0 0 22px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--head);font-size:14px;letter-spacing:.04em;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--navy)}
+.pill svg{color:var(--red)}
+.photo{position:relative;aspect-ratio:4/5;max-height:480px;justify-self:end;width:100%;max-width:380px}
+.photo img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;box-shadow:0 18px 40px rgba(27,35,51,.18)}
+.photo::before{content:"";position:absolute;inset:auto auto -14px -14px;width:46%;height:40%;border-radius:22px;background:var(--red);z-index:-1}
+.photo::after{content:"";position:absolute;top:-14px;right:-14px;width:30%;height:28%;border-radius:22px;border:3px solid var(--navy);z-index:-1}
+@media (max-width:860px){.hero .in{grid-template-columns:1fr;padding-top:26px;gap:26px}.photo{max-height:320px;aspect-ratio:16/11;justify-self:stretch;max-width:none}.photo::after{display:none}.photo img{object-position:50% 30%}}
+
+/* Bands */
+section.band{padding:52px 0;border-bottom:1px solid var(--line);scroll-margin-top:58px}
+section.band.alt{background:var(--paper)}
+.sh{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.sh .ic{width:46px;height:46px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:20px;flex:none}
+.sh h2{font-family:var(--display);font-weight:400;font-size:36px;line-height:1;margin:0;color:var(--navy);text-transform:uppercase}
+.sh p{margin:5px 0 0;color:var(--muted);font-size:15px}
+@media (max-width:600px){.sh h2{font-size:29px}section.band{padding:40px 0}}
+h3{font-family:var(--head);font-weight:600;font-size:19px;color:var(--navy);margin:28px 0 12px;letter-spacing:.01em}
+
+/* Cards and grids */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px}
+.card .ci{width:40px;height:40px;border-radius:12px;background:var(--red-tint);color:var(--red);display:grid;place-items:center;font-size:18px;margin-bottom:10px}
+.card h4{font-family:var(--head);font-weight:600;font-size:18px;margin:0 0 4px;color:var(--ink)}
+.card p{margin:0;color:var(--muted);font-size:14.5px}
+.card .ex{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:14px;color:var(--ink)}
+.card .ex b{font-family:var(--head);font-weight:500;color:var(--red-dark);text-transform:uppercase;letter-spacing:.08em;font-size:11.5px;display:block;margin-bottom:2px}
+.rule{display:flex;gap:14px;align-items:flex-start}
+.rule .n{font-family:var(--display);font-size:38px;line-height:1;color:var(--red);min-width:28px}
+.note{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:12px;padding:14px 16px;font-size:14.5px;color:var(--muted);margin-top:18px}
+.note svg{color:var(--navy);font-size:18px;margin-top:2px}
+.note b{color:var(--ink)}
+
+/* Plate */
+.plate{display:grid;grid-template-columns:260px 1fr;gap:28px;align-items:center}
+.plate svg.dial{width:100%;max-width:260px;height:auto;display:block;margin:0 auto}
+@media (max-width:760px){.plate{grid-template-columns:1fr}.plate svg.dial{max-width:220px}}
+
+/* Timeline */
+.tl{list-style:none;margin:0;padding:0;position:relative}
+.tl::before{content:"";position:absolute;left:21px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.tl li{position:relative;display:grid;grid-template-columns:44px 1fr;gap:14px;padding:0 0 16px}
+.tl .dot{width:44px;height:44px;border-radius:50%;background:#fff;border:2px solid var(--red);color:var(--red);display:grid;place-items:center;font-size:17px;z-index:1}
+.tl .body{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+.tl .when{font-family:var(--head);font-weight:600;color:var(--red-dark);text-transform:uppercase;letter-spacing:.08em;font-size:12.5px}
+.tl h4{font-family:var(--head);font-weight:600;font-size:17px;margin:2px 0 3px}
+.tl p{margin:0;color:var(--muted);font-size:14.5px}
+
+/* Gaps */
+.gaps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:700px){.gaps{grid-template-columns:1fr}}
+.gap{background:#fff;border:1px solid var(--line);border-top:4px solid var(--red);border-radius:14px;padding:16px}
+.gap .t{font-family:var(--display);font-size:28px;color:var(--navy);line-height:1;text-transform:uppercase}
+.gap .s{font-family:var(--head);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.gap p{margin:0;font-size:14.5px}
+
+/* Checklists */
+.checks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 18px}
+@media (max-width:600px){.checks{grid-template-columns:1fr}}
+.checks label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px}
+.checks input{appearance:none;-webkit-appearance:none;width:22px;height:22px;border:2px solid var(--faint);border-radius:6px;flex:none;margin:0;display:grid;place-items:center;background:#fff}
+.checks input:checked{background:var(--red);border-color:var(--red)}
+.checks input:checked::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.checks input:checked+span{color:var(--muted)}
+
+/* Split photo band */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+.split img{width:100%;border-radius:18px;display:block;aspect-ratio:4/3;object-fit:cover}
+@media (max-width:860px){.split{grid-template-columns:1fr}}
+.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;font-size:15px}
+.steps li::before{content:counter(s);width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-family:var(--head);font-weight:600}
+.steps b{font-family:var(--head);font-weight:600;color:var(--ink)}
+
+/* Sample days */
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{font-family:var(--head);font-size:14px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+.tabs button[aria-selected=true]{background:var(--red);border-color:var(--red);color:#fff}
+.day{display:none;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.day.on{display:block}
+.day .row{display:grid;grid-template-columns:170px 1fr;border-bottom:1px solid var(--line)}
+.day .row:last-child{border-bottom:0}
+.day .row div{padding:12px 16px;font-size:15px}
+.day .row div:first-child{font-family:var(--head);font-weight:500;color:var(--navy);background:var(--paper);text-transform:uppercase;letter-spacing:.06em;font-size:13px;display:flex;align-items:center}
+@media (max-width:520px){.day .row{grid-template-columns:118px 1fr}.day .row div{padding:10px 12px}}
+.snacks{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.snacks li{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14.5px}
+
+/* Parents */
+.adult{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
+.adult ul{margin:8px 0 0;padding-left:20px;color:var(--ink)}
+.adult li{margin:4px 0}
+.adult p{color:var(--muted);margin:10px 0 0;font-size:15px}
+
+/* Fridge sheet */
+.fridge-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.btn{font-family:var(--head);font-size:14px;letter-spacing:.08em;text-transform:uppercase;border:0;background:var(--red);color:#fff;border-radius:999px;padding:10px 18px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;text-decoration:none}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line)}
+.small{font-size:13px;color:var(--faint)}
+
+/* Footer */
+footer{padding:30px 0 50px;color:var(--muted);font-size:12.5px}
+footer .in{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+footer img{width:30px;height:30px}
+
+/* Print: fridge sheet only */
+@media print{
+  body *{visibility:hidden}
+  #fridge,#fridge *{visibility:visible}
+  #fridge{position:absolute;left:0;top:0;width:100%;background:#fff;border:0;padding:0}
+  #fridge .btn,#fridge .small{display:none}
+  .checks label{border-color:#ccc}
+  .checks input{border-color:#999}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-apple-whole" viewBox="0 0 448 512"><path d="M224 112c-8.8 0-16-7.2-16-16l0-16c0-44.2 35.8-80 80-80l16 0c8.8 0 16 7.2 16 16l0 16c0 44.2-35.8 80-80 80l-16 0zM0 288c0-76.3 35.7-160 112-160c27.3 0 59.7 10.3 82.7 19.3c18.8 7.3 39.9 7.3 58.7 0c22.9-8.9 55.4-19.3 82.7-19.3c76.3 0 112 83.7 112 160c0 128-80 224-160 224c-16.5 0-38.1-6.6-51.5-11.3c-8.1-2.8-16.9-2.8-25 0c-13.4 4.7-35 11.3-51.5 11.3C80 512 0 416 0 288z"/></symbol><symbol id="i-basket-shopping" viewBox="0 0 576 512"><path d="M253.3 35.1c6.1-11.8 1.5-26.3-10.2-32.4s-26.3-1.5-32.4 10.2L117.6 192 32 192c-17.7 0-32 14.3-32 32s14.3 32 32 32L83.9 463.5C91 492 116.6 512 146 512L430 512c29.4 0 55-20 62.1-48.5L544 256c17.7 0 32-14.3 32-32s-14.3-32-32-32l-85.6 0L365.3 12.9C359.2 1.2 344.7-3.4 332.9 2.7s-16.3 20.6-10.2 32.4L404.3 192l-232.6 0L253.3 35.1zM192 304l0 96c0 8.8-7.2 16-16 16s-16-7.2-16-16l0-96c0-8.8 7.2-16 16-16s16 7.2 16 16zm96-16c8.8 0 16 7.2 16 16l0 96c0 8.8-7.2 16-16 16s-16-7.2-16-16l0-96c0-8.8 7.2-16 16-16zm128 16l0 96c0 8.8-7.2 16-16 16s-16-7.2-16-16l0-96c0-8.8 7.2-16 16-16s16 7.2 16 16z"/></symbol><symbol id="i-bed" viewBox="0 0 640 512"><path d="M32 32c17.7 0 32 14.3 32 32l0 256 224 0 0-160c0-17.7 14.3-32 32-32l224 0c53 0 96 43 96 96l0 224c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-32-224 0-32 0L64 416l0 32c0 17.7-14.3 32-32 32s-32-14.3-32-32L0 64C0 46.3 14.3 32 32 32zm144 96a80 80 0 1 1 0 160 80 80 0 1 1 0-160z"/></symbol><symbol id="i-bolt" viewBox="0 0 448 512"><path d="M349.4 44.6c5.9-13.7 1.5-29.7-10.6-38.5s-28.6-8-39.9 1.8l-256 224c-10 8.8-13.6 22.9-8.9 35.3S50.7 288 64 288l111.5 0L98.6 467.4c-5.9 13.7-1.5 29.7 10.6 38.5s28.6 8 39.9-1.8l256-224c10-8.8 13.6-22.9 8.9-35.3s-16.6-20.7-30-20.7l-111.5 0L349.4 44.6z"/></symbol><symbol id="i-bottle-water" viewBox="0 0 320 512"><path d="M120 0l80 0c13.3 0 24 10.7 24 24l0 40L96 64l0-40c0-13.3 10.7-24 24-24zM32 167.5c0-19.5 10-37.6 26.6-47.9l15.8-9.9C88.7 100.7 105.2 96 122.1 96l75.8 0c16.9 0 33.4 4.7 47.7 13.7l15.8 9.9C278 129.9 288 148 288 167.5c0 17-7.5 32.3-19.4 42.6C280.6 221.7 288 238 288 256c0 19.1-8.4 36.3-21.7 48c13.3 11.7 21.7 28.9 21.7 48s-8.4 36.3-21.7 48c13.3 11.7 21.7 28.9 21.7 48c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64c0-19.1 8.4-36.3 21.7-48C40.4 388.3 32 371.1 32 352s8.4-36.3 21.7-48C40.4 292.3 32 275.1 32 256c0-18 7.4-34.3 19.4-45.9C39.5 199.7 32 184.5 32 167.5zM96 240c0 8.8 7.2 16 16 16l96 0c8.8 0 16-7.2 16-16s-7.2-16-16-16l-96 0c-8.8 0-16 7.2-16 16zm16 112c-8.8 0-16 7.2-16 16s7.2 16 16 16l96 0c8.8 0 16-7.2 16-16s-7.2-16-16-16l-96 0z"/></symbol><symbol id="i-bowl-food" viewBox="0 0 512 512"><path d="M0 192c0-35.3 28.7-64 64-64c.5 0 1.1 0 1.6 0C73 91.5 105.3 64 144 64c15 0 29 4.1 40.9 11.2C198.2 49.6 225.1 32 256 32s57.8 17.6 71.1 43.2C339 68.1 353 64 368 64c38.7 0 71 27.5 78.4 64c.5 0 1.1 0 1.6 0c35.3 0 64 28.7 64 64c0 11.7-3.1 22.6-8.6 32L8.6 224C3.1 214.6 0 203.7 0 192zm0 91.4C0 268.3 12.3 256 27.4 256l457.1 0c15.1 0 27.4 12.3 27.4 27.4c0 70.5-44.4 130.7-106.7 154.1L403.5 452c-2 16-15.6 28-31.8 28l-231.5 0c-16.1 0-29.8-12-31.8-28l-1.8-14.4C44.4 414.1 0 353.9 0 283.4z"/></symbol><symbol id="i-circle-check" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"/></symbol><symbol id="i-clock" viewBox="0 0 512 512"><path d="M256 0a256 256 0 1 1 0 512A256 256 0 1 1 256 0zM232 120l0 136c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2 280 120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"/></symbol><symbol id="i-droplet" viewBox="0 0 384 512"><path d="M192 512C86 512 0 426 0 320C0 228.8 130.2 57.7 166.6 11.7C172.6 4.2 181.5 0 191.1 0l1.8 0c9.6 0 18.5 4.2 24.5 11.7C253.8 57.7 384 228.8 384 320c0 106-86 192-192 192zM96 336c0-8.8-7.2-16-16-16s-16 7.2-16 16c0 61.9 50.1 112 112 112c8.8 0 16-7.2 16-16s-7.2-16-16-16c-44.2 0-80-35.8-80-80z"/></symbol><symbol id="i-gift" viewBox="0 0 512 512"><path d="M190.5 68.8L225.3 128l-1.3 0-72 0c-22.1 0-40-17.9-40-40s17.9-40 40-40l2.2 0c14.9 0 28.8 7.9 36.3 20.8zM64 88c0 14.4 3.5 28 9.6 40L32 128c-17.7 0-32 14.3-32 32l0 64c0 17.7 14.3 32 32 32l448 0c17.7 0 32-14.3 32-32l0-64c0-17.7-14.3-32-32-32l-41.6 0c6.1-12 9.6-25.6 9.6-40c0-48.6-39.4-88-88-88l-2.2 0c-31.9 0-61.5 16.9-77.7 44.4L256 85.5l-24.1-41C215.7 16.9 186.1 0 154.2 0L152 0C103.4 0 64 39.4 64 88zm336 0c0 22.1-17.9 40-40 40l-72 0-1.3 0 34.8-59.2C329.1 55.9 342.9 48 357.8 48l2.2 0c22.1 0 40 17.9 40 40zM32 288l0 176c0 26.5 21.5 48 48 48l144 0 0-224L32 288zM288 512l144 0c26.5 0 48-21.5 48-48l0-176-192 0 0 224z"/></symbol><symbol id="i-glass-water" viewBox="0 0 384 512"><path d="M32 0C23.1 0 14.6 3.7 8.6 10.2S-.6 25.4 .1 34.3L28.9 437.7c3 41.9 37.8 74.3 79.8 74.3l166.6 0c42 0 76.8-32.4 79.8-74.3L383.9 34.3c.6-8.9-2.4-17.6-8.5-24.1S360.9 0 352 0L32 0zM73 156.5L66.4 64l251.3 0L311 156.5l-24.2 12.1c-19.4 9.7-42.2 9.7-61.6 0c-20.9-10.4-45.5-10.4-66.4 0c-19.4 9.7-42.2 9.7-61.6 0L73 156.5z"/></symbol><symbol id="i-hand-holding-heart" viewBox="0 0 576 512"><path d="M163.9 136.9c-29.4-29.8-29.4-78.2 0-108s77-29.8 106.4 0l17.7 18 17.7-18c29.4-29.8 77-29.8 106.4 0s29.4 78.2 0 108L310.5 240.1c-6.2 6.3-14.3 9.4-22.5 9.4s-16.3-3.1-22.5-9.4L163.9 136.9zM568.2 336.3c13.1 17.8 9.3 42.8-8.5 55.9L433.1 485.5c-23.4 17.2-51.6 26.5-80.7 26.5L192 512 32 512c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l36.8 0 44.9-36c22.7-18.2 50.9-28 80-28l78.3 0 16 0 64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0-16 0c-8.8 0-16 7.2-16 16s7.2 16 16 16l120.6 0 119.7-88.2c17.8-13.1 42.8-9.3 55.9 8.5zM193.6 384c0 0 0 0 0 0l-.9 0c.3 0 .6 0 .9 0z"/></symbol><symbol id="i-heart" viewBox="0 0 512 512"><path d="M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141C347 36.5 300.6 51.4 268 84L256 96 244 84c-32.6-32.6-79-47.5-124.6-39.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z"/></symbol><symbol id="i-house" viewBox="0 0 576 512"><path d="M575.8 255.5c0 18-15 32.1-32 32.1l-32 0 .7 160.2c0 2.7-.2 5.4-.5 8.1l0 16.2c0 22.1-17.9 40-40 40l-16 0c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1L416 512l-24 0c-22.1 0-40-17.9-40-40l0-24 0-64c0-17.7-14.3-32-32-32l-64 0c-17.7 0-32 14.3-32 32l0 64 0 24c0 22.1-17.9 40-40 40l-24 0-31.9 0c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2l-16 0c-22.1 0-40-17.9-40-40l0-112c0-.9 0-1.9 .1-2.8l0-69.7-32 0c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/></symbol><symbol id="i-list-check" viewBox="0 0 512 512"><path d="M152.1 38.2c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 113C-2.3 103.6-2.3 88.4 7 79s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zm0 160c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 273c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zM224 96c0-17.7 14.3-32 32-32l224 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-224 0c-17.7 0-32-14.3-32-32zm0 160c0-17.7 14.3-32 32-32l224 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-224 0c-17.7 0-32-14.3-32-32zM160 416c0-17.7 14.3-32 32-32l288 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-288 0c-17.7 0-32-14.3-32-32zM48 368a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"/></symbol><symbol id="i-moon" viewBox="0 0 384 512"><path d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6c-96.9 0-175.5-78.8-175.5-176c0-65.8 36-123.1 89.3-153.3c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z"/></symbol><symbol id="i-mug-hot" viewBox="0 0 512 512"><path d="M88 0C74.7 0 64 10.7 64 24c0 38.9 23.4 59.4 39.1 73.1l1.1 1C120.5 112.3 128 119.9 128 136c0 13.3 10.7 24 24 24s24-10.7 24-24c0-38.9-23.4-59.4-39.1-73.1l-1.1-1C119.5 47.7 112 40.1 112 24c0-13.3-10.7-24-24-24zM32 192c-17.7 0-32 14.3-32 32L0 416c0 53 43 96 96 96l192 0c53 0 96-43 96-96l16 0c61.9 0 112-50.1 112-112s-50.1-112-112-112l-48 0L32 192zm352 64l16 0c26.5 0 48 21.5 48 48s-21.5 48-48 48l-16 0 0-96zM224 24c0-13.3-10.7-24-24-24s-24 10.7-24 24c0 38.9 23.4 59.4 39.1 73.1l1.1 1C232.5 112.3 240 119.9 240 136c0 13.3 10.7 24 24 24s24-10.7 24-24c0-38.9-23.4-59.4-39.1-73.1l-1.1-1C231.5 47.7 224 40.1 224 24z"/></symbol><symbol id="i-person-running" viewBox="0 0 448 512"><path d="M320 48a48 48 0 1 0 -96 0 48 48 0 1 0 96 0zM125.7 175.5c9.9-9.9 23.4-15.5 37.5-15.5c1.9 0 3.8 .1 5.6 .3L137.6 254c-9.3 28 1.7 58.8 26.8 74.5l86.2 53.9-25.4 88.8c-4.9 17 5 34.7 22 39.6s34.7-5 39.6-22l28.7-100.4c5.9-20.6-2.6-42.6-20.7-53.9L238 299l30.9-82.4 5.1 12.3C289 264.7 323.9 288 362.7 288l21.3 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-21.3 0c-12.9 0-24.6-7.8-29.5-19.7l-6.3-15c-14.6-35.1-44.1-61.9-80.5-73.1l-48.7-15c-11.1-3.4-22.7-5.2-34.4-5.2c-31 0-60.8 12.3-82.7 34.3L57.4 153.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l23.1-23.1zM91.2 352L32 352c-17.7 0-32 14.3-32 32s14.3 32 32 32l69.6 0c19 0 36.2-11.2 43.9-28.5L157 361.6l-9.5-6c-17.5-10.9-30.5-26.8-37.9-44.9L91.2 352z"/></symbol><symbol id="i-print" viewBox="0 0 512 512"><path d="M128 0C92.7 0 64 28.7 64 64l0 96 64 0 0-96 226.7 0L384 93.3l0 66.7 64 0 0-66.7c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0L128 0zM384 352l0 32 0 64-256 0 0-64 0-16 0-16 256 0zm64 32l32 0c17.7 0 32-14.3 32-32l0-96c0-35.3-28.7-64-64-64L64 192c-35.3 0-64 28.7-64 64l0 96c0 17.7 14.3 32 32 32l32 0 0 64c0 35.3 28.7 64 64 64l256 0c35.3 0 64-28.7 64-64l0-64zM432 248a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"/></symbol><symbol id="i-shield-heart" viewBox="0 0 512 512"><path d="M269.4 2.9C265.2 1 260.7 0 256 0s-9.2 1-13.4 2.9L54.3 82.8c-22 9.3-38.4 31-38.3 57.2c.5 99.2 41.3 280.7 213.6 363.2c16.7 8 36.1 8 52.8 0C454.7 420.7 495.5 239.2 496 140c.1-26.2-16.3-47.9-38.3-57.2L269.4 2.9zM144 221.3c0-33.8 27.4-61.3 61.3-61.3c16.2 0 31.8 6.5 43.3 17.9l7.4 7.4 7.4-7.4c11.5-11.5 27.1-17.9 43.3-17.9c33.8 0 61.3 27.4 61.3 61.3c0 16.2-6.5 31.8-17.9 43.3l-82.7 82.7c-6.2 6.2-16.4 6.2-22.6 0l-82.7-82.7c-11.5-11.5-17.9-27.1-17.9-43.3z"/></symbol><symbol id="i-snowflake" viewBox="0 0 448 512"><path d="M224 0c17.7 0 32 14.3 32 32l0 30.1 15-15c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-49 49 0 70.3 61.4-35.8 17.7-66.1c3.4-12.8 16.6-20.4 29.4-17s20.4 16.6 17 29.4l-5.2 19.3 23.6-13.8c15.3-8.9 34.9-3.7 43.8 11.5s3.8 34.9-11.5 43.8l-25.3 14.8 21.7 5.8c12.8 3.4 20.4 16.6 17 29.4s-16.6 20.4-29.4 17l-67.7-18.1L287.5 256l60.9 35.5 67.7-18.1c12.8-3.4 26 4.2 29.4 17s-4.2 26-17 29.4l-21.7 5.8 25.3 14.8c15.3 8.9 20.4 28.5 11.5 43.8s-28.5 20.4-43.8 11.5l-23.6-13.8 5.2 19.3c3.4 12.8-4.2 26-17 29.4s-26-4.2-29.4-17l-17.7-66.1L256 311.7l0 70.3 49 49c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-15-15 0 30.1c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-30.1-15 15c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l49-49 0-70.3-61.4 35.8-17.7 66.1c-3.4 12.8-16.6 20.4-29.4 17s-20.4-16.6-17-29.4l5.2-19.3L48.1 395.6c-15.3 8.9-34.9 3.7-43.8-11.5s-3.7-34.9 11.5-43.8l25.3-14.8-21.7-5.8c-12.8-3.4-20.4-16.6-17-29.4s16.6-20.4 29.4-17l67.7 18.1L160.5 256 99.6 220.5 31.9 238.6c-12.8 3.4-26-4.2-29.4-17s4.2-26 17-29.4l21.7-5.8L15.9 171.6C.6 162.7-4.5 143.1 4.4 127.9s28.5-20.4 43.8-11.5l23.6 13.8-5.2-19.3c-3.4-12.8 4.2-26 17-29.4s26 4.2 29.4 17l17.7 66.1L192 200.3l0-70.3L143 81c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l15 15L192 32c0-17.7 14.3-32 32-32z"/></symbol><symbol id="i-star" viewBox="0 0 576 512"><path d="M316.9 18C311.6 7 300.4 0 288.1 0s-23.4 7-28.8 18L195 150.3 51.4 171.5c-12 1.8-22 10.2-25.7 21.7s-.7 24.2 7.9 32.7L137.8 329 113.2 474.7c-2 12 3 24.2 12.9 31.3s23 8 33.8 2.3l128.3-68.5 128.3 68.5c10.8 5.7 23.9 4.9 33.8-2.3s14.9-19.3 12.9-31.3L438.5 329 542.7 225.9c8.6-8.5 11.7-21.2 7.9-32.7s-13.7-19.9-25.7-21.7L381.2 150.3 316.9 18z"/></symbol><symbol id="i-sun" viewBox="0 0 512 512"><path d="M361.5 1.2c5 2.1 8.6 6.6 9.6 11.9L391 121l107.9 19.8c5.3 1 9.8 4.6 11.9 9.6s1.5 10.7-1.6 15.2L446.9 256l62.3 90.3c3.1 4.5 3.7 10.2 1.6 15.2s-6.6 8.6-11.9 9.6L391 391 371.1 498.9c-1 5.3-4.6 9.8-9.6 11.9s-10.7 1.5-15.2-1.6L256 446.9l-90.3 62.3c-4.5 3.1-10.2 3.7-15.2 1.6s-8.6-6.6-9.6-11.9L121 391 13.1 371.1c-5.3-1-9.8-4.6-11.9-9.6s-1.5-10.7 1.6-15.2L65.1 256 2.8 165.7c-3.1-4.5-3.7-10.2-1.6-15.2s6.6-8.6 11.9-9.6L121 121 140.9 13.1c1-5.3 4.6-9.8 9.6-11.9s10.7-1.5 15.2 1.6L256 65.1 346.3 2.8c4.5-3.1 10.2-3.7 15.2-1.6zM160 256a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zm224 0a128 128 0 1 0 -256 0 128 128 0 1 0 256 0z"/></symbol><symbol id="i-trophy" viewBox="0 0 576 512"><path d="M400 0L176 0c-26.5 0-48.1 21.8-47.1 48.2c.2 5.3 .4 10.6 .7 15.8L24 64C10.7 64 0 74.7 0 88c0 92.6 33.5 157 78.5 200.7c44.3 43.1 98.3 64.8 138.1 75.8c23.4 6.5 39.4 26 39.4 45.6c0 20.9-17 37.9-37.9 37.9L192 448c-17.7 0-32 14.3-32 32s14.3 32 32 32l192 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-26.1 0C337 448 320 431 320 410.1c0-19.6 15.9-39.2 39.4-45.6c39.9-11 93.9-32.7 138.2-75.8C542.5 245 576 180.6 576 88c0-13.3-10.7-24-24-24L446.4 64c.3-5.2 .5-10.4 .7-15.8C448.1 21.8 426.5 0 400 0zM48.9 112l84.4 0c9.1 90.1 29.2 150.3 51.9 190.6c-24.9-11-50.8-26.5-73.2-48.3c-32-31.1-58-76-63-142.3zM464.1 254.3c-22.4 21.8-48.3 37.3-73.2 48.3c22.7-40.3 42.8-100.5 51.9-190.6l84.4 0c-5.1 66.3-31.1 111.2-63 142.3z"/></symbol><symbol id="i-utensils" viewBox="0 0 448 512"><path d="M416 0C400 0 288 32 288 176l0 112c0 35.3 28.7 64 64 64l32 0 0 128c0 17.7 14.3 32 32 32s32-14.3 32-32l0-128 0-112 0-208c0-17.7-14.3-32-32-32zM64 16C64 7.8 57.9 1 49.7 .1S34.2 4.6 32.4 12.5L2.1 148.8C.7 155.1 0 161.5 0 167.9c0 45.9 35.1 83.6 80 87.7L80 480c0 17.7 14.3 32 32 32s32-14.3 32-32l0-224.4c44.9-4.1 80-41.8 80-87.7c0-6.4-.7-12.8-2.1-19.1L191.6 12.5c-1.8-8-9.3-13.3-17.4-12.4S160 7.8 160 16l0 134.2c0 5.4-4.4 9.8-9.8 9.8c-5.1 0-9.3-3.9-9.8-9L127.9 14.6C127.2 6.3 120.3 0 112 0s-15.2 6.3-15.9 14.6L83.7 151c-.5 5.1-4.7 9-9.8 9c-5.4 0-9.8-4.4-9.8-9.8L64 16zm48.3 152l-.3 0-.3 0 .3-.7 .3 .7z"/></symbol></svg>
+<header class="top">
+  <div class="in">
+    <img src="../../images/clontarf-crest.png" alt="Clontarf GAA crest">
+    <a class="club" href="../">Clontarf GAA<small>Girls 2012 · Road to Féile</small></a>
+    <nav aria-label="Sections">
+      <a href="#rules">Fuel rules</a><a href="#plate">Your plate</a><a href="#drink">Drinks</a><a href="#training">Training days</a><a href="#match">Match days</a><a href="#christmas">Christmas</a><a href="#ideas">Food ideas</a><a href="#fridge">Fridge sheet</a>
+    </nav>
+  </div>
+</header>
+<div class="jump" aria-label="Jump to">
+  <a href="#rules"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg> Rules</a><a href="#plate"><svg class="i" aria-hidden="true"><use href="#i-utensils"/></svg> Plate</a><a href="#drink"><svg class="i" aria-hidden="true"><use href="#i-droplet"/></svg> Drinks</a><a href="#training"><svg class="i" aria-hidden="true"><use href="#i-person-running"/></svg> Training</a><a href="#match"><svg class="i" aria-hidden="true"><use href="#i-trophy"/></svg> Match day</a><a href="#christmas"><svg class="i" aria-hidden="true"><use href="#i-snowflake"/></svg> Christmas</a><a href="#ideas"><svg class="i" aria-hidden="true"><use href="#i-basket-shopping"/></svg> Ideas</a><a href="#fridge"><svg class="i" aria-hidden="true"><use href="#i-list-check"/></svg> Fridge sheet</a>
+</div>
+
+<section class="hero">
+  <div class="in">
+    <div>
+      <div class="kicker">Clontarf Girls 2012 · Féile 2027</div>
+      <h1>Fuel for <em>Féile</em></h1>
+      <p class="lede">Good food, plenty to drink and a proper night's sleep give you the energy to train hard, play your best and enjoy every minute of the road to Féile. This is your guide from now until the big weekend in April.</p>
+      <div class="pills">
+        <span class="pill"><svg class="i" aria-hidden="true"><use href="#i-bolt"/></svg> Energy to play</span>
+        <span class="pill"><svg class="i" aria-hidden="true"><use href="#i-heart"/></svg> Feel strong</span>
+        <span class="pill"><svg class="i" aria-hidden="true"><use href="#i-bed"/></svg> Bounce back fast</span>
+      </div>
+    </div>
+    <div class="photo"><img src="../../images/girls2012-celebration.jpg" alt="Clontarf 2012 girls celebrating together"></div>
+  </div>
+</section>
+
+<section class="band" id="rules">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg></div><div><h2>Our five fuel rules</h2><p>The simple stuff that makes the biggest difference.</p></div></div>
+    <div class="grid g2">
+      <div class="card rule"><span class="n">1</span><div><h4>Food is fuel</h4><p>Food gives you the energy to run, jump, strike and tackle. You play two codes, so you need plenty of it, every day.</p></div></div>
+      <div class="card rule"><span class="n">2</span><div><h4>Every food has its place</h4><p>Some foods are great for training and recovery. Treats are a normal, fun part of life too, especially at Christmas and after a big win.</p></div></div>
+      <div class="card rule"><span class="n">3</span><div><h4>Little and often</h4><p>Three meals and two or three snacks a day, every day. That rhythm is the single biggest win.</p></div></div>
+      <div class="card rule"><span class="n">4</span><div><h4>Listen to your own hunger</h4><p>Everyone grows and trains differently, so everyone's needs are different. Eat for your own energy, and if you're hungry, eat.</p></div></div>
+      <div class="card rule"><span class="n">5</span><div><h4>Team effort at home</h4><p>Ask at home to help with the shopping list or cook a dinner from this page. Families who eat together fuel together.</p></div></div>
+      <div class="card rule"><span class="n"><svg class="i" aria-hidden="true"><use href="#i-bed"/></svg></span><div><h4>Bonus: sleep is fuel too</h4><p>You get stronger while you sleep. Aim for about 9 hours, and leave the phone outside the bedroom.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt" id="plate">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-utensils"/></svg></div><div><h2>Build your plate</h2><p>Four parts, every main meal. Bigger training day? Add a bit extra.</p></div></div>
+    <div class="plate">
+      <svg class="dial" viewBox="0 0 200 200" role="img" aria-label="A plate in four parts: energy, repair, colour and strong bones">
+        <circle cx="100" cy="100" r="96" fill="#fff" stroke="#E3E7F0" stroke-width="2"/>
+        <path d="M100 100 L100 14 A86 86 0 0 1 186 100 Z" fill="#ED1B2E"/>
+        <path d="M100 100 L186 100 A86 86 0 0 1 100 186 Z" fill="#1B3A6B"/>
+        <path d="M100 100 L100 186 A86 86 0 0 1 14 100 Z" fill="#5B9B3A"/>
+        <path d="M100 100 L14 100 A86 86 0 0 1 100 14 Z" fill="#8FB0DE"/>
+        <circle cx="100" cy="100" r="30" fill="#fff"/>
+        <g font-family="Oswald,sans-serif" font-weight="600" font-size="11" fill="#fff" text-anchor="middle" letter-spacing=".5">
+          <text x="140" y="64">ENERGY</text><text x="140" y="146">REPAIR</text><text x="60" y="146">COLOUR</text><text x="60" y="64" fill="#1B2333">BONES</text>
+        </g>
+        <text x="100" y="105" text-anchor="middle" font-family="Anton,sans-serif" font-size="15" fill="#1B3A6B">FUEL</text>
+      </svg>
+      <div class="grid g2">
+        <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-bolt"/></svg></div><h4>Energy</h4><p>Carbohydrate is your main fuel for running, sprinting and skills.</p><div class="ex"><b>Try</b>Porridge, bread, wraps, pasta, rice, potatoes, cereal</div></div>
+        <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-shield-heart"/></svg></div><h4>Repair</h4><p>Protein helps your muscles recover and get stronger after training.</p><div class="ex"><b>Try</b>Chicken, fish, eggs, mince, beans, lentils, yoghurt, tofu</div></div>
+        <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-apple-whole"/></svg></div><h4>Colour</h4><p>Fruit and veg give you vitamins and help you stay well all winter.</p><div class="ex"><b>Try</b>Fresh, frozen or tinned all count. Aim for 5 or more a day.</div></div>
+        <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-glass-water"/></svg></div><h4>Strong bones</h4><p>Calcium builds strong bones, and your teenage years are when it matters most.</p><div class="ex"><b>Try</b>Milk, yoghurt, cheese, fortified plant milks</div></div>
+      </div>
+    </div>
+
+    <h3>Three super-helpers for girls who play sport</h3>
+    <div class="grid g3">
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-bolt"/></svg></div><h4>Iron, for energy</h4><p>Iron carries oxygen to your muscles so you can keep going. Find it in red meat a couple of times a week, chicken, eggs, beans, lentils, fortified cereals and green veg. A glass of orange juice or some peppers with the meal helps you soak it up.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-glass-water"/></svg></div><h4>Calcium, for strong bones</h4><p>Have 3 to 4 a day. A glass of milk, a yoghurt pot, or a matchbox-sized piece of cheese each count as one.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-sun"/></svg></div><h4>Vitamin D, the winter sunshine</h4><p>The Irish sun is too weak from October to March. Ask at home about a daily vitamin D supplement for the winter. It's standard advice for everyone in Ireland.</p></div>
+    </div>
+    <div class="note"><svg class="i" aria-hidden="true"><use href="#i-hand-holding-heart"/></svg><div>This is general guidance, not medical advice. If you have an allergy, a medical condition or any questions about food, chat with a parent, your GP or a registered dietitian.</div></div>
+  </div>
+</section>
+
+<section class="band" id="drink">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-droplet"/></svg></div><div><h2>Drink up</h2><p>Water helps your first touch, your decisions and your speed.</p></div></div>
+    <div class="grid g3">
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-bottle-water"/></svg></div><h4>Your own bottle</h4><p>Bring your own named bottle (about 750 ml) to every session and match, and keep it with you at school.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg></div><h4>Through the day</h4><p>Sip regularly, about 6 to 8 cups on normal days and more on training days. Milk counts too.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-person-running"/></svg></div><h4>Before and during</h4><p>A glass of water in the 2 hours before training, then a few mouthfuls at every water break.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-circle-check"/></svg></div><h4>After</h4><p>Keep sipping until your pee is pale yellow again. It's the simplest check there is.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-snowflake"/></svg></div><h4>Winter still counts</h4><p>Cold weather hides thirst. You still need to drink in December and January, even when you don't feel like it.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-mug-hot"/></svg></div><h4>Long days</h4><p>Water is all you need for a normal session. For long tournament days, diluted squash with a pinch of salt does the same job as a sports drink.</p></div>
+    </div>
+    <div class="note"><svg class="i" aria-hidden="true"><use href="#i-bolt"/></svg><div><b>Energy drinks are a no for under-16s.</b> They're full of caffeine, they upset your sleep, and the real energy comes from food and rest. Fizzy drinks are best kept for a treat at home.</div></div>
+  </div>
+</section>
+
+<section class="band alt" id="training">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-person-running"/></svg></div><div><h2>Training days</h2><p>Most of our sessions are in the evening, so this assumes a 6 or 7pm start.</p></div></div>
+    <ol class="tl">
+      <li><span class="dot"><svg class="i" aria-hidden="true"><use href="#i-utensils"/></svg></span><div class="body"><div class="when">School lunch · 12 to 1pm</div><h4>Top up the tank</h4><p>A sandwich or wrap with chicken, tuna, egg or cheese, plus fruit and a yoghurt.</p></div></li>
+      <li><span class="dot"><svg class="i" aria-hidden="true"><use href="#i-bowl-food"/></svg></span><div class="body"><div class="when">After school · 3:30 to 4:30pm</div><h4>Your main pre-training fuel</h4><p>Beans or scrambled egg on toast, a bowl of cereal with milk, leftover pasta, or a bagel with peanut butter and banana.</p></div></li>
+      <li><span class="dot"><svg class="i" aria-hidden="true"><use href="#i-apple-whole"/></svg></span><div class="body"><div class="when">30 to 60 minutes before</div><h4>Small top-up, if you're hungry</h4><p>A banana, a handful of raisins, a cereal bar, or rice cakes with jam.</p></div></li>
+      <li><span class="dot"><svg class="i" aria-hidden="true"><use href="#i-droplet"/></svg></span><div class="body"><div class="when">During</div><h4>Water</h4><p>Nothing else needed for a normal 60 to 90 minute session.</p></div></li>
+      <li><span class="dot"><svg class="i" aria-hidden="true"><use href="#i-glass-water"/></svg></span><div class="body"><div class="when">Within an hour after</div><h4>Start your recovery</h4><p>A glass of milk (chocolate milk is perfect), a yoghurt and a banana, or a cheese sandwich.</p></div></li>
+      <li><span class="dot"><svg class="i" aria-hidden="true"><use href="#i-house"/></svg></span><div class="body"><div class="when">Dinner</div><h4>Your recovery meal</h4><p>A normal family dinner with plenty of potatoes, rice or pasta, plus meat, fish, eggs or beans, and veg. Late dinner after a 7pm session? Still have it. That's when your best recovery happens.</p></div></li>
+    </ol>
+    <div class="grid g2" style="margin-top:6px">
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-sun"/></svg></div><h4>Morning sessions</h4><p>Weekends and holidays: a light breakfast such as toast with honey or a small bowl of cereal 60 to 90 minutes before, then a proper breakfast afterwards.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-house"/></svg></div><h4>Home sessions count too</h4><p>Have a snack beforehand and a milk or yoghurt after, just like a team session.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="match">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-trophy"/></svg></div><div><h2>Match days and Féile weekend</h2><p>Familiar food, steady drinking, and nothing new on the day.</p></div></div>
+    <div class="split">
+      <div>
+        <h3 style="margin-top:0">A single match</h3>
+        <ol class="steps">
+          <li><div><b>The night before:</b> a normal dinner with a good helping of pasta, rice or potatoes. Fill your bottle.</div></li>
+          <li><div><b>3 to 4 hours before:</b> a meal you're used to, like porridge with banana, eggs on toast, or chicken and rice.</div></li>
+          <li><div><b>1 hour before:</b> a small top-up if you're hungry (banana, crackers, a cereal bar) and a glass of water.</div></li>
+          <li><div><b>Half time:</b> water, and orange segments if they're there.</div></li>
+          <li><div><b>Within an hour after:</b> milk or chocolate milk, a sandwich or a yoghurt, then a proper meal.</div></li>
+        </ol>
+      </div>
+      <img src="../../images/girls2012-camogie-huddle.jpg" alt="Clontarf 2012 camogie team in a huddle">
+    </div>
+
+    <h3>Féile days: football and camogie, several games</h3>
+    <p style="margin:-4px 0 14px;color:var(--muted)">Féile can mean two or three games in a day with waits in between. The aim is to stay topped up and feel light and ready.</p>
+    <div class="gaps">
+      <div class="gap"><div class="s">Gap between games</div><div class="t">Under 1 hour</div><p>Drinks plus something small and quick: half a banana, a few jellies, dried apricots or a small cereal bar.</p></div>
+      <div class="gap"><div class="s">Gap between games</div><div class="t">1 to 2 hours</div><p>A small snack: a scone or bagel with jam, a ham or cheese sandwich, a yoghurt drink, a banana.</p></div>
+      <div class="gap"><div class="s">Gap between games</div><div class="t">Over 2 hours</div><p>A light meal: a wrap or sandwich, pasta salad or a rice pot, plus fruit.</p></div>
+    </div>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-heart"/></svg></div><h4>Butterflies?</h4><p>Nerves are normal. If food is hard to face, drinks like milk, smoothies or yoghurt drinks are easier and still give you fuel.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg></div><h4>Celebrate after</h4><p>Save the chipper, spicy food and big treats for after the last game of the day. Then enjoy them with the team.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg></div><h4>Overnight between days</h4><p>A big pasta or rice dinner, plenty to drink, and an early night means you're ready to go again on day two.</p></div>
+    </div>
+
+    <h3>Kit bag food list</h3>
+    <ul class="checks" data-key="kitbag">
+      <li><label><input type="checkbox"><span>1 to 2 full water bottles</span></label></li>
+      <li><label><input type="checkbox"><span>Bananas or other easy fruit</span></label></li>
+      <li><label><input type="checkbox"><span>2 sandwiches, wraps or bagels</span></label></li>
+      <li><label><input type="checkbox"><span>Cereal bars or rice cakes</span></label></li>
+      <li><label><input type="checkbox"><span>Raisins or a small bag of jellies</span></label></li>
+      <li><label><input type="checkbox"><span>Yoghurt drink or milk carton (in a cool bag)</span></label></li>
+      <li><label><input type="checkbox"><span>Diluted squash for long tournament days</span></label></li>
+    </ul>
+  </div>
+</section>
+
+<section class="band alt" id="christmas">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-snowflake"/></svg></div><div><h2>Christmas and the winter break</h2><p>Enjoy every bit of it, and come back in January full of energy.</p></div></div>
+    <p style="margin:0 0 18px;font-size:16px;max-width:46em">Selection boxes, Christmas dinner and parties are all part of the fun. Over the break, just keep your meals coming and keep moving, so you're ready to fly when team training restarts.</p>
+    <div class="grid g3">
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-sun"/></svg></div><h4>Keep breakfast</h4><p>Late nights and lie-ins make it easy to miss. A late breakfast is still breakfast.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-gift"/></svg></div><h4>Meals first, then treats</h4><p>Enjoy treats alongside or after your proper meals, and you'll keep your energy up all holiday.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-utensils"/></svg></div><h4>Love the leftovers</h4><p>Turkey and ham sandwiches, turkey curry with rice and leftover spuds are brilliant fuel after a home session or a Christmas walk.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-droplet"/></svg></div><h4>Keep the bottle filled</h4><p>Central heating dries you out, so keep sipping water through the holidays.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-person-running"/></svg></div><h4>Keep moving</h4><p>The home programme keeps your legs ready while pitches are closed. A snack before, and milk or yoghurt after.</p></div>
+      <div class="card"><div class="ci"><svg class="i" aria-hidden="true"><use href="#i-heart"/></svg></div><h4>Family walks and runs</h4><p>A Stephen's Day or New Year's Day walk or run is a great tradition to start.</p></div>
+    </div>
+    <div class="note"><svg class="i" aria-hidden="true"><use href="#i-bolt"/></svg><div><b>January means more training, so more fuel.</b> Your normal meals and snacks are exactly what you need to come back strong.</div></div>
+  </div>
+</section>
+
+<section class="band" id="ideas">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-basket-shopping"/></svg></div><div><h2>Food ideas</h2><p>Ordinary family food at the right times. Swap in whatever you like at home.</p></div></div>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-day="train"><svg class="i" aria-hidden="true"><use href="#i-person-running"/></svg> Training day</button>
+      <button role="tab" aria-selected="false" data-day="match"><svg class="i" aria-hidden="true"><use href="#i-trophy"/></svg> Match day</button>
+      <button role="tab" aria-selected="false" data-day="rest"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg> Rest day</button>
+    </div>
+    <div class="day on" id="day-train" role="tabpanel">
+      <div class="row"><div>Breakfast</div><div>Porridge with milk, banana and honey</div></div>
+      <div class="row"><div>Mid-morning</div><div>Yoghurt and an apple</div></div>
+      <div class="row"><div>Lunch</div><div>Chicken or tuna wrap, fruit, water</div></div>
+      <div class="row"><div>After school</div><div>Beans on toast or a bowl of cereal</div></div>
+      <div class="row"><div>Straight after</div><div>Chocolate milk</div></div>
+      <div class="row"><div>Dinner</div><div>Spaghetti bolognese with salad</div></div>
+      <div class="row"><div>Evening</div><div>Glass of milk if you're hungry</div></div>
+    </div>
+    <div class="day" id="day-match" role="tabpanel">
+      <div class="row"><div>Breakfast</div><div>Your usual breakfast, a bit earlier</div></div>
+      <div class="row"><div>Mid-morning</div><div>Toast with peanut butter</div></div>
+      <div class="row"><div>Lunch</div><div>Pasta or rice with chicken, 3 to 4 hours before throw-in</div></div>
+      <div class="row"><div>Pre-game</div><div>Banana and water, 1 hour before</div></div>
+      <div class="row"><div>Straight after</div><div>Chocolate milk and a sandwich</div></div>
+      <div class="row"><div>Dinner</div><div>Shepherd's pie, or a stir-fry with rice</div></div>
+      <div class="row"><div>Evening</div><div>Yoghurt or toast</div></div>
+    </div>
+    <div class="day" id="day-rest" role="tabpanel">
+      <div class="row"><div>Breakfast</div><div>Cereal with milk and fruit</div></div>
+      <div class="row"><div>Mid-morning</div><div>A piece of fruit</div></div>
+      <div class="row"><div>Lunch</div><div>Ham and cheese sandwich with veg soup</div></div>
+      <div class="row"><div>Afternoon</div><div>Crackers and cheese</div></div>
+      <div class="row"><div>Dinner</div><div>Fish, potatoes and veg</div></div>
+      <div class="row"><div>Evening</div><div>Glass of milk</div></div>
+    </div>
+
+    <h3>Snacks that won't break the bank (most under €1)</h3>
+    <ul class="snacks">
+      <li>Bananas, apples, mandarins</li><li>Homemade flapjacks or banana bread</li><li>Toast, bagels or scones with jam or peanut butter</li><li>Yoghurt or a carton of milk</li><li>Cheese and crackers</li><li>Homemade popcorn</li><li>Hard-boiled eggs</li><li>A tub of dry cereal</li><li>Rice cakes with jam or chocolate spread</li><li>Boxes of raisins</li>
+    </ul>
+    <div class="note"><svg class="i" aria-hidden="true"><use href="#i-circle-check"/></svg><div><b>Real food has you covered.</b> You don't need protein shakes, powders or special sports products. Milk or yoghurt after training does the same job. The one extra is vitamin D in winter (ask at home), and iron only if your GP suggests it.</div></div>
+  </div>
+</section>
+
+<section class="band alt" id="fridge">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-list-check"/></svg></div><div><h2>My fridge sheet</h2><p>Tick them off on your phone, or print it for the fridge.</p></div></div>
+    <div class="fridge-head">
+      <span class="small">Ticks are saved on this phone only.</span>
+      <span><button class="btn ghost" id="reset" type="button">Clear ticks</button> <button class="btn" id="print" type="button"><svg class="i" aria-hidden="true"><use href="#i-print"/></svg> Print</button></span>
+    </div>
+    <ul class="checks" data-key="fridge">
+      <li><label><input type="checkbox"><span>Breakfast every day, even a quick one</span></label></li>
+      <li><label><input type="checkbox"><span>3 meals and 2 to 3 snacks a day</span></label></li>
+      <li><label><input type="checkbox"><span>Water bottle filled and with me all day</span></label></li>
+      <li><label><input type="checkbox"><span>Proper snack after school on training days</span></label></li>
+      <li><label><input type="checkbox"><span>Milk, yoghurt or a sandwich within an hour of finishing</span></label></li>
+      <li><label><input type="checkbox"><span>Energy, repair and colour on my dinner plate</span></label></li>
+      <li><label><input type="checkbox"><span>3 to 4 milk, yoghurt or cheese a day for strong bones</span></label></li>
+      <li><label><input type="checkbox"><span>Meat, eggs or beans a few times a week for iron</span></label></li>
+      <li><label><input type="checkbox"><span>Vitamin D in winter (ask at home)</span></label></li>
+      <li><label><input type="checkbox"><span>No energy drinks</span></label></li>
+      <li><label><input type="checkbox"><span>About 9 hours sleep</span></label></li>
+      <li><label><input type="checkbox"><span>Match day: familiar food, nothing new</span></label></li>
+    </ul>
+  </div>
+</section>
+
+<section class="band" id="adults">
+  <div class="in">
+    <div class="sh"><div class="ic"><svg class="i" aria-hidden="true"><use href="#i-hand-holding-heart"/></svg></div><div><h2>For parents and coaches</h2><p>How we talk about food, and when to check in.</p></div></div>
+    <div class="grid g2">
+      <div class="adult">
+        <h4 style="font-family:var(--head);font-size:18px;margin:0;color:var(--navy)">How we talk about food</h4>
+        <ul>
+          <li>Talk about energy, fuel and feeling strong.</li>
+          <li>Praise effort, attitude and skill.</li>
+          <li>Keep lunchboxes and plates out of team chat. What a player eats is her own business.</li>
+          <li>The fridge and the family table matter more than any plan. Keep the good stuff easy to grab.</li>
+        </ul>
+      </div>
+      <div class="adult">
+        <h4 style="font-family:var(--head);font-size:18px;margin:0;color:var(--navy)">When to check in</h4>
+        <p style="margin-top:6px">If a player seems tired all the time, keeps picking up knocks, seems to be skipping meals, or seems worried or upset around food, have a quiet, kind word with her parents early. A GP is the right first stop, and earlier support always helps. <a href="https://www.bodywhys.ie" rel="noopener">Bodywhys</a> also supports families in Ireland.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="in">
+    <img src="../../images/clontarf-crest.png" alt="">
+    <div>Clontarf GAA · Girls 2012 · <a href="../">Féile diary</a> · <a href="../dates/">Key dates</a><br>General guidance based on standard Irish public health and youth sports nutrition advice. For anything specific, see a GP or a registered dietitian.<br>Icons: <a href="https://fontawesome.com" rel="noopener">Font Awesome Free</a> (CC BY 4.0).</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // Sample-day tabs
+  var tabs=document.querySelectorAll('.tabs button');
+  tabs.forEach(function(b){b.addEventListener('click',function(){
+    tabs.forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false')});
+    document.querySelectorAll('.day').forEach(function(d){d.classList.toggle('on',d.id==='day-'+b.dataset.day)});
+  })});
+  // Checklists remembered on this device
+  document.querySelectorAll('.checks[data-key]').forEach(function(list){
+    var key='feile27-fuel-'+list.dataset.key,boxes=list.querySelectorAll('input'),saved=[];
+    try{saved=JSON.parse(localStorage.getItem(key)||'[]')}catch(e){}
+    boxes.forEach(function(b,i){b.checked=!!saved[i];b.addEventListener('change',function(){
+      try{localStorage.setItem(key,JSON.stringify([].map.call(boxes,function(x){return x.checked})))}catch(e){}
+    })});
+  });
+  document.getElementById('reset').addEventListener('click',function(){
+    document.querySelectorAll('#fridge input').forEach(function(b){b.checked=false});
+    try{localStorage.removeItem('feile27-fuel-fridge')}catch(e){}
+  });
+  document.getElementById('print').addEventListener('click',function(){window.print()});
+})();
+</script>
+</body>
+</html>
