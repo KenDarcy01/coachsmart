@@ -44,6 +44,55 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
 
   /// Weekend (Sat, Sun) or weekdays (Mon-Fri) (Ken 2026-11-23).
   bool _weekend = true;
+
+  /// The fixtures and groups panel is open.
+  bool _panel = false;
+
+  /// The tab on the panel's edge: tap to slide it out or in.
+  Widget _handle(int waiting) {
+    final accent = c.club.accent;
+    return Material(
+      color: _panel ? PT.card : accent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => setState(() => _panel = !_panel),
+        child: Container(
+          width: 40,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _panel ? PT.line : accent)),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(_panel ? Icons.chevron_left : Icons.chevron_right,
+                color: _panel ? PT.text : Colors.white),
+            if (waiting > 0) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                    color: _panel ? accent : Colors.white,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Text('$waiting',
+                    style: PT.inter(12,
+                        weight: FontWeight.w700,
+                        color: _panel ? Colors.white : accent)),
+              ),
+            ],
+            const SizedBox(height: 10),
+            RotatedBox(
+              quarterTurns: 3,
+              child: Text(_panel ? 'Hide' : 'Needs a pitch · Groups',
+                  style: PT.inter(13.5,
+                      weight: FontWeight.w700,
+                      color: _panel ? PT.text : Colors.white)),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   PitchController get c => widget.c;
   bool get wide => widget.wide;
 
@@ -236,17 +285,41 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
         );
 
     if (wide) {
+      final waiting = board
+          .inbox(clubName: c.club.name, season: c.season)
+          .where((i) =>
+              !dayOf(i.start).isBefore(c.today) &&
+              mondayOf(i.start) == c.monday &&
+              days.any((d) => d.weekday == i.start.weekday))
+          .length;
+      // The fixtures and groups panel slides out from the left and is
+      // tucked in by default, leaving the width to the pitches (Ken
+      // 2026-11-23).
       return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(
-            width: 290,
-            child: PitchInbox(
-                c: c,
-                open: open,
-                days: {for (final d in days) d.weekday},
-                focus: _focus,
-                onFocus: (id) => setState(() => _focus = id),
-                onDay: (d) => c.pickDay(d))),
-        const SizedBox(width: 16),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          width: _panel ? 306 : 0,
+          child: ClipRect(
+            child: OverflowBox(
+              alignment: Alignment.topRight,
+              minWidth: 306,
+              maxWidth: 306,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: PitchInbox(
+                    c: c,
+                    open: open,
+                    days: {for (final d in days) d.weekday},
+                    focus: _focus,
+                    onFocus: (id) => setState(() => _focus = id),
+                    onDay: (d) => c.pickDay(d)),
+              ),
+            ),
+          ),
+        ),
+        _handle(waiting),
+        const SizedBox(width: 14),
         Expanded(
             child: ListView(children: [
           weekBar,

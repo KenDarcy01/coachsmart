@@ -955,6 +955,12 @@ void main() {
     expect(find.text('Pitch 19'), findsOneWidget);
     expect(find.text('Closed · Waterlogged'), findsNWidgets(2));
     expect(find.text('Free'), findsWidgets);
+    // The panel is tucked in until its tab is tapped.
+    expect(find.text('Weekend · needs a pitch'.toUpperCase()).hitTestable(),
+        findsNothing);
+    await _shot(t, 'pp-grass-closed');
+    await t.tap(find.text('Needs a pitch · Groups'));
+    await t.pumpAndSettle();
     expect(find.text('Weekend · needs a pitch'.toUpperCase()), findsOneWidget);
     final cards = find.descendant(
         of: find.byType(PitchInbox),
