@@ -259,7 +259,8 @@ void main() {
   test('matches list: live, today, results, following per event', () {
     final d = LiveMatchesData.fromJson(listSample());
     expect(d.matches.first.teamName, 'Senior Hurling'); // by throw-in time
-    expect(d.live.single.title, 'U12 Girls Blue v Raheny');
+    expect(d.live.single.title, 'U12 Girls v Raheny');
+    expect(d.live.single.squadName, 'Blue Team'); // shown as a chip
     expect(d.live.single.place, 'St Annes'); // venue for squads
     expect(d.today(now).length, 3);
     expect(d.results.single.title, 'Senior Hurling v Cuala');
@@ -371,18 +372,21 @@ void widgetTests() {
     await settle(tester);
     expect(find.text('Matches'), findsOneWidget);
     expect(find.text('Live now · 1'), findsOneWidget);
-    expect(find.text('U12 Girls Blue v Raheny'), findsOneWidget);
+    expect(find.text('U12 Girls v Raheny'), findsOneWidget);
+    expect(find.text('Blue'), findsOneWidget); // squad chip
     expect(find.text("LIVE 11'"), findsOneWidget);
     expect(find.text('1-03'), findsOneWidget);
     expect(find.text('Coming up today'), findsOneWidget);
-    expect(find.text('U12 Girls Red v Naomh Barróg'), findsOneWidget);
+    expect(find.text('U12 Girls v Naomh Barróg'), findsOneWidget);
+    expect(find.text('Red'), findsOneWidget); // squad chip
     expect(find.text('Throw-in 15:30 · Clontarf Road'), findsOneWidget);
     expect(find.text('Results'), findsOneWidget);
     expect(find.text('FULL TIME'), findsOneWidget);
     await tester.tap(find.text('Following'));
     await settle(tester);
     expect(find.text('Senior Hurling v Cuala'), findsNothing);
-    expect(find.text('U12 Girls Red v Naomh Barróg'), findsOneWidget);
+    expect(find.text('U12 Girls v Naomh Barróg'), findsOneWidget);
+    expect(find.text('Red'), findsOneWidget); // squad chip
     await tester.tap(find.text('Today'));
     await settle(tester);
     expect(find.text('Senior Hurling v Cuala'), findsOneWidget);

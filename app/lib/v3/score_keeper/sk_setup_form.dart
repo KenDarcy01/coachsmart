@@ -119,22 +119,36 @@ class _SkSetupFormState extends State<SkSetupForm> {
       ),
       if (c.squads.isNotEmpty) ...[
         _label('Squad'),
+        // Starts empty on a new match: the scorer taps a squad or Whole team
+        // (0) before Ready, so the Matches list can name the squad.
         DropdownButtonFormField<int?>(
-          initialValue:
-              c.squads.any((s) => s.id == d.squadId) ? d.squadId : null,
+          initialValue: !d.squadPicked
+              ? null
+              : c.squads.any((s) => s.id == d.squadId)
+                  ? d.squadId
+                  : 0,
           dropdownColor: V3.card2,
           style: V3.inter(17),
           iconEnabledColor: V3.muted,
-          decoration: _dec(''),
+          decoration: _dec('Pick a squad'),
           items: [
             DropdownMenuItem<int?>(
-                value: null, child: Text('Whole team', style: V3.inter(17))),
+                value: 0, child: Text('Whole team', style: V3.inter(17))),
             for (final s in c.squads)
               DropdownMenuItem<int?>(
                   value: s.id, child: Text(s.name, style: V3.inter(17))),
           ],
-          onChanged: (v) => setState(() => d.squadId = v),
+          onChanged: (v) => setState(() {
+            d.squadId = v == 0 ? null : v;
+            d.squadPicked = true;
+          }),
         ),
+        if (!d.squadPicked)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text('Pick one so followers know which match this is.',
+                style: V3.inter(14, color: V3.amber)),
+          ),
         _label('${c.sport.matchStart} time and venue, if different'),
         Row(children: [
           SizedBox(

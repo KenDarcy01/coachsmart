@@ -331,9 +331,8 @@ class LiveMatchRow {
       ? ''
       : homeAway[0].toUpperCase() + homeAway.substring(1).toLowerCase();
 
-  /// "U12 Blue v Raheny"; the squad only when the event has more than one.
-  String get title =>
-      '$teamName${multi ? ' ${squadShort(squadName)}' : ''} v $opp';
+  /// "U12 Girls v Raheny"; the squad shows as a chip on the row instead.
+  String get title => '$teamName v $opp';
 
   /// Squads can play at different grounds, so show the venue for them.
   String get place => squadsInEvent > 1 && venue.isNotEmpty ? venue : ha;

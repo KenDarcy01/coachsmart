@@ -1,7 +1,8 @@
 // v3 Matches: every match in the user's clubs today, live now, results from
 // the last 12 hours and matches they follow. Native copy of
 // webviews/matches.html (the old app keeps the web page). A row per squad
-// when an event has more than one squad playing. Tap a row for the live
+// when an event has more than one squad playing, each row with a squad chip
+// whenever a squad was picked. Tap a row for the live
 // page; tap a bell to follow.
 import 'dart:async';
 
@@ -269,21 +270,33 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
       pill = const PhasePill('ft', 'FULL TIME', size: 11);
     }
     final place = m.place;
+    // Every row of a squad's match carries a chip with the squad name, even
+    // when it is the only squad playing, so followers know which match they
+    // are opening (Ken, 2026-11-23). No chip when the scorer kept Whole team.
+    final chip = m.squadName.isEmpty ? null : _squadChip(m);
     final sub = m.started
         ? Wrap(
             spacing: 8,
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+                if (chip != null) chip,
                 if (pill != null) pill,
                 if (place.isNotEmpty)
                   Text(place, style: V3.inter(14, color: V3.muted)),
               ])
-        : Text(
-            '${m.sport.matchStart} ${clockTime(m.eventDateTime)}${place.isNotEmpty ? ' · $place' : ''}',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: V3.inter(14, color: V3.muted));
+        : Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+                if (chip != null) chip,
+                Text(
+                    '${m.sport.matchStart} ${clockTime(m.eventDateTime)}${place.isNotEmpty ? ' · $place' : ''}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: V3.inter(14, color: V3.muted)),
+              ]);
     final right = m.started && m.score != null
         ? Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text(m.score!.us.text, style: scoreStyle(24)),
@@ -307,16 +320,6 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                if (m.multi) ...[
-                  Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                          color: m.colour,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white24))),
-                  const SizedBox(width: 6),
-                ],
                 Expanded(
                     child: Text(m.title,
                         maxLines: 1,
@@ -333,4 +336,22 @@ class _V3MatchesPageState extends State<V3MatchesPage> {
       ),
     );
   }
+
+  Widget _squadChip(LiveMatchRow m) => Container(
+        padding: const EdgeInsets.fromLTRB(6, 2, 9, 2),
+        decoration: BoxDecoration(
+            color: m.colour.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: m.colour, width: 1.5)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 8,
+              height: 8,
+              decoration:
+                  BoxDecoration(color: m.colour, shape: BoxShape.circle)),
+          const SizedBox(width: 5),
+          Text(squadShort(m.squadName),
+              style: V3.inter(12.5, weight: FontWeight.w700)),
+        ]),
+      );
 }
