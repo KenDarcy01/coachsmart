@@ -52,6 +52,12 @@ class FixtureChange {
             : j['old_start'] != null
                 ? parseLocal(j['old_start'])
                 : null;
+  FixtureChange._(
+      this.kind, this.title, this.detail, this.unread, this.at, this.when);
+
+  /// The same change, marked as seen.
+  FixtureChange seen() => FixtureChange._(kind, title, detail, false, at, when);
+
   final String kind, title, detail;
 
   /// When the fixture is now (or was, if removed): tapping the change
@@ -223,10 +229,6 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
       ].where((x) => x.at == null || x.at!.isAfter(cutoff)).toList();
       if (!mounted) return;
       setState(() => _changes = list);
-      if (list.any((x) => x.unread)) {
-        await c.api.fixtureChangesSeen(c.club.clubId);
-        await c.loadChanges();
-      }
     } catch (_) {
       // Change tracking not set up for this club yet.
     }
@@ -460,7 +462,10 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
   bool _all = false;
 
   /// Girls then boys, one row per match, like the club sheet (Ken, 2026-11-20).
-  bool _sheet = false;
+  bool _sheet = true;
+
+  /// League changes stay folded behind a bar until tapped (Ken 2026-11-23).
+  bool _openChanges = false;
   bool _showChanges = false;
 
   Widget _weekRow() {
@@ -861,9 +866,12 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               child: Center(child: CircularProgressIndicator(color: PT.muted)))
         else ...[
           if (_league && _changes.isNotEmpty) ...[
-            head('Changes from the league', 'Last 14 days, newest first',
-                _changes.length),
-            _changesPanel(),
+            const SizedBox(height: 14),
+            _changesBar(),
+            if (_openChanges) ...[
+              const SizedBox(height: 8),
+              _changesPanel(),
+            ],
           ],
           if (_sheet)
             ..._sheetView(off, un, head)
@@ -914,8 +922,8 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Wrap(children: [
-        pill('By day', !_sheet, () => setState(() => _sheet = false)),
         pill('Girls and boys', _sheet, () => setState(() => _sheet = true)),
+        pill('By day', !_sheet, () => setState(() => _sheet = false)),
       ]),
     );
   }
@@ -1126,6 +1134,62 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               cell(t(r.rooms), r.onTap),
             ]),
         ],
+      ),
+    );
+  }
+
+  /// A bar that says how many league changes there are; tap to open the
+  /// list. Opening it marks them seen.
+  Widget _changesBar() {
+    final n = _changes.length;
+    final fresh = _changes.where((x) => x.unread).length;
+    return Material(
+      color: PT.redTint,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          setState(() => _openChanges = !_openChanges);
+          if (_openChanges && fresh > 0) {
+            try {
+              await c.api.fixtureChangesSeen(c.club.clubId);
+              await c.loadChanges();
+            } catch (_) {}
+            if (mounted) {
+              setState(() => _changes = [
+                    for (final x in _changes) x.seen(),
+                  ]);
+            }
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Row(children: [
+            Icon(Icons.warning_amber_rounded, color: PT.redText, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        '$n change${n == 1 ? '' : 's'} from the league'
+                        '${fresh > 0 ? ' · $fresh new' : ''}',
+                        style: PT.inter(15,
+                            weight: FontWeight.w700, color: PT.redText)),
+                    Text(
+                        _openChanges
+                            ? 'Last 14 days, newest first. Tap to hide.'
+                            : 'Times, venues and referees changed in the last 14 days. Tap to see them.',
+                        style: PT.inter(12.5, color: PT.muted)),
+                  ]),
+            ),
+            Text(_openChanges ? 'Hide' : 'Show',
+                style:
+                    PT.inter(14, weight: FontWeight.w700, color: PT.redText)),
+            Icon(_openChanges ? Icons.expand_less : Icons.expand_more,
+                color: PT.redText),
+          ]),
+        ),
       ),
     );
   }

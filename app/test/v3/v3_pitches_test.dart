@@ -905,6 +905,8 @@ void main() {
   testWidgets('laptop: fill fixtures from the home defaults', (t) async {
     final api = FakePitchApi();
     await _pump(t, const Size(1440, 900), api);
+    await t.tap(find.text('By day'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Fill from defaults'));
     await t.pumpAndSettle();
     // U14 Boys v Raheny goes on its group's pitch at the league time.
@@ -1147,6 +1149,16 @@ void main() {
     await _pump(t, const Size(1440, 900), FakePitchApi());
     await t.tap(find.text('Fixtures').first);
     await t.pumpAndSettle();
+    // League changes are folded behind a bar until tapped.
+    expect(find.text('1 change from the league · 1 new'), findsOneWidget);
+    expect(find.text('Show'), findsOneWidget);
+    await t.tap(find.text('1 change from the league · 1 new'));
+    await t.pumpAndSettle();
+    expect(find.text('Hide'), findsOneWidget);
+    await t.tap(find.text('Hide'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('By day'));
+    await t.pumpAndSettle();
     expect(find.text('OFFICIAL FIXTURES'), findsOneWidget);
     expect(find.text('UNOFFICIAL MATCHES'), findsOneWidget);
     expect(find.text('U21 Camogie: Clontarf v Fingallians'), findsOneWidget);
@@ -1154,7 +1166,6 @@ void main() {
     expect(find.text('Unassigned'), findsNWidgets(2));
     expect(find.text("U8 Girls v St Vincent's"), findsOneWidget);
     // League changes: listed at the top and flagged on the fixture.
-    expect(find.text('CHANGES FROM THE LEAGUE'), findsOneWidget);
     expect(find.text('⚠ Time changed'), findsOneWidget);
     await _shot(t, 'pp-fixtures');
     // The Unassigned chip opens the place sheet.
