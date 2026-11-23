@@ -16,11 +16,13 @@ import 'backend/firebase/firebase_config.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 import '/v3/tracking/v3_track.dart';
 import '/v3/web/v3_handover.dart';
+import '/v3/web/v3_entry.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoRouter.optionURLReflectsImperativeAPIs = true;
   usePathUrlStrategy();
+  v3EntryPath = Uri.base.path;
 
   final environmentValues = FFDevEnvironmentValues();
   await environmentValues.initialize();

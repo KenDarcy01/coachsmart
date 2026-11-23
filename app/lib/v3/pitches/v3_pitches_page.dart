@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../v3_crest_image.dart';
 import '/v3/web/v3_club_pwa.dart';
+import '/v3/web/v3_entry.dart';
 import 'v3_pitch_theme.dart';
 import '/v3/tracking/v3_track.dart';
 import 'v3_pitch_api.dart';
@@ -65,6 +66,10 @@ class V3PitchesPage extends StatelessWidget {
     if (look == 'app') return true;
     if (look == 'club') return false;
     if (!kIsWeb) return true;
+    // Opened straight from a link (or the home-screen icon): the club's own
+    // look. Reached from inside the app: the app look. (Router deep links
+    // can always pop, so canPop() can't tell them apart.)
+    if (v3EntryPath.startsWith('/pitches')) return false;
     return Navigator.of(context).canPop();
   }
 
