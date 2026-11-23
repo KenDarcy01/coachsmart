@@ -602,24 +602,22 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                     _pxPerMin,
             left: 0,
             right: 0,
-            // Solid grey, as on the Grass view (Ken 2026-11-23).
             child: IgnorePointer(
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(2, 1, 2, 1),
-                decoration: BoxDecoration(
-                    color: PT.card2, borderRadius: BorderRadius.circular(6)),
-                alignment: Alignment.topLeft,
-                padding: const EdgeInsets.fromLTRB(7, 4, 0, 0),
-                child: (math.min(bl.slot.closes, hi) -
-                                math.max(bl.slot.opens, lo)) *
-                            _pxPerMin >
-                        22
-                    ? Text(bl.reason,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: PT.inter(11.5,
-                            weight: FontWeight.w600, color: PT.muted))
-                    : null,
+              child: CustomPaint(
+                painter: const _Hatch(),
+                child: Container(
+                  alignment: Alignment.topLeft,
+                  padding: const EdgeInsets.fromLTRB(6, 3, 0, 0),
+                  child: (math.min(bl.slot.closes, hi) -
+                                  math.max(bl.slot.opens, lo)) *
+                              _pxPerMin >
+                          22
+                      ? Text(bl.reason,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: PT.inter(10.5, color: PT.faint))
+                      : null,
+                ),
               ),
             ),
           ),
@@ -639,44 +637,31 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                     pitch: p,
                     at: atMinutes(day, s.opens),
                     minutes: s.closes - s.opens)),
-            child: Builder(builder: (context) {
-              // Free slots are green, as on the Grass view (Ken 2026-11-23).
-              final free = p.slots.isNotEmpty &&
-                  closure == null &&
-                  !booked.any((b) =>
-                      minutesOf(b.start) < s.closes &&
-                      minutesOf(b.end) > s.opens) &&
-                  !matched.any((e) =>
-                      minutesOf(e.start) < s.closes &&
-                      minutesOf(e.start) + c.minutesFor(c.itemOfEvent(e)) >
-                          s.opens);
-              return Container(
-                decoration: BoxDecoration(
-                    color: free ? PT.greenTint : PT.slot,
-                    border: free ? null : Border.all(color: PT.slotLine),
-                    borderRadius: BorderRadius.circular(6)),
-                alignment: Alignment.topLeft,
-                padding: const EdgeInsets.fromLTRB(7, 4, 6, 0),
-                // The slot's own times (Clubhouse slots run 50 minutes, not
-                // on the hour), and Free when nothing is in it.
-                child: (s.closes - s.opens) * _pxPerMin > 22 && free
-                    ? Row(children: [
-                        Expanded(
-                          child: Text(s.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: PT.inter(11, color: PT.muted)),
-                        ),
-                        Text('Free',
-                            style: PT.inter(11.5,
-                                weight: FontWeight.w700, color: PT.green)),
-                        const SizedBox(width: 4),
-                        Icon(Icons.add_circle_outline,
-                            size: 14, color: PT.green),
-                      ])
-                    : null,
-              );
-            }),
+            child: Container(
+              decoration: BoxDecoration(
+                  color: PT.slot,
+                  border: Border.all(color: PT.slotLine),
+                  borderRadius: BorderRadius.circular(6)),
+              alignment: Alignment.topLeft,
+              padding: const EdgeInsets.fromLTRB(6, 3, 6, 0),
+              // The slot's own times (Clubhouse slots run 50 minutes, not on
+              // the hour), and Free when nothing is in it.
+              child: (s.closes - s.opens) * _pxPerMin > 22 &&
+                      p.slots.isNotEmpty &&
+                      !booked.any((b) =>
+                          minutesOf(b.start) < s.closes &&
+                          minutesOf(b.end) > s.opens)
+                  ? Row(children: [
+                      Expanded(
+                        child: Text(s.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: PT.inter(10.5, color: PT.muted)),
+                      ),
+                      Text('Free', style: PT.inter(10.5, color: PT.faint)),
+                    ])
+                  : null,
+            ),
           ),
         ),
     ];
@@ -1269,6 +1254,31 @@ class _GroupCard extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// Light grey diagonal stripes for time the club does not hold.
+class _Hatch extends CustomPainter {
+  const _Hatch();
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..color =
+              PT.dark ? const Color(0xFF1A1E24) : const Color(0xFFF1F2F4));
+    final line = Paint()
+      ..color = PT.dark ? const Color(0xFF2A2F39) : const Color(0xFFE2E4E8)
+      ..strokeWidth = 1;
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    for (var x = -size.height; x < size.width; x += 9) {
+      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), line);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _Hatch oldDelegate) => false;
 }
 
 /// The red tab on the edge of the fixtures and groups panel: tap to slide
