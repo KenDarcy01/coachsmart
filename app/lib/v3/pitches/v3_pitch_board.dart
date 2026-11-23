@@ -60,6 +60,10 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
 
   /// Group picked in the list: its sessions stand out, the rest fade.
   int? _focus;
+
+  /// The fixtures and groups panel is open (tucked in by default, Ken
+  /// 2026-11-23, as on Grass).
+  bool _panel = false;
   int? _weekPitch;
   final _hScroll = ScrollController();
   final _vScroll = ScrollController();
@@ -162,16 +166,39 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
       if (venues.length > 1)
         for (final v in venues) (v, v),
     ];
+    final waiting = board
+        .inbox(clubName: c.club.name, season: c.season)
+        .where((i) =>
+            !dayOf(i.start).isBefore(c.today) && mondayOf(i.start) == c.monday)
+        .length;
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SizedBox(
-          width: 290,
-          child: PitchInbox(
-              c: c,
-              open: _open,
-              focus: _focus,
-              onFocus: (id) => setState(() => _focus = id),
-              onDay: (d) => c.pickDay(d))),
-      const SizedBox(width: 16),
+      AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        width: _panel ? 306 : 0,
+        child: ClipRect(
+          child: OverflowBox(
+            alignment: Alignment.topRight,
+            minWidth: 306,
+            maxWidth: 306,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: PitchInbox(
+                  c: c,
+                  open: _open,
+                  focus: _focus,
+                  onFocus: (id) => setState(() => _focus = id),
+                  onDay: (d) => c.pickDay(d)),
+            ),
+          ),
+        ),
+      ),
+      PitchPanelHandle(
+          open: _panel,
+          waiting: waiting,
+          accent: c.club.accent,
+          onTap: () => setState(() => _panel = !_panel)),
+      const SizedBox(width: 14),
       Expanded(
         child: Container(
           decoration: BoxDecoration(
@@ -1239,4 +1266,63 @@ class _Hatch extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _Hatch oldDelegate) => false;
+}
+
+/// The red tab on the edge of the fixtures and groups panel: tap to slide
+/// the panel out or in (Ken 2026-11-23). Used by the Day board and Grass.
+class PitchPanelHandle extends StatelessWidget {
+  const PitchPanelHandle(
+      {super.key,
+      required this.open,
+      required this.waiting,
+      required this.accent,
+      required this.onTap});
+  final bool open;
+  final int waiting;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: open ? PT.card : accent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: open ? PT.line : accent)),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(open ? Icons.chevron_left : Icons.chevron_right,
+                color: open ? PT.text : Colors.white),
+            if (waiting > 0) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                    color: open ? accent : Colors.white,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Text('$waiting',
+                    style: PT.inter(12,
+                        weight: FontWeight.w700,
+                        color: open ? Colors.white : accent)),
+              ),
+            ],
+            const SizedBox(height: 10),
+            RotatedBox(
+              quarterTurns: 3,
+              child: Text(open ? 'Hide' : 'Needs a pitch · Groups',
+                  style: PT.inter(13.5,
+                      weight: FontWeight.w700,
+                      color: open ? PT.text : Colors.white)),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 }

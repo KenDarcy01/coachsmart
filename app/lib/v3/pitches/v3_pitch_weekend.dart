@@ -48,51 +48,6 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
   /// The fixtures and groups panel is open.
   bool _panel = false;
 
-  /// The tab on the panel's edge: tap to slide it out or in.
-  Widget _handle(int waiting) {
-    final accent = c.club.accent;
-    return Material(
-      color: _panel ? PT.card : accent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => setState(() => _panel = !_panel),
-        child: Container(
-          width: 40,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _panel ? PT.line : accent)),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(_panel ? Icons.chevron_left : Icons.chevron_right,
-                color: _panel ? PT.text : Colors.white),
-            if (waiting > 0) ...[
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                    color: _panel ? accent : Colors.white,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Text('$waiting',
-                    style: PT.inter(12,
-                        weight: FontWeight.w700,
-                        color: _panel ? Colors.white : accent)),
-              ),
-            ],
-            const SizedBox(height: 10),
-            RotatedBox(
-              quarterTurns: 3,
-              child: Text(_panel ? 'Hide' : 'Needs a pitch · Groups',
-                  style: PT.inter(13.5,
-                      weight: FontWeight.w700,
-                      color: _panel ? PT.text : Colors.white)),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-
   PitchController get c => widget.c;
   bool get wide => widget.wide;
 
@@ -318,7 +273,11 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
             ),
           ),
         ),
-        _handle(waiting),
+        PitchPanelHandle(
+            open: _panel,
+            waiting: waiting,
+            accent: c.club.accent,
+            onTap: () => setState(() => _panel = !_panel)),
         const SizedBox(width: 14),
         Expanded(
             child: ListView(children: [

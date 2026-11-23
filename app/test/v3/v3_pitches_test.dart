@@ -847,6 +847,11 @@ void main() {
       (t) async {
     final api = FakePitchApi();
     await _pumpBoard(t, const Size(1440, 900), api);
+    // The fixtures and groups panel is tucked in until its tab is tapped.
+    expect(find.text('U14 Boys v Raheny').hitTestable(), findsNothing);
+    await _shot(t, 'pp-board-panel-in');
+    await t.tap(find.text('Needs a pitch · Groups'));
+    await t.pumpAndSettle();
     expect(find.text('Saturday 21 November'), findsOneWidget);
     expect(find.text('Clubhouse Astro'), findsWidgets);
     expect(find.text('U14 Boys v Raheny'), findsOneWidget);
@@ -1088,6 +1093,8 @@ void main() {
 
   testWidgets('laptop: tapping a group shows its sessions', (t) async {
     await _pumpBoard(t, const Size(1440, 900), FakePitchApi());
+    await t.tap(find.text('Needs a pitch · Groups'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Nursery').first);
     await t.pumpAndSettle();
     expect(find.text('+ Add a session'), findsOneWidget);

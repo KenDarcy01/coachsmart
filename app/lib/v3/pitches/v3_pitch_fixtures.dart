@@ -1205,40 +1205,36 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
       child: Column(children: [
         for (final (i, x) in shown.indexed) ...[
           if (i > 0) Divider(height: 1, thickness: 1, color: PT.line),
-          InkWell(
-            onTap: x.when == null ? null : () => c.pickDay(x.when!),
-            child: Container(
-              color: x.unread ? PT.redTint : null,
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-              child:
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 1, right: 10),
-                  child: PitchTag(x.label, colour: PT.redText),
-                ),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(x.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PT.inter(14, weight: FontWeight.w600)),
-                        Text(x.detail, style: PT.inter(12.5, color: PT.muted)),
-                      ]),
-                ),
-                const SizedBox(width: 10),
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text(_ago(x.at), style: PT.inter(12, color: PT.muted)),
-                  if (x.when != null && mondayOf(x.when!) != c.monday)
-                    Text(
-                        'Week of ${mondayOf(x.when!).day} '
-                        '${kMonths[mondayOf(x.when!).month - 1].substring(0, 3)} ›',
-                        style: PT.inter(12,
-                            weight: FontWeight.w700, color: c.club.accent)),
-                ]),
+          // A plain notice: tapping does nothing (Ken 2026-11-23).
+          Container(
+            color: x.unread ? PT.redTint : null,
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 1, right: 10),
+                child: PitchTag(x.label, colour: PT.redText),
+              ),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(x.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: PT.inter(14, weight: FontWeight.w600)),
+                      Text(x.detail, style: PT.inter(12.5, color: PT.muted)),
+                    ]),
+              ),
+              const SizedBox(width: 10),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(_ago(x.at), style: PT.inter(12, color: PT.muted)),
+                if (x.when != null && mondayOf(x.when!) != c.monday)
+                  Text(
+                      'Week of ${mondayOf(x.when!).day} '
+                      '${kMonths[mondayOf(x.when!).month - 1].substring(0, 3)}',
+                      style: PT.inter(12, color: PT.muted)),
               ]),
-            ),
+            ]),
           ),
         ],
       ]),
