@@ -19,6 +19,7 @@ class _Line {
       this.free = false,
       this.faint = false,
       this.clash = false,
+      this.match = false,
       this.onTap,
       this.onDrop});
   final int at;
@@ -28,6 +29,9 @@ class _Line {
 
   /// Overlaps another booking on this pitch (or on the same ground).
   final bool clash;
+
+  /// A match: a stronger tint, as on the Day board.
+  final bool match;
   final VoidCallback? onTap;
 
   /// A free slot takes a fixture or group dropped on it.
@@ -108,6 +112,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                   : '${c.titleOf(b)} · throw-in ${timeOf(board.earlyThrowIn(b)!)}',
               bar: codeColour(bookingCode(c, b)),
               clash: clashing.contains(b.bookingId),
+              match: b.kind == 'match',
               onTap: () => open(BookingSheet(c: c, booking: b))),
         for (final e in matched)
           _Line(minutesOf(e.start), timeOf(e.start), c.titleOfEvent(e),
@@ -446,31 +451,48 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
           onAcceptWithDetails: (d) => l.onDrop!(d.data),
           builder: (context, cand, _) => _lineBody(l, cand.isNotEmpty));
 
-  Widget _lineBody(_Line l, bool hover) => GestureDetector(
-        onTap: l.onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-              // Free slots look like the Day board's: a white box with a
-              // thin outline (Ken 2026-11-23).
-              color: l.free
-                  ? PT.slot
-                  : l.clash
-                      ? PT.redTint
-                      : null,
-              border: hover
-                  ? Border.all(color: PT.green, width: 2)
-                  : l.clash
-                      ? Border.all(color: PT.redText, width: 1.5)
-                      : l.free
-                          ? Border.all(color: PT.slotLine)
-                          : null,
-              borderRadius: BorderRadius.circular(6)),
-          child: _weekend || !wide ? _wideLine(l) : _stackedLine(l),
-        ),
-      );
+  Widget _lineBody(_Line l, bool hover) {
+    // Bookings are tinted cards with a coloured left edge and events still
+    // to confirm are outlined, like the Day board (Ken 2026-11-23).
+    final col = l.bar;
+    final card = col != null && !l.free;
+    final BoxDecoration deco;
+    if (l.free) {
+      deco = BoxDecoration(
+          color: PT.slot,
+          border: hover
+              ? Border.all(color: PT.green, width: 2)
+              : Border.all(color: PT.slotLine),
+          borderRadius: BorderRadius.circular(6));
+    } else if (card && l.faint) {
+      deco = BoxDecoration(
+          color: col.withValues(alpha: 0.07),
+          border: Border.all(color: col.withValues(alpha: 0.55), width: 1.2),
+          borderRadius: BorderRadius.circular(8));
+    } else if (card) {
+      deco = BoxDecoration(
+          color: col.withValues(alpha: l.match ? 0.28 : 0.13),
+          border: Border(left: BorderSide(color: col, width: 3)),
+          borderRadius: BorderRadius.circular(8));
+    } else {
+      deco = BoxDecoration(borderRadius: BorderRadius.circular(8));
+    }
+    return GestureDetector(
+      onTap: l.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: deco,
+        foregroundDecoration: l.clash
+            ? BoxDecoration(
+                border: Border.all(color: PT.red, width: 2),
+                borderRadius: BorderRadius.circular(8))
+            : null,
+        child: _weekend || !wide ? _wideLine(l) : _stackedLine(l),
+      ),
+    );
+  }
 
   Color _whatColour(_Line l) => l.free
       ? PT.faint
@@ -491,7 +513,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
         SizedBox(
             width: 96,
             child: Text(l.when, style: PT.inter(13, color: PT.muted))),
-        if (l.bar != null) _bar(l, 18),
+        if (l.bar != null && l.free) _bar(l, 18),
         Expanded(
             child: Text(l.what,
                 maxLines: 1,
@@ -513,7 +535,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
         ]),
         const SizedBox(height: 2),
         Row(children: [
-          if (l.bar != null) _bar(l, 16),
+          if (l.bar != null && l.free) _bar(l, 16),
           Expanded(
               child: Text(l.what,
                   maxLines: 2,
