@@ -443,7 +443,14 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
                     child: Column(
                       children: [
                         V3NewsBar(news: _msgs.news, onTap: _openNews),
-                        Expanded(child: _timeline()),
+                        // Builder: only a context inside the Scaffold sees the
+                        // menu pill's height in its bottom padding.
+                        Expanded(
+                          child: Builder(
+                            builder: (c) =>
+                                _timeline(MediaQuery.paddingOf(c).bottom),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -591,7 +598,7 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
 
   // ---- timeline (design §5.3 to §6.8) -------------------------------------
 
-  Widget _timeline() {
+  Widget _timeline(double bottomInset) {
     final items = buildTimeline(_events, _now);
     final green = nextDay(items);
     final children = <Widget>[];
@@ -623,8 +630,9 @@ class _V3HomePageState extends State<V3HomePage> with WidgetsBindingObserver {
       );
     }
     // Room for the floating menu pill: extendBody passes its height on as
-    // bottom padding.
-    children.add(SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom));
+    // bottom padding to contexts inside the Scaffold (Ken, 2026-11-23: the
+    // last card sat behind the pill).
+    children.add(SizedBox(height: 24 + bottomInset));
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
