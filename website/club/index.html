@@ -358,11 +358,19 @@ async function inviteSetup(tok) {
     const a = await fn({ action: 'accept', token: tok, password: pw, first_name: $('iFirst').value, last_name: $('iLast').value });
     if (a.error) return msg(a.error);
     if (a.can_dashboard === false) {
+      // Sign in here with the new password and carry the login over, so the
+      // planner doesn't ask again (Ken 2026-11-23).
+      let href = a.planner;
+      if (!a.existing) {
+        await sb.auth.signOut().catch(() => {});
+        const { error: e2 } = await sb.auth.signInWithPassword({ email: a.email, password: pw });
+        if (!e2) href = await plannerLink(a.planner);
+      }
       $('inviteForm').innerHTML = `${r.club.crest ? `<img class="icrest" src="${esc(r.club.crest)}" alt="">` : ''}
         <h2>You’re all set</h2>
-        <p>${a.existing ? 'Sign in with your usual CoachSmart password.' : 'Sign in with ' + esc(a.email) + ' and the password you just chose.'}
+        <p>${href !== a.planner ? '' : a.existing ? 'Sign in with your usual CoachSmart password. ' : 'Sign in with ' + esc(a.email) + ' and the password you just chose. '}
         On your phone, choose “Add to Home Screen” on the next page to keep the planner like an app.</p>
-        <a class="btn" style="display:block;text-align:center;text-decoration:none" href="${esc(a.planner)}">Open the pitch planner</a>`;
+        <a class="btn" style="display:block;text-align:center;text-decoration:none" href="${esc(href)}">Open the pitch planner</a>`;
       $('inviteForm').onsubmit = e => e.preventDefault();
       return;
     }
@@ -375,6 +383,14 @@ async function inviteSetup(tok) {
   };
 }
 async function signOut() { await sb.auth.signOut(); location.reload(); }
+// The planner is another website with its own login store: hand this login
+// over in the link's #fragment (never sent to a server; the planner wipes it).
+async function plannerLink(url) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    return session ? url + '#cs_rt=' + encodeURIComponent(session.refresh_token) : url;
+  } catch (e) { return url; }
+}
 
 async function boot() {
   if (P.get('invite')) return inviteSetup(P.get('invite'));
@@ -386,7 +402,8 @@ async function boot() {
   myClubs = data.clubs || []; isSuper = !!data.is_super_user;
   if (!myClubs.length && (data.pitch_clubs || []).length) {
     const pc = data.pitch_clubs[0];
-    $('app').innerHTML = `<div class="state">Your account is for the club’s pitch planner, not this dashboard.<br><br><a class="btn" style="display:inline-block;text-decoration:none" href="https://coachsmart-v3.web.app/pitches?club=${pc}&look=club">Open the pitch planner</a><br><br><button class="link" onclick="signOut()">Sign out</button></div>`;
+    const link = await plannerLink(`https://coachsmart-v3.web.app/pitches?club=${pc}&look=club`);
+    $('app').innerHTML = `<div class="state">Your account is for the club’s pitch planner, not this dashboard.<br><br><a class="btn" style="display:inline-block;text-decoration:none" href="${esc(link)}">Open the pitch planner</a><br><br><button class="link" onclick="signOut()">Sign out</button></div>`;
     return;
   }
   if (!myClubs.length) return state('This dashboard is for club officers, and ' + (session.user.email || 'this account') + ' isn’t one yet. Sign in with a SuperUser account, or ask CoachSmart to add you as an officer of your club.', true);
