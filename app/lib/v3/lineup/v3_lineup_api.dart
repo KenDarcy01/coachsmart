@@ -3,6 +3,7 @@
 // persistLineup), so both pages see the same lineups.
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
+import '/v3/sport/v3_team_gender.dart';
 import 'v3_lineup_models.dart';
 import '/v3/tracking/v3_track.dart';
 
@@ -39,13 +40,16 @@ Future<Map<String, dynamic>> fetchLineupJson(
   final ev = await _sb
       .from('events')
       .select(
-          'event_date_time,opposition,event_codes(event_code),event_types(event_type)')
+          'event_date_time,opposition,event_codes(event_code),event_types(event_type),teams!events_team_id_fkey(team_female)')
       .eq('event_id', eventId);
   if (ev.isNotEmpty) {
     final e = ev.first;
     final when = DateTime.tryParse('${e['event_date_time']}')?.toLocal();
+    // Hurling reads Camogie on a female team (Ken, 2026-11-23).
     out['image_sub'] = imageSubtitle(
-        '${(e['event_codes'] as Map?)?['event_code'] ?? ''}',
+        V3TeamGender.codeFor(
+            '${(e['event_codes'] as Map?)?['event_code'] ?? ''}',
+            (e['teams'] as Map?)?['team_female'] == true),
         '${(e['event_types'] as Map?)?['event_type'] ?? ''}',
         when);
   }

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
+import '/v3/sport/v3_team_gender.dart';
 import '../v3_theme.dart';
 import 'v3_match_report_models.dart';
 import 'v3_voice_sheet.dart';
@@ -47,6 +48,10 @@ class V3MatchReportPage extends StatefulWidget {
 
 class _V3MatchReportPageState extends State<V3MatchReportPage> {
   MrLoad? _data;
+
+  /// The match's title as the home list shows it (code + type when left
+  /// empty, Camogie for female teams); the edge function's title until read.
+  String _title = '';
   bool _loading = true;
   String? _error;
 
@@ -114,6 +119,9 @@ class _V3MatchReportPageState extends State<V3MatchReportPage> {
       });
       return;
     }
+    v3EventTitle(widget.eventId).then((t) {
+      if (mounted && t.isNotEmpty) setState(() => _title = t);
+    });
     try {
       final d = await _call({'action': 'load'});
       if (!mounted) return;
@@ -356,7 +364,7 @@ class _V3MatchReportPageState extends State<V3MatchReportPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(d.title,
+                Text(_title.isNotEmpty ? _title : d.title,
                     style: V3.tight(18, weight: FontWeight.w700, height: 1.3)),
                 if (d.subtitle.isNotEmpty) ...[
                   const SizedBox(height: 4),

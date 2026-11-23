@@ -23,6 +23,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '/auth/supabase_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import 'sk_models.dart';
+import '/v3/sport/v3_team_gender.dart';
 import '/v3/tracking/v3_track.dart';
 
 // ---------------------------------------------------------------- backend
@@ -83,8 +84,17 @@ class SupabaseSkBackend implements SkBackend {
       SupaFlow.client.rpc(fn, params: params);
 
   @override
-  Future<Map<String, dynamic>?> state(int eventId) async =>
-      _map(await _rpc('get_score_keeper_state', {'p_event_id': eventId}));
+  Future<Map<String, dynamic>?> state(int eventId) async {
+    final m =
+        _map(await _rpc('get_score_keeper_state', {'p_event_id': eventId}));
+    // Female teams read Hurling as Camogie on the setup line.
+    final ev = m?['event'];
+    if (ev is Map) {
+      final t = ev['team_id'];
+      await V3TeamGender.load([t is int ? t : int.tryParse('$t')]);
+    }
+    return m;
+  }
 
   @override
   Future<bool> aiFeatures() async =>

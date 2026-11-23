@@ -14,6 +14,7 @@ import '/index.dart';
 import '../v3_theme.dart';
 import 'v3_attendance_models.dart';
 import 'v3_event_teams.dart';
+import '/v3/sport/v3_team_gender.dart';
 import '/v3/tracking/v3_track.dart';
 import '/v3/v3_squads.dart';
 import '/v3/v3_squad_write.dart';
@@ -37,6 +38,10 @@ class V3AttendancePage extends StatefulWidget {
 
 class _V3AttendancePageState extends State<V3AttendancePage> {
   AttendanceData? _data;
+
+  /// The title as the home list shows it (code + type when left empty,
+  /// Camogie for female teams); the RPC's raw title until it's read.
+  String _title = '';
   bool _loading = true;
   String? _error;
   late final int _tab =
@@ -67,6 +72,9 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
           params: {'p_event_id': widget.eventId});
       final d = AttendanceData.fromJson(r is Map ? r : {});
       if (!mounted) return;
+      v3EventTitle(widget.eventId).then((t) {
+        if (mounted && t.isNotEmpty) setState(() => _title = t);
+      });
       setState(() {
         _data = d.hasError ? null : d;
         _error = d.hasError ? d.error : null;
@@ -314,8 +322,8 @@ class _V3AttendancePageState extends State<V3AttendancePage> {
           Text(tabLabel(_tab),
               overflow: TextOverflow.ellipsis,
               style: V3.tight(17, weight: FontWeight.w600)),
-          if (d != null && d.eventTitle.isNotEmpty)
-            Text(d.eventTitle,
+          if (d != null && (_title.isNotEmpty || d.eventTitle.isNotEmpty))
+            Text(_title.isNotEmpty ? _title : d.eventTitle,
                 overflow: TextOverflow.ellipsis,
                 style: V3.inter(13, color: V3.muted)),
         ]),

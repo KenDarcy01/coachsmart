@@ -11,6 +11,7 @@ import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
+import '/v3/sport/v3_team_gender.dart';
 import '../v3_theme.dart';
 import 'v3_search_models.dart';
 
@@ -70,6 +71,7 @@ class _V3SearchPageState extends State<V3SearchPage> {
         if (x.teamId == def) t = x;
       }
       t ??= teams.length == 1 ? teams.first : null;
+      await V3TeamGender.load(teams.map((x) => x.teamId));
       if (!mounted) return;
       setState(() {
         _teams = teams;
@@ -222,7 +224,7 @@ class _V3SearchPageState extends State<V3SearchPage> {
                           ),
                           for (final x in _team!.eventCodes)
                             (
-                              x.name,
+                              V3TeamGender.code(x.name, _team!.teamId),
                               _codeId == x.id,
                               () => setState(() => _codeId = x.id)
                             )

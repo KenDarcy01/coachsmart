@@ -30,6 +30,7 @@ import 'v3_event_teams.dart';
 import 'v3_reminder_sheet.dart';
 import 'v3_series_scope.dart';
 import '/v3/sport/v3_sport.dart';
+import '/v3/sport/v3_team_gender.dart';
 import '/v3/tracking/v3_track.dart';
 
 /// Number of users a reminder went to. `populate_event_notifications`
@@ -286,10 +287,11 @@ class _V3EventPageState extends State<V3EventPage> {
     try {
       final row = await SupaFlow.client
           .from('teams')
-          .select('allow_lineup,club_id')
+          .select('allow_lineup,club_id,team_female')
           .eq('team_id', teamId)
           .maybeSingle();
       if (!mounted || row == null) return;
+      V3TeamGender.remember(teamId, row['team_female']);
       setState(() {
         _teamAllowsLineup = row['allow_lineup'] == true;
       });
@@ -873,7 +875,7 @@ class _V3EventPageState extends State<V3EventPage> {
     final home = ha.toLowerCase() == 'home';
     final sub = [
       'Match',
-      if (e.eventCode.isNotEmpty) e.eventCode,
+      if (e.eventCode.isNotEmpty) V3TeamGender.code(e.eventCode, e.teamId),
     ].join(' · ');
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1548,7 +1550,7 @@ class _V3EventPageState extends State<V3EventPage> {
     }
     final type = [
       if (e.eventType.isNotEmpty) e.eventType,
-      if (e.eventCode.isNotEmpty) e.eventCode,
+      if (e.eventCode.isNotEmpty) V3TeamGender.code(e.eventCode, e.teamId),
     ].join(' · ');
     if (type.isNotEmpty) rows.add(_row('Type', type));
     if (e.opposition.isNotEmpty && !oppCard) {

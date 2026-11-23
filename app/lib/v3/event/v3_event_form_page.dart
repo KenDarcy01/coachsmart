@@ -17,6 +17,7 @@ import '/flutter_flow/upload_data.dart';
 import '../v3_theme.dart';
 import 'v3_event_notify_sheet.dart';
 import 'v3_series_scope.dart';
+import '/v3/sport/v3_team_gender.dart';
 import '/v3/tracking/v3_track.dart';
 
 const int kMatchTypeId = 2;
@@ -82,7 +83,8 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
   bool get _editing => widget.eventId != null;
 
   List<CreateTeamsStruct> _teams = [];
-  Map<int, bool> _paymentsAllowed = {}; // teamId -> payments on AND verified Stripe account
+  Map<int, bool> _paymentsAllowed =
+      {}; // teamId -> payments on AND verified Stripe account
   CurrentEventStruct? _current;
   Map<String, dynamic> _currentRaw = {};
   bool _loading = true, _failed = false, _saving = false;
@@ -173,7 +175,8 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
         try {
           final rows = await SupaFlow.client
               .from('teams')
-              .select('team_id, stripe_account_id, stripe_charges_enabled, stripe_approved_at')
+              .select(
+                  'team_id, stripe_account_id, stripe_charges_enabled, stripe_approved_at')
               .inFilter('team_id', pay.keys.toList());
           final verified = <int>{
             for (final t in (rows as List).whereType<Map>())
@@ -187,6 +190,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
           pay.clear();
         }
       }
+      await V3TeamGender.load(teams.map((t) => t.teamId));
       _teams = teams;
       _paymentsAllowed = pay;
       if (_editing) {
@@ -281,7 +285,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
 
   String get _codeName {
     for (final c in _team?.eventCodes ?? <EventCodesStruct>[]) {
-      if (c.id == _codeId) return c.name;
+      if (c.id == _codeId) return V3TeamGender.code(c.name, _team?.teamId);
     }
     return '';
   }
@@ -856,7 +860,7 @@ class _V3EventFormPageState extends State<V3EventFormPage> {
                 'Code',
                 _chips([
                   for (final c in codes)
-                    _Chip(c.name, _codeId == c.id,
+                    _Chip(V3TeamGender.code(c.name, t.teamId), _codeId == c.id,
                         () => setState(() => _codeId = c.id)),
                 ])),
         ]),

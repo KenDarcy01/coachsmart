@@ -21,6 +21,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '/backend/supabase/supabase.dart';
+import '/v3/sport/v3_team_gender.dart';
 import '../v3_theme.dart';
 import 'v3_match_charts.dart';
 import 'v3_match_stats_models.dart';
@@ -115,8 +116,17 @@ class _V3MatchStatsPageState extends State<V3MatchStatsPage>
     }
     final r = await SupaFlow.client
         .rpc('get_match_stats_session', params: {'p_match_stats_id': id});
-    return MsSession.fromJson(r);
+    final s = MsSession.fromJson(r);
+    if (s != null) {
+      // Read once per event: the session refreshes every few seconds.
+      final t = _titles[s.eventId] ??= await v3EventTitle(s.eventId);
+      if (t.isNotEmpty) s.eventTitle = t;
+    }
+    return s;
   }
+
+  /// Event titles as the home list shows them, by event id.
+  final Map<int, String> _titles = {};
 
   String _why(Object e) =>
       e is PostgrestException ? e.message : 'unknown error';

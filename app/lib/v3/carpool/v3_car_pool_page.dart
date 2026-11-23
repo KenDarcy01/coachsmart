@@ -13,6 +13,7 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '../teams/v3_team_models.dart' show V3Avatar;
 import '../v3_theme.dart';
 import 'v3_car_pool_models.dart';
+import '/v3/sport/v3_team_gender.dart';
 import '/v3/tracking/v3_track.dart';
 
 class V3CarPoolPage extends StatefulWidget {
@@ -34,6 +35,10 @@ class V3CarPoolPage extends StatefulWidget {
 
 class _V3CarPoolPageState extends State<V3CarPoolPage> {
   CarPoolDetailStruct? _pool;
+
+  /// The event's title as the home list shows it (code + type when left
+  /// empty, Camogie for female teams); the RPC's title until it's read.
+  String _title = '';
   bool _loading = true, _busy = false;
   String? _error;
 
@@ -54,6 +59,11 @@ class _V3CarPoolPageState extends State<V3CarPoolPage> {
           ? CarPoolDetailStruct.maybeFromMap(Map<String, dynamic>.from(r))
           : null;
       if (!mounted) return;
+      if (widget.testData == null && _title.isEmpty) {
+        v3EventTitle(widget.eventId).then((t) {
+          if (mounted && t.isNotEmpty) setState(() => _title = t);
+        });
+      }
       setState(() {
         _pool = p;
         _loading = false;
@@ -264,13 +274,17 @@ class _V3CarPoolPageState extends State<V3CarPoolPage> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
                     children: [
-                      if (p.eventTitle.isNotEmpty ||
+                      if (_title.isNotEmpty ||
+                          p.eventTitle.isNotEmpty ||
                           p.eventDateFormatted.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
                               [
-                                if (p.eventTitle.isNotEmpty) p.eventTitle,
+                                if (_title.isNotEmpty)
+                                  _title
+                                else if (p.eventTitle.isNotEmpty)
+                                  p.eventTitle,
                                 if (p.eventDateFormatted.isNotEmpty)
                                   p.eventDateFormatted
                               ].join(' · '),

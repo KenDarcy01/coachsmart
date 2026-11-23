@@ -255,7 +255,10 @@ class MsSession {
   final int eventId;
   final String teamName;
   final String opposition;
-  final String eventTitle;
+
+  /// The RPC's title; the page swaps in the home list's title (code +
+  /// type, Camogie for female teams) once it's read.
+  String eventTitle;
   final DateTime? finalisedAt;
   MsTimer timer;
   final List<MsEvent> events;

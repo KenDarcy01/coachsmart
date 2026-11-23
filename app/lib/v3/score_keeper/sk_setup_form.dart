@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '/v3/sport/v3_team_gender.dart';
 import '../v3_theme.dart';
 import 'sk_controller.dart';
 import 'sk_widgets.dart';
@@ -90,9 +91,12 @@ class _SkSetupFormState extends State<SkSetupForm> {
     final c = widget.ctl.c!;
     final ev = DateTime.tryParse(c.eventDateTime)?.toLocal();
     final when = ev == null ? '' : DateFormat('EEE d MMM').format(ev);
-    final subLine = [when, c.eventCode, c.eventType, c.teamName]
-        .where((x) => x.isNotEmpty)
-        .join(' · ');
+    final subLine = [
+      when,
+      V3TeamGender.code(c.eventCode, c.teamId),
+      c.eventType,
+      c.teamName
+    ].where((x) => x.isNotEmpty).join(' · ');
     final dm = (d.dur / 60).round();
     final other = d.otherDur || !kSkDurations.contains(dm);
     final opp = d.opp.trim();
