@@ -966,6 +966,9 @@ void main() {
     expect(find.text('Pitch 19'), findsOneWidget);
     expect(find.text('Closed · Waterlogged'), findsNWidgets(2));
     expect(find.text('Free'), findsWidgets);
+    // Overlapping bookings are flagged here too.
+    expect(find.textContaining(': 1 clash'), findsOneWidget);
+    expect(find.text('Clash'), findsNWidgets(2));
     // The panel is tucked in until its tab is tapped.
     expect(find.text('Weekend · needs a pitch'.toUpperCase()).hitTestable(),
         findsNothing);

@@ -18,12 +18,16 @@ class _Line {
       {this.bar,
       this.free = false,
       this.faint = false,
+      this.clash = false,
       this.onTap,
       this.onDrop});
   final int at;
   final String when, what;
   final Color? bar;
   final bool free, faint;
+
+  /// Overlaps another booking on this pitch (or on the same ground).
+  final bool clash;
   final VoidCallback? onTap;
 
   /// A free slot takes a fixture or group dropped on it.
@@ -91,6 +95,9 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
       final slots = p.slotsOn(day.weekday);
       final matched = board.matchedOn(day, pitchId: p.pitchId);
       final other = board.sharedBookingsOn(day, p.pitchId);
+      final clashing = {
+        for (final (a, b) in board.clashesOn(day)) ...[a.bookingId, b.bookingId]
+      };
       return [
         for (final b in bookings)
           _Line(
@@ -100,6 +107,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                   ? c.titleOf(b)
                   : '${c.titleOf(b)} · throw-in ${timeOf(board.earlyThrowIn(b)!)}',
               bar: codeColour(bookingCode(c, b)),
+              clash: clashing.contains(b.bookingId),
               onTap: () => open(BookingSheet(c: c, booking: b))),
         for (final e in matched)
           _Line(minutesOf(e.start), timeOf(e.start), c.titleOfEvent(e),
@@ -182,10 +190,28 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
           onPressed: () => c.shiftDays(7),
           icon: Icon(Icons.chevron_right, color: PT.text)),
     ]);
+    final grassIds = {for (final p in grass) p.pitchId};
+    int clashesOn(DateTime d) => board
+        .clashesOn(d)
+        .where((x) =>
+            grassIds.contains(x.$1.pitchId) || grassIds.contains(x.$2.pitchId))
+        .length;
     final counts = [
-      for (final d in days)
+      for (final d in days) ...[
         _count(_weekend ? kDayNames[d.weekday - 1] : kWeekdays[d.weekday - 1],
             freeOn(d)),
+        if (clashesOn(d) > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+                color: PT.redTint, borderRadius: BorderRadius.circular(20)),
+            child: Text(
+                '${_weekend ? kDayNames[d.weekday - 1] : kWeekdays[d.weekday - 1]}: '
+                '${clashesOn(d)} clash${clashesOn(d) == 1 ? '' : 'es'}',
+                style: PT.inter(13,
+                    weight: FontWeight.w700, color: PT.redText)),
+          ),
+      ],
     ];
     Widget chip(String label, bool on, VoidCallback tap) => Padding(
           padding: const EdgeInsets.only(right: 8),
@@ -372,6 +398,16 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
         ]);
   }
 
+  static Widget _clashTag() => Padding(
+        padding: const EdgeInsets.only(left: 6),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.warning_amber_rounded, size: 15, color: PT.redText),
+          const SizedBox(width: 3),
+          Text('Clash',
+              style: PT.inter(12, weight: FontWeight.w700, color: PT.redText)),
+        ]),
+      );
+
   static Widget _count(String day, int n) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
@@ -404,8 +440,16 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
           margin: const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
-              color: l.free ? PT.greenTint : null,
-              border: hover ? Border.all(color: PT.green, width: 2) : null,
+              color: l.free
+                  ? PT.greenTint
+                  : l.clash
+                      ? PT.redTint
+                      : null,
+              border: hover
+                  ? Border.all(color: PT.green, width: 2)
+                  : l.clash
+                      ? Border.all(color: PT.redText, width: 1.5)
+                      : null,
               borderRadius: BorderRadius.circular(8)),
           child: _weekend || !wide ? _wideLine(l) : _stackedLine(l),
         ),
@@ -439,6 +483,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                     weight: l.free ? FontWeight.w700 : FontWeight.w500,
                     color: _whatColour(l)))),
         if (l.free) Icon(Icons.add_circle_outline, size: 17, color: PT.green),
+        if (l.clash) _clashTag(),
       ]);
 
   /// Five days side by side: the time above the name, so names fit.
@@ -447,6 +492,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
         Row(children: [
           Expanded(child: Text(l.when, style: PT.inter(12, color: PT.muted))),
           if (l.free) Icon(Icons.add_circle_outline, size: 15, color: PT.green),
+          if (l.clash) _clashTag(),
         ]),
         const SizedBox(height: 2),
         Row(children: [
