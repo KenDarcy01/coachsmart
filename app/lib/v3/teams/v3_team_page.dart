@@ -15,6 +15,8 @@ import '../v3_theme.dart';
 import 'v3_team_models.dart';
 import 'v3_squad_setup_page.dart';
 import 'v3_team_payments_page.dart';
+import '/v3/spend/v3_spend_api.dart';
+import '/v3/spend/v3_spend_page.dart';
 import '/v3/tracking/v3_track.dart';
 import '../v3_share.dart';
 import '/v3/v3_squads.dart';
@@ -96,6 +98,9 @@ class _V3TeamPageState extends State<V3TeamPage> {
         GetUserTeamSummaryCall.call(
             pUserId: currentUserUid, supabaseJWTtoken: currentJwtToken),
       ]);
+      SpendApi.hasAccess().then((on) {
+        if (mounted && on != _spendOn) setState(() => _spendOn = on);
+      });
       final links = await UserMemberLinkTable()
           .queryRows(queryFn: (q) => q.eq('user_id', currentUserUid));
       if (!mounted) return;
@@ -190,6 +195,18 @@ class _V3TeamPageState extends State<V3TeamPage> {
   // Team Stripe Connect (2026-11-12): web preview only until Ken approves it
   // for the phone builds.
   bool get _showPayments => _admin && kIsWeb;
+
+  // Spend & gear (2026-11-23): team admins whose account it is switched on
+  // for (Ken only while it is tried).
+  bool _spendOn = false;
+  bool get _showSpend => _admin && _spendOn;
+
+  Future<void> _openSpend() async {
+    V3Track.event('spend_opened');
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => V3SpendPage(
+            teamId: widget.teamId, teamName: _roster?.teamName ?? '')));
+  }
 
   Future<void> _openPayments() async {
     V3Track.event('team_payments_opened');
@@ -387,6 +404,7 @@ class _V3TeamPageState extends State<V3TeamPage> {
                   _header(r),
                   _codeCard(r),
                   if (_showPayments) _paymentsRow(),
+                  if (_showSpend) _spendRow(),
                   if (_admin && (_summary?.pending ?? 0) > 0)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -450,6 +468,32 @@ class _V3TeamPageState extends State<V3TeamPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text('Payments · get paid to your bank',
+                      style: V3.inter(15, weight: FontWeight.w600)),
+                ),
+                const Icon(Icons.chevron_right, color: V3.muted),
+              ]),
+            ),
+          ),
+        ),
+      );
+
+  Widget _spendRow() => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Material(
+          color: V3.card,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            key: const ValueKey('team-spend-row'),
+            borderRadius: BorderRadius.circular(14),
+            onTap: _openSpend,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+              child: Row(children: [
+                const Icon(Icons.receipt_long_outlined,
+                    color: V3.green, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Spend & gear · expenses and gear requests',
                       style: V3.inter(15, weight: FontWeight.w600)),
                 ),
                 const Icon(Icons.chevron_right, color: V3.muted),
