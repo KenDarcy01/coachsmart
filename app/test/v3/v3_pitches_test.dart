@@ -341,6 +341,12 @@ class FakePitchApi extends PitchApi {
   @override
   Future<void> saveBooking(int clubId, Map<String, dynamic> booking) async =>
       saved.add(booking);
+  List<Map> later = [];
+  @override
+  Future<List<Map>> futureClashes(
+          int clubId, int pitchId, int part, DateTime start, DateTime end,
+          {int? bookingId, int? groupId}) async =>
+      later;
   final filled = <Map<String, dynamic>>[];
   Set<int> autos = {};
   @override
@@ -1150,6 +1156,35 @@ void main() {
     await t.pumpAndSettle();
     expect(find.textContaining('08:45–'), findsWidgets);
     await _shot(t, 'pp-throw-in', whole: true);
+  });
+
+  testWidgets('training that clashes with a later booking warns first',
+      (t) async {
+    final api = FakePitchApi()
+      ..later = [
+        {
+          'title': 'U14 Boys v Raheny',
+          'pitch': 'Clubhouse Astro',
+          'starts_at': '2026-12-12T11:00:00',
+          'ends_at': '2026-12-12T12:30:00',
+        }
+      ];
+    await _pumpBoard(t, const Size(1440, 1000), api);
+    await t.tap(find.text('U8 Boys').hitTestable().first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Save'));
+    await t.pumpAndSettle();
+    expect(find.text('Clashes in later weeks'), findsOneWidget);
+    expect(find.text('U14 Boys v Raheny'), findsWidgets);
+    await _shot(t, 'pp-future-clash', whole: true);
+    await t.tap(find.text('Pick another slot'));
+    await t.pumpAndSettle();
+    expect(api.saved, isEmpty);
+    await t.tap(find.text('Save'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Keep it anyway'));
+    await t.pumpAndSettle();
+    expect(api.saved, hasLength(1));
   });
 
   testWidgets('mock-up: grass on weekdays with evening slots', (t) async {

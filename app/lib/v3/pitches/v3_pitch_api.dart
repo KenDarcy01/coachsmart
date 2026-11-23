@@ -208,6 +208,27 @@ class PitchApi {
   Future<void> saveBooking(int clubId, Map<String, dynamic> booking) =>
       _rpc('pitch_booking_save_v2', {'p_club': clubId, 'p': booking});
 
+  /// Bookings in the next 26 weeks that a weekly slot would clash with
+  /// (same pitch and part, or a pitch on the same ground), leaving out the
+  /// booking's own rolled copies and the group's own sessions.
+  Future<List<Map>> futureClashes(
+      int clubId, int pitchId, int part, DateTime start, DateTime end,
+      {int? bookingId, int? groupId}) async {
+    final r = await _rpc('pitch_future_clashes', {
+      'p_club': clubId,
+      'p_pitch': pitchId,
+      'p_part': part,
+      'p_start': isoLocal(start),
+      'p_end': isoLocal(end),
+      'p_booking': bookingId,
+      'p_group': groupId,
+    });
+    return [
+      for (final x in (r as List? ?? const []))
+        if (x is Map) x
+    ];
+  }
+
   Future<void> saveGroup(int clubId, Map<String, dynamic> group) =>
       _rpc('pitch_group_save', {'p_club': clubId, 'p': group});
 

@@ -43,6 +43,103 @@ void pitchSnack(BuildContext context, String text) =>
         backgroundColor: PT.card2,
         content: Text(text, style: PT.inter(15, weight: FontWeight.w500))));
 
+/// Training rolls into the following weeks: before saving a weekly slot,
+/// warn if it clashes with something already booked in a later week, e.g.
+/// a match booked well ahead (Ken 2026-11-23). True = go ahead.
+Future<bool> pitchFutureOk(BuildContext context, PitchController c,
+    {required int pitchId,
+    required int part,
+    required DateTime start,
+    required DateTime end,
+    int? bookingId,
+    int? groupId}) async {
+  List<Map> hits;
+  try {
+    hits = await c.api.futureClashes(c.club.clubId, pitchId, part, start, end,
+        bookingId: bookingId, groupId: groupId);
+  } catch (_) {
+    return true; // The check is a help; never block a save on it.
+  }
+  if (hits.isEmpty || !context.mounted) return true;
+  String when(Map h) {
+    final s = DateTime.tryParse('${h['starts_at']}');
+    final e = DateTime.tryParse('${h['ends_at']}');
+    if (s == null) return '';
+    return '${kWeekdays[s.weekday - 1]} ${s.day} '
+        '${kMonths[s.month - 1].substring(0, 3)} · ${timeOf(s)}'
+        '${e == null ? '' : '–${timeOf(e)}'}';
+  }
+
+  final shown = hits.take(6).toList();
+  final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+            backgroundColor: PT.card,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Text('Clashes in later weeks',
+                style: PT.inter(18, weight: FontWeight.w700)),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'This training repeats every week, and the slot is '
+                        'already booked on ${hits.length == 1 ? 'this date' : 'these dates'}:',
+                        style: PT.inter(14, color: PT.muted)),
+                    const SizedBox(height: 12),
+                    for (final h in shown)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(top: 2, right: 10),
+                                child: Icon(Icons.warning_amber_rounded,
+                                    size: 18, color: PT.redText),
+                              ),
+                              Expanded(
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${h['title'] ?? ''}',
+                                          style: PT.inter(15,
+                                              weight: FontWeight.w600)),
+                                      Text('${when(h)} · ${h['pitch'] ?? ''}',
+                                          style: PT.inter(13, color: PT.muted)),
+                                    ]),
+                              ),
+                            ]),
+                      ),
+                    if (hits.length > shown.length)
+                      Text('and ${hits.length - shown.length} more',
+                          style: PT.inter(13, color: PT.muted)),
+                    const SizedBox(height: 4),
+                    Text(
+                        'If you keep it, those weeks will show a clash to sort.',
+                        style: PT.inter(13, color: PT.muted)),
+                  ]),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text('Pick another slot',
+                      style: PT.inter(15, weight: FontWeight.w600))),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text('Keep it anyway',
+                      style: PT.inter(15,
+                          weight: FontWeight.w700, color: PT.redText))),
+            ],
+          ));
+  return ok ?? false;
+}
+
 // ------------------------------------------------------------------ bits
 
 class _Frame extends StatelessWidget {
@@ -366,6 +463,16 @@ class _PlaceSheetState extends State<PlaceSheet> {
             onTap: pick == null || c.busy
                 ? null
                 : () async {
+                    if (item.kind == 'training' &&
+                        !await pitchFutureOk(context, c,
+                            pitchId: pick.pitch.pitchId,
+                            part: pick.part,
+                            start: pick.start,
+                            end: pick.end,
+                            bookingId: item.request?.bookingId)) {
+                      return;
+                    }
+                    if (!context.mounted) return;
                     final err = await c.place(
                         item, pick.pitch, pick.start, pick.end, pick.part,
                         referee: _ref.text.trim(), rooms: _rooms.text.trim());
@@ -665,6 +772,19 @@ class _BookingSheetState extends State<BookingSheet> {
                         'dressing_rooms': _rooms.text.trim(),
                       'following': _following,
                     };
+                    if (_kind == 'training' &&
+                        _pitch != null &&
+                        (isNew || _following) &&
+                        !await pitchFutureOk(context, c,
+                            pitchId: _pitch!.pitchId,
+                            part: _part,
+                            start: _start,
+                            end: end,
+                            bookingId: b?.bookingId,
+                            groupId: linked ? null : _groupId)) {
+                      return;
+                    }
+                    if (!context.mounted) return;
                     final err = await c.saveBooking(p);
                     if (!context.mounted) return;
                     if (err != null) return pitchSnack(context, err);

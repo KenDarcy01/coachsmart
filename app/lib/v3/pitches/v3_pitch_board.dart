@@ -113,6 +113,12 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
           await _open(
               BookingSheet(c: c, group: group, pitch: pitch, at: start));
         } else {
+          if (!await pitchFutureOk(context, c,
+              pitchId: pitch.pitchId,
+              part: part,
+              start: start,
+              end: end,
+              groupId: group.groupId)) return;
           await _quick(c.placeGroup(group, pitch, start, end, part),
               '${group.name} on ${pitch.name} ${timeOf(start)} every week from now.');
         }
@@ -134,6 +140,13 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
           }
           part = alt;
         }
+        if (booking.kind == 'training' &&
+            !await pitchFutureOk(context, c,
+                pitchId: pitch.pitchId,
+                part: part,
+                start: s,
+                end: e,
+                bookingId: booking.bookingId)) return;
         await _quick(
             c.moveBooking(booking, pitch.pitchId, part, s, e),
             '${c.titleOf(booking)} moved to ${pitch.name} ${timeOf(s)}'
