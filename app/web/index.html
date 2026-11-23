@@ -72,6 +72,30 @@
 <body>
   <div id="splash"><img src="icons/Icon-512.png" alt=""><div class="bar"><i></i></div></div>
   <script>
+    // The club pitch planner (Ken, 2026-11-23) never shows CoachSmart while
+    // it loads: a light screen with the club's crest and colour (remembered
+    // from the last visit) instead of the CoachSmart splash.
+    (function () {
+      var path = location.pathname, q = location.search;
+      if (path.indexOf('/pitches') !== 0 || /look=app/.test(q)) return;
+      var b = {};
+      try { b = JSON.parse(localStorage.getItem('cs_pitch_brand') || '{}') || {}; } catch (e) {}
+      var bg = '#f4f5f7', col = b.colour || '#6b7280';
+      document.documentElement.style.background = bg;
+      document.body.style.background = bg;
+      document.title = b.name || 'Pitch planner';
+      document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.content = bg; });
+      var s = document.getElementById('splash');
+      s.style.background = bg;
+      var img = s.querySelector('img');
+      if (b.icon) { img.src = b.icon; img.style.borderRadius = '0'; img.style.objectFit = 'contain'; }
+      else img.remove();
+      s.querySelector('.bar').style.background = '#e2e5ea';
+      s.querySelector('.bar i').style.background = col;
+      if (b.icon) document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(function (l) { l.href = b.icon; });
+    })();
+  </script>
+  <script>
     window.addEventListener('flutter-first-frame', function () {
       var s = document.getElementById('splash');
       if (!s) return;

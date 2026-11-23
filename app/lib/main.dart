@@ -15,6 +15,7 @@ import '/backend/supabase/supabase.dart';
 import 'backend/firebase/firebase_config.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 import '/v3/tracking/v3_track.dart';
+import '/v3/web/v3_handover.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,8 @@ void main() async {
   // End initial custom actions code
 
   await SupaFlow.initialize();
+  // Signed in on the club page already: carry that login over.
+  await adoptHandoverSession();
 
   final appState = FFAppState(); // Initialize FFAppState
   await appState.initializePersistedState();

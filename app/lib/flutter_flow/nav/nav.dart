@@ -682,19 +682,23 @@ class FFRoute {
                   builder: (context, _) => builder(context, ffParams),
                 )
               : builder(context, ffParams);
-          final child = appStateNotifier.loading
-              ? Center(
-                  child: SizedBox(
-                    width: 50.0,
-                    height: 50.0,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        FlutterFlowTheme.of(context).coachSmartGreen,
+          final child = appStateNotifier.loading &&
+                  state.uri.path.startsWith('/pitches')
+              // The club planner shows no CoachSmart spinner (Ken 2026-11-23).
+              ? const ColoredBox(color: Color(0xFFF4F5F7))
+              : appStateNotifier.loading
+                  ? Center(
+                      child: SizedBox(
+                        width: 50.0,
+                        height: 50.0,
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            FlutterFlowTheme.of(context).coachSmartGreen,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                )
-              : page;
+                    )
+                  : page;
 
           final transitionInfo = state.transitionInfo;
           return transitionInfo.hasTransition

@@ -11,6 +11,10 @@ void setClubPwa(
   try {
     final doc = web.document;
     doc.title = name;
+    // Remembered so the next load shows the club, not CoachSmart, while the
+    // app downloads (web/index.html reads it).
+    web.window.localStorage.setItem('cs_pitch_brand',
+        jsonEncode({'name': name, 'icon': icon, 'colour': colour}));
     void meta(String n, String content) {
       var m = doc.querySelector('meta[name="$n"]') as web.HTMLMetaElement?;
       if (m == null) {
