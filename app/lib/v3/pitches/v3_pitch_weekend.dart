@@ -163,7 +163,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                   border: Border.all(color: c.club.accent, width: 2),
                   borderRadius: BorderRadius.circular(10)),
           child: ls.isEmpty
-              ? _note('Unavailable', PT.muted, PT.card2)
+              ? _unavailable()
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [for (final l in ls) _lineRow(l)]),
@@ -208,8 +208,8 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
             child: Text(
                 '${_weekend ? kDayNames[d.weekday - 1] : kWeekdays[d.weekday - 1]}: '
                 '${clashesOn(d)} clash${clashesOn(d) == 1 ? '' : 'es'}',
-                style: PT.inter(13,
-                    weight: FontWeight.w700, color: PT.redText)),
+                style:
+                    PT.inter(13, weight: FontWeight.w700, color: PT.redText)),
           ),
       ],
     ];
@@ -398,6 +398,19 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
         ]);
   }
 
+  /// Time the club does not hold: the Day board's grey stripes.
+  static Widget _unavailable() => ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: CustomPaint(
+          painter: const PitchHatch(),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            child: Text('Unavailable', style: PT.inter(12.5, color: PT.faint)),
+          ),
+        ),
+      );
+
   static Widget _clashTag() => Padding(
         padding: const EdgeInsets.only(left: 6),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -440,8 +453,10 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
           margin: const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
+              // Free slots look like the Day board's: a white box with a
+              // thin outline (Ken 2026-11-23).
               color: l.free
-                  ? PT.greenTint
+                  ? PT.slot
                   : l.clash
                       ? PT.redTint
                       : null,
@@ -449,14 +464,16 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                   ? Border.all(color: PT.green, width: 2)
                   : l.clash
                       ? Border.all(color: PT.redText, width: 1.5)
-                      : null,
-              borderRadius: BorderRadius.circular(8)),
+                      : l.free
+                          ? Border.all(color: PT.slotLine)
+                          : null,
+              borderRadius: BorderRadius.circular(6)),
           child: _weekend || !wide ? _wideLine(l) : _stackedLine(l),
         ),
       );
 
   Color _whatColour(_Line l) => l.free
-      ? PT.green
+      ? PT.faint
       : l.faint
           ? PT.muted
           : PT.text;
@@ -480,9 +497,9 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: PT.inter(13.5,
-                    weight: l.free ? FontWeight.w700 : FontWeight.w500,
+                    weight: l.free ? FontWeight.w400 : FontWeight.w500,
                     color: _whatColour(l)))),
-        if (l.free) Icon(Icons.add_circle_outline, size: 17, color: PT.green),
+        if (l.free) Icon(Icons.add, size: 16, color: PT.faint),
         if (l.clash) _clashTag(),
       ]);
 
@@ -491,7 +508,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(l.when, style: PT.inter(12, color: PT.muted))),
-          if (l.free) Icon(Icons.add_circle_outline, size: 15, color: PT.green),
+          if (l.free) Icon(Icons.add, size: 15, color: PT.faint),
           if (l.clash) _clashTag(),
         ]),
         const SizedBox(height: 2),
@@ -502,7 +519,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: PT.inter(13,
-                      weight: l.free ? FontWeight.w700 : FontWeight.w600,
+                      weight: l.free ? FontWeight.w400 : FontWeight.w600,
                       color: _whatColour(l)))),
         ]),
       ]);

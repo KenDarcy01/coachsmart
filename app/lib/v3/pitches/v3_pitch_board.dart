@@ -604,7 +604,7 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
             right: 0,
             child: IgnorePointer(
               child: CustomPaint(
-                painter: const _Hatch(),
+                painter: const PitchHatch(),
                 child: Container(
                   alignment: Alignment.topLeft,
                   padding: const EdgeInsets.fromLTRB(6, 3, 0, 0),
@@ -650,7 +650,11 @@ class _PitchDayBoardState extends State<PitchDayBoard> {
                       p.slots.isNotEmpty &&
                       !booked.any((b) =>
                           minutesOf(b.start) < s.closes &&
-                          minutesOf(b.end) > s.opens)
+                          minutesOf(b.end) > s.opens) &&
+                      !matched.any((e) =>
+                          minutesOf(e.start) < s.closes &&
+                          minutesOf(e.start) + c.minutesFor(c.itemOfEvent(e)) >
+                              s.opens)
                   ? Row(children: [
                       Expanded(
                         child: Text(s.label,
@@ -1257,8 +1261,8 @@ class _GroupCard extends StatelessWidget {
 }
 
 /// Light grey diagonal stripes for time the club does not hold.
-class _Hatch extends CustomPainter {
-  const _Hatch();
+class PitchHatch extends CustomPainter {
+  const PitchHatch();
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
@@ -1278,7 +1282,7 @@ class _Hatch extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _Hatch oldDelegate) => false;
+  bool shouldRepaint(covariant PitchHatch oldDelegate) => false;
 }
 
 /// The red tab on the edge of the fixtures and groups panel: tap to slide
