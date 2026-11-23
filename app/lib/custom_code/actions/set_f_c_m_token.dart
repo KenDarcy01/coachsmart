@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform; // Platform checks
 import '/flutter_flow/flutter_flow_util.dart'; // Required for updateAppState
@@ -104,8 +105,18 @@ Future<void> setFCMToken() async {
         if (apns == null) await Future.delayed(const Duration(seconds: 1));
       }
       if (apns == null) {
+        // The iOS AppDelegate keeps Apple's refusal reason, if there was one.
+        var why = '';
+        try {
+          final p = await SharedPreferences.getInstance();
+          await p.reload();
+          why = p.getString('cs_apns_error') ?? '';
+        } catch (_) {}
+        final msg = why.isEmpty
+            ? 'No APNs token from Apple.'
+            : 'No APNs token from Apple: ${_short(why)}';
         FFAppState().update(() {
-          FFAppState().fcmToken = 'No APNs token from Apple.';
+          FFAppState().fcmToken = msg;
         });
         return;
       }
