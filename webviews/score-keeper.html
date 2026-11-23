@@ -1267,6 +1267,9 @@ function renderSetup() {
     draft = {
       opp: st.opp != null ? st.opp : ((C.event && C.event.opposition) || ''),
       squadId: st.squadId || null,
+      // The squad must be picked (a squad or Whole team) before the first Ready,
+      // so followers can tell parallel matches apart; a saved setup counts as picked
+      squadPicked: !!S.setup,
       dur: st.dur || 1800,
       inj: st.inj != null ? st.inj : 300,
       throwIn: st.throwAt ? hhmm(st.throwAt) : '',
@@ -1281,7 +1284,8 @@ function renderSetup() {
   $('setup').innerHTML = `<h2>${esc(usName())}${draft.opp ? ' v ' + esc(draft.opp) : ''}</h2>
     <div class="sub">${esc([when, ev.event_code, ev.event_type, ev.team_name].filter(Boolean).join(' · '))}</div>
     <div class="field"><label>Opposition</label><input id="fOpp" value="${esc(draft.opp)}" placeholder="Who are you playing?" autocomplete="off"/></div>
-    ${C.squads.length ? `<div class="field"><label>Squad</label><select id="fSquad"><option value="">Whole team</option>${C.squads.map(s => `<option value="${s.squad_id}" ${draft.squadId === s.squad_id ? 'selected' : ''}>${esc(s.squad_name)}</option>`).join('')}</select></div>
+    ${C.squads.length ? `<div class="field"><label>Squad</label><select id="fSquad">${draft.squadPicked ? '' : '<option value="" selected disabled>Pick a squad</option>'}<option value="0" ${draft.squadPicked && !draft.squadId ? 'selected' : ''}>Whole team</option>${C.squads.map(s => `<option value="${s.squad_id}" ${draft.squadId === s.squad_id ? 'selected' : ''}>${esc(s.squad_name)}</option>`).join('')}</select>
+      ${draft.squadPicked ? '' : '<div class="hint" id="sqHint" style="color:var(--amber)">Pick one so followers know which match this is.</div>'}</div>
     <div class="field"><label>Throw-in time and venue, if different</label><div class="twin"><input id="fThrow" type="time" value="${esc(draft.throwIn)}" aria-label="Throw-in time"/><input id="fVenue" value="${esc(draft.venue)}" placeholder="Same as the event" autocomplete="off" aria-label="Venue"/></div>
       <div class="hint">For squads playing at different times or grounds. Shown on the live link.</div></div>` : ''}
     <div class="field"><label>Half length</label><div class="pick" id="fDur">${durs.map(m => `<button data-v="${m}" class="${dm === m ? 'on' : ''}">${m} min</button>`).join('')}<button data-v="other" class="${durs.includes(dm) && !draft.otherDur ? '' : 'on'}">Other</button></div>
@@ -1290,7 +1294,7 @@ function renderSetup() {
       <div class="hint">The clock keeps going into injury time. End the half when the ref blows. If you forget, it ends by itself when injury time is up.</div></div>`;
 }
 $('setup').addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; extraInput(e); otherDurInput(e); });
-$('setup').addEventListener('change', e => { if (e.target.id === 'fSquad') draft.squadId = e.target.value ? Number(e.target.value) : null; });
+$('setup').addEventListener('change', e => { if (e.target.id === 'fSquad') { draft.squadId = Number(e.target.value) || null; draft.squadPicked = true; const h = $('sqHint'); if (h) h.remove(); } });
 $('setup').addEventListener('click', e => {
   const b = e.target.closest('.pick button'); if (!b) return;
   if (b.parentElement.id === 'fDur') {
@@ -1326,6 +1330,7 @@ function focusOtherDur(host) {
 function applySetup() {
   const opp = (draft.opp || '').trim();
   if (!opp) { toast('Add the opposition first'); const i = $('fOpp'); if (i) i.focus(); return; }
+  if (C.squads.length && !draft.squadPicked) { toast('Pick the squad first'); const i = $('fSquad'); if (i) i.focus(); return; }
   const wasFinal = S.phase === 'done';
   const throwAt = throwIso(draft.throwIn), venue = (draft.venue || '').trim();
   S.setup = { opp, squadId: draft.squadId, dur: draft.dur, inj: draft.inj, throwAt, venue,
@@ -1543,7 +1548,7 @@ function openSetupSheet() {
   const host = $('setupInner');
   host.classList.remove('hidden');
   host.addEventListener('input', e => { if (e.target.id === 'fOpp') draft.opp = e.target.value; extraInput(e); otherDurInput(e); });
-  host.addEventListener('change', e => { if (e.target.id === 'fSquad') draft.squadId = e.target.value ? Number(e.target.value) : null; });
+  host.addEventListener('change', e => { if (e.target.id === 'fSquad') { draft.squadId = Number(e.target.value) || null; draft.squadPicked = true; const h = $('sqHint'); if (h) h.remove(); } });
   host.addEventListener('click', e => {
     const b = e.target.closest('.pick button'); if (!b) return;
     if (b.parentElement.id === 'fDur') {

@@ -43,6 +43,8 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;paddin
 .bell.on{background:rgba(135,194,50,.15);color:var(--green)}.bell svg{width:19px;height:19px}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;letter-spacing:1px;padding:2px 7px;border-radius:99px;background:var(--red);color:#fff}
 .pill i{width:6px;height:6px;border-radius:50%;background:#fff;animation:blink 1.6s infinite}
+.sqc{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:1px 8px 1px 6px;border-radius:99px;border:1.5px solid;color:var(--text)}
+.sqc i{width:7px;height:7px;border-radius:50%}
 .pill.ht{background:var(--amber);color:#14181b}.pill.ft{background:var(--card2);color:var(--muted)}
 @keyframes blink{50%{opacity:.25}}
 .note{font-size:12.5px;color:var(--muted);margin:14px 18px;line-height:1.45}
@@ -116,20 +118,25 @@ function until(t) {
 function ha(m) { return m.home_away ? m.home_away.charAt(0).toUpperCase() + m.home_away.slice(1).toLowerCase() : ''; }
 const time = t => new Date(t).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Dublin' });
 
-// When an event has more than one squad playing, each squad gets its own row
-// and the venue shows, as squads can play at different grounds
-const squadLabel = m => m.squad_name && m.squads_in_event > 1 ? ' ' + L.squadShort(m.squad_name) : '';
+// Every row of a squad's match shows a chip with the squad name (even when it is
+// the only squad playing) so followers know which match they are opening. When an
+// event has more than one squad playing the venue shows, as squads can play at
+// different grounds. No chip when the scorer kept "Whole team".
+function squadChip(m) {
+  if (!m.squad_name) return '';
+  const c = L.squadColour({ name: m.squad_name, colour: m.squad_colour }, 0);
+  return `<span class="sqc" style="border-color:${esc(c)};background:${esc(c)}26"><i style="background:${esc(c)}"></i>${esc(L.squadShort(m.squad_name))}</span>`;
+}
 function row(m) {
   const opp = m.opposition || 'Opposition';
   const started = isLive(m) || isDone(m);
   const place = m.squads_in_event > 1 && m.venue ? m.venue : ha(m);
-  const sub = started ? `${pill(m)} ${esc(place)}` : `Throw-in ${m.event_date_time ? time(m.event_date_time) : ''}${place ? ' · ' + esc(place) : ''}`;
+  const sub = squadChip(m) + (started ? ` ${pill(m)} ${esc(place)}` : ` Throw-in ${m.event_date_time ? time(m.event_date_time) : ''}${place ? ' · ' + esc(place) : ''}`);
   const right = started && m.score
     ? `<div class="r">${L.gaa(m.score.us)}<small>v ${L.gaa(m.score.opp)}</small></div>`
     : `<div class="r wait">${m.event_date_time ? until(m.event_date_time) : ''}</div>`;
-  const dot = m.squad_name && m.squads_in_event > 1 ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 5px 1px 0;background:${esc(L.squadColour({ name: m.squad_name, colour: m.squad_colour }, 0))}"></span>` : '';
   return `<div class="mc" data-open="${m.event_id}" data-squad="${m.squad_key == null ? '' : m.squad_key}"><button class="bell ${following(m) ? 'on' : ''}" data-bell="${m.event_id}" aria-label="Alerts">${BELL}</button>
-    <div class="l"><b>${dot}${esc(m.team_name || '')}${esc(squadLabel(m))} v ${esc(opp)}</b><small>${sub}</small></div>${right}</div>`;
+    <div class="l"><b>${esc(m.team_name || '')} v ${esc(opp)}</b><small>${sub}</small></div>${right}</div>`;
 }
 
 function render() {
