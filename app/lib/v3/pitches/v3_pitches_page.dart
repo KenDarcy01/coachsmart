@@ -384,7 +384,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
                   NavigationDestination(
                       icon: Icon(Icons.grass, color: PT.muted),
                       selectedIcon: Icon(Icons.grass, color: club.accent),
-                      label: 'Weekend'),
+                      label: 'Grass'),
                   NavigationDestination(
                       icon: Icon(Icons.visibility_outlined, color: PT.muted),
                       selectedIcon:
@@ -469,7 +469,7 @@ class _V3PitchesPageState extends State<_PitchesBody> {
               PitchTab.fixtures => 'Fixtures',
               PitchTab.availability => 'Availability',
               PitchTab.insights => 'Insights',
-              PitchTab.weekend => 'Weekend grass',
+              PitchTab.weekend => 'Grass',
               _ => 'Pitches and venues'
             },
             style: PT.tight(26)),
@@ -672,7 +672,7 @@ class _Side extends StatelessWidget {
           nav(PitchTab.fixtures, Icons.sports_outlined, 'Fixtures',
               badge: changes),
           nav(PitchTab.board, Icons.view_week_outlined, 'Day board'),
-          nav(PitchTab.weekend, Icons.grass, 'Weekend grass'),
+          nav(PitchTab.weekend, Icons.grass, 'Grass'),
           nav(PitchTab.availability, Icons.event_available_outlined,
               'Availability'),
           nav(PitchTab.groups, Icons.groups_outlined, 'Groups'),

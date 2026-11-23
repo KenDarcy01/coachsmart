@@ -971,11 +971,13 @@ class PitchInbox extends StatelessWidget {
       this.focus,
       required this.onFocus,
       required this.onDay,
-      this.weekend = false});
+      this.days});
   final PitchController c;
 
-  /// Weekend grass view: only this week's Saturday and Sunday items.
-  final bool weekend;
+  /// Grass view: only this week's items on these weekdays (1 = Monday),
+  /// e.g. {6, 7} for the weekend.
+  final Set<int>? days;
+  bool get weekend => days != null && days!.every((d) => d >= 6);
   final Future<void> Function(Widget) open;
   final int? focus;
   final ValueChanged<int?> onFocus;
@@ -988,9 +990,10 @@ class PitchInbox extends StatelessWidget {
         .inbox(clubName: c.club.name, season: c.season)
         .where((i) => !dayOf(i.start).isBefore(c.today))
         .where((i) =>
-            !weekend || (i.start.weekday >= 6 && mondayOf(i.start) == c.monday))
+            days == null ||
+            (days!.contains(i.start.weekday) && mondayOf(i.start) == c.monday))
         .toList();
-    bool now(PlaceItem i) => weekend || board.sameDay(i.start, c.day);
+    bool now(PlaceItem i) => days != null || board.sameDay(i.start, c.day);
     final today = items.where(now).toList();
     final later = items.where((i) => !now(i)).toList();
     final groups = [...board.groups]
@@ -1013,12 +1016,20 @@ class PitchInbox extends StatelessWidget {
         );
 
     return ListView(padding: EdgeInsets.zero, children: [
-      head(weekend ? 'Weekend · needs a pitch' : 'Needs a pitch', items.length),
+      head(
+          days == null
+              ? 'Needs a pitch'
+              : weekend
+                  ? 'Weekend · needs a pitch'
+                  : 'Weekdays · needs a pitch',
+          items.length),
       if (items.isEmpty)
         Text(
-            weekend
-                ? 'Nothing waiting this weekend.'
-                : 'Nothing waiting this week.',
+            days == null
+                ? 'Nothing waiting this week.'
+                : weekend
+                    ? 'Nothing waiting this weekend.'
+                    : 'Nothing waiting on weekdays this week.',
             style: PT.inter(13.5, color: PT.muted)),
       for (final i in [...today, ...later])
         _drag(DragItem(i), _ItemCard(c: c, item: i, dim: !now(i)),

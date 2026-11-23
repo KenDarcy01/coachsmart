@@ -41,14 +41,20 @@ class PitchWeekendView extends StatefulWidget {
 
 class _PitchWeekendViewState extends State<PitchWeekendView> {
   int? _focus;
+
+  /// Weekend (Sat, Sun) or weekdays (Mon-Fri) (Ken 2026-11-23).
+  bool _weekend = true;
   PitchController get c => widget.c;
   bool get wide => widget.wide;
 
   @override
   Widget build(BuildContext context) {
     final board = c.board!;
-    final sat = c.monday.add(const Duration(days: 5));
-    final sun = c.monday.add(const Duration(days: 6));
+    final days = [
+      for (var i = _weekend ? 5 : 0; i < (_weekend ? 7 : 5); i++)
+        c.monday.add(Duration(days: i))
+    ];
+    final first = days.first, last = days.last;
     final grass = [
       for (final p in board.pitches)
         if (p.surface == 'grass') p
@@ -156,31 +162,57 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
     String dm(DateTime d) => '${d.day} ${kMonths[d.month - 1].substring(0, 3)}';
     final nav = Row(children: [
       IconButton(
-          tooltip: 'Last weekend',
+          tooltip: 'Last week',
           onPressed: () => c.shiftDays(-7),
           icon: Icon(Icons.chevron_left, color: PT.text)),
       Flexible(
-        child: Text('Sat ${dm(sat)} – Sun ${dm(sun)}',
+        child: Text(
+            '${kWeekdays[first.weekday - 1]} ${dm(first)} – '
+            '${kWeekdays[last.weekday - 1]} ${dm(last)}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: PT.inter(16, weight: FontWeight.w600)),
       ),
       IconButton(
-          tooltip: 'Next weekend',
+          tooltip: 'Next week',
           onPressed: () => c.shiftDays(7),
           icon: Icon(Icons.chevron_right, color: PT.text)),
     ]);
     final counts = [
-      _count('Saturday', freeOn(sat)),
-      _count('Sunday', freeOn(sun)),
+      for (final d in days)
+        _count(_weekend ? kDayNames[d.weekday - 1] : kWeekdays[d.weekday - 1],
+            freeOn(d)),
     ];
+    Widget chip(String label, bool on, VoidCallback tap) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: tap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                  color: on ? c.club.accent : PT.card,
+                  border: Border.all(color: on ? c.club.accent : PT.line),
+                  borderRadius: BorderRadius.circular(20)),
+              child: Text(label,
+                  style: PT.inter(13.5,
+                      weight: FontWeight.w600,
+                      color: on ? Colors.white : PT.text)),
+            ),
+          ),
+        );
+    final toggle = Row(mainAxisSize: MainAxisSize.min, children: [
+      chip('Weekdays', !_weekend, () => setState(() => _weekend = false)),
+      chip('Weekend', _weekend, () => setState(() => _weekend = true)),
+    ]);
     final weekBar = wide
-        ? Row(children: [
-            Flexible(child: nav),
-            const SizedBox(width: 8),
-            ...counts.expand((w) => [w, const SizedBox(width: 8)]),
+        ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [toggle, Flexible(child: nav)]),
+            const SizedBox(height: 4),
+            Wrap(spacing: 8, runSpacing: 6, children: counts),
           ])
         : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(padding: const EdgeInsets.only(left: 8), child: toggle),
             nav,
             Padding(
               padding: const EdgeInsets.only(left: 8),
@@ -210,7 +242,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
             child: PitchInbox(
                 c: c,
                 open: open,
-                weekend: true,
+                days: {for (final d in days) d.weekday},
                 focus: _focus,
                 onFocus: (id) => setState(() => _focus = id),
                 onDay: (d) => c.pickDay(d))),
@@ -226,10 +258,10 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                 border: Border.all(color: PT.line)),
             clipBehavior: Clip.antiAlias,
             child: Table(
-              columnWidths: const {
-                0: FixedColumnWidth(170),
-                1: FlexColumnWidth(),
-                2: FlexColumnWidth(),
+              columnWidths: {
+                0: FixedColumnWidth(_weekend ? 170 : 120),
+                for (var i = 1; i <= days.length; i++)
+                  i: const FlexColumnWidth(),
               },
               border: TableBorder(
                   horizontalInside: BorderSide(color: PT.line),
@@ -237,8 +269,10 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
               children: [
                 TableRow(decoration: BoxDecoration(color: PT.card2), children: [
                   dayHead('PITCH'),
-                  dayHead('SATURDAY ${dm(sat).toUpperCase()}'),
-                  dayHead('SUNDAY ${dm(sun).toUpperCase()}'),
+                  for (final d in days)
+                    dayHead(
+                        '${(_weekend ? kDayNames : kWeekdays)[d.weekday - 1].toUpperCase()} '
+                        '${dm(d).toUpperCase()}'),
                 ]),
                 for (final p in grass)
                   TableRow(children: [
@@ -252,10 +286,10 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                             Text(p.venue, style: PT.inter(12, color: PT.muted)),
                           ]),
                     ),
-                    Padding(
-                        padding: const EdgeInsets.all(8), child: cell(p, sat)),
-                    Padding(
-                        padding: const EdgeInsets.all(8), child: cell(p, sun)),
+                    for (final d in days)
+                      Padding(
+                          padding: EdgeInsets.all(_weekend ? 8 : 5),
+                          child: cell(p, d)),
                   ]),
               ],
             ),
@@ -291,8 +325,7 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
                               style: PT.inter(12.5, color: PT.muted))),
                     ]),
                     for (final (label, day) in [
-                      ('Saturday', sat),
-                      ('Sunday', sun)
+                      for (final d in days) (kDayNames[d.weekday - 1], d)
                     ]) ...[
                       Padding(
                         padding: const EdgeInsets.only(top: 10, bottom: 4),
@@ -344,8 +377,10 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
               borderRadius: BorderRadius.circular(8)),
           child: Row(children: [
             SizedBox(
-                width: 96,
-                child: Text(l.when, style: PT.inter(13, color: PT.muted))),
+                width: _weekend || !wide ? 96 : 84,
+                child: Text(l.when,
+                    style: PT.inter(_weekend || !wide ? 13 : 12,
+                        color: PT.muted))),
             if (l.bar != null)
               Container(
                   width: 4,

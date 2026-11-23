@@ -949,7 +949,7 @@ void main() {
   testWidgets('laptop: weekend grass, one look at Saturday and Sunday',
       (t) async {
     await _pump(t, const Size(1440, 1100), FakePitchApi());
-    await t.tap(find.text('Weekend grass').first);
+    await t.tap(find.text('Grass').first);
     await t.pumpAndSettle();
     expect(find.text('Clubhouse Astro'), findsNothing);
     expect(find.text('Pitch 19'), findsOneWidget);
@@ -977,11 +977,20 @@ void main() {
     await t.tap(find.text('Free').first);
     await t.pumpAndSettle();
     expect(find.text('Add booking'), findsWidgets);
+    Navigator.of(t.element(find.text('Add booking').first)).pop();
+    await t.pumpAndSettle();
+    // Weekdays: Monday to Friday side by side.
+    await t.tap(find.text('Weekdays'));
+    await t.pumpAndSettle();
+    expect(find.text('WEEKDAYS · NEEDS A PITCH'), findsOneWidget);
+    expect(find.textContaining('MON 16 NOV'), findsOneWidget);
+    expect(find.textContaining('FRI 20 NOV'), findsOneWidget);
+    await _shot(t, 'pp-grass-weekdays');
   });
 
   testWidgets('phone: weekend grass tab', (t) async {
     await _pump(t, const Size(390, 844), FakePitchApi());
-    await t.tap(find.text('Weekend'));
+    await t.tap(find.text('Grass'));
     await t.pumpAndSettle();
     expect(find.text('Pitch 19'), findsOneWidget);
     await _shot(t, 'pp-weekend-phone');
@@ -1016,7 +1025,7 @@ void main() {
 
   testWidgets('phone: four tabs and the week as a checklist', (t) async {
     await _pump(t, const Size(390, 844), FakePitchApi());
-    for (final l in ['To do', 'Day', 'Weekend', 'Published']) {
+    for (final l in ['To do', 'Day', 'Grass', 'Published']) {
       expect(find.text(l), findsOneWidget);
     }
     expect(find.text('Slots'), findsNothing);
