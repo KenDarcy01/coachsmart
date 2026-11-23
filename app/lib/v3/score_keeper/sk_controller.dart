@@ -58,9 +58,15 @@ class SkDraft {
       this.throwH,
       this.throwM,
       this.venue = '',
-      this.otherDur = false});
+      this.otherDur = false,
+      this.squadPicked = false});
   String opp;
   int? squadId;
+
+  /// The scorer picked a squad or Whole team (a saved setup counts). Teams
+  /// with squads must pick before Ready so followers can tell parallel
+  /// matches apart (Ken, 2026-11-23).
+  bool squadPicked;
   int dur;
   int inj;
   int? throwH;
@@ -564,14 +570,19 @@ class SkController extends ChangeNotifier {
       throwH: t?.$1,
       throwM: t?.$2,
       venue: st?.venue ?? '',
+      squadPicked: st != null,
     );
   }
 
-  /// False when the opposition is missing.
+  /// False when the opposition (or, for teams with squads, the squad) is missing.
   bool applySetup(SkDraft d) {
     final o = d.opp.trim();
     if (o.isEmpty) {
       toast('Add the opposition first');
+      return false;
+    }
+    if ((c?.squads.isNotEmpty ?? false) && !d.squadPicked) {
+      toast('Pick the squad first');
       return false;
     }
     final st = s!;

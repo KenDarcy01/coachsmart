@@ -891,8 +891,8 @@ Map<int, SkPlayer> roster(SkState? s, SkInfo c) {
       if ((grp == 'squad') != sqIds.contains(p.memberId)) continue;
       out.putIfAbsent(
           p.memberId,
-          () => SkPlayer(
-              id: p.memberId, first: p.first, last: p.last, grp: grp));
+          () =>
+              SkPlayer(id: p.memberId, first: p.first, last: p.last, grp: grp));
     }
   }
   return out;

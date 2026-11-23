@@ -335,10 +335,23 @@ void widgetTests() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Setup: opposition filled in from the event
-    expect(find.text('Clontarf v Raheny'), findsOneWidget);
+    // Setup: the scorer types the opposition and must pick a squad
     expect(find.text('OPPOSITION'), findsOneWidget);
     expect(find.text('HALF LENGTH'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'Raheny');
+    await tester.pump();
+    expect(find.text('Clontarf v Raheny'), findsOneWidget);
+    expect(find.text('Pick one so followers know which match this is.'),
+        findsOneWidget);
+    await tester.tap(find.text('Ready'));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Start 1st half'), findsNothing); // squad not picked yet
+    await tester.tap(find.text('Pick a squad'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Blue').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Pick one so followers know which match this is.'),
+        findsNothing);
     await tester.tap(find.text('Ready'));
     await tester.pump(const Duration(milliseconds: 600));
 
