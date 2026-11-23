@@ -277,6 +277,8 @@ let clubId = Number(P.get('club')) || null;
 let period = P.get('period') || 'week';
 let tab = P.get('tab') === 'fixtures' ? 'fixtures' : 'results', weekStart = null, W = null, Dseason = null;
 let seasonYear = new Date().getFullYear();
+let spendOn = false;
+function spendLink() { return `<a class="spendl" href="/club/spend.html?club=${clubId}" style="text-decoration:underline;opacity:.9">Spend &amp; gear</a>`; }
 let myClubs = null, isSuper = false, D = null, model = null, STD = null, FIX = {}, stdP = null, CREF = [];
 
 // ── Colours ───────────────────────────────────────────────────────
@@ -400,6 +402,8 @@ async function boot() {
   const { data, error } = await sb.rpc('get_my_officer_clubs');
   if (error) return state('Something went wrong loading your clubs. Please try again.');
   myClubs = data.clubs || []; isSuper = !!data.is_super_user;
+  // Spend & gear (2026-11-23): only accounts it is switched on for see the link.
+  sb.rpc('spend_has_access').then(({ data }) => { spendOn = data === true; if (spendOn && D) { const l = document.querySelector('.band .links'); if (l && !l.querySelector('.spendl')) l.insertAdjacentHTML('afterbegin', spendLink()); } }, () => {});
   if (!myClubs.length && (data.pitch_clubs || []).length) {
     const pc = data.pitch_clubs[0];
     const link = await plannerLink(`https://coachsmart-v3.web.app/pitches?club=${pc}&look=club`);
@@ -1120,7 +1124,7 @@ function sidebar(sel) {
 function shell(sel, body) {
   const c = D.club;
   return `<div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club dashboard · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
-   <div class="right">${chips()}<div class="links">${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+   <div class="right">${chips()}<div class="links">${spendOn ? spendLink() : ''}${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
    <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
 }
 

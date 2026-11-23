@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Spend &amp; gear</title>
+<!-- Club Spend & gear (2026-11-23, thread "Explore coach expenses and gear
+     orders"). Club officers approve coach expenses, track pay-backs, group gear
+     requests into orders, set team budgets and keep the gear stock list.
+     coachsmart.app/club/spend.html?club=ID. Data via the `spend` edge function.
+     Records only: the club pays coaches back outside CoachSmart. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
+:root{--club:#1e3f94;--band:#1e3f94;--onband:#fff;--tint:#1e3f9414;--bg:#f3f4f7;--card:#fff;--card2:#f6f7f9;--text:#1a1d23;--muted:#667080;--line:#e6e8ec;
+--good:#2f9e44;--warn:#e08a00;--bad:#d9363e;--c1:#3a6fd8;--c2:#87c232;--c3:#f5a524;--c4:#b07cf0;--c5:#9aa1ad}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+.band{background:var(--band);color:var(--onband);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:4;box-shadow:0 2px 10px #0002}
+.band .crest{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:50%;padding:4px;flex:none}
+.band h1{font-size:23px;font-weight:700;line-height:1.1}
+.band .sub{font-size:13.5px;opacity:.85;margin-top:2px}
+.band .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
+.chip.on{background:var(--onband);color:var(--band)}
+.links{display:flex;gap:14px;font-size:12.5px;align-items:center}
+.links button,.links a{background:none;border:0;cursor:pointer;color:var(--onband);text-decoration:underline;opacity:.9;font-size:12.5px}
+.links span{opacity:.75}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 28px 60px}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.card{background:var(--card);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px #0000000d,0 2px 10px #0000000a;border:1px solid #eceef2}
+.tile span{font-size:13px;color:var(--muted);font-weight:500}.tile b{display:block;font-size:28px;font-weight:700;margin:6px 0 2px}.tile i{font-size:12.5px;color:var(--muted);font-style:normal}
+.nb{background:#fff7e6;border:1px solid #f5d9a0;border-radius:12px;padding:12px 16px;margin-top:16px;font-size:14px;color:#7a5200}.nb b{margin-right:6px}
+.cols{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;margin-top:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:18px}
+h2{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:6px}
+h2 small{margin-left:auto;color:var(--muted);font-weight:500;font-size:13px}
+h2 .act{margin-left:auto;font-size:13px;font-weight:600;color:var(--club);background:none;border:0;cursor:pointer}
+h2 small+.act{margin-left:10px}
+.row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
+.row:first-of-type{border-top:0}
+.row .tx{flex:1;min-width:0}.row .tx b{font-weight:600;display:block}.row .tx small{display:block;color:var(--muted);font-size:12.5px;margin-top:1px}
+.row .tx q{display:block;color:#3b4250;font-size:13px;margin-top:3px;quotes:'“' '”'}
+.row .amt{font-weight:700;white-space:nowrap;text-align:right}
+.b{border:1px solid #d6d9de;background:#fff;border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.b.go{background:var(--club);border-color:var(--club);color:#fff}
+.b.sm{padding:4px 9px;font-weight:500}
+.btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.thumb{width:38px;height:46px;border-radius:7px;background:var(--card2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;cursor:pointer}
+.thumb.no{cursor:default;opacity:.6}
+.lg{display:flex;gap:14px;margin:4px 0 8px;font-size:12px;color:var(--muted);flex-wrap:wrap}.lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tr{display:grid;grid-template-columns:170px 1fr 150px;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
+.tr:hover{background:var(--tint)}
+.tr .nm b{font-weight:600;display:block}.tr .nm small{color:var(--muted);font-size:12px}
+.bar{height:10px;background:#eef0f3;border-radius:5px;overflow:hidden;display:flex;position:relative}.bar i{height:100%}
+.tr .am{text-align:right;font-weight:600}.tr .am small{color:var(--muted);font-weight:400}.tr .am .over{color:var(--bad)}
+.tr .am button{background:none;border:0;color:var(--club);cursor:pointer;font-size:12px;text-decoration:underline;display:block;margin-left:auto}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.p-w{background:#fdf1cf;color:#8a5a00}.p-ok{background:#e6f4dc;color:#3f7a12}.p-q{background:#fde8e8;color:#b02a30}.p-d{background:#e8eefb;color:#2b56b0}.p-x{background:#eef0f4;color:#667080}
+.empty{color:var(--muted);font-size:14px;padding:8px 0}
+.state{padding:80px 40px;text-align:center;color:var(--muted);font-size:16px}
+.login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:var(--bg);z-index:9}
+.login.on{display:flex}
+.lbox{background:var(--card);border-radius:18px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px #0001}
+.lbox h2{font-size:22px;margin-bottom:6px}.lbox p{color:var(--muted);font-size:14px;margin-bottom:18px}
+.lbox input{width:100%;background:#fff;border:1px solid #d6d9df;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:16px}
+.btn{background:var(--club);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;width:100%}
+.link{background:none;border:0;color:var(--muted);cursor:pointer;margin-top:12px;font-size:14px}
+.msg{font-size:14px;color:var(--bad);min-height:20px;margin-top:6px}.msg.ok{color:var(--good)}
+.sheet{position:fixed;inset:0;background:#0006;display:none;align-items:center;justify-content:center;z-index:10;padding:20px}
+.sheet.on{display:flex}
+.sbox{background:#fff;border-radius:18px;padding:22px;width:100%;max-width:560px;max-height:88vh;overflow:auto}
+.sbox h2 button{margin-left:auto;background:none;border:0;font-size:24px;cursor:pointer;color:var(--muted)}
+.sbox textarea,.sbox input,.sbox select{width:100%;border:1px solid #d6d9df;border-radius:10px;padding:10px 12px;font-size:15px;margin:6px 0 10px;background:#fff}
+.sbox img{max-width:100%;border-radius:10px;display:block;margin:8px auto}
+.irow{display:grid;grid-template-columns:1fr 120px 90px auto;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 0;font-size:14px}
+.irow input,.irow select{margin:0;padding:7px 9px;font-size:14px}
+.ldpill{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:20;background:#1a1d23;color:#fff;font-size:14px;font-weight:600;padding:9px 16px;border-radius:999px;display:none}
+body.busy .ldpill{display:block}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1a1d23;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;display:none}
+@media (max-width:900px){
+  .band{padding:12px 14px;flex-wrap:wrap}.band .right{margin-left:0;align-items:flex-start;width:100%}
+  .wrap{padding:14px}.tiles{grid-template-columns:1fr 1fr}.cols{grid-template-columns:1fr}
+  .tr{grid-template-columns:110px 1fr 100px}.row{flex-wrap:wrap}.btns{width:100%;justify-content:flex-start}
+  .irow{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="ldpill" id="ld">Saving…</div>
+<div class="toast" id="toast"></div>
+<div id="app"><div class="state">Loading…</div></div>
+<div class="login" id="login">
+  <form class="lbox" id="loginForm">
+    <h2>Spend &amp; gear</h2>
+    <p>Sign in with your CoachSmart email and password.</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn" id="goBtn" type="submit">Sign in</button>
+    <div class="msg" id="loginMsg"></div>
+  </form>
+</div>
+<div class="sheet" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="sbox" id="sbox"></div></div>
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const P = new URLSearchParams(location.search);
+const clubId = Number(P.get('club')) || null;
+const thisYear = new Date().getFullYear();
+let season = Number(P.get('season')) || thisYear;
+let D = null;
+
+// Chart groups for the spend-by-team bars.
+const GROUPS = [
+  ['Ref & pitch', 'var(--c1)', ['Ref fee', 'Pitch hire']],
+  ['Gear', 'var(--c2)', ['Equipment', '__gear']],
+  ['Travel & entry', 'var(--c3)', ['Travel', 'Entry fee']],
+  ['Match day', 'var(--c4)', ['Match day food']],
+  ['Other', 'var(--c5)', ['Other']],
+];
+const groupOf = cat => GROUPS.findIndex(g => g[2].includes(cat));
+const SPENT_EXP = ['approved', 'paid'], SPENT_GEAR = ['approved', 'ordered', 'delivered'];
+
+const eur = n => '€' + Number(n || 0).toLocaleString('en-IE', { minimumFractionDigits: Number(n) % 1 ? 2 : 0, maximumFractionDigits: 2 });
+const eur2 = n => '€' + Number(n || 0).toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const dshort = s => { const d = new Date(s.length === 10 ? s + 'T12:00:00' : s); return d.getDate() + ' ' + MON[d.getMonth()]; };
+const daysAgo = s => Math.floor((Date.now() - new Date(s).getTime()) / 864e5);
+
+function lum(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+  const n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+}
+function brand(c) {
+  const p = c.primary_colour, s = c.secondary_colour;
+  const okText = h => { const l = lum(h); return l != null && l < .45; };
+  const accent = okText(p) ? p : okText(s) ? s : '#1a1d23';
+  const band = lum(p) != null && lum(p) < .85 ? p : (lum(s) != null && lum(s) < .85 ? s : accent);
+  const r = document.documentElement.style;
+  r.setProperty('--club', accent); r.setProperty('--band', band);
+  r.setProperty('--onband', lum(band) > .5 ? '#14181b' : '#fff');
+  r.setProperty('--tint', accent + '12');
+  if (c.crest) { let l = document.querySelector('link[rel="icon"]'); if (!l) { l = document.createElement('link'); l.rel = 'icon'; document.head.appendChild(l); } l.href = c.crest; }
+}
+
+// ── Sign in ───────────────────────────────────────────────────────
+function showLogin(msg) { $('login').classList.add('on'); $('loginMsg').textContent = msg || ''; $('goBtn').disabled = false; $('goBtn').textContent = 'Sign in'; }
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('goBtn').disabled = true; $('goBtn').textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) return showLogin(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : error.message);
+  $('password').value = ''; $('login').classList.remove('on'); boot();
+});
+async function signOut() { await sb.auth.signOut(); location.reload(); }
+function state(msg) { $('app').innerHTML = `<div class="state">${esc(msg)}<br><br><button class="link" onclick="signOut()">Sign out</button></div>`; }
+
+async function api(body) {
+  const { data, error } = await sb.functions.invoke('spend', { body });
+  if (!error && data && data.success) return data.data;
+  let m = data && data.error;
+  if (error) { try { m = (await error.context.json()).error; } catch (_) { /* keep */ } }
+  throw new Error(m || 'Something went wrong. Please try again.');
+}
+function toast(t) { const el = $('toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', 2600); }
+
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  if (!clubId) return state('Open this page from your club’s link, for example coachsmart.app/club/spend.html?club=1.');
+  await load();
+}
+async function load() {
+  try { D = await api({ action: 'club', club_id: clubId, season }); }
+  catch (e) { return state(e.message); }
+  brand(D.club); document.title = D.club.club_name + ' · Spend & gear';
+  render();
+}
+async function act(body, label, done) {
+  document.body.classList.add('busy');
+  try { await api(body); if (done) toast(done); closeSheet(); await load(); }
+  catch (e) { toast(e.message); }
+  finally { document.body.classList.remove('busy'); }
+}
+
+// ── Model ─────────────────────────────────────────────────────────
+function model() {
+  const teamName = {}; D.teams.forEach(t => teamName[t.team_id] = clean(t.team_name));
+  const budget = {}; D.budgets.forEach(b => budget[b.team_id] = b.amount);
+  const per = {};
+  const add = (tid, gi, amt) => { (per[tid] = per[tid] || { total: 0, g: [0, 0, 0, 0, 0] }); per[tid].total += amt; per[tid].g[gi] += amt; };
+  D.expenses.filter(e => SPENT_EXP.includes(e.status)).forEach(e => add(e.team_id, groupOf(e.category), e.amount));
+  D.gear.filter(g => SPENT_GEAR.includes(g.status)).forEach(g => add(g.team_id, 1, g.total));
+  const spent = Object.values(per).reduce((s, p) => s + p.total, 0);
+  const waitE = D.expenses.filter(e => e.status === 'submitted'), waitG = D.gear.filter(g => g.status === 'requested');
+  const payback = D.expenses.filter(e => e.status === 'approved' && e.payback !== 'none');
+  const gearOrdered = D.gear.filter(g => g.status === 'ordered' || g.status === 'delivered');
+  const budgetTotal = Object.values(budget).reduce((s, b) => s + b, 0);
+  const budgetUsed = Object.entries(budget).reduce((s, [t]) => s + (per[t] ? per[t].total : 0), 0);
+  return { teamName, budget, per, spent, waitE, waitG, payback, gearOrdered, budgetTotal, budgetUsed };
+}
+function clean(n) { const c = (D.club.club_name || '').split(' ')[0]; return String(n || '').replace(new RegExp('^' + c + '\\s+', 'i'), ''); }
+
+// ── Render ────────────────────────────────────────────────────────
+function render() {
+  const M = model(), c = D.club;
+  const waitN = M.waitE.length + M.waitG.length;
+  const waitAmt = M.waitE.reduce((s, e) => s + e.amount, 0) + M.waitG.reduce((s, g) => s + g.total, 0);
+  const coaches = new Set(M.payback.map(e => e.by)).size;
+  const items = M.gearOrdered.reduce((s, g) => s + g.lines.reduce((a, l) => a + l.qty, 0), 0);
+  const pct = M.budgetTotal ? Math.round(100 * M.budgetUsed / M.budgetTotal) : null;
+  $('app').innerHTML = `
+  <div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Spend &amp; gear · ${season} season</div></div>
+   <div class="right"><div class="chips">${[thisYear, thisYear - 1].map(y => `<button class="chip ${y === season ? 'on' : ''}" onclick="setSeason(${y})">${y}</button>`).join('')}</div>
+   <div class="links"><a href="/club/?club=${clubId}">Club dashboard</a><button onclick="stockList()">Stock list</button><button onclick="exportCsv()">Export CSV</button><button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+  <div class="wrap">
+   <div class="tiles">
+    <div class="card tile"><span>Spent this season</span><b>${eur(M.spent)}</b><i>approved, across ${Object.keys(M.per).length} team${Object.keys(M.per).length === 1 ? '' : 's'}</i></div>
+    <div class="card tile"><span>Waiting for approval</span><b style="color:${waitN ? 'var(--warn)' : 'inherit'}">${waitN}</b><i>${waitN ? eur(waitAmt) + ' · ' + M.waitE.length + ' expense' + (M.waitE.length === 1 ? '' : 's') + ', ' + M.waitG.length + ' gear' : 'all clear'}</i></div>
+    <div class="card tile"><span>To pay back coaches</span><b>${eur(M.payback.reduce((s, e) => s + e.amount, 0))}</b><i>${coaches} coach${coaches === 1 ? '' : 'es'}, approved</i></div>
+    <div class="card tile"><span>Gear ordered</span><b>${eur(M.gearOrdered.reduce((s, g) => s + g.total, 0))}</b><i>${items} item${items === 1 ? '' : 's'} this season</i></div>
+    <div class="card tile"><span>Budget used</span><b style="color:${pct == null ? 'var(--muted)' : pct > 100 ? 'var(--bad)' : 'var(--good)'}">${pct == null ? '–' : pct + '%'}</b><i>${M.budgetTotal ? 'of ' + eur(M.budgetTotal) + ' set for teams' : 'no team budgets set yet'}</i></div>
+   </div>
+   ${needsLook(M)}
+   <div class="cols">
+    <div class="stack">
+     <div class="card">${queue(M)}</div>
+     <div class="card">${teamSpend(M)}</div>
+    </div>
+    <div class="stack">
+     <div class="card">${paybackCard(M)}</div>
+     <div class="card">${gearCard(M)}</div>
+     <div class="card">${recent(M)}</div>
+    </div>
+   </div>
+  </div>`;
+}
+function setSeason(y) { season = y; const u = new URL(location); u.searchParams.set('season', y); history.replaceState(null, '', u); load(); }
+
+function needsLook(M) {
+  const notes = [];
+  Object.entries(M.budget).forEach(([t, b]) => { const s = M.per[t] ? M.per[t].total : 0; if (b > 0 && s > b) notes.push(`${esc(M.teamName[t] || 'A team')} is at ${Math.round(100 * s / b)}% of budget`); });
+  const old = [...M.waitE, ...M.waitG].filter(x => daysAgo(x.created_at) >= 14).length;
+  if (old) notes.push(`${old} waiting over 14 days`);
+  const asked = {};
+  D.gear.filter(g => g.status === 'requested' || g.status === 'approved').forEach(g => g.lines.forEach(l => { (asked[l.name] = asked[l.name] || new Set()).add(g.team_id); }));
+  Object.entries(asked).filter(([, s]) => s.size >= 3).forEach(([n, s]) => notes.push(`${s.size} teams want ${esc(n.toLowerCase())} (one bulk order?)`));
+  const q = D.expenses.filter(e => e.status === 'queried').length + D.gear.filter(g => g.status === 'queried').length;
+  if (q) notes.push(`${q} queried, waiting on the coach`);
+  return notes.length ? `<div class="nb"><b>Needs a look:</b>${notes.join(' · ')}</div>` : '';
+}
+
+function pill(s) {
+  const m = { submitted: ['Waiting', 'p-w'], requested: ['Waiting', 'p-w'], approved: ['Approved', 'p-ok'], queried: ['Queried', 'p-q'], rejected: ['Not approved', 'p-x'], paid: ['Paid back', 'p-d'], ordered: ['Ordered', 'p-d'], delivered: ['Delivered', 'p-d'] }[s] || [s, 'p-x'];
+  return `<span class="pill ${m[1]}">${m[0]}</span>`;
+}
+function evName(id) { const e = D.events.find(x => x.event_id === id); if (!e) return ''; return e.opposition ? 'v ' + e.opposition : (e.event_title || ''); }
+function lineText(g) { return g.lines.map(l => `${l.qty} × ${l.name}`).join(', '); }
+function expRow(e, M, btns) {
+  const ev = e.event_id ? evName(e.event_id) : '';
+  return `<div class="row"><div class="thumb ${e.has_receipt ? '' : 'no'}" ${e.has_receipt ? `onclick="receipt(${e.expense_id})" title="See the receipt"` : 'title="No receipt"'}>🧾</div>
+   <div class="tx"><b>${eur2(e.amount)} ${esc(e.category)}${btns === 'pill' ? pill(e.status) : ''}</b><small>${esc(M.teamName[e.team_id] || '')} · ${esc(e.by)} · ${[e.shop, ev].filter(Boolean).map(esc).join(' · ')}${e.shop || ev ? ', ' : ''}${dshort(e.spent_on)}${e.payback === 'cash' ? ' · cash back' : e.payback === 'none' ? ' · no pay-back' : ''}</small>${e.note ? `<q>${esc(e.note)}</q>` : ''}${e.status_note ? `<small>Club note: ${esc(e.status_note)}</small>` : ''}</div>
+   ${btns && btns !== 'pill' ? `<div class="btns">${btns}</div>` : ''}</div>`;
+}
+function gearRow(g, M, btns) {
+  return `<div class="row"><div class="thumb no">⚽</div>
+   <div class="tx"><b>${esc(lineText(g))}${btns === 'pill' ? pill(g.status) : ''}</b><small>${esc(M.teamName[g.team_id] || '')} · ${esc(g.by)} · ${dshort(g.created_at)}${g.total ? ' · ' + eur2(g.total) : ''}</small>${g.note ? `<q>${esc(g.note)}</q>` : ''}${g.status_note ? `<small>Club note: ${esc(g.status_note)}</small>` : ''}</div>
+   ${btns && btns !== 'pill' ? `<div class="btns">${btns}</div>` : ''}</div>`;
+}
+function queue(M) {
+  const n = M.waitE.length + M.waitG.length;
+  const decideBtns = (k, id) => `<button class="b" onclick="noteSheet('${k}',${id},'query')">Query</button><button class="b" onclick="noteSheet('${k}',${id},'reject')">Not approve</button><button class="b go" onclick="decide('${k}',${id},'approve')">Approve</button>`;
+  const rows = [...M.waitE.map(e => ({ t: e.created_at, h: expRow(e, M, decideBtns('expense', e.expense_id)) })), ...M.waitG.map(g => ({ t: g.created_at, h: gearRow(g, M, decideBtns('gear', g.gear_request_id)) }))]
+    .sort((a, b) => a.t < b.t ? -1 : 1);
+  return `<h2>Waiting for you <small>${n}</small></h2>${rows.length ? rows.map(r => r.h).join('') : '<div class="empty">Nothing waiting. New expenses and gear requests from coaches show here.</div>'}`;
+}
+function paybackCard(M) {
+  const by = {};
+  M.payback.forEach(e => (by[e.by] = by[e.by] || []).push(e));
+  const keys = Object.keys(by).sort();
+  return `<h2>To pay back <small>${eur2(M.payback.reduce((s, e) => s + e.amount, 0))}</small></h2>${keys.length ? keys.map(k => {
+    const es = by[k], tot = es.reduce((s, e) => s + e.amount, 0);
+    return `<div class="row"><div class="tx"><b>${esc(k)}</b><small>${es.map(e => `${eur2(e.amount)} ${esc(e.category.toLowerCase())}, ${esc(M.teamName[e.team_id] || '')}${e.payback === 'cash' ? ' (cash)' : ''}`).join(' · ')}</small></div><div class="amt">${eur2(tot)}</div><div class="btns"><button class="b go" onclick="markPaid([${es.map(e => e.expense_id).join(',')}])">Mark paid</button></div></div>`;
+  }).join('') : '<div class="empty">Nobody is owed money. Approved expenses show here until you mark them paid.</div>'}`;
+}
+function gearCard(M) {
+  const appr = D.gear.filter(g => g.status === 'approved'), ord = D.gear.filter(g => g.status === 'ordered');
+  const grouped = {};
+  appr.forEach(g => g.lines.forEach(l => { const k = l.name; (grouped[k] = grouped[k] || { qty: 0, price: l.unit_price, teams: {} }); grouped[k].qty += l.qty; const tn = M.teamName[g.team_id] || ''; grouped[k].teams[tn] = (grouped[k].teams[tn] || 0) + l.qty; }));
+  const gk = Object.keys(grouped).sort((a, b) => grouped[b].qty - grouped[a].qty);
+  return `<h2>Gear to order <small>grouped across teams</small>${appr.length ? `<button class="act" onclick="markOrdered([${appr.map(g => g.gear_request_id).join(',')}])">Mark all ordered</button>` : ''}</h2>
+   ${gk.length ? gk.map(k => { const x = grouped[k]; return `<div class="row"><div class="tx"><b>${esc(k)}</b><small>${Object.entries(x.teams).map(([t, q]) => `${esc(t)} (${q})`).join(', ')}</small></div><div class="amt">${x.qty}${x.price != null ? ' · ' + eur(x.qty * x.price) : ''}</div></div>`; }).join('') : '<div class="empty">No approved gear waiting to be ordered.</div>'}
+   ${ord.length ? `<h2 style="margin-top:14px;font-size:15px">Ordered, not delivered yet</h2>${ord.map(g => gearRow(g, M, `<button class="b" onclick="decide('gear',${g.gear_request_id},'delivered')">Delivered</button>`)).join('')}` : ''}`;
+}
+function teamSpend(M) {
+  const rows = D.teams.map(t => ({ t, s: M.per[t.team_id] ? M.per[t.team_id].total : 0, b: M.budget[t.team_id] }))
+    .filter(r => r.s > 0 || r.b != null || !/test/i.test(r.t.team_name))
+    .sort((a, b) => (b.b != null) - (a.b != null) || b.s - a.s || a.t.team_name.localeCompare(b.t.team_name));
+  const maxB = Math.max(1, ...rows.map(r => Math.max(r.s, r.b || 0)));
+  return `<h2>Spend by team <small>${season} season · tap a team</small></h2>
+   <div class="lg">${GROUPS.map(g => `<span><i style="background:${g[1]}"></i>${g[0]}</span>`).join('')}</div>
+   ${rows.map(r => { const p = M.per[r.t.team_id], scale = r.b ? Math.max(r.b, r.s) : maxB;
+     return `<div class="tr" onclick="teamSheet(${r.t.team_id})"><div class="nm"><b>${esc(clean(r.t.team_name))}</b><small>${r.b != null ? Math.round(100 * r.s / (r.b || 1)) + '% of budget' : 'no budget set'}</small></div>
+     <div class="bar">${p ? p.g.map((v, i) => v ? `<i style="width:${100 * v / scale}%;background:${GROUPS[i][1]}"></i>` : '').join('') : ''}</div>
+     <div class="am"><span class="${r.b != null && r.s > r.b ? 'over' : ''}">${eur(r.s)}</span>${r.b != null ? ` <small>/ ${eur(r.b)}</small>` : ''}<button onclick="event.stopPropagation();budgetSheet(${r.t.team_id})">${r.b != null ? 'Change budget' : 'Set budget'}</button></div></div>`; }).join('')}`;
+}
+function recent(M) {
+  const done = [...D.expenses.filter(e => !['submitted'].includes(e.status)).map(e => ({ t: e.decided_at || e.created_at, h: expRow(e, M, 'pill') })),
+    ...D.gear.filter(g => g.status !== 'requested').map(g => ({ t: g.delivered_at || g.ordered_at || g.decided_at || g.created_at, h: gearRow(g, M, 'pill') }))]
+    .sort((a, b) => a.t < b.t ? 1 : -1).slice(0, 12);
+  return `<h2>Recent decisions</h2>${done.length ? done.map(r => r.h).join('') : '<div class="empty">Nothing decided yet this season.</div>'}`;
+}
+
+// ── Actions ───────────────────────────────────────────────────────
+// The function reads body.action for the route, so the move goes in `move`.
+async function decideNow(kind, id, move, note, done) {
+  document.body.classList.add('busy');
+  try { await api({ action: 'decide', kind, id, move, note }); toast(done || 'Saved.'); closeSheet(); await load(); }
+  catch (e) { toast(e.message); }
+  finally { document.body.classList.remove('busy'); }
+}
+function decide(kind, id, move) { return decideNow(kind, id, move, null, { approve: 'Approved.', delivered: 'Marked delivered.' }[move]); }
+async function markPaid(ids) {
+  document.body.classList.add('busy');
+  try { for (const id of ids) await api({ action: 'decide', kind: 'expense', id, move: 'paid' }); toast('Marked paid back.'); await load(); }
+  catch (e) { toast(e.message); } finally { document.body.classList.remove('busy'); }
+}
+async function markOrdered(ids) {
+  document.body.classList.add('busy');
+  try { for (const id of ids) await api({ action: 'decide', kind: 'gear', id, move: 'ordered' }); toast('Marked ordered. Coaches see it in the app.'); await load(); }
+  catch (e) { toast(e.message); } finally { document.body.classList.remove('busy'); }
+}
+function closeSheet() { $('sheet').classList.remove('on'); }
+function openSheet(h) { $('sbox').innerHTML = h; $('sheet').classList.add('on'); }
+function noteSheet(kind, id, move) {
+  const q = move === 'query';
+  openSheet(`<h2>${q ? 'Query this with the coach' : 'Don’t approve'} <button onclick="closeSheet()">×</button></h2>
+   <p style="color:var(--muted);font-size:14px">${q ? 'The coach sees your note in the app and can take it back and send it again.' : 'The coach sees your note in the app.'}</p>
+   <textarea id="nNote" rows="3" placeholder="${q ? 'For example: can you add the receipt?' : 'Why not (optional)'}"></textarea>
+   <button class="btn" onclick="decideNow('${kind}',${id},'${move}',$('nNote').value,'${q ? 'Sent back to the coach.' : 'Marked not approved.'}')">${q ? 'Send the query' : 'Don’t approve'}</button>`);
+  setTimeout(() => $('nNote').focus(), 50);
+}
+async function receipt(id) {
+  openSheet('<h2>Receipt <button onclick="closeSheet()">×</button></h2><div class="empty">Loading…</div>');
+  try { const r = await api({ action: 'receipt_url', expense_id: id }); $('sbox').innerHTML = `<h2>Receipt <button onclick="closeSheet()">×</button></h2><a href="${esc(r.url)}" target="_blank" rel="noopener"><img src="${esc(r.url)}" alt="Receipt"></a>`; }
+  catch (e) { $('sbox').innerHTML = `<h2>Receipt <button onclick="closeSheet()">×</button></h2><div class="empty">${esc(e.message)}</div>`; }
+}
+function budgetSheet(tid) {
+  const t = D.teams.find(x => x.team_id === tid), b = D.budgets.find(x => x.team_id === tid);
+  openSheet(`<h2>${esc(clean(t.team_name))} budget, ${season} <button onclick="closeSheet()">×</button></h2>
+   <p style="color:var(--muted);font-size:14px">What the team can spend this season on approved expenses and gear. Leave it empty for no budget.</p>
+   <input id="bAmt" type="number" min="0" step="10" inputmode="decimal" placeholder="€" value="${b ? b.amount : ''}">
+   <button class="btn" onclick="act({action:'set_budget',team_id:${tid},season:${season},amount:$('bAmt').value===''?null:Number($('bAmt').value)},null,'Budget saved.')">Save budget</button>`);
+  setTimeout(() => $('bAmt').focus(), 50);
+}
+function teamSheet(tid) {
+  const M = model(), t = D.teams.find(x => x.team_id === tid);
+  const rows = [...D.expenses.filter(e => e.team_id === tid).map(e => ({ t: e.spent_on, h: expRow(e, M, 'pill') })), ...D.gear.filter(g => g.team_id === tid).map(g => ({ t: g.created_at.slice(0, 10), h: gearRow(g, M, 'pill') }))].sort((a, b) => a.t < b.t ? 1 : -1);
+  openSheet(`<h2>${esc(clean(t.team_name))} · ${season} <button onclick="closeSheet()">×</button></h2>${rows.length ? rows.map(r => r.h).join('') : '<div class="empty">Nothing logged for this team yet.</div>'}`);
+}
+function stockList() {
+  const cats = [...new Set(['Balls', 'Training kit', 'Safety', 'First aid', 'Other', ...D.items.map(i => i.category)])];
+  const sel = v => `<select>${cats.map(c => `<option ${c === v ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`;
+  openSheet(`<h2>Gear stock list <button onclick="closeSheet()">×</button></h2>
+   <p style="color:var(--muted);font-size:14px">Coaches pick from this list in the app. Add a price so requests show a total (optional).</p>
+   ${D.items.map(i => `<div class="irow" data-id="${i.gear_item_id}"><input value="${esc(i.name)}">${sel(i.category)}<input type="number" min="0" step="0.5" placeholder="€" value="${i.unit_price ?? ''}"><div class="btns"><button class="b sm" onclick="saveItem(this)">Save</button><button class="b sm" onclick="removeItem(${i.gear_item_id})">Remove</button></div></div>`).join('')}
+   <div class="irow" data-id=""><input placeholder="New item, e.g. Hurling helmet">${sel('Other')}<input type="number" min="0" step="0.5" placeholder="€"><div class="btns"><button class="b sm go" onclick="saveItem(this)">Add</button></div></div>`);
+}
+async function saveItem(btn) {
+  const r = btn.closest('.irow'), [n, , p] = r.querySelectorAll('input'), c = r.querySelector('select');
+  await act({ action: 'save_item', club_id: clubId, item: { gear_item_id: Number(r.dataset.id) || null, name: n.value, category: c.value, unit_price: p.value } }, null, 'Saved.');
+  stockList();
+}
+async function removeItem(id) { await act({ action: 'remove_item', club_id: clubId, gear_item_id: id }, null, 'Removed.'); stockList(); }
+function exportCsv() {
+  const M = model(), q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const lines = [['Type', 'Date', 'Team', 'Coach', 'Category or items', 'Shop', 'Amount', 'Status', 'Pay back', 'Note', 'Club note'].map(q).join(',')];
+  D.expenses.forEach(e => lines.push(['Expense', e.spent_on, M.teamName[e.team_id], e.by, e.category, e.shop, e.amount.toFixed(2), e.status, e.payback, e.note, e.status_note].map(q).join(',')));
+  D.gear.forEach(g => lines.push(['Gear', g.created_at.slice(0, 10), M.teamName[g.team_id], g.by, lineText(g), '', g.total.toFixed(2), g.status, '', g.note, g.status_note].map(q).join(',')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+  a.download = `${(D.club.club_name || 'club').replace(/\W+/g, '-').toLowerCase()}-spend-${season}.csv`;
+  a.click();
+}
+boot();
+</script>
+</body>
