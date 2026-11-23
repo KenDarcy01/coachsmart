@@ -375,34 +375,57 @@ class _PitchWeekendViewState extends State<PitchWeekendView> {
               color: l.free ? PT.greenTint : null,
               border: hover ? Border.all(color: PT.green, width: 2) : null,
               borderRadius: BorderRadius.circular(8)),
-          child: Row(children: [
-            SizedBox(
-                width: _weekend || !wide ? 96 : 84,
-                child: Text(l.when,
-                    style: PT.inter(_weekend || !wide ? 13 : 12,
-                        color: PT.muted))),
-            if (l.bar != null)
-              Container(
-                  width: 4,
-                  height: 18,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                      color: l.faint ? l.bar!.withValues(alpha: 0.4) : l.bar,
-                      borderRadius: BorderRadius.circular(2))),
-            Expanded(
-                child: Text(l.what,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: PT.inter(13.5,
-                        weight: l.free ? FontWeight.w700 : FontWeight.w500,
-                        color: l.free
-                            ? PT.green
-                            : l.faint
-                                ? PT.muted
-                                : PT.text))),
-            if (l.free)
-              Icon(Icons.add_circle_outline, size: 17, color: PT.green),
-          ]),
+          child: _weekend || !wide ? _wideLine(l) : _stackedLine(l),
         ),
       );
+
+  Color _whatColour(_Line l) => l.free
+      ? PT.green
+      : l.faint
+          ? PT.muted
+          : PT.text;
+
+  Widget _bar(_Line l, double h) => Container(
+      width: 4,
+      height: h,
+      margin: const EdgeInsets.only(right: 8),
+      decoration: BoxDecoration(
+          color: l.faint ? l.bar!.withValues(alpha: 0.4) : l.bar,
+          borderRadius: BorderRadius.circular(2)));
+
+  /// Two days side by side: time and name on one line.
+  Widget _wideLine(_Line l) => Row(children: [
+        SizedBox(
+            width: 96,
+            child: Text(l.when, style: PT.inter(13, color: PT.muted))),
+        if (l.bar != null) _bar(l, 18),
+        Expanded(
+            child: Text(l.what,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PT.inter(13.5,
+                    weight: l.free ? FontWeight.w700 : FontWeight.w500,
+                    color: _whatColour(l)))),
+        if (l.free) Icon(Icons.add_circle_outline, size: 17, color: PT.green),
+      ]);
+
+  /// Five days side by side: the time above the name, so names fit.
+  Widget _stackedLine(_Line l) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(l.when, style: PT.inter(12, color: PT.muted))),
+          if (l.free) Icon(Icons.add_circle_outline, size: 15, color: PT.green),
+        ]),
+        const SizedBox(height: 2),
+        Row(children: [
+          if (l.bar != null) _bar(l, 16),
+          Expanded(
+              child: Text(l.what,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: PT.inter(13,
+                      weight: l.free ? FontWeight.w700 : FontWeight.w600,
+                      color: _whatColour(l)))),
+        ]),
+      ]);
 }

@@ -1139,6 +1139,17 @@ void main() {
     await _shot(t, 'pp-throw-in', whole: true);
   });
 
+  testWidgets('mock-up: grass on weekdays with evening slots', (t) async {
+    await _pump(t, const Size(1440, 1100), _WeekdayGrassApi());
+    await t.tap(find.text('Grass').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Weekdays'));
+    await t.pumpAndSettle();
+    expect(find.text('Pitch 35'), findsOneWidget);
+    expect(find.text('Free'), findsWidgets);
+    await _shot(t, 'pp-grass-weekdays-mock');
+  });
+
   testWidgets('laptop: fixtures, girls and boys like the club sheet',
       (t) async {
     await _pump(t, const Size(1440, 1100), FakePitchApi());
@@ -1239,4 +1250,87 @@ void main() {
     expect(find.text('U8 BOYS THIS WEEK'), findsOneWidget);
     await _shot(t, 'pp-member-team');
   });
+}
+
+/// Mock-up data (Ken 2026-11-23): weekday evening slots on the grass, like
+/// Clontarf's floodlit P34 and P35, with a few teams booked.
+class _WeekdayGrassApi extends FakePitchApi {
+  @override
+  Future<PitchBoard> board(int clubId, DateTime from, DateTime to) async {
+    final j = boardWithGroups();
+    Map<String, dynamic> slot(int d, String o, String c) =>
+        {'weekday': d, 'opens': o, 'closes': c};
+    final pitches = [
+      for (final p in (j['pitches'] as List).cast<Map<String, dynamic>>())
+        if (p['pitch_id'] == 7)
+          {
+            ...p,
+            'hours': [
+              ...(p['hours'] as List),
+              for (var d = 1; d <= 5; d++) ...[
+                slot(d, '18:45', '20:00'),
+                slot(d, '20:00', '21:15'),
+              ]
+            ]
+          }
+        else if (p['pitch_id'] == 3 || p['pitch_id'] == 4)
+          {
+            ...p,
+            'hours': [
+              ...(p['hours'] as List),
+              for (var d = 1; d <= 5; d++) slot(d, '17:30', '18:30'),
+            ]
+          }
+        else
+          p,
+      {
+        'pitch_id': 8,
+        'venue_id': "St Anne's".hashCode,
+        'venue': "St Anne's",
+        'name': 'Pitch 35',
+        'surface': 'grass',
+        'split': 1,
+        'floodlit': true,
+        'hours': [
+          for (var d = 1; d <= 5; d++) ...[
+            slot(d, '18:45', '20:00'),
+            slot(d, '20:00', '21:15'),
+          ]
+        ],
+      },
+    ];
+    Map<String, dynamic> bk(
+            int id, int pitch, int day, String from, String to, String title,
+            {String kind = 'training', bool female = false}) =>
+        {
+          'booking_id': id,
+          'pitch_id': pitch,
+          'part': 15,
+          'starts_at': '2026-11-${day.toString().padLeft(2, '0')}T$from:00',
+          'ends_at': '2026-11-${day.toString().padLeft(2, '0')}T$to:00',
+          'kind': kind,
+          'title': title,
+          'status': 'confirmed',
+          'code': 'Football',
+          'female': female,
+        };
+    return PitchBoard.fromJson({
+      ...j,
+      'pitches': pitches,
+      'bookings': [
+        ...(j['bookings'] as List),
+        bk(901, 7, 16, '20:00', '21:15', 'U21 Ladies Football', female: true),
+        bk(902, 7, 17, '18:45', '20:00', 'U21 Camogie v Fingallians',
+            kind: 'match', female: true),
+        bk(903, 7, 18, '18:45', '20:00', 'Dave Hare Coaching'),
+        bk(904, 7, 18, '20:00', '21:15', 'U21 Ladies Football', female: true),
+        bk(905, 7, 19, '20:00', '21:15', 'Adult Camogie', female: true),
+        bk(906, 8, 16, '18:45', '20:00', 'U16 Boys'),
+        bk(907, 8, 17, '20:00', '21:15', 'U21 Hurlers'),
+        bk(908, 8, 18, '20:00', '21:15', 'U21 Mens Football'),
+        bk(909, 8, 19, '20:00', '21:15', 'U21 Hurlers'),
+        bk(910, 3, 18, '17:30', '18:30', 'U14 Girls', female: true),
+      ],
+    });
+  }
 }
