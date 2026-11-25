@@ -1051,7 +1051,7 @@ void main() {
     expect(find.text('Slots'), findsNothing);
     expect(find.textContaining('Needs a pitch ('), findsOneWidget);
     expect(find.text('Fill them from the usual pitches'), findsOneWidget);
-    expect(find.textContaining('League changes (1)'), findsOneWidget);
+    expect(find.textContaining('Official fixture changes (1)'), findsOneWidget);
     await _shot(t, 'pp-todo-phone');
     await t.scrollUntilVisible(find.text('See all fixtures this week'), 300);
     expect(find.text('Publish the week'), findsOneWidget);
@@ -1212,6 +1212,8 @@ void main() {
     expect(find.text('MEN / BOYS'), findsOneWidget);
     expect(find.text('Clontarf v Fingallians'), findsWidgets);
     expect(find.text('OFFICIAL FIXTURES'), findsNothing);
+    expect(find.text('Official'), findsWidgets);
+    expect(find.text('Unofficial'), findsWidgets);
     await t.scrollUntilVisible(find.text('MEN / BOYS'), 200);
     await _shot(t, 'pp-fixtures-sheet');
   });
@@ -1221,9 +1223,9 @@ void main() {
     await t.tap(find.text('Fixtures').first);
     await t.pumpAndSettle();
     // League changes are folded behind a bar until tapped.
-    expect(find.text('1 change from the league · 1 new'), findsOneWidget);
+    expect(find.text('1 change to official fixtures · 1 new'), findsOneWidget);
     expect(find.text('Show'), findsOneWidget);
-    await t.tap(find.text('1 change from the league · 1 new'));
+    await t.tap(find.text('1 change to official fixtures · 1 new'));
     await t.pumpAndSettle();
     expect(find.text('Hide'), findsOneWidget);
     await t.tap(find.text('Hide'));

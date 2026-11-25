@@ -833,7 +833,7 @@ class PitchGroupsView extends StatelessWidget {
                       Text('Home matches',
                           style: PT.inter(15, weight: FontWeight.w600)),
                       Text(
-                          'Fill from defaults puts home matches here. League '
+                          'Fill from defaults puts home matches here. Official '
                           'fixtures keep their throw-in time.',
                           style: PT.inter(13, color: PT.muted)),
                       const SizedBox(height: 8),

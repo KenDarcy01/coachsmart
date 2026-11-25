@@ -436,7 +436,7 @@ class _PlaceSheetState extends State<PlaceSheet> {
             except: item.request?.bookingId);
     return _Frame(
       tag: PitchTag(item.fixture != null
-          ? 'Fixture · from league'
+          ? 'Official fixture'
           : item.request != null
               ? 'Request'
               : item.matchedPitchId != null
@@ -530,7 +530,7 @@ class _PlaceSheetState extends State<PlaceSheet> {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
                 'Booking it for ${_when(_start)}. '
-                '${item.fixture != null ? 'Change the fixture with the league too.' : 'The event time is not changed.'}',
+                '${item.fixture != null ? 'Change the official fixture with the county board too.' : 'The event time is not changed.'}',
                 style: PT.inter(13, color: PT.amberText)),
           ),
         Row(children: [

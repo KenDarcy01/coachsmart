@@ -627,7 +627,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
         _todoRow(
             u.start,
             u.opposition.isEmpty ? name : '$name v ${u.opposition}',
-            'On CoachSmart, not on the league list',
+            'Unofficial: on CoachSmart only',
             onTap: () => _place(eventId: u.eventId, u: u))
       ));
     }
@@ -714,9 +714,11 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             _step(
                 3,
                 changes.isEmpty
-                    ? 'No league changes this week'
-                    : 'League changes (${changes.length})',
-                changes.isEmpty ? '' : 'Times or venues the league changed.',
+                    ? 'No official fixture changes this week'
+                    : 'Official fixture changes (${changes.length})',
+                changes.isEmpty
+                    ? ''
+                    : 'Official fixtures whose time or venue changed.',
                 done: changes.isEmpty || _showChanges,
                 children: [
                   if (changes.isNotEmpty && !_showChanges)
@@ -877,17 +879,17 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             ..._sheetView(off, un, head)
           else ...[
             if (_league) ...[
-              head('Official fixtures', 'From the league fixture list',
+              head('Official fixtures', 'From the official fixture list',
                   off.length),
               if (off.isEmpty)
-                Text('No league fixtures this week.',
+                Text('No official fixtures this week.',
                     style: PT.inter(14, color: PT.muted))
               else
                 list([for (final f in off) (f.start, _officialCard(f))]),
             ],
             _league
                 ? head('Unofficial matches',
-                    'On CoachSmart but not on the league list', un.length)
+                    'On CoachSmart only, not on the official list', un.length)
                 : head('Matches', 'On CoachSmart this week', un.length),
             if (un.isEmpty)
               Text('None this week.', style: PT.inter(14, color: PT.muted))
@@ -955,6 +957,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             ? f.booking!.pitch
             : f.venue,
         home: f.isHome,
+        official: true,
         referee: f.referee.isNotEmpty ? f.referee : (b?.referee ?? ''),
         rooms: b?.dressingRooms ?? '',
         note: status.contains('postpon') || status.contains('cancel')
@@ -976,7 +979,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
         code: codeOf(u.code, female: u.female, name: u.teamName),
         start: u.start,
         team: name,
-        comp: _league ? 'Not on the league list' : '',
+        comp: '',
         fixture: u.opposition.isEmpty
             ? ''
             : u.away
@@ -986,6 +989,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             ? u.booking!.pitch
             : u.location,
         home: !u.away,
+        official: false,
         referee: b?.referee ?? '',
         rooms: b?.dressingRooms ?? '',
         onTap: u.booking != null
@@ -1027,6 +1031,17 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             style: PT.inter(13,
                 weight: bold ? FontWeight.w600 : FontWeight.w400,
                 color: s.isEmpty ? PT.faint : (colour ?? PT.text)));
+    // Official or unofficial, at a glance (Ken 2026-11-25).
+    Widget kind(_SheetRow r) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+              color: r.official ? PT.greenTint : PT.card2,
+              borderRadius: BorderRadius.circular(20)),
+          child: Text(r.official ? 'Official' : 'Unofficial',
+              style: PT.inter(12,
+                  weight: FontWeight.w700,
+                  color: r.official ? PT.green : PT.muted)),
+        );
     final panel = BoxDecoration(
         color: PT.card,
         border: Border.all(color: PT.line),
@@ -1056,8 +1071,17 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
                         Text('${dm(r.start)} · ${time(r.start)}',
                             style: PT.inter(12.5, color: PT.muted)),
                       ]),
-                      if (r.fixture.isNotEmpty)
-                        Text(r.fixture, style: PT.inter(13.5)),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        kind(r),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Text(r.fixture,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: PT.inter(13.5))),
+                      ]),
+                      const SizedBox(height: 2),
                       Text(
                           [
                             if (r.comp.isNotEmpty) r.comp,
@@ -1093,11 +1117,12 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
           1: FlexColumnWidth(1.3),
           2: FixedColumnWidth(96),
           3: FixedColumnWidth(58),
-          4: FlexColumnWidth(1.6),
-          5: FlexColumnWidth(2),
-          6: FlexColumnWidth(1.3),
-          7: FlexColumnWidth(1.1),
-          8: FlexColumnWidth(0.8),
+          4: FixedColumnWidth(104),
+          5: FlexColumnWidth(1.6),
+          6: FlexColumnWidth(2),
+          7: FlexColumnWidth(1.3),
+          8: FlexColumnWidth(1.1),
+          9: FlexColumnWidth(0.8),
         },
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         border: TableBorder(horizontalInside: BorderSide(color: PT.line)),
@@ -1107,6 +1132,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             hd('Team'),
             hd('Date'),
             hd('Time'),
+            hd('Type'),
             hd('Competition'),
             hd('Fixture'),
             hd('Venue'),
@@ -1121,6 +1147,8 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
               cell(t(r.team, bold: true), r.onTap),
               cell(t(dm(r.start)), r.onTap),
               cell(t(time(r.start)), r.onTap),
+              cell(Align(alignment: Alignment.centerLeft, child: kind(r)),
+                  r.onTap),
               cell(
                   t(r.note.isEmpty ? r.comp : '${r.comp} · ${r.note}',
                       colour: r.note.isEmpty ? null : PT.redText),
@@ -1172,7 +1200,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                        '$n change${n == 1 ? '' : 's'} from the league'
+                        '$n change${n == 1 ? '' : 's'} to official fixtures'
                         '${fresh > 0 ? ' · $fresh new' : ''}',
                         style: PT.inter(15,
                             weight: FontWeight.w700, color: PT.redText)),
@@ -1479,11 +1507,16 @@ class _SheetRow {
       required this.home,
       required this.referee,
       required this.rooms,
+      required this.official,
       this.note = '',
       this.onTap});
   final PitchCode code;
   final DateTime start;
   final String team, comp, fixture, venue, referee, rooms, note;
   final bool home;
+
+  /// A league fixture (official) or a CoachSmart match with no league game
+  /// (unofficial: challenge or friendly).
+  final bool official;
   final VoidCallback? onTap;
 }

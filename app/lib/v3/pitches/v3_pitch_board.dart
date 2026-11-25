@@ -1211,7 +1211,7 @@ class _ItemCard extends StatelessWidget {
                         : 'Event'),
             if (item.fixture != null) ...[
               const SizedBox(width: 6),
-              PitchTag('From league', colour: Color(0xFF1F6FD1)),
+              PitchTag('Official', colour: Color(0xFF1F6FD1)),
             ],
           ]),
         ]),
