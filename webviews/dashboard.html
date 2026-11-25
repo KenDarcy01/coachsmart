@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CoachSmart — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -383,9 +384,35 @@ tbody td { padding: 10px 14px; font-size: 14px; vertical-align: middle; }
     .ins-modal { padding: 14px 14px 40px; }
     .ins-hero { grid-template-columns: repeat(2,1fr); }
 }
+/* ── Sign-in ── */
+#authScreen { position:fixed; inset:0; z-index:9999; background:#14181b; display:flex; align-items:center; justify-content:center; padding:20px; }
+#authScreen .auth-card { width:100%; max-width:360px; background:#1E222B; border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:32px 28px; text-align:center; font-family:'DM Sans',system-ui,sans-serif; }
+#authScreen .auth-title { font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:2px; color:#F1F4F8; }
+#authScreen .auth-title span { color:#87C232; }
+#authScreen .auth-sub { color:#a1a1a2; font-size:13px; margin:4px 0 22px; }
+#authScreen input { width:100%; box-sizing:border-box; margin-bottom:12px; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:#262B35; color:#F1F4F8; font-size:14px; font-family:inherit; }
+#authScreen button { width:100%; padding:12px; border:0; border-radius:10px; background:#87C232; color:#14181b; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+#authScreen button:disabled { opacity:.6; cursor:default; }
+#authErr { color:#ef4444; font-size:13px; min-height:18px; margin-top:12px; }
+#authDenied { display:none; color:#F1F4F8; font-size:14px; line-height:1.5; }
+.auth-out { background:none; border:1px solid rgba(255,255,255,0.12); color:#a1a1a2; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; margin-left:auto; font-family:inherit; }
+.auth-out:hover { color:#F1F4F8; }
 </style>
 </head>
 <body>
+<div id="authScreen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-title">COACH<span>SMART</span></div>
+    <div class="auth-sub">Club analytics · sign in with your CoachSmart login</div>
+    <form id="authForm" onsubmit="event.preventDefault(); doSignIn();">
+      <input type="email" id="authEmail" placeholder="Email address" autocomplete="username" required>
+      <input type="password" id="authPass" placeholder="Password" autocomplete="current-password" required>
+      <button type="submit" id="authBtn">Sign In</button>
+    </form>
+    <div id="authDenied">This login isn't an admin on any team, so there's no club to show.<br><br><button type="button" onclick="doSignOut()">Use another login</button></div>
+    <div id="authErr"></div>
+  </div>
+</div>
 
 <div class="sticky-header">
     <div class="topbar">
@@ -397,6 +424,7 @@ tbody td { padding: 10px 14px; font-size: 14px; vertical-align: middle; }
         </div>
         <button class="pdf-btn" id="pdfBtn" onclick="exportPDF()" disabled>↓ Export PDF</button>
         <button class="ins-topbtn" id="insightsBtn" onclick="openInsights()" disabled>⚡ Insights</button>
+        <button class="auth-out" onclick="doSignOut()">Sign out</button>
     </div>
 
     <div class="filter-strip">
@@ -781,16 +809,76 @@ function updateAttFill() {
     document.getElementById('attLabel').textContent = `${f} – ${t}`;
 }
 
+// ── Sign-in ───────────────────────────────────────────────────────
+// Reads run as the signed-in user (anonymous access was closed in Aug 2026).
+// The session is shared with dashboard-app.html (same site, same storage key).
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let authUser = null, myClubs = [], _started = false;
+function setToken(session) { H.Authorization = `Bearer ${session ? session.access_token : SUPABASE_ANON_KEY}`; }
+function showAuth(denied) {
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('authForm').style.display = denied ? 'none' : '';
+    document.getElementById('authDenied').style.display = denied ? 'block' : 'none';
+    document.getElementById('authBtn').disabled = false;
+    document.getElementById('authBtn').textContent = 'Sign In';
+}
+async function startAuth() {
+    const { data: { session } } = await sb.auth.getSession();
+    sb.auth.onAuthStateChange((event, s) => {
+        if (s) setToken(s);
+        if (event === 'SIGNED_OUT') { authUser = null; setToken(null); showAuth(false); }
+    });
+    if (session) await onSignedIn(session); else showAuth(false);
+}
+async function doSignIn() {
+    const btn = document.getElementById('authBtn');
+    document.getElementById('authErr').textContent = '';
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    const { data, error } = await sb.auth.signInWithPassword({
+        email: document.getElementById('authEmail').value.trim(),
+        password: document.getElementById('authPass').value });
+    if (error) { document.getElementById('authErr').textContent = error.message; btn.disabled = false; btn.textContent = 'Sign In'; return; }
+    document.getElementById('authPass').value = '';
+    await onSignedIn(data.session);
+}
+async function doSignOut() { await sb.auth.signOut(); location.reload(); }
+async function onSignedIn(session) {
+    setToken(session);
+    authUser = session.user;
+    document.getElementById('authBtn').textContent = 'Checking access…';
+    myClubs = await fetchMyClubs();
+    if (!myClubs.length) return showAuth(true);
+    document.getElementById('authScreen').style.display = 'none';
+    if (!_started) { _started = true; loadClubs(); }
+}
+// Clubs where the user holds an admin (grade 100) role on a team
+async function fetchMyClubs() {
+    const get = async q => { const r = await fetch(`${SUPABASE_URL}/rest/v1/${q}`, {headers:H}); const j = await r.json(); return Array.isArray(j) ? j : []; };
+    try {
+        const uml = await get(`user_member_link?select=member_id&user_id=eq.${authUser.id}`);
+        if (!uml.length) return [];
+        const mtl = await get(`member_team_link?select=team_id,member_team_role_link(roles(role_grade))&member_id=in.(${uml.map(r=>r.member_id)})`);
+        const teamIds = [...new Set(mtl.filter(m => (m.member_team_role_link||[]).some(r => r.roles?.role_grade === 100)).map(m => m.team_id))];
+        if (!teamIds.length) return [];
+        const teams = await get(`teams?select=club_id&team_id=in.(${teamIds})`);
+        const clubIds = [...new Set(teams.map(t => t.club_id).filter(Boolean))];
+        if (!clubIds.length) return [];
+        return await get(`clubs?select=club_id,club_name&club_id=in.(${clubIds})&order=club_name`);
+    } catch (e) { console.error(e); return []; }
+}
+
 // ── Club loading ──────────────────────────────────────────────────
 async function loadClubs() {
-    if (paramClub) { document.getElementById('clubWrap').style.display='none'; loadDashboard(); return; }
+    if (paramClub && myClubs.some(c => c.club_id === paramClub)) { document.getElementById('clubWrap').style.display='none'; loadDashboard(); return; }
     try {
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/clubs?select=club_id,club_name&order=club_name`,{headers:H});
-        const clubs = await r.json();
-        if (!Array.isArray(clubs)) return;
+        const clubs = myClubs;
         const sel = document.getElementById('clubSelect');
         clubs.forEach(c => { const o=document.createElement('option'); o.value=c.club_id; o.textContent=c.club_name; sel.appendChild(o); });
-        if (clubs.length===1) { sel.value=clubs[0].club_id; onClubChange(); }
+        if (clubs.length===1) { sel.value=clubs[0].club_id; onClubChange(); return; }
+        // Open the user's default club straight away
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/users?select=default_club&user_id=eq.${authUser.id}`, {headers:H});
+        const def = Number((await r.json())?.[0]?.default_club);
+        if (def && clubs.some(c => c.club_id === def)) { sel.value = def; onClubChange(); }
     } catch(e) { console.error(e); }
 }
 function onClubChange() { if (document.getElementById('clubSelect').value) loadDashboard(); }
@@ -2714,7 +2802,7 @@ function renderInsights() {
 // ── Init ──────────────────────────────────────────────────────────
 initDateSlider();
 switchTab(paramTab);
-loadClubs();
+startAuth();
 </script>
 </body>
 </html>
