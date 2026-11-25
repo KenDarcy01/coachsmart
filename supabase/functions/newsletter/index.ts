@@ -424,7 +424,7 @@ async function suggest(sb: any, iss: any) {
   if (fx.length) {
     items.push({
       kind: "fixtures", source: "results", placement: "story", included: true, headline: "Coming Up This Week",
-      data: { rows: fx.map((x) => ({ label: x.label, ...scoreData(x, false), final: /Final$/.test(x.round) && x.round !== "Quarter-Final", semi: x.round === "Semi-Final" })) },
+      data: { rows: fx.map((x) => ({ label: x.label, ...scoreData(x, false), final: /Final$/.test(x.round) && !["Quarter-Final", "Semi-Final"].includes(x.round), semi: x.round === "Semi-Final" })) },
     });
   }
 

@@ -83,7 +83,7 @@
     const rows = (s.data && s.data.rows) || [];
     return `<section class="fxs"><div class="kicker red">Coming up · get down and support</div><h3>${esc(s.headline || 'Coming Up This Week')}</h3>${rows.map(r => {
       const opp = r.us === 'home' ? r.away : r.home;
-      const tag = r.final ? '<span class="tag">Final</span>' : r.semi ? '<span class="tag">Semi-final</span>' : '';
+      const tag = r.semi ? '<span class="tag">Semi-final</span>' : r.final ? '<span class="tag">Final</span>' : '';
       return `<div class="fx"><div class="d"><b>${Number(r.day.slice(8))}</b><span>${esc(r.dow)}</span></div><div><div class="w">${esc(r.label)} v ${esc(opp)} ${tag}</div><div class="v">${esc(r.competition)}${r.round ? ' · ' + esc(r.round) : ''} · ${esc(r.venue)} · ${esc(r.time)}</div></div></div>`;
     }).join('')}${s.body ? bodyHtml(s.body) : ''}</section>`;
   }
