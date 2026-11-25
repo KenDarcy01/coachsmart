@@ -106,12 +106,24 @@ a{color:inherit;text-decoration:none}
 .mut{color:var(--muted);white-space:nowrap}
 .reach{background:var(--tint);color:var(--club);border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:600;margin:4px 0 12px}
 .warn{background:#fff7e6;color:#8a5a00;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.4;margin-bottom:12px}
-.prev{background:#1e222b;border-radius:16px;padding:14px;color:#f1f4f8}
-.prev .pc{background:#fff;color:#1a1d23;border-radius:14px;padding:14px}
-.prev .pf{font-size:13px;color:#667080;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.prev{background:#14181b;border-radius:16px;padding:14px;color:#f1f4f8}
 .prev img{width:28px;height:28px;object-fit:contain;flex:none}
-.prev .pb{font-size:14px;color:#3b4250;margin-top:6px;line-height:1.4;white-space:pre-line}
-.prev .pg{margin-top:12px;text-align:right;font-weight:700;color:var(--club)}
+.prev .pc{background:#1e222b;border:1px solid #2c313b;border-radius:18px;overflow:hidden;position:relative}
+.prev .stripe{display:block;height:6px;background:var(--club)}
+.prev .pf{display:flex;align-items:center;gap:10px;padding:12px 12px 0 14px}
+.prev .pf img{width:36px;height:36px;background:#fff;border-radius:8px;padding:2px}
+.prev .pf div{flex:1;min-width:0}.prev .pf b{display:block;font-size:14px}.prev .pf small{color:#a1a1a2;font-size:12px}
+.prev .x{width:32px;height:32px;border-radius:50%;background:#2a2f3a;display:flex;align-items:center;justify-content:center;font-size:13px}
+.prev .pimg{display:block;width:calc(100% - 28px);height:auto;max-height:260px;object-fit:cover;margin:12px 14px 0;border-radius:12px}
+.prev .pin{padding:12px 14px 14px}
+.prev .imp{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:7px;background:#3a2f12;color:#f5c55a}
+.prev .pt{display:block;font-size:20px;font-weight:700;margin-top:8px;line-height:1.2}
+.prev .pb{font-size:14px;color:#d5d8de;margin-top:8px;line-height:1.5;white-space:pre-line}
+.prev .pg{margin-top:14px;text-align:center;font-weight:700;color:var(--onclub,#fff);background:var(--club);border-radius:12px;padding:12px}
+.thumb{display:block;width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-bottom:8px}
+.opt{font-weight:500;color:#9aa1ad}
+.up{color:var(--club);font-weight:600}
+.photo{display:flex;align-items:center;gap:12px}.photo img{width:96px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .nbar{display:flex;align-items:center;gap:10px;background:#2a2f3a;border-radius:12px;padding:10px 12px}
 .nbar div{flex:1;min-width:0}.nbar b{display:block;font-size:14px}.nbar small{display:block;color:#a1a1a2;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nbar span{color:#a1a1a2;font-size:18px}
@@ -242,7 +254,7 @@ function card(m, i) {
   const acts = st === 'ended' ? `<button class="sm" onclick="again(${i})">Send again</button>`
     : `<button class="sm" onclick="edit(${i})">Edit</button><button class="sm red" id="stop${i}" onclick="stop(${i})">Stop showing</button>`;
   return `<div class="card"><div class="mrow"><span class="kind ${m.kind === 'news' ? 'n' : 'i'}">${m.kind === 'news' ? 'News' : 'Important'}</span>
-    <div class="mx"><div class="mt">${esc(m.title)}</div>${m.body ? `<div class="ms">${esc(m.body)}</div>` : ''}
+    <div class="mx">${m.image_url ? `<img class="thumb" src="${esc(m.image_url)}" alt="">` : ''}<div class="mt">${esc(m.title)}</div>${m.body ? `<div class="ms">${esc(m.body)}</div>` : ''}
     <div class="stat">${when}<span>${esc(AUD[m.audience] || 'Everyone')}</span><span>${esc(teamsLabel(m))}</span><span><b>${m.seen_count || 0}</b> of ${m.reach || 0} seen</span></div>
     <div class="acts">${acts}</div></div></div></div>`;
 }
@@ -261,12 +273,12 @@ function render() {
 // ── New / edit ────────────────────────────────────────────────────
 function blank() {
   const end = new Date(); end.setDate(end.getDate() + 3);
-  return { id: null, kind: 'important', title: '', body: '', link_url: '', link_label: '', audience: 'all', team_ids: [],
+  return { id: null, kind: 'important', title: '', body: '', link_url: '', link_label: '', image_url: '', audience: 'all', team_ids: [],
     later: false, starts: localInput(new Date(Date.now() + 3600e3)), ends: localDate(end), reach: null, picking: false, q: '' };
 }
 function fromMsg(m, copy) {
   const d = blank();
-  Object.assign(d, { id: copy ? null : m.id, kind: m.kind, title: m.title, body: m.body || '', link_url: m.link_url || '', link_label: m.link_label || '',
+  Object.assign(d, { id: copy ? null : m.id, kind: m.kind, title: m.title, body: m.body || '', link_url: m.link_url || '', link_label: m.link_label || '', image_url: m.image_url || '',
     audience: m.audience || 'all', team_ids: (m.team_ids || []).map(Number) });
   if (!copy) {
     d.later = d.wasLater = new Date(m.starts_at) > now(); if (d.later) d.starts = localInput(new Date(m.starts_at));
@@ -303,6 +315,10 @@ function renderForm() {
       <div class="hint">${d.kind === 'news' ? 'A line in the news bar at the top of the home screen.' : 'Pops up when people open the app, until they tap Got it.'}</div></div>
     <div class="field"><label>Title</label><input id="fTitle" maxlength="80" value="${esc(d.title)}" placeholder="${d.kind === 'news' ? 'Christmas social, 12 Dec' : 'Pitches closed Saturday'}" oninput="draft.title=this.value;pv()"></div>
     <div class="field"><label>Message</label><textarea id="fBody" maxlength="500" rows="4" placeholder="A line or two people need to know." oninput="draft.body=this.value;pv()">${esc(d.body)}</textarea></div>
+    ${d.kind === 'important' ? `<div class="field"><label>Photo <span class="opt">optional</span></label>
+      ${d.image_url ? `<div class="photo"><img src="${esc(d.image_url)}" alt=""><button class="sm red" onclick="setD('image_url','')">Remove</button></div>`
+        : `<div class="pick up" onclick="$('fImg').click()"><span id="upTxt">Add a photo</span><span class="mut">Choose ›</span></div>`}
+      <input id="fImg" type="file" accept="image/*" hidden onchange="upload(this.files[0])"></div>` : ''}
     <div class="field"><label>Who gets it</label>${seg('audience', [['all', 'Everyone'], ['players', 'Players &amp; parents'], ['staff', 'Coaches']], d.audience)}</div>
     <div class="field"><label>Teams</label><div class="pick" onclick="openPicker()"><span>${esc(teamsText())}</span><span class="mut">Change ›</span></div></div>
     <div class="two">
@@ -324,8 +340,10 @@ function pv() {
   const crest = T.crest ? `<img src="${esc(T.crest)}" alt="">` : '';
   el.innerHTML = d.kind === 'news'
     ? `<div class="prev"><div class="nbar">${crest}<div><b>${esc(d.title || 'Your title')}</b>${d.body ? `<small>${esc(d.body)}</small>` : ''}</div><span>›</span></div></div>`
-    : `<div class="prev"><div class="pc"><div class="pf">${crest}${esc(T.club_name)}</div><b>${esc(d.title || 'Your title')}</b>
-       ${d.body ? `<div class="pb">${esc(d.body)}</div>` : ''}<div class="pg">Got it</div></div></div>`;
+    : `<div class="prev"><div class="pc"><i class="stripe"></i><div class="pf">${crest}<div><b>${esc(T.club_name)}</b><small>From the club</small></div><span class="x">✕</span></div>
+       ${d.image_url ? `<img class="pimg" src="${esc(d.image_url)}" alt="">` : ''}
+       <div class="pin"><span class="imp">IMPORTANT</span><b class="pt">${esc(d.title || 'Your title')}</b>
+       ${d.body ? `<div class="pb">${esc(d.body)}</div>` : ''}<div class="pg">Got it</div></div></div></div>`;
 }
 function openPicker() { grab(); draft.picking = true; draft.q = ''; renderForm(); }
 function renderPicker() {
@@ -365,9 +383,26 @@ async function send() {
   const { error } = await sb.rpc('save_app_message', {
     p_id: d.id, p_kind: d.kind, p_title: d.title.trim(), p_body: d.body.trim(), p_link_url: d.link_url, p_link_label: d.link_label,
     p_club_id: clubId, p_team_ids: d.team_ids, p_audience: d.audience,
-    p_starts_at: starts ? starts.toISOString() : (d.id && d.wasLater ? new Date().toISOString() : null), p_ends_at: ends.toISOString() });
+    p_image_url: d.kind === 'important' ? (d.image_url || '') : '', p_starts_at: starts ? starts.toISOString() : (d.id && d.wasLater ? new Date().toISOString() : null), p_ends_at: ends.toISOString() });
   if (error) { b.disabled = false; b.textContent = d.id ? 'Save changes' : 'Send'; return err(/after/.test(error.message) ? 'Stop showing has to be after it starts.' : 'Couldn’t send. Please try again.'); }
   toast(d.id ? 'Saved' : starts ? 'Scheduled' : 'Sent'); view = 'list'; draft = null; load();
+}
+// Photo: shrunk in the browser to at most 1200px wide JPEG, then stored in
+// message-images/<club>/ (only Messages officers of this club may upload).
+async function upload(f) {
+  if (!f) return; grab();
+  const tx = $('upTxt'); if (tx) tx.textContent = 'Uploading…';
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(f); });
+    const w = Math.min(1200, img.naturalWidth), h = Math.round(img.naturalHeight * w / img.naturalWidth);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(img, 0, 0, w, h);
+    const blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.85));
+    const path = clubId + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.jpg';
+    const { error } = await sb.storage.from('message-images').upload(path, blob, { contentType: 'image/jpeg' });
+    if (error) throw error;
+    draft.image_url = sb.storage.from('message-images').getPublicUrl(path).data.publicUrl;
+    renderForm();
+  } catch (e) { if (tx) tx.textContent = 'Couldn’t add that photo. Try another.'; }
 }
 async function stop(i) {
   const b = $('stop' + i);
