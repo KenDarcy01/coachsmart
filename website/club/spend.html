@@ -224,7 +224,7 @@ function render() {
   $('app').innerHTML = `
   <div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Spend &amp; gear · ${season} season</div></div>
    <div class="right"><div class="chips">${[thisYear, thisYear - 1].map(y => `<button class="chip ${y === season ? 'on' : ''}" onclick="setSeason(${y})">${y}</button>`).join('')}</div>
-   <div class="links"><a href="/club/?club=${clubId}">Club dashboard</a><button onclick="stockList()">Stock list</button><button onclick="exportCsv()">Export CSV</button><button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+   <div class="links"><a href="/club/?club=${clubId}">Club home</a><button onclick="stockList()">Stock list</button><button onclick="exportCsv()">Export CSV</button><button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
   <div class="wrap">
    <div class="tiles">
     <div class="card tile"><span>Spent this season</span><b>${eur(M.spent)}</b><i>approved, across ${Object.keys(M.per).length} team${Object.keys(M.per).length === 1 ? '' : 's'}</i></div>
