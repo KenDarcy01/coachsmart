@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Club newsletter</title>
+<!-- Club newsletter admin (2026-11-25, thread "Build The Tarbh Times club
+     newsletter"). Club officers with the newsletter tick (and super users):
+     each week's stories are suggested from results and the club website,
+     the officer ticks, drags and edits them, previews, builds the phone PDF
+     and approves. coachsmart.app/club/newsletter.html?club=ID. Data via the
+     `newsletter` edge function; the paper itself is drawn by newsletter/paper.js. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/club/newsletter/paper.js"></script>
+<style>
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
+:root{--club:#1e3f94;--band:#1e3f94;--onband:#fff;--bg:#f3f4f7;--card:#fff;--text:#1a1d23;--muted:#667080;--line:#e6e8ec;--good:#2f9e44;--warn:#a35f00}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}
+.band{background:var(--band);color:var(--onband);padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:4;box-shadow:0 2px 10px #0002}
+.band .crest{width:46px;height:46px;object-fit:contain;background:#fff;border-radius:50%;padding:3px;flex:none}
+.band h1{font-size:21px;font-weight:700;line-height:1.1}
+.band .sub{font-size:13px;opacity:.85;margin-top:2px}
+.band .back{background:none;border:0;color:var(--onband);font-size:28px;line-height:1;cursor:pointer;padding:0 4px 0 0}
+.band .links{margin-left:auto;display:flex;gap:12px;font-size:12.5px}
+.band .links button,.band .links a{background:none;border:0;color:var(--onband);text-decoration:underline;opacity:.9;cursor:pointer;font-size:12.5px}
+.wrap{max-width:720px;margin:0 auto;padding:14px 16px 110px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.wk{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.wk b{font-size:16px}.wk .m{font-size:13px;color:var(--muted);margin-top:2px}
+.pill{font-size:12px;font-weight:600;padding:4px 9px;border-radius:99px;white-space:nowrap}
+.s-draft{background:#fff4e0;color:var(--warn)}.s-built{background:#e6eefa;color:#2b56b0}.s-approved{background:#e5f5e8;color:#1f7a34}
+h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:20px 2px 8px;display:flex;justify-content:space-between;font-weight:600}
+h2 span{text-transform:none;letter-spacing:0;font-weight:500}
+.st{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 10px;display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;touch-action:pan-y;user-select:none}
+.st.off{background:#fafbfc}
+.st.drag{box-shadow:0 8px 24px #0003;position:relative;z-index:5;opacity:.97}
+.h{color:#aab1bc;font-size:20px;line-height:1;padding:2px 2px;cursor:grab;touch-action:none;letter-spacing:-3px}
+.tk{width:26px;height:26px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer;border:2px solid #c8ced8;background:#fff}
+.tk.y{background:var(--club);border-color:var(--club);color:#fff}
+.st .c{flex:1;min-width:0;cursor:pointer}.st .t{font-weight:600;font-size:15px;line-height:1.25}
+.st .p{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tags{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:#f0f2f5;color:#4a5260}
+.tag.win{background:#e5f5e8;color:#1f7a34}.tag.fin{background:#e6eefa;color:#2b56b0}.tag.lead{background:var(--club);color:#fff}
+.thumb{width:52px;height:52px;border-radius:9px;object-fit:cover;flex:none}
+.add{border:2px dashed #c8ced8;border-radius:14px;padding:13px;text-align:center;color:var(--muted);font-weight:600;cursor:pointer;width:100%;background:none;margin-top:4px}
+.note{font-size:12.5px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(14px + env(safe-area-inset-bottom));display:flex;gap:10px;z-index:6}
+.bar .in{max-width:720px;margin:0 auto;display:flex;gap:10px;width:100%}
+.btn{flex:1;text-align:center;padding:13px;border-radius:12px;font-weight:700;font-size:15px;border:0;cursor:pointer;background:#f0f2f5}
+.btn.pri{background:var(--club);color:#fff}.btn.grn{background:var(--good);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.row2{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}
+.row2 a,.row2 button.lk{color:var(--club);font-weight:600;text-decoration:none;background:none;border:0;cursor:pointer}
+.hist .hi{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);cursor:pointer}
+.hist .hi:first-child{border-top:0}
+.hist .m{color:var(--muted);font-size:13px;margin-top:2px}
+.lbl{font-size:12px;font-weight:600;color:var(--muted);margin:14px 2px 5px;text-transform:uppercase;letter-spacing:.05em}
+.fld{width:100%;background:#fff;border:1px solid #d6d9df;border-radius:11px;padding:11px 12px;font-size:16px;line-height:1.45}
+textarea.fld{min-height:180px;resize:vertical}
+.fld.big{font-weight:700}
+.seg{display:flex;background:#e9ecf0;border-radius:10px;padding:3px}.seg button{flex:1;border:0;background:none;padding:9px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}.seg .on{background:#fff;color:var(--text)}
+.sw{width:46px;height:28px;border-radius:99px;background:#d3d8df;position:relative;border:0;cursor:pointer;flex:none}.sw:after{content:'';position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.sw.on{background:var(--good)}.sw.on:after{left:22px}
+.photo{display:flex;gap:10px;align-items:center}.photo img{width:110px;height:80px;object-fit:cover;border-radius:9px}
+.photo label,.photo button{border:2px dashed #c8ced8;border-radius:9px;padding:10px 12px;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;background:none}
+.src{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:13px;color:var(--muted);line-height:1.5;word-break:break-word}
+.src b{color:var(--text)}
+.chk{font-size:13px;color:#1f7a34;background:#e5f5e8;border-radius:10px;padding:9px 11px;margin-top:8px}
+.chk.w{color:var(--warn);background:#fff4e0}
+.pv{background:#d9d3c5;border-radius:14px;padding:12px;display:flex;justify-content:center}
+.pv iframe{width:420px;max-width:100%;border:0;background:#f6f1e6;box-shadow:0 2px 14px #0003;display:block}
+.state{padding:80px 30px;text-align:center;color:var(--muted);font-size:16px;line-height:1.5}
+.login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:var(--bg);z-index:9}
+.login.on{display:flex}
+.lbox{background:var(--card);border-radius:18px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px #0001}
+.lbox h2{font-size:22px;margin:0 0 6px;text-transform:none;letter-spacing:0;color:var(--text)}.lbox p{color:var(--muted);font-size:14px;margin-bottom:18px}
+.lbox input{width:100%;border:1px solid #d6d9df;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:16px}
+.lbox .btn{width:100%;background:var(--club);color:#fff}
+.msg{font-size:14px;color:#d9363e;min-height:20px;margin-top:6px}
+.ldpill{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:20;background:#1a1d23;color:#fff;font-size:14px;font-weight:600;padding:9px 16px;border-radius:999px;display:none}
+body.busy .ldpill{display:block}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#1a1d23;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;display:none;max-width:90vw;text-align:center}
+#buildFrame{position:fixed;left:-2000px;top:0;width:420px;height:800px;border:0}
+</style>
+</head>
+<body>
+<div class="ldpill" id="ld">Working…</div>
+<div class="toast" id="toast"></div>
+<div id="app"><div class="state">Loading…</div></div>
+<div class="login" id="login">
+  <form class="lbox" id="loginForm">
+    <h2>Club newsletter</h2>
+    <p>Sign in with your CoachSmart email and password.</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn" id="goBtn" type="submit">Sign in</button>
+    <div class="msg" id="loginMsg"></div>
+  </form>
+</div>
+<script>
+{
+const SUPABASE_URL = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const P = new URLSearchParams(location.search);
+const clubId = Number(P.get('club')) || null;
+let C = null;      // club data: club, settings, issues
+let I = null;      // open issue: club, settings, issue, stories
+let view = 'home'; // home | issue | story | preview
+let storyId = null;
+
+function lum(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+  const n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+}
+function brand(c) {
+  const p = c.primary_colour, s = c.secondary_colour;
+  const okText = h => { const l = lum(h); return l != null && l < .45; };
+  const accent = okText(p) ? p : okText(s) ? s : '#1a1d23';
+  const band = lum(p) != null && lum(p) < .85 ? p : (lum(s) != null && lum(s) < .85 ? s : accent);
+  const r = document.documentElement.style;
+  r.setProperty('--club', accent); r.setProperty('--band', band);
+  r.setProperty('--onband', lum(band) > .5 ? '#14181b' : '#fff');
+  if (c.crest) { let l = document.querySelector('link[rel="icon"]'); if (!l) { l = document.createElement('link'); l.rel = 'icon'; document.head.appendChild(l); } l.href = c.crest; }
+}
+
+// ── sign in and calls ───────────────────────────────────────────────
+function showLogin(msg) { $('login').classList.add('on'); $('loginMsg').textContent = msg || ''; $('goBtn').disabled = false; $('goBtn').textContent = 'Sign in'; }
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('goBtn').disabled = true; $('goBtn').textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) return showLogin(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : error.message);
+  $('password').value = ''; $('login').classList.remove('on'); boot();
+});
+async function signOut() { await sb.auth.signOut(); location.reload(); }
+function state(msg) { $('app').innerHTML = `<div class="state">${esc(msg)}<br><br><button class="btn" data-a="signout" style="flex:none;padding:10px 18px">Sign out</button></div>`; }
+async function api(body) {
+  const { data, error } = await sb.functions.invoke('newsletter', { body: { club_id: clubId, ...body } });
+  if (!error && data && data.success) return data.data;
+  let m = data && data.error;
+  if (error) { try { m = (await error.context.json()).error; } catch (_) { /* keep */ } }
+  throw new Error(m || 'Something went wrong. Please try again.');
+}
+function toast(t) { const el = $('toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', 3200); }
+async function busy(label, fn) {
+  $('ld').textContent = label; document.body.classList.add('busy');
+  try { return await fn(); } catch (e) { toast(e.message); return null; } finally { document.body.classList.remove('busy'); }
+}
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  if (!clubId) return state('Open this page from your club’s link, for example coachsmart.app/club/newsletter.html?club=1.');
+  try { C = await api({ action: 'club' }); } catch (e) { return state(e.message); }
+  brand(C.club); document.title = C.settings.title + ' · ' + C.club.club_name;
+  const iss = Number(P.get('issue'));
+  if (iss) { const d = await busy('Opening…', () => api({ action: 'get', issue_id: iss })); if (d) { I = d; view = 'issue'; } }
+  render();
+}
+
+// ── helpers ─────────────────────────────────────────────────────────
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const wk = (a, b) => window.paperWeekLabel(a, b);
+const nice = iso => { const d = new Date(iso); return d.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('en-IE', { hour: 'numeric', minute: '2-digit' }); };
+const STATUS = { draft: 'Draft', built: 'Built, not approved', approved: 'Approved' };
+const pill = s => `<span class="pill s-${s}">${STATUS[s] || s}</span>`;
+const shareUrl = i => location.origin + '/club/news.html?i=' + i.share_token;
+function setIssueParam(id) { const u = new URL(location); if (id) u.searchParams.set('issue', id); else u.searchParams.delete('issue'); history.replaceState(null, '', u); }
+const story = id => I.stories.find(s => s.story_id === id);
+function band(title, sub, back) {
+  return `<div class="band">${back ? `<button class="back" data-a="${back}" aria-label="Back">‹</button>` : (C.club.crest ? `<img class="crest" src="${esc(C.club.crest)}" alt="">` : '')}
+    <div><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div>
+    ${back ? '' : `<div class="links"><a href="/club/?club=${clubId}">Dashboard</a><button data-a="signout">Sign out</button></div>`}</div>`;
+}
+function tagsOf(s) {
+  const t = [];
+  if (s.placement === 'lead') t.push('<span class="tag lead">Lead story</span>');
+  const d = s.data || {};
+  if (s.kind === 'win') t.push('<span class="tag win">Win</span>');
+  if (s.kind === 'wins_box') t.push('<span class="tag win">Wins box</span>');
+  if (s.kind === 'final') t.push(`<span class="tag fin">${esc(d.round || 'Final')} · ${d.result === 'close' ? 'Close' : d.round === 'Semi-Final' ? 'Semi-finalists' : 'Runners-up'}</span>`);
+  if (s.kind === 'go_games') t.push('<span class="tag">Go Games</span>');
+  if (s.kind === 'fixtures') t.push('<span class="tag">Fixtures</span>');
+  if (s.kind === 'custom') t.push('<span class="tag">Your story</span>');
+  t.push(`<span class="tag">${{ results: 'Results', website: 'Club website', instagram: 'Instagram', you: 'Written by you' }[s.source] || esc(s.source)}</span>`);
+  return t.join('');
+}
+function preview(s) {
+  const d = s.data || {};
+  if (s.kind === 'wins_box' || s.kind === 'fixtures') return `${(d.rows || []).length} ${s.kind === 'fixtures' ? 'fixtures' : 'wins'}: ${(d.rows || []).map(r => r.label).join(', ')}`;
+  if ((s.kind === 'win' || s.kind === 'final') && d.home) return `${d.home} ${d.show_score ? d.home_score : ''} v ${d.away} ${d.show_score ? d.away_score : ''} · ${d.competition}${d.round ? ' · ' + d.round : ''}${d.show_score ? '' : ' · no score shown'}`;
+  return (s.body || '').replace(/\s+/g, ' ').slice(0, 160);
+}
+function stCard(s) {
+  return `<div class="st${s.included ? '' : ' off'}" data-id="${s.story_id}">
+    <div class="h" data-drag="${s.story_id}" aria-label="Drag to reorder">⋮⋮</div>
+    <button class="tk${s.included ? ' y' : ''}" data-a="tick" data-id="${s.story_id}" aria-label="${s.included ? 'Take out' : 'Put in'}">${s.included ? '✓' : ''}</button>
+    ${s.photo_url ? `<img class="thumb" src="${esc(s.photo_url)}" alt="">` : ''}
+    <div class="c" data-a="open" data-id="${s.story_id}"><div class="t">${esc(s.headline || '(no headline yet)')}</div><div class="p">${esc(preview(s))}</div><div class="tags">${tagsOf(s)}</div></div>
+  </div>`;
+}
+
+// ── views ───────────────────────────────────────────────────────────
+function render() {
+  window.scrollTo(0, 0);
+  if (view === 'issue' && I) return renderIssue();
+  if (view === 'story' && I) return renderStory();
+  if (view === 'preview' && I) return renderPreview();
+  view = 'home'; renderHome();
+}
+function renderHome() {
+  setIssueParam(null);
+  const last = C.issues.find(i => i.week_start === C.last_week);
+  const lastEnd = (() => { const d = new Date(C.last_week + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 6); return d.toISOString().slice(0, 10); })();
+  $('app').innerHTML = band(C.settings.title, C.club.club_name + ' · weekly newsletter') + `<div class="wrap">
+    <div class="card wk"><div><b>${last ? 'Issue ' + last.issue_no + ' · ' : ''}${esc(wk(C.last_week, lastEnd))}</b>
+      <div class="m">${last ? (last.lead ? esc(last.lead) : 'Stories ready to pick') : 'Last week’s stories are ready to be suggested'}</div></div>
+      ${last ? pill(last.status) : ''}</div>
+    <div class="row2" style="margin-top:10px"><span>${last ? 'Open this week’s issue' : 'Suggest this week’s stories'}</span><button class="btn pri" style="flex:none;padding:10px 16px" data-a="openweek" data-w="${C.last_week}">${last ? 'Open' : 'Start'}</button></div>
+    <h2>All issues</h2>
+    <div class="card hist">${C.issues.length ? C.issues.map(i => `<div class="hi" data-a="openissue" data-id="${i.issue_id}"><div><b>Issue ${i.issue_no}</b> · ${esc(wk(i.week_start, i.week_end))}<div class="m">${esc(i.lead || '')}</div></div>${pill(i.status)}</div>`).join('') : '<div class="m" style="padding:6px 0">No issues yet.</div>'}</div>
+    <h2>Settings</h2>
+    <div class="card">
+      <div class="lbl" style="margin-top:0">Newsletter name</div><input class="fld" id="sTitle" value="${esc(C.settings.title)}" maxlength="60">
+      <div class="lbl">Line under the name</div><input class="fld" id="sStrap" value="${esc(C.settings.strap || '')}" maxlength="120">
+      <div class="lbl">Club website (for club news)</div><input class="fld" id="sSite" value="${esc(C.settings.website_url || '')}" placeholder="https://" maxlength="200">
+      <button class="btn pri" style="width:100%;margin-top:12px" data-a="savesettings">Save settings</button>
+    </div>
+    <div class="note">Stories are suggested from this club’s results and its website. Wins are shown with scores; semi-final and final losses are shown kindly; other losses, the lotto, payments and car pooling are never suggested.</div>
+  </div>`;
+}
+function renderIssue() {
+  setIssueParam(I.issue.issue_id);
+  const ins = I.stories.filter(s => s.included), outs = I.stories.filter(s => !s.included);
+  const iss = I.issue;
+  $('app').innerHTML = band(C.settings.title, 'Issue ' + iss.issue_no + ' · ' + wk(iss.week_start, iss.week_end), 'home') + `<div class="wrap">
+    <div class="card wk"><div><b>Issue ${iss.issue_no} · ${esc(wk(iss.week_start, iss.week_end))}</b><div class="m">${iss.suggested_at ? 'Suggested ' + esc(nice(iss.suggested_at)) + ' · ' : ''}${I.stories.length} stories found</div></div>${pill(iss.status)}</div>
+    ${iss.status === 'approved' ? `<div class="row2"><b>Download PDF</b><a href="${esc(iss.pdf_url)}" target="_blank" rel="noopener">Open</a></div>
+      <div class="row2"><b>Share link</b><button class="lk" data-a="copy">Copy link</button></div>` : ''}
+    <h2>In this issue <span>Drag ⋮⋮ to reorder</span></h2>
+    <div id="inList">${ins.map(stCard).join('') || '<div class="note">Nothing ticked yet.</div>'}</div>
+    <h2>Suggested, not included <span>Tick to add</span></h2>
+    <div id="outList">${outs.map(stCard).join('') || '<div class="note">Everything is in.</div>'}</div>
+    <button class="add" data-a="add">+ Write your own story</button>
+    <div class="note">Not right? <button class="lk" style="background:none;border:0;color:var(--club);font-weight:600;cursor:pointer" data-a="resuggest">Suggest again</button> (keeps the stories you edited).</div>
+  </div>
+  <div class="bar"><div class="in"><button class="btn" data-a="preview">Preview</button><button class="btn pri" data-a="build">${iss.status === 'draft' ? 'Build issue' : 'Rebuild'}</button></div></div>`;
+  wireDrag();
+}
+function renderStory() {
+  const s = story(storyId); if (!s) { view = 'issue'; return render(); }
+  const d = s.data || {};
+  let src = '';
+  if (s.source === 'results' && d.home) src = `<b>Results</b> · ${esc(d.home)} ${esc(d.home_score || '')} v ${esc(d.away)} ${esc(d.away_score || '')} · ${esc(d.dow || '')} ${esc(d.day || '')} ${esc(d.time || '')}${d.venue ? ', ' + esc(d.venue) : ''} · ${esc(d.competition || '')}${d.round ? ' · ' + esc(d.round) : ''}${/hurling|camogie/i.test(d.code || '') ? ' · hurling/camogie wording' : ''}`;
+  else if (s.source === 'results' && d.rows) src = `<b>Results</b> · ${d.rows.length} games`;
+  else if (s.source === 'results' && d.count) src = `<b>Results</b> · ${d.count} Go Games blitzes`;
+  else if (s.source === 'website' || s.source === 'instagram') src = `<b>${s.source === 'website' ? 'Club website' : 'Club Instagram (from the website)'}</b>${d.title ? ' · ' + esc(d.title) : ''}<br>${esc((d.text || '').slice(0, 600))}${d.url ? `<br><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.url)}</a>` : ''}`;
+  else src = '<b>Written by you</b>';
+  const box = s.kind === 'wins_box' || s.kind === 'fixtures';
+  $('app').innerHTML = band('Story', s.kicker || (box ? s.headline : 'Your story'), 'backissue') + `<div class="wrap">
+    <div class="row2" style="margin-top:0"><b>Include in this issue</b><button class="sw${s.included ? ' on' : ''}" id="eInc" aria-label="Include"></button></div>
+    ${box ? '' : `<div class="lbl">Place in the issue</div>
+    <div class="seg" id="ePlace">${[['lead', 'Lead story'], ['story', 'Story'], ['short', 'Short']].map(([k, l]) => `<button data-p="${k}" class="${s.placement === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="lbl">Small heading above</div><input class="fld" id="eKicker" value="${esc(s.kicker || '')}" maxlength="120">`}
+    <div class="lbl">Headline</div><input class="fld big" id="eHead" value="${esc(s.headline || '')}" maxlength="120">
+    ${box ? '' : `<div class="lbl" id="eDeckL"${s.placement === 'lead' ? '' : ' hidden'}>Line under the headline</div><input class="fld" id="eDeck" value="${esc(s.deck || '')}" maxlength="240"${s.placement === 'lead' ? '' : ' hidden'}>
+    <div class="lbl">Story <span style="text-transform:none;letter-spacing:0;font-weight:500">(a blank line starts a new paragraph)</span></div><textarea class="fld" id="eBody">${esc(s.body || '')}</textarea>`}
+    ${(s.kind === 'win' || s.kind === 'final') ? `<div class="chk">✓ Competition named as in the results: “${esc(d.competition || '')}${d.round ? ' · ' + esc(d.round) : ''}”</div>` : ''}
+    ${s.kind === 'final' && !d.show_score ? '<div class="chk">✓ Bigger semi-final or final loss: the score is left out</div>' : ''}
+    ${s.kind === 'final' && d.show_score ? '<div class="chk">✓ Lost by 3 points or less: the score is shown and it says it was close</div>' : ''}
+    ${box ? '' : `<div class="lbl">Photo</div><div class="photo">${s.photo_url ? `<img src="${esc(s.photo_url)}" alt=""><button data-a="nophoto">Remove</button>` : ''}<label>${s.photo_url ? 'Change' : '+ Add a photo'}<input type="file" accept="image/*" id="ePhoto" hidden></label></div>
+    <div class="chk w" style="margin-top:8px">Only use photos the club is happy to share. Don’t name children in stories.</div>`}
+    <div class="lbl">Where this came from</div><div class="src">${src}</div>
+    ${s.kind === 'custom' ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="delete">Delete this story</button>' : ''}
+  </div>
+  <div class="bar"><div class="in">${(!box && s.kind !== 'custom') ? '<button class="btn" data-a="rewrite">Write it again</button>' : ''}<button class="btn pri" data-a="savestory">Save</button></div></div>`;
+  const seg = $('ePlace');
+  if (seg) seg.addEventListener('click', e => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    const lead = b.dataset.p === 'lead'; $('eDeck').hidden = !lead; $('eDeckL').hidden = !lead;
+  });
+  $('eInc').addEventListener('click', e => e.currentTarget.classList.toggle('on'));
+  const f = $('ePhoto'); if (f) f.addEventListener('change', () => f.files[0] && uploadPhoto(s, f.files[0]));
+}
+function renderPreview() {
+  const iss = I.issue;
+  $('app').innerHTML = band('Preview issue ' + iss.issue_no, wk(iss.week_start, iss.week_end) + ' · ' + I.stories.filter(s => s.included).length + ' stories', 'backissue') + `<div class="wrap">
+    <div class="pv"><iframe id="pvFrame" title="Preview"></iframe></div>
+    ${iss.status === 'draft' ? '<div class="chk w">Not built yet. Build it to make the PDF, then approve.</div>' : ''}
+    ${iss.status === 'built' ? `<div class="chk">✓ Built ${esc(nice(iss.built_at))} · <a href="${esc(iss.pdf_url)}" target="_blank" rel="noopener">open the PDF</a></div><div class="chk w">Waiting for approval</div>` : ''}
+    ${iss.status === 'approved' ? `<div class="chk">✓ Approved ${esc(nice(iss.approved_at))} · <a href="${esc(iss.pdf_url)}" target="_blank" rel="noopener">open the PDF</a></div>
+      <div class="row2"><b>Share link</b><button class="lk" data-a="copy">Copy link</button></div>` : ''}
+  </div>
+  <div class="bar"><div class="in"><button class="btn" data-a="backissue">Back to stories</button>
+    ${iss.status === 'draft' ? '<button class="btn pri" data-a="build">Build issue</button>' : iss.status === 'built' ? '<button class="btn grn" data-a="approve">Approve</button>' : '<button class="btn" data-a="reopen">Make changes</button>'}</div></div>`;
+  const fr = $('pvFrame');
+  fr.srcdoc = window.renderPaper(I, { width: 420, page: '#f6f1e6' });
+  fr.onload = () => { const h = () => { try { fr.style.height = fr.contentDocument.documentElement.scrollHeight + 'px'; } catch (_) { } }; h(); setTimeout(h, 400); setTimeout(h, 1500); };
+}
+
+// ── drag to reorder (handle, works with touch) ──────────────────────
+function wireDrag() {
+  document.querySelectorAll('[data-drag]').forEach(h => h.addEventListener('pointerdown', e => {
+    const card = h.closest('.st'); const list = card.parentElement;
+    e.preventDefault();
+    card.classList.add('drag');
+    let lastY = e.clientY, moved = false;
+    const move = ev => {
+      const dy = ev.clientY - lastY; card.style.transform = `translateY(${dy}px)`;
+      const sibs = [...list.querySelectorAll('.st')].filter(x => x !== card);
+      for (const sbl of sibs) {
+        const r = sbl.getBoundingClientRect(), mid = r.top + r.height / 2;
+        const cr = card.getBoundingClientRect(), cm = cr.top + cr.height / 2;
+        if (sbl.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING && cm < mid) { list.insertBefore(card, sbl); lastY = ev.clientY; card.style.transform = ''; moved = true; break; }
+        if (sbl.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_PRECEDING && cm > mid) { list.insertBefore(card, sbl.nextSibling); lastY = ev.clientY; card.style.transform = ''; moved = true; break; }
+      }
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      card.classList.remove('drag'); card.style.transform = '';
+      if (moved) saveOrder();
+    };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  }));
+}
+async function saveOrder(changedId, included) {
+  const ids = [...document.querySelectorAll('#inList .st, #outList .st')].map(el => Number(el.dataset.id));
+  const items = ids.map(id => { const s = story(id); return { story_id: id, included: id === changedId ? included : s.included }; });
+  // keep local copy in the same order
+  I.stories = items.map((it, i) => ({ ...story(it.story_id), included: it.included, position: i + 1 }));
+  if (I.issue.status !== 'draft') I.issue.status = 'draft';
+  try { await api({ action: 'order', issue_id: I.issue.issue_id, items }); } catch (e) { toast(e.message); }
+}
+
+// ── actions ─────────────────────────────────────────────────────────
+async function refresh() { const d = await api({ action: 'get', issue_id: I.issue.issue_id }); I = d; }
+async function uploadPhoto(s, file) {
+  const data = await shrink(file);
+  const r = await busy('Adding photo…', () => api({ action: 'photo', story_id: s.story_id, image: data, mime: 'image/jpeg' }));
+  if (r) { Object.assign(story(s.story_id), r); I.issue.status = 'draft'; keepEdits(); renderStory(); }
+}
+function keepEdits() { /* edits in the form are kept by re-reading them on save */ }
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1400 / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+      res(cv.toDataURL('image/jpeg', .82).split(',')[1]);
+    };
+    img.onerror = () => rej(new Error('That file isn’t a photo we can read.'));
+    img.src = url;
+  });
+}
+async function buildPdf() {
+  await window.paperLoadFonts();
+  const fr = document.createElement('iframe'); fr.id = 'buildFrame'; document.body.appendChild(fr);
+  try {
+    await new Promise(r => { fr.onload = r; fr.srcdoc = window.renderPaper(I, { width: 420, page: '#f6f1e6' }); });
+    const doc = fr.contentDocument;
+    await doc.fonts.ready;
+    await Promise.all([...doc.images].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+    const el = doc.getElementById('sheet');
+    fr.style.height = (el.scrollHeight + 20) + 'px';
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f6f1e6', windowWidth: 420 });
+    const w = 315, h = w * canvas.height / canvas.width; // points (420 css px wide)
+    const pdf = new window.jspdf.jsPDF({ unit: 'pt', format: [w, h], orientation: h > w ? 'p' : 'l', compress: true });
+    pdf.addImage(canvas.toDataURL('image/jpeg', .86), 'JPEG', 0, 0, w, h);
+    pdf.setProperties({ title: `${I.settings.title} · ${wk(I.issue.week_start, I.issue.week_end)}` });
+    return pdf.output('datauristring').split(',')[1];
+  } finally { fr.remove(); }
+}
+
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-a]'); if (!el) return;
+  const a = el.dataset.a, id = Number(el.dataset.id) || null;
+  if (a === 'signout') return signOut();
+  if (a === 'home') { view = 'home'; I = null; C = await api({ action: 'club' }).catch(() => C); return render(); }
+  if (a === 'backissue') { view = 'issue'; return render(); }
+  if (a === 'openweek') { const d = await busy('Finding this week’s stories… (up to a minute)', () => api({ action: 'open', week_start: el.dataset.w })); if (d) { I = d; view = 'issue'; render(); } return; }
+  if (a === 'openissue') { const d = await busy('Opening…', () => api({ action: 'get', issue_id: id })); if (d) { I = d; view = 'issue'; render(); } return; }
+  if (a === 'savesettings') {
+    const d = await busy('Saving…', () => api({ action: 'settings', settings: { title: $('sTitle').value, strap: $('sStrap').value, website_url: $('sSite').value } }));
+    if (d) { C = d; toast('Saved'); render(); } return;
+  }
+  if (a === 'tick') {
+    const s = story(id); const inc = !s.included;
+    const card = el.closest('.st');
+    if (inc) { const fx = [...$('inList').querySelectorAll('.st')].find(c => story(Number(c.dataset.id)).kind === 'fixtures'); $('inList').insertBefore(card, fx || null); }
+    else $('outList').appendChild(card);
+    await saveOrder(id, inc); return renderIssue();
+  }
+  if (a === 'open') { storyId = id; view = 'story'; return render(); }
+  if (a === 'add') { const s = await busy('Adding…', () => api({ action: 'add', issue_id: I.issue.issue_id })); if (s) { I.stories.push(s); I.issue.status = 'draft'; storyId = s.story_id; view = 'story'; render(); } return; }
+  if (a === 'resuggest') {
+    if (!el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to suggest again'; return; }
+    const d = await busy('Suggesting again… (up to a minute)', () => api({ action: 'resuggest', issue_id: I.issue.issue_id })); if (d) { I = d; render(); } return;
+  }
+  if (a === 'savestory') {
+    const s = story(storyId); const seg = document.querySelector('#ePlace .on');
+    const body = { story_id: s.story_id, headline: $('eHead').value, included: $('eInc').classList.contains('on') };
+    if ($('eBody')) Object.assign(body, { body: $('eBody').value, deck: $('eDeck').value, kicker: $('eKicker').value, placement: seg ? seg.dataset.p : s.placement });
+    const r = await busy('Saving…', () => api({ action: 'save', story: body }));
+    if (r) { await refresh(); view = 'issue'; toast('Saved'); render(); } return;
+  }
+  if (a === 'rewrite') {
+    const r = await busy('Writing it again…', () => api({ action: 'rewrite', story_id: storyId }));
+    if (r) { Object.assign(story(storyId), r); I.issue.status = 'draft'; renderStory(); toast('New version written. Save to keep it, or edit it first.'); } return;
+  }
+  if (a === 'nophoto') { const r = await busy('Removing…', () => api({ action: 'photo', story_id: storyId, clear: true })); if (r) { Object.assign(story(storyId), r); renderStory(); } return; }
+  if (a === 'delete') {
+    if (!el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to delete'; return; }
+    const r = await busy('Deleting…', () => api({ action: 'remove', story_id: storyId })); if (r) { await refresh(); view = 'issue'; render(); } return;
+  }
+  if (a === 'preview') { view = 'preview'; return render(); }
+  if (a === 'build') {
+    if (!I.stories.some(s => s.included)) return toast('Tick at least one story first.');
+    const d = await busy('Building the PDF…', async () => { const pdf = await buildPdf(); return api({ action: 'build', issue_id: I.issue.issue_id, pdf }); });
+    if (d) { I = d; view = 'preview'; render(); toast('Built. Check it over, then approve.'); } return;
+  }
+  if (a === 'approve') { const d = await busy('Approving…', () => api({ action: 'approve', issue_id: I.issue.issue_id })); if (d) { I = d; render(); toast('Approved. Share the link or the PDF.'); } return; }
+  if (a === 'reopen') { const d = await busy('Opening for changes…', () => api({ action: 'reopen', issue_id: I.issue.issue_id })); if (d) { I = d; view = 'issue'; render(); } return; }
+  if (a === 'copy') {
+    const u = shareUrl(I.issue);
+    try { await navigator.clipboard.writeText(u); toast('Link copied'); } catch (_) { toast(u); }
+  }
+});
+boot();
+}
+</script>
+</body>
+</html>
