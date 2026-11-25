@@ -1214,6 +1214,7 @@ void main() {
     expect(find.text('OFFICIAL FIXTURES'), findsNothing);
     expect(find.text('Official'), findsWidgets);
     expect(find.text('Unofficial'), findsWidgets);
+    expect(find.text('Unassigned'), findsWidgets);
     await t.scrollUntilVisible(find.text('MEN / BOYS'), 200);
     await _shot(t, 'pp-fixtures-sheet');
   });

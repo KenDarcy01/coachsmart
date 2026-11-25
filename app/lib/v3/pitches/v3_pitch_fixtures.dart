@@ -958,6 +958,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             : f.venue,
         home: f.isHome,
         official: true,
+        slot: _slot(f.booking, home: f.isHome, venue: f.venue),
         referee: f.referee.isNotEmpty ? f.referee : (b?.referee ?? ''),
         rooms: b?.dressingRooms ?? '',
         note: status.contains('postpon') || status.contains('cancel')
@@ -990,6 +991,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             : u.location,
         home: !u.away,
         official: false,
+        slot: _slot(u.booking, home: !u.away, venue: u.location),
         referee: b?.referee ?? '',
         rooms: b?.dressingRooms ?? '',
         onTap: u.booking != null
@@ -1085,12 +1087,13 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
                       Text(
                           [
                             if (r.comp.isNotEmpty) r.comp,
-                            if (r.venue.isNotEmpty) r.venue,
                             if (r.referee.isNotEmpty) 'Ref ${r.referee}',
                             if (r.rooms.isNotEmpty) 'Rooms ${r.rooms}',
                             if (r.note.isNotEmpty) r.note,
                           ].join(' · '),
                           style: PT.inter(12.5, color: PT.muted)),
+                      const SizedBox(height: 6),
+                      r.slot,
                     ]),
               ),
             ),
@@ -1118,9 +1121,9 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
           2: FixedColumnWidth(96),
           3: FixedColumnWidth(58),
           4: FixedColumnWidth(104),
-          5: FlexColumnWidth(1.6),
-          6: FlexColumnWidth(2),
-          7: FlexColumnWidth(1.3),
+          5: FlexColumnWidth(1.5),
+          6: FlexColumnWidth(1.8),
+          7: FlexColumnWidth(1.6),
           8: FlexColumnWidth(1.1),
           9: FlexColumnWidth(0.8),
         },
@@ -1135,7 +1138,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
             hd('Type'),
             hd('Competition'),
             hd('Fixture'),
-            hd('Venue'),
+            hd('Pitch'),
             hd('Referee'),
             hd('Rooms'),
           ]),
@@ -1154,9 +1157,7 @@ class _PitchFixturesViewState extends State<PitchFixturesView> {
                       colour: r.note.isEmpty ? null : PT.redText),
                   r.onTap),
               cell(t(r.fixture), r.onTap),
-              cell(
-                  t(r.venue,
-                      bold: r.home, colour: r.home ? c.club.accent : null),
+              cell(Align(alignment: Alignment.centerLeft, child: r.slot),
                   r.onTap),
               cell(t(r.referee), r.onTap),
               cell(t(r.rooms), r.onTap),
@@ -1508,6 +1509,7 @@ class _SheetRow {
       required this.referee,
       required this.rooms,
       required this.official,
+      required this.slot,
       this.note = '',
       this.onTap});
   final PitchCode code;
@@ -1518,5 +1520,9 @@ class _SheetRow {
   /// A league fixture (official) or a CoachSmart match with no league game
   /// (unofficial: challenge or friendly).
   final bool official;
+
+  /// The pitch chip, as in By day: the pitch, Unassigned, Away or not on
+  /// our pitches (Ken 2026-11-25).
+  final Widget slot;
   final VoidCallback? onTap;
 }
