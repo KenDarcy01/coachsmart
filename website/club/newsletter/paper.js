@@ -43,7 +43,7 @@
     const hu = d.us === 'home';
     return `<div class="score"><div class="t${hu ? ' us' : ''}">${esc(d.home)}</div><div class="n${hu ? ' us' : ''}">${esc(d.home_score)}</div><div class="n">·</div><div class="n${hu ? '' : ' us'}">${esc(d.away_score)}</div><div class="t${hu ? '' : ' us'}">${esc(d.away)}</div></div>`;
   }
-  const photo = s => s.photo_url ? `<figure><img src="${esc(s.photo_url)}" crossorigin="anonymous" alt=""></figure>` : '';
+  const photo = s => (s.photo_url && !(s.data && s.data.hide_photo)) ? `<figure><img src="${esc(s.photo_url)}" crossorigin="anonymous" alt=""></figure>` : '';
   const byline = d => d && d.day ? `<div class="byline">${esc(d.dow)} ${Number(d.day.slice(8))} ${MON[Number(d.day.slice(5, 7)) - 1]}${d.venue ? ' · ' + esc(d.venue) : ''}</div>` : '';
   function badge(s) {
     const d = s.data || {};

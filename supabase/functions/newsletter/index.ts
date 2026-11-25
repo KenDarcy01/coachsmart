@@ -435,7 +435,7 @@ async function suggest(sb: any, iss: any) {
     const it = items[i];
     const w = written[i] || fallback(it);
     let photo_path: string | null = null;
-    if (it.data.image && it.included) photo_path = await copyPhoto(sb, it.data.image, iss.club_id, iss.issue_id);
+    if (it.data.image) photo_path = await copyPhoto(sb, it.data.image, iss.club_id, iss.issue_id);
     rows.push({
       issue_id: iss.issue_id, kind: it.kind, source: it.source, kicker: it.kicker || w.kicker || null,
       headline: it.headline || w.headline || "", deck: it.placement === "lead" ? (w.deck || null) : null, body: w.body || "",
@@ -560,6 +560,7 @@ async function saveStory(sb: any, clubId: number, s: any) {
     body: s.body !== undefined ? clip(s.body, 4000) : st.body,
     kicker: s.kicker !== undefined ? clip(s.kicker, 120) || null : st.kicker,
     included: s.included !== undefined ? !!s.included : st.included,
+    data: s.show_photo !== undefined ? { ...(st.data || {}), hide_photo: !s.show_photo } : st.data,
     placement, edited: true, updated_at: new Date().toISOString(),
   }).eq("story_id", st.story_id).select().single();
   if (error) throw error;
@@ -593,7 +594,7 @@ async function photo(sb: any, clubId: number, body: any) {
     const { error } = await sb.storage.from(BUCKET).upload(path, bytes, { contentType: mime });
     if (error) throw error;
   }
-  const { data } = await sb.from("newsletter_stories").update({ photo_path: path, edited: true, updated_at: new Date().toISOString() }).eq("story_id", st.story_id).select().single();
+  const { data } = await sb.from("newsletter_stories").update({ photo_path: path, data: { ...(st.data || {}), hide_photo: false }, edited: true, updated_at: new Date().toISOString() }).eq("story_id", st.story_id).select().single();
   return withUrl(data);
 }
 

@@ -71,7 +71,7 @@ textarea.fld{min-height:180px;resize:vertical}
 .fld.big{font-weight:700}
 .seg{display:flex;background:#e9ecf0;border-radius:10px;padding:3px}.seg button{flex:1;border:0;background:none;padding:9px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}.seg .on{background:#fff;color:var(--text)}
 .sw{width:46px;height:28px;border-radius:99px;background:#d3d8df;position:relative;border:0;cursor:pointer;flex:none}.sw:after{content:'';position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
-.sw.on{background:var(--good)}.sw.on:after{left:22px}
+.thumb.nopic{opacity:.3;filter:grayscale(1)}.sw.on{background:var(--good)}.sw.on:after{left:22px}
 .photo{display:flex;gap:10px;align-items:center}.photo img{width:110px;height:80px;object-fit:cover;border-radius:9px}
 .photo label,.photo button{border:2px dashed #c8ced8;border-radius:9px;padding:10px 12px;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;background:none}
 .src{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:13px;color:var(--muted);line-height:1.5;word-break:break-word}
@@ -209,7 +209,7 @@ function stCard(s) {
   return `<div class="st${s.included ? '' : ' off'}" data-id="${s.story_id}">
     <div class="h" data-drag="${s.story_id}" aria-label="Drag to reorder">⋮⋮</div>
     <button class="tk${s.included ? ' y' : ''}" data-a="tick" data-id="${s.story_id}" aria-label="${s.included ? 'Take out' : 'Put in'}">${s.included ? '✓' : ''}</button>
-    ${s.photo_url ? `<img class="thumb" src="${esc(s.photo_url)}" alt="">` : ''}
+    ${s.photo_url ? `<img class="thumb${(s.data && s.data.hide_photo) ? ' nopic' : ''}" src="${esc(s.photo_url)}" alt="">` : ''}
     <div class="c" data-a="open" data-id="${s.story_id}"><div class="t">${esc(s.headline || '(no headline yet)')}</div><div class="p">${esc(preview(s))}</div><div class="tags">${tagsOf(s)}</div></div>
   </div>`;
 }
@@ -283,6 +283,7 @@ function renderStory() {
     ${s.kind === 'final' && !d.show_score ? '<div class="chk">✓ Bigger semi-final or final loss: the score is left out</div>' : ''}
     ${s.kind === 'final' && d.show_score ? '<div class="chk">✓ Lost by 3 points or less: the score is shown and it says it was close</div>' : ''}
     ${box ? '' : `<div class="lbl">Photo</div><div class="photo">${s.photo_url ? `<img src="${esc(s.photo_url)}" alt=""><button data-a="nophoto">Remove</button>` : ''}<label>${s.photo_url ? 'Change' : '+ Add a photo'}<input type="file" accept="image/*" id="ePhoto" hidden></label></div>
+    ${s.photo_url ? `<div class="row2"><b>Show the photo with this story</b><button class="sw${(s.data && s.data.hide_photo) ? '' : ' on'}" id="ePic" aria-label="Show photo"></button></div>` : ''}
     <div class="chk w" style="margin-top:8px">Only use photos the club is happy to share. Don’t name children in stories.</div>`}
     <div class="lbl">Where this came from</div><div class="src">${src}</div>
     ${s.kind === 'custom' ? '<button class="add" style="margin-top:16px;color:#d9363e" data-a="delete">Delete this story</button>' : ''}
@@ -295,6 +296,7 @@ function renderStory() {
     const lead = b.dataset.p === 'lead'; $('eDeck').hidden = !lead; $('eDeckL').hidden = !lead;
   });
   $('eInc').addEventListener('click', e => e.currentTarget.classList.toggle('on'));
+  const pic = $('ePic'); if (pic) pic.addEventListener('click', e => e.currentTarget.classList.toggle('on'));
   const f = $('ePhoto'); if (f) f.addEventListener('change', () => f.files[0] && uploadPhoto(s, f.files[0]));
 }
 function renderPreview() {
@@ -415,6 +417,7 @@ document.addEventListener('click', async e => {
   if (a === 'savestory') {
     const s = story(storyId); const seg = document.querySelector('#ePlace .on');
     const body = { story_id: s.story_id, headline: $('eHead').value, included: $('eInc').classList.contains('on') };
+    if ($('ePic')) body.show_photo = $('ePic').classList.contains('on');
     if ($('eBody')) Object.assign(body, { body: $('eBody').value, deck: $('eDeck').value, kicker: $('eKicker').value, placement: seg ? seg.dataset.p : s.placement });
     const r = await busy('Saving…', () => api({ action: 'save', story: body }));
     if (r) { await refresh(); view = 'issue'; toast('Saved'); render(); } return;
