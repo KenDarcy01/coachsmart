@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Club officers</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!--
+  Club officers (Ken 2026-11-25): coachsmart.app/club/officers.html?club=ID.
+  Who can open which club tool. Officers with the "Club officers" tick (and
+  SuperUsers) invite people and change their ticks; nobody changes their own;
+  only SuperUsers change the money ticks. Data: club_officer_page,
+  club_officer_save, club_officer_remove, club_officer_invite_cancel and the
+  club-invite edge function. Every change is logged.
+-->
+<style>
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
+:root{--club:#1a1d23;--band:#1a1d23;--onband:#fff;--tint:#1a1d2314;--bg:#f3f4f7;--card:#fff;--text:#1a1d23;--muted:#667080;--line:#e6e8ec;--good:#2f9e44;--bad:#d9363e;--money:#8a5a00;--moneybg:#fdf6e3}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+.band{background:var(--band);color:var(--onband);padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));position:sticky;top:0;z-index:3}
+.top{display:flex;align-items:center;gap:12px;max-width:720px;margin:0 auto}
+.back{font-size:26px;line-height:1;padding:0 6px 2px 0;background:none;border:0;color:var(--onband);cursor:pointer;opacity:.9}
+.crest{width:44px;height:44px;background:#fff;border-radius:50%;padding:3px;object-fit:contain;flex:none}
+.band h1{font-size:19px;font-weight:700;line-height:1.15}.band .sub{font-size:13px;opacity:.88;margin-top:2px}
+.wrap{padding:14px 14px 40px;max-width:720px;margin:0 auto}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 2px #0000000d}
+.h2{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:20px 4px 8px}
+.h2:first-child{margin-top:4px}
+.intro{color:var(--muted);font-size:14px;line-height:1.45;margin:0 4px 12px}
+.btn{display:block;width:100%;background:var(--club);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:600;font-size:15px;text-align:center;cursor:pointer}
+.btn:disabled{opacity:.6}
+.btn.ghost{background:#fff;color:var(--bad);border:1.5px solid var(--bad);margin-top:10px}
+.person{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.av{width:40px;height:40px;border-radius:50%;background:var(--tint);color:var(--club);font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
+.av.p{background:#f1f2f5;color:#8a919c}
+.pname{font-weight:600;font-size:15.5px}.ptitle{color:var(--muted);font-size:13.5px;margin-top:1px}
+.pchev{margin-left:auto;color:#b4b9c2;font-size:20px;align-self:center}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.c{font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;background:#eef0f4;color:#3b4250;white-space:nowrap}
+.c.m{background:var(--moneybg);color:var(--money)}
+.c.k{background:var(--tint);color:var(--club)}
+.pend{font-size:11.5px;font-weight:700;color:#8a5a00;background:#fdf1cf;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:2px;white-space:nowrap}
+.acts{display:flex;gap:8px;margin-top:10px}
+.sm{background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.log{font-size:13px;color:var(--muted);line-height:1.5}
+.log div{padding:7px 0;border-top:1px solid var(--line)}.log div:first-child{border:0;padding-top:0}
+.log b{color:var(--text);font-weight:600}
+.empty{color:var(--muted);font-size:14px;padding:4px 0}
+/* edit */
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.pre{font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:#3b4250;cursor:pointer}
+.pre.on{border-color:var(--club);background:var(--tint);color:var(--club)}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.row:first-child{border-top:0;padding-top:2px}
+.row>div{flex:1}.rn{font-weight:600;font-size:15px}.rd{color:var(--muted);font-size:12.5px;line-height:1.35;margin-top:2px}
+.row.off{cursor:default;opacity:.6}
+.tog{width:46px;height:28px;border-radius:999px;background:#d5d9e0;position:relative;flex:none;transition:background .15s}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:left .15s}
+.tog.on{background:var(--good)}.tog.on::after{left:21px}
+.moneybox{background:var(--moneybg);border-radius:14px;padding:14px;margin-bottom:10px}
+.moneybox .row{border-color:#f0e4c4}
+.note{display:flex;gap:8px;font-size:12.5px;color:var(--money);line-height:1.4;margin-bottom:6px}
+.kid{display:flex;gap:8px;font-size:12.5px;color:#9a3412;background:#fff4ed;border-radius:8px;padding:8px 10px;margin:2px 0 6px;line-height:1.4}
+.field{margin-bottom:12px}.field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.field input,.field select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;font-size:16px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.msg{font-size:14px;color:var(--bad);min-height:20px;margin:8px 2px 0}.msg.ok{color:var(--good)}
+.state{padding:70px 30px;text-align:center;color:var(--muted);font-size:16px;line-height:1.5}
+.link{background:none;border:0;color:var(--muted);cursor:pointer;margin-top:12px;font-size:14px;text-decoration:underline}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1a1d23;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:9;display:none}
+.toast.on{display:block}
+/* sign in */
+.login{display:none;align-items:center;justify-content:center;padding:20px;min-height:100vh}
+.login.on{display:flex}
+.lbox{background:var(--card);border-radius:18px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px #0001}
+.lbox .icrest{display:block;width:64px;height:64px;object-fit:contain;margin:0 auto 12px}
+.lbox h2{font-size:22px;margin-bottom:6px;text-align:center}.lbox p{color:var(--muted);font-size:14px;margin-bottom:18px;text-align:center}
+.lbox input{width:100%;background:#fff;border:1px solid #d6d9df;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:16px}
+.lbox .link{display:block;margin:12px auto 0}
+</style>
+</head>
+<body>
+<div id="app"><div class="state">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<div class="login" id="login">
+  <form class="lbox" id="loginForm">
+    <img class="icrest" id="lcrest" alt="" hidden>
+    <h2 id="ltitle">Club officers</h2>
+    <p>Sign in with your CoachSmart email and password.</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn" id="goBtn" type="submit">Sign in</button>
+    <div class="msg" id="loginMsg"></div>
+    <button class="link" id="forgot" type="button">Forgot password?</button>
+  </form>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const clubId = Number(new URLSearchParams(location.search).get('club')) || null;
+
+// The tools, in the order shown. money: only SuperUsers change these.
+const TOOLS = [
+  ['can_dashboard', 'Club dashboard', 'Results, tables, turnout, health check and the names of players to check in with.', 'club'],
+  ['can_pitches', 'Pitch planner', 'Book matches and training onto pitches and publish the week.', 'club'],
+  ['can_newsletter', 'Newsletter', 'Pick, write and approve the weekly club newsletter.', 'club'],
+  ['can_sponsors', 'Club partners', 'Add the club sponsor and see the reach report.', 'club'],
+  ['can_officers', 'Club officers', 'Invite officers and change what they can open (not the money tools, and not their own).', 'admin'],
+  ['can_spend', 'Spend & gear', 'Coach expenses, receipts, team budgets and gear orders.', 'money'],
+  ['can_lotto', 'Club lotto', 'Lotto sales, draws, prizes and winners.', 'money'],
+];
+const SHORT = { can_dashboard: 'Dashboard', can_pitches: 'Pitches', can_newsletter: 'Newsletter', can_sponsors: 'Partners',
+  can_officers: 'Officers', can_spend: 'Spend & gear', can_lotto: 'Lotto' };
+const PRESETS = {
+  'Chairperson':      ['can_dashboard', 'can_pitches', 'can_newsletter', 'can_sponsors', 'can_officers', 'can_spend', 'can_lotto'],
+  'Secretary':        ['can_dashboard', 'can_pitches', 'can_officers'],
+  'Treasurer':        ['can_dashboard', 'can_sponsors', 'can_spend', 'can_lotto'],
+  'PRO':              ['can_newsletter', 'can_sponsors'],
+  'Pitch officer':    ['can_pitches'],
+  'Juvenile officer': ['can_dashboard'],
+};
+
+let P = null, view = 'list', cur = null, draft = null, armed = false;
+
+// ── Club colours (same rules as the dashboard) ────────────────────
+function lum(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+  const n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+}
+function brand(c) {
+  if (!c) return;
+  const p = c.primary_colour, s = c.secondary_colour;
+  const okText = h => { const l = lum(h); return l != null && l < .45; };
+  const accent = okText(p) ? p : okText(s) ? s : '#1a1d23';
+  const band = lum(p) != null && lum(p) < .85 ? p : (lum(s) != null && lum(s) < .85 ? s : accent);
+  const r = document.documentElement.style;
+  r.setProperty('--club', accent); r.setProperty('--band', band);
+  r.setProperty('--onband', lum(band) > .5 ? '#14181b' : '#fff');
+  r.setProperty('--tint', accent + '17');
+  document.title = c.club_name + ' · Club officers';
+  if (c.crest) ['icon', 'apple-touch-icon'].forEach(rel => {
+    let l = document.querySelector(`link[rel="${rel}"]`);
+    if (!l) { l = document.createElement('link'); l.rel = rel; document.head.appendChild(l); }
+    l.href = c.crest;
+  });
+}
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2200); }
+
+// ── Sign in ───────────────────────────────────────────────────────
+function showLogin(msg, ok) {
+  $('app').innerHTML = '';
+  $('login').classList.add('on');
+  $('loginMsg').textContent = msg || ''; $('loginMsg').classList.toggle('ok', !!ok);
+  $('goBtn').disabled = false; $('goBtn').textContent = 'Sign in';
+  sb.rpc('club_brand', { p_club: clubId }).then(({ data }) => {
+    if (!data) return; brand(data);
+    $('ltitle').textContent = data.club_name + ' officers';
+    if (data.crest) { $('lcrest').src = data.crest; $('lcrest').hidden = false; }
+  }, () => {});
+}
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('goBtn').disabled = true; $('goBtn').textContent = 'Signing in…'; $('loginMsg').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) return showLogin(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : error.message);
+  $('password').value = ''; $('login').classList.remove('on'); load();
+});
+$('forgot').addEventListener('click', async () => {
+  const email = $('email').value.trim();
+  if (!email) return showLogin('Type your email first, then tap Forgot password.');
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  showLogin(error ? error.message : 'Check your email for a link to reset your password.', !error);
+});
+async function signOut() { await sb.auth.signOut(); location.reload(); }
+function state(msg) {
+  $('app').innerHTML = `<div class="state">${esc(msg)}<br><a class="link" href="/club/?club=${clubId}">Back to club home</a></div>`;
+}
+
+// ── Data ──────────────────────────────────────────────────────────
+async function load() {
+  if (!clubId) return state('Open this page from your club’s link, for example coachsmart.app/club/officers.html?club=1.');
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  const { data, error } = await sb.rpc('club_officer_page', { p_club: clubId });
+  if (error) return state('Something went wrong loading the officers. Please try again.');
+  if (data.error) return state('Only club officers with the “Club officers” tick can open this page. Ask your chairperson or CoachSmart.');
+  P = data; brand(P.club); render();
+}
+const tools = () => TOOLS.filter(t => t[0] !== 'can_lotto' || P.has_lotto);
+const isSuper = () => !!(P.me && P.me.is_super_user);
+const initials = n => (n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '?';
+const dmy = iso => { const d = new Date(iso); return d.getDate() + ' ' + MON[d.getMonth()]; };
+function chips(o) {
+  const on = tools().filter(t => o[t[0]]);
+  if (on.length === tools().length) return '<span class="c k">Everything</span>';
+  return on.map(t => `<span class="c ${t[3] === 'money' ? 'm' : t[3] === 'admin' ? 'k' : ''}">${esc(SHORT[t[0]])}</span>`).join('') || '<span class="c">Nothing</span>';
+}
+
+// ── Views ─────────────────────────────────────────────────────────
+function band(title, sub, back) {
+  return `<div class="band"><div class="top">
+    <button class="back" onclick="${back ? 'go(\'list\')' : `location.href='/club/?club=${clubId}'`}" aria-label="Back">‹</button>
+    ${P.club.crest ? `<img class="crest" src="${esc(P.club.crest)}" alt="">` : ''}
+    <div><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div></div></div>`;
+}
+function render() {
+  armed = false;
+  if (view === 'edit') return renderEdit();
+  if (view === 'invite') return renderInvite();
+  const off = P.officers || [], inv = P.invites || [], log = P.log || [];
+  $('app').innerHTML = band('Club officers', P.club.club_name) + `<div class="wrap">
+    <p class="intro">Who can open which club tool. Tap a person to change what they can open.</p>
+    <div class="h2">Officers</div>
+    ${off.length ? off.map((o, i) => `<div class="card"><div class="person" onclick="openEdit(${i})">
+        <div class="av">${esc(initials(o.name || o.email))}</div>
+        <div style="flex:1;min-width:0"><div class="pname">${esc(o.name || o.email)}${o.user_id === P.me.user_id ? ' <span class="c" style="vertical-align:2px">You</span>' : ''}</div>
+        <div class="ptitle">${esc(o.title || 'Officer')}</div><div class="chips">${chips(o)}</div></div>
+        <span class="pchev">›</span></div></div>`).join('') : '<div class="card empty">No officers yet.</div>'}
+    ${inv.length ? '<div class="h2">Invites waiting</div>' + inv.map((o, i) => `<div class="card"><div class="person" style="cursor:default">
+        <div class="av p">${esc(initials(o.name || o.email))}</div>
+        <div style="flex:1;min-width:0"><div class="pname">${esc(o.name || o.email)}<span class="pend">Sent ${o.sent_at ? dmy(o.sent_at) : ''}</span></div>
+        <div class="ptitle">${esc(o.title || 'Officer')} · ${esc(o.email)}</div><div class="chips">${chips(o)}</div>
+        <div class="acts"><button class="sm" onclick="resend(${i})">Resend</button><button class="sm" onclick="cancelInvite(${i})">Cancel invite</button></div></div></div></div>`).join('') : ''}
+    <button class="btn" style="margin-top:8px" onclick="go('invite')">+ Invite an officer</button>
+    <div class="h2">Recent changes</div>
+    <div class="card log">${log.length ? log.map(l => `<div><b>${esc(l.who)}</b> ${esc(l.what)}${l.by && l.by !== l.who ? ' by ' + esc(l.by) : ''} · ${dmy(l.at)}</div>`).join('') : '<div>No changes yet.</div>'}</div>
+  </div>`;
+  window.scrollTo(0, 0);
+}
+function go(v) { view = v; if (v === 'invite') draft = { title: 'Juvenile officer', ticks: tickSet(PRESETS['Juvenile officer']) }; render(); }
+function tickSet(keys) { const t = {}; TOOLS.forEach(([k]) => t[k] = keys.includes(k)); return t; }
+function openEdit(i) {
+  cur = P.officers[i];
+  draft = { title: cur.title || '', ticks: Object.fromEntries(TOOLS.map(([k]) => [k, !!cur[k]])) };
+  view = 'edit'; render();
+}
+function canChange(k) {
+  if (!draft) return false;
+  if (view === 'edit' && cur.user_id === P.me.user_id && !isSuper()) return false;
+  if ((k === 'can_spend' || k === 'can_lotto') && !isSuper()) return false;
+  return true;
+}
+function toggle(k) { if (!canChange(k)) return; draft.ticks[k] = !draft.ticks[k]; draft.preset = null; paintTicks(); }
+function preset(name) {
+  draft.preset = name; draft.title = name;
+  const keep = isSuper() ? [] : ['can_spend', 'can_lotto'].filter(k => draft.ticks[k]);
+  const want = PRESETS[name].filter(k => isSuper() || (k !== 'can_spend' && k !== 'can_lotto'));
+  draft.ticks = tickSet([...want, ...keep]);
+  const ti = $('fTitle'); if (ti) ti.value = name;
+  paintTicks(); document.querySelectorAll('.pre').forEach(b => b.classList.toggle('on', b.dataset.p === name));
+}
+function paintTicks() { const el = $('ticks'); if (el) el.innerHTML = ticksHtml(); }
+function rowHtml([k, name, desc]) {
+  const ok = canChange(k);
+  return `<div class="row${ok ? '' : ' off'}" onclick="toggle('${k}')"><div><div class="rn">${esc(name)}</div><div class="rd">${esc(desc)}</div></div>
+    <span class="tog${draft.ticks[k] ? ' on' : ''}"></span></div>`
+    + (k === 'can_dashboard' && draft.ticks[k] ? '<div class="kid"><span>👶</span><span>The dashboard shows children’s names and attendance. Give it only to officers who need it.</span></div>' : '');
+}
+function ticksHtml() {
+  const g = grp => tools().filter(t => t[3] === grp);
+  return `<div class="h2">Club tools</div><div class="card">${g('club').map(rowHtml).join('')}
+</div>
+    <div class="h2">Admin</div><div class="card">${g('admin').map(rowHtml).join('')}</div>
+    <div class="h2">Money</div><div class="moneybox">
+      ${isSuper() ? '' : '<div class="note"><span>🔒</span><span>Only CoachSmart can turn these on or off for now.</span></div>'}
+      ${g('money').map(rowHtml).join('')}</div>`;
+}
+function presetsHtml() {
+  return `<div class="h2">Start from a title</div><div class="presets">${Object.keys(PRESETS).map(p =>
+    `<button class="pre${draft.preset === p ? ' on' : ''}" data-p="${esc(p)}" onclick="preset(this.dataset.p)">${esc(p)}</button>`).join('')}</div>
+    <p class="intro" style="margin-top:8px">A title fills in the usual tools. You can change any of them below.</p>`;
+}
+function renderEdit() {
+  const me = cur.user_id === P.me.user_id && !isSuper();
+  const lockRemove = !isSuper() && (me || cur.can_spend || cur.can_lotto);
+  $('app').innerHTML = band(cur.name || cur.email, (cur.title || 'Officer') + ' · ' + cur.email, true) + `<div class="wrap">
+    ${me ? '<p class="intro">This is you. Ask another officer with the Club officers tick, or CoachSmart, to change your own access.</p>' : presetsHtml()}
+    <div class="card"><div class="field" style="margin:0"><label>Title</label><input id="fTitle" maxlength="60" value="${esc(draft.title)}" ${me ? 'disabled' : ''} oninput="draft.title=this.value"></div></div>
+    <div id="ticks">${ticksHtml()}</div>
+    ${me ? '' : '<button class="btn" id="saveBtn" onclick="save()">Save changes</button>'}
+    <div class="msg" id="eMsg"></div>
+    ${lockRemove ? '' : `<button class="btn ghost" id="rmBtn" onclick="removeOfficer()">Remove from officers</button>`}
+  </div>`;
+  window.scrollTo(0, 0);
+}
+function renderInvite() {
+  $('app').innerHTML = band('Invite an officer', P.club.club_name, true) + `<div class="wrap">
+    <div class="card">
+      <div class="two"><div class="field"><label>First name</label><input id="iFirst" autocomplete="off"></div>
+      <div class="field"><label>Last name</label><input id="iLast" autocomplete="off"></div></div>
+      <div class="field"><label>Email</label><input id="iEmail" type="email" autocomplete="off"></div>
+      <div class="field" style="margin:0"><label>Title</label><input id="fTitle" maxlength="60" value="${esc(draft.title)}" oninput="draft.title=this.value"></div>
+    </div>
+    ${presetsHtml()}
+    <div id="ticks">${ticksHtml()}</div>
+    <p class="intro" style="margin-top:4px">They get an email with a link to set a password. They don’t need the app or a team.</p>
+    <button class="btn" id="sendBtn" onclick="sendInvite()">Send invite</button>
+    <div class="msg" id="eMsg"></div>
+  </div>`;
+  window.scrollTo(0, 0);
+}
+
+// ── Actions ───────────────────────────────────────────────────────
+const anyTick = t => Object.values(t).some(Boolean);
+async function save() {
+  if (!anyTick(draft.ticks)) return ($('eMsg').textContent = 'Tick at least one tool, or remove the officer.');
+  const b = $('saveBtn'); b.disabled = true; b.textContent = 'Saving…';
+  const ticks = { ...draft.ticks }; if (!isSuper()) { delete ticks.can_spend; delete ticks.can_lotto; }
+  const { data, error } = await sb.rpc('club_officer_save', { p_club: clubId, p_user: cur.user_id, p_title: draft.title, p_ticks: ticks });
+  if (error || data.error) { b.disabled = false; b.textContent = 'Save changes'; return ($('eMsg').textContent = (data && data.error) || 'Couldn’t save. Please try again.'); }
+  toast('Saved'); view = 'list'; load();
+}
+async function removeOfficer() {
+  const b = $('rmBtn');
+  if (!armed) { armed = true; b.textContent = 'Tap again to remove ' + (cur.name || cur.email).split(' ')[0]; return; }
+  b.disabled = true;
+  const { data, error } = await sb.rpc('club_officer_remove', { p_club_id: clubId, p_user_id: cur.user_id });
+  if (error || data.error) { b.disabled = false; armed = false; b.textContent = 'Remove from officers'; return ($('eMsg').textContent = (data && data.error) || 'Couldn’t remove. Please try again.'); }
+  toast('Removed'); view = 'list'; load();
+}
+async function invite(body) {
+  const { data, error } = await sb.functions.invoke('club-invite', { body: { action: 'invite', club_id: clubId, ...body } });
+  if (!error) return data || {};
+  try { return await error.context.json(); } catch (_) { return { error: 'Something went wrong. Please try again.' }; }
+}
+async function sendInvite() {
+  const email = $('iEmail').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return ($('eMsg').textContent = 'Type their email address.');
+  if (!anyTick(draft.ticks)) return ($('eMsg').textContent = 'Tick at least one tool.');
+  const b = $('sendBtn'); b.disabled = true; b.textContent = 'Sending…'; $('eMsg').textContent = '';
+  const r = await invite({ email, first_name: $('iFirst').value.trim(), last_name: $('iLast').value.trim(), title: draft.title || 'Officer', ticks: draft.ticks });
+  if (r.error) { b.disabled = false; b.textContent = 'Send invite'; return ($('eMsg').textContent = r.error); }
+  toast(r.new_account ? 'Invite sent' : 'Added. They already had an account, so they’ve been emailed a link.');
+  view = 'list'; load();
+}
+async function resend(i) {
+  const o = P.invites[i];
+  const r = await invite({ email: o.email, first_name: o.first_name || '', last_name: o.last_name || '', title: o.title,
+    ticks: Object.fromEntries(TOOLS.map(([k]) => [k, !!o[k]])) });
+  toast(r.error ? r.error : 'Invite sent again'); load();
+}
+async function cancelInvite(i) {
+  const { data } = await sb.rpc('club_officer_invite_cancel', { p_club_id: clubId, p_email: P.invites[i].email });
+  toast(data && data.error ? data.error : 'Invite cancelled'); load();
+}
+load();
+</script>
+</body>
+</html>

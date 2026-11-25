@@ -184,7 +184,7 @@ function tilesFor(H) {
   }
   if (t.officers) {
     const o = t.officers;
-    out.push(['officers', '👥', 'Club officers', plural(o.officers, 'officer', 'officers') + (o.invites ? ' · ' + plural(o.invites, 'invite', 'invites') + ' out' : ''), 0, '/club/dashboard.html' + q + '&period=season&open=officers']);
+    out.push(['officers', '👥', 'Club officers', plural(o.officers, 'officer', 'officers') + (o.invites ? ' · ' + plural(o.invites, 'invite', 'invites') + ' out' : ''), 0, '/club/officers.html' + q]);
   }
   if (t.spend) {
     const c = t.spend.claims || 0, g = t.spend.gear || 0, bits = [];

@@ -47,12 +47,17 @@ serve(async (req) => {
   const user = u?.user;
   if (!user) return fail("Please sign in again.", 401);
 
+  // spend_access (Ken) opens everything; otherwise a club officer with the
+  // "Spend & gear" tick on the club officers page (Ken 2026-11-25) can use
+  // the club side for that club only.
   const { data: acc } = await sb.from("spend_access").select("user_id").eq("user_id", user.id).maybeSingle();
-  if (!acc) return fail("Spend and gear isn't switched on for your account yet.", 403);
+  const hasAccess = !!acc;
 
   let body: any = {};
   try { body = await req.json(); } catch (_) { /* empty */ }
   const a = String(body.action || "");
+  const CLUB_SIDE = ["club", "decide", "set_budget", "save_item", "remove_item", "receipt_url"];
+  if (!hasAccess && !CLUB_SIDE.includes(a)) return fail("Spend and gear isn't switched on for your account yet.", 403);
 
   try {
     const roles = await myRoles(sb, user.id);
@@ -61,7 +66,7 @@ serve(async (req) => {
     if (["team", "read_receipt", "add_expense", "add_gear"].includes(a)) {
       const team = await teamOf(sb, Number(body.team_id));
       if (!team) return fail("Team not found.", 404);
-      const isOfficer = await clubOfficer(sb, user.id, team.club_id, roles);
+      const isOfficer = await clubOfficer(sb, user.id, hasAccess, team.club_id, roles);
       if (!roles.adminTeams.has(team.team_id) && !isOfficer) return fail("Only team admins can use spend and gear.", 403);
 
       if (a === "team") return ok(await teamData(sb, team, user.id, isOfficer));
@@ -128,7 +133,7 @@ serve(async (req) => {
     if (a === "receipt_url") {
       const { data: e } = await sb.from("team_expenses").select("team_id, club_id, receipt_path").eq("expense_id", Number(body.expense_id)).maybeSingle();
       if (!e?.receipt_path) return fail("No receipt for this one.", 404);
-      if (!roles.adminTeams.has(e.team_id) && !(await clubOfficer(sb, user.id, e.club_id, roles))) return fail("Not allowed.", 403);
+      if (!(hasAccess && roles.adminTeams.has(e.team_id)) && !(await clubOfficer(sb, user.id, hasAccess, e.club_id, roles))) return fail("Not allowed.", 403);
       const { data: s, error } = await sb.storage.from("receipts").createSignedUrl(e.receipt_path, 600);
       if (error) throw error;
       return ok({ url: s.signedUrl });
@@ -150,7 +155,7 @@ serve(async (req) => {
         if (!t) return fail("Team not found.", 404);
         clubId = t.club_id;
       }
-      if (!clubId || !(await clubOfficer(sb, user.id, clubId, roles))) return fail("This page is for club officers.", 403);
+      if (!clubId || !(await clubOfficer(sb, user.id, hasAccess, clubId, roles))) return fail("This page is for club officers.", 403);
 
       if (a === "club") return ok(await clubData(sb, clubId, Number(body.season) || new Date().getFullYear()));
       if (a === "decide") return ok(await decide(sb, user.id, body, target));
@@ -226,12 +231,15 @@ async function myRoles(sb: any, userId: string) {
   return out;
 }
 
-async function clubOfficer(sb: any, userId: string, clubId: number | null, roles: any) {
-  if (roles.superUser) return true;
+// Club side: an officer of the club with the Spend & gear tick, or (for
+// spend_access holders) a SuperUser or an officer with the dashboard tick.
+async function clubOfficer(sb: any, userId: string, hasAccess: boolean, clubId: number | null, roles: any) {
+  if (hasAccess && roles.superUser) return true;
   if (!clubId) return false;
-  const { data } = await sb.from("club_officers").select("club_officer_id")
-    .eq("club_id", clubId).eq("user_id", userId).eq("is_active", true).eq("can_dashboard", true).limit(1);
-  return !!data?.length;
+  const { data } = await sb.from("club_officers").select("can_spend, can_dashboard")
+    .eq("club_id", clubId).eq("user_id", userId).eq("is_active", true).limit(1);
+  const o = data?.[0];
+  return !!o && (o.can_spend || (hasAccess && o.can_dashboard));
 }
 
 async function names(sb: any, ids: string[]) {
