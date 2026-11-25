@@ -143,6 +143,10 @@ class V3ImportantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = message;
+    // Club messages wear the club colour (Ken 2026-11-25); CoachSmart green otherwise.
+    final accent = m.clubColour ?? V3.green;
+    final onAccent =
+        accent.computeLuminance() > 0.5 ? V3.bg : const Color(0xFFFFFFFF);
     final fromLine = m.scope == 'all'
         ? 'From CoachSmart'
         : (m.scope == 'club' ? 'From the club' : 'From the team');
@@ -159,7 +163,7 @@ class V3ImportantCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(height: 6, color: V3.amber),
+            Container(height: 6, color: m.clubColour ?? V3.amber),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 14, 10, 0),
               child: Row(
@@ -193,6 +197,22 @@ class V3ImportantCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (m.imageUrl.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 280),
+                    child: Image.network(
+                      m.imageUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
               child: Align(
@@ -266,14 +286,14 @@ class V3ImportantCard extends StatelessWidget {
                 child: FilledButton(
                   onPressed: onDismiss,
                   style: FilledButton.styleFrom(
-                    backgroundColor: V3.green,
-                    foregroundColor: V3.bg,
+                    backgroundColor: accent,
+                    foregroundColor: onAccent,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
                   child: Text('Got it',
-                      style:
-                          V3.inter(16, weight: FontWeight.w700, color: V3.bg)),
+                      style: V3.inter(16,
+                          weight: FontWeight.w700, color: onAccent)),
                 ),
               ),
             ),

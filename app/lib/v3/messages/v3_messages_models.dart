@@ -2,6 +2,8 @@
 // 2026-11-14. Super users send for now. Data and calls kept apart from the
 // widgets so tests run without a network. Functions: migration
 // 20261114170000_app_messages.sql.
+import 'package:flutter/painting.dart';
+
 import '/backend/supabase/supabase.dart';
 
 int _int(dynamic v) => v is int ? v : int.tryParse('${v ?? ''}') ?? 0;
@@ -42,6 +44,9 @@ class AppMessage {
     this.seenCount = 0,
     this.dismissedCount = 0,
     this.teamNames = const [],
+    this.imageUrl = '',
+    this.primaryColour = '',
+    this.secondaryColour = '',
   });
 
   factory AppMessage.fromJson(Map j) => AppMessage(
@@ -73,6 +78,9 @@ class AppMessage {
           if (j['team_names'] is List)
             for (final t in j['team_names'] as List) _s(t)
         ],
+        imageUrl: _s(j['image_url']),
+        primaryColour: _s(j['primary_colour']),
+        secondaryColour: _s(j['secondary_colour']),
       );
 
   final int id;
@@ -101,6 +109,34 @@ class AppMessage {
   final int seenCount;
   final int dismissedCount;
   final List<String> teamNames;
+
+  /// Important only: one optional photo, shown above the title.
+  final String imageUrl;
+
+  /// The sending club's colours ('#rrggbb'), empty for CoachSmart-wide.
+  final String primaryColour;
+  final String secondaryColour;
+
+  /// The club colour for the pop-up's stripe and button: the primary colour
+  /// unless it is too pale or too dark to stand out on the dark card, then
+  /// the secondary; null means CoachSmart green.
+  Color? get clubColour {
+    Color? parse(String h) {
+      final m = RegExp(r'^#?([0-9a-fA-F]{6})$').firstMatch(h.trim());
+      return m == null ? null : Color(0xFF000000 | int.parse(m.group(1)!, radix: 16));
+    }
+
+    bool usable(Color? c) {
+      if (c == null) return false;
+      final l = c.computeLuminance();
+      return l > 0.02 && l < 0.85;
+    }
+
+    final p = parse(primaryColour), s = parse(secondaryColour);
+    if (usable(p)) return p;
+    if (usable(s)) return s;
+    return null;
+  }
 
   bool get isNews => kind == MessageKind.news;
 
