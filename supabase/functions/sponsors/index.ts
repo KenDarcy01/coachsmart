@@ -71,13 +71,17 @@ async function clubData(sb: any, clubId: number, sponsorId: number | null, month
     .select("club_id, club_name, crest, primary_colour, secondary_colour").eq("club_id", clubId).maybeSingle();
   if (!club) throw new Error("Club not found.");
   const { data: rows } = await sb.from("club_sponsors").select("*").eq("club_id", clubId).order("sponsor_id", { ascending: false });
-  const sponsors = (rows || []).map((s: any) => ({ ...s, logo_url: s.logo_path ? PUBLIC + s.logo_path : "" }));
+  const { data: teamRows } = await sb.from("teams").select("team_id, team_name").eq("club_id", clubId).order("team_name");
+  const clubTeams = (teamRows || []).filter((t: any) => !/\btest\b/i.test(t.team_name || ""));
+  const teamName = new Map((teamRows || []).map((t: any) => [t.team_id, t.team_name]));
+  const sponsors = (rows || []).map((s: any) => ({ ...s, logo_url: s.logo_path ? PUBLIC + s.logo_path : "",
+    team_name: s.team_id ? teamName.get(s.team_id) || "A team" : null }));
 
   const current = dublinMonth();
   const month = /^\d{4}-\d{2}-01$/.test(monthIn) ? monthIn : current;
   const pick = sponsors.find((s: any) => s.sponsor_id === sponsorId)
     || sponsors.find((s: any) => s.status === "live") || sponsors[0] || null;
-  if (!pick) return { club, sponsors, report: null, month, current };
+  if (!pick) return { club, teams: clubTeams, sponsors, report: null, month, current };
 
   const from6 = addMonths(month, -5), next = addMonths(month, 1);
   const { data: counts } = await sb.from("sponsor_counts").select("day, team_id, placement, views, taps")
@@ -123,7 +127,7 @@ async function clubData(sb: any, clubId: number, sponsorId: number | null, month
       taps: cs.reduce((s: number, c: any) => s + c.taps, 0), people: people.get(m) || 0 });
   }
 
-  return { club, sponsors, month, current,
+  return { club, teams: clubTeams, sponsors, month, current,
     report: { sponsor_id: pick.sponsor_id, views, taps, people: people.get(month) || 0, by_placement: byPlacement, teams, history } };
 }
 
@@ -136,16 +140,27 @@ async function save(sb: any, clubId: number, s: any, uid: string) {
   let link = clip(s.link_url, 300);
   if (link && !/^https?:\/\//i.test(link)) link = "https://" + link;
   const colour = typeof s.card_colour === "string" && /^#[0-9a-f]{6}$/i.test(s.card_colour) ? s.card_colour : null;
+  // A sponsor for the whole club (team_id null) or for one team of the club;
+  // a team sponsor shows on that team's events and live scores, never Home.
+  let teamId: number | null = Number(s.team_id) || null;
+  if (teamId) {
+    const { data: t } = await sb.from("teams").select("team_id").eq("team_id", teamId).eq("club_id", clubId).maybeSingle();
+    if (!t) throw new Error("That team isn't in this club.");
+  }
   const row: any = {
+    team_id: teamId,
     name, tagline: clip(s.tagline, 60), link_url: link, card_colour: colour,
     status: STATUSES.includes(s.status) ? s.status : "draft",
-    on_home: s.on_home !== false, on_events: s.on_events !== false, on_live: s.on_live !== false,
+    on_home: !teamId && s.on_home !== false, on_events: s.on_events !== false, on_live: s.on_live !== false,
     starts_on: date(s.starts_on), ends_on: date(s.ends_on), updated_at: new Date().toISOString(),
   };
-  // One live sponsor per club: going live ends any other live one.
+  // One live sponsor for the whole club and one per team: going live ends
+  // the other live one in the same slot.
   if (row.status === "live") {
-    await sb.from("club_sponsors").update({ status: "ended", updated_at: row.updated_at })
+    let q = sb.from("club_sponsors").update({ status: "ended", updated_at: row.updated_at })
       .eq("club_id", clubId).eq("status", "live").neq("sponsor_id", Number(s.sponsor_id) || 0);
+    q = teamId ? q.eq("team_id", teamId) : q.is("team_id", null);
+    await q;
   }
   if (s.sponsor_id) {
     const { data, error } = await sb.from("club_sponsors").update(row)
