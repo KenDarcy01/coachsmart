@@ -21,6 +21,7 @@ class V3Sponsor {
   V3Sponsor.fromJson(Map j)
       : id = _i(j['sponsor_id']),
         clubId = _i(j['club_id']),
+        teamId = j['team_id'] == null ? null : _i(j['team_id']),
         name = '${j['name'] ?? ''}',
         tagline = '${j['tagline'] ?? ''}',
         linkUrl = '${j['link_url'] ?? ''}',
@@ -32,12 +33,15 @@ class V3Sponsor {
         onLive = j['on_live'] != false;
 
   final int id, clubId;
+
+  /// Set for a team sponsor: only that team's events and live scores.
+  final int? teamId;
   final String name, tagline, linkUrl, logoUrl;
   final Color? cardColour;
   final bool live, onHome, onEvents, onLive;
 
   bool showsOn(V3SponsorPlace p) => switch (p) {
-        V3SponsorPlace.home => onHome,
+        V3SponsorPlace.home => onHome && teamId == null,
         V3SponsorPlace.event => onEvents,
         V3SponsorPlace.live => onLive,
       };
@@ -72,7 +76,17 @@ class V3Sponsors {
   static Future<void> _fetch() async {
     try {
       final r = await SupaFlow.client.rpc('get_my_sponsors');
-      final m = r is Map ? r : const {};
+      apply(r is Map ? r : const {});
+      _loadedAt = DateTime.now();
+      notifier.value++;
+    } catch (_) {
+      // No sponsor card is better than a broken screen.
+    }
+  }
+
+  /// Takes a get_my_sponsors answer (tests call it directly).
+  static void apply(Map m) {
+    {
       _clubOfTeam.clear();
       for (final t in (m['teams'] as List? ?? const [])) {
         if (t is Map) {
@@ -83,41 +97,56 @@ class V3Sponsors {
         for (final s in (m['sponsors'] as List? ?? const []))
           if (s is Map) V3Sponsor.fromJson(s)
       ];
-      _loadedAt = DateTime.now();
-      notifier.value++;
-    } catch (_) {
-      // No sponsor card is better than a broken screen.
     }
   }
 
   static int? clubOfTeam(int? teamId) =>
       teamId == null ? null : _clubOfTeam[teamId];
 
+  /// The club-wide sponsor of a club.
   static V3Sponsor? forClub(int? clubId, V3SponsorPlace place) {
     if (clubId == null) return null;
     for (final s in _sponsors) {
-      if (s.clubId == clubId && s.showsOn(place)) return s;
+      if (s.clubId == clubId && s.teamId == null && s.showsOn(place)) return s;
     }
     return null;
   }
 
-  static V3Sponsor? forTeam(int? teamId, V3SponsorPlace place) =>
-      forClub(clubOfTeam(teamId), place);
+  /// A team's own sponsor when it has one (Ken, 2026-11-25), else its club's.
+  static V3Sponsor? forTeam(int? teamId, V3SponsorPlace place) {
+    if (teamId == null) return null;
+    for (final s in _sponsors) {
+      if (s.teamId == teamId && s.showsOn(place)) return s;
+    }
+    return forClub(clubOfTeam(teamId) ?? _clubOfSponsoredTeam(teamId), place);
+  }
+
+  // Team sponsors come for every team of the user's clubs (club-wide live
+  // matches), so a team the user isn't on can still be placed in its club.
+  static int? _clubOfSponsoredTeam(int teamId) {
+    for (final s in _sponsors) {
+      if (s.teamId == teamId) return s.clubId;
+    }
+    return null;
+  }
 
   /// When the team isn't one of the user's (a club-wide live match) and the
   /// user sees just one sponsor, that one.
   static V3Sponsor? onlyOne(V3SponsorPlace place) {
-    final xs = [for (final s in _sponsors) if (s.showsOn(place)) s];
+    final xs = [
+      for (final s in _sponsors)
+        if (s.teamId == null && s.showsOn(place)) s
+    ];
     return xs.length == 1 ? xs.first : null;
   }
 
-  /// Home: the sponsor of the picked team's club, else of the first club
-  /// that has one.
+  /// Home: the club-wide sponsor of the picked team's club, else of the
+  /// first club that has one. Team sponsors never show on Home.
   static V3Sponsor? forHome(int? teamId) {
-    final picked = forTeam(teamId, V3SponsorPlace.home);
+    final picked = forClub(clubOfTeam(teamId), V3SponsorPlace.home);
     if (picked != null || (teamId != null && teamId > 0)) return picked;
     for (final s in _sponsors) {
-      if (s.onHome) return s;
+      if (s.showsOn(V3SponsorPlace.home)) return s;
     }
     return null;
   }
@@ -229,7 +258,9 @@ class _V3SponsorCardState extends State<V3SponsorCard> {
 
   String get _label => widget.place == V3SponsorPlace.live
       ? 'Live scores sponsored by'
-      : 'Club partner';
+      : widget.sponsor.teamId != null
+          ? 'Team partner'
+          : 'Club partner';
 
   @override
   Widget build(BuildContext context) {

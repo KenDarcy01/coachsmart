@@ -17,4 +17,25 @@ void main() {
     expect(s.showsOn(V3SponsorPlace.live), isTrue);
     expect(V3Sponsor.fromJson({'card_colour': 'red'}).cardColour, isNull);
   });
+
+  test('team sponsor wins on its team, never on Home', () {
+    V3Sponsors.apply({
+      'teams': [
+        {'team_id': 10, 'club_id': 1},
+        {'team_id': 11, 'club_id': 1},
+      ],
+      'sponsors': [
+        {'sponsor_id': 1, 'club_id': 1, 'team_id': null, 'name': 'Club', 'status': 'live'},
+        {'sponsor_id': 2, 'club_id': 1, 'team_id': 10, 'name': 'Team', 'status': 'live', 'on_home': true},
+        {'sponsor_id': 3, 'club_id': 1, 'team_id': 99, 'name': 'Other team', 'status': 'live'},
+      ],
+    });
+    expect(V3Sponsors.forTeam(10, V3SponsorPlace.event)!.id, 2);
+    expect(V3Sponsors.forTeam(10, V3SponsorPlace.live)!.id, 2);
+    expect(V3Sponsors.forTeam(11, V3SponsorPlace.event)!.id, 1);
+    expect(V3Sponsors.forTeam(99, V3SponsorPlace.live)!.id, 3);
+    expect(V3Sponsors.forHome(10)!.id, 1);
+    expect(V3Sponsors.forHome(null)!.id, 1);
+    expect(V3Sponsors.onlyOne(V3SponsorPlace.live)!.id, 1);
+  });
 }
