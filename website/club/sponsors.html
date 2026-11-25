@@ -234,7 +234,7 @@ function render() {
   $('app').innerHTML = `
   <div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club partners${cur ? ' · ' + esc(cur.name) + ' · ' + mLong(D.month) : ''}</div></div>
    <div class="right"><div class="chips">${months.map(m => `<button class="chip ${m === D.month ? 'on' : ''}" onclick="setMonth('${m}')">${mLabel(m)}</button>`).join('')}</div>
-   <div class="links"><a href="/club/?club=${clubId}">Club dashboard</a><button onclick="editSheet()">Add a sponsor</button><button onclick="window.print()">Print report</button><button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+   <div class="links"><a href="/club/?club=${clubId}">Club home</a><button onclick="editSheet()">Add a sponsor</button><button onclick="window.print()">Print report</button><button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
   <div class="wrap">
    ${!S.length ? `<div class="card" style="text-align:center;padding:40px">
       <h2 style="justify-content:center">No club partner yet</h2>

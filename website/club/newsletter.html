@@ -184,7 +184,7 @@ const story = id => I.stories.find(s => s.story_id === id);
 function band(title, sub, back) {
   return `<div class="band">${back ? `<button class="back" data-a="${back}" aria-label="Back">‹</button>` : (C.club.crest ? `<img class="crest" src="${esc(C.club.crest)}" alt="">` : '')}
     <div><h1>${esc(title)}</h1><div class="sub">${esc(sub)}</div></div>
-    ${back ? '' : `<div class="links"><a href="/club/?club=${clubId}">Dashboard</a><button data-a="signout">Sign out</button></div>`}</div>`;
+    ${back ? '' : `<div class="links"><a href="/club/?club=${clubId}">Club home</a><button data-a="signout">Sign out</button></div>`}</div>`;
 }
 function tagsOf(s) {
   const t = [];

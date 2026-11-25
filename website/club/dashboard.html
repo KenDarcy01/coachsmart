@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Club dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-400-normal.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-500-normal.woff2) format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-600-normal.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:DM;src:url(/web/fonts/dm-sans-latin-700-normal.woff2) format('woff2');font-weight:700;font-display:swap}
+:root{--club:#1e3f94;--band:#1e3f94;--onband:#fff;--tint:#1e3f9414;--bg:#f3f4f7;--card:#fff;--card2:#f6f7f9;--text:#1a1d23;--muted:#667080;--line:#e6e8ec;
+--good:#2f9e44;--warn:#e08a00;--bad:#d9363e;--FB:#3f9a1f;--HU:#1f74d6;--LG:#e0468a;--CA:#8b4fd6}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:DM,system-ui,sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+/* top band */
+.band{background:var(--band);color:var(--onband);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:4;box-shadow:0 2px 10px #0002}
+.band .crest{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:50%;padding:4px;flex:none}
+.band h1{font-size:23px;font-weight:700;line-height:1.1}
+.band .sub{font-size:13.5px;opacity:.85;margin-top:2px}
+.band .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--onband) 16%,transparent);font-size:13.5px;font-weight:500;border:0;cursor:pointer;white-space:nowrap;color:var(--onband)}
+.chip.on{background:var(--onband);color:var(--band)}
+.posb{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
+.posl{display:grid;grid-template-columns:10px 1fr auto;align-items:start;gap:8px;font-size:13px;margin-top:8px}.posl .dot{margin-top:5px}.posl .res{text-align:right}.posl .res small{display:block;color:var(--muted);font-size:12px;margin-top:1px}.posl b{font-size:14px}.posl .of{color:var(--muted)}
+.harr{font-weight:700;font-size:14px}.harr.g,.hp b.g{color:var(--good)}.harr.r,.hp b.r{color:var(--bad)}.harr.m,.hp b.m{color:var(--muted)}.posl b.win{color:#8a5a00}
+.ltr{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:11px 0;font:inherit;font-size:14px;cursor:pointer;text-align:left;color:inherit}
+.ltr .chev,.comps .clk span::after{color:var(--muted)}.ltr .chev{margin-left:4px}
+.comps .clk{cursor:pointer;border-radius:6px}.comps .clk:hover{background:var(--tint)}.comps .clk span{text-decoration:underline;text-decoration-color:#0002;text-underline-offset:3px}
+.comps em{font-style:normal;color:var(--club);font-weight:700;font-size:12px;text-decoration:none}
+.csub{color:var(--muted);font-size:14px;margin:-6px 0 10px}.csub .dot{margin-right:6px}.csub b{color:var(--club)}.csub small{font-size:12px}
+.lnote{color:var(--muted);font-size:12px;margin-top:6px}
+.ch{font-size:15px;margin:16px 0 4px;display:flex;justify-content:space-between}.ch small{color:var(--muted);font-weight:500}
+.cg{display:grid;grid-template-columns:62px 1fr auto 72px;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 0;font-size:14px}
+.cg .d{color:var(--muted);font-size:12.5px}.cg .o small{color:var(--muted)}.cg .s{font-weight:700;text-align:right}.cg .s.g{color:var(--good)}.cg .s.r{color:var(--bad)}.cg .s.m{color:var(--muted);font-weight:500}.cg .mg{font-size:12px;color:var(--muted);text-align:right}
+.lt{border-top:1px solid var(--line);padding:10px 0}.lt summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}.lt summary::-webkit-details-marker{display:none}
+.lt .lp{margin-left:auto;font-weight:700;color:var(--club)}
+.lt table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}.lt th{color:var(--muted);font-weight:500;text-align:right;padding:4px 6px}.lt th:nth-child(2){text-align:left}
+.lt td{padding:5px 6px;text-align:right;border-top:1px solid var(--line)}.lt td:nth-child(2){text-align:left}.lt td:first-child{color:var(--muted);width:22px}
+.lt tr.me td{background:var(--tint);font-weight:700}.lt tr.us td{font-weight:600}
+.rnd{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f4;color:#3b4250;margin-left:6px;vertical-align:2px;white-space:nowrap}.rnd.f{background:#fdf1cf;color:#8a5a00}.rt .rnd{margin-left:0}
+/* loading (Ken 2026-11-16): bar at the top, page dimmed, label pill */
+.ldbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:20;overflow:hidden;display:none}
+.ldbar::before{content:'';position:absolute;top:0;bottom:0;width:40%;background:var(--club);animation:ld 1.1s ease-in-out infinite}
+@keyframes ld{0%{left:-40%}100%{left:100%}}
+.ldpill{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:20;background:#1a1d23;color:#fff;font-size:14px;font-weight:600;padding:9px 16px 9px 14px;border-radius:999px;display:none;align-items:center;gap:9px;box-shadow:0 4px 18px #0003}
+.ldpill i{width:14px;height:14px;border:2px solid #fff5;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+body.busy .ldbar{display:block}body.busy .ldpill{display:flex}
+body.busy #app .layout{opacity:.45;pointer-events:none;transition:opacity .15s}body.busy #app .band{pointer-events:none}
+.links{display:flex;gap:14px;font-size:12.5px;align-items:center}
+.links button{background:none;border:0;cursor:pointer;color:var(--onband);text-decoration:underline;opacity:.9;font-size:12.5px}
+.links span{opacity:.75}
+.menu-btn{display:none}
+/* layout */
+.layout{display:grid;grid-template-columns:290px 1fr;min-height:calc(100vh - 80px)}
+.side{background:var(--card);border-right:1px solid var(--line);padding:16px 12px 40px;position:sticky;top:80px;height:calc(100vh - 80px);overflow:auto}
+.nav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:14.5px;color:#2b2f36;line-height:1.25}
+.nav:hover{background:var(--card2)}
+.nav.on{background:var(--tint);color:var(--club);font-weight:700}
+.nav .cnt{margin-left:auto;color:var(--muted);font-size:12.5px;font-weight:500}
+.nav.club{font-weight:700;font-size:15.5px;margin-bottom:6px}
+.nav.grp{font-weight:700;font-size:15px;margin-top:10px}
+.nav.grp small{color:var(--muted);font-weight:500;font-size:12px}
+.nav.code{padding-left:22px;font-weight:600}
+.nav.team{padding-left:40px;font-size:14px}
+.nav.team.off{color:#8a919c}
+.nav .dot{width:9px;height:9px}
+.caret{width:14px;color:var(--muted);font-size:11px;flex:none;text-align:center}
+.main{padding:22px 28px 60px;min-width:0;max-width:1400px}
+.crumbs{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.crumbs a{color:var(--club);font-weight:600;cursor:pointer}
+.ttl{font-size:28px;font-weight:700;letter-spacing:-.3px}
+.ttl-sub{color:var(--muted);margin-top:3px;font-size:14.5px}
+.card{background:var(--card);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px #0000000d,0 2px 10px #0000000a;border:1px solid #eceef2}
+.card h3{font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h3 small{margin-left:auto;color:var(--muted);font-weight:500;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:18px}
+.kpis.k6{grid-template-columns:repeat(3,1fr)}
+.kpi{display:flex;align-items:center;gap:14px}
+.kpi .l{color:var(--muted);font-size:13px}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.5px;line-height:1.15}
+.kpi .s{color:var(--muted);font-size:12.5px}
+.ring{flex:none}
+.g{color:var(--good)}.a{color:var(--warn)}.r{color:var(--bad)}.m{color:#9aa1ab}
+.att{margin-top:16px;background:#fff7e6;border:1px solid #f4dca6;border-radius:14px;padding:12px 16px;color:#7a4b00;font-size:14px;display:flex;gap:8px 20px;flex-wrap:wrap}
+.att b{color:#4a2e00}
+.sec{display:flex;align-items:baseline;gap:10px;margin:26px 0 12px}
+.sec h2{font-size:19px}
+.sec span{color:var(--muted);font-size:13.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.grid.big{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+.tc{cursor:pointer;transition:transform .12s,box-shadow .12s;display:flex;flex-direction:column;gap:10px}
+.tc:hover{transform:translateY(-2px);box-shadow:0 4px 18px #0000001a}
+.tc .top{display:flex;align-items:flex-start;gap:10px}
+.tc .nm{font-weight:700;font-size:16.5px}
+.tc .nm small{display:block;color:var(--muted);font-weight:500;font-size:12.5px;margin-top:2px}
+.tc .age{margin-left:auto;background:var(--tint);color:var(--club);font-weight:700;font-size:12.5px;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.tc.off{background:#fbfbfc}
+.flag{color:var(--warn)!important;font-weight:600!important}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{background:var(--card2);border-radius:11px;padding:9px 11px;display:flex;align-items:center;gap:10px}
+.mini b{font-size:19px;display:block;line-height:1.1}
+.mini span{color:var(--muted);font-size:12px}
+.codeline{display:flex;align-items:center;gap:8px;font-size:13.5px}
+.codeline .cn{width:118px;display:flex;align-items:center;gap:7px;color:#2b2f36;flex:none}
+.codeline .rec{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:64px;text-align:right}
+.codeline .nos{margin-left:auto;color:var(--muted)}
+.wbar{flex:1;height:9px;border-radius:5px;overflow:hidden;display:flex;background:#eceef2;min-width:40px}
+.wbar i{display:block;height:100%}
+.form{display:flex;gap:4px}
+.form i{width:18px;height:18px;border-radius:50%;font-style:normal;font-size:10.5px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center}
+.hc{display:flex;align-items:center;gap:10px;border-radius:12px;padding:8px 11px;background:var(--card2)}
+.hc .hn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex:none}
+.hc.g .hn{background:var(--good)}.hc.a .hn{background:var(--warn)}.hc.r .hn{background:var(--bad)}
+.hc.g{background:#2f9e4412}.hc.a{background:#e08a0014}.hc.r{background:#d9363e12}
+.hc .hl b{display:block;font-size:13.5px}.hc .hl span{color:var(--muted);font-size:12.5px}
+.hbig{display:grid;grid-template-columns:270px 1fr;gap:18px;align-items:start}
+.hparts{display:flex;flex-direction:column;gap:9px}
+.hp{display:grid;grid-template-columns:140px 1fr 48px;gap:4px 10px;align-items:center;font-size:13.5px}
+.hp b{text-align:right;font-variant-numeric:tabular-nums}
+.hp .hb{height:8px;border-radius:4px;background:#eceef2;overflow:hidden}.hp .hb i{display:block;height:100%}
+.hp .nt{grid-column:1/-1;color:var(--muted);font-size:12px;margin-top:-3px}
+@media(max-width:700px){.hbig{grid-template-columns:1fr}.hp{grid-template-columns:110px 1fr 44px}}
+.wk{display:flex;align-items:center;gap:10px;margin-top:6px}.wk button{background:#ffffff2e;color:var(--onband);border:0;border-radius:8px;width:30px;height:30px;font-size:17px;cursor:pointer}.wk span{color:var(--onband);font-weight:700;font-size:14px}
+.tabs{display:inline-flex;background:#e9ebef;border-radius:12px;padding:4px;margin-top:14px;gap:4px}.tabs button{border:0;background:none;padding:8px 18px;border-radius:9px;font-weight:700;font-size:14px;cursor:pointer;color:#4a505b}.tabs button.on{background:#fff;color:var(--club);box-shadow:0 1px 3px #0002}
+.tabs a{padding:8px 16px;border-radius:9px;font-weight:700;font-size:14px;color:#4a505b;text-decoration:none;display:flex;align-items:center;gap:6px}.tabs a.on{background:#fff;color:var(--club);box-shadow:0 1px 3px #0002}
+.hero{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:14px;margin-top:16px}
+.rec{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}.rec i{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-weight:800;font-size:11.5px}
+.day{font-weight:800;font-size:15px;margin:22px 0 10px;color:#2b2f36}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+.rr{display:flex;gap:14px;align-items:stretch;padding:14px 16px;color:inherit;text-decoration:none}
+.rb{width:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;flex:none}
+.ri{flex:1;min-width:0}.rt{display:flex;align-items:center;gap:8px}.rt b{font-size:16px}.age{background:var(--tint);color:var(--club);font-weight:700;font-size:12px;padding:3px 8px;border-radius:999px}
+.rc{color:var(--muted);font-size:13px;margin-top:5px;display:flex;align-items:center;gap:6px}.rcs{margin-top:7px;font-size:12.5px;color:#2b6a12;background:#2f9e4414;display:inline-block;padding:3px 8px;border-radius:8px;font-weight:600}
+.rs{text-align:right;flex:none;max-width:48%}.sc{font-variant-numeric:tabular-nums;white-space:nowrap}.sc b{font-size:20px}.sc span{color:var(--muted);font-size:15px;margin-left:6px}.op{font-size:13px;color:#2b2f36;margin-top:3px}.rs .mg{font-size:12.5px;font-weight:700;margin-top:3px}
+.side2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start}.rcol{margin-top:26px;display:flex;flex-direction:column;gap:14px}
+.hl{display:flex;flex-direction:column;gap:10px}.hli{background:var(--card2);border-radius:12px;padding:11px 13px}.hli .k{color:var(--muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}.hli b{display:block;font-size:15px;margin-top:3px}.hli span{font-size:13px;color:var(--muted)}
+.gg{display:flex;align-items:center;gap:7px;font-size:13.5px;padding:7px 0;border-bottom:1px solid var(--line)}.gg:last-child{border:0}.gd{margin-left:auto;color:var(--muted);font-size:12px}
+.cm{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:7px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}.cm:last-of-type{border:0}.cmv{margin-left:auto;font-weight:700}.live{background:var(--tint);color:var(--club);font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px}
+.twg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.tw{background:var(--card);border:1px solid #eceef2;border-radius:12px;padding:11px 13px;color:inherit;text-decoration:none}.twn{display:flex;justify-content:space-between}.twn span{color:var(--muted);font-size:12px}.twv{display:flex;align-items:baseline;gap:6px;margin-top:4px}.twv b{font-size:22px}.twv span{color:var(--muted);font-size:12px}.twd{font-size:12.5px;font-weight:700;margin-top:2px}
+.fx{display:flex;align-items:center;gap:10px;font-size:13.5px;padding:8px 0;border-bottom:1px solid var(--line)}.fx .d{width:96px;color:var(--muted);font-size:12.5px;flex:none}
+.fxl{padding:4px 18px}.fxr{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none;font-size:14px}.fxr:last-child{border:0}.fxr .t{width:48px;font-weight:700;font-variant-numeric:tabular-nums;flex:none}.fxr .w{flex:1;min-width:0}.fxr .c{color:var(--muted);font-size:12.5px}.fxr .r{text-align:right;font-size:13px;color:#2b2f36;flex:none;max-width:40%}.fxr .r b{font-size:15px}
+@media(max-width:900px){.hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.hero>.card:first-child{grid-column:1/-1}.side2{grid-template-columns:1fr}.rgrid{grid-template-columns:1fr}.rr{min-width:0}.wk span{font-size:13px}.rcol{margin-top:6px}}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.gc{cursor:pointer;display:flex;flex-direction:column;gap:12px}
+.gc:hover{box-shadow:0 4px 18px #0000001a}
+.gc .hd{display:flex;align-items:center;gap:10px}
+.gc .hd b{font-size:19px}.gc .hd span{color:var(--muted);font-size:13px}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:14px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:180px;padding-top:8px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;justify-content:flex-end;height:100%;min-width:0}
+.bar .b{width:100%;border-radius:6px 6px 2px 2px;background:var(--club)}
+.bar .t{font-size:12px;color:var(--muted)}
+.bar .p{font-size:12px;font-weight:700}
+.side-row{border-top:1px solid var(--line);padding:11px 0;display:grid;grid-template-columns:190px 1fr;gap:10px;align-items:start}
+.side-row:first-of-type{border-top:0}
+.sn{font-weight:700;display:flex;gap:8px;align-items:center}
+.sn small{color:var(--muted);font-weight:500}
+.comps{display:flex;flex-direction:column;gap:5px;font-size:14px}
+.comps div{display:flex;justify-content:space-between;gap:10px}
+.comps b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.gm{display:grid;grid-template-columns:56px 12px 1fr 104px 84px;gap:10px;align-items:center;border-top:1px solid var(--line);padding:9px 0;font-size:14px}
+.gm:first-of-type{border-top:0}
+.gm .d{color:var(--muted)}.gm .c{color:var(--muted);font-size:12.5px}
+.gm .s{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.gm .mg{color:var(--muted);font-size:12.5px;text-align:right}
+.check{display:flex;gap:12px}
+.check>div{flex:1;background:var(--card2);border-radius:12px;padding:12px 14px}
+.check b{font-size:26px;display:block}
+.check span{color:var(--muted);font-size:13px}
+.names{margin-top:10px;font-size:14px;line-height:1.6}
+.more{background:none;border:0;color:var(--club);cursor:pointer;font-size:14px;margin-top:8px;font-weight:700}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+.legend{display:flex;gap:16px;color:var(--muted);font-size:12.5px;margin-top:22px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px}
+.state{padding:80px 40px;text-align:center;color:var(--muted);font-size:16px}
+.spark{display:block}
+/* login + sheet */
+.login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:var(--bg);z-index:9}
+.login.on{display:flex}
+.lbox{background:var(--card);border-radius:18px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px #0001}
+.lbox h2{font-size:22px;margin-bottom:6px}.lbox p{color:var(--muted);font-size:14px;margin-bottom:18px}
+.lbox input{width:100%;background:#fff;border:1px solid #d6d9df;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:16px}
+.btn{background:var(--club);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;width:100%}
+.link{background:none;border:0;color:var(--muted);cursor:pointer;margin-top:12px;font-size:14px}
+.msg{font-size:14px;color:var(--bad);min-height:20px;margin-top:6px}.msg.ok{color:var(--good)}
+.lbox .icrest{display:block;width:64px;height:64px;object-fit:contain;margin:0 auto 12px}
+.lbox .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lbox input[readonly]{background:var(--card2);color:var(--muted)}
+.orow .pend{color:var(--muted);font-size:12px;font-weight:600}
+.orow .acts{display:flex;gap:6px}
+.orow .ticks{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.orow .tick{background:var(--card2);color:var(--muted);font-size:12.5px;padding:5px 9px}
+.orow .tick.on{color:var(--text,inherit);font-weight:600}
+.ochk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.sheet{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:8;padding:16px}
+.sheet.on{display:flex}
+.sbox{background:var(--card);border-radius:18px;padding:22px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
+.sbox h2{font-size:20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.sbox h2 button{background:none;border:0;font-size:24px;color:var(--muted);cursor:pointer}
+.orow{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:10px 0;gap:10px}
+.orow small{color:var(--muted);display:block}
+.orow button{background:var(--card2);border:0;border-radius:8px;padding:7px 11px;cursor:pointer;font-size:13px}
+.oadd{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.oadd .msg{grid-column:1/-1}
+.oadd input{border:1px solid #d6d9df;border-radius:10px;padding:10px 12px}
+.oadd .btn{grid-column:1/-1}
+.picker{display:grid;gap:10px;max-width:520px;margin:40px auto;padding:0 16px}
+.pick{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;font-size:17px;font-weight:700;box-shadow:0 1px 6px #0001}
+.pick img{width:44px;height:44px;object-fit:contain}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+@media (max-width:900px){
+ .band{padding:12px 14px;flex-wrap:wrap;position:static}
+ .band .crest{width:44px;height:44px}.band h1{font-size:20px}
+ .band .right{margin-left:0;align-items:flex-start;width:100%}
+ .menu-btn{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer;width:100%;margin-bottom:14px}
+ .menu-btn span{margin-left:auto;color:var(--muted)}
+ .layout{display:block}
+ .side{display:none;position:static;height:auto;border:1px solid var(--line);border-radius:14px;margin:0 0 14px;padding:10px}
+ .side.open{display:block}
+ .main{padding:14px 14px 40px}
+ .ttl{font-size:23px}
+ .kpis,.kpis.k6{grid-template-columns:1fr 1fr;gap:10px}
+ .kpi{flex-direction:column;align-items:flex-start;gap:6px}.kpi .v{font-size:24px}
+ .grid,.grid.big{grid-template-columns:1fr}
+ .side-row{grid-template-columns:1fr}
+ .gm{grid-template-columns:50px 10px 1fr 82px}.gm .mg{display:none}
+ .check{flex-direction:column}
+ .bars{gap:4px}.bar .p{font-size:10.5px}
+}
+</style>
+</head>
+<body>
+<div class="ldbar"></div><div class="ldpill"><i></i><span id="ldText">Loading…</span></div>
+<div id="app"><div class="state">Loading…</div></div>
+
+<div class="login" id="login">
+  <form class="lbox" id="loginForm">
+    <h2>Club dashboard</h2>
+    <p>Sign in with your CoachSmart email and password.</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn" id="goBtn" type="submit">Sign in</button>
+    <div class="msg" id="loginMsg"></div>
+    <button class="link" id="forgot" type="button">Forgot password?</button>
+  </form>
+</div>
+
+<div class="login" id="invite">
+  <form class="lbox" id="inviteForm"></form>
+</div>
+
+<div class="sheet" id="sheet"><div class="sbox" id="sbox"></div></div>
+
+<script>
+const SUPABASE_URL      = 'https://gyfporsbdftvtakdvukt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZnBvcnNiZGZ0dnRha2R2dWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzMjkxMjAsImV4cCI6MjA0ODkwNTEyMH0.tuWJT4RCp3b7JHi6cdDogqgInetBHdTjSxhJQMBy5n4';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CN = {FB:'Football',HU:'Hurling',LG:'Ladies football',CA:'Camogie'};
+const CODE = {'Football':'FB','Hurling':'HU','Ladies Football':'LG','Camogie':'CA'};
+const FEMALE = {LG:true,CA:true,FB:false,HU:false};
+const GROUPS = [['ccc1','CCC1','Under 8 to Under 12'],['ccc2','CCC2','Under 13 to Under 16'],['adult','Adult & Minor','Minor and adult teams']];
+
+const P = new URLSearchParams(location.search);
+let clubId = Number(P.get('club')) || null;
+let period = P.get('period') || 'week';
+let tab = P.get('tab') === 'fixtures' ? 'fixtures' : 'results', weekStart = null, W = null, Dseason = null;
+let seasonYear = new Date().getFullYear();
+let spendOn = false;
+let newsOn = false;
+function newsLink() { return `<a class="newsl" href="/club/newsletter.html?club=${clubId}" style="text-decoration:underline;opacity:.9">Newsletter</a>`; }
+function spendLink() { return `<a class="spendl" href="/club/spend.html?club=${clubId}" style="text-decoration:underline;opacity:.9">Spend &amp; gear</a>`; }
+let myClubs = null, isSuper = false, D = null, model = null, STD = null, FIX = {}, stdP = null, CREF = [];
+
+// ── Colours ───────────────────────────────────────────────────────
+function lum(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+  const n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+}
+function brand(c) {
+  const p = c.primary_colour, s = c.secondary_colour;
+  const okText = h => { const l = lum(h); return l != null && l < .45; };
+  const accent = okText(p) ? p : okText(s) ? s : '#1a1d23';
+  const band = lum(p) != null && lum(p) < .85 ? p : (lum(s) != null && lum(s) < .85 ? s : accent);
+  const r = document.documentElement.style;
+  r.setProperty('--club', accent); r.setProperty('--band', band);
+  r.setProperty('--onband', lum(band) > .5 ? '#14181b' : '#fff');
+  r.setProperty('--tint', accent + '17');
+  // Favicon and home-screen icon: the club's crest (Ken 2026-11-16).
+  if (c.crest) ['icon', 'apple-touch-icon'].forEach(rel => {
+    let l = document.querySelector(`link[rel="${rel}"]`);
+    if (!l) { l = document.createElement('link'); l.rel = rel; document.head.appendChild(l); }
+    l.href = c.crest;
+  });
+}
+
+// ── Sign in ───────────────────────────────────────────────────────
+function showLogin(msg, ok) {
+  $('login').classList.add('on');
+  $('loginMsg').textContent = msg || ''; $('loginMsg').classList.toggle('ok', !!ok);
+  $('goBtn').disabled = false; $('goBtn').textContent = 'Sign in';
+}
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('goBtn').disabled = true; $('goBtn').textContent = 'Signing in…'; $('loginMsg').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) return showLogin(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : error.message);
+  $('password').value = ''; $('login').classList.remove('on'); boot();
+});
+$('forgot').addEventListener('click', async () => {
+  const email = $('email').value.trim();
+  if (!email) return showLogin('Type your email first, then tap Forgot password.');
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  showLogin(error ? error.message : 'Check your email for a link to reset your password.', !error);
+});
+// ── Invite link: set up an account (Ken, 2026-11-16) ─────────────
+// coachsmart.app/club/?club=ID&invite=TOKEN, emailed by the club-invite function.
+async function fn(body) {
+  const { data, error } = await sb.functions.invoke('club-invite', { body });
+  if (!error) return data || {};
+  try { return await error.context.json(); } catch (_) { return { error: 'Something went wrong. Please try again.' }; }
+}
+function dropInvite() { const u = new URL(location); u.searchParams.delete('invite'); history.replaceState(null, '', u); P.delete('invite'); }
+async function inviteSetup(tok) {
+  state('Loading…');
+  const r = await fn({ action: 'lookup', token: tok });
+  if (r.error) { dropInvite(); return showLogin(r.error); }
+  // A planner-only invite (Ken 2026-11-18) sets up the account here, then
+  // sends them to the club's pitch planner instead of this dashboard.
+  const pitchesOnly = r.can_dashboard === false;
+  const what = pitchesOnly ? 'pitch planner' : 'club dashboard';
+  const go = pitchesOnly ? 'Set up and open the pitch planner' : 'Open the dashboard';
+  brand(r.club); document.title = r.club.club_name + (pitchesOnly ? ' · Pitch planner' : ' · Club dashboard');
+  $('inviteForm').innerHTML = `${r.club.crest ? `<img class="icrest" src="${esc(r.club.crest)}" alt="">` : ''}
+    <h2>${esc(r.club.club_name)} ${what}</h2>
+    <p>You’ve been added as ${esc(r.title)}. Choose a password to set up your account. You don’t need the app.</p>
+    <div class="two"><input id="iFirst" placeholder="First name" autocomplete="given-name" value="${esc(r.first_name || '')}"><input id="iLast" placeholder="Last name" autocomplete="family-name" value="${esc(r.last_name || '')}"></div>
+    <input id="iEmail" type="email" autocomplete="username" readonly value="${esc(r.email)}">
+    <input id="iPw" type="password" placeholder="Choose a password (8 or more characters)" autocomplete="new-password" minlength="8" required>
+    <input id="iPw2" type="password" placeholder="Type it again" autocomplete="new-password" required>
+    <button class="btn" id="iGo" type="submit">${go}</button>
+    <div class="msg" id="iMsg"></div>`;
+  $('app').innerHTML = ''; $('invite').classList.add('on');
+  $('inviteForm').onsubmit = async e => {
+    e.preventDefault();
+    const pw = $('iPw').value, msg = t => { $('iMsg').textContent = t; $('iGo').disabled = false; $('iGo').textContent = go; };
+    if (pw.length < 8) return msg('Use at least 8 characters.');
+    if (pw !== $('iPw2').value) return msg('The two passwords don’t match.');
+    $('iGo').disabled = true; $('iGo').textContent = 'Setting up…'; $('iMsg').textContent = '';
+    const a = await fn({ action: 'accept', token: tok, password: pw, first_name: $('iFirst').value, last_name: $('iLast').value });
+    if (a.error) return msg(a.error);
+    if (a.can_dashboard === false) {
+      // Sign in here with the new password and carry the login over, so the
+      // planner doesn't ask again (Ken 2026-11-23).
+      let href = a.planner;
+      if (!a.existing) {
+        await sb.auth.signOut().catch(() => {});
+        const { error: e2 } = await sb.auth.signInWithPassword({ email: a.email, password: pw });
+        if (!e2) href = await plannerLink(a.planner);
+      }
+      $('inviteForm').innerHTML = `${r.club.crest ? `<img class="icrest" src="${esc(r.club.crest)}" alt="">` : ''}
+        <h2>You’re all set</h2>
+        <p>${href !== a.planner ? '' : a.existing ? 'Sign in with your usual CoachSmart password. ' : 'Sign in with ' + esc(a.email) + ' and the password you just chose. '}
+        On your phone, choose “Add to Home Screen” on the next page to keep the planner like an app.</p>
+        <a class="btn" style="display:block;text-align:center;text-decoration:none" href="${esc(href)}">Open the pitch planner</a>`;
+      $('inviteForm').onsubmit = e => e.preventDefault();
+      return;
+    }
+    dropInvite(); $('invite').classList.remove('on');
+    if (a.existing) { $('email').value = a.email; return showLogin('You already have a CoachSmart account, so sign in with your usual password. Your club dashboard is ready.', true); }
+    await sb.auth.signOut().catch(() => {});
+    const { error } = await sb.auth.signInWithPassword({ email: a.email, password: pw });
+    if (error) { $('email').value = a.email; return showLogin('Your account is ready. Please sign in.', true); }
+    location.replace('/club/?club=' + clubId); // club home (Ken 2026-11-25)
+  };
+}
+async function signOut() { await sb.auth.signOut(); location.reload(); }
+// The planner is another website with its own login store: hand this login
+// over in the link's #fragment (never sent to a server; the planner wipes it).
+async function plannerLink(url) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    return session ? url + '#cs_rt=' + encodeURIComponent(session.refresh_token) : url;
+  } catch (e) { return url; }
+}
+
+async function boot() {
+  if (P.get('invite')) return inviteSetup(P.get('invite'));
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  await sb.rpc('club_officer_claim_invites').then(() => {}, () => {}); // pending invites for this email
+  const { data, error } = await sb.rpc('get_my_officer_clubs');
+  if (error) return state('Something went wrong loading your clubs. Please try again.');
+  myClubs = data.clubs || []; isSuper = !!data.is_super_user;
+  // Spend & gear (2026-11-23): only accounts it is switched on for see the link.
+  sb.rpc('newsletter_has_access', { p_club: clubId }).then(({ data }) => { newsOn = data === true; if (newsOn && D) { const l = document.querySelector('.band .links'); if (l && !l.querySelector('.newsl')) l.insertAdjacentHTML('afterbegin', newsLink()); } }, () => {});
+  sb.rpc('spend_has_access').then(({ data }) => { spendOn = data === true; if (spendOn && D) { const l = document.querySelector('.band .links'); if (l && !l.querySelector('.spendl')) l.insertAdjacentHTML('afterbegin', spendLink()); } }, () => {});
+  if (!myClubs.length && (data.pitch_clubs || []).length) {
+    const pc = data.pitch_clubs[0];
+    const link = await plannerLink(`https://coachsmart-v3.web.app/pitches?club=${pc}&look=club`);
+    $('app').innerHTML = `<div class="state">Your account is for the club’s pitch planner, not this dashboard.<br><br><a class="btn" style="display:inline-block;text-decoration:none" href="${esc(link)}">Open the pitch planner</a><br><br><button class="link" onclick="signOut()">Sign out</button></div>`;
+    return;
+  }
+  if (!myClubs.length) return state('This dashboard is for club officers, and ' + (session.user.email || 'this account') + ' isn’t one yet. Sign in with a SuperUser account, or ask CoachSmart to add you as an officer of your club.', true);
+  // The link decides the club (Ken 2026-11-16): no club picker, no Change club.
+  if (!clubId) return state('Open the dashboard from your club’s link, for example coachsmart.app/club/?club=1.', true);
+  load();
+}
+function state(msg, withOut) {
+  $('app').innerHTML = `<div class="state">${esc(msg)}${withOut ? '<br><br><button class="link" onclick="signOut()">Sign out</button>' : ''}</div>`;
+}
+
+// ── Period ────────────────────────────────────────────────────────
+function range() {
+  const now = new Date();
+  if (period === 'last') return [new Date(seasonYear - 1, 0, 1), new Date(seasonYear, 0, 1)];
+  if (period === '3m') { const f = new Date(now); f.setMonth(f.getMonth() - 3); return [f, now]; }
+  if (period === '4w') return [new Date(now - 28 * 864e5), now];
+  // The week view sits on top of the season model (team names, sides, season averages).
+  return [new Date(seasonYear, 0, 1), now];
+}
+// Loading indicator while data loads after a tap (only once the page has content).
+let busyN = 0;
+function busy(label) { if (!D && !Dseason) return false; busyN++; $('ldText').textContent = label || 'Loading…'; document.body.classList.add('busy'); return true; }
+function unbusy() { busyN = Math.max(0, busyN - 1); if (!busyN) document.body.classList.remove('busy'); }
+const PLABEL = { week: 'this week', season: () => seasonYear + ' season', '3m': 'the last 3 months', '4w': 'the last 4 weeks', last: () => (seasonYear - 1) + ' season' };
+function setPeriod(p) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.getAttribute('onclick') === `setPeriod('${p}')`));
+  const l = PLABEL[p]; busy('Loading ' + (typeof l === 'function' ? l() : l) + '…');
+  period = p; const u = new URL(location); u.searchParams.set('period', p); history.replaceState(null, '', u); load();
+}
+function chips() {
+  const o = [['week', 'This week'], ['season', seasonYear + ' season'], ['3m', 'Last 3 months'], ['4w', 'Last 4 weeks'], ['last', (seasonYear - 1) + ' season']];
+  return `<div class="chips">${o.map(([k, l]) => `<button class="chip ${period === k ? 'on' : ''}" onclick="setPeriod('${k}')">${l}</button>`).join('')}</div>`;
+}
+
+async function load() {
+  try { return await load0(); } finally { unbusy(); }
+}
+// League tables for this season (Ken 2026-11-16), loaded once.
+function ensureStandings() {
+  return stdP = stdP || sb.rpc('get_club_standings', { p_club_id: clubId, p_from: new Date(seasonYear, 0, 1).toISOString() })
+    .then(({ data, error }) => { STD = !error && data && data.comps ? data.comps : {}; FIX = (!error && data && data.fixtures) || {}; }, () => { STD = {}; });
+}
+async function load0() {
+  const sp = ensureStandings();
+  if (period === 'week') { await sp; return loadWeek(); }
+  const [from, to] = range();
+  if (!D) state('Loading…');
+  const { data, error } = await sb.rpc('get_club_dashboard', { p_club_id: clubId, p_from: from.toISOString(), p_to: to.toISOString() });
+  if (!error && !data.error && period === 'season') Dseason = data;
+  if (error) return state('Something went wrong loading the dashboard. Please try again.');
+  if (data.error === 'not_allowed') return state('You’re not an officer of this club.', true);
+  if (data.error) return state('Club not found.');
+  D = data; brand(D.club); document.title = D.club.club_name + ' · Club dashboard';
+  model = build(D, period === 'last' ? seasonYear - 1 : seasonYear);
+  await sp; route();
+  // Club home's Officers tile opens the officers sheet straight away (Ken 2026-11-25).
+  if (P.get('open') === 'officers' && isSuper) { P.delete('open'); const u = new URL(location); u.searchParams.delete('open'); history.replaceState(null, '', u); officers(); }
+}
+
+// ── Model ─────────────────────────────────────────────────────────
+function cleanName(n, club) {
+  const w = (club || '').split(/\s+/)[0];
+  let x = n.replace(/^.*?\b(Boys|Girls)\b/i, '$1');
+  if (w) x = x.replace(new RegExp('^' + w.replace(/[^\w]/g, '') + '\\s+', 'i'), '');
+  return x.trim() || n;
+}
+function groupOfAge(a) { return a <= 12 ? 'ccc1' : a <= 16 ? 'ccc2' : 'adult'; }
+function teamMeta(t, year) {
+  const n = t.team_name || '';
+  let age = null; const y = /(20\d\d)/.exec(n), u = /\bU-?\s?(\d{1,2})\b/i.exec(n);
+  if (y) age = year - Number(y[1]); else if (u) age = Number(u[1]);
+  if (/minor/i.test(n)) age = 17;
+  const female = !!t.female || /girl|ladies|camog|lgfa/i.test(n);
+  let codes = female ? ['LG', 'CA'] : ['FB', 'HU'];
+  if (age == null || age > 16) {
+    if (/hurl/i.test(n)) codes = ['HU']; else if (/camog/i.test(n)) codes = ['CA'];
+    else if (/ladies|lgfa/i.test(n)) codes = ['LG']; else if (age == null) codes = [female ? 'LG' : 'FB'];
+  }
+  const bucket = age == null ? 'adult' : age <= 16 ? (female ? 'G' : 'B') + age : age <= 18 ? (female ? 'G' : 'B') + 'minor' : 'adult';
+  return { age, female, codes, bucket, group: age == null ? 'adult' : groupOfAge(age) };
+}
+function gameBucket(g) {
+  const code = CODE[g[1]]; if (!code) return null;
+  const female = FEMALE[code], ag = String(g[3] || ''), m = /^U(\d{1,2})$/i.exec(ag);
+  if (m && Number(m[1]) <= 16) return { key: (female ? 'G' : 'B') + Number(m[1]), code, age: Number(m[1]), female };
+  if (/minor|^u1[78]$/i.test(ag)) return { key: (female ? 'G' : 'B') + 'minor', code, age: 17, female };
+  if (/^u2[01]$/i.test(ag)) return { key: (female ? 'G' : 'B') + 'u21', code, age: 21, female };
+  return { key: 'adult-' + code, code, age: 99, female };
+}
+function build(D, year) {
+  const games = D.games.map(g => ({ d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], note: g[11], b: gameBucket(g) })).filter(g => g.b);
+  // The RPC returns the current season too (for the health check); show only the picked period.
+  const [pf, pt] = range(), inP = g => g.d >= pf && g.d < pt, hy = new Date(new Date().getFullYear(), 0, 1);
+  const byBucket = {}; games.forEach(g => (byBucket[g.b.key] = byBucket[g.b.key] || []).push(g));
+  const rows = [], claimed = new Set();
+  // Ken 2026-11-16: adult, minor and U21 results split into their individual teams (sides).
+  const yearGames = g => period === 'last' ? inP(g) : g.d >= hy;
+  const split = {};
+  for (const [key, gs] of Object.entries(byBucket)) if (key.startsWith('adult-') || /minor|u21$/.test(key)) split[key] = buildSides(gs.filter(yearGames)).filter(sd => sd.div != null || Object.keys(sd.comps).length).map(sd => ({ ...sd, games: Object.values(sd.comps).flat().sort((a, b) => b.d - a.d) }));
+  const takeSide = (key, code) => { const sd = (split[key] || []).find(x => x.code === code && !x.taken && x.div != null); if (sd) sd.taken = true; return sd; };
+  for (const t of D.teams) {
+    const events = t.trn_events + t.m_events;
+    if (/test/i.test(t.team_name) || (t.players === 0 && events === 0)) continue;
+    // Ken 2026-11-16: leave out teams with only a handful of players, or no event in 3 months
+    // (their league results, if any, show as a results-only side instead).
+    if (t.players < 10) continue;
+    if (period !== 'last' && 'last_event' in t && (!t.last_event || new Date(t.last_event) < Date.now() - 91 * 864e5)) continue;
+    const meta = teamMeta(t, year);
+    let gs;
+    if (meta.bucket === 'adult' || /minor$/.test(meta.bucket)) {
+      // A CoachSmart adult or minor team is the top side of each of its codes.
+      gs = meta.codes.map(c => takeSide(meta.bucket === 'adult' ? 'adult-' + c : meta.bucket, c)).filter(Boolean).flatMap(sd => sd.games);
+    }
+    else { gs = (byBucket[meta.bucket] || []).filter(g => meta.codes.includes(g.code)); claimed.add(meta.bucket); }
+    rows.push({ key: 't' + t.team_id, team: t, name: cleanName(t.team_name, D.club.club_name), age: meta.age, ageLabel: meta.age == null || meta.age > 18 ? 'Adult' : meta.age >= 17 ? 'Minor' : 'U' + meta.age, group: meta.group, codes: meta.codes, bucket: meta.bucket, games: gs.filter(inP), hgames: gs.filter(g => g.d >= hy), onCS: true, events });
+  }
+  // Sides with league games but no CoachSmart team: results only.
+  for (const [key, sds] of Object.entries(split)) {
+    for (const sd of sds) {
+      if (sd.taken || !sd.games.some(inP)) continue;
+      const b = byBucket[key][0].b, cn = CN[sd.code], many = sds.filter(x => x.code === sd.code && x.div != null).length > 1, L = sd.div != null && many ? String.fromCharCode(65 + sd.idx) : '';
+      let name, ageLabel, age;
+      if (key.startsWith('adult-')) { name = sd.grade ? cn + ' ' + sd.grade : 'Adult ' + cn.toLowerCase() + (L ? ' ' + L : ''); ageLabel = 'Adult'; age = 99; }
+      else if (key.endsWith('u21')) { name = 'U21 ' + cn.toLowerCase() + (L ? ' ' + L : ''); ageLabel = 'U21'; age = 19; }
+      else { name = 'Minor ' + cn.toLowerCase() + (L ? ' ' + L : ''); ageLabel = 'Minor'; age = 17; }
+      if (sd.div == null && sds.some(x => x.code === sd.code && x.div != null)) name += ' (other games)';
+      rows.push({ key: 'g' + key + '-' + sd.code + (sd.idx ?? 'x'), bucket: key, team: null, name, sideLabel: sd.div != null ? sd.label : null, sideIdx: sd.idx ?? 9, age, ageLabel, group: 'adult', codes: [sd.code], games: sd.games.filter(inP), hgames: sd.games.filter(g => g.d >= hy), onCS: false });
+    }
+  }
+  for (const [key, gs] of Object.entries(byBucket)) {
+    if (split[key] || claimed.has(key) || !gs.some(inP)) continue;
+    const b = gs[0].b;
+    let name, ageLabel, group;
+    if (key.startsWith('adult-')) { name = 'Adult ' + CN[b.code].toLowerCase(); ageLabel = 'Adult'; group = 'adult'; }
+    else if (key.endsWith('minor')) { name = (b.female ? 'Minor girls' : 'Minor boys'); ageLabel = 'Minor'; group = 'adult'; }
+    else { name = (b.female ? 'Girls ' : 'Boys ') + (year - b.age); ageLabel = 'U' + b.age; group = groupOfAge(b.age); }
+    rows.push({ key: 'g' + key, bucket: key, team: null, name, age: b.age, ageLabel, group, codes: [...new Set(gs.filter(inP).map(g => g.code))].sort((x, y) => 'FBHULGCA'.indexOf(x) - 'FBHULGCA'.indexOf(y)), games: gs.filter(inP), hgames: gs.filter(g => g.d >= hy), onCS: false });
+  }
+  const order = r => [r.age ?? 98, r.age == null || r.age > 16 ? 'FBHULGCA'.indexOf(r.codes[0]) : 0, r.onCS ? 0 : 1, r.sideIdx ?? 0, /girl/i.test(r.name) ? 1 : 0];
+  rows.sort((a, b) => { const x = order(a), y = order(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i]; return a.name.localeCompare(b.name); });
+  // Biggest average match turnout in each group, for the Numbers part of the health check.
+  // Ken 2026-11-17: overall numbers (regular match players, h[7]) judged against the average
+  // of the same group: CCC1 (U8-U12) and CCC2 (U13-U16) apart, as numbers drop at secondary school.
+  GAVG = {};
+  ['ccc1', 'ccc2'].forEach(gk => {
+    const v = rows.filter(r => { const h = r.team && r.team.h; return r.group === gk && h && h[2] >= 3 && h[7]; }).map(r => r.team.h[7]);
+    if (v.length >= 2) GAVG[gk] = { a: v.reduce((a, x) => a + x, 0) / v.length, n: v.length };
+  });
+  rows.forEach(r => r.health = health(r));
+  return { rows, games: games.filter(inP), year };
+}
+// ── This week (Ken, 2026-11-16) ───────────────────────────────────
+// Default view. Results tab: the week's results, go games, CoachSmart matches
+// and training; Fixtures tab: every game that week. Mon-Sun; Results open on the latest weekend, Fixtures on the current week.
+const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function mondayOf(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }
+// Results open on the week with the latest weekend: Monday to Wednesday that's last
+// week (Ken 2026-11-16: on a Monday the new week has no results yet). Fixtures
+// always open on the current week.
+function defaultWeek() { const n = new Date(), m = mondayOf(n); return tab === 'results' && n.getDay() >= 1 && n.getDay() <= 3 ? addDays(m, -7) : m; }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function weekLabel(m) { const e = addDays(m, 6); return `Mon ${m.getDate()}${m.getMonth() !== e.getMonth() ? ' ' + MONL[m.getMonth()] : ''} – Sun ${e.getDate()} ${MONL[e.getMonth()]}`; }
+const MONL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function weekStepper() { return `<div class="wk"><button onclick="stepWeek(-1)" aria-label="Previous week">‹</button><span>${weekLabel(weekStart)}</span><button onclick="stepWeek(1)" aria-label="Next week">›</button></div>`; }
+function setUrl() { const u = new URL(location); u.searchParams.set('period', period); u.searchParams.set('week', ymd(weekStart)); u.searchParams.set('tab', tab); history.replaceState(null, '', u); }
+function stepWeek(n) { weekStart = addDays(weekStart, 7 * n); setUrl(); busy('Loading ' + weekLabel(weekStart) + '…'); loadWeek().finally(unbusy); }
+function setTab(t) { tab = t; weekStart = defaultWeek(); setUrl(); busy(t === 'fixtures' ? 'Loading fixtures…' : 'Loading results…'); loadWeek().finally(unbusy); }
+async function loadWeek() {
+  const sp = ensureStandings();
+  if (!weekStart) { const w = P.get('week'); weekStart = w && /^\d{4}-\d\d-\d\d$/.test(w) ? mondayOf(new Date(w + 'T12:00:00')) : defaultWeek(); }
+  if (!Dseason) {
+    state('Loading…');
+    const { data, error } = await sb.rpc('get_club_dashboard', { p_club_id: clubId, p_from: new Date(seasonYear, 0, 1).toISOString(), p_to: new Date().toISOString() });
+    if (error) return state('Something went wrong loading the dashboard. Please try again.');
+    if (data.error === 'not_allowed') return state('You’re not an officer of this club.', true);
+    if (data.error) return state('Club not found.');
+    Dseason = data;
+  }
+  D = Dseason; brand(D.club); document.title = D.club.club_name + ' · Club dashboard';
+  if (!model || model.forWeek !== true) { const p0 = period; period = 'season'; model = build(D, seasonYear); period = p0; model.forWeek = true; }
+  const { data, error } = await sb.rpc('get_club_week', { p_club_id: clubId, p_from: weekStart.toISOString(), p_to: addDays(weekStart, 14).toISOString() });
+  if (error || data.error) return state('Something went wrong loading the week. Please try again.');
+  W = data; await sp; route();
+}
+function evCode(e) { const cs = e.row.codes; return e.code === 2 ? cs[0] : e.code === 3 ? cs[cs.length - 1] : null; }
+function weekGame(g) { return { d: new Date(g[0]), code: CODE[g[1]], level: g[2], age: g[3], comp: g[4], opp: g[5], us: g[6], them: g[7], up: g[8], tp: g[9], home: g[10], venue: g[11], note: g[12], b: gameBucket(g) }; }
+function weekRow(g) {
+  const rs = model.rows, same = x => +x.d === +g.d && x.opp === g.opp && x.comp === g.comp;
+  return rs.find(r => (r.hgames || []).some(same)) || rs.find(r => (r.hgames || []).some(x => x.comp === g.comp && x.code === g.code))
+    || rs.find(r => g.b && (r.bucket === g.b.key || r.bucket === 'adult' && g.b.key === 'adult-' + g.code) && r.codes.includes(g.code)) || null;
+}
+// Finals and semi-finals get a chip (Ken 2026-11-16). The round is in the game note
+// ("Final - Result on Day", "S/F Extratime", "Champ S/Final") or the competition name.
+function roundOf(g) {
+  const t = (g.note || '') + ' | ' + (g.comp || '');
+  if (/semi|s\/\s?f(inal)?\b|\bsf\b/i.test(t)) return 'Semi-final';
+  if (/\bfinal\b/i.test(t) && !/quarter|q\/f|\bqf\b/i.test(t.replace(/semi[\s-]?finals?/ig, ''))) return 'Final';
+  return null;
+}
+function rChip(g) { const r = roundOf(g); return r ? `<span class="rnd${r === 'Final' ? ' f' : ''}">${r === 'Final' ? '🏆 ' : ''}${r}</span>` : ''; }
+function gName(g) { return g.row ? g.row.name : (g.age || '') + ' ' + (CN[g.code] || '').toLowerCase(); }
+function gAge(g) { return g.row ? g.row.ageLabel : g.age; }
+function selRows(sel) {
+  if (sel.t) return model.rows.filter(r => r.key === sel.t);
+  if (sel.g) return model.rows.filter(r => r.group === sel.g && (!sel.c || r.codes.includes(sel.c)));
+  return null;
+}
+function tm(d) { return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function weekData(sel) {
+  const rs = selRows(sel), keep = rs ? new Set(rs) : null, end = addDays(weekStart, 7);
+  const games = W.games.map(weekGame).filter(g => g.code).map(g => (g.row = weekRow(g), g))
+    .filter(g => (!keep || keep.has(g.row)) && (!sel.c || g.code === sel.c));
+  const byTeam = {}; model.rows.forEach(r => { if (r.team) byTeam[r.team.team_id] = r; });
+  const events = W.events.map(e => ({ id: e[0], row: byTeam[e[1]], match: e[2] === 2, code: e[3], d: new Date(e[4]), yes: e[5], live: e[6] }))
+    .filter(e => e.row && (!keep || keep.has(e.row)) && (!sel.c || !e.code || e.code === 1 || e.code === 6 || e.code === (sel.c === 'HU' || sel.c === 'CA' ? 3 : 2)));
+  const inW = x => x.d >= weekStart && x.d < end;
+  return { games, events, wg: games.filter(inW), we: events.filter(inW), end };
+}
+const scoredG = g => g.up != null && g.tp != null;
+const goG = g => !scoredG(g) && g.b && g.b.age <= 12;
+function resultCard(g) {
+  const d = g.up - g.tp, w = d > 0 ? 'W' : d < 0 ? 'L' : 'D', col = d > 0 ? 'var(--good)' : d < 0 ? 'var(--bad)' : '#9aa1ab', cs = g.cs;
+  return `<a class="card rr" ${g.row ? `href="${href({ g: g.row.group, c: g.code, t: g.row.key })}"` : ''}><div class="rb" style="background:${col}">${w}</div><div class="ri"><div class="rt"><b>${esc(gName(g))}</b><span class="age">${esc(gAge(g) || '')}</span>${rChip(g)}</div><div class="rc"><span class="dot" style="background:var(--${g.code})"></span>${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}</div>${cs ? `<div class="rcs">${cs.yes} players${cs.live ? ' · scored live' : ''}</div>` : ''}</div><div class="rs"><div class="sc"><b>${esc(g.us)}</b><span>${esc(g.them)}</span></div><div class="op">v ${esc(g.opp)}</div><div class="mg ${d > 0 ? 'g' : d < 0 ? 'r' : 'm'}">${d > 0 ? 'Won by ' + d : d < 0 ? 'Lost by ' + -d : 'Draw'}</div></div></a>`;
+}
+function weekTabs() { return `<div class="tabs"><button class="${tab === 'results' ? 'on' : ''}" onclick="setTab('results')">Results</button><button class="${tab === 'fixtures' ? 'on' : ''}" onclick="setTab('fixtures')">Fixtures</button></div>`; }
+function weekCrumb(sel) {
+  const r = sel.t && model.rows.find(x => x.key === sel.t);
+  return r ? esc(r.name) + (r.ageLabel && !/adult|minor/i.test(r.ageLabel) ? ' · ' + r.ageLabel : '') : sel.g ? GNAME[sel.g] + (sel.c ? ' · ' + CN[sel.c] : '') : 'Whole club';
+}
+function weekView(sel) {
+  if (!W) return '';
+  return tab === 'fixtures' ? fixturesView(sel) : resultsWeekView(sel);
+}
+function resultsWeekView(sel) {
+  // Only what has already happened counts here; later games go under Coming up.
+  const wd = weekData(sel), now = new Date(), { games, end } = wd, we = wd.we.filter(e => e.d < now), wg = wd.wg.filter(g => g.d < now);
+  // Link each CoachSmart match to its league game on the same day.
+  const csMatch = we.filter(e => e.match);
+  wg.forEach(g => { const e = g.row && g.row.team && csMatch.find(x => x.row === g.row && ymd(x.d) === ymd(g.d) && !x.used); if (e) { e.used = true; g.cs = e; } });
+  const sc = wg.filter(scoredG).sort((a, b) => b.d - a.d), go = wg.filter(goG), noScore = wg.filter(g => !scoredG(g) && !goG(g) && g.d < now);
+  const x = wdl(sc), trn = we.filter(e => !e.match), mt = csMatch, ppl = mt.reduce((a, e) => a + e.yes, 0), teams = new Set(we.map(e => e.row)).size;
+  let h = `<div class="ttl">${weekCrumb(sel)}</div><div class="ttl-sub">${weekLabel(weekStart)} · league and championship results, plus what happened on CoachSmart</div>${weekTabs()}
+   <div class="hero"><div class="card kpi"><div><div class="l">Results this week</div><div class="v" style="font-size:24px"><span class="g">${x.w}</span> · <span class="m">${x.d}</span> · <span class="r">${x.l}</span></div><div class="s">won · drawn · lost${sc.length ? ` in ${sc.length} scored game${sc.length > 1 ? 's' : ''}` : ''}</div>${sc.length ? `<div class="rec">${[...sc].reverse().slice(-12).map(g => { const d = g.up - g.tp; return `<i style="background:${d > 0 ? 'var(--good)' : d < 0 ? 'var(--bad)' : '#9aa1ab'}">${d > 0 ? 'W' : d < 0 ? 'L' : 'D'}</i>`; }).join('')}</div>` : ''}</div></div>
+    ${kpi('Games played', wg.length, [sc.length + ' scored', go.length ? go.length + ' go game' + (go.length > 1 ? 's' : '') : '', noScore.length ? noScore.length + ' no score yet' : ''].filter(Boolean).join(' · '))}
+    ${kpi('Sessions on CoachSmart', we.length, `${trn.length} training · ${mt.length} match${mt.length === 1 ? '' : 'es'} · ${teams} team${teams === 1 ? '' : 's'}`)}
+    ${kpi('Players at matches', ppl.toLocaleString('en-IE'), mt.length ? `across ${mt.length} match${mt.length === 1 ? '' : 'es'} · avg ${Math.round(ppl / mt.length)}` : 'no matches on CoachSmart')}</div>`;
+  // Left: results + go games. Right: highlights, CoachSmart matches, coming up.
+  const days = {}; sc.concat(noScore).sort((a, b) => b.d - a.d).forEach(g => { const k = ymd(g.d); (days[k] = days[k] || []).push(g); });
+  let left = `<div class="sec"><h2>Results</h2><span>Latest first</span></div>`;
+  left += Object.keys(days).length ? Object.entries(days).map(([k, gs]) => `<div class="day">${DAY[gs[0].d.getDay()]} ${gs[0].d.getDate()} ${MONL[gs[0].d.getMonth()]}</div><div class="rgrid">${gs.map(g => scoredG(g) ? resultCard(g) : `<div class="card rr"><div class="rb" style="background:#c3c8d0">–</div><div class="ri"><div class="rt"><b>${esc(gName(g))}</b><span class="age">${esc(gAge(g) || '')}</span>${rChip(g)}</div><div class="rc"><span class="dot" style="background:var(--${g.code})"></span>${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}</div></div><div class="rs"><div class="op">v ${esc(g.opp)}</div><div class="mg m">No score yet</div></div></div>`).join('')}</div>`).join('') : '<div class="card"><div class="empty">No league or championship results this week.</div></div>';
+  if (go.length) left += `<div class="sec"><h2>Go games</h2><span>No scores kept (U8 to U12)</span></div><div class="card">${go.sort((a, b) => a.d - b.d).map(g => `<div class="gg"><span class="dot" style="background:var(--${g.code})"></span><b>${esc(gName(g))}</b> <span class="m">${esc(gAge(g) || '')}</span> v ${esc(g.opp)}<span class="gd">${DAY[g.d.getDay()].slice(0, 3)}</span></div>`).join('')}</div>`;
+  const hl = [];
+  const bw = sc.filter(g => g.up > g.tp).sort((a, b) => (b.up - b.tp) - (a.up - a.tp))[0];
+  if (bw) hl.push(['Biggest win', `${gName(bw)} · won by ${bw.up - bw.tp}`, `${bw.us} to ${bw.them} ${bw.home ? 'at home to' : 'away to'} ${bw.opp}`]);
+  const losses = {}; sc.filter(g => g.up < g.tp).forEach(g => { const k = gName(g) + '|' + g.code; (losses[k] = losses[k] || []).push(g); });
+  const lw = Object.values(losses).sort((a, b) => b.length - a.length || a.reduce((s, g) => s + g.up - g.tp, 0) - b.reduce((s, g) => s + g.up - g.tp, 0))[0];
+  if (lw) hl.push(['Needs a word', `${gName(lw[0])}${lw[0].row ? ' ' + CN[lw[0].code].toLowerCase() : ''} · ${lw.length > 1 ? 'lost ' + (lw.length === 2 ? 'twice' : lw.length + ' times') : 'lost by ' + (lw[0].tp - lw[0].up)}`, lw.map(g => `${g.us} v ${g.opp}`).join(' and ')]);
+  const bt = [...mt].sort((a, b) => b.yes - a.yes)[0];
+  if (bt && bt.yes) hl.push(['Best turnout', `${bt.row.name} · ${bt.yes} players`, `${DAY[bt.d.getDay()]}’s match`]);
+  const per = {}; we.forEach(e => (per[e.row.key] = per[e.row.key] || []).push(e));
+  const busy = Object.values(per).sort((a, b) => b.length - a.length)[0];
+  if (busy && busy.length > 1) { const t = busy.filter(e => !e.match).length, m = busy.length - t; hl.push(['Busiest team', `${busy[0].row.name} · ${busy.length} sessions`, [t ? t + ' training' : '', m ? m + ' match' + (m > 1 ? 'es' : '') : ''].filter(Boolean).join(' and ')]); }
+  let right = '';
+  if (hl.length) right += `<div class="card"><h3>Highlights</h3><div class="hl">${hl.map(([k, b, s]) => `<div class="hli"><div class="k">${k}</div><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join('')}</div></div>`;
+  if (mt.length) right += `<div class="card"><h3>Matches on CoachSmart<small>players who said yes</small></h3>${[...mt].sort((a, b) => b.yes - a.yes).map(e => `<a class="cm" href="${href({ g: e.row.group, t: e.row.key })}"><b>${esc(e.row.name)}</b><span class="m">${esc(e.row.ageLabel)} · ${DAY[e.d.getDay()].slice(0, 3)}</span><span class="cmv">${e.yes} player${e.yes === 1 ? '' : 's'}</span>${e.live ? '<span class="live">scored live</span>' : ''}</a>`).join('')}</div>`;
+  const from = now, up = games.filter(g => g.d >= from && g.d < addDays(from, 7) && !goG(g)).sort((a, b) => a.d - b.d);
+  if (up.length) right += `<div class="card"><h3>Coming up<small>next 7 days</small></h3>${up.slice(0, 8).map(g => `<div class="fx"><span class="d">${DAY[g.d.getDay()].slice(0, 3)} ${g.d.getDate()} · ${tm(g.d)}</span><span class="dot" style="background:var(--${g.code})"></span><span>${esc(gName(g))} v ${esc(g.opp)} <span class="m">· ${g.home ? 'home' : 'away'}</span>${rChip(g)}</span></div>`).join('')}${`<button class="more" onclick="setTab('fixtures')">See all fixtures ›</button>`}</div>`;
+  h += `<div class="side2"><div>${left}</div><div class="rcol">${right}</div></div>`;
+  // Training this week v the team's season average.
+  const tr = {}; trn.forEach(e => (tr[e.row.key] = tr[e.row.key] || []).push(e));
+  const tl = Object.values(tr).map(es => { const r = es[0].row, av = es.reduce((a, e) => a + e.yes, 0) / es.length, sa = r.team.trn_events ? r.team.trn_yes / r.team.trn_events : null; return { r, av, n: es.length, d: sa == null ? null : av - sa }; }).sort((a, b) => b.av - a.av);
+  if (tl.length) h += `<div class="sec"><h2>Training this week</h2><span>Average players per session, compared with the team’s season average</span></div><div class="twg">${tl.map(x => { const c = x.d == null ? 'm' : x.d >= 2 ? 'g' : x.d <= -2 ? 'r' : 'm'; return `<a class="tw" href="${href({ g: x.r.group, t: x.r.key })}"><div class="twn"><b>${esc(x.r.name)}</b><span>${esc(x.r.ageLabel)}</span></div><div class="twv"><b>${fmtAvg(x.av)}</b><span>avg players · ${x.n} session${x.n > 1 ? 's' : ''}</span></div>${x.d != null ? `<div class="twd ${c}">${x.d >= 2 ? '↑' : x.d <= -2 ? '↓' : '→'} ${x.d > 0 ? '+' : ''}${Math.round(x.d)} v season</div>` : ''}</a>`; }).join('')}</div>`;
+  return h;
+}
+function fixturesView(sel) {
+  const { we, wg } = weekData(sel), now = new Date();
+  const csMatch = we.filter(e => e.match);
+  wg.forEach(g => { const e = g.row && g.row.team && csMatch.find(x => x.row === g.row && ymd(x.d) === ymd(g.d) && !x.used); if (e) { e.used = true; g.cs = e; } });
+  const items = wg.map(g => ({ d: g.d, g })).concat(csMatch.filter(e => !e.used).map(e => ({ d: e.d, e }))).sort((a, b) => a.d - b.d);
+  const days = {}; items.forEach(it => { const k = ymd(it.d); (days[k] = days[k] || []).push(it); });
+  const n = wg.length, home = wg.filter(g => g.home).length, left = wg.filter(g => g.d >= now).length;
+  let h = `<div class="ttl">${weekCrumb(sel)}</div><div class="ttl-sub">${weekLabel(weekStart)} · every game this week, with CoachSmart matches</div>${weekTabs()}
+   <div class="hero">${kpi('Games this week', n, `${home} home · ${n - home} away`)}${kpi('Still to play', left, left ? 'from today on' : 'all played')}${kpi('Matches on CoachSmart', csMatch.length, csMatch.length ? csMatch.reduce((a, e) => a + e.yes, 0) + ' players said yes so far' : 'none set up')}${kpi('Go games', wg.filter(goG).length, 'U8 to U12, no scores')}</div>`;
+  if (!items.length) return h + '<div class="card" style="margin-top:16px"><div class="empty">No games this week.</div></div>';
+  h += Object.values(days).map(list => { const d0 = list[0].d; return `<div class="day">${DAY[d0.getDay()]} ${d0.getDate()} ${MONL[d0.getMonth()]}</div><div class="card fxl">${list.map(it => {
+    if (it.e) { const e = it.e; return `<a class="fxr" href="${href({ g: e.row.group, t: e.row.key })}"><span class="t">${tm(e.d)}</span><span class="dot" style="background:${evCode(e) ? 'var(--' + evCode(e) + ')' : '#c3c8d0'}"></span><span class="w"><b>${esc(e.row.name)}</b> <span class="age">${esc(e.row.ageLabel)}</span><br><span class="c">CoachSmart match${evCode(e) ? ' · ' + CN[evCode(e)].toLowerCase() : ''}</span></span><span class="r">${e.yes} player${e.yes === 1 ? '' : 's'}${e.live ? ' · <span class="live">scored live</span>' : ''}</span></a>`; }
+    const g = it.g, done = scoredG(g), dd = done ? g.up - g.tp : 0;
+    return `<a class="fxr" ${g.row ? `href="${href({ g: g.row.group, c: g.code, t: g.row.key })}"` : ''}><span class="t">${tm(g.d)}</span><span class="dot" style="background:var(--${g.code})"></span><span class="w"><b>${esc(gName(g))}</b> <span class="age">${esc(gAge(g) || '')}</span> v ${esc(g.opp)}${rChip(g)}<br><span class="c">${esc(shortComp(g.comp))} · ${g.home ? 'home' : 'away'}${g.venue ? ' · ' + esc(g.venue) : ''}${goG(g) ? ' · go game' : ''}</span></span><span class="r">${done ? `<b class="${dd > 0 ? 'g' : dd < 0 ? 'r' : ''}">${esc(g.us)} : ${esc(g.them)}</b>` : g.cs ? `${g.cs.yes} player${g.cs.yes === 1 ? '' : 's'} said yes` : g.d < now ? '<span class="m">No score</span>' : ''}</span></a>`;
+  }).join('')}</div>`; }).join('');
+  return h;
+}
+// ── Health check (Ken, 2026-11-16) ────────────────────────────────
+// Out of 100, always for the current season so far: match attendance 40 and results 40,
+// scaled to 100 (match replies dropped 2026-11-17). Missing parts are left out and the rest scaled up (results-only
+// sides score on results; CCC1 U8-U12 have no results part).
+const lin = (x, lo, hi, pts) => Math.max(0, Math.min(pts, (x - lo) / (hi - lo) * pts));
+const clamp1 = x => Math.max(-1, Math.min(1, x));
+function gpts(g) { const d = divOf(g.comp), r = g.up > g.tp ? 1 : g.up < g.tp ? 0 : .5; return Math.max(0, Math.min(1.2, r + (d ? Math.max(-.15, Math.min(.15, .05 * (3 - d))) : 0))); }
+function health(r) {
+  if (period === 'last') return null;
+  const parts = [], trend = [], H6 = Date.now() - 42 * 864e5, t = r.team, h = t && t.h;
+  // Teams on CoachSmart with only a handful of players, or no event in 3 months, aren't scored.
+  if (t && (t.players < 10 || !t.last_event || new Date(t.last_event) < Date.now() - 91 * 864e5)) return null;
+  // Match attendance only (Ken: training replies aren't reliable, many parents don't press the button).
+  if (h && h[2] >= 3) {
+    // Ken 2026-11-17: turnout is the attendance score (70%+ of invited players saying
+    // yes is full marks, 30% or less is zero). The 6-week trend only nudges it
+    // (±5, and only when turnout moved by more than 3 points), so steady teams aren't marked down.
+    const sp = h[0] / h[1];
+    parts.push({ k: 'Match turnout', got: lin(sp, .3, .7, 20), max: 20, note: `${Math.round(sp * 100)}% of players invited to matches said yes this season` });
+    // Numbers (Ken 2026-11-17): how many players turn up, against the group's best.
+    const ga = GAVG[r.group], av = h[7];
+    if (ga && av) parts.push({ k: 'Numbers playing', got: lin(av / ga.a, .6, 1.1, 20), max: 20, note: `${av} players at half or more of their matches; the ${GNAME[r.group]} average is ${Math.round(ga.a)}` });
+    const py = h[0] - h[3], pi = h[1] - h[4], pn = h[2] - h[5];
+    if (h[5] >= 2 && pn >= 3 && pi) {
+      const d = (h[3] / h[4] - py / pi) * 100, adj = Math.abs(d) <= 3 ? 0 : Math.round(Math.max(-5, Math.min(5, d / 2)));
+      parts.push({ k: 'Turnout trend', got: adj, max: 0, note: `last 6 weeks ${Math.round(h[3] / h[4] * 100)}% v ${Math.round(py / pi * 100)}% before${adj ? '' : ' · about the same'}` });
+      trend.push(clamp1(d / 8));
+    }
+    // Match replies dropped (Ken 2026-11-17): a reply that's mostly 'no' isn't a good sign.
+  }
+  const sc = (r.hgames || []).filter(g => g.up != null && g.tp != null).sort((a, b) => b.d - a.d);
+  if ((r.age == null || r.age >= 13) && sc.length >= 3) { // CCC1 (U8-U12): no scores kept, attendance only (Ken 2026-11-17)
+    const rate = sc.reduce((a, g) => a + gpts(g), 0) / sc.length, w = wdl(sc);
+    parts.push({ k: 'Wins (by division)', got: Math.min(20, rate * 20), max: 20, note: `${w.w}-${w.d}-${w.l} this season, wins in higher divisions count more` });
+    const m = sc.reduce((a, g) => a + g.up - g.tp, 0) / sc.length;
+    parts.push({ k: 'Score difference', got: lin(m, -8, 8, 10), max: 10, note: `${m >= 0 ? '+' : ''}${m.toFixed(1)} points a game on average` });
+    let rec = sc.filter(g => g.d >= H6), old = sc.filter(g => g.d < H6);
+    if (rec.length < 2 || old.length < 3) { rec = sc.slice(0, 5); old = sc.slice(5); }
+    if (old.length >= 3) {
+      const rr = rec.reduce((a, g) => a + gpts(g), 0) / rec.length, orr = old.reduce((a, g) => a + gpts(g), 0) / old.length, d = rr - orr;
+      parts.push({ k: 'Recent form', got: lin(d, -.5, .5, 10), max: 10, note: `last ${rec.length} game${rec.length > 1 ? 's' : ''} ${Math.round(rr * 100)}% v ${Math.round(orr * 100)}% before` });
+      trend.push(clamp1(d / .3));
+    } else parts.push({ k: 'Recent form', got: 5, max: 10, note: 'not enough games to compare' });
+    // Regraded: best league division in autumn v spring, per code.
+    let reg = 0; const notes = [];
+    for (const c of CODES) {
+      const best = f => { const ds = sc.filter(g => g.code === c && compKind(g.comp) === 'League' && f(g)).map(g => divOf(g.comp)).filter(d => d != null); return ds.length ? Math.min(...ds) : null; };
+      const sp = best(g => g.d.getMonth() < 6), au = best(g => g.d.getMonth() >= 6);
+      if (sp != null && au != null && sp !== au) { reg += au < sp ? 3 : -3; notes.push(`${CN[c]} ${au < sp ? 'up' : 'down'} to Div ${au}`); }
+    }
+    if (reg) { reg = Math.max(-3, Math.min(3, reg)); parts.push({ k: 'Regraded', got: reg, max: 0, note: notes.join(', ') }); trend.push(reg > 0 ? .5 : -.5); }
+  }
+  const max = parts.reduce((a, p) => a + p.max, 0);
+  if (max < 40) return null;
+  // Parts with max 0 (turnout trend, regrading) add or take points straight off the score out of 100.
+  const got = parts.filter(p => p.max).reduce((a, p) => a + p.got, 0), adj = parts.filter(p => !p.max).reduce((a, p) => a + p.got, 0);
+  const score = Math.max(0, Math.min(100, Math.round(got / max * 100 + adj)));
+  const tr = trend.length ? trend.reduce((a, x) => a + x, 0) / trend.length : 0;
+  return { score, band: score >= 65 ? 'g' : score >= 45 ? 'a' : 'r', trend: !trend.length ? 0 : tr >= .3 ? 1 : tr <= -.3 ? -1 : 0, hasTrend: trend.length > 0, parts };
+}
+let GAVG = {};
+const BAND = { g: 'Healthy', a: 'Keep an eye', r: 'Needs help' };
+// Ken 2026-11-17: say what the arrow means (last 6 weeks v earlier, turnout and results).
+const ARROW = { 1: ['↑', 'better in the last 6 weeks'], 0: ['→', 'same as earlier in the season'], '-1': ['↓', 'worse in the last 6 weeks'] };
+function hBadge(hh) {
+  if (!hh) return '';
+  const a = ARROW[hh.trend];
+  return `<div class="hc ${hh.band}"><span class="hn">${hh.score}</span><span class="hl"><b>Health check · ${BAND[hh.band]}</b><span>${hh.hasTrend ? a[0] + ' ' + a[1] : 'season so far'}</span></span></div>`;
+}
+function hAvg(rows) {
+  const hs = rows.map(r => r.health).filter(Boolean); if (!hs.length) return null;
+  const score = Math.round(hs.reduce((a, x) => a + x.score, 0) / hs.length);
+  return { score, band: score >= 65 ? 'g' : score >= 45 ? 'a' : 'r', red: hs.filter(x => x.band === 'r').length, down: hs.filter(x => x.trend < 0).length, up: hs.filter(x => x.trend > 0).length, n: hs.length };
+}
+function hGroupBadge(rows) {
+  const x = hAvg(rows); if (!x) return '';
+  const bits = []; if (x.red) bits.push(x.red + ' need' + (x.red > 1 ? '' : 's') + ' help'); if (x.down) bits.push(x.down + ' getting worse'); if (x.up) bits.push(x.up + ' getting better');
+  return `<div class="hc ${x.band}"><span class="hn">${x.score}</span><span class="hl"><b>Health check · ${BAND[x.band]}</b><span>${bits.join(' · ') || 'average of ' + x.n + ' teams'}</span></span></div>`;
+}
+function hCard(hh) {
+  if (!hh) return '';
+  return `<div class="card" style="margin-top:14px"><h3>Health check<small>season so far · all codes · out of 100</small></h3><div class="hbig">${hBadge(hh)}<div class="hparts">${hh.parts.map(p => `<div class="hp"><span class="k">${p.k}</span>${p.max ? `<span class="hb"><i style="width:${p.got / p.max * 100}%;background:${COL[p.got / p.max >= .65 ? 'g' : p.got / p.max >= .45 ? 'a' : 'r']}"></i></span><b>${Math.round(p.got)}/${p.max}</b>` : `<span class="harr ${p.got > 0 ? 'g' : p.got < 0 ? 'r' : 'm'}">${p.got > 0 ? '↑ up' : p.got < 0 ? '↓ down' : '→ steady'}</span><b class="${p.got > 0 ? 'g' : p.got < 0 ? 'r' : 'm'}">${p.got > 0 ? '+' + p.got : p.got < 0 ? p.got : '±0'}</b>`}<span class="nt">${esc(p.note)}</span></div>`).join('')}<div style="margin-top:6px;color:var(--muted);font-size:12px">Points are scaled to make the total out of 100; ± items are added after.</div></div></div></div>`;
+}
+const pc = (y, n) => n ? Math.round(100 * y / n) : null;
+const cls = p => p == null ? 'm' : p >= 55 ? 'g' : p >= 45 ? 'a' : 'r';
+function wdl(gs) { let w = 0, d = 0, l = 0, u = 0; gs.forEach(g => { if (g.up == null || g.tp == null) u++; else if (g.up > g.tp) w++; else if (g.up < g.tp) l++; else d++; }); return { w, d, l, u, n: gs.length }; }
+function rc(code, gs) {
+  const r = wdl(gs.filter(g => g.code === code)); if (!r.n) return '';
+  const scored = r.w + r.d + r.l;
+  return `<span class="rc"><span class="dot" style="background:var(--${code})"></span>${CN[code]} ${scored ? `<b>${r.w}-${r.d}-${r.l}</b>` : `<span class="n">${r.n} game${r.n > 1 ? 's' : ''}, no scores</span>`}</span>`;
+}
+function months() {
+  const [f, t] = range(), out = [];
+  const d = new Date(f.getFullYear(), f.getMonth(), 1);
+  while (d < t) { out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); d.setMonth(d.getMonth() + 1); }
+  return out;
+}
+function spark(team, w = 140, h = 34) {
+  if (!team || !(team.trn_inv + team.m_inv)) return '<span class="m" style="font-size:13px">No sessions</span>';
+  const ms = months(); if (ms.length < 2) return '';
+  const vals = ms.map(k => { const v = team.months[k]; return v && v[1] ? v[0] / v[1] * 100 : null; });
+  const step = w / (ms.length - 1); let p = '', on = false, last = null;
+  vals.forEach((v, i) => { if (v == null) { on = false; return; } const x = i * step, y = h - 4 - v / 100 * (h - 8); p += (on ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); on = true; last = [x, y]; });
+  const mid = h - 4 - .5 * (h - 8);
+  return `<svg class="spark" width="${w}" height="${h}"><line x1="0" x2="${w}" y1="${mid}" y2="${mid}" stroke="#3a404c" stroke-dasharray="3 3"/><path d="${p}" fill="none" stroke="var(--club)" stroke-width="2.2" stroke-linejoin="round"/>${last ? `<circle cx="${last[0]}" cy="${last[1]}" r="3.2" fill="var(--club)"/>` : ''}</svg>`;
+}
+function periodLabel() { return { week: 'this week', season: seasonYear + ' season', '3m': 'last 3 months', '4w': 'last 4 weeks', last: (seasonYear - 1) + ' season' }[period]; }
+function pct(p) { return p == null ? '<span class="pct m">–</span>' : `<span class="pct ${cls(p)}">${p}%</span>`; }
+function listText(a) { return a.length <= 2 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+function divOf(comp) { const m = /\b(?:div(?:ision)?\.?|afl|ahl)\s*(\d+)/i.exec(comp); return m ? Number(m[1]) : null; }
+// Sides (Ken 2026-11-16): a team plays a run of competitions one after another
+// (e.g. spring grading league, then the main league, then a cup), so a side is
+// a chain of competitions, not one per division. Main competitions (leagues,
+// grading groups, phases) that run at the same time are different sides; each
+// later phase is matched to the sides by rank (best division first). Cups,
+// shields and championships join the side whose division at that time is nearest.
+function tierOf(comp) {
+  let m = /\b(?:div(?:ision)?\.?|afl|ahl)\s*(\d+)/i.exec(comp); if (m) return { t: Number(m[1]), label: 'Div ' + m[1] };
+  m = /\bleague\s*(\d{1,2})(?!\d)/i.exec(comp); if (m) return { t: Number(m[1]), label: 'Div ' + m[1] };
+  m = /grading.*group\s*(\d+)/i.exec(comp); if (m) return { t: Number(m[1]), label: 'Grading group ' + m[1] };
+  m = /\b(?:football|hurling|camogie)\s+([A-H])\b/i.exec(comp); if (m) return { t: m[1].toUpperCase().charCodeAt(0) - 64, label: 'Grade ' + m[1].toUpperCase() };
+  m = /\b(?:minor|under\s*\d+|u-?\d+)\s+([A-H])\d?\b/i.exec(comp); if (m) return { t: m[1].toUpperCase().charCodeAt(0) - 64, label: 'Grade ' + m[1].toUpperCase() };
+  m = /\bsenior\s*(\d*)/i.exec(comp); if (m) return { t: Number(m[1] || 1), label: 'Senior' + (m[1] ? ' ' + m[1] : ''), grade: true };
+  m = /\binter(?:mediate)?\s*(\d*)/i.exec(comp); if (m) return { t: 2 + Number(m[1] || 1), label: 'Intermediate' + (m[1] ? ' ' + m[1] : ''), grade: true };
+  m = /\bjunior\s*(\d+|[A-Z]\b)/i.exec(comp); if (m) { const v = /\d/.test(m[1]) ? Number(m[1]) : m[1].toUpperCase().charCodeAt(0) - 64; return { t: 4 + v, label: 'Junior ' + m[1].toUpperCase(), grade: true }; }
+  return null;
+}
+const isMain = comp => !/cup|shield|champ|knock|final|f[ée]ile|plate|play.?off/i.test(comp);
+const KO = /knock|final|play.?off|semi|quarter/i;
+const stemOf = n => n.replace(/\s+(knock|final|play.?off|semi|quarter).*$/i, '').replace(/\s+(group|gp\.?|g)\s*\w+$/i, '').trim();
+// Ken 2026-11-16: championships and cups are a phase too (each side enters one),
+// matched to the sides by rank; knockout-only competitions join the nearest side.
+function buildSides(gs) {
+  const out = [];
+  for (const code of CODES) {
+    const cg = gs.filter(g => g.code === code); if (!cg.length) continue;
+    const comps = {};
+    cg.forEach(g => { const c = comps[g.comp] = comps[g.comp] || { name: g.comp, games: [], tier: tierOf(g.comp), first: g.d, last: g.d }; c.games.push(g); if (g.d < c.first) c.first = g.d; if (g.d > c.last) c.last = g.d; });
+    const all = Object.values(comps), tiered = all.filter(c => c.tier);
+    const main = tiered.filter(c => isMain(c.name)), mainNames = new Set(main.map(c => c.name));
+    const fams = {}, join = [];
+    tiered.filter(c => !main.includes(c)).forEach(c => {
+      const st = stemOf(c.name);
+      if (mainNames.has(st)) { join.push([c, st]); return; }
+      // Same kind and grade = same competition (group stage and its knockout).
+      const fk = compKind(c.name) + '|' + c.tier.label;
+      const f = fams[fk] = fams[fk] || { name: st, comps: [], tier: null, first: c.first, last: c.last, ko: true };
+      f.comps.push(c); if (!KO.test(c.name)) { f.ko = false; f.tier = f.tier || c.tier; }
+      if (c.first < f.first) f.first = c.first; if (c.last > f.last) f.last = c.last;
+    });
+    Object.values(fams).forEach(f => { f.tier = f.tier || f.comps[0].tier; if (/championship|cup/i.test(f.name) && !f.comps.some(c => KO.test(c.name))) f.ko = false; });
+    // A family with no knockout word at all (e.g. "Under 21 B Football Championship") is a phase entry too.
+    Object.values(fams).forEach(f => { if (f.comps.every(c => !KO.test(c.name))) f.ko = false; });
+    const phase = list => { const ps = []; [...list].sort((a, b) => a.first - b.first).forEach(c => { const p = ps[ps.length - 1]; if (p && (c.first <= Math.min(...p.map(x => +x.last)) || c.first - p[0].first <= 21 * 864e5)) p.push(c); else ps.push([c]); }); return ps; };
+    const pm = phase(main), pf = phase(Object.values(fams).filter(f => !f.ko));
+    const n = Math.max(0, ...pm.map(p => p.length), ...pf.map(p => p.length)), sides = [...Array(n)].map(() => ({ code, comps: {}, steps: [] }));
+    const put = (sd, c) => { (c.comps || [c]).forEach(x => sd.comps[x.name] = x.games); sd.steps.push(c); };
+    pm.forEach(p => p.sort((a, b) => a.tier.t - b.tier.t).forEach((c, i) => put(sides[Math.min(i, n - 1)], c)));
+    pf.forEach(p => p.sort((a, b) => a.tier.t - b.tier.t).forEach((f, i) => put(sides[Math.min(i, n - 1)], f)));
+    join.forEach(([c, st]) => { const sd = sides.find(x => st in x.comps); if (sd) sd.comps[c.name] = c.games; });
+    const other = { code, div: null, comps: {} };
+    all.filter(c => !c.tier).forEach(c => other.comps[c.name] = c.games);
+    Object.values(fams).filter(f => f.ko).forEach(f => {
+      if (!n) { f.comps.forEach(c => other.comps[c.name] = c.games); return; }
+      const at = sd => { const st = [...sd.steps].sort((a, b) => a.first - b.first), before = st.filter(x => x.first <= f.first); return (before.length ? before[before.length - 1] : st[0]).tier.t; };
+      const best = sides.map((sd, i) => ({ sd, i, d: Math.abs(at(sd) - f.tier.t) })).sort((a, b) => a.d - b.d || a.i - b.i)[0].sd;
+      f.comps.forEach(c => best.comps[c.name] = c.games);
+    });
+    sides.forEach((sd, i) => {
+      const st = [...sd.steps].sort((a, b) => a.first - b.first), mains = st.filter(x => !x.comps), lab = (mains.length ? mains : st);
+      let pick = lab.filter(x => !/grading/i.test(x.tier.label)); if (!pick.length) pick = st.filter(x => !/grading/i.test(x.tier.label)); if (!pick.length) pick = lab;
+      const last = pick[pick.length - 1];
+      sd.div = last.tier.t; sd.label = last.tier.label; sd.idx = i;
+      const gr = st.filter(x => x.tier.grade); sd.grade = gr.length ? gr[gr.length - 1].tier.label : null;
+      const o = {}; Object.keys(sd.comps).sort((a, b) => sd.comps[a][0].d - sd.comps[b][0].d).forEach(k => o[k] = sd.comps[k]); sd.comps = o;
+      out.push(sd);
+    });
+    if (Object.keys(other.comps).length) out.push(other);
+  }
+  return out;
+}
+function compKind(comp) { return /shield/i.test(comp) ? 'Shield' : /champ/i.test(comp) ? 'Championship' : /league|afl|ahl/i.test(comp) ? 'League' : /cup/i.test(comp) ? 'Cup' : /féile|feile/i.test(comp) ? 'Féile' : 'Other'; }
+function shortComp(comp) {
+  if (/grading/i.test(comp)) { const t = tierOf(comp); return 'Grading league' + (t ? ' ' + t.label.replace('Grading group', 'group') : ''); }
+  const ph = /phase\s+(one|two|three|1|2|3)\b.*?(g(?:roup|p)\.?\s*\w+)?$/i.exec(comp);
+  const gl = /\b(?:football|hurling)\s+([A-H])\s+phase/i.exec(comp);
+  if (ph) return (gl ? 'Grade ' + gl[1].toUpperCase() + ' · ' : '') + 'Phase ' + ph[1].toLowerCase() + (ph[2] ? ' · ' + ph[2].replace(/^gp\.?\s*/i, 'Group ') : '');
+  if (/knock/i.test(comp)) return shortComp(comp.replace(/knock.*$/i, '')) + ' knockout';
+  const k = compKind(comp), d = divOf(comp);
+  if ((k === 'Championship' || k === 'Shield') && !d) { const t = tierOf(comp); if (t) return k + ' · ' + t.label; }
+  if (k === 'Cup' && d) { const gp = /group\s+(\w+)\s*$/i.exec(comp); return 'Cup Div ' + d + (gp ? ' · Group ' + gp[1] : ''); }
+  return k === 'Other' || k === 'Cup' || k === 'Féile' ? comp.replace(/^(LGFA|Camogie)\s+/i, '') : k + (d ? ' Div ' + d : ''); }
+
+// ── Officers (SuperUser only) ─────────────────────────────────────
+async function officers() {
+  $('sheet').classList.add('on');
+  $('sbox').innerHTML = '<h2>Club officers <button onclick="closeSheet()">×</button></h2><div class="empty">Loading…</div>';
+  const { data, error } = await sb.rpc('club_officer_list', { p_club_id: clubId });
+  const list = error || data.error ? null : data.officers, inv = (!error && data.invites) || [];
+  window._inv = inv; window._off = list || [];
+  $('sbox').innerHTML = `<h2>${esc(D.club.club_name)} officers <button onclick="closeSheet()">×</button></h2>
+   <p style="color:var(--muted);font-size:14px;margin-bottom:8px">Each officer can have the pitch planner, this dashboard, or both. Tap a tick to change it. SuperUsers can open everything for every club.</p>
+   ${list ? (list.length || inv.length ? list.map((o, i) => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)}<small>${esc(o.email)}</small><div class="ticks"><button class="tick ${o.can_pitches !== false ? 'on' : ''}" onclick="setAccess(${i}, 'p')">${o.can_pitches !== false ? '✓' : '○'} Pitch planner</button><button class="tick ${o.can_dashboard !== false ? 'on' : ''}" onclick="setAccess(${i}, 'd')">${o.can_dashboard !== false ? '✓' : '○'} Club dashboard</button></div></div><button onclick="removeOfficer('${o.user_id}')">Remove</button></div>`).join('')
+     + inv.map((o, i) => `<div class="orow"><div>${esc(o.name || o.email)} · ${esc(o.title)} <span class="pend">Invite sent${o.sent_at ? ' ' + new Date(o.sent_at).getDate() + ' ' + MON[new Date(o.sent_at).getMonth()] : ''}</span><small>${esc(o.email)} · ${[o.can_pitches !== false ? 'Pitch planner' : '', o.can_dashboard !== false ? 'Club dashboard' : ''].filter(Boolean).join(' + ')}</small></div><div class="acts"><button onclick="resendInvite(${i})">Resend</button><button onclick="cancelInvite(${i})">Cancel</button></div></div>`).join('') : '<div class="empty">No officers yet.</div>') : '<div class="empty">Couldn’t load the list.</div>'}
+   <h3 style="margin-top:18px;font-size:16px">Invite someone</h3>
+   <p style="color:var(--muted);font-size:13px;margin:4px 0 0">They get an email from the club with a link to set up their account. They don’t need the app. If they already use CoachSmart they get access straight away.</p>
+   <div class="oadd"><input id="oFirst" placeholder="First name"><input id="oLast" placeholder="Last name"><input id="oEmail" type="email" placeholder="Email"><input id="oTitle" placeholder="Title" value="Chairperson">
+   <label class="ochk"><input type="checkbox" id="oPitches" checked> Pitch planner</label><label class="ochk"><input type="checkbox" id="oDash" checked> Club dashboard</label>
+   <button class="btn" id="oGo" onclick="addOfficer()">Send invite</button><div class="msg" id="oMsg"></div></div>`;
+}
+function closeSheet() { $('sheet').classList.remove('on'); }
+$('sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+async function sendInvite(b) {
+  $('oGo').disabled = true; $('oMsg').classList.remove('ok'); $('oMsg').textContent = 'Sending…';
+  const r = await fn({ action: 'invite', club_id: clubId, ...b });
+  $('oGo').disabled = false;
+  if (r.error) { $('oMsg').textContent = r.error; return; }
+  await officers();
+  $('oMsg').classList.add('ok');
+  $('oMsg').textContent = r.new_account ? `Invite sent to ${b.email}.` : `${b.email} already uses CoachSmart, so they have access now. We’ve emailed them a link.`;
+}
+function addOfficer() {
+  const email = $('oEmail').value.trim();
+  if (!email) { $('oMsg').textContent = 'Add their email.'; return; }
+  const can_pitches = $('oPitches').checked, can_dashboard = $('oDash').checked;
+  if (!can_pitches && !can_dashboard) { $('oMsg').textContent = 'Tick the pitch planner, the dashboard or both.'; return; }
+  sendInvite({ email, title: $('oTitle').value, first_name: $('oFirst').value, last_name: $('oLast').value, can_pitches, can_dashboard });
+}
+async function setAccess(i, which) {
+  const o = window._off[i];
+  let p = o.can_pitches !== false, d = o.can_dashboard !== false;
+  if (which === 'p') p = !p; else d = !d;
+  const { data } = await sb.rpc('club_officer_set_access', { p_club_id: clubId, p_user_id: o.user_id, p_pitches: p, p_dashboard: d });
+  await officers();
+  if (data && data.error) $('oMsg').textContent = data.error;
+}
+function resendInvite(i) { const o = window._inv[i], n = (o.name || '').split(' '); sendInvite({ email: o.email, title: o.title, first_name: n[0] || '', last_name: n.slice(1).join(' '), can_pitches: o.can_pitches !== false, can_dashboard: o.can_dashboard !== false }); }
+async function cancelInvite(i) { await sb.rpc('club_officer_invite_cancel', { p_club_id: clubId, p_email: window._inv[i].email }); officers(); }
+async function removeOfficer(uid) { await sb.rpc('club_officer_remove', { p_club_id: clubId, p_user_id: uid }); officers(); }
+
+// ── Pieces ────────────────────────────────────────────────────────
+const CODES = ['FB', 'HU', 'LG', 'CA'];
+const GNAME = { ccc1: 'CCC1', ccc2: 'CCC2', adult: 'Adult & Minor' };
+const GDESC = { ccc1: 'Under 8 to Under 12', ccc2: 'Under 13 to Under 16', adult: 'Minor and adult teams' };
+const COL = { g: 'var(--good)', a: 'var(--warn)', r: 'var(--bad)', m: '#c3c8d0' };
+function ring(p, size = 56, label) {
+  const r = size / 2 - 5, c = 2 * Math.PI * r, v = p == null ? 0 : Math.max(0, Math.min(100, p));
+  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#eceef2" stroke-width="7"/>${p != null ? `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${COL[cls(p)]}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(v / 100 * c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>` : ''}${label ? `<text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-size="${size / 4.2}" font-weight="700" fill="#1a1d23">${p == null ? '–' : p + '%'}</text>` : ''}</svg>`;
+}
+function wbar(x) {
+  const n = x.w + x.d + x.l; if (!n) return '<span class="wbar"></span>';
+  return `<span class="wbar"><i style="width:${x.w / n * 100}%;background:var(--good)"></i><i style="width:${x.d / n * 100}%;background:#b9bec7"></i><i style="width:${x.l / n * 100}%;background:var(--bad)"></i></span>`;
+}
+// ── League positions (Ken 2026-11-16) ─────────────────────────────
+function ordinal(n) { const v = n % 100; return n + (v >= 11 && v <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'); }
+// Every competition this row played this season that has a table, latest first.
+function positions(r, code) {
+  if (!STD) return [];
+  const by = {};
+  (r.hgames || []).forEach(g => { if ((!code || g.code === code) && STD[g.comp]) (by[g.comp] = by[g.comp] || []).push(g); });
+  return Object.entries(by).map(([comp, gs]) => {
+    const rows = STD[comp], ds = new Set(gs.map(g => ymd(g.d)));
+    const mine = rows.map((x, i) => ({ x, i })).filter(o => o.x[1]);
+    const o = mine.length > 1 ? mine.find(o => (o.x[9] || []).some(d => ds.has(d))) || mine[0] : mine[0];
+    if (!o) return null;
+    return { comp, code: gs[0].code, pos: o.i + 1, n: rows.length, rows, me: o.i, last: Math.max(...gs.map(g => +g.d)) };
+  }).filter(Boolean).sort((a, b) => b.last - a.last);
+}
+// Card lines (Ken 2026-11-16): one per side (Football A/B/C, Hurling A/B...), with the
+// side's current or latest competition that has a table and where it played 3+ games.
+// Earlier competitions are on the team page.
+function sidePositions(r, code) {
+  const ps = positions(r, code);
+  const sides = buildSides((r.hgames || []).filter(g => !code || g.code === code)).filter(s => s.div != null), n = {}, out = [];
+  sides.forEach(s => { n[s.code] = (n[s.code] || 0) + 1; });
+  const seen = {};
+  sides.forEach(s => {
+    seen[s.code] = (seen[s.code] || 0) + 1;
+    const side = CN[s.code] + (n[s.code] > 1 ? ' ' + String.fromCharCode(64 + seen[s.code]) : '');
+    // Ken 2026-11-17: the side's most recent competition, league table or knockout.
+    const cands = [];
+    ps.filter(p => s.comps[p.comp] && p.rows[p.me][2] >= 3).forEach(p => {
+      // A group that ended in a final or semi-final (e.g. "Shield Final" inside a championship) shows how that went.
+      const gs = s.comps[p.comp], k = koStatus(gs), lastG = [...gs].sort((a, b) => b.d - a.d)[0];
+      cands.push(k && roundOf(lastG) ? { ...p, ...k, side, kind: 'ko' } : { ...p, side, kind: 'table' });
+    });
+    Object.entries(s.comps).forEach(([comp, gs]) => { if (!STD || !STD[comp]) { const k = koStatus(gs); if (k) cands.push({ ...k, comp, code: s.code, side, kind: 'ko', last: Math.max(...gs.map(g => +g.d)) }); } });
+    cands.sort((a, b) => b.last - a.last);
+    if (cands[0]) out.push(cands[0]);
+  });
+  return out;
+}
+// Knockout outcome from the side's games in a cup, shield or championship with no table.
+function koStatus(gs) {
+  const g = [...gs].filter(x => !/^bye$/i.test(x.opp)).sort((a, b) => b.d - a.d)[0]; if (!g) return null;
+  const rd = roundOf(g), sc = g.up != null && g.tp != null, won = sc && g.up > g.tp, lost = sc && g.up < g.tp;
+  if (!rd && !/shield|cup|champ|knock|ko\b|plate|trophy/i.test(g.comp)) return null;
+  const t = `${g.note || ''} ${g.comp}`, kind = /shield/i.test(t) ? 'Shield' : /plate/i.test(t) ? 'Plate' : /cup/i.test(t) ? 'Cup' : /champ/i.test(t) ? 'Championship' : '';
+  if (rd === 'Final') return won ? { label: (kind ? kind + ' winners' : 'Winners'), trophy: true } : lost ? { label: (kind ? kind + ' runners-up' : 'Runners-up') } : { label: 'Final played' };
+  if (rd === 'Semi-final') return won ? { label: 'In the final' } : lost ? { label: (kind ? kind + ' semi-finalists' : 'Semi-finalists') } : { label: 'Semi-final' };
+  return won ? { label: 'Still in' } : lost ? { label: 'Knocked out' } : null;
+}
+function posLines(r, code) {
+  const ps = sidePositions(r, code); if (!ps.length) return '';
+  return `<div class="posb">${ps.map(p => `<div class="posl"><span class="dot" style="background:var(--${p.code})"></span><span class="sd">${esc(p.side)}</span><span class="res">${p.kind === 'ko' ? `<b class="${p.trophy ? 'win' : ''}">${p.trophy ? '🏆 ' : ''}${esc(p.label)}</b>` : `<b>${ordinal(p.pos)}</b> <span class="of">of ${p.n}</span>`}<small>${esc(p.kind === 'ko' && divOf(p.comp) ? compKind(p.comp) === 'Other' ? 'Div ' + divOf(p.comp) : compKind(p.comp) + ' Div ' + divOf(p.comp) : shortComp(p.comp).replace(/^(Grade \w) · Phase.*$/, '$1'))}</small></span></div>`).join('')}</div>`;
+}
+function tablesCard(r, code) {
+  const ps = positions(r, code); if (!ps.length) return '';
+  return `<div class="card"><h3>League positions<small>${seasonYear} season · tap one to see the table and games</small></h3>${ps.map(p => `<button class="ltr" onclick="openComp(${cref(r, p.comp)})"><span class="dot" style="background:var(--${p.code})"></span><b>${esc(shortComp(p.comp))}</b><span class="lp">${ordinal(p.pos)} of ${p.n}</span><span class="chev">›</span></button>`).join('')}</div>`;
+}
+// A competition sheet (Ken 2026-11-16): the table with this team highlighted,
+// plus all their results and fixtures in it.
+function cref(r, comp) { CREF.push([r.key, comp]); return CREF.length - 1; }
+function openComp(i) {
+  const [key, comp] = CREF[i], r = model.rows.find(x => x.key === key); if (!r) return;
+  const gs = (r.hgames || []).filter(g => g.comp === comp && !/^bye$/i.test(g.opp)).sort((a, b) => a.d - b.d), code = gs[0] && gs[0].code;
+  const p = positions(r).find(x => x.comp === comp), now = new Date();
+  const myName = p ? p.rows[p.me][0] : null, seen = new Set(gs.map(g => +g.d));
+  const fx = (FIX[comp] || []).filter(f => (!myName || f[1] === myName) && !seen.has(+new Date(f[0])) && new Date(f[0]) >= now);
+  let h = `<h2><span>${esc(shortComp(comp))}</span><button onclick="closeSheet()">×</button></h2>
+   <div class="csub">${code ? `<span class="dot" style="background:var(--${code})"></span>` : ''}${esc(r.name)}${code ? ' · ' + CN[code].toLowerCase() : ''}${p ? ` · <b>${ordinal(p.pos)} of ${p.n}</b>` : ''}<br><small>${esc(comp)}</small></div>`;
+  if (p) h += `<div class="lt"><table><tr><th></th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Diff</th><th>Pts</th></tr>${p.rows.map((x, k) => `<tr class="${k === p.me ? 'me' : x[1] ? 'us' : ''}"><td>${k + 1}</td><td>${esc(x[0])}</td><td>${x[2]}</td><td>${x[3]}</td><td>${x[4]}</td><td>${x[5]}</td><td>${x[6] - x[7] > 0 ? '+' : ''}${x[6] - x[7]}</td><td><b>${x[8]}</b></td></tr>`).join('')}</table><div class="lnote">Worked out from the results we hold: 2 points a win, 1 a draw, then score difference.</div></div>`;
+  else h += `<div class="lnote" style="margin-bottom:6px">No table for this one (knockout or too few games).</div>`;
+  h += `<h3 class="ch">Results<small>${gs.length}</small></h3>` + (gs.length ? gs.map(g => { const has = g.up != null && g.tp != null, d = has ? g.up - g.tp : 0;
+    return `<div class="cg"><span class="d">${g.d.getDate()} ${MON[g.d.getMonth()]}</span><span class="o">v ${esc(g.opp)} <small>${g.home ? 'home' : 'away'}</small>${rChip(g)}</span><span class="s ${has ? d > 0 ? 'g' : d < 0 ? 'r' : '' : 'm'}">${has ? esc(g.us) + ' : ' + esc(g.them) : 'No score'}</span><span class="mg">${has ? d > 0 ? 'Won by ' + d : d < 0 ? 'Lost by ' + -d : 'Draw' : ''}</span></div>`; }).join('') : '<div class="empty">No games played yet.</div>');
+  h += `<h3 class="ch">Fixtures<small>${fx.length || 'none left'}</small></h3>` + (fx.length ? fx.map(f => { const d = new Date(f[0]);
+    return `<div class="cg"><span class="d">${DAY[d.getDay()].slice(0, 3)} ${d.getDate()} ${MON[d.getMonth()]}</span><span class="o">v ${esc(f[2])} <small>${f[3] ? 'home' : 'away'}${f[4] ? ' · ' + esc(f[4]) : ''}</small></span><span class="s m">${tm(d)}</span><span class="mg"></span></div>`; }).join('') : '<div class="empty">No fixtures left in this competition.</div>');
+  $('sbox').innerHTML = h; $('sheet').classList.add('on');
+}
+function codeLine(code, gs) {
+  const x = wdl(gs.filter(g => g.code === code)); if (!x.n) return '';
+  const s = x.w + x.d + x.l;
+  return `<div class="codeline"><span class="cn"><span class="dot" style="background:var(--${code})"></span>${CN[code]}</span>${s ? `${wbar(x)}<span class="rec">${x.w}-${x.d}-${x.l}</span>` : `<span class="nos">${x.n} game${x.n > 1 ? 's' : ''} · no scores</span>`}</div>`;
+}
+function form(gs) {
+  const sc = gs.filter(g => g.up != null && g.tp != null).slice(0, 5).reverse();
+  if (!sc.length) return '';
+  return `<div class="form" title="Last ${sc.length} results">${sc.map(g => { const d = g.up - g.tp; return `<i style="background:${d > 0 ? 'var(--good)' : d < 0 ? 'var(--bad)' : '#9aa1ab'}">${d > 0 ? 'W' : d < 0 ? 'L' : 'D'}</i>`; }).join('')}</div>`;
+}
+function agg(rows) {
+  const cs = rows.filter(r => r.onCS), s = k => cs.reduce((a, r) => a + r.team[k], 0);
+  return { cs, players: s('players'), trn: pc(s('trn_yes'), s('trn_inv')), mt: pc(s('m_yes'), s('m_inv')), avgT: avg(s('trn_yes'), s('trn_events')), avgM: avg(s('m_yes'), s('m_events')), trnN: s('trn_events'), mN: s('m_events'), active: cs.filter(r => r.events && r.team.players >= 5).length };
+}
+function uniqGames(rows, code) {
+  const seen = new Set(), out = [];
+  rows.forEach(r => r.games.forEach(g => { if (code && g.code !== code) return; if (!seen.has(g)) { seen.add(g); out.push(g); } }));
+  return out.sort((a, b) => b.d - a.d);
+}
+function avg(yes, n) { return n ? yes / n : null; }
+function fmtAvg(x) { return x == null ? '–' : x >= 10 ? String(Math.round(x)) : x.toFixed(1); }
+// Primary number: average players per session; the percentage is secondary.
+function attKpi(label, a, p, n, unit) {
+  const pl = unit === 'match' ? 'matches' : unit + 's';
+  return `<div class="card kpi">${ring(p, 58)}<div><div class="l">${label}${n != null ? ` · ${n} ${n === 1 ? unit : pl}` : ''}</div><div class="v">${fmtAvg(a)}</div><div class="s">avg players per ${unit}${p != null ? ` · ${p}%` : ''}</div></div></div>`;
+}
+function miniAtt(a, p, what) {
+  return `<div class="mini">${ring(p, 38)}<div><b>${fmtAvg(a)}</b><span>${what} avg${p != null ? ' · ' + p + '%' : ''}</span></div></div>`;
+}
+function kpi(label, value, sub, p) {
+  return `<div class="card kpi">${p !== undefined ? ring(p, 58, true) : ''}<div><div class="l">${label}</div>${p !== undefined ? '' : `<div class="v">${value}</div>`}<div class="s">${sub}</div></div></div>`;
+}
+function wdlKpi(x, label = 'Results') {
+  const n = x.w + x.d + x.l;
+  return `<div class="card kpi">${ring(n ? Math.round(x.w / n * 100) : null, 58, true)}<div><div class="l">${label}</div><div class="v" style="font-size:22px"><span class="g">${x.w}</span> · <span class="m">${x.d}</span> · <span class="r">${x.l}</span></div><div class="s">won · drawn · lost</div></div></div>`;
+}
+function href(o) { const p = new URLSearchParams(); Object.entries(o).forEach(([k, v]) => v && p.set(k, v)); return '#' + p.toString(); }
+
+// ── Team card ─────────────────────────────────────────────────────
+// Attendance for one code (Ken 2026-11-16): events carry a code (2 Football /
+// Ladies football, 3 Hurling / Camogie); "-" and S&C events count only in the
+// all-codes view. Teams that never tag a code keep their all-codes figures.
+function codeTeam(t, code) {
+  if (!t || !code || !t.codes || !(t.codes['2'] || t.codes['3'])) return t;
+  const v = t.codes[code === 'HU' || code === 'CA' ? '3' : '2'] || [0, 0, 0, 0, 0, 0, 0, {}];
+  return { ...t, trn_events: v[0], trn_yes: v[1], trn_inv: v[2], m_events: v[3], m_yes: v[4], m_inv: v[5], replied: v[6], months: v[7] || {}, codePlayers: v[8], byCode: CN[code] };
+}
+function teamCard(r, g, code) {
+  const t = codeTeam(r.team, code), tp = t ? pc(t.trn_yes, t.trn_inv) : null, mp = t ? pc(t.m_yes, t.m_inv) : null;
+  const codes = code ? [code] : r.codes, gs = code ? r.games.filter(x => x.code === code) : r.games;
+  const age = r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? r.ageLabel : r.ageLabel;
+  return `<a class="card tc ${r.onCS ? '' : 'off'}" href="${href({ g, c: code, t: r.key })}"><div class="top"><div class="nm">${esc(r.name)}${sub(r, t)}</div><span class="age">${age}</span></div>
+   ${hBadge(r.health)}
+   ${t && (tp != null || mp != null) ? `<div class="duo">${miniAtt(avg(t.trn_yes, t.trn_events), tp, 'training')}${miniAtt(avg(t.m_yes, t.m_events), mp, 'matches')}</div>
+` : ''}
+   ${codes.map(c => codeLine(c, gs)).join('') || '<div class="empty">No league games</div>'}
+   ${posLines(r, code)}
+   ${form(gs)}</a>`;
+}
+function sub(r, ct) {
+  if (!r.onCS) return `<small class="flag">${r.sideLabel ? esc(r.sideLabel) + ' · ' : ''}Not on CoachSmart · results only</small>`;
+  const t = r.team, n = ct && ct.byCode && ct.codePlayers != null ? `${ct.codePlayers} of ${t.players} players play ${ct.byCode.toLowerCase()}` : t.players + ' player' + (t.players === 1 ? '' : 's');
+  if (!r.events) return '<small class="flag">Not using CoachSmart yet</small>';
+  if (t.players < 5) return `<small class="flag">Only ${n} on CoachSmart</small>`;
+  const bits = [n]; if (!t.trn_events && t.m_events) bits.push('matches only'); if (t.keeper) bits.push(t.keeper + ' scored live');
+  return `<small>${bits.join(' · ')}</small>`;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────
+const forced = new Map();
+let openDefaults = {};
+function isOpen(k) { return forced.has(k) ? forced.get(k) : !!openDefaults[k]; }
+function toggle(k, ev) { ev.preventDefault(); ev.stopPropagation(); forced.set(k, !isOpen(k)); render(); }
+function sidebar(sel) {
+  openDefaults = {};
+  ['ccc1', 'ccc2', 'adult'].forEach(g => { openDefaults['G' + g] = !sel.g || sel.g === g; CODES.forEach(c => openDefaults['C' + g + c] = sel.g === g && (!sel.c || sel.c === c)); });
+  let h = `<a class="nav club ${!sel.g && !sel.t ? 'on' : ''}" href="#">${D.club.crest ? `<img src="${esc(D.club.crest)}" style="width:22px;height:22px;object-fit:contain" alt="">` : ''}Whole club</a>`;
+  for (const g of ['ccc1', 'ccc2', 'adult']) {
+    const rs = model.rows.filter(r => r.group === g); if (!rs.length) continue;
+    const gk = 'G' + g, gOpen = isOpen(gk);
+    h += `<a class="nav grp ${sel.g === g && !sel.c && !sel.t ? 'on' : ''}" href="${href({ g })}"><span class="caret" onclick="toggle('${gk}',event)">${gOpen ? '▾' : '▸'}</span>${GNAME[g]} <small>${GDESC[g].replace('Under ', 'U').replace('to Under ', 'to U')}</small></a>`;
+    if (!gOpen) continue;
+    for (const c of CODES) {
+      const ts = rs.filter(r => r.codes.includes(c)); if (!ts.length) continue;
+      const ck = 'C' + g + c, cOpen = isOpen(ck);
+      h += `<a class="nav code ${sel.g === g && sel.c === c && !sel.t ? 'on' : ''}" href="${href({ g, c })}"><span class="caret" onclick="toggle('${ck}',event)">${cOpen ? '▾' : '▸'}</span><span class="dot" style="background:var(--${c})"></span>${CN[c]}<span class="cnt">${ts.length}</span></a>`;
+      if (cOpen) ts.forEach(r => h += `<a class="nav team ${r.onCS ? '' : 'off'} ${sel.t === r.key && sel.c === c ? 'on' : ''}" href="${href({ g, c, t: r.key })}">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''}</a>`);
+    }
+  }
+  return h;
+}
+
+// ── Shell ─────────────────────────────────────────────────────────
+function shell(sel, body) {
+  const c = D.club;
+  return `<div class="band">${c.crest ? `<img class="crest" src="${esc(c.crest)}" alt="">` : ''}<div><h1>${esc(c.club_name)}</h1><div class="sub">Club dashboard · ${period === 'week' ? (tab === 'fixtures' ? 'fixtures' : 'the week') : periodLabel()}</div>${period === 'week' ? weekStepper() : ''}</div>
+   <div class="right">${chips()}<div class="links"><a href="/club/?club=${clubId}" style="text-decoration:underline;opacity:.9">Club home</a>${newsOn ? newsLink() : ''}${spendOn ? spendLink() : ''}${isSuper ? '<button onclick="officers()">Club officers</button>' : ''}<button onclick="signOut()">Sign out</button><span>Powered by CoachSmart</span></div></div></div>
+   <div class="layout"><nav class="side" id="side">${sidebar(sel)}</nav><main class="main"><button class="menu-btn" onclick="$('side').classList.toggle('open')">Teams and groups<span>▾</span></button>${body}</main></div>`;
+}
+
+// ── Views ─────────────────────────────────────────────────────────
+function needsLook(rows) {
+  const cs = rows.filter(r => r.onCS), notes = [];
+  const hl = rows.filter(r => r.health && (r.health.band === 'r' || r.health.trend < 0)).sort((a, b) => a.health.score - b.health.score);
+  if (hl.length) notes.push('Health check: ' + listText(hl.map(r => `${r.name} ${r.health.score}${r.health.trend < 0 ? ' ↓' : ''}`)));
+  const idle = cs.filter(r => !r.events || r.team.players < 5).map(r => r.name);
+  if (idle.length) notes.push(listText(idle) + (idle.length > 1 ? ' are' : ' is') + ' not using CoachSmart');
+  cs.filter(r => r.team.trn_events >= 8).forEach(r => { const p = pc(r.team.trn_yes, r.team.trn_inv); if (p < 40) notes.push(`${r.name} training: ${fmtAvg(avg(r.team.trn_yes, r.team.trn_events))} of ${r.team.players} players on average (${p}%)`); });
+  const off = rows.filter(r => !r.onCS).length;
+  if (off) notes.push(`${off} age group${off > 1 ? 's and sides are' : ' or side is'} not on CoachSmart`);
+  return notes.length ? `<div class="att"><b>Needs a look:</b>${notes.map(n => `<span>${esc(n)}</span>`).join('')}</div>` : '';
+}
+function kpiRow(rows, games) {
+  const a = agg(rows);
+  return `<div class="kpis k6">${kpi('Teams on CoachSmart', a.active, `of ${rows.length} age groups and sides`)}${kpi('Players', a.players.toLocaleString('en-IE'), 'on team rosters')}
+   ${kpi('Sessions held', (a.trnN + a.mN).toLocaleString('en-IE'), `${a.trnN} training · ${a.mN} matches`)}${attKpi('Training attendance', a.avgT, a.trn, null, 'session')}
+   ${attKpi('Match attendance', a.avgM, a.mt, null, 'match')}${wdlKpi(wdl(games))}</div>`;
+}
+function groupCard(g) {
+  const rs = model.rows.filter(r => r.group === g), a = agg(rs), gs = uniqGames(rs);
+  return `<a class="card gc" href="${href({ g })}"><div class="hd"><b>${GNAME[g]}</b><span>${GDESC[g]}</span><span style="margin-left:auto">${rs.length} teams ›</span></div>
+   ${hGroupBadge(rs)}
+   <div class="duo">${miniAtt(a.avgT, a.trn, 'training')}${miniAtt(a.avgM, a.mt, 'matches')}</div>
+   ${CODES.map(c => codeLine(c, gs)).join('')}</a>`;
+}
+function clubView(sel) {
+  const rows = model.rows;
+  let h = `<div class="ttl">Whole club</div><div class="ttl-sub">${rows.length} age groups and sides · ${periodLabel()}</div>${kpiRow(rows, model.games)}${needsLook(rows)}
+   <div class="sec"><h2>Groups</h2><span>Tap a group to see its codes and teams</span></div><div class="grid big">${['ccc1', 'ccc2', 'adult'].filter(g => rows.some(r => r.group === g)).map(groupCard).join('')}</div>`;
+  for (const g of ['ccc1', 'ccc2', 'adult']) {
+    const rs = rows.filter(r => r.group === g); if (!rs.length) continue;
+    h += `<div class="sec"><h2>${GNAME[g]}</h2><span>${GDESC[g]}</span></div><div class="grid">${rs.map(r => teamCard(r, g)).join('')}</div>`;
+  }
+  return h + legend();
+}
+function legend() { return `<div class="legend"><span><span class="dot" style="background:var(--good)"></span>55%+</span><span><span class="dot" style="background:var(--warn)"></span>45–54%</span><span><span class="dot" style="background:var(--bad)"></span>under 45%</span><span>Attendance counts players only (not coaches or FLOs): the big number is the average number of players per session, the % is players who said yes ÷ players invited. Results from the league fixtures.</span><span><b>Health check</b> (out of 100, season so far): match turnout 25 (70%+ of invited players saying yes is full marks; the last 6 weeks v before adds or takes up to 5), numbers playing 25 in CCC1 and CCC2 (players at half or more of their matches, against the average for CCC1 or CCC2, as numbers drop at secondary school), results 50 (wins weighted by division, score difference, recent form, regrading). Replies on CoachSmart aren’t scored. Training isn’t counted, and teams with under 10 players or no event in 3 months aren’t scored. 65+ healthy, 45–64 keep an eye, under 45 needs help. U8 to U12 (CCC1) are scored on match turnout only, as most of their games have no score kept. The arrow compares the last 6 weeks with earlier in the season.</span></div>`; }
+function codeCard(g, c, rs) {
+  const gs = uniqGames(rs, c), x = wdl(gs), n = x.w + x.d + x.l;
+  return `<a class="card gc" href="${href({ g, c })}"><div class="hd"><span class="dot" style="background:var(--${c});width:12px;height:12px"></span><b>${CN[c]}</b><span style="margin-left:auto">${rs.length} teams ›</span></div>
+   ${hGroupBadge(rs)}
+   <div style="display:flex;align-items:center;gap:14px">${ring(n ? Math.round(x.w / n * 100) : null, 64, true)}<div><div style="font-size:20px;font-weight:700"><span class="g">${x.w}</span> · <span class="m">${x.d}</span> · <span class="r">${x.l}</span></div><div class="s" style="color:var(--muted);font-size:12.5px">${n ? 'won · drawn · lost' : x.n + ' games, no scores kept'}</div></div></div>
+   ${form(gs)}</a>`;
+}
+function groupView(sel) {
+  const g = sel.g, rs = model.rows.filter(r => r.group === g), gs = uniqGames(rs);
+  return `<div class="crumbs"><a href="#">Whole club</a> ›</div><div class="ttl">${GNAME[g]}</div><div class="ttl-sub">${GDESC[g]} · ${periodLabel()}</div>${kpiRow(rs, gs)}${needsLook(rs)}
+   <div class="sec"><h2>Codes</h2></div><div class="grid">${CODES.filter(c => rs.some(r => r.codes.includes(c))).map(c => codeCard(g, c, rs.filter(r => r.codes.includes(c)))).join('')}</div>
+   <div class="sec"><h2>Teams</h2><span>${rs.length}</span></div><div class="grid">${rs.map(r => teamCard(r, g)).join('')}</div>` + legend();
+}
+function codeView(sel) {
+  const { g, c } = sel, rs = model.rows.filter(r => r.group === g && r.codes.includes(c)), gs = uniqGames(rs, c), x = wdl(gs);
+  const sc = gs.filter(q => q.up != null && q.tp != null), f = sc.reduce((a, q) => a + q.up, 0), ag = sc.reduce((a, q) => a + q.tp, 0);
+  const a = agg(rs.map(r => ({ ...r, team: codeTeam(r.team, c) })));
+  return `<div class="crumbs"><a href="#">Whole club</a> › <a href="${href({ g })}">${GNAME[g]}</a> ›</div><div class="ttl"><span class="dot" style="background:var(--${c});width:14px;height:14px;margin-right:8px"></span>${CN[c]} · ${GNAME[g]}</div><div class="ttl-sub">${rs.length} teams · ${periodLabel()}</div>
+   <div class="kpis">${wdlKpi(x)}${kpi('Games played', x.n, x.u ? x.u + ' with no score kept' : 'all scored')}${kpi('Average score', sc.length ? (f / sc.length).toFixed(1) + ' – ' + (ag / sc.length).toFixed(1) : '–', 'points for – against')}${attKpi('Training attendance', a.avgT, a.trn, null, 'session')}${attKpi('Match attendance', a.avgM, a.mt, null, 'match')}</div>
+   <div class="sec"><h2>Teams</h2></div><div class="grid">${rs.map(r => teamCard(r, g, c)).join('')}</div>
+   <div class="card" style="margin-top:14px"><h3>Recent results<small>${CN[c]}</small></h3>${recent(gs, true)}</div>` + legend();
+}
+function teamView(sel) {
+  const r = model.rows.find(x => x.key === sel.t), c = sel.c && r.codes.includes(sel.c) ? sel.c : null;
+  const t = codeTeam(r.team, c), gs = c ? r.games.filter(x => x.code === c) : r.games, res = wdl(gs);
+  const sides = buildSides(gs);
+  const letters = {}; sides.forEach(s => { if (s.div == null) return; letters[s.code] = (letters[s.code] || 0) + 1; s.letter = String.fromCharCode(64 + letters[s.code]); });
+  const multi = q => sides.filter(s => s.code === q && s.div != null).length > 1;
+  const codes = (c ? [c] : r.codes).map((q, i) => i ? CN[q].toLowerCase() : CN[q]).join(' and ');
+  let h = `<div class="crumbs"><a href="#">Whole club</a> › <a href="${href({ g: r.group })}">${GNAME[r.group]}</a> ›${c ? ` <a href="${href({ g: r.group, c })}">${CN[c]}</a> ›` : ''}</div>
+   <div class="ttl">${esc(r.name)}${r.ageLabel !== 'Adult' && !/minor/i.test(r.name) ? ' · ' + r.ageLabel : ''}</div><div class="ttl-sub">${[codes, t ? t.players + ' players' : 'Not on CoachSmart', sides.length ? sides.length + ' side' + (sides.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · ')}</div>${r.codes.length > 1 ? `<div class="tabs">${[null, ...r.codes].map(q => `<a class="${(c || null) === q ? 'on' : ''}" href="${href({ g: r.group, c: q || undefined, t: r.key })}">${q ? `<span class="dot" style="background:var(--${q})"></span>${CN[q]}` : 'All codes'}</a>`).join('')}</div>` : ''}`;
+  h += hCard(r.health);
+  if (t) {
+    const tp = pc(t.trn_yes, t.trn_inv), mp = pc(t.m_yes, t.m_inv), rr = pc(t.replied, t.trn_inv + t.m_inv);
+    h += `<div class="kpis">${attKpi('Training attendance', avg(t.trn_yes, t.trn_events), tp, t.trn_events, 'session')}${attKpi('Match attendance', avg(t.m_yes, t.m_events), mp, t.m_events, 'match')}<div class="card kpi">${ring(t.byCode && t.codePlayers != null ? pc(t.codePlayers, t.players) : rr, 58)}<div><div class="l">${t.byCode && t.codePlayers != null ? `Play ${esc(t.byCode.toLowerCase())}</div><div class="v">${t.codePlayers}</div><div class="s">of ${t.players} · at 1 in 5+ sessions</div>` : `Squad size</div><div class="v">${t.players}</div><div class="s">players${rr != null ? ` · ${rr}% reply` : ''}</div>`}</div></div>${wdlKpi(res)}${kpi('Scored live', t.keeper, 'matches with score keeper')}</div>`;
+    const ms = months().slice(-12);
+    const mv = ms.map(k => { const v = t.months[k]; return v && v[2] ? { a: v[0] / v[2], p: v[1] ? Math.round(v[0] / v[1] * 100) : null } : null; }), top = Math.max(1, ...mv.filter(Boolean).map(x => x.a));
+    const bars = ms.map((k, i) => { const v = mv[i], mi = Number(k.slice(5)) - 1; return `<div class="bar" title="${v ? fmtAvg(v.a) + ' players on average' + (v.p != null ? ', ' + v.p + '%' : '') : ''}">${v ? `<span class="p">${fmtAvg(v.a)}</span><div class="b" style="height:${Math.max(3, v.a / top * 135)}px;opacity:${.55 + (v.p || 0) / 220}"></div><span class="t ${cls(v.p)}" style="font-size:11px">${v.p != null ? v.p + '%' : ''}</span>` : '<span class="p m">–</span>'}<span class="t">${ms.length > 6 ? MON[mi][0] : MON[mi]}</span></div>`; }).join('');
+    h += `<div class="two"><div class="card"><h3>Average players per session, by month<small>${t.byCode ? t.byCode + ' sessions only · ' : ''}% of players invited below</small></h3>${t.trn_inv + t.m_inv ? `<div class="bars">${bars}</div>` : '<div class="empty">No sessions in this period.</div>'}</div>
+     <div class="card"><h3>Players to check in with<small>last 4 weeks</small></h3><div class="check"><div><b>${t.not_attended.length}</b><span>players not at anything</span></div><div><b>${t.not_replied.length}</b><span>players who haven’t replied</span></div></div>
+      ${t.not_attended.length || t.not_replied.length ? `<button class="more" onclick="this.style.display='none';$('names').style.display='block'">Show names</button><div class="names" id="names" style="display:none">${t.not_attended.length ? `<b>Not at anything:</b> ${t.not_attended.map(esc).join(', ')}<br>` : ''}${t.not_replied.length ? `<b>No replies:</b> ${t.not_replied.map(esc).join(', ')}` : ''}</div>` : ''}</div></div>`;
+  } else {
+    h += `<div class="kpis">${wdlKpi(res)}${kpi('Games played', res.n, res.u ? res.u + ' with no score kept' : 'all scored')}</div>
+      <div class="att"><span>This side isn’t on CoachSmart, so there’s no attendance. Results come from the league fixtures.</span></div>`;
+  }
+  h += `<div class="two"><div class="card"><h3>Sides and competitions</h3>${sides.length ? sides.map(s => { const x = wdl(Object.values(s.comps).flat()); return `<div class="side-row"><div><div class="sn"><span class="dot" style="background:var(--${s.code})"></span>${CN[s.code]}${s.div != null && multi(s.code) ? ' ' + s.letter : ''} <small>${s.div != null ? esc(s.label) : 'Other'}</small></div><div style="margin-top:8px;display:flex">${wbar(x)}</div></div><div class="comps">${Object.entries(s.comps).map(([q, g]) => { const y = wdl(g), p = positions(r).find(x => x.comp === q); return `<div class="clk" onclick="openComp(${cref(r, q)})"><span>${esc(shortComp(q))}${p ? ` <em>${ordinal(p.pos)}/${p.n}</em>` : ''}</span><b>${y.w + y.d + y.l ? y.w + '-' + y.d + '-' + y.l : y.n + ' played'}</b></div>`; }).join('')}</div></div>`; }).join('') : '<div class="empty">No league games in this period.</div>'}</div>
+   <div class="card"><h3>Recent results</h3>${recent(gs)}</div></div>${tablesCard(r, c)}`;
+  return h;
+}
+function recent(gs, withTeam) {
+  const scored = gs.filter(g => g.up != null && g.tp != null);
+  const list = (scored.length ? scored : gs).slice(0, 12);
+  if (!list.length) return '<div class="empty">No games in this period.</div>';
+  return list.map(g => {
+    const has = g.up != null && g.tp != null, diff = has ? g.up - g.tp : 0;
+    return `<div class="gm"><span class="d">${g.d.getDate()} ${MON[g.d.getMonth()]}</span><span class="dot" style="background:var(--${g.code})"></span><span>v ${esc(g.opp)}${rChip(g)}<br><span class="c">${withTeam ? esc(g.age) + ' · ' : ''}${esc(shortComp(g.comp))}</span></span><span class="s ${has ? diff > 0 ? 'g' : diff < 0 ? 'r' : '' : 'm'}">${has ? esc(g.us) + ' : ' + esc(g.them) : 'No score'}</span><span class="mg">${has ? diff > 0 ? 'Won by ' + diff : diff < 0 ? 'Lost by ' + -diff : 'Draw' : ''}</span></div>`;
+  }).join('');
+}
+
+// ── Routing ───────────────────────────────────────────────────────
+function selection() { const p = new URLSearchParams(location.hash.slice(1)); return { g: p.get('g'), c: p.get('c'), t: p.get('t') }; }
+function render() {
+  if (!model) return;
+  CREF = [];
+  const sel = selection();
+  if (sel.t && !model.rows.some(r => r.key === sel.t)) sel.t = null;
+  if (sel.g && !GNAME[sel.g]) sel.g = null;
+  const body = period === 'week' ? weekView(sel) : sel.t ? teamView(sel) : sel.g && sel.c ? codeView(sel) : sel.g ? groupView(sel) : clubView(sel);
+  const y = document.querySelector('.side')?.scrollTop || 0;
+  $('app').innerHTML = shell(sel, body);
+  const s = document.querySelector('.side'); if (s) s.scrollTop = y;
+  const on = document.querySelector('.side .nav.on'); if (on && !y && on.offsetTop > s.clientHeight - 60) s.scrollTop = on.offsetTop - 120;
+}
+function route() { render(); window.scrollTo(0, 0); }
+window.addEventListener('hashchange', route);
+
+boot();
+</script>
+</body>
+</html>
